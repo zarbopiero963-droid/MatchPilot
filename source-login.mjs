@@ -15,7 +15,7 @@ async function capture(page,pool,id,section){
  return data;
 }
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-small-batches-v3';
+ const runId='source-mapping-2026-10-02-small-batches-v4';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -23,7 +23,7 @@ export async function testSourceLogin(pool){
  if(!claimed.rowCount){console.log('SOURCE_MAP_BATCH_DONE already_recorded');return;}
  let stage='start',browser,page;const completed=[];let outcome='complete';
  try{
-  const groups=[['Asian Odds','Monitorate','Ladder Dutching'],['Statistiche Lega','Archivio'],['Live','Analisi']];
+  const groups=[['Monitorate'],['Ladder Dutching'],['Archivio'],['Live'],['Analisi'],['Statistiche Lega']];
   for(const group of groups){
    stage='login';
    browser=await chromium.launch({headless:true});
