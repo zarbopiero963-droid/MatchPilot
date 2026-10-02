@@ -1,3 +1,4 @@
+import { testSourceLogin } from './source-login.mjs';
 import http from 'node:http';
 import {timingSafeEqual} from 'node:crypto';
 import pg from 'pg';
@@ -39,3 +40,5 @@ async function verifyConfiguration(){
  console.log('CONFIG_SOURCE_LOGIN untested');
 }
 verifyConfiguration().catch(()=>console.log('CONFIG_CHECK failed'));
+
+if(process.env.SOURCE_LOGIN_TEST==='once'){testSourceLogin(pool).catch(()=>console.log('SOURCE_LOGIN_TEST storage_failed'));}
