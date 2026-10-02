@@ -21,7 +21,7 @@ Gli snapshot dei riavvii ora hanno namespace separati per tentativo; il propriet
 | Live | card/tabella, menu campionato/punteggio/tempo/strategie, gol esatti zero/vuoto, nove slider min/max, 16 punteggi HT, mercati 1X2/O-U/BTTS/risultato, STATS+, Gol+/Gol++ e proiezione CS | disponibilità dei pannelli dipende dalle partite; nessun ciclo completo dall'inizio alla fine |
 | Analisi | singolare/fiducia alta, contenuti acquisiti dopo fine caricamento | non certificati tutti i match e gli esiti |
 | Lay Goleada Favorito | pagina e Legend, stato senza candidati | stato con candidati non incontrato |
-| Backtest Storico | campionati, quote, minuto, gol, risultati, prossima rete, tempi, mercati, profitto e canvas equity | salvataggio/richiamo delle strategie backtest non testato |
+| Backtest Storico | campionati, quote, minuto, gol, risultati, prossima rete, tempi, mercati, profitto e canvas equity | cinque salvataggi, richiamo, reload, limite sesta e cancellazione QA verificati; reset/limite giornaliero dei calcoli non esauriti |
 | Asian Odds | intera pagina e colonne, filtri Live/Non iniziate/Tutte, ricerche lega/squadra, Legend | quote bookmaker, non prezzi exchange |
 | Monitorate | pagina, istruzioni e stato vuoto | aggiunta/rimozione preferiti non testata |
 | Ladder Dutching | quota 5, importo 10, commissione 5, azzeramento quote | discrepanza sul significato dell'obiettivo netto, sotto |
@@ -48,7 +48,7 @@ Gli snapshot dei riavvii ora hanno namespace separati per tentativo; il propriet
 | CLASSIFICA | risultati, gol, punti, forma; varianti Generale/Casa/Trasferta cliccate |
 
 ## Backtest e verifica economica
-Due esecuzioni esplicite con guard distinti, massimo un tentativo ciascuno. Stesso scenario: 60', 1-1; quota 1 [1.5,2], X [3,5], 2 [3,5], tutti i campionati. Campione restituito: 2324 casi su 17929 candidati. Il secondo risultato mostra **3 backtest rimasti oggi**.
+Prime due esecuzioni economiche esplicite con guard distinti, massimo un tentativo ciascuno. Stesso scenario: 60', 1-1; quota 1 [1.5,2], X [3,5], 2 [3,5], tutti i campionati. Campione restituito: 2324 casi su 17929 candidati. Il secondo risultato mostra **3 backtest rimasti oggi**; la successiva terza esecuzione, richiesta dal salvataggio delle strategie, mostra **2 rimasti oggi**.
 I 13 mercati disponibili sono stati calcolati sia Punta sia Banca: 26 casi, quota 3, importo 10, commissione 5%. Tutti i 26 output sono stati riconciliati indipendentemente su conteggi, profitto netto, rischio totale e ROI arrotondato.
 Esempio risultato invariato: BACK 804 vinte/1520 perse, profitto +76 EUR, rischio cumulato 23240 EUR; LAY 1520 vinte/804 perse, profitto -1640 EUR, rischio cumulato 46480 EUR.
 Il campo importo è lo stake di bancata; la responsabilità è stake × (quota − 1). Il rischio cumulato storico non equivale all'esposizione contemporanea.
