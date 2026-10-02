@@ -425,6 +425,38 @@ async function testFinalNavigation(page,pool,runId,section){
  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-tests',JSON.stringify({section:section+': final navigation results',results})]);
 }
 
+
+async function inspectControlMap(page,pool,runId,section){
+ async function inventory(suffix){
+  const controls=await bounded(page.evaluate(()=>{
+   const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)&&getComputedStyle(e).visibility!=='hidden';
+   const candidate=e=>['BUTTON','A','SUMMARY'].includes(e.tagName)||['button','tab'].includes(e.getAttribute('role'))||e.hasAttribute('onclick')||([...e.attributes].some(a=>a.name.startsWith('data-')&&!a.name.startsWith('data-matchpilot'))&&getComputedStyle(e).cursor==='pointer');
+   return {controls:[...document.querySelectorAll('body *')].filter(e=>visible(e)&&candidate(e)).map(e=>({tag:e.tagName,id:e.id,label:(e.innerText||e.getAttribute('aria-label')||e.title||'').trim().slice(0,200),title:e.title,role:e.getAttribute('role'),disabled:!!e.disabled,attributes:[...e.attributes].filter(a=>a.name.startsWith('data-')&&!a.name.startsWith('data-matchpilot')&&!/token|secret|password|auth/i.test(a.name)).map(a=>[a.name,a.value]),link:e.tagName==='A'?(()=>{try{const u=new URL(e.href);return u.origin+u.pathname}catch{return ''}})():undefined})),dates:[...document.querySelectorAll('input[type="date"]')].map(e=>({id:e.id,type:e.type,visible:visible(e),value:e.value})),dialogs:[...document.querySelectorAll('[role="dialog"],dialog')].filter(visible).map(e=>e.innerText.slice(0,1000))};
+  }));
+  for(const c of controls.controls){c.label=redact(c.label);c.title=redact(c.title);if(c.link)c.link=redact(c.link);}
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-map-'+suffix,JSON.stringify({section:section+': control map '+suffix,...controls})]);
+  await capture(page,pool,runId+'-'+section+'-text-'+suffix,section+': '+suffix);
+ }
+ await inventory('initial');
+ if(section==='Dashboard'){
+  const analysis=page.locator('button').filter({hasText:/^🧠?\s*Analisi\s*▾?$/i}).filter({visible:true}).first();
+  if(await analysis.count()){await analysis.click();await inventory('analysis-dropdown');await page.keyboard.press('Escape');}
+  await clickObserved(page,'02 OTT 2026');await inventory('calendar');await page.keyboard.press('Escape');
+ }
+ if(section==='Live'){
+  await page.getByRole('button',{name:/Tabella/}).filter({visible:true}).first().click();await inventory('table');
+  await page.getByRole('button',{name:/Card/}).filter({visible:true}).first().click();await inventory('card');
+  for(const [key,re] of [['scores',/Scores/],['time',/Time\s*▾?/],['league',/Tutti i campionati/],['strategy',/Le mie strategie/]]){
+   const b=page.getByRole('button',{name:re}).filter({visible:true}).first();
+   if(await b.count()){await b.click();await inventory(key);await b.click().catch(()=>{});}
+  }
+ }
+ if(section==='Asian Odds'){
+  const extra=page.getByRole('button',{name:/^altre/i}).filter({visible:true}).first();
+  if(await extra.count()){await extra.click();await inventory('other-lines');await page.keyboard.press('Escape');}
+ }
+}
+
 async function clickObserved(page,label) {
  const text=label.replace(/\s+/g,' ').trim();
  await page.waitForFunction(target=>[...document.querySelectorAll('button,[role="button"],[role="tab"],[onclick],summary')].some(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
@@ -436,7 +468,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v28';
+ const runId='source-mapping-2026-10-02-qa-v29';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -451,7 +483,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Dashboard','Palinsesto','Archivio','Live','Backtest Storico']];
+  const groups=[['Dashboard','Live','Asian Odds','Palinsesto','Archivio']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
@@ -512,7 +544,7 @@ export async function testSourceLogin(pool){
      if(!selected)throw new Error('Requested detail tab did not remain selected');
     }
     await captureScrolled(page,pool,snapshotRunId+'-'+section,section);
-    await testFinalNavigation(page,pool,snapshotRunId,section);
+    await inspectControlMap(page,pool,snapshotRunId,section);
     completed.push(section);
     await pool.query("UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({status:'running',restartCount,stage,completed,failed,owner,leaseUntil:Date.now()+60000}),owner]);
     if(section==='Live'){
