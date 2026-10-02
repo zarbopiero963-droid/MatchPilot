@@ -219,20 +219,20 @@ async function testSavedStrategies(page,pool,runId,section){
   catch(e){results.push({name,status:'failed',message:redact(e.message).slice(0,240)});}
   await capture(page,pool,runId+'-'+section+'-save-'+results.length,section+': '+name);
  }
- const prefix='QA MP v24 ';
+ const prefix='QA MP v25 ';
  const ownText=()=>page.locator('body').innerText();
  const live=section==='Live';
  const open=async()=>{
   await clickObserved(page,section);await page.waitForTimeout(3000);
-  if(live&&!await page.locator('#lav-golcasa').isVisible())await page.getByRole('button',{name:'⚙️ Filtri avanzati',exact:true}).click();
+  if(live&&!await page.locator('#lav-golcasa').isVisible())await page.locator('[data-live-advtoggle]').filter({visible:true}).click();
  };
  await open();
  const baseline=await ownText();
  if(live?!/LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(baseline):!baseline.includes('Nessuna strategia salvata.')){
   results.push({name:'Preservare strategie esistenti',status:'blocked',reason:'Initial list not empty'});
  }else{
-  const guard='source-saved-limits-2026-10-02-v24-'+section;
-  let pendingName='',dialogs=[];
+  const guard='source-saved-limits-2026-10-02-v25-'+section;
+  let pendingName='',dialogs=[],deletingName='';
   const claim=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[guard,JSON.stringify({status:'claimed',maxSaveAttempts:6,backtestExecutions:0})]);
   if(claim.rowCount){
    const save=async name=>{
@@ -254,20 +254,20 @@ async function testSavedStrategies(page,pool,runId,section){
     }
     await page.waitForTimeout(500);
    };
-   page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.type()==='prompt'&&/nome|strategia/i.test(d.message())?d.accept(pendingName):d.dismiss();});
+   page.removeAllListeners('dialog');page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.type()==='prompt'&&/nome|strategia/i.test(d.message())?d.accept(pendingName):d.type()==='confirm'&&deletingName.startsWith(prefix)&&/elimin|strategia/i.test(d.message())?d.accept():d.dismiss();});
    const field=live?'lav-golcasa':'btMinute';
    if(!live){
-    const ticket=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',['source-backtest-test-2026-10-02-03',JSON.stringify({status:'claimed',maximumExecutions:1,reason:'Saved strategies require completed backtest'})]);
-    if(!ticket.rowCount)throw new Error('Third backtest already attempted; no retry');
+    const ticket=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',['source-backtest-test-2026-10-02-04',JSON.stringify({status:'claimed',maximumExecutions:1,reason:'Saved strategies require completed backtest'})]);
+    if(!ticket.rowCount)throw new Error('Fourth backtest already attempted; no retry');
     for(const [id,value] of Object.entries({btO1min:'1.5',btO1max:'2',btOXmin:'3',btOXmax:'5',btO2min:'3',btO2max:'5',btMinute:'60',btGolH:'1',btGolA:'1'}))await page.locator('#'+id).fill(value);
     await page.locator('#btRunBtn').click();
     await page.waitForFunction(()=>/partite trovate|nessuna partita trovata/i.test(document.body.innerText),{},{timeout:60000});
-    await capture(page,pool,runId+'-third-backtest','Backtest: prerequisito salvataggio');
-    await pool.query("UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1",['source-backtest-test-2026-10-02-03',JSON.stringify({status:'observed',attempted:1})]);
+    await capture(page,pool,runId+'-fourth-backtest','Backtest: prerequisito salvataggio');
+    await pool.query("UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1",['source-backtest-test-2026-10-02-04',JSON.stringify({status:'observed',attempted:1})]);
    }else await page.locator('#'+field).fill('2');
    for(let i=1;i<=5;i++)await check('Salva '+i+' di 5',async()=>{
     await save(prefix+section+' '+i);
-    if(!(await ownText()).includes(prefix+section+' '+i))throw new Error('Saved name absent');
+    await page.getByText(prefix+section+' '+i,{exact:true}).filter({visible:true}).first().waitFor({state:'visible',timeout:5000});
    });
    await check('Sesta strategia rifiutata',async()=>{
     const names=await ownText();
@@ -326,7 +326,39 @@ async function testSavedStrategies(page,pool,runId,section){
    await open();
   });
  }
- await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-tests',JSON.stringify({section:section+': saved strategy test results',results})]);
+ 
+ if(live){
+  for(const module of ['Backtest Storico','Live']){
+   await clickObserved(page,module);await page.waitForTimeout(1500);
+   if(module==='Live'&&!await page.locator('#lav-golcasa').isVisible())await page.locator('[data-live-advtoggle]').filter({visible:true}).click();
+   for(let i=1;i<=5;i++)await check('Elimina solo QA '+module+' '+i,async()=>{
+    const name=prefix+module+' '+i;
+    const leaf=page.getByText(name,{exact:true}).filter({visible:true});
+    if(await leaf.count()!==1)throw new Error('Own QA row not unique');
+    const row=leaf.locator('..').locator('..');
+    const target=row.getByText('✕',{exact:true}).filter({visible:true});
+    if(await target.count()!==1)throw new Error('Own QA delete control not unique');
+    page.removeAllListeners('dialog');
+    page.on('dialog',d=>d.type()==='confirm'&&/elimin|strategia/i.test(d.message())?d.accept():d.dismiss());
+    await target.click();
+    await leaf.waitFor({state:'hidden',timeout:5000});
+   });
+  }
+  await check('Pulizia persistente dopo reload',async()=>{
+   await page.reload({waitUntil:'domcontentloaded',timeout:30000});await page.waitForTimeout(10000);
+   if(await page.locator('#loginEmail').isVisible()){
+    await page.locator('#loginEmail').fill(process.env.GOAT_USERNAME);await page.locator('#loginPassword').fill(process.env.GOAT_PASSWORD);
+    await page.locator('#loginSubmitBtn').click();await page.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});await page.waitForTimeout(8000);
+   }
+   for(const module of ['Backtest Storico','Live']){
+    await clickObserved(page,module);await page.waitForTimeout(2000);
+    if(module==='Live'&&!await page.locator('#lav-golcasa').isVisible())await page.locator('[data-live-advtoggle]').filter({visible:true}).click();
+    if((await ownText()).includes(prefix))throw new Error('QA entry remains');
+   }
+  });
+ }
+
+await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-tests',JSON.stringify({section:section+': saved strategy test results',results})]);
 }
 
 async function clickObserved(page,label) {
@@ -340,7 +372,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v24';
+ const runId='source-mapping-2026-10-02-qa-v25';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -420,7 +452,7 @@ export async function testSourceLogin(pool){
     completed.push(section);
     await pool.query("UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({status:'running',restartCount,stage,completed,failed,owner,leaseUntil:Date.now()+60000}),owner]);
     if(section==='Live'){
-     if(!await page.locator('#lav-golcasa').isVisible())await page.getByRole('button',{name:'⚙️ Filtri avanzati',exact:true}).click();
+     if(!await page.locator('#lav-golcasa').isVisible())await page.locator('[data-live-advtoggle]').filter({visible:true}).click();
      await page.waitForTimeout(500);
      await capture(page,pool,snapshotRunId+'-live-filters','Live: filtri avanzati');
     }
