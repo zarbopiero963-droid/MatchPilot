@@ -15,7 +15,7 @@ async function capture(page,pool,id,section){
  return data;
 }
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-small-batches-v2';
+ const runId='source-mapping-2026-10-02-small-batches-v3';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -28,7 +28,8 @@ export async function testSourceLogin(pool){
    stage='login';
    browser=await chromium.launch({headless:true});
 
-   const portal=await browser.newPage();
+   const context=await browser.newContext();
+   const portal=await context.newPage();
    portal.setDefaultTimeout(15000);
    stage='portal_navigation';
    await portal.goto('https://goatbettingexchange.com/portale',{waitUntil:'domcontentloaded',timeout:30000});
