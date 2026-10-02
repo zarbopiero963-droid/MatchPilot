@@ -1,3 +1,5 @@
+> **Aggiornamento issue #2 — 2 ottobre2026 23:08 UTC /3 ottobre01:08 Europe/Rome:** 4/15 criteri conclusi (3 PASSED,1 NON DISPONIBILE);11 aperti. [Registro corrente dei test reali](issue-2-qa-progress-2026-10-02.md). L'issue resta aperta e non chiudibile. Le sezioni sottostanti conservano inventario e risultati storici; per i residui H2H/logout/manuale e i nuovi test fa fede il registro aggiornato. 315 controlli censiti non equivalgono a315 certificati. Il run completato non equivale a un criterio superato.
+
 # Mappa pulsanti e certificazione per scenario — 2 ottobre 2026
 
 ## Ambito ed esito
