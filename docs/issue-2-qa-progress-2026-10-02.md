@@ -101,3 +101,8 @@ Run `source-mapping-2026-10-03-issue2-qa10-v73` terminato2026-10-02T23:08:00Z (0
 - `source-mapping-2026-10-03-issue2-qa10-v73-attempt-1790982204353-a63lm3pb01r-QA10-Archivio`: portrait scrollTop0/0, landscape74/74.
 
 Eccezione scroll: nel Backtest portrait `main.scrollTop` è rimasto0 rispetto al fondo738; questa vista non ha raggiunto il fondo nel gesto eseguito. Landscape995/995 verificato. Non dichiarare copertura completa dello scroll mobile su tutte le pagine.
+
+
+## QA-05 revisit v74 — 03 ottobre01:31 Rome
+
+Singolo punto richiesto dall'owner. Journal `source-mapping-2026-10-03-issue2-qa05-v74-attempt-1790983719316-pliip90mft-QA05`: squadre/quote verificate, dettaglio realmente aperto/chiuso, duplicato unico, malformato conserva partita, cleanup/reload `cleaned:true`. Lega inserita non visibile in scheda/dettaglio; non prova cancellazione interna. Formato manuale ufficiale senza campo orario; ramo SNAI con lega/ora ancora da verificare. Esito PARTIAL, conteggio invariato4/15, nessun altro caso avviato.
