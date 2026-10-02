@@ -140,3 +140,44 @@ RATING ora contiene tre livelli e PI1 tre valori diversi: precedenti campioni in
 POSS non è monotono rispetto al massimo possesso: ▼55,53,85; ▲55,53,85 dopo ND. Le coppie45/55,47/53,15/85 hanno tutte somma100: un comparatore della somma spiegherebbe la mancata inversione, ma è soltanto un'ipotesi, non codice verificato. Serve chiarire criterio previsto/correggere fonte. QA-06 resta PARTIAL e checkbox aperta:15header coerenti sui valori noti non equivalgono a certificazione completa di tutti i16.
 
 Mi fermo qui; nessun QA-07 o altro punto avviato.
+
+
+## QA-07 revisit v76
+
+QA-07 — unico punto eseguito su richiesta owner; mi fermo e attendo conferma prima del successivo.
+
+Run v76, commit `27cfc00429e7289e5f284c5648435c76105abe95`, concluso2026-10-02T23:46:32Z /03ottobre01:46 Europe/Rome. Journal Neon `source-mapping-2026-10-03-issue2-qa07-v76-attempt-1790984698621-eidajxemlic-QA07`. Campione iniziale 4 partite reali. Tutti i gesti ordinari: input testuali e tastiera Home/End/ArrowRight per gli slider, clic HT e reset. Nessuna modifica degli stati via JavaScript.
+
+**21 scenari eseguiti**:10 confronti indipendenti PASSED sugli insiemi di squadre,10 combinazioni min/max OBSERVED,1 selezione HT multipla OBSERVED.
+
+|Scenario|Esito|Righe prima→dopo|
+|---|---|---|
+|Zero score means0-0|passed|4→2|
+|Blank goals wildcard|passed|4→4|
+|Impossible home15 empty|passed|4→0|
+|Minute0-60 inclusive|passed|4→3|
+|Prematch home2.4-2.5 inclusive|passed|4→1|
+|Prematch home exact2.45 represented by slider2.4-2.5|passed|4→0|
+|Shots total0-4 inclusive|passed|4→1|
+|Shots min4 boundary inclusive|passed|4→3|
+|Gol+ minimum80|passed|4→2|
+|Gol++ minimum60|passed|4→1|
+|Crossed bounds gol1|observed|4→0|
+|Crossed bounds gol2|observed|4→0|
+|Crossed bounds tiri|observed|4→0|
+|Crossed bounds tirit|observed|4→0|
+|Crossed bounds corner|observed|4→0|
+|Crossed bounds poss|observed|4→0|
+|Crossed bounds q1|observed|4→0|
+|Crossed bounds qx|observed|4→0|
+|Crossed bounds q2|observed|4→0|
+|Crossed bounds minuto|observed|4→0|
+|HT multiple0-0 and1-1|observed|4→2|
+
+Zero casa+ospite seleziona0-0; vuoto è wildcard. Filtri minuto0–60,quota1 tra2.4–2.5 e combinazione con0-0 riconciliati rispetto alle celle catturate prima del gesto. Tiri totali=max4/min4 e Gol+min80/Gol++min60 verificati sul campione; le verifiche inclusività restano limitate ai valori effettivamente presenti, non a tutte le soglie teoriche. I missing non diventano statistiche reali pari a zero solo perché la UI le presenta come tali.
+
+Incrocio dei10range: dopo min=End e max=Home, la UI riporta max allo stesso valore del min(100/100,20/20,40/40,15/15,120/120 secondo campo); non rimane un intervallo invertito. Tutti producono0 righe sul campione. HT0-0 e1-1 cliccati entrambi,2 righe osservate: membership rispetto al risultato HT sottostante ancora da verificare.
+
+Reset conclusivo: `resetFieldsEqual:true`, tutti i valori/min/max/step degli input tornano identici allo stato iniziale. Nessuna strategia salvata o ordine reale.
+
+**QA-07 resta PARTIAL**: residui matrice campionato+tempo+punteggio+statistiche, favorito/perdente, preferiti e membership HT multiplo, oltre alle soglie non rappresentate e semantica dei dati mancanti. Non spuntata la checkbox e nessun QA successivo avviato.
