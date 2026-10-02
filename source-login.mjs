@@ -461,25 +461,24 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- const evidence={section:'QA-13 chronological equity',status:'partial',simulation:{fixedOdds:3,stake:10,commission:5},results:[]};
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA13',JSON.stringify(evidence)]);
- evidence.before=redact(await page.locator('body').innerText()).slice(-6000);
- const guard='source-backtest-test-2026-10-02-04';
- const ticket=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[guard,JSON.stringify({status:'claimed',maximumExecutions:1,reason:'QA13 chronological equity; not quota saturation'})]);
- if(!ticket.rowCount){evidence.status='blocked';evidence.reason='Execution ticket already claimed; no retry';await save();return;}
- for(const [id,value] of Object.entries({btO1min:'1.5',btO1max:'2',btOXmin:'3',btOXmax:'5',btO2min:'3',btO2max:'5',btMinute:'60',btGolH:'1',btGolA:'1'}))await page.locator('#'+id).fill(value);
- await page.locator('#btRunBtn').click();await page.waitForTimeout(30000);
- evidence.afterBacktest=redact(await page.locator('body').innerText()).slice(-16000);await save();
- await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1',[guard,JSON.stringify({status:'observed',attempted:1})]);
- if(!await page.locator('#btStratMarket').isVisible()){evidence.status='blocked';evidence.reason='Backtest result/strategy calculation unavailable';await save();return;}
- evidence.markets=await page.locator('#btStratMarket option').evaluateAll(es=>es.map(e=>({value:e.value,label:e.textContent})));
- for(const fee of ['0','5']){
-  await page.locator('#btStratSide').selectOption({label:'Punta'});await page.locator('#btStratQuota').fill('3');await page.locator('#btStratImporto').fill('10');await page.locator('#btStratCommissione').fill(fee);await page.locator('#btStratCalcBtn').click();await page.waitForTimeout(1500);
-  const charts=await page.locator('canvas').filter({visible:true}).evaluateAll(es=>es.map(e=>({width:e.width,height:e.height,chart:(typeof Chart!=='undefined'&&Chart.getChart)?(()=>{const c=Chart.getChart(e);return c?{labels:c.data.labels,datasets:c.data.datasets.map(d=>({label:d.label,data:d.data}))}:null})():null})));
-  evidence.results.push({fee,text:redact(await page.locator('body').innerText()).slice(-9000),charts});await save();
+ if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
+
+ const evidence={section:'QA-14 '+section,status:'partial',readings:[]};
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA14-'+section,JSON.stringify(evidence)]);
+ const read=async label=>{const text=redact(await page.locator('body').innerText());evidence.readings.push({label,text,keywords:text.split('\n').filter(l=>/Gol\+|GOL\+|QE|Quota Equa|quota equa|commission|campione/i.test(l))});await save();};
+ await read('Initial '+section);
+ if(section==='Live'){
+  await page.locator('[data-live-view="card"]').filter({visible:true}).click();await page.waitForTimeout(1000);await read('Live card');
+  await page.locator('[data-live-advtoggle]').filter({visible:true}).click();await page.waitForTimeout(3000);await read('Live filter descriptions');
+  const goal=page.locator('[data-live-goaldetail]').filter({visible:true}).first();if(await goal.count()){await goal.click();await page.waitForTimeout(2000);await read('Goal detail real match');await page.keyboard.press('Escape');}
  }
- evidence.reason='Chronological dates, per-operation outcome/PnL, commission and drawdown require independent reconciliation of an exposed full sequence; fixed quote simulation is not actual historical execution.';await save();
+ if(section==='Dashboard'){
+  const detail=page.locator('[data-open-detail],button[data-detail]').filter({visible:true}).first();await detail.click();await page.waitForTimeout(3000);await read('Prematch detail QE');
+  const legend=page.getByRole('button',{name:/legend/i}).filter({visible:true});if(await legend.count()===1){await legend.click();await page.waitForTimeout(1000);await read('Detail Legend');await page.keyboard.press('Escape');}
+ }
+ evidence.reason='Reconcile source Guide/Legend/filter/detail definitions; unresolved ambiguity cannot be converted into a certified formula.';await save();
 }
+
 async function clickObserved(page,label) {
  const text=label.replace(/\s+/g,' ').trim();
  await page.waitForFunction(target=>[...document.querySelectorAll('button,[role="button"],[role="tab"],[onclick],summary')].some(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
@@ -491,7 +490,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa13-v62';
+ const runId='source-mapping-2026-10-03-issue2-qa14-v63';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -506,7 +505,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Backtest Storico']];
+  const groups=[['Palinsesto','Guida','Live','Dashboard']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
