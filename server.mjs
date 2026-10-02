@@ -23,3 +23,19 @@ res.end(`<!doctype html><html lang="it"><meta name="viewport" content="width=dev
 });
 server.listen(Number(process.env.PORT||3000),'0.0.0.0');
 process.on('SIGTERM',()=>server.close(async()=>{if(pool)await pool.end();process.exit(0)}));
+
+async function verifyConfiguration(){
+ const required=['DATABASE_URL','GOAT_USERNAME','GOAT_PASSWORD','APP_USERNAME','APP_PASSWORD','OPENROUTER_API_KEY','OPENROUTER_MODEL','NODE_ENV'];
+ const presence=Object.fromEntries(required.map(k=>[k,Boolean(process.env[k]?.trim())]));
+ console.log('CONFIG_PRESENCE '+JSON.stringify(presence));
+ console.log('CONFIG_EXPECTATIONS '+JSON.stringify({production:process.env.NODE_ENV==='production',modelMatches:process.env.OPENROUTER_MODEL==='openai/gpt-6.1-sol'}));
+ if(pool){try{await pool.query('SELECT 1');console.log('CONFIG_DATABASE ok')}catch{console.log('CONFIG_DATABASE failed')}}else console.log('CONFIG_DATABASE missing');
+ if(process.env.OPENROUTER_API_KEY){
+  try{
+   const response=await fetch('https://openrouter.ai/api/v1/key',{headers:{Authorization:'Bearer '+process.env.OPENROUTER_API_KEY},signal:AbortSignal.timeout(15000)});
+   console.log('CONFIG_OPENROUTER_KEY '+(response.ok?'accepted':'http_'+response.status));
+  }catch{console.log('CONFIG_OPENROUTER_KEY network_failed')}
+ }else console.log('CONFIG_OPENROUTER_KEY missing');
+ console.log('CONFIG_SOURCE_LOGIN untested');
+}
+verifyConfiguration().catch(()=>console.log('CONFIG_CHECK failed'));
