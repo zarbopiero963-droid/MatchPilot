@@ -477,27 +477,30 @@ async function testMarkedControls(page,pool,runId,section){
   await probe(name+' Conferma',()=>page.getByRole('button',{name:'Conferma',exact:true}).click(),empty);
  }
  if(section==='Palinsesto'){
+  for(let retry=0;retry<12&&!await page.locator('#palTabPandora').isVisible();retry++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}
   await page.locator('#palTabPandora').click();
   const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});
   await probe('Carica elenco prima delle prove',async()=>{await load.click();await page.waitForTimeout(3000);});
  }
  if(section==='Archivio'){
   await close();
-  const old='source-archive-write-test-2026-10-02-01';
+  const old='source-archive-write-test-2026-10-02-02';
+  await page.locator('[data-arch-filter="all"]').click();await page.waitForTimeout(4000);
   const oldGuard=await pool.query('SELECT result FROM matchpilot_test_runs WHERE run_id=$1',[old]);
   const initialText=await page.locator('body').innerText();
   if(oldGuard.rows[0]?.result?.cleanupNeeded){
-   const knownSingle=/OPERAZIONI\s*1\b/i.test(initialText)&&initialText.includes('France vs Italy')&&initialText.includes('⏭ Saltato')&&!initialText.includes('✅ Vinto')&&!initialText.includes('❌ Perso');
-   if(knownSingle)await clearQa('Rimuovi Saltato QA precedente');
+   const knownSingle=/OPERAZIONI\s*2\b/i.test(initialText)&&initialText.includes('Helmond Sport vs Heracles Almelo')&&initialText.includes('Bray Wanderers vs Cobh Ramblers')&&initialText.includes('+€4.75')&&initialText.includes('€-10.00');
+   if(knownSingle)await clearQa('Rimuovi due esiti QA precedenti');
    const cleaned=await empty();
    await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1',[old,JSON.stringify({status:cleaned?'cleaned':'cleanup_needed',cleaned,cleanupNeeded:!cleaned,freshContextEmpty:cleaned})]);
   }
   if(await empty()){
    await page.locator('[data-view="dashboard"]').click();
    const fixtures=await page.locator('article[data-detail]').filter({visible:true}).evaluateAll(es=>es.slice(0,3).map(e=>({id:e.getAttribute('data-detail'),home:e.querySelector('[data-bf-home]')?.getAttribute('data-bf-home'),away:e.querySelector('[data-bf-away]')?.getAttribute('data-bf-away')})));
-   const guard='source-archive-write-test-2026-10-02-02';
+   const guard='source-archive-write-test-2026-10-02-03';
    const reserved=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[guard,JSON.stringify({status:'reserved',initialEmpty:true,fixtures,qaOnly:true})]);
    if(reserved.rowCount&&fixtures.length===3){
+    const dialogs=[];page.removeAllListeners('dialog');page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.type()==='confirm'&&/esito|saltat|registr|sovrascriv|risultat/i.test(d.message())?d.accept():d.dismiss();});
     for(let i=0;i<3;i++){
      await page.locator('[data-view="dashboard"]').click();
      await page.locator('[data-open-detail="'+fixtures[i].id+'"]').click();await page.waitForTimeout(1500);
@@ -511,7 +514,8 @@ async function testMarkedControls(page,pool,runId,section){
      }
      await close();
     }
-    await page.locator('[data-view="archivio"]').click();
+    await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-archive-dialogs',JSON.stringify({section:'Archivio: native dialogues',dialogs})]);
+    await page.locator('[data-view="archivio"]').click();await page.waitForTimeout(4000);
     await inspectControlMap(page,pool,runId,'Archivio: three QA outcomes');
     const text=await page.locator('body').innerText();
     const ownOnly=/OPERAZIONI\s*3\b/i.test(text)&&fixtures.every(f=>text.includes(f.home+' vs '+f.away));
@@ -546,7 +550,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v37';
+ const runId='source-mapping-2026-10-02-qa-v38';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
