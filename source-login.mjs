@@ -1,3 +1,4 @@
+import { validateView } from './source-state.mjs';
 import { parseSnapshot, compareCatalog, parseRoiStrategies } from './source-parser.mjs';
 import { chromium } from 'playwright';
 const redact=text=>{
@@ -13,10 +14,13 @@ function bounded(promise,ms=15000) {
 async function capture(page,pool,id,section){
  const data=await bounded(page.evaluate(()=>{
   const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length);
-  return {detailButtonDiagnostics:[...document.querySelectorAll('button')].filter(e=>['STATS','STATS +','CONSIGLIO'].includes(e.innerText.trim())).map(e=>({label:e.innerText,disabled:e.disabled,onclick:e.getAttribute('onclick'),className:e.className})),activeTabs:[...document.querySelectorAll('button[aria-selected="true"],[role="tab"][aria-selected="true"],button.active')].map(e=>e.innerText),text:document.body.innerText,controls:[...document.querySelectorAll('a,button,[role="button"],[role="tab"]')].filter(visible).map(e=>({tag:e.tagName,label:(e.innerText||e.getAttribute('aria-label')||'').trim(),id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||''})),inputs:[...document.querySelectorAll('input,select,textarea')].filter(visible).map(e=>({tag:e.tagName,type:e.type,id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||e.labels?.[0]?.innerText||'',min:e.getAttribute('min'),max:e.getAttribute('max'),step:e.getAttribute('step'),placeholder:e.getAttribute('placeholder'),options:e.tagName==='SELECT'?[...e.options].map(o=>o.textContent):undefined}))};
+  const authVisible=['heroEmail','loginEmail'].some(id=>{const e=document.getElementById(id);return e&&visible(e);});
+  const loading=/Calcolo analisi in corso|Caricamento dati|Loading data/i.test(document.body.innerText);
+  return {authVisible,loading,detailButtonDiagnostics:[...document.querySelectorAll('button')].filter(e=>['STATS','STATS +','CONSIGLIO'].includes(e.innerText.trim())).map(e=>({label:e.innerText,disabled:e.disabled,onclick:e.getAttribute('onclick'),className:e.className})),activeTabs:[...document.querySelectorAll('button[aria-selected="true"],[role="tab"][aria-selected="true"],button.active')].filter(visible).map(e=>e.innerText),text:document.body.innerText,controls:[...document.querySelectorAll('a,button,[role="button"],[role="tab"]')].filter(visible).map(e=>({tag:e.tagName,label:(e.innerText||e.getAttribute('aria-label')||'').trim(),id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||''})),inputs:[...document.querySelectorAll('input,select,textarea')].filter(visible).map(e=>({tag:e.tagName,type:e.type,id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||e.labels?.[0]?.innerText||'',min:e.getAttribute('min'),max:e.getAttribute('max'),step:e.getAttribute('step'),placeholder:e.getAttribute('placeholder'),options:e.tagName==='SELECT'?[...e.options].map(o=>o.textContent):undefined}))};
  }),15000);
  data.text=redact(data.text);data.controls=data.controls.map(o=>({...o,context:redact(o.context),label:redact(o.label)}));
  data.inputs=data.inputs.map(o=>({...o,context:redact(o.context),placeholder:redact(o.placeholder),options:o.options?.map(redact)}));
+ data.viewValidation=validateView(data,{expectedTab:section.startsWith('Dettaglio: ')?section.slice(11).split(':')[0]:undefined});
  const parsed=parseSnapshot(data,{section});
  const previous=await pool.query("SELECT data FROM matchpilot_source_snapshots WHERE data->>'section'=$1 AND snapshot_id<>$2 ORDER BY captured_at DESC LIMIT 1",[section,id]);
  const changes=compareCatalog(previous.rows[0]?.data,parsed);
@@ -143,6 +147,38 @@ async function testInteractions(page,pool,runId,section) {
   await page.waitForFunction(()=>!document.body.innerText.includes('Calcolo analisi in corso'),{},{timeout:60000}).catch(()=>results.push({name:'Analisi pronta',status:'blocked',reason:'Loading persists'}));
   await captureScrolled(page,pool,runId+'-analysis-ready','Analisi: attesa risultati');
  }
+
+ if(section.startsWith('Dettaglio: ')){
+  const choices={
+   'Dettaglio: STATS +':['5','10','20','Casa / Trasf.','Complessivo','Stessa lega','Tutte','H2H','Race'],
+   'Dettaglio: TIMING DEI GOL':['5','10','20','Overall','Casa/Trasferta'],
+   'Dettaglio: CLASSIFICA':['Casa','Trasferta','Generale']
+  }[section]||[];
+  for(const label of choices){
+   const control=page.getByText(label,{exact:true}).filter({visible:true}).last();
+   if(await control.count())await probe('Filtro '+label,()=>control.click());
+   else results.push({name:'Filtro '+label,status:'blocked',reason:'No visible exact control'});
+  }
+  if(section==="Dettaglio: GESTIONE 75'"){
+   const buttons=page.getByRole('button',{name:/^\d+-\d+ \d+ casi/});
+   const names=await buttons.allTextContents();
+   for(const name of names)await probe('Punteggio '+name,()=>page.getByRole('button',{name,exact:true}).click());
+  }
+  if(section==='Dettaglio: CONSIGLIO'){
+   const quote=page.locator('#qeBetfairInput');
+   if(await quote.isVisible())await probe('Quota manuale 5',()=>quote.fill('5'),()=>quote.inputValue().then(v=>v==='5'));
+  }
+  await captureScrolled(page,pool,runId+'-'+section+'-expanded',section+': filtri');
+ }
+ if(section==='Money Management'){
+  for(const label of ['ANDAMENTO STRATEGIE','GUIDA','TRACKER']){
+   const control=page.getByText(label,{exact:true}).filter({visible:true}).last();
+   if(await control.count())await probe('Tab '+label,()=>control.click());
+   else results.push({name:'Tab '+label,status:'blocked',reason:'No visible exact control'});
+  }
+  await captureScrolled(page,pool,runId+'-money-after-tabs',section+': tab tracker');
+ }
+
  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-tests',JSON.stringify({section:section+': test results',results})]);
 }
 
@@ -157,7 +193,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v15';
+ const runId='source-mapping-2026-10-02-qa-v16';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -171,7 +207,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=['Live','Dashboard','Backtest Storico','Asian Odds','Statistiche Lega','Ladder Dutching','Analisi','Money Management'].map(section=>[section]);
+  const groups=[['Dashboard'],['Dettaglio: STATS +','Dettaglio: TIMING DEI GOL',"Dettaglio: GESTIONE 75'",'Dettaglio: CLASSIFICA','Dettaglio: 📊 ROI','Dettaglio: CONSIGLIO'],['Money Management']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
@@ -212,6 +248,7 @@ export async function testSourceLogin(pool){
     if(section==='Money Management') {
      await page.locator('body').waitFor({state:'visible'});
     } else if(section.startsWith('Dettaglio: ')||section==='ROI Strategie') {
+     if(await page.locator('#closeDetailBtn').isVisible())await page.locator('#closeDetailBtn').click();
      await clickObserved(page,'Dashboard');
      await clickObserved(page,section==='ROI Strategie'?'📊 ROI STR':'DETTAGLIO');
      if(section.startsWith('Dettaglio: ')){
