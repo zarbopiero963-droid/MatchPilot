@@ -4,8 +4,10 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs",
-    "postinstall": "PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium --only-shell"
+    "check": "node --check server.mjs && node --check source-login.mjs && node --check source-parser.mjs && node --check source-state.mjs",
+    "postinstall": "PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium --only-shell",
+    "test": "node --test source-parser.test.mjs source-state.test.mjs",
+    "prestart": "npm run check"
   },
   "dependencies": {
     "pg": "8.16.3",
