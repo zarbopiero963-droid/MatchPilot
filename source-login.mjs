@@ -1,3 +1,4 @@
+import { parseSnapshot, compareCatalog } from './source-parser.mjs';
 import { chromium } from 'playwright';
 const redact=text=>{
  let s=String(text||'');
@@ -10,20 +11,26 @@ async function capture(page,pool,id,section){
   return {text:document.body.innerText,controls:[...document.querySelectorAll('a,button,[role="button"],[role="tab"]')].filter(visible).map(e=>({tag:e.tagName,label:(e.innerText||e.getAttribute('aria-label')||'').trim(),id:e.id})),inputs:[...document.querySelectorAll('input,select,textarea')].filter(visible).map(e=>({tag:e.tagName,type:e.type,id:e.id,min:e.getAttribute('min'),max:e.getAttribute('max'),step:e.getAttribute('step'),placeholder:e.getAttribute('placeholder'),options:e.tagName==='SELECT'?[...e.options].map(o=>o.textContent):undefined}))};
  });
  data.text=redact(data.text);data.controls=data.controls.map(o=>({...o,label:redact(o.label)}));
+ data.inputs=data.inputs.map(o=>({...o,placeholder:redact(o.placeholder),options:o.options?.map(redact)}));
+ const parsed=parseSnapshot(data,{section});
+ const previous=await pool.query("SELECT data FROM matchpilot_source_snapshots WHERE data->>'section'=$1 AND snapshot_id<>$2 ORDER BY captured_at DESC LIMIT 1",[section,id]);
+ const changes=compareCatalog(previous.rows[0]?.data,parsed);
+ Object.assign(data,parsed,{changes});
+ if(!parsed.usable)throw new Error('Snapshot validation failed');
  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[id,JSON.stringify(data)]);
- console.log('SOURCE_MAP_BATCH '+JSON.stringify({section,characters:data.text.length,controls:data.controls,inputs:data.inputs,text:data.text.slice(0,6000)}));
+ console.log('SOURCE_MAP_BATCH '+JSON.stringify({section,characters:data.text.length,controls:data.controls.length,inputs:data.inputs.length,added:changes.added.length,removed:changes.removed.length}));
  return data;
 }
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-small-batches-v5';
+ const runId='source-mapping-2026-10-02-resilient-v6';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
  const claimed=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[runId,JSON.stringify({status:'running'})]);
  if(!claimed.rowCount){console.log('SOURCE_MAP_BATCH_DONE already_recorded');return;}
- let stage='start',browser,page;const completed=[];let outcome='complete';
+ let stage='start',browser,page;const completed=[],failed=[];let outcome='complete';
  try{
-  const groups=[['Monitorate'],['Ladder Dutching'],['Archivio'],['Live'],['Analisi'],['Statistiche Lega']];
+  const groups=[['Ladder Dutching','Archivio','Live','Analisi','Statistiche Lega','Dashboard','Backtest Storico']];
   for(const group of groups){
    stage='login';
    browser=await chromium.launch({headless:true});
@@ -53,10 +60,12 @@ export async function testSourceLogin(pool){
    await page.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});
    for(const section of group){
     stage=section;
+    try {
     await page.getByRole('button',{name:section,exact:true}).click({force:true});
     await page.waitForTimeout(3500);
     await capture(page,pool,runId+'-'+section,section);
     completed.push(section);
+    await pool.query('UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1',[runId,JSON.stringify({status:'running',stage,completed,failed})]);
     if(section==='Live'){
      await page.getByRole('button',{name:'⚙️ Filtri avanzati',exact:true}).click();
      await page.waitForTimeout(500);
@@ -73,12 +82,19 @@ export async function testSourceLogin(pool){
      if(close){await page.getByText(close.label,{exact:true}).filter({visible:true}).first().click();}
      else{await page.keyboard.press('Escape');}
     }
+    } catch(error) {
+      outcome='partial'; failed.push({section,errorType:error.name});
+      console.log('SOURCE_MAP_SECTION_ERROR '+JSON.stringify({section,errorType:error.name}));
+      await capture(page,pool,runId+'-'+section+'-error',section+': diagnostic').catch(()=>{});
+      await page.keyboard.press('Escape').catch(()=>{});
+      await pool.query('UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1',[runId,JSON.stringify({status:'running',stage,completed,failed})]);
+    }
    }
    await browser.close();browser=null;
   }
  }catch(error){outcome='partial';console.log('SOURCE_MAP_ERROR '+JSON.stringify({stage,errorType:error.name,detail:redact(error.message).slice(0,1800)}));if(page&&!page.isClosed())await capture(page,pool,runId+'-error','Error diagnostic').catch(()=>{});}finally{
   if(browser)await browser.close().catch(()=>{});
-  const result={status:outcome,stage,completed};
+  const result={status:outcome,stage,completed,failed};
   await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=$2 WHERE run_id=$1',[runId,JSON.stringify(result)]);
   console.log('SOURCE_MAP_BATCH_DONE '+JSON.stringify(result));
  }
