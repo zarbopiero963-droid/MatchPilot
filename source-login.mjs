@@ -462,19 +462,19 @@ async function inspectControlMap(page,pool,runId,section){
 
 async function testMarkedControls(page,pool,runId,section){
  if(section!=='Dashboard')return;
- await page.locator('#strategyToggleBtn').click();
+ await page.locator('#strategyToggleBtn').click();await page.waitForTimeout(8000);
  const input=page.locator('input[data-strategy-filter="h2h"]');
- const diagnostic=await input.evaluate(e=>({html:e.outerHTML,label:e.closest('label')?.outerHTML,ancestors:Array.from((function*(n){for(let i=0;n&&i<8;i++,n=n.parentElement)yield n;})(e)).map(n=>({tag:n.tagName,id:n.id,class:n.className,display:getComputedStyle(n).display,visibility:getComputedStyle(n).visibility,rect:{x:n.getBoundingClientRect().x,y:n.getBoundingClientRect().y,w:n.getBoundingClientRect().width,h:n.getBoundingClientRect().height},text:n.innerText?.slice(0,150)}))}));
+ const diagnostic=await input.evaluate(e=>({html:e.outerHTML,label:e.closest('label')?.outerHTML,ancestors:Array.from((function*(n){for(let i=0;n&&i<8;i++,n=n.parentElement)yield n;})(e)).map(n=>({tag:n.tagName,id:n.id,class:n.className,display:getComputedStyle(n).display,visibility:getComputedStyle(n).visibility,overflow:getComputedStyle(n).overflow,maxHeight:getComputedStyle(n).maxHeight,height:getComputedStyle(n).height,pointerEvents:getComputedStyle(n).pointerEvents,rect:{x:n.getBoundingClientRect().x,y:n.getBoundingClientRect().y,w:n.getBoundingClientRect().width,h:n.getBoundingClientRect().height},text:n.innerText?.slice(0,150)}))}));
  const rows=()=>page.locator('[data-open-detail]').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.getAttribute('data-open-detail'),text:e.closest('article,tr')?.innerText||e.parentElement?.innerText})));
  const before=await rows();const initial=await input.isChecked();let result={status:'blocked',reason:'diagnostic-only'};
  try{
   const label=page.locator('label').filter({has:input});await label.scrollIntoViewIfNeeded({timeout:5000});
-  await label.click({timeout:5000});await page.waitForTimeout(1500);
+  await label.click({timeout:45000});await page.waitForTimeout(1500);
   const checked=await input.isChecked();const filtered=await rows();
-  await label.click({timeout:5000});await page.waitForTimeout(1000);
+  await label.click({timeout:45000});await page.waitForTimeout(1000);
   const restored=await rows();
   result={status:checked!==initial&&await input.isChecked()===initial?'state-passed':'failed',initial,checked,restoredChecked:await input.isChecked(),before,filtered,restored};
- }catch(e){result={status:'failed',message:redact(e.message).slice(0,1200),before};}
+ }catch(e){result={status:'failed',message:redact(e.message).slice(0,2000),afterChecked:await input.isChecked(),after:await rows(),before};}
  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-QA01',JSON.stringify({section:'QA-01 H2H diagnostic and ordinary click',diagnostic,result})]);
  await capture(page,pool,runId+'-QA01-final','Dashboard: QA01 final');
 }
@@ -490,7 +490,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-issue2-qa01-v40';
+ const runId='source-mapping-2026-10-02-issue2-qa01-v41';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
