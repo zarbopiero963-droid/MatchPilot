@@ -522,7 +522,7 @@ async function testMarkedControls(page,pool,runId,section){
  if(section==='Dashboard'){
   async function closePanels(){
    for(let n=0;n<5;n++){
-    const buttons=page.locator('button[id*="close" i]').filter({visible:true});
+    const buttons=page.locator('button[id*="close" i]').or(page.getByRole('button',{name:/^(✕|×|Chiudi)$/i})).filter({visible:true});
     if(!await buttons.count())break;
     await buttons.last().click();await page.waitForTimeout(250);
    }
@@ -559,7 +559,7 @@ async function testMarkedControls(page,pool,runId,section){
 
  if(section==='Live'){
   async function closePanels(){
-   for(let n=0;n<5;n++){const c=page.locator('button[id*="close" i]').filter({visible:true});if(!await c.count())break;await c.last().click();await page.waitForTimeout(250);}
+   for(let n=0;n<5;n++){const c=page.locator('button[id*="close" i]').or(page.getByRole('button',{name:/^(✕|×|Chiudi)$/i})).filter({visible:true});if(!await c.count())break;await c.last().click();await page.waitForTimeout(250);}
    await page.keyboard.press('Escape');
   }
   for(const attr of ['data-live-timing','data-live-ht','data-live-radar','data-live-goaldetail','data-live-csdetail','data-live-detail','data-live-stats']){
@@ -588,6 +588,42 @@ async function testMarkedControls(page,pool,runId,section){
   }
  }
 
+
+ if(section==='Live'){
+  for(const market of ['1x2','ou','btts','cs']){
+   const b=page.locator('[data-odds-tab="'+market+'"]').filter({visible:true}).first();
+   if(await b.count())await probe('Quote mercato '+market,()=>b.click());
+   else results.push({name:'Quote mercato '+market,status:'blocked',reason:'Market button absent'});
+  }
+  const stats=page.locator('[data-live-stats]').filter({visible:true}).first();
+  if(await stats.count()){
+   await stats.click();await page.waitForTimeout(1200);
+   for(const label of ['5','10','20','Complessivo','Casa / Trasf.','Tutte','Stessa lega','H2H','Race']){
+    const b=page.getByRole('button',{name:label,exact:true}).filter({visible:true}).last();
+    if(await b.count())await probe('Stats+ '+label,()=>b.click());
+    else results.push({name:'Stats+ '+label,status:'blocked',reason:'Button absent'});
+   }
+   await inspectControlMap(page,pool,runId,'Live: Stats+ controls');
+   await captureScrolled(page,pool,runId+'-statsplus-full','Live: Stats+ expanded');
+   await stats.click();
+  }
+  await page.locator('[data-live-view="table"]').click();
+  for(const sort of ['min','ris','rating','xgl','xg','gp1','gp2','pi1','pi2','pi3','cg10','sh','ot','da','cor','pos']){
+   const b=page.locator('[data-live-sort="'+sort+'"]').filter({visible:true});
+   if(await b.count())await probe('Tabella ordina '+sort,()=>b.click());
+  }
+  for(const attr of ['data-live-goaldetail-modal','data-live-csdetail-modal']){
+   const b=page.locator('['+attr+']').filter({visible:true}).first();
+   if(await b.count()){
+    await probe('Tabella '+attr,()=>b.click());await page.waitForTimeout(1000);
+    await inspectControlMap(page,pool,runId,'Live: '+attr);
+    const close=page.locator('button[id*="close" i]').or(page.getByRole('button',{name:/^(✕|×|Chiudi)$/i})).filter({visible:true});
+    if(await close.count())await close.last().click();
+   }
+  }
+  await page.locator('[data-live-view="card"]').click();
+ }
+
  await inspectControlMap(page,pool,runId,section);
  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-marked-tests',JSON.stringify({section:section+': marked control results',results})]);
 }
@@ -603,7 +639,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v32';
+ const runId='source-mapping-2026-10-02-qa-v33';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
