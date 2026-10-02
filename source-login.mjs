@@ -31,7 +31,7 @@ async function capture(page,pool,id,section){
 async function captureScrolled(page,pool,id,section) {
  await capture(page,pool,id+'-initial',section);
  const targets=await bounded(page.evaluate(()=>{
-  const candidates=[document.scrollingElement,...document.querySelectorAll('body *')].filter((e,i,a)=>e&&a.indexOf(e)===i&&e.clientHeight>60&&e.scrollHeight>e.clientHeight+30&&e.getClientRects().length);
+  const candidates=[document.scrollingElement,...document.querySelectorAll('body *')].filter((e,i,a)=>e&&a.indexOf(e)===i&&(e===document.scrollingElement||/auto|scroll/.test(getComputedStyle(e).overflowY))&&e.clientHeight>60&&e.scrollHeight>e.clientHeight+30&&e.getClientRects().length);
   return candidates.map((e,i)=>{e.setAttribute('data-matchpilot-scroll',String(i));return {index:i,height:e.scrollHeight,clientHeight:e.clientHeight,width:e.scrollWidth,clientWidth:e.clientWidth};});
  }));
  const coverage=[];
@@ -52,7 +52,7 @@ async function captureScrolled(page,pool,id,section) {
   coverage.push({...target,steps:steps+1,reachedBottom:end});
  }
  const horizontal=await bounded(page.evaluate(()=>{
-  return [...document.querySelectorAll('body *')].filter(e=>e.clientWidth>60&&e.scrollWidth>e.clientWidth+30&&e.getClientRects().length).map((e,i)=>{
+  return [...document.querySelectorAll('body *')].filter(e=>/auto|scroll/.test(getComputedStyle(e).overflowX)&&e.clientWidth>60&&e.scrollWidth>e.clientWidth+30&&e.getClientRects().length).map((e,i)=>{
    e.scrollLeft=e.scrollWidth;return {index:i,width:e.scrollWidth,clientWidth:e.clientWidth,reachedRight:e.scrollLeft+e.clientWidth>=e.scrollWidth-2};
   });
  }));
