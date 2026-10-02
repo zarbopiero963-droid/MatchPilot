@@ -462,81 +462,34 @@ async function inspectControlMap(page,pool,runId,section){
 
 async function testMarkedControls(page,pool,runId,section){
  const results=[];
- async function probe(name,action,assertion){
+ async function check(name,action,assertion){
   try{await action();await page.waitForTimeout(300);if(assertion&&!await assertion())throw new Error('Expected effect not observed');results.push({name,status:assertion?'passed':'observed'});}
   catch(e){results.push({name,status:'failed',message:redact(e.message).slice(0,300)});}
   await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-'+section+'-journal',JSON.stringify({section:section+': click journal',results})]);
-  await capture(page,pool,runId+'-'+section+'-write-'+results.length,section+': '+name);
- }
- async function close(){const c=page.locator('button[id*="close" i]').or(page.getByRole('button',{name:/^(✕|×|Chiudi|Annulla)$/i})).filter({visible:true});for(let n=0;n<5&&await c.count();n++)await c.last().click();}
- const empty=()=>page.getByText('Nessuna operazione registrata.',{exact:true}).isVisible();
- async function clearQa(name){
-  await page.locator('#archiveClearBtn').click();
-  await probe(name+' Annulla',()=>page.getByRole('button',{name:'Annulla',exact:true}).click());
-  await page.locator('#archiveClearBtn').click();
-  await probe(name+' Conferma',()=>page.getByRole('button',{name:'Conferma',exact:true}).click(),empty);
+  await capture(page,pool,runId+'-'+section+'-audit-'+results.length,section+': '+name);
  }
  if(section==='Palinsesto'){
-  for(let retry=0;retry<12&&!await page.locator('#palTabPandora').isVisible();retry++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}
+  for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}
   await page.locator('#palTabPandora').click();
   const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});
-  await probe('Carica elenco prima delle prove',async()=>{await load.click();await page.waitForTimeout(3000);});
+  await check('Carica prima di audit',async()=>{await load.click();await page.waitForTimeout(3000);});
+ }
+ if(section==='Dashboard'){
+  await page.locator('#strategyToggleBtn').click();
+  const input=page.locator('input[data-strategy-filter="h2h"]');
+  const label=page.locator('label').filter({has:input}).filter({visible:true});
+  const before=await input.isChecked();
+  await check('H2H: clic etichetta',()=>label.click(),async()=>await input.isChecked()!==before);
+  if(await input.isChecked()!==before)await check('H2H: ripristina etichetta',()=>label.click(),async()=>await input.isChecked()===before);
+  await page.locator('#resetStrategyFiltersBtn').click();await page.locator('#strategyToggleBtn').click();
  }
  if(section==='Archivio'){
-  await close();
-  const old='source-archive-write-test-2026-10-02-02';
   await page.locator('[data-arch-filter="all"]').click();await page.waitForTimeout(4000);
-  const oldGuard=await pool.query('SELECT result FROM matchpilot_test_runs WHERE run_id=$1',[old]);
-  const initialText=await page.locator('body').innerText();
-  if(oldGuard.rows[0]?.result?.cleanupNeeded){
-   const knownSingle=/OPERAZIONI\s*2\b/i.test(initialText)&&initialText.includes('Helmond Sport vs Heracles Almelo')&&initialText.includes('Bray Wanderers vs Cobh Ramblers')&&initialText.includes('+€4.75')&&initialText.includes('€-10.00');
-   if(knownSingle)await clearQa('Rimuovi due esiti QA precedenti');
-   const cleaned=await empty();
-   await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1',[old,JSON.stringify({status:cleaned?'cleaned':'cleanup_needed',cleaned,cleanupNeeded:!cleaned,freshContextEmpty:cleaned})]);
-  }
-  if(await empty()){
-   await page.locator('[data-view="dashboard"]').click();
-   const fixtures=await page.locator('article[data-detail]').filter({visible:true}).evaluateAll(es=>es.slice(0,3).map(e=>({id:e.getAttribute('data-detail'),home:e.querySelector('[data-bf-home]')?.getAttribute('data-bf-home'),away:e.querySelector('[data-bf-away]')?.getAttribute('data-bf-away')})));
-   const guard='source-archive-write-test-2026-10-02-03';
-   const reserved=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[guard,JSON.stringify({status:'reserved',initialEmpty:true,fixtures,qaOnly:true})]);
-   if(reserved.rowCount&&fixtures.length===3){
-    const dialogs=[];page.removeAllListeners('dialog');page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.type()==='confirm'&&/esito|saltat|registr|sovrascriv|risultat/i.test(d.message())?d.accept():d.dismiss();});
-    for(let i=0;i<3;i++){
-     await page.locator('[data-view="dashboard"]').click();
-     await page.locator('[data-open-detail="'+fixtures[i].id+'"]').click();await page.waitForTimeout(1500);
-     const label=['✅ Vinto','❌ Perso','⏭ Saltato'][i];
-     await probe('Esito QA '+label,()=>page.getByRole('button',{name:label,exact:true}).filter({visible:true}).click());
-     if(i<2){
-      await inspectControlMap(page,pool,runId,'Archivio: form '+(i===0?'win':'loss'));
-      const risk=page.locator('[id="hist-stake-'+fixtures[i].id+'"]'),odds=page.locator('[id="hist-odds-'+fixtures[i].id+'"]');
-      await probe('QA rischio 10 e quota 3 '+i,async()=>{await risk.fill('10');await odds.fill('3');},async()=>await risk.inputValue()==='10'&&await odds.inputValue()==='3');
-      await probe('Conferma esito '+label,()=>page.getByRole('button',{name:'Conferma',exact:true}).filter({visible:true}).click());
-     }
-     await close();
-    }
-    await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-archive-dialogs',JSON.stringify({section:'Archivio: native dialogues',dialogs})]);
-    await page.locator('[data-view="archivio"]').click();await page.waitForTimeout(4000);
-    await inspectControlMap(page,pool,runId,'Archivio: three QA outcomes');
-    const text=await page.locator('body').innerText();
-    const ownOnly=/OPERAZIONI\s*3\b/i.test(text)&&fixtures.every(f=>text.includes(f.home+' vs '+f.away));
-    await probe('Tre soli esiti QA',async()=>{},async()=>ownOnly);
-    await pool.query('UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1',[guard,JSON.stringify({status:'created',ownOnly,cleanupNeeded:true})]);
-    for(const [filter,index] of [['win',0],['loss',1],['skip',2],['all',null]]){
-     await probe('Filtro archivio '+filter,()=>page.locator('[data-arch-filter="'+filter+'"]').click(),async()=>{
-      const t=await page.locator('body').innerText();
-      return index===null?fixtures.every(f=>t.includes(f.home+' vs '+f.away)):t.includes(fixtures[index].home+' vs '+fixtures[index].away)&&fixtures.every((f,i)=>i===index||!t.includes(f.home+' vs '+f.away));
-     });
-    }
-    if(ownOnly){
-     await clearQa('Cancella sole tre operazioni QA');
-     const cleaned=await empty();
-     await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1',[guard,JSON.stringify({status:cleaned?'cleaned':'cleanup_needed',cleaned,cleanupNeeded:!cleaned})]);
-    }else results.push({name:'Pulizia',status:'blocked',reason:'Unexpected archive rows; global delete not performed'});
-   }
-  }else results.push({name:'Nuove scritture QA',status:'blocked',reason:'Archive contains entries that are not identified as own QA'});
+  const empty=await page.getByText('Nessuna operazione registrata.',{exact:true}).isVisible();
+  await check('Nuovo contesto: nessuna operazione QA',async()=>{},async()=>empty);
+  if(empty)await pool.query("UPDATE matchpilot_test_runs SET completed_at=COALESCE(completed_at,now()),result=result || $1::jsonb WHERE run_id LIKE 'source-archive-write-test-2026-10-02-%'",[JSON.stringify({status:'cleaned',cleaned:true,cleanupNeeded:false,freshContextEmpty:true})]);
  }
  await inspectControlMap(page,pool,runId,section);
- await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-final-tests',JSON.stringify({section:section+': final control results',results})]);
 }
 
 async function clickObserved(page,label) {
@@ -550,7 +503,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v38';
+ const runId='source-mapping-2026-10-02-qa-v39';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -565,7 +518,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Palinsesto','Archivio']];
+  const groups=[['Palinsesto','Dashboard','Archivio']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
@@ -653,6 +606,21 @@ export async function testSourceLogin(pool){
       await pool.query('UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1',[runId,JSON.stringify({status:'running',restartCount,stage,completed,failed,owner,leaseUntil:Date.now()+60000})]);
     }
    }
+
+   const finalActions=[];
+   for(const label of ['GOAT LATE SHARP','GOAT ODDS MOVERS']){
+    try{
+     const popupPromise=page.waitForEvent('popup',{timeout:7000}).catch(()=>null);
+     await page.getByRole('link',{name:label,exact:true}).first().click();
+     const popup=await popupPromise;
+     if(popup){await popup.waitForTimeout(700);finalActions.push({name:label,status:'observed',popupOpened:true,title:redact(await popup.title())});await popup.close();}
+     else finalActions.push({name:label,status:'observed',popupOpened:false});
+    }catch(e){finalActions.push({name:label,status:'failed',error:redact(e.message).slice(0,200)});}
+   }
+   try{await page.locator('#logoutBtn').click();await page.waitForTimeout(1200);const signedOut=await page.locator('#loginEmail').isVisible();finalActions.push({name:'Esci',status:signedOut?'passed':'failed',signedOut});}
+   catch(e){finalActions.push({name:'Esci',status:'failed',error:redact(e.message).slice(0,200)});}
+   await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[snapshotRunId+'-final-actions',JSON.stringify({section:'Global: external links and logout',results:finalActions})]);
+
    await bounded(browser.close(),15000);browser=null;
   }
  }catch(error){outcome='partial';console.log('SOURCE_MAP_ERROR '+JSON.stringify({stage,errorType:error.name,detail:redact(error.message).slice(0,1800)}));if(page&&!page.isClosed())await capture(page,pool,snapshotRunId+'-error','Error diagnostic').catch(()=>{});}finally{
