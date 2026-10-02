@@ -13,7 +13,7 @@ function bounded(promise,ms=15000) {
 async function capture(page,pool,id,section){
  const data=await bounded(page.evaluate(()=>{
   const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length);
-  return {activeTabs:[...document.querySelectorAll('button[aria-selected="true"],[role="tab"][aria-selected="true"],button.active')].map(e=>e.innerText),text:document.body.innerText,controls:[...document.querySelectorAll('a,button,[role="button"],[role="tab"]')].filter(visible).map(e=>({tag:e.tagName,label:(e.innerText||e.getAttribute('aria-label')||'').trim(),id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||''})),inputs:[...document.querySelectorAll('input,select,textarea')].filter(visible).map(e=>({tag:e.tagName,type:e.type,id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||e.labels?.[0]?.innerText||'',min:e.getAttribute('min'),max:e.getAttribute('max'),step:e.getAttribute('step'),placeholder:e.getAttribute('placeholder'),options:e.tagName==='SELECT'?[...e.options].map(o=>o.textContent):undefined}))};
+  return {detailButtonDiagnostics:[...document.querySelectorAll('button')].filter(e=>['STATS','STATS +','CONSIGLIO'].includes(e.innerText.trim())).map(e=>({label:e.innerText,disabled:e.disabled,onclick:e.getAttribute('onclick'),className:e.className})),activeTabs:[...document.querySelectorAll('button[aria-selected="true"],[role="tab"][aria-selected="true"],button.active')].map(e=>e.innerText),text:document.body.innerText,controls:[...document.querySelectorAll('a,button,[role="button"],[role="tab"]')].filter(visible).map(e=>({tag:e.tagName,label:(e.innerText||e.getAttribute('aria-label')||'').trim(),id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||''})),inputs:[...document.querySelectorAll('input,select,textarea')].filter(visible).map(e=>({tag:e.tagName,type:e.type,id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||e.labels?.[0]?.innerText||'',min:e.getAttribute('min'),max:e.getAttribute('max'),step:e.getAttribute('step'),placeholder:e.getAttribute('placeholder'),options:e.tagName==='SELECT'?[...e.options].map(o=>o.textContent):undefined}))};
  }),15000);
  data.text=redact(data.text);data.controls=data.controls.map(o=>({...o,context:redact(o.context),label:redact(o.label)}));
  data.inputs=data.inputs.map(o=>({...o,context:redact(o.context),placeholder:redact(o.placeholder),options:o.options?.map(redact)}));
@@ -71,7 +71,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-full-scroll-v12';
+ const runId='source-mapping-2026-10-02-full-scroll-v13';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -138,9 +138,22 @@ export async function testSourceLogin(pool){
     } else if(section.startsWith('Dettaglio: ')||section==='ROI Strategie') {
      await clickObserved(page,'Dashboard');
      await clickObserved(page,section==='ROI Strategie'?'📊 ROI STR':'DETTAGLIO');
-     if(section.startsWith('Dettaglio: '))await clickObserved(page,section.slice(11));
+     if(section.startsWith('Dettaglio: ')){
+      const tab=section.slice(11);
+      await page.waitForTimeout(8000);
+      for(let attempt=0;attempt<3;attempt++){
+       await clickObserved(page,tab);
+       await page.waitForTimeout(1000);
+       const selected=await bounded(page.evaluate(target=>[...document.querySelectorAll('button.active,button[aria-selected="true"]')].some(e=>e.innerText.trim()===target),tab));
+       if(selected)break;
+      }
+    }
     } else {await clickObserved(page,section);}
     await page.waitForTimeout(3500);
+    if(section.startsWith('Dettaglio: ')){
+     const selected=await bounded(page.evaluate(target=>[...document.querySelectorAll('button.active,button[aria-selected="true"]')].some(e=>e.innerText.trim()===target),section.slice(11)));
+     if(!selected)throw new Error('Requested detail tab did not remain selected');
+    }
     await captureScrolled(page,pool,runId+'-'+section,section);
     completed.push(section);
     await pool.query("UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({status:'running',restartCount,stage,completed,failed,owner,leaseUntil:Date.now()+60000}),owner]);
