@@ -5,11 +5,16 @@ const redact=text=>{
  for(const key of ['GOAT_USERNAME','GOAT_PASSWORD','APP_PASSWORD','OPENROUTER_API_KEY'])if(process.env[key])s=s.split(process.env[key]).join('[REDACTED]');
  return s.replace(/[^\s]+@[^\s]+/g,'[EMAIL]').split(/(\s+)/).map(w=>w.startsWith('http')?'[URL]':w).join('');
 };
+function bounded(promise,ms=15000) {
+ let timer;
+ return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Operation deadline exceeded')),ms);})]).finally(()=>clearTimeout(timer));
+}
+
 async function capture(page,pool,id,section){
- const data=await page.evaluate(()=>{
+ const data=await bounded(page.evaluate(()=>{
   const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length);
   return {text:document.body.innerText,controls:[...document.querySelectorAll('a,button,[role="button"],[role="tab"]')].filter(visible).map(e=>({tag:e.tagName,label:(e.innerText||e.getAttribute('aria-label')||'').trim(),id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||''})),inputs:[...document.querySelectorAll('input,select,textarea')].filter(visible).map(e=>({tag:e.tagName,type:e.type,id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||e.labels?.[0]?.innerText||'',min:e.getAttribute('min'),max:e.getAttribute('max'),step:e.getAttribute('step'),placeholder:e.getAttribute('placeholder'),options:e.tagName==='SELECT'?[...e.options].map(o=>o.textContent):undefined}))};
- });
+ }),15000);
  data.text=redact(data.text);data.controls=data.controls.map(o=>({...o,context:redact(o.context),label:redact(o.label)}));
  data.inputs=data.inputs.map(o=>({...o,context:redact(o.context),placeholder:redact(o.placeholder),options:o.options?.map(redact)}));
  const parsed=parseSnapshot(data,{section});
@@ -25,10 +30,10 @@ async function capture(page,pool,id,section){
 async function clickObserved(page,label) {
  const text=label.replace(/\s+/g,' ').trim();
  await page.waitForFunction(target=>[...document.querySelectorAll('button')].some(e=>(e.innerText||'').replace(/\s+/g,' ').trim()===target&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
- await page.evaluate(target=>{
+ await bounded(page.evaluate(target=>{
   const button=[...document.querySelectorAll('button')].find(e=>(e.innerText||'').replace(/\s+/g,' ').trim()===target&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length));
   if(!button)throw new Error('Known control missing');button.click();
- },text);
+ },text),15000);
 }
 
 export async function testSourceLogin(pool){
@@ -128,11 +133,11 @@ export async function testSourceLogin(pool){
       await pool.query('UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1',[runId,JSON.stringify({status:'running',stage,completed,failed,owner,leaseUntil:Date.now()+60000})]);
     }
    }
-   await browser.close();browser=null;
+   await bounded(browser.close(),15000);browser=null;
   }
  }catch(error){outcome='partial';console.log('SOURCE_MAP_ERROR '+JSON.stringify({stage,errorType:error.name,detail:redact(error.message).slice(0,1800)}));if(page&&!page.isClosed())await capture(page,pool,runId+'-error','Error diagnostic').catch(()=>{});}finally{
   clearInterval(heartbeat);
-  if(browser)await browser.close().catch(()=>{});
+  if(browser)await bounded(browser.close(),15000).catch(()=>{});
   const result={status:outcome,stage,completed,failed};
   await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=$2 WHERE run_id=$1',[runId,JSON.stringify(result)]);
   console.log('SOURCE_MAP_BATCH_DONE '+JSON.stringify(result));
