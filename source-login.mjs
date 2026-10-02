@@ -219,7 +219,7 @@ async function testSavedStrategies(page,pool,runId,section){
   catch(e){results.push({name,status:'failed',message:redact(e.message).slice(0,240)});}
   await capture(page,pool,runId+'-'+section+'-save-'+results.length,section+': '+name);
  }
- const prefix='QA MP v26 ';
+ const prefix='QA MP v27 ';
  const ownText=()=>page.locator('body').innerText();
  const live=section==='Live';
  const open=async()=>{
@@ -227,11 +227,24 @@ async function testSavedStrategies(page,pool,runId,section){
   if(live&&!await page.locator('#lav-golcasa').isVisible())await page.locator('[data-live-advtoggle]').filter({visible:true}).click();
  };
  await open();
+ if(!live){
+  await check('Cinque backtest persistenti da contesto precedente',async()=>{
+   await page.getByText('QA MP v24 Backtest Storico 1',{exact:true}).filter({visible:true}).first().waitFor({state:'visible',timeout:15000});
+   const text=await ownText();
+   if(!Array.from({length:5},(_,i)=>'QA MP v24 Backtest Storico '+(i+1)).every(n=>text.includes(n)))throw new Error('Prior own QA entries incomplete');
+  });
+  await check('Richiamo backtest persistente',async()=>{
+   await page.locator('#btMinute').fill('11');
+   await page.getByText('QA MP v24 Backtest Storico 1',{exact:true}).filter({visible:true}).click();
+   if(await page.locator('#btMinute').inputValue()!=='60')throw new Error('Minute not restored');
+  });
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-tests',JSON.stringify({section:section+': saved strategy test results',results})]);return;
+ }
  const baseline=await ownText();
  if(live?!/LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(baseline):(!(baseline.includes('Nessuna strategia salvata.'))&&(await page.locator('#btSavedList').innerText()).trim()!=='')){
   results.push({name:'Preservare strategie esistenti',status:'blocked',reason:'Initial list not empty'});
  }else{
-  const guard='source-saved-limits-2026-10-02-v26-'+section;
+  const guard='source-saved-limits-2026-10-02-v27-'+section;
   let pendingName='',dialogs=[],deletingName='';
   const claim=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[guard,JSON.stringify({status:'claimed',maxSaveAttempts:6,backtestExecutions:0})]);
   if(claim.rowCount){
@@ -322,9 +335,9 @@ async function testSavedStrategies(page,pool,runId,section){
     if(!Array.from({length:5},(_,i)=>prefix+'Live '+(i+1)).every(n=>now.includes(n)))throw new Error('Five live entries absent');
    }
    await clickObserved(page,'Backtest Storico');
-   await page.getByText(prefix+'Backtest Storico 1',{exact:true}).filter({visible:true}).first().waitFor({state:'visible',timeout:15000});
+   await page.getByText('QA MP v24 Backtest Storico 1',{exact:true}).filter({visible:true}).first().waitFor({state:'visible',timeout:15000});
    const back=await ownText();
-   if(!Array.from({length:5},(_,i)=>prefix+'Backtest Storico '+(i+1)).every(n=>back.includes(n)))throw new Error('Backtest entries lost when live populated');
+   if(!Array.from({length:5},(_,i)=>'QA MP v24 Backtest Storico '+(i+1)).every(n=>back.includes(n)))throw new Error('Backtest entries lost when live populated');
    await open();
   });
  }
@@ -334,7 +347,7 @@ async function testSavedStrategies(page,pool,runId,section){
    await clickObserved(page,module);await page.waitForTimeout(1500);
    if(module==='Live'&&!await page.locator('#lav-golcasa').isVisible())await page.locator('[data-live-advtoggle]').filter({visible:true}).click();
    for(let i=1;i<=5;i++)await check('Elimina solo QA '+module+' '+i,async()=>{
-    const name=prefix+module+' '+i;
+    const name=(module==='Backtest Storico'?'QA MP v24 ':prefix)+module+' '+i;
     const leaf=page.getByText(name,{exact:true}).filter({visible:true});
     if(await leaf.count()!==1)throw new Error('Own QA row not unique');
     const row=leaf.locator('..').locator('..');
@@ -355,7 +368,7 @@ async function testSavedStrategies(page,pool,runId,section){
    for(const module of ['Backtest Storico','Live']){
     await clickObserved(page,module);await page.waitForTimeout(2000);
     if(module==='Live'&&!await page.locator('#lav-golcasa').isVisible())await page.locator('[data-live-advtoggle]').filter({visible:true}).click();
-    if((await ownText()).includes(prefix))throw new Error('QA entry remains');
+    if((await ownText()).includes(prefix)||(module==='Backtest Storico'&&(await ownText()).includes('QA MP v24 Backtest Storico')))throw new Error('QA entry remains');
    }
   });
  }
@@ -374,7 +387,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v26';
+ const runId='source-mapping-2026-10-02-qa-v27';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
