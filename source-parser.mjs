@@ -51,3 +51,30 @@ export function compareCatalog(previous, current) {
   return { added: [...after.values()].filter(item => !before.has(item.key)),
     removed: [...before.values()].filter(item => !after.has(item.key)) };
 }
+// A missing required row invalidates the financial dataset; extra rows are retained as discoveries.
+export function parseRoiStrategies(text) {
+  const rows = new Map(), unknown = [], issues = [];
+  const numeric = value => {
+    const clean=String(value ?? '').trim().replace(/%$/,'').replace(/,/g,'.');
+    return /^[+-]?\d+(\.\d+)?$/.test(clean) && Number.isFinite(Number(clean)) ? Number(clean) : null;
+  };
+  const names=['Casa Punta','Casa Lay','Pareggio Punta','Pareggio Lay','Trasferta Punta','Trasferta Lay'];
+  const header=String(text ?? '').lastIndexOf('SUGGERIMENTO OPERATIVO');
+  if(header<0)return {usable:false,rows:[],unknown,issues:[{code:'missing_roi_table'}]};
+  for(const line of String(text).slice(header).split('\n').slice(1)) {
+    const fields=line.split('\t').map(normalize);
+    if(fields.length<6)continue;
+    if(!names.includes(fields[0])) {unknown.push({label:fields[0]});continue;}
+    const count=numeric(fields[1]), winRate=numeric(fields[2]), roi=numeric(fields[3]);
+    const threshold=fields[4].match(/^([<>])\s*(.+)$/);
+    const price=threshold ? numeric(threshold[2]) : null;
+    const back=fields[0].endsWith('Punta');
+    if(!Number.isInteger(count)||count<1||winRate===null||winRate<0||winRate>100||roi===null||price===null||price<=1||threshold[1] !== (back?'>':'<')) {
+      issues.push({code:'invalid_roi_row',field:fields[0]});continue;
+    }
+    if(rows.has(fields[0])) {issues.push({code:'duplicate_roi_row',field:fields[0]});continue;}
+    rows.set(fields[0],{strategy:fields[0],side:back?'BACK':'LAY',sample:count,winRatePercent:winRate,roiPercent:roi,threshold:{operator:threshold[1],price},reliability:fields[5]});
+  }
+  for(const name of names)if(!rows.has(name))issues.push({code:'missing_roi_row',field:name});
+  return {usable:rows.size===6&&issues.length===0,rows:[...rows.values()],unknown,issues};
+}
