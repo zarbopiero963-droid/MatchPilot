@@ -469,6 +469,15 @@ async function testMarkedControls(page,pool,runId,section){
   const shot=await page.screenshot({fullPage:true,timeout:15000});evidence.views.push({viewport,measurement,scrollBefore,scrollAfter,bottomScreenshotPngBase64:bottomShot.toString('base64'),screenshotPngBase64:shot.toString('base64'),text:redact(await page.locator('body').innerText()).slice(0,12000)});
   await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA10-'+section,JSON.stringify(evidence)]);
  }
+ if(section==='Live'||section==='Dashboard'){
+  const button=page.locator(section==='Live'?'[data-live-detail]':'[data-open-detail],button[data-detail]').filter({visible:true}).first();
+  try{await button.scrollIntoViewIfNeeded({timeout:10000});evidence.detailRect=await button.boundingBox();await button.tap({timeout:10000});await page.waitForTimeout(2000);evidence.detailOpened=await page.locator('#closeDetailBtn').isVisible();evidence.detailScreenshotPngBase64=(await page.screenshot({timeout:15000})).toString('base64');if(evidence.detailOpened)await page.locator('#closeDetailBtn').tap();}
+  catch(e){evidence.detailError=redact(e.message).slice(0,1000);}
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA10-'+section,JSON.stringify(evidence)]);
+ }
+
+
+
 }
 async function clickObserved(page,label) {
  if(['Dashboard','Palinsesto','Live','Analisi','Lay Goleada Favorito','Backtest Storico','Asian Odds','Monitorate','Ladder Dutching','Statistiche Lega','Guida','Archivio'].includes(label)&&await page.locator('#mobileMenuBtn').isVisible()){const nav=page.getByRole('button',{name:label,exact:true});const box=await nav.boundingBox();if(box&&box.x<0){await page.locator('#mobileMenuBtn').tap();await page.waitForTimeout(500);}}
@@ -482,7 +491,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa10-v71';
+ const runId='source-mapping-2026-10-03-issue2-qa10-v73';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -596,12 +605,3 @@ export async function testSourceLogin(pool){
   console.log('SOURCE_MAP_BATCH_DONE '+JSON.stringify(result));
  }
 }
-
- if(section==='Live'||section==='Dashboard'){
-  const button=page.locator(section==='Live'?'[data-live-detail]':'[data-open-detail],button[data-detail]').filter({visible:true}).first();
-  try{await button.scrollIntoViewIfNeeded({timeout:10000});evidence.detailRect=await button.boundingBox();await button.tap({timeout:10000});await page.waitForTimeout(2000);evidence.detailOpened=await page.locator('#closeDetailBtn').isVisible();evidence.detailScreenshotPngBase64=(await page.screenshot({timeout:15000})).toString('base64');if(evidence.detailOpened)await page.locator('#closeDetailBtn').tap();}
-  catch(e){evidence.detailError=redact(e.message).slice(0,1000);}
-  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA10-'+section,JSON.stringify(evidence)]);
- }
-
-
