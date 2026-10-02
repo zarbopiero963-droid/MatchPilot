@@ -463,15 +463,19 @@ async function inspectControlMap(page,pool,runId,section){
 async function testMarkedControls(page,pool,runId,section){
  if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
 
- const evidence={section:'QA-11 actual sound controls',status:'partial',results:[],network:[],audiblePlaybackVerified:false};
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA11',JSON.stringify(evidence)]);
- page.on('response',r=>{if(/audio|mpeg|ogg|wav/i.test(r.headers()['content-type']||''))evidence.network.push({status:r.status(),contentType:r.headers()['content-type'],host:new URL(r.url()).hostname});});
- const media=()=>page.locator('audio,video').evaluateAll(es=>es.map(e=>({tag:e.tagName,paused:e.paused,muted:e.muted,currentTime:e.currentTime,duration:Number.isFinite(e.duration)?e.duration:null,readyState:e.readyState,error:e.error?.code||null})));
- evidence.before=await media();
- const toggle=page.locator('[data-live-toggle="sound"]').filter({visible:true});evidence.initialClass=await toggle.getAttribute('class');await toggle.click();await page.waitForTimeout(1000);evidence.afterToggleClass=await toggle.getAttribute('class');
- const picker=page.locator('[data-live-soundpick]').filter({visible:true});evidence.options=await picker.locator('option').evaluateAll(es=>es.map(e=>({value:e.value,label:e.textContent})));const initial=await picker.inputValue();
- for(const o of evidence.options){await picker.selectOption(o.value);await page.waitForTimeout(2000);evidence.results.push({selected:await picker.inputValue(),media:await media()});await save();}
- await picker.selectOption(initial);await toggle.click();evidence.finalClass=await toggle.getAttribute('class');evidence.after=await media();evidence.reason='Control changes do not alone prove audible playback; no fake match events used.';await save();
+ const evidence={section:'QA-12 real radar iframe',status:'partial',results:[]};
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA12',JSON.stringify(evidence)]);
+ await page.locator('[data-live-view="card"]').filter({visible:true}).click();
+ const controls=page.locator('[data-live-radar]').filter({visible:true});evidence.available=await controls.count();
+ for(let i=0;i<Math.min(evidence.available,2);i++){
+  const control=controls.nth(i);const matchId=await control.getAttribute('data-live-radar');await control.click();await page.waitForTimeout(20000);
+  const frames=[];for(const frame of page.frames()){if(frame===page.mainFrame())continue;let text,error;try{text=redact(await frame.locator('body').innerText({timeout:5000})).slice(0,2500);}catch(e){error=redact(e.message).slice(0,500);}let host;try{host=new URL(frame.url()).hostname;}catch{}frames.push({host,text,error});}
+  const frameElements=await page.locator('iframe').evaluateAll(es=>es.map(e=>({title:e.title,visible:e.getClientRects().length>0,width:e.clientWidth,height:e.clientHeight})));
+  evidence.results.push({matchId,frames,frameElements,mainText:redact(await page.locator('body').innerText()).slice(-7000)});await save();
+  await page.keyboard.press('Escape');await page.waitForTimeout(500);
+  const close=page.getByRole('button',{name:/^(✕|×|Chiudi)$/}).filter({visible:true});if(await close.count()===1)await close.click();
+ }
+ evidence.reason='Iframe load and observed contents recorded; loaded/error/empty and scrolling require separate verified outcomes';await save();
 }
 
 async function clickObserved(page,label) {
@@ -485,7 +489,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa11-v59';
+ const runId='source-mapping-2026-10-03-issue2-qa12-v61';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -508,7 +512,7 @@ export async function testSourceLogin(pool){
    browser=await bounded(chromium.launch({headless:true}),45000);
 
    const context=await bounded(browser.newContext(),15000);
-   await context.route('**/*',route=>['image','font'].includes(route.request().resourceType())?route.abort():route.continue());
+   await context.route('**/*',route=>['media'].includes(route.request().resourceType())?route.abort():route.continue());
    const portal=await bounded(context.newPage(),15000);
    portal.setDefaultTimeout(15000);
    stage='portal_navigation';
