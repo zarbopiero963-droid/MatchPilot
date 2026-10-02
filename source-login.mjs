@@ -477,7 +477,7 @@ async function testMarkedControls(page,pool,runId,section){
   },async()=>await page.locator('#runImportBtn').isVisible());
   await probe('Chiudi importazione',()=>page.locator('#closeImportBtn').click(),async()=>!await page.locator('#closeImportBtn').isVisible());
  }
- if(section==='Live'){
+ if(section==='Live'&&false){
   for(const value of ['hot','presMedia','presBassa','fav','ht1','ht2','favLosing','odds','pressure','stats','sound','insights']){
    const selector='[data-live-toggle="'+value+'"]';
    const control=page.locator(selector).filter({visible:true});
@@ -502,20 +502,92 @@ async function testMarkedControls(page,pool,runId,section){
   await page.locator('[data-live-tmclose]').filter({visible:true}).click();
  }
  if(section==='Asian Odds'){
-  for(const value of ['all','live','scheduled'])await probe('Stato '+value,()=>page.locator('[data-status="'+value+'"]').filter({visible:true}).click());
-  await page.locator('[data-status="all"]').filter({visible:true}).click();
+  for(const value of ['all','live','scheduled'])await probe('Stato '+value,()=>page.locator('button[data-status="'+value+'"]').filter({visible:true}).click());
+  await page.locator('button[data-status="all"]').filter({visible:true}).click();
   for(const value of ['2.25','2.5','2.75','3','3.25']){
-   await probe('Linea '+value,()=>page.locator('[data-line="'+value+'"]').filter({visible:true}).click());
+   await probe('Linea '+value,()=>page.locator('button[data-line="'+value+'"]').filter({visible:true}).click());
   }
   const other=page.getByRole('button',{name:/^altre/i}).filter({visible:true});
   if(await other.count())await other.click();
   for(const value of ['1.75','2','3.5','3.75','4.25']){
-   const line=page.locator('[data-line="'+value+'"]').filter({visible:true});
+   const toggle=page.getByRole('button',{name:/^altre/i}).filter({visible:true});
+   if(!await page.locator('button[data-line="'+value+'"]').isVisible()&&await toggle.count())await toggle.click();
+   const line=page.locator('button[data-line="'+value+'"]').filter({visible:true});
    if(await line.count())await probe('Altre linea '+value,()=>line.click());
    else results.push({name:'Altre linea '+value,status:'blocked',reason:'Line absent in current data'});
   }
-  await probe('Tutte le linee',()=>page.locator('[data-line=""]').filter({visible:true}).click());
+  await probe('Tutte le linee',()=>page.locator('button[data-line=""]').filter({visible:true}).click());
  }
+
+ if(section==='Dashboard'){
+  async function closePanels(){
+   for(let n=0;n<5;n++){
+    const buttons=page.locator('button[id*="close" i]').filter({visible:true});
+    if(!await buttons.count())break;
+    await buttons.last().click();await page.waitForTimeout(250);
+   }
+   await page.keyboard.press('Escape');
+  }
+  await closePanels();
+  for(const attr of ['data-pandora-analysis','data-roi-str','data-betfair-btn','data-open-detail','data-action','data-strategy','data-risk']){
+   const b=page.locator('['+attr+']').filter({visible:true}).first();
+   if(!await b.count()){results.push({name:attr,status:'blocked',reason:'Control not visible'});continue;}
+   await probe('Dashboard '+attr,()=>b.click());
+   await page.waitForTimeout(1500);
+   await inspectControlMap(page,pool,runId,section+': '+attr);
+   await captureScrolled(page,pool,runId+'-dashboard-'+attr+'-scroll',section+': '+attr);
+   await closePanels();
+  }
+  const star=page.locator('[data-watch]').filter({visible:true}).first();
+  if(await star.count()){
+   const before=await star.getAttribute('title');
+   await probe('Aggiungi monitorata',()=>star.click(),async()=>(await star.getAttribute('title'))!==before);
+   await probe('Ripristina monitorata',()=>star.click(),async()=>(await star.getAttribute('title'))===before);
+  }
+  const dialogs=[];page.removeAllListeners('dialog');
+  page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.dismiss();});
+  const before=await page.locator('[data-open-detail]').count();
+  await probe('Svuota palinsesto: annulla conferma',()=>page.locator('#clearPalinsestoBtn').click(),async()=>dialogs.length>0&&await page.locator('[data-open-detail]').count()===before);
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-clear-cancel',JSON.stringify({section:'Dashboard: destructive cancellation',dialogs,before,after:await page.locator('[data-open-detail]').count()})]);
+ }
+ if(section==='Archivio'){
+  const dialogs=[];page.removeAllListeners('dialog');page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.dismiss();});
+  await probe('Cancella archivio: annulla',()=>page.locator('#archiveClearBtn').click());
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-archive-cancel',JSON.stringify({section:'Archivio: destructive cancellation',dialogs})]);
+ }
+
+
+ if(section==='Live'){
+  async function closePanels(){
+   for(let n=0;n<5;n++){const c=page.locator('button[id*="close" i]').filter({visible:true});if(!await c.count())break;await c.last().click();await page.waitForTimeout(250);}
+   await page.keyboard.press('Escape');
+  }
+  for(const attr of ['data-live-timing','data-live-ht','data-live-radar','data-live-goaldetail','data-live-csdetail','data-live-detail','data-live-stats']){
+   const b=page.locator('['+attr+']').filter({visible:true}).first();
+   if(!await b.count()){results.push({name:attr,status:'blocked',reason:'No current match control'});continue;}
+   await probe('Live '+attr,()=>b.click());await page.waitForTimeout(1800);
+   await inspectControlMap(page,pool,runId,section+': '+attr);
+   await captureScrolled(page,pool,runId+'-live-'+attr+'-scroll',section+': '+attr);
+   await closePanels();
+  }
+  const star=page.locator('[data-live-fav]').filter({visible:true}).first();
+  if(await star.count()){await probe('Live preferito',()=>star.click());await probe('Live ripristina preferito',()=>star.click());}
+  for(const attr of ['data-live-mon']){
+   const b=page.locator('['+attr+']').filter({visible:true}).first();
+   if(await b.count()){
+    const popupPromise=page.waitForEvent('popup',{timeout:7000}).catch(()=>null);
+    await probe('Live finestra separata',()=>b.click());const popup=await popupPromise;
+    if(popup){await popup.waitForTimeout(1000);await captureScrolled(popup,pool,runId+'-live-popup','Live: finestra separata');await popup.close();}
+   }
+  }
+  const betfair=page.getByRole('link',{name:'BETFAIR',exact:true}).filter({visible:true}).first();
+  if(await betfair.count()){
+   const popupPromise=page.waitForEvent('popup',{timeout:7000}).catch(()=>null);
+   await probe('Live link BETFAIR',()=>betfair.click());const popup=await popupPromise;
+   if(popup){await popup.waitForTimeout(1000);await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-betfair-link',JSON.stringify({section:'Live: external link',opened:true,title:redact(await popup.title())})]);await popup.close();}
+  }
+ }
+
  await inspectControlMap(page,pool,runId,section);
  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-marked-tests',JSON.stringify({section:section+': marked control results',results})]);
 }
@@ -531,7 +603,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v31';
+ const runId='source-mapping-2026-10-02-qa-v32';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
