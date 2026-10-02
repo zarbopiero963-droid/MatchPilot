@@ -464,13 +464,14 @@ async function testMarkedControls(page,pool,runId,section){
  const evidence={section:'QA-10 mobile '+section,physicalDevice:false,touchEmulation:true,views:[],status:'partial'};
  for(const viewport of [{width:393,height:852},{width:852,height:393}]){
   await page.setViewportSize(viewport);await page.waitForTimeout(1500);
-  const target=page.getByText(section,{exact:true}).filter({visible:true}).first();await target.tap();await page.waitForTimeout(2000);
+  const target=page.getByRole('button',{name:section,exact:true});const rect=await target.boundingBox();if(rect&&rect.x<0&&await page.locator('#mobileMenuBtn').isVisible()){await page.locator('#mobileMenuBtn').tap();await page.waitForTimeout(500);}await target.tap();await page.waitForTimeout(2000);
   const measurement=await page.evaluate(()=>({width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth,scrollHeight:document.documentElement.scrollHeight,fonts:document.fonts.status,images:[...document.images].map(e=>({loaded:e.complete&&e.naturalWidth>0})),scrollable:[...document.querySelectorAll('body *')].filter(e=>e.scrollHeight>e.clientHeight+5&&['auto','scroll'].includes(getComputedStyle(e).overflowY)).map(e=>({tag:e.tagName,id:e.id,height:e.clientHeight,scrollHeight:e.scrollHeight})),controls:[...document.querySelectorAll('button,[role="button"],[data-view]')].filter(e=>e.getClientRects().length).map(e=>({label:(e.innerText||e.getAttribute('title')||'').slice(0,80),x:e.getBoundingClientRect().x,y:e.getBoundingClientRect().y,width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height}))}));
   const shot=await page.screenshot({fullPage:true,timeout:15000});evidence.views.push({viewport,measurement,screenshotPngBase64:shot.toString('base64'),text:redact(await page.locator('body').innerText()).slice(0,12000)});
   await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA10-'+section,JSON.stringify(evidence)]);
  }
 }
 async function clickObserved(page,label) {
+ if(['Dashboard','Palinsesto','Live','Analisi','Lay Goleada Favorito','Backtest Storico','Asian Odds','Monitorate','Ladder Dutching','Statistiche Lega','Guida','Archivio'].includes(label)&&await page.locator('#mobileMenuBtn').isVisible()){const nav=page.getByRole('button',{name:label,exact:true});const box=await nav.boundingBox();if(box&&box.x<0){await page.locator('#mobileMenuBtn').tap();await page.waitForTimeout(500);}}
  const text=label.replace(/\s+/g,' ').trim();
  await page.waitForFunction(target=>[...document.querySelectorAll('button,[role="button"],[role="tab"],[onclick],summary')].some(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
  await bounded(page.evaluate(target=>{
@@ -481,7 +482,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa10-v58';
+ const runId='source-mapping-2026-10-03-issue2-qa10-v60';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
