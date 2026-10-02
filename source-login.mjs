@@ -461,10 +461,14 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- const evidence={section:'QA-09 daily boundary baseline',status:'blocked',observedAt:new Date().toISOString(),reason:'A real day boundary observation and declared reset timezone are required; no simulated clock or quota exhaustion.'};
- evidence.text=redact(await page.locator('body').innerText()).slice(0,18000);
- evidence.controls=await page.locator('input,select,button').filter({visible:true}).evaluateAll(es=>es.map(e=>({tag:e.tagName,id:e.id,text:(e.innerText||'').slice(0,150),type:e.type,value:e.value})));
- await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA09',JSON.stringify(evidence)]);
+ const evidence={section:'QA-10 mobile '+section,physicalDevice:false,touchEmulation:true,views:[],status:'partial'};
+ for(const viewport of [{width:393,height:852},{width:852,height:393}]){
+  await page.setViewportSize(viewport);await page.waitForTimeout(1500);
+  const target=page.getByText(section,{exact:true}).filter({visible:true}).first();await target.tap();await page.waitForTimeout(2000);
+  const measurement=await page.evaluate(()=>({width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth,scrollHeight:document.documentElement.scrollHeight,fonts:document.fonts.status,images:[...document.images].map(e=>({loaded:e.complete&&e.naturalWidth>0})),scrollable:[...document.querySelectorAll('body *')].filter(e=>e.scrollHeight>e.clientHeight+5&&['auto','scroll'].includes(getComputedStyle(e).overflowY)).map(e=>({tag:e.tagName,id:e.id,height:e.clientHeight,scrollHeight:e.scrollHeight})),controls:[...document.querySelectorAll('button,[role="button"],[data-view]')].filter(e=>e.getClientRects().length).map(e=>({label:(e.innerText||e.getAttribute('title')||'').slice(0,80),x:e.getBoundingClientRect().x,y:e.getBoundingClientRect().y,width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height}))}));
+  const shot=await page.screenshot({fullPage:true,timeout:15000});evidence.views.push({viewport,measurement,screenshotPngBase64:shot.toString('base64'),text:redact(await page.locator('body').innerText()).slice(0,12000)});
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA10-'+section,JSON.stringify(evidence)]);
+ }
 }
 async function clickObserved(page,label) {
  const text=label.replace(/\s+/g,' ').trim();
@@ -477,7 +481,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa09-v57';
+ const runId='source-mapping-2026-10-03-issue2-qa10-v58';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -492,15 +496,15 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Backtest Storico']];
+  const groups=[['Dashboard','Palinsesto','Live','Analisi','Lay Goleada Favorito','Backtest Storico','Asian Odds','Monitorate','Ladder Dutching','Statistiche Lega','Guida','Archivio']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
    await pool.query('UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1',[runId,JSON.stringify({stage,completed,failed,restartCount})]);
    browser=await bounded(chromium.launch({headless:true}),45000);
 
-   const context=await bounded(browser.newContext(),15000);
-   await context.route('**/*',route=>['image','media','font'].includes(route.request().resourceType())?route.abort():route.continue());
+   const context=await bounded(browser.newContext({viewport:{width:393,height:852},isMobile:true,hasTouch:true,deviceScaleFactor:1}),15000);
+   // QA10 loads images, fonts and media for genuine visual inspection.
    const portal=await bounded(context.newPage(),15000);
    portal.setDefaultTimeout(15000);
    stage='portal_navigation';
