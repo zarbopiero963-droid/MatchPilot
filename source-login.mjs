@@ -211,6 +211,107 @@ async function testInteractions(page,pool,runId,section) {
  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-tests',JSON.stringify({section:section+': test results',results})]);
 }
 
+
+async function testSavedStrategies(page,pool,runId,section){
+ const results=[];
+ async function check(name,fn){
+  try{await fn();results.push({name,status:'passed'});}
+  catch(e){results.push({name,status:'failed',message:redact(e.message).slice(0,240)});}
+  await capture(page,pool,runId+'-'+section+'-save-'+results.length,section+': '+name);
+ }
+ const prefix='QA MP v22 ';
+ const ownText=()=>page.locator('body').innerText();
+ const live=section==='Live';
+ const open=async()=>{
+  await clickObserved(page,section);
+  if(live&&!await page.locator('#lav-golcasa').isVisible())await clickObserved(page,'⚙️ Filtri avanzati');
+ };
+ await open();
+ const baseline=await ownText();
+ if(live?!/LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(baseline):!baseline.includes('Nessuna strategia salvata.')){
+  results.push({name:'Preservare strategie esistenti',status:'blocked',reason:'Initial list not empty'});
+ }else{
+  const guard='source-saved-limits-2026-10-02-v22-'+section;
+  const claim=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[guard,JSON.stringify({status:'claimed',maxSaveAttempts:6,backtestExecutions:0})]);
+  if(claim.rowCount){
+   const save=async name=>{
+    if(live){
+     await clickObserved(page,'💾 Salva strategia');
+     if(await page.locator('#lavSaveName').isVisible()){
+      await page.locator('#lavSaveName').fill(name);
+      const b=page.getByRole('button',{name:/^salva$/i}).filter({visible:true});
+      if(await b.count()!==1)throw new Error('Ambiguous inline save');
+      await b.click();
+     }
+    }else{
+     await page.locator('#btStratName').fill(name);
+     await page.locator('#btSaveStratBtn').click();
+    }
+    await page.waitForTimeout(500);
+   };
+   page.on('dialog',d=>d.dismiss());
+   const field=live?'lav-golcasa':'btMinute';
+   await page.locator('#'+field).fill(live?'2':'73');
+   for(let i=1;i<=5;i++)await check('Salva '+i+' di 5',async()=>{
+    await save(prefix+section+' '+i);
+    if(!(await ownText()).includes(prefix+section+' '+i))throw new Error('Saved name absent');
+   });
+   await check('Sesta strategia rifiutata',async()=>{
+    const names=await ownText();
+    if(!Array.from({length:5},(_,i)=>prefix+section+' '+(i+1)).every(n=>names.includes(n)))throw new Error('Five entries not established');
+    await save(prefix+section+' 6');
+    const after=await ownText();
+    if(after.includes(prefix+section+' 6'))throw new Error('Sixth entry accepted');
+    if(!Array.from({length:5},(_,i)=>prefix+section+' '+(i+1)).every(n=>after.includes(n)))throw new Error('Existing entry replaced');
+   });
+   await check('Richiamo parametri salvati',async()=>{
+    await page.locator('#'+field).fill(live?'0':'11');
+    await page.getByText(prefix+section+' 1',{exact:true}).filter({visible:true}).click();
+    if(await page.locator('#'+field).inputValue()!==(live?'2':'73'))throw new Error('Saved parameter not restored');
+   });
+   await check('Persistenza cinque dopo reload',async()=>{
+    await page.reload({waitUntil:'domcontentloaded',timeout:30000});
+    if(await page.locator('#loginEmail').isVisible()){
+     await page.locator('#loginEmail').fill(process.env.GOAT_USERNAME);
+     await page.locator('#loginPassword').fill(process.env.GOAT_PASSWORD);
+     await page.locator('#loginSubmitBtn').click();
+     await page.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});
+    }
+    await page.waitForTimeout(5000);await open();
+    const text=await ownText();
+    if(!Array.from({length:5},(_,i)=>prefix+section+' '+(i+1)).every(n=>text.includes(n)))throw new Error('Reload lost entries');
+   });
+   // Inspect only visible row controls belonging to exact own QA names.
+   const diagnostic=await bounded(page.evaluate(prefix=>{
+    const visible=e=>!!e.getClientRects().length&&getComputedStyle(e).visibility!=='hidden';
+    return [...document.querySelectorAll('body *')].filter(e=>visible(e)&&e.children.length===0&&e.textContent.trim().startsWith(prefix)).map(leaf=>{
+     let row=leaf.parentElement;
+     for(let i=0;i<3&&row;i++,row=row.parentElement){
+      const b=[...row.querySelectorAll('button,[role="button"],[onclick]')].filter(visible);
+      if(b.length)return {name:leaf.textContent.trim(),controls:b.map(e=>({tag:e.tagName,label:e.innerText,title:e.title,attributes:[...e.attributes].filter(a=>a.name.startsWith('data-')).map(a=>[a.name,a.value])}))};
+     }return {name:leaf.textContent.trim(),controls:[]};
+    });
+   },prefix+section));
+   await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-delete-controls',JSON.stringify({section:section+': own QA delete controls',diagnostic})]);
+   // Cross-module limits checked before deleting: leave own entries within this disposable context.
+   await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1',[guard,JSON.stringify({status:results.every(r=>r.status==='passed')?'passed':'partial',results,cleanup:'context_disposal_pending'})]);
+  }else results.push({name:'Save guard',status:'blocked',reason:'Already attempted'});
+ }
+ if(live){
+  await check('Limiti indipendenti: cinque backtest e cinque live',async()=>{
+   if(!Array.from({length:5},(_,i)=>prefix+'Live '+(i+1)).every(n=>baseline.includes(n)||(false))) {
+    const now=await ownText();
+    if(!Array.from({length:5},(_,i)=>prefix+'Live '+(i+1)).every(n=>now.includes(n)))throw new Error('Five live entries absent');
+   }
+   await clickObserved(page,'Backtest Storico');
+   const back=await ownText();
+   if(!Array.from({length:5},(_,i)=>prefix+'Backtest Storico '+(i+1)).every(n=>back.includes(n)))throw new Error('Backtest entries lost when live populated');
+   await open();
+  });
+ }
+ await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-tests',JSON.stringify({section:section+': saved strategy test results',results})]);
+}
+
 async function clickObserved(page,label) {
  const text=label.replace(/\s+/g,' ').trim();
  await page.waitForFunction(target=>[...document.querySelectorAll('button,[role="button"],[role="tab"],[onclick],summary')].some(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
@@ -222,7 +323,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v21';
+ const runId='source-mapping-2026-10-02-qa-v22';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -237,7 +338,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Live','Backtest Storico']];
+  const groups=[['Backtest Storico','Live']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
@@ -298,7 +399,7 @@ export async function testSourceLogin(pool){
      if(!selected)throw new Error('Requested detail tab did not remain selected');
     }
     await captureScrolled(page,pool,snapshotRunId+'-'+section,section);
-    await testInteractions(page,pool,snapshotRunId,section);
+    await testSavedStrategies(page,pool,snapshotRunId,section);
     completed.push(section);
     await pool.query("UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({status:'running',restartCount,stage,completed,failed,owner,leaseUntil:Date.now()+60000}),owner]);
     if(section==='Live'){
