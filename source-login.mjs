@@ -219,11 +219,11 @@ async function testSavedStrategies(page,pool,runId,section){
   catch(e){results.push({name,status:'failed',message:redact(e.message).slice(0,240)});}
   await capture(page,pool,runId+'-'+section+'-save-'+results.length,section+': '+name);
  }
- const prefix='QA MP v23 ';
+ const prefix='QA MP v24 ';
  const ownText=()=>page.locator('body').innerText();
  const live=section==='Live';
  const open=async()=>{
-  await clickObserved(page,section);
+  await clickObserved(page,section);await page.waitForTimeout(3000);
   if(live&&!await page.locator('#lav-golcasa').isVisible())await page.getByRole('button',{name:'⚙️ Filtri avanzati',exact:true}).click();
  };
  await open();
@@ -231,14 +231,16 @@ async function testSavedStrategies(page,pool,runId,section){
  if(live?!/LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(baseline):!baseline.includes('Nessuna strategia salvata.')){
   results.push({name:'Preservare strategie esistenti',status:'blocked',reason:'Initial list not empty'});
  }else{
-  const guard='source-saved-limits-2026-10-02-v23-'+section;
+  const guard='source-saved-limits-2026-10-02-v24-'+section;
   let pendingName='',dialogs=[];
   const claim=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[guard,JSON.stringify({status:'claimed',maxSaveAttempts:6,backtestExecutions:0})]);
   if(claim.rowCount){
    const save=async name=>{
     pendingName=name;
     if(live){
-     await clickObserved(page,'💾 Salva strategia');
+     const button=page.getByRole('button',{name:'💾 Salva strategia',exact:true}).filter({visible:true});
+     if(await button.isDisabled())return;
+     await button.click();
      if(await page.locator('#lavSaveName').isVisible()){
       await page.locator('#lavSaveName').fill(name);
       const b=page.getByRole('button',{name:/^salva$/i}).filter({visible:true});
@@ -247,13 +249,22 @@ async function testSavedStrategies(page,pool,runId,section){
      }
     }else{
      await page.locator('#btStratName').fill(name);
+     if(await page.locator('#btSaveStratBtn').isDisabled())return;
      await page.locator('#btSaveStratBtn').click();
     }
     await page.waitForTimeout(500);
    };
    page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.type()==='prompt'&&/nome|strategia/i.test(d.message())?d.accept(pendingName):d.dismiss();});
    const field=live?'lav-golcasa':'btMinute';
-   await page.locator('#'+field).fill(live?'2':'73');
+   if(!live){
+    const ticket=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',['source-backtest-test-2026-10-02-03',JSON.stringify({status:'claimed',maximumExecutions:1,reason:'Saved strategies require completed backtest'})]);
+    if(!ticket.rowCount)throw new Error('Third backtest already attempted; no retry');
+    for(const [id,value] of Object.entries({btO1min:'1.5',btO1max:'2',btOXmin:'3',btOXmax:'5',btO2min:'3',btO2max:'5',btMinute:'60',btGolH:'1',btGolA:'1'}))await page.locator('#'+id).fill(value);
+    await page.locator('#btRunBtn').click();
+    await page.waitForFunction(()=>/partite trovate|nessuna partita trovata/i.test(document.body.innerText),{},{timeout:60000});
+    await capture(page,pool,runId+'-third-backtest','Backtest: prerequisito salvataggio');
+    await pool.query("UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1",['source-backtest-test-2026-10-02-03',JSON.stringify({status:'observed',attempted:1})]);
+   }else await page.locator('#'+field).fill('2');
    for(let i=1;i<=5;i++)await check('Salva '+i+' di 5',async()=>{
     await save(prefix+section+' '+i);
     if(!(await ownText()).includes(prefix+section+' '+i))throw new Error('Saved name absent');
@@ -269,8 +280,12 @@ async function testSavedStrategies(page,pool,runId,section){
    await check('Richiamo parametri salvati',async()=>{
     await page.locator('#'+field).fill(live?'0':'11');
     await page.getByText(prefix+section+' 1',{exact:true}).filter({visible:true}).click();
-    if(await page.locator('#'+field).inputValue()!==(live?'2':'73'))throw new Error('Saved parameter not restored');
+    if(await page.locator('#'+field).inputValue()!==(live?'2':'60'))throw new Error('Saved parameter not restored');
    });
+   const rowStructure=await page.getByText(prefix+section+' 1',{exact:true}).filter({visible:true}).first().evaluate(e=>{
+    const parents=[];for(let i=0;i<4&&e;i++,e=e.parentElement)parents.push({tag:e.tagName,id:e.id,text:e.innerText.slice(0,500),buttons:[...e.querySelectorAll('button,[role="button"],[onclick]')].map(b=>({label:b.innerText,title:b.title,attributes:[...b.attributes].filter(a=>a.name.startsWith('data-')).map(a=>[a.name,a.value])}))});return parents;
+   }).catch(()=>[]);
+   await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-row-structure',JSON.stringify({section:section+': QA row structure',rowStructure})]);
    await check('Persistenza cinque dopo reload',async()=>{
     await page.reload({waitUntil:'domcontentloaded',timeout:30000});
     if(await page.locator('#loginEmail').isVisible()){
@@ -279,7 +294,7 @@ async function testSavedStrategies(page,pool,runId,section){
      await page.locator('#loginSubmitBtn').click();
      await page.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});
     }
-    await page.waitForTimeout(5000);await open();
+    await page.waitForTimeout(10000);await open();
     const text=await ownText();
     if(!Array.from({length:5},(_,i)=>prefix+section+' '+(i+1)).every(n=>text.includes(n)))throw new Error('Reload lost entries');
    });
@@ -325,7 +340,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v23';
+ const runId='source-mapping-2026-10-02-qa-v24';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
