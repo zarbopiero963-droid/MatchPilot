@@ -464,12 +464,12 @@ async function testMarkedControls(page,pool,runId,section){
  if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
 
  const evidence={section:'QA-07 filter combinations',results:[]};
- await page.locator('[data-live-view="table"]').filter({visible:true}).click();await page.locator('[data-live-advtoggle]').filter({visible:true}).click();await page.waitForTimeout(1000);
+ await page.locator('[data-live-view="table"]').filter({visible:true}).click();await page.locator('[data-live-advtoggle]').filter({visible:true}).click();await page.waitForTimeout(8000);
  const rows=()=>page.locator('tbody tr').filter({visible:true}).evaluateAll(es=>es.map(e=>e.innerText));
  const fields=()=>page.locator('input[id^="lav-"]').evaluateAll(es=>es.map(e=>({id:e.id,value:e.value,min:e.min,max:e.max,step:e.step})));
  const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA07',JSON.stringify(evidence)]);
  async function record(name,action,expected){const before=await rows();try{await action();await page.waitForTimeout(500);const after=await rows();const passed=expected?expected(before,after):undefined;evidence.results.push({name,status:passed===undefined?'observed':passed?'passed':'failed',before,after,fields:await fields()});}catch(e){evidence.results.push({name,status:'failed',error:redact(e.message).slice(0,700)});}await save();}
- const reset=()=>page.getByRole('button',{name:'↺ Azzera filtri',exact:true}).filter({visible:true}).click();
+ const reset=()=>page.getByText('↺ Azzera filtri',{exact:true}).filter({visible:true}).click();
  await reset();evidence.initialRows=await rows();evidence.initialFields=await fields();await save();
  await record('Home/away zero against blank',async()=>{await page.locator('#lav-golcasa').fill('0');await page.locator('#lav-golospite').fill('0');});
  await record('Impossible home goal 15 -> no data',()=>page.locator('#lav-golcasa').fill('15'),(_,after)=>after.length===0);
@@ -495,7 +495,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa07-v54';
+ const runId='source-mapping-2026-10-03-issue2-qa07-v56';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
