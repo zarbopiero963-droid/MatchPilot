@@ -457,6 +457,69 @@ async function inspectControlMap(page,pool,runId,section){
  }
 }
 
+
+async function testMarkedControls(page,pool,runId,section){
+ const results=[];
+ async function probe(name,action,assertion){
+  try{await action();await page.waitForTimeout(400);if(assertion&&!await assertion())throw new Error('Expected effect not observed');results.push({name,status:assertion?'passed':'observed'});}
+  catch(e){results.push({name,status:'failed',message:redact(e.message).slice(0,300)});}
+  await capture(page,pool,runId+'-'+section+'-marked-'+results.length,section+': '+name);
+ }
+ if(section==='Palinsesto'){
+  await page.locator('#palTabPandora').click();
+  await probe('Apri palinsesto fonte',async()=>{
+   await page.getByRole('button',{name:/Apri nel Lay Score/}).click();
+   await page.waitForTimeout(3000);
+  });
+  await probe('Analizza palinsesto',async()=>{
+   await page.locator('#analyzeBtn').click();
+   await page.waitForFunction(()=>!document.body.innerText.includes('Calcolo analisi in corso'),{},{timeout:60000});
+   await page.waitForTimeout(8000);
+  },async()=>await page.getByRole('button',{name:/DETTAGLIO/}).filter({visible:true}).count()>0);
+ }
+ if(section==='Live'){
+  for(const value of ['hot','presMedia','presBassa','fav','ht1','ht2','favLosing','odds','pressure','stats','sound','insights']){
+   const selector='[data-live-toggle="'+value+'"]';
+   const control=page.locator(selector).filter({visible:true});
+   const before=await control.getAttribute('class');
+   await probe('Toggle '+value,()=>control.click(),async()=>(await control.getAttribute('class'))!==before);
+   if(await control.count())await control.click();
+  }
+  for(const value of ['card','table'])await probe('Vista '+value,()=>page.locator('[data-live-view="'+value+'"]').click(),async()=>/active|selected|\bon\b/.test((await page.locator('[data-live-view="'+value+'"]').getAttribute('class'))||''));
+  await page.locator('[data-live-view="card"]').click();
+  for(const value of ['grid','list'])await probe('Statistiche '+value,()=>page.locator('[data-live-statview="'+value+'"]').click());
+  for(const label of ['Classico','Oh Yesss!'])await probe('Suono '+label,()=>page.locator('[data-live-soundpick]').selectOption({label}),async()=>(await page.locator('[data-live-soundpick] option:checked').textContent())===label);
+  await page.locator('[data-live-soundpick]').selectOption({label:'Classico'});
+  await page.locator('[data-live-sctoggle]').click();
+  for(const value of ['home','away','draw','0-0','1-0','0-1','1-1','2-0','0-2','2-1','1-2','2-2','3-0','0-3','3-1','1-3','3-2','2-3','3-3']){
+   await probe('Scores '+value,()=>page.locator('[data-live-scoreopt="'+value+'"]').filter({visible:true}).click());
+  }
+  await probe('Scores Select All',()=>page.locator('[data-live-scselall]').filter({visible:true}).click());
+  await probe('Scores Clear',()=>page.locator('[data-live-scclear]').filter({visible:true}).click());
+  await page.locator('[data-live-scclose]').filter({visible:true}).click();
+  await page.locator('[data-live-tmtoggle]').click();
+  await probe('Time Reimposta',()=>page.locator('[data-live-tmreset]').filter({visible:true}).click());
+  await page.locator('[data-live-tmclose]').filter({visible:true}).click();
+ }
+ if(section==='Asian Odds'){
+  for(const value of ['all','live','scheduled'])await probe('Stato '+value,()=>page.locator('[data-status="'+value+'"]').filter({visible:true}).click());
+  await page.locator('[data-status="all"]').filter({visible:true}).click();
+  for(const value of ['2.25','2.5','2.75','3','3.25']){
+   await probe('Linea '+value,()=>page.locator('[data-line="'+value+'"]').filter({visible:true}).click());
+  }
+  const other=page.getByRole('button',{name:/^altre/i}).filter({visible:true});
+  if(await other.count())await other.click();
+  for(const value of ['1.75','2','3.5','3.75','4.25']){
+   const line=page.locator('[data-line="'+value+'"]').filter({visible:true});
+   if(await line.count())await probe('Altre linea '+value,()=>line.click());
+   else results.push({name:'Altre linea '+value,status:'blocked',reason:'Line absent in current data'});
+  }
+  await probe('Tutte le linee',()=>page.locator('[data-line=""]').filter({visible:true}).click());
+ }
+ await inspectControlMap(page,pool,runId,section);
+ await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-marked-tests',JSON.stringify({section:section+': marked control results',results})]);
+}
+
 async function clickObserved(page,label) {
  const text=label.replace(/\s+/g,' ').trim();
  await page.waitForFunction(target=>[...document.querySelectorAll('button,[role="button"],[role="tab"],[onclick],summary')].some(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
@@ -468,7 +531,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v29';
+ const runId='source-mapping-2026-10-02-qa-v30';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -483,7 +546,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Dashboard','Live','Asian Odds','Palinsesto','Archivio']];
+  const groups=[['Palinsesto','Dashboard','Live','Asian Odds','Archivio']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
@@ -544,7 +607,7 @@ export async function testSourceLogin(pool){
      if(!selected)throw new Error('Requested detail tab did not remain selected');
     }
     await captureScrolled(page,pool,snapshotRunId+'-'+section,section);
-    await inspectControlMap(page,pool,snapshotRunId,section);
+    await testMarkedControls(page,pool,snapshotRunId,section);
     completed.push(section);
     await pool.query("UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({status:'running',restartCount,stage,completed,failed,owner,leaseUntil:Date.now()+60000}),owner]);
     if(section==='Live'){
