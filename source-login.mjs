@@ -85,27 +85,6 @@ async function testInteractions(page,pool,runId,section) {
   if(await page.locator('#resetStrategyFiltersBtn').isVisible())await probe('Reset filtri',()=>page.locator('#resetStrategyFiltersBtn').click());
   await probe('Vista tabella',()=>clickObserved(page,'Vista tabella'));
  }
- if(section==='Live'){
-  await probe('Vista tabella',()=>clickObserved(page,'▤ Tabella'));
-  await probe('Vista card',()=>clickObserved(page,'▦ Card'));
-  for(const label of ['Tutti i campionati ▾','🎯 Scores ▾','🕐 Time ▾','⭐ Le mie strategie ▾']){
-   await probe(label,()=>clickObserved(page,label));
-   await page.keyboard.press('Escape');
-  }
-  await probe('Apri filtri',()=>clickObserved(page,'⚙️ Filtri avanzati'),()=>page.locator('#lav-golcasa').isVisible());
-  await probe('Gol casa zero',()=>page.locator('#lav-golcasa').fill('0'),()=>page.locator('#lav-golcasa').inputValue().then(v=>v==='0'));
-  await probe('Gol casa qualsiasi',()=>page.locator('#lav-golcasa').fill(''),()=>page.locator('#lav-golcasa').inputValue().then(v=>v===''));
-  await page.keyboard.press('Escape');
-  await clickObserved(page,'Live');
-  for(const label of ['Dettaglio Gol+ Gol++','Risultato Esatto Live','1X2','O/U','BTTS','Risultato','STATS+']){
-   const exists=await bounded(page.evaluate(label=>[...document.querySelectorAll('button')].some(e=>e.innerText.trim()===label&&e.getClientRects().length),label));
-   if(exists)await probe(label,()=>clickObserved(page,label));
-   else results.push({name:label,status:'blocked',reason:'No visible control for current live state'});
-  }
-  await captureScrolled(page,pool,runId+'-live-expanded','Live: pannelli espansi');
-  await page.waitForTimeout(30000);
-  await capture(page,pool,runId+'-live-followup','Live: successivo aggiornamento');
- }
  if(section==='Backtest Storico'){
   await probe('Ricerca campionato',()=>page.locator('#btLeagueSearch').fill('IRELAND'),s=>s.text.includes('IRELAND'));
   await page.locator('#btLeagueSearch').fill('');
@@ -197,35 +176,17 @@ async function testInteractions(page,pool,runId,section) {
  }
  if(section==='Live'){
   if(!await page.locator('#lav-golcasa').isVisible())await clickObserved(page,'⚙️ Filtri avanzati');
-  const root=await bounded(page.evaluate(()=>{
-   let e=document.getElementById('lav-golcasa');
-   while(e&&e!==document.body){
-    if(e.querySelector('#lav-golospite')&&e.innerText.includes('Salva strategia')){e.setAttribute('data-matchpilot-filter-panel','1');return true;}
-    e=e.parentElement;
-   }
-   return false;
-  }));
-  if(root){
-   const panel=page.locator('[data-matchpilot-filter-panel="1"]');
-   for(const score of ['0-0','0-1','0-2','0-3','1-0','1-1','1-2','1-3','2-0','2-1','2-2','2-3','3-0','3-1','3-2','3-3']){
-    const button=panel.getByRole('button',{name:score,exact:true});
-    if(await button.count()!==1){results.push({name:'HT '+score,status:'blocked',reason:'Ambiguous or missing score control'});continue;}
-    await probe('HT '+score,()=>button.click());
-    await button.click();
-   }
-  }else results.push({name:'HT grid',status:'blocked',reason:'Could not isolate observed filter panel'});
-  await captureScrolled(page,pool,runId+'-ht-grid','Live: risultati intervallo');
   const qaName='QA MatchPilot 2026-10-02';
   const guardId='source-live-strategy-test-2026-10-02-01';
   const sourceText=(await state()).text;
   const emptySlots=/LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(sourceText);
-  const claim=emptySlots?await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[guardId,JSON.stringify({status:'reserved',name:qaName,maximumExecutions:1,attempted:1})]):{rowCount:0};
+  const claim=emptySlots?await pool.query("INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT (run_id) DO UPDATE SET result=matchpilot_test_runs.result || EXCLUDED.result WHERE matchpilot_test_runs.result->>'status'='name_form_observed' AND matchpilot_test_runs.result->>'created'='0' RETURNING run_id",[guardId,JSON.stringify({status:'reserved',name:qaName,maximumExecutions:1,attempted:1})]):{rowCount:0};
   if(claim.rowCount){
    await probe('Salva strategia QA',async()=>{
-    const handler=d=>d.type()==='prompt'&&/nome|strategia/i.test(d.message())?d.accept(qaName):d.dismiss();
-    page.once('dialog',handler);
-    try{await clickObserved(page,'💾 Salva strategia');await page.waitForTimeout(1000);}
-    finally{page.removeListener('dialog',handler);}
+    await clickObserved(page,'💾 Salva strategia');
+    await page.locator('#lavSaveName').fill(qaName);
+    await page.getByRole('button',{name:/^salva$/i}).filter({visible:true}).first().click();
+    await page.waitForTimeout(1000);
    },s=>s.text.includes(qaName));
   }else results.push({name:'Salva strategia QA',status:'blocked',reason:emptySlots?'Attempt already reserved':'Existing strategies preserved'});
   async function refreshLive(){
@@ -287,7 +248,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v19';
+ const runId='source-mapping-2026-10-02-qa-v20';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -302,7 +263,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Money Management'],['Live']];
+  const groups=[['Live']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
