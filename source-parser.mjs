@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-export const PARSER_VERSION = 1;
+export const PARSER_VERSION = 2;
 const normalize = value => String(value ?? '').normalize('NFKC').replace(/\s+/gu, ' ').trim();
 const digest = value => createHash('sha256').update(value).digest('hex');
 // Discovery never invokes a control. New controls remain available for later integration.
@@ -11,16 +11,26 @@ export function parseSnapshot(raw, { section = 'unknown', required = [] } = {}) 
   for (const [key, output] of [['controls', controls], ['inputs', inputs]]) {
     if (!Array.isArray(raw[key])) { issues.push({ code: 'invalid_collection', field: key }); continue; }
     const seen = new Set();
+    const occurrences = new Map();
     for (const item of raw[key]) {
       if (!item || typeof item !== 'object' || Array.isArray(item)) { issues.push({ code: 'invalid_item', field: key }); continue; }
       const label = normalize(item.label);
       const id = normalize(item.id);
       const tag = normalize(item.tag).toUpperCase();
-      const stableKey = digest(JSON.stringify([section, key, tag, id, label, normalize(item.type)]));
+      const context = normalize(item.context);
+      const name = normalize(item.name);
+      const identity = JSON.stringify([section, key, tag, id, name, context, label, normalize(item.type)]);
+      let occurrence = 0;
+      if (!id && !name && !context) {
+        occurrence = occurrences.get(identity) ?? 0;
+        occurrences.set(identity, occurrence + 1);
+        if (occurrence) issues.push({code:'ambiguous_identity',field:key});
+      }
+      const stableKey = digest(identity + ':' + occurrence);
       if (seen.has(stableKey)) continue;
       seen.add(stableKey);
       // Explicit allowlist: never retain input values, passwords or arbitrary new payload fields.
-      output.push({ key: stableKey, id, tag, label, ...(key === 'inputs' ? {
+      output.push({ key: stableKey, id, name, context, tag, label, ...(key === 'inputs' ? {
         type: normalize(item.type), min: normalize(item.min), max: normalize(item.max),
         step: normalize(item.step), placeholder: normalize(item.placeholder),
         options: Array.isArray(item.options) ? item.options.map(normalize) : [],
