@@ -461,30 +461,12 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- if(section!=='Dashboard')return;
- const context=page.context();const moduleUrl=page.url();
- const evidence={section:'QA-02 logout',startedAt:new Date().toISOString(),before:{loginVisible:await page.locator('#loginEmail').isVisible(),logout:await page.locator('#logoutBtn').evaluate(e=>({label:e.innerText,tag:e.tagName,href:e.getAttribute('href'),type:e.type}))},dialogs:[]};
- page.on('dialog',async d=>{evidence.dialogs.push({type:d.type(),message:redact(d.message())});await d.accept();});
- await page.locator('#logoutBtn').click({timeout:15000});
- await page.waitForTimeout(1000);
- if(!page.isClosed()){
-  const visible=await page.locator('button').filter({visible:true}).allTextContents();evidence.afterClickButtons=visible.map(redact);
-  const confirmation=page.getByRole('button',{name:'Conferma',exact:true}).filter({visible:true});
-  if(await confirmation.count()===1){await confirmation.click();evidence.confirmed=true;}
- }
- for(let n=0;n<30&&!page.isClosed()&&!await page.locator('#loginEmail').isVisible();n++)await page.waitForTimeout(1000);
- evidence.closed=page.isClosed();
- if(!evidence.closed){evidence.after={path:new URL(page.url()).pathname,loginVisible:await page.locator('#loginEmail').isVisible(),logoutVisible:await page.locator('#logoutBtn').isVisible(),text:redact(await page.locator('body').innerText()).slice(0,2500)};}
- const probe=await context.newPage();await probe.goto(moduleUrl,{waitUntil:'domcontentloaded',timeout:30000});await probe.waitForTimeout(8000);for(let n=0;n<30&&!probe.isClosed()&&!await probe.locator('#loginEmail').isVisible();n++)await probe.waitForTimeout(1000);
- evidence.protectedRevisit={loginVisible:await probe.locator('#loginEmail').isVisible(),logoutVisible:await probe.locator('#logoutBtn').isVisible(),path:new URL(probe.url()).pathname,title:redact(await probe.title()),text:redact(await probe.locator('body').innerText()).slice(0,3000)};
- const loginPage=evidence.protectedRevisit.loginVisible?probe:page;
- if(!loginPage.isClosed()&&await loginPage.locator('#loginEmail').isVisible()){
-  await loginPage.locator('#loginEmail').fill(process.env.GOAT_USERNAME);await loginPage.locator('#loginPassword').fill(process.env.GOAT_PASSWORD);await loginPage.locator('#loginSubmitBtn').click();
-  await loginPage.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});evidence.reloginPassed=await loginPage.locator('#logoutBtn').isVisible();
- }
- evidence.status=evidence.protectedRevisit.loginVisible&&!evidence.protectedRevisit.logoutVisible&&evidence.reloginPassed?'passed':'failed';
- await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-QA02',JSON.stringify(evidence)]);
- await probe.close();
+ const date=page.getByRole('button',{name:/\\d{2}\\s+(GEN|FEB|MAR|APR|MAG|GIU|LUG|AGO|SET|OTT|NOV|DIC)\\s+\\d{4}/});
+ const read=()=>page.evaluate(()=>({text:document.body.innerText,dates:[...document.querySelectorAll('input[type=date],input[type=datetime-local],[role=dialog],[role=grid]')].map(e=>({tag:e.tagName,id:e.id,role:e.getAttribute('role'),type:e.type,visible:!!e.getClientRects().length,text:e.innerText?.slice(0,600)})),iframes:[...document.querySelectorAll('iframe')].map(e=>({title:e.title,visible:!!e.getClientRects().length})),buttons:[...document.querySelectorAll('button')].filter(e=>!!e.getClientRects().length).map(e=>({id:e.id,label:e.innerText.trim()}))}));
+ const before=await read();const label=await date.innerText();await date.click();await page.waitForTimeout(5000);const after=await read();
+ const evidence={section:'QA-03 data',label,before:{...before,text:redact(before.text)},after:{...after,text:redact(after.text)},frameCount:page.frames().length,calendarObserved:after.dates.some(x=>x.visible&&(/date/.test(x.type)||x.role==='grid')),status:'observed'};
+ await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-QA03',JSON.stringify(evidence)]);
+ await page.keyboard.press('Escape');
 }
 
 async function clickObserved(page,label) {
@@ -498,7 +480,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-issue2-qa02-v43';
+ const runId='source-mapping-2026-10-02-issue2-qa03-v44';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
