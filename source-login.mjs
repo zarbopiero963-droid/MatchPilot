@@ -470,7 +470,7 @@ async function testMarkedControls(page,pool,runId,section){
  for(let i=0;i<Math.min(evidence.available,2);i++){
   const control=controls.nth(i);const matchId=await control.getAttribute('data-live-radar');await control.click();await page.waitForTimeout(500);evidence.earlyText=redact(await page.locator('body').innerText()).slice(-3500);await page.waitForTimeout(19500);
   const frames=[];for(const frame of page.frames()){if(frame===page.mainFrame())continue;let text,error;try{text=redact(await frame.locator('body').innerText({timeout:5000})).slice(0,2500);}catch(e){error=redact(e.message).slice(0,500);}let host;try{host=new URL(frame.url()).hostname;}catch{}frames.push({host,text,error});}
-  const pages=[];for(const p of page.context().pages()){if(p===page)continue;const host=new URL(p.url()).hostname;if(host==='goatbettingexchange.com')continue;let text,error;try{text=redact(await p.locator('body').innerText({timeout:5000})).slice(0,5000);}catch(e){error=redact(e.message).slice(0,500);}pages.push({host,title:await p.title().catch(()=>''),text,error,iframeCount:await p.locator('iframe').count()});}const frameElements=await page.locator('iframe').evaluateAll(es=>es.map(e=>({title:e.title,visible:e.getClientRects().length>0,width:e.clientWidth,height:e.clientHeight})));
+  const pages=[];for(const p of page.context().pages()){if(p===page)continue;const host=new URL(p.url()).hostname;if(host==='goatbettingexchange.com')continue;let text,error;try{text=redact(await p.locator('body').innerText({timeout:5000})).slice(0,5000);}catch(e){error=redact(e.message).slice(0,500);}const childFrames=[];for(const f of p.frames()){if(f===p.mainFrame())continue;let ft,fe;try{ft=redact(await f.locator('body').innerText({timeout:5000})).slice(0,5000);}catch(e){fe=redact(e.message).slice(0,500);}let fh;try{fh=new URL(f.url()).hostname;}catch{}childFrames.push({host:fh,text:ft,error:fe});}pages.push({host,title:await p.title().catch(()=>''),text,error,childFrames,iframeCount:await p.locator('iframe').count(),screenshotPngBase64:(await p.screenshot({timeout:15000})).toString('base64')});}const frameElements=await page.locator('iframe').evaluateAll(es=>es.map(e=>({title:e.title,visible:e.getClientRects().length>0,width:e.clientWidth,height:e.clientHeight})));
   evidence.results.push({matchId,pages,frames,frameElements,mainText:redact(await page.locator('body').innerText()).slice(-7000)});await save();
   await page.keyboard.press('Escape');await page.waitForTimeout(500);
   const close=page.getByRole('button',{name:/^(✕|×|Chiudi)$/}).filter({visible:true});if(await close.count()===1)await close.click();
@@ -489,7 +489,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa12-v65';
+ const runId='source-mapping-2026-10-03-issue2-qa12-v66';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -603,4 +603,6 @@ export async function testSourceLogin(pool){
   console.log('SOURCE_MAP_BATCH_DONE '+JSON.stringify(result));
  }
 }
+
+
 
