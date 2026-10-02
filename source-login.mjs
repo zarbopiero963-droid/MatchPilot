@@ -219,22 +219,24 @@ async function testSavedStrategies(page,pool,runId,section){
   catch(e){results.push({name,status:'failed',message:redact(e.message).slice(0,240)});}
   await capture(page,pool,runId+'-'+section+'-save-'+results.length,section+': '+name);
  }
- const prefix='QA MP v22 ';
+ const prefix='QA MP v23 ';
  const ownText=()=>page.locator('body').innerText();
  const live=section==='Live';
  const open=async()=>{
   await clickObserved(page,section);
-  if(live&&!await page.locator('#lav-golcasa').isVisible())await clickObserved(page,'⚙️ Filtri avanzati');
+  if(live&&!await page.locator('#lav-golcasa').isVisible())await page.getByRole('button',{name:'⚙️ Filtri avanzati',exact:true}).click();
  };
  await open();
  const baseline=await ownText();
  if(live?!/LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(baseline):!baseline.includes('Nessuna strategia salvata.')){
   results.push({name:'Preservare strategie esistenti',status:'blocked',reason:'Initial list not empty'});
  }else{
-  const guard='source-saved-limits-2026-10-02-v22-'+section;
+  const guard='source-saved-limits-2026-10-02-v23-'+section;
+  let pendingName='',dialogs=[];
   const claim=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[guard,JSON.stringify({status:'claimed',maxSaveAttempts:6,backtestExecutions:0})]);
   if(claim.rowCount){
    const save=async name=>{
+    pendingName=name;
     if(live){
      await clickObserved(page,'💾 Salva strategia');
      if(await page.locator('#lavSaveName').isVisible()){
@@ -249,7 +251,7 @@ async function testSavedStrategies(page,pool,runId,section){
     }
     await page.waitForTimeout(500);
    };
-   page.on('dialog',d=>d.dismiss());
+   page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.type()==='prompt'&&/nome|strategia/i.test(d.message())?d.accept(pendingName):d.dismiss();});
    const field=live?'lav-golcasa':'btMinute';
    await page.locator('#'+field).fill(live?'2':'73');
    for(let i=1;i<=5;i++)await check('Salva '+i+' di 5',async()=>{
@@ -292,7 +294,7 @@ async function testSavedStrategies(page,pool,runId,section){
      }return {name:leaf.textContent.trim(),controls:[]};
     });
    },prefix+section));
-   await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-delete-controls',JSON.stringify({section:section+': own QA delete controls',diagnostic})]);
+   await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-delete-controls',JSON.stringify({section:section+': own QA delete controls',diagnostic,dialogs})]);
    // Cross-module limits checked before deleting: leave own entries within this disposable context.
    await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1',[guard,JSON.stringify({status:results.every(r=>r.status==='passed')?'passed':'partial',results,cleanup:'context_disposal_pending'})]);
   }else results.push({name:'Save guard',status:'blocked',reason:'Already attempted'});
@@ -323,7 +325,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v22';
+ const runId='source-mapping-2026-10-02-qa-v23';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
