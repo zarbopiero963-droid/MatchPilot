@@ -463,29 +463,32 @@ async function inspectControlMap(page,pool,runId,section){
 async function testMarkedControls(page,pool,runId,section){
  if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
 
- const evidence={section:'QA-07 targeted matrix',results:[]};
- await page.waitForTimeout(20000);await page.locator('[data-live-view="table"]').filter({visible:true}).click();await page.locator('[data-live-advtoggle]').filter({visible:true}).click();await page.waitForTimeout(8000);
- const rows=()=>page.locator('tbody tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({team:e.querySelector('td')?.innerText,cells:[...e.querySelectorAll('td')].map(c=>({text:c.innerText,parts:[...c.querySelectorAll('*')].filter(n=>!n.children.length).map(n=>n.innerText)}))})));
- const fields=()=>page.locator('input[id^="lav-"]').evaluateAll(es=>es.map(e=>({id:e.id,value:e.value,min:e.min,max:e.max,step:e.step})));
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA07',JSON.stringify(evidence)]);
- const reset=()=>page.getByText('↺ Azzera filtri',{exact:true}).filter({visible:true}).click();
- async function range(key,side,number){const f=page.locator('#lav-'+key+'-'+side);await f.press('Home');const st=Number(await f.getAttribute('step')),mn=Number(await f.getAttribute('min'));const count=Math.round((number-mn)/st);for(let i=0;i<count;i++)await f.press('ArrowRight');}
- async function record(name,action,oracle){await reset();await page.waitForTimeout(300);const before=await rows();try{await action();await page.waitForTimeout(300);const after=await rows();const expected=oracle?before.filter(oracle).map(r=>r.team).sort():null;const actual=after.map(r=>r.team).sort();evidence.results.push({name,before,after,expected,fields:await fields(),status:expected?(JSON.stringify(expected)===JSON.stringify(actual)?'passed':'failed'):'observed'});}catch(e){evidence.results.push({name,status:'blocked',error:redact(e.message).slice(0,600)});}await save();}
- await reset();evidence.initialRows=await rows();evidence.initialFields=await fields();evidence.controls=await page.locator('button,select').filter({visible:true}).evaluateAll(es=>es.map(e=>({label:e.innerText.slice(0,150),attrs:[...e.attributes].filter(a=>a.name.startsWith('data-')).map(a=>[a.name,a.value])})));
- const num=(r,i)=>parseFloat(r.cells[i]?.text);const goals=r=>r.cells[2]?.text.trim().split('-').map(Number);const sum=(r,i)=>r.cells[i]?.parts.map(v=>parseFloat(v)).filter(Number.isFinite).reduce((a,b)=>a+b,0);
- await record('Zero score means0-0',async()=>{await page.locator('#lav-golcasa').fill('0');await page.locator('#lav-golospite').fill('0');},r=>goals(r).every(g=>g===0));
- await record('Blank goals wildcard',async()=>{await page.locator('#lav-golcasa').fill('');await page.locator('#lav-golospite').fill('');},()=>true);
- await record('Impossible home15 empty',()=>page.locator('#lav-golcasa').fill('15'),r=>goals(r)[0]===15);
- await record('Minute0-60 inclusive',()=>range('minuto','max',60),r=>num(r,1)<=60);
- await record('Prematch home2.4-2.5 inclusive',async()=>{await range('q1','max',2.5);await range('q1','min',2.4);},r=>num(r,7)>=2.4&&num(r,7)<=2.5);
- await record('Prematch home exact2.45 represented by slider2.4-2.5',async()=>{await range('q1','max',2.5);await range('q1','min',2.4);await page.locator('#lav-golcasa').fill('0');await page.locator('#lav-golospite').fill('0');await range('minuto','max',60);},r=>num(r,7)>=2.4&&num(r,7)<=2.5&&num(r,1)<=60&&goals(r).every(g=>g===0));
- await record('Shots total0-4 inclusive',()=>range('tirit','max',4),r=>sum(r,14)<=4);
- await record('Shots min4 boundary inclusive',()=>range('tirit','min',4),r=>sum(r,14)>=4);
- await record('Gol+ minimum80',()=>range('gol1','min',80),r=>num(r,5)>=80);
- await record('Gol++ minimum60',()=>range('gol2','min',60),r=>num(r,6)>=60);
- for(const key of ['gol1','gol2','tiri','tirit','corner','poss','q1','qx','q2','minuto'])await record('Crossed bounds '+key,async()=>{await page.locator('#lav-'+key+'-min').press('End');await page.locator('#lav-'+key+'-max').press('Home');});
- await record('HT multiple0-0 and1-1',async()=>{await page.getByRole('button',{name:'0-0',exact:true}).filter({visible:true}).first().click();await page.getByRole('button',{name:'1-1',exact:true}).filter({visible:true}).first().click();});
- await reset();evidence.finalRows=await rows();evidence.finalFields=await fields();evidence.resetFieldsEqual=JSON.stringify(evidence.initialFields)===JSON.stringify(evidence.finalFields);evidence.status='partial';evidence.reason='Live drift/missing-value semantics, league/time/HT/favorite matrix requires scope-specific verification';await save();
+ const name='QA ISSUE2 Live cross-context v77 20261003';
+ const evidence={section:'QA-08 independent context persistence',name,contextsIndependent:true,physicalDevices:false};
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA08',JSON.stringify(evidence)]);
+ async function open(p){await p.locator('[data-view="live"]').click();await p.waitForTimeout(2000);if(!await p.locator('#lav-golcasa').isVisible())await p.locator('[data-live-advtoggle]').filter({visible:true}).click();await p.waitForTimeout(500);}
+ await open(page);evidence.initialA=redact(await page.locator('body').innerText()).slice(-4500);
+ if(!/LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(evidence.initialA)){evidence.status='blocked';evidence.reason='Initial saved list not empty or not verified';await save();return;}
+ page.on('dialog',async d=>{if(d.type()==='prompt'&&/nome|strategia/i.test(d.message()))await d.accept(name);else if(d.type()==='confirm'&&/elimin|strategia/i.test(d.message()))await d.accept();else await d.dismiss();});
+ let second, pageB;
+ try{
+  await page.locator('#lav-golcasa').fill('1');await page.getByRole('button',{name:'💾 Salva strategia',exact:true}).filter({visible:true}).click();
+  if(await page.locator('#lavSaveName').isVisible()){await page.locator('#lavSaveName').fill(name);await page.getByRole('button',{name:/^salva$/i}).filter({visible:true}).click();}
+  await page.getByText(name,{exact:true}).filter({visible:true}).waitFor({state:'visible',timeout:10000});evidence.savedA=true;await save();
+  await page.reload({waitUntil:'domcontentloaded'});await page.waitForTimeout(8000);await open(page);evidence.reloadA=await page.getByText(name,{exact:true}).filter({visible:true}).count()===1;
+  await page.locator('#lav-golcasa').fill('2');await page.getByText(name,{exact:true}).filter({visible:true}).click();evidence.recallA=await page.locator('#lav-golcasa').inputValue()==='1';await save();
+  second=await page.context().browser().newContext();const portal=await second.newPage();portal.setDefaultTimeout(15000);
+  await portal.goto('https://goatbettingexchange.com/portale',{waitUntil:'domcontentloaded',timeout:30000});await portal.locator('#heroEmail').fill(process.env.GOAT_USERNAME);await portal.locator('#heroPass').fill(process.env.GOAT_PASSWORD);await portal.getByRole('button',{name:'Accedi',exact:true}).click();await portal.locator('#heroEmail').waitFor({state:'hidden',timeout:25000});
+  const popup=portal.waitForEvent('popup');await portal.getByRole('button',{name:'Apri →',exact:true}).nth(1).click();const p=await popup;p.setDefaultTimeout(15000);await p.waitForLoadState('domcontentloaded');
+  await p.locator('#loginEmail').fill(process.env.GOAT_USERNAME);await p.locator('#loginPassword').fill(process.env.GOAT_PASSWORD);await p.locator('#loginSubmitBtn').click();await p.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});await p.waitForTimeout(8000);await open(p);
+  evidence.nameVisibleB=await p.getByText(name,{exact:true}).filter({visible:true}).count()>0;evidence.textB=redact(await p.locator('body').innerText()).slice(-4500);
+  if(evidence.nameVisibleB){await p.getByText(name,{exact:true}).filter({visible:true}).first().click();evidence.recallB=await p.locator('#lav-golcasa').inputValue()==='1';}
+  evidence.status='observed';await save();
+ }catch(e){evidence.status='failed';evidence.error=redact(e.message).slice(0,1000);await save();}
+ finally{
+  if(evidence.savedA){const leaf=page.getByText(name,{exact:true}).filter({visible:true});if(await leaf.count()===1){const del=leaf.locator('..').locator('..').getByText('✕',{exact:true}).filter({visible:true});if(await del.count()===1){await del.click();await leaf.waitFor({state:'hidden',timeout:10000});evidence.deletedA=true;}}}
+  if(pageB){await pageB.reload({waitUntil:'domcontentloaded'});await pageB.waitForTimeout(8000);await open(pageB);evidence.cleanB=await pageB.getByText(name,{exact:true}).filter({visible:true}).count()===0;await save();}if(second)await second.close();await page.reload({waitUntil:'domcontentloaded'});await page.waitForTimeout(8000);await open(page);evidence.cleanA=await page.getByText(name,{exact:true}).filter({visible:true}).count()===0;await save();
+ }
 
 }
 
@@ -500,7 +503,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa07-v76';
+ const runId='source-mapping-2026-10-03-issue2-qa08-v77';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -614,4 +617,3 @@ export async function testSourceLogin(pool){
   console.log('SOURCE_MAP_BATCH_DONE '+JSON.stringify(result));
  }
 }
-
