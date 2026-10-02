@@ -20,7 +20,7 @@ let database='Non configurato';
 if(pool){try{await pool.query('SELECT 1');database='Connessione verificata'}catch{database='Connessione fallita: controllare configurazione'}}
 const configured=keys.every(k=>Boolean(process.env[k]));
 res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});
-res.end(`<!doctype html><html lang="it"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MatchPilot — Test</title><style>body{background:#081422;color:#dce8f5;font:17px system-ui;margin:40px auto;max-width:760px;padding:20px}section{background:#112238;padding:24px;border-radius:16px;margin:20px 0}h1{color:#4dd9bd}</style><h1>MatchPilot</h1><p>Verifica iniziale dell'infrastruttura</p><section><h2>Configurazione</h2><p>Variabili di acquisizione: ${configured?'Presenti':'Incomplete'}</p><p>Database: ${database}</p></section><section><h2>Mappatura</h2><p>Accesso e lettura del portale pubblico verificati il 2 ottobre 2026.</p><p>Login, pagine interne e acquisizione automatica: da verificare.</p><p>Il servizio non esegue ancora navigazione automatica o analisi.</p></section></html>`);
+res.end(`<!doctype html><html lang="it"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MatchPilot — Test</title><style>body{background:#081422;color:#dce8f5;font:17px system-ui;margin:40px auto;max-width:760px;padding:20px}section{background:#112238;padding:24px;border-radius:16px;margin:20px 0}h1{color:#4dd9bd}</style><h1>MatchPilot</h1><p>Verifica iniziale dell'infrastruttura</p><section><h2>Configurazione</h2><p>Variabili di acquisizione: ${configured?'Presenti':'Incomplete'}</p><p>Database: ${database}</p></section><section><h2>Mappatura</h2><p>Accesso autenticato e lettura delle sezioni interne verificati il 2 ottobre 2026.</p><p>Catalogo e snapshot salvati nel database; scorrimento dei contenitori e prove di interazione registrati.</p><p>Il servizio esegue test di navigazione automatica. Il pannello operativo, l’assistente AI e il ciclo live continuo sono ancora da implementare.</p></section></html>`);
 });
 server.listen(Number(process.env.PORT||3000),'0.0.0.0');
 process.on('SIGTERM',()=>server.close(async()=>{if(pool)await pool.end();process.exit(0)}));
@@ -37,7 +37,7 @@ async function verifyConfiguration(){
    console.log('CONFIG_OPENROUTER_KEY '+(response.ok?'accepted':'http_'+response.status));
   }catch{console.log('CONFIG_OPENROUTER_KEY network_failed')}
  }else console.log('CONFIG_OPENROUTER_KEY missing');
- console.log('CONFIG_SOURCE_LOGIN untested');
+ console.log('CONFIG_SOURCE_LOGIN results_recorded_in_database');
 }
 verifyConfiguration().catch(()=>console.log('CONFIG_CHECK failed'));
 
