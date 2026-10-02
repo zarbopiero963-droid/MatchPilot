@@ -463,6 +463,7 @@ async function testMarkedControls(page,pool,runId,section){
  async function probe(name,action,assertion){
   try{await action();await page.waitForTimeout(400);if(assertion&&!await assertion())throw new Error('Expected effect not observed');results.push({name,status:assertion?'passed':'observed'});}
   catch(e){results.push({name,status:'failed',message:redact(e.message).slice(0,300)});}
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-'+section+'-journal',JSON.stringify({section:section+': click journal',results})]);
   await capture(page,pool,runId+'-'+section+'-marked-'+results.length,section+': '+name);
  }
  if(section==='Palinsesto'){
@@ -522,7 +523,7 @@ async function testMarkedControls(page,pool,runId,section){
  if(section==='Dashboard'){
   async function closePanels(){
    for(let n=0;n<5;n++){
-    const buttons=page.locator('button[id*="close" i]').or(page.getByRole('button',{name:/^(✕|×|Chiudi)$/i})).filter({visible:true});
+    const buttons=page.locator('button[id*="close" i]').or(page.getByRole('button',{name:/^(✕|×|Chiudi|Annulla)$/i})).filter({visible:true});
     if(!await buttons.count())break;
     await buttons.last().click();await page.waitForTimeout(250);
    }
@@ -547,19 +548,38 @@ async function testMarkedControls(page,pool,runId,section){
   const dialogs=[];page.removeAllListeners('dialog');
   page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.dismiss();});
   const before=await page.locator('[data-open-detail]').count();
-  await probe('Svuota palinsesto: annulla conferma',()=>page.locator('#clearPalinsestoBtn').click(),async()=>dialogs.length>0&&await page.locator('[data-open-detail]').count()===before);
+  
+  await probe('Svuota: apri conferma HTML',()=>page.locator('#clearPalinsestoBtn').click(),()=>page.getByRole('button',{name:'Conferma',exact:true}).isVisible());
+  await probe('Svuota: Annulla HTML',()=>page.getByRole('button',{name:'Annulla',exact:true}).click(),async()=>await page.locator('[data-open-detail]').count()===before);
+  const teams=()=>page.locator('article[data-detail] [data-betfair-btn]').evaluateAll(es=>es.map(e=>e.getAttribute('data-bf-home')+'|'+e.getAttribute('data-bf-away')).sort());
+  const originalTeams=await teams();
+  await probe('Svuota: riapri conferma',()=>page.locator('#clearPalinsestoBtn').click());
+  await probe('Svuota: Conferma contesto QA',()=>page.getByRole('button',{name:'Conferma',exact:true}).click(),async()=>await page.locator('[data-open-detail]').count()===0);
+  await page.locator('[data-view="palinsesto"]').click();await page.locator('#palTabPandora').click();
+  await probe('Ripristina palinsesto via UI',async()=>{await page.getByRole('button',{name:/Apri nel Lay Score/}).click();await page.waitForTimeout(3500);},async()=>JSON.stringify(await teams())===JSON.stringify(originalTeams)&&await page.locator('[data-open-detail]').count()===before);
+
   await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-clear-cancel',JSON.stringify({section:'Dashboard: destructive cancellation',dialogs,before,after:await page.locator('[data-open-detail]').count()})]);
  }
  if(section==='Archivio'){
   const dialogs=[];page.removeAllListeners('dialog');page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.dismiss();});
-  await probe('Cancella archivio: annulla',()=>page.locator('#archiveClearBtn').click());
+  
+  await probe('Archivio: apri cancellazione',()=>page.locator('#archiveClearBtn').click());
+  const cancel=page.getByRole('button',{name:'Annulla',exact:true}).filter({visible:true});
+  if(await cancel.count())await probe('Archivio: Annulla HTML',()=>cancel.click());
+  const empty=await page.getByText('Nessuna operazione registrata.',{exact:true}).isVisible();
+  if(empty){
+   await probe('Archivio vuoto: riapri conferma',()=>page.locator('#archiveClearBtn').click());
+   const confirm=page.getByRole('button',{name:'Conferma',exact:true}).filter({visible:true});
+   if(await confirm.count())await probe('Archivio vuoto: Conferma HTML',()=>confirm.click(),()=>page.getByText('Nessuna operazione registrata.',{exact:true}).isVisible());
+  }
+
   await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-archive-cancel',JSON.stringify({section:'Archivio: destructive cancellation',dialogs})]);
  }
 
 
  if(section==='Live'){
   async function closePanels(){
-   for(let n=0;n<5;n++){const c=page.locator('button[id*="close" i]').or(page.getByRole('button',{name:/^(✕|×|Chiudi)$/i})).filter({visible:true});if(!await c.count())break;await c.last().click();await page.waitForTimeout(250);}
+   for(let n=0;n<5;n++){const c=page.locator('button[id*="close" i]').or(page.getByRole('button',{name:/^(✕|×|Chiudi|Annulla)$/i})).filter({visible:true});if(!await c.count())break;await c.last().click();await page.waitForTimeout(250);}
    await page.keyboard.press('Escape');
   }
   for(const attr of ['data-live-timing','data-live-ht','data-live-radar','data-live-goaldetail','data-live-csdetail','data-live-detail','data-live-stats']){
@@ -597,7 +617,7 @@ async function testMarkedControls(page,pool,runId,section){
   }
   const stats=page.locator('[data-live-stats]').filter({visible:true}).first();
   if(await stats.count()){
-   await stats.click();await page.waitForTimeout(1200);
+   if(!await page.getByRole('button',{name:'20',exact:true}).filter({visible:true}).count())await stats.click();await page.waitForTimeout(1200);
    for(const label of ['5','10','20','Complessivo','Casa / Trasf.','Tutte','Stessa lega','H2H','Race']){
     const b=page.getByRole('button',{name:label,exact:true}).filter({visible:true}).last();
     if(await b.count())await probe('Stats+ '+label,()=>b.click());
@@ -617,7 +637,7 @@ async function testMarkedControls(page,pool,runId,section){
    if(await b.count()){
     await probe('Tabella '+attr,()=>b.click());await page.waitForTimeout(1000);
     await inspectControlMap(page,pool,runId,'Live: '+attr);
-    const close=page.locator('button[id*="close" i]').or(page.getByRole('button',{name:/^(✕|×|Chiudi)$/i})).filter({visible:true});
+    const close=page.locator('button[id*="close" i]').or(page.getByRole('button',{name:/^(✕|×|Chiudi|Annulla)$/i})).filter({visible:true});
     if(await close.count())await close.last().click();
    }
   }
@@ -639,7 +659,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v33';
+ const runId='source-mapping-2026-10-02-qa-v34';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
