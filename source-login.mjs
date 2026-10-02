@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-modules-v1';
+ const runId='source-mapping-2026-10-02-pages-v1';
  if(!pool){console.log('SOURCE_LOGIN_TEST database_missing');return;}
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs (run_id text PRIMARY KEY, started_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz, result jsonb NOT NULL)');
  const claimed=await pool.query("INSERT INTO matchpilot_test_runs (run_id,result) VALUES ($1,$2) ON CONFLICT DO NOTHING RETURNING run_id",[runId,JSON.stringify({status:'running'})]);
@@ -64,7 +64,16 @@ export async function testSourceLogin(pool){
     const popup=await popupPromise;
     const target=popup||page;
     await target.waitForLoadState('domcontentloaded',{timeout:30000}).catch(()=>{});
-    await target.waitForTimeout(2500);
+
+    await target.waitForURL(url=>url.protocol==='https:',{timeout:15000}).catch(()=>{});
+    await target.waitForTimeout(1500);
+    if(moduleName==='layscore' && await target.locator('#loginEmail').isVisible()){
+     stage='layscore_login';
+     await target.locator('#loginEmail').fill(process.env.GOAT_USERNAME);
+     await target.locator('#loginPassword').fill(process.env.GOAT_PASSWORD);
+     await target.locator('#loginSubmitBtn').click();
+     await target.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});
+    }
     const moduleSnapshot=await target.evaluate(()=>{
      const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length);
      return {title:document.title,text:document.body.innerText,controls:[...document.querySelectorAll('a,button,[role="button"],nav [onclick],aside [onclick]')].filter(visible).map(e=>({tag:e.tagName,label:(e.innerText||e.getAttribute('aria-label')||'').trim(),id:e.id,href:e.tagName==='A'?e.getAttribute('href'):null})),inputs:[...document.querySelectorAll('input,select,textarea')].filter(visible).map(e=>({tag:e.tagName,type:e.type,id:e.id,placeholder:e.getAttribute('placeholder'),options:e.tagName==='SELECT'?[...e.options].map(o=>o.textContent):undefined}))};
@@ -76,6 +85,36 @@ export async function testSourceLogin(pool){
     moduleSnapshot.controls=moduleSnapshot.controls.map(control=>({...control,label:redact(control.label),href:control.href?(()=>{try{const u=new URL(control.href,target.url());return u.origin+u.pathname}catch{return null}})():null}));
     await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+moduleName,JSON.stringify(moduleSnapshot)]);
     console.log('SOURCE_MAP_MODULE '+JSON.stringify({moduleName,...moduleSnapshot,text:moduleSnapshot.text.slice(0,14000)}));
+
+    if(moduleName==='layscore'){
+     for(const section of ['Guida','Dashboard','Palinsesto','Live','Analisi','Lay Goleada Favorito','Backtest Storico','Asian Odds','Monitorate','Ladder Dutching','Statistiche Lega','Archivio']){
+      stage='layscore_section_'+section;
+      const nav=target.getByRole('button',{name:section,exact:true});
+      if(await nav.count()!==1){console.log('SOURCE_MAP_SECTION_SKIP '+JSON.stringify({section,reason:'navigation_ambiguous'}));continue;}
+      await nav.click();
+      await target.waitForTimeout(1500);
+      const read=await target.evaluate(()=>{
+       const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length);
+       return {text:document.body.innerText,controls:[...document.querySelectorAll('a,button,[role="button"],[role="tab"]')].filter(visible).map(e=>({tag:e.tagName,label:(e.innerText||e.getAttribute('aria-label')||'').trim(),id:e.id})),inputs:[...document.querySelectorAll('input,select,textarea')].filter(visible).map(e=>({tag:e.tagName,type:e.type,id:e.id,min:e.getAttribute('min'),max:e.getAttribute('max'),step:e.getAttribute('step'),placeholder:e.getAttribute('placeholder'),options:e.tagName==='SELECT'?[...e.options].map(o=>o.textContent):undefined}))};
+      });
+      read.text=redact(read.text);
+      read.controls=read.controls.map(o=>({...o,label:redact(o.label)}));
+      await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section,JSON.stringify(read)]);
+      console.log('SOURCE_MAP_SECTION '+JSON.stringify({section,characters:read.text.length,controls:read.controls,inputs:read.inputs,text:read.text.slice(0,4500)}));
+      if(section==='Guida'){
+       for(let offset=0;offset<read.text.length;offset+=5000)console.log('SOURCE_MAP_GUIDE '+JSON.stringify({offset,text:read.text.slice(offset,offset+5000)}));
+      }
+      const legends=target.getByRole('button',{name:/legend|legenda/i});
+      if(await legends.count()===1 && await legends.first().isVisible()){
+       await legends.first().click();
+       await target.waitForTimeout(400);
+       const legendText=redact(await target.locator('body').innerText());
+       await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-legend',JSON.stringify({text:legendText})]);
+       console.log('SOURCE_MAP_LEGEND '+JSON.stringify({section,text:legendText.slice(-10000)}));
+       await target.keyboard.press('Escape');
+      }
+     }
+    }
     if(popup)await popup.close();
    }
 
