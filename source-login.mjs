@@ -54,11 +54,11 @@ export async function testSourceLogin(pool){
   const groups=[["CONSIGLIO","STATS","STATS +","TIMING DEI GOL","FORMAZIONI","OCCORRENZE","GESTIONE 75'","DISTRIBUZIONI","STORICO","PROFIT CS","📊 ROI","INDEX","CLASSIFICA"].map(label=>'Dettaglio: '+label).concat(['Money Management'])];
   for(const group of groups){
    stage='login';
-   browser=await chromium.launch({headless:true});
+   browser=await bounded(chromium.launch({headless:true}),45000);
 
-   const context=await browser.newContext();
+   const context=await bounded(browser.newContext(),15000);
    await context.route('**/*',route=>['image','media','font'].includes(route.request().resourceType())?route.abort():route.continue());
-   const portal=await context.newPage();
+   const portal=await bounded(context.newPage(),15000);
    portal.setDefaultTimeout(15000);
    stage='portal_navigation';
    await portal.goto('https://goatbettingexchange.com/portale',{waitUntil:'domcontentloaded',timeout:30000});
