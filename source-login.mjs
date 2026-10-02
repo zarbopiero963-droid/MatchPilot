@@ -461,23 +461,17 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
- const evidence={section:'QA-06 live sorting',startedAt:new Date().toISOString(),actions:[]};
- await page.waitForTimeout(20000);await page.locator('[data-live-view="table"]').filter({visible:true}).click();await page.waitForTimeout(2000);
- const rows=()=>page.locator('tbody tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({text:e.innerText,cells:[...e.querySelectorAll('td')].map(x=>({text:x.innerText,leafText:[...x.querySelectorAll('*')].filter(n=>!n.children.length).map(n=>n.innerText),title:x.title,className:x.className}))})));
- evidence.initialRows=await rows();evidence.headers=await page.locator('[data-live-sort]').filter({visible:true}).evaluateAll(es=>es.map(e=>({key:e.getAttribute('data-live-sort'),label:e.innerText,title:e.title,cellIndex:e.closest('th')?.cellIndex,colSpan:e.closest('th')?.colSpan})));
- for(const key of ['min','ris','rating','xgl','xg','gp1','gp2','pi1','pi2','pi3','cg10','sh','ot','da','cor','pos']){
-  const head=page.locator('[data-live-sort="'+key+'"]').filter({visible:true});
-  if(!await head.count()){evidence.actions.push({key,status:'blocked',reason:'Header not rendered'});continue;}
-  try{await head.first().click();await page.waitForTimeout(200);const first=await rows();const firstHeader=await head.first().innerText();await head.first().click();await page.waitForTimeout(200);const second=await rows();evidence.actions.push({key,status:'observed',first,second,firstHeader,headerText:await head.first().innerText()});}
-  catch(e){evidence.actions.push({key,status:'failed',error:redact(e.message).slice(0,400)});}
+ const evidence={section:'QA-10 mobile '+section,physicalDevice:false,touchEmulation:true,views:[],status:'partial'};
+ evidence.scrollGesture='Native mouse wheel in touch-emulated browser; navigation uses taps, physical-device swipe not claimed';for(const viewport of [{width:393,height:852},{width:852,height:393}]){
+  await page.setViewportSize(viewport);await page.waitForTimeout(1500);
+  const target=page.getByRole('button',{name:section,exact:true});const rect=await target.boundingBox();if(rect&&rect.x<0&&await page.locator('#mobileMenuBtn').isVisible()){await page.locator('#mobileMenuBtn').tap();await page.waitForTimeout(500);}await target.tap();await page.waitForTimeout(2000);
+  const main=page.locator('main');const scrollBefore=await main.evaluate(e=>({top:e.scrollTop,left:e.scrollLeft,height:e.clientHeight,scrollHeight:e.scrollHeight,width:e.clientWidth,scrollWidth:e.scrollWidth}));await main.hover();await page.mouse.wheel(0,99999);await page.waitForTimeout(1000);const scrollAfter=await main.evaluate(e=>({top:e.scrollTop,left:e.scrollLeft,height:e.clientHeight,scrollHeight:e.scrollHeight}));const bottomShot=await page.screenshot({timeout:15000});await main.hover();await page.mouse.wheel(0,-99999);await page.waitForTimeout(1000);const measurement=await page.evaluate(()=>({width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth,scrollHeight:document.documentElement.scrollHeight,fonts:document.fonts.status,images:[...document.images].map(e=>({loaded:e.complete&&e.naturalWidth>0})),scrollable:[...document.querySelectorAll('body *')].filter(e=>e.scrollHeight>e.clientHeight+5&&['auto','scroll'].includes(getComputedStyle(e).overflowY)).map(e=>({tag:e.tagName,id:e.id,height:e.clientHeight,scrollHeight:e.scrollHeight})),controls:[...document.querySelectorAll('button,[role="button"],[data-view]')].filter(e=>e.getClientRects().length).map(e=>({label:(e.innerText||e.getAttribute('title')||'').slice(0,80),x:e.getBoundingClientRect().x,y:e.getBoundingClientRect().y,width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height}))}));
+  const shot=await page.screenshot({fullPage:true,timeout:15000});evidence.views.push({viewport,measurement,scrollBefore,scrollAfter,bottomScreenshotPngBase64:bottomShot.toString('base64'),screenshotPngBase64:shot.toString('base64'),text:redact(await page.locator('body').innerText()).slice(0,12000)});
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA10-'+section,JSON.stringify(evidence)]);
  }
- evidence.status=evidence.initialRows.length<2?'blocked':'observed';evidence.reason=evidence.initialRows.length<2?'Insufficient real rows for ordering assertions':'Directions clicked; reconcile sequence independently per header definition';
- evidence.text=redact(await page.locator('body').innerText()).slice(-10000);
- await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-QA06',JSON.stringify(evidence)]);
 }
-
 async function clickObserved(page,label) {
+ if(['Dashboard','Palinsesto','Live','Analisi','Lay Goleada Favorito','Backtest Storico','Asian Odds','Monitorate','Ladder Dutching','Statistiche Lega','Guida','Archivio'].includes(label)&&await page.locator('#mobileMenuBtn').isVisible()){const nav=page.getByRole('button',{name:label,exact:true});const box=await nav.boundingBox();if(box&&box.x<0){await page.locator('#mobileMenuBtn').tap();await page.waitForTimeout(500);}}
  const text=label.replace(/\s+/g,' ').trim();
  await page.waitForFunction(target=>[...document.querySelectorAll('button,[role="button"],[role="tab"],[onclick],summary')].some(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
  await bounded(page.evaluate(target=>{
@@ -488,7 +482,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa06-v72';
+ const runId='source-mapping-2026-10-03-issue2-qa10-v71';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -503,15 +497,15 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Palinsesto','Live']];
+  const groups=[['Dashboard','Palinsesto','Live','Analisi','Lay Goleada Favorito','Backtest Storico','Asian Odds','Monitorate','Ladder Dutching','Statistiche Lega','Guida','Archivio']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
    await pool.query('UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1',[runId,JSON.stringify({stage,completed,failed,restartCount})]);
    browser=await bounded(chromium.launch({headless:true}),45000);
 
-   const context=await bounded(browser.newContext(),15000);
-   await context.route('**/*',route=>['image','media','font'].includes(route.request().resourceType())?route.abort():route.continue());
+   const context=await bounded(browser.newContext({viewport:{width:393,height:852},isMobile:true,hasTouch:true,deviceScaleFactor:1}),15000);
+   // QA10 loads images, fonts and media for genuine visual inspection.
    const portal=await bounded(context.newPage(),15000);
    portal.setDefaultTimeout(15000);
    stage='portal_navigation';
@@ -602,5 +596,12 @@ export async function testSourceLogin(pool){
   console.log('SOURCE_MAP_BATCH_DONE '+JSON.stringify(result));
  }
 }
+
+ if(section==='Live'||section==='Dashboard'){
+  const button=page.locator(section==='Live'?'[data-live-detail]':'[data-open-detail],button[data-detail]').filter({visible:true}).first();
+  try{await button.scrollIntoViewIfNeeded({timeout:10000});evidence.detailRect=await button.boundingBox();await button.tap({timeout:10000});await page.waitForTimeout(2000);evidence.detailOpened=await page.locator('#closeDetailBtn').isVisible();evidence.detailScreenshotPngBase64=(await page.screenshot({timeout:15000})).toString('base64');if(evidence.detailOpened)await page.locator('#closeDetailBtn').tap();}
+  catch(e){evidence.detailError=redact(e.message).slice(0,1000);}
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA10-'+section,JSON.stringify(evidence)]);
+ }
 
 
