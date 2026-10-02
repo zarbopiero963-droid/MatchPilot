@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseSnapshot, compareCatalog } from './source-parser.mjs';
+import { parseSnapshot, compareCatalog, parseRoiStrategies } from './source-parser.mjs';
 test('new controls and fields do not break known controls or retain values', () => {
   const previous = parseSnapshot({ text: 'Dashboard', controls: [{tag:'button',id:'known',label:'Read'}], inputs: [] });
   const current = parseSnapshot({ text: 'Dashboard', controls: [{tag:'button',id:'known',label:'Read'}, {tag:'button',id:'new',label:'New'}], inputs: [{tag:'input',id:'password',type:'password',value:'secret'}], extra:'secret' });
@@ -8,6 +8,17 @@ test('new controls and fields do not break known controls or retain values', () 
   assert.equal(current.controls[0].key, previous.controls[0].key);
   assert.equal(compareCatalog(previous,current).added.length,2);
   assert.equal(JSON.stringify(current).includes('secret'),false);
+});
+const roiFixture = 'SUGGERIMENTO OPERATIVO\tPARTITE\tWIN\tROI\tQUOTA\tAFFIDABILITÀ\n'+['Casa Punta','Casa Lay','Pareggio Punta','Pareggio Lay','Trasferta Punta','Trasferta Lay'].map(name=>[name,'52','38,5%','-21,7%',name.endsWith('Punta')?'> 2,68':'< 2,52','Media'].join('\t')).join('\n');
+test('ROI extra rows tolerate expansion while essential missing rows block use',()=>{
+  assert.equal(parseRoiStrategies(roiFixture+'\nNuova strategia\t52\t50%\t1%\t> 2\tMedia').usable,true);
+  assert.equal(parseRoiStrategies(roiFixture.split('\n').slice(0,-1).join('\n')).usable,false);
+  assert.equal(parseRoiStrategies(roiFixture).rows[0].roiPercent,-21.7);
+});
+test('ROI malformed amounts and wrong threshold direction cannot enter financial analysis',()=>{
+  assert.equal(parseRoiStrategies(roiFixture.replace('> 2,68','< 2,68')).usable,false);
+  assert.equal(parseRoiStrategies(roiFixture.replace('38,5%','150%')).usable,false);
+  assert.equal(parseRoiStrategies(roiFixture.replace('-21,7%','NaN')).usable,false);
 });
 test('malformed optional data and missing essential controls remain explicit', () => {
   const result = parseSnapshot({text:'Page',controls:[null,5],inputs:{}},{required:['essential']});
