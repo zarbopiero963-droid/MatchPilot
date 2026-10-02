@@ -466,12 +466,12 @@ async function testMarkedControls(page,pool,runId,section){
  const read=async()=>({text:redact(await page.locator('body').innerText()),best:await page.locator('#bestOfDay').innerText(),details:await page.locator('button[data-detail],[data-open-detail]').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.getAttribute('data-open-detail')||e.getAttribute('data-detail'),text:e.closest('article,tr')?.innerText||e.parentElement?.innerText})))});
  const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA05',JSON.stringify(evidence)]);
  evidence.initial=await read();if(evidence.initial.details.some(x=>!x.id?.startsWith('pandora-'))){evidence.status='blocked';evidence.reason='Existing manual data';await save();return;}
- async function submit(text){await page.locator('#analyzeBtn').click();await page.locator('#fixturesText').fill(text);await page.locator('#runImportBtn').click();await page.waitForTimeout(8000);if(await page.locator('#closeImportBtn').isVisible())await page.locator('#closeImportBtn').click();}
+ async function submit(text){await page.locator('#analyzeBtn').click();await page.locator('#fixturesText').fill(text);await page.locator('#runImportBtn').click();await page.waitForTimeout(30000);evidence.steps.push({input:text,preCloseText:redact(await page.locator('body').innerText()).slice(-3000)});if(await page.locator('#closeImportBtn').isVisible())await page.locator('#closeImportBtn').click();}
  try{
-  await submit(fixture);evidence.valid=await read();await save();
+  await submit(fixture);evidence.valid=await read();await save();const detail=page.locator('[data-open-detail],button[data-detail]').filter({visible:true}).first();if(await detail.count()){await detail.click();await page.locator('#closeDetailBtn').waitFor({state:'visible',timeout:30000});await page.waitForTimeout(4000);evidence.detailText=redact(await page.locator('body').innerText()).slice(-6500);await page.locator('#closeDetailBtn').click();}
   await submit(fixture+'\n'+fixture);evidence.duplicate=await read();await save();
   await submit('QA INVALIDA SENZA SQUADRE E QUOTE');evidence.invalid=await read();await save();
-  evidence.validQuotes=/HOME\\s+2.10\\s+DRAW\\s+3.20\\s+AWAY\\s+3.50/.test(evidence.valid.best);
+  evidence.validQuotes=evidence.valid.best.split(/\s+/).join(' ').includes('HOME 2.10 DRAW 3.20 AWAY 3.50');
   evidence.leagueVisible=evidence.valid.text.includes('ESP Liga Adelante');
   evidence.duplicateCards=evidence.duplicate.details.length;
   evidence.invalidMessage=evidence.invalid.text.slice(-2000);
@@ -497,7 +497,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa05-v50';
+ const runId='source-mapping-2026-10-03-issue2-qa05-v51';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
