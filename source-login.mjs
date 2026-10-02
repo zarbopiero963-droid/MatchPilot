@@ -461,7 +461,7 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- const date=page.getByRole('button',{name:/\\d{2}\\s+(GEN|FEB|MAR|APR|MAG|GIU|LUG|AGO|SET|OTT|NOV|DIC)\\s+\\d{4}/});
+ const date=page.getByRole('button',{name:/\d{2}\s+(GEN|FEB|MAR|APR|MAG|GIU|LUG|AGO|SET|OTT|NOV|DIC)\s+\d{4}/});
  const read=()=>page.evaluate(()=>({text:document.body.innerText,dates:[...document.querySelectorAll('input[type=date],input[type=datetime-local],[role=dialog],[role=grid]')].map(e=>({tag:e.tagName,id:e.id,role:e.getAttribute('role'),type:e.type,visible:!!e.getClientRects().length,text:e.innerText?.slice(0,600)})),iframes:[...document.querySelectorAll('iframe')].map(e=>({title:e.title,visible:!!e.getClientRects().length})),buttons:[...document.querySelectorAll('button')].filter(e=>!!e.getClientRects().length).map(e=>({id:e.id,label:e.innerText.trim()}))}));
  const before=await read();const label=await date.innerText();await date.click();await page.waitForTimeout(5000);const after=await read();
  const evidence={section:'QA-03 data',label,before:{...before,text:redact(before.text)},after:{...after,text:redact(after.text)},frameCount:page.frames().length,calendarObserved:after.dates.some(x=>x.visible&&(/date/.test(x.type)||x.role==='grid')),status:'observed'};
@@ -480,7 +480,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-issue2-qa03-v44';
+ const runId='source-mapping-2026-10-02-issue2-qa03-v45';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
