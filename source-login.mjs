@@ -21,8 +21,17 @@ async function capture(page,pool,id,section){
  console.log('SOURCE_MAP_BATCH '+JSON.stringify({section,characters:data.text.length,controls:data.controls.length,inputs:data.inputs.length,added:changes.added.length,removed:changes.removed.length}));
  return data;
 }
+async function clickObserved(page,label) {
+ const text=label.replace(/\s+/g,' ').trim();
+ await page.waitForFunction(target=>[...document.querySelectorAll('button')].some(e=>(e.innerText||'').replace(/\s+/g,' ').trim()===target&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
+ await page.evaluate(target=>{
+  const button=[...document.querySelectorAll('button')].find(e=>(e.innerText||'').replace(/\s+/g,' ').trim()===target&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length));
+  if(!button)throw new Error('Known control missing');button.click();
+ },text);
+}
+
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-panels-v8';
+ const runId='source-mapping-2026-10-02-panels-v9';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -84,10 +93,8 @@ export async function testSourceLogin(pool){
      await portal.close();
      await page.locator('body').waitFor({state:'visible'});
     } else {
-     await page.getByRole('button',{name:'Dashboard',exact:true}).click({force:true});
-     const target=page.getByRole('button',{name:section==='ROI Strategie'?'📊 ROI STR':'DETTAGLIO',exact:true}).first();
-     await target.waitFor({state:'visible',timeout:60000});
-     await target.click({force:true});
+     await clickObserved(page,'Dashboard');
+     await clickObserved(page,section==='ROI Strategie'?'📊 ROI STR':'DETTAGLIO');
     }
     await page.waitForTimeout(3500);
     await capture(page,pool,runId+'-'+section,section);
@@ -111,10 +118,10 @@ export async function testSourceLogin(pool){
     }
     } catch(error) {
       outcome='partial'; failed.push({section,errorType:error.name});
-      console.log('SOURCE_MAP_SECTION_ERROR '+JSON.stringify({section,errorType:error.name}));
+      console.log('SOURCE_MAP_SECTION_ERROR '+JSON.stringify({section,errorType:error.name,detail:redact(error.message).slice(0,1800)}));
       await capture(page,pool,runId+'-'+section+'-error',section+': diagnostic').catch(()=>{});
       await page.keyboard.press('Escape').catch(()=>{});
-      await pool.query('UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1',[runId,JSON.stringify({status:'running',stage,completed,failed})]);
+      await pool.query('UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1',[runId,JSON.stringify({status:'running',stage,completed,failed,owner,leaseUntil:Date.now()+60000})]);
     }
    }
    await browser.close();browser=null;
