@@ -15,21 +15,37 @@ async function capture(page,pool,id,section){
  return data;
 }
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-small-batches-v1';
+ const runId='source-mapping-2026-10-02-small-batches-v2';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
  const claimed=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[runId,JSON.stringify({status:'running'})]);
  if(!claimed.rowCount){console.log('SOURCE_MAP_BATCH_DONE already_recorded');return;}
- let stage='start',browser;const completed=[];let outcome='complete';
+ let stage='start',browser,page;const completed=[];let outcome='complete';
  try{
   const groups=[['Asian Odds','Monitorate','Ladder Dutching'],['Statistiche Lega','Archivio'],['Live','Analisi']];
   for(const group of groups){
    stage='login';
    browser=await chromium.launch({headless:true});
-   const page=await browser.newPage();
+
+   const portal=await browser.newPage();
+   portal.setDefaultTimeout(15000);
+   stage='portal_navigation';
+   await portal.goto('https://goatbettingexchange.com/portale',{waitUntil:'domcontentloaded',timeout:30000});
+   stage='portal_login';
+   await portal.locator('#heroEmail').fill(process.env.GOAT_USERNAME);
+   await portal.locator('#heroPass').fill(process.env.GOAT_PASSWORD);
+   await portal.getByRole('button',{name:'Accedi',exact:true}).click();
+   await portal.locator('#heroEmail').waitFor({state:'hidden',timeout:25000});
+   stage='module_open';
+   const popupPromise=portal.waitForEvent('popup',{timeout:15000});
+   await portal.getByRole('button',{name:'Apri →',exact:true}).nth(1).click();
+   page=await popupPromise;
+   await page.waitForURL(url=>url.protocol==='https:',{timeout:20000});
+   await page.waitForLoadState('domcontentloaded',{timeout:20000});
+   await portal.close();
    page.setDefaultTimeout(15000);
-   await page.goto('https://layscore.goatbettingexchange.com/',{waitUntil:'domcontentloaded',timeout:30000});
+   stage='module_login';
    await page.locator('#loginEmail').fill(process.env.GOAT_USERNAME);
    await page.locator('#loginPassword').fill(process.env.GOAT_PASSWORD);
    await page.locator('#loginSubmitBtn').click();
@@ -59,7 +75,7 @@ export async function testSourceLogin(pool){
    }
    await browser.close();browser=null;
   }
- }catch{outcome='partial';}finally{
+ }catch(error){outcome='partial';console.log('SOURCE_MAP_ERROR '+JSON.stringify({stage,errorType:error.name}));if(page&&!page.isClosed())await capture(page,pool,runId+'-error','Error diagnostic').catch(()=>{});}finally{
   if(browser)await browser.close().catch(()=>{});
   const result={status:outcome,stage,completed};
   await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=$2 WHERE run_id=$1',[runId,JSON.stringify(result)]);
