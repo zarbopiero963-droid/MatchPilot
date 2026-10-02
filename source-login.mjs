@@ -21,14 +21,14 @@ async function capture(page,pool,id,section){
  data.text=redact(data.text);data.controls=data.controls.map(o=>({...o,context:redact(o.context),label:redact(o.label)}));
  data.inputs=data.inputs.map(o=>({...o,context:redact(o.context),placeholder:redact(o.placeholder),options:o.options?.map(redact)}));
  data.viewValidation=validateView(data,{expectedTab:section.startsWith('Dettaglio: ')?section.slice(11).split(':')[0]:undefined});
- const parsed=parseSnapshot(data,{section});
+ const parsed=parseSnapshot(data,{section,required:section==='Live: filtri avanzati'?['lav-golcasa','lav-golospite']:[]});
  const previous=await pool.query("SELECT data FROM matchpilot_source_snapshots WHERE data->>'section'=$1 AND snapshot_id<>$2 ORDER BY captured_at DESC LIMIT 1",[section,id]);
  const changes=compareCatalog(previous.rows[0]?.data,parsed);
  Object.assign(data,parsed,{changes});
  if(section==='ROI Strategie')data.semantic=parseRoiStrategies(data.text);
- if(!parsed.usable)throw new Error('Snapshot validation failed');
  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[id,JSON.stringify(data)]);
- console.log('SOURCE_MAP_BATCH '+JSON.stringify({section,characters:data.text.length,controls:data.controls.length,inputs:data.inputs.length,added:changes.added.length,removed:changes.removed.length}));
+ if(!parsed.usable)throw new Error('Snapshot validation failed');
+ console.log('SOURCE_MAP_BATCH '+JSON.stringify({section,usable:parsed.usable,characters:data.text.length,controls:data.controls.length,inputs:data.inputs.length,added:changes.added.length,removed:changes.removed.length}));
  return data;
 }
 
@@ -173,31 +173,104 @@ async function testInteractions(page,pool,runId,section) {
   await captureScrolled(page,pool,runId+'-'+section+'-expanded',section+': filtri');
  }
 
+
  if(section==='Money Management'){
   for(const [label,id] of [['ANDAMENTO STRATEGIE','btnStats'],['GUIDA',null],['TRACKER','btnTracker']]){
    await probe('Tab '+label,async()=>{
+    const close=page.locator('#guideOverlay').getByRole('button',{name:/^chiudi$/i});
+    if(await close.isVisible())await close.click();
     if(id)await page.locator('#'+id).click();
     else await page.getByRole('button',{name:/^guida$/i}).click();
     await captureScrolled(page,pool,runId+'-money-'+label,section+': '+label);
    });
   }
+  const initial=page.locator('#initial'),original=await initial.inputValue();
+  await probe('Capitale virtuale 2000',()=>initial.fill('2000'),s=>s.text.includes('2000,00')||s.text.includes('2.000,00'));
+  await initial.fill(original);
+  const strategy=page.getByPlaceholder('Strategia',{exact:true}).first();
+  const profit=page.getByPlaceholder('+10 / -5',{exact:true}).first();
+  const originalStrategy=await strategy.inputValue(),originalProfit=await profit.inputValue();
+  await strategy.fill('QA MatchPilot');
+  await probe('Trade virtuale +10',()=>profit.fill('+10'),s=>/GUADAGNO TOTALE\s*10,00\s*€/i.test(s.text)&&/CASSA ATTUALE\s*(1010,00|1\.010,00)\s*€/i.test(s.text));
+  await profit.fill(originalProfit);await strategy.fill(originalStrategy);
+  await capture(page,pool,runId+'-money-restored','Money: impostazioni ripristinate');
  }
  if(section==='Live'){
-  await clickObserved(page,'⚙️ Filtri avanzati');
   if(!await page.locator('#lav-golcasa').isVisible())await clickObserved(page,'⚙️ Filtri avanzati');
-  const knownRanges=['gol1','gol2','tiri','tirit','corner','poss','q1','qx','q2'];
-  for(const key of knownRanges){
-   const control=page.locator('#lav-'+key+'-min');
-   if(!await control.isVisible()){results.push({name:'Range '+key,status:'blocked',reason:'Known range unavailable'});continue;}
-   const original=await control.inputValue();
-   const max=await control.getAttribute('max');
-   const min=await control.getAttribute('min');
-   await probe('Range '+key+' massimo',async()=>{await control.focus();await control.press('End');},()=>control.inputValue().then(v=>Number(v)===Number(max)));
-   await probe('Range '+key+' minimo',async()=>{await control.focus();await control.press('Home');},()=>control.inputValue().then(v=>Number(v)===Number(min)));
+  const root=await bounded(page.evaluate(()=>{
+   let e=document.getElementById('lav-golcasa');
+   while(e&&e!==document.body){
+    if(e.querySelector('#lav-golospite')&&e.innerText.includes('Salva strategia')){e.setAttribute('data-matchpilot-filter-panel','1');return true;}
+    e=e.parentElement;
+   }
+   return false;
+  }));
+  if(root){
+   const panel=page.locator('[data-matchpilot-filter-panel="1"]');
+   for(const score of ['0-0','0-1','0-2','0-3','1-0','1-1','1-2','1-3','2-0','2-1','2-2','2-3','3-0','3-1','3-2','3-3']){
+    const button=panel.getByRole('button',{name:score,exact:true});
+    if(await button.count()!==1){results.push({name:'HT '+score,status:'blocked',reason:'Ambiguous or missing score control'});continue;}
+    await probe('HT '+score,()=>button.click());
+    await button.click();
+   }
+  }else results.push({name:'HT grid',status:'blocked',reason:'Could not isolate observed filter panel'});
+  await captureScrolled(page,pool,runId+'-ht-grid','Live: risultati intervallo');
+  const qaName='QA MatchPilot 2026-10-02';
+  const guardId='source-live-strategy-test-2026-10-02-01';
+  const sourceText=(await state()).text;
+  const emptySlots=/LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(sourceText);
+  const claim=emptySlots?await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[guardId,JSON.stringify({status:'reserved',name:qaName,maximumExecutions:1,attempted:1})]):{rowCount:0};
+  if(claim.rowCount){
+   await probe('Salva strategia QA',async()=>{
+    const handler=d=>d.type()==='prompt'&&/nome|strategia/i.test(d.message())?d.accept(qaName):d.dismiss();
+    page.once('dialog',handler);
+    try{await clickObserved(page,'💾 Salva strategia');await page.waitForTimeout(1000);}
+    finally{page.removeListener('dialog',handler);}
+   },s=>s.text.includes(qaName));
+  }else results.push({name:'Salva strategia QA',status:'blocked',reason:emptySlots?'Attempt already reserved':'Existing strategies preserved'});
+  async function refreshLive(){
+   await page.reload({waitUntil:'domcontentloaded',timeout:30000});
+   if(await page.locator('#loginEmail').isVisible()){
+    await page.locator('#loginEmail').fill(process.env.GOAT_USERNAME);
+    await page.locator('#loginPassword').fill(process.env.GOAT_PASSWORD);
+    await page.locator('#loginSubmitBtn').click();
+    await page.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});
+   }
+   await page.waitForTimeout(5000);
+   await clickObserved(page,'Live');
+   if(!await page.locator('#lav-golcasa').isVisible())await clickObserved(page,'⚙️ Filtri avanzati');
   }
-  await captureScrolled(page,pool,runId+'-ranges','Live: range avanzati');
-  await page.waitForTimeout(60000);
-  await capture(page,pool,runId+'-live-minute','Live: osservazione dopo 60 secondi');
+  let saved=(await state()).text.includes(qaName),removed=false;
+  if(saved){
+   await probe('Richiama strategia QA',async()=>{
+    await page.locator('#lav-golcasa').fill('1');
+    await page.getByText(qaName,{exact:true}).filter({visible:true}).first().click();
+   },()=>page.locator('#lav-golcasa').inputValue().then(v=>v===''));
+   await probe('Persistenza strategia dopo reload',refreshLive,s=>s.text.includes(qaName));
+   const cleanup=await bounded(page.evaluate(name=>{
+    const leaf=[...document.querySelectorAll('body *')].find(e=>e.children.length===0&&e.textContent.trim()===name);
+    for(let e=leaf?.parentElement;e&&e!==document.body;e=e.parentElement){
+     if(e.innerText.length>350)break;
+     const target=[...e.querySelectorAll('button,[role="button"],[onclick]')].find(b=>{
+      const label=(b.innerText||b.getAttribute('aria-label')||b.getAttribute('title')||'').trim();
+      return /^(×|✕|🗑|🗑️|elimina|elimina strategia|rimuovi strategia)$/i.test(label);
+     });
+     if(target){target.setAttribute('data-matchpilot-cleanup','qa-strategy');return true;}
+    }return false;
+   },qaName));
+   if(cleanup){
+    await probe('Rimuovi solo strategia QA',async()=>{
+     const handler=d=>d.type()==='confirm'&&/strategia/i.test(d.message())?d.accept():d.dismiss();
+     page.once('dialog',handler);
+     try{await page.locator('[data-matchpilot-cleanup="qa-strategy"]').click();await page.waitForTimeout(500);}
+     finally{page.removeListener('dialog',handler);}
+     await refreshLive();
+    },s=>!s.text.includes(qaName)&&/LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(s.text));
+    removed=!(await state()).text.includes(qaName);
+   }else results.push({name:'Rimuovi solo strategia QA',status:'blocked',reason:'No unambiguous observed delete control for own QA entry'});
+  }
+  if(claim.rowCount||saved)await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=$2 WHERE run_id=$1',[guardId,JSON.stringify({name:qaName,maximumExecutions:1,attempted:1,status:removed?'complete':saved?'cleanup_required':'unconfirmed',saved,removed})]);
+
  }
 
  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-tests',JSON.stringify({section:section+': test results',results})]);
@@ -214,7 +287,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v18';
+ const runId='source-mapping-2026-10-02-qa-v19';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -294,7 +367,7 @@ export async function testSourceLogin(pool){
     completed.push(section);
     await pool.query("UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({status:'running',restartCount,stage,completed,failed,owner,leaseUntil:Date.now()+60000}),owner]);
     if(section==='Live'){
-     await page.getByRole('button',{name:'⚙️ Filtri avanzati',exact:true}).click();
+     if(!await page.locator('#lav-golcasa').isVisible())await page.getByRole('button',{name:'⚙️ Filtri avanzati',exact:true}).click();
      await page.waitForTimeout(500);
      await capture(page,pool,snapshotRunId+'-live-filters','Live: filtri avanzati');
     }
