@@ -141,7 +141,7 @@ async function testInteractions(page,pool,runId,section) {
    else results.push({name:'Filtro '+label,status:'blocked',reason:'No visible exact control'});
   }
   if(section==="Dettaglio: GESTIONE 75'"){
-   const buttons=page.getByRole('button',{name:/^\d+-\d+ \d+ casi/});
+   const buttons=page.locator('button').filter({hasText:/^\d+-\d+ \d+ casi/});
    const names=await buttons.allTextContents();
    for(const name of names)await probe('Punteggio '+name,()=>page.getByRole('button',{name,exact:true}).click());
   }
@@ -480,7 +480,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-issue2-qa03-v45';
+ const runId='source-mapping-2026-10-02-issue2-qa03-v46';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
