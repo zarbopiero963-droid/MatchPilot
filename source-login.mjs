@@ -36,6 +36,7 @@ async function capture(page,pool,id,section){
 async function captureScrolled(page,pool,id,section) {
  await capture(page,pool,id+'-initial',section);
  const targets=await bounded(page.evaluate(()=>{
+  for(const old of document.querySelectorAll('[data-matchpilot-scroll]'))old.removeAttribute('data-matchpilot-scroll');
   const candidates=[document.scrollingElement,...document.querySelectorAll('body *')].filter((e,i,a)=>e&&a.indexOf(e)===i&&(e===document.scrollingElement||/auto|scroll/.test(getComputedStyle(e).overflowY))&&e.clientHeight>60&&e.scrollHeight>e.clientHeight+30&&e.getClientRects().length);
   return candidates.map((e,i)=>{e.setAttribute('data-matchpilot-scroll',String(i));return {index:i,height:e.scrollHeight,clientHeight:e.clientHeight,width:e.scrollWidth,clientWidth:e.clientWidth};});
  }));
@@ -382,6 +383,7 @@ async function testFinalNavigation(page,pool,runId,section){
  async function check(name,action,assertion){
   try{await action();await page.waitForTimeout(1000);if(assertion&&!await assertion())throw new Error('Expected state absent');results.push({name,status:assertion?'passed':'observed'});}
   catch(e){results.push({name,status:'failed',message:redact(e.message).slice(0,200)});}
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-'+section+'-journal',JSON.stringify({section:section+': click journal',results})]);
   await capture(page,pool,runId+'-'+section+'-final-'+results.length,section+': '+name);
  }
  if(section==='Dashboard'){
@@ -461,191 +463,110 @@ async function inspectControlMap(page,pool,runId,section){
 async function testMarkedControls(page,pool,runId,section){
  const results=[];
  async function probe(name,action,assertion){
-  try{await action();await page.waitForTimeout(400);if(assertion&&!await assertion())throw new Error('Expected effect not observed');results.push({name,status:assertion?'passed':'observed'});}
+  try{await action();await page.waitForTimeout(350);if(assertion&&!await assertion())throw new Error('Expected effect not observed');results.push({name,status:assertion?'passed':'observed'});}
   catch(e){results.push({name,status:'failed',message:redact(e.message).slice(0,300)});}
-  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-'+section+'-journal',JSON.stringify({section:section+': click journal',results})]);
-  await capture(page,pool,runId+'-'+section+'-marked-'+results.length,section+': '+name);
+  await capture(page,pool,runId+'-'+section+'-final-'+results.length,section+': '+name);
+ }
+ async function close(){
+  for(let n=0;n<5;n++){const c=page.locator('button[id*="close" i]').or(page.getByRole('button',{name:/^(✕|×|Chiudi)$/i})).filter({visible:true});if(!await c.count())break;await c.last().click();await page.waitForTimeout(200);}
  }
  if(section==='Palinsesto'){
   await page.locator('#palTabPandora').click();
-  await probe('Apri palinsesto fonte',async()=>{
-   await page.getByRole('button',{name:/Apri nel Lay Score/}).click();
-   await page.waitForTimeout(3000);
-  });
-  await probe('Analizza palinsesto',async()=>{
-   await page.locator('#analyzeBtn').click();
-   await page.locator('#closeImportBtn').waitFor({state:'visible'});
-  },async()=>await page.locator('#runImportBtn').isVisible());
-  await probe('Chiudi importazione',()=>page.locator('#closeImportBtn').click(),async()=>!await page.locator('#closeImportBtn').isVisible());
- }
- if(section==='Live'&&false){
-  for(const value of ['hot','presMedia','presBassa','fav','ht1','ht2','favLosing','odds','pressure','stats','sound','insights']){
-   const selector='[data-live-toggle="'+value+'"]';
-   const control=page.locator(selector).filter({visible:true});
-   const before=await control.getAttribute('class');
-   await probe('Toggle '+value,()=>control.click(),async()=>(await control.getAttribute('class'))!==before);
-   if(await control.count())await control.click();
-  }
-  for(const value of ['card','table'])await probe('Vista '+value,()=>page.locator('[data-live-view="'+value+'"]').click(),async()=>/active|selected|\bon\b/.test((await page.locator('[data-live-view="'+value+'"]').getAttribute('class'))||''));
-  await page.locator('[data-live-view="card"]').click();
-  for(const value of ['grid','list'])await probe('Statistiche '+value,()=>page.locator('[data-live-statview="'+value+'"]').click());
-  for(const label of ['Classico','Oh Yesss!'])await probe('Suono '+label,()=>page.locator('[data-live-soundpick]').selectOption({label}),async()=>(await page.locator('[data-live-soundpick] option:checked').textContent())===label);
-  await page.locator('[data-live-soundpick]').selectOption({label:'Classico'});
-  await page.locator('[data-live-sctoggle]').click();
-  for(const value of ['home','away','draw','0-0','1-0','0-1','1-1','2-0','0-2','2-1','1-2','2-2','3-0','0-3','3-1','1-3','3-2','2-3','3-3']){
-   await probe('Scores '+value,()=>page.locator('[data-live-scoreopt="'+value+'"]').filter({visible:true}).click());
-  }
-  await probe('Scores Select All',()=>page.locator('[data-live-scselall]').filter({visible:true}).click());
-  await probe('Scores Clear',()=>page.locator('[data-live-scclear]').filter({visible:true}).click());
-  await page.locator('[data-live-scclose]').filter({visible:true}).click();
-  await page.locator('[data-live-tmtoggle]').click();
-  await probe('Time Reimposta',()=>page.locator('[data-live-tmreset]').filter({visible:true}).click());
-  await page.locator('[data-live-tmclose]').filter({visible:true}).click();
- }
- if(section==='Asian Odds'){
-  for(const value of ['all','live','scheduled'])await probe('Stato '+value,()=>page.locator('button[data-status="'+value+'"]').filter({visible:true}).click());
-  await page.locator('button[data-status="all"]').filter({visible:true}).click();
-  for(const value of ['2.25','2.5','2.75','3','3.25']){
-   await probe('Linea '+value,()=>page.locator('button[data-line="'+value+'"]').filter({visible:true}).click());
-  }
-  const other=page.getByRole('button',{name:/^altre/i}).filter({visible:true});
-  if(await other.count())await other.click();
-  for(const value of ['1.75','2','3.5','3.75','4.25']){
-   const toggle=page.getByRole('button',{name:/^altre/i}).filter({visible:true});
-   if(!await page.locator('button[data-line="'+value+'"]').isVisible()&&await toggle.count())await toggle.click();
-   const line=page.locator('button[data-line="'+value+'"]').filter({visible:true});
-   if(await line.count())await probe('Altre linea '+value,()=>line.click());
-   else results.push({name:'Altre linea '+value,status:'blocked',reason:'Line absent in current data'});
-  }
-  await probe('Tutte le linee',()=>page.locator('button[data-line=""]').filter({visible:true}).click());
- }
-
- if(section==='Dashboard'){
-  async function closePanels(){
-   for(let n=0;n<5;n++){
-    const buttons=page.locator('button[id*="close" i]').or(page.getByRole('button',{name:/^(✕|×|Chiudi|Annulla)$/i})).filter({visible:true});
-    if(!await buttons.count())break;
-    await buttons.last().click();await page.waitForTimeout(250);
-   }
-   await page.keyboard.press('Escape');
-  }
-  await closePanels();
-  for(const attr of ['data-pandora-analysis','data-roi-str','data-betfair-btn','data-open-detail','data-action','data-strategy','data-risk']){
-   const b=page.locator('['+attr+']').filter({visible:true}).first();
-   if(!await b.count()){results.push({name:attr,status:'blocked',reason:'Control not visible'});continue;}
-   await probe('Dashboard '+attr,()=>b.click());
-   await page.waitForTimeout(1500);
-   await inspectControlMap(page,pool,runId,section+': '+attr);
-   await captureScrolled(page,pool,runId+'-dashboard-'+attr+'-scroll',section+': '+attr);
-   await closePanels();
-  }
-  const star=page.locator('[data-watch]').filter({visible:true}).first();
-  if(await star.count()){
-   const before=await star.getAttribute('title');
-   await probe('Aggiungi monitorata',()=>star.click(),async()=>(await star.getAttribute('title'))!==before);
-   await probe('Ripristina monitorata',()=>star.click(),async()=>(await star.getAttribute('title'))===before);
-  }
-  const dialogs=[];page.removeAllListeners('dialog');
-  page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.dismiss();});
-  const before=await page.locator('[data-open-detail]').count();
-  
-  await probe('Svuota: apri conferma HTML',()=>page.locator('#clearPalinsestoBtn').click(),()=>page.getByRole('button',{name:'Conferma',exact:true}).isVisible());
-  await probe('Svuota: Annulla HTML',()=>page.getByRole('button',{name:'Annulla',exact:true}).click(),async()=>await page.locator('[data-open-detail]').count()===before);
-  const teams=()=>page.locator('article[data-detail] [data-betfair-btn]').evaluateAll(es=>es.map(e=>e.getAttribute('data-bf-home')+'|'+e.getAttribute('data-bf-away')).sort());
-  const originalTeams=await teams();
-  await probe('Svuota: riapri conferma',()=>page.locator('#clearPalinsestoBtn').click());
-  await probe('Svuota: Conferma contesto QA',()=>page.getByRole('button',{name:'Conferma',exact:true}).click(),async()=>await page.locator('[data-open-detail]').count()===0);
-  await page.locator('[data-view="palinsesto"]').click();await page.locator('#palTabPandora').click();
-  await probe('Ripristina palinsesto via UI',async()=>{await page.getByRole('button',{name:/Apri nel Lay Score/}).click();await page.waitForTimeout(3500);},async()=>JSON.stringify(await teams())===JSON.stringify(originalTeams)&&await page.locator('[data-open-detail]').count()===before);
-
-  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-clear-cancel',JSON.stringify({section:'Dashboard: destructive cancellation',dialogs,before,after:await page.locator('[data-open-detail]').count()})]);
- }
- if(section==='Archivio'){
+  await probe('Carica palinsesto',()=>page.getByRole('button',{name:/Apri nel Lay Score/}).click());
+  await page.waitForTimeout(3000);
   const dialogs=[];page.removeAllListeners('dialog');page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.dismiss();});
-  
-  await probe('Archivio: apri cancellazione',()=>page.locator('#archiveClearBtn').click());
-  const cancel=page.getByRole('button',{name:'Annulla',exact:true}).filter({visible:true});
-  if(await cancel.count())await probe('Archivio: Annulla HTML',()=>cancel.click());
-  const empty=await page.getByText('Nessuna operazione registrata.',{exact:true}).isVisible();
-  if(empty){
-   await probe('Archivio vuoto: riapri conferma',()=>page.locator('#archiveClearBtn').click());
-   const confirm=page.getByRole('button',{name:'Conferma',exact:true}).filter({visible:true});
-   if(await confirm.count())await probe('Archivio vuoto: Conferma HTML',()=>confirm.click(),()=>page.getByText('Nessuna operazione registrata.',{exact:true}).isVisible());
-  }
-
-  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-archive-cancel',JSON.stringify({section:'Archivio: destructive cancellation',dialogs})]);
+  await probe('Apri importazione',()=>page.locator('#analyzeBtn').click(),()=>page.locator('#runImportBtn').isVisible());
+  await probe('Analizza senza input',()=>page.locator('#runImportBtn').click());
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-empty-import',JSON.stringify({section:'Palinsesto: empty import',dialogs})]);
+  await probe('Chiudi importazione',()=>page.locator('#closeImportBtn').click());
  }
+ if(section==='Dashboard'){
+  await close();
+  const layout=page.getByRole('button',{name:/^Vista (tabella|card)$/i}).filter({visible:true});
+  if(await layout.count()){
+   const before=await layout.getAttribute('aria-label')||await layout.getAttribute('title');
+   await probe('Dashboard cambia layout',()=>layout.click(),async()=>(await layout.getAttribute('aria-label')||await layout.getAttribute('title'))!==before);
+   await inspectControlMap(page,pool,runId,'Dashboard: layout alternativo');
+   await probe('Dashboard ripristina layout',()=>layout.click());
+  }
 
+  for(const risk of ['basso','medio','alto']){
+   await probe('Rischio '+risk,()=>page.locator('[data-risk="'+risk+'"]').filter({visible:true}).first().click());
+   await inspectControlMap(page,pool,runId,'Dashboard: rischio '+risk);await close();
+  }
+  for(const sel of ['#bestOfDay','article[data-detail]']){
+   await probe('Apri card '+sel,()=>page.locator(sel).filter({visible:true}).first().click());
+   await close();
+  }
+  await probe('Ordine Score',()=>page.locator('#sortOrder').selectOption({label:'Score'}),()=>page.locator('article[data-detail]').evaluateAll(es=>{const nums=es.map(e=>Number(e.innerText.match(/SCORE\s*(\d+)/i)?.[1]));return nums.length>1&&nums.every(Number.isFinite)&&nums.every((v,i)=>i===0||nums[i-1]>=v);}));
+  await probe('Ordine Rischio',()=>page.locator('#sortOrder').selectOption({label:'Rischio'}),()=>page.locator('article[data-detail]').evaluateAll(es=>{const ranks=es.map(e=>({basso:0,medio:1,alto:2})[e.querySelector('[data-risk]')?.getAttribute('data-risk')]);return ranks.length>1&&ranks.every(Number.isFinite)&&ranks.every((v,i)=>i===0||ranks[i-1]<=v);}));
+  await page.locator('#sortOrder').selectOption({label:'Score'});
+  await probe('Apri filtri Strategie',()=>page.locator('#strategyToggleBtn').click());
+  await inspectControlMap(page,pool,runId,'Dashboard: strategie');
+  await probe('Reset filtri Strategie',()=>page.locator('#resetStrategyFiltersBtn').click());
 
- if(section==='Live'){
-  async function closePanels(){
-   for(let n=0;n<5;n++){const c=page.locator('button[id*="close" i]').or(page.getByRole('button',{name:/^(✕|×|Chiudi|Annulla)$/i})).filter({visible:true});if(!await c.count())break;await c.last().click();await page.waitForTimeout(250);}
-   await page.keyboard.press('Escape');
-  }
-  for(const attr of ['data-live-timing','data-live-ht','data-live-radar','data-live-goaldetail','data-live-csdetail','data-live-detail','data-live-stats']){
-   const b=page.locator('['+attr+']').filter({visible:true}).first();
-   if(!await b.count()){results.push({name:attr,status:'blocked',reason:'No current match control'});continue;}
-   await probe('Live '+attr,()=>b.click());await page.waitForTimeout(1800);
-   await inspectControlMap(page,pool,runId,section+': '+attr);
-   await captureScrolled(page,pool,runId+'-live-'+attr+'-scroll',section+': '+attr);
-   await closePanels();
-  }
-  const star=page.locator('[data-live-fav]').filter({visible:true}).first();
-  if(await star.count()){await probe('Live preferito',()=>star.click());await probe('Live ripristina preferito',()=>star.click());}
-  for(const attr of ['data-live-mon']){
-   const b=page.locator('['+attr+']').filter({visible:true}).first();
-   if(await b.count()){
-    const popupPromise=page.waitForEvent('popup',{timeout:7000}).catch(()=>null);
-    await probe('Live finestra separata',()=>b.click());const popup=await popupPromise;
-    if(popup){await popup.waitForTimeout(1000);await captureScrolled(popup,pool,runId+'-live-popup','Live: finestra separata');await popup.close();}
-   }
-  }
-  const betfair=page.getByRole('link',{name:'BETFAIR',exact:true}).filter({visible:true}).first();
-  if(await betfair.count()){
-   const popupPromise=page.waitForEvent('popup',{timeout:7000}).catch(()=>null);
-   await probe('Live link BETFAIR',()=>betfair.click());const popup=await popupPromise;
-   if(popup){await popup.waitForTimeout(1000);await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-betfair-link',JSON.stringify({section:'Live: external link',opened:true,title:redact(await popup.title())})]);await popup.close();}
-  }
+  await probe('Chiudi filtri Strategie',()=>page.locator('#strategyToggleBtn').click());
+  const originalCount=await page.locator('[data-open-detail]').filter({visible:true}).count();
+  await probe('Svuota apri HTML',()=>page.locator('#clearPalinsestoBtn').click());
+  await probe('Svuota conferma e verifica Dashboard',async()=>{
+   await page.getByRole('button',{name:'Conferma',exact:true}).click();
+   await page.locator('[data-view="dashboard"]').click();await page.waitForTimeout(800);
+  },async()=>await page.locator('[data-open-detail]').filter({visible:true}).count()===0);
+  await page.locator('[data-view="palinsesto"]').click();await page.locator('#palTabPandora').click();
+  await probe('Ricarica dopo svuotamento',async()=>{await page.getByRole('button',{name:/Apri nel Lay Score/}).click();await page.waitForTimeout(3000);},async()=>await page.locator('[data-open-detail]').filter({visible:true}).count()===originalCount);
+
  }
-
-
  if(section==='Live'){
-  for(const market of ['1x2','ou','btts','cs']){
-   const b=page.locator('[data-odds-tab="'+market+'"]').filter({visible:true}).first();
-   if(await b.count())await probe('Quote mercato '+market,()=>b.click());
-   else results.push({name:'Quote mercato '+market,status:'blocked',reason:'Market button absent'});
-  }
   const stats=page.locator('[data-live-stats]').filter({visible:true}).first();
   if(await stats.count()){
-   if(!await page.getByRole('button',{name:'20',exact:true}).filter({visible:true}).count())await stats.click();await page.waitForTimeout(1200);
+   await probe('Apri Stats+',()=>stats.click());
+   await page.waitForTimeout(1800);
+   await inspectControlMap(page,pool,runId,'Live: Stats+ opened');
    for(const label of ['5','10','20','Complessivo','Casa / Trasf.','Tutte','Stessa lega','H2H','Race']){
     const b=page.getByRole('button',{name:label,exact:true}).filter({visible:true}).last();
     if(await b.count())await probe('Stats+ '+label,()=>b.click());
-    else results.push({name:'Stats+ '+label,status:'blocked',reason:'Button absent'});
+    else results.push({name:'Stats+ '+label,status:'blocked',reason:'No visible button'});
    }
-   await inspectControlMap(page,pool,runId,'Live: Stats+ controls');
-   await captureScrolled(page,pool,runId+'-statsplus-full','Live: Stats+ expanded');
-   await stats.click();
+   await captureScrolled(page,pool,runId+'-statsplus','Live: Stats+ full');
+   await probe('Chiudi Stats+',()=>stats.click());
   }
+  for(const league of ['Norway Division 1','UEFA Nations League C']){
+   await page.locator('[data-live-lgtoggle]').click();
+   const b=page.locator('[data-live-lg="'+league+'"]').filter({visible:true});
+   if(await b.count())await probe('Campionato '+league,()=>b.click());
+   await page.locator('[data-live-lgtoggle]').click().catch(()=>{});
+  }
+
   await page.locator('[data-live-view="table"]').click();
-  for(const sort of ['min','ris','rating','xgl','xg','gp1','gp2','pi1','pi2','pi3','cg10','sh','ot','da','cor','pos']){
-   const b=page.locator('[data-live-sort="'+sort+'"]').filter({visible:true});
-   if(await b.count())await probe('Tabella ordina '+sort,()=>b.click());
-  }
-  for(const attr of ['data-live-goaldetail-modal','data-live-csdetail-modal']){
+  for(const attr of ['data-live-ht','data-live-timing','data-live-goaldetail-modal','data-live-csdetail-modal']){
    const b=page.locator('['+attr+']').filter({visible:true}).first();
    if(await b.count()){
-    await probe('Tabella '+attr,()=>b.click());await page.waitForTimeout(1000);
-    await inspectControlMap(page,pool,runId,'Live: '+attr);
-    const close=page.locator('button[id*="close" i]').or(page.getByRole('button',{name:/^(✕|×|Chiudi|Annulla)$/i})).filter({visible:true});
-    if(await close.count())await close.last().click();
+    await probe('Tabella icona '+attr,()=>b.click());
+    await page.waitForTimeout(800);
+    await inspectControlMap(page,pool,runId,'Live: tabella '+attr);
+    await close();
    }
   }
+  const tableStar=page.locator('[data-live-fav]').filter({visible:true}).first();
+  if(await tableStar.count()){await probe('Tabella preferito',()=>tableStar.click());await probe('Tabella ripristina preferito',()=>tableStar.click());}
   await page.locator('[data-live-view="card"]').click();
+  const hide=page.locator('[data-live-hide]').filter({visible:true}).first();
+  const dialogs=[];page.removeAllListeners('dialog');page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.dismiss();});
+  if(await hide.count())await probe('Nascondi partita nel contesto QA',()=>hide.click());
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-hide',JSON.stringify({section:'Live: hide action',dialogs,cleanup:'Isolated browser context disposed after test; no trading orders'})]);
  }
-
+ if(section==='Archivio'){
+  const dialogs=[];page.removeAllListeners('dialog');page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.dismiss();});
+  await probe('Archivio annulla cancellazione',()=>page.locator('#archiveClearBtn').click());
+  const empty=await page.getByText('Nessuna operazione registrata.',{exact:true}).isVisible();
+  if(empty){
+   page.removeAllListeners('dialog');page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.accept();});
+   await probe('Archivio conferma su elenco vuoto',()=>page.locator('#archiveClearBtn').click(),()=>page.getByText('Nessuna operazione registrata.',{exact:true}).isVisible());
+  }else results.push({name:'Archivio conferma',status:'blocked',reason:'Personal data present; no global deletion'});
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-archive-empty',JSON.stringify({section:'Archivio: empty deletion',empty,dialogs})]);
+ }
  await inspectControlMap(page,pool,runId,section);
- await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-marked-tests',JSON.stringify({section:section+': marked control results',results})]);
+ await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-final-tests',JSON.stringify({section:section+': final control results',results})]);
 }
 
 async function clickObserved(page,label) {
@@ -659,7 +580,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v34';
+ const runId='source-mapping-2026-10-02-qa-v35';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -674,7 +595,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Palinsesto','Dashboard','Live','Asian Odds','Archivio']];
+  const groups=[['Palinsesto','Dashboard','Live','Archivio']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
