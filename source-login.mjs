@@ -461,24 +461,15 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
-
- const evidence={section:'QA-14 '+section,status:'partial',readings:[]};
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA14-'+section,JSON.stringify(evidence)]);
- const read=async label=>{const text=redact(await page.locator('body').innerText());evidence.readings.push({label,text,keywords:text.split('\n').filter(l=>/Gol\+|GOL\+|QE|Quota Equa|quota equa|commission|campione/i.test(l))});await save();};
- await read('Initial '+section);
- if(section==='Live'){
-  await page.locator('[data-live-view="card"]').filter({visible:true}).click();await page.waitForTimeout(1000);await read('Live card');
-  await page.locator('[data-live-advtoggle]').filter({visible:true}).click();await page.waitForTimeout(3000);await read('Live filter descriptions');
-  const goal=page.locator('[data-live-goaldetail]').filter({visible:true}).first();if(await goal.count()){await goal.click();await page.waitForTimeout(2000);await read('Goal detail real match');await page.keyboard.press('Escape');}
- }
- if(section==='Dashboard'){
-  const detail=page.locator('[data-open-detail],button[data-detail]').filter({visible:true}).first();await detail.click();await page.waitForTimeout(3000);await read('Prematch detail QE');
-  const legend=page.getByRole('button',{name:/legend/i}).filter({visible:true});if(await legend.count()===1){await legend.click();await page.waitForTimeout(1000);await read('Detail Legend');await page.keyboard.press('Escape');}
- }
- evidence.reason='Reconcile source Guide/Legend/filter/detail definitions; unresolved ambiguity cannot be converted into a certified formula.';await save();
+ const evidence={section:'QA-14 QE boundary actual input',status:'partial',results:[],fixture:'Virtual quote input only; no order'};
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA14QE',JSON.stringify(evidence)]);
+ await page.waitForTimeout(8000);await page.locator('[data-open-detail],button[data-detail]').filter({visible:true}).first().click();await page.locator('#closeDetailBtn').waitFor({state:'visible'});await page.waitForTimeout(2000);
+ evidence.initial=redact(await page.locator('body').innerText()).slice(-8500);
+ const input=page.locator('#qeBetfairInput');const original=await input.inputValue();
+ try{for(const value of ['50','55.5','55.6','60']){await input.fill(value);await page.waitForTimeout(700);evidence.results.push({value,text:redact(await page.locator('body').innerText()).slice(-5000)});await save();}}
+ finally{await input.fill(original);evidence.restored=await input.inputValue()===original;await save();}
+ evidence.reason='Compare displayed QE and response against source Guide; contradictory instructions keep QA14 open.';await save();
 }
-
 async function clickObserved(page,label) {
  const text=label.replace(/\s+/g,' ').trim();
  await page.waitForFunction(target=>[...document.querySelectorAll('button,[role="button"],[role="tab"],[onclick],summary')].some(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
@@ -490,7 +481,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa14-v63';
+ const runId='source-mapping-2026-10-03-issue2-qa14-v68';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -505,7 +496,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Palinsesto','Guida','Live','Dashboard']];
+  const groups=[['Dashboard']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
