@@ -461,20 +461,22 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- const evidence={section:'QA-15 Ladder independent payoff',status:'partial',results:[],fixture:'QA virtual calculation; no order sent'};
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA15',JSON.stringify(evidence)]);
- evidence.initialText=redact(await page.locator('body').innerText()).slice(-12000);
- evidence.inputs=await page.locator('input').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.id,type:e.type,min:e.min,max:e.max,step:e.step,value:e.value})));
- await save();const rows=[page.locator('tr').filter({hasText:'⚽ 0-0'}).first(),page.locator('tr').filter({hasText:'⚽ 0-1'}).first()];
- for(const test of [{name:'Single quote5 fee0',fee:'0',quotes:['5']},{name:'Single quote5 fee5',fee:'5',quotes:['5']},{name:'Multiple quote5/6 fee5',fee:'5',quotes:['5','6']},{name:'Boundary quote1 fee5',fee:'5',quotes:['1']}]){
-  await page.locator('#dutchResetBtn').click();
-  await page.locator('#dutchProfitInput').fill('10');await page.locator('#dutchCommInput').fill(test.fee);
-  for(let i=0;i<test.quotes.length;i++){await rows[i].locator('input[type="number"]').fill(test.quotes[i]);const checkbox=rows[i].locator('input[type="checkbox"]');if(await checkbox.isEnabled())await checkbox.check();}
-  await page.waitForTimeout(1000);
-  evidence.results.push({...test,target:10,rows:await page.locator('tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({text:e.innerText,inputs:[...e.querySelectorAll('input')].map(i=>({type:i.type,value:i.value,checked:i.checked}))}))),text:redact(await page.locator('body').innerText()).slice(-14000)});await save();
+ if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
+ const evidence={section:'QA-06 live sorting',startedAt:new Date().toISOString(),actions:[]};
+ await page.locator('[data-live-view="table"]').filter({visible:true}).click();await page.waitForTimeout(2000);
+ const rows=()=>page.locator('tbody tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({text:e.innerText,cells:[...e.querySelectorAll('td')].map(x=>({text:x.innerText,leafText:[...x.querySelectorAll('span')].filter(n=>!n.children.length).map(n=>n.innerText)}))})));
+ evidence.initialRows=await rows();evidence.headers=await page.locator('[data-live-sort]').filter({visible:true}).evaluateAll(es=>es.map(e=>({key:e.getAttribute('data-live-sort'),label:e.innerText,title:e.title,cellIndex:e.closest('th')?.cellIndex,colSpan:e.closest('th')?.colSpan})));
+ for(const key of ['min','ris','rating','xgl','xg','gp1','gp2','pi1','pi2','pi3','cg10','sh','ot','da','cor','pos']){
+  const head=page.locator('[data-live-sort="'+key+'"]').filter({visible:true});
+  if(!await head.count()){evidence.actions.push({key,status:'blocked',reason:'Header not rendered'});continue;}
+  try{await head.first().click();await page.waitForTimeout(200);const first=await rows();await head.first().click();await page.waitForTimeout(200);const second=await rows();evidence.actions.push({key,status:'observed',first,second,headerText:await head.first().innerText()});}
+  catch(e){evidence.actions.push({key,status:'failed',error:redact(e.message).slice(0,400)});}
  }
- await page.locator('#dutchResetBtn').click();evidence.cleaned=true;evidence.reason='Independent net/gross payoff must be reconciled with the source labels; contradictions keep QA15 open.';await save();
+ evidence.status=evidence.initialRows.length<2?'blocked':'observed';evidence.reason=evidence.initialRows.length<2?'Insufficient real rows for ordering assertions':'Directions clicked; reconcile sequence independently per header definition';
+ evidence.text=redact(await page.locator('body').innerText()).slice(-10000);
+ await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-QA06',JSON.stringify(evidence)]);
 }
+
 async function clickObserved(page,label) {
  const text=label.replace(/\s+/g,' ').trim();
  await page.waitForFunction(target=>[...document.querySelectorAll('button,[role="button"],[role="tab"],[onclick],summary')].some(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
@@ -486,7 +488,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa15-v70';
+ const runId='source-mapping-2026-10-03-issue2-qa06-v69';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -501,7 +503,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Ladder Dutching']];
+  const groups=[['Palinsesto','Live']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
@@ -600,3 +602,5 @@ export async function testSourceLogin(pool){
   console.log('SOURCE_MAP_BATCH_DONE '+JSON.stringify(result));
  }
 }
+
+
