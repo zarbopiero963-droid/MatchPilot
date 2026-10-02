@@ -4,10 +4,12 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs"
+    "check": "node --check server.mjs",
+    "postinstall": "PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium --only-shell"
   },
   "dependencies": {
-    "pg": "8.16.3"
+    "pg": "8.16.3",
+    "playwright": "1.63.0"
   },
   "engines": {
     "node": ">=22"
