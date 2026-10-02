@@ -475,11 +475,12 @@ async function testMarkedControls(page,pool,runId,section){
  for(let n=0;n<30&&!page.isClosed()&&!await page.locator('#loginEmail').isVisible();n++)await page.waitForTimeout(1000);
  evidence.closed=page.isClosed();
  if(!evidence.closed){evidence.after={path:new URL(page.url()).pathname,loginVisible:await page.locator('#loginEmail').isVisible(),logoutVisible:await page.locator('#logoutBtn').isVisible(),text:redact(await page.locator('body').innerText()).slice(0,2500)};}
- const probe=await context.newPage();await probe.goto(moduleUrl,{waitUntil:'domcontentloaded',timeout:30000});await probe.waitForTimeout(8000);
- evidence.protectedRevisit={loginVisible:await probe.locator('#loginEmail').isVisible(),logoutVisible:await probe.locator('#logoutBtn').isVisible(),path:new URL(probe.url()).pathname};
- if(evidence.protectedRevisit.loginVisible){
-  await probe.locator('#loginEmail').fill(process.env.GOAT_USERNAME);await probe.locator('#loginPassword').fill(process.env.GOAT_PASSWORD);await probe.locator('#loginSubmitBtn').click();
-  await probe.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});evidence.reloginPassed=await probe.locator('#logoutBtn').isVisible();
+ const probe=await context.newPage();await probe.goto(moduleUrl,{waitUntil:'domcontentloaded',timeout:30000});await probe.waitForTimeout(8000);for(let n=0;n<30&&!probe.isClosed()&&!await probe.locator('#loginEmail').isVisible();n++)await probe.waitForTimeout(1000);
+ evidence.protectedRevisit={loginVisible:await probe.locator('#loginEmail').isVisible(),logoutVisible:await probe.locator('#logoutBtn').isVisible(),path:new URL(probe.url()).pathname,title:redact(await probe.title()),text:redact(await probe.locator('body').innerText()).slice(0,3000)};
+ const loginPage=evidence.protectedRevisit.loginVisible?probe:page;
+ if(!loginPage.isClosed()&&await loginPage.locator('#loginEmail').isVisible()){
+  await loginPage.locator('#loginEmail').fill(process.env.GOAT_USERNAME);await loginPage.locator('#loginPassword').fill(process.env.GOAT_PASSWORD);await loginPage.locator('#loginSubmitBtn').click();
+  await loginPage.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});evidence.reloginPassed=await loginPage.locator('#logoutBtn').isVisible();
  }
  evidence.status=evidence.protectedRevisit.loginVisible&&!evidence.protectedRevisit.logoutVisible&&evidence.reloginPassed?'passed':'failed';
  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-QA02',JSON.stringify(evidence)]);
@@ -497,7 +498,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-issue2-qa02-v42';
+ const runId='source-mapping-2026-10-02-issue2-qa02-v43';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
