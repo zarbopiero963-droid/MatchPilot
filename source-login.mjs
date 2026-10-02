@@ -184,9 +184,9 @@ async function testInteractions(page,pool,runId,section) {
 
 async function clickObserved(page,label) {
  const text=label.replace(/\s+/g,' ').trim();
- await page.waitForFunction(target=>[...document.querySelectorAll('button')].some(e=>(e.innerText||'').replace(/\s+/g,' ').trim()===target&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
+ await page.waitForFunction(target=>[...document.querySelectorAll('button')].some(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
  await bounded(page.evaluate(target=>{
-  const button=[...document.querySelectorAll('button')].find(e=>(e.innerText||'').replace(/\s+/g,' ').trim()===target&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length));
+  const button=[...document.querySelectorAll('button')].find(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length));
   if(!button)throw new Error('Known control missing');document.querySelectorAll('[data-matchpilot-target]').forEach(e=>e.removeAttribute('data-matchpilot-target'));button.setAttribute('data-matchpilot-target','true');
  },text),15000);
  await page.locator('[data-matchpilot-target="true"]').click({timeout:15000});
