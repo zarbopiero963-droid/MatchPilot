@@ -16,7 +16,7 @@ async function capture(page,pool,id,section){
   const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length);
   const authVisible=['heroEmail','loginEmail'].some(id=>{const e=document.getElementById(id);return e&&visible(e);});
   const loading=/Calcolo analisi in corso|Caricamento dati|Loading data/i.test(document.body.innerText);
-  return {authVisible,loading,detailButtonDiagnostics:[...document.querySelectorAll('button')].filter(e=>['STATS','STATS +','CONSIGLIO'].includes(e.innerText.trim())).map(e=>({label:e.innerText,disabled:e.disabled,onclick:e.getAttribute('onclick'),className:e.className})),activeTabs:[...document.querySelectorAll('button[aria-selected="true"],[role="tab"][aria-selected="true"],button.active')].filter(visible).map(e=>e.innerText),text:document.body.innerText,controls:[...document.querySelectorAll('a,button,[role="button"],[role="tab"]')].filter(visible).map(e=>({tag:e.tagName,label:(e.innerText||e.getAttribute('aria-label')||'').trim(),id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||''})),inputs:[...document.querySelectorAll('input,select,textarea')].filter(visible).map(e=>({tag:e.tagName,type:e.type,id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||e.labels?.[0]?.innerText||'',min:e.getAttribute('min'),max:e.getAttribute('max'),step:e.getAttribute('step'),placeholder:e.getAttribute('placeholder'),options:e.tagName==='SELECT'?[...e.options].map(o=>o.textContent):undefined}))};
+  return {authVisible,loading,detailButtonDiagnostics:[...document.querySelectorAll('button')].filter(e=>['STATS','STATS +','CONSIGLIO'].includes(e.innerText.trim())).map(e=>({label:e.innerText,disabled:e.disabled,onclick:e.getAttribute('onclick'),className:e.className})),activeTabs:[...document.querySelectorAll('button[aria-selected="true"],[role="tab"][aria-selected="true"],button.active')].filter(visible).map(e=>e.innerText),text:document.body.innerText,controls:[...document.querySelectorAll('a,button,[role="button"],[role="tab"],[onclick],summary,[tabindex="0"],[style*="pointer"]')].filter(visible).map(e=>({tag:e.tagName,label:(e.innerText||e.getAttribute('aria-label')||e.getAttribute('title')||'').trim(),id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||''})),inputs:[...document.querySelectorAll('input,select,textarea')].filter(visible).map(e=>({tag:e.tagName,type:e.type,id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||e.labels?.[0]?.innerText||'',min:e.getAttribute('min'),max:e.getAttribute('max'),step:e.getAttribute('step'),placeholder:e.getAttribute('placeholder'),options:e.tagName==='SELECT'?[...e.options].map(o=>o.textContent):undefined}))};
  }),15000);
  data.text=redact(data.text);data.controls=data.controls.map(o=>({...o,context:redact(o.context),label:redact(o.label)}));
  data.inputs=data.inputs.map(o=>({...o,context:redact(o.context),placeholder:redact(o.placeholder),options:o.options?.map(redact)}));
@@ -155,7 +155,7 @@ async function testInteractions(page,pool,runId,section) {
    'Dettaglio: CLASSIFICA':['Casa','Trasferta','Generale']
   }[section]||[];
   for(const label of choices){
-   const control=page.getByText(label,{exact:true}).filter({visible:true}).last();
+   const control=page.getByRole('button',{name:label,exact:true}).filter({visible:true}).last();
    if(await control.count())await probe('Filtro '+label,()=>control.click());
    else results.push({name:'Filtro '+label,status:'blocked',reason:'No visible exact control'});
   }
@@ -165,6 +165,8 @@ async function testInteractions(page,pool,runId,section) {
    for(const name of names)await probe('Punteggio '+name,()=>page.getByRole('button',{name,exact:true}).click());
   }
   if(section==='Dettaglio: CONSIGLIO'){
+   for(const label of ['Entro in lay adesso?','Quale risultato lavoro?','Quanto rischio?',"Cosa faccio al 75'?",'È già successo prima?'])
+    await probe('Assistente: '+label,()=>clickObserved(page,label));
    const quote=page.locator('#qeBetfairInput');
    if(await quote.isVisible())await probe('Quota manuale 5',()=>quote.fill('5'),()=>quote.inputValue().then(v=>v==='5'));
   }
@@ -184,16 +186,16 @@ async function testInteractions(page,pool,runId,section) {
 
 async function clickObserved(page,label) {
  const text=label.replace(/\s+/g,' ').trim();
- await page.waitForFunction(target=>[...document.querySelectorAll('button')].some(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
+ await page.waitForFunction(target=>[...document.querySelectorAll('button,[role="button"],[role="tab"],[onclick],summary')].some(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
  await bounded(page.evaluate(target=>{
-  const button=[...document.querySelectorAll('button')].find(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length));
+  const button=[...document.querySelectorAll('button,[role="button"],[role="tab"],[onclick],summary')].find(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length));
   if(!button)throw new Error('Known control missing');document.querySelectorAll('[data-matchpilot-target]').forEach(e=>e.removeAttribute('data-matchpilot-target'));button.setAttribute('data-matchpilot-target','true');
  },text),15000);
  await page.locator('[data-matchpilot-target="true"]').click({timeout:15000});
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v16';
+ const runId='source-mapping-2026-10-02-qa-v17';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -204,14 +206,15 @@ export async function testSourceLogin(pool){
  if(restartCount>4 && Number(existing.rows[0]?.result?.leaseUntil||0)<Date.now()){await pool.query("UPDATE matchpilot_test_runs SET completed_at=now(),result=result || '{\"status\":\"blocked\",\"reason\":\"restart_limit\"}'::jsonb WHERE run_id=$1",[runId]);console.log('SOURCE_MAP_BATCH_DONE restart_limit');return;}
  const claimed=await pool.query("INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT (run_id) DO UPDATE SET result=matchpilot_test_runs.result || EXCLUDED.result WHERE COALESCE((matchpilot_test_runs.result->>'leaseUntil')::bigint,0)<$3 RETURNING run_id",[runId,JSON.stringify({status:'running',restartCount,owner,leaseUntil:Date.now()+60000}),Date.now()]);
  if(!claimed.rowCount){console.log('SOURCE_MAP_BATCH waiting_for_lease');const timer=setTimeout(()=>testSourceLogin(pool).catch(()=>console.log('SOURCE_MAP_RETRY failed')),65000);timer.unref();return;}
+ const snapshotRunId=runId+'-attempt-'+owner;
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Dashboard'],['Dettaglio: STATS +','Dettaglio: TIMING DEI GOL',"Dettaglio: GESTIONE 75'",'Dettaglio: CLASSIFICA','Dettaglio: 📊 ROI','Dettaglio: CONSIGLIO'],['Money Management']];
+  const groups=[['Dettaglio: CLASSIFICA','Dettaglio: 📊 ROI','Dettaglio: CONSIGLIO'],['Money Management']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
-   await pool.query('UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1',[runId,JSON.stringify({stage,completed,failed})]);
+   await pool.query('UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1',[runId,JSON.stringify({stage,completed,failed,restartCount})]);
    browser=await bounded(chromium.launch({headless:true}),45000);
 
    const context=await bounded(browser.newContext(),15000);
@@ -254,9 +257,9 @@ export async function testSourceLogin(pool){
      if(section.startsWith('Dettaglio: ')){
       const tab=section.slice(11);
       await page.waitForTimeout(8000);
-      for(let attempt=0;attempt<3;attempt++){
+      for(let attempt=0;attempt<12;attempt++){
        await clickObserved(page,tab);
-       await page.waitForTimeout(1000);
+       await page.waitForTimeout(3500);
        const selected=await bounded(page.evaluate(target=>[...document.querySelectorAll('button.active,button[aria-selected="true"]')].some(e=>e.innerText.trim()===target),tab));
        if(selected)break;
       }
@@ -267,22 +270,22 @@ export async function testSourceLogin(pool){
      const selected=await bounded(page.evaluate(target=>[...document.querySelectorAll('button.active,button[aria-selected="true"]')].some(e=>e.innerText.trim()===target),section.slice(11)));
      if(!selected)throw new Error('Requested detail tab did not remain selected');
     }
-    await captureScrolled(page,pool,runId+'-'+section,section);
-    await testInteractions(page,pool,runId,section);
+    await captureScrolled(page,pool,snapshotRunId+'-'+section,section);
+    await testInteractions(page,pool,snapshotRunId,section);
     completed.push(section);
     await pool.query("UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({status:'running',restartCount,stage,completed,failed,owner,leaseUntil:Date.now()+60000}),owner]);
     if(section==='Live'){
      await page.getByRole('button',{name:'⚙️ Filtri avanzati',exact:true}).click();
      await page.waitForTimeout(500);
-     await capture(page,pool,runId+'-live-filters','Live: filtri avanzati');
+     await capture(page,pool,snapshotRunId+'-live-filters','Live: filtri avanzati');
     }
-    const legends=page.getByRole('button',{name:/legend|legenda/i});
+    const legends=page.getByText(/^\s*\??\s*(Legend|Legenda)\s*$/i).filter({visible:true});
     const total=await legends.count();
     for(let index=0;index<total&&index<8;index++){
      if(!await legends.nth(index).isVisible())continue;
      await legends.nth(index).click();
      await page.waitForTimeout(300);
-     const data=await capture(page,pool,runId+'-'+section+'-legend-'+index,section+': Legend '+index);
+     const data=await capture(page,pool,snapshotRunId+'-'+section+'-legend-'+index,section+': Legend '+index);
      const close=data.controls.find(o=>/^(✕|×|Chiudi|Close)$/.test(o.label));
      if(close){await page.getByText(close.label,{exact:true}).filter({visible:true}).first().click();}
      else{await page.keyboard.press('Escape');}
@@ -290,18 +293,18 @@ export async function testSourceLogin(pool){
     } catch(error) {
       outcome='partial'; failed.push({section,errorType:error.name});
       console.log('SOURCE_MAP_SECTION_ERROR '+JSON.stringify({section,errorType:error.name,detail:redact(error.message).slice(0,1800)}));
-      await capture(page,pool,runId+'-'+section+'-error',section+': diagnostic').catch(()=>{});
+      await capture(page,pool,snapshotRunId+'-'+section+'-error',section+': diagnostic').catch(()=>{});
       await page.keyboard.press('Escape').catch(()=>{});
-      await pool.query('UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1',[runId,JSON.stringify({status:'running',stage,completed,failed,owner,leaseUntil:Date.now()+60000})]);
+      await pool.query('UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1',[runId,JSON.stringify({status:'running',restartCount,stage,completed,failed,owner,leaseUntil:Date.now()+60000})]);
     }
    }
    await bounded(browser.close(),15000);browser=null;
   }
- }catch(error){outcome='partial';console.log('SOURCE_MAP_ERROR '+JSON.stringify({stage,errorType:error.name,detail:redact(error.message).slice(0,1800)}));if(page&&!page.isClosed())await capture(page,pool,runId+'-error','Error diagnostic').catch(()=>{});}finally{
+ }catch(error){outcome='partial';console.log('SOURCE_MAP_ERROR '+JSON.stringify({stage,errorType:error.name,detail:redact(error.message).slice(0,1800)}));if(page&&!page.isClosed())await capture(page,pool,snapshotRunId+'-error','Error diagnostic').catch(()=>{});}finally{
   clearInterval(heartbeat);
   if(browser)await bounded(browser.close(),15000).catch(()=>{});
-  const result={status:outcome,stage,completed,failed};
-  await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=$2 WHERE run_id=$1',[runId,JSON.stringify(result)]);
+  const result={status:outcome,stage,completed,failed,restartCount,snapshotRunId};
+  await pool.query("UPDATE matchpilot_test_runs SET completed_at=now(),result=$2 WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify(result),owner]);
   console.log('SOURCE_MAP_BATCH_DONE '+JSON.stringify(result));
  }
 }
