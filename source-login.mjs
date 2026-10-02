@@ -44,7 +44,7 @@ export async function testSourceLogin(pool){
     for(const key of ['GOAT_USERNAME','GOAT_PASSWORD','APP_PASSWORD','OPENROUTER_API_KEY']){
      if(process.env[key])s=s.split(process.env[key]).join('[REDACTED]');
     }
-    return s.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi,'[EMAIL]').replace(/https?:\\/\\/[^\\s]+/g,'[URL]');
+    return s.replace(/[^\s]+@[^\s]+/g,'[EMAIL]').split(/(\s+)/).map(w=>w.startsWith('http')?'[URL]':w).join('');
    };
    snapshot.text=redact(snapshot.text);
    snapshot.title=redact(snapshot.title);
