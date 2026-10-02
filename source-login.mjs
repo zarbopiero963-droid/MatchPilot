@@ -461,23 +461,25 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
-
- const evidence={section:'QA-12 real radar iframe',status:'partial',results:[]};
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA12',JSON.stringify(evidence)]);
- await page.locator('[data-live-view="card"]').filter({visible:true}).click();
- const controls=page.locator('[data-live-radar]').filter({visible:true});evidence.available=await controls.count();
- for(let i=0;i<Math.min(evidence.available,2);i++){
-  const control=controls.nth(i);const matchId=await control.getAttribute('data-live-radar');await control.click();await page.waitForTimeout(500);evidence.earlyText=redact(await page.locator('body').innerText()).slice(-3500);await page.waitForTimeout(19500);
-  const frames=[];for(const frame of page.frames()){if(frame===page.mainFrame())continue;let text,error;try{text=redact(await frame.locator('body').innerText({timeout:5000})).slice(0,2500);}catch(e){error=redact(e.message).slice(0,500);}let host;try{host=new URL(frame.url()).hostname;}catch{}frames.push({host,text,error});}
-  const pages=[];for(const p of page.context().pages()){if(p===page)continue;const host=new URL(p.url()).hostname;if(host==='goatbettingexchange.com')continue;let text,error;try{text=redact(await p.locator('body').innerText({timeout:5000})).slice(0,5000);}catch(e){error=redact(e.message).slice(0,500);}const childFrames=[];for(const f of p.frames()){if(f===p.mainFrame())continue;let ft,fe;try{ft=redact(await f.locator('body').innerText({timeout:5000})).slice(0,5000);}catch(e){fe=redact(e.message).slice(0,500);}let fh;try{fh=new URL(f.url()).hostname;}catch{}childFrames.push({host:fh,text:ft,error:fe});}pages.push({host,title:await p.title().catch(()=>''),text,error,childFrames,iframeCount:await p.locator('iframe').count(),screenshotPngBase64:(await p.screenshot({timeout:15000})).toString('base64')});}const frameElements=await page.locator('iframe').evaluateAll(es=>es.map(e=>({title:e.title,visible:e.getClientRects().length>0,width:e.clientWidth,height:e.clientHeight})));
-  evidence.results.push({matchId,pages,frames,frameElements,mainText:redact(await page.locator('body').innerText()).slice(-7000)});await save();
-  await page.keyboard.press('Escape');await page.waitForTimeout(500);
-  const close=page.getByRole('button',{name:/^(✕|×|Chiudi)$/}).filter({visible:true});if(await close.count()===1)await close.click();
+ const evidence={section:'QA-13 chronological equity',status:'partial',simulation:{fixedOdds:3,stake:10,commission:5},results:[]};
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA13',JSON.stringify(evidence)]);
+ evidence.before=redact(await page.locator('body').innerText()).slice(-6000);
+ const guard='source-backtest-test-2026-10-02-04';
+ const ticket=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[guard,JSON.stringify({status:'claimed',maximumExecutions:1,reason:'QA13 chronological equity; not quota saturation'})]);
+ if(!ticket.rowCount){evidence.status='blocked';evidence.reason='Execution ticket already claimed; no retry';await save();return;}
+ for(const [id,value] of Object.entries({btO1min:'1.5',btO1max:'2',btOXmin:'3',btOXmax:'5',btO2min:'3',btO2max:'5',btMinute:'60',btGolH:'1',btGolA:'1'}))await page.locator('#'+id).fill(value);
+ await page.locator('#btRunBtn').click();await page.waitForTimeout(30000);
+ evidence.afterBacktest=redact(await page.locator('body').innerText()).slice(-16000);await save();
+ await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1',[guard,JSON.stringify({status:'observed',attempted:1})]);
+ if(!await page.locator('#btStratMarket').isVisible()){evidence.status='blocked';evidence.reason='Backtest result/strategy calculation unavailable';await save();return;}
+ evidence.markets=await page.locator('#btStratMarket option').evaluateAll(es=>es.map(e=>({value:e.value,label:e.textContent})));
+ for(const fee of ['0','5']){
+  await page.locator('#btStratSide').selectOption({label:'Punta'});await page.locator('#btStratQuota').fill('3');await page.locator('#btStratImporto').fill('10');await page.locator('#btStratCommissione').fill(fee);await page.locator('#btStratCalcBtn').click();await page.waitForTimeout(1500);
+  const charts=await page.locator('canvas').filter({visible:true}).evaluateAll(es=>es.map(e=>({width:e.width,height:e.height,chart:(typeof Chart!=='undefined'&&Chart.getChart)?(()=>{const c=Chart.getChart(e);return c?{labels:c.data.labels,datasets:c.data.datasets.map(d=>({label:d.label,data:d.data}))}:null})():null})));
+  evidence.results.push({fee,text:redact(await page.locator('body').innerText()).slice(-9000),charts});await save();
  }
- evidence.reason='Iframe load and observed contents recorded; loaded/error/empty and scrolling require separate verified outcomes';await save();
+ evidence.reason='Chronological dates, per-operation outcome/PnL, commission and drawdown require independent reconciliation of an exposed full sequence; fixed quote simulation is not actual historical execution.';await save();
 }
-
 async function clickObserved(page,label) {
  const text=label.replace(/\s+/g,' ').trim();
  await page.waitForFunction(target=>[...document.querySelectorAll('button,[role="button"],[role="tab"],[onclick],summary')].some(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
@@ -489,7 +491,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa12-v66';
+ const runId='source-mapping-2026-10-03-issue2-qa13-v62';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -504,7 +506,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Palinsesto','Live']];
+  const groups=[['Backtest Storico']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
@@ -512,7 +514,7 @@ export async function testSourceLogin(pool){
    browser=await bounded(chromium.launch({headless:true}),45000);
 
    const context=await bounded(browser.newContext(),15000);
-   await context.route('**/*',route=>['media'].includes(route.request().resourceType())?route.abort():route.continue());
+   await context.route('**/*',route=>['image','media','font'].includes(route.request().resourceType())?route.abort():route.continue());
    const portal=await bounded(context.newPage(),15000);
    portal.setDefaultTimeout(15000);
    stage='portal_navigation';
@@ -603,6 +605,4 @@ export async function testSourceLogin(pool){
   console.log('SOURCE_MAP_BATCH_DONE '+JSON.stringify(result));
  }
 }
-
-
 
