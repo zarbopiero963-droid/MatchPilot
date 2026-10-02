@@ -8657,5 +8657,542 @@
     "manual populated clear not certified",
     "logical families sampled, not every match replica",
     "media and mobile not certified"
-  ]
+  ],
+  "issue2Certification": {
+    "updatedAt": "2026-10-02T23:08:00Z",
+    "issue": 2,
+    "acceptedCriteria": 4,
+    "totalCriteria": 15,
+    "closureReady": false,
+    "report": "docs/issue-2-qa-progress-2026-10-02.md",
+    "cases": [
+      {
+        "id": "QA-01",
+        "status": "PARTIAL",
+        "version": "v41",
+        "detail": "H2H cliccato e ripristinato: 22→16→22; membership rispetto ai conteggi H2H storici da riconciliare."
+      },
+      {
+        "id": "QA-02",
+        "status": "PASSED",
+        "version": "v43",
+        "detail": "Logout, accesso diretto negato e nuovo login verificati; verdict derivato conserva errore iniziale del harness."
+      },
+      {
+        "id": "QA-03",
+        "status": "NON DISPONIBILE",
+        "version": "v47",
+        "detail": "Nessun calendario/input data/dialog/iframe osservato dopo clic. Non certifica un cambio giornata."
+      },
+      {
+        "id": "QA-04",
+        "status": "PASSED",
+        "version": "v49",
+        "detail": "Manuale QA popolato: Annulla conserva; Conferma elimina; reload pulito e identità feed automatico preservate."
+      },
+      {
+        "id": "QA-05",
+        "status": "PARTIAL",
+        "version": "v51",
+        "detail": "Squadre/quote, duplicato unico, malformato e cleanup verificati. Lega e ora non ancora riconciliate."
+      },
+      {
+        "id": "QA-06",
+        "status": "PARTIAL",
+        "version": "v72",
+        "detail": "32 clic su 16 header con due partite. RATING pari; PI1 totali pari; POSS non inverte. Comparatori, pari e mancanti da completare."
+      },
+      {
+        "id": "QA-07",
+        "status": "PARTIAL",
+        "version": "v56",
+        "detail": "15 scenari range/zero/vuoto/combinazione/reset; matrice campionato-tempo-HT-preferiti e inclusività da completare."
+      },
+      {
+        "id": "QA-08",
+        "status": "PASSED",
+        "version": "v55",
+        "detail": "Strategia Live A salva/reload/richiama; B indipendente non vede: storage locale. Cleanup entrambi. Non prova dispositivi fisici né Backtest."
+      },
+      {
+        "id": "QA-09",
+        "status": "BLOCKED",
+        "version": "v57/v62",
+        "detail": "Rifiuto reale del limite 5/giorno provato. Reset al confine effettivo e timezone non certificati."
+      },
+      {
+        "id": "QA-10",
+        "status": "PARTIAL",
+        "version": "v60/v73",
+        "detail": "24 viste touch emulato con asset e wheel nativa; dettagli Dashboard/Live tap e chiusura landscape. Live portrait 555px/393px con clipping. Orizzontale e modali portrait residui."
+      },
+      {
+        "id": "QA-11",
+        "status": "PARTIAL",
+        "version": "v59",
+        "detail": "On/off, due selezioni e 3 risorse audio HTTP200 provate. Playback udibile e mute effettivo non provati."
+      },
+      {
+        "id": "QA-12",
+        "status": "PARTIAL",
+        "version": "v66",
+        "detail": "Due radar con iframe popolati letti e screenshot verificati. Rami vuoto/errore/scroll residui."
+      },
+      {
+        "id": "QA-13",
+        "status": "BLOCKED",
+        "version": "v62",
+        "detail": "Nuovo backtest rifiutato per quota giornaliera; serie cronologica individuale/equity/drawdown non certificati."
+      },
+      {
+        "id": "QA-14",
+        "status": "FAILED",
+        "version": "v63/v68",
+        "detail": "Guida definisce Gol++≥2 gol. QE: UI 50 valore/60 non conviene con QE55.56; Guida consiglia lay sopra QE: contraddizione aperta."
+      },
+      {
+        "id": "QA-15",
+        "status": "FAILED",
+        "version": "v70",
+        "detail": "Target dichiarato 10 netti, fee5% restituisce9.50; multi selezioni e arrotondamenti/commissioni discordanti. Reset input eseguito."
+      }
+    ],
+    "evidenceIndex": [
+      {
+        "snapshot_id": "source-mapping-2026-10-02-issue2-qa01-v40-attempt-1790977189860-kv6ygbsquj-QA01",
+        "captured_at": "2026-10-02T21:40:46.988Z",
+        "status": null,
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-02-issue2-qa01-v40-attempt-1790977189860-kv6ygbsquj-QA01-final",
+        "captured_at": "2026-10-02T21:40:59.482Z",
+        "status": null,
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-02-issue2-qa01-v41-attempt-1790977318038-lqk2wuo5z8q-QA01",
+        "captured_at": "2026-10-02T21:43:13.426Z",
+        "status": null,
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-02-issue2-qa01-v41-attempt-1790977318038-lqk2wuo5z8q-QA01-final",
+        "captured_at": "2026-10-02T21:43:14.869Z",
+        "status": null,
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-02-issue2-qa02-v42-attempt-1790977462844-3yre12d8yn7-QA02",
+        "captured_at": "2026-10-02T21:44:55.721Z",
+        "status": "failed",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-02-issue2-qa02-v43-attempt-1790977575447-88ajbopi45t-QA02",
+        "captured_at": "2026-10-02T21:47:12.886Z",
+        "status": "failed",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-02-issue2-qa03-v47-attempt-1790977961275-kh7pz7tts9-QA03",
+        "captured_at": "2026-10-02T21:53:01.301Z",
+        "status": "observed",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-02-issue2-qa04-v48-attempt-1790978042118-dm6dc25gt1a-QA04",
+        "captured_at": "2026-10-02T21:55:56.082Z",
+        "status": "blocked",
+        "reason": "Import did not produce exactly one identifiable QA row"
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-02-issue2-qa04-v49-attempt-1790978244360-utsx27eyqq-QA04",
+        "captured_at": "2026-10-02T21:57:50.269Z",
+        "status": "passed",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa05-v50-attempt-1790978430245-hptdkoffzy5-QA05",
+        "captured_at": "2026-10-02T22:00:57.192Z",
+        "status": "observed",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa05-v51-attempt-1790978562983-60bv5xfzif7-QA05",
+        "captured_at": "2026-10-02T22:03:34.492Z",
+        "status": "observed",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa06-v52-attempt-1790978759915-h4sfsg06n8o-QA06",
+        "captured_at": "2026-10-02T22:06:17.471Z",
+        "status": "blocked",
+        "reason": "Insufficient real rows for ordering assertions"
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa06-v53-attempt-1790978853971-xvnugk32dzc-QA06",
+        "captured_at": "2026-10-02T22:08:19.440Z",
+        "status": "blocked",
+        "reason": "Insufficient real rows for ordering assertions"
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa07-v56-attempt-1790979272251-6s631k477ob-QA07",
+        "captured_at": "2026-10-02T22:15:26.249Z",
+        "status": "partial",
+        "reason": "Membership/HT/leagues/favorite combinations still require independently reconciled full matrix"
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa08-v55-attempt-1790979390507-hece8fel3la-QA08",
+        "captured_at": "2026-10-02T22:17:12.241Z",
+        "status": "observed",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa09-v57-attempt-1790979562277-pk7eurkt1y-QA09",
+        "captured_at": "2026-10-02T22:19:43.579Z",
+        "status": "blocked",
+        "reason": "A real day boundary observation and declared reset timezone are required; no simulated clock or quota exhaustion."
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v60-attempt-1790979942465-jtxyp3fqd88-QA10-Dashboard",
+        "captured_at": "2026-10-02T22:26:11.064Z",
+        "status": "partial",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v60-attempt-1790979942465-jtxyp3fqd88-QA10-Palinsesto",
+        "captured_at": "2026-10-02T22:26:32.162Z",
+        "status": "partial",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v60-attempt-1790979942465-jtxyp3fqd88-QA10-Live",
+        "captured_at": "2026-10-02T22:26:50.366Z",
+        "status": "partial",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v60-attempt-1790979942465-jtxyp3fqd88-QA10-Analisi",
+        "captured_at": "2026-10-02T22:27:05.366Z",
+        "status": "partial",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v60-attempt-1790979942465-jtxyp3fqd88-QA10-Lay Goleada Favorito",
+        "captured_at": "2026-10-02T22:27:21.760Z",
+        "status": "partial",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v60-attempt-1790979942465-jtxyp3fqd88-QA10-Backtest Storico",
+        "captured_at": "2026-10-02T22:27:36.316Z",
+        "status": "partial",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v60-attempt-1790979942465-jtxyp3fqd88-QA10-Asian Odds",
+        "captured_at": "2026-10-02T22:27:50.143Z",
+        "status": "partial",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v60-attempt-1790979942465-jtxyp3fqd88-QA10-Monitorate",
+        "captured_at": "2026-10-02T22:28:06.528Z",
+        "status": "partial",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v60-attempt-1790979942465-jtxyp3fqd88-QA10-Ladder Dutching",
+        "captured_at": "2026-10-02T22:28:20.541Z",
+        "status": "partial",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v60-attempt-1790979942465-jtxyp3fqd88-QA10-Statistiche Lega",
+        "captured_at": "2026-10-02T22:28:34.353Z",
+        "status": "partial",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v60-attempt-1790979942465-jtxyp3fqd88-QA10-Guida",
+        "captured_at": "2026-10-02T22:28:48.521Z",
+        "status": "partial",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v60-attempt-1790979942465-jtxyp3fqd88-QA10-Archivio",
+        "captured_at": "2026-10-02T22:29:02.599Z",
+        "status": "partial",
+        "reason": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa11-v59-attempt-1790980190244-o0ytbws09aq-QA11",
+        "captured_at": "2026-10-02T22:30:33.725Z",
+        "status": "partial",
+        "reason": "Control changes do not alone prove audible playback; no fake match events used."
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa12-v61-attempt-1790980304754-ep1dzblprph-QA12",
+        "captured_at": "2026-10-02T22:32:45.726Z",
+        "status": "partial",
+        "reason": "Iframe load and observed contents recorded; loaded/error/empty and scrolling require separate verified outcomes"
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa12-v65-attempt-1790980443933-euotx29ut4g-QA12",
+        "captured_at": "2026-10-02T22:35:06.034Z",
+        "status": "partial",
+        "reason": "Iframe load and observed contents recorded; loaded/error/empty and scrolling require separate verified outcomes"
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa12-v66-attempt-1790980577451-xx4fwizzf1-QA12",
+        "captured_at": "2026-10-02T22:37:20.154Z",
+        "status": "partial",
+        "reason": "Iframe load and observed contents recorded; loaded/error/empty and scrolling require separate verified outcomes"
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa13-v62-attempt-1790980721635-i119jgjyoe-QA13",
+        "captured_at": "2026-10-02T22:39:33.487Z",
+        "status": "blocked",
+        "reason": "Backtest result/strategy calculation unavailable"
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa14-v63-attempt-1790980868390-7nsymeicdup-QA14-Guida",
+        "captured_at": "2026-10-02T22:41:47.206Z",
+        "status": "partial",
+        "reason": "Reconcile source Guide/Legend/filter/detail definitions; unresolved ambiguity cannot be converted into a certified formula."
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa14-v63-attempt-1790980868390-7nsymeicdup-QA14-Live",
+        "captured_at": "2026-10-02T22:41:51.103Z",
+        "status": "partial",
+        "reason": "Reconcile source Guide/Legend/filter/detail definitions; unresolved ambiguity cannot be converted into a certified formula."
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa14-v63-attempt-1790980868390-7nsymeicdup-QA14-Dashboard",
+        "captured_at": "2026-10-02T22:42:03.003Z",
+        "status": "partial",
+        "reason": "Reconcile source Guide/Legend/filter/detail definitions; unresolved ambiguity cannot be converted into a certified formula."
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa14-v68-attempt-1790981058704-92bya6tsatf-QA14QE",
+        "captured_at": "2026-10-02T22:44:46.957Z",
+        "status": "partial",
+        "reason": "Compare displayed QE and response against source Guide; contradictory instructions keep QA14 open."
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa15-v70-attempt-1790981318871-nx6skuqha2j-QA15",
+        "captured_at": "2026-10-02T22:48:59.768Z",
+        "status": "partial",
+        "reason": "Independent net/gross payoff must be reconciled with the source labels; contradictions keep QA15 open."
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa06-v69-attempt-1790981466038-lc4wact7y7e-QA06",
+        "captured_at": "2026-10-02T22:52:05.330Z",
+        "status": "observed",
+        "reason": "Directions clicked; reconcile sequence independently per header definition"
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa06-v72-attempt-1790981855425-h2is4i8t1ae-QA06",
+        "captured_at": "2026-10-02T22:58:32.561Z",
+        "status": "observed",
+        "reason": "Directions clicked; reconcile sequence independently per header definition"
+      }
+    ],
+    "mobileRevisit": [
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v73-attempt-1790982204353-a63lm3pb01r-QA10-Dashboard",
+        "portrait": {
+          "top": 12008,
+          "left": 0,
+          "height": 574,
+          "scrollHeight": 12582
+        },
+        "landscape": {
+          "top": 9384,
+          "left": 0,
+          "height": 259,
+          "scrollHeight": 9643
+        },
+        "detail": "true"
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v73-attempt-1790982204353-a63lm3pb01r-QA10-Palinsesto",
+        "portrait": {
+          "top": 2183,
+          "left": 0,
+          "height": 574,
+          "scrollHeight": 2757
+        },
+        "landscape": {
+          "top": 1518,
+          "left": 0,
+          "height": 259,
+          "scrollHeight": 1777
+        },
+        "detail": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v73-attempt-1790982204353-a63lm3pb01r-QA10-Live",
+        "portrait": {
+          "top": 2239,
+          "left": 0,
+          "height": 574,
+          "scrollHeight": 2813
+        },
+        "landscape": {
+          "top": 2403,
+          "left": 0,
+          "height": 259,
+          "scrollHeight": 2662
+        },
+        "detail": "true"
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v73-attempt-1790982204353-a63lm3pb01r-QA10-Analisi",
+        "portrait": {
+          "top": 5564,
+          "left": 0,
+          "height": 574,
+          "scrollHeight": 6138
+        },
+        "landscape": {
+          "top": 3118,
+          "left": 0,
+          "height": 259,
+          "scrollHeight": 3377
+        },
+        "detail": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v73-attempt-1790982204353-a63lm3pb01r-QA10-Lay Goleada Favorito",
+        "portrait": {
+          "top": 0,
+          "left": 0,
+          "height": 574,
+          "scrollHeight": 574
+        },
+        "landscape": {
+          "top": 0,
+          "left": 0,
+          "height": 259,
+          "scrollHeight": 259
+        },
+        "detail": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v73-attempt-1790982204353-a63lm3pb01r-QA10-Backtest Storico",
+        "portrait": {
+          "top": 0,
+          "left": 0,
+          "height": 574,
+          "scrollHeight": 1312
+        },
+        "landscape": {
+          "top": 995,
+          "left": 0,
+          "height": 259,
+          "scrollHeight": 1254
+        },
+        "detail": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v73-attempt-1790982204353-a63lm3pb01r-QA10-Asian Odds",
+        "portrait": {
+          "top": 44134,
+          "left": 0,
+          "height": 574,
+          "scrollHeight": 44708
+        },
+        "landscape": {
+          "top": 29526,
+          "left": 0,
+          "height": 259,
+          "scrollHeight": 29785
+        },
+        "detail": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v73-attempt-1790982204353-a63lm3pb01r-QA10-Monitorate",
+        "portrait": {
+          "top": 0,
+          "left": 0,
+          "height": 574,
+          "scrollHeight": 574
+        },
+        "landscape": {
+          "top": 0,
+          "left": 0,
+          "height": 259,
+          "scrollHeight": 259
+        },
+        "detail": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v73-attempt-1790982204353-a63lm3pb01r-QA10-Ladder Dutching",
+        "portrait": {
+          "top": 1293,
+          "left": 0,
+          "height": 574,
+          "scrollHeight": 1867
+        },
+        "landscape": {
+          "top": 1384,
+          "left": 0,
+          "height": 259,
+          "scrollHeight": 1643
+        },
+        "detail": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v73-attempt-1790982204353-a63lm3pb01r-QA10-Statistiche Lega",
+        "portrait": {
+          "top": 1805,
+          "left": 0,
+          "height": 574,
+          "scrollHeight": 2379
+        },
+        "landscape": {
+          "top": 2053,
+          "left": 0,
+          "height": 259,
+          "scrollHeight": 2312
+        },
+        "detail": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v73-attempt-1790982204353-a63lm3pb01r-QA10-Guida",
+        "portrait": {
+          "top": 8614,
+          "left": 0,
+          "height": 574,
+          "scrollHeight": 9188
+        },
+        "landscape": {
+          "top": 4510,
+          "left": 0,
+          "height": 259,
+          "scrollHeight": 4769
+        },
+        "detail": null
+      },
+      {
+        "snapshot_id": "source-mapping-2026-10-03-issue2-qa10-v73-attempt-1790982204353-a63lm3pb01r-QA10-Archivio",
+        "portrait": {
+          "top": 0,
+          "left": 0,
+          "height": 574,
+          "scrollHeight": 574
+        },
+        "landscape": {
+          "top": 74,
+          "left": 0,
+          "height": 259,
+          "scrollHeight": 333
+        },
+        "detail": null
+      }
+    ],
+    "note": "315 inventoried controls do not mean315 certified controls; original journals preserved. Backtest portrait main scroll remained0/738: bottom not reached."
+  }
 }
