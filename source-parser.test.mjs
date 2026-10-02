@@ -22,3 +22,14 @@ test('formatting, ordering and duplicate controls do not cause catalog changes',
   assert.equal(first.signature,second.signature);
   assert.deepEqual(compareCatalog(first,second),{added:[],removed:[]});
 });
+test('anonymous repeated quote fields stay distinct and row context survives reordering', () => {
+  const field={tag:'input',type:'number'};
+  const result=parseSnapshot({text:'Ladder',controls:[],inputs:[field,field]});
+  assert.equal(result.inputs.length,2);
+  assert.ok(result.issues.some(item=>item.code==='ambiguous_identity'));
+  const a={...field,context:'0-0'},b={...field,context:'0-1'};
+  const first=parseSnapshot({text:'Ladder',controls:[],inputs:[a,b]});
+  const second=parseSnapshot({text:'Ladder',controls:[],inputs:[b,a]});
+  assert.equal(first.signature,second.signature);
+  assert.equal(first.inputs.length,2);
+});
