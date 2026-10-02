@@ -463,107 +463,76 @@ async function inspectControlMap(page,pool,runId,section){
 async function testMarkedControls(page,pool,runId,section){
  const results=[];
  async function probe(name,action,assertion){
-  try{await action();await page.waitForTimeout(350);if(assertion&&!await assertion())throw new Error('Expected effect not observed');results.push({name,status:assertion?'passed':'observed'});}
+  try{await action();await page.waitForTimeout(300);if(assertion&&!await assertion())throw new Error('Expected effect not observed');results.push({name,status:assertion?'passed':'observed'});}
   catch(e){results.push({name,status:'failed',message:redact(e.message).slice(0,300)});}
-  await capture(page,pool,runId+'-'+section+'-final-'+results.length,section+': '+name);
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-'+section+'-journal',JSON.stringify({section:section+': click journal',results})]);
+  await capture(page,pool,runId+'-'+section+'-last-'+results.length,section+': '+name);
  }
  async function close(){
-  for(let n=0;n<5;n++){const c=page.locator('button[id*="close" i]').or(page.getByRole('button',{name:/^(✕|×|Chiudi)$/i})).filter({visible:true});if(!await c.count())break;await c.last().click();await page.waitForTimeout(200);}
+  for(let i=0;i<5;i++){const c=page.locator('button[id*="close" i]').or(page.getByRole('button',{name:/^(✕|×|Chiudi|Annulla)$/i})).filter({visible:true});if(!await c.count())break;await c.last().click();await page.waitForTimeout(100);}
  }
  if(section==='Palinsesto'){
   await page.locator('#palTabPandora').click();
-  await probe('Carica palinsesto',()=>page.getByRole('button',{name:/Apri nel Lay Score/}).click());
-  await page.waitForTimeout(3000);
-  const dialogs=[];page.removeAllListeners('dialog');page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.dismiss();});
-  await probe('Apri importazione',()=>page.locator('#analyzeBtn').click(),()=>page.locator('#runImportBtn').isVisible());
-  await probe('Analizza senza input',()=>page.locator('#runImportBtn').click());
-  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-empty-import',JSON.stringify({section:'Palinsesto: empty import',dialogs})]);
-  await probe('Chiudi importazione',()=>page.locator('#closeImportBtn').click());
+  await probe('Carica elenco automatico',async()=>{await page.getByRole('button',{name:/Apri nel Lay Score/}).click();await page.waitForTimeout(3000);});
  }
  if(section==='Dashboard'){
-  await close();
   const layout=page.getByRole('button',{name:/^Vista (tabella|card)$/i}).filter({visible:true});
+  const signature=()=>page.locator('article[data-detail]').evaluateAll(es=>es.slice(0,2).map(e=>({class:e.className,parent:e.parentElement.className,width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height,display:getComputedStyle(e).display,columns:getComputedStyle(e.parentElement).gridTemplateColumns})));
   if(await layout.count()){
-   const before=await layout.getAttribute('aria-label')||await layout.getAttribute('title');
-   await probe('Dashboard cambia layout',()=>layout.click(),async()=>(await layout.getAttribute('aria-label')||await layout.getAttribute('title'))!==before);
-   await inspectControlMap(page,pool,runId,'Dashboard: layout alternativo');
-   await probe('Dashboard ripristina layout',()=>layout.click());
+   const before=await signature();
+   await probe('Layout: variazione geometria e classi',()=>layout.click(),async()=>JSON.stringify(await signature())!==JSON.stringify(before));
+   await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-layout',JSON.stringify({section:'Dashboard: layout geometry',before,after:await signature()})]);
+   await probe('Layout: ripristino',()=>layout.click(),async()=>JSON.stringify(await signature())===JSON.stringify(before));
   }
-
-  for(const risk of ['basso','medio','alto']){
-   await probe('Rischio '+risk,()=>page.locator('[data-risk="'+risk+'"]').filter({visible:true}).first().click());
-   await inspectControlMap(page,pool,runId,'Dashboard: rischio '+risk);await close();
+  await page.locator('#strategyToggleBtn').click();
+  const descriptors=await page.locator('input[type="checkbox"]').filter({visible:true}).evaluateAll(es=>es.map((e,index)=>({index,label:(e.labels?.[0]?.innerText||e.closest('tr')?.querySelector('td')?.innerText||'').replace(/\s+/g,' ').trim(),checked:e.checked,attrs:[...e.attributes].filter(a=>a.name.startsWith('data-')&&!/auth|secret|token|password/i.test(a.name)).map(a=>[a.name,a.value])})));
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-strategy-checkbox-map',JSON.stringify({section:'Dashboard: strategy checkbox map',controls:descriptors})]);
+  for(const d of descriptors){
+   const box=page.locator('input[type="checkbox"]').filter({visible:true}).nth(d.index);
+   await probe('Strategia '+d.label,()=>box.setChecked(!d.checked),async()=>await box.isChecked()===!d.checked);
+   await probe('Ripristina '+d.label,()=>box.setChecked(d.checked),async()=>await box.isChecked()===d.checked);
   }
-  for(const sel of ['#bestOfDay','article[data-detail]']){
-   await probe('Apri card '+sel,()=>page.locator(sel).filter({visible:true}).first().click());
-   await close();
-  }
-  await probe('Ordine Score',()=>page.locator('#sortOrder').selectOption({label:'Score'}),()=>page.locator('article[data-detail]').evaluateAll(es=>{const nums=es.map(e=>Number(e.innerText.match(/SCORE\s*(\d+)/i)?.[1]));return nums.length>1&&nums.every(Number.isFinite)&&nums.every((v,i)=>i===0||nums[i-1]>=v);}));
-  await probe('Ordine Rischio',()=>page.locator('#sortOrder').selectOption({label:'Rischio'}),()=>page.locator('article[data-detail]').evaluateAll(es=>{const ranks=es.map(e=>({basso:0,medio:1,alto:2})[e.querySelector('[data-risk]')?.getAttribute('data-risk')]);return ranks.length>1&&ranks.every(Number.isFinite)&&ranks.every((v,i)=>i===0||ranks[i-1]<=v);}));
-  await page.locator('#sortOrder').selectOption({label:'Score'});
-  await probe('Apri filtri Strategie',()=>page.locator('#strategyToggleBtn').click());
-  await inspectControlMap(page,pool,runId,'Dashboard: strategie');
-  await probe('Reset filtri Strategie',()=>page.locator('#resetStrategyFiltersBtn').click());
-
-  await probe('Chiudi filtri Strategie',()=>page.locator('#strategyToggleBtn').click());
-  const originalCount=await page.locator('[data-open-detail]').filter({visible:true}).count();
-  await probe('Svuota apri HTML',()=>page.locator('#clearPalinsestoBtn').click());
-  await probe('Svuota conferma e verifica Dashboard',async()=>{
-   await page.getByRole('button',{name:'Conferma',exact:true}).click();
-   await page.locator('[data-view="dashboard"]').click();await page.waitForTimeout(800);
-  },async()=>await page.locator('[data-open-detail]').filter({visible:true}).count()===0);
-  await page.locator('[data-view="palinsesto"]').click();await page.locator('#palTabPandora').click();
-  await probe('Ricarica dopo svuotamento',async()=>{await page.getByRole('button',{name:/Apri nel Lay Score/}).click();await page.waitForTimeout(3000);},async()=>await page.locator('[data-open-detail]').filter({visible:true}).count()===originalCount);
-
+  const league=page.locator('#leagueFilterSelect');
+  const options=await league.locator('option').allTextContents();
+  for(const label of options)await probe('Campionato '+label,()=>league.selectOption({label}),()=>league.evaluate((e,label)=>e.selectedOptions[0].textContent===label,label));
+  await league.selectOption({label:'Tutti i campionati'});
+  await probe('Reset Strategie',()=>page.locator('#resetStrategyFiltersBtn').click(),async()=>await page.locator('input[type="checkbox"]').filter({visible:true}).evaluateAll(es=>es.every(e=>!e.checked)));
+  await page.locator('#strategyToggleBtn').click();
  }
  if(section==='Live'){
-  const stats=page.locator('[data-live-stats]').filter({visible:true}).first();
-  if(await stats.count()){
-   await probe('Apri Stats+',()=>stats.click());
-   await page.waitForTimeout(1800);
-   await inspectControlMap(page,pool,runId,'Live: Stats+ opened');
-   for(const label of ['5','10','20','Complessivo','Casa / Trasf.','Tutte','Stessa lega','H2H','Race']){
-    const b=page.getByRole('button',{name:label,exact:true}).filter({visible:true}).last();
-    if(await b.count())await probe('Stats+ '+label,()=>b.click());
-    else results.push({name:'Stats+ '+label,status:'blocked',reason:'No visible button'});
-   }
-   await captureScrolled(page,pool,runId+'-statsplus','Live: Stats+ full');
-   await probe('Chiudi Stats+',()=>stats.click());
-  }
-  for(const league of ['Norway Division 1','UEFA Nations League C']){
-   await page.locator('[data-live-lgtoggle]').click();
-   const b=page.locator('[data-live-lg="'+league+'"]').filter({visible:true});
-   if(await b.count())await probe('Campionato '+league,()=>b.click());
-   await page.locator('[data-live-lgtoggle]').click().catch(()=>{});
-  }
-
-  await page.locator('[data-live-view="table"]').click();
-  for(const attr of ['data-live-ht','data-live-timing','data-live-goaldetail-modal','data-live-csdetail-modal']){
-   const b=page.locator('['+attr+']').filter({visible:true}).first();
-   if(await b.count()){
-    await probe('Tabella icona '+attr,()=>b.click());
-    await page.waitForTimeout(800);
-    await inspectControlMap(page,pool,runId,'Live: tabella '+attr);
-    await close();
-   }
-  }
-  const tableStar=page.locator('[data-live-fav]').filter({visible:true}).first();
-  if(await tableStar.count()){await probe('Tabella preferito',()=>tableStar.click());await probe('Tabella ripristina preferito',()=>tableStar.click());}
-  await page.locator('[data-live-view="card"]').click();
-  const hide=page.locator('[data-live-hide]').filter({visible:true}).first();
-  const dialogs=[];page.removeAllListeners('dialog');page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.dismiss();});
-  if(await hide.count())await probe('Nascondi partita nel contesto QA',()=>hide.click());
-  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-hide',JSON.stringify({section:'Live: hide action',dialogs,cleanup:'Isolated browser context disposed after test; no trading orders'})]);
+  await inspectControlMap(page,pool,runId,'Live: fresh context audit');
+  const ids=await page.locator('[data-live-hide]').filter({visible:true}).evaluateAll(es=>es.map(e=>e.getAttribute('data-live-hide')));
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-live-restored',JSON.stringify({section:'Live: fresh context restored matches',ids,ranheimVisible:ids.includes('36101224')})]);
  }
  if(section==='Archivio'){
-  const dialogs=[];page.removeAllListeners('dialog');page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.dismiss();});
-  await probe('Archivio annulla cancellazione',()=>page.locator('#archiveClearBtn').click());
+  await close();
   const empty=await page.getByText('Nessuna operazione registrata.',{exact:true}).isVisible();
-  if(empty){
-   page.removeAllListeners('dialog');page.on('dialog',d=>{dialogs.push({type:d.type(),message:redact(d.message())});return d.accept();});
-   await probe('Archivio conferma su elenco vuoto',()=>page.locator('#archiveClearBtn').click(),()=>page.getByText('Nessuna operazione registrata.',{exact:true}).isVisible());
-  }else results.push({name:'Archivio conferma',status:'blocked',reason:'Personal data present; no global deletion'});
-  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-archive-empty',JSON.stringify({section:'Archivio: empty deletion',empty,dialogs})]);
+  const fixtures=await page.locator('article[data-detail]').evaluateAll(es=>es.slice(0,3).map(e=>({id:e.getAttribute('data-detail'),home:e.querySelector('[data-bf-home]')?.getAttribute('data-bf-home'),away:e.querySelector('[data-bf-away]')?.getAttribute('data-bf-away')})));
+  const guard='source-archive-write-test-2026-10-02-01';
+  const reserved=empty&&fixtures.length===3?await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[guard,JSON.stringify({status:'reserved',initialEmpty:true,fixtures,qaOnly:true})]):{rowCount:0};
+  if(reserved.rowCount){
+   const statuses=['✅ Vinto','❌ Perso','⏭ Saltato'];
+   for(let i=0;i<3;i++){
+    await page.locator('[data-view="dashboard"]').click();
+    await page.locator('[data-open-detail="'+fixtures[i].id+'"]').click();await page.waitForTimeout(1200);
+    await probe('QA archivio '+statuses[i],()=>page.getByRole('button',{name:statuses[i],exact:true}).filter({visible:true}).click());
+    await close();
+   }
+   await page.locator('[data-view="archivio"]').click();
+   await inspectControlMap(page,pool,runId,'Archivio: own QA rows');
+   const text=await page.locator('body').innerText();
+   const ownOnly=/OPERAZIONI\s*3\b/i.test(text)&&fixtures.every(f=>text.includes(f.home)&&text.includes(f.away));
+   await pool.query('UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1',[guard,JSON.stringify({status:'created',ownOnly,fixtures,cleanupNeeded:true})]);
+   for(const filter of ['win','loss','skip','all'])await probe('Archivio popolato '+filter,()=>page.locator('[data-arch-filter="'+filter+'"]').click());
+   if(ownOnly){
+    await page.locator('#archiveClearBtn').click();
+    await probe('QA archivio Annulla',()=>page.getByRole('button',{name:'Annulla',exact:true}).click());
+    await page.locator('#archiveClearBtn').click();
+    await probe('Elimina sole tre righe QA',()=>page.getByRole('button',{name:'Conferma',exact:true}).click(),()=>page.getByText('Nessuna operazione registrata.',{exact:true}).isVisible());
+    const cleaned=await page.getByText('Nessuna operazione registrata.',{exact:true}).isVisible();
+    await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1',[guard,JSON.stringify({status:cleaned?'cleaned':'cleanup_needed',cleaned,cleanupNeeded:!cleaned})]);
+   }else results.push({name:'Pulizia QA globale',status:'blocked',reason:'Unexpected archive contents; personal data not deleted'});
+  }else results.push({name:'Scritture archivio',status:'blocked',reason:'Initial archive not empty, fixture data absent, or guard already reserved'});
  }
  await inspectControlMap(page,pool,runId,section);
  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-final-tests',JSON.stringify({section:section+': final control results',results})]);
@@ -580,7 +549,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v35';
+ const runId='source-mapping-2026-10-02-qa-v36';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
