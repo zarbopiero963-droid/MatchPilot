@@ -53,3 +53,23 @@ Queste percentuali sono dichiarazioni della fonte: campione/periodo/formula non 
 3. Sezioni 12 e 15 chiamano ROI strumenti differenti: mantenere ID distinti.
 4. Snapshot scattati durante Caricamento restano parziali; assenza di righe non dimostra assenza del dato.
 5. Nessun pannello partita o ROI Strategie reale ancora verificato.
+
+
+## Aggiornamento verificato alle 13:34 UTC
+- Tutte le 12 sezioni del menu hanno almeno una lettura salvata; questo non implica collaudo di ogni interazione.
+- Asian Odds: 152 partite nella lettura; LEGEND su prezzi apertura/correnti/chiusura, handicap e linee asiatiche. Non sono prezzi live Exchange.
+- Monitorate: pagina acquisita. Ladder: 19 risultati esatti/altro, profitto obiettivo, commissione, campi quota e responsabilità combinata. Archivio: vinte/perse/saltate, strike rate/streak; cancellazione non azionata.
+- Statistiche Lega: tabella acquisita (7283 caratteri). Filtri Live avanzati acquisiti: min/max Gol+/Gol++, tiri porta/totali, corner, possesso dominante, tre quote prematch, gol casa/ospite, griglia HT, salvataggio strategie 0/5 e selettore Time.
+- Analisi LEGEND: 24 mesi, stesso profilo quote, almeno 15 partite combinate; Singolare zero occorrenze, Fiducia Alta zero/una. Le righe risultato erano ancora in caricamento.
+- ROI Strategie: pannello reale e LEGEND acquisiti. Stessa lega, tutte tre le quote entro ±15%, Lay simulato +3% rispetto Punta, commissione 5%. Fonte dichiara rendimento partita per partita; metodo esatto di affidabilità non esposto. Esempio osservato Ranheim–Egersund, 52 partite; non è raccomandazione o rendimento MatchPilot.
+- Dettaglio Helmond Sport–Heracles acquisito: consiglio, quote 1X2, rarità, score/rischio, QE=100/frequenza, input quota Exchange manuale, cinque domande assistente, 13 tab. Contenuti dei tab in batch successivo.
+- I pannelli possono mostrare dati diversi dal giorno corrente/cache: data e disponibilità eventi non ancora riconciliate con uno svolgimento reale.
+
+## Robustezza implementata e testata
+Parser catalogo v2, normalizzazione, deduplicazione, contesto di riga, conservazione campi anonimi distinti, aggiunte/rimozioni e anomalie. Nessun valore input conservato. Controlli nuovi catalogati senza esecuzione automatica.
+Parser ROI: sei righe essenziali, campione, percentuali, ROI, direzione/soglia quote e affidabilità. Nuove righe non interrompono quelle note; righe mancanti/invalide impediscono uso economico. Sei test di regressione passati e conversione riuscita sullo snapshot ROI reale salvato.
+Run resilient-v7 COMPLETE alle 13:23:37 UTC; dopo riavvio ha recuperato checkpoint e timeout ladder. Lease/heartbeat isolano esecuzioni concorrenti; recupero osservato, non garanzia contro ogni indisponibilità. Errori per sezione non fermano le successive.
+
+## Residui
+Money Management, contenuto di tutti i tab/LEGEND dettaglio, creazione/richiamo strategie, backtest reale e limite 5/giorno, pannello di partita live e lettura minuto per minuto. Nessuna partita live disponibile durante il test. Nessun backtest eseguito o operazione registrata.
+Gol++: Guida dice almeno due gol; testo filtro dice stessa logica Gol+ con soglia più alta. Conservare discrepanza: il calcolo reale non è ancora verificato.
