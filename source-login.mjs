@@ -1,4 +1,4 @@
-import { parseSnapshot, compareCatalog } from './source-parser.mjs';
+import { parseSnapshot, compareCatalog, parseRoiStrategies } from './source-parser.mjs';
 import { chromium } from 'playwright';
 const redact=text=>{
  let s=String(text||'');
@@ -16,6 +16,7 @@ async function capture(page,pool,id,section){
  const previous=await pool.query("SELECT data FROM matchpilot_source_snapshots WHERE data->>'section'=$1 AND snapshot_id<>$2 ORDER BY captured_at DESC LIMIT 1",[section,id]);
  const changes=compareCatalog(previous.rows[0]?.data,parsed);
  Object.assign(data,parsed,{changes});
+ if(section==='ROI Strategie')data.semantic=parseRoiStrategies(data.text);
  if(!parsed.usable)throw new Error('Snapshot validation failed');
  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[id,JSON.stringify(data)]);
  console.log('SOURCE_MAP_BATCH '+JSON.stringify({section,characters:data.text.length,controls:data.controls.length,inputs:data.inputs.length,added:changes.added.length,removed:changes.removed.length}));
@@ -31,7 +32,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-panels-v9';
+ const runId='source-mapping-2026-10-02-detail-tabs-v10';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -43,7 +44,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['ROI Strategie','Dettaglio Partita','Money Management']];
+  const groups=[["CONSIGLIO","STATS","STATS +","TIMING DEI GOL","FORMAZIONI","OCCORRENZE","GESTIONE 75'","DISTRIBUZIONI","STORICO","PROFIT CS","📊 ROI","INDEX","CLASSIFICA"].map(label=>'Dettaglio: '+label).concat(['Money Management'])];
   for(const group of groups){
    stage='login';
    browser=await chromium.launch({headless:true});
@@ -88,13 +89,14 @@ export async function testSourceLogin(pool){
      const pending=portal.waitForEvent('popup',{timeout:20000});
      await portal.getByRole('button',{name:'Apri →',exact:true}).nth(0).click();
      page=await pending;
-     await page.waitForURL(url=>url.protocol==='https:',{timeout:30000});
      await page.waitForLoadState('domcontentloaded');
+     await page.waitForFunction(()=>document.body?.innerText?.trim().length>30,{},{timeout:30000});
      await portal.close();
      await page.locator('body').waitFor({state:'visible'});
     } else {
      await clickObserved(page,'Dashboard');
      await clickObserved(page,section==='ROI Strategie'?'📊 ROI STR':'DETTAGLIO');
+     if(section.startsWith('Dettaglio: '))await clickObserved(page,section.slice(11));
     }
     await page.waitForTimeout(3500);
     await capture(page,pool,runId+'-'+section,section);
