@@ -55,11 +55,13 @@ Il campo importo è lo stake di bancata; la responsabilità è stake × (quota �
 La simulazione usa **la stessa quota su tutte le partite storiche**: non sono esecuzioni reali a quote live storiche. La sequenza del drawdown non è stata ricostruita indipendentemente. Canvas equity osservato 1400×280; la presenza del canvas non certifica la correttezza di ogni punto.
 Le 26 validazioni derivate in Neon referenziano gli snapshot originali. Non usare la data della validazione come timestamp della quota.
 
-## Strategie live e persistenza
-Una strategia temporanea QA è stata salvata usando il modulo inline #lavSaveName, richiamata e ritrovata dopo reload nella stessa sessione. Il primo clic su Salva strategia apre il modulo: non usare un prompt browser.
-La rimozione tramite UI non è certificata: il primo controllo trovato era Chiudi, non Elimina. Il browser isolato del test è stato distrutto; un nuovo contesto autenticato ha mostrato 0/5 e nessuna voce QA. Non è rimasta una voce condivisa visibile nel nuovo contesto.
-Questo verifica la persistenza nella sessione del browser, non un archivio cloud interoperabile. Le strategie MatchPilot devono essere salvate in Neon.
-Limiti dichiarati: cinque strategie live, cinque strategie backtest, cinque backtest al giorno. Indipendenza dei due limiti di salvataggio e comportamento al sesto elemento non verificati.
+## Strategie salvate, limiti e persistenza
+Certificazione finale v27/v28: cinque strategie backtest e cinque Live coesistono nello stesso contesto; i limiti di salvataggio sono indipendenti. La sesta backtest è rifiutata con avviso esplicito; il salvataggio Live è disabilitato a cinque voci. Nessuna sostituzione silenziosa osservata.
+Richiamo: minuto backtest 60 ripristinato dopo modifica a 11; gol casa live 2 dopo modifica a 0. Backtest: cinque voci persistono dopo reload e in nuovo contesto autenticato. Live: cinque voci persistono dopo reload; non certificata interoperabilità tra dispositivi.
+Dieci sole voci QA eliminate via ✕ della propria riga. Reload e nuovo contesto autenticato confermano assenza di voci QA nei due elenchi. Nessuna cancellazione globale o strategia personale azionata.
+La fonte richiede un backtest eseguito prima del salvataggio. Terzo backtest con guard source-backtest-test-2026-10-02-03; fonte mostra due rimasti oggi. Quarto proposto ma non eseguito; non esaurito il budget per provare il limite del sesto backtest giornaliero/reset.
+Matrice scenari/esiti/evidenze: [certificazione controlli](control-certification-2026-10-02.md). 22 asserzioni finali v27 passate; v28 verifica anche cinque selettori ordinamento, apertura inserimento manuale e contesto pulito. Un selettore attivato non certifica la correttezza dell'intero ordinamento su tutti i dati.
+Le strategie MatchPilot devono avere persistenza propria in Neon.
 
 ## Dati live e qualità
 Osservati aggiornamenti di minuto, risultato, statistiche e prezzi nel pannello della fonte, inclusa una lettura successiva a 60 secondi. Non è un worker continuativo.
@@ -84,4 +86,4 @@ Ladder: obiettivo 10, quota 5, commissione 5% produce stake 10, vincita netta 9.
 
 ## Resta da costruire o certificare
 Normalizzazione completa per partita, schema operativo di giornata, ledger virtuale e money management del prodotto, UI neutra desktop/mobile, analisi OpenRouter, scheduling ogni minuto, recupero delle interruzioni, prova dall'inizio alla fine di una partita e rilettura il giorno successivo.
-Restano non certificati alcuni percorsi di scrittura, cambio data, salvataggi backtest e limiti incrociati. Il sito attuale è un pannello privato di test dell'infrastruttura, non il prodotto finale.
+Restano non certificati percorsi distruttivi, scritture di esito, importazione effettiva, cambio data (nessun input visibile univoco) e limite/reset dei backtest giornalieri. Salvataggi, limiti incrociati e cancellazione delle sole voci QA sono verificati. Il sito attuale è un pannello privato di test dell'infrastruttura, non il prodotto finale.
