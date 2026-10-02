@@ -1,3 +1,12 @@
+## Aggiornamento QA — 2 ottobre 2026, run v39 concluso
+
+[Mappa pulsanti e scenari](button-map-2026-10-02.md) · [Registro JSON](button-map-2026-10-02.json).
+
+La mappatura comprende 315 voci deduplicate da 96 inventari, non 315 pulsanti certificati. Famiglie per partita provate su campioni; clic osservati distinti dalle asserzioni superate. v34/v35 coprono pannelli Dashboard, icone Card/Tabella Live, 9 opzioni Stats+, 4 mercati quote, 16 header tabella, 14 azioni Asian Odds. v36 verifica layout, 18/19 checkbox Dashboard e 9 leghe. v38 verifica tre esiti QA, form rischio/quota, quattro filtri Archivio e cancellazione delle sole fixture; v39 conferma archivio vuoto in nuovo contesto. Tre guard archivio cleaned=true e cleanupNeeded=false. 16 test parser/stato/finanza passati.
+
+**Certificazione ancora parziale:** H2H Dashboard non cliccabile nel test; logout cliccato ma login non apparso entro attesa; cambio data senza picker osservato; svuotamento del feed automatico non produce zero righe, manuale popolato non certificato. Restano import non vuoto, ordinamento effettivo di tutti i 16 header Live, combinazioni filtri, persistenza tra dispositivi, reset giornaliero, audio/mobile/iframe e verifica algoritmica. Nessun ordine economico eseguito.
+
+
 # Test di navigazione e lettura — stato del 2 ottobre 2026
 
 Servizio: https://matchpilot-test.onrender.com. Repository: https://github.com/zarbopiero963-droid/MatchPilot. Master: https://github.com/zarbopiero963-droid/MatchPilot/issues/1.
