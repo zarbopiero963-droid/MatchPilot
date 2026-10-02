@@ -106,3 +106,37 @@ Eccezione scroll: nel Backtest portrait `main.scrollTop` è rimasto0 rispetto al
 ## QA-05 revisit v74 — 03 ottobre01:31 Rome
 
 Singolo punto richiesto dall'owner. Journal `source-mapping-2026-10-03-issue2-qa05-v74-attempt-1790983719316-pliip90mft-QA05`: squadre/quote verificate, dettaglio realmente aperto/chiuso, duplicato unico, malformato conserva partita, cleanup/reload `cleaned:true`. Lega inserita non visibile in scheda/dettaglio; non prova cancellazione interna. Formato manuale ufficiale senza campo orario; ramo SNAI con lega/ora ancora da verificare. Esito PARTIAL, conteggio invariato4/15, nessun altro caso avviato.
+
+
+## QA-06 revisit v75
+
+QA-06 — unico punto eseguito su richiesta «prossima e ti fermi».
+
+Run v75 concluso2026-10-02T23:40:23Z /03ottobre01:40 Europe/Rome, commit `6d4592c460121ee5fe62d342126ad32d0ee6d762`. Journal `source-mapping-2026-10-03-issue2-qa06-v75-attempt-1790984344449-wi2597a54jo-QA06`; riconciliazione indipendente `source-mapping-2026-10-03-issue2-qa06-v75-derived-verdict`.
+
+Campione reale4partite: CA Independiente–Instituto, Sao Bernardo–CRB, Londrina–Criciuma, Juventude–Operario.16header×2clic ordinari,32clic riusciti, nessuna sezione in errore. Singole componenti DOM acquisite separatamente. Riconciliazione visuale: scalari mostrati, somma casa+ospite per statistiche/XG, livelli BASSA<MEDIA<HOT per RATING, gol totali per RIS, massimo possesso per POSS. Questa descrive l'oracolo del test; non dimostra il contratto interno del comparatore proprietario.
+
+|Header|▼ valori osservati|▲ valori osservati|Riconciliazione|
+|---|---|---|---|
+|min|62, 48, 7, 0|0, 7, 48, 62|Coerente sui valori noti|
+|ris|3, 0, 0, 0|0, 0, 0, 3|Coerente sui valori noti|
+|rating|2, 1, 0, 0|0, 0, 1, 2|Coerente sui valori noti|
+|xgl|1.41, 0.35, 0.17, ND|ND, 0.17, 0.35, 1.41|Coerente sui valori noti|
+|xg|2.2, 0, 0, 0|0, 0, 0, 2.2|Coerente sui valori noti|
+|gp1|90, 88, 74, 50|50, 74, 88, 90|Coerente sui valori noti|
+|gp2|65, 60, 32, 23|23, 32, 60, 65|Coerente sui valori noti|
+|pi1|70, 50, 20, ND|ND, 20, 50, 70|Coerente sui valori noti|
+|pi2|15, 10, 3, ND|ND, 3, 10, 15|Coerente sui valori noti|
+|pi3|9, 7, 3, ND|ND, 3, 7, 9|Coerente sui valori noti|
+|cg10|5, 3, 3, ND|ND, 3, 3, 5|Coerente sui valori noti|
+|sh|14, 13, 4, 0|0, 4, 13, 14|Coerente sui valori noti|
+|ot|5, 3, 2, 0|0, 2, 3, 5|Coerente sui valori noti|
+|da|51, 46, 1, 0|0, 1, 46, 51|Coerente sui valori noti|
+|cor|9, 3, 0, ND|0, ND, 3, 9|Coerente sui valori noti|
+|pos|55, 53, 85, ND|ND, 55, 53, 85|Non monotono rispetto al massimo possesso|
+
+RATING ora contiene tre livelli e PI1 tre valori diversi: precedenti campioni inconcludenti superati per queste verifiche visuali. Presenti pareggi (risultato, RATING,CG10,XGpre) e mancanti reali(–): acquisita posizione nelle due direzioni, senza trasformare ND in zero. Stabilità interna a RATING non dimostrabile dal solo livello mostrato.
+
+POSS non è monotono rispetto al massimo possesso: ▼55,53,85; ▲55,53,85 dopo ND. Le coppie45/55,47/53,15/85 hanno tutte somma100: un comparatore della somma spiegherebbe la mancata inversione, ma è soltanto un'ipotesi, non codice verificato. Serve chiarire criterio previsto/correggere fonte. QA-06 resta PARTIAL e checkbox aperta:15header coerenti sui valori noti non equivalgono a certificazione completa di tutti i16.
+
+Mi fermo qui; nessun QA-07 o altro punto avviato.
