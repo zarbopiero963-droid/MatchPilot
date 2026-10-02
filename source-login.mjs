@@ -15,7 +15,7 @@ async function capture(page,pool,id,section){
  return data;
 }
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-small-batches-v4';
+ const runId='source-mapping-2026-10-02-small-batches-v5';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -53,7 +53,7 @@ export async function testSourceLogin(pool){
    await page.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});
    for(const section of group){
     stage=section;
-    await page.getByRole('button',{name:section,exact:true}).click();
+    await page.getByRole('button',{name:section,exact:true}).click({force:true});
     await page.waitForTimeout(3500);
     await capture(page,pool,runId+'-'+section,section);
     completed.push(section);
@@ -76,7 +76,7 @@ export async function testSourceLogin(pool){
    }
    await browser.close();browser=null;
   }
- }catch(error){outcome='partial';console.log('SOURCE_MAP_ERROR '+JSON.stringify({stage,errorType:error.name}));if(page&&!page.isClosed())await capture(page,pool,runId+'-error','Error diagnostic').catch(()=>{});}finally{
+ }catch(error){outcome='partial';console.log('SOURCE_MAP_ERROR '+JSON.stringify({stage,errorType:error.name,detail:redact(error.message).slice(0,1800)}));if(page&&!page.isClosed())await capture(page,pool,runId+'-error','Error diagnostic').catch(()=>{});}finally{
   if(browser)await browser.close().catch(()=>{});
   const result={status:outcome,stage,completed};
   await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=$2 WHERE run_id=$1',[runId,JSON.stringify(result)]);
