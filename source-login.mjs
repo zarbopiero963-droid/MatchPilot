@@ -461,35 +461,22 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- const results=[];
- async function check(name,action,assertion){
-  try{await action();await page.waitForTimeout(300);if(assertion&&!await assertion())throw new Error('Expected effect not observed');results.push({name,status:assertion?'passed':'observed'});}
-  catch(e){results.push({name,status:'failed',message:redact(e.message).slice(0,300)});}
-  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-'+section+'-journal',JSON.stringify({section:section+': click journal',results})]);
-  await capture(page,pool,runId+'-'+section+'-audit-'+results.length,section+': '+name);
- }
- if(section==='Palinsesto'){
-  for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}
-  await page.locator('#palTabPandora').click();
-  const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});
-  await check('Carica prima di audit',async()=>{await load.click();await page.waitForTimeout(3000);});
- }
- if(section==='Dashboard'){
-  await page.locator('#strategyToggleBtn').click();
-  const input=page.locator('input[data-strategy-filter="h2h"]');
-  const label=page.locator('label').filter({has:input}).filter({visible:true});
-  const before=await input.isChecked();
-  await check('H2H: clic etichetta',()=>label.click(),async()=>await input.isChecked()!==before);
-  if(await input.isChecked()!==before)await check('H2H: ripristina etichetta',()=>label.click(),async()=>await input.isChecked()===before);
-  await page.locator('#resetStrategyFiltersBtn').click();await page.locator('#strategyToggleBtn').click();
- }
- if(section==='Archivio'){
-  await page.locator('[data-arch-filter="all"]').click();await page.waitForTimeout(4000);
-  const empty=await page.getByText('Nessuna operazione registrata.',{exact:true}).isVisible();
-  await check('Nuovo contesto: nessuna operazione QA',async()=>{},async()=>empty);
-  if(empty)await pool.query("UPDATE matchpilot_test_runs SET completed_at=COALESCE(completed_at,now()),result=result || $1::jsonb WHERE run_id LIKE 'source-archive-write-test-2026-10-02-%'",[JSON.stringify({status:'cleaned',cleaned:true,cleanupNeeded:false,freshContextEmpty:true})]);
- }
- await inspectControlMap(page,pool,runId,section);
+ if(section!=='Dashboard')return;
+ await page.locator('#strategyToggleBtn').click();
+ const input=page.locator('input[data-strategy-filter="h2h"]');
+ const diagnostic=await input.evaluate(e=>({html:e.outerHTML,label:e.closest('label')?.outerHTML,ancestors:Array.from((function*(n){for(let i=0;n&&i<8;i++,n=n.parentElement)yield n;})(e)).map(n=>({tag:n.tagName,id:n.id,class:n.className,display:getComputedStyle(n).display,visibility:getComputedStyle(n).visibility,rect:{x:n.getBoundingClientRect().x,y:n.getBoundingClientRect().y,w:n.getBoundingClientRect().width,h:n.getBoundingClientRect().height},text:n.innerText?.slice(0,150)}))}));
+ const rows=()=>page.locator('[data-open-detail]').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.getAttribute('data-open-detail'),text:e.closest('article,tr')?.innerText||e.parentElement?.innerText})));
+ const before=await rows();const initial=await input.isChecked();let result={status:'blocked',reason:'diagnostic-only'};
+ try{
+  const label=page.locator('label').filter({has:input});await label.scrollIntoViewIfNeeded({timeout:5000});
+  await label.click({timeout:5000});await page.waitForTimeout(1500);
+  const checked=await input.isChecked();const filtered=await rows();
+  await label.click({timeout:5000});await page.waitForTimeout(1000);
+  const restored=await rows();
+  result={status:checked!==initial&&await input.isChecked()===initial?'state-passed':'failed',initial,checked,restoredChecked:await input.isChecked(),before,filtered,restored};
+ }catch(e){result={status:'failed',message:redact(e.message).slice(0,1200),before};}
+ await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-QA01',JSON.stringify({section:'QA-01 H2H diagnostic and ordinary click',diagnostic,result})]);
+ await capture(page,pool,runId+'-QA01-final','Dashboard: QA01 final');
 }
 
 async function clickObserved(page,label) {
@@ -503,7 +490,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v39';
+ const runId='source-mapping-2026-10-02-issue2-qa01-v40';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -518,7 +505,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Palinsesto','Dashboard','Archivio']];
+  const groups=[['Palinsesto','Dashboard']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
@@ -606,20 +593,6 @@ export async function testSourceLogin(pool){
       await pool.query('UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1',[runId,JSON.stringify({status:'running',restartCount,stage,completed,failed,owner,leaseUntil:Date.now()+60000})]);
     }
    }
-
-   const finalActions=[];
-   for(const label of ['GOAT LATE SHARP','GOAT ODDS MOVERS']){
-    try{
-     const popupPromise=page.waitForEvent('popup',{timeout:7000}).catch(()=>null);
-     await page.getByRole('link',{name:label,exact:true}).first().click();
-     const popup=await popupPromise;
-     if(popup){await popup.waitForTimeout(700);finalActions.push({name:label,status:'observed',popupOpened:true,title:redact(await popup.title())});await popup.close();}
-     else finalActions.push({name:label,status:'observed',popupOpened:false});
-    }catch(e){finalActions.push({name:label,status:'failed',error:redact(e.message).slice(0,200)});}
-   }
-   try{await page.locator('#logoutBtn').click();await page.waitForTimeout(1200);const signedOut=await page.locator('#loginEmail').isVisible();finalActions.push({name:'Esci',status:signedOut?'passed':'failed',signedOut});}
-   catch(e){finalActions.push({name:'Esci',status:'failed',error:redact(e.message).slice(0,200)});}
-   await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[snapshotRunId+'-final-actions',JSON.stringify({section:'Global: external links and logout',results:finalActions})]);
 
    await bounded(browser.close(),15000);browser=null;
   }
