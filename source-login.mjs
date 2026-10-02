@@ -473,9 +473,9 @@ async function testMarkedControls(page,pool,runId,section){
   });
   await probe('Analizza palinsesto',async()=>{
    await page.locator('#analyzeBtn').click();
-   await page.waitForFunction(()=>!document.body.innerText.includes('Calcolo analisi in corso'),{},{timeout:60000});
-   await page.waitForTimeout(8000);
-  },async()=>await page.getByRole('button',{name:/DETTAGLIO/}).filter({visible:true}).count()>0);
+   await page.locator('#closeImportBtn').waitFor({state:'visible'});
+  },async()=>await page.locator('#runImportBtn').isVisible());
+  await probe('Chiudi importazione',()=>page.locator('#closeImportBtn').click(),async()=>!await page.locator('#closeImportBtn').isVisible());
  }
  if(section==='Live'){
   for(const value of ['hot','presMedia','presBassa','fav','ht1','ht2','favLosing','odds','pressure','stats','sound','insights']){
@@ -531,7 +531,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v30';
+ const runId='source-mapping-2026-10-02-qa-v31';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
