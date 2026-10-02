@@ -15,10 +15,10 @@ Le precedenti OOM a 512 MB sono documentate. Nei test su 2 GiB il consumo osserv
 - Catalogo delle sezioni accessibili e 13 tab di dettaglio; scorrimento dei contenitori osservati e delle colonne.
 - Filtri live, nove slider a minimo/massimo, 16 risultati HT, mercati, statistiche e lettura dopo 60 secondi.
 - Varianti STATS+, Timing, Gestione75, Classifica; legende ROI e cinque risposte dell'assistente della fonte.
-- Due backtest con guard distinti; secondo risultato mostra tre richieste residue.
+- Tre backtest con guard distinti; terzo risultato mostra due richieste residue. Quarto non eseguito; nessun test che esaurisca il budget giornaliero.
 - 26 output Punta/Banca riconciliati su profitto, commissione, responsabilità e ROI.
 - Money: capitale di prova, trade +10 e ripristino; Tracker, Andamento e Guida.
-- Strategia live: salva, richiama, reload; nuovo contesto senza voce QA. Rimozione UI non certificata.
+- Cinque strategie backtest + cinque live nello stesso contesto, sesta rifiutata, richiamo/reload; dieci cancellazioni UI delle sole voci QA e nuovo contesto pulito verificati (v27/v28).
 
 ## Regressioni
 Eseguire `npm test`: 16 test.
@@ -29,10 +29,10 @@ Snapshot per tentativo, lease con proprietario e guard rendono i riavvii verific
 
 ## Evidenze
 Neon: matchpilot_test_runs e matchpilot_source_snapshots.
-Batch principali: full-scroll-v13; qa-v15, v16, v17, v18, v19, v20, v21, con prefisso source-mapping-2026-10-02-.
+Batch principali: full-scroll-v13; qa-v15, v16, v17, v18, v19, v20, v21, v24, v27, v28, con prefisso source-mapping-2026-10-02-.
 Validazioni finanziarie: source-finance-validation-2026-10-02-01…26, collegate agli snapshot originali.
-Il catalogo dettagliato e i limiti sono in docs/source-catalog-2026-10-02.md.
+Il catalogo dettagliato e i limiti sono in docs/source-catalog-2026-10-02.md. La matrice completa dei tentativi, incluse prove failed poi corrette, è in docs/control-certification-2026-10-02.md.
 
 ## Non certificato
-Percorsi distruttivi e inserimento di esiti fittizi, salvataggi backtest, limiti incrociati, cambio data/importazione manuale, correttezza di tutta la sequenza della curva equity, liquidità e timestamp exchange, raccolta continuativa di una gara completa, recupero delle interruzioni e archivio del giorno successivo.
+Percorsi distruttivi e inserimento di esiti fittizi, limite/reset quotidiano dei backtest, cambio data/importazione effettiva, correttezza di tutta la sequenza della curva equity, liquidità e timestamp exchange, raccolta continuativa di una gara completa, recupero delle interruzioni e archivio del giorno successivo.
 Betwatch non è integrato.
