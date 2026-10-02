@@ -37,7 +37,7 @@ async function captureScrolled(page,pool,id,section) {
  const coverage=[];
  for(const target of targets){
   let end=false,steps=0;
-  for(;steps<50;steps++){
+  for(;steps<220;steps++){
    const state=await bounded(page.evaluate(index=>{
     const e=document.querySelector('[data-matchpilot-scroll="'+index+'"]');
     if(!e)return {missing:true};
@@ -60,6 +60,92 @@ async function captureScrolled(page,pool,id,section) {
  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[id+'-coverage',JSON.stringify({section:section+': scroll coverage',vertical:coverage,horizontal,complete:coverage.every(e=>e.reachedBottom)&&horizontal.every(e=>e.reachedRight)})]);
 }
 
+
+async function testInteractions(page,pool,runId,section) {
+ const results=[];
+ const state=()=>bounded(page.evaluate(()=>({text:document.body.innerText,active:[...document.querySelectorAll('button.active,button[aria-pressed="true"]')].map(e=>e.innerText)})));
+ async function probe(name,action,assertion){
+  const before=await state();
+  try{
+   await action();await page.waitForTimeout(500);
+   const after=await state();
+   if(assertion&&!await assertion(after))throw new Error('Expected result missing');
+   const changed=JSON.stringify(before)!==JSON.stringify(after);
+   results.push({name,status:assertion?'passed':'observed',effectChanged:changed});
+   await capture(page,pool,runId+'-'+section+'-test-'+results.length,section+': '+name);
+  }catch(error){results.push({name,status:'failed',errorType:error.name,message:redact(error.message).slice(0,300)});}
+ }
+ if(section==='Dashboard'){
+  for(const label of ['BANCA','GIOCABILE','OSSERVA','SCARTA','TUTTE','STRATEGIE'])
+   await probe(label,()=>clickObserved(page,label));
+  if(await page.locator('#resetStrategyFiltersBtn').isVisible())await probe('Reset filtri',()=>page.locator('#resetStrategyFiltersBtn').click());
+  await probe('Vista tabella',()=>clickObserved(page,'Vista tabella'));
+ }
+ if(section==='Live'){
+  await probe('Vista tabella',()=>clickObserved(page,'▤ Tabella'));
+  await probe('Vista card',()=>clickObserved(page,'▦ Card'));
+  for(const label of ['Tutti i campionati ▾','🎯 Scores ▾','🕐 Time ▾','⭐ Le mie strategie ▾']){
+   await probe(label,()=>clickObserved(page,label));
+   await page.keyboard.press('Escape');
+  }
+  await probe('Apri filtri',()=>clickObserved(page,'⚙️ Filtri avanzati'),()=>page.locator('#lav-golcasa').isVisible());
+  await probe('Gol casa zero',()=>page.locator('#lav-golcasa').fill('0'),()=>page.locator('#lav-golcasa').inputValue().then(v=>v==='0'));
+  await probe('Gol casa qualsiasi',()=>page.locator('#lav-golcasa').fill(''),()=>page.locator('#lav-golcasa').inputValue().then(v=>v===''));
+  await page.keyboard.press('Escape');
+  await clickObserved(page,'Live');
+  for(const label of ['Dettaglio Gol+ Gol++','Risultato Esatto Live','1X2','O/U','BTTS','Risultato','STATS+']){
+   const exists=await bounded(page.evaluate(label=>[...document.querySelectorAll('button')].some(e=>e.innerText.trim()===label&&e.getClientRects().length),label));
+   if(exists)await probe(label,()=>clickObserved(page,label));
+   else results.push({name:label,status:'blocked',reason:'No visible control for current live state'});
+  }
+  await captureScrolled(page,pool,runId+'-live-expanded','Live: pannelli espansi');
+  await page.waitForTimeout(30000);
+  await capture(page,pool,runId+'-live-followup','Live: successivo aggiornamento');
+ }
+ if(section==='Backtest Storico'){
+  await probe('Ricerca campionato',()=>page.locator('#btLeagueSearch').fill('IRELAND'),s=>s.text.includes('IRELAND'));
+  await page.locator('#btLeagueSearch').fill('');
+  for(const [id,value] of Object.entries({btO1min:'1.5',btO1max:'2',btOXmin:'3',btOXmax:'5',btO2min:'3',btO2max:'5',btMinute:'60',btGolH:'1',btGolA:'1'}))await page.locator('#'+id).fill(value);
+  const ticket=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[runId+'-backtest-once',JSON.stringify({status:'claimed',maximumExecutions:1,inputs:{minute:60,score:'1-1',odds1:[1.5,2],oddsX:[3,5],odds2:[3,5]}})]);
+  if(ticket.rowCount){
+   await probe('Backtest una esecuzione',async()=>{
+    await page.locator('#btRunBtn').click();
+    await page.waitForFunction(()=>document.body.innerText.includes('partite trovate')||document.body.innerText.includes('PARTITE TROVATE')||document.body.innerText.includes('Nessuna partita trovata'),{},{timeout:60000});
+   });
+   await captureScrolled(page,pool,runId+'-backtest-result','Backtest: risultato');
+   await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1',[runId+'-backtest-once',JSON.stringify({status:results.at(-1)?.status==='failed'?'uncertain':'observed',attempted:1})]);
+  }
+ }
+ if(section==='Asian Odds'){
+  for(const label of ['Live','Non iniziate','Tutte'])await probe('Filtro '+label,()=>clickObserved(page,label));
+  for(const [id,value] of [['aoSearchInput','Romania'],['aoTeamSearchInput','Unirea']]){
+   await probe('Ricerca '+id,()=>page.locator('#'+id).fill(value));
+   await page.locator('#'+id).fill('');
+  }
+ }
+ if(section==='Statistiche Lega'){
+  await probe('Ricerca NORWAY',()=>page.locator('#lstSearchIn').fill('NORWAY'),s=>s.text.includes('NORWAY'));
+  await probe('Ricerca inesistente',()=>page.locator('#lstSearchIn').fill('MATCHPILOT_NONEXISTENT'));
+  await page.locator('#lstSearchIn').fill('');
+ }
+ if(section==='Ladder Dutching'){
+  await page.locator('#dutchProfitInput').fill('10');
+  await page.locator('#dutchCommInput').fill('5');
+  const row=page.locator('tr').filter({hasText:'⚽ 0-0'}).first();
+  await probe('Lay 0-0 quota 5',async()=>{
+   await row.locator('input[type="number"]').fill('5');
+   await row.locator('input[type="checkbox"]').check();
+  },s=>s.text.includes('10.00')||s.text.includes('10,00'));
+  await capture(page,pool,runId+'-ladder-calculation','Ladder: calcolo quota 5 profitto 10 commissione 5');
+  await probe('Azzera quote',()=>clickObserved(page,'AZZERA QUOTE'));
+ }
+ if(section==='Analisi'){
+  await page.waitForFunction(()=>!document.body.innerText.includes('Calcolo analisi in corso'),{},{timeout:60000}).catch(()=>results.push({name:'Analisi pronta',status:'blocked',reason:'Loading persists'}));
+  await captureScrolled(page,pool,runId+'-analysis-ready','Analisi: attesa risultati');
+ }
+ await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-tests',JSON.stringify({section:section+': test results',results})]);
+}
+
 async function clickObserved(page,label) {
  const text=label.replace(/\s+/g,' ').trim();
  await page.waitForFunction(target=>[...document.querySelectorAll('button')].some(e=>(e.innerText||'').replace(/\s+/g,' ').trim()===target&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
@@ -71,7 +157,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-full-scroll-v13';
+ const runId='source-mapping-2026-10-02-qa-v14';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -85,7 +171,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[["CONSIGLIO","STATS","STATS +","TIMING DEI GOL","FORMAZIONI","OCCORRENZE","GESTIONE 75'","DISTRIBUZIONI","STORICO","PROFIT CS","📊 ROI","INDEX","CLASSIFICA"].map(label=>'Dettaglio: '+label).concat(['Dashboard','Palinsesto','Live','Analisi','Lay Goleada Favorito','Backtest Storico','Asian Odds','Monitorate','Ladder Dutching','Statistiche Lega','Guida','Archivio','Money Management'])].flat().map(section=>[section]);
+  const groups=['Money Management','Live','Dashboard','Backtest Storico','Asian Odds','Statistiche Lega','Ladder Dutching','Analisi'].map(section=>[section]);
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login';
@@ -104,36 +190,25 @@ export async function testSourceLogin(pool){
    await portal.locator('#heroEmail').waitFor({state:'hidden',timeout:25000});
    stage='module_open';
    const popupPromise=portal.waitForEvent('popup',{timeout:15000});
-   await portal.getByRole('button',{name:'Apri →',exact:true}).nth(1).click();
+   await portal.getByRole('button',{name:'Apri →',exact:true}).nth(group[0]==='Money Management'?0:1).click();
    page=await popupPromise;
-   await page.waitForURL(url=>url.protocol==='https:',{timeout:20000});
+   if(group[0]!=='Money Management')await page.waitForURL(url=>url.protocol==='https:',{timeout:20000});
    await page.waitForLoadState('domcontentloaded',{timeout:20000});
    await portal.close();
    page.setDefaultTimeout(15000);
    stage='module_login';
+   if(group[0]!=='Money Management'){
    await page.locator('#loginEmail').fill(process.env.GOAT_USERNAME);
    await page.locator('#loginPassword').fill(process.env.GOAT_PASSWORD);
    await page.locator('#loginSubmitBtn').click();
    await page.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});
+   } else {await page.waitForFunction(()=>document.body?.innerText?.trim().length>30,{},{timeout:30000});}
+   await page.waitForTimeout(8000);
    for(const section of group){
     if(completed.includes(section))continue;
     stage=section;
     try {
     if(section==='Money Management') {
-     const portal=await context.newPage();
-     await portal.goto('https://goatbettingexchange.com/portale',{waitUntil:'domcontentloaded',timeout:30000});
-     if(await portal.locator('#heroEmail').isVisible()) {
-       await portal.locator('#heroEmail').fill(process.env.GOAT_USERNAME);
-       await portal.locator('#heroPass').fill(process.env.GOAT_PASSWORD);
-       await portal.getByRole('button',{name:'Accedi',exact:true}).click();
-       await portal.locator('#heroEmail').waitFor({state:'hidden',timeout:25000});
-     }
-     const pending=portal.waitForEvent('popup',{timeout:20000});
-     await portal.getByRole('button',{name:'Apri →',exact:true}).nth(0).click();
-     page=await pending;
-     await page.waitForLoadState('domcontentloaded');
-     await page.waitForFunction(()=>document.body?.innerText?.trim().length>30,{},{timeout:30000});
-     await portal.close();
      await page.locator('body').waitFor({state:'visible'});
     } else if(section.startsWith('Dettaglio: ')||section==='ROI Strategie') {
      await clickObserved(page,'Dashboard');
@@ -155,6 +230,7 @@ export async function testSourceLogin(pool){
      if(!selected)throw new Error('Requested detail tab did not remain selected');
     }
     await captureScrolled(page,pool,runId+'-'+section,section);
+    await testInteractions(page,pool,runId,section);
     completed.push(section);
     await pool.query("UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({status:'running',restartCount,stage,completed,failed,owner,leaseUntil:Date.now()+60000}),owner]);
     if(section==='Live'){
