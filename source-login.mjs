@@ -461,28 +461,29 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- const evidence={section:'QA-04 manual palinsesto',fixture:'Malaga - Las Palmas | ESP Liga Adelante | 2.10 | 3.20 | 3.50',steps:[]};
- const rows=()=>page.locator('[data-open-detail],button[data-detail]').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.getAttribute('data-open-detail')||e.getAttribute('data-detail'),text:e.closest('article,tr')?.innerText||e.parentElement?.innerText})));
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA04',JSON.stringify(evidence)]);
- evidence.baseline=await rows();
- evidence.initialText=redact(await page.locator('#dashboardView').innerText());if(evidence.baseline.some(x=>!x.id?.startsWith('pandora-'))){evidence.status='blocked';evidence.reason='Existing manual rows: no global destructive test';await save();return;}
- await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-manual-write-guard',JSON.stringify({qaOnly:true,initialOnlyAutomatic:true,fixture:evidence.fixture,cleanupNeeded:true})]);
- await page.locator('#analyzeBtn').click();await page.locator('#fixturesText').fill(evidence.fixture);await page.locator('#runImportBtn').click();
- for(let n=0;n<90;n++){await page.waitForTimeout(1000);const r=await rows();if(r.some(x=>/Malaga/i.test(x.text)&&/Las Palmas/i.test(x.text))||await page.getByText('Malaga',{exact:true}).filter({visible:true}).count()>0){evidence.imported=r;evidence.bestOfDay=redact(await page.locator('#bestOfDay').innerText());break;}}
- evidence.importText=redact(await page.locator('body').innerText()).slice(-5000);await save();
- const owned=async()=>{const text=await page.locator('#bestOfDay').innerText();return /Malaga/.test(text)&&/Las Palmas/.test(text)?[{text}]:[];};
- if((await owned()).length!==1){evidence.status='blocked';evidence.reason='Import did not produce exactly one identifiable QA row';await save();return;}
- if(await page.locator('#closeImportBtn').isVisible())await page.locator('#closeImportBtn').click();
- await page.locator('#clearPalinsestoBtn').click();await page.getByRole('button',{name:'Annulla',exact:true}).filter({visible:true}).click();await page.waitForTimeout(1000);
- evidence.steps.push({name:'Annulla preserves QA fixture',passed:(await owned()).length===1});await save();
- await page.locator('#clearPalinsestoBtn').click();await page.getByRole('button',{name:'Conferma',exact:true}).filter({visible:true}).click();await page.waitForTimeout(3000);
- await page.locator('[data-view="dashboard"]').click();await page.waitForTimeout(1500);
- evidence.steps.push({name:'Conferma removes QA fixture',passed:(await owned()).length===0});await save();
- await page.reload({waitUntil:'domcontentloaded'});await page.waitForTimeout(8000);
- evidence.afterReload=await rows();evidence.steps.push({name:'Reload no QA fixture',passed:(await owned()).length===0});
- evidence.status=evidence.steps.every(x=>x.passed)?'passed':'failed';
- await save();
- if(!await owned().then(x=>x.length))await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1',[runId+'-manual-write-guard',JSON.stringify({cleanupNeeded:false,cleaned:true})]);
+ const fixture='Malaga - Las Palmas | ESP Liga Adelante | 2.10 | 3.20 | 3.50';
+ const evidence={section:'QA-05 manual import',fixture,steps:[]};
+ const read=async()=>({text:redact(await page.locator('body').innerText()),best:await page.locator('#bestOfDay').innerText(),details:await page.locator('button[data-detail],[data-open-detail]').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.getAttribute('data-open-detail')||e.getAttribute('data-detail'),text:e.closest('article,tr')?.innerText||e.parentElement?.innerText})))});
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA05',JSON.stringify(evidence)]);
+ evidence.initial=await read();if(evidence.initial.details.some(x=>!x.id?.startsWith('pandora-'))){evidence.status='blocked';evidence.reason='Existing manual data';await save();return;}
+ async function submit(text){await page.locator('#analyzeBtn').click();await page.locator('#fixturesText').fill(text);await page.locator('#runImportBtn').click();await page.waitForTimeout(8000);if(await page.locator('#closeImportBtn').isVisible())await page.locator('#closeImportBtn').click();}
+ try{
+  await submit(fixture);evidence.valid=await read();await save();
+  await submit(fixture+'\n'+fixture);evidence.duplicate=await read();await save();
+  await submit('QA INVALIDA SENZA SQUADRE E QUOTE');evidence.invalid=await read();await save();
+  evidence.validQuotes=/HOME\\s+2.10\\s+DRAW\\s+3.20\\s+AWAY\\s+3.50/.test(evidence.valid.best);
+  evidence.leagueVisible=evidence.valid.text.includes('ESP Liga Adelante');
+  evidence.duplicateCards=evidence.duplicate.details.length;
+  evidence.invalidMessage=evidence.invalid.text.slice(-2000);
+  evidence.status='observed';
+ }catch(e){evidence.status='failed';evidence.error=redact(e.message).slice(0,1000);}
+ finally{
+  const current=await read();evidence.beforeCleanup=current;
+  if(/Malaga/.test(current.best)&&/Las Palmas/.test(current.best)){
+   await page.locator('#clearPalinsestoBtn').click();await page.getByRole('button',{name:'Conferma',exact:true}).filter({visible:true}).click();await page.waitForTimeout(1500);
+  }
+  await page.reload({waitUntil:'domcontentloaded'});await page.waitForTimeout(8000);evidence.afterCleanup=await read();evidence.cleaned=!/Malaga/.test(evidence.afterCleanup.best);await save();
+ }
 }
 
 async function clickObserved(page,label) {
@@ -496,7 +497,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-issue2-qa04-v49';
+ const runId='source-mapping-2026-10-03-issue2-qa05-v50';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
