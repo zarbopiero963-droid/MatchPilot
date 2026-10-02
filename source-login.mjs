@@ -172,13 +172,32 @@ async function testInteractions(page,pool,runId,section) {
   }
   await captureScrolled(page,pool,runId+'-'+section+'-expanded',section+': filtri');
  }
+
  if(section==='Money Management'){
-  for(const label of ['ANDAMENTO STRATEGIE','GUIDA','TRACKER']){
-   const control=page.getByText(label,{exact:true}).filter({visible:true}).last();
-   if(await control.count())await probe('Tab '+label,()=>control.click());
-   else results.push({name:'Tab '+label,status:'blocked',reason:'No visible exact control'});
+  for(const [label,id] of [['ANDAMENTO STRATEGIE','btnStats'],['GUIDA',null],['TRACKER','btnTracker']]){
+   await probe('Tab '+label,async()=>{
+    if(id)await page.locator('#'+id).click();
+    else await page.getByRole('button',{name:/^guida$/i}).click();
+    await captureScrolled(page,pool,runId+'-money-'+label,section+': '+label);
+   });
   }
-  await captureScrolled(page,pool,runId+'-money-after-tabs',section+': tab tracker');
+ }
+ if(section==='Live'){
+  await clickObserved(page,'⚙️ Filtri avanzati');
+  if(!await page.locator('#lav-golcasa').isVisible())await clickObserved(page,'⚙️ Filtri avanzati');
+  const knownRanges=['gol1','gol2','tiri','tirit','corner','poss','q1','qx','q2'];
+  for(const key of knownRanges){
+   const control=page.locator('#lav-'+key+'-min');
+   if(!await control.isVisible()){results.push({name:'Range '+key,status:'blocked',reason:'Known range unavailable'});continue;}
+   const original=await control.inputValue();
+   const max=await control.getAttribute('max');
+   const min=await control.getAttribute('min');
+   await probe('Range '+key+' massimo',async()=>{await control.focus();await control.press('End');},()=>control.inputValue().then(v=>Number(v)===Number(max)));
+   await probe('Range '+key+' minimo',async()=>{await control.focus();await control.press('Home');},()=>control.inputValue().then(v=>Number(v)===Number(min)));
+  }
+  await captureScrolled(page,pool,runId+'-ranges','Live: range avanzati');
+  await page.waitForTimeout(60000);
+  await capture(page,pool,runId+'-live-minute','Live: osservazione dopo 60 secondi');
  }
 
  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-tests',JSON.stringify({section:section+': test results',results})]);
@@ -195,7 +214,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v17';
+ const runId='source-mapping-2026-10-02-qa-v18';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -210,7 +229,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Dettaglio: CLASSIFICA','Dettaglio: 📊 ROI','Dettaglio: CONSIGLIO'],['Money Management']];
+  const groups=[['Money Management'],['Live']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
