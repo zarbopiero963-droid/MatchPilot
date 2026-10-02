@@ -73,3 +73,40 @@ Run resilient-v7 COMPLETE alle 13:23:37 UTC; dopo riavvio ha recuperato checkpoi
 ## Residui
 Money Management, contenuto di tutti i tab/LEGEND dettaglio, creazione/richiamo strategie, backtest reale e limite 5/giorno, pannello di partita live e lettura minuto per minuto. Nessuna partita live disponibile durante il test. Nessun backtest eseguito o operazione registrata.
 Gol++: Guida dice almeno due gol; testo filtro dice stessa logica Gol+ con soglia più alta. Conservare discrepanza: il calcolo reale non è ancora verificato.
+
+## Verifica aggiornata alle 17:00 Europe/Rome (15:00 UTC)
+La precedente tabella è una fotografia iniziale, superata dalle evidenze seguenti.
+- Batch `source-mapping-2026-10-02-full-scroll-v13`: selezione verificata delle 13 tab di dettaglio, 12 sezioni di menu. Non usare v11/v12 come prova della selezione delle tab.
+- Batch `source-mapping-2026-10-02-qa-v15`: terminato, otto sezioni lette. Copertura verticale e orizzontale completa sui contenitori osservati, compresa Asian Odds. Non equivale alla verifica di ogni stato condizionale o grafico.
+- 35 prove di interazione: 6 con asserzione passata, 26 con effetto osservato, 2 bloccate per controllo non visibile, 1 timeout. I 26 casi osservati non sono certificazioni numeriche.
+- Live: menu campionati/punteggio/tempo/strategie, apertura filtri, gol casa zero e vuoto, mercati 1X2/O-U/BTTS/Risultato e STATS+. Dettagli Gol+/Gol++ e Risultato Esatto Live non disponibili con quei selettori nello stato corrente.
+- Dashboard: filtri BANCA/GIOCABILE/OSSERVA/SCARTA/TUTTE/STRATEGIE letti dopo clic. Vista tabella: timeout; probabile pulsante icona con titolo, da ritestare tramite attributo osservato.
+- Backtest: una sola esecuzione, minuto 60, 1-1, quote 1 [1.5,2], X [3,5], 2 [3,5], nessun campionato selezionato. 2324 partite su 17929, risultato invariato 34.6%, almeno un altro gol 65.4%, Over 3.5 28.7%; quattro esecuzioni residue visualizzate. Campione reale della fonte, non previsione certa. Quote CS prematch indicate come riferimento, non quote aggiornate al minuto.
+- Guard globale Neon `source-backtest-test-2026-10-02-01`: massimo un tentativo del test, prima del clic; deploy e riavvii non devono consumare nuovamente il limite.
+- Asian Odds: filtri Live/Non iniziate/Tutte e ricerche campionato/squadra producono cambiamenti osservati. Statistiche Lega: ricerca NORWAY con asserzione e ricerca senza risultati.
+- Analisi: caricamento terminato prima della seconda acquisizione; nessun test di scrittura degli esiti.
+- Money Management: apertura riuscita mantenendo vivo il portale padre fino al popolamento del popup. Piano visualizzato con capitale/cassa 1000 EUR, profitto 0, ROI 0, trenta righe di progressione prevista, stake/target/stop, otto trade per giorno. La progressione prevista non è profitto realizzato. Tab Tracker/Andamento strategie/Guida e impostazioni da testare separatamente; AZZERA PIANO non premuto.
+- Ladder: quota 5 su 0-0, input obiettivo 10 e commissione 5%: stake visualizzato 10, netto vincita 9.50, perdita 40. Il testo promette obiettivo netto: discrepanza registrata. Nel nostro motore un obiettivo netto 10 richiede stake 10/0.95 = 10.52631579, responsabilità 42.10526316 prima di arrotondamenti.
+- Prezzi live back/lay sono letti dal pannello della fonte: timestamp e liquidità non verificati. Integrazione Betwatch resta fase successiva.
+
+### Dettaglio partita effettivamente letto (v13)
+| Tab | Contenuti |
+|---|---|
+| CONSIGLIO | lay consigliato, quota equa, quota manuale, rischio, gestione al 75, domande assistente |
+| STATS | statistiche recenti FT/HT/secondo tempo, gol, BTTS, casa/trasferta, ultimi risultati, pressione |
+| STATS + | campioni 5/10/20, complessivo/casa-trasferta, stessa lega, H2H, Race |
+| TIMING DEI GOL | finestre 15 minuti, gol segnati/subiti, campioni e modalità |
+| FORMAZIONI | moduli, titolari, riserve, assenti, statistiche giocatori |
+| OCCORRENZE | risultati esatti, campioni, frequenze, soglie quota |
+| GESTIONE 75' | punteggi al 75, casi storici, cambiamento risultato, indicazione protezione |
+| DISTRIBUZIONI | risultati al 75 e finali con frequenze |
+| STORICO | profili quota e partite storiche, HT/FT, tempi gol |
+| PROFIT CS | lay risultati esatti, rendimento storico per squadra, responsabilità unitaria |
+| ROI Asset Performance | 13 mercati BACK, lega/etichetta quota/squadra; tre popolazioni distinte |
+| INDEX | indice gol e CV; indice non disponibile non va interpretato come zero valido |
+| CLASSIFICA | squadre, casa/trasferta, risultati, gol, punti, forma |
+
+### Regole parser e limite della certificazione
+Nuovi controlli restano `discovered`, senza esecuzione automatica. Cambiamenti e controlli mancanti sono versionati; raccolte opzionali malformate non fanno fallire i dati noti. Validazione semantica ROI blocca righe essenziali mancanti, percentuali/quote invalide e direzione punta/lay errata.
+Validazione vista separata: autenticazione visibile, pagina vuota, caricamento e selezione tab sbagliata impediscono `readyForAnalysis`; questa condizione è necessaria ma non sufficiente per validare tutti i campi finanziari.
+Nove test locali passati. Resta da verificare: salvataggio/richiamo strategie e relativa persistenza; risposte assistente; varianti ROI/legende, intervallo/slider; esiti personali in ambiente di test; ciclo live completo e archivio giornaliero. Non cancellare dati della fonte per testare.
