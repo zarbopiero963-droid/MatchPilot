@@ -376,6 +376,55 @@ async function testSavedStrategies(page,pool,runId,section){
 await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-tests',JSON.stringify({section:section+': saved strategy test results',results})]);
 }
 
+
+async function testFinalNavigation(page,pool,runId,section){
+ const results=[];
+ async function check(name,action,assertion){
+  try{await action();await page.waitForTimeout(1000);if(assertion&&!await assertion())throw new Error('Expected state absent');results.push({name,status:assertion?'passed':'observed'});}
+  catch(e){results.push({name,status:'failed',message:redact(e.message).slice(0,200)});}
+  await capture(page,pool,runId+'-'+section+'-final-'+results.length,section+': '+name);
+ }
+ if(section==='Dashboard'){
+  for(const label of ['Score','Rischio','Orario','Campionato','Nome'])
+   await check('Selezione ordinamento '+label,()=>page.locator('#sortOrder').selectOption({label}),()=>page.locator('#sortOrder option:checked').textContent().then(s=>s===label));
+  await page.locator('#sortOrder').selectOption({label:'Score'});
+  await check('Apri scelta giornata',()=>clickObserved(page,'02 OTT 2026'));
+  const dates=page.locator('input[type="date"]').filter({visible:true});
+  if(await dates.count()===1){
+   const original=await dates.inputValue();
+   await check('Seleziona ieri',async()=>{await dates.fill('2026-10-01');await dates.press('Tab');await page.waitForTimeout(5000);},()=>page.locator('#todayDateLabel').innerText().then(s=>/01.*OTT.*2026/i.test(s)));
+   await check('Ripristina oggi',async()=>{await dates.fill(original);await dates.press('Tab');await page.waitForTimeout(3000);},()=>page.locator('#todayDateLabel').innerText().then(s=>/02.*OTT.*2026/i.test(s)));
+  }else{
+   results.push({name:'Cambio data',status:'blocked',reason:'No unique visible date input; native picker not certified'});
+   await page.keyboard.press('Escape');
+  }
+  const ui=await bounded(page.evaluate(()=>[...document.querySelectorAll('button,[role="button"],[onclick],input[type="date"]')].filter(e=>e.getClientRects().length).map(e=>({tag:e.tagName,id:e.id,label:(e.innerText||e.title||e.getAttribute('aria-label')||'').trim(),attributes:[...e.attributes].filter(a=>a.name.startsWith('data-')).map(a=>[a.name,a.value])})).filter(o=>/favor|monitor|star|date/i.test(JSON.stringify(o))).slice(0,60)));
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-dashboard-remaining-controls',JSON.stringify({section:'Dashboard: remaining control metadata',ui})]);
+ }
+ if(section==='Palinsesto'){
+  await check('Apri inserimento manuale',()=>page.getByRole('button',{name:/^manuale$/i}).click(),async()=>await page.locator('textarea').filter({visible:true}).count()>0);
+  // No imports or global analysis invoked.
+ }
+ if(section==='Archivio'){
+  for(const label of ['VINTE','PERSE','SALTATE','TUTTE']){
+   const b=page.getByRole('button',{name:new RegExp(label,'i')}).filter({visible:true});
+   if(await b.count()===1)await check('Filtro archivio '+label,()=>b.click());
+   else results.push({name:'Filtro archivio '+label,status:'blocked',reason:'Unique visible known control absent'});
+  }
+ }
+ if(section==='Live'){
+  if(!await page.locator('#lav-golcasa').isVisible())await page.locator('[data-live-advtoggle]').filter({visible:true}).click();
+  await check('Nuovo contesto live pulito',async()=>{},async()=>{
+   const t=await page.locator('body').innerText();return /LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(t)&&!t.includes('QA MP v');
+  });
+ }
+ if(section==='Backtest Storico'){
+  await page.waitForTimeout(5000);
+  await check('Nuovo contesto backtest pulito',async()=>{},async()=>!(await page.locator('#btSavedList').innerText()).includes('QA MP v'));
+ }
+ await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-tests',JSON.stringify({section:section+': final navigation results',results})]);
+}
+
 async function clickObserved(page,label) {
  const text=label.replace(/\s+/g,' ').trim();
  await page.waitForFunction(target=>[...document.querySelectorAll('button,[role="button"],[role="tab"],[onclick],summary')].some(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
@@ -387,7 +436,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v27';
+ const runId='source-mapping-2026-10-02-qa-v28';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -402,7 +451,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Backtest Storico','Live']];
+  const groups=[['Dashboard','Palinsesto','Archivio','Live','Backtest Storico']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
@@ -463,7 +512,7 @@ export async function testSourceLogin(pool){
      if(!selected)throw new Error('Requested detail tab did not remain selected');
     }
     await captureScrolled(page,pool,snapshotRunId+'-'+section,section);
-    await testSavedStrategies(page,pool,snapshotRunId,section);
+    await testFinalNavigation(page,pool,snapshotRunId,section);
     completed.push(section);
     await pool.query("UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({status:'running',restartCount,stage,completed,failed,owner,leaseUntil:Date.now()+60000}),owner]);
     if(section==='Live'){
