@@ -39,7 +39,9 @@ export async function testSourceLogin(pool){
  const owner=String(Date.now())+'-'+Math.random().toString(36).slice(2);
  const existing=await pool.query('SELECT result,completed_at FROM matchpilot_test_runs WHERE run_id=$1',[runId]);
  if(existing.rows[0]?.completed_at){console.log('SOURCE_MAP_BATCH_DONE already_recorded');return;}
- const claimed=await pool.query("INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT (run_id) DO UPDATE SET result=matchpilot_test_runs.result || EXCLUDED.result WHERE COALESCE((matchpilot_test_runs.result->>'leaseUntil')::bigint,0)<$3 RETURNING run_id",[runId,JSON.stringify({status:'running',owner,leaseUntil:Date.now()+60000}),Date.now()]);
+ const restartCount=(existing.rows[0]?.result?.restartCount||0)+1;
+ if(restartCount>4 && Number(existing.rows[0]?.result?.leaseUntil||0)<Date.now()){await pool.query("UPDATE matchpilot_test_runs SET completed_at=now(),result=result || '{\"status\":\"blocked\",\"reason\":\"restart_limit\"}'::jsonb WHERE run_id=$1",[runId]);console.log('SOURCE_MAP_BATCH_DONE restart_limit');return;}
+ const claimed=await pool.query("INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT (run_id) DO UPDATE SET result=matchpilot_test_runs.result || EXCLUDED.result WHERE COALESCE((matchpilot_test_runs.result->>'leaseUntil')::bigint,0)<$3 RETURNING run_id",[runId,JSON.stringify({status:'running',restartCount,owner,leaseUntil:Date.now()+60000}),Date.now()]);
  if(!claimed.rowCount){console.log('SOURCE_MAP_BATCH waiting_for_lease');const timer=setTimeout(()=>testSourceLogin(pool).catch(()=>console.log('SOURCE_MAP_RETRY failed')),65000);timer.unref();return;}
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
@@ -101,7 +103,7 @@ export async function testSourceLogin(pool){
     await page.waitForTimeout(3500);
     await capture(page,pool,runId+'-'+section,section);
     completed.push(section);
-    await pool.query('UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1',[runId,JSON.stringify({status:'running',stage,completed,failed,owner,leaseUntil:Date.now()+60000})]);
+    await pool.query('UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1',[runId,JSON.stringify({status:'running',restartCount,stage,completed,failed,owner,leaseUntil:Date.now()+60000})]);
     if(section==='Live'){
      await page.getByRole('button',{name:'⚙️ Filtri avanzati',exact:true}).click();
      await page.waitForTimeout(500);
