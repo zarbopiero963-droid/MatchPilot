@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-portal-v1';
+ const runId='source-mapping-2026-10-02-modules-v1';
  if(!pool){console.log('SOURCE_LOGIN_TEST database_missing');return;}
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs (run_id text PRIMARY KEY, started_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz, result jsonb NOT NULL)');
  const claimed=await pool.query("INSERT INTO matchpilot_test_runs (run_id,result) VALUES ($1,$2) ON CONFLICT DO NOTHING RETURNING run_id",[runId,JSON.stringify({status:'running'})]);
@@ -53,6 +53,32 @@ export async function testSourceLogin(pool){
    await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId,JSON.stringify(snapshot)]);
    console.log('SOURCE_MAP_PORTAL '+JSON.stringify(snapshot));
    result.snapshotSaved=true;
+
+   for(const [index,moduleName] of [[1,'layscore'],[0,'money']]){
+    stage='module_'+moduleName;
+    if(page.isClosed())break;
+    if(index===0)await page.goto('https://goatbettingexchange.com/portale',{waitUntil:'domcontentloaded',timeout:30000});
+    await page.getByRole('button',{name:'Apri →',exact:true}).nth(index).waitFor({state:'visible'});
+    const popupPromise=page.waitForEvent('popup',{timeout:10000}).catch(()=>null);
+    await page.getByRole('button',{name:'Apri →',exact:true}).nth(index).click();
+    const popup=await popupPromise;
+    const target=popup||page;
+    await target.waitForLoadState('domcontentloaded',{timeout:30000}).catch(()=>{});
+    await target.waitForTimeout(2500);
+    const moduleSnapshot=await target.evaluate(()=>{
+     const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length);
+     return {title:document.title,text:document.body.innerText,controls:[...document.querySelectorAll('a,button,[role="button"],nav [onclick],aside [onclick]')].filter(visible).map(e=>({tag:e.tagName,label:(e.innerText||e.getAttribute('aria-label')||'').trim(),id:e.id,href:e.tagName==='A'?e.getAttribute('href'):null})),inputs:[...document.querySelectorAll('input,select,textarea')].filter(visible).map(e=>({tag:e.tagName,type:e.type,id:e.id,placeholder:e.getAttribute('placeholder'),options:e.tagName==='SELECT'?[...e.options].map(o=>o.textContent):undefined}))};
+    });
+    moduleSnapshot.origin=new URL(target.url()).origin;
+    moduleSnapshot.path=new URL(target.url()).pathname;
+    moduleSnapshot.text=redact(moduleSnapshot.text);
+    moduleSnapshot.title=redact(moduleSnapshot.title);
+    moduleSnapshot.controls=moduleSnapshot.controls.map(control=>({...control,label:redact(control.label),href:control.href?(()=>{try{const u=new URL(control.href,target.url());return u.origin+u.pathname}catch{return null}})():null}));
+    await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+moduleName,JSON.stringify(moduleSnapshot)]);
+    console.log('SOURCE_MAP_MODULE '+JSON.stringify({moduleName,...moduleSnapshot,text:moduleSnapshot.text.slice(0,14000)}));
+    if(popup)await popup.close();
+   }
+
   }
  }catch{
   result={status:'test_failed',stage};
