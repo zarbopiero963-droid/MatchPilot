@@ -22,7 +22,7 @@ async function capture(page,pool,id,section){
  return data;
 }
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-resilient-v7';
+ const runId='source-mapping-2026-10-02-panels-v8';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -34,7 +34,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Ladder Dutching','Archivio','Live','Analisi','Statistiche Lega','Dashboard','Backtest Storico']];
+  const groups=[['ROI Strategie','Dettaglio Partita','Money Management']];
   for(const group of groups){
    stage='login';
    browser=await chromium.launch({headless:true});
@@ -67,7 +67,28 @@ export async function testSourceLogin(pool){
     if(completed.includes(section))continue;
     stage=section;
     try {
-    await page.getByRole('button',{name:section,exact:true}).click({force:true});
+    if(section==='Money Management') {
+     const portal=await context.newPage();
+     await portal.goto('https://goatbettingexchange.com/portale',{waitUntil:'domcontentloaded',timeout:30000});
+     if(await portal.locator('#heroEmail').isVisible()) {
+       await portal.locator('#heroEmail').fill(process.env.GOAT_USERNAME);
+       await portal.locator('#heroPass').fill(process.env.GOAT_PASSWORD);
+       await portal.getByRole('button',{name:'Accedi',exact:true}).click();
+       await portal.locator('#heroEmail').waitFor({state:'hidden',timeout:25000});
+     }
+     const pending=portal.waitForEvent('popup',{timeout:20000});
+     await portal.getByRole('button',{name:'Apri →',exact:true}).nth(0).click();
+     page=await pending;
+     await page.waitForURL(url=>url.protocol==='https:',{timeout:30000});
+     await page.waitForLoadState('domcontentloaded');
+     await portal.close();
+     await page.locator('body').waitFor({state:'visible'});
+    } else {
+     await page.getByRole('button',{name:'Dashboard',exact:true}).click({force:true});
+     const target=page.getByRole('button',{name:section==='ROI Strategie'?'📊 ROI STR':'DETTAGLIO',exact:true}).first();
+     await target.waitFor({state:'visible',timeout:60000});
+     await target.click({force:true});
+    }
     await page.waitForTimeout(3500);
     await capture(page,pool,runId+'-'+section,section);
     completed.push(section);
