@@ -13,10 +13,11 @@ function bounded(promise,ms=15000) {
 
 async function capture(page,pool,id,section){
  const data=await bounded(page.evaluate(()=>{
-  const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length);
+  const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)&&!['hidden','collapse'].includes(getComputedStyle(e).visibility)&&!e.closest('[inert],[aria-hidden="true"]');
   const authVisible=['heroEmail','loginEmail'].some(id=>{const e=document.getElementById(id);return e&&visible(e);});
   const loading=/Calcolo analisi in corso|Caricamento dati|Loading data/i.test(document.body.innerText);
-  return {authVisible,loading,detailButtonDiagnostics:[...document.querySelectorAll('button')].filter(e=>['STATS','STATS +','CONSIGLIO'].includes(e.innerText.trim())).map(e=>({label:e.innerText,disabled:e.disabled,onclick:e.getAttribute('onclick'),className:e.className})),activeTabs:[...document.querySelectorAll('button[aria-selected="true"],[role="tab"][aria-selected="true"],button.active')].filter(visible).map(e=>e.innerText),text:document.body.innerText,controls:[...document.querySelectorAll('a,button,[role="button"],[role="tab"],[onclick],summary,[tabindex="0"],[style*="pointer"]')].filter(visible).map(e=>({tag:e.tagName,label:(e.innerText||e.getAttribute('aria-label')||e.getAttribute('title')||'').trim(),id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||''})),inputs:[...document.querySelectorAll('input,select,textarea')].filter(visible).map(e=>({tag:e.tagName,type:e.type,id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||e.labels?.[0]?.innerText||'',min:e.getAttribute('min'),max:e.getAttribute('max'),step:e.getAttribute('step'),placeholder:e.getAttribute('placeholder'),options:e.tagName==='SELECT'?[...e.options].map(o=>o.textContent):undefined}))};
+  const interactive=[...new Set([...document.querySelectorAll('a,button,[role="button"],[role="tab"],[onclick],summary,[tabindex="0"]'),...[...document.querySelectorAll('body *')].filter(e=>visible(e)&&getComputedStyle(e).cursor==='pointer')])].filter(visible);
+  return {authVisible,loading,detailButtonDiagnostics:[...document.querySelectorAll('button')].filter(e=>['STATS','STATS +','CONSIGLIO'].includes(e.innerText.trim())).map(e=>({label:e.innerText,disabled:e.disabled,onclick:e.getAttribute('onclick'),className:e.className})),activeTabs:[...document.querySelectorAll('button[aria-selected="true"],[role="tab"][aria-selected="true"],button.active')].filter(visible).map(e=>e.innerText),text:document.body.innerText,controls:interactive.map(e=>({tag:e.tagName,label:(e.innerText||e.getAttribute('aria-label')||e.getAttribute('title')||'').trim(),id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||''})),inputs:[...document.querySelectorAll('input,select,textarea')].filter(visible).map(e=>({tag:e.tagName,type:e.type,id:e.id,name:e.getAttribute('name'),context:e.closest('tr')?.querySelector('td')?.innerText||e.labels?.[0]?.innerText||'',min:e.getAttribute('min'),max:e.getAttribute('max'),step:e.getAttribute('step'),placeholder:e.getAttribute('placeholder'),options:e.tagName==='SELECT'?[...e.options].map(o=>o.textContent):undefined}))};
  }),15000);
  data.text=redact(data.text);data.controls=data.controls.map(o=>({...o,context:redact(o.context),label:redact(o.label)}));
  data.inputs=data.inputs.map(o=>({...o,context:redact(o.context),placeholder:redact(o.placeholder),options:o.options?.map(redact)}));
@@ -89,14 +90,14 @@ async function testInteractions(page,pool,runId,section) {
   await probe('Ricerca campionato',()=>page.locator('#btLeagueSearch').fill('IRELAND'),s=>s.text.includes('IRELAND'));
   await page.locator('#btLeagueSearch').fill('');
   for(const [id,value] of Object.entries({btO1min:'1.5',btO1max:'2',btOXmin:'3',btOXmax:'5',btO2min:'3',btO2max:'5',btMinute:'60',btGolH:'1',btGolA:'1'}))await page.locator('#'+id).fill(value);
-  const ticket=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',['source-backtest-test-2026-10-02-01',JSON.stringify({status:'claimed',maximumExecutions:1,inputs:{minute:60,score:'1-1',odds1:[1.5,2],oddsX:[3,5],odds2:[3,5]}})]);
+  const ticket=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',['source-backtest-test-2026-10-02-02',JSON.stringify({status:'claimed',maximumExecutions:1,inputs:{minute:60,score:'1-1',odds1:[1.5,2],oddsX:[3,5],odds2:[3,5]}})]);
   if(ticket.rowCount){
    await probe('Backtest una esecuzione',async()=>{
     await page.locator('#btRunBtn').click();
     await page.waitForFunction(()=>document.body.innerText.includes('partite trovate')||document.body.innerText.includes('PARTITE TROVATE')||document.body.innerText.includes('Nessuna partita trovata'),{},{timeout:60000});
    });
    await captureScrolled(page,pool,runId+'-backtest-result','Backtest: risultato');
-   await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1',['source-backtest-test-2026-10-02-01',JSON.stringify({status:results.at(-1)?.status==='failed'?'uncertain':'observed',attempted:1})]);
+   await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1',['source-backtest-test-2026-10-02-02',JSON.stringify({status:results.at(-1)?.status==='failed'?'uncertain':'observed',attempted:1})]);
   }
  }
  if(section==='Asian Odds'){
@@ -174,64 +175,37 @@ async function testInteractions(page,pool,runId,section) {
   await profit.fill(originalProfit);await strategy.fill(originalStrategy);
   await capture(page,pool,runId+'-money-restored','Money: impostazioni ripristinate');
  }
+
  if(section==='Live'){
   if(!await page.locator('#lav-golcasa').isVisible())await clickObserved(page,'⚙️ Filtri avanzati');
+  await page.waitForTimeout(3000);
   const qaName='QA MatchPilot 2026-10-02';
-  const guardId='source-live-strategy-test-2026-10-02-01';
-  const sourceText=(await state()).text;
-  const emptySlots=/LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(sourceText);
-  const claim=emptySlots?await pool.query("INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT (run_id) DO UPDATE SET result=matchpilot_test_runs.result || EXCLUDED.result WHERE matchpilot_test_runs.result->>'status'='name_form_observed' AND matchpilot_test_runs.result->>'created'='0' RETURNING run_id",[guardId,JSON.stringify({status:'reserved',name:qaName,maximumExecutions:1,attempted:1})]):{rowCount:0};
-  if(claim.rowCount){
-   await probe('Salva strategia QA',async()=>{
-    await clickObserved(page,'💾 Salva strategia');
-    await page.locator('#lavSaveName').fill(qaName);
-    await page.getByRole('button',{name:/^salva$/i}).filter({visible:true}).first().click();
-    await page.waitForTimeout(1000);
-   },s=>s.text.includes(qaName));
-  }else results.push({name:'Salva strategia QA',status:'blocked',reason:emptySlots?'Attempt already reserved':'Existing strategies preserved'});
-  async function refreshLive(){
-   await page.reload({waitUntil:'domcontentloaded',timeout:30000});
-   if(await page.locator('#loginEmail').isVisible()){
-    await page.locator('#loginEmail').fill(process.env.GOAT_USERNAME);
-    await page.locator('#loginPassword').fill(process.env.GOAT_PASSWORD);
-    await page.locator('#loginSubmitBtn').click();
-    await page.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});
+  await probe('Nuovo contesto senza strategia QA',async()=>{},s=>!s.text.includes(qaName)&&/LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(s.text));
+  const clean=(await state()).text;
+  if(!clean.includes(qaName)&&/LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(clean)){
+   await pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1",['source-live-strategy-test-2026-10-02-01',JSON.stringify({status:'isolated_context_disposed',freshContextEmpty:true,removed:true,cleanupMethod:'browser_context_disposal',uiDeleteUntested:true})]);
+  }else results.push({name:'Pulizia QA esistente',status:'blocked',reason:'Existing entry needs scoped delete review'});
+  await captureScrolled(page,pool,runId+'-fresh-context','Live: nuovo contesto');
+ }
+ if(section==='Backtest Storico'&&await page.locator('#btStratMarket').isVisible()){
+  const labels=['Finisce con lo stesso risultato','Almeno un altro gol','Over 2,5 finale','Over 3,5 finale','1 (vince la casa)','X (pareggio)',"2 (vince l'ospite)",'Risultato esatto 1-1','Risultato esatto 2-1','Risultato esatto 1-2','Risultato esatto 2-2','Risultato esatto 3-1','Risultato esatto 3-2'];
+  for(const label of labels){
+   const found=await page.locator('#btStratMarket').evaluate((e,label)=>[...e.options].some(o=>o.textContent===label),label);
+   if(!found){results.push({name:'Mercato '+label,status:'blocked',reason:'Known market not available'});continue;}
+   for(const side of ['Punta','Banca']){
+    await probe(label+' '+side,async()=>{
+     await page.locator('#btStratMarket').selectOption({label});
+     await page.locator('#btStratSide').selectOption({label:side});
+     await page.locator('#btStratQuota').fill('3');
+     await page.locator('#btStratImporto').fill('10');
+     await page.locator('#btStratCommissione').fill('5');
+     await page.locator('#btStratCalcBtn').click();
+    },s=>/OPERAZIONI\s*\d+/i.test(s.text)&&/PROFITTO TOTALE\s*[+−-]?\d[\d.,]*\s*€/i.test(s.text));
    }
-   await page.waitForTimeout(5000);
-   await clickObserved(page,'Live');
-   if(!await page.locator('#lav-golcasa').isVisible())await clickObserved(page,'⚙️ Filtri avanzati');
   }
-  let saved=(await state()).text.includes(qaName),removed=false;
-  if(saved){
-   await probe('Richiama strategia QA',async()=>{
-    await page.locator('#lav-golcasa').fill('1');
-    await page.getByText(qaName,{exact:true}).filter({visible:true}).first().click();
-   },()=>page.locator('#lav-golcasa').inputValue().then(v=>v===''));
-   await probe('Persistenza strategia dopo reload',refreshLive,s=>s.text.includes(qaName));
-   const cleanup=await bounded(page.evaluate(name=>{
-    const leaf=[...document.querySelectorAll('body *')].find(e=>e.children.length===0&&e.textContent.trim()===name);
-    for(let e=leaf?.parentElement;e&&e!==document.body;e=e.parentElement){
-     if(e.innerText.length>350)break;
-     const target=[...e.querySelectorAll('button,[role="button"],[onclick]')].find(b=>{
-      const label=(b.innerText||b.getAttribute('aria-label')||b.getAttribute('title')||'').trim();
-      return /^(×|✕|🗑|🗑️|elimina|elimina strategia|rimuovi strategia)$/i.test(label);
-     });
-     if(target){target.setAttribute('data-matchpilot-cleanup','qa-strategy');return true;}
-    }return false;
-   },qaName));
-   if(cleanup){
-    await probe('Rimuovi solo strategia QA',async()=>{
-     const handler=d=>d.type()==='confirm'&&/strategia/i.test(d.message())?d.accept():d.dismiss();
-     page.once('dialog',handler);
-     try{await page.locator('[data-matchpilot-cleanup="qa-strategy"]').click();await page.waitForTimeout(500);}
-     finally{page.removeListener('dialog',handler);}
-     await refreshLive();
-    },s=>!s.text.includes(qaName)&&/LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(s.text));
-    removed=!(await state()).text.includes(qaName);
-   }else results.push({name:'Rimuovi solo strategia QA',status:'blocked',reason:'No unambiguous observed delete control for own QA entry'});
-  }
-  if(claim.rowCount||saved)await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=$2 WHERE run_id=$1',[guardId,JSON.stringify({name:qaName,maximumExecutions:1,attempted:1,status:removed?'complete':saved?'cleanup_required':'unconfirmed',saved,removed})]);
-
+  await captureScrolled(page,pool,runId+'-equity','Backtest: rendimento ed equity');
+  const charts=await bounded(page.evaluate(()=>[...document.querySelectorAll('canvas')].filter(e=>e.getClientRects().length).map(e=>({width:e.width,height:e.height}))));
+  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-equity-charts',JSON.stringify({section:'Backtest: grafici',charts})]);
  }
 
  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-tests',JSON.stringify({section:section+': test results',results})]);
@@ -248,7 +222,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v20';
+ const runId='source-mapping-2026-10-02-qa-v21';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -263,7 +237,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Live']];
+  const groups=[['Live','Backtest Storico']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
