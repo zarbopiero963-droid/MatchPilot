@@ -219,7 +219,7 @@ async function testSavedStrategies(page,pool,runId,section){
   catch(e){results.push({name,status:'failed',message:redact(e.message).slice(0,240)});}
   await capture(page,pool,runId+'-'+section+'-save-'+results.length,section+': '+name);
  }
- const prefix='QA MP v25 ';
+ const prefix='QA MP v26 ';
  const ownText=()=>page.locator('body').innerText();
  const live=section==='Live';
  const open=async()=>{
@@ -228,10 +228,10 @@ async function testSavedStrategies(page,pool,runId,section){
  };
  await open();
  const baseline=await ownText();
- if(live?!/LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(baseline):!baseline.includes('Nessuna strategia salvata.')){
+ if(live?!/LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(baseline):(!(baseline.includes('Nessuna strategia salvata.'))&&(await page.locator('#btSavedList').innerText()).trim()!=='')){
   results.push({name:'Preservare strategie esistenti',status:'blocked',reason:'Initial list not empty'});
  }else{
-  const guard='source-saved-limits-2026-10-02-v25-'+section;
+  const guard='source-saved-limits-2026-10-02-v26-'+section;
   let pendingName='',dialogs=[],deletingName='';
   const claim=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[guard,JSON.stringify({status:'claimed',maxSaveAttempts:6,backtestExecutions:0})]);
   if(claim.rowCount){
@@ -295,6 +295,7 @@ async function testSavedStrategies(page,pool,runId,section){
      await page.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});
     }
     await page.waitForTimeout(10000);await open();
+    await page.getByText(prefix+section+' 1',{exact:true}).filter({visible:true}).first().waitFor({state:'visible',timeout:15000});
     const text=await ownText();
     if(!Array.from({length:5},(_,i)=>prefix+section+' '+(i+1)).every(n=>text.includes(n)))throw new Error('Reload lost entries');
    });
@@ -321,6 +322,7 @@ async function testSavedStrategies(page,pool,runId,section){
     if(!Array.from({length:5},(_,i)=>prefix+'Live '+(i+1)).every(n=>now.includes(n)))throw new Error('Five live entries absent');
    }
    await clickObserved(page,'Backtest Storico');
+   await page.getByText(prefix+'Backtest Storico 1',{exact:true}).filter({visible:true}).first().waitFor({state:'visible',timeout:15000});
    const back=await ownText();
    if(!Array.from({length:5},(_,i)=>prefix+'Backtest Storico '+(i+1)).every(n=>back.includes(n)))throw new Error('Backtest entries lost when live populated');
    await open();
@@ -372,7 +374,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v25';
+ const runId='source-mapping-2026-10-02-qa-v26';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
