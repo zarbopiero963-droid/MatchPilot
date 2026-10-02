@@ -106,18 +106,18 @@ async function testInteractions(page,pool,runId,section) {
   await probe('Ricerca campionato',()=>page.locator('#btLeagueSearch').fill('IRELAND'),s=>s.text.includes('IRELAND'));
   await page.locator('#btLeagueSearch').fill('');
   for(const [id,value] of Object.entries({btO1min:'1.5',btO1max:'2',btOXmin:'3',btOXmax:'5',btO2min:'3',btO2max:'5',btMinute:'60',btGolH:'1',btGolA:'1'}))await page.locator('#'+id).fill(value);
-  const ticket=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[runId+'-backtest-once',JSON.stringify({status:'claimed',maximumExecutions:1,inputs:{minute:60,score:'1-1',odds1:[1.5,2],oddsX:[3,5],odds2:[3,5]}})]);
+  const ticket=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',['source-backtest-test-2026-10-02-01',JSON.stringify({status:'claimed',maximumExecutions:1,inputs:{minute:60,score:'1-1',odds1:[1.5,2],oddsX:[3,5],odds2:[3,5]}})]);
   if(ticket.rowCount){
    await probe('Backtest una esecuzione',async()=>{
     await page.locator('#btRunBtn').click();
     await page.waitForFunction(()=>document.body.innerText.includes('partite trovate')||document.body.innerText.includes('PARTITE TROVATE')||document.body.innerText.includes('Nessuna partita trovata'),{},{timeout:60000});
    });
    await captureScrolled(page,pool,runId+'-backtest-result','Backtest: risultato');
-   await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1',[runId+'-backtest-once',JSON.stringify({status:results.at(-1)?.status==='failed'?'uncertain':'observed',attempted:1})]);
+   await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1',['source-backtest-test-2026-10-02-01',JSON.stringify({status:results.at(-1)?.status==='failed'?'uncertain':'observed',attempted:1})]);
   }
  }
  if(section==='Asian Odds'){
-  for(const label of ['Live','Non iniziate','Tutte'])await probe('Filtro '+label,()=>clickObserved(page,label));
+  for(const label of ['Live','Non iniziate','Tutte'])await probe('Filtro '+label,()=>page.getByRole('button',{name:label,exact:true}).last().click());
   for(const [id,value] of [['aoSearchInput','Romania'],['aoTeamSearchInput','Unirea']]){
    await probe('Ricerca '+id,()=>page.locator('#'+id).fill(value));
    await page.locator('#'+id).fill('');
@@ -157,7 +157,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-02-qa-v14';
+ const runId='source-mapping-2026-10-02-qa-v15';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -171,10 +171,11 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=['Money Management','Live','Dashboard','Backtest Storico','Asian Odds','Statistiche Lega','Ladder Dutching','Analisi'].map(section=>[section]);
+  const groups=['Live','Dashboard','Backtest Storico','Asian Odds','Statistiche Lega','Ladder Dutching','Analisi','Money Management'].map(section=>[section]);
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
-   stage='login';
+   stage='login: '+group[0];
+   await pool.query('UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1',[runId,JSON.stringify({stage,completed,failed})]);
    browser=await bounded(chromium.launch({headless:true}),45000);
 
    const context=await bounded(browser.newContext(),15000);
@@ -194,7 +195,7 @@ export async function testSourceLogin(pool){
    page=await popupPromise;
    if(group[0]!=='Money Management')await page.waitForURL(url=>url.protocol==='https:',{timeout:20000});
    await page.waitForLoadState('domcontentloaded',{timeout:20000});
-   await portal.close();
+   if(group[0]!=='Money Management')await portal.close();
    page.setDefaultTimeout(15000);
    stage='module_login';
    if(group[0]!=='Money Management'){
@@ -202,7 +203,7 @@ export async function testSourceLogin(pool){
    await page.locator('#loginPassword').fill(process.env.GOAT_PASSWORD);
    await page.locator('#loginSubmitBtn').click();
    await page.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});
-   } else {await page.waitForFunction(()=>document.body?.innerText?.trim().length>30,{},{timeout:30000});}
+   } else {await page.waitForFunction(()=>document.body?.innerText?.trim().length>30,{},{timeout:45000});await portal.close();}
    await page.waitForTimeout(8000);
    for(const section of group){
     if(completed.includes(section))continue;
