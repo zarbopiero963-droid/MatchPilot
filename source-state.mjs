@@ -1,6 +1,7 @@
 const normalized=value=>String(value??'').normalize('NFKC').replace(/\s+/gu,' ').trim();
 export function validateView(raw,{expectedTab}={}){
  const issues=[];
+ if(typeof raw?.authVisible!=='boolean'||typeof raw?.loading!=='boolean')issues.push({code:'unverified_view_state'});
  if(raw?.authVisible)issues.push({code:'authentication_required'});
  if(!normalized(raw?.text))issues.push({code:'empty_page'});
  if(raw?.loading)issues.push({code:'data_pending'});
