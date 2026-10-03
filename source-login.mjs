@@ -461,16 +461,19 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view=palinsesto]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
- if(section==='Guida'){await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-QA14Guide',JSON.stringify({text:redact(await page.locator('body').innerText()),at:new Date().toISOString()})]);return;}
- const evidence={section:'QA-14 QE boundary actual input',status:'partial',results:[],fixture:'Virtual quote input only; no order'};
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA14QE',JSON.stringify(evidence)]);
- await page.waitForTimeout(8000);await page.locator('[data-open-detail],button[data-detail]').filter({visible:true}).first().click();await page.locator('#closeDetailBtn').waitFor({state:'visible'});await page.waitForTimeout(2000);
- evidence.startedAt=new Date().toISOString();evidence.initial=redact(await page.locator('body').innerText()).slice(-8500);
- const input=page.locator('#qeBetfairInput');const original=await input.inputValue();
- const qeMatch=evidence.initial.match(/QE\s*([0-9]+[.,][0-9]+)/i);if(!qeMatch)throw new Error('Displayed QE not independently found');const qe=Number(qeMatch[1].replace(',','.'));evidence.displayedQE=qe;try{for(const value of [(qe*.9).toFixed(2),qe.toFixed(2),(qe*1.1).toFixed(2)]){await input.fill(value);await page.waitForTimeout(700);evidence.results.push({value,text:redact(await page.locator('body').innerText()).slice(-5000)});await save();}}
- finally{await input.fill(original);evidence.restored=await input.inputValue()===original;await save();}
- evidence.endedAt=new Date().toISOString();evidence.reason='Compare displayed QE and response against source Guide; contradictory instructions keep QA14 open.';await save();
+ const evidence={section:'QA-15 Ladder independent payoff',status:'partial',results:[],fixture:'QA virtual calculation; no order sent'};
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA15',JSON.stringify(evidence)]);
+ evidence.startedAt=new Date().toISOString();evidence.initialText=redact(await page.locator('body').innerText()).slice(-12000);
+ evidence.inputs=await page.locator('input').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.id,type:e.type,min:e.min,max:e.max,step:e.step,value:e.value})));
+ await save();const rows=[page.locator('tr').filter({hasText:'⚽ 0-0'}).first(),page.locator('tr').filter({hasText:'⚽ 0-1'}).first()];
+ for(const test of [{name:'Single quote5 fee0',fee:'0',quotes:['5']},{name:'Single quote5 fee5',fee:'5',quotes:['5']},{name:'Multiple quote5/6 fee5',fee:'5',quotes:['5','6']},{name:'Boundary quote1 fee5',fee:'5',quotes:['1']}]){
+  await page.locator('#dutchResetBtn').click();
+  await page.locator('#dutchProfitInput').fill('10');await page.locator('#dutchCommInput').fill(test.fee);
+  for(let i=0;i<test.quotes.length;i++){await rows[i].locator('input[type="number"]').fill(test.quotes[i]);const checkbox=rows[i].locator('input[type="checkbox"]');if(await checkbox.isEnabled())await checkbox.check();}
+  await page.waitForTimeout(1000);
+  evidence.results.push({...test,target:10,rows:await page.locator('tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({text:e.innerText,inputs:[...e.querySelectorAll('input')].map(i=>({type:i.type,value:i.value,checked:i.checked}))}))),text:redact(await page.locator('body').innerText()).slice(-14000)});await save();
+ }
+ await page.locator('#dutchResetBtn').click();evidence.endedAt=new Date().toISOString();evidence.resetInputs=await page.locator('input').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.id,type:e.type,value:e.value,checked:e.checked})));evidence.cleaned=true;evidence.reason='Independent net/gross payoff must be reconciled with the source labels; contradictions keep QA15 open.';await save();
 }
 async function clickObserved(page,label) {
  const text=label.replace(/\s+/g,' ').trim();
@@ -483,7 +486,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa14-v86';
+ const runId='source-mapping-2026-10-03-issue2-qa15-v87';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -498,7 +501,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Palinsesto','Guida','Dashboard']];
+  const groups=[['Ladder Dutching']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
@@ -597,5 +600,4 @@ export async function testSourceLogin(pool){
   console.log('SOURCE_MAP_BATCH_DONE '+JSON.stringify(result));
  }
 }
-
 
