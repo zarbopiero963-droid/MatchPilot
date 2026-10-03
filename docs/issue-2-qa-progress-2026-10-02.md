@@ -395,3 +395,24 @@ Rimangono incroci completi campionato/minuto/statistiche/score/HT, favoriti/favo
 Prova Neon: `source-mapping-2026-10-03-issue2-qa07-v91-attempt-1791018650370-k08xtthe64-QA07`.
 Commit `88613cccd325dd6399e05445305c399728de2fca`, sintassi verificata prima del push.
 QA-07 senza spunta; non dichiarato sospeso dall'owner, ma bloccato nella verifica con dati presenti. Issue non chiudibile. Mi fermo prima di persistenza/reset/QE; ordinamenti Live ancora in attesa della segnalazione owner.
+
+
+### QA-08 — Persistenza: secondo contesto riuscito, comportamento osservato v92
+Solo QA-08, 03/10/2026 11:17:05–11:18:44 Europe/Rome; run concluso 09:18:46 UTC, failed=[].
+
+Fixture propria: “QA08 v92”, filtro gol casa=1; elenco iniziale A vuoto verificato.
+1. Salvataggio in A: riuscito.
+2. Ricaricamento A: strategia ancora visibile.
+3. Modifica gol casa a 2 e clic sulla strategia: ripristina 1.
+4. Secondo contesto browser **indipendente**, accesso reale completo con lo stesso account: strategia **non visibile**.
+5. Eliminazione della sola strategia QA in A: riuscita.
+6. Ricaricamento di entrambi: strategia assente in A e B, cleanA=true e cleanB=true.
+
+**Conclusione certificabile nel perimetro provato:** persistenza nel contesto A attraverso reload e richiamo; assenza di condivisione osservata nel contesto B nello stesso intervallo, poi pulizia verificata in entrambi. Non è una certificazione della sincronizzazione tra dispositivi, né prova definitiva del meccanismo interno (localStorage/server). Non provati dispositivi fisici o l'elenco strategie Backtest. Il precedente blocco di accesso B v79 è superato per questa nuova sessione; i vecchi errori restano registrati.
+Valutazione: 4/5 per salvataggio locale osservato; nessuna sincronizzazione account dimostrata. Questo risolve l'incertezza sull'esito del secondo contesto nel perimetro della prova, senza promuovere il requisito a sincronizzazione universale.
+
+Prova Neon: `source-mapping-2026-10-03-issue2-qa08-v92-attempt-1791018987818-cxws3e0ko5-QA08`.
+Commit `42961c60030a0c676759f9ca41ff511d90427fd4`, node --check passato prima del push.
+Nessuna checkbox modificata; QA08 già aveva prove nel suo perimetro precedente. Issue resta aperta.
+
+Programmata una ripresa una tantum del **solo QA06 ordinamenti Live** oggi alle **14:05 Europe/Rome**, come richiesto. Il task deve registrare l'esito reale o l'impossibilità di eseguire, non presumere che le partite o gli strumenti siano disponibili. Filtri restano per un turno separato. Mi fermo: reset giornaliero e QE non avviati.
