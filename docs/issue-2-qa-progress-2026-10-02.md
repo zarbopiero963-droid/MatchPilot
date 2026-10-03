@@ -470,3 +470,15 @@ L'owner dichiara che non interessano e rimuove dai requisiti di chiusura:
 - QA15: Ladder Dutching.
 Questi residui sono **ESCLUSI DAL PERIMETRO**, non più soltanto sospesi. Non devono bloccare la chiusura della issue nel perimetro concordato e non devono essere ripresi senza nuova richiesta. Le prove, anomalie e limitazioni storiche restano conservate: escluso non significa certificato o corretto.
 Restano attivi QA06 ordinamenti Live, QA07 filtri combinati, QA14 Gol+/Gol++ e contraddizione QE; rimangono i chiarimenti H2H e reset giornaliero. Collaudo Live programmato alle 16:15 Europe/Rome. La dichiarazione finale “chiudibile” dovrà riferirsi esplicitamente a questo perimetro e alle evidenze effettive; la chiusura resta all'owner.
+
+
+### Asian Odds — difetto layout riprodotto su sito reale, 03/10/2026 12:27 Europe/Rome
+Verifica specifica richiesta dall'owner, distinta dai QA mobile/Live esclusi. Accesso reale e clic Asian Odds, due viewport 1440×900 e 393×852; lettura DOM/CSS e screenshot conservati, nessuna modifica alla fonte. v95 prima osservazione; v96 misure sui div effettivi e gesti scroll nativi (non sono tabelle HTML).
+Caso Stockholm Inter–Assyriska (231 partite Asian Odds disponibili).
+- Desktop: riquadro 1X2 clientWidth335, scrollWidth394; riga clientWidth307, scrollWidth380. La cella Trasferta termina x730,70 oltre bordo riquadro x672,66 e invade l'area orizzontale del pannello Handicap adiacente. Visivamente testo/quote destra parzialmente coperti o fuori riquadro; non provata sovrapposizione di due testi nella stessa cella.
+- Telefono emulato 393px: riquadro 1X2 clientWidth283, scrollWidth394; cella Trasferta x355,47–448,70, oltre viewport393. MAIN width393, scrollWidth466, overflow-x:hidden. Colonne destra tagliate. Anche Handicap ha contenuto eccedente.
+- Gesto reale wheel orizzontale 1500 sopra il primo riquadro: scrollLeft resta0 nei riquadri e MAIN, screenshot invariato. I div mercati hanno overflow-x:visible; non osservato recupero delle quote mediante questo gesto. Nessuna prova swipe fisico o pinch-zoom.
+- Scroll verticale reale sul mobile porta le righe in vista; intestazione occupa215px e footer62px, restringendo area utile.
+Esito: difetto di impaginazione/ridimensionamento e clipping riprodotto anche a larghezza desktop, non solo testo piccolo nello screenshot. Dati presenti nel DOM, ma questo non certifica correttezza numerica delle quote. Valutazione leggibilità2/5. Icone/immagini bloccate dal harness non considerate difetti della fonte.
+Commit v96 1e6d9f044310095982684a77823977e3725c9830, node --check positivo. Run source-mapping-2026-10-03-asian-layout-v96 concluso10:27:51UTC failed=[]; snapshot source-mapping-2026-10-03-asian-layout-v96-attempt-1791023227528-zzmj7s8q2cd-AsianLayout.
+Da segnalare al supporto: riquadri con colonne Apertura/Attuale troppo larghe rispetto allo spazio, Trasferta fuori bordo/copribile dal pannello vicino e quote destra tagliate su telefono; richiesta adattamento colonne o scroll orizzontale accessibile. Non riattivati tutti i punti mobile esclusi.
