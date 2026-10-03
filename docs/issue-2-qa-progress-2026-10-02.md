@@ -416,3 +416,24 @@ Commit `42961c60030a0c676759f9ca41ff511d90427fd4`, node --check passato prima de
 Nessuna checkbox modificata; QA08 già aveva prove nel suo perimetro precedente. Issue resta aperta.
 
 Programmata una ripresa una tantum del **solo QA06 ordinamenti Live** oggi alle **14:05 Europe/Rome**, come richiesto. Il task deve registrare l'esito reale o l'impossibilità di eseguire, non presumere che le partite o gli strumenti siano disponibili. Filtri restano per un turno separato. Mi fermo: reset giornaliero e QE non avviati.
+
+
+### QA-09 — Reset giornaliero: audit reale v93 senza altre esecuzioni
+Solo QA09, 03/10/2026 alle 11:21:59 e 11:22:10 Europe/Rome. Aperte realmente Backtest Storico e Guida; nessun clic Esegui backtest, nessuna quota consumata. Run concluso 09:22:10 UTC con failed=[].
+
+Nelle due viste lette non è esposta un'ora del reset o un fuso. Il pannello iniziale non espone il contatore residuo prima dell'esecuzione; quindi non è stato possibile leggere un nuovo saldo senza consumare quota.
+
+Riconciliate le prove già conservate:
+- Rifiuto per limite 5: 02/10 22:39:33 UTC = **03/10 00:39:33 Europe/Rome** (timestamp di registrazione finale, non istante del reset).
+- Backtest accettato v80: 03/10 circa 06:51–06:52 UTC = **08:51–08:52 Europe/Rome**, risultato e “4 backtest rimasti oggi”.
+- Successivo v84: risultato prodotto e “3 backtest rimasti oggi”, circa 09:58 Europe/Rome; il successivo errore del selettore equity non annulla il backtest riuscito.
+
+**Conclusione:** limite e nuova disponibilità sono provati; ora esatta, fuso e giorno calendario vs finestra mobile **non certificati**. Non dedurre “reset a mezzanotte Roma” o “reset a mezzanotte UTC” dalla sola differenza fra le prove. Più tentativi adesso, lontano dal confine e con disponibilità, consumerebbero quota senza risolvere il requisito.
+
+Per chiudere questo residuo occorre dichiarazione del supporto sulla regola applicata, oppure osservazioni attorno al confine corretto con contatore disponibile. Non programmata saturazione del limite né consumo automatico notturno. Domanda suggerita al supporto: “Il limite di 5 backtest si azzera a quale ora e in quale fuso? Segue il giorno di calendario o le ultime 24 ore?”
+
+Prove v93:
+`source-mapping-2026-10-03-issue2-qa09-v93-attempt-1791019299453-3u8w1xirhzb-QA09-Backtest Storico`
+`source-mapping-2026-10-03-issue2-qa09-v93-attempt-1791019299453-3u8w1xirhzb-QA09-Guida`.
+Commit `ac1c12ed2a8871de32fa97f2be57310b4d286d20`, controllo sintassi passato.
+Valutazione chiarezza della regola reset: 2/5 (limite comunicato solo al rifiuto, orario/fuso non osservati). QA09 resta senza spunta; issue non chiudibile. Mi fermo prima del punto QE/Gol++.
