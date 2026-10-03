@@ -464,47 +464,47 @@ async function testMarkedControls(page,pool,runId,section){
  if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
 
 
- const evidence={section:'QA07 corrected league HT retry v103b',startedAt:new Date().toISOString(),results:[]};
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data,captured_at=now()',[runId+'-QA07-extension',JSON.stringify(evidence)]);
- await page.waitForTimeout(15000);await page.locator('[data-live-view="card"]').click();await page.waitForTimeout(2000);
- evidence.cards=await page.locator('[data-live-fav]').filter({visible:true}).evaluateAll(es=>es.map(e=>{const parents=[];let p=e;for(let i=0;i<7&&p;i++,p=p.parentElement)parents.push(p);const root=parents.find(n=>/card/i.test(n.className))||parents[5];return {id:e.getAttribute('data-live-fav'),text:root?.innerText,html:root?.outerHTML,ancestors:parents.map(n=>n.className),ht:[...root?.querySelectorAll('[class*="ht"],[class*="half"]')||[]].map(n=>({class:n.className,text:n.innerText,title:n.title}))};}));
- await save();await page.locator('[data-live-view="table"]').click();await page.waitForTimeout(1000);
+ const evidence={section:'QA14 real Gol detail v104',startedAt:new Date().toISOString(),cases:[]};
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data,captured_at=now()',[runId+'-QA14',JSON.stringify(evidence)]);
+ await page.waitForTimeout(20000);await page.locator('[data-live-view="table"]').filter({visible:true}).click();await page.waitForTimeout(1500);
+ const rows=()=>page.locator('tbody tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.querySelector('[data-live-goaldetail-modal]')?.getAttribute('data-live-goaldetail-modal'),html:e.outerHTML,text:e.innerText,cells:[...e.querySelectorAll('td')].map(c=>({text:c.innerText,title:c.title,parts:[...c.querySelectorAll('*')].filter(n=>!n.children.length).map(n=>n.innerText)}))})));
+ const controls=()=>page.locator('button').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.id,text:e.innerText,title:e.title,html:e.outerHTML})));
+ if(!await page.locator('#lav-golcasa').isVisible())await page.locator('[data-live-advtoggle]').click();evidence.initialRows=await rows();evidence.thresholdProbes=[];await save();
+ for(const row of evidence.initialRows){
+  const b=page.locator('[data-live-goaldetail-modal="'+row.id+'"]').filter({visible:true});
+  if(!await b.count()){evidence.cases.push({id:row.id,status:'blocked',reason:'Real row no longer visible'});await save();continue;}
+  const item={id:row.id,row:(await rows()).find(x=>x.id===row.id),at:new Date().toISOString()};
+  try{
+   const before=await controls();await b.click();await page.waitForTimeout(2500);
+   item.text=redact(await page.locator('body').innerText());
+   item.controls=await controls();
+   item.panels=await page.locator('[role="dialog"],dialog,[class*="modal"],[id*="Modal"],[id*="modal"]').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.id,class:e.className,text:e.innerText,html:e.outerHTML,scrollHeight:e.scrollHeight,clientHeight:e.clientHeight,scrollTop:e.scrollTop})));
+   for(const p of item.panels){p.text=redact(p.text);p.html=redact(p.html);}
+   item.newControls=item.controls.filter(c=>!before.some(x=>x.html===c.html));
+   item.status='observed';evidence.cases.push(item);await save();
+   const close=item.newControls.filter(c=>/^(?:[✕×Xx]\s*)?(?:Chiudi|Close)?\s*[✕×]?$/i.test((c.text||c.title).trim())&&(c.text||c.title).trim());
+   if(close.length===1){const c=close[0];if(c.id)await page.locator('#'+c.id).click();else if(c.title&&!c.text)await page.getByTitle(c.title,{exact:true}).filter({visible:true}).click();else await page.getByRole('button',{name:c.text.trim(),exact:true}).filter({visible:true}).click();}
+   else await page.keyboard.press('Escape');
+   await page.waitForTimeout(300);item.afterClose=await controls();item.closeCandidates=close;
+   item.closed=await page.locator('[data-live-goaldetail-modal="'+row.id+'"]').filter({visible:true}).isVisible()&&!(await page.locator('[role="dialog"],dialog,[class*="modal"],[id*="Modal"],[id*="modal"]').filter({visible:true}).count());
+   await save();
+   if(item.closed){
+    for(const [key,idx] of [['gol1',5],['gol2',6]]){
+     const before=await rows(),current=before.find(x=>x.id===row.id),p=parseFloat(current?.cells[idx]?.text);
+     if(!(p>0&&p<100&&p%5===0))continue;
+     const input=page.locator('#lav-'+key+'-min');await input.press('Home');for(let i=0;i<p/5;i++)await input.press('ArrowRight');await page.waitForTimeout(300);
+     const after=await rows();evidence.thresholdProbes.push({at:new Date().toISOString(),id:row.id,key,threshold:p,before,after,selectedIncluded:after.some(r=>r.id===row.id)});await save();await page.getByText('↺ Azzera filtri',{exact:true}).click();await page.waitForTimeout(200);
+    }
+   }
+   await save();if(!item.closed){item.status='blocked_cleanup';await save();break;}
+  }catch(e){item.status='failed';item.error=redact(e.message).slice(0,1000);if(!evidence.cases.includes(item))evidence.cases.push(item);await save();break;}
+ }
+ evidence.finalRows=await rows();
  if(!await page.locator('#lav-golcasa').isVisible())await page.locator('[data-live-advtoggle]').click();
- const rows=()=>page.locator('tbody tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.querySelector('[data-live-fav]')?.getAttribute('data-live-fav'),team:e.querySelector('td')?.innerText,league:e.querySelector('.lt-league')?.innerText,html:e.outerHTML,cells:[...e.querySelectorAll('td')].map(c=>({text:c.innerText,parts:[...c.querySelectorAll('*')].filter(n=>!n.children.length).map(n=>n.innerText)}))})));
- const controls=()=>page.locator('[data-live-lg],[data-live-scoreopt],[data-live-toggle],input[id^="lav-"],[data-live-tmmin],[data-live-tmmax]').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.id,text:e.innerText,value:e.value,class:e.className,attrs:[...e.attributes].filter(a=>a.name.startsWith('data-')).map(a=>[a.name,a.value])})));
- async function closeMenus(){for(const s of ['[data-live-scclose]','[data-live-tmclose]'])if(await page.locator(s).isVisible())await page.locator(s).click();if(await page.locator('[data-live-lgall]').isVisible())await page.locator('[data-live-lgtoggle]').click();}
- async function allReset(){await closeMenus();for(const key of ['hot','presMedia','presBassa','fav','ht1','ht2','favLosing']){const t=page.locator('[data-live-toggle="'+key+'"]');if((await t.getAttribute('class')).split(' ').includes('on'))await t.click();}await page.getByText('↺ Azzera filtri',{exact:true}).click();await page.locator('[data-live-lgtoggle]').click();await page.locator('[data-live-lgall]').click();if(await page.locator('[data-live-lgall]').isVisible())await page.locator('[data-live-lgtoggle]').click();await page.locator('[data-live-sctoggle]').click();await page.locator('[data-live-scclear]').click();if(await page.locator('[data-live-scclose]').isVisible())await page.locator('[data-live-scclose]').click();await page.locator('[data-live-tmtoggle]').click();await page.locator('[data-live-tmreset]').click();if(await page.locator('[data-live-tmclose]').isVisible())await page.locator('[data-live-tmclose]').click();await page.waitForTimeout(250);}
- const num=(r,i)=>parseFloat(r.cells[i]?.text),g=r=>r.cells[2].text.trim().split('-').map(Number),sum=(r,i)=>r.cells[i].parts.map(parseFloat).reduce((a,b)=>a+b,0);
- async function league(l){if(!await page.locator('[data-live-lg]').first().isVisible())await page.locator('[data-live-lgtoggle]').click();const observed=await page.locator('[data-live-lg]').evaluateAll(es=>es.map(e=>e.getAttribute('data-live-lg')));const target=observed.find(x=>x.toLowerCase()===l.toLowerCase());if(!target)throw new Error('Observed league option absent');await page.locator('[data-live-lg="'+target+'"]').click();if(await page.locator('[data-live-lgall]').isVisible())await page.locator('[data-live-lgtoggle]').click();}
- async function score(s){if(!await page.locator('[data-live-scoreopt]').first().isVisible())await page.locator('[data-live-sctoggle]').click();await page.locator('[data-live-scoreopt="'+s+'"]').click();}
- async function range(selector,n){const b=page.locator(selector);await b.press('Home');const mn=Number(await b.getAttribute('min')),step=Number(await b.getAttribute('step'));for(let i=0;i<Math.round((n-mn)/step);i++)await b.press('ArrowRight');}
- async function time(min,max){await page.locator('[data-live-tmtoggle]').click();await range('[data-live-tmmax]',max);await range('[data-live-tmmin]',min);await page.locator('[data-live-tmclose]').click();}
- async function record(name,action,oracle){await allReset();const before=await rows();try{await action();await closeMenus();await page.waitForTimeout(300);const after=await rows();const expected=oracle?before.filter(oracle).map(r=>r.id).sort():null,actual=after.map(r=>r.id).sort();evidence.results.push({name,at:new Date().toISOString(),before,after,expected,controls:await controls(),status:expected&&before.length?(JSON.stringify(expected)===JSON.stringify(actual)?'passed':'failed'):'observed_without_membership_proof'});}catch(e){evidence.results.push({name,status:'blocked',error:redact(e.message).slice(0,1000)});}await save();}
- await allReset();evidence.initialRows=await rows();evidence.initialControls=await controls();await save();
- const leagues=[...new Set(evidence.initialRows.map(r=>r.league))];
- for(const l of leagues)await record('League '+l,()=>league(l),r=>r.league===l);
- if(leagues.length>1)await record('League multi OR',async()=>{await league(leagues[0]);await league(leagues[1]);},r=>leagues.slice(0,2).includes(r.league));
- await page.locator('[data-live-sctoggle]').click();const opts=await page.locator('[data-live-scoreopt]').evaluateAll(es=>es.map(e=>e.getAttribute('data-live-scoreopt')));evidence.scoreOptions=opts;await page.locator('[data-live-scclose]').click();
- const scoreOracle=s=>r=>s==='home'?g(r)[0]>g(r)[1]:s==='away'?g(r)[1]>g(r)[0]:s==='draw'?g(r)[0]===g(r)[1]:g(r).join('-')===s;
- evidence.scoreOptions=opts; // Scores already tested v103; no redundant replay.
- await record('Scores multi0-0 OR1-1',async()=>{await score('0-0');await score('1-1');},r=>['0-0','1-1'].includes(g(r).join('-')));
- await record('Scores Select All',async()=>{await page.locator('[data-live-sctoggle]').click();await page.locator('[data-live-scselall]').click();},()=>true);
- await record('Scores Clear after0-0',async()=>{await score('0-0');await page.locator('[data-live-scclear]').click();},()=>true);
- await record('Time0-30',()=>time(0,30),r=>num(r,1)<=30);
- await record('Time30-120',()=>time(30,120),r=>num(r,1)>=30);
- const l=leagues.find(x=>/England/i.test(x))||leagues[0];
- await record('League+Time+score+shots',async()=>{await league(l);await time(0,45);await score('0-0');await closeMenus();await range('#lav-tirit-min',4);},r=>r.league===l&&num(r,1)<=45&&g(r).every(x=>x===0)&&sum(r,14)>=4);
- await record('Advanced minute mirrors Time menu',async()=>{await range('#lav-minuto-min',30);await page.locator('[data-live-tmtoggle]').click();evidence.timeMirroring=await page.locator('[data-live-tmmin],[data-live-tmmax]').evaluateAll(es=>es.map(e=>({value:e.value,html:e.outerHTML})));},r=>num(r,1)>=30);
-
- const htMap=new Map(evidence.cards.map(c=>{const goals=[...c.html.matchAll(/title="Gol (casa|ospite) · (\d+)'"/g)];const h=goals.filter(g=>g[1]==='casa'&&Number(g[2])<=45).length,a=goals.filter(g=>g[1]==='ospite'&&Number(g[2])<=45).length;return[c.id,h+'-'+a];}));
- evidence.htCoverage=evidence.cards.map(c=>{const events=[...c.html.matchAll(/title="Gol (casa|ospite) · (\d+)'"/g)];const score=c.html.match(/<div class="lc-score">(\d+) <em>:<\/em> (\d+)<\/div>/);return {id:c.id,eventCount:events.length,displayedGoals:score?Number(score[1])+Number(score[2]):null};});
- evidence.htOracle={map:[...htMap],basis:'Visible card minute-event tooltip goals at or before45; only finished first halves (second half toggle), xG projected score ignored'};
- const second=evidence.initialRows.filter(r=>num(r,1)>45&&evidence.htCoverage.some(c=>c.id===r.id&&c.eventCount===c.displayedGoals)),hts=[...new Set(second.map(r=>htMap.get(r.id)))].filter(h=>/^[0-3]-[0-3]$/.test(h));
- for(const h of hts)await record('HT second half '+h,async()=>{await page.locator('[data-live-toggle="ht2"]').click();await page.locator('[data-live-advht="'+h+'"]').click();},r=>num(r,1)>45&&htMap.get(r.id)===h);
- if(hts.length>=2)await record('HT multiple distinct finished halves',async()=>{await page.locator('[data-live-toggle="ht2"]').click();for(const h of hts.slice(0,2))await page.locator('[data-live-advht="'+h+'"]').click();},r=>num(r,1)>45&&hts.slice(0,2).includes(htMap.get(r.id)));
- else evidence.htBlocker='Insufficient distinct HT scores on current second-half real matches';
- await record('Reset advanced button clears combined filters',async()=>{await league(l);await time(30,120);await score('1-1');await closeMenus();await range('#lav-corner-min',3);await page.getByText('↺ Azzera filtri',{exact:true}).click();},()=>true);
- await allReset();evidence.finalRows=await rows();evidence.finalControls=await controls();evidence.endedAt=new Date().toISOString();await save();
+ evidence.filterText=redact(await page.locator('body').innerText());
+ await clickObserved(page,'Guida');await page.waitForTimeout(2000);evidence.guideText=redact(await page.locator('body').innerText());await save();
+ await clickObserved(page,'Live');await page.waitForTimeout(1000);
+ evidence.endedAt=new Date().toISOString();evidence.status=evidence.initialRows.length?'observed':'blocked';await save();
 }
 
 async function clickObserved(page,label) {
@@ -518,7 +518,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-live-filter-retry-v103b';
+ const runId='source-mapping-2026-10-03-live-goal-detail-v104';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
