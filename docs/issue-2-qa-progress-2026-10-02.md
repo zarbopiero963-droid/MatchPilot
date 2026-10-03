@@ -241,3 +241,19 @@ Tutti i24contenitori principali raggiungono il fondo misurato, inclusi gli stati
 Live oggi senza dettagli popolati: `detailUnavailable:No populated detail button rendered` in entrambe le viste. Non certifica il dettaglio Live portrait popolato. Layout screenshot Dashboard portrait presenta il risultato consigliato spezzato su più righe: osservazione di leggibilità, non giudizio di correttezza dei dati. Restano inoltre gesti/controlli interni non campionati, scorrimenti dei contenitori secondari (es.tabella larga), zoom e tutte le repliche.
 
 **Esito PARTIAL**: scroll principale/menu/orientamenti e modale Dashboard verificati, limite orizzontale Live e rami residui ancora aperti. QA-10 non spuntata. Nessun backtest/salvataggio/esito/ordine eseguito. Annotato; mi fermo in attesa della conferma owner.
+
+
+### QA-11 — Audio: test reale v82, esito PARZIALE
+Eseguito solo questo punto, il 03/10/2026 dalle 09:09:42 alle 09:10:08 Europe/Rome (07:09:42–07:10:08 UTC). Run concluso senza errori del processo alle 07:10:18 UTC.
+
+- Clic reale audio: classe iniziale `ltb-btn` → `ltb-btn on` → stato iniziale ripristinato.
+- Selezionati realmente entrambi i suoni: `classic` (Classico) e `ohyes` (Oh Yesss!), poi ripristinato il valore iniziale.
+- Tre risposte HTTP 200 audio/mpeg. Osservazione passiva degli eventi Media del browser: caricamenti di goal.mp3 e goal-ohyes.mp3, decoder MP3 e tracce stereo, eventi kPlay e pipeline kPlaying. Nessun playerErrorsRaised ricevuto.
+- Sono presenti anche kPause e seek immediatamente dopo kPlay: il solo stato della pipeline non certifica durata di ascolto o suono udibile. Elementi audio/video nel DOM assenti; eventi WebAudio assenti.
+- **Non certificati:** ascolto udibile su dispositivo reale, notifica conseguente a un gol reale e assenza di notifiche quando audio disattivato. Nessun gol simulato né chiamata diretta a play o funzioni interne.
+- Valutazione del flusso osservato: 3/5, provati controlli e avvio del lettore, copertura incompleta dell'effetto audio.
+
+Prova grezza Neon: `source-mapping-2026-10-03-issue2-qa11-v82-attempt-1791011349809-mooqshwc71e-QA11`.
+Codice del test: commit `ae35801703c2a4b8627a0293ef0633efcad869e1`; node --check passato. “Run complete” indica conclusione del processo, non certificazione completa.
+
+QA-11 resta senza spunta. La issue non è ancora chiudibile. Mi fermo qui: QA-12 non avviato.
