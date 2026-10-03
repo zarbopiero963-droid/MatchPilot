@@ -461,8 +461,8 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- if(section==='Palinsesto'){
- if(section==='Guida'){await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-QA14Guide',JSON.stringify({section:'QA14 source guide',text:redact(await page.locator('body').innerText()),at:new Date().toISOString()})]);return;}
+ if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view=palinsesto]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
+ if(section==='Guida'){await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-QA14Guide',JSON.stringify({text:redact(await page.locator('body').innerText()),at:new Date().toISOString()})]);return;}
  const evidence={section:'QA-14 QE boundary actual input',status:'partial',results:[],fixture:'Virtual quote input only; no order'};
  const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA14QE',JSON.stringify(evidence)]);
  await page.waitForTimeout(8000);await page.locator('[data-open-detail],button[data-detail]').filter({visible:true}).first().click();await page.locator('#closeDetailBtn').waitFor({state:'visible'});await page.waitForTimeout(2000);
@@ -483,7 +483,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa14-v85';
+ const runId='source-mapping-2026-10-03-issue2-qa14-v86';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
