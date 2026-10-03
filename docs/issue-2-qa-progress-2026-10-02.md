@@ -300,3 +300,23 @@ Run `source-mapping-2026-10-03-issue2-qa14-v86`, concluso alle 08:03:46 UTC con 
 Prova Guida: `source-mapping-2026-10-03-issue2-qa14-v86-attempt-1791014543919-qyzx59jv74-QA14Guide`.
 Commit valido del test: `3d1099aecf2179baa38b58284dd495a7dafd62f5`.
 Valutazione coerenza QE sulla base delle prove conservate: 2/5, contraddizione irrisolta. QA-14 resta senza spunta; issue non chiudibile. QA-15 non avviato. Attendo conferma dell'owner.
+
+
+### QA-15 — Ladder Dutching: ripetizione reale v87, NON CERTIFICATO per incongruenze riprodotte
+Solo QA-15 il 03/10/2026, 10:07:18–10:07:35 Europe/Rome. Quattro casi completati senza errori del processo, con input virtuali e nessun ordine.
+
+| Caso, obiettivo 10 € | Risultato osservato | Verifica |
+|---|---|---|
+| Quota 5, commissione 0% | Puntata 10; vincita +10; perdita −40 | Coerente: 10 × (5−1)=40 |
+| Quota 5, commissione 5% | Puntata 10; vincita +9,50; perdita −40 | Contraddice il testo che promette 10 € netti; 10 × 0,95=9,50. Per 10 netti occorre prima degli arrotondamenti 10/0,95=10,526315… |
+| Quote 5 e 6, commissione 5% | Puntate 5,45 e 4,55; fuori dai due esiti +9,50; netto mostrato sugli esiti −17,50 e −17,55 | Dai valori visualizzati il saldo lordo è 4,55−5,45×4=−17,25 e 5,45−4,55×5=−17,30. Il netto mostrato è compatibile con una commissione sulla singola puntata vincente: chiarire convenzione e arrotondamenti; non certificato |
+| Input quota 1, commissione 5% | Normalizzata a 1,01; perdita −0,10; vincita +9,50 | Limite normalizzato osservato; responsabilità 10×0,01 corretta |
+
+**Reset reale verificato:** AZZERA QUOTE premuto; tutti i 19 checkbox deselezionati, quote a 1,01. Obiettivo 10 e commissione 5 restano impostati: il reset delle quote non azzera questi parametri. Non è un ripristino globale.
+
+Restano da risolvere il dimensionamento rispetto al profitto netto promesso e la convenzione della commissione/arrotondamento con più selezioni. Difetti riprodotti nella fonte; nessuna modifica al software proprietario eseguita. Valutazione calcoli e chiarezza: 2/5.
+
+Prova Neon: `source-mapping-2026-10-03-issue2-qa15-v87-attempt-1791014820716-445jq3zvj4q-QA15`.
+Commit `4018cdee06705243fd9bb9158d9c31c554da51d4`; node --check passato; run concluso 08:07:35 UTC con failed=[] (non significa che i calcoli siano certificati).
+
+QA-15 resta senza spunta. La issue #2 non è ancora chiudibile: aver affrontato tutti i punti non significa averli completati. Mi fermo qui, nessun altro QA avviato.
