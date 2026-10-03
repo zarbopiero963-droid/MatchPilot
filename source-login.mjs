@@ -462,6 +462,8 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
+ if(section==='Statistiche Lega'){await page.waitForTimeout(6000);return;}
+ await page.waitForFunction(()=>[...document.querySelectorAll('input[type="checkbox"]')].some(e=>e.getClientRects().length),null,{timeout:60000});
  await page.waitForTimeout(3000);
  const data=await page.evaluate(()=>({text:document.body.innerText,checkboxes:[...document.querySelectorAll('input[type="checkbox"]')].filter(e=>e.getClientRects().length).map(e=>({id:e.id,value:e.value,attrs:[...e.attributes].map(a=>[a.name,a.value]),parent:e.parentElement.outerHTML,text:e.parentElement.innerText})),scrollContainers:[...document.querySelectorAll('*')].filter(e=>e.getClientRects().length&&e.scrollHeight>e.clientHeight+20&&['auto','scroll'].includes(getComputedStyle(e).overflowY)).map(e=>({id:e.id,className:e.className,text:e.innerText,html:e.outerHTML}))}));
  if(!data.checkboxes.length)throw Error('Populated league checkbox list missing');
@@ -480,7 +482,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-backtest-catalogue-2026-10-03-v114';
+ const runId='source-backtest-catalogue-2026-10-03-v115';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -495,7 +497,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Backtest Storico']];
+  const groups=[['Statistiche Lega','Backtest Storico']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
