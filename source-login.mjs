@@ -464,14 +464,14 @@ async function testMarkedControls(page,pool,runId,section){
  if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
 
 
- const evidence={section:'QA14 real Gol detail v104',startedAt:new Date().toISOString(),cases:[]};
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data,captured_at=now()',[runId+'-QA14',JSON.stringify(evidence)]);
+ const evidence={section:'QA14 exact score independent histogram v105',startedAt:new Date().toISOString(),cases:[]};
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data,captured_at=now()',[runId+'-QA14-CS',JSON.stringify(evidence)]);
  await page.waitForTimeout(20000);await page.locator('[data-live-view="table"]').filter({visible:true}).click();await page.waitForTimeout(1500);
- const rows=()=>page.locator('tbody tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.querySelector('[data-live-goaldetail-modal]')?.getAttribute('data-live-goaldetail-modal'),html:e.outerHTML,text:e.innerText,cells:[...e.querySelectorAll('td')].map(c=>({text:c.innerText,title:c.title,parts:[...c.querySelectorAll('*')].filter(n=>!n.children.length).map(n=>n.innerText)}))})));
+ const rows=()=>page.locator('tbody tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.querySelector('[data-live-csdetail-modal]')?.getAttribute('data-live-csdetail-modal'),html:e.outerHTML,text:e.innerText,cells:[...e.querySelectorAll('td')].map(c=>({text:c.innerText,title:c.title,parts:[...c.querySelectorAll('*')].filter(n=>!n.children.length).map(n=>n.innerText)}))})));
  const controls=()=>page.locator('button').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.id,text:e.innerText,title:e.title,html:e.outerHTML})));
  if(!await page.locator('#lav-golcasa').isVisible())await page.locator('[data-live-advtoggle]').click();evidence.initialRows=await rows();evidence.thresholdProbes=[];await save();
  for(const row of evidence.initialRows){
-  const b=page.locator('[data-live-goaldetail-modal="'+row.id+'"]').filter({visible:true});
+  const b=page.locator('[data-live-csdetail-modal="'+row.id+'"]').filter({visible:true});
   if(!await b.count()){evidence.cases.push({id:row.id,status:'blocked',reason:'Real row no longer visible'});await save();continue;}
   const item={id:row.id,row:(await rows()).find(x=>x.id===row.id),at:new Date().toISOString()};
   try{
@@ -486,7 +486,7 @@ async function testMarkedControls(page,pool,runId,section){
    if(close.length===1){const c=close[0];if(c.id)await page.locator('#'+c.id).click();else if(c.title&&!c.text)await page.getByTitle(c.title,{exact:true}).filter({visible:true}).click();else await page.getByRole('button',{name:c.text.trim(),exact:true}).filter({visible:true}).click();}
    else await page.keyboard.press('Escape');
    await page.waitForTimeout(300);item.afterClose=await controls();item.closeCandidates=close;
-   item.closed=await page.locator('[data-live-goaldetail-modal="'+row.id+'"]').filter({visible:true}).isVisible()&&!(await page.locator('[role="dialog"],dialog,[class*="modal"],[id*="Modal"],[id*="modal"]').filter({visible:true}).count());
+   item.closed=await page.locator('[data-live-csdetail-modal="'+row.id+'"]').filter({visible:true}).isVisible()&&!(await page.locator('[role="dialog"],dialog,[class*="modal"],[id*="Modal"],[id*="modal"]').filter({visible:true}).count());
    await save();
    if(item.closed){
     for(const [key,idx] of [['gol1',5],['gol2',6]]){
@@ -518,7 +518,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-live-goal-detail-v104';
+ const runId='source-mapping-2026-10-03-live-exact-score-v105';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
