@@ -461,20 +461,24 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- const evidence={section:'QA-09 daily reset revisit',status:'partial',maximumExecutions:1};
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA09',JSON.stringify(evidence)]);
- evidence.beforeAt=new Date().toISOString();evidence.before=redact(await page.locator('body').innerText());
- const guard='source-backtest-test-2026-10-03-qa09-single';
- const ticket=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[guard,JSON.stringify({status:'claimed',maximumExecutions:1,reason:'QA09 daily availability after actual UTC boundary; no saturation'})]);
- if(!ticket.rowCount){evidence.status='blocked';evidence.reason='Single execution ticket already claimed; no retry';await save();return;}
- for(const [id,value] of Object.entries({btO1min:'1.5',btO1max:'2',btOXmin:'3',btOXmax:'5',btO2min:'3',btO2max:'5',btMinute:'60',btGolH:'1',btGolA:'1'}))await page.locator('#'+id).fill(value);
- evidence.clickedAt=new Date().toISOString();await page.locator('#btRunBtn').click();await page.waitForTimeout(30000);
- evidence.afterAt=new Date().toISOString();evidence.after=redact(await page.locator('body').innerText());evidence.resultProduced=await page.locator('#btStratMarket').isVisible();evidence.limitRejected=/raggiunto il limite|5 backtest al giorno.*Riprova domani/i.test(evidence.after);
- evidence.status=evidence.resultProduced?'observed':'blocked';evidence.reason='Availability interval observed; exact reset instant,counter and source-declared timezone must not be inferred';await save();
- await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1',[guard,JSON.stringify({status:evidence.resultProduced?'accepted':evidence.limitRejected?'rejected_daily_limit':'unresolved',attempted:1,resultProduced:evidence.resultProduced})]);
+ if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);}
+ const evidence={section:'QA-10 mobile revisit '+section,physicalDevice:false,touchEmulation:true,gesture:'tap navigation/details; native wheel vertical/horizontal; no physical swipe',views:[],status:'partial'};
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA10-'+section,JSON.stringify(evidence)]);
+ for(const viewport of [{width:393,height:852},{width:852,height:393}]){
+  await page.setViewportSize(viewport);await page.waitForTimeout(1500);const nav=page.getByRole('button',{name:section,exact:true});const nr=await nav.boundingBox();if(nr&&nr.x<0&&await page.locator('#mobileMenuBtn').isVisible()){await page.locator('#mobileMenuBtn').tap();await page.waitForTimeout(500);}await nav.tap();await page.waitForTimeout(2000);
+  const main=page.locator('main'),view={viewport};const read=()=>main.evaluate(e=>({top:e.scrollTop,left:e.scrollLeft,height:e.clientHeight,width:e.clientWidth,scrollHeight:e.scrollHeight,scrollWidth:e.scrollWidth,overflowX:getComputedStyle(e).overflowX}));
+  view.before=await read();const br=await main.boundingBox();await page.mouse.move(br.x+3,br.y+30);await page.mouse.wheel(0,99999);await page.waitForTimeout(800);view.vertical=await read();view.bottomPng=(await page.screenshot({timeout:15000})).toString('base64');await page.mouse.move(br.x+3,br.y+30);await page.mouse.wheel(99999,0);await page.waitForTimeout(800);view.horizontal=await read();view.rightPng=(await page.screenshot({timeout:15000})).toString('base64');await page.mouse.wheel(-99999,-99999);await page.waitForTimeout(800);
+  view.text=redact(await page.locator('body').innerText()).slice(-13000);view.fonts=await page.evaluate(()=>document.fonts.status);
+  if(section==='Dashboard'||section==='Live'){
+   const btn=page.locator(section==='Live'?'[data-live-detail]':'[data-open-detail],button[data-detail]').filter({visible:true}).first();
+   if(await btn.count()){try{await btn.scrollIntoViewIfNeeded({timeout:10000});await btn.tap({timeout:15000});await page.waitForTimeout(1500);view.detailOpened=await page.locator('#closeDetailBtn').isVisible();view.detailPng=(await page.screenshot({timeout:15000})).toString('base64');view.modalScrollables=await page.evaluate(()=>[...document.querySelectorAll('div')].filter(e=>e.getClientRects().length&&e.scrollHeight>e.clientHeight+5&&['auto','scroll'].includes(getComputedStyle(e).overflowY)).map(e=>({id:e.id,top:e.scrollTop,height:e.clientHeight,scrollHeight:e.scrollHeight})));await page.mouse.move(viewport.width/2,viewport.height*0.7);await page.mouse.wheel(0,99999);await page.waitForTimeout(700);view.modalBottomPng=(await page.screenshot({timeout:15000})).toString('base64');await page.locator('#closeDetailBtn').scrollIntoViewIfNeeded();await page.locator('#closeDetailBtn').tap();view.detailClosed=!await page.locator('#closeDetailBtn').isVisible();}catch(e){view.detailError=redact(e.message).slice(0,800);}}else view.detailUnavailable='No populated detail button rendered';
+  }
+  evidence.views.push(view);await save();
+ }
 }
 
 async function clickObserved(page,label) {
+ if(['Dashboard','Palinsesto','Live','Analisi','Lay Goleada Favorito','Backtest Storico','Asian Odds','Monitorate','Ladder Dutching','Statistiche Lega','Guida','Archivio'].includes(label)&&await page.locator('#mobileMenuBtn').isVisible()){const nav=page.getByRole('button',{name:label,exact:true});const box=await nav.boundingBox();if(box&&box.x<0){await page.locator('#mobileMenuBtn').tap();await page.waitForTimeout(500);}}
  const text=label.replace(/\s+/g,' ').trim();
  await page.waitForFunction(target=>[...document.querySelectorAll('button,[role="button"],[role="tab"],[onclick],summary')].some(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
  await bounded(page.evaluate(target=>{
@@ -485,7 +489,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa09-v80';
+ const runId='source-mapping-2026-10-03-issue2-qa10-v81';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -500,15 +504,15 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Backtest Storico']];
+  const groups=[['Palinsesto','Dashboard','Live','Analisi','Lay Goleada Favorito','Backtest Storico','Asian Odds','Monitorate','Ladder Dutching','Statistiche Lega','Guida','Archivio']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
    await pool.query('UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1',[runId,JSON.stringify({stage,completed,failed,restartCount})]);
    browser=await bounded(chromium.launch({headless:true}),45000);
 
-   const context=await bounded(browser.newContext(),15000);
-   await context.route('**/*',route=>['image','media','font'].includes(route.request().resourceType())?route.abort():route.continue());
+   const context=await bounded(browser.newContext({viewport:{width:393,height:852},isMobile:true,hasTouch:true,deviceScaleFactor:1}),15000);
+   // QA10 loads images, fonts and media for genuine visual inspection.
    const portal=await bounded(context.newPage(),15000);
    portal.setDefaultTimeout(15000);
    stage='portal_navigation';
@@ -599,4 +603,3 @@ export async function testSourceLogin(pool){
   console.log('SOURCE_MAP_BATCH_DONE '+JSON.stringify(result));
  }
 }
-
