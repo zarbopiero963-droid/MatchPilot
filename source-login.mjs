@@ -474,7 +474,12 @@ async function testMarkedControls(page,pool,runId,section){
  await page.locator('#closeDetailBtn').waitFor({state:'visible',timeout:25000});await page.waitForTimeout(2500);
  const tab=page.getByRole('button',{name:/^classifica$/i}).filter({visible:true});
  await tab.click();await page.waitForTimeout(2500);
- const data=await dom();await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2)',[runId+'-standings-'+labels.indexOf(label),JSON.stringify({section:'Standings discovery v109',match:target,leagueLabel:label,interactive:await page.locator('[onclick],[data-st-group],[data-st-mode]').filter({visible:true}).evaluateAll(es=>es.map(e=>({text:e.innerText,html:e.outerHTML.slice(0,1500)}))),...data})]);
+ for(let retry=0;retry<3&&!await page.locator('.st-table').filter({visible:true}).count();retry++){await page.waitForTimeout(5000);await tab.click();await page.waitForTimeout(5000);}
+ const groupLabels=await page.locator('[class*="st-"]').filter({visible:true}).evaluateAll(es=>[...new Set(es.map(e=>e.innerText.trim()).filter(t=>/^(Apertura|Clausura|Finalizacion|League [ABCD], Group|Group|Grupo|Groupe|Gruppo)/i.test(t)&&t.length<70))]);
+ const exposedGroups=groupLabels.length?groupLabels:['overall'];
+ for(const groupName of exposedGroups){if(groupName!=='overall'){await page.getByText(groupName,{exact:true}).filter({visible:true}).first().click();await page.waitForTimeout(2000);}
+ const data=await dom();await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2)',[runId+'-standings-'+labels.indexOf(label)+'-group-'+exposedGroups.indexOf(groupName),JSON.stringify({section:'Standings discovery v109',match:target,leagueLabel:label,groupName,exposedGroups,interactive:await page.locator('[onclick],[data-st-group],[data-st-mode]').filter({visible:true}).evaluateAll(es=>es.map(e=>({text:e.innerText,html:e.outerHTML.slice(0,1500)}))),...data})]);
+ }
  await page.locator('#closeDetailBtn').click();
  }
  }
@@ -491,7 +496,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-catalogue-2026-10-03-rosters-v110';
+ const runId='source-catalogue-2026-10-03-rosters-v111';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
