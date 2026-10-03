@@ -194,3 +194,18 @@ v78 commit `ad63240f80b32569481eb291e6670cc6c5590b89`, concluso2026-10-03T00:04:
 v79 commit `1ce0e39040b4caa49d1b16c0f6d4ae2b18729401` corregge tale riferimento. Journal `source-mapping-2026-10-03-issue2-qa08-v79-attempt-1790985898401-15w8z8spb8w-QA08`: save/reload/recall A veri; login modulo B non completa entro25secondi (`#loginEmail` resta visibile). Nessun bypass. Ultima lettura Neon rifiutata HTTP401 per autenticazione; fine run e cleanup finale v79 non verificabili in questa lettura. Non presentare v79 come PASSED.
 
 Le prove positive precedenti restano conservate; questa ripetizione complessiva è PARTIAL/BLOCKED per il reload-cleanup B non completato. Nessuna credenziale pubblicata, nessun ordine reale. Mi fermo e attendo conferma owner per il successivo.
+
+
+## QA-09 revisit v80 — disponibilità giornaliera ripristinata
+
+QA-09 — unico punto eseguito su conferma owner; nessun QA-10 avviato.
+
+Test reale v80, commit `ad084da6921097b2e9f2a16cd650d1252f40ed99`. Run concluso2026-10-03T06:52:04Z /08:52 Europe/Rome; journal `source-mapping-2026-10-03-issue2-qa09-v80-attempt-1791010277209-6ar9mhbedkx-QA09`. Un solo clic `#btRunBtn`, protetto dal ticket `source-backtest-test-2026-10-03-qa09-single` (`maximumExecutions:1`, nessun retry/saturazione).
+
+Input come nel tentativo respinto v62: quote1[1.5,2], X[3,5],2[3,5], minuto60, risultato1-1, nessuna lega selezionata. Prima06:51:33Z; clic06:51:33.768Z; dopo06:52:03.824Z. **Risultato prodotto:true; rifiuto limite:false.** La pagina mostra **«4 backtest rimasti oggi»** e2324 partite trovate. Il risultato è stato usato soltanto per verificare disponibilità/quota, non per certificare equity o algoritmi finanziari.
+
+Confronto temporale: v62 respinto il02ottobre22:39UTC per limite5/giorno; v80 accettato il03ottobre06:51UTC. Il ripristino della disponibilità è quindi osservato nell'intervallo tra i due tentativi, che attraversa mezzanotte UTC. Non identifica da solo il confine di reset, un eventuale rolling window o il fuso applicato dalla fonte. Il contatore prima del clic non era mostrato nel testo iniziale; non inventato un valore letto5/5.
+
+**Esito PARTIAL**: accettazione dopo precedente limite e contatore residuo reale verificati; timezone dichiarata e reset al confine esatto non certificati. Checkbox QA-09 resta aperta e conteggio4/15 invariato. Rimangono4 tentativi osservati, nessun altro backtest consumato. Neon accessibile di nuovo in questo ciclo; nessuna credenziale pubblicata.
+
+Annotato e mi fermo in attesa della conferma per il prossimo punto.
