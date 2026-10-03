@@ -461,3 +461,12 @@ Valutazione coerenza QE/Guida: 2/5. QA14 resta aperto senza spunta, issue non ch
 Commit test: 10ced316f295df6b103d523567b8e7a9f6bf6094; node --check passato prima della pubblicazione.
 Run: source-mapping-2026-10-03-issue2-qa14-v94.
 Prove Neon: prefisso source-mapping-2026-10-03-issue2-qa14-v94-attempt-1791019928189-tw1auvazbji, suffissi -QA14QE, -QA14Guide, -QA14Live.
+
+### Perimetro definitivo aggiornato dall'owner — 03/10/2026 12:17 Europe/Rome
+L'owner dichiara che non interessano e rimuove dai requisiti di chiusura:
+- QA05: importazione valida con campionato e orario.
+- QA10/QA11/QA12: mobile, audio e radar con partite Live presenti.
+- QA13: equity cronologica.
+- QA15: Ladder Dutching.
+Questi residui sono **ESCLUSI DAL PERIMETRO**, non più soltanto sospesi. Non devono bloccare la chiusura della issue nel perimetro concordato e non devono essere ripresi senza nuova richiesta. Le prove, anomalie e limitazioni storiche restano conservate: escluso non significa certificato o corretto.
+Restano attivi QA06 ordinamenti Live, QA07 filtri combinati, QA14 Gol+/Gol++ e contraddizione QE; rimangono i chiarimenti H2H e reset giornaliero. Collaudo Live programmato alle 16:15 Europe/Rome. La dichiarazione finale “chiudibile” dovrà riferirsi esplicitamente a questo perimetro e alle evidenze effettive; la chiusura resta all'owner.
