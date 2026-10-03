@@ -461,28 +461,35 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
+ if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const b=page.getByRole('button',{name:/Apri nel Lay Score/});await b.waitFor({state:'visible',timeout:60000});await b.click();await page.waitForTimeout(5000);return;}
+ if(section==='Dashboard'){
+  const ev={section:'QA01 post-support fix full H2H audit v107',status:'partial',startedAt:new Date().toISOString(),details:[]};const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA01',JSON.stringify(ev)]);
+ const rows=()=>page.locator('[data-open-detail]').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.getAttribute('data-open-detail'),text:e.closest('article,tr')?.innerText||e.parentElement?.innerText})));
+ await page.locator('#strategyToggleBtn').click();await page.waitForTimeout(8000);const input=page.locator('input[data-strategy-filter=h2h]');ev.label=await input.evaluate(e=>({text:e.closest('label').innerText,html:e.closest('label').outerHTML,title:e.title}));ev.initial=await input.isChecked();ev.before=await rows();const label=page.locator('label').filter({has:input});await save();ev.clickAttempts=[];try{await label.click({timeout:60000});}catch(e){ev.clickAttempts.push({action:'enable',error:redact(e.message).slice(0,800)});await page.waitForTimeout(5000);}await page.waitForTimeout(1500);ev.checked=await input.isChecked();ev.filtered=await rows();await save();try{await label.click({timeout:60000});}catch(e){ev.clickAttempts.push({action:'restore',error:redact(e.message).slice(0,800)});await page.waitForTimeout(5000);}await page.waitForTimeout(1000);ev.restored=await rows();ev.restoredChecked=await input.isChecked();await save();
+ const kept=new Set(ev.filtered.map(x=>x.id));const targets=ev.before;
+ for(const target of targets){const d={id:target.id,inFiltered:kept.has(target.id)};try{const btn=page.locator('[data-open-detail]').filter({visible:true});const index=await btn.evaluateAll((es,id)=>es.findIndex(e=>e.getAttribute('data-open-detail')===id),target.id);await btn.nth(index).click();await page.locator('#closeDetailBtn').waitFor({state:'visible',timeout:25000});await page.waitForTimeout(3000);d.initialText=redact(await page.locator('body').innerText()).slice(-14000);d.tabs=await page.locator('button').filter({visible:true}).evaluateAll(es=>es.map(e=>({text:e.innerText,tab:e.getAttribute('data-detail-tab')})).filter(x=>x.tab));const st=page.locator('[data-detail-tab=statsplus]').filter({visible:true});if(await st.count()){for(let attempt=0;attempt<4;attempt++){await st.click();await page.waitForTimeout(1500);if(/on|active/.test(await st.getAttribute('class')||''))break;}}d.controls=await page.locator('[data-stp]').filter({visible:true}).evaluateAll(es=>es.map(e=>({text:e.innerText,html:e.outerHTML})));const h=page.locator('[data-stp="s"][data-val="h2h"]').filter({visible:true});if(await h.count())await h.click();else{const hh=page.getByRole('button',{name:'H2H',exact:true}).filter({visible:true});if(await hh.count()===1)await hh.click();}await page.waitForTimeout(3000);d.h2hText=redact(await page.locator('body').innerText()).slice(-18000);d.h2hActive=await page.locator('[data-stp=s][data-val=h2h]').filter({visible:true}).getAttribute('class').catch(()=>null);d.countMatch=d.h2hText.match(/Stats \+\s+(\d+) scontri diretti/);d.count=d.countMatch?Number(d.countMatch[1]):null;d.zeroText=/Nessun.*scontr|nessun.*H2H/i.test(d.h2hText);}catch(e){d.error=redact(e.message).slice(0,1500);}finally{if(await page.locator('#closeDetailBtn').isVisible())await page.locator('#closeDetailBtn').click();ev.details.push(d);await save();}}
+ ev.endedAt=new Date().toISOString();await save();
+ ev.unverified=ev.details.filter(d=>!Number.isFinite(d.count)||d.error||!/on|active/.test(d.h2hActive||'')).map(d=>d.id);
+ ev.mismatches=ev.details.filter(d=>Number.isFinite(d.count)&&/on|active/.test(d.h2hActive||'')&&((d.count>0)!==d.inFiltered)).map(d=>({id:d.id,count:d.count,inFiltered:d.inFiltered}));
+ ev.restoreMembership=JSON.stringify(ev.before.map(r=>r.id).sort())===JSON.stringify(ev.restored.map(r=>r.id).sort());
+ ev.targetCases=ev.before.filter(r=>/North Macedonia|Sabadell/i.test(r.text));
+ ev.status=ev.initial===false&&ev.checked===true&&ev.restoredChecked===false&&ev.restoreMembership&&!ev.mismatches.length&&!ev.unverified.length&&ev.before.length>0?'passed':'partial';
+ await save();
 
-
- const evidence={section:'QA06 numeric card rating and possession repeat v106',startedAt:new Date().toISOString(),actions:[]};
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data,captured_at=now()',[runId+'-QA06-numeric',JSON.stringify(evidence)]);
- await page.waitForTimeout(15000);
- async function cards(){await page.locator('[data-live-view="card"]').click();await page.waitForTimeout(350);return page.locator('.live-card').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.querySelector('[data-live-fav]')?.getAttribute('data-live-fav'),rating:parseFloat(e.querySelector('.lc-rating b')?.innerText),team:[...e.querySelectorAll('.lc-team-name')].map(n=>n.innerText),ratingHTML:e.querySelector('.lc-rating')?.outerHTML}))); }
- const rows=()=>page.locator('tbody tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.querySelector('[data-live-fav]')?.getAttribute('data-live-fav'),html:e.outerHTML,cells:[...e.querySelectorAll('td')].map(c=>({text:c.innerText,parts:[...c.querySelectorAll('*')].filter(n=>!n.children.length).map(n=>n.innerText)}))})));
- for(const key of ['rating','pos'])for(let direction=0;direction<2;direction++){
-  for(let retry=0;retry<3;retry++){
-   const before=await cards();await page.locator('[data-live-view="table"]').click();await page.waitForTimeout(350);const head=page.locator('[data-live-sort="'+key+'"]');await head.click();await page.waitForTimeout(150);
-   const header=await head.innerText(),sequence=await rows(),after=await cards();
-   const stable=sequence.length>=2&&sequence.every(r=>{const b=before.find(c=>c.id===r.id),a=after.find(c=>c.id===r.id);return b&&a&&Number.isFinite(b.rating)&&a.rating===b.rating;});
-   const ratingSequence=sequence.map(r=>before.find(c=>c.id===r.id)?.rating);
-   const pairs=sequence.map(r=>r.cells[18].parts.map(parseFloat));
-   const desc=header.includes('▼'),mono=vs=>vs.every((v,i)=>Number.isFinite(v)&&(i===0||(desc?vs[i-1]>=v:vs[i-1]<=v)));
-   const item={key,direction,retry,at:new Date().toISOString(),header,before,sequence,after,stable,ratingSequence,possessionPairs:pairs,ratingMonotonic:mono(ratingSequence),possHomeMonotonic:mono(pairs.map(p=>p[0])),possMaxMonotonic:mono(pairs.map(p=>Math.max(...p))),possSumMonotonic:mono(pairs.map(p=>p[0]+p[1]))};
-   item.status=key==='rating'?(stable?(item.ratingMonotonic?'passed':'failed'):'blocked_drift'):'observed_semantic_ambiguity';
-   evidence.actions.push(item);await save();if(stable||key==='pos')break;
-  }
+ return;
  }
- await page.locator('[data-live-view="table"]').click();evidence.endedAt=new Date().toISOString();await save();
+ if(section==='Guida'){await captureScrolled(page,pool,runId+'-guide-post-support','Guida post support v107');return;}
+ if(section==='Live'){
+ const ev={section:'QA06 possession post-support bug retest v107',startedAt:new Date().toISOString(),actions:[]};
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data,captured_at=now()',[runId+'-POSS',JSON.stringify(ev)]);
+ await page.waitForTimeout(10000);await page.locator('[data-live-view="table"]').click();
+ for(let n=0;n<2;n++){const b=page.locator('[data-live-sort="pos"]');await b.click();await page.waitForTimeout(300);
+ const header=await b.innerText(),rows=await page.locator('tbody tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.querySelector('[data-live-fav]')?.getAttribute('data-live-fav'),text:e.innerText,html:e.outerHTML,pair:[...e.querySelectorAll('td:nth-child(19) b,td:nth-child(19) i')].map(e=>parseFloat(e.innerText))})));
+ const descending=header.includes('▼'),mono=values=>values.every((v,i)=>Number.isFinite(v)&&(i===0||(descending?values[i-1]>=v:values[i-1]<=v)));
+ ev.actions.push({at:new Date().toISOString(),header,rows,homeMonotonic:mono(rows.map(r=>r.pair[0])),maxMonotonic:mono(rows.map(r=>Math.max(...r.pair))),sumMonotonic:mono(rows.map(r=>r.pair.reduce((a,b)=>a+b,0)))});
+ await save();}
+ ev.status=ev.actions.every(a=>a.rows.length>=2)?'observed_not_certified_criterion':'blocked_sample';ev.endedAt=new Date().toISOString();await save();
+ }
 }
 
 async function clickObserved(page,label) {
@@ -496,7 +503,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-live-numeric-sorts-v106';
+ const runId='source-mapping-2026-10-03-support-retest-v107';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -511,7 +518,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Palinsesto','Live']];
+  const groups=[['Palinsesto','Dashboard','Guida','Live']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
