@@ -379,3 +379,19 @@ Prove Neon:
 - `source-mapping-2026-10-03-issue2-qa01-v90-attempt-1791016506834-nfmdl7pbls-QA01`; run v90 concluso 08:42:29 UTC, failed=[].
 Commit v90 `c349f1280df19cc60dd080aae25283e083aa0ad0`, node --check passato.
 La issue non è chiudibile. Mi fermo prima di un altro punto.
+
+
+### QA-07 — Filtri Live: ripetizione v91, PARZIALE / attesa dati Live
+Solo questo punto, 03/10/2026 11:11:34–11:12:29 Europe/Rome. Run concluso 09:12:40 UTC con failed=[].
+
+21 scenari eseguiti con controlli ordinari: gol 0-0, gol vuoti, gol casa 15, minuto 0–60, quota casa 2,4–2,5, quota+minuto+punteggio, tiri totali max/min 4, Gol+ minimo 80%, Gol++ minimo 60%, dieci coppie min/max incrociate, HT 0-0 e 1-1 insieme. Reset finale: campi identici agli iniziali (**resetFieldsEqual=true**).
+
+Soglie incrociate: min portato al massimo e max tentato al minimo → UI riporta entrambi al valore min corrente. Gol+/Gol++/possesso 100/100, tiri in porta 20/20, tiri totali 40/40, corner 20/20, quote 15/15, minuto 120/120. Nessun errore registrato.
+
+**Limite reale:** lista iniziale vuota, 0 partite Live. Tutti gli scenari sono marcati `observed_without_membership_proof`, non passed: zero→zero non verifica la correttezza della selezione. Certificata l'interazione coi controlli e il ripristino dei campi; non la membership o i limiti inclusivi su dati popolati. Test precedente v76 con partite presenti resta prova distinta.
+
+Rimangono incroci completi campionato/minuto/statistiche/score/HT, favoriti/favorita perde, valori mancanti e sincronizzazione tendina Time con slider. Per verificarne l'effetto servono partite Live reali. Ripetere login o matrice ora con lista vuota non colma questo requisito. Non introdotti dati sintetici per far passare il test. Valutazione controlli osservati: 4/5; selezione partite non valutabile in questa sessione.
+
+Prova Neon: `source-mapping-2026-10-03-issue2-qa07-v91-attempt-1791018650370-k08xtthe64-QA07`.
+Commit `88613cccd325dd6399e05445305c399728de2fca`, sintassi verificata prima del push.
+QA-07 senza spunta; non dichiarato sospeso dall'owner, ma bloccato nella verifica con dati presenti. Issue non chiudibile. Mi fermo prima di persistenza/reset/QE; ordinamenti Live ancora in attesa della segnalazione owner.
