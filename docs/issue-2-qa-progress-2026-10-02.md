@@ -181,3 +181,16 @@ Incrocio dei10range: dopo min=End e max=Home, la UI riporta max allo stesso valo
 Reset conclusivo: `resetFieldsEqual:true`, tutti i valori/min/max/step degli input tornano identici allo stato iniziale. Nessuna strategia salvata o ordine reale.
 
 **QA-07 resta PARTIAL**: residui matrice campionato+tempo+punteggio+statistiche, favorito/perdente, preferiti e membership HT multiplo, oltre alle soglie non rappresentate e semantica dei dati mancanti. Non spuntata la checkbox e nessun QA successivo avviato.
+
+
+## QA-08 revisit v77/v78/v79
+
+QA-08 — unico punto ripreso; nessun QA-09 avviato.
+
+Ripetizioni v77/v78/v79, sempre sequenziali. v77: nome lungo troncato dalla UI (`QA ISSUE2 Live cross-context v77 2026100`); il test cercava il nome completo e andava in timeout. Questo è un errore del harness sul confronto del nome, non prova di mancato salvataggio.
+
+v78 commit `ad63240f80b32569481eb291e6670cc6c5590b89`, concluso2026-10-03T00:04:02Z /02:04 Europe/Rome. Journal `source-mapping-2026-10-03-issue2-qa08-v78-attempt-1790985767515-4h4o45fhn4l-QA08`: `savedA:true`, `reloadA:true`, `recallA:true`, `nameVisibleB:false`, `deletedA:true`, `cleanA:true`, `contextsIndependent:true`, `physicalDevices:false`. Conferma strategie Live locali al contesto, non condivise con la sessione B dello stesso account. Omissione harness: mancava riferimento pageB per verificarne il reload finale.
+
+v79 commit `1ce0e39040b4caa49d1b16c0f6d4ae2b18729401` corregge tale riferimento. Journal `source-mapping-2026-10-03-issue2-qa08-v79-attempt-1790985898401-15w8z8spb8w-QA08`: save/reload/recall A veri; login modulo B non completa entro25secondi (`#loginEmail` resta visibile). Nessun bypass. Ultima lettura Neon rifiutata HTTP401 per autenticazione; fine run e cleanup finale v79 non verificabili in questa lettura. Non presentare v79 come PASSED.
+
+Le prove positive precedenti restano conservate; questa ripetizione complessiva è PARTIAL/BLOCKED per il reload-cleanup B non completato. Nessuna credenziale pubblicata, nessun ordine reale. Mi fermo e attendo conferma owner per il successivo.
