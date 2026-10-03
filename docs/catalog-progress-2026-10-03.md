@@ -36,6 +36,6 @@ Verifica reale d'idempotenza PostgreSQL: reinserimento delle77 squadre del check
 
 42 campionati non ancora osservati nella Dashboard odierna; non inventare le rose. Necessari nuovi palinsesti/classifiche disponibili. Validare tutti i gruppi reali, identità e alias delle squadre, alias AsianOdds e data/orario senza assumere un fuso dal solo scarto. Nuovi pulsanti/gruppi sconosciuti richiedono osservazione e integrazione; nessun completamento implicito.
 
-Sincronizzazione giornaliera dalle19:00 Europe/Rome del4 ottobre, evitando run/deploy simultanei e i collaudi reset notturni. Prima di eseguire leggere README/AGENTS/CLAUDE e l'ultimo checkpoint. Fermare la sincronizzazione solo quando tutte le49 rose sono comprovate. Non riguarda il futuro monitoraggio Live ogni minuto.
+Programmazione giornaliera disattivata il3 ottobre2026 alle18:55 Europe/Rome su indicazione di Piero: non era stata richiesta. Le ulteriori acquisizioni vanno eseguite nell'ambito del lavoro autorizzato, senza introdurre nuove programmazioni autonomamente.
 
 La issue#2 non è chiusa né dichiarata chiudibile. Restano separati il pannello operativo, OpenRouter operativo e monitoraggio continuo.
