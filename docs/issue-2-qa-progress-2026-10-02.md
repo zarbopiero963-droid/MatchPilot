@@ -503,3 +503,18 @@ QE/Guida e prove Live restano aperti, nessuna modifica del software proprietario
 Conclusione: tentativo eseguito ma workaround del supporto NON certificato; non affermare né che ridurre lo zoom risolva né che non risolva. Resta valida la prova v96 dell'overflow a scala normale. Serve browser con controllo zoom effettivo o verifica owner tramite menu zoom100/90/80% con screenshot. Questo limite del test non è un nuovo difetto del sito.
 Run source-mapping-2026-10-03-asian-zoom-v97 concluso10:36:47UTC failed=[]; snapshot source-mapping-2026-10-03-asian-zoom-v97-attempt-1791023778906-7esglyelr3k-AsianZoom.
 Commit300826917efd26de015be1327ee08201bcf02ad1, node --check positivo.
+
+
+### Asian Odds — estrazione completa della lista reale v99, 03/10/2026 12:43 Europe/Rome
+Richiesta owner: verificare estrazione dell'intera pagina nonostante clipping grafico.
+Run reale concluso10:43:51UTC failed=[]; commit999c72322859e782e43033d82b34e48ff73407b3, sintassi passata. Filtro Tutte, lista mostrata231; estratte231/231 partite prima e dopo scroll. Prima Italy U20–France U20, ultima Forge FC–HFX Wanderers.
+Scroll nativo fino al fondo: scrollTop70480 + clientHeight838 = scrollHeight71318; bottomReached=true. Tutte le231 righe, HTML/testo/celle, sono identiche prima/dopo; nessun caricamento incrementale osservato. Testo completo lista225391 caratteri conservato senza troncamento.
+Conteggi:678 riquadri mercato (217 1X2,230Handicap,231Totali),2232 righe bookmaker,5184 coppie Apertura→Attuale/Chiusura,10368 valori quota.237 coppie Chiusura,4947Attuale.
+**Riconciliazione di TUTTE le5184 coppie:** estrazione dal testo della cella confrontata con HTML .op e .cu/.cl; valori coincidenti,0errori.0anomalie di forma (bookmaker,4celle/riga,3flow1X2 o2flowHandicap/Totali). Associazione per riquadro + intestazioni DOM, non coordinate visive: Casa/Pareggio/Trasferta, lineaHandicap+Casa/Trasferta, lineaTotale+Over/Under.
+Esempio hkjc Italy U20–France U20:1X2 Casa3,70→3,70,X3,60→3,60,Trasferta1,71→1,71;Handicap+0,75 Casa1,74→1,74/Trasferta2,05→2,05;Totale2,75Over1,76→1,76/Under1,94→1,94.
+**Errore iniziale del selettore conservato:** v99 flows.current cercava soltanto.cl e mancava4947 valoriAttuale (.cu). RawHTML/testo/celle li contenevano tutti. La verifica derivata li recupera e confronta indipendentemente; non usare il campo iniziale incompleto come parser operativo. v98 aveva catturato231righe ma non aveva raggiunto fondo; v99 completa il requisito.
+**Copertura100% della lista Asian Odds resa in questa sessione**. Non è100%dei dati upstream non mostrati, di tutti gli stati filtro/date o garanzia di correttezza delle quote fornite.14partite prive di riquadro1X2 e1privaHandicap nella fonte: assenza preservata, non inventati mercati.
+La sovrapposizione/clipping non impedisce la lettura DOM completa delle quote di questa lista. Il layout resta difettoso; l'adapter operativo deve gestire entrambi i campi .cu/.cl e conservare etichette e valori originali. Valutazione estrazione della lista5/5, layout2/5.
+Prova grezza:source-mapping-2026-10-03-asian-extract-v99-attempt-1791024178130-wqcehfp3m1e-AsianExtract.
+Verdict riconciliato:source-mapping-2026-10-03-asian-extract-v99-derived-verdict.
+Nessuna chiusura issue eseguita; collaudoLive16:15resta separato.
