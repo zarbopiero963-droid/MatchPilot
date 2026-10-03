@@ -287,3 +287,16 @@ Commit: `08d13e49c49780677ce084b63efcfbf106e29142`; controllo sintassi passato, 
 Valutazione del percorso backtest osservato: 4/5 (risultato e contatore disponibili); calcolo equity non valutabile in questo run.
 
 QA-13 resta senza spunta; issue non chiudibile. QA-14 non avviato. Attendo conferma dell'owner.
+
+
+### QA-14 — Gol++ / QE: ripetizione v86, PARZIALE
+Solo QA-14, 03/10/2026. Palinsesto e Guida aperti realmente; testo Guida salvato alle 10:03:07 Europe/Rome. Confermata l'indicazione della sezione Quota Equa: quota Betfair SOPRA QE → VALORE; SOTTO → SALTA.
+
+Il percorso Dashboard/dettaglio è andato in TimeoutError prima di produrre il journal dei nuovi input QE. **In questa sessione non sono stati completati i confronti sotto/uguale/sopra QE**, né osservati dati Live Gol++. Non si trasferisce un “pass” dalle prove precedenti. Rimane documentata la contraddizione precedente v68: il pannello segnalava valore sotto QE e non convenienza sopra QE, mentre la Guida indica il contrario. Per risolverla servono accesso al dettaglio e confronto ripetibile su dati attuali, chiarimento della convenzione e definizioni concordanti di Gol+/Gol++.
+
+Correzioni della preparazione: due revisioni v85 avevano errori sintattici e sono state pubblicate erroneamente prima di un controllo positivo; non sono prove UI valide. Corretto lo scope nella revisione v86, node --check passato. I fallimenti non sono stati convertiti in successi.
+
+Run `source-mapping-2026-10-03-issue2-qa14-v86`, concluso alle 08:03:46 UTC con stato partial e TimeoutError.
+Prova Guida: `source-mapping-2026-10-03-issue2-qa14-v86-attempt-1791014543919-qyzx59jv74-QA14Guide`.
+Commit valido del test: `3d1099aecf2179baa38b58284dd495a7dafd62f5`.
+Valutazione coerenza QE sulla base delle prove conservate: 2/5, contraddizione irrisolta. QA-14 resta senza spunta; issue non chiudibile. QA-15 non avviato. Attendo conferma dell'owner.
