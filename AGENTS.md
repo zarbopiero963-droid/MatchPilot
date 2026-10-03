@@ -1,7 +1,7 @@
 # Istruzioni vincolanti MatchPilot
 
 ## Contratto owner
-Piero ha autorizzato il 3 ottobre 2026 il lavoro esclusivamente sui **49 campionati di GOAT LayScore → Statistiche Lega**. La baseline è `data/approved-leagues.json`, con prova sorgente e versione. Non aggiungere, togliere o sostituire campionati, fonti, regole strategiche o ampliare questo contratto senza **autorizzazione esplicita di Piero**. Un cambiamento del sito è una proposta da registrare, non un'approvazione. Le normali correzioni tecniche dentro il contratto non richiedono nuova conferma.
+Piero ha autorizzato il 3 ottobre 2026 alle19:00 Europe/Rome l'unione dei **49 campionati di Statistiche Lega e dei52 di Backtest Storico**:52 campionati distinti nella baseline v2. Per ogni campionato conservare provenienza, etichetta, numero di incontri per fonte e snapshot.49 sono presenti in entrambe le fonti;3 soltanto in Backtest. La v1 limitata a49 rimane archiviata in data/approved-leagues-v1.json. La baseline è `data/approved-leagues.json`, con prova sorgente e versione. Non aggiungere, togliere o sostituire campionati, fonti, regole strategiche o ampliare questo contratto senza **autorizzazione esplicita di Piero**. Un cambiamento del sito è una proposta da registrare, non un'approvazione. Le normali correzioni tecniche dentro il contratto non richiedono nuova conferma.
 
 Nazioni/aree, campionati e squadre devono avere riferimenti normalizzati e prove. EUROPE è area geografica, non una nazione inventata. Conservare etichette originali, gruppi, stagione se esposta, timestamp e snapshot. Squadre da Dashboard → Dettaglio → Classifica: esplorare menu orizzontale e tutti i gruppi/leghe della competizione autorizzata. Stats+ è distinto da Classifica: nessun H2H deve essere scambiato per roster completo. Non unire squadre omonime né accettare alias fuzzy senza prova; alias incerti in quarantena. Nuovi pulsanti non devono rompere il parser o ampliare la scope.
 
@@ -12,4 +12,4 @@ Aggiornare README insieme alle modifiche che cambiano comportamento, schema, com
 
 ## Stato e continuità
 Issue #2: prove sorgente e residui; chiusura soltanto owner. I punti esclusi import completo, mobile/audio/radar popolati, equity, Ladder rimangono esclusi finché Piero non dispone diversamente. Pannello, OpenRouter operativo e monitoraggio minuto sono lavori successivi, non funzionalità esistenti. Consultare `docs/issue-2-qa-progress-2026-10-02.md`.
-Nessun limite o difetto va mascherato da PASS. Se i 49 campionati non hanno oggi un dettaglio disponibile, registrarli pending e continuare nelle giornate successive senza inventare squadre o usare altre fonti.
+Nessun limite o difetto va mascherato da PASS. Se i campionati autorizzati non hanno oggi un dettaglio disponibile, registrarli pending e continuare nelle giornate successive senza inventare squadre o usare altre fonti.

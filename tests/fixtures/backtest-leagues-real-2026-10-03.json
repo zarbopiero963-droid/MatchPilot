@@ -1,0 +1,837 @@
+{
+  "snapshotId": "source-backtest-catalogue-2026-10-03-v115-attempt-1791047020671-gt2sfteq1j5-backtest-leagues",
+  "checkboxes": [
+    {
+      "id": "",
+      "text": "ARGENTINA 1\n2049",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "ARGENTINA - ARGENTINA 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"ARGENTINA - ARGENTINA 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/ar.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>ARGENTINA 1<b>2049</b></label>"
+    },
+    {
+      "id": "",
+      "text": "AUSTRALIA 1\n995",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "AUSTRALIA - AUSTRALIA 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"AUSTRALIA - AUSTRALIA 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/au.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>AUSTRALIA 1<b>995</b></label>"
+    },
+    {
+      "id": "",
+      "text": "BELGIUM 1\n1584",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "BELGIUM - BELGIUM 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"BELGIUM - BELGIUM 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/be.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>BELGIUM 1<b>1584</b></label>"
+    },
+    {
+      "id": "",
+      "text": "BOLIVIA 1\n1574",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "BOLIVIA - BOLIVIA 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"BOLIVIA - BOLIVIA 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/bo.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>BOLIVIA 1<b>1574</b></label>"
+    },
+    {
+      "id": "",
+      "text": "BRAZIL 1\n2177",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "BRAZIL - BRAZIL 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"BRAZIL - BRAZIL 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/br.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>BRAZIL 1<b>2177</b></label>"
+    },
+    {
+      "id": "",
+      "text": "BRAZIL 2\n1809",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "BRAZIL - BRAZIL 2"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"BRAZIL - BRAZIL 2\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/br.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>BRAZIL 2<b>1809</b></label>"
+    },
+    {
+      "id": "",
+      "text": "CHINA 1\n1174",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "CHINA - CHINA 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"CHINA - CHINA 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/cn.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>CHINA 1<b>1174</b></label>"
+    },
+    {
+      "id": "",
+      "text": "COLOMBIA 1\n2496",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "COLOMBIA - COLOMBIA 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"COLOMBIA - COLOMBIA 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/co.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>COLOMBIA 1<b>2496</b></label>"
+    },
+    {
+      "id": "",
+      "text": "CROATIA 1\n936",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "CROATIA - CROATIA 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"CROATIA - CROATIA 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/hr.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>CROATIA 1<b>936</b></label>"
+    },
+    {
+      "id": "",
+      "text": "CZECH 1\n1184",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "CZECH-REPUBLIC - CZECH 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"CZECH-REPUBLIC - CZECH 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/cz.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>CZECH 1<b>1184</b></label>"
+    },
+    {
+      "id": "",
+      "text": "DENMARK 1\n1019",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "DENMARK - DENMARK 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"DENMARK - DENMARK 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/dk.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>DENMARK 1<b>1019</b></label>"
+    },
+    {
+      "id": "",
+      "text": "DENMARK 2\n1003",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "DENMARK - DENMARK 2"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"DENMARK - DENMARK 2\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/dk.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>DENMARK 2<b>1003</b></label>"
+    },
+    {
+      "id": "",
+      "text": "ENGLAND 1\n1940",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "ENGLAND - ENGLAND 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"ENGLAND - ENGLAND 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/gb-eng.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>ENGLAND 1<b>1940</b></label>"
+    },
+    {
+      "id": "",
+      "text": "ENGLAND 2\n2322",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "ENGLAND - ENGLAND 2"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"ENGLAND - ENGLAND 2\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/gb-eng.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>ENGLAND 2<b>2322</b></label>"
+    },
+    {
+      "id": "",
+      "text": "ENGLAND 3\n2831",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "ENGLAND - ENGLAND 3"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"ENGLAND - ENGLAND 3\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/gb-eng.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>ENGLAND 3<b>2831</b></label>"
+    },
+    {
+      "id": "",
+      "text": "EUROPA CHAMPIONS LEAGUE\n1206",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "EUROPE - EUROPA CHAMPIONS LEAGUE"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"EUROPE - EUROPA CHAMPIONS LEAGUE\"><span class=\"bt-flag\"></span>EUROPA CHAMPIONS LEAGUE<b>1206</b></label>"
+    },
+    {
+      "id": "",
+      "text": "EUROPA CONFERENCE LEAGUE\n1650",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "EUROPE - EUROPA CONFERENCE LEAGUE"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"EUROPE - EUROPA CONFERENCE LEAGUE\"><span class=\"bt-flag\"></span>EUROPA CONFERENCE LEAGUE<b>1650</b></label>"
+    },
+    {
+      "id": "",
+      "text": "EUROPA LEAGUE\n1067",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "EUROPE - EUROPA LEAGUE"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"EUROPE - EUROPA LEAGUE\"><span class=\"bt-flag\"></span>EUROPA LEAGUE<b>1067</b></label>"
+    },
+    {
+      "id": "",
+      "text": "WORLD EUROCUP\n1732",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "EUROPE - WORLD EUROCUP"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"EUROPE - WORLD EUROCUP\"><span class=\"bt-flag\"></span>WORLD EUROCUP<b>1732</b></label>"
+    },
+    {
+      "id": "",
+      "text": "WORLD UEFA NATIONS LEAGUE\n656",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "EUROPE - WORLD UEFA NATIONS LEAGUE"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"EUROPE - WORLD UEFA NATIONS LEAGUE\"><span class=\"bt-flag\"></span>WORLD UEFA NATIONS LEAGUE<b>656</b></label>"
+    },
+    {
+      "id": "",
+      "text": "FINLAND 1\n835",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "FINLAND - FINLAND 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"FINLAND - FINLAND 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/fi.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>FINLAND 1<b>835</b></label>"
+    },
+    {
+      "id": "",
+      "text": "FRANCE 1\n1739",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "FRANCE - FRANCE 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"FRANCE - FRANCE 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/fr.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>FRANCE 1<b>1739</b></label>"
+    },
+    {
+      "id": "",
+      "text": "FRANCE 2\n1821",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "FRANCE - FRANCE 2"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"FRANCE - FRANCE 2\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/fr.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>FRANCE 2<b>1821</b></label>"
+    },
+    {
+      "id": "",
+      "text": "GERMANY 1\n1575",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "GERMANY - GERMANY 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"GERMANY - GERMANY 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/de.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>GERMANY 1<b>1575</b></label>"
+    },
+    {
+      "id": "",
+      "text": "GERMANY 2\n1593",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "GERMANY - GERMANY 2"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"GERMANY - GERMANY 2\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/de.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>GERMANY 2<b>1593</b></label>"
+    },
+    {
+      "id": "",
+      "text": "GERMANY 3\n1962",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "GERMANY - GERMANY 3"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"GERMANY - GERMANY 3\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/de.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>GERMANY 3<b>1962</b></label>"
+    },
+    {
+      "id": "",
+      "text": "GREECE 1\n1229",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "GREECE - GREECE 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"GREECE - GREECE 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/gr.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>GREECE 1<b>1229</b></label>"
+    },
+    {
+      "id": "",
+      "text": "IRELAND 1\n1068",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "IRELAND - IRELAND 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"IRELAND - IRELAND 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/ie.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>IRELAND 1<b>1068</b></label>"
+    },
+    {
+      "id": "",
+      "text": "IRELAND 2\n998",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "IRELAND - IRELAND 2"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"IRELAND - IRELAND 2\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/ie.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>IRELAND 2<b>998</b></label>"
+    },
+    {
+      "id": "",
+      "text": "ITALY 1\n1942",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "ITALY - ITALY 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"ITALY - ITALY 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/it.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>ITALY 1<b>1942</b></label>"
+    },
+    {
+      "id": "",
+      "text": "ITALY 2\n1998",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "ITALY - ITALY 2"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"ITALY - ITALY 2\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/it.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>ITALY 2<b>1998</b></label>"
+    },
+    {
+      "id": "",
+      "text": "JAPAN 1\n1836",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "JAPAN - JAPAN 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"JAPAN - JAPAN 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/jp.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>JAPAN 1<b>1836</b></label>"
+    },
+    {
+      "id": "",
+      "text": "NETHERLANDS 1\n1665",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "NETHERLANDS - NETHERLANDS 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"NETHERLANDS - NETHERLANDS 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/nl.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>NETHERLANDS 1<b>1665</b></label>"
+    },
+    {
+      "id": "",
+      "text": "NETHERLANDS 2\n2021",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "NETHERLANDS - NETHERLANDS 2"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"NETHERLANDS - NETHERLANDS 2\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/nl.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>NETHERLANDS 2<b>2021</b></label>"
+    },
+    {
+      "id": "",
+      "text": "NORWAY 2\n1419",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "NORWAY - NORWAY 2"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"NORWAY - NORWAY 2\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/no.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>NORWAY 2<b>1419</b></label>"
+    },
+    {
+      "id": "",
+      "text": "PERU 1\n1812",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "PERU - PERU 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"PERU - PERU 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/pe.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>PERU 1<b>1812</b></label>"
+    },
+    {
+      "id": "",
+      "text": "POLAND 1\n1599",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "POLAND - POLAND 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"POLAND - POLAND 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/pl.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>POLAND 1<b>1599</b></label>"
+    },
+    {
+      "id": "",
+      "text": "POLAND 2\n1613",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "POLAND - POLAND 2"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"POLAND - POLAND 2\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/pl.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>POLAND 2<b>1613</b></label>"
+    },
+    {
+      "id": "",
+      "text": "PORTUGAL 1\n1601",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "PORTUGAL - PORTUGAL 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"PORTUGAL - PORTUGAL 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/pt.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>PORTUGAL 1<b>1601</b></label>"
+    },
+    {
+      "id": "",
+      "text": "SAUDI ARABIA 1\n1461",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "SAUDI-ARABIA - SAUDI ARABIA 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"SAUDI-ARABIA - SAUDI ARABIA 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/sa.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>SAUDI ARABIA 1<b>1461</b></label>"
+    },
+    {
+      "id": "",
+      "text": "SCOTLAND 1\n1211",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "SCOTLAND - SCOTLAND 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"SCOTLAND - SCOTLAND 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/gb-sct.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>SCOTLAND 1<b>1211</b></label>"
+    },
+    {
+      "id": "",
+      "text": "SLOVENIA 1\n937",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "SLOVENIA - SLOVENIA 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"SLOVENIA - SLOVENIA 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/si.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>SLOVENIA 1<b>937</b></label>"
+    },
+    {
+      "id": "",
+      "text": "SOUTH KOREA 1\n1339",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "SOUTH-KOREA - SOUTH KOREA 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"SOUTH-KOREA - SOUTH KOREA 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/kr.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>SOUTH KOREA 1<b>1339</b></label>"
+    },
+    {
+      "id": "",
+      "text": "SPAIN 1\n1959",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "SPAIN - SPAIN 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"SPAIN - SPAIN 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/es.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>SPAIN 1<b>1959</b></label>"
+    },
+    {
+      "id": "",
+      "text": "SPAIN 2\n2378",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "SPAIN - SPAIN 2"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"SPAIN - SPAIN 2\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/es.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>SPAIN 2<b>2378</b></label>"
+    },
+    {
+      "id": "",
+      "text": "SWEDEN 1\n1386",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "SWEDEN - SWEDEN 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"SWEDEN - SWEDEN 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/se.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>SWEDEN 1<b>1386</b></label>"
+    },
+    {
+      "id": "",
+      "text": "SWEDEN 2\n1420",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "SWEDEN - SWEDEN 2"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"SWEDEN - SWEDEN 2\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/se.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>SWEDEN 2<b>1420</b></label>"
+    },
+    {
+      "id": "",
+      "text": "SWITZERLAND 1\n1108",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "SWITZERLAND - SWITZERLAND 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"SWITZERLAND - SWITZERLAND 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/ch.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>SWITZERLAND 1<b>1108</b></label>"
+    },
+    {
+      "id": "",
+      "text": "TURKEY 1\n1804",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "TURKEY - TURKEY 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"TURKEY - TURKEY 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/tr.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>TURKEY 1<b>1804</b></label>"
+    },
+    {
+      "id": "",
+      "text": "TURKEY 2\n1855",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "TURKEY - TURKEY 2"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"TURKEY - TURKEY 2\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/tr.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>TURKEY 2<b>1855</b></label>"
+    },
+    {
+      "id": "",
+      "text": "USA 1\n2936",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "USA - USA 1"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"USA - USA 1\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/us.svg\" width=\"14\" height=\"14\" style=\"border-radius:50%;vertical-align:middle;flex-shrink:0;\" onerror=\"this.style.display='none'\"></span>USA 1<b>2936</b></label>"
+    },
+    {
+      "id": "",
+      "text": "WORLD WORLD CUP\n3625",
+      "attrs": [
+        [
+          "type",
+          "checkbox"
+        ],
+        [
+          "data-league",
+          "WORLD - WORLD WORLD CUP"
+        ]
+      ],
+      "value": "on",
+      "parent": "<label class=\"bt-lg-item\"><input type=\"checkbox\" data-league=\"WORLD - WORLD WORLD CUP\"><span class=\"bt-flag\"><img src=\"https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@latest/flags/un.svg\" width=\"14\" height=\"14\" style=\"border-radius: 50%; vertical-align: middle; flex-shrink: 0; display: none;\" onerror=\"this.style.display='none'\"></span>WORLD WORLD CUP<b>3625</b></label>"
+    }
+  ]
+}
