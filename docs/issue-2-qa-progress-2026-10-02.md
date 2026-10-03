@@ -581,3 +581,12 @@ Per l'adapter operativo:
 - Preservare timestamp grezzo e fuso dichiarato/unknown. Lo scarto Asian −2h osservato v100 è compatibile con UTC ma **non ancora confermato**; non applicare automaticamente +2h fisso, soprattutto al cambio data/ora legale.
 - Test reale richiesto sull'intero palinsesto corrente: coppie,competizioni,orari,ambiguità,duplicati e incontri attraversanti mezzanotte. Mercati/quote collegati solo dopo riconciliazione.
 Questo aggiornamento registra il requisito; non dichiara implementata o certificata la mappatura completa. CollaudoLive programmato16:15 rimane distinto.
+
+
+### QA06 — collaudo Live reale v101, 03/10/2026 16:20–16:21 Europe/Rome
+Run source-mapping-2026-10-03-live-sorts-v101 concluso14:20:47UTC, failed=[]; commit fd7d83b571cd785e213812b9958fa2f02196da3a; node --check PASS prima del push.
+10partite Live: Strømmen–Sandnes Ulf, Leyton Orient–Plymouth, Burton–Huddersfield, Strømsgodset–Åsane, Avaí–Ceará, Finland–Albania, Haugesund–Stabæk, Reading–Bradford, Hødd–Odd, Almería–Burgos.
+Tutti16header cliccati due volte:32direzioni con frecce▼/▲, sequenze complete10righe/celle/HTML persistite. Oracle esterno al sito: minuto, somma gol, ordine BASSA<MEDIA<HOT del rating visualizzato, somme coppie XG/pressione/statistiche, GPpercentuali. Non usate funzioni interne né dati simulati.
+**15header PASSED sulle celle visibili in entrambe direzioni**:min/ris/rating/xgl/xg/gp1/gp2/pi1/pi2/pi3/cg10/sh/ot/da/cor. Pari merito presenti, stessa membership10/10; non imposto un tie-breaker non documentato. Mancanti XGlive4,GP1/2una,PI1/2/3/CG10una: rimangono “–”, vanno al lato basso e condividono il gruppo dei valori0 (CG10), senza spacciarli per osservazioni0.
+**Possesso OBSERVED / semantica non certificata**: sequenza casa▼e▲ identica [51,59,50,66,50,52,40,60,65,59], non monotona né casa né max(casa,ospite); somma di ogni coppia100, quindi somma costante non discrimina l'ordine. Nessuna definizione pubblica osservata del criterio. Possibile ordinamento sul totale costante: ipotesi, non bug corretto o PASS. QA06 complessivo resta PARZIALE finché criterio possesso chiarito e verificato.
+Raw: source-mapping-2026-10-03-live-sorts-v101-attempt-1791037136818-7ardwjdhsvk-QA06; verdict:source-mapping-2026-10-03-live-sorts-v101-derived-verdict. Fine processo non equivale a certificazione completa. Nessuna issue chiusa.
