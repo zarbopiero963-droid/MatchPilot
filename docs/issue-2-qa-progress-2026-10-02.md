@@ -495,3 +495,11 @@ Messaggio ricevuto dall'owner e riportato in chat (non acquisito direttamente da
 **Date NaN / percentuali:** secondo il supporto il sistema non riconosce la data, ma gli incontri sono comunque conteggiati nelle percentuali. Registrata la dichiarazione; non scartare automaticamente un record dal parser soltanto per data NaN. Preservare data non valida come null e anomalia esplicita, mantenendo risultati e campione disponibili. Questa è indicazione di trattamento, non attestazione che tutte le formule siano state riconciliate indipendentemente; cronologia non ricostruibile da NaN senza altra fonte.
 
 QE/Guida e prove Live restano aperti, nessuna modifica del software proprietario effettuata. La issue non è ancora chiudibile.
+
+
+### Asian Odds — tentativo zoom reale v97, NON VERIFICABILE nel browser remoto
+03/10/2026 12:36 Europe/Rome. Accesso reale, Asian Odds, viewport1440×900. Inviati tre comandi nativi Control+- e ripristino Control+0. Ogni passo conserva screenshot e misure.
+**Lo zoom non è cambiato effettivamente:** innerWidth/outerWidth/visualWidth1440, devicePixelRatio1, visualViewport.scale1 in tutti i passi; riquadro1X2 clientWidth335/scrollWidth394 invariato. Il browser headless non ha applicato le scorciatoie. Nessuna modifica CSS zoom/transform, nessuna sostituzione deviceScaleFactor spacciata per zoom browser.
+Conclusione: tentativo eseguito ma workaround del supporto NON certificato; non affermare né che ridurre lo zoom risolva né che non risolva. Resta valida la prova v96 dell'overflow a scala normale. Serve browser con controllo zoom effettivo o verifica owner tramite menu zoom100/90/80% con screenshot. Questo limite del test non è un nuovo difetto del sito.
+Run source-mapping-2026-10-03-asian-zoom-v97 concluso10:36:47UTC failed=[]; snapshot source-mapping-2026-10-03-asian-zoom-v97-attempt-1791023778906-7esglyelr3k-AsianZoom.
+Commit300826917efd26de015be1327ee08201bcf02ad1, node --check positivo.
