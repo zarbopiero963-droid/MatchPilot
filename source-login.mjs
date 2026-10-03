@@ -461,11 +461,18 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- const text=redact(await page.locator('body').innerText());const ev={section:'QA09 source reset documentation audit',page:section,at:new Date().toISOString(),backtestExecuted:false,text,controls:await page.locator('button,input,select').filter({visible:true}).evaluateAll(es=>es.map(e=>({tag:e.tagName,id:e.id,label:(e.innerText||e.getAttribute('aria-label')||e.getAttribute('title')||'').slice(0,120)})))};
- ev.resetMentions=text.split('\n').map((line,i,lines)=>/backtest|rimasti|mezzanotte|UTC|fuso|reset giorn|limite.*giorno/i.test(line)?lines.slice(Math.max(0,i-1),i+3).join('\n'):null).filter(Boolean);
- await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-QA09-'+section,JSON.stringify(ev)]);
+ if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view=palinsesto]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
+ if(section==='Guida'){await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-QA14Guide',JSON.stringify({text:redact(await page.locator('body').innerText()),at:new Date().toISOString()})]);return;}
+ if(section==='Live'){await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-QA14Live',JSON.stringify({at:new Date().toISOString(),text:redact(await page.locator('body').innerText()),cards:await page.locator('[data-live-radar]').count()})]);return;}
+ const evidence={section:'QA-14 QE boundary actual input',status:'partial',results:[],fixture:'Virtual quote input only; no order'};
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA14QE',JSON.stringify(evidence)]);
+ await page.waitForTimeout(8000);const buttons=page.locator('[data-open-detail]').filter({visible:true});const ix=await buttons.evaluateAll(es=>es.findIndex(e=>/Strømmen|Sandnes/i.test(e.closest('article,tr')?.innerText||e.parentElement?.innerText||'')));await buttons.nth(ix>=0?ix:0).click({timeout:60000});await page.locator('#closeDetailBtn').waitFor({state:'visible'});await page.waitForTimeout(2000);
+ evidence.startedAt=new Date().toISOString();evidence.initial=redact(await page.locator('body').innerText()).slice(-8500);
+ const input=page.locator('#qeBetfairInput');const original=await input.inputValue();
+ await save();const qeMatch=evidence.initial.match(/QE CALCOLATO\s+([0-9]+[.,][0-9]+)/i);if(!qeMatch)throw new Error('Displayed QE not independently found');const qe=Number(qeMatch[1].replace(',','.'));evidence.displayedQE=qe;try{for(const value of [(qe*.9).toFixed(2),qe.toFixed(2),(qe*1.1).toFixed(2)]){await input.fill(value);await page.waitForTimeout(700);evidence.results.push({value,text:redact(await page.locator('body').innerText()).slice(-5000)});await save();}}
+ finally{await input.fill(original);evidence.restored=await input.inputValue()===original;await save();}
+ await page.locator('#closeDetailBtn').click();evidence.endedAt=new Date().toISOString();evidence.reason='Compare displayed QE and response against source Guide; contradictory instructions keep QA14 open.';await save();
 }
-
 async function clickObserved(page,label) {
  const text=label.replace(/\s+/g,' ').trim();
  await page.waitForFunction(target=>[...document.querySelectorAll('button,[role="button"],[role="tab"],[onclick],summary')].some(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
@@ -477,7 +484,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa09-v93';
+ const runId='source-mapping-2026-10-03-issue2-qa14-v94';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -492,7 +499,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Backtest Storico','Guida']];
+  const groups=[['Palinsesto','Guida','Dashboard','Live']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
