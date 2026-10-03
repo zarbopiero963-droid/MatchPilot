@@ -568,3 +568,16 @@ Conclusione: le liste NON coincidono interamente e i nomi NON sono sempre identi
 Prove grezze:prefisso source-mapping-2026-10-03-teams-dashboard-asian-v100-attempt-1791025369886-fkvvoftrc6, suffissi -Teams-Dashboard e -Teams-Asian Odds.
 Commit8eb873f9c7fadd5d1f7af53956ed3fa4a6a60ba4; node --check positivo; runconcluso11:03:58UTC,failed=[].
 Annotato tutto il confronto, nessun adapter operativo di alias o conversione fuso implementato da questa prova.
+
+
+### Requisito owner: mappatura contestuale Palinsesto ↔ Asian Odds — 03/10/2026 15:58 Europe/Rome
+L'owner richiede che la mappatura comprenda per entrambe le fonti **nazione, campionato, squadra casa, squadra ospite, data e ora**, poiché Asian Odds mostra anche competizione e timestamp.
+Il solo confronto nominale v100 non basta:13coppie normalizzate,20alias candidati e4assenti restano il risultato di quel test, non un contratto completo di identità.
+Per l'adapter operativo:
+- Conservare campi originali per fonte e campi normalizzati distinti; identificatori della fonte quando disponibili.
+- Asian: leggere titolo effettivo del gruppo competizione, non soltanto icona. In v100 league ottenuto dal primo innerText era “🌐”: **estrazione del campionato NON completata da quel selettore**, da correggere e verificare.
+- Nazione può essere esplicita o ricavabile soltanto tramite mappa di competizioni validata. Non trattare sigle Asian sconosciute come nazioni certe; separare rawCompetition, competitionId/canonicalName e country, con unknown/null quando necessario.
+- Collegare coppia casa/ospite nello stesso ordine + competizione validata + data/orario normalizzati. Alias espliciti e verificati, niente sola sottostringa/fuzzy; casi incerti restano alias_candidate/unmatched.
+- Preservare timestamp grezzo e fuso dichiarato/unknown. Lo scarto Asian −2h osservato v100 è compatibile con UTC ma **non ancora confermato**; non applicare automaticamente +2h fisso, soprattutto al cambio data/ora legale.
+- Test reale richiesto sull'intero palinsesto corrente: coppie,competizioni,orari,ambiguità,duplicati e incontri attraversanti mezzanotte. Mercati/quote collegati solo dopo riconciliazione.
+Questo aggiornamento registra il requisito; non dichiara implementata o certificata la mappatura completa. CollaudoLive programmato16:15 rimane distinto.
