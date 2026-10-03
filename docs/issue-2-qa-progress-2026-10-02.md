@@ -209,3 +209,35 @@ Confronto temporale: v62 respinto il02ottobre22:39UTC per limite5/giorno; v80 ac
 **Esito PARTIAL**: accettazione dopo precedente limite e contatore residuo reale verificati; timezone dichiarata e reset al confine esatto non certificati. Checkbox QA-09 resta aperta e conteggio4/15 invariato. Rimangono4 tentativi osservati, nessun altro backtest consumato. Neon accessibile di nuovo in questo ciclo; nessuna credenziale pubblicata.
 
 Annotato e mi fermo in attesa della conferma per il prossimo punto.
+
+
+## QA-10 revisit v81
+
+QA-10 — unico punto eseguito; nessun QA-11 avviato.
+
+Run v81 concluso2026-10-03T07:00:11Z /09:00 Europe/Rome, commit `78e591e94dc35b97ca4124abcf2f5f3f8ca7bfbc`, nessuna sezione in errore.12pagine×2orientamenti=24viste. Browser con touch emulato393×852/852×393, font e immagini caricati; navigazione/modali via tap, scroll tramite mouse wheel nativa in verticale/orizzontale, nessuna alterazione JS degli stati. Non è prova su telefono fisico.
+
+Journal privati prefisso `source-mapping-2026-10-03-issue2-qa10-v81-attempt-1791010500525-9zbwt28vv0v-QA10-` +nomepagina. Screenshot prima/fondo/destra e dettaglio persistiti.
+
+|Pagina|Fondo portrait|Fondo landscape|Dettaglio|
+|---|---|---|---|
+|Palinsesto|3860/3860|2538/2538|Non testato|
+|Dashboard|18788/18788|15534/15534|Aperto/chiuso in entrambe|
+|Live|0/0|177/177|No populated detail button rendered|
+|Analisi|8406/8406|4633/4633|Non testato|
+|Lay Goleada Favorito|0/0|356/356|Non testato|
+|Backtest Storico|738/738|995/995|Non testato|
+|Asian Odds|0/0|24/24|Non testato|
+|Monitorate|0/0|0/0|Non testato|
+|Ladder Dutching|1293/1293|1384/1384|Non testato|
+|Statistiche Lega|1805/1805|2053/2053|Non testato|
+|Guida|8614/8614|4510/4510|Non testato|
+|Archivio|0/0|74/74|Non testato|
+
+Tutti i24contenitori principali raggiungono il fondo misurato, inclusi gli stati vuoti che non richiedono scroll. Backtest portrait738/738: il precedente0/738 era effetto del punto di applicazione della gesture del harness, non dimostra un bug della fonte. Dashboard dettaglio popolato aperto/chiuso via tap in entrambe le orientazioni. Screenshot portrait del dettaglio e del fondo ispezionati: contenuto finale/controlli esito raggiunti; non sono stati azionati i pulsanti esito.
+
+**Problema persistente Live portrait:** main clientWidth393,scrollWidth555,overflowX:hidden; dopo wheel orizzontale scrollLeft0. Anche la toolbar dello stato vuoto resta più larga dello schermo; il gesture test sul contenitore principale non rende raggiungibile la parte destra. Non chiamare assenza di overflow globale una prova di accessibilità dei pulsanti.
+
+Live oggi senza dettagli popolati: `detailUnavailable:No populated detail button rendered` in entrambe le viste. Non certifica il dettaglio Live portrait popolato. Layout screenshot Dashboard portrait presenta il risultato consigliato spezzato su più righe: osservazione di leggibilità, non giudizio di correttezza dei dati. Restano inoltre gesti/controlli interni non campionati, scorrimenti dei contenitori secondari (es.tabella larga), zoom e tutte le repliche.
+
+**Esito PARTIAL**: scroll principale/menu/orientamenti e modale Dashboard verificati, limite orizzontale Live e rami residui ancora aperti. QA-10 non spuntata. Nessun backtest/salvataggio/esito/ordine eseguito. Annotato; mi fermo in attesa della conferma owner.
