@@ -461,35 +461,17 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
-
- const name='QA08 v79';
- const evidence={section:'QA-08 independent context persistence',name,contextsIndependent:true,physicalDevices:false};
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA08',JSON.stringify(evidence)]);
- async function open(p){await p.locator('[data-view="live"]').click();await p.waitForTimeout(2000);if(!await p.locator('#lav-golcasa').isVisible())await p.locator('[data-live-advtoggle]').filter({visible:true}).click();await p.waitForTimeout(500);}
- await open(page);evidence.initialA=redact(await page.locator('body').innerText()).slice(-4500);
- if(!/LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(evidence.initialA)){evidence.status='blocked';evidence.reason='Initial saved list not empty or not verified';await save();return;}
- page.on('dialog',async d=>{if(d.type()==='prompt'&&/nome|strategia/i.test(d.message()))await d.accept(name);else if(d.type()==='confirm'&&/elimin|strategia/i.test(d.message()))await d.accept();else await d.dismiss();});
- let second, pageB;
- try{
-  await page.locator('#lav-golcasa').fill('1');await page.getByRole('button',{name:'💾 Salva strategia',exact:true}).filter({visible:true}).click();
-  if(await page.locator('#lavSaveName').isVisible()){await page.locator('#lavSaveName').fill(name);await page.getByRole('button',{name:/^salva$/i}).filter({visible:true}).click();}
-  await page.getByText(name,{exact:true}).filter({visible:true}).waitFor({state:'visible',timeout:10000});evidence.savedA=true;await save();
-  await page.reload({waitUntil:'domcontentloaded'});await page.waitForTimeout(8000);await open(page);evidence.reloadA=await page.getByText(name,{exact:true}).filter({visible:true}).count()===1;
-  await page.locator('#lav-golcasa').fill('2');await page.getByText(name,{exact:true}).filter({visible:true}).click();evidence.recallA=await page.locator('#lav-golcasa').inputValue()==='1';await save();
-  second=await page.context().browser().newContext();const portal=await second.newPage();portal.setDefaultTimeout(15000);
-  await portal.goto('https://goatbettingexchange.com/portale',{waitUntil:'domcontentloaded',timeout:30000});await portal.locator('#heroEmail').fill(process.env.GOAT_USERNAME);await portal.locator('#heroPass').fill(process.env.GOAT_PASSWORD);await portal.getByRole('button',{name:'Accedi',exact:true}).click();await portal.locator('#heroEmail').waitFor({state:'hidden',timeout:25000});
-  const popup=portal.waitForEvent('popup');await portal.getByRole('button',{name:'Apri →',exact:true}).nth(1).click();const p=await popup;pageB=p;p.setDefaultTimeout(15000);await p.waitForLoadState('domcontentloaded');
-  await p.locator('#loginEmail').fill(process.env.GOAT_USERNAME);await p.locator('#loginPassword').fill(process.env.GOAT_PASSWORD);await p.locator('#loginSubmitBtn').click();await p.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});await p.waitForTimeout(8000);await open(p);
-  evidence.nameVisibleB=await p.getByText(name,{exact:true}).filter({visible:true}).count()>0;evidence.textB=redact(await p.locator('body').innerText()).slice(-4500);
-  if(evidence.nameVisibleB){await p.getByText(name,{exact:true}).filter({visible:true}).first().click();evidence.recallB=await p.locator('#lav-golcasa').inputValue()==='1';}
-  evidence.status='observed';await save();
- }catch(e){evidence.status='failed';evidence.error=redact(e.message).slice(0,1000);await save();}
- finally{
-  if(evidence.savedA){const leaf=page.getByText(name,{exact:true}).filter({visible:true});if(await leaf.count()===1){const del=leaf.locator('..').locator('..').getByText('✕',{exact:true}).filter({visible:true});if(await del.count()===1){await del.click();await leaf.waitFor({state:'hidden',timeout:10000});evidence.deletedA=true;}}}
-  if(pageB){await pageB.reload({waitUntil:'domcontentloaded'});await pageB.waitForTimeout(8000);await open(pageB);evidence.cleanB=await pageB.getByText(name,{exact:true}).filter({visible:true}).count()===0;await save();}if(second)await second.close();await page.reload({waitUntil:'domcontentloaded'});await page.waitForTimeout(8000);await open(page);evidence.cleanA=await page.getByText(name,{exact:true}).filter({visible:true}).count()===0;await save();
- }
-
+ const evidence={section:'QA-09 daily reset revisit',status:'partial',maximumExecutions:1};
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA09',JSON.stringify(evidence)]);
+ evidence.beforeAt=new Date().toISOString();evidence.before=redact(await page.locator('body').innerText());
+ const guard='source-backtest-test-2026-10-03-qa09-single';
+ const ticket=await pool.query('INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING run_id',[guard,JSON.stringify({status:'claimed',maximumExecutions:1,reason:'QA09 daily availability after actual UTC boundary; no saturation'})]);
+ if(!ticket.rowCount){evidence.status='blocked';evidence.reason='Single execution ticket already claimed; no retry';await save();return;}
+ for(const [id,value] of Object.entries({btO1min:'1.5',btO1max:'2',btOXmin:'3',btOXmax:'5',btO2min:'3',btO2max:'5',btMinute:'60',btGolH:'1',btGolA:'1'}))await page.locator('#'+id).fill(value);
+ evidence.clickedAt=new Date().toISOString();await page.locator('#btRunBtn').click();await page.waitForTimeout(30000);
+ evidence.afterAt=new Date().toISOString();evidence.after=redact(await page.locator('body').innerText());evidence.resultProduced=await page.locator('#btStratMarket').isVisible();evidence.limitRejected=/raggiunto il limite|5 backtest al giorno.*Riprova domani/i.test(evidence.after);
+ evidence.status=evidence.resultProduced?'observed':'blocked';evidence.reason='Availability interval observed; exact reset instant,counter and source-declared timezone must not be inferred';await save();
+ await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=result || $2::jsonb WHERE run_id=$1',[guard,JSON.stringify({status:evidence.resultProduced?'accepted':evidence.limitRejected?'rejected_daily_limit':'unresolved',attempted:1,resultProduced:evidence.resultProduced})]);
 }
 
 async function clickObserved(page,label) {
@@ -503,7 +485,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa08-v79';
+ const runId='source-mapping-2026-10-03-issue2-qa09-v80';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -518,7 +500,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Palinsesto','Live']];
+  const groups=[['Backtest Storico']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
@@ -617,3 +599,4 @@ export async function testSourceLogin(pool){
   console.log('SOURCE_MAP_BATCH_DONE '+JSON.stringify(result));
  }
 }
+
