@@ -437,3 +437,27 @@ Prove v93:
 `source-mapping-2026-10-03-issue2-qa09-v93-attempt-1791019299453-3u8w1xirhzb-QA09-Guida`.
 Commit `ac1c12ed2a8871de32fa97f2be57310b4d286d20`, controllo sintassi passato.
 Valutazione chiarezza della regola reset: 2/5 (limite comunicato solo al rifiuto, orario/fuso non osservati). QA09 resta senza spunta; issue non chiudibile. Mi fermo prima del punto QE/Gol++.
+
+
+### QA-14 — Nuova prova reale v94: QE verificato, contraddizione Guida confermata
+Solo QA14, 03/10/2026 11:32:44–11:33:20 Europe/Rome. Run concluso 09:33:22 UTC, failed=[]; questo certifica l'esecuzione, non la risoluzione del requisito.
+
+Dettaglio reale Strømmen–Sandnes Ulf, Lay 0-0: frequenza mostrata 2,9%, QE 34,48. Coerente con 100/2,9 = 34,482758… (verifica sul valore visualizzato, non sulla precisione interna del campione).
+
+| Quota virtuale inserita | Risposta reale |
+|---|---|
+| 31,03, sotto QE | VALORE — mercato sovrastima la probabilità |
+| 34,48, uguale al QE visualizzato | NEUTRO — quota vicina al QE |
+| 37,93, sopra QE | NON CONVIENE — liability troppo alta |
+
+Campo iniziale ripristinato: true; dettaglio chiuso realmente. Nessun ordine, salvataggio o backtest eseguito. Certificati questi tre input e il ripristino, non la fascia precisa di tolleranza NEUTRO o un calcolo netto commissioni.
+
+Guida letta nuovamente: “Quota Betfair SOPRA la QE → VALORE: lay con margine.” / “Quota Betfair SOTTO la QE → SALTA”. È l'opposto del pannello; contraddizione riprodotta su dati attuali. Nel modello matematico senza commissione con probabilità p e puntata lay unitaria, valore atteso = 1 − p×quota: il segno positivo è sotto 1/p. Non trasformare questa verifica della formula in consiglio operativo.
+
+Gol++: la Guida definisce Gol+ come almeno un ulteriore gol e Gol++ come almeno due, con campione comparabile e possibile allargamento globale. Live aperto realmente: 0 live, nessuna partita in corso, nessun controllo radar. Nessun valore/campione Gol++ popolato verificabile; numeratore, denominatore, fallback e coerenza dettaglio restano da provare con Live reali.
+
+Valutazione coerenza QE/Guida: 2/5. QA14 resta aperto senza spunta, issue non chiudibile. Serve chiarimento/correzione della Guida da parte della fonte e successiva prova Gol++ popolata. Gli altri punti sospesi restano fermi; nessun altro QA avviato.
+
+Commit test: 10ced316f295df6b103d523567b8e7a9f6bf6094; node --check passato prima della pubblicazione.
+Run: source-mapping-2026-10-03-issue2-qa14-v94.
+Prove Neon: prefisso source-mapping-2026-10-03-issue2-qa14-v94-attempt-1791019928189-tw1auvazbji, suffissi -QA14QE, -QA14Guide, -QA14Live.
