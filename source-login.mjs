@@ -461,12 +461,21 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- const dashboard=page.locator('[data-view="dashboard"]');
- await dashboard.waitFor({state:'visible',timeout:30000});
- const proof={section:'Real login retry v108',at:new Date().toISOString(),dashboardVisible:await dashboard.isVisible(),loginVisible:await page.locator('#loginEmail').isVisible(),authGateText:/Accesso non valido o scaduto/.test(await page.locator('body').innerText())};
- proof.status=proof.dashboardVisible&&!proof.loginVisible&&!proof.authGateText?'passed':'failed';
- await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-login-proof',JSON.stringify(proof)]);
- await capture(page,pool,runId+'-dashboard','Dashboard login retry v108');
+ if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const b=page.getByRole('button',{name:/Apri nel Lay Score/});await b.waitFor({state:'visible',timeout:60000});await b.click();await page.waitForTimeout(5000);return;}
+ const dom=()=>page.evaluate(()=>({text:document.body.innerText,tables:[...document.querySelectorAll('table')].filter(e=>e.getClientRects().length).map(e=>({html:e.outerHTML,rows:[...e.querySelectorAll('tr')].map(r=>({text:r.innerText,cells:[...r.querySelectorAll('th,td')].map(c=>({text:c.innerText,html:c.innerHTML})),attrs:[...r.attributes].map(a=>[a.name,a.value])}))})),controls:[...document.querySelectorAll('button,input,select')].filter(e=>e.getClientRects().length).map(e=>({text:e.innerText,id:e.id,attrs:[...e.attributes].filter(a=>a.name.startsWith('data-')).map(a=>[a.name,a.value])}))}));
+ if(section==='Statistiche Lega'){if(await page.locator('#lstSearchIn').isVisible())await page.locator('#lstSearchIn').fill('');await page.waitForTimeout(2500);const data=await dom();await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2)',[runId+'-league-catalog',JSON.stringify({section:'League catalogue discovery v109',...data})]);return;}
+ if(section==='Dashboard'){
+ const matches=await page.locator('[data-open-detail]').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.getAttribute('data-open-detail'),text:e.closest('article,tr')?.innerText,html:e.closest('article,tr')?.outerHTML})));
+ await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2)',[runId+'-match-discovery',JSON.stringify({section:'Dashboard catalogue discovery v109',matches})]);
+ const target=matches.find(m=>/BRAZIL SERIE B/i.test(m.text));
+ if(!target)return;
+ await page.locator('[data-open-detail="'+target.id+'"]').filter({visible:true}).click();
+ await page.locator('#closeDetailBtn').waitFor({state:'visible',timeout:25000});await page.waitForTimeout(2500);
+ const tab=page.getByRole('button',{name:'CLASSIFICA',exact:true}).filter({visible:true});
+ await tab.click();await page.waitForTimeout(2500);
+ const data=await dom();await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2)',[runId+'-standings-discovery',JSON.stringify({section:'Standings discovery v109',match:target,...data})]);
+ await page.locator('#closeDetailBtn').click();
+ }
 }
 
 async function clickObserved(page,label) {
@@ -480,7 +489,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-login-retry-v108';
+ const runId='source-catalogue-2026-10-03-discovery-v109';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -495,7 +504,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Dashboard']];
+  const groups=[['Statistiche Lega','Palinsesto','Dashboard']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
