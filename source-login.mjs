@@ -464,47 +464,25 @@ async function testMarkedControls(page,pool,runId,section){
  if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
 
 
- const evidence={section:'QA14 exact score independent histogram v105',startedAt:new Date().toISOString(),cases:[]};
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data,captured_at=now()',[runId+'-QA14-CS',JSON.stringify(evidence)]);
- await page.waitForTimeout(20000);await page.locator('[data-live-view="table"]').filter({visible:true}).click();await page.waitForTimeout(1500);
- const rows=()=>page.locator('tbody tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.querySelector('[data-live-csdetail-modal]')?.getAttribute('data-live-csdetail-modal'),html:e.outerHTML,text:e.innerText,cells:[...e.querySelectorAll('td')].map(c=>({text:c.innerText,title:c.title,parts:[...c.querySelectorAll('*')].filter(n=>!n.children.length).map(n=>n.innerText)}))})));
- const controls=()=>page.locator('button').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.id,text:e.innerText,title:e.title,html:e.outerHTML})));
- if(!await page.locator('#lav-golcasa').isVisible())await page.locator('[data-live-advtoggle]').click();evidence.initialRows=await rows();evidence.thresholdProbes=[];await save();
- for(const row of evidence.initialRows){
-  const b=page.locator('[data-live-csdetail-modal="'+row.id+'"]').filter({visible:true});
-  if(!await b.count()){evidence.cases.push({id:row.id,status:'blocked',reason:'Real row no longer visible'});await save();continue;}
-  const item={id:row.id,row:(await rows()).find(x=>x.id===row.id),at:new Date().toISOString()};
-  try{
-   const before=await controls();await b.click();await page.waitForTimeout(2500);
-   item.text=redact(await page.locator('body').innerText());
-   item.controls=await controls();
-   item.panels=await page.locator('[role="dialog"],dialog,[class*="modal"],[id*="Modal"],[id*="modal"]').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.id,class:e.className,text:e.innerText,html:e.outerHTML,scrollHeight:e.scrollHeight,clientHeight:e.clientHeight,scrollTop:e.scrollTop})));
-   for(const p of item.panels){p.text=redact(p.text);p.html=redact(p.html);}
-   item.newControls=item.controls.filter(c=>!before.some(x=>x.html===c.html));
-   item.status='observed';evidence.cases.push(item);await save();
-   const close=item.newControls.filter(c=>/^(?:[✕×Xx]\s*)?(?:Chiudi|Close)?\s*[✕×]?$/i.test((c.text||c.title).trim())&&(c.text||c.title).trim());
-   if(close.length===1){const c=close[0];if(c.id)await page.locator('#'+c.id).click();else if(c.title&&!c.text)await page.getByTitle(c.title,{exact:true}).filter({visible:true}).click();else await page.getByRole('button',{name:c.text.trim(),exact:true}).filter({visible:true}).click();}
-   else await page.keyboard.press('Escape');
-   await page.waitForTimeout(300);item.afterClose=await controls();item.closeCandidates=close;
-   item.closed=await page.locator('[data-live-csdetail-modal="'+row.id+'"]').filter({visible:true}).isVisible()&&!(await page.locator('[role="dialog"],dialog,[class*="modal"],[id*="Modal"],[id*="modal"]').filter({visible:true}).count());
-   await save();
-   if(item.closed){
-    for(const [key,idx] of [['gol1',5],['gol2',6]]){
-     const before=await rows(),current=before.find(x=>x.id===row.id),p=parseFloat(current?.cells[idx]?.text);
-     if(!(p>0&&p<100&&p%5===0))continue;
-     const input=page.locator('#lav-'+key+'-min');await input.press('Home');for(let i=0;i<p/5;i++)await input.press('ArrowRight');await page.waitForTimeout(300);
-     const after=await rows();evidence.thresholdProbes.push({at:new Date().toISOString(),id:row.id,key,threshold:p,before,after,selectedIncluded:after.some(r=>r.id===row.id)});await save();await page.getByText('↺ Azzera filtri',{exact:true}).click();await page.waitForTimeout(200);
-    }
-   }
-   await save();if(!item.closed){item.status='blocked_cleanup';await save();break;}
-  }catch(e){item.status='failed';item.error=redact(e.message).slice(0,1000);if(!evidence.cases.includes(item))evidence.cases.push(item);await save();break;}
+ const evidence={section:'QA06 numeric card rating and possession repeat v106',startedAt:new Date().toISOString(),actions:[]};
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data,captured_at=now()',[runId+'-QA06-numeric',JSON.stringify(evidence)]);
+ await page.waitForTimeout(15000);
+ async function cards(){await page.locator('[data-live-view="card"]').click();await page.waitForTimeout(350);return page.locator('.live-card').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.querySelector('[data-live-fav]')?.getAttribute('data-live-fav'),rating:parseFloat(e.querySelector('.lc-rating b')?.innerText),team:[...e.querySelectorAll('.lc-team-name')].map(n=>n.innerText),ratingHTML:e.querySelector('.lc-rating')?.outerHTML}))); }
+ const rows=()=>page.locator('tbody tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.querySelector('[data-live-fav]')?.getAttribute('data-live-fav'),html:e.outerHTML,cells:[...e.querySelectorAll('td')].map(c=>({text:c.innerText,parts:[...c.querySelectorAll('*')].filter(n=>!n.children.length).map(n=>n.innerText)}))})));
+ for(const key of ['rating','pos'])for(let direction=0;direction<2;direction++){
+  for(let retry=0;retry<3;retry++){
+   const before=await cards();await page.locator('[data-live-view="table"]').click();await page.waitForTimeout(350);const head=page.locator('[data-live-sort="'+key+'"]');await head.click();await page.waitForTimeout(150);
+   const header=await head.innerText(),sequence=await rows(),after=await cards();
+   const stable=sequence.length>=2&&sequence.every(r=>{const b=before.find(c=>c.id===r.id),a=after.find(c=>c.id===r.id);return b&&a&&Number.isFinite(b.rating)&&a.rating===b.rating;});
+   const ratingSequence=sequence.map(r=>before.find(c=>c.id===r.id)?.rating);
+   const pairs=sequence.map(r=>r.cells[18].parts.map(parseFloat));
+   const desc=header.includes('▼'),mono=vs=>vs.every((v,i)=>Number.isFinite(v)&&(i===0||(desc?vs[i-1]>=v:vs[i-1]<=v)));
+   const item={key,direction,retry,at:new Date().toISOString(),header,before,sequence,after,stable,ratingSequence,possessionPairs:pairs,ratingMonotonic:mono(ratingSequence),possHomeMonotonic:mono(pairs.map(p=>p[0])),possMaxMonotonic:mono(pairs.map(p=>Math.max(...p))),possSumMonotonic:mono(pairs.map(p=>p[0]+p[1]))};
+   item.status=key==='rating'?(stable?(item.ratingMonotonic?'passed':'failed'):'blocked_drift'):'observed_semantic_ambiguity';
+   evidence.actions.push(item);await save();if(stable||key==='pos')break;
+  }
  }
- evidence.finalRows=await rows();
- if(!await page.locator('#lav-golcasa').isVisible())await page.locator('[data-live-advtoggle]').click();
- evidence.filterText=redact(await page.locator('body').innerText());
- await clickObserved(page,'Guida');await page.waitForTimeout(2000);evidence.guideText=redact(await page.locator('body').innerText());await save();
- await clickObserved(page,'Live');await page.waitForTimeout(1000);
- evidence.endedAt=new Date().toISOString();evidence.status=evidence.initialRows.length?'observed':'blocked';await save();
+ await page.locator('[data-live-view="table"]').click();evidence.endedAt=new Date().toISOString();await save();
 }
 
 async function clickObserved(page,label) {
@@ -518,7 +496,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-live-exact-score-v105';
+ const runId='source-mapping-2026-10-03-live-numeric-sorts-v106';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
