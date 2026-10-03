@@ -463,7 +463,7 @@ async function inspectControlMap(page,pool,runId,section){
 async function testMarkedControls(page,pool,runId,section){
  if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
 
- const name='QA08 v78';
+ const name='QA08 v79';
  const evidence={section:'QA-08 independent context persistence',name,contextsIndependent:true,physicalDevices:false};
  const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA08',JSON.stringify(evidence)]);
  async function open(p){await p.locator('[data-view="live"]').click();await p.waitForTimeout(2000);if(!await p.locator('#lav-golcasa').isVisible())await p.locator('[data-live-advtoggle]').filter({visible:true}).click();await p.waitForTimeout(500);}
@@ -479,7 +479,7 @@ async function testMarkedControls(page,pool,runId,section){
   await page.locator('#lav-golcasa').fill('2');await page.getByText(name,{exact:true}).filter({visible:true}).click();evidence.recallA=await page.locator('#lav-golcasa').inputValue()==='1';await save();
   second=await page.context().browser().newContext();const portal=await second.newPage();portal.setDefaultTimeout(15000);
   await portal.goto('https://goatbettingexchange.com/portale',{waitUntil:'domcontentloaded',timeout:30000});await portal.locator('#heroEmail').fill(process.env.GOAT_USERNAME);await portal.locator('#heroPass').fill(process.env.GOAT_PASSWORD);await portal.getByRole('button',{name:'Accedi',exact:true}).click();await portal.locator('#heroEmail').waitFor({state:'hidden',timeout:25000});
-  const popup=portal.waitForEvent('popup');await portal.getByRole('button',{name:'Apri →',exact:true}).nth(1).click();const p=await popup;p.setDefaultTimeout(15000);await p.waitForLoadState('domcontentloaded');
+  const popup=portal.waitForEvent('popup');await portal.getByRole('button',{name:'Apri →',exact:true}).nth(1).click();const p=await popup;pageB=p;p.setDefaultTimeout(15000);await p.waitForLoadState('domcontentloaded');
   await p.locator('#loginEmail').fill(process.env.GOAT_USERNAME);await p.locator('#loginPassword').fill(process.env.GOAT_PASSWORD);await p.locator('#loginSubmitBtn').click();await p.locator('#loginEmail').waitFor({state:'hidden',timeout:25000});await p.waitForTimeout(8000);await open(p);
   evidence.nameVisibleB=await p.getByText(name,{exact:true}).filter({visible:true}).count()>0;evidence.textB=redact(await p.locator('body').innerText()).slice(-4500);
   if(evidence.nameVisibleB){await p.getByText(name,{exact:true}).filter({visible:true}).first().click();evidence.recallB=await p.locator('#lav-golcasa').inputValue()==='1';}
@@ -503,7 +503,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa08-v78';
+ const runId='source-mapping-2026-10-03-issue2-qa08-v79';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
