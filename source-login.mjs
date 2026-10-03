@@ -461,13 +461,32 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view=palinsesto]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();await page.getByRole('button',{name:/Apri nel Lay Score/}).click();await page.waitForTimeout(5000);return;}
- const ev={section:'QA01 independent H2H audit',status:'partial',startedAt:new Date().toISOString(),details:[]};const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA01',JSON.stringify(ev)]);
- const rows=()=>page.locator('[data-open-detail]').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.getAttribute('data-open-detail'),text:e.closest('article,tr')?.innerText||e.parentElement?.innerText})));
- await page.locator('#strategyToggleBtn').click();await page.waitForTimeout(8000);const input=page.locator('input[data-strategy-filter=h2h]');ev.label=await input.evaluate(e=>({text:e.closest('label').innerText,html:e.closest('label').outerHTML,title:e.title}));ev.initial=await input.isChecked();ev.before=await rows();const label=page.locator('label').filter({has:input});await save();ev.clickAttempts=[];try{await label.click({timeout:60000});}catch(e){ev.clickAttempts.push({action:'enable',error:redact(e.message).slice(0,800)});await page.waitForTimeout(5000);}await page.waitForTimeout(1500);ev.checked=await input.isChecked();ev.filtered=await rows();await save();try{await label.click({timeout:60000});}catch(e){ev.clickAttempts.push({action:'restore',error:redact(e.message).slice(0,800)});await page.waitForTimeout(5000);}await page.waitForTimeout(1000);ev.restored=await rows();ev.restoredChecked=await input.isChecked();await save();
- const kept=new Set(ev.filtered.map(x=>x.id));const targets=ev.before;
- for(const target of targets){const d={id:target.id,inFiltered:kept.has(target.id)};try{const btn=page.locator('[data-open-detail]').filter({visible:true});const index=await btn.evaluateAll((es,id)=>es.findIndex(e=>e.getAttribute('data-open-detail')===id),target.id);await btn.nth(index).click();await page.locator('#closeDetailBtn').waitFor({state:'visible',timeout:25000});await page.waitForTimeout(3000);d.initialText=redact(await page.locator('body').innerText()).slice(-14000);d.tabs=await page.locator('button').filter({visible:true}).evaluateAll(es=>es.map(e=>({text:e.innerText,tab:e.getAttribute('data-detail-tab')})).filter(x=>x.tab));const st=page.locator('[data-detail-tab=statsplus]').filter({visible:true});if(await st.count()){for(let attempt=0;attempt<4;attempt++){await st.click();await page.waitForTimeout(1500);if(/on|active/.test(await st.getAttribute('class')||''))break;}}d.controls=await page.locator('[data-stp]').filter({visible:true}).evaluateAll(es=>es.map(e=>({text:e.innerText,html:e.outerHTML})));const h=page.locator('[data-stp="s"][data-val="h2h"]').filter({visible:true});if(await h.count())await h.click();else{const hh=page.getByRole('button',{name:'H2H',exact:true}).filter({visible:true});if(await hh.count()===1)await hh.click();}await page.waitForTimeout(3000);d.h2hText=redact(await page.locator('body').innerText()).slice(-18000);d.h2hActive=await page.locator('[data-stp=s][data-val=h2h]').filter({visible:true}).getAttribute('class').catch(()=>null);d.countMatch=d.h2hText.match(/Stats \+\s+(\d+) scontri diretti/);d.count=d.countMatch?Number(d.countMatch[1]):null;d.zeroText=/Nessun.*scontr|nessun.*H2H/i.test(d.h2hText);}catch(e){d.error=redact(e.message).slice(0,1500);}finally{if(await page.locator('#closeDetailBtn').isVisible())await page.locator('#closeDetailBtn').click();ev.details.push(d);await save();}}
- ev.endedAt=new Date().toISOString();await save();
+ if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
+
+ const evidence={section:'QA-07 targeted matrix',startedAt:new Date().toISOString(),results:[]};
+ await page.waitForTimeout(20000);await page.locator('[data-live-view="table"]').filter({visible:true}).click();await page.locator('[data-live-advtoggle]').filter({visible:true}).click();await page.waitForTimeout(8000);
+ const rows=()=>page.locator('tbody tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({team:e.querySelector('td')?.innerText,cells:[...e.querySelectorAll('td')].map(c=>({text:c.innerText,parts:[...c.querySelectorAll('*')].filter(n=>!n.children.length).map(n=>n.innerText)}))})));
+ const fields=()=>page.locator('input[id^="lav-"]').evaluateAll(es=>es.map(e=>({id:e.id,value:e.value,min:e.min,max:e.max,step:e.step})));
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA07',JSON.stringify(evidence)]);
+ const reset=()=>page.getByText('↺ Azzera filtri',{exact:true}).filter({visible:true}).click();
+ async function range(key,side,number){const f=page.locator('#lav-'+key+'-'+side);await f.press('Home');const st=Number(await f.getAttribute('step')),mn=Number(await f.getAttribute('min'));const count=Math.round((number-mn)/st);for(let i=0;i<count;i++)await f.press('ArrowRight');}
+ async function record(name,action,oracle){await reset();await page.waitForTimeout(300);const before=await rows();try{await action();await page.waitForTimeout(300);const after=await rows();const expected=oracle?before.filter(oracle).map(r=>r.team).sort():null;const actual=after.map(r=>r.team).sort();evidence.results.push({name,before,after,expected,fields:await fields(),status:expected&&before.length?(JSON.stringify(expected)===JSON.stringify(actual)?'passed':'failed'):'observed_without_membership_proof'});}catch(e){evidence.results.push({name,status:'blocked',error:redact(e.message).slice(0,600)});}await save();}
+ await reset();evidence.initialRows=await rows();evidence.initialFields=await fields();evidence.controls=await page.locator('button,select').filter({visible:true}).evaluateAll(es=>es.map(e=>({label:e.innerText.slice(0,150),attrs:[...e.attributes].filter(a=>a.name.startsWith('data-')).map(a=>[a.name,a.value])})));
+ const num=(r,i)=>parseFloat(r.cells[i]?.text);const goals=r=>r.cells[2]?.text.trim().split('-').map(Number);const sum=(r,i)=>r.cells[i]?.parts.map(v=>parseFloat(v)).filter(Number.isFinite).reduce((a,b)=>a+b,0);
+ await record('Zero score means0-0',async()=>{await page.locator('#lav-golcasa').fill('0');await page.locator('#lav-golospite').fill('0');},r=>goals(r).every(g=>g===0));
+ await record('Blank goals wildcard',async()=>{await page.locator('#lav-golcasa').fill('');await page.locator('#lav-golospite').fill('');},()=>true);
+ await record('Impossible home15 empty',()=>page.locator('#lav-golcasa').fill('15'),r=>goals(r)[0]===15);
+ await record('Minute0-60 inclusive',()=>range('minuto','max',60),r=>num(r,1)<=60);
+ await record('Prematch home2.4-2.5 inclusive',async()=>{await range('q1','max',2.5);await range('q1','min',2.4);},r=>num(r,7)>=2.4&&num(r,7)<=2.5);
+ await record('Prematch home exact2.45 represented by slider2.4-2.5',async()=>{await range('q1','max',2.5);await range('q1','min',2.4);await page.locator('#lav-golcasa').fill('0');await page.locator('#lav-golospite').fill('0');await range('minuto','max',60);},r=>num(r,7)>=2.4&&num(r,7)<=2.5&&num(r,1)<=60&&goals(r).every(g=>g===0));
+ await record('Shots total0-4 inclusive',()=>range('tirit','max',4),r=>sum(r,14)<=4);
+ await record('Shots min4 boundary inclusive',()=>range('tirit','min',4),r=>sum(r,14)>=4);
+ await record('Gol+ minimum80',()=>range('gol1','min',80),r=>num(r,5)>=80);
+ await record('Gol++ minimum60',()=>range('gol2','min',60),r=>num(r,6)>=60);
+ for(const key of ['gol1','gol2','tiri','tirit','corner','poss','q1','qx','q2','minuto'])await record('Crossed bounds '+key,async()=>{await page.locator('#lav-'+key+'-min').press('End');await page.locator('#lav-'+key+'-max').press('Home');});
+ await record('HT multiple0-0 and1-1',async()=>{await page.getByRole('button',{name:'0-0',exact:true}).filter({visible:true}).first().click();await page.getByRole('button',{name:'1-1',exact:true}).filter({visible:true}).first().click();});
+ await reset();evidence.finalRows=await rows();evidence.finalFields=await fields();evidence.resetFieldsEqual=JSON.stringify(evidence.initialFields)===JSON.stringify(evidence.finalFields);evidence.endedAt=new Date().toISOString();evidence.emptyText=redact(await page.locator('body').innerText()).slice(-6000);evidence.status='partial';evidence.reason='Live drift/missing-value semantics, league/time/HT/favorite matrix requires scope-specific verification';await save();
+
 }
 
 async function clickObserved(page,label) {
@@ -481,7 +500,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa01-v90';
+ const runId='source-mapping-2026-10-03-issue2-qa07-v91';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -496,7 +515,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Palinsesto','Dashboard']];
+  const groups=[['Palinsesto','Live']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
@@ -556,7 +575,7 @@ export async function testSourceLogin(pool){
      const selected=await bounded(page.evaluate(target=>[...document.querySelectorAll('button.active,button[aria-selected="true"]')].some(e=>e.innerText.trim()===target),section.slice(11)));
      if(!selected)throw new Error('Requested detail tab did not remain selected');
     }
-    // Focused QA journal replaces full-page capture
+    // QA02 records its own before/after session evidence.
     await testMarkedControls(page,pool,snapshotRunId,section);
     completed.push(section);
     await pool.query("UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({status:'running',restartCount,stage,completed,failed,owner,leaseUntil:Date.now()+60000}),owner]);
