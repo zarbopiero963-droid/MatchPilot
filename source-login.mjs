@@ -461,11 +461,22 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view=palinsesto]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();await page.getByRole('button',{name:/Apri nel Lay Score/}).click();await page.waitForTimeout(5000);return;}
- await page.waitForTimeout(3000);let data;
- if(section==='Dashboard')data=await page.locator('[data-open-detail]').evaluateAll(es=>es.map(e=>({id:e.getAttribute('data-open-detail'),text:e.closest('article,tr')?.innerText||e.parentElement?.innerText,html:(e.closest('article,tr')||e.parentElement).outerHTML})));
- else data=await page.locator('#asianOddsPanel .ao-row').evaluateAll(es=>es.map(e=>({teams:e.querySelector('.ao-teams')?.innerText,time:e.querySelector('.ao-time')?.innerText,status:e.getAttribute('data-status'),league:e.closest('.ao-league-group')?.innerText.split('\n')[0],html:e.querySelector('.ao-row-top')?.outerHTML})));
- await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-Teams-'+section,JSON.stringify({section,at:new Date().toISOString(),count:data.length,rows:data})]);
+ if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
+ const evidence={section:'QA-06 live sorting',startedAt:new Date().toISOString(),actions:[]};
+ await page.waitForTimeout(20000);await page.locator('[data-live-view="table"]').filter({visible:true}).click();await page.waitForTimeout(2000);
+ const rows=()=>page.locator('tbody tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({text:e.innerText,html:e.outerHTML,cells:[...e.querySelectorAll('td')].map(x=>({text:x.innerText,leafText:[...x.querySelectorAll('*')].filter(n=>!n.children.length).map(n=>n.innerText),title:x.title,className:x.className}))})));
+ evidence.initialRows=await rows();evidence.headers=await page.locator('[data-live-sort]').filter({visible:true}).evaluateAll(es=>es.map(e=>({key:e.getAttribute('data-live-sort'),label:e.innerText,title:e.title,cellIndex:e.closest('th')?.cellIndex,colSpan:e.closest('th')?.colSpan})));
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data,captured_at=now()',[runId+'-QA06',JSON.stringify(evidence)]);
+ await save();
+ for(const key of ['min','ris','rating','xgl','xg','gp1','gp2','pi1','pi2','pi3','cg10','sh','ot','da','cor','pos']){
+  const head=page.locator('[data-live-sort="'+key+'"]').filter({visible:true});
+  if(!await head.count()){evidence.actions.push({key,status:'blocked',reason:'Header not rendered'});continue;}
+  try{await head.first().click();await page.waitForTimeout(200);const first=await rows();const firstHeader=await head.first().innerText();await head.first().click();await page.waitForTimeout(200);const second=await rows();evidence.actions.push({key,status:'observed',at:new Date().toISOString(),first,second,firstHeader,headerText:await head.first().innerText()});await save();}
+  catch(e){evidence.actions.push({key,status:'failed',error:redact(e.message).slice(0,400)});}
+ }
+ evidence.status=evidence.initialRows.length<2?'blocked':'observed';evidence.reason=evidence.initialRows.length<2?'Insufficient real rows for ordering assertions':'Directions clicked; reconcile sequence independently per header definition';
+ evidence.endedAt=new Date().toISOString();await save();evidence.text=redact(await page.locator('body').innerText()).slice(-10000);
+ await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data,captured_at=now()',[runId+'-QA06',JSON.stringify(evidence)]);
 }
 
 async function clickObserved(page,label) {
@@ -479,7 +490,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-teams-dashboard-asian-v100';
+ const runId='source-mapping-2026-10-03-live-sorts-v101';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -494,7 +505,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Palinsesto','Dashboard','Asian Odds']];
+  const groups=[['Palinsesto','Live']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
