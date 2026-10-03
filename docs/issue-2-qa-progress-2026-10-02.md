@@ -709,3 +709,31 @@ Il testo preparato per Piero copre: definizione Casa/Ospite; definizioni Gol+/Go
 Il percorso può rendere il futuro MatchPilot utilizzabile con limiti dichiarati, ma non corregge la fonte né soddisfa automaticamente i criteri originali. Per chiudere con un perimetro diverso servirebbe una decisione esplicita owner sui criteri aggiornati, mantenendo difetti/ambiguità tracciati. L'owner chiude la issue; nessuna chiusura automatica.
 
 Restano esclusi dalle prove attive importazione valida campionato/orario, mobile/audio/radar popolati, equity cronologica e Ladder Dutching. Pannello, normalizzazione, bankroll, OpenRouter operativo e monitoraggio continuo rimangono lavori successivi della master #1.
+
+
+## Risposta supporto riferita dall'owner — 03/10/2026 17:39 Europe/Rome
+
+Fonte: testo del supporto incollato da Piero in conversazione. **Chiarimenti dichiarativi, non nuovo collaudo del sito.** Le prove precedenti e i fallimenti restano conservati; questa sezione aggiorna le interpretazioni e supera le ipotesi del piano precedente dove indicato.
+
+| Punto | Risposta del supporto | Stato aggiornato / prova residua |
+|---|---|---|
+| Segna ancora Casa/Ospite | Probabilità che ciascuna squadra segni almeno un altro gol, calcolata separatamente. Possono avverarsi entrambe; Guida da correggere. | Significato chiarito, coerente con Hødd50%/88%. Non usare come prossimo gol. Correzione Guida promessa, non verificata. |
+| Gol+/Gol++ | Almeno1 / almeno2 gol residui totali. Campione al minuto esatto, non finestra. | Definizioni confermate dal supporto; coerenza aggregati già provata nel perimetro documentato. Selezione storica individuale non verificata. |
+| Fallback | Ampliamento nella stessa competizione; globale su tutte le leghe soltanto quando la competizione non ha nessun precedente utile. Trattino sotto soglia minima indipendentemente dal percorso. | Regola dichiarata, esempio Strømsgodset coerente. Non specificata numericamente la soglia nella risposta; non assumere una conferma del valore5. Fallback globale/soglia quantitativa non certificati empiricamente. |
+| Filtri Gol | Confrontano valore interno più preciso rispetto all'intero mostrato. Possibile miglioramento futuro della corrispondenza visiva. | Spiegazione del confine chiarita e compatibile con i casi reali. Il precedente fallimento contro percentuale stampata resta valido come discordanza UI, non errore di calcolo attestato. Numeratori ipotizzati non diventano conteggi verificati. |
+| Altro | Contiene combinazioni non mostrate; non espandibile oggi. Miglioramento segnalato. | Limite UI confermato. Gol++ Vitesse non riconciliabile indipendentemente dal pannello esposto; non chiamarlo PASS né bug matematico. |
+| QE | Per il Lay quota Betfair sotto QE conviene; indicatore corretto, Guida errata in due punti. Correzione promessa. | Interpretazione chiarita e coerente col test v94. Revocata l'incertezza sulla direzione dichiarata; la contraddizione testuale resta finché Guida corretta non osservata. Risposta non chiarisce eventuale commissione/aggiustamenti. |
+| POSS | Bug confermato, correzione prevista. | FAILED rispetto a ordinamento discriminante atteso; non solo ambiguità. Criterio specifico futuro non dichiarato; verificare dopo fix su coppie diverse, entrambe direzioni. |
+| Azzera filtri | Reset solo Avanzati, incluso Minuto; campionato/Scores/altri controlli superiori indipendenti. | Scope chiarito. Il test di reset globale in un solo clic era un'aspettativa errata: non bug sorgente. Cleanup separato reale già provato. Resta HT multiplo con due varianti popolate. |
+| H2H | Fix dichiarato già attivo; identico elenco Stats+ H2H senza condizioni aggiuntive. | Ritestare realmente North Macedonia–Scotland e Sabadell–FC Andorra se ancora presenti; altrimenti nuovi casi con N H2H positivo e confronto completo. NON dichiarare fix certificato dalla sola risposta. |
+| Reset Backtest | Automatico al cambio giornata, senza nuovo accesso; reload o nuovo Backtest sufficiente. Feed separato, nessun archivio delle partite sparite. | Distinzione quota/feed confermata. Questa risposta non precisa l'ora: precedente supporto diceva03:00 italiana. Mantenere test programmato04/10 con baseline e osservazioni dopo03, ma registrare l'ambiguità “cambio giornata”; non assumere mezzanotte né03 come confine empiricamente provato. |
+
+### Prossime verifiche attive
+1. H2H: controllo post-fix su incontri reali disponibili, con filtro on/off, conteggi Stats+ e membership Dashboard, conservando prove prima della scomparsa della giornata.
+2. Guida: verificare successiva correzione Casa/Ospite e due indicazioni QE; mantenere snapshot prima/dopo.
+3. POSS: dopo aggiornamento verificare criterio dichiarato/visibile, sequenze complete nei due versi, pari e mancanti. Nessun fix ancora certificato.
+4. HT multiplo: attendere almeno due HT differenti reali e popolati; verificare singoli, unione, rimozione/reset.
+5. QA09: prova già programmata04/10 preparazione02:40, baseline pre03 e dopo03, distinguendo disponibilità, reset quota e cambio feed. Se contatore già azzerato prima03 oppure confine non osservato, documentare limite senza certificare reset a03.
+6. Fallback globale e soglia campione: restano verifiche condizionate alla disponibilità di dati osservabili. “Altro” resta un limite documentato dell'interfaccia, non da aggirare con formule inventate.
+
+Le mitigazioni precedenti erano proposte, non codice implementato. Per QE la sospensione proposta per mancata interpretazione può essere riesaminata sulla base di questa risposta e del test v94, ma non equivale a implementazione automatica o certificazione della Guida aggiornata. **Issue ancora non chiudibile; owner mantiene la chiusura.** Nessuno dei punti esclusi è ripreso.
