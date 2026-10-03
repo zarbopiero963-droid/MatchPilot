@@ -320,3 +320,62 @@ Prova Neon: `source-mapping-2026-10-03-issue2-qa15-v87-attempt-1791014820716-445
 Commit `4018cdee06705243fd9bb9158d9c31c554da51d4`; node --check passato; run concluso 08:07:35 UTC con failed=[] (non significa che i calcoli siano certificati).
 
 QA-15 resta senza spunta. La issue #2 non è ancora chiudibile: aver affrontato tutti i punti non significa averli completati. Mi fermo qui, nessun altro QA avviato.
+
+
+### QA-01 H2H — tre tentativi reali e audit dell'intera Dashboard (37 righe)
+Solo H2H, 03/10/2026. Nessun altro punto avviato. Ladder e gli altri gruppi restano sospesi; ordinamenti Live attendono la segnalazione owner.
+
+**v88:** clic label H2H in timeout durante la fase performing click; fallimento conservato, nessun pass.
+**v89:** attesa ordinaria aumentata, senza force/cambio JS dello stato. Filtro 37→29→37; quattro dettagli letti. Strømmen–Sandnes Ulf e Hødd–Odd escluse, ma Stats+ mostrava 3 H2H ciascuna. Non dedotta una soglia minima.
+**v90:** audit di tutte le 37 righe corrente, dal 10:35 circa al **10:42:28 Europe/Rome**. Filtro 37→31→37, checked false→true→false; lista ripristinata nello stesso ordine: **true**. 37 dettagli aperti, 36 conteggi ottenuti con tab H2H attiva; uno non verificato perché la tab non è rimasta attiva. Nessun errore del processo. I conteggi diversi fra v89 e v90 sono reali: non certificata la stabilità fra sessioni.
+
+| Partita | Filtro Dashboard | H2H in Stats+ | Tab H2H confermata |
+|---|---|---:|---|
+| Belarus-SanMarino | Inclusa | 2 | Sì |
+| Spain-CzechRepublic | Inclusa | 5 | Sì |
+| Croatia-England | Inclusa | 8 | Sì |
+| Switzerland-Slovenia | Inclusa | 6 | Sì |
+| Cuiabá-PontePreta | Inclusa | 6 | Sì |
+| BocaJuniors-UniónSantaFe | Esclusa | 0 | Sì |
+| Strømmen-SandnesUlf | Inclusa | Non verificato | No |
+| FCDenBosch-FCDordrecht | Inclusa | 10 | Sì |
+| DeportesTolima-BoyacáChicó | Inclusa | 10 | Sì |
+| Hødd-Odd | Inclusa | 3 | Sì |
+| Iceland-Bulgaria | Inclusa | 4 | Sì |
+| AtléticoGO-AméricaMineiro | Inclusa | 10 | Sì |
+| Fortaleza-Náutico | Inclusa | 3 | Sì |
+| Vitesse-NACBreda | Esclusa | 0 | Sì |
+| Haugesund-Stabæk | Inclusa | 1 | Sì |
+| FCEindhoven-DeGraafschap | Inclusa | 14 | Sì |
+| AlmereCity-FCVolendam | Inclusa | 4 | Sì |
+| RKCWaalwijk-FCEmmen | Inclusa | 4 | Sì |
+| TOPOss-MVVMaastricht | Esclusa | 0 | Sì |
+| DeportivoCali-AlianzaPetrolera | Esclusa | 0 | Sì |
+| BurtonAlbion-HuddersfieldTown | Inclusa | 6 | Sì |
+| RionegroÁguilas-JaguaresdeCórdoba | Inclusa | 10 | Sì |
+| NorthMacedonia-Scotland | Esclusa | 4 | Sì |
+| Almería-Burgos | Inclusa | 6 | Sì |
+| Reading-BradfordCity | Inclusa | 6 | Sì |
+| Albacete-SDEibar | Inclusa | 10 | Sì |
+| LeytonOrient-PlymouthArgyle | Inclusa | 10 | Sì |
+| Sabadell-FCAndorra | Esclusa | 1 | Sì |
+| Cádiz-Leganés | Inclusa | 2 | Sì |
+| DefensayJusticia-SanLorenzo | Inclusa | 10 | Sì |
+| Newell'sOldBoys-Lanús | Inclusa | 10 | Sì |
+| AtléticoTucumán-BarracasCentral | Inclusa | 4 | Sì |
+| BotafogoSP-VilaNova | Inclusa | 7 | Sì |
+| IndependienteRivadavia-GimnasiaLaPlata | Inclusa | 5 | Sì |
+| Finland-Albania | Inclusa | 2 | Sì |
+| Avaí-Ceará | Inclusa | 10 | Sì |
+| Estonia-Luxembourg | Inclusa | 2 | Sì |
+
+**Discrepanze residue circoscritte:** North Macedonia–Scotland esclusa con 4 H2H e Sabadell–FC Andorra esclusa con 1 H2H. Entrambi mostrano date **NaN/NaN, NaN** nel dettaglio. Potrebbero essere record incompleti esclusi dal criterio della Dashboard, ma questa è un'ipotesi: il controllo è etichettato soltanto “H2H presente”, senza soglia o tooltip esplicativo. Non è corretto dichiarare che il filtro è sbagliato né certificare che applica una regola di validità non documentata. Strømmen–Sandnes Ulf: conteggio non verificato in v90; precedente v89 ne mostrava 3.
+
+**Esito:** certificata l'interazione reale e il ripristino della lista nel run v90. Non certificati il contratto esatto di inclusione, la stabilità fra sessioni e il trattamento dei record senza data. Altri tentativi di clic non risolvono una regola non esposta: serve chiarimento sulla fonte H2H usata dal filtro o una spiegazione visibile della validità dei record. Non modifichiamo il software proprietario. Valutazione chiarezza/coerenza osservata: 3/5. QA-01 resta aperto senza spunta.
+
+Prove Neon:
+- `source-mapping-2026-10-03-issue2-qa01-v88`: partial/TimeoutError.
+- `source-mapping-2026-10-03-issue2-qa01-v89-attempt-1791016326762-54g827915fp-QA01`.
+- `source-mapping-2026-10-03-issue2-qa01-v90-attempt-1791016506834-nfmdl7pbls-QA01`; run v90 concluso 08:42:29 UTC, failed=[].
+Commit v90 `c349f1280df19cc60dd080aae25283e083aa0ad0`, node --check passato.
+La issue non è chiudibile. Mi fermo prima di un altro punto.
