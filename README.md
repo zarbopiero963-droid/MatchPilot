@@ -19,7 +19,7 @@ Il postinstall del repository prepara Chromium per Playwright. Il collaudo usa l
 - `server.mjs`: HTTP, autenticazione Basic della pagina privata, controllo configurazione, connessione PostgreSQL e verifica configurazione OpenRouter.
 - `source-login.mjs`: login reale e acquisizioni/QA; con SOURCE_LOGIN_TEST=once viene eseguito all'avvio. È un harness operativo: leggere run ID e scenario prima di rilanciarlo.
 - `source-parser.mjs`, `source-state.mjs`, `source-finance.mjs`: parsing e modelli già coperti dai rispettivi test.
-- `source-catalog.mjs`: estrazione del catalogo e classifiche, controllo del contratto, persistenza transazionale e quarantena. Il comando `node catalog-sync.mjs <run-id>` importa gli snapshot di un run browser completato; i run del catalogo importano gli snapshot al termine e una sincronizzazione giornaliera prosegue la copertura. Questo ciclo non è il monitoraggio Live ogni minuto.
+- `source-catalog.mjs`: estrazione del catalogo e classifiche, controllo del contratto, persistenza transazionale e quarantena. Il comando `node catalog-sync.mjs <run-id>` importa gli snapshot di un run browser completato; i run del catalogo importano gli snapshot al termine. Nessuna sincronizzazione giornaliera è attiva: la programmazione introdotta dall'agente è stata disattivata su indicazione di Piero il 3 ottobre 2026 alle18:55 Europe/Rome. Questo ciclo non è il monitoraggio Live ogni minuto.
 - `migrations/001-catalog.sql`: schema incrementale del catalogo; nessuna cancellazione di dati esistenti.
 
 `GET /healthz` è pubblico; `GET /` è protetto e presenta lo stato di configurazione. Non esiste ancora un endpoint operativo per navigare partite/storico.
