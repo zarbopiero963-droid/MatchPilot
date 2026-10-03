@@ -462,28 +462,11 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const b=page.getByRole('button',{name:/Apri nel Lay Score/});await b.waitFor({state:'visible',timeout:60000});await b.click();await page.waitForTimeout(5000);return;}
- const dom=()=>page.evaluate(()=>({text:document.body.innerText,tables:[...document.querySelectorAll('table')].filter(e=>e.getClientRects().length).map(e=>({html:e.outerHTML,rows:[...e.querySelectorAll('tr')].map(r=>({text:r.innerText,cells:[...r.querySelectorAll('th,td')].map(c=>({text:c.innerText,html:c.innerHTML})),attrs:[...r.attributes].map(a=>[a.name,a.value])}))})),controls:[...document.querySelectorAll('button,input,select')].filter(e=>e.getClientRects().length).map(e=>({text:e.innerText,id:e.id,attrs:[...e.attributes].filter(a=>a.name.startsWith('data-')).map(a=>[a.name,a.value])}))}));
- if(section==='Statistiche Lega'){if(await page.locator('#lstSearchIn').isVisible())await page.locator('#lstSearchIn').fill('');await page.waitForTimeout(2500);const data=await dom();await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2)',[runId+'-league-catalog',JSON.stringify({section:'League catalogue discovery v109',...data})]);return;}
- if(section==='Dashboard'){
- const matches=await page.locator('[data-open-detail]').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.getAttribute('data-open-detail'),text:e.closest('article,tr')?.innerText,html:e.closest('article,tr')?.outerHTML})));
- await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2)',[runId+'-match-discovery',JSON.stringify({section:'Dashboard catalogue discovery v109',matches})]);
- const labels=['BRAZIL SERIE B','NORWAY 1. DIVISION','NETHERLANDS EERSTE DIVISIE','ENGLAND LEAGUE ONE','SPAIN LA LIGA 2','ARGENTINA LIGA PROFESIONAL DE FÚTBOL','COLOMBIA LIGA BETPLAY'];
- for(const label of labels){const target=matches.find(m=>m.text?.includes(label));
- if(!target)continue;
- await page.locator('[data-open-detail="'+target.id+'"]').filter({visible:true}).click();
- await page.locator('#closeDetailBtn').waitFor({state:'visible',timeout:25000});await page.waitForTimeout(2500);
- const tab=page.getByRole('button',{name:/^classifica$/i}).filter({visible:true});
- await tab.click();await page.waitForTimeout(2500);
- for(let retry=0;retry<3&&!await page.locator('.st-table').filter({visible:true}).count();retry++){await page.waitForTimeout(5000);await tab.click();await page.waitForTimeout(5000);}
- const groupLabels=await page.evaluate(()=>[...new Set(document.body.innerText.split('\n').map(t=>t.trim()).filter(t=>/^(Apertura|Clausura|Finalizacion|League [ABCD], Group|Group|Grupo|Groupe|Gruppo)/i.test(t)&&t.length<70))]);
- const exposedGroups=groupLabels.length?groupLabels:['overall'];
- for(const groupName of exposedGroups){if(groupName!=='overall'){await page.getByText(groupName,{exact:true}).filter({visible:true}).first().click();await page.waitForTimeout(2000);}
- const data=await dom();await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2)',[runId+'-standings-'+labels.indexOf(label)+'-group-'+exposedGroups.indexOf(groupName),JSON.stringify({section:'Standings discovery v109',match:target,leagueLabel:label,groupName,exposedGroups,interactive:await page.locator('[onclick],[data-st-group],[data-st-mode]').filter({visible:true}).evaluateAll(es=>es.map(e=>({text:e.innerText,html:e.outerHTML.slice(0,1500)}))),...data})]);
- }
- await page.locator('#closeDetailBtn').click();
- }
- }
+ await page.waitForTimeout(3000);
+ const data=await page.evaluate(()=>({text:document.body.innerText,checkboxes:[...document.querySelectorAll('input[type="checkbox"]')].filter(e=>e.getClientRects().length).map(e=>({id:e.id,value:e.value,attrs:[...e.attributes].map(a=>[a.name,a.value]),parent:e.parentElement.outerHTML,text:e.parentElement.innerText})),scrollContainers:[...document.querySelectorAll('*')].filter(e=>e.getClientRects().length&&e.scrollHeight>e.clientHeight+20&&['auto','scroll'].includes(getComputedStyle(e).overflowY)).map(e=>({id:e.id,className:e.className,text:e.innerText,html:e.outerHTML}))}));
+ if(!data.checkboxes.length)throw Error('Populated league checkbox list missing');
+ for(const c of data.scrollContainers){if(c.id)await page.locator('[id="'+c.id+'"]').evaluate(e=>{e.scrollTop=e.scrollHeight;});}
+ await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2)',[runId+'-backtest-leagues',JSON.stringify({section:'Backtest Storico league catalogue, no backtest executed',...data})]);
 }
 
 async function clickObserved(page,label) {
@@ -497,7 +480,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-catalogue-2026-10-03-rosters-v112';
+ const runId='source-backtest-catalogue-2026-10-03-v114';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -512,7 +495,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Statistiche Lega','Palinsesto','Dashboard']];
+  const groups=[['Backtest Storico']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
