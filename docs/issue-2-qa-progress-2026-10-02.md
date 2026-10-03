@@ -518,3 +518,53 @@ La sovrapposizione/clipping non impedisce la lettura DOM completa delle quote di
 Prova grezza:source-mapping-2026-10-03-asian-extract-v99-attempt-1791024178130-wqcehfp3m1e-AsianExtract.
 Verdict riconciliato:source-mapping-2026-10-03-asian-extract-v99-derived-verdict.
 Nessuna chiusura issue eseguita; collaudoLive16:15resta separato.
+
+
+### Dashboard ↔ Asian Odds: confronto reale completo v100
+03/10/2026 circa13:03Europe/Rome, stessa sessione autenticata, palinsesto automatico caricato. Dashboard37partite; Asian Odds229partite (diverso snapshot dal precedente231: non dedurre perdita parser).
+Confrontate entrambe le squadre casa/ospite in ordine:13coppie identiche dopo normalizzazione minima(case,spazi,punteggiatura,accenti),20coppie con alias candidati,4assenti dalla lista. Nessuna identificazione automatica basata su una sola sottostringa. Esempio “Odd” trova anche “Notodden”: falso candidato escluso dal confronto, illustra il rischio.
+| Dashboard | Asian Odds | Ora Dashboard / Asian | Esito |
+|---|---|---|---|
+| Belarus – San Marino | Belarus vs San Marino | 18:00 / 03/10, 16:00 | Coppia normalizzata identica |
+| Spain – Czech Republic | Spain vs Czech | 20:45 / 03/10, 18:45 | Alias candidato, da validare |
+| Croatia – England | Croatia vs England | 18:00 / 03/10, 16:00 | Coppia normalizzata identica |
+| Switzerland – Slovenia | Switzerland vs Slovenia | 20:45 / 03/10, 18:45 | Coppia normalizzata identica |
+| Cuiabá – Ponte Preta | Cuiaba vs Ponte Preta | 22:00 / 03/10, 20:00 | Coppia normalizzata identica |
+| Boca Juniors – Unión Santa Fe | Non presente | 02:30 / — | Assente nella lista |
+| Strømmen – Sandnes Ulf | Strommen vs Sandnes Ulf | 14:30 / 03/10, 12:30 | Alias candidato, da validare |
+| FC Den Bosch – FC Dordrecht | Den Bosch vs Dordrecht | 20:00 / 03/10, 18:00 | Alias candidato, da validare |
+| Deportes Tolima – Boyacá Chicó | Deportes Tolima vs Chico | 23:05 / 03/10, 21:05 | Alias candidato, da validare |
+| Hødd – Odd | Hodd vs Odd BK | 16:00 / 03/10, 14:00 | Alias candidato, da validare |
+| Iceland – Bulgaria | Iceland vs Bulgaria | 18:00 / 03/10, 16:00 | Coppia normalizzata identica |
+| Atlético GO – América Mineiro | Atletico Goianiense vs America MG | 21:00 / 03/10, 19:00 | Alias candidato, da validare |
+| Fortaleza – Náutico | Non presente | 02:35 / — | Assente nella lista |
+| Vitesse – NAC Breda | Vitesse vs NAC Breda | 16:30 / 03/10, 14:30 | Coppia normalizzata identica |
+| Haugesund – Stabæk | Haugesund vs Stabaek | 16:00 / 03/10, 14:00 | Alias candidato, da validare |
+| FC Eindhoven – De Graafschap | Eindhoven FC vs De Graafschap | 20:00 / 03/10, 18:00 | Alias candidato, da validare |
+| Almere City – FC Volendam | Almere City vs Volendam | 20:00 / 03/10, 18:00 | Alias candidato, da validare |
+| RKC Waalwijk – FC Emmen | RKC Waalwijk vs Emmen | 20:00 / 03/10, 18:00 | Alias candidato, da validare |
+| TOP Oss – MVV Maastricht | Top Oss vs Maastricht | 16:30 / 03/10, 14:30 | Alias candidato, da validare |
+| Deportivo Cali – Alianza Petrolera | Non presente | 02:45 / — | Assente nella lista |
+| Burton Albion – Huddersfield Town | Burton Albion vs Huddersfield | 16:00 / 03/10, 14:00 | Alias candidato, da validare |
+| Rionegro Águilas – Jaguares de Córdoba | Aguilas Doradas vs Jaguares de Cordoba | 21:00 / 03/10, 19:00 | Alias candidato, da validare |
+| North Macedonia – Scotland | North Macedonia vs Scotland | 20:45 / 03/10, 18:45 | Coppia normalizzata identica |
+| Almería – Burgos | Almeria vs Burgos CF | 16:15 / 03/10, 14:15 | Alias candidato, da validare |
+| Reading – Bradford City | Reading vs Bradford City | 16:00 / 03/10, 14:00 | Coppia normalizzata identica |
+| Albacete – SD Eibar | Albacete vs Eibar | 14:00 / 03/10, 12:00 | Alias candidato, da validare |
+| Leyton Orient – Plymouth Argyle | Orient vs Plymouth | 16:00 / 03/10, 14:00 | Alias candidato, da validare |
+| Sabadell – FC Andorra | Sabadell vs FC Andorra | 18:30 / 03/10, 16:30 | Coppia normalizzata identica |
+| Cádiz – Leganés | Cadiz vs Leganes | 18:30 / 03/10, 16:30 | Coppia normalizzata identica |
+| Defensa y Justicia – San Lorenzo | Defensa Y vs San Lorenzo | 19:45 / 03/10, 17:45 | Alias candidato, da validare |
+| Newell's Old Boys – Lanús | Newells Old Boys vs Lanus | 22:00 / 03/10, 20:00 | Coppia normalizzata identica |
+| Atlético Tucumán – Barracas Central | Atletico Tucuman vs Barracas | 22:00 / 03/10, 20:00 | Alias candidato, da validare |
+| Botafogo SP – Vila Nova | Botafogo SP vs Vila Nova GO | 23:30 / 03/10, 21:30 | Alias candidato, da validare |
+| Independiente Rivadavia – Gimnasia La Plata | Non presente | 02:30 / — | Assente nella lista |
+| Finland – Albania | Finland vs Albania | 15:00 / 03/10, 13:00 | Coppia normalizzata identica |
+| Avaí – Ceará | Avai SC vs Ceara | 16:00 / 03/10, 14:00 | Alias candidato, da validare |
+| Estonia – Luxembourg | Estonia vs Luxembourg | 18:00 / 03/10, 16:00 | Coppia normalizzata identica |
+
+Per tutte33corrispondenze/candidate selezionate, l'ora Asian è due ore prima dell'oraDashboard nello stesso giorno mostrato. Compatibile con UTC vsEurope/Rome il03/10, ma timezone della fonte non esplicitata: ipotesi, non contratto certificato. Le4assenti sono incontri02:30–02:45Dashboard; possibile confine giornata/feed, non causa dimostrata.
+Conclusione: le liste NON coincidono interamente e i nomi NON sono sempre identici.13matchnominali certi nel perimetro normalizzazione;20alias plausibili da confermare prima di associare quote automaticamente;4nessuna coperturaAsian corrente. Non usare nearest/fuzzy da solo per trading. Conservare stato unmatched/alias_candidate e verificare entrambe squadre,competizione,giornata/fuso. Il test non certifica identità tramite eventID comune, perché non esposto.
+Prove grezze:prefisso source-mapping-2026-10-03-teams-dashboard-asian-v100-attempt-1791025369886-fkvvoftrc6, suffissi -Teams-Dashboard e -Teams-Asian Odds.
+Commit8eb873f9c7fadd5d1f7af53956ed3fa4a6a60ba4; node --check positivo; runconcluso11:03:58UTC,failed=[].
+Annotato tutto il confronto, nessun adapter operativo di alias o conversione fuso implementato da questa prova.
