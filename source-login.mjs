@@ -462,64 +462,6 @@ async function inspectControlMap(page,pool,runId,section){
 
 async function testMarkedControls(page,pool,runId,section){
  if(section==='Palinsesto'){
-  await check('Apri inserimento manuale',()=>page.getByRole('button',{name:/^manuale$/i}).click(),async()=>await page.locator('textarea').filter({visible:true}).count()>0);
-  // No imports or global analysis invoked.
- }
- if(section==='Archivio'){
-  for(const label of ['VINTE','PERSE','SALTATE','TUTTE']){
-   const b=page.getByRole('button',{name:new RegExp(label,'i')}).filter({visible:true});
-   if(await b.count()===1)await check('Filtro archivio '+label,()=>b.click());
-   else results.push({name:'Filtro archivio '+label,status:'blocked',reason:'Unique visible known control absent'});
-  }
- }
- if(section==='Live'){
-  if(!await page.locator('#lav-golcasa').isVisible())await page.locator('[data-live-advtoggle]').filter({visible:true}).click();
-  await check('Nuovo contesto live pulito',async()=>{},async()=>{
-   const t=await page.locator('body').innerText();return /LE MIE STRATEGIE\s*0\s*\/\s*5/i.test(t)&&!t.includes('QA MP v');
-  });
- }
- if(section==='Backtest Storico'){
-  await page.waitForTimeout(5000);
-  await check('Nuovo contesto backtest pulito',async()=>{},async()=>!(await page.locator('#btSavedList').innerText()).includes('QA MP v'));
- }
- await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-tests',JSON.stringify({section:section+': final navigation results',results})]);
-}
-
-
-async function inspectControlMap(page,pool,runId,section){
- async function inventory(suffix){
-  const controls=await bounded(page.evaluate(()=>{
-   const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)&&getComputedStyle(e).visibility!=='hidden';
-   const candidate=e=>['BUTTON','A','SUMMARY'].includes(e.tagName)||['button','tab'].includes(e.getAttribute('role'))||e.hasAttribute('onclick')||([...e.attributes].some(a=>a.name.startsWith('data-')&&!a.name.startsWith('data-matchpilot'))&&getComputedStyle(e).cursor==='pointer');
-   return {controls:[...document.querySelectorAll('body *')].filter(e=>visible(e)&&candidate(e)).map(e=>({tag:e.tagName,id:e.id,label:(e.innerText||e.getAttribute('aria-label')||e.title||'').trim().slice(0,200),title:e.title,role:e.getAttribute('role'),disabled:!!e.disabled,attributes:[...e.attributes].filter(a=>a.name.startsWith('data-')&&!a.name.startsWith('data-matchpilot')&&!/token|secret|password|auth/i.test(a.name)).map(a=>[a.name,a.value]),link:e.tagName==='A'?(()=>{try{const u=new URL(e.href);return u.origin+u.pathname}catch{return ''}})():undefined})),dates:[...document.querySelectorAll('input[type="date"]')].map(e=>({id:e.id,type:e.type,visible:visible(e),value:e.value})),dialogs:[...document.querySelectorAll('[role="dialog"],dialog')].filter(visible).map(e=>e.innerText.slice(0,1000))};
-  }));
-  for(const c of controls.controls){c.label=redact(c.label);c.title=redact(c.title);if(c.link)c.link=redact(c.link);}
-  await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-'+section+'-map-'+suffix,JSON.stringify({section:section+': control map '+suffix,...controls})]);
-  await capture(page,pool,runId+'-'+section+'-text-'+suffix,section+': '+suffix);
- }
- await inventory('initial');
- if(section==='Dashboard'){
-  const analysis=page.locator('button').filter({hasText:/^🧠?\s*Analisi\s*▾?$/i}).filter({visible:true}).first();
-  if(await analysis.count()){await analysis.click();await inventory('analysis-dropdown');await page.keyboard.press('Escape');}
-  await clickObserved(page,'02 OTT 2026');await inventory('calendar');await page.keyboard.press('Escape');
- }
- if(section==='Live'){
-  await page.getByRole('button',{name:/Tabella/}).filter({visible:true}).first().click();await inventory('table');
-  await page.getByRole('button',{name:/Card/}).filter({visible:true}).first().click();await inventory('card');
-  for(const [key,re] of [['scores',/Scores/],['time',/Time\s*▾?/],['league',/Tutti i campionati/],['strategy',/Le mie strategie/]]){
-   const b=page.getByRole('button',{name:re}).filter({visible:true}).first();
-   if(await b.count()){await b.click();await inventory(key);await b.click().catch(()=>{});}
-  }
- }
- if(section==='Asian Odds'){
-  const extra=page.getByRole('button',{name:/^altre/i}).filter({visible:true}).first();
-  if(await extra.count()){await extra.click();await inventory('other-lines');await page.keyboard.press('Escape');}
- }
-}
-
-
-async function testMarkedControls(page,pool,runId,section){
- if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
  if(section==='Guida'){await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-QA14Guide',JSON.stringify({section:'QA14 source guide',text:redact(await page.locator('body').innerText()),at:new Date().toISOString()})]);return;}
  const evidence={section:'QA-14 QE boundary actual input',status:'partial',results:[],fixture:'Virtual quote input only; no order'};
  const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA14QE',JSON.stringify(evidence)]);
