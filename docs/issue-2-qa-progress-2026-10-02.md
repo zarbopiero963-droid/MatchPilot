@@ -482,3 +482,16 @@ Caso Stockholm Inter–Assyriska (231 partite Asian Odds disponibili).
 Esito: difetto di impaginazione/ridimensionamento e clipping riprodotto anche a larghezza desktop, non solo testo piccolo nello screenshot. Dati presenti nel DOM, ma questo non certifica correttezza numerica delle quote. Valutazione leggibilità2/5. Icone/immagini bloccate dal harness non considerate difetti della fonte.
 Commit v96 1e6d9f044310095982684a77823977e3725c9830, node --check positivo. Run source-mapping-2026-10-03-asian-layout-v96 concluso10:27:51UTC failed=[]; snapshot source-mapping-2026-10-03-asian-layout-v96-attempt-1791023227528-zzmj7s8q2cd-AsianLayout.
 Da segnalare al supporto: riquadri con colonne Apertura/Attuale troppo larghe rispetto allo spazio, Trasferta fuori bordo/copribile dal pannello vicino e quote destra tagliate su telefono; richiesta adattamento colonne o scroll orizzontale accessibile. Non riattivati tutti i punti mobile esclusi.
+
+
+### Risposta supporto riportata dall'owner — 03/10/2026 12:30 Europe/Rome
+Messaggio ricevuto dall'owner e riportato in chat (non acquisito direttamente dal canale supporto):
+> OK CAPITO , NO ALLORA PROB CI SARA UN BUG CHE SISTEMERO QUANDO NELLA DASH CLICCHI IL FILTRO , X QUANTO RIGUARDA LE PERCENTUALI QUELLE LE CONTA LO STESSO SE NON VEDI LA DATA NAN E XK IL SISTEMA NON RICONOSCE LA DATA MA I CALCOLI SONO APPOSTO TRANQUILLO GRAZIE X AVERMI FATTO NOTATO IL FILTRO NELLA DASH , SI 3 DI NOTTE ORE ITALIANA
+
+**QA09 reset:** regola chiarita dal supporto: i backtest si riattivano alle **03:00 ora italiana del giorno dopo**, timezone Europe/Rome. Il residuo documentale ora/fuso è risolto; limite e successiva disponibilità erano già provati. Classificazione: regola dichiarata dalla fonte, NON test empirico eseguito al confine delle03:00. Non programmata saturazione quota.
+
+**QA01 H2H:** supporto riconosce un probabile bug quando si attiva il filtro Dashboard e dichiara che lo sistemerà. Casi riprodotti v90: North Macedonia–Scotland (4H2H) e Sabadell–FC Andorra (1H2H) escluse dal filtro pur presenti in Stats+. Il difetto resta aperto in attesa della correzione e di un nuovo test reale: non dichiarato risolto/certificato.
+
+**Date NaN / percentuali:** secondo il supporto il sistema non riconosce la data, ma gli incontri sono comunque conteggiati nelle percentuali. Registrata la dichiarazione; non scartare automaticamente un record dal parser soltanto per data NaN. Preservare data non valida come null e anomalia esplicita, mantenendo risultati e campione disponibili. Questa è indicazione di trattamento, non attestazione che tutte le formule siano state riconciliate indipendentemente; cronologia non ricostruibile da NaN senza altra fonte.
+
+QE/Guida e prove Live restano aperti, nessuna modifica del software proprietario effettuata. La issue non è ancora chiudibile.
