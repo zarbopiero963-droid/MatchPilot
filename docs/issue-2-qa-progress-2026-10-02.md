@@ -2,6 +2,8 @@
 
 Stato: **4/15 criteri conclusi**, di cui 3 PASSED e 1 NON DISPONIBILE. **Non chiudibile**. L'owner chiuderà l'issue soltanto quando tutti i criteri saranno soddisfatti. I test sono stati eseguiti sequenzialmente sull'account autorizzato; nessun ordine reale.
 
+Aggiornamento **03/10/2026 16:52 Europe/Rome**: prove Live v101–v106 concluse, vedere sezioni finali per asserzioni e snapshot. Restano 5 punti attivi non conclusi (QA01, QA06, QA07, QA09, QA14). QA05, QA10–12, QA13 e QA15 sono esclusi dalle prove attive per decisione owner, senza certificazione positiva.
+
 Date: 2 ottobre 2026 UTC / 2–3 ottobre Europe/Rome (UTC+2). La data nei run-id è un'etichetta; fanno fede i timestamp Neon. `run.status=complete` significa esecuzione terminata, non certificazione superata. Le prove originali, inclusi errori del harness, sono conservate.
 
 | Caso | Esito | Ultime versioni | Verificato e residui |
@@ -10,19 +12,19 @@ Date: 2 ottobre 2026 UTC / 2–3 ottobre Europe/Rome (UTC+2). La data nei run-id
 | QA-02 | PASSED | v43 | Logout, accesso diretto negato e nuovo login verificati; verdict derivato conserva errore iniziale del harness. |
 | QA-03 | NON DISPONIBILE | v47 | Nessun calendario/input data/dialog/iframe osservato dopo clic. Non certifica un cambio giornata. |
 | QA-04 | PASSED | v49 | Manuale QA popolato: Annulla conserva; Conferma elimina; reload pulito e identità feed automatico preservate. |
-| QA-05 | PARTIAL | v51 | Squadre/quote, duplicato unico, malformato e cleanup verificati. Lega e ora non ancora riconciliate. |
-| QA-06 | PARTIAL | v72 | 32 clic su 16 header con due partite. RATING pari; PI1 totali pari; POSS non inverte. Comparatori, pari e mancanti da completare. |
-| QA-07 | PARTIAL | v56 | 15 scenari range/zero/vuoto/combinazione/reset; matrice campionato-tempo-HT-preferiti e inclusività da completare. |
+| QA-05 | SOSPESO owner (storico: PARTIAL) | v51 | Squadre/quote, duplicato unico, malformato e cleanup verificati. Lega e ora non ancora riconciliate. |
+| QA-06 | PARTIAL | v101/v106 | 16 header nei due versi, 15 criteri riconciliati; rating numerico stabile su 11 partite. Possesso: criterio discriminante non chiarito. |
+| QA-07 | PARTIAL | v102/v103/v103b/v104 | Matrice popolata e cleanup verificati; residui precisione percentuali, scope reset, HT multiplo con due varianti popolate. |
 | QA-08 | PASSED | v55 | Strategia Live A salva/reload/richiama; B indipendente non vede: storage locale. Cleanup entrambi. Non prova dispositivi fisici né Backtest. |
 | QA-09 | BLOCKED | v57/v62 | Rifiuto reale del limite 5/giorno provato. Reset al confine effettivo e timezone non certificati. |
-| QA-10 | PARTIAL | v60/v73 | 24 viste touch emulato con asset, 12 pagine×2 orientamenti. Scroll verticale e dettagli landscape riprovati (v73), clipping laterale Live da risolvere. |
-| QA-11 | PARTIAL | v59 | On/off, due selezioni e 3 risorse audio HTTP200 provate. Playback udibile e mute effettivo non provati. |
-| QA-12 | PARTIAL | v66 | Due radar con iframe popolati letti e screenshot verificati. Rami vuoto/errore/scroll residui. |
-| QA-13 | BLOCKED | v62 | Nuovo backtest rifiutato per quota giornaliera; serie cronologica individuale/equity/drawdown non certificati. |
-| QA-14 | FAILED | v63/v68 | Guida definisce Gol++≥2 gol. QE: UI 50 valore/60 non conviene con QE55.56; Guida consiglia lay sopra QE: contraddizione aperta. |
-| QA-15 | FAILED | v70 | Target dichiarato 10 netti, fee5% restituisce9.50; multi selezioni e arrotondamenti/commissioni discordanti. Reset input eseguito. |
+| QA-10 | SOSPESO owner (storico: PARTIAL) | v60/v73 | 24 viste touch emulato con asset, 12 pagine×2 orientamenti. Scroll verticale e dettagli landscape riprovati (v73), clipping laterale Live da risolvere. |
+| QA-11 | SOSPESO owner (storico: PARTIAL) | v59 | On/off, due selezioni e 3 risorse audio HTTP200 provate. Playback udibile e mute effettivo non provati. |
+| QA-12 | SOSPESO owner (storico: PARTIAL) | v66 | Due radar con iframe popolati letti e screenshot verificati. Rami vuoto/errore/scroll residui. |
+| QA-13 | SOSPESO owner (storico: BLOCKED) | v62 | Nuovo backtest rifiutato per quota giornaliera; serie cronologica individuale/equity/drawdown non certificati. |
+| QA-14 | PARTIAL / QE discordante | v94/v104/v105 | Gol+ 11/11, Gol++ 10/11 aggregati UI coerenti entro tolleranze; Vitesse Altro bloccante, storico grezzo/fallback e definizioni non completamente certificati. QE Guida ancora opposta alla UI. |
+| QA-15 | SOSPESO owner (storico: FAILED) | v70 | Target dichiarato 10 netti, fee5% restituisce9.50; multi selezioni e arrotondamenti/commissioni discordanti. Reset input eseguito. |
 
-## Blocchi reali che impediscono la chiusura
+## Blocchi storici — perimetro attivo aggiornato nelle sezioni finali
 
 - Quota Backtest: tentativo protetto v62 respinto con limite 5/giorno; nessun risultato generato. Non ripetere né aggirare il limite. Reset effettivo e timezone ancora da osservare; sequenza storica cronologica ancora da acquisire.
 - QE: probabilità mostrata 1,8%, QE55,56; quote QA50/55,5/55,6/60 producono VALORE/NEUTRO/NEUTRO/NON CONVIENE. La Guida prescrive il lato opposto della soglia Lay. Incongruenza da risolvere con il gestore della fonte; nessuna formula inventata nel parser.
@@ -603,3 +605,76 @@ v103:34casi;25PASS. Tutte19opzioni Scores(home/away/draw+16risultati),multiOR,Se
 **Gol++ confine aperto**: v102Leyton mostra60% ma min60loesclude; hypothesisprecisione/arrotondamento non ancora provata. Verifica dettaglio prosegueQA14; fallimento grezzo conservato.
 Raw:source-mapping-2026-10-03-live-filters-v102-attempt-1791037397156-zjifio6vl5r-QA07;source-mapping-2026-10-03-live-filter-combinations-v103-attempt-1791037720463-9b4zn45ja95-QA07-extension;source-mapping-2026-10-03-live-filter-retry-v103b-attempt-1791038073142-4y9a352jm1q-QA07-extension.
 QA07 complessivo **PARZIALE**: molto piùcoperto, restano precisione al confine, perimetro reset da mantenere esplicito e varianteHT con due risultati popolati. Nessuna chiusura issue.
+
+
+### QA14 — Gol+/Gol++, dettagli e oracle indipendente, 03/10/2026 16:39–16:46 Europe/Rome
+
+**Verdict complessivo: PARZIALE; QE non risolta.** Browser reale Render, viewport 1920×1080, autenticazione tramite ambiente esistente. Solo gesti UI ordinari e lettura DOM; nessuna simulazione, funzione interna del sito o installazione browser. Sintassi `node --check source-login.mjs` verificata prima di ciascun push. Ogni run concluso prima del successivo deploy.
+
+| Versione | Commit harness | Run | Fine Europe/Rome |
+|---|---|---|---|
+| v104 | eb24e2a6af0b58f62ba34391d9fc4a449db55ed4 | source-mapping-2026-10-03-live-goal-detail-v104 | 16:41:33 |
+| v105 | d6bce7e163cd592821f07c03ee51f9446b462c7b | source-mapping-2026-10-03-live-exact-score-v105 | 16:46:36 |
+
+**Dettaglio Gol+/Gol++ — PASSED nel perimetro osservato:** apertura e chiusura reali su 10 partite; campione N del tooltip coincide con N del dettaglio 10/10; percentuali entro [0,100] e Gol++ ≤ Gol+ 10/10. N varia da 8 a 463. Campioni e percentuali cambiano con minuto/score: non sono confrontati tra momenti differenti come se fossero congelati.
+
+**Risultato Esatto Live — controllo indipendente degli aggregati UI:** 11 aperture e chiusure, con N tooltip/modal coincidente 11/11. Dal dettaglio reale si ricava Gol+ = 100 − P(score attuale); Gol++ = 100 − P(score attuale) − P(un solo altro gol casa) − P(un solo altro gol ospite). Un esito non mostrato vale zero nell'oracle soltanto se l'elenco è completo, senza “Altro”; con “Altro” positivo occorrono entrambe le categorie di un solo gol esplicite. Nessun uso della percentuale da verificare per ricostruire una categoria nascosta.
+
+| Partita | Minuto / score | N | Gol+ UI / oracle | Gol++ UI / oracle | Esito aggregati |
+|---|---|---:|---|---|---|
+| Finland–Albania | 81′ / 2-1 | 11 | 9 / 9 | 0 / 0 | PASS / PASS |
+| Strømsgodset–Åsane | 41′ / 0-0 | 421 | 86 / 85 | 59 / 58 | PASS / PASS |
+| Avaí–Ceará | 41′ / 0-0 | 118 | 80 / 80 | 34 / 34 | PASS / PASS |
+| Haugesund–Stabæk | 44′ / 0-0 | 30 | 83 / 83 | 50 / 49 | PASS / PASS |
+| Leyton Orient–Plymouth | 44′ / 0-0 | 68 | 78 / 78 | 43 / 43 | PASS / PASS |
+| Reading–Bradford | 44′ / 0-1 | 131 | 79 / 79 | 50 / 51 | PASS / PASS |
+| Almería–Burgos | 29′ / 0-0 | 100 | 88 / 88 | 58 / 58 | PASS / PASS |
+| Burton Albion–Huddersfield | 44′ / 1-2 | 11 | 73 / 73 | 46 / 46 | PASS / PASS |
+| Hødd–Odd | 44′ / 1-2 | 12 | 92 / 92 | 50 / 50 | PASS / PASS |
+| TOP Oss–Maastricht | 12′ / 0-0 | 297 | 93 / 93 | 72 / 72 | PASS / PASS |
+| Vitesse–NAC | 5′ / 0-0 | 100 | 93 / 93 | 82 / non determinabile | PASS / BLOCKED |
+
+Tolleranza predefinita del confronto tra percentuali intere stampate: ±1 punto percentuale Gol+, ±2 Gol++. Somme degli istogrammi 99–101%. **Sono prove di coerenza tra aggregati UI, non certificazione dei numeratori, della selezione di ogni incontro storico o della formula sui dati grezzi.** Vitesse: 0-0=7%, 0-1=9%, 1-0 non esposto e “Altro”=37%; Gol++ indipendente non determinabile senza la categoria nascosta.
+
+**Fallback — OBSERVED:** Strømsgodset espone “tutta la competizione (quote non abbastanza simili nel campione)” sia nel tooltip sia nel dettaglio; documentato ampliamento nella stessa competizione. La Guida menziona anche fallback globale quando la competizione è insufficiente: non osservato in questi campioni, quindi non certificato. In v101 Hødd mostrava “–” e “Campione insufficiente”; il numero esplicito <5 non era esposto, quindi non certificata quantitativamente la soglia.
+
+**Inclusività percentuali — discordanza visuale conservata:** v104 Finland Gol+ 25%, N8, min25 inclusa; Almería Gol+ 90%, N115, min90 esclusa; Almería Gol++ 60%, N115, min60 inclusa. Conferma che l'uguaglianza della percentuale stampata non garantisce membership. La possibile precisione interna spiega i casi, ma resta inferenza: sotto ipotesi di frequenza semplice arrotondata, 103/115=89,565% potrebbe stampare90 e restare sotto90; il numeratore103 non è mostrato. Anche 68/114=59,649% per il precedente Leyton v102 è un candidato, non conteggio certificato.
+
+**Nuova ambiguità nella Guida:** “Segna ancora Casa/Ospite” è spiegato come chi segna il prossimo gol. Hødd v104 espone Casa50%, Ospite88% (somma138%): non possono rappresentare due alternative mutuamente esclusive del prossimo gol. Potrebbero essere eventi sovrapposti di almeno un gol per ciascuna squadra; questa interpretazione non è una formula certificata. Serve chiarimento della fonte.
+
+**QE:** la Guida acquisita nuovamente v104 conserva l'indicazione Lay sopra QE→VALORE / sotto QE→SALTA, opposta alla prova UI v94 già registrata. Nessuna nuova evidenza di correzione: contraddizione ancora aperta; non implementare una formula inventata.
+
+Prove grezze Neon:
+- `source-mapping-2026-10-03-live-goal-detail-v104-attempt-1791038357228-droq3ecu6i6-QA14`
+- `source-mapping-2026-10-03-live-exact-score-v105-attempt-1791038635640-s209zuaorl-QA14-CS`
+- Verdict derivato: `source-mapping-2026-10-03-live-goals-v104-v105-derived-verdict`
+
+### QA06 — approfondimento rating numerico e possesso v106, 03/10/2026 16:50–16:51 Europe/Rome
+
+Commit `b289772696c768a2b30caf93d4a3fb036986e36b`; run `source-mapping-2026-10-03-live-numeric-sorts-v106`, concluso 16:51:08 Europe/Rome (14:51:08 UTC). Sintassi verificata prima del push. Browser reale 1920×1080; nessun dato simulato.
+
+**Rating numerico PASSED:** associati Card e Tabella tramite ID partita reale; valori Card stabili prima/dopo il clic in entrambe le direzioni su 11 partite.
+- ▲: [20,20,20,30,30,40,40,50,50,60,60].
+- ▼: [60,60,50,50,40,40,30,30,20,20,20].
+
+Questo integra il precedente controllo v101 delle sole fasce BASSA/MEDIA/HOT. **Possesso OBSERVED, non certificato:** anche nel secondo run né quota casa né max(casa,ospite) risultano monotoni; le somme sono tutte100. Nessuna definizione dell'ordinamento discriminante osservata. Un cambio di rating durante il primo giro del possesso è conservato come drift e non usato per certificare il rating. Non presentare l'ordinamento sul totale costante come funzione utile verificata.
+
+Snapshot: `source-mapping-2026-10-03-live-numeric-sorts-v106-attempt-1791038960286-4uf296crgiw-QA06-numeric`.
+Verdict: `source-mapping-2026-10-03-live-numeric-sorts-v106-derived-verdict`.
+
+### Stato finale del collaudo Live — 03/10/2026 16:52 Europe/Rome
+
+**Issue NON ANCORA CHIUDIBILE.** Tutte le esecuzioni v101–v106 sono terminate. I casi superati hanno asserzioni su liste popolate e prove grezze; errori harness, assunzioni fallite e impedimenti restano nel registro. Nessun ordine reale o nuovo backtest consumato; preferito QA e filtri ripristinati tramite UI. Le modifiche al codice riguardano il harness QA, non una correzione della fonte.
+
+| Punto attivo | Stato finale | Residuo concreto |
+|---|---|---|
+| QA01 H2H Dashboard | In attesa supporto | Bug filtro riconosciuto dal gestore; ritestare dopo correzione. Le date NaN sono mantenute nei calcoli secondo dichiarazione del supporto, non come nuova certificazione autonoma. |
+| QA06 ordinamenti Live | PARZIALE | Tutti 16 header cliccati nei due versi; 15 criteri riconciliati con celle reali, rating numerico incluso. Chiarire e verificare criterio possesso. |
+| QA07 filtri Live | PARZIALE | Matrice campionato/Time/Scores/statistiche/preferiti, incroci e cleanup provati. Restano contratto della soglia sulle percentuali arrotondate, ambito del pulsante reset e unione di due HT differenti entrambi popolati. |
+| QA09 reset giornaliero | In attesa prova al confine | Supporto dichiara 03:00 Europe/Rome; manca osservazione reale prima/dopo quel confine. |
+| QA14 Gol+/Gol++ / QE | PARZIALE, QE discordante | Aggregati Gol+ 11/11 e Gol++ 10/11 coerenti entro tolleranze; Vitesse bloccata da “Altro”. Mancano numeratori/storico individuale, fallback globale/soglia N esplicita e chiarimenti “prossimo gol”/QE. |
+
+**Fuori dalle prove attive per decisione owner:** importazione valida con campionato/orario (QA05), mobile/audio/radar con Live popolati (QA10–12), equity cronologica (QA13) e Ladder Dutching (QA15). I difetti storici restano conservati, ma questi punti non sono ripresi né dichiarati superati.
+
+Pannello operativo MatchPilot, timeline/archivio giornate, normalizzazione e bankroll virtuale, analisi operativa OpenRouter e monitoraggio continuo restano lavori successivi nella master #1. Non sono stati costruiti da questi test. La issue resta aperta; nessuna chiusura automatica.
+
