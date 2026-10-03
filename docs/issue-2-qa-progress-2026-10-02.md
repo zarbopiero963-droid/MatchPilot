@@ -271,3 +271,19 @@ Commit test: `69da498a80dceb4f29161252f270e7128f6cdc70`, controllo sintassi pass
 Valutazione della sola gestione del caso senza dati: 4/5 (messaggio esplicito, testo di aiuto generico sui filtri); copertura complessiva QA-12 parziale.
 
 QA-12 resta senza spunta e la issue non è ancora chiudibile. QA-13 non avviato: attendo la conferma dell'owner.
+
+
+### QA-13 — Equity cronologica: prova reale v84, PARZIALE con errore del test
+Eseguito solo QA-13 il 03/10/2026 dalle 09:57:35 Europe/Rome; processo terminato alle 09:58:38. Un solo backtest protetto da ticket non ripetibile `source-backtest-test-2026-10-03-qa13-single`.
+
+Input reali: tutti i campionati; quota 1 [1,5–2], X [3–5], 2 [3–5]; minuto 60, risultato 1-1. Risultato prodotto: **2324 partite**, su 17.929 candidate; **3 backtest rimasti oggi**. Frequenza Over 2,5 finale 65,4%, quota minima mostrata 1,53. Disponibili mercato/lato/quota/importo/commissione e pulsante Calcola.
+
+**Errore del test, non difetto certificato del sito:** il selettore cercava l'etichetta “Over 2.5 finale”, mentre l'interfaccia espone “Over 2,5 finale”. La selezione è andata in timeout prima del clic Calcola. Pertanto i confronti promessi commissione 0%/5% **non sono stati eseguiti**, nessuna equity di questo run è certificata e non sono stati consumati altri backtest per mascherare il fallimento.
+
+Restano da completare: selezione tramite valore dell'opzione realmente osservata; calcoli dei totali; esposizione/verifica delle date e dell'esito di ogni operazione; riconciliazione indipendente capitale cumulato, picchi e drawdown nell'ordine cronologico. Un grafico visibile o un totale corretto non bastano a certificare la sequenza. Le precedenti verifiche aggregate restano separate da questo requisito.
+
+Prova grezza Neon: `source-mapping-2026-10-03-issue2-qa13-v84-attempt-1791014240308-0bzb0t9loz58-QA13`; run omonimo con stato partial e TimeoutError conservato.
+Commit: `08d13e49c49780677ce084b63efcfbf106e29142`; controllo sintassi passato, test funzionale incompleto.
+Valutazione del percorso backtest osservato: 4/5 (risultato e contatore disponibili); calcolo equity non valutabile in questo run.
+
+QA-13 resta senza spunta; issue non chiudibile. QA-14 non avviato. Attendo conferma dell'owner.
