@@ -462,21 +462,68 @@ async function inspectControlMap(page,pool,runId,section){
 
 async function testMarkedControls(page,pool,runId,section){
  if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
- const evidence={section:'QA-06 live sorting',startedAt:new Date().toISOString(),actions:[]};
- await page.waitForTimeout(20000);await page.locator('[data-live-view="table"]').filter({visible:true}).click();await page.waitForTimeout(2000);
- const rows=()=>page.locator('tbody tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({text:e.innerText,html:e.outerHTML,cells:[...e.querySelectorAll('td')].map(x=>({text:x.innerText,leafText:[...x.querySelectorAll('*')].filter(n=>!n.children.length).map(n=>n.innerText),title:x.title,className:x.className}))})));
- evidence.initialRows=await rows();evidence.headers=await page.locator('[data-live-sort]').filter({visible:true}).evaluateAll(es=>es.map(e=>({key:e.getAttribute('data-live-sort'),label:e.innerText,title:e.title,cellIndex:e.closest('th')?.cellIndex,colSpan:e.closest('th')?.colSpan})));
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data,captured_at=now()',[runId+'-QA06',JSON.stringify(evidence)]);
- await save();
- for(const key of ['min','ris','rating','xgl','xg','gp1','gp2','pi1','pi2','pi3','cg10','sh','ot','da','cor','pos']){
-  const head=page.locator('[data-live-sort="'+key+'"]').filter({visible:true});
-  if(!await head.count()){evidence.actions.push({key,status:'blocked',reason:'Header not rendered'});continue;}
-  try{await head.first().click();await page.waitForTimeout(200);const first=await rows();const firstHeader=await head.first().innerText();await head.first().click();await page.waitForTimeout(200);const second=await rows();evidence.actions.push({key,status:'observed',at:new Date().toISOString(),first,second,firstHeader,headerText:await head.first().innerText()});await save();}
-  catch(e){evidence.actions.push({key,status:'failed',error:redact(e.message).slice(0,400)});}
+
+ const evidence={section:'QA-07 populated matrix v102',startedAt:new Date().toISOString(),results:[]};
+ await page.waitForTimeout(20000);await page.locator('[data-live-view="table"]').filter({visible:true}).click();await page.locator('[data-live-advtoggle]').filter({visible:true}).click();await page.waitForTimeout(8000);
+ const rows=()=>page.locator('tbody tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({team:e.querySelector('td')?.innerText,id:e.querySelector('[data-live-fav]')?.getAttribute('data-live-fav'),fav:e.querySelector('[data-live-fav]')?.className,league:e.querySelector('.lt-league')?.innerText,html:e.outerHTML,cells:[...e.querySelectorAll('td')].map(c=>({text:c.innerText,parts:[...c.querySelectorAll('*')].filter(n=>!n.children.length).map(n=>n.innerText)}))})));
+ const fields=()=>page.locator('input[id^="lav-"]').evaluateAll(es=>es.map(e=>({id:e.id,value:e.value,min:e.min,max:e.max,step:e.step})));
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA07',JSON.stringify(evidence)]);
+ const reset=()=>page.getByText('↺ Azzera filtri',{exact:true}).filter({visible:true}).click();
+ async function range(key,side,number){const f=page.locator('#lav-'+key+'-'+side);await f.press('Home');const st=Number(await f.getAttribute('step')),mn=Number(await f.getAttribute('min'));const count=Math.round((number-mn)/st);for(let i=0;i<count;i++)await f.press('ArrowRight');}
+ async function record(name,action,oracle){await reset();await page.waitForTimeout(300);const before=await rows();try{await action();await page.waitForTimeout(300);const after=await rows();const f=await fields();const expected=oracle?before.filter(r=>oracle(r,f)).map(r=>r.team).sort():null;const actual=after.map(r=>r.team).sort();evidence.results.push({name,before,after,expected,fields:await fields(),status:expected&&before.length?(JSON.stringify(expected)===JSON.stringify(actual)?'passed':'failed'):'observed_without_membership_proof'});}catch(e){evidence.results.push({name,status:'blocked',error:redact(e.message).slice(0,600)});}await save();}
+ await reset();evidence.initialRows=await rows();evidence.initialFields=await fields();evidence.controls=await page.locator('button,select').filter({visible:true}).evaluateAll(es=>es.map(e=>({label:e.innerText.slice(0,150),attrs:[...e.attributes].filter(a=>a.name.startsWith('data-')).map(a=>[a.name,a.value])})));
+ const num=(r,i)=>parseFloat(r.cells[i]?.text);const goals=r=>r.cells[2]?.text.trim().split('-').map(Number);const pair=(r,i)=>r.cells[i]?.parts.map(v=>parseFloat(v));const sum=(r,i)=>{const p=pair(r,i);return p?.length&&p.every(Number.isFinite)?p.reduce((a,b)=>a+b,0):NaN;};
+ const values={gol1:r=>num(r,5),gol2:r=>num(r,6),tiri:r=>sum(r,15),tirit:r=>sum(r,14),corner:r=>sum(r,17),poss:r=>Math.max(...pair(r,18)),q1:r=>num(r,7),qx:r=>num(r,8),q2:r=>num(r,9),minuto:r=>num(r,1)};
+ const bound=(f,key,side)=>Number(f.find(x=>x.id==='lav-'+key+'-'+side)?.value);
+ const boundsOracle=key=>(r,f)=>values[key](r)>=bound(f,key,'min')&&values[key](r)<=bound(f,key,'max');
+ await record('Zero score means0-0',async()=>{await page.locator('#lav-golcasa').fill('0');await page.locator('#lav-golospite').fill('0');},r=>goals(r).every(g=>g===0));
+ await record('Blank goals wildcard',async()=>{await page.locator('#lav-golcasa').fill('');await page.locator('#lav-golospite').fill('');},()=>true);
+ await record('Impossible home15 empty',()=>page.locator('#lav-golcasa').fill('15'),r=>goals(r)[0]===15);
+ await record('Minute0-60 inclusive',()=>range('minuto','max',60),r=>num(r,1)<=60);
+ await record('Prematch home2.4-2.5 inclusive',async()=>{await range('q1','max',2.5);await range('q1','min',2.4);},r=>num(r,7)>=2.4&&num(r,7)<=2.5);
+ await record('Prematch home exact2.45 represented by slider2.4-2.5',async()=>{await range('q1','max',2.5);await range('q1','min',2.4);await page.locator('#lav-golcasa').fill('0');await page.locator('#lav-golospite').fill('0');await range('minuto','max',60);},r=>num(r,7)>=2.4&&num(r,7)<=2.5&&num(r,1)<=60&&goals(r).every(g=>g===0));
+ await record('Shots total0-4 inclusive',()=>range('tirit','max',4),r=>sum(r,14)<=4);
+ await record('Shots min4 boundary inclusive',()=>range('tirit','min',4),r=>sum(r,14)>=4);
+ await record('Gol+ minimum80',()=>range('gol1','min',80),r=>num(r,5)>=80);
+ await record('Gol++ minimum60',()=>range('gol2','min',60),r=>num(r,6)>=60);
+ for(const key of ['gol1','gol2','tiri','tirit','corner','poss','q1','qx','q2','minuto'])await record('Crossed bounds '+key,async()=>{await page.locator('#lav-'+key+'-min').press('End');await page.locator('#lav-'+key+'-max').press('Home');},boundsOracle(key));
+ await record('HT multiple0-0 and1-1',async()=>{await page.getByRole('button',{name:'0-0',exact:true}).filter({visible:true}).first().click();await page.getByRole('button',{name:'1-1',exact:true}).filter({visible:true}).first().click();});
+ 
+ for(const [key,v] of [['gol1',90],['gol2',65],['tiri',2],['tirit',4],['corner',3],['poss',60],['q1',2.4],['qx',3.5],['q2',3],['minuto',20]]){
+  await record('Inclusive lower '+key+' '+v,()=>range(key,'min',v),boundsOracle(key));
+  await record('Inclusive upper '+key+' '+v,()=>range(key,'max',v),boundsOracle(key));
  }
- evidence.status=evidence.initialRows.length<2?'blocked':'observed';evidence.reason=evidence.initialRows.length<2?'Insufficient real rows for ordering assertions':'Directions clicked; reconcile sequence independently per header definition';
- evidence.endedAt=new Date().toISOString();await save();evidence.text=redact(await page.locator('body').innerText()).slice(-10000);
- await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data,captured_at=now()',[runId+'-QA06',JSON.stringify(evidence)]);
+ for(const [toggle,label,oracle] of [
+  ['hot','HOT',r=>r.cells[3].text.trim()==='HOT'],
+  ['presMedia','MEDIA',r=>r.cells[3].text.trim()==='MEDIA'],
+  ['presBassa','BASSA',r=>r.cells[3].text.trim()==='BASSA'],
+  ['ht1','First half',r=>num(r,1)<=45],
+  ['ht2','Second half',r=>num(r,1)>45],
+  ['favLosing','Favorite losing',r=>{const g=goals(r),q1=num(r,7),q2=num(r,9);return q1<q2?g[0]<g[1]:q2<q1?g[1]<g[0]:false;}]
+ ]){
+  await record(label,()=>page.locator('[data-live-toggle="'+toggle+'"]').click(),oracle);
+  await page.locator('[data-live-toggle="'+toggle+'"]').click();await page.waitForTimeout(150);
+ }
+ await reset();
+ const favorite=page.locator('tbody tr [data-live-fav]').filter({visible:true}).first();
+ const id=await favorite.getAttribute('data-live-fav'),wasFav=(await favorite.getAttribute('class')).includes('on');
+ if(!wasFav)await favorite.click();
+ await record('Preferiti actual selected membership',()=>page.locator('[data-live-toggle="fav"]').click(),r=>r.fav?.split(' ').includes('on'));
+ await page.locator('[data-live-toggle="fav"]').click();
+ if(!wasFav)await page.locator('[data-live-fav="'+id+'"]').filter({visible:true}).click();
+ evidence.favoriteCleanup={id,original:wasFav,finalClass:await page.locator('[data-live-fav="'+id+'"]').filter({visible:true}).getAttribute('class')};
+ evidence.menus=[];
+ for(const selector of ['[data-live-lgtoggle]','[data-live-sctoggle]','[data-live-tmtoggle]']){
+  await page.locator(selector).filter({visible:true}).click();
+  evidence.menus.push({selector,text:redact(await page.locator('body').innerText()).slice(0,15000),controls:await page.locator('button,input,select').filter({visible:true}).evaluateAll(es=>es.map(e=>({tag:e.tagName,id:e.id,type:e.type,text:e.innerText,value:e.value,checked:e.checked,html:e.outerHTML})))});
+  await save();await page.locator(selector).filter({visible:true}).click();
+ }
+ await page.locator('[data-live-view="card"]').click();await page.waitForTimeout(300);
+ evidence.cards=await page.locator('[data-live-goaldetail-modal]').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.getAttribute('data-live-goaldetail-modal'),ancestors:[e.parentElement,e.parentElement?.parentElement,e.parentElement?.parentElement?.parentElement].map(n=>({class:n?.className,html:n?.outerHTML}))})));
+ await page.locator('[data-live-view="table"]').click();
+
+ await reset();evidence.finalRows=await rows();evidence.finalFields=await fields();evidence.resetFieldsEqual=JSON.stringify(evidence.initialFields)===JSON.stringify(evidence.finalFields);evidence.endedAt=new Date().toISOString();evidence.emptyText=redact(await page.locator('body').innerText()).slice(-6000);evidence.status='partial';evidence.reason='Live drift/missing-value semantics, league/time/HT/favorite matrix requires scope-specific verification';await save();
+
 }
 
 async function clickObserved(page,label) {
@@ -490,7 +537,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-live-sorts-v101';
+ const runId='source-mapping-2026-10-03-live-filters-v102';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
