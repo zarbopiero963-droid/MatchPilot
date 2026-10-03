@@ -461,17 +461,13 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- const ev={section:'Asian Odds layout',startedAt:new Date().toISOString(),views:[],physicalDevice:false};
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-AsianLayout',JSON.stringify(ev)]);
- for(const viewport of [{width:1440,height:900},{width:393,height:852}]){
- await page.setViewportSize(viewport);await page.waitForTimeout(2000);if(viewport.width<500){await page.mouse.move(200,650);await page.mouse.wheel(0,420);await page.waitForTimeout(700);}
- const v={viewport,text:redact(await page.locator('body').innerText()).slice(-18000)};
- const read=()=>page.evaluate(()=>[...document.querySelectorAll('main,.ao-market,.ao-bkrow,.ao-bkrow > *')].filter(e=>e.getClientRects().length).slice(0,180).map(e=>{const r=e.getBoundingClientRect(),c=getComputedStyle(e);return {tag:e.tagName,id:e.id,text:e.innerText?.slice(0,150),rect:{x:r.x,y:r.y,width:r.width,height:r.height},clientWidth:e.clientWidth,scrollWidth:e.scrollWidth,scrollLeft:e.scrollLeft,fontSize:c.fontSize,overflowX:c.overflowX,parent:{tag:e.parentElement.tagName,class:e.parentElement.className,overflowX:getComputedStyle(e.parentElement).overflowX}}}));
- v.before=await read();v.png=(await page.screenshot({timeout:15000})).toString('base64');
- const table=page.locator('.ao-market').filter({visible:true}).first();if(await table.count()){const r=await table.boundingBox();await page.mouse.move(Math.min(viewport.width-15,Math.max(15,r.x+100)),Math.min(viewport.height-20,Math.max(100,r.y+60)));await page.mouse.wheel(1500,0);await page.waitForTimeout(800);v.afterHorizontal=await read();v.rightPng=(await page.screenshot({timeout:15000})).toString('base64');}
- v.scrollables=await page.evaluate(()=>[...document.querySelectorAll('*')].filter(e=>e.getClientRects().length&&e.scrollWidth>e.clientWidth+5).slice(0,60).map(e=>({tag:e.tagName,id:e.id,class:e.className,width:e.clientWidth,scrollWidth:e.scrollWidth,left:e.scrollLeft,overflowX:getComputedStyle(e).overflowX})));
- ev.views.push(v);await save();
- }ev.endedAt=new Date().toISOString();await save();
+ const ev={section:'Asian Odds browser zoom command',startedAt:new Date().toISOString(),steps:[],method:'Native browser Control+- shortcut; no CSS mutation or deviceScaleFactor substitution'};
+ const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-AsianZoom',JSON.stringify(ev)]);
+ await page.setViewportSize({width:1440,height:900});await page.waitForTimeout(2000);
+ const read=()=>page.evaluate(()=>({innerWidth:innerWidth,outerWidth:outerWidth,dpr:devicePixelRatio,visualScale:visualViewport.scale,visualWidth:visualViewport.width,markets:[...document.querySelectorAll('.ao-market')].slice(0,3).map(e=>({class:e.className,width:e.clientWidth,scrollWidth:e.scrollWidth,rectWidth:e.getBoundingClientRect().width}))}));
+ ev.steps.push({action:'initial',metrics:await read(),png:(await page.screenshot()).toString('base64')});await save();
+ for(let n=1;n<=3;n++){await page.keyboard.press('Control+-');await page.waitForTimeout(1000);ev.steps.push({action:'Control+- '+n,metrics:await read(),png:(await page.screenshot()).toString('base64')});await save();}
+ await page.keyboard.press('Control+0');await page.waitForTimeout(700);ev.restored=await read();ev.endedAt=new Date().toISOString();await save();
 }
 
 async function clickObserved(page,label) {
@@ -485,7 +481,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-asian-layout-v96';
+ const runId='source-mapping-2026-10-03-asian-zoom-v97';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
