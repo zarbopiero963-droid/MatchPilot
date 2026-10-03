@@ -461,20 +461,15 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- const evidence={section:'QA-15 Ladder independent payoff',status:'partial',results:[],fixture:'QA virtual calculation; no order sent'};
- const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA15',JSON.stringify(evidence)]);
- evidence.startedAt=new Date().toISOString();evidence.initialText=redact(await page.locator('body').innerText()).slice(-12000);
- evidence.inputs=await page.locator('input').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.id,type:e.type,min:e.min,max:e.max,step:e.step,value:e.value})));
- await save();const rows=[page.locator('tr').filter({hasText:'⚽ 0-0'}).first(),page.locator('tr').filter({hasText:'⚽ 0-1'}).first()];
- for(const test of [{name:'Single quote5 fee0',fee:'0',quotes:['5']},{name:'Single quote5 fee5',fee:'5',quotes:['5']},{name:'Multiple quote5/6 fee5',fee:'5',quotes:['5','6']},{name:'Boundary quote1 fee5',fee:'5',quotes:['1']}]){
-  await page.locator('#dutchResetBtn').click();
-  await page.locator('#dutchProfitInput').fill('10');await page.locator('#dutchCommInput').fill(test.fee);
-  for(let i=0;i<test.quotes.length;i++){await rows[i].locator('input[type="number"]').fill(test.quotes[i]);const checkbox=rows[i].locator('input[type="checkbox"]');if(await checkbox.isEnabled())await checkbox.check();}
-  await page.waitForTimeout(1000);
-  evidence.results.push({...test,target:10,rows:await page.locator('tr').filter({visible:true}).evaluateAll(es=>es.map(e=>({text:e.innerText,inputs:[...e.querySelectorAll('input')].map(i=>({type:i.type,value:i.value,checked:i.checked}))}))),text:redact(await page.locator('body').innerText()).slice(-14000)});await save();
- }
- await page.locator('#dutchResetBtn').click();evidence.endedAt=new Date().toISOString();evidence.resetInputs=await page.locator('input').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.id,type:e.type,value:e.value,checked:e.checked})));evidence.cleaned=true;evidence.reason='Independent net/gross payoff must be reconciled with the source labels; contradictions keep QA15 open.';await save();
+ if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view=palinsesto]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();await page.getByRole('button',{name:/Apri nel Lay Score/}).click();await page.waitForTimeout(5000);return;}
+ const ev={section:'QA01 independent H2H audit',status:'partial',startedAt:new Date().toISOString(),details:[]};const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA01',JSON.stringify(ev)]);
+ const rows=()=>page.locator('[data-open-detail]').filter({visible:true}).evaluateAll(es=>es.map(e=>({id:e.getAttribute('data-open-detail'),text:e.closest('article,tr')?.innerText||e.parentElement?.innerText})));
+ await page.locator('#strategyToggleBtn').click();await page.waitForTimeout(8000);const input=page.locator('input[data-strategy-filter=h2h]');ev.label=await input.evaluate(e=>e.closest('label').innerText);ev.initial=await input.isChecked();ev.before=await rows();const label=page.locator('label').filter({has:input});await label.click();await page.waitForTimeout(1500);ev.checked=await input.isChecked();ev.filtered=await rows();await label.click();await page.waitForTimeout(1000);ev.restored=await rows();ev.restoredChecked=await input.isChecked();await save();
+ const kept=new Set(ev.filtered.map(x=>x.id));const targets=[...ev.before.filter(x=>!kept.has(x.id)).slice(0,2),...ev.before.filter(x=>kept.has(x.id)).slice(0,2)];
+ for(const target of targets){const d={id:target.id,inFiltered:kept.has(target.id)};try{const btn=page.locator('[data-open-detail]').filter({visible:true});const index=await btn.evaluateAll((es,id)=>es.findIndex(e=>e.getAttribute('data-open-detail')===id),target.id);await btn.nth(index).click();await page.locator('#closeDetailBtn').waitFor({state:'visible',timeout:25000});await page.waitForTimeout(3000);d.initialText=redact(await page.locator('body').innerText()).slice(-14000);d.tabs=await page.locator('button').filter({visible:true}).evaluateAll(es=>es.map(e=>({text:e.innerText,tab:e.getAttribute('data-detail-tab')})).filter(x=>x.tab));const st=page.locator('[data-detail-tab=statsplus]').filter({visible:true});if(await st.count()){await st.click();await page.waitForTimeout(3000);}d.controls=await page.locator('[data-stp]').filter({visible:true}).evaluateAll(es=>es.map(e=>({text:e.innerText,html:e.outerHTML})));const h=page.locator('[data-stp="s"][data-val="h2h"]').filter({visible:true});if(await h.count())await h.click();else{const hh=page.getByRole('button',{name:'H2H',exact:true}).filter({visible:true});if(await hh.count()===1)await hh.click();}await page.waitForTimeout(3000);d.h2hText=redact(await page.locator('body').innerText()).slice(-18000);}catch(e){d.error=redact(e.message).slice(0,1500);}finally{if(await page.locator('#closeDetailBtn').isVisible())await page.locator('#closeDetailBtn').click();ev.details.push(d);await save();}}
+ ev.endedAt=new Date().toISOString();await save();
 }
+
 async function clickObserved(page,label) {
  const text=label.replace(/\s+/g,' ').trim();
  await page.waitForFunction(target=>[...document.querySelectorAll('button,[role="button"],[role="tab"],[onclick],summary')].some(e=>[e.innerText,e.getAttribute('aria-label'),e.getAttribute('title')].some(s=>(s||'').replace(/\s+/g,' ').trim()===target)&&!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)),text,{timeout:60000});
@@ -486,7 +481,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa15-v87';
+ const runId='source-mapping-2026-10-03-issue2-qa01-v88';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -501,7 +496,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Ladder Dutching']];
+  const groups=[['Palinsesto','Dashboard']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
@@ -561,7 +556,7 @@ export async function testSourceLogin(pool){
      const selected=await bounded(page.evaluate(target=>[...document.querySelectorAll('button.active,button[aria-selected="true"]')].some(e=>e.innerText.trim()===target),section.slice(11)));
      if(!selected)throw new Error('Requested detail tab did not remain selected');
     }
-    // QA02 records its own before/after session evidence.
+    await captureScrolled(page,pool,snapshotRunId+'-'+section,section);
     await testMarkedControls(page,pool,snapshotRunId,section);
     completed.push(section);
     await pool.query("UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({status:'running',restartCount,stage,completed,failed,owner,leaseUntil:Date.now()+60000}),owner]);
