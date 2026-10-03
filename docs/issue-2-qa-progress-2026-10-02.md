@@ -768,3 +768,14 @@ Per risolvere l'ambiguità sull'ora attraverso osservazioni reali, aggiunto:
 Le due prove condividono evidenze e budget **massimo un solo Backtest riuscito in totale**, con guardia persistita prima del tentativo; esito incerto non ripetuto. Prima privilegiare contatore/stato UI; non saturare quota. Un rifiuto pre-confine conservato non è un motivo per esecuzioni ripetute. Se il reset è già dimostrato a00, la prova03 documenta stabilità senza un altro Backtest. Se accesso o baseline mancano, dichiarare BLOCKED/non certificato. Nessuna nuova richiesta di chiarimento al supporto.
 
 Quota e feed osservati separatamente; snapshot salvati prima della scomparsa delle partite, nessuna consultazione fittizia della giornata precedente. La programmazione non costituisce esecuzione o PASS. Issue resta aperta e non chiudibile.
+
+
+## Login reale nuovamente riuscito — 03/10/2026 18:23 Europe/Rome
+
+Richiesta owner: «Prova a fare login». Run `source-mapping-2026-10-03-login-retry-v108`, commit harness `83ead7b4665a3a5015d072575d777aecc8d7843e`; fine18:23:34 Europe/Rome /16:23:34UTC. Sintassi node --check verificata prima del push. Accesso ordinario GOAT portale→Apri LayScore, con tutte le risorse caricate e gestione normale SSO/login modulo. Credenziali ambiente non esposte.
+
+**PASSED accesso UI:** prova18:23:22: dashboardVisible=true, loginVisible=false, authGateText=false. Dashboard protetta raggiunta, controlli navigazione/Esci presenti. Snapshot:
+- `source-mapping-2026-10-03-login-retry-v108-attempt-1791044582127-0y9ppif84chd-login-proof`
+- `source-mapping-2026-10-03-login-retry-v108-attempt-1791044582127-0y9ppif84chd-dashboard`
+
+La nuova sessione mostra palinsesto locale0, senza bootstrap del feed in questo test esclusivamente login. **Non certifica assenza delle partite nel feed né i test H2H/Guida/POSS/HT.** I fallimenti di accesso v107–v107d restano conservati; il blocco non è riprodotto in questo tentativo, senza dedurne una causa tecnica o una correzione globale. Prove notturne già programmate restano attive. Issue non chiusa.
