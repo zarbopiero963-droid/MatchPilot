@@ -19,7 +19,7 @@ Il postinstall del repository prepara Chromium per Playwright. Il collaudo usa l
 - `server.mjs`: HTTP, autenticazione Basic della pagina privata, controllo configurazione, connessione PostgreSQL e verifica configurazione OpenRouter.
 - `source-login.mjs`: login reale e acquisizioni/QA; con SOURCE_LOGIN_TEST=once viene eseguito all'avvio. È un harness operativo: leggere run ID e scenario prima di rilanciarlo.
 - `source-parser.mjs`, `source-state.mjs`, `source-finance.mjs`: parsing e modelli già coperti dai rispettivi test.
-- `source-catalog.mjs`: estrazione del catalogo e classifiche, controllo del contratto, persistenza transazionale e quarantena. Non è ancora collegato a un ciclo automatico continuo.
+- `source-catalog.mjs`: estrazione del catalogo e classifiche, controllo del contratto, persistenza transazionale e quarantena. Il comando `node catalog-sync.mjs <run-id>` importa gli snapshot di un run browser completato; i run del catalogo importano gli snapshot al termine e una sincronizzazione giornaliera prosegue la copertura. Questo ciclo non è il monitoraggio Live ogni minuto.
 - `migrations/001-catalog.sql`: schema incrementale del catalogo; nessuna cancellazione di dati esistenti.
 
 `GET /healthz` è pubblico; `GET /` è protetto e presenta lo stato di configurazione. Non esiste ancora un endpoint operativo per navigare partite/storico.
@@ -34,7 +34,7 @@ Render: matchpilot-test, servizio srv-davpi23ncjis73f9dkbg. Neon: damp-pond-2929
 
 Sequenza: inizializzare schema; confrontare i 49 campionati reali con il contratto; salvare solo classifiche associate senza ambiguità a un campionato autorizzato; conservare snapshot, partita, gruppo e stagione. Se la stagione non è esposta, usare unknown e non inventarla. Importazioni ripetute sono idempotenti. Cambiamenti della lista o nomi non risolti restano fuori dall'operatività e vengono segnalati.
 
-Al primo checkpoint sono stati letti realmente 49 campionati e una classifica Brazil Serie B di 20 squadre. Questo **non certifica le rose di tutti i 49 campionati**: servono le successive classifiche disponibili, tutti i gruppi, la validazione degli alias e l'integrazione del ciclo automatico. Anche una classifica completa oggi non garantisce aggiornamenti futuri o trasferimenti.
+Il run v112 ha letto realmente 49 campionati e 11 classifiche per 7 campionati, compresi i quattro gruppi Argentina e i due Colombia: 152 squadre distinte osservate per campionato. Questo **non certifica le rose di tutti i 49 campionati**: servono le successive classifiche disponibili, tutti i gruppi, la validazione degli alias e l'integrazione del ciclo automatico. Anche una classifica completa oggi non garantisce aggiornamenti futuri o trasferimenti.
 
 ## Verifica e lavori residui
 

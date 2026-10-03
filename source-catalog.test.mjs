@@ -10,3 +10,4 @@ test('missing league fails closed',()=>assert.throws(()=>extractLeagues({tables:
 test('empty standings never certified',()=>assert.throws(()=>extractTeams({rows:[{cells:[{text:'Squadra'}]}]})));
 test('normalization preserves meaningful accents',()=>{assert.equal(key('  Vila   Nova '),'vila nova');assert.notEqual(key('Cuiabá'),key('Cuiaba'));});
 test('changed territory changes contract digest',()=>{const l=structuredClone(approved.leagues);l[0].country='CHANGED';assert.notEqual(catalogueDigest(l),catalogueDigest(approved.leagues));});
+test('duplicate real team row rejected',()=>{const t=structuredClone(real.standings);t.rows.push(t.rows[1]);assert.throws(()=>extractTeams(t));});

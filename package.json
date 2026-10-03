@@ -4,9 +4,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check source-login.mjs && node --check source-parser.mjs && node --check source-state.mjs && node --check source-finance.mjs",
+    "check": "node --check server.mjs && node --check source-login.mjs && node --check source-parser.mjs && node --check source-state.mjs && node --check source-finance.mjs && node --check source-catalog.mjs && node --check catalog-sync.mjs",
     "postinstall": "PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium --only-shell",
-    "test": "node --test source-parser.test.mjs source-state.test.mjs source-finance.test.mjs",
+    "test": "node --test source-parser.test.mjs source-state.test.mjs source-finance.test.mjs source-catalog.test.mjs",
     "prestart": "npm run check"
   },
   "dependencies": {

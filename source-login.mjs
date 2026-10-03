@@ -1,3 +1,4 @@
+import {syncCatalogueRun} from './catalog-sync.mjs';
 import { validateView } from './source-state.mjs';
 import { parseSnapshot, compareCatalog, parseRoiStrategies } from './source-parser.mjs';
 import { chromium } from 'playwright';
@@ -502,7 +503,7 @@ export async function testSourceLogin(pool){
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
  const owner=String(Date.now())+'-'+Math.random().toString(36).slice(2);
  const existing=await pool.query('SELECT result,completed_at FROM matchpilot_test_runs WHERE run_id=$1',[runId]);
- if(existing.rows[0]?.completed_at){console.log('SOURCE_MAP_BATCH_DONE already_recorded');return;}
+ if(existing.rows[0]?.completed_at){if(runId.startsWith('source-catalogue-')&&existing.rows[0].result?.catalogue?.status!=='persisted'){const coverage=await syncCatalogueRun(pool,runId);const catalogue={status:'persisted',leagues:coverage.length,observedLeagues:coverage.filter(x=>Number(x.team_count)>0).length,teams:coverage.reduce((n,x)=>n+Number(x.team_count),0),importedAt:new Date().toISOString()};await pool.query('UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1',[runId,JSON.stringify({catalogue})]);console.log('SOURCE_CATALOG_IMPORTED '+JSON.stringify(catalogue));}console.log('SOURCE_MAP_BATCH_DONE already_recorded');return;}
  const restartCount=(existing.rows[0]?.result?.restartCount||0)+1;
  if(restartCount>4 && Number(existing.rows[0]?.result?.leaseUntil||0)<Date.now()){await pool.query("UPDATE matchpilot_test_runs SET completed_at=now(),result=result || '{\"status\":\"blocked\",\"reason\":\"restart_limit\"}'::jsonb WHERE run_id=$1",[runId]);console.log('SOURCE_MAP_BATCH_DONE restart_limit');return;}
  const claimed=await pool.query("INSERT INTO matchpilot_test_runs(run_id,result) VALUES($1,$2) ON CONFLICT (run_id) DO UPDATE SET result=matchpilot_test_runs.result || EXCLUDED.result WHERE COALESCE((matchpilot_test_runs.result->>'leaseUntil')::bigint,0)<$3 RETURNING run_id",[runId,JSON.stringify({status:'running',restartCount,owner,leaseUntil:Date.now()+60000}),Date.now()]);
@@ -612,6 +613,7 @@ export async function testSourceLogin(pool){
   if(browser)await bounded(browser.close(),15000).catch(()=>{});
   const result={status:outcome,stage,completed,failed,restartCount,snapshotRunId};
   await pool.query("UPDATE matchpilot_test_runs SET completed_at=now(),result=$2 WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify(result),owner]);
+  if(runId.startsWith('source-catalogue-')){try{const coverage=await syncCatalogueRun(pool,runId);result.catalogue={status:'persisted',leagues:coverage.length,observedLeagues:coverage.filter(x=>Number(x.team_count)>0).length,teams:coverage.reduce((n,x)=>n+Number(x.team_count),0)};}catch(e){result.catalogue={status:'failed',error:String(e.message).slice(0,300)};}await pool.query('UPDATE matchpilot_test_runs SET result=$2 WHERE run_id=$1',[runId,JSON.stringify(result)]);}
   console.log('SOURCE_MAP_BATCH_DONE '+JSON.stringify(result));
  }
 }
