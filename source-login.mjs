@@ -503,7 +503,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-support-retest-v107c';
+ const runId='source-mapping-2026-10-03-support-retest-v107d';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -526,16 +526,36 @@ export async function testSourceLogin(pool){
    browser=await bounded(chromium.launch({headless:true}),45000);
 
    const context=await bounded(browser.newContext({viewport:{width:1920,height:1080}}),15000);
-   await context.route('**/*',route=>['image','media','font'].includes(route.request().resourceType())?route.abort():route.continue());
-   page=await bounded(context.newPage(),15000);
+   // Load all assets during auth retry; no resource interception.
+   const portal=await bounded(context.newPage(),15000);
+   portal.setDefaultTimeout(15000);page=portal;
+   stage='portal_navigation';
+   await portal.goto('https://goatbettingexchange.com/portale',{waitUntil:'domcontentloaded',timeout:30000});
+   stage='portal_login';
+   await portal.locator('#heroEmail').fill(process.env.GOAT_USERNAME);
+   await portal.locator('#heroPass').fill(process.env.GOAT_PASSWORD);
+   await portal.getByRole('button',{name:'Accedi',exact:true}).click();
+   await portal.locator('#heroEmail').waitFor({state:'hidden',timeout:60000});
+   stage='module_open';
+   const popupPromise=portal.waitForEvent('popup',{timeout:15000});
+   await portal.getByRole('button',{name:'Apri →',exact:true}).nth(group[0]==='Money Management'?0:1).click();
+   page=await popupPromise;
+   if(group[0]!=='Money Management')await page.waitForURL(url=>url.protocol==='https:',{timeout:20000});
+   await page.waitForLoadState('domcontentloaded',{timeout:20000});
+   if(group[0]!=='Money Management')await portal.close();
    page.setDefaultTimeout(15000);
-   stage='direct_module_navigation';
-   await page.goto('https://layscore.goatbettingexchange.com/',{waitUntil:'domcontentloaded',timeout:30000});
-   stage='direct_module_login';
-   await page.locator('#loginEmail').fill(process.env.GOAT_USERNAME);
-   await page.locator('#loginPassword').fill(process.env.GOAT_PASSWORD);
-   await page.locator('#loginSubmitBtn').click();
-   await page.locator('#loginEmail').waitFor({state:'hidden',timeout:60000});
+   stage='module_login';
+   if(group[0]!=='Money Management'){
+   await page.waitForTimeout(2000);
+   if(await page.locator('#loginEmail').isVisible()){
+    await page.locator('#loginEmail').fill(process.env.GOAT_USERNAME);
+    await page.locator('#loginPassword').fill(process.env.GOAT_PASSWORD);
+    await page.locator('#loginSubmitBtn').click();
+    await page.locator('#loginEmail').waitFor({state:'hidden',timeout:60000});
+   } else {
+    await page.locator('[data-view="dashboard"]').waitFor({state:'visible',timeout:60000});
+   }
+   } else {await page.waitForFunction(()=>document.body?.innerText?.trim().length>30,{},{timeout:45000});await portal.close();}
    await page.waitForTimeout(8000);
    for(const section of group){
     if(completed.includes(section))continue;
