@@ -463,7 +463,7 @@ async function inspectControlMap(page,pool,runId,section){
 async function testMarkedControls(page,pool,runId,section){
  if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view="palinsesto"]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();const load=page.getByRole('button',{name:/Apri nel Lay Score/});await load.waitFor({state:'visible',timeout:60000});await load.click();await page.waitForTimeout(5000);return;}
 
- const name='QA ISSUE2 Live cross-context v77 20261003';
+ const name='QA08 v78';
  const evidence={section:'QA-08 independent context persistence',name,contextsIndependent:true,physicalDevices:false};
  const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-QA08',JSON.stringify(evidence)]);
  async function open(p){await p.locator('[data-view="live"]').click();await p.waitForTimeout(2000);if(!await p.locator('#lav-golcasa').isVisible())await p.locator('[data-live-advtoggle]').filter({visible:true}).click();await p.waitForTimeout(500);}
@@ -503,7 +503,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-issue2-qa08-v77';
+ const runId='source-mapping-2026-10-03-issue2-qa08-v78';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
