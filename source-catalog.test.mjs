@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {extractLeagues,extractTeams,catalogueDigest,key} from './source-catalog.mjs';
+const real=JSON.parse(await readFile(new URL('./tests/fixtures/catalog-real-2026-10-03.json',import.meta.url)));
+const approved=JSON.parse(await readFile(new URL('./data/approved-leagues.json',import.meta.url)));
+test('49 real leagues match frozen contract',()=>assert.equal(catalogueDigest(extractLeagues({tables:real.leagues})),catalogueDigest(approved.leagues)));
+test('20 real standings teams extracted',()=>{const t=extractTeams(real.standings);assert.equal(t.length,20);assert.equal(t[0],'EC Juventude');assert.ok(t.includes('Ponte Preta'));});
+test('missing league fails closed',()=>assert.throws(()=>extractLeagues({tables:[]})));
+test('empty standings never certified',()=>assert.throws(()=>extractTeams({rows:[{cells:[{text:'Squadra'}]}]})));
+test('normalization preserves meaningful accents',()=>{assert.equal(key('  Vila   Nova '),'vila nova');assert.notEqual(key('Cuiabá'),key('Cuiaba'));});
+test('changed territory changes contract digest',()=>{const l=structuredClone(approved.leagues);l[0].country='CHANGED';assert.notEqual(catalogueDigest(l),catalogueDigest(approved.leagues));});
