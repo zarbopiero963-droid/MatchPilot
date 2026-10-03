@@ -461,13 +461,11 @@ async function inspectControlMap(page,pool,runId,section){
 
 
 async function testMarkedControls(page,pool,runId,section){
- const ev={section:'Asian Odds full DOM extraction audit',startedAt:new Date().toISOString(),scrolls:[]};const save=()=>pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT(snapshot_id) DO UPDATE SET data=EXCLUDED.data',[runId+'-AsianExtract',JSON.stringify(ev)]);
- await page.setViewportSize({width:1440,height:900});await page.waitForTimeout(2000);
- const extract=()=>page.locator('#asianOddsPanel').evaluate(root=>({text:root.innerText,rows:[...root.querySelectorAll('.ao-row')].map(e=>({teams:e.querySelector('.ao-teams')?.innerText,league:e.closest('.ao-league-group')?.querySelector('.ao-league-h')?.innerText,time:e.querySelector('.ao-time')?.innerText,status:e.getAttribute('data-status'),lines:e.getAttribute('data-lines'),text:e.innerText,html:e.outerHTML,markets:[...e.querySelectorAll('.ao-market')].map(m=>({headers:[...m.querySelectorAll('.ao-cols-h span')].map(h=>h.innerText),class:m.className,text:m.innerText,rows:[...m.querySelectorAll('.ao-bkrow')].map(r=>({bookmaker:r.querySelector('.ao-bkname')?.innerText,line:r.querySelector('.ao-bkline')?.innerText||null,flows:[...r.querySelectorAll('.ao-flow')].map(c=>({open:c.querySelector('.op')?.textContent,current:c.querySelector('.cl')?.textContent,label:c.querySelector('.closing .vlbl')?.textContent})),text:r.innerText,cells:[...r.children].map(c=>({text:c.innerText,class:c.className,html:c.outerHTML}))}))}))}))}));
- ev.filters=redact(await page.locator('#asianoddsView').innerText()).slice(0,1300);ev.before=await extract();ev.before.text=redact(ev.before.text);await save();
- const main=page.locator('main');const box=await main.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);
- for(let i=0;i<120;i++){await page.mouse.wheel(0,1100);await page.waitForTimeout(180);const p=await main.evaluate(e=>({top:e.scrollTop,height:e.clientHeight,total:e.scrollHeight,count:document.querySelectorAll('#asianOddsPanel .ao-row').length}));ev.scrolls.push(p);if(p.top+p.height>=p.total-3)break;}
- ev.after=await extract();ev.after.text=redact(ev.after.text);ev.bottomPng=(await page.screenshot()).toString('base64');ev.endedAt=new Date().toISOString();ev.bottomReached=ev.scrolls.at(-1).top+ev.scrolls.at(-1).height>=ev.scrolls.at(-1).total-3;await save();
+ if(section==='Palinsesto'){for(let n=0;n<12&&!await page.locator('#palTabPandora').isVisible();n++){await page.locator('[data-view=palinsesto]').click();await page.waitForTimeout(750);}await page.locator('#palTabPandora').click();await page.getByRole('button',{name:/Apri nel Lay Score/}).click();await page.waitForTimeout(5000);return;}
+ await page.waitForTimeout(3000);let data;
+ if(section==='Dashboard')data=await page.locator('[data-open-detail]').evaluateAll(es=>es.map(e=>({id:e.getAttribute('data-open-detail'),text:e.closest('article,tr')?.innerText||e.parentElement?.innerText,html:(e.closest('article,tr')||e.parentElement).outerHTML})));
+ else data=await page.locator('#asianOddsPanel .ao-row').evaluateAll(es=>es.map(e=>({teams:e.querySelector('.ao-teams')?.innerText,time:e.querySelector('.ao-time')?.innerText,status:e.getAttribute('data-status'),league:e.closest('.ao-league-group')?.innerText.split('\n')[0],html:e.querySelector('.ao-row-top')?.outerHTML})));
+ await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2) ON CONFLICT DO NOTHING',[runId+'-Teams-'+section,JSON.stringify({section,at:new Date().toISOString(),count:data.length,rows:data})]);
 }
 
 async function clickObserved(page,label) {
@@ -481,7 +479,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-mapping-2026-10-03-asian-extract-v99';
+ const runId='source-mapping-2026-10-03-teams-dashboard-asian-v100';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
@@ -496,7 +494,7 @@ export async function testSourceLogin(pool){
  let stage='start',browser,page;const completed=existing.rows[0]?.result?.completed||[],failed=[];let outcome='complete';
  const heartbeat=setInterval(()=>pool.query("UPDATE matchpilot_test_runs SET result=result || $2::jsonb WHERE run_id=$1 AND result->>'owner'=$3",[runId,JSON.stringify({leaseUntil:Date.now()+60000}),owner]).catch(()=>{}),15000);heartbeat.unref();
  try{
-  const groups=[['Asian Odds']];
+  const groups=[['Palinsesto','Dashboard','Asian Odds']];
   for(const group of groups){
    if(group.every(section=>completed.includes(section)))continue;
    stage='login: '+group[0];
