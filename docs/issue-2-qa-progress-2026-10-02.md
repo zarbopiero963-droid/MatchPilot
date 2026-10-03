@@ -737,3 +737,34 @@ Fonte: testo del supporto incollato da Piero in conversazione. **Chiarimenti dic
 6. Fallback globale e soglia campione: restano verifiche condizionate alla disponibilità di dati osservabili. “Altro” resta un limite documentato dell'interfaccia, non da aggirare con formule inventate.
 
 Le mitigazioni precedenti erano proposte, non codice implementato. Per QE la sospensione proposta per mancata interpretazione può essere riesaminata sulla base di questa risposta e del test v94, ma non equivale a implementazione automatica o certificazione della Guida aggiornata. **Issue ancora non chiudibile; owner mantiene la chiusura.** Nessuno dei punti esclusi è ripreso.
+
+
+## Tentativi post-supporto e programma notturno — 03/10/2026 17:53 Europe/Rome
+
+Owner: «Non mi va di domandare, fai le prove e basta». Nessuna ulteriore domanda inviata al supporto. Avviato harness per audit completo H2H Dashboard↔Stats+, rilettura Guida e possesso Live. **Verdict di questa sessione: BLOCKED_ACCESS; nessun test post-fix raggiunto o certificato.**
+
+| Run (prefisso source-mapping-2026-10-03-) | Commit | Fine Europe/Rome | Esito reale |
+|---|---|---|---|
+| support-retest-v107 | 1a1acaa74a1c276ab127361088ac9e8bfc080155 | 17:45:47 | Portale: input login non scompare entro25s. |
+| support-retest-v107b | c9fff7a877b3d7f612ab1f27516809ef94befde7 | 17:48:02 | Retry60s; snapshot portale “Accesso in corso…”. |
+| support-retest-v107c | 39f8ed4add526058c2fdf2f94fcdd93c83f7cbcb | 17:49:31 | URL LayScore diretto: “Accesso non valido o scaduto”, richiede normale Apri dal portale; nessun input login. Nessun aggiramento. |
+| support-retest-v107d | 871fa962e6fc9b2b1fa6fd5a392eb865b8ad36b8 | 17:52:14 | Ultimo retry portale60s caricando tutti gli asset e supportando normale SSO: UI “Failed to fetch”. |
+
+Root AGENTS.md/CLAUDE.md controllati, entrambi404; node --check source-login.mjs PASS prima di ogni push. Tutti i run conclusi prima del deploy successivo e di questo aggiornamento. Nessun browser installato, nessun segreto esposto, nessun nuovo Backtest/ordine/cancellazione. Il messaggio Failed to fetch attesta un errore di richiesta nell'accesso; non identifica autonomamente la causa (fonte, rete o provider). Non attribuire un guasto globale né invalidare i test precedenti.
+
+Prove redatte Neon:
+- source-mapping-2026-10-03-support-retest-v107b-attempt-1791042419100-dev34yehs6j-error
+- source-mapping-2026-10-03-support-retest-v107c-attempt-1791042554487-9d5rss7k2ze-error
+- source-mapping-2026-10-03-support-retest-v107d-attempt-1791042670849-yf8fi2xmeug-error
+- v107 senza snapshot pagina: errore registrato nei log Render SOURCE_MAP_ERROR, timeout portal_login; run conservato.
+
+**H2H fix resta dichiarato dal supporto, non ritestato. Guida Casa/Ospite e QE, POSS e HT multiplo non hanno nuova prova in questa sessione.** La causa immediata del blocco è l'accesso, non assenza di partite o un PASS su lista vuota. I futuri retry devono seguire portale→Apri e il normale SSO, senza usare token inventati o aggirare la gate diretta.
+
+### Prove reset programmate e coordinate
+Per risolvere l'ambiguità sull'ora attraverso osservazioni reali, aggiunto:
+- **03/10/2026 23:40 Europe/Rome:** preparazione e baseline pre00; osservazioni post00:01/00:05/00:10.
+- **04/10/2026 02:40 Europe/Rome:** preparazione/baseline pre03; osservazioni post03:01/03:05/03:10. Automazione esistente aggiornata, non duplicata per lo stesso confine.
+
+Le due prove condividono evidenze e budget **massimo un solo Backtest riuscito in totale**, con guardia persistita prima del tentativo; esito incerto non ripetuto. Prima privilegiare contatore/stato UI; non saturare quota. Un rifiuto pre-confine conservato non è un motivo per esecuzioni ripetute. Se il reset è già dimostrato a00, la prova03 documenta stabilità senza un altro Backtest. Se accesso o baseline mancano, dichiarare BLOCKED/non certificato. Nessuna nuova richiesta di chiarimento al supporto.
+
+Quota e feed osservati separatamente; snapshot salvati prima della scomparsa delle partite, nessuna consultazione fittizia della giornata precedente. La programmazione non costituisce esecuzione o PASS. Issue resta aperta e non chiudibile.
