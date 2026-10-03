@@ -471,7 +471,7 @@ async function testMarkedControls(page,pool,runId,section){
  if(!target)return;
  await page.locator('[data-open-detail="'+target.id+'"]').filter({visible:true}).click();
  await page.locator('#closeDetailBtn').waitFor({state:'visible',timeout:25000});await page.waitForTimeout(2500);
- const tab=page.getByRole('button',{name:'CLASSIFICA',exact:true}).filter({visible:true});
+ const tab=page.getByRole('button',{name:/^classifica$/i}).filter({visible:true});
  await tab.click();await page.waitForTimeout(2500);
  const data=await dom();await pool.query('INSERT INTO matchpilot_source_snapshots(snapshot_id,data) VALUES($1,$2)',[runId+'-standings-discovery',JSON.stringify({section:'Standings discovery v109',match:target,...data})]);
  await page.locator('#closeDetailBtn').click();
@@ -489,7 +489,7 @@ async function clickObserved(page,label) {
 }
 
 export async function testSourceLogin(pool){
- const runId='source-catalogue-2026-10-03-discovery-v109';
+ const runId='source-catalogue-2026-10-03-discovery-v109b';
  if(!pool)return;
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
  await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_source_snapshots(snapshot_id text PRIMARY KEY,captured_at timestamptz NOT NULL DEFAULT now(),data jsonb NOT NULL)');
