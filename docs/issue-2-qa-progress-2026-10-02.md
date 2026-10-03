@@ -678,3 +678,34 @@ Verdict: `source-mapping-2026-10-03-live-numeric-sorts-v106-derived-verdict`.
 
 Pannello operativo MatchPilot, timeline/archivio giornate, normalizzazione e bankroll virtuale, analisi operativa OpenRouter e monitoraggio continuo restano lavori successivi nella master #1. Non sono stati costruiti da questi test. La issue resta aperta; nessuna chiusura automatica.
 
+
+
+## Piano in assenza di risposta del supporto — 03/10/2026 17:27 Europe/Rome
+
+Su richiesta owner «Ok annota tutto», si registra il piano discusso. **È documentazione di soluzioni proposte, non implementazione eseguita né nuova certificazione.** Nessun criterio di accettazione viene sostituito automaticamente; issue #2 ancora non chiudibile.
+
+| Ambito | Gestione proposta per MatchPilot | Stato della fonte / verifica residua |
+|---|---|---|
+| Gol+/Gol++ | Conservare percentuale originale, N dichiarato, minuto/score, contesto e snapshot; raccogliere altri esempi reali e confrontare gli aggregati disponibili. | Non inventare numeratori o formula quando lo storico sottostante è nascosto. Fallback globale e soglia N esplicita non ancora certificati. |
+| Segna ancora Casa/Ospite | Conservare nome originale e significato incerto; non usarlo come probabilità del prossimo gol. | Hødd–Odd 39′, 1-2: Casa50% / Ospite88%; serve chiarimento fra prossimo gol ed eventi sovrapposti entro fine partita. |
+| QE | Conservare quota equa e messaggio della fonte; sospendere decisioni automatiche basate su VALORE/NON CONVIENE. | Guida e UI danno direzioni opposte. Nessuna correzione attestata; richiedere interpretazione e ritestare se cambia. |
+| H2H | Leggere gli incontri disponibili in Stats+ e registrare separatamente l'effetto filtro Dashboard. Non scartare automaticamente una partita per il solo filtro difettoso. | Bug riconosciuto dal supporto; North Macedonia–Scotland4 / Sabadell–FC Andorra1. Ritestare dopo fix o su nuovi esempi reali, senza equiparare storici differenti per assunzione. |
+| Possesso | Nel futuro pannello offrire ordinamenti espliciti per quota casa e max(casa,ospite), derivati dalle coppie effettivamente lette. | È comportamento del nostro pannello da implementare, non certificazione o correzione dell'header POSS della fonte. |
+| Soglie percentuali | Esplicitare se i nostri filtri usano percentuali visualizzate; non fingere accesso alla precisione nascosta. | Uguaglianza visiva non garantisce inclusione nel filtro sorgente; spiegazione mediante arrotondamento resta ipotesi. |
+| Reset filtri | Prevedere reset completo e verificabile del futuro pannello MatchPilot. | Nel sito il reset avanzati non ha azzerato tutti i menu; cleanup completo separato è stato verificato. |
+
+### Domande inviate/proposte e test necessari
+
+Il testo preparato per Piero copre: definizione Casa/Ospite; definizioni Gol+/Gol++ e selezione del campione; ampiezza fallback e campione insufficiente; precisione soglie; espansione “Altro” (Vitesse–NAC); direzione QE e commissione; criterio POSS; ambito Azzera filtri; H2H e requisiti dello storico; reset quota alle03 e distinto rinnovo del feed. **Non attestiamo invio o risposta del supporto tramite questa annotazione.**
+
+- QA09 programmato: preparazione **04/10/2026 02:40 Europe/Rome**, baseline prima03 e verifiche dopo03. Conservare contatore/blocco/giornata/identità feed prima del cambio; se necessario al massimo un Backtest utile autorizzato. Senza baseline sufficiente non dichiarare certificato il reset.
+- La fonte non offre consultazione dei giorni passati secondo owner: il04/10 le partite del03/10 potrebbero non essere più disponibili. Le prove già salvate rimangono valide come osservazioni datate; nuovi test devono usare incontri disponibili, non ricostruzioni spacciate per accesso reale.
+- H2H: ripetere dopo correzione comunicata oppure osservare nuovi esempi senza dichiarare risolto il bug storico.
+- QE/Gol/POSS/soglie/reset: dopo eventuale chiarimento confrontare definizione e comportamento reale; senza risposta conservare ambiguità e applicare soltanto mitigazioni esplicite nel futuro prodotto.
+- HT multiplo: serve lista con almeno due partite nel secondo tempo e HT diversi, per selezione singola/unione/rimozione.
+- Fallback globale e campione insufficiente: certificare soltanto quando compaiono campioni reali adeguati e dati sufficienti.
+- **Nessun altro orario automatico programmato** per questi test: dipendono da risposta o condizioni Live non ancora determinate.
+
+Il percorso può rendere il futuro MatchPilot utilizzabile con limiti dichiarati, ma non corregge la fonte né soddisfa automaticamente i criteri originali. Per chiudere con un perimetro diverso servirebbe una decisione esplicita owner sui criteri aggiornati, mantenendo difetti/ambiguità tracciati. L'owner chiude la issue; nessuna chiusura automatica.
+
+Restano esclusi dalle prove attive importazione valida campionato/orario, mobile/audio/radar popolati, equity cronologica e Ladder Dutching. Pannello, normalizzazione, bankroll, OpenRouter operativo e monitoraggio continuo rimangono lavori successivi della master #1.
