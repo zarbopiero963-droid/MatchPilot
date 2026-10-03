@@ -257,3 +257,17 @@ Prova grezza Neon: `source-mapping-2026-10-03-issue2-qa11-v82-attempt-1791011349
 Codice del test: commit `ae35801703c2a4b8627a0293ef0633efcad869e1`; node --check passato. “Run complete” indica conclusione del processo, non certificazione completa.
 
 QA-11 resta senza spunta. La issue non è ancora chiudibile. Mi fermo qui: QA-12 non avviato.
+
+
+### QA-12 — Radar / iframe: verifica v83, PARZIALE
+Eseguito solo QA-12 il 03/10/2026 alle 09:53:45–09:53:47 Europe/Rome. Processo concluso alle 07:54:03 UTC, senza errori registrati; questo non equivale alla certificazione completa.
+
+Accesso reale, palinsesto automatico caricato (38 partite), clic Live e Card. Stato osservato: **0 live**, messaggio “Nessuna partita del palinsesto in corso”, **0 controlli data-live-radar** e **0 iframe**. Screenshot e testo conservati. Il percorso senza dati è documentato; non sono stati creati eventi sintetici né aperti iframe mediante URL costruiti.
+
+Restano valide le prove precedenti v66 di apertura reale del radar con popup e iframe popolati su due partite. Questa nuova verifica aggiunge il caso Live vuoto, ma **non certifica** errore di caricamento dell'iframe, iframe vuoto con partita presente, scroll interno e chiusura del popup nel percorso popolato. Nessun controllo radar era cliccabile in questa sessione. La strumentazione per lo scroll non è stata eseguita perché quel ramo non era disponibile.
+
+Prova Neon: `source-mapping-2026-10-03-issue2-qa12-v83-attempt-1791013985944-dxnrr6f7ydm-QA12`.
+Commit test: `69da498a80dceb4f29161252f270e7128f6cdc70`, controllo sintassi passato.
+Valutazione della sola gestione del caso senza dati: 4/5 (messaggio esplicito, testo di aiuto generico sui filtri); copertura complessiva QA-12 parziale.
+
+QA-12 resta senza spunta e la issue non è ancora chiudibile. QA-13 non avviato: attendo la conferma dell'owner.
