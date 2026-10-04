@@ -55,6 +55,10 @@ export function isBackfillTerminalState(state = {}) {
   return backfillResumeDecision(state).skip;
 }
 
+export function incrementalTargets(catalog, now = new Date()) {
+  return catalog.filter(entry => isCurrentSeason(entry.season, now));
+}
+
 export function parseResumeDrillKeys(argv = process.argv, env = process.env) {
   const explicit = argv.some(arg => arg === '--resume-drill-requeue' || arg.startsWith('--resume-drill-requeue='));
   if (!explicit) return [];
@@ -427,7 +431,7 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
         throw error;
       }
 
-      const targets = mode === 'backfill' ? catalog : catalog.filter(entry => isCurrentSeason(entry.season));
+      const targets = mode === 'backfill' ? catalog : incrementalTargets(catalog);
       for (const entry of targets) {
         if (activeRun.stop) break;
         if (mode === 'backfill') await waitForCriticalYield(client);
@@ -478,6 +482,14 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
       await recordRun(client, runId, kind, status, stats);
       await emitRunSummaryAlerts(client, stats, {bootstrap});
 
+      const ledger = await client.query(
+        `SELECT outcome, http_status, count(*)::int AS n
+         FROM fpt_request_ledger
+         WHERE run_id=$1
+         GROUP BY outcome, http_status
+         ORDER BY outcome, http_status`,
+        [runId]
+      );
       console.log('FUTPYTHON_SYNC ' + JSON.stringify({
         runId, status, mode, bootstrap, catalogEntries: stats.catalogEntries,
         catalogSnapshotId: stats.catalogSnapshotId, datasetsAttempted: stats.datasetsAttempted,
@@ -486,7 +498,8 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
         rowsInserted: stats.rowsInserted, fieldsSeen: stats.fieldsSeen,
         available: stats.availableCount, unavailable404: stats.meta.finalAvailability?.unavailable_404 || 0,
         errorReal: stats.errorRealCount, newFields: stats.newFields.size,
-        newDatasets: stats.newDatasets.size, errorCount: stats.failures.length
+        newDatasets: stats.newDatasets.size, errorCount: stats.failures.length,
+        ledger: ledger.rows
       }));
       return {runId, status, ...stats};
     } catch (error) {

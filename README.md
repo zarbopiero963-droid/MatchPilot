@@ -195,7 +195,7 @@ La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue *
 
 Stato corrente della sorgente: **IN CERTIFICAZIONE — non ancora CLOSED**.
 
-Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-07 … FPT-PR-09 non partono.
+Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-08 … FPT-PR-09 non partono.
 
 La certificazione richiede, nell'ordine:
 
@@ -399,6 +399,13 @@ Una riga di catalogo porta `internal_competition_id` (`fpt:competition:` più md
 `earliest_season` e `latest_season` sono la prima e l'ultima stagione osservata della lega, non un intervallo inventato. Il rilevatore di buchi registra una stagione assente solo se il passo modale fra le stagioni osservate è un anno e quel passo non è superato da un passo più largo. Un torneo ogni quattro anni non viene riempito. Un buco così trovato non è nel catalogo, quindi non è `missing_available` e non è `COMPLETE`. Una stagione futura si rappresenta con una riga `CANDIDATE` e un campionato futuro con `DISCOVERED`: entrambe hanno zero partite, `historical_complete` false e non entrano nel conteggio delle stagioni available mancanti. Il job non inserisce righe future fittizie nel catalogo reale.
 
 `missing_available_seasons` è il numero di righe di catalogo attive con classificazione `AVAILABLE` e senza uno snapshot dataset `ingest_complete`. Il gate `phase6` richiede che quel numero sia 0, che nessun `UNAVAILABLE_404` sia `COMPLETE`, e che la funzione `fpt_known_matches(timestamp, contract, dataset)` allo stesso timestamp e allo stesso `schema_version` restituisca lo stesso conteggio. La funzione legge solo `acquired_at <= timestamp`. I numeri reali stanno nel commento della PR, non qui.
+
+
+### FASE 7 — due sync incrementali
+
+Il comando incrementale è `node src/jobs/futpython-sync.mjs`, senza `--backfill` e senza `--force`. Non rimette in coda il catalogo. Considera solo la stagione corrente (`incrementalTargets`): anno civile uguale all'anno UTC, oppure stagione `YYYY-YYYY` che contiene la data. Le stagioni storiche non vengono richieste.
+
+Un dataset `available`, `unavailable_404` o `deprecated` con snapshot completo non produce una chiamata upstream: il ledger scrive `cache_hit`. `error` e uno snapshot `ingest_complete=false` restano richiedibili. Il catalogo e `jogos-do-dia` di oggi sono le uniche richieste di run quando ogni dataset corrente è terminale. Uno snapshot con lo stesso sha256 non viene reinserito. Una versione match con la stessa `(match_key, payload_sha256)` non viene reinserita. Non si inventa un payload cambiato. I run id, i conteggi e il ledger stanno nel commento della PR, non qui.
 
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
 
