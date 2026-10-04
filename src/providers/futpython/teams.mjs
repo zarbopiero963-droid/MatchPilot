@@ -40,13 +40,27 @@ export function buildTeamEntities(rows) {
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(row);
   }
-  return [...groups.values()].map(spellings => {
+  return [...groups.values()].map(rowsInGroup => {
+    const byName = new Map();
+    for (const row of rowsInGroup) {
+      const prev = byName.get(row.name);
+      if (!prev) {
+        byName.set(row.name, {...row, seen: row.seen || 0, competitions: row.competition_slug ? [row.competition_slug] : []});
+        continue;
+      }
+      prev.seen += row.seen || 0;
+      const dates = [prev.first_seen, prev.last_seen, row.first_seen, row.last_seen].filter(Boolean).sort();
+      prev.first_seen = dates[0] || null;
+      prev.last_seen = dates[dates.length - 1] || null;
+      if (row.competition_slug && !prev.competitions.includes(row.competition_slug)) prev.competitions.push(row.competition_slug);
+    }
+    const spellings = [...byName.values()];
     const ranked = [...spellings].sort((a, b) => (b.seen || 0) - (a.seen || 0) || String(a.name).localeCompare(String(b.name)));
     const canonical = ranked[0];
     const normalized = normalizeTeamName(canonical.name);
     const id = internalTeamId(canonical.country_slug, normalized);
-    const competitions = [...new Set(spellings.map(row => row.competition_slug).filter(Boolean))].sort();
-    const topCompetition = [...spellings].sort((a, b) => (b.seen || 0) - (a.seen || 0))[0].competition_slug || null;
+    const competitions = [...new Set(spellings.flatMap(row => row.competitions || (row.competition_slug ? [row.competition_slug] : [])))].sort();
+    const topCompetition = ranked[0].competitions?.[0] || ranked[0].competition_slug || null;
     const dates = spellings.flatMap(row => [row.first_seen, row.last_seen]).filter(Boolean).sort();
     const aliases = ranked.map((row, index) => ({
       name: row.name,
