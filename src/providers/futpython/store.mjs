@@ -120,12 +120,12 @@ export async function storeDataset(client, {
       `INSERT INTO fpt_match_versions(
         match_key,provider_match_id,dataset_key,snapshot_id,acquired_at,country_slug,league_slug,season,
         match_date,match_time,home,away,phase,payload,payload_sha256
-       ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'PREMATCH',$13::jsonb,$14)
+       ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb,$15)
        ON CONFLICT(match_key,payload_sha256) DO NOTHING`,
       [
         mk,providerId,datasetKey,snapshotId,acquiredAt,countrySlug,leagueSlug,season,
         dateOrNull(first(row,['Date','date'])),first(row,['Time','time']),
-        first(row,['Home','home']),first(row,['Away','away']),payloadJson,payloadHash
+        first(row,['Home','home']),first(row,['Away','away']),sourceKind==='dataset'?'HISTORICAL':'PREMATCH',payloadJson,payloadHash
       ]
     );
     inserted += result.rowCount;
