@@ -363,29 +363,36 @@ async function mismatchCount(client) {
   return {n: diff.rows[0].n, sample: sample.rows};
 }
 
-async function normalizedMismatch(client) {
+async function normalizedOverlap(client) {
   const overlap = await client.query(`
     SELECT count(*)::int AS versions
     FROM (
       SELECT v.version_id
       FROM fpt_match_versions v
       JOIN fpt_field_transforms t ON v.payload ? t.source_field
+      WHERE t.normalized_field IN (
+        SELECT normalized_field FROM fpt_field_transforms GROUP BY normalized_field HAVING count(*) > 1
+      )
       GROUP BY v.version_id, t.normalized_field
       HAVING count(*) > 1
     ) s
   `);
+  return overlap.rows[0].versions;
+}
+
+async function normalizedMismatch(client) {
+  const overlap = await normalizedOverlap(client);
   const diff = await client.query(`
     WITH expected AS (
       SELECT t.normalized_field AS field_name,
-             count(*)::bigint AS rows_scoped,
-             count(*) FILTER (WHERE nonempty)::bigint AS nonempty_rows
+             sum(g.rows_scoped)::bigint AS rows_scoped,
+             sum(g.nonempty_rows)::bigint AS nonempty_rows
       FROM (
-        SELECT t.normalized_field, v.version_id,
-               bool_or(${nonemptySql('v.payload->>t.source_field')}) AS nonempty
-        FROM fpt_match_versions v
-        JOIN fpt_field_transforms t ON v.payload ? t.source_field
-        GROUP BY t.normalized_field, v.version_id
-      ) per
+        SELECT field_name, sum(rows_scoped)::bigint AS rows_scoped, sum(nonempty_rows)::bigint AS nonempty_rows
+        FROM recalc_grain
+        GROUP BY field_name
+      ) g
+      JOIN fpt_field_transforms t ON t.source_field = g.field_name
       GROUP BY t.normalized_field
     )
     SELECT count(*)::int AS n
@@ -394,8 +401,8 @@ async function normalizedMismatch(client) {
     WHERE c.dimension = 'normalized'
       AND (c.rows_scoped IS DISTINCT FROM e.rows_scoped OR c.nonempty_rows IS DISTINCT FROM e.nonempty_rows
            OR c.field_name IS NULL OR e.field_name IS NULL)
-  `, [EMPTY_TOKENS]);
-  return {overlap_versions: overlap.rows[0].versions, mismatches: diff.rows[0].n};
+  `);
+  return {overlap_versions: overlap, mismatches: overlap > 0 ? diff.rows[0].n + overlap : diff.rows[0].n};
 }
 
 function evidenceFromGrainSql() {
@@ -482,27 +489,46 @@ export async function rebuildCoverage(client) {
        GROUP BY side.internal_team_id, e.key`,
       [EMPTY_TOKENS]
     );
-    await client.query(
-      `INSERT INTO fpt_field_coverage(dimension, dimension_key, field_name, rows_scoped, nonempty_rows, coverage_ratio, evidence)
-       SELECT 'normalized', normalized_field, normalized_field, rows_scoped, nonempty_rows,
-              nonempty_rows::numeric / rows_scoped,
-              jsonb_build_object('source_fields', source_fields, 'rule', 'distinct stored version; nonempty if any source value is nonempty')
-       FROM (
-         SELECT normalized_field,
-                count(*)::bigint AS rows_scoped,
-                count(*) FILTER (WHERE nonempty)::bigint AS nonempty_rows,
-                (SELECT jsonb_agg(source_field ORDER BY source_field) FROM fpt_field_transforms t WHERE t.normalized_field = per.normalized_field) AS source_fields
+    const overlap = await normalizedOverlap(client);
+    if (overlap > 0) {
+      await client.query(
+        `INSERT INTO fpt_field_coverage(dimension, dimension_key, field_name, rows_scoped, nonempty_rows, coverage_ratio, evidence)
+         SELECT 'normalized', normalized_field, normalized_field, rows_scoped, nonempty_rows,
+                nonempty_rows::numeric / rows_scoped,
+                jsonb_build_object('source_fields', source_fields, 'rule', 'distinct stored version; nonempty if any source value is nonempty')
          FROM (
-           SELECT t.normalized_field, v.version_id,
-                  bool_or(${nonemptySql('v.payload->>t.source_field')}) AS nonempty
-           FROM fpt_match_versions v
-           JOIN fpt_field_transforms t ON v.payload ? t.source_field
-           GROUP BY t.normalized_field, v.version_id
-         ) per
-         GROUP BY normalized_field
-       ) s`,
-      [EMPTY_TOKENS]
-    );
+           SELECT per.normalized_field,
+                  count(*)::bigint AS rows_scoped,
+                  count(*) FILTER (WHERE per.nonempty)::bigint AS nonempty_rows,
+                  (SELECT jsonb_agg(source_field ORDER BY source_field) FROM fpt_field_transforms src WHERE src.normalized_field = per.normalized_field) AS source_fields
+           FROM (
+             SELECT t.normalized_field, v.version_id,
+                    bool_or(${nonemptySql('v.payload->>t.source_field')}) AS nonempty
+             FROM fpt_match_versions v
+             JOIN fpt_field_transforms t ON v.payload ? t.source_field
+             GROUP BY t.normalized_field, v.version_id
+           ) per
+           GROUP BY per.normalized_field
+         ) s`,
+        [EMPTY_TOKENS]
+      );
+    } else {
+      await client.query(
+        `INSERT INTO fpt_field_coverage(dimension, dimension_key, field_name, rows_scoped, nonempty_rows, coverage_ratio, evidence)
+         SELECT 'normalized', t.normalized_field, t.normalized_field,
+                sum(c.rows_scoped)::bigint,
+                sum(c.nonempty_rows)::bigint,
+                sum(c.nonempty_rows)::numeric / sum(c.rows_scoped),
+                jsonb_build_object(
+                  'source_fields', jsonb_agg(t.source_field ORDER BY t.source_field),
+                  'rule', 'sum of source fields; no stored version contains two source keys of the same normalized field'
+                )
+         FROM fpt_field_coverage c
+         JOIN fpt_field_transforms t ON t.source_field = c.field_name
+         WHERE c.dimension = 'global' AND c.dimension_key = ''
+         GROUP BY t.normalized_field`
+      );
+    }
     const fields = await client.query('SELECT field_name FROM fpt_schema_fields ORDER BY field_name');
     await independentRecalc(client, fields.rows.map(row => row.field_name));
     const compared = await mismatchCount(client);
