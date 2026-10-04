@@ -23,16 +23,35 @@ export async function runBucJuniorAnalysis(){
  const advKeys=Object.keys(fx).filter(k=>/^(xG|xGOT|xA|Possession|Total_Shots|Shots_On_Target|Shots_Off_Target|Big_Chances|Corners|Over_|Under_|BTTS_|CS_|Bookie_)/.test(k)&&String(fx[k]??'').trim()!=='');
  const avg=(rows,key)=>{const v=rows.map(r=>num(r[key])).filter(x=>x!==null);return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length*100)/100:null};
  const advHist=(rows)=>Object.fromEntries(['xG_Home_FT','xG_Away_FT','xGOT_Home_FT','xGOT_Away_FT','Total_Shots_Home_FT','Total_Shots_Away_FT','Shots_On_Target_Home_FT','Shots_On_Target_Away_FT','Big_Chances_Home_FT','Big_Chances_Away_FT','Corners_Home_FT','Corners_Away_FT','Possession_Home_FT','Possession_Away_FT'].map(k=>[k,avg(rows,k)]).filter(([,v])=>v!==null));
+ const teamAdv=(rows,pred)=>{
+   const keys=['xG_Home_FT','xG_Away_FT','xGOT_Home_FT','xGOT_Away_FT','Total_Shots_Home_FT','Total_Shots_Away_FT','Shots_On_Target_Home_FT','Shots_On_Target_Away_FT','Big_Chances_Home_FT','Big_Chances_Away_FT','Corners_Home_FT','Corners_Away_FT','Possession_Home_FT','Possession_Away_FT'];
+   const acc={n:0,xgFor:[],xgAgainst:[],xgotFor:[],xgotAgainst:[],shotsFor:[],shotsAgainst:[],sotFor:[],sotAgainst:[],bigFor:[],bigAgainst:[],cornersFor:[],cornersAgainst:[],poss:[]};
+   for(const r of rows){
+     const home=pred(r.Home);acc.n++;
+     const get=(h,a)=>num(r[home?h:a]);
+     for(const [name,h,a] of [
+       ['xgFor','xG_Home_FT','xG_Away_FT'],['xgAgainst','xG_Away_FT','xG_Home_FT'],
+       ['xgotFor','xGOT_Home_FT','xGOT_Away_FT'],['xgotAgainst','xGOT_Away_FT','xGOT_Home_FT'],
+       ['shotsFor','Total_Shots_Home_FT','Total_Shots_Away_FT'],['shotsAgainst','Total_Shots_Away_FT','Total_Shots_Home_FT'],
+       ['sotFor','Shots_On_Target_Home_FT','Shots_On_Target_Away_FT'],['sotAgainst','Shots_On_Target_Away_FT','Shots_On_Target_Home_FT'],
+       ['bigFor','Big_Chances_Home_FT','Big_Chances_Away_FT'],['bigAgainst','Big_Chances_Away_FT','Big_Chances_Home_FT'],
+       ['cornersFor','Corners_Home_FT','Corners_Away_FT'],['cornersAgainst','Corners_Away_FT','Corners_Home_FT'],
+       ['poss','Possession_Home_FT','Possession_Away_FT']
+     ]){const v=get(h,a);if(v!==null)acc[name].push(v);}
+   }
+   const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length*100)/100:null;
+   return Object.fromEntries(Object.entries(acc).map(([k,v])=>[k,Array.isArray(v)?mean(v):v]));
+ };
  const result={
   rows:fin.length,
-  b10:sum(bAll.slice(-10),isB),j10:sum(jAll.slice(-10),isJ),b10Advanced:advHist(bAll.slice(-10)),j10Advanced:advHist(jAll.slice(-10)),
+  b10:sum(bAll.slice(-10),isB),j10:sum(jAll.slice(-10),isJ),b10Advanced:teamAdv(bAll.slice(-10),isB),j10Advanced:teamAdv(jAll.slice(-10),isJ),
   b20:sum(bAll.slice(-20),isB),j20:sum(jAll.slice(-20),isJ),
-  bHome15:sum(bHome.slice(-15),isB),jAway15:sum(jAway.slice(-15),isJ),bHome15Advanced:advHist(bHome.slice(-15)),jAway15Advanced:advHist(jAway.slice(-15)),
+  bHome15:sum(bHome.slice(-15),isB),jAway15:sum(jAway.slice(-15),isJ),bHome15Advanced:teamAdv(bHome.slice(-15),isB),jAway15Advanced:teamAdv(jAway.slice(-15),isJ),h2h15Advanced:{buc:teamAdv(h2h.slice(-15),isB),junior:teamAdv(h2h.slice(-15),isJ)},
   h2h15:{summary:sum(h2h.slice(-15),isB),scores:scores(h2h.slice(-15)),minutes:mins(h2h.slice(-15))},
   sim1:{n:sim(1).length,scores:scores(sim(1)),minutes:mins(sim(1))},
   sim3:{n:sim(3).length,scores:scores(sim(3)),minutes:mins(sim(3))},
   sim6:{n:sim(6).length,scores:scores(sim(6)),minutes:mins(sim(6))},
   fixture:{core:Object.fromEntries(['Date','Time','Home','Away','League','Season','Bookie_1X2_FT','Odd_1_FT','Odd_X_FT','Odd_2_FT'].map(k=>[k,fx[k]??''])),advanced:Object.fromEntries(advKeys.map(k=>[k,fx[k]]))}
  };
- console.log('BUC_JUN_ANALYSIS '+JSON.stringify(result));
+ console.log('BUC_JUN_ANALYSIS_V2 '+JSON.stringify(result));
 }
