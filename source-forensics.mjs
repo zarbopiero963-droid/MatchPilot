@@ -20,7 +20,7 @@ async function fetchCsv(path,key){
 
 export async function runFutpythonForensics(pool){
   if(!pool||!process.env.FUTPYTHON_API_KEY||!process.env.GOAT_USERNAME||!process.env.GOAT_PASSWORD)return;
-  const runId='forensics-futpython-goat-v1';
+  const runId='forensics-futpython-goat-v2';
   await pool.query('CREATE TABLE IF NOT EXISTS matchpilot_test_runs(run_id text PRIMARY KEY,started_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,result jsonb NOT NULL)');
   const prior=await pool.query('SELECT completed_at,result FROM matchpilot_test_runs WHERE run_id=$1',[runId]);
   if(prior.rows[0]?.completed_at){console.log('FUTPYTHON_FORENSICS already_recorded');return;}
@@ -50,8 +50,10 @@ export async function runFutpythonForensics(pool){
     await page.waitForFunction(()=>typeof window.PANDORA_EMBEDDED_DB==='string'&&window.PANDORA_EMBEDDED_DB.length>1000,{},{timeout:60000});
     const goat=await page.evaluate(()=>{
       const text=window.PANDORA_EMBEDDED_DB, lines=text.split('\n').filter(Boolean), header=lines[0].split(';');
-      const sample=lines.slice(1,101).map(line=>{const c=line.split(';'),o={};header.forEach((h,i)=>o[h]=c[i]??'');return o;});
-      return {bytes:text.length,header,sample,firstDate:sample[0]?.Date||null,lastSampleDate:sample.at(-1)?.Date||null};
+      const rows=lines.slice(1).map(line=>{const c=line.split(';'),o={};header.forEach((h,i)=>o[h]=c[i]??'');return o;});
+      const italy=rows.filter(r=>/ital/i.test(String(r.Country||''))||/serie\s*a/i.test(String(r.League||r.Div||''))).slice(0,500);
+      const sample=italy.length?italy:rows.slice(0,500);
+      return {bytes:text.length,header,sample,filteredItaly:italy.length,firstDate:sample[0]?.Date||null,lastSampleDate:sample.at(-1)?.Date||null};
     });
     await browser.close(); browser=null;
 
@@ -77,7 +79,7 @@ export async function runFutpythonForensics(pool){
       exactRows:exact.slice(0,20)
     };
     await pool.query('UPDATE matchpilot_test_runs SET completed_at=now(),result=$2 WHERE run_id=$1',[runId,JSON.stringify(result)]);
-    console.log('FUTPYTHON_FORENSICS '+JSON.stringify({status:result.status,keyPresent:true,goatBytes:goat.bytes,futRows:datasets.length,directMatches:exact.length}));
+    console.log('FUTPYTHON_FORENSICS '+JSON.stringify({status:result.status,keyPresent:true,goatBytes:goat.bytes,header:goat.header,filteredItaly:goat.filteredItaly,futRows:datasets.length,directMatches:exact.length,firstMatches:exact.slice(0,3).map(x=>({key:x.key,fieldMatches:x.fieldMatches}))}));
   }catch(e){
     if(browser)await browser.close().catch(()=>{});
     const result={status:'failed',keyPresent:Boolean(process.env.FUTPYTHON_API_KEY),errorType:e.name,message:String(e.message).replace(process.env.FUTPYTHON_API_KEY||'','[REDACTED]').slice(0,500)};
