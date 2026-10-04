@@ -137,3 +137,20 @@ L'esito finale ammesso è uno solo tra:
 7. Trading Opportunity Engine.
 8. Backtest/replay.
 9. Journal, risk ed execution.
+
+
+## Protocollo TotalCorner — issue #20
+
+La issue **#20 — TC-CERT** è il contratto operativo vincolante per l'integrazione TotalCorner.
+
+Regole:
+- una PR alla volta;
+- README sincronizzato in ogni PR;
+- hard test reali Render/Neon/TotalCorner/Telegram;
+- nessuna fase chiusa solo con CI verde;
+- solo campionati con mapping VERIFIED FutPythonTrader ↔ TotalCorner entrano nel collector;
+- PREMATCH e LIVE devono restare temporalmente separati;
+- il collector live deve persistere snapshot, events e market movement in modo deduplicato;
+- alert TotalCorner devono usare la stessa chat Telegram configurata per FutPythonTrader;
+- nessun token TotalCorner nei log;
+- `TotalCorner CLOSED / CERTIFIED` solo dopo tutti i gate della #20.
