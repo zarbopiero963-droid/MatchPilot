@@ -31,8 +31,11 @@ export async function runPhase5Audit() {
       class_mismatches: audit.class_mismatches,
       historical_team_unresolved: audit.historical_team_unresolved,
       today_country_unresolved: audit.today_country_unresolved,
-      overlap_versions: audit.overlap_versions,
-      sample: audit.sample,
+      team_census: false,
+      team_sample_mismatches: audit.team_sample_mismatches,
+      sample_teams: audit.sample_teams,
+      sample_fields: ['Home', 'Date', 'Match_ID'],
+      diff_sample: audit.sample,
       examples: examples.rows
     };
     await client.query(
@@ -56,7 +59,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         class_mismatches: result.class_mismatches,
         historical_team_unresolved: result.historical_team_unresolved,
         today_country_unresolved: result.today_country_unresolved,
-        overlap_versions: result.overlap_versions,
+        team_census: false,
+        team_sample_mismatches: result.team_sample_mismatches,
+        sample_teams: result.sample_teams,
+        sample_fields: result.sample_fields,
         registry_fields: result.summary?.registry_fields,
         global_fields: result.summary?.global_fields,
         normalized_rows: result.summary?.normalized_rows,
@@ -66,7 +72,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         season_rows: result.summary?.season_rows,
         period_rows: result.summary?.period_rows,
         examples: result.examples,
-        sample: result.sample
+        diff_sample: result.diff_sample
       };
       console.log('FUTPYTHON_PHASE5_AUDIT ' + JSON.stringify(summary));
       if (!result.gate) process.exitCode = 1;

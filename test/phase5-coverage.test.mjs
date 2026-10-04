@@ -69,13 +69,20 @@ test('phase5 gate stays closed until the independent recount matches', () => {
     league_rows: 1,
     season_rows: 1,
     period_rows: 1,
-    team_rows: 1,
+    team_rows: 9,
     normalized_rows: 324,
     normalized_names: 324,
-    historical_team_unresolved: 0
+    historical_team_unresolved: 0,
+    evidence: {
+      team_census: false,
+      team_sample_mismatches: 0,
+      sample_teams: ['a', 'b', 'c'],
+      sample_fields: ['Home', 'Date', 'Match_ID']
+    }
   };
   assert.equal(phase5Gate(ok), true);
   assert.equal(phase5Gate({...ok, payload_mismatches: 1}), false);
+  assert.equal(phase5Gate({...ok, team_rows: 700000, evidence: {...ok.evidence, team_census: true}}), false);
   assert.equal(phase5Gate({...ok, payload_mismatches: null}), false);
   assert.equal(phase5Gate(null), false);
 });

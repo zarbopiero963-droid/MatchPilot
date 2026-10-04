@@ -65,10 +65,14 @@ SELECT
   a.today_country_unresolved,
   a.class_counts,
   a.tag_counts,
+  a.evidence,
   a.computed_at
 FROM fpt_coverage_audit a
 WHERE a.audit_id = 1
 `;
+
+export const TEAM_SAMPLE_FIELDS = ['Home', 'Date', 'Match_ID'];
+export const TEAM_SAMPLE_LIMIT = 3;
 
 export function phase5Gate(row) {
   if (!row) return false;
@@ -79,6 +83,9 @@ export function phase5Gate(row) {
     'historical_team_unresolved'
   ];
   if (keys.some(key => row[key] === null || row[key] === undefined || Number.isNaN(Number(row[key])))) return false;
+  const evidence = row.evidence && typeof row.evidence === 'object' ? row.evidence : {};
+  const sampleTeams = Array.isArray(evidence.sample_teams) ? evidence.sample_teams : [];
+  const sampleFields = Array.isArray(evidence.sample_fields) ? evidence.sample_fields : [];
   const n = key => Number(row[key]);
   return n('payload_mismatches') === 0
     && n('rollup_mismatches') === 0
@@ -91,7 +98,12 @@ export function phase5Gate(row) {
     && n('league_rows') > 0
     && n('season_rows') > 0
     && n('period_rows') > 0
-    && n('team_rows') > 0
+    && n('team_rows') === TEAM_SAMPLE_LIMIT * TEAM_SAMPLE_FIELDS.length
+    && evidence.team_census === false
+    && Number(evidence.team_sample_mismatches) === 0
+    && sampleTeams.length === TEAM_SAMPLE_LIMIT
+    && sampleFields.length === TEAM_SAMPLE_FIELDS.length
+    && TEAM_SAMPLE_FIELDS.every((field, index) => sampleFields[index] === field)
     && n('normalized_rows') === n('normalized_names')
     && n('historical_team_unresolved') === 0;
 }
@@ -209,7 +221,7 @@ async function writeClasses(client, evidenceRows) {
         period_rule: 'calendar year of match_date, or undated',
         league_rule: 'country_slug/league_slug, or unscoped when either is null',
         season_rule: 'stored season, or unscoped when null',
-        team_rule: 'internal_team_id resolved from home/away alias plus country_slug; null country_slug is not assigned',
+        team_rule: 'sample only: 3 teams with the most stored matches, fields Home Date Match_ID; not a catalog census',
         scope_tags_are_independent: true
       }
     };
@@ -253,115 +265,39 @@ async function writeClasses(client, evidenceRows) {
   );
 }
 
-async function independentRecalc(client, fieldNames) {
-  await client.query(`
-    CREATE TEMP TABLE recalc_grain (
-      field_name text NOT NULL,
-      dataset_key text NOT NULL,
-      league_key text NOT NULL,
-      season_key text NOT NULL,
-      period_key text NOT NULL,
-      rows_scoped bigint NOT NULL,
-      nonempty_rows bigint NOT NULL
-    ) ON COMMIT DROP
-  `);
-  await client.query(`
-    CREATE TEMP TABLE recalc_team (
-      team_id text NOT NULL,
-      field_name text NOT NULL,
-      rows_scoped bigint NOT NULL,
-      nonempty_rows bigint NOT NULL
-    ) ON COMMIT DROP
-  `);
-  for (const batch of chunks(fieldNames, 20)) {
-    await client.query(
-      `INSERT INTO recalc_grain(field_name, dataset_key, league_key, season_key, period_key, rows_scoped, nonempty_rows)
-       SELECT f.field_name, v.dataset_key, ${LEAGUE_KEY}, ${SEASON_KEY}, ${PERIOD_KEY},
-              count(*)::bigint,
-              count(*) FILTER (WHERE ${nonemptySql('v.payload->>f.field_name')})::bigint
-       FROM unnest($2::text[]) AS f(field_name)
-       JOIN fpt_match_versions v ON v.payload ? f.field_name
-       GROUP BY f.field_name, v.dataset_key, 3, 4, 5`,
-      [EMPTY_TOKENS, batch]
-    );
-    await client.query(
-      `INSERT INTO recalc_team(team_id, field_name, rows_scoped, nonempty_rows)
-       SELECT side.internal_team_id, f.field_name,
-              count(*)::bigint,
-              count(*) FILTER (WHERE ${nonemptySql('v.payload->>f.field_name')})::bigint
-       FROM unnest($2::text[]) AS f(field_name)
-       JOIN fpt_match_versions v ON v.payload ? f.field_name
-       JOIN LATERAL (
-         SELECT t.internal_team_id
-         FROM fpt_team_aliases a
-         JOIN fpt_teams t ON t.internal_team_id = a.internal_team_id
-         WHERE t.country_slug = v.country_slug AND a.name = v.home
-         UNION
-         SELECT t.internal_team_id
-         FROM fpt_team_aliases a
-         JOIN fpt_teams t ON t.internal_team_id = a.internal_team_id
-         WHERE t.country_slug = v.country_slug AND a.name = v.away
-       ) side ON true
-       GROUP BY side.internal_team_id, f.field_name`,
-      [EMPTY_TOKENS, batch]
-    );
-  }
-}
-
-const ROLLED_SQL = `
-SELECT 'global' AS dimension, '' AS dimension_key, field_name, sum(rows_scoped)::bigint AS rows_scoped, sum(nonempty_rows)::bigint AS nonempty_rows
-FROM recalc_grain GROUP BY field_name
-UNION ALL
-SELECT 'dataset', dataset_key, field_name, sum(rows_scoped)::bigint, sum(nonempty_rows)::bigint
-FROM recalc_grain GROUP BY dataset_key, field_name
-UNION ALL
-SELECT 'league', league_key, field_name, sum(rows_scoped)::bigint, sum(nonempty_rows)::bigint
-FROM recalc_grain GROUP BY league_key, field_name
-UNION ALL
-SELECT 'season', season_key, field_name, sum(rows_scoped)::bigint, sum(nonempty_rows)::bigint
-FROM recalc_grain GROUP BY season_key, field_name
-UNION ALL
-SELECT 'period', period_key, field_name, sum(rows_scoped)::bigint, sum(nonempty_rows)::bigint
-FROM recalc_grain GROUP BY period_key, field_name
-UNION ALL
-SELECT 'team', team_id, field_name, rows_scoped, nonempty_rows FROM recalc_team
+const OBJECT_KEYS_SQL = `
+SELECT
+  CASE
+    WHEN GROUPING(v.dataset_key) = 0 THEN 'dataset'
+    WHEN GROUPING(league_key) = 0 THEN 'league'
+    WHEN GROUPING(season_key) = 0 THEN 'season'
+    WHEN GROUPING(period_key) = 0 THEN 'period'
+    ELSE 'global'
+  END AS dimension,
+  CASE
+    WHEN GROUPING(v.dataset_key) = 0 THEN v.dataset_key
+    WHEN GROUPING(league_key) = 0 THEN league_key
+    WHEN GROUPING(season_key) = 0 THEN season_key
+    WHEN GROUPING(period_key) = 0 THEN period_key
+    ELSE ''
+  END AS dimension_key,
+  k.key AS field_name,
+  count(*)::bigint AS rows_scoped,
+  count(*) FILTER (WHERE ${nonemptySql('v.payload->>k.key')})::bigint AS nonempty_rows
+FROM fpt_match_versions v
+CROSS JOIN LATERAL jsonb_object_keys(v.payload) AS k(key)
+JOIN fpt_schema_fields f ON f.field_name = k.key
+CROSS JOIN LATERAL (
+  SELECT ${LEAGUE_KEY} AS league_key, ${SEASON_KEY} AS season_key, ${PERIOD_KEY} AS period_key
+) dims
+GROUP BY GROUPING SETS (
+  (k.key),
+  (v.dataset_key, k.key),
+  (league_key, k.key),
+  (season_key, k.key),
+  (period_key, k.key)
+)
 `;
-
-async function mismatchCount(client) {
-  const diff = await client.query(`
-    WITH rolled AS (${ROLLED_SQL}),
-    stored AS (
-      SELECT dimension, dimension_key, field_name, rows_scoped, nonempty_rows
-      FROM fpt_field_coverage
-      WHERE dimension IN ('global','dataset','league','season','period','team')
-    ),
-    delta AS (
-      SELECT s.dimension, s.dimension_key, s.field_name, s.rows_scoped AS stored_rows, r.rows_scoped AS recalc_rows,
-             s.nonempty_rows AS stored_nonempty, r.nonempty_rows AS recalc_nonempty
-      FROM stored s
-      FULL OUTER JOIN rolled r USING (dimension, dimension_key, field_name)
-      WHERE s.rows_scoped IS DISTINCT FROM r.rows_scoped
-         OR s.nonempty_rows IS DISTINCT FROM r.nonempty_rows
-    )
-    SELECT count(*)::int AS n FROM delta
-  `);
-  const sample = await client.query(`
-    WITH rolled AS (${ROLLED_SQL})
-    SELECT s.dimension, s.dimension_key, COALESCE(s.field_name, r.field_name) AS field_name,
-           s.rows_scoped AS stored_rows, r.rows_scoped AS recalc_rows,
-           s.nonempty_rows AS stored_nonempty, r.nonempty_rows AS recalc_nonempty
-    FROM (
-      SELECT dimension, dimension_key, field_name, rows_scoped, nonempty_rows
-      FROM fpt_field_coverage
-      WHERE dimension IN ('global','dataset','league','season','period','team')
-    ) s
-    FULL OUTER JOIN rolled r USING (dimension, dimension_key, field_name)
-    WHERE s.rows_scoped IS DISTINCT FROM r.rows_scoped
-       OR s.nonempty_rows IS DISTINCT FROM r.nonempty_rows
-    LIMIT 20
-  `);
-  return {n: diff.rows[0].n, sample: sample.rows};
-}
 
 async function normalizedOverlap(client) {
   const overlap = await client.query(`
@@ -380,85 +316,74 @@ async function normalizedOverlap(client) {
   return overlap.rows[0].versions;
 }
 
-async function normalizedMismatch(client) {
-  const overlap = await normalizedOverlap(client);
-  const diff = await client.query(`
-    WITH expected AS (
-      SELECT t.normalized_field AS field_name,
-             sum(g.rows_scoped)::bigint AS rows_scoped,
-             sum(g.nonempty_rows)::bigint AS nonempty_rows
-      FROM (
-        SELECT field_name, sum(rows_scoped)::bigint AS rows_scoped, sum(nonempty_rows)::bigint AS nonempty_rows
-        FROM recalc_grain
-        GROUP BY field_name
-      ) g
-      JOIN fpt_field_transforms t ON t.source_field = g.field_name
-      GROUP BY t.normalized_field
-    )
-    SELECT count(*)::int AS n
-    FROM fpt_field_coverage c
-    FULL OUTER JOIN expected e ON e.field_name = c.field_name
-    WHERE c.dimension = 'normalized'
-      AND (c.rows_scoped IS DISTINCT FROM e.rows_scoped OR c.nonempty_rows IS DISTINCT FROM e.nonempty_rows
-           OR c.field_name IS NULL OR e.field_name IS NULL)
-  `);
-  return {overlap_versions: overlap, mismatches: overlap > 0 ? diff.rows[0].n + overlap : diff.rows[0].n};
-}
-
-function evidenceFromGrainSql() {
-  return `
-    WITH dims AS (
-      SELECT DISTINCT dataset_key,
-        ${LEAGUE_KEY} AS league_key,
-        ${SEASON_KEY} AS season_key,
-        substring(season FROM '^[0-9]{4}')::int AS start_year
-      FROM fpt_match_versions
-    ),
-    league_bounds AS (
-      SELECT league_key,
-             count(DISTINCT season_key)::int AS season_count,
-             min(start_year) AS league_min,
-             max(start_year) AS league_max
-      FROM dims
-      WHERE league_key <> 'unscoped'
-      GROUP BY league_key
-    ),
-    field_leagues AS (
-      SELECT g.field_name, d.league_key,
-             count(DISTINCT d.season_key) FILTER (WHERE d.season_key <> 'unscoped')::int AS field_seasons,
-             min(d.start_year) AS field_min,
-             max(d.start_year) AS field_max
-      FROM (
-        SELECT field_name, dataset_key FROM recalc_grain GROUP BY field_name, dataset_key
-      ) g
-      JOIN dims d ON d.dataset_key = g.dataset_key
-      WHERE d.league_key <> 'unscoped'
-      GROUP BY g.field_name, d.league_key
-    ),
-    totals AS (
-      SELECT field_name, sum(rows_scoped)::bigint AS rows_scoped, sum(nonempty_rows)::bigint AS nonempty_rows
-      FROM recalc_grain
-      GROUP BY field_name
-    )
-    SELECT t.field_name, t.rows_scoped, t.nonempty_rows,
-           (SELECT count(*)::int FROM league_bounds) AS leagues_total,
-           count(fl.league_key)::int AS leagues_present,
-           count(fl.league_key) FILTER (WHERE fl.field_seasons < lb.season_count)::int AS season_gap_leagues,
-           count(fl.league_key) FILTER (WHERE fl.field_min > lb.league_min)::int AS introduced_late_leagues,
-           count(fl.league_key) FILTER (WHERE fl.field_max < lb.league_max)::int AS missing_latest_leagues,
-           count(fl.league_key) FILTER (WHERE lb.league_min IS NOT NULL AND lb.league_max IS NOT NULL)::int AS comparable_leagues
-    FROM totals t
-    LEFT JOIN field_leagues fl ON fl.field_name = t.field_name
-    LEFT JOIN league_bounds lb ON lb.league_key = fl.league_key
-    GROUP BY t.field_name, t.rows_scoped, t.nonempty_rows
-  `;
+async function writeTeamSample(client) {
+  const teams = await client.query(`
+    SELECT t.internal_team_id
+    FROM fpt_match_versions v
+    JOIN fpt_teams t ON t.country_slug = v.country_slug
+    JOIN fpt_team_aliases a ON a.internal_team_id = t.internal_team_id AND a.name IN (v.home, v.away)
+    GROUP BY t.internal_team_id
+    ORDER BY count(DISTINCT v.version_id) DESC, t.internal_team_id
+    LIMIT $1
+  `, [TEAM_SAMPLE_LIMIT]);
+  const sampleTeams = teams.rows.map(row => row.internal_team_id);
+  if (sampleTeams.length !== TEAM_SAMPLE_LIMIT) {
+    throw new Error('team sample incomplete');
+  }
+  await client.query(
+    `INSERT INTO fpt_field_coverage(dimension, dimension_key, field_name, rows_scoped, nonempty_rows, coverage_ratio, evidence)
+     SELECT 'team', side.internal_team_id, f.field_name, count(*)::bigint,
+            count(*) FILTER (WHERE ${nonemptySql('v.payload->>f.field_name')})::bigint,
+            (count(*) FILTER (WHERE ${nonemptySql('v.payload->>f.field_name')}))::numeric / count(*),
+            jsonb_build_object('sample', true, 'team_census', false, 'rule', 'payload key present and team is home or away')
+     FROM unnest($2::text[]) AS f(field_name)
+     JOIN fpt_match_versions v ON v.payload ? f.field_name
+     JOIN LATERAL (
+       SELECT t.internal_team_id
+       FROM fpt_team_aliases a
+       JOIN fpt_teams t ON t.internal_team_id = a.internal_team_id
+       WHERE t.country_slug = v.country_slug AND a.name IN (v.home, v.away)
+         AND t.internal_team_id = ANY($3::text[])
+     ) side ON true
+     GROUP BY side.internal_team_id, f.field_name`,
+    [EMPTY_TOKENS, TEAM_SAMPLE_FIELDS, sampleTeams]
+  );
+  const check = await client.query(
+    `SELECT side.internal_team_id AS team_id, e.key AS field_name, count(*)::bigint AS rows_scoped,
+            count(*) FILTER (WHERE ${nonemptySql('e.value')})::bigint AS nonempty_rows
+     FROM fpt_match_versions v
+     JOIN LATERAL (
+       SELECT t.internal_team_id
+       FROM fpt_team_aliases a
+       JOIN fpt_teams t ON t.internal_team_id = a.internal_team_id
+       WHERE t.country_slug = v.country_slug AND a.name IN (v.home, v.away)
+         AND t.internal_team_id = ANY($2::text[])
+     ) side ON true
+     CROSS JOIN LATERAL jsonb_each_text(v.payload) AS e(key, value)
+     WHERE e.key = ANY($3::text[])
+     GROUP BY side.internal_team_id, e.key`,
+    [EMPTY_TOKENS, sampleTeams, TEAM_SAMPLE_FIELDS]
+  );
+  const stored = await client.query(
+    `SELECT dimension_key AS team_id, field_name, rows_scoped, nonempty_rows
+     FROM fpt_field_coverage WHERE dimension = 'team'`
+  );
+  const key = row => `${row.team_id}|${row.field_name}`;
+  const again = new Map(check.rows.map(row => [key(row), row]));
+  let mismatches = 0;
+  if (stored.rowCount !== check.rowCount) mismatches += Math.abs(stored.rowCount - check.rowCount);
+  for (const row of stored.rows) {
+    const other = again.get(key(row));
+    if (!other || String(other.rows_scoped) !== String(row.rows_scoped) || String(other.nonempty_rows) !== String(row.nonempty_rows)) mismatches += 1;
+  }
+  return {sampleTeams, mismatches, rows: stored.rowCount};
 }
 
 export async function rebuildCoverage(client) {
   await client.query('BEGIN');
   try {
     await client.query("SET LOCAL statement_timeout = '0'");
-    await client.query("SET LOCAL work_mem = '256MB'");
+    await client.query("SET LOCAL work_mem = '128MB'");
     await client.query('DELETE FROM fpt_field_coverage');
     await client.query(
       `INSERT INTO fpt_field_coverage(dimension, dimension_key, field_name, rows_scoped, nonempty_rows, coverage_ratio)
@@ -467,78 +392,133 @@ export async function rebuildCoverage(client) {
        FROM (${GRAIN_SQL}) s`,
       [EMPTY_TOKENS]
     );
+    await client.query(`
+      CREATE TEMP TABLE recalc_coverage (
+        dimension text NOT NULL,
+        dimension_key text NOT NULL,
+        field_name text NOT NULL,
+        rows_scoped bigint NOT NULL,
+        nonempty_rows bigint NOT NULL
+      ) ON COMMIT DROP
+    `);
     await client.query(
-      `INSERT INTO fpt_field_coverage(dimension, dimension_key, field_name, rows_scoped, nonempty_rows, coverage_ratio)
-       SELECT 'team', side.internal_team_id, e.key, count(*)::bigint,
-              count(*) FILTER (WHERE ${nonemptySql('e.value')})::bigint,
-              (count(*) FILTER (WHERE ${nonemptySql('e.value')}))::numeric / count(*)
-       FROM fpt_match_versions v
-       JOIN LATERAL (
-         SELECT t.internal_team_id
-         FROM fpt_team_aliases a
-         JOIN fpt_teams t ON t.internal_team_id = a.internal_team_id
-         WHERE t.country_slug = v.country_slug AND a.name = v.home
-         UNION
-         SELECT t.internal_team_id
-         FROM fpt_team_aliases a
-         JOIN fpt_teams t ON t.internal_team_id = a.internal_team_id
-         WHERE t.country_slug = v.country_slug AND a.name = v.away
-       ) side ON true
-       CROSS JOIN LATERAL jsonb_each_text(v.payload) AS e(key, value)
-       JOIN fpt_schema_fields f ON f.field_name = e.key
-       GROUP BY side.internal_team_id, e.key`,
+      `INSERT INTO recalc_coverage(dimension, dimension_key, field_name, rows_scoped, nonempty_rows)
+       SELECT dimension, dimension_key, field_name, rows_scoped, nonempty_rows
+       FROM (${OBJECT_KEYS_SQL}) s`,
       [EMPTY_TOKENS]
     );
+    const compared = await client.query(`
+      SELECT count(*)::int AS n
+      FROM (
+        SELECT dimension, dimension_key, field_name, rows_scoped, nonempty_rows
+        FROM fpt_field_coverage
+        WHERE dimension IN ('global','dataset','league','season','period')
+        EXCEPT
+        SELECT dimension, dimension_key, field_name, rows_scoped, nonempty_rows FROM recalc_coverage
+      ) missing
+    `);
+    const reverse = await client.query(`
+      SELECT count(*)::int AS n
+      FROM (
+        SELECT dimension, dimension_key, field_name, rows_scoped, nonempty_rows FROM recalc_coverage
+        EXCEPT
+        SELECT dimension, dimension_key, field_name, rows_scoped, nonempty_rows
+        FROM fpt_field_coverage
+        WHERE dimension IN ('global','dataset','league','season','period')
+      ) extra
+    `);
+    const sample = await client.query(`
+      SELECT s.dimension, s.dimension_key, s.field_name, s.rows_scoped AS stored_rows, r.rows_scoped AS recalc_rows,
+             s.nonempty_rows AS stored_nonempty, r.nonempty_rows AS recalc_nonempty
+      FROM fpt_field_coverage s
+      FULL OUTER JOIN recalc_coverage r USING (dimension, dimension_key, field_name)
+      WHERE s.dimension IN ('global','dataset','league','season','period')
+        AND (s.rows_scoped IS DISTINCT FROM r.rows_scoped OR s.nonempty_rows IS DISTINCT FROM r.nonempty_rows)
+      LIMIT 20
+    `);
     const overlap = await normalizedOverlap(client);
-    if (overlap > 0) {
-      await client.query(
-        `INSERT INTO fpt_field_coverage(dimension, dimension_key, field_name, rows_scoped, nonempty_rows, coverage_ratio, evidence)
-         SELECT 'normalized', normalized_field, normalized_field, rows_scoped, nonempty_rows,
-                nonempty_rows::numeric / rows_scoped,
-                jsonb_build_object('source_fields', source_fields, 'rule', 'distinct stored version; nonempty if any source value is nonempty')
-         FROM (
-           SELECT per.normalized_field,
-                  count(*)::bigint AS rows_scoped,
-                  count(*) FILTER (WHERE per.nonempty)::bigint AS nonempty_rows,
-                  (SELECT jsonb_agg(source_field ORDER BY source_field) FROM fpt_field_transforms src WHERE src.normalized_field = per.normalized_field) AS source_fields
-           FROM (
-             SELECT t.normalized_field, v.version_id,
-                    bool_or(${nonemptySql('v.payload->>t.source_field')}) AS nonempty
-             FROM fpt_match_versions v
-             JOIN fpt_field_transforms t ON v.payload ? t.source_field
-             GROUP BY t.normalized_field, v.version_id
-           ) per
-           GROUP BY per.normalized_field
-         ) s`,
-        [EMPTY_TOKENS]
-      );
-    } else {
-      await client.query(
-        `INSERT INTO fpt_field_coverage(dimension, dimension_key, field_name, rows_scoped, nonempty_rows, coverage_ratio, evidence)
-         SELECT 'normalized', t.normalized_field, t.normalized_field,
-                sum(c.rows_scoped)::bigint,
-                sum(c.nonempty_rows)::bigint,
-                sum(c.nonempty_rows)::numeric / sum(c.rows_scoped),
-                jsonb_build_object(
-                  'source_fields', jsonb_agg(t.source_field ORDER BY t.source_field),
-                  'rule', 'sum of source fields; no stored version contains two source keys of the same normalized field'
-                )
-         FROM fpt_field_coverage c
-         JOIN fpt_field_transforms t ON t.source_field = c.field_name
-         WHERE c.dimension = 'global' AND c.dimension_key = ''
-         GROUP BY t.normalized_field`
-      );
-    }
-    const fields = await client.query('SELECT field_name FROM fpt_schema_fields ORDER BY field_name');
-    await independentRecalc(client, fields.rows.map(row => row.field_name));
-    const compared = await mismatchCount(client);
-    const normalized = await normalizedMismatch(client);
+    if (overlap !== 0) throw new Error('normalized source fields overlap on a stored version');
+    await client.query(
+      `INSERT INTO fpt_field_coverage(dimension, dimension_key, field_name, rows_scoped, nonempty_rows, coverage_ratio, evidence)
+       SELECT 'normalized', t.normalized_field, t.normalized_field,
+              sum(c.rows_scoped)::bigint,
+              sum(c.nonempty_rows)::bigint,
+              sum(c.nonempty_rows)::numeric / sum(c.rows_scoped),
+              jsonb_build_object(
+                'source_fields', jsonb_agg(t.source_field ORDER BY t.source_field),
+                'rule', 'sum of source fields; no stored version contains two source keys of the same normalized field'
+              )
+       FROM fpt_field_coverage c
+       JOIN fpt_field_transforms t ON t.source_field = c.field_name
+       WHERE c.dimension = 'global' AND c.dimension_key = ''
+       GROUP BY t.normalized_field`
+    );
+    const normalizedDiff = await client.query(`
+      WITH expected AS (
+        SELECT t.normalized_field AS field_name,
+               sum(c.rows_scoped)::bigint AS rows_scoped,
+               sum(c.nonempty_rows)::bigint AS nonempty_rows
+        FROM recalc_coverage c
+        JOIN fpt_field_transforms t ON t.source_field = c.field_name
+        WHERE c.dimension = 'global' AND c.dimension_key = ''
+        GROUP BY t.normalized_field
+      )
+      SELECT count(*)::int AS n
+      FROM fpt_field_coverage stored
+      FULL OUTER JOIN expected e ON e.field_name = stored.field_name AND stored.dimension = 'normalized'
+      WHERE stored.dimension = 'normalized'
+        AND (stored.rows_scoped IS DISTINCT FROM e.rows_scoped OR stored.nonempty_rows IS DISTINCT FROM e.nonempty_rows
+             OR e.field_name IS NULL)
+    `);
     const evidence = await client.query(EVIDENCE_SQL);
     await writeClasses(client, evidence.rows);
-    const recalcEvidence = await client.query(evidenceFromGrainSql());
+    const recalcEvidence = await client.query(`
+      WITH dims AS (
+        SELECT DISTINCT dataset_key,
+          ${LEAGUE_KEY} AS league_key,
+          ${SEASON_KEY} AS season_key,
+          substring(season FROM '^[0-9]{4}')::int AS start_year
+        FROM fpt_match_versions
+      ),
+      league_bounds AS (
+        SELECT league_key,
+               count(DISTINCT season_key)::int AS season_count,
+               min(start_year) AS league_min,
+               max(start_year) AS league_max
+        FROM dims
+        WHERE league_key <> 'unscoped'
+        GROUP BY league_key
+      ),
+      field_leagues AS (
+        SELECT c.field_name, d.league_key,
+               count(DISTINCT d.season_key) FILTER (WHERE d.season_key <> 'unscoped')::int AS field_seasons,
+               min(d.start_year) AS field_min,
+               max(d.start_year) AS field_max
+        FROM recalc_coverage c
+        JOIN dims d ON d.dataset_key = c.dimension_key
+        WHERE c.dimension = 'dataset' AND d.league_key <> 'unscoped'
+        GROUP BY c.field_name, d.league_key
+      ),
+      totals AS (
+        SELECT field_name, rows_scoped, nonempty_rows
+        FROM recalc_coverage
+        WHERE dimension = 'global' AND dimension_key = ''
+      )
+      SELECT t.field_name, t.rows_scoped, t.nonempty_rows,
+             (SELECT count(*)::int FROM league_bounds) AS leagues_total,
+             count(fl.league_key)::int AS leagues_present,
+             count(fl.league_key) FILTER (WHERE fl.field_seasons < lb.season_count)::int AS season_gap_leagues,
+             count(fl.league_key) FILTER (WHERE fl.field_min > lb.league_min)::int AS introduced_late_leagues,
+             count(fl.league_key) FILTER (WHERE fl.field_max < lb.league_max)::int AS missing_latest_leagues,
+             count(fl.league_key) FILTER (WHERE lb.league_min IS NOT NULL AND lb.league_max IS NOT NULL)::int AS comparable_leagues
+      FROM totals t
+      LEFT JOIN field_leagues fl ON fl.field_name = t.field_name
+      LEFT JOIN league_bounds lb ON lb.league_key = fl.league_key
+      GROUP BY t.field_name, t.rows_scoped, t.nonempty_rows
+    `);
     const storedClass = await client.query(
       `SELECT field_name, coverage_class, coverage_tags
-       FROM fpt_field_coverage WHERE dimension = 'global' ORDER BY field_name`
+       FROM fpt_field_coverage WHERE dimension = 'global'`
     );
     const recalcByName = new Map(recalcEvidence.rows.map(row => [row.field_name, row]));
     let classMismatches = 0;
@@ -553,6 +533,7 @@ export async function rebuildCoverage(client) {
       const storedTags = [...stored.coverage_tags].sort();
       if (stored.coverage_class !== expectedClass || storedTags.join('|') !== [...expectedTags].sort().join('|')) classMismatches += 1;
     }
+    const team = await writeTeamSample(client);
     const unresolved = await client.query(`
       SELECT
         count(*) FILTER (WHERE country_slug IS NULL)::int AS today_country_unresolved,
@@ -580,70 +561,39 @@ export async function rebuildCoverage(client) {
        WHERE dimension = 'global'
        GROUP BY tag ORDER BY tag`
     );
-    const payloadMismatches = compared.n + normalized.mismatches;
-    const mixed = await client.query(`
-      SELECT count(*)::int AS n FROM (
-        SELECT dataset_key FROM fpt_match_versions
-        GROUP BY dataset_key
-        HAVING count(DISTINCT COALESCE(country_slug, '') || '/' || COALESCE(league_slug, '') || '/' || COALESCE(season, '')) > 1
-      ) s
-    `);
     const rollup = await client.query(`
       WITH dims AS (
         SELECT DISTINCT dataset_key,
           ${LEAGUE_KEY} AS league_key,
           ${SEASON_KEY} AS season_key
         FROM fpt_match_versions
-      ),
-      dataset_global AS (
-        SELECT count(*)::int AS n
-        FROM fpt_field_coverage g
-        JOIN (
-          SELECT field_name, sum(rows_scoped)::bigint AS rows_scoped, sum(nonempty_rows)::bigint AS nonempty_rows
-          FROM fpt_field_coverage WHERE dimension = 'dataset'
-          GROUP BY field_name
-        ) d USING (field_name)
-        WHERE g.dimension = 'global' AND g.dimension_key = ''
-          AND (g.rows_scoped <> d.rows_scoped OR g.nonempty_rows <> d.nonempty_rows)
-      ),
-      league_gap AS (
-        SELECT count(*)::int AS n
-        FROM fpt_field_coverage league
-        JOIN (
-          SELECT d.league_key, c.field_name, sum(c.rows_scoped)::bigint AS rows_scoped, sum(c.nonempty_rows)::bigint AS nonempty_rows
-          FROM fpt_field_coverage c
-          JOIN dims d ON d.dataset_key = c.dimension_key
-          WHERE c.dimension = 'dataset'
-          GROUP BY d.league_key, c.field_name
-        ) m ON m.league_key = league.dimension_key AND m.field_name = league.field_name
-        WHERE league.dimension = 'league'
-          AND (league.rows_scoped <> m.rows_scoped OR league.nonempty_rows <> m.nonempty_rows)
-      ),
-      season_gap AS (
-        SELECT count(*)::int AS n
-        FROM fpt_field_coverage season
-        JOIN (
-          SELECT d.season_key, c.field_name, sum(c.rows_scoped)::bigint AS rows_scoped, sum(c.nonempty_rows)::bigint AS nonempty_rows
-          FROM fpt_field_coverage c
-          JOIN dims d ON d.dataset_key = c.dimension_key
-          WHERE c.dimension = 'dataset'
-          GROUP BY d.season_key, c.field_name
-        ) m ON m.season_key = season.dimension_key AND m.field_name = season.field_name
-        WHERE season.dimension = 'season'
-          AND (season.rows_scoped <> m.rows_scoped OR season.nonempty_rows <> m.nonempty_rows)
       )
-      SELECT (SELECT n FROM dataset_global) + (SELECT n FROM league_gap) + (SELECT n FROM season_gap) AS n
+      SELECT
+        (SELECT count(*)::int FROM fpt_field_coverage g
+          JOIN (
+            SELECT field_name, sum(rows_scoped)::bigint AS rows_scoped, sum(nonempty_rows)::bigint AS nonempty_rows
+            FROM fpt_field_coverage WHERE dimension = 'dataset' GROUP BY field_name
+          ) d USING (field_name)
+          WHERE g.dimension = 'global' AND g.dimension_key = ''
+            AND (g.rows_scoped <> d.rows_scoped OR g.nonempty_rows <> d.nonempty_rows))
+        + (SELECT count(*)::int FROM (
+            SELECT dataset_key FROM fpt_match_versions
+            GROUP BY dataset_key
+            HAVING count(DISTINCT COALESCE(country_slug, '') || '/' || COALESCE(league_slug, '') || '/' || COALESCE(season, '')) > 1
+          ) mixed) AS n
     `);
     const audit = {
-      payload_mismatches: payloadMismatches,
-      rollup_mismatches: rollup.rows[0].n + mixed.rows[0].n,
+      payload_mismatches: compared.rows[0].n + reverse.rows[0].n + normalizedDiff.rows[0].n,
+      rollup_mismatches: rollup.rows[0].n,
       class_mismatches: classMismatches,
       historical_team_unresolved: unresolved.rows[0].historical_team_unresolved,
       today_country_unresolved: unresolved.rows[0].today_country_unresolved,
       class_counts: Object.fromEntries(classCounts.rows.map(row => [row.coverage_class, row.n])),
       tag_counts: Object.fromEntries(tagCounts.rows.map(row => [row.tag, row.n])),
-      overlap_versions: normalized.overlap_versions,
-      sample: compared.sample
+      sample: sample.rows,
+      sample_teams: team.sampleTeams,
+      team_sample_mismatches: team.mismatches,
+      team_rows: team.rows
     };
     await client.query(
       `INSERT INTO fpt_coverage_audit(
@@ -668,7 +618,16 @@ export async function rebuildCoverage(client) {
         audit.today_country_unresolved,
         JSON.stringify(audit.class_counts),
         JSON.stringify(audit.tag_counts),
-        JSON.stringify({overlap_versions: audit.overlap_versions, sample: audit.sample, empty_tokens: EMPTY_TOKENS})
+        JSON.stringify({
+          team_census: false,
+          team_sample_mismatches: audit.team_sample_mismatches,
+          sample_teams: audit.sample_teams,
+          sample_fields: TEAM_SAMPLE_FIELDS,
+          sample_limit: '3 teams with the most stored matches, fields Home, Date and Match_ID. Not a full team-field census.',
+          overlap_versions: overlap,
+          diff_sample: audit.sample,
+          empty_tokens: EMPTY_TOKENS
+        })
       ]
     );
     await client.query('COMMIT');
