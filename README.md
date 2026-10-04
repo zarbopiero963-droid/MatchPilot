@@ -324,3 +324,10 @@ Obiettivi:
 - certificato finale.
 
 Regola: **TotalCorner non può essere dichiarato CLOSED/CERTIFIED finché tutti i gate hard reali della #20 non sono passati.**
+
+
+## Chiusura delle issue
+
+Le issue vengono dichiarate **CHIUDIBILI** dall'agente solo quando ogni punto del loro contenuto è implementato e verificato. L'agente deve pubblicare un commento finale con checklist ed evidenze, ma lasciare l'issue aperta.
+
+La chiusura viene effettuata dall'owner, salvo autorizzazione esplicita data all'agente per quella specifica issue.
