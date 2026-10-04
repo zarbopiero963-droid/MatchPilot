@@ -8,6 +8,30 @@ import { emitAlert, resolveAlert } from '../alerts.mjs';
 const LOCK_ID = 76420311;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+export function createRunStats({mode,bootstrap,startedAt=new Date()}={}) {
+  return {
+    startedAt,
+    catalogEntries:0,
+    datasetsAttempted:0,
+    datasetsChanged:0,
+    snapshotsInserted:0,
+    rowsSeen:0,
+    rowsInserted:0,
+    fieldsSeen:0,
+    failures:[],
+    newFields:new Set(),
+    newDatasets:new Set(),
+    unavailable404:[],
+    finalUnavailable404:0,
+    rowDrops:[],
+    resumedSkips:0,
+    availableCount:0,
+    errorRealCount:0,
+    catalogSnapshotId:null,
+    meta:{mode,bootstrap}
+  };
+}
+
 export function backfillResumeDecision(state={}) {
   if (['available','unavailable_404','deprecated'].includes(state.availability)) {
     return {skip:true,reconcileToAvailable:false};
@@ -45,7 +69,7 @@ async function recordRun(client, runId, kind, status, stats) {
       runId,kind,status,stats.startedAt,stats.catalogEntries||0,stats.datasetsAttempted||0,
       stats.datasetsChanged||0,stats.snapshotsInserted||0,stats.rowsSeen||0,stats.rowsInserted||0,
       stats.fieldsSeen||0,JSON.stringify(stats.failures||[]),JSON.stringify(stats.meta||{}),
-      stats.resumedSkips||0,stats.unavailable404?.length||0,stats.availableCount||0,
+      stats.resumedSkips||0,stats.finalUnavailable404||stats.unavailable404?.length||0,stats.availableCount||0,
       stats.errorRealCount||0,stats.catalogSnapshotId||null
     ]
   );
@@ -196,6 +220,7 @@ async function refreshFinalCounts(client,stats) {
   );
   const counts=Object.fromEntries(rows.rows.map(r=>[r.availability,r.n]));
   stats.availableCount=counts.available||0;
+  stats.finalUnavailable404=counts.unavailable_404||0;
   stats.errorRealCount=counts.error||0;
   stats.meta.finalAvailability=counts;
   stats.meta.undefinedStates=Object.entries(counts)
@@ -221,11 +246,7 @@ export async function runFutpythonSync({kind='manual',mode='incremental'}={}) {
     const runId=`fpt-${Date.now()}-${randomUUID().slice(0,8)}`;
     const baseline=await client.query('SELECT count(*)::int AS n FROM fpt_schema_fields');
     const bootstrap=mode==='backfill'||(baseline.rows[0]?.n||0)===0;
-    const stats={
-      startedAt:new Date(),failures:[],newFields:new Set(),newDatasets:new Set(),
-      unavailable404:[],rowDrops:[],resumedSkips:0,availableCount:0,errorRealCount:0,
-      catalogSnapshotId:null,meta:{mode,bootstrap}
-    };
+    const stats=createRunStats({mode,bootstrap});
 
     try {
       await recordRun(client,runId,kind,'running',stats);
