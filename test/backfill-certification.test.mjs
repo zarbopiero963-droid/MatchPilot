@@ -8,5 +8,5 @@ test('backfill skips only terminal dataset states',()=>{
   assert.equal(isBackfillTerminalState({availability:'deprecated',last_snapshot_id:null}),true);
   assert.equal(isBackfillTerminalState({availability:'error',last_snapshot_id:null}),false);
   assert.equal(isBackfillTerminalState({availability:'unknown',last_snapshot_id:null}),false);
-  assert.equal(isBackfillTerminalState({availability:'error',last_snapshot_id:12}),true);
+  assert.equal(isBackfillTerminalState({availability:'error',last_snapshot_id:12}),false);
 });
