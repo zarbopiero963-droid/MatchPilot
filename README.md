@@ -217,3 +217,16 @@ La FASE 1 introduce:
 - riepilogo reale tramite `/api/futpython-certification`.
 
 **Regola:** README viene aggiornato in ogni PR di certificazione. Una fase viene marcata completata solo dopo CI verde e test reali su Render/Neon.
+
+
+### FASE 1 — evidenza reale e correzione resume
+
+Il primo collaudo reale della FASE 1 ha rilevato che dataset già acquisiti prima dell'introduzione della colonna `availability` conservavano `availability=unknown` pur avendo uno snapshot valido.
+
+Correzione prevista in questa PR:
+- `unknown + last_snapshot_id` viene riconciliato a `available`;
+- `error` resta ritentabile anche se esiste uno snapshot precedente;
+- run lasciati `running` da un deploy/interruzione vengono chiusi come `partial/interrupted`;
+- il backfill resta restartable e non duplica dataset terminali.
+
+La FASE 1 resta **NON CERTIFICATA** fino al nuovo collaudo reale con `undefined_states=0`.
