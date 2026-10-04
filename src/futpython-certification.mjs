@@ -5,6 +5,7 @@ import { TEAM_SPLIT_SQL } from './providers/futpython/teams.mjs';
 import { PHASE4_SQL, phase4Gate } from './providers/futpython/registry.mjs';
 import { PHASE5_SQL, phase5Gate } from './providers/futpython/coverage.mjs';
 import { PHASE6_SQL, phase6Gate } from './providers/futpython/seasons.mjs';
+import { phase8Gate } from './jobs/data-watchdog.mjs';
 
 export async function getFutpythonCertificationStatus() {
   return withClient(async client => {
@@ -25,7 +26,8 @@ export async function getFutpythonCertificationStatus() {
       teamSplits,
       phase4,
       phase5,
-      phase6
+      phase6,
+      phase8
     ] = await Promise.all([
       client.query(`SELECT
         count(*)::int AS total,
@@ -64,7 +66,10 @@ export async function getFutpythonCertificationStatus() {
       client.query(TEAM_SPLIT_SQL),
       client.query(PHASE4_SQL),
       client.query(PHASE5_SQL),
-      client.query(PHASE6_SQL)
+      client.query(PHASE6_SQL),
+      client.query(`SELECT status, details FROM fpt_certification_checks
+        WHERE phase='FPT_PHASE8' AND check_code='WATCHDOG'
+        ORDER BY checked_at DESC LIMIT 1`)
     ]);
 
     const byAvailability=Object.fromEntries(states.rows.map(r=>[r.availability,r.n]));
@@ -109,6 +114,10 @@ export async function getFutpythonCertificationStatus() {
       phase6:{
         ...(phase6.rows[0]||{}),
         gate:phase6Gate(phase6.rows[0]||null)
+      },
+      phase8:{
+        status:phase8.rows[0]?.status || null,
+        gate:phase8Gate(phase8.rows[0]?.details || null)
       }
     };
   });

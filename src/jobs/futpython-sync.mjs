@@ -317,7 +317,8 @@ async function syncToday(client, stats, dateIso) {
   }
 }
 
-async function emitRunSummaryAlerts(client, stats, {bootstrap}) {
+export async function emitRunSummaryAlerts(client, stats, {bootstrap, deliver} = {}) {
+  const alertOptions = deliver ? {deliver} : {};
   if (!bootstrap && stats.newFields.size) {
     const fields = [...stats.newFields].sort();
     await emitAlert({
@@ -325,7 +326,7 @@ async function emitRunSummaryAlerts(client, stats, {bootstrap}) {
       title: 'Nuove colonne FutPythonTrader',
       message: `${fields.length} nuove colonne rilevate: ${fields.slice(0, 20).join(', ')}${fields.length > 20 ? ' …' : ''}`,
       payload: {count: fields.length, fields}
-    }, client);
+    }, client, alertOptions);
   }
   if (!bootstrap && stats.newDatasets.size) {
     const datasets = [...stats.newDatasets].sort();
@@ -334,7 +335,7 @@ async function emitRunSummaryAlerts(client, stats, {bootstrap}) {
       title: 'Nuovi dataset FutPythonTrader',
       message: `${datasets.length} nuovi dataset/leghe/stagioni rilevati.`,
       payload: {count: datasets.length, datasets}
-    }, client);
+    }, client, alertOptions);
   }
   if (stats.rowDrops.length) {
     await emitAlert({
@@ -342,7 +343,7 @@ async function emitRunSummaryAlerts(client, stats, {bootstrap}) {
       title: 'Calo anomalo righe FutPython',
       message: `${stats.rowDrops.length} dataset hanno perso oltre il 50% delle righe rispetto al sync precedente.`,
       payload: {datasets: stats.rowDrops}
-    }, client);
+    }, client, alertOptions);
   } else {
     await resolveAlert({source: 'futpython', code: 'ROW_COUNT_DROPS_AGG', key: 'aggregate'}, client);
   }
@@ -355,7 +356,7 @@ async function emitRunSummaryAlerts(client, stats, {bootstrap}) {
       title: 'Problemi sincronizzazione FutPython',
       message: `${stats.failures.length} errori reali nel run; ${regressions.length} regressioni 404 su dataset prima funzionanti.`,
       payload: {count: stats.failures.length, regressions: regressions.length, failures: stats.failures.slice(0, 50)}
-    }, client);
+    }, client, alertOptions);
   } else {
     await resolveAlert({source: 'futpython', code: 'SYNC_FAILURES_AGG', key: 'aggregate'}, client);
   }

@@ -195,7 +195,7 @@ La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue *
 
 Stato corrente della sorgente: **IN CERTIFICAZIONE — non ancora CLOSED**.
 
-Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-08 … FPT-PR-09 non partono.
+Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-09 non parte.
 
 La certificazione richiede, nell'ordine:
 
@@ -406,6 +406,13 @@ Una riga di catalogo porta `internal_competition_id` (`fpt:competition:` più md
 Il comando incrementale è `node src/jobs/futpython-sync.mjs`, senza `--backfill` e senza `--force`. Non rimette in coda il catalogo. Considera solo la stagione corrente (`incrementalTargets`): anno civile uguale all'anno UTC, oppure stagione `YYYY-YYYY` che contiene la data. Le stagioni storiche non vengono richieste.
 
 Un dataset `available`, `unavailable_404` o `deprecated` con snapshot completo non produce una chiamata upstream: il ledger scrive `cache_hit`. `error` e uno snapshot `ingest_complete=false` restano richiedibili. Il catalogo e `jogos-do-dia` di oggi sono le uniche richieste di run quando ogni dataset corrente è terminale. Uno snapshot con lo stesso sha256 non viene reinserito. Una versione match con la stessa `(match_key, payload_sha256)` non viene reinserita. Non si inventa un payload cambiato. I run id, i conteggi e il ledger stanno nel commento della PR, non qui.
+
+
+### FASE 8 — watchdog e Telegram
+
+Il watchdog resta `src/jobs/data-watchdog.mjs`. Non esiste un secondo alerter. Controlla sync fermo da più di 8 ore, dataset con `last_error`, budget giornaliero/minuto (avviso a 0,7, critico a 0,9), 429 nell’ultima ora e circuit breaker sulle ultime risposte contate. Gli avvisi di nuove colonne, nuovi dataset, calo righe e regressione restano i riepiloghi già emessi dal sync, uno per categoria, non uno per riga.
+
+`emitAlert` consegna al massimo una volta per fingerprint dentro `MATCHPILOT_ALERT_COOLDOWN_MINUTES` (default 180). La seconda occorrenza aggiorna il contatore e non rispedisce. Il resolve segna `resolved_at` e non manda un altro messaggio. Telegram, se il token e la chat sono già configurati, è outbound-only: `deleteWebhook` e nessun `getUpdates`. Un messaggio inbound non ha una route e non riceve risposta. I numeri del test, e se il messaggio unico è stato inviato, stanno nel commento della PR.
 
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
 

@@ -57,6 +57,18 @@ export function countsTowardCircuit(row = {}) {
   return false;
 }
 
+export function budgetPressure(usage = {}, thresholds = {}) {
+  const warning = Number(thresholds.warning ?? 0.7);
+  const critical = Number(thresholds.critical ?? 0.9);
+  const ratios = [];
+  if (usage.dayLimit > 0) ratios.push(Number(usage.dayUsed || 0) / usage.dayLimit);
+  if (usage.minuteLimit > 0) ratios.push(Number(usage.minuteUsed || 0) / usage.minuteLimit);
+  const ratio = ratios.length ? Math.max(...ratios) : 0;
+  if (ratio >= critical) return 'critical';
+  if (ratio >= warning) return 'warning';
+  return 'ok';
+}
+
 export function createMemoryLedger() {
   const rows = [];
   return {
