@@ -24,25 +24,13 @@ export async function runPhase3Audit() {
     const entities = buildTeamEntities(await loadTeamSpellings(client));
     const teamWrite = await replaceTeamEntities(client, entities);
     const splits = await client.query(TEAM_SPLIT_SQL);
-    const ajaxCompetition = await client.query(
-      `SELECT t.competition_slug
-       FROM fpt_team_aliases a
-       JOIN fpt_teams t USING (internal_team_id)
-       WHERE a.name IN ('Ajax (NED)', 'Ajax (Ned)')
-       GROUP BY t.competition_slug
-       HAVING count(DISTINCT a.name)=2
-       ORDER BY t.competition_slug
-       LIMIT 1`
-    );
-    const competition = ajaxCompetition.rows[0]?.competition_slug || null;
     const ajax = await client.query(
-      `SELECT a.name, a.kind, a.internal_team_id, t.canonical_name, t.competition_slug,
-              t.first_seen, t.last_seen, t.provider_team_id, t.provenance
+      `SELECT a.name, a.kind, a.internal_team_id, t.canonical_name, t.country_slug,
+              t.competition_slug, t.competitions, t.first_seen, t.last_seen, t.provider_team_id
        FROM fpt_team_aliases a
        JOIN fpt_teams t USING (internal_team_id)
-       WHERE t.competition_slug=$1 AND a.name IN ('Ajax (NED)', 'Ajax (Ned)')
-       ORDER BY a.name`,
-      [competition]
+       WHERE t.country_slug='europe' AND a.name IN ('Ajax (NED)', 'Ajax (Ned)')
+       ORDER BY a.name`
     );
     await client.query('BEGIN');
     let historical = null;
@@ -88,7 +76,7 @@ export async function runPhase3Audit() {
       provider_match_ids: providerIds,
       teams: teamWrite,
       team_splits: splits.rows[0].n,
-      ajax,
+      ajax: ajax.rows,
       historical,
       historical_left: historicalLeft.rows[0].n,
       sample: sampleAudits,

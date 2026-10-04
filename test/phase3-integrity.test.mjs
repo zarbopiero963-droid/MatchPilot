@@ -60,16 +60,19 @@ test('hard sample covers countries, season shapes, small and large', () => {
 
 test('case-only spellings share one internal team id', () => {
   const entities = buildTeamEntities([
-    {country_slug: 'europe', competition_slug: 'champions-league', name: 'Ajax (NED)', seen: 4, first_seen: '2024-09-01', last_seen: '2024-11-01'},
-    {country_slug: 'europe', competition_slug: 'champions-league', name: 'Ajax (Ned)', seen: 2, first_seen: '2023-09-01', last_seen: '2023-11-01'},
+    {country_slug: 'europe', competition_slug: 'conference-league', name: 'Ajax (NED)', seen: 4, first_seen: '2024-09-01', last_seen: '2024-11-01'},
+    {country_slug: 'europe', competition_slug: 'europa-league', name: 'Ajax (Ned)', seen: 2, first_seen: '2023-09-01', last_seen: '2023-11-01'},
+    {country_slug: 'netherlands', competition_slug: 'eredivisie', name: 'Ajax', seen: 9, first_seen: '2024-08-01', last_seen: '2025-05-01'},
     {country_slug: 'europe', competition_slug: 'champions-league', name: 'Benfica (POR)', seen: 3, first_seen: '2024-09-01', last_seen: '2024-11-01'}
   ]);
-  const ajax = entities.filter(team => normalizeTeamName(team.canonical_name) === normalizeTeamName('Ajax (NED)'));
+  const ajax = entities.filter(team => team.country_slug === 'europe' && normalizeTeamName(team.canonical_name) === normalizeTeamName('Ajax (NED)'));
   assert.equal(ajax.length, 1);
   assert.equal(ajax[0].aliases.length, 2);
   assert.equal(ajax[0].canonical_name, 'Ajax (NED)');
   assert.ok(ajax[0].aliases.some(alias => alias.name === 'Ajax (Ned)' && alias.kind === 'alias'));
   assert.notEqual(ajax[0].internal_team_id, entities.find(team => team.canonical_name.startsWith('Benfica')).internal_team_id);
+  assert.notEqual(ajax[0].internal_team_id, entities.find(team => team.country_slug === 'netherlands').internal_team_id);
+  assert.deepEqual(ajax[0].competitions, ['conference-league', 'europa-league']);
   assert.equal(ajax[0].first_seen, '2023-09-01');
   assert.equal(ajax[0].last_seen, '2024-11-01');
   assert.equal(ajax[0].provider_team_id, null);

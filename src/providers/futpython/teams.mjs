@@ -2,14 +2,15 @@ import { createHash } from 'node:crypto';
 
 export function normalizeTeamName(name) {
   return String(name || '')
+    .replace(/\s*\([A-Za-z]{3}\)\s*$/u, '')
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '');
 }
 
-export function internalTeamId(countrySlug, competitionSlug, normalized) {
-  const raw = [countrySlug || '', competitionSlug || '', normalized || ''].join('|');
+export function internalTeamId(countrySlug, normalized) {
+  const raw = [countrySlug || '', normalized || ''].join('|');
   return 'fpt:team:' + createHash('sha256').update(raw).digest('hex').slice(0, 24);
 }
 
@@ -30,12 +31,12 @@ export function buildTeamEntities(rows) {
       historicalLinks.push(row);
       continue;
     }
-    const key = `${row.country_slug}|${row.competition_slug}|${normalized}`;
+    const key = `${row.country_slug}|${normalized}`;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(row);
   }
   for (const row of historicalLinks) {
-    const key = `${row.country_slug}|${row.competition_slug}|${normalizeTeamName(row.links_to)}`;
+    const key = `${row.country_slug}|${normalizeTeamName(row.links_to)}`;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(row);
   }
@@ -43,7 +44,9 @@ export function buildTeamEntities(rows) {
     const ranked = [...spellings].sort((a, b) => (b.seen || 0) - (a.seen || 0) || String(a.name).localeCompare(String(b.name)));
     const canonical = ranked[0];
     const normalized = normalizeTeamName(canonical.name);
-    const id = internalTeamId(canonical.country_slug, canonical.competition_slug, normalized);
+    const id = internalTeamId(canonical.country_slug, normalized);
+    const competitions = [...new Set(spellings.map(row => row.competition_slug).filter(Boolean))].sort();
+    const topCompetition = [...spellings].sort((a, b) => (b.seen || 0) - (a.seen || 0))[0].competition_slug || null;
     const dates = spellings.flatMap(row => [row.first_seen, row.last_seen]).filter(Boolean).sort();
     const aliases = ranked.map((row, index) => ({
       name: row.name,
@@ -56,7 +59,8 @@ export function buildTeamEntities(rows) {
     return {
       internal_team_id: id,
       country_slug: canonical.country_slug,
-      competition_slug: canonical.competition_slug,
+      competition_slug: topCompetition,
+      competitions,
       canonical_name: canonical.name,
       provider_team_id: canonical.provider_team_id || null,
       abbreviations: aliases.filter(alias => alias.kind === 'abbreviation' || /[A-Za-z]\./.test(alias.name)).map(alias => alias.name),
@@ -66,7 +70,7 @@ export function buildTeamEntities(rows) {
         source_provider: 'futpythontrader',
         built_from: 'fpt_match_versions.home/away',
         normalization: 'nfkd-alnum-casefold',
-        competition_slug: canonical.competition_slug
+        competitions
       },
       aliases
     };
@@ -83,15 +87,16 @@ export async function replaceTeamEntities(client, entities) {
     const slice = entities.slice(i, i + batchSize);
     await client.query(
       `INSERT INTO fpt_teams(
-         internal_team_id, country_slug, competition_slug, canonical_name, provider_team_id,
+         internal_team_id, country_slug, competition_slug, competitions, canonical_name, provider_team_id,
          abbreviations, first_seen, last_seen, provenance
        )
-       SELECT internal_team_id, country_slug, competition_slug, canonical_name, provider_team_id,
+       SELECT internal_team_id, country_slug, competition_slug, competitions, canonical_name, provider_team_id,
               abbreviations, first_seen, last_seen, provenance
        FROM jsonb_to_recordset($1::jsonb) AS x(
          internal_team_id text,
          country_slug text,
          competition_slug text,
+         competitions jsonb,
          canonical_name text,
          provider_team_id text,
          abbreviations jsonb,
@@ -154,9 +159,9 @@ export async function loadTeamSpellings(client) {
 }
 
 export const TEAM_SPLIT_SQL = `SELECT count(*)::int AS n FROM (
-  SELECT t.country_slug, t.competition_slug, a.normalized_name
+  SELECT t.country_slug, a.normalized_name
   FROM fpt_team_aliases a
   JOIN fpt_teams t USING (internal_team_id)
-  GROUP BY 1, 2, 3
+  GROUP BY 1, 2
   HAVING count(DISTINCT a.internal_team_id) > 1
 ) d`;
