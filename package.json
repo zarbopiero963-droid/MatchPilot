@@ -5,8 +5,15 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.mjs",
-    "check": "node --check src/server.mjs",
-    "test": "node --test"
+    "check": "node --check src/server.mjs && node --check src/db.mjs && node --check src/migrate.mjs && node --check src/jobs/futpython-sync.mjs && node --check src/jobs/futpython-cron.mjs && node --check src/providers/futpython/catalog.mjs && node --check src/providers/futpython/client.mjs && node --check src/providers/futpython/store.mjs && node --check src/providers/futpython/schema.mjs",
+    "test": "node --test",
+    "migrate": "node src/migrate.mjs",
+    "sync:futpython": "node src/jobs/futpython-sync.mjs",
+    "backfill:futpython": "node src/jobs/futpython-sync.mjs --backfill"
+  },
+  "dependencies": {
+    "croner": "9.1.0",
+    "pg": "8.16.3"
   },
   "engines": {
     "node": ">=22"
