@@ -10,6 +10,11 @@ async function saveCheck(client, code, status, details={}) {
   );
 }
 
+export function summarizePhase1Checks(results=[]) {
+  const failed=results.filter(r=>r.status!=='pass');
+  return {status:failed.length?'fail':'pass',checks:results.length,failed:failed.length,results};
+}
+
 export async function runPhase1Verification() {
   return withClient(async client => {
     const results=[];
@@ -121,8 +126,7 @@ export async function runPhase1Verification() {
     await saveCheck(client,'MULTI_SEASON_SAMPLE',multiPass?'pass':'fail',multiDetails);
     results.push({code:'MULTI_SEASON_SAMPLE',status:multiPass?'pass':'fail',details:multiDetails});
 
-    const failed=results.filter(r=>r.status!=='pass');
-    const summary={status:failed.length?'fail':'pass',checks:results.length,failed:failed.length,results};
+    const summary=summarizePhase1Checks(results);
     console.log('FUTPYTHON_PHASE1_VERIFY '+JSON.stringify({
       status:summary.status,checks:summary.checks,failed:summary.failed
     }));
