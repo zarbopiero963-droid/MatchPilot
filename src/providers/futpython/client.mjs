@@ -16,7 +16,12 @@ async function fetchCsv(path, timeoutMs = 45000) {
     signal: AbortSignal.timeout(timeoutMs)
   });
   const text = await response.text();
-  if (!response.ok) throw new Error(`FutPython HTTP ${response.status}`);
+  if (!response.ok) {
+    const error = new Error(`FutPython HTTP ${response.status}`);
+    error.status = response.status;
+    error.providerPath = url.pathname;
+    throw error;
+  }
   const parsed = parseCsv(text);
   return { text, ...parsed, providerPath: url.pathname };
 }
