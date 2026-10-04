@@ -147,3 +147,20 @@ Solo il certificato finale può promuovere lo stato a:
 - CERTIFIED;
 - CERTIFIED WITH KNOWN LIMITATIONS;
 - NOT CERTIFIED.
+
+
+## TotalCorner — protocollo #20
+
+Quando il lavoro riguarda TotalCorner:
+1. leggere integralmente la issue #20;
+2. verificare overlap campionati con FutPythonTrader;
+3. usare solo mapping VERIFIED per produzione;
+4. una PR alla volta;
+5. ogni PR richiede CI + hard test reali;
+6. README sempre sincronizzato;
+7. preservare raw payload e campi sconosciuti;
+8. rispettare rate limit e backoff;
+9. non contaminare PREMATCH con dati live;
+10. verificare persistenza/replay dopo restart e giorno successivo;
+11. usare la stessa chat Telegram per alert TotalCorner;
+12. non dichiarare CLOSED/CERTIFIED prima del certificato finale.
