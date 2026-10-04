@@ -92,7 +92,7 @@ Per ogni fase di certificazione:
 
 ## Resume drill e budget FutPython
 
-- Una sola PR. FPT-PR-01 è mergiata e verificata. FPT-PR-02 persiste gli stati terminali, INITIAL_404 e REGRESSION_404. FPT-PR-03 persiste l'audit di integrità e l'identità squadra. FPT-PR-04 persiste registry e lineage. Non aprire FPT-PR-05 finché quella PR non è mergiata e la query Neon conferma il gate.
+- Una sola PR. FPT-PR-01 è mergiata e verificata. FPT-PR-02 persiste gli stati terminali, INITIAL_404 e REGRESSION_404. FPT-PR-03 persiste l'audit di integrità e l'identità squadra. FPT-PR-04 persiste registry e lineage. FPT-PR-05 persiste la coverage multidimensionale. Non aprire FPT-PR-06 finché quella PR non è mergiata e la query Neon conferma il gate phase5.
 - Non chiudere la issue #12.
 - Non lanciare il drill sul servizio web e non impostare `FUTPYTHON_BACKFILL_ON_START=true`.
 - Il ledger non deve contenere API key. Il browser non chiama il provider.
