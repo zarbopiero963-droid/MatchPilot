@@ -5,6 +5,7 @@ import { runFutpythonSync } from './jobs/futpython-sync.mjs';
 import { closePool } from './db.mjs';
 import { startDataWatchdog, stopDataWatchdog } from './jobs/data-watchdog.mjs';
 import { getDataHealth, configureTelegramOutboundOnly, sendTelegramConnectivityTest } from './alerts.mjs';
+import { getFutpythonCertificationStatus } from './futpython-certification.mjs';
 
 const port = Number(process.env.PORT || 3000);
 
@@ -23,6 +24,17 @@ if (process.env.FUTPYTHON_BACKFILL_ON_START === 'true') {
 const app = http.createServer((req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
+
+  if (req.url === '/api/futpython-certification') {
+    getFutpythonCertificationStatus().then(data=>{
+      res.writeHead(200, {'Content-Type':'application/json'});
+      res.end(JSON.stringify(data));
+    }).catch(()=>{
+      res.writeHead(503, {'Content-Type':'application/json'});
+      res.end(JSON.stringify({status:'error'}));
+    });
+    return;
+  }
 
   if (req.url === '/api/data-health') {
     getDataHealth().then(data=>{
