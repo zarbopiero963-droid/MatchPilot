@@ -2,36 +2,9 @@ import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { profileSchema } from './schema.mjs';
 import { persistRemovedDatasets } from './classification.mjs';
+import { first, matchKey, dateOrNull, PROVIDER_MATCH_ID_FIELDS } from './identity.mjs';
 
 export const sha256 = value => createHash('sha256').update(value).digest('hex');
-
-function first(row, names) {
-  for (const n of names) {
-    const v = row[n];
-    if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
-  }
-  return null;
-}
-
-function matchKey(row, datasetKey) {
-  const providerId = first(row, ['Id','ID','id','Match_Id','match_id']);
-  if (providerId) return `fpt:id:${providerId}`;
-  const parts = [
-    datasetKey,
-    first(row,['Date','date']) || '',
-    first(row,['Time','time']) || '',
-    first(row,['Home','home']) || '',
-    first(row,['Away','away']) || ''
-  ];
-  return 'fpt:hash:' + sha256(parts.join('|')).slice(0, 32);
-}
-
-function dateOrNull(v) {
-  const s = String(v || '').trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const m = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
-  return m ? `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` : null;
-}
 
 export function chunkArray(values, size=500) {
   if (!Number.isInteger(size) || size < 1) throw new Error('chunk size must be >= 1');
@@ -141,7 +114,7 @@ function normalizeMatchRecord(row,{
   const payloadJson=JSON.stringify(row);
   return {
     match_key:matchKey(row,datasetKey),
-    provider_match_id:first(row,['Id','ID','id','Match_Id','match_id']),
+    provider_match_id:first(row, PROVIDER_MATCH_ID_FIELDS),
     dataset_key:datasetKey,
     snapshot_id:Number(snapshotId),
     acquired_at:acquiredAt.toISOString(),
@@ -191,6 +164,21 @@ async function insertMatchBatch(client, records) {
   return result.rowCount;
 }
 
+
+export async function insertMissingMatchRows(client, {
+  datasetKey, snapshotId, acquiredAt, countrySlug, leagueSlug, season, sourceKind, rows
+}) {
+  const records = rows.map(row => normalizeMatchRecord(row, {
+    datasetKey, snapshotId, acquiredAt, countrySlug, leagueSlug, season, sourceKind
+  }));
+  let inserted = 0;
+  const batchSize = Number(process.env.FUTPYTHON_DB_BATCH_SIZE || 500);
+  for (const batch of chunkArray(records, batchSize)) {
+    inserted += await insertMatchBatch(client, batch);
+  }
+  return inserted;
+}
+
 async function withOwnTransaction(client, fn) {
   const assigned = await client.query('SELECT txid_current_if_assigned() AS tx');
   const owns = assigned.rows[0]?.tx == null;
@@ -227,17 +215,21 @@ async function storeDatasetInTransaction(client, {
     [datasetKey, hash]
   );
   if (existing.rowCount && existing.rows[0].ingest_complete) {
+    const snapshotId = existing.rows[0].snapshot_id;
+    const rowsInserted = await insertMissingMatchRows(client, {
+      datasetKey, snapshotId, acquiredAt, countrySlug, leagueSlug, season, sourceKind, rows
+    });
     if (sourceKind==='dataset') {
       await client.query(
         `UPDATE fpt_dataset_state
          SET last_sha256=$2,last_snapshot_id=$3,last_row_count=$4,last_synced_at=now(),last_error=null
          WHERE dataset_key=$1`,
-        [datasetKey,hash,existing.rows[0].snapshot_id,rows.length]
+        [datasetKey,hash,snapshotId,rows.length]
       );
     }
     return {
-      changed:false,complete:true,snapshotId:existing.rows[0].snapshot_id,
-      rowsInserted:0,fields:headers.length,newFields:[]
+      changed:false,complete:true,snapshotId,
+      rowsInserted,fields:headers.length,newFields:[]
     };
   }
 

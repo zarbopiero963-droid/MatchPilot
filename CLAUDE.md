@@ -109,7 +109,8 @@ Se l'evidenza reale contraddice il test unitario, prevale il dato reale e la fas
 - I default `FUTPYTHON_REQUESTS_PER_MINUTE` / `PER_DAY` / `BACKFILL_REQUESTS_PER_MINUTE` sono tetti conservativi di codice, non la quota reale del fornitore. L'owner li sostituisce quando la quota è nota.
 - Il browser non chiama FutPythonTrader. Nessun proxy verso il provider.
 - La FASE 1 è VERIFIED REAL sul deploy `dep-db1bbujtqb8s7396dg50` / commit `222be65`, con il limite che il SIGTERM live è fra dataset e non a metà scrittura. Non chiudere la issue #12.
-- FPT-PR-02 persiste la classificazione su Neon (AVAILABLE, UNAVAILABLE_404, ERROR_REAL, DEPRECATED, REMOVED, più INITIAL_404 e REGRESSION_404). `active=false` da solo non basta. Non aprire FPT-PR-03 finché la PR non è mergiata e il gate è riletto con una query sull'intero catalogo.
+- FPT-PR-02 persiste la classificazione su Neon (AVAILABLE, UNAVAILABLE_404, ERROR_REAL, DEPRECATED, REMOVED, più INITIAL_404 e REGRESSION_404). `active=false` da solo non basta.
+- FPT-PR-03 riconcilia raw, parser e DB e persiste l'identità squadra (`internal_team_id`, alias, abbreviazioni, nomi storici). Non aprire FPT-PR-04 finché la PR non è mergiata e il gate phase3 è riletto su Neon.
 
 ## Gate finale FutPythonTrader
 

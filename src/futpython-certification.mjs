@@ -1,5 +1,7 @@
 import { withClient } from './db.mjs';
 import { loadClassification } from './providers/futpython/classification.mjs';
+import { loadPhase3Sql, phase3SqlGate } from './providers/futpython/integrity.mjs';
+import { TEAM_SPLIT_SQL } from './providers/futpython/teams.mjs';
 
 export async function getFutpythonCertificationStatus() {
   return withClient(async client => {
@@ -14,7 +16,10 @@ export async function getFutpythonCertificationStatus() {
       undefinedStates,
       duplicateCatalog,
       phase1Checks,
-      phase2
+      phase2,
+      phase3,
+      teams,
+      teamSplits
     ] = await Promise.all([
       client.query(`SELECT
         count(*)::int AS total,
@@ -47,7 +52,10 @@ export async function getFutpythonCertificationStatus() {
         WHERE phase='FPT_PHASE1'
         ORDER BY checked_at DESC,check_id DESC
         LIMIT 20`),
-      loadClassification(client)
+      loadClassification(client),
+      loadPhase3Sql(client),
+      client.query(`SELECT count(*)::int AS teams, count(*) FILTER (WHERE provider_team_id IS NOT NULL)::int AS with_provider_team_id FROM fpt_teams`),
+      client.query(TEAM_SPLIT_SQL)
     ]);
 
     const byAvailability=Object.fromEntries(states.rows.map(r=>[r.availability,r.n]));
@@ -72,7 +80,14 @@ export async function getFutpythonCertificationStatus() {
       schema_fields:fields.rows[0]?.n||0,
       latest_backfill:latestBackfill.rows[0]||null,
       phase1_checks:phase1Checks.rows,
-      phase2
+      phase2,
+      phase3:{
+        ...phase3,
+        team_splits:teamSplits.rows[0]?.n||0,
+        teams:teams.rows[0]?.teams||0,
+        teams_with_provider_id:teams.rows[0]?.with_provider_team_id||0,
+        gate:phase3SqlGate(phase3) && (teamSplits.rows[0]?.n||0)===0 && (teams.rows[0]?.teams||0)>0
+      }
     };
   });
 }
