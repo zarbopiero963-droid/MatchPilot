@@ -276,3 +276,18 @@ Prima della chiusura formale vengono eseguiti e persistiti in `fpt_certification
 Il verificatore è eseguibile con `npm run verify:futpython:p1` o, in modo one-shot su Render, con `FUTPYTHON_PHASE1_VERIFY_ON_START=true`.
 
 La FASE 1 sarà marcata **CERTIFICATA** solo se tutti questi check risultano `pass`.
+
+
+### FASE 1 — finding catalogo storico completo
+
+Il verificatore reale ha bloccato la certificazione perché il catalogo iniziale conteneva 185 leghe ma una sola stagione per lega. La documentazione ufficiale FutPythonTrader espone invece, nella colonna **TEMPORADAS**, tutte le stagioni disponibili per ciascuna lega.
+
+Esempi osservati realmente:
+- Argentina Primera Nacional: 2026 → 2021;
+- Australia A League: 2025-2026 → 2020-2021;
+- Europe Euro: 2020, 2016, 2012, 2008, 2004, 2000;
+- World Championship: 2026, 2022, 2018, 2014, 2010, 2006, 2002.
+
+La discovery viene quindi corretta per espandere **ogni stagione documentata** in un dataset distinto. La precedente prova su 185 dataset resta valida solo come collaudo tecnico, non come backfill storico completo.
+
+La FASE 1 resta **NON CERTIFICATA** finché il catalogo espanso non viene interamente acquisito e il verifier reale non passa.
