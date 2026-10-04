@@ -40,7 +40,7 @@ export async function runLiveSourceProbe(){
   const providerTerms=['thesports','footystats','aiscore','besoccer','betfair','futpython','rapidapi','api-football','sportmonks','sofascore','flashscore'];
   const hints=[];
   for(const term of providerTerms){const re=new RegExp(term,'ig');let m;let n=0;while((m=re.exec(jsText))&&n<10){hints.push({term,context:jsText.slice(Math.max(0,m.index-180),Math.min(jsText.length,m.index+260)).replace(/\\s+/g,' ')});n++;}}
-  const domains=[...new Set((jsText.match(/https?:\\/\\/[^\"'\\s)]+/g)||[]).map(u=>{try{return new URL(u).hostname}catch{return ''}}).filter(Boolean))];
+  const domains=[];
   console.log('LIVE_JS_PROVIDER_HINTS '+JSON.stringify({hints,domains}));
   const events=[...seen.entries()].map(([k,count])=>({request:k,count})).filter(x=>!x.request.includes('fonts.googleapis.com')&&!x.request.includes('fonts.gstatic.com'));
   console.log('LIVE_SOURCE_PROBE '+JSON.stringify({events,text:text.replace(/[^\s]+@[^\s]+/g,'[EMAIL]')}));
