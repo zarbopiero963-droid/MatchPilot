@@ -6,7 +6,14 @@ const sha = value => createHash('sha256').update(value).digest('hex');
 function redact(value) {
   return String(value ?? '')
     .replace(/api_key=[^&\s]+/gi,'api_key=[REDACTED]')
-    .replace(/token=[^&\s]+/gi,'token=[REDACTED]');
+    .replace(/token=[^&\s]+/gi,'token=[REDACTED]')
+    .replace(/bot\d+:[A-Za-z0-9_-]+/g,'bot[REDACTED]');
+}
+
+export function deliveryDue(lastDeliveredAt, now = Date.now(), cooldownMinutes = 180) {
+  if (!lastDeliveredAt) return true;
+  const elapsed = now - new Date(lastDeliveredAt).getTime();
+  return elapsed >= cooldownMinutes * 60000;
 }
 
 export function alertFingerprint({source='futpython',code,key=''}) {
@@ -51,7 +58,10 @@ async function deliverWebhook(alert) {
   return {attempted:true,channel:'webhook'};
 }
 
-export async function emitAlert(input, clientOverride) {
+export async function emitAlert(input, clientOverride, options = {}) {
+  const deliverers = options.deliver
+    ? (Array.isArray(options.deliver) ? options.deliver : [options.deliver])
+    : [deliverTelegram, deliverWebhook];
   const alert = {
     source:input.source || 'futpython',
     severity:input.severity || 'warning',
@@ -80,10 +90,7 @@ export async function emitAlert(input, clientOverride) {
          WHERE alert_id=$1`,
         [row.alert_id,JSON.stringify(alert.payload),alert.title,alert.message]
       );
-      if (row.last_delivered_at) {
-        const elapsed = Date.now() - new Date(row.last_delivered_at).getTime();
-        shouldDeliver = elapsed >= cooldownMinutes*60000;
-      }
+      shouldDeliver = deliveryDue(row.last_delivered_at, Date.now(), cooldownMinutes);
     } else {
       const ins = await client.query(
         `INSERT INTO data_alerts(source,severity,code,fingerprint,title,message,payload)
@@ -98,7 +105,7 @@ export async function emitAlert(input, clientOverride) {
 
     const deliveryErrors = [];
     let delivered = false;
-    for (const fn of [deliverTelegram,deliverWebhook]) {
+    for (const fn of deliverers) {
       try {
         const result = await fn(alert);
         if (result.attempted) delivered = true;
