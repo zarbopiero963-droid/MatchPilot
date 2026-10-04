@@ -1,9 +1,37 @@
-# MatchPilot — istruzioni per Claude e altri agenti
+# CLAUDE.md — MatchPilot Trading OS
 
-Leggere e rispettare integralmente [AGENTS.md](AGENTS.md), [README.md](README.md) e la baseline [data/approved-leagues.json](data/approved-leagues.json).
+Leggere README.md prima di qualsiasi modifica.
 
-**Contratto non modificabile autonomamente:** solo i52 campionati distinti autorizzati dall'owner il3 ottobre2026 alle19:00: unione di Statistiche Lega(49) e Backtest Storico(52). Registrare provenienza distinta e conteggio campione per fonte; non sommare campioni potenzialmente sovrapposti. La baseline v2 e la v1 archiviata documentano l'autorizzazione. Qualsiasi variazione del perimetro, fonti o regole richiede autorizzazione esplicita di Piero, registrata con motivo e nuova versione. Nessuna risposta del supporto, issue generata dall'agente o modifica della fonte sostituisce l'autorizzazione owner.
+## Contratto
 
-Organizzare nazione/area → campionato → appartenenze squadre; acquisire roster tramite Dashboard → Dettaglio → Classifica e tutti i gruppi esposti. Conservare osservazioni e coverage; elenco assente non significa roster vuoto. Non confondere Stats+ con classifica. Non dichiarare complete tutte le squadre finché ogni competizione/gruppo autorizzato non ha evidenza sufficiente.
+MatchPilot è una piattaforma web di trading sportivo.
 
-README deve rispecchiare il codice effettivo e distinguere implementato, collaudato e futuro. Prima del push sintassi e test pertinenti; test reali sequenziali, checkpoint persistenti, nessun deploy durante un run. Annotare risultati e impedimenti nelle issue pertinenti. Non chiudere issue #2: lo fa Piero. Non riaprire i punti esclusi senza sua istruzione.
+Fonti:
+- FutPythonTrader: storico/statistiche/pre-match.
+- TotalCorner: mercato pre-match e feed live.
+
+### Regole obbligatorie
+
+- Mostrare e normalizzare tutti i campi FutPythonTrader realmente disponibili.
+- Separare PREMATCH e LIVE in modo verificabile.
+- Vietato usare dati successivi al kickoff per generare analisi pre-match.
+- Ogni metrica deve avere provenance e coverage.
+- Nessun valore inventato o fallback numerico silenzioso.
+- Nessuna dipendenza funzionale da GOAT.
+- Nessuna modifica a questo contratto senza autorizzazione esplicita dell'owner.
+- Una PR alla volta salvo autorizzazione esplicita.
+- Ogni PR deve includere test pertinenti e criteri di accettazione.
+- Non effettuare trade reali, puntate o modifiche a conti esterni durante test di sviluppo.
+
+## Priorità
+
+1. Data contracts e ingestion.
+2. Normalizzazione completa FutPythonTrader.
+3. Normalizzazione TotalCorner pre-match/live.
+4. Persistenza temporale immutabile.
+5. Daily Board.
+6. Match Center con tutte le card.
+7. Models/fair odds.
+8. Trading Opportunity Engine.
+9. Backtest/replay.
+10. Journal, risk e execution.

@@ -1,15 +1,36 @@
-# Istruzioni vincolanti MatchPilot
+# AGENTS.md — Regole operative
 
-## Contratto owner
-Piero ha autorizzato il 3 ottobre 2026 alle19:00 Europe/Rome l'unione dei **49 campionati di Statistiche Lega e dei52 di Backtest Storico**:52 campionati distinti nella baseline v2. Per ogni campionato conservare provenienza, etichetta, numero di incontri per fonte e snapshot.49 sono presenti in entrambe le fonti;3 soltanto in Backtest. La v1 limitata a49 rimane archiviata in data/approved-leagues-v1.json. La baseline è `data/approved-leagues.json`, con prova sorgente e versione. Non aggiungere, togliere o sostituire campionati, fonti, regole strategiche o ampliare questo contratto senza **autorizzazione esplicita di Piero**. Un cambiamento del sito è una proposta da registrare, non un'approvazione. Le normali correzioni tecniche dentro il contratto non richiedono nuova conferma.
+## Prima di lavorare
+1. Leggere README.md.
+2. Leggere CLAUDE.md.
+3. Leggere la issue master corrente.
+4. Verificare branch, CI e stato delle dipendenze.
 
-Nazioni/aree, campionati e squadre devono avere riferimenti normalizzati e prove. EUROPE è area geografica, non una nazione inventata. Conservare etichette originali, gruppi, stagione se esposta, timestamp e snapshot. Squadre da Dashboard → Dettaglio → Classifica: esplorare menu orizzontale e tutti i gruppi/leghe della competizione autorizzata. Stats+ è distinto da Classifica: nessun H2H deve essere scambiato per roster completo. Non unire squadre omonime né accettare alias fuzzy senza prova; alias incerti in quarantena. Nuovi pulsanti non devono rompere il parser o ampliare la scope.
+## Data integrity
+- Conservare raw payload e normalized payload separatamente.
+- Salvare provider timestamp e acquisition timestamp.
+- Non contaminare PREMATCH con LIVE.
+- Ogni trasformazione deve essere deterministica e testabile.
+- Ogni campo sconosciuto va preservato nel raw payload e segnalato come schema discovery.
 
-## Metodo
-Leggere README, questo file, CLAUDE.md e issue pertinenti prima di modificare codice. Un lavoro alla volta; attendere fine dei run reali prima di deploy successivi o commit di documentazione. Preservare fallimenti, prove grezze e cleanup. Non certificare liste vuote, dati sintetici o il solo completamento del processo. Test su browser reale autorizzato con clic ordinari; non forzare stato DOM, chiamare funzioni interne o aggirare login. Non installare altri browser.
+## UI
+- Web responsive desktop/mobile.
+- Daily Board a card.
+- Match Center a card.
+- Ogni card deve mostrare N/coverage.
+- Le metriche non disponibili devono risultare "N/D", non 0.
+- PREMATCH e LIVE devono essere visualmente distinti.
 
-Aggiornare README insieme alle modifiche che cambiano comportamento, schema, comandi o stato operativo. Eseguire sintassi e test pertinenti prima del push. Non esporre credenziali, token, cookie o URL con parametri sensibili. Non eliminare dati dell'owner. Le sessioni QA non autorizzano ordini reali.
+## Trading
+- Nessun segnale senza evidenze associate.
+- Nessun edge senza fair probability/fair price esplicita.
+- NO TRADE deve essere supportato.
+- Le strategie devono essere versionate e riproducibili.
+- Backtest cronologico, senza leakage.
 
-## Stato e continuità
-Issue #2: prove sorgente e residui; chiusura soltanto owner. I punti esclusi import completo, mobile/audio/radar popolati, equity, Ladder rimangono esclusi finché Piero non dispone diversamente. Pannello, OpenRouter operativo e monitoraggio minuto sono lavori successivi, non funzionalità esistenti. Consultare `docs/issue-2-qa-progress-2026-10-02.md`.
-Nessun limite o difetto va mascherato da PASS. Se i campionati autorizzati non hanno oggi un dettaglio disponibile, registrarli pending e continuare nelle giornate successive senza inventare squadre o usare altre fonti.
+## Repository
+- Una PR aperta alla volta.
+- Niente codice esplorativo one-shot su main.
+- Probe e forensic script devono stare in tools/ o essere rimossi dopo uso.
+- Nessun secret in codice/log/test fixture.
+- Test prima del merge.

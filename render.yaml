@@ -2,21 +2,7 @@ services:
   - type: web
     name: matchpilot-test
     runtime: node
-    plan: free
-    region: frankfurt
-    buildCommand: npm install --omit=dev
+    buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /healthz
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: APP_USERNAME
-        sync: false
-      - key: APP_PASSWORD
-        sync: false
-      - key: DATABASE_URL
-        sync: false
-      - key: GOAT_USERNAME
-        sync: false
-      - key: GOAT_PASSWORD
-        sync: false
+    autoDeploy: true
