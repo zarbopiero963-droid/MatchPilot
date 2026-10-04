@@ -160,3 +160,63 @@ export async function getDataHealth() {
     };
   });
 }
+
+
+export async function configureTelegramOutboundOnly() {
+  const token = process.env.MATCHPILOT_TELEGRAM_BOT_TOKEN?.trim();
+  const chatId = process.env.MATCHPILOT_TELEGRAM_CHAT_ID?.trim();
+  if (!token || !chatId) return {configured:false,reason:'missing_config'};
+
+  // Ensure Telegram does not deliver updates to any webhook. MatchPilot never calls getUpdates,
+  // so inbound messages are intentionally ignored.
+  const response = await fetch(`https://api.telegram.org/bot${token}/deleteWebhook`, {
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({drop_pending_updates:true}),
+    signal:AbortSignal.timeout(10000)
+  });
+  if (!response.ok) throw new Error(`Telegram deleteWebhook HTTP ${response.status}`);
+  return {configured:true};
+}
+
+export async function sendTelegramConnectivityTest() {
+  const token = process.env.MATCHPILOT_TELEGRAM_BOT_TOKEN?.trim();
+  const chatId = process.env.MATCHPILOT_TELEGRAM_CHAT_ID?.trim();
+  if (!token || !chatId || !process.env.DATABASE_URL) {
+    return {status:'skipped',reason:'missing_config'};
+  }
+
+  return withClient(async client => {
+    const state = await client.query(
+      `SELECT meta FROM data_watchdog_state WHERE source='telegram'`
+    );
+    if (state.rows[0]?.meta?.connectivity_test_sent === true) {
+      return {status:'already_sent'};
+    }
+
+    const text = [
+      '✅ MatchPilot avvisi collegati correttamente',
+      'Bot configurato in modalità outbound-only.',
+      'Questo gruppo è l’unico destinatario configurato.'
+    ].join('\n');
+
+    const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({chat_id:chatId,text,disable_web_page_preview:true}),
+      signal:AbortSignal.timeout(10000)
+    });
+    if (!response.ok) throw new Error(`Telegram test HTTP ${response.status}`);
+
+    await client.query(
+      `INSERT INTO data_watchdog_state(source,last_checked_at,last_success_at,meta)
+       VALUES('telegram',now(),now(),$1::jsonb)
+       ON CONFLICT(source) DO UPDATE SET
+         last_checked_at=now(),
+         last_success_at=now(),
+         meta=excluded.meta`,
+      [JSON.stringify({connectivity_test_sent:true,mode:'outbound_only'})]
+    );
+    return {status:'sent'};
+  });
+}

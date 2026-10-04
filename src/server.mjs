@@ -4,13 +4,17 @@ import { startFutpythonCron, stopFutpythonCron } from './jobs/futpython-cron.mjs
 import { runFutpythonSync } from './jobs/futpython-sync.mjs';
 import { closePool } from './db.mjs';
 import { startDataWatchdog, stopDataWatchdog } from './jobs/data-watchdog.mjs';
-import { getDataHealth } from './alerts.mjs';
+import { getDataHealth, configureTelegramOutboundOnly, sendTelegramConnectivityTest } from './alerts.mjs';
 
 const port = Number(process.env.PORT || 3000);
 
 await migrate();
 startFutpythonCron();
 startDataWatchdog();
+configureTelegramOutboundOnly()
+  .then(()=>sendTelegramConnectivityTest())
+  .then(r=>console.log('TELEGRAM_OUTBOUND_ONLY '+JSON.stringify({status:r?.status || 'configured'})))
+  .catch(e=>console.error('TELEGRAM_SETUP_ERROR', String(e?.message||e).replace(/bot\d+:[A-Za-z0-9_-]+/g,'bot[REDACTED]')));
 if (process.env.FUTPYTHON_BACKFILL_ON_START === 'true') {
   runFutpythonSync({kind:'backfill',mode:'backfill'})
     .catch(e => console.error('FUTPYTHON_BACKFILL_ERROR', String(e?.message||e).replace(/api_key=[^&\\s]+/gi,'api_key=[REDACTED]')));
