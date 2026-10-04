@@ -11,7 +11,8 @@ export async function runBucJuniorAnalysis(){
  const key=process.env.FUTPYTHON_API_KEY;if(!key)return;
  let all=[];for(const y of ['2021','2022','2023','2024','2025','2026'])try{all.push(...await csv('https://futpythontrader.com.br/api/download/colombia/primera-a/'+y+'?api_key='+encodeURIComponent(key)));}catch(e){console.log('BUC_JUN_SKIP '+y+' '+e.message);}
  const fin=all.filter(r=>num(r.Home_Score)!==null&&num(r.Away_Score)!==null);
- const chronological=fin.slice().sort((a,b)=>String(a.Date).localeCompare(String(b.Date)));
+ const dateVal=v=>{const s=String(v||'');const m=s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);if(m)return Date.UTC(+m[3],+m[2]-1,+m[1]);const y=s.match(/(\d{4})[\-\/](\d{1,2})[\-\/](\d{1,2})/);if(y)return Date.UTC(+y[1],+y[2]-1,+y[3]);return Date.parse(s)||0;};
+ const chronological=fin.slice().sort((a,b)=>dateVal(a.Date)-dateVal(b.Date));
  const bAll=chronological.filter(r=>isB(r.Home)||isB(r.Away)),jAll=chronological.filter(r=>isJ(r.Home)||isJ(r.Away));
  const bHome=chronological.filter(r=>isB(r.Home)),jAway=chronological.filter(r=>isJ(r.Away));
  const h2h=chronological.filter(r=>(isB(r.Home)&&isJ(r.Away))||(isJ(r.Home)&&isB(r.Away)));
@@ -20,11 +21,13 @@ export async function runBucJuniorAnalysis(){
  let daily=[];try{daily=await csv('https://futpythontrader.com.br/api/jogos-do-dia?date=2026-10-05&format=csv&api_key='+encodeURIComponent(key));}catch{}
  const fx=daily.find(r=>(isB(r.Home)&&isJ(r.Away))||(isJ(r.Home)&&isB(r.Away)))||{};
  const advKeys=Object.keys(fx).filter(k=>/^(xG|xGOT|xA|Possession|Total_Shots|Shots_On_Target|Shots_Off_Target|Big_Chances|Corners|Over_|Under_|BTTS_|CS_|Bookie_)/.test(k)&&String(fx[k]??'').trim()!=='');
+ const avg=(rows,key)=>{const v=rows.map(r=>num(r[key])).filter(x=>x!==null);return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length*100)/100:null};
+ const advHist=(rows)=>Object.fromEntries(['xG_Home_FT','xG_Away_FT','xGOT_Home_FT','xGOT_Away_FT','Total_Shots_Home_FT','Total_Shots_Away_FT','Shots_On_Target_Home_FT','Shots_On_Target_Away_FT','Big_Chances_Home_FT','Big_Chances_Away_FT','Corners_Home_FT','Corners_Away_FT','Possession_Home_FT','Possession_Away_FT'].map(k=>[k,avg(rows,k)]).filter(([,v])=>v!==null));
  const result={
   rows:fin.length,
-  b10:sum(bAll.slice(-10),isB),j10:sum(jAll.slice(-10),isJ),
+  b10:sum(bAll.slice(-10),isB),j10:sum(jAll.slice(-10),isJ),b10Advanced:advHist(bAll.slice(-10)),j10Advanced:advHist(jAll.slice(-10)),
   b20:sum(bAll.slice(-20),isB),j20:sum(jAll.slice(-20),isJ),
-  bHome15:sum(bHome.slice(-15),isB),jAway15:sum(jAway.slice(-15),isJ),
+  bHome15:sum(bHome.slice(-15),isB),jAway15:sum(jAway.slice(-15),isJ),bHome15Advanced:advHist(bHome.slice(-15)),jAway15Advanced:advHist(jAway.slice(-15)),
   h2h15:{summary:sum(h2h.slice(-15),isB),scores:scores(h2h.slice(-15)),minutes:mins(h2h.slice(-15))},
   sim1:{n:sim(1).length,scores:scores(sim(1)),minutes:mins(sim(1))},
   sim3:{n:sim(3).length,scores:scores(sim(3)),minutes:mins(sim(3))},
