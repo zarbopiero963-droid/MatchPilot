@@ -187,3 +187,33 @@ Il progetto precedente è stato archiviato nel branch:
 `archive/pre-trading-os-reset-2026-10-04`
 
 La branch `main` rappresenta esclusivamente il nuovo MatchPilot Sports Trading OS.
+
+
+## Stato FutPythonTrader — certificazione
+
+La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue **#12 — FPT-CERT**.
+
+Stato corrente: **IN CERTIFICAZIONE — non ancora CLOSED**.
+
+La certificazione richiede, nell'ordine:
+
+1. backfill storico completo e restartable;
+2. classificazione di ogni dataset;
+3. riconciliazione snapshot, versioni e match unici;
+4. censimento completo delle colonne;
+5. coverage per campo/dataset/lega/stagione;
+6. audit delle stagioni mancanti;
+7. due sync incrementali reali con verifica idempotenza;
+8. certificazione Data Health/Watchdog/Telegram;
+9. documento finale `docs/futpython-certification-YYYY-MM-DD.md`.
+
+### FASE 1 — Backfill
+
+La FASE 1 introduce:
+- snapshot immutabile del catalogo usato dal run;
+- backfill riprendibile senza riscaricare dataset terminali;
+- conteggio `resumed_skips`;
+- classificazione `available / unavailable_404 / error / deprecated`;
+- riepilogo reale tramite `/api/futpython-certification`.
+
+**Regola:** README viene aggiornato in ogni PR di certificazione. Una fase viene marcata completata solo dopo CI verde e test reali su Render/Neon.
