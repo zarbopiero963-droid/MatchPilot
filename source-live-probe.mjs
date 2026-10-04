@@ -28,6 +28,14 @@ export async function runLiveSourceProbe(){
   if(await live.count())await live.first().click();
   await page.waitForTimeout(12000);
   const text=(await page.locator('body').innerText()).slice(0,3000);
+  const domIds=await page.evaluate(()=>{
+    const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length);
+    return [...document.querySelectorAll('[id],[data-match-id],[data-event-id],[data-fixture-id],[data-game-id],[data-id]')]
+      .filter(visible)
+      .slice(0,300)
+      .map(e=>({tag:e.tagName,id:e.id||'',text:(e.innerText||'').trim().slice(0,120),attrs:[...e.attributes].filter(a=>/^data-(match|event|fixture|game|id)/.test(a.name)).map(a=>[a.name,a.value])}))
+      .filter(x=>x.id||x.attrs.length);
+  });
   const events=[...seen.entries()].map(([k,count])=>({request:k,count})).filter(x=>!x.request.includes('fonts.googleapis.com')&&!x.request.includes('fonts.gstatic.com'));
   console.log('LIVE_SOURCE_PROBE '+JSON.stringify({events,text:text.replace(/[^\s]+@[^\s]+/g,'[EMAIL]')}));
  }finally{if(browser)await browser.close().catch(()=>{});}
