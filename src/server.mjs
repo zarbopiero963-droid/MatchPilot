@@ -3,11 +3,14 @@ import { migrate } from './migrate.mjs';
 import { startFutpythonCron, stopFutpythonCron } from './jobs/futpython-cron.mjs';
 import { runFutpythonSync } from './jobs/futpython-sync.mjs';
 import { closePool } from './db.mjs';
+import { startDataWatchdog, stopDataWatchdog } from './jobs/data-watchdog.mjs';
+import { getDataHealth } from './alerts.mjs';
 
 const port = Number(process.env.PORT || 3000);
 
 await migrate();
 startFutpythonCron();
+startDataWatchdog();
 if (process.env.FUTPYTHON_BACKFILL_ON_START === 'true') {
   runFutpythonSync({kind:'backfill',mode:'backfill'})
     .catch(e => console.error('FUTPYTHON_BACKFILL_ERROR', String(e?.message||e).replace(/api_key=[^&\\s]+/gi,'api_key=[REDACTED]')));
@@ -16,6 +19,17 @@ if (process.env.FUTPYTHON_BACKFILL_ON_START === 'true') {
 const app = http.createServer((req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
+
+  if (req.url === '/api/data-health') {
+    getDataHealth().then(data=>{
+      res.writeHead(200, {'Content-Type':'application/json'});
+      res.end(JSON.stringify(data));
+    }).catch(()=>{
+      res.writeHead(503, {'Content-Type':'application/json'});
+      res.end(JSON.stringify({status:'error'}));
+    });
+    return;
+  }
 
   if (req.url === '/healthz') {
     res.writeHead(200, {'Content-Type': 'application/json'});
@@ -35,6 +49,7 @@ app.listen(port,'0.0.0.0',()=>console.log(`MatchPilot Trading OS listening on ${
 
 async function shutdown() {
   stopFutpythonCron();
+  stopDataWatchdog();
   app.close(async()=>{ await closePool().catch(()=>{}); process.exit(0); });
 }
 process.on('SIGTERM',shutdown);

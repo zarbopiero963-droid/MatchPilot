@@ -3,6 +3,7 @@ import { withClient } from '../db.mjs';
 import { fetchCatalog, isCurrentSeason } from '../providers/futpython/catalog.mjs';
 import { fetchDataset, fetchToday } from '../providers/futpython/client.mjs';
 import { storeDataset, upsertCatalog } from '../providers/futpython/store.mjs';
+import { emitAlert, resolveAlert } from '../alerts.mjs';
 
 const LOCK_ID = 76420311;
 
@@ -38,6 +39,8 @@ async function recordRun(client, runId, kind, status, stats) {
 async function syncEntry(client, entry, stats) {
   stats.datasetsAttempted++;
   try {
+    const previous = await client.query('SELECT last_row_count FROM fpt_dataset_state WHERE dataset_key=$1',[entry.datasetKey]);
+    const previousRows = previous.rows[0]?.last_row_count ?? null;
     const data = await fetchDataset(entry);
     stats.rowsSeen += data.rows.length;
     const stored = await storeDataset(client, {
@@ -55,9 +58,20 @@ async function syncEntry(client, entry, stats) {
       stats.rowsInserted += stored.rowsInserted;
     }
     stats.fieldsSeen = Math.max(stats.fieldsSeen, stored.fields);
+    for (const field of stored.newFields || []) {
+      stats.newFields.add(field);
+      await emitAlert({source:'futpython',severity:'info',code:'NEW_FIELD',key:field,title:'Nuova colonna FutPythonTrader',message:`Rilevata nuova colonna: ${field}`,payload:{field,datasetKey:entry.datasetKey}},client);
+    }
+    if (previousRows !== null && previousRows >= 20 && data.rows.length < Math.floor(previousRows*0.5)) {
+      await emitAlert({source:'futpython',severity:'warning',code:'ROW_COUNT_DROP',key:entry.datasetKey,title:'Calo anomalo righe FutPython',message:`${entry.datasetKey}: ${previousRows} → ${data.rows.length} righe.`,payload:{datasetKey:entry.datasetKey,previousRows,currentRows:data.rows.length}},client);
+    } else {
+      await resolveAlert({source:'futpython',code:'ROW_COUNT_DROP',key:entry.datasetKey},client);
+    }
+    await resolveAlert({source:'futpython',code:'DATASET_SYNC_FAILED',key:entry.datasetKey},client);
   } catch (error) {
     const message = String(error?.message || error).replace(/api_key=[^&\s]+/gi,'api_key=[REDACTED]');
     stats.errors.push({datasetKey:entry.datasetKey,error:message});
+    await emitAlert({source:'futpython',severity:'warning',code:'DATASET_SYNC_FAILED',key:entry.datasetKey,title:'Sync dataset FutPython fallito',message:`${entry.datasetKey}: ${message}`,payload:{datasetKey:entry.datasetKey}},client);
     await client.query(
       'UPDATE fpt_dataset_state SET last_synced_at=now(),last_error=$2 WHERE dataset_key=$1',
       [entry.datasetKey,message.slice(0,1000)]
@@ -79,6 +93,10 @@ async function syncToday(client, stats, dateIso) {
       stats.rowsInserted += stored.rowsInserted;
     }
     stats.fieldsSeen = Math.max(stats.fieldsSeen, stored.fields);
+    for (const field of stored.newFields || []) {
+      stats.newFields.add(field);
+      await emitAlert({source:'futpython',severity:'info',code:'NEW_FIELD',key:field,title:'Nuova colonna FutPythonTrader',message:`Rilevata nuova colonna: ${field}`,payload:{field,datasetKey:key}},client);
+    }
   } catch (error) {
     stats.errors.push({datasetKey:`today/${dateIso}`,error:String(error?.message||error)});
   }
@@ -93,14 +111,21 @@ export async function runFutpythonSync({kind='manual', mode='incremental'} = {})
     if (!lock.rows[0]?.ok) return {status:'skipped',reason:'lock_busy'};
 
     const runId = `fpt-${Date.now()}-${randomUUID().slice(0,8)}`;
-    const stats = {startedAt:new Date(),errors:[],meta:{mode}};
+    const stats = {startedAt:new Date(),errors:[],newFields:new Set(),newDatasets:new Set(),meta:{mode}};
     try {
       await recordRun(client,runId,kind,'running',stats);
 
       const catalog = await fetchCatalog();
       stats.catalogEntries = catalog.length;
       await client.query('BEGIN');
-      try { await upsertCatalog(client,catalog); await client.query('COMMIT'); }
+      try {
+        const catalogResult = await upsertCatalog(client,catalog);
+        for (const entry of catalogResult.newDatasets || []) {
+          stats.newDatasets.add(entry.datasetKey);
+          await emitAlert({source:'futpython',severity:'info',code:'NEW_DATASET',key:entry.datasetKey,title:'Nuovo dataset FutPythonTrader',message:`Nuovo dataset disponibile: ${entry.datasetKey}`,payload:entry},client);
+        }
+        await client.query('COMMIT');
+      }
       catch (e) { await client.query('ROLLBACK'); throw e; }
 
       const targets = mode === 'backfill'
@@ -127,12 +152,20 @@ export async function runFutpythonSync({kind='manual', mode='incremental'} = {})
       const status = stats.errors.length
         ? (stats.datasetsChanged || stats.rowsInserted ? 'partial' : 'failed')
         : 'complete';
+      stats.meta.newFields=[...stats.newFields];
+      stats.meta.newDatasets=[...stats.newDatasets];
       await recordRun(client,runId,kind,status,stats);
+      if (status === 'failed' || status === 'partial') {
+        await emitAlert({source:'futpython',severity:status==='failed'?'critical':'warning',code:'SYNC_RUN_'+status.toUpperCase(),key:'latest',title:`FutPython sync ${status}`,message:`Run ${runId}: ${stats.errors.length} errori.`,payload:{runId,status,errorCount:stats.errors.length}},client);
+      } else {
+        await resolveAlert({source:'futpython',code:'SYNC_RUN_FAILED',key:'latest'},client);
+        await resolveAlert({source:'futpython',code:'SYNC_RUN_PARTIAL',key:'latest'},client);
+      }
       console.log('FUTPYTHON_SYNC '+JSON.stringify({
         runId,status,mode,catalogEntries:stats.catalogEntries,
         datasetsAttempted:stats.datasetsAttempted,datasetsChanged:stats.datasetsChanged,
         snapshotsInserted:stats.snapshotsInserted,rowsSeen:stats.rowsSeen,
-        rowsInserted:stats.rowsInserted,fieldsSeen:stats.fieldsSeen,errorCount:stats.errors.length
+        rowsInserted:stats.rowsInserted,fieldsSeen:stats.fieldsSeen,newFields:stats.newFields.size,newDatasets:stats.newDatasets.size,errorCount:stats.errors.length
       }));
       return {runId,status,...stats};
     } finally {

@@ -33,6 +33,9 @@ function dateOrNull(v) {
 }
 
 export async function upsertCatalog(client, catalog) {
+  const before = await client.query('SELECT dataset_key FROM fpt_catalog');
+  const known = new Set(before.rows.map(r=>r.dataset_key));
+  const newDatasets = catalog.filter(e=>!known.has(e.datasetKey));
   await client.query('UPDATE fpt_catalog SET active=false');
   for (const e of catalog) {
     await client.query(
@@ -52,6 +55,7 @@ export async function upsertCatalog(client, catalog) {
        ON CONFLICT(dataset_key) DO NOTHING`, [e.datasetKey]
     );
   }
+  return {newDatasets};
 }
 
 export async function storeDataset(client, {
@@ -70,7 +74,7 @@ export async function storeDataset(client, {
        WHERE dataset_key=$1`,
       [datasetKey, hash, existing.rows[0].snapshot_id, rows.length]
     );
-    return { changed:false, snapshotId:existing.rows[0].snapshot_id, rowsInserted:0, fields:headers.length };
+    return { changed:false, snapshotId:existing.rows[0].snapshot_id, rowsInserted:0, fields:headers.length, newFields:[] };
   }
 
   const snapshot = await client.query(
@@ -82,6 +86,11 @@ export async function storeDataset(client, {
   const snapshotId = snapshot.rows[0].snapshot_id;
 
   const schema = profileSchema(headers, rows);
+  const knownFieldsResult = headers.length
+    ? await client.query('SELECT field_name FROM fpt_schema_fields WHERE field_name = ANY($1::text[])',[headers])
+    : {rows:[]};
+  const knownFields = new Set(knownFieldsResult.rows.map(r=>r.field_name));
+  const newFields = headers.filter(h=>!knownFields.has(h));
   for (const f of schema) {
     await client.query(
       `INSERT INTO fpt_schema_fields(field_name,inferred_type,family,datasets_seen,rows_seen,nonempty_seen,sample_values)
@@ -140,5 +149,5 @@ export async function storeDataset(client, {
     );
   }
 
-  return { changed:true, snapshotId, rowsInserted:inserted, fields:headers.length };
+  return { changed:true, snapshotId, rowsInserted:inserted, fields:headers.length, newFields };
 }

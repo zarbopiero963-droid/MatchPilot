@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.mjs",
-    "check": "node --check src/server.mjs && node --check src/db.mjs && node --check src/migrate.mjs && node --check src/jobs/futpython-sync.mjs && node --check src/jobs/futpython-cron.mjs && node --check src/providers/futpython/catalog.mjs && node --check src/providers/futpython/client.mjs && node --check src/providers/futpython/store.mjs && node --check src/providers/futpython/schema.mjs",
+    "check": "node --check src/server.mjs && node --check src/db.mjs && node --check src/migrate.mjs && node --check src/jobs/futpython-sync.mjs && node --check src/jobs/futpython-cron.mjs && node --check src/providers/futpython/catalog.mjs && node --check src/providers/futpython/client.mjs && node --check src/providers/futpython/store.mjs && node --check src/providers/futpython/schema.mjs && node --check src/alerts.mjs && node --check src/jobs/data-watchdog.mjs",
     "test": "node --test",
     "migrate": "node src/migrate.mjs",
     "sync:futpython": "node src/jobs/futpython-sync.mjs",
