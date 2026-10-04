@@ -189,16 +189,42 @@ async function insertMatchBatch(client, records) {
   return result.rowCount;
 }
 
+async function withOwnTransaction(client, fn) {
+  const assigned = await client.query('SELECT txid_current_if_assigned() AS tx');
+  const owns = assigned.rows[0]?.tx == null;
+  if (owns) await client.query('BEGIN');
+  try {
+    const result = await fn();
+    if (owns) await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    if (owns) {
+      try { await client.query('ROLLBACK'); } catch { /* connection may already be gone */ }
+    }
+    throw error;
+  }
+}
+
 export async function storeDataset(client, {
   datasetKey, sourceKind, providerPath, countrySlug=null, leagueSlug=null, season=null,
   text, headers, rows, acquiredAt = new Date()
-}) {
+}, hooks = {}) {
+  return withOwnTransaction(client, () => storeDatasetInTransaction(client, {
+    datasetKey, sourceKind, providerPath, countrySlug, leagueSlug, season,
+    text, headers, rows, acquiredAt
+  }, hooks));
+}
+
+async function storeDatasetInTransaction(client, {
+  datasetKey, sourceKind, providerPath, countrySlug=null, leagueSlug=null, season=null,
+  text, headers, rows, acquiredAt = new Date()
+}, hooks = {}) {
   const hash = sha256(text);
   const existing = await client.query(
-    'SELECT snapshot_id FROM fpt_raw_snapshots WHERE dataset_key=$1 AND sha256=$2',
+    'SELECT snapshot_id, ingest_complete FROM fpt_raw_snapshots WHERE dataset_key=$1 AND sha256=$2',
     [datasetKey, hash]
   );
-  if (existing.rowCount) {
+  if (existing.rowCount && existing.rows[0].ingest_complete) {
     if (sourceKind==='dataset') {
       await client.query(
         `UPDATE fpt_dataset_state
@@ -208,10 +234,16 @@ export async function storeDataset(client, {
       );
     }
     return {
-      changed:false,snapshotId:existing.rows[0].snapshot_id,
+      changed:false,complete:true,snapshotId:existing.rows[0].snapshot_id,
       rowsInserted:0,fields:headers.length,newFields:[]
     };
   }
+
+  let snapshotId;
+  let changed = false;
+  if (existing.rowCount) {
+    snapshotId = existing.rows[0].snapshot_id;
+  } else {
 
   const snapshot = await client.query(
     `INSERT INTO fpt_raw_snapshots(
@@ -223,7 +255,10 @@ export async function storeDataset(client, {
       JSON.stringify(headers),gzipSync(Buffer.from(text,'utf8'))
     ]
   );
-  const snapshotId = snapshot.rows[0].snapshot_id;
+    snapshotId = snapshot.rows[0].snapshot_id;
+    changed = true;
+    if (hooks.afterSnapshotInserted) await hooks.afterSnapshotInserted({client, snapshotId});
+  }
 
   const schema = profileSchema(headers, rows);
   const knownFieldsResult = headers.length
@@ -245,15 +280,21 @@ export async function storeDataset(client, {
     inserted += await insertMatchBatch(client,batch);
   }
 
+  await client.query(
+    'UPDATE fpt_raw_snapshots SET ingest_complete=true WHERE snapshot_id=$1',
+    [snapshotId]
+  );
+
   if (sourceKind === 'dataset') {
     await client.query(
       `UPDATE fpt_dataset_state
        SET last_sha256=$2,last_snapshot_id=$3,last_row_count=$4,
-           last_synced_at=now(),last_changed_at=now(),last_error=null
+           last_synced_at=now(),last_changed_at=CASE WHEN $5 THEN now() ELSE last_changed_at END,
+           last_error=null
        WHERE dataset_key=$1`,
-      [datasetKey,hash,snapshotId,rows.length]
+      [datasetKey,hash,snapshotId,rows.length,changed]
     );
   }
 
-  return {changed:true,snapshotId,rowsInserted:inserted,fields:headers.length,newFields};
+  return {changed,complete:true,snapshotId,rowsInserted:inserted,fields:headers.length,newFields};
 }

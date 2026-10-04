@@ -90,6 +90,15 @@ Per ogni fase di certificazione:
 - annotare failure reali;
 - solo allora passare alla PR successiva.
 
+## Resume drill e budget FutPython
+
+- Una sola PR. Non aprire FPT-PR-02 finché il kill live della FASE 1 non è eseguito e la PR di resume è mergiata.
+- Non chiudere la issue #12.
+- Non lanciare il drill sul servizio web e non impostare `FUTPYTHON_BACKFILL_ON_START=true`.
+- Il ledger non deve contenere API key. Il browser non chiama il provider.
+- Non dichiarare la FASE 1 completamente certificata senza il kill reale su Render.
+- I default di budget non sono la quota del fornitore: non inventarli come piano reale.
+
 ## Evidenza reale
 
 Una evidenza accettabile deve essere riconducibile a:
