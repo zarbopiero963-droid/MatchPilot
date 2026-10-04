@@ -1,5 +1,3 @@
-BEGIN;
-
 CREATE TABLE IF NOT EXISTS fpt_sync_runs (
   run_id text PRIMARY KEY,
   kind text NOT NULL CHECK (kind IN ('cron','backfill','manual','today')),
@@ -100,5 +98,3 @@ SELECT DISTINCT ON (match_key)
   *
 FROM fpt_match_versions
 ORDER BY match_key, acquired_at DESC, version_id DESC;
-
-COMMIT;
