@@ -14,9 +14,9 @@ function scoreDist(rows){const m={};for(const r of rows){const h=num(r.Home_Scor
 function poisson(lambda,mu){const fact=n=>n<2?1:Array.from({length:n},(_,i)=>i+1).reduce((a,b)=>a*b,1);let p1=0,px=0,p2=0,o15=0,o25=0,b=0;const cs=[];for(let h=0;h<=6;h++)for(let a=0;a<=6;a++){const p=Math.exp(-lambda)*lambda**h/fact(h)*Math.exp(-mu)*mu**a/fact(a);if(h>a)p1+=p;else if(h===a)px+=p;else p2+=p;if(h+a>=2)o15+=p;if(h+a>=3)o25+=p;if(h>0&&a>0)b+=p;cs.push({score:h+'-'+a,p});}cs.sort((x,y)=>y.p-x.p);return{lambdaHome:+lambda.toFixed(3),lambdaAway:+mu.toFixed(3),p1:+(p1*100).toFixed(1),px:+(px*100).toFixed(1),p2:+(p2*100).toFixed(1),o15:+(o15*100).toFixed(1),o25:+(o25*100).toFixed(1),btts:+(b*100).toFixed(1),scores:cs.slice(0,8).map(x=>({score:x.score,pct:+(x.p*100).toFixed(1)}))};}
 export async function runSociedadGranadaPrematch(){
  const fk=process.env.FUTPYTHON_API_KEY?.trim(),tk=process.env.TOTALCORNER_API_TOKEN?.trim();if(!fk||!tk){console.log('RSG_PREMATCH missing_keys');return;}
- const variants=[['spain','segunda-division'],['spain','segunda'],['espanha','segunda-division'],['espanha','la-liga-2'],['spain','la-liga-2']];
+ const variants=[['spain','laliga2']];
  let all=[],used=null;
- for(const [country,league] of variants){let tmp=[];for(const y of ['2021','2022','2023','2024','2025','2026']){try{tmp.push(...await csv('https://futpythontrader.com.br/api/download/'+country+'/'+league+'/'+y+'?api_key='+encodeURIComponent(fk)));}catch{}}
+ for(const [country,league] of variants){let tmp=[];for(const y of ['2021-2022','2022-2023','2023-2024','2024-2025','2025-2026','2026-2027']){try{tmp.push(...await csv('https://futpythontrader.com.br/api/download/'+country+'/'+league+'/'+y+'?api_key='+encodeURIComponent(fk)));}catch{}}
   if(tmp.length>100){all=tmp;used={country,league};break;}}
  let daily=[];try{daily=await csv('https://futpythontrader.com.br/api/jogos-do-dia?date=2026-10-04&format=csv&api_key='+encodeURIComponent(fk));}catch{}
  const fixture=daily.find(r=>(isRS(r.Home)&&isGR(r.Away))||(isGR(r.Home)&&isRS(r.Away)))||{};
