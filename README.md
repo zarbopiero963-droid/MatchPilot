@@ -195,7 +195,7 @@ La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue *
 
 Stato corrente della sorgente: **IN CERTIFICAZIONE — non ancora CLOSED**.
 
-Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-03 … FPT-PR-09 non partono.
+Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-04 … FPT-PR-09 non partono.
 
 La certificazione richiede, nell'ordine:
 
@@ -355,6 +355,15 @@ Stati persistiti: `AVAILABLE`, `UNAVAILABLE_404`, `ERROR_REAL`, `DEPRECATED`, `R
 Il sync scrive gli stessi campi a ogni esito. Il gate letto dall'intero catalogo, non da un sottoinsieme, è `classified_total === catalog_total`, `unclassified = 0` e `duplicate_catalog_keys = 0`. Lo espongono `/api/futpython-certification` (`phase2`) e `node src/jobs/futpython-classify-phase2.mjs`. Non chiamano FutPythonTrader. Il budget richieste di PR #35 non cambia.
 
 I numeri del gate su Neon production sono nel commento della PR, dopo la migrazione applicata dal job e prima del deploy del sito. Non sono inventati in questo paragrafo.
+
+### FASE 3 — integrità raw → parser → DB e identità squadra
+
+L'audit non riscarica FutPythonTrader. Rilegge il payload gzip già salvato e lo confronta con il parser e con `fpt_match_versions`. Controlla collisioni di `match_key`, collisioni di `provider_match_id` solo se la stessa id descrive partite diverse, payload duplicati, CSV malformato, header/riga di larghezza diversa, Home/Away/Date mancanti, `row_count` contro righe parser e contro righe DB, snapshot orfani, versioni orfane, date non interpretabili e payload vuoto. Uno snapshot già completo che ha meno versioni del proprio `row_count` riceve solo le righe mancanti: il gzip e l'hash non vengono riscritti.
+
+`Match_ID` nel CSV non entra nella `match_key` storica, che resta `fpt:hash:` quando il codice non ha riconosciuto `Id`. Il valore viene copiato in `provider_match_id` se non crea una collisione di identità. La stessa partita presente in due dataset (per esempio Eredivisie ed Eerste Divisie) resta due `match_key`, con la stessa identità, e non è una collisione.
+
+La migrazione `009-fpt-team-identity.sql` crea `fpt_teams` e `fpt_team_aliases`. `internal_team_id` è stabile su paese, competizione e nome normalizzato (case e punteggiatura). Il CSV non ha un id squadra provider: `provider_team_id` resta nullo. Alias, abbreviazioni e nomi storici stanno sulla stessa entità. `first_seen` e `last_seen` vengono dalle date partita. La provenance registra la sorgente. Il gate SQL è esposto da `/api/futpython-certification` (`phase3`) e da `node src/jobs/futpython-audit-phase3.mjs`. I numeri del campione reale stanno nel commento della PR, non in questo paragrafo.
+
 
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
 

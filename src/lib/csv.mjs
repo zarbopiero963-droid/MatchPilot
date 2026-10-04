@@ -1,5 +1,6 @@
-export function parseCsv(text) {
-  const rows = [];
+export function parseCsv(text, options = {}) {
+  const audit = options.audit === true;
+  const rawRows = [];
   let row = [];
   let cell = '';
   let quoted = false;
@@ -7,7 +8,7 @@ export function parseCsv(text) {
   const pushCell = () => { row.push(cell); cell = ''; };
   const pushRow = () => {
     if (row.length || cell.length) pushCell();
-    if (row.some(v => v !== '')) rows.push(row);
+    if (row.some(v => v !== '')) rawRows.push(row);
     row = [];
   };
 
@@ -31,9 +32,21 @@ export function parseCsv(text) {
     } else cell += ch;
   }
   if (cell.length || row.length) pushRow();
-  if (!rows.length) return { headers: [], rows: [] };
 
-  const headers = rows.shift().map((h, i) => String(h || '').trim() || `__unnamed_${i}`);
-  const objects = rows.map(cells => Object.fromEntries(headers.map((h, i) => [h, cells[i] ?? ''])));
-  return { headers, rows: objects };
+  const issues = [];
+  if (quoted) issues.push({code: 'malformed_csv', reason: 'unclosed_quote'});
+  if (!rawRows.length) {
+    return audit ? {headers: [], rows: [], issues} : {headers: [], rows: []};
+  }
+
+  const headerCells = rawRows[0];
+  const headers = headerCells.map((h, i) => String(h || '').trim() || `__unnamed_${i}`);
+  const objects = [];
+  for (const cells of rawRows.slice(1)) {
+    if (cells.length !== headers.length) {
+      issues.push({code: 'header_row_mismatch', expected: headers.length, actual: cells.length});
+    }
+    objects.push(Object.fromEntries(headers.map((h, i) => [h, cells[i] ?? ''])));
+  }
+  return audit ? {headers, rows: objects, issues} : {headers, rows: objects};
 }
