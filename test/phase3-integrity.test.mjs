@@ -60,7 +60,7 @@ test('hard sample covers countries, season shapes, small and large', () => {
 
 test('case-only spellings share one internal team id', () => {
   const entities = buildTeamEntities([
-    {country_slug: 'europe', competition_slug: 'conference-league', name: 'Ajax (NED)', seen: 4, first_seen: '2024-09-01', last_seen: '2024-11-01'},
+    {country_slug: 'europe', competition_slug: 'conference-league', name: 'Ajax (NED)', seen: 4, first_seen: new Date('2024-09-01T00:00:00Z'), last_seen: new Date('2024-11-01T00:00:00Z')},
     {country_slug: 'europe', competition_slug: 'europa-league', name: 'Ajax (Ned)', seen: 2, first_seen: '2023-09-01', last_seen: '2023-11-01'},
     {country_slug: 'netherlands', competition_slug: 'eredivisie', name: 'Ajax', seen: 9, first_seen: '2024-08-01', last_seen: '2025-05-01'},
     {country_slug: 'europe', competition_slug: 'champions-league', name: 'Benfica (POR)', seen: 3, first_seen: '2024-09-01', last_seen: '2024-11-01'}

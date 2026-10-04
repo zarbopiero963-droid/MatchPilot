@@ -1,5 +1,17 @@
 import { createHash } from 'node:crypto';
 
+
+function isoDay(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return String(value).slice(0, 10);
+}
+
+function span(values) {
+  const days = values.map(isoDay).filter(Boolean).sort();
+  return {first_seen: days[0] || null, last_seen: days[days.length - 1] || null};
+}
+
 export function normalizeTeamName(name) {
   return String(name || '')
     .replace(/\s*\([A-Za-z]{3}\)\s*$/u, '')
@@ -49,9 +61,9 @@ export function buildTeamEntities(rows) {
         continue;
       }
       prev.seen += row.seen || 0;
-      const dates = [prev.first_seen, prev.last_seen, row.first_seen, row.last_seen].filter(Boolean).sort();
-      prev.first_seen = dates[0] || null;
-      prev.last_seen = dates[dates.length - 1] || null;
+      const merged = span([prev.first_seen, prev.last_seen, row.first_seen, row.last_seen]);
+      prev.first_seen = merged.first_seen;
+      prev.last_seen = merged.last_seen;
       if (row.competition_slug && !prev.competitions.includes(row.competition_slug)) prev.competitions.push(row.competition_slug);
     }
     const spellings = [...byName.values()];
@@ -61,7 +73,7 @@ export function buildTeamEntities(rows) {
     const id = internalTeamId(canonical.country_slug, normalized);
     const competitions = [...new Set(spellings.flatMap(row => row.competitions || (row.competition_slug ? [row.competition_slug] : [])))].sort();
     const topCompetition = ranked[0].competitions?.[0] || ranked[0].competition_slug || null;
-    const dates = spellings.flatMap(row => [row.first_seen, row.last_seen]).filter(Boolean).sort();
+    const dates = span(spellings.flatMap(row => [row.first_seen, row.last_seen]));
     const aliases = ranked.map((row, index) => ({
       name: row.name,
       normalized_name: normalized,
@@ -78,8 +90,8 @@ export function buildTeamEntities(rows) {
       canonical_name: canonical.name,
       provider_team_id: canonical.provider_team_id || null,
       abbreviations: aliases.filter(alias => alias.kind === 'abbreviation' || /[A-Za-z]\./.test(alias.name)).map(alias => alias.name),
-      first_seen: dates[0] || null,
-      last_seen: dates[dates.length - 1] || null,
+      first_seen: dates.first_seen,
+      last_seen: dates.last_seen,
       provenance: {
         source_provider: 'futpythontrader',
         built_from: 'fpt_match_versions.home/away',
