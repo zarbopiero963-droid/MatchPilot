@@ -113,24 +113,23 @@ export async function runPhase8Audit() {
            AND recorded_at > now() - interval '1 day'`
       );
       const existing = base.rows[0].n;
-      let perDay = null;
-      for (let candidate = existing + 9; candidate >= 1; candidate -= 1) {
-        const warning = (existing + 7) / candidate;
-        const critical = (existing + 9) / candidate;
-        if (warning >= 0.7 && warning < 0.9 && critical >= 0.9) { perDay = candidate; break; }
-      }
-      if (!perDay) throw new Error('no isolated budget fixture limit');
-      const limits = {perDay, perMinute: 1000};
+      const perDay = Math.max(existing + 10, Math.ceil((existing + 1) / 0.69));
+      const warningUsed = Math.ceil(perDay * 0.7);
+      const criticalUsed = Math.ceil(perDay * 0.9);
+      const warningAdd = warningUsed - existing;
+      const criticalAdd = criticalUsed - warningUsed;
+      if (warningAdd < 1 || criticalAdd < 1) throw new Error('budget fixture did not separate warning from critical');
+      const limits = {perDay, perMinute: 1000000};
       const insert = (outcome, status, n) => client.query(
         `INSERT INTO fpt_request_ledger(recorded_at, dataset_key, url_path, outcome, attempt, http_status, run_id)
          SELECT now(), 'phase8-fixture', '/api/download/fixture', $1, 1, $2, 'phase8-fixture'
          FROM generate_series(1, $3)`,
         [outcome, status, n]
       );
-      await insert('upstream', 200, 7);
+      await insert('upstream', 200, warningAdd);
       const warning = await evaluateProviderAlerts(client, {deliver, limits, circuitFailures: 5});
       const warningSent = sent.splice(0);
-      await insert('upstream', 200, 2);
+      await insert('upstream', 200, criticalAdd);
       const critical = await evaluateProviderAlerts(client, {deliver, limits, circuitFailures: 5});
       const criticalSent = sent.splice(0);
       await client.query(`DELETE FROM fpt_request_ledger WHERE run_id='phase8-fixture'`);
