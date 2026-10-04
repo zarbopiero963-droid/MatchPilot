@@ -61,11 +61,16 @@ ON CONFLICT (source_field) DO UPDATE SET
   schema_version = excluded.schema_version,
   transform_version = excluded.transform_version;
 
-WITH snap AS (
-  SELECT r.snapshot_id, r.headers, r.source_kind, c.season,
-         (SELECT count(*)::bigint FROM fpt_match_versions v WHERE v.snapshot_id = r.snapshot_id) AS match_rows
+WITH counts AS (
+  SELECT snapshot_id, count(*)::bigint AS match_rows
+  FROM fpt_match_versions
+  GROUP BY snapshot_id
+),
+snap AS (
+  SELECT r.snapshot_id, r.headers, r.source_kind, c.season, COALESCE(counts.match_rows, 0) AS match_rows
   FROM fpt_raw_snapshots r
   LEFT JOIN fpt_catalog c ON c.dataset_key = r.dataset_key
+  LEFT JOIN counts ON counts.snapshot_id = r.snapshot_id
 ),
 exploded AS (
   SELECT h AS field_name, snap.season, snap.source_kind, snap.match_rows
