@@ -2,6 +2,7 @@ import { testSourceLogin } from './source-login.mjs';
 import { runFutpythonForensics } from './source-forensics.mjs';
 import { runBucJuniorAnalysis } from './source-match-analysis.mjs';
 import { runLiveSourceProbe } from './source-live-probe.mjs';
+import { runTotalCornerProbe } from './totalcorner-probe.mjs';
 import http from 'node:http';
 import {timingSafeEqual} from 'node:crypto';
 import pg from 'pg';
@@ -47,3 +48,5 @@ verifyConfiguration().catch(()=>console.log('CONFIG_CHECK failed'));
 if(process.env.SOURCE_LOGIN_TEST==='once'){testSourceLogin(pool).catch(()=>console.log('SOURCE_LOGIN_TEST storage_failed'));}
 if(process.env.FUTPYTHON_API_KEY){runFutpythonForensics(pool).catch(()=>console.log('FUTPYTHON_FORENSICS failed'));runBucJuniorAnalysis().catch(()=>console.log('BUC_JUN_ANALYSIS failed'));}
 runLiveSourceProbe().catch(()=>console.log('LIVE_SOURCE_PROBE failed'));
+
+if(process.env.TOTALCORNER_API_TOKEN){runTotalCornerProbe().catch(()=>console.log('TOTALCORNER_PROBE failed'));}
