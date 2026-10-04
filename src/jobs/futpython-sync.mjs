@@ -8,9 +8,18 @@ import { emitAlert, resolveAlert } from '../alerts.mjs';
 const LOCK_ID = 76420311;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+export function backfillResumeDecision(state={}) {
+  if (['available','unavailable_404','deprecated'].includes(state.availability)) {
+    return {skip:true,reconcileToAvailable:false};
+  }
+  if (state.availability === 'unknown' && state.last_snapshot_id != null) {
+    return {skip:true,reconcileToAvailable:true};
+  }
+  return {skip:false,reconcileToAvailable:false};
+}
+
 export function isBackfillTerminalState(state={}) {
-  return state.last_snapshot_id != null ||
-    ['available','unavailable_404','deprecated'].includes(state.availability);
+  return backfillResumeDecision(state).skip;
 }
 
 async function recordRun(client, runId, kind, status, stats) {
@@ -202,6 +211,13 @@ export async function runFutpythonSync({kind='manual',mode='incremental'}={}) {
     const lock=await client.query('SELECT pg_try_advisory_lock($1) AS ok',[LOCK_ID]);
     if (!lock.rows[0]?.ok) return {status:'skipped',reason:'lock_busy'};
 
+    await client.query(
+      `UPDATE fpt_sync_runs
+       SET status='partial',finished_at=now(),
+           meta=COALESCE(meta,'{}'::jsonb) || '{"interrupted":true}'::jsonb
+       WHERE status='running'`
+    );
+
     const runId=`fpt-${Date.now()}-${randomUUID().slice(0,8)}`;
     const baseline=await client.query('SELECT count(*)::int AS n FROM fpt_schema_fields');
     const bootstrap=mode==='backfill'||(baseline.rows[0]?.n||0)===0;
@@ -234,8 +250,11 @@ export async function runFutpythonSync({kind='manual',mode='incremental'}={}) {
             'SELECT availability,last_snapshot_id FROM fpt_dataset_state WHERE dataset_key=$1',
             [entry.datasetKey]
           );
-          const terminal=isBackfillTerminalState(state.rows[0]||{});
-          if (terminal) {
+          const decision=backfillResumeDecision(state.rows[0]||{});
+          if (decision.skip) {
+            if (decision.reconcileToAvailable) {
+              await markAvailability(client,entry.datasetKey,'available');
+            }
             stats.resumedSkips++;
             continue;
           }
