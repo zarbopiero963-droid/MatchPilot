@@ -108,6 +108,13 @@ export async function runFutpythonSync({kind='manual', mode='incremental'} = {})
         : catalog.filter(e => isCurrentSeason(e.season));
 
       for (const entry of targets) {
+        if (mode === 'backfill' && !isCurrentSeason(entry.season) && !process.argv.includes('--force')) {
+          const done = await client.query(
+            'SELECT last_snapshot_id FROM fpt_dataset_state WHERE dataset_key=$1 AND last_snapshot_id IS NOT NULL',
+            [entry.datasetKey]
+          );
+          if (done.rowCount) continue;
+        }
         await syncEntry(client,entry,stats);
         if (Number(process.env.FUTPYTHON_SYNC_DELAY_MS || 150) > 0) {
           await sleep(Number(process.env.FUTPYTHON_SYNC_DELAY_MS || 150));
