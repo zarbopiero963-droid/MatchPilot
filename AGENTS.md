@@ -92,7 +92,7 @@ Per ogni fase di certificazione:
 
 ## Resume drill e budget FutPython
 
-- Una sola PR. FPT-PR-01 è mergiata e verificata. FPT-PR-02 persiste gli stati terminali, INITIAL_404 e REGRESSION_404. FPT-PR-03 persiste l'audit di integrità e l'identità squadra. FPT-PR-04 persiste registry e lineage. FPT-PR-05 persiste la coverage full su global/dataset/league/season/period/normalized e solo un campione team. FPT-PR-06 persiste il registry stagione, i buchi a cadenza annuale e il point-in-time. Non aprire FPT-PR-07 finché quella PR non è mergiata e la query Neon conferma `missing_available_seasons = 0`.
+- Una sola PR. FPT-PR-01 è mergiata e verificata. FPT-PR-02 persiste gli stati terminali, INITIAL_404 e REGRESSION_404. FPT-PR-03 persiste l'audit di integrità e l'identità squadra. FPT-PR-04 persiste registry e lineage. FPT-PR-05 persiste la coverage full su global/dataset/league/season/period/normalized e solo un campione team. FPT-PR-06 persiste il registry stagione, i buchi a cadenza annuale e il point-in-time. FPT-PR-07 è il doppio sync incrementale, senza refetch dei dataset terminali. Non aprire FPT-PR-08 finché i due run sono nel commento della PR.
 - Non chiudere la issue #12.
 - Non lanciare il drill sul servizio web e non impostare `FUTPYTHON_BACKFILL_ON_START=true`.
 - Il ledger non deve contenere API key. Il browser non chiama il provider.
