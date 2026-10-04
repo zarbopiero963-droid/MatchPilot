@@ -291,3 +291,17 @@ Esempi osservati realmente:
 La discovery viene quindi corretta per espandere **ogni stagione documentata** in un dataset distinto. La precedente prova su 185 dataset resta valida solo come collaudo tecnico, non come backfill storico completo.
 
 La FASE 1 resta **NON CERTIFICATA** finché il catalogo espanso non viene interamente acquisito e il verifier reale non passa.
+
+
+### Contratto operativo agenti
+
+`CLAUDE.md` e `AGENTS.md` sono sincronizzati con la issue **#12 FPT-CERT**.
+
+Per il lavoro FutPythonTrader:
+- una PR alla volta;
+- README aggiornato in ogni PR;
+- CI verde non basta;
+- test reali Render/Neon obbligatori;
+- evidenza reale prima del merge/chiusura fase;
+- nessuna checklist anticipata;
+- `CLOSED / CERTIFIED` solo dopo tutti i gate della #12.
