@@ -305,3 +305,22 @@ Per il lavoro FutPythonTrader:
 - evidenza reale prima del merge/chiusura fase;
 - nessuna checklist anticipata;
 - `CLOSED / CERTIFIED` solo dopo tutti i gate della #12.
+
+
+## TotalCorner — certificazione #20
+
+L'integrazione completa TotalCorner è governata dalla issue **#20 — TC-CERT**.
+
+Obiettivi:
+- mapping verificato solo sui campionati comuni FutPythonTrader ↔ TotalCorner;
+- mirror pre-match dei mercati;
+- collector live continuo;
+- snapshot temporali di statistiche, eventi e quote;
+- archivio storico live proprietario;
+- replay deterministico;
+- coverage per campo;
+- rate limiting/retry/recovery;
+- alert nella stessa chat Telegram già usata da FutPythonTrader;
+- certificato finale.
+
+Regola: **TotalCorner non può essere dichiarato CLOSED/CERTIFIED finché tutti i gate hard reali della #20 non sono passati.**
