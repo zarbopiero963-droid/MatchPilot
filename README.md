@@ -251,3 +251,15 @@ Il contratto dati non cambia:
 - schema discovery dinamico.
 
 La FASE 1 resta **NON CERTIFICATA** fino al completamento del backfill reale e alla riconciliazione finale.
+
+
+### FASE 1 — correzione contatori certificazione
+
+Il backfill reale ha completato la classificazione del catalogo, ma ha evidenziato un difetto nel solo ledger del run: alcuni contatori numerici non erano inizializzati e quindi venivano serializzati come zero dopo operazioni su `undefined`.
+
+La correzione:
+- inizializza esplicitamente tutti i contatori;
+- conserva separatamente 404 incontrati nel run e totale finale `unavailable_404`;
+- permette di verificare l'equazione `datasets_attempted + resumed_skips = catalog_entries` nei backfill.
+
+La classificazione già persistita dei dataset non viene modificata.
