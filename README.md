@@ -195,7 +195,7 @@ La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue *
 
 Stato corrente della sorgente: **IN CERTIFICAZIONE — non ancora CLOSED**.
 
-Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. La fase **non è completamente certificata**: il kill reale su Render non è ancora stato eseguito. Il budget richieste è implementato nel client ma non è stato collaudato contro FutPythonTrader reale. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-02 … FPT-PR-09 non partono.
+Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-03 … FPT-PR-09 non partono.
 
 La certificazione richiede, nell'ordine:
 
@@ -329,9 +329,34 @@ Scansione log runtime Render del servizio `matchpilot-test` sulla finestra 20:10
 
 Quella evidenza non chiudeva il test di interruzione. La issue #12 restava aperta.
 
-### FASE 1 — resume drill e budget richieste (stato corrente)
 
-**IMPLEMENTED / TESTED in locale. NON VERIFIED REAL. La FASE 1 non è completamente certificata.**
+
+### FASE 1 — verifica post-merge (2026-10-04, 22:27 Europe/Rome)
+
+PR #35 è mergiata in `222be65bf5775e1687de4bf6f2798cde92efbf68`. Deploy Render `dep-db1bbujtqb8s7396dg50` live alle 22:24:50 Europe/Rome. Commento di verifica: issue #12, FPT-PR-01 VERIFIED REAL.
+
+Riletto dopo il deploy, non copiato dalla PR:
+
+- `GET /healthz` HTTP 200, `status=ok`;
+- `GET /api/data-health` `status=ok`, activeDatasets 1027, datasetsWithErrors 0, nessun run nuovo;
+- `GET /api/futpython-certification`: catalogo 1027, available 615, unavailable_404 412, error_real 0, unknown 0, undefined_states 0, duplicate_catalog_keys 0, snapshots 615, historical_versions 161398;
+- Neon: migrazione `007-fpt-request-ledger.sql` applicata, run `running` 0, righe di ledger dopo il deploy 0, nessun 429;
+- boot senza backfill. `FUTPYTHON_BACKFILL_ON_START` e `FUTPYTHON_PHASE1_VERIFY_ON_START` false;
+- secret scan dei log di boot: PASS.
+
+Il SIGTERM live del drill è fra i dataset, nel delay di 5 secondi. Il rollback a metà `storeDataset` resta provato solo su Postgres locale.
+
+### FASE 2 — classificazione terminale
+
+Ogni dataset attivo è classificato solo se lo stato è terminale (`available`, `unavailable_404`, `error`, `deprecated` o `removed`), con `first_seen_at`, `last_seen_at` e `last_synced_at`. Un `available` senza snapshot non è classificato. Un `unavailable_404` senza reason, o con uno snapshot già persistito, non è un 404 iniziale: il secondo caso è una regressione e non conta come UNAVAILABLE_404 pulito. Un `error` senza reason non è classificato.
+
+Il gate è `classified_total === catalog_total` e `unclassified = 0`, e anche zero duplicati `country/league/season`. Il calcolo è in `src/providers/futpython/classification.mjs` ed è esposto in sola lettura da `/api/futpython-certification` (`phase2`) e da `node src/jobs/futpython-classify-phase2.mjs`. Non chiama FutPythonTrader e non riscarica lo storico.
+
+L'audit letto su Neon production prima di questa PR, con le stesse regole, è riportato nel corpo della PR. Non è ancora il numero del deploy di questa PR, perché il commit non è mergiato e non è deployato.
+
+### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
+
+**Stato al momento della PR, prima del merge.** Il kill live e la verifica post-merge sono nella sezione precedente. Questo paragrafo non va letto come lo stato attuale.
 
 Il kill live su Render **non è stato eseguito** in questa PR. Non è stato chiamato FutPythonTrader reale. Non sono state cambiate le variabili d'ambiente del servizio, non è stato fatto un deploy e non è stato avviato un backfill di produzione. `FUTPYTHON_BACKFILL_ON_START` e `FUTPYTHON_PHASE1_VERIFY_ON_START` non vanno toccati e restano disattivi.
 

@@ -108,7 +108,8 @@ Se l'evidenza reale contraddice il test unitario, prevale il dato reale e la fas
 - Non cambiare le env del servizio Render per il drill. `FUTPYTHON_BACKFILL_ON_START` e `FUTPYTHON_PHASE1_VERIFY_ON_START` restano false.
 - I default `FUTPYTHON_REQUESTS_PER_MINUTE` / `PER_DAY` / `BACKFILL_REQUESTS_PER_MINUTE` sono tetti conservativi di codice, non la quota reale del fornitore. L'owner li sostituisce quando la quota è nota.
 - Il browser non chiama FutPythonTrader. Nessun proxy verso il provider.
-- La FASE 1 non è completamente certificata finché il kill live su Render non è stato eseguito e documentato. Non chiudere la issue #12.
+- La FASE 1 è VERIFIED REAL sul deploy `dep-db1bbujtqb8s7396dg50` / commit `222be65`, con il limite che il SIGTERM live è fra dataset e non a metà scrittura. Non chiudere la issue #12.
+- FPT-PR-02 classifica il catalogo in sola lettura. Non aprire FPT-PR-03 finché la PR di classificazione non è mergiata e il gate `classified_total === catalog_total` non è riletto sull'endpoint live.
 
 ## Gate finale FutPythonTrader
 
