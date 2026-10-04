@@ -195,7 +195,7 @@ La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue *
 
 Stato corrente della sorgente: **IN CERTIFICAZIONE — non ancora CLOSED**.
 
-Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-06 … FPT-PR-09 non partono.
+Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-07 … FPT-PR-09 non partono.
 
 La certificazione richiede, nell'ordine:
 
@@ -386,6 +386,19 @@ Dimensioni persistite sull'intero mirror: `global`, `dataset`, `league` (`countr
 La classe di densità è una sola, sul globale e sul normalizzato: `always-empty` se nonempty è 0; `dense` se `nonempty * 10 >= rows * 9`; altrimenti `sparse`. I tag di scope sono aggiuntivi e solo se il predicato è vero: `league-specific` se le leghe con slug in cui il campo compare sono meno di tutte le leghe con slug che hanno partite; `season-specific` se il campo non ha alcuna lega con slug oppure manca da almeno una stagione salvata di una lega in cui compare; `newly-introduced` se, in ogni lega in cui compare, la prima stagione è successiva alla prima stagione salvata di quella lega ed è ancora presente nell'ultima; `deprecated-field` se manca dall'ultima stagione salvata di ogni lega in cui compare. Un campo che inizia tardi solo in una parte delle sue leghe non riceve `newly-introduced`. I numeri reali stanno nel commento della PR, non qui.
 
 Il gate `phase5` confronta i conteggi interi di global, dataset, league, season e period scritti con `jsonb_each_text` con un secondo passaggio `jsonb_object_keys` sullo stesso payload. Tolleranza zero. Il normalizzato si riconcilia sulla somma di quel secondo passaggio. Il campione team si riconcilia a parte, sempre con tolleranza zero, e il gate rifiuta un censimento completo (`team_census` deve restare false e le righe team devono essere 9). I numeri reali stanno nel commento della PR, non qui.
+
+
+### FASE 6 — registry competizione e stagione
+
+La migrazione `013-fpt-season-registry.sql` crea `fpt_competition_season`, `fpt_season_gaps` e `fpt_season_audit`. Il job `node src/jobs/futpython-audit-phase6.mjs` le riempie dal catalogo, dagli snapshot e dalle versioni già salvate. Non riscrive i gzip e non riscarica FutPythonTrader.
+
+Una riga di catalogo porta `internal_competition_id` (`fpt:competition:` più md5 di paese e lega), il nome canonico uguale a `league_slug` perché il catalogo non ha un nome display separato, la stagione, `provider_season` uguale all'etichetta di stagione e `provider_competition_id` nullo. `expected_match_count` resta nullo: il catalogo non contiene un totale partite, e non viene inventato. Per lo stesso motivo `historical_complete` è false e lo stato di una stagione scaricata è `AVAILABLE`, non `COMPLETE`. I 404 iniziali restano `UNAVAILABLE_404`. Gli stati persistibili sono `DISCOVERED`, `CANDIDATE`, `AVAILABLE`, `PARTIAL`, `COMPLETE`, `UNAVAILABLE_404`, `ERROR_REAL`, `DEPRECATED`, `REMOVED`.
+
+`fields_available` e `fields_coverage` riassumono la coverage di dataset già scritta in FASE 5 (`nonempty_cells`, `scoped_cells`, `ratio`). Non è una seconda scoperta dei campi. `first_data_date` e `last_data_date` sono il minimo e il massimo di `match_date`. `prematch_available` è true solo se c'è almeno una versione storica.
+
+`earliest_season` e `latest_season` sono la prima e l'ultima stagione osservata della lega, non un intervallo inventato. Il rilevatore di buchi registra una stagione assente solo se il passo modale fra le stagioni osservate è un anno e quel passo non è superato da un passo più largo. Un torneo ogni quattro anni non viene riempito. Un buco così trovato non è nel catalogo, quindi non è `missing_available` e non è `COMPLETE`. Una stagione futura si rappresenta con una riga `CANDIDATE` e un campionato futuro con `DISCOVERED`: entrambe hanno zero partite, `historical_complete` false e non entrano nel conteggio delle stagioni available mancanti. Il job non inserisce righe future fittizie nel catalogo reale.
+
+`missing_available_seasons` è il numero di righe di catalogo attive con classificazione `AVAILABLE` e senza uno snapshot dataset `ingest_complete`. Il gate `phase6` richiede che quel numero sia 0, che nessun `UNAVAILABLE_404` sia `COMPLETE`, e che la funzione `fpt_known_matches(timestamp, contract, dataset)` allo stesso timestamp e allo stesso `schema_version` restituisca lo stesso conteggio. La funzione legge solo `acquired_at <= timestamp`. I numeri reali stanno nel commento della PR, non qui.
 
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
 

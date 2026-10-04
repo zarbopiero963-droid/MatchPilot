@@ -112,7 +112,7 @@ Se l'evidenza reale contraddice il test unitario, prevale il dato reale e la fas
 - FPT-PR-02 persiste la classificazione su Neon (AVAILABLE, UNAVAILABLE_404, ERROR_REAL, DEPRECATED, REMOVED, più INITIAL_404 e REGRESSION_404). `active=false` da solo non basta.
 - FPT-PR-03 riconcilia raw, parser e DB e persiste l'identità squadra (`internal_team_id`, alias, abbreviazioni, nomi storici).
 - FPT-PR-04 persiste la schema registry (`type_history`, `unique_rows_seen`, `normalized_field`, alias candidati) e la lineage fino allo snapshot.
-- FPT-PR-05 persiste la coverage per global, dataset, league, season, period e campo normalizzato. Il team è solo un campione di 3 squadre e dei campi Home, Date, Match_ID, non un censimento. Non aprire FPT-PR-06 finché la PR non è mergiata e il gate phase5 è riletto su Neon.
+- FPT-PR-05 persiste la coverage per global, dataset, league, season, period e campo normalizzato. Il team è solo un campione di 3 squadre e dei campi Home, Date, Match_ID, non un censimento. FPT-PR-06 persiste una riga per lega/stagione, il rilevatore dei buchi annuali e la funzione point-in-time `fpt_known_matches`. `expected_match_count` resta nullo. Non aprire FPT-PR-07 finché la PR non è mergiata e il gate phase6 è riletto su Neon.
 
 ## Gate finale FutPythonTrader
 

@@ -91,7 +91,12 @@ test('two identical concurrent requests share one upstream call', async () => {
     });
     const opts = {path: '/api/download/alpha/league/2024', datasetKey: 'alpha/league/2024', cacheLookup: async () => false};
     const pending = Promise.all([budget.requestText(opts), budget.requestText(opts)]);
-    await new Promise(resolve => setTimeout(resolve, 40));
+    const started = Date.now();
+    while (hits < 1 && Date.now() - started < 2000) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    assert.equal(hits, 1);
+    await new Promise(resolve => setTimeout(resolve, 50));
     assert.equal(hits, 1);
     release();
     const [a, b] = await pending;
