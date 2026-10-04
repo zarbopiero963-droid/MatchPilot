@@ -31,5 +31,10 @@ export async function runTotalCornerProbe(){
       cornerLine:x.cornerLine??null
     }));
     console.log('TOTALCORNER_PROBE '+JSON.stringify({ok:true,count:rows.length,rate,rows:slim}));
+    const target=rows.find(x=>String(x.h||x.home||'').toLowerCase().includes('real sociedad b')&&String(x.a||x.away||'').toLowerCase().includes('granada'));
+    if(target){
+      const shape=Object.fromEntries(Object.entries(target).map(([k,v])=>[k,Array.isArray(v)?{type:'array',len:v.length,sample:v.slice(0,4)}:(v&&typeof v==='object'?{type:'object',keys:Object.keys(v).slice(0,30),sample:v}:v)]));
+      console.log('TOTALCORNER_TARGET '+JSON.stringify({id:target.id??target.match_id,shape}));
+    }
   }catch(e){console.log('TOTALCORNER_PROBE '+JSON.stringify({ok:false,error:e?.name||'error'}));}
 }
