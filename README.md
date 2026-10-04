@@ -263,3 +263,16 @@ La correzione:
 - permette di verificare l'equazione `datasets_attempted + resumed_skips = catalog_entries` nei backfill.
 
 La classificazione già persistita dei dataset non viene modificata.
+
+
+### FASE 1 — verifica reale finale
+
+Prima della chiusura formale vengono eseguiti e persistiti in `fpt_certification_checks`:
+- deduplica reale su almeno 3 dataset disponibili mediante nuovo download e confronto snapshot/versioni;
+- conferma reale di un dataset `unavailable_404`;
+- conferma di un dataset disponibile con righe;
+- conferma di almeno una lega multi-stagione.
+
+Il verificatore è eseguibile con `npm run verify:futpython:p1` o, in modo one-shot su Render, con `FUTPYTHON_PHASE1_VERIFY_ON_START=true`.
+
+La FASE 1 sarà marcata **CERTIFICATA** solo se tutti questi check risultano `pass`.

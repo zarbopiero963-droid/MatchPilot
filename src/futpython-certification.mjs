@@ -11,7 +11,8 @@ export async function getFutpythonCertificationStatus() {
       fields,
       latestBackfill,
       undefinedStates,
-      duplicateCatalog
+      duplicateCatalog,
+      phase1Checks
     ] = await Promise.all([
       client.query(`SELECT
         count(*)::int AS total,
@@ -38,7 +39,12 @@ export async function getFutpythonCertificationStatus() {
         SELECT country_slug,league_slug,season,count(*) AS c
         FROM fpt_catalog WHERE active=true
         GROUP BY 1,2,3 HAVING count(*)>1
-      ) d`)
+      ) d`),
+      client.query(`SELECT check_code,status,checked_at,details
+        FROM fpt_certification_checks
+        WHERE phase='FPT_PHASE1'
+        ORDER BY checked_at DESC,check_id DESC
+        LIMIT 20`)
     ]);
 
     const byAvailability=Object.fromEntries(states.rows.map(r=>[r.availability,r.n]));
@@ -61,7 +67,8 @@ export async function getFutpythonCertificationStatus() {
       historical_versions:Number(versions.rows[0]?.n||0),
       unique_matches:Number(matches.rows[0]?.n||0),
       schema_fields:fields.rows[0]?.n||0,
-      latest_backfill:latestBackfill.rows[0]||null
+      latest_backfill:latestBackfill.rows[0]||null,
+      phase1_checks:phase1Checks.rows
     };
   });
 }

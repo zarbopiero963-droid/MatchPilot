@@ -6,6 +6,7 @@ import { closePool } from './db.mjs';
 import { startDataWatchdog, stopDataWatchdog } from './jobs/data-watchdog.mjs';
 import { getDataHealth, configureTelegramOutboundOnly, sendTelegramConnectivityTest } from './alerts.mjs';
 import { getFutpythonCertificationStatus } from './futpython-certification.mjs';
+import { runPhase1Verification } from './jobs/futpython-certify-phase1.mjs';
 
 const port = Number(process.env.PORT || 3000);
 
@@ -16,6 +17,11 @@ configureTelegramOutboundOnly()
   .then(()=>sendTelegramConnectivityTest())
   .then(r=>console.log('TELEGRAM_OUTBOUND_ONLY '+JSON.stringify({status:r?.status || 'configured'})))
   .catch(e=>console.error('TELEGRAM_SETUP_ERROR', String(e?.message||e).replace(/bot\d+:[A-Za-z0-9_-]+/g,'bot[REDACTED]')));
+if (process.env.FUTPYTHON_PHASE1_VERIFY_ON_START === 'true') {
+  runPhase1Verification()
+    .then(r=>console.log('FUTPYTHON_PHASE1_VERIFY_ON_START '+JSON.stringify({status:r.status,checks:r.checks,failed:r.failed})))
+    .catch(e=>console.error('FUTPYTHON_PHASE1_VERIFY_ERROR',String(e?.message||e).replace(/api_key=[^&\\s]+/gi,'api_key=[REDACTED]')));
+}
 if (process.env.FUTPYTHON_BACKFILL_ON_START === 'true') {
   runFutpythonSync({kind:'backfill',mode:'backfill'})
     .catch(e => console.error('FUTPYTHON_BACKFILL_ERROR', String(e?.message||e).replace(/api_key=[^&\\s]+/gi,'api_key=[REDACTED]')));
