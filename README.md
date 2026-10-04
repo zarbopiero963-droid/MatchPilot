@@ -193,7 +193,9 @@ La branch `main` rappresenta esclusivamente il nuovo MatchPilot Sports Trading O
 
 La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue **#12 — FPT-CERT**.
 
-Stato corrente: **IN CERTIFICAZIONE — non ancora CLOSED**.
+Stato corrente della sorgente: **IN CERTIFICAZIONE — non ancora CLOSED**.
+
+La sola FASE 1 (backfill storico + verifier, FPT-PR-01) è **CERTIFICATA** il 2026-10-04 sull'evidenza reale sotto. Non è certificata la pipeline FutPythonTrader, né la issue #12: il contratto di budget API non è implementato e le fasi FPT-PR-02 … FPT-PR-09 restano aperte.
 
 La certificazione richiede, nell'ordine:
 
@@ -229,7 +231,7 @@ Correzione prevista in questa PR:
 - run lasciati `running` da un deploy/interruzione vengono chiusi come `partial/interrupted`;
 - il backfill resta restartable e non duplica dataset terminali.
 
-La FASE 1 resta **NON CERTIFICATA** fino al nuovo collaudo reale con `undefined_states=0`.
+Al momento di quella correzione la FASE 1 restava **NON CERTIFICATA**, in attesa di un collaudo reale con `undefined_states=0`.
 
 
 ### FASE 1 — ottimizzazione persistenza reale
@@ -250,7 +252,7 @@ Il contratto dati non cambia:
 - versioning partita;
 - schema discovery dinamico.
 
-La FASE 1 resta **NON CERTIFICATA** fino al completamento del backfill reale e alla riconciliazione finale.
+Al momento di quella ottimizzazione la FASE 1 restava **NON CERTIFICATA**: mancavano ancora il backfill reale completo e la riconciliazione finale.
 
 
 ### FASE 1 — correzione contatori certificazione
@@ -275,7 +277,7 @@ Prima della chiusura formale vengono eseguiti e persistiti in `fpt_certification
 
 Il verificatore è eseguibile con `npm run verify:futpython:p1` o, in modo one-shot su Render, con `FUTPYTHON_PHASE1_VERIFY_ON_START=true`.
 
-La FASE 1 sarà marcata **CERTIFICATA** solo se tutti questi check risultano `pass`.
+La FASE 1 viene marcata **CERTIFICATA** solo se tutti questi check risultano `pass`.
 
 
 ### FASE 1 — finding catalogo storico completo
@@ -290,8 +292,42 @@ Esempi osservati realmente:
 
 La discovery viene quindi corretta per espandere **ogni stagione documentata** in un dataset distinto. La precedente prova su 185 dataset resta valida solo come collaudo tecnico, non come backfill storico completo.
 
-La FASE 1 resta **NON CERTIFICATA** finché il catalogo espanso non viene interamente acquisito e il verifier reale non passa.
+Al momento di quel finding la FASE 1 restava **NON CERTIFICATA**: il catalogo espanso non era ancora stato acquisito per intero e il verifier reale non era passato.
 
+### FASE 1 — stato corrente, evidenza 2026-10-04
+
+**FASE 1 backfill + verifier: CERTIFICATA.**
+
+Il gate proprio di FPT-PR-01 è soddisfatto sull'infrastruttura reale. Il codice osservato è il commit `0307e72e977767cf4ee1a694bcbab9c635d40e39` su `main`. Questa PR non aggiunge migrazioni né modifica il comportamento del sync.
+
+Backfill `fpt-1791137791126-7a167652` (`kind=backfill`, `status=complete`):
+- avvio 20:16:31 Europe/Rome, fine 20:42:01 Europe/Rome;
+- deploy di boot `dep-db19fq8u01pc73depeh0` (stesso commit, finito 20:16:36 Europe/Rome, poi disattivato);
+- catalogo 1027 (56 paesi, 185 leghe), snapshot catalogo `fpt-catalog-9dcea3d469a9598004098794`;
+- `datasets_attempted` 840, `resumed_skips` 187, equazione 840+187=1027;
+- `available` 615, `unavailable_404` 412, `error_real` 0, `deprecated` 0, `unknown` 0, `undefined_states` 0;
+- equazione di stato 615+412+0+0=1027, confermata anche dal `GROUP BY availability` su Neon (nessuna riga `error` o `unknown`);
+- `snapshots_inserted` di questo run 509; snapshot correnti nel mirror 615;
+- `rows_seen` 147999, `rows_inserted` 147975, `datasets_changed` 509, `fields_seen` 261;
+- `errors` vuoto (`[]`), `error_real_count` 0. Nessuna anomalia di errore su questo run.
+
+Il resume dimostrato è reale rispetto al catalogo incompleto precedente: i 187 dataset già terminali sono stati saltati prima di `syncEntry` e non sono stati riscaricati. Le GET di dataset di questo run sono le 840 sugli stati non terminali, più il fetch del catalogo e il fetch di `jogos-do-dia` (today). Non è stato eseguito un kill a metà di questo run: il test di interruzione durante `storeDataset` **non** è stato fatto e non si dichiara superato.
+
+Verifier one-shot sul deploy `dep-db19u88u01pc73dgmck0` (live 20:47:23 Europe/Rome, poi disattivato). Log `FUTPYTHON_PHASE1_VERIFY` alle 20:47:19 Europe/Rome: 6 check, 0 fail. In `fpt_certification_checks` (fase `FPT_PHASE1`), tutti `pass`:
+- `DEDUP_australia/a-league/2020-2021` (20:47:16 Europe/Rome);
+- `DEDUP_austria/bundesliga/2020-2021` (20:47:17);
+- `DEDUP_belgium/jupiler-pro-league/2020-2021` (20:47:18);
+- `UNAVAILABLE_404_SAMPLE` (20:47:18);
+- `AVAILABLE_DATASET_SAMPLE` (20:47:19);
+- `MULTI_SEASON_SAMPLE` (20:47:19).
+
+I tre `DEDUP_*` hanno riscaricato e persistito di nuovo: snapshot e versioni invariati (`changed=false`). Un verifier precedente, alle 17:54 Europe/Rome, aveva `MULTI_SEASON_SAMPLE` in fail sul catalogo non espanso; non è lo stato corrente.
+
+Dopo il verifier è andato live un terzo deploy dello stesso commit, `dep-db19vb5g1s2s7398372g` (finito 20:49:40 Europe/Rome, trigger API). Non ha rilanciato il verifier. Le variabili d'ambiente non sono state lette né modificate da questa PR.
+
+Scansione log runtime Render del servizio `matchpilot-test` sulla finestra 20:10–21:15 Europe/Rome (boot backfill, verifier e deploy successivo): nessuna occorrenza di `api_key=`, `postgres://`, `postgresql://`, `DATABASE_URL` o `FUTPYTHON_API_KEY`. Nessun token Telegram (cifre:token) nelle righe esaminate. Esito scansione: **PASS**.
+
+**Ancora non certificato.** Il client FutPythonTrader non implementa il contratto di budget API della #12 (cache-first oltre allo skip dei dataset terminali, ledger delle richieste, backoff sui 429, circuit breaker, budget provider configurabili). Quel contratto è un gate trasversale prima di dichiarare la pipeline CERTIFIED e prima del certificato finale FPT-PR-09, non un requisito aggiuntivo del gate di FPT-PR-01. Per questo la issue #12 resta aperta, FutPythonTrader non è CLOSED / CERTIFIED e FPT-PR-02 non parte con questa PR.
 
 ### Contratto operativo agenti
 
