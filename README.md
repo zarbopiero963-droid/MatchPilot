@@ -195,7 +195,7 @@ La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue *
 
 Stato corrente della sorgente: **IN CERTIFICAZIONE — non ancora CLOSED**.
 
-Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-04 … FPT-PR-09 non partono.
+Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-05 … FPT-PR-09 non partono.
 
 La certificazione richiede, nell'ordine:
 
@@ -363,6 +363,15 @@ L'audit non riscarica FutPythonTrader. Rilegge il payload gzip già salvato e lo
 `Match_ID` nel CSV non entra nella `match_key` storica, che resta `fpt:hash:` quando il codice non ha riconosciuto `Id`. Il valore viene copiato in `provider_match_id` se non crea una collisione di identità. La stessa partita presente in due dataset (per esempio Eredivisie ed Eerste Divisie) resta due `match_key`, con la stessa identità, e non è una collisione.
 
 La migrazione `009-fpt-team-identity.sql` crea `fpt_teams` e `fpt_team_aliases`. `internal_team_id` è stabile su paese e nome normalizzato: case, punteggiatura e il suffisso paese `(XXX)` non creano una seconda squadra. La competizione resta contesto, non una seconda identità. Il CSV non ha un id squadra provider: `provider_team_id` resta nullo. Alias, abbreviazioni e nomi storici stanno sulla stessa entità. `first_seen` e `last_seen` vengono dalle date partita. La provenance registra la sorgente. Il gate SQL è esposto da `/api/futpython-certification` (`phase3`) e da `node src/jobs/futpython-audit-phase3.mjs`. I numeri del campione reale stanno nel commento della PR, non in questo paragrafo.
+
+### FASE 4 — schema registry e lineage
+
+`fpt_schema_fields` resta la registry. La migrazione `011-fpt-schema-registry.sql` aggiunge `type_history`, `type_collision`, `seasons_seen`, `alias_candidates`, `normalized_field`, `queryable`, `filterable`, `unique_rows_seen`, `source_provider` e `source_kinds`. `rows_seen` resta il contatore cumulativo degli ingest e può superare le righe distinte. `unique_rows_seen` è il numero di match già salvati negli snapshot il cui header contiene il campo: non cresce se lo stesso snapshot viene riletto.
+
+Il gate conta i nomi header distinti in tutti gli snapshot raw, dataset e today, contro `field_name` della registry. Gli alias non vengono tolti dal conteggio. `AH_H_*` e `AH_Home_*` (e `AH_A_*` / `AH_Away_*`) restano due campi, con `alias_candidates` che li collega. Nessun campo raw viene scartato per far tornare l'uguaglianza.
+
+`fpt_field_transforms` e le colonne `source_provider`, `parser_version`, `schema_version`, `transform_version` su `fpt_match_versions` legano ogni valore normalizzato già persistito (`home`, `match_date`, `provider_match_id`) allo snapshot. Il default non riscrive il gzip. Il gate è `phase4` su `/api/futpython-certification` e `node src/jobs/futpython-audit-phase4.mjs`. I numeri reali stanno nel commento della PR.
+
 
 
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)

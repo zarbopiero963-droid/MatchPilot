@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
-import { profileSchema } from './schema.mjs';
+import { profileSchema, aliasCandidateNames, isFilterable, normalizedFieldName, transformFor, LINEAGE_VERSIONS } from './schema.mjs';
 import { persistRemovedDatasets } from './classification.mjs';
 import { first, matchKey, dateOrNull, PROVIDER_MATCH_ID_FIELDS } from './identity.mjs';
 
@@ -65,21 +65,35 @@ async function upsertSchemaBatch(client, schema) {
     family:f.family,
     rows_seen:f.rowsSeen,
     nonempty_seen:f.nonemptySeen,
-    sample_values:f.sampleValues
+    sample_values:f.sampleValues,
+    normalized_field:normalizedFieldName(f.field),
+    alias_candidates:aliasCandidateNames(f.field),
+    queryable:true,
+    filterable:isFilterable(f.field, f.inferredType),
+    transform:transformFor(f.field),
+    season:f.season || null
   }));
 
   await client.query(
     `INSERT INTO fpt_schema_fields(
-       field_name,inferred_type,family,datasets_seen,rows_seen,nonempty_seen,sample_values
+       field_name,inferred_type,family,datasets_seen,rows_seen,unique_rows_seen,nonempty_seen,sample_values,
+       normalized_field,alias_candidates,queryable,filterable,type_history,type_collision,source_provider
      )
-     SELECT field_name,inferred_type,family,1,rows_seen,nonempty_seen,sample_values
+     SELECT field_name,inferred_type,family,1,rows_seen,rows_seen,nonempty_seen,sample_values,
+            normalized_field,alias_candidates,queryable,filterable,
+            jsonb_build_array(jsonb_build_object('type', inferred_type, 'recorded_at', now())),
+            false,$2
      FROM jsonb_to_recordset($1::jsonb) AS x(
        field_name text,
        inferred_type text,
        family text,
        rows_seen bigint,
        nonempty_seen bigint,
-       sample_values jsonb
+       sample_values jsonb,
+       normalized_field text,
+       alias_candidates jsonb,
+       queryable boolean,
+       filterable boolean
      )
      ON CONFLICT(field_name) DO UPDATE SET
        inferred_type = CASE
@@ -89,13 +103,34 @@ async function upsertSchemaBatch(client, schema) {
          WHEN fpt_schema_fields.inferred_type IN ('integer','number')
           AND excluded.inferred_type IN ('integer','number') THEN 'number'
          ELSE 'text' END,
+       type_history = CASE
+         WHEN fpt_schema_fields.inferred_type IS DISTINCT FROM excluded.inferred_type
+           AND excluded.inferred_type NOT IN ('unknown')
+           AND fpt_schema_fields.inferred_type NOT IN ('unknown')
+           AND NOT (fpt_schema_fields.inferred_type IN ('integer','number') AND excluded.inferred_type IN ('integer','number'))
+         THEN fpt_schema_fields.type_history || jsonb_build_array(jsonb_build_object('type', excluded.inferred_type, 'recorded_at', now()))
+         ELSE fpt_schema_fields.type_history END,
+       type_collision = fpt_schema_fields.type_collision OR (
+         fpt_schema_fields.inferred_type IS DISTINCT FROM excluded.inferred_type
+         AND fpt_schema_fields.inferred_type NOT IN ('unknown')
+         AND excluded.inferred_type NOT IN ('unknown')
+         AND NOT (fpt_schema_fields.inferred_type IN ('integer','number') AND excluded.inferred_type IN ('integer','number'))
+       ),
        family=CASE
          WHEN fpt_schema_fields.family='unclassified' THEN excluded.family
          ELSE fpt_schema_fields.family END,
+       normalized_field=excluded.normalized_field,
+       alias_candidates=excluded.alias_candidates,
+       queryable=excluded.queryable,
+       filterable=excluded.filterable,
        last_seen_at=now(),
        datasets_seen=fpt_schema_fields.datasets_seen+1,
        rows_seen=fpt_schema_fields.rows_seen+excluded.rows_seen,
+       unique_rows_seen=fpt_schema_fields.unique_rows_seen+excluded.rows_seen,
        nonempty_seen=fpt_schema_fields.nonempty_seen+excluded.nonempty_seen,
+       seasons_seen=CASE
+         WHEN $3::text IS NULL OR fpt_schema_fields.seasons_seen ? $3::text THEN fpt_schema_fields.seasons_seen
+         ELSE fpt_schema_fields.seasons_seen || jsonb_build_array($3::text) END,
        sample_values=(
          SELECT COALESCE(jsonb_agg(v),'[]'::jsonb)
          FROM (
@@ -104,7 +139,7 @@ async function upsertSchemaBatch(client, schema) {
            LIMIT 5
          ) q
        )`,
-    [JSON.stringify(payload)]
+    [JSON.stringify(payload), LINEAGE_VERSIONS.sourceProvider, payload.find(row => row.season)?.season || null]
   );
 }
 
@@ -254,7 +289,7 @@ async function storeDatasetInTransaction(client, {
     if (hooks.afterSnapshotInserted) await hooks.afterSnapshotInserted({client, snapshotId});
   }
 
-  const schema = profileSchema(headers, rows);
+  const schema = profileSchema(headers, rows).map(field => ({...field, season}));
   const knownFieldsResult = headers.length
     ? await client.query(
         'SELECT field_name FROM fpt_schema_fields WHERE field_name = ANY($1::text[])',
