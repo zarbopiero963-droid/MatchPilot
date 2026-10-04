@@ -1,12 +1,17 @@
 import http from 'node:http';
 import { migrate } from './migrate.mjs';
 import { startFutpythonCron, stopFutpythonCron } from './jobs/futpython-cron.mjs';
+import { runFutpythonSync } from './jobs/futpython-sync.mjs';
 import { closePool } from './db.mjs';
 
 const port = Number(process.env.PORT || 3000);
 
 await migrate();
 startFutpythonCron();
+if (process.env.FUTPYTHON_BACKFILL_ON_START === 'true') {
+  runFutpythonSync({kind:'backfill',mode:'backfill'})
+    .catch(e => console.error('FUTPYTHON_BACKFILL_ERROR', String(e?.message||e).replace(/api_key=[^&\\s]+/gi,'api_key=[REDACTED]')));
+}
 
 const app = http.createServer((req, res) => {
   res.setHeader('Cache-Control', 'no-store');
