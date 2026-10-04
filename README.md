@@ -346,13 +346,15 @@ Riletto dopo il deploy, non copiato dalla PR:
 
 Il SIGTERM live del drill è fra i dataset, nel delay di 5 secondi. Il rollback a metà `storeDataset` resta provato solo su Postgres locale.
 
-### FASE 2 — classificazione terminale
+### FASE 2 — classificazione terminale persistente
 
-Ogni dataset attivo è classificato solo se lo stato è terminale (`available`, `unavailable_404`, `error`, `deprecated` o `removed`), con `first_seen_at`, `last_seen_at` e `last_synced_at`. Un `available` senza snapshot non è classificato. Un `unavailable_404` senza reason, o con uno snapshot già persistito, non è un 404 iniziale: il secondo caso è una regressione e non conta come UNAVAILABLE_404 pulito. Un `error` senza reason non è classificato.
+La classificazione non è un calcolo solo al momento della GET. La migrazione `008-fpt-dataset-classification.sql` aggiunge su `fpt_dataset_state` le colonne `classification`, `classification_reason`, `http_disposition`, `first_success_at`, `last_success_at`, `last_error_at`, `last_http_status` e `provider_path`, e le riempie dalle righe già presenti senza riscaricare i dataset. `first_seen_at` e `last_seen_at` restano su `fpt_catalog`. `last_synced_at` resta sulla riga di stato.
 
-Il gate è `classified_total === catalog_total` e `unclassified = 0`, e anche zero duplicati `country/league/season`. Il calcolo è in `src/providers/futpython/classification.mjs` ed è esposto in sola lettura da `/api/futpython-certification` (`phase2`) e da `node src/jobs/futpython-classify-phase2.mjs`. Non chiama FutPythonTrader e non riscarica lo storico.
+Stati persistiti: `AVAILABLE`, `UNAVAILABLE_404`, `ERROR_REAL`, `DEPRECATED`, `REMOVED`. `http_disposition` è `INITIAL_404` oppure `REGRESSION_404`. Un 404 iniziale resta `unavailable_404` e il backfill lo salta. Una regressione 404 resta `availability=error` (ritentabile) con `classification=ERROR_REAL` e `http_disposition=REGRESSION_404`: non viene sigillata come unavailable. Un dataset assente dal catalogo diventa `REMOVED` con `active=false`; `active=false` da solo non è la classificazione.
 
-L'audit letto su Neon production prima di questa PR, con le stesse regole, è riportato nel corpo della PR. Non è ancora il numero del deploy di questa PR, perché il commit non è mergiato e non è deployato.
+Il sync scrive gli stessi campi a ogni esito. Il gate letto dall'intero catalogo, non da un sottoinsieme, è `classified_total === catalog_total`, `unclassified = 0` e `duplicate_catalog_keys = 0`. Lo espongono `/api/futpython-certification` (`phase2`) e `node src/jobs/futpython-classify-phase2.mjs`. Non chiamano FutPythonTrader. Il budget richieste di PR #35 non cambia.
+
+I numeri del gate su Neon production sono nel commento della PR, dopo la migrazione applicata dal job e prima del deploy del sito. Non sono inventati in questo paragrafo.
 
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
 

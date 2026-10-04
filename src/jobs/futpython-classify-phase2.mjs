@@ -19,9 +19,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         catalog_total: result.catalog_total,
         classified_total: result.classified_total,
         unclassified: result.unclassified,
-        duplicate_country_league_season: result.duplicate_country_league_season,
+        duplicate_catalog_keys: result.duplicate_catalog_keys,
         labels: result.labels,
-        raw_equation: result.raw_equation,
         issues: result.issues,
         samples: result.samples
       }));
