@@ -5,14 +5,15 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.mjs",
-    "check": "node --check src/server.mjs && node --check src/db.mjs && node --check src/migrate.mjs && node --check src/jobs/futpython-sync.mjs && node --check src/jobs/futpython-cron.mjs && node --check src/providers/futpython/catalog.mjs && node --check src/providers/futpython/client.mjs && node --check src/providers/futpython/budget.mjs && node --check src/providers/futpython/ledger.mjs && node --check src/providers/futpython/store.mjs && node --check src/providers/futpython/schema.mjs && node --check src/alerts.mjs && node --check src/jobs/data-watchdog.mjs && node --check src/futpython-certification.mjs && node --check src/jobs/futpython-certify-phase1.mjs && node --check src/providers/futpython/classification.mjs && node --check src/jobs/futpython-classify-phase2.mjs && node --check src/providers/futpython/identity.mjs && node --check src/providers/futpython/integrity.mjs && node --check src/providers/futpython/teams.mjs && node --check src/jobs/futpython-audit-phase3.mjs && node --check src/lib/csv.mjs",
+    "check": "node --check src/server.mjs && node --check src/db.mjs && node --check src/migrate.mjs && node --check src/jobs/futpython-sync.mjs && node --check src/jobs/futpython-cron.mjs && node --check src/providers/futpython/catalog.mjs && node --check src/providers/futpython/client.mjs && node --check src/providers/futpython/budget.mjs && node --check src/providers/futpython/ledger.mjs && node --check src/providers/futpython/store.mjs && node --check src/providers/futpython/schema.mjs && node --check src/alerts.mjs && node --check src/jobs/data-watchdog.mjs && node --check src/futpython-certification.mjs && node --check src/jobs/futpython-certify-phase1.mjs && node --check src/providers/futpython/classification.mjs && node --check src/jobs/futpython-classify-phase2.mjs && node --check src/providers/futpython/identity.mjs && node --check src/providers/futpython/integrity.mjs && node --check src/providers/futpython/teams.mjs && node --check src/jobs/futpython-audit-phase3.mjs && node --check src/lib/csv.mjs && node --check src/providers/futpython/registry.mjs && node --check src/jobs/futpython-audit-phase4.mjs",
     "test": "node --test",
     "migrate": "node src/migrate.mjs",
     "sync:futpython": "node src/jobs/futpython-sync.mjs",
     "backfill:futpython": "node src/jobs/futpython-sync.mjs --backfill",
     "verify:futpython:p1": "node src/jobs/futpython-certify-phase1.mjs",
     "classify:futpython:p2": "node src/jobs/futpython-classify-phase2.mjs",
-    "audit:futpython:p3": "node src/jobs/futpython-audit-phase3.mjs"
+    "audit:futpython:p3": "node src/jobs/futpython-audit-phase3.mjs",
+    "audit:futpython:p4": "node src/jobs/futpython-audit-phase4.mjs"
   },
   "dependencies": {
     "croner": "9.1.0",

@@ -51,3 +51,76 @@ export function profileSchema(headers, rows) {
     };
   });
 }
+
+export const LINEAGE_VERSIONS = {
+  sourceProvider: 'futpythontrader',
+  parserVersion: 'fpt-csv-1',
+  schemaVersion: 'fpt-schema-4',
+  transformVersion: 'fpt-norm-1'
+};
+
+const COLUMN_TRANSFORMS = {
+  Home: {normalized: 'home', transform: 'copy'},
+  home: {normalized: 'home', transform: 'copy'},
+  Away: {normalized: 'away', transform: 'copy'},
+  away: {normalized: 'away', transform: 'copy'},
+  Date: {normalized: 'match_date', transform: 'dmy_or_iso_date'},
+  date: {normalized: 'match_date', transform: 'dmy_or_iso_date'},
+  Time: {normalized: 'match_time', transform: 'copy'},
+  time: {normalized: 'match_time', transform: 'copy'},
+  Match_ID: {normalized: 'provider_match_id', transform: 'copy'},
+  Id: {normalized: 'provider_match_id', transform: 'copy'},
+  ID: {normalized: 'provider_match_id', transform: 'copy'},
+  id: {normalized: 'provider_match_id', transform: 'copy'},
+  Match_Id: {normalized: 'provider_match_id', transform: 'copy'},
+  match_id: {normalized: 'provider_match_id', transform: 'copy'}
+};
+
+export function normalizedFieldName(field) {
+  const mapped = COLUMN_TRANSFORMS[field];
+  if (mapped) return mapped.normalized;
+  return String(field || '').trim().toLowerCase();
+}
+
+export function transformFor(field) {
+  return COLUMN_TRANSFORMS[field]?.transform || 'payload_text';
+}
+
+export function aliasCandidateNames(field) {
+  const rules = [
+    [/^AH_H_/, 'AH_Home_'],
+    [/^AH_Home_/, 'AH_H_'],
+    [/^AH_A_/, 'AH_Away_'],
+    [/^AH_Away_/, 'AH_A_']
+  ];
+  return rules.filter(([pattern]) => pattern.test(field)).map(([pattern, replacement]) => field.replace(pattern, replacement));
+}
+
+export function isFilterable(field, inferredType) {
+  if (['integer', 'number', 'boolean', 'date_or_datetime'].includes(inferredType)) return true;
+  return ['Home', 'Away', 'Date', 'Time', 'Season', 'League', 'Country', 'Round', 'Match_ID', 'Id'].includes(field);
+}
+
+export function typesCollide(previous, next) {
+  if (!previous || !next || previous === 'unknown' || next === 'unknown' || previous === next) return false;
+  const numeric = new Set(['integer', 'number']);
+  return !(numeric.has(previous) && numeric.has(next));
+}
+
+export function registryGate({rawFields = [], registryFields = [], suppressedAliases = []} = {}) {
+  const suppressed = new Set(suppressedAliases);
+  const raw = new Set(rawFields);
+  const registry = new Set(registryFields);
+  const missing = [...raw].filter(field => !registry.has(field));
+  const extra = [...registry].filter(field => !raw.has(field) && !suppressed.has(field));
+  const registryCounted = [...registry].filter(field => !suppressed.has(field)).length;
+  return {
+    raw_unique_fields: raw.size,
+    registry_unique_fields: registryCounted,
+    registry_rows: registry.size,
+    missing,
+    extra,
+    suppressed_aliases: [...suppressed],
+    gate: missing.length === 0 && extra.length === 0 && raw.size === registryCounted
+  };
+}

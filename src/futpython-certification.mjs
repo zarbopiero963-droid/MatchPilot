@@ -2,6 +2,7 @@ import { withClient } from './db.mjs';
 import { loadClassification } from './providers/futpython/classification.mjs';
 import { loadPhase3Sql, phase3SqlGate } from './providers/futpython/integrity.mjs';
 import { TEAM_SPLIT_SQL } from './providers/futpython/teams.mjs';
+import { PHASE4_SQL, phase4Gate } from './providers/futpython/registry.mjs';
 
 export async function getFutpythonCertificationStatus() {
   return withClient(async client => {
@@ -19,7 +20,8 @@ export async function getFutpythonCertificationStatus() {
       phase2,
       phase3,
       teams,
-      teamSplits
+      teamSplits,
+      phase4
     ] = await Promise.all([
       client.query(`SELECT
         count(*)::int AS total,
@@ -55,7 +57,8 @@ export async function getFutpythonCertificationStatus() {
       loadClassification(client),
       loadPhase3Sql(client),
       client.query(`SELECT count(*)::int AS teams, count(*) FILTER (WHERE provider_team_id IS NOT NULL)::int AS with_provider_team_id FROM fpt_teams`),
-      client.query(TEAM_SPLIT_SQL)
+      client.query(TEAM_SPLIT_SQL),
+      client.query(PHASE4_SQL)
     ]);
 
     const byAvailability=Object.fromEntries(states.rows.map(r=>[r.availability,r.n]));
@@ -87,6 +90,11 @@ export async function getFutpythonCertificationStatus() {
         teams:teams.rows[0]?.teams||0,
         teams_with_provider_id:teams.rows[0]?.with_provider_team_id||0,
         gate:phase3SqlGate(phase3) && (teamSplits.rows[0]?.n||0)===0 && (teams.rows[0]?.teams||0)>0
+      },
+      phase4:{
+        ...phase4.rows[0],
+        suppressed_aliases:0,
+        gate:phase4Gate(phase4.rows[0]||{}, {suppressedAliases:0})
       }
     };
   });
