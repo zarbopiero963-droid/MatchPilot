@@ -92,11 +92,11 @@ Per ogni fase di certificazione:
 
 ## Resume drill e budget FutPython
 
-- Una sola PR. Non aprire FPT-PR-02 finché il kill live della FASE 1 non è eseguito e la PR di resume è mergiata.
+- Una sola PR. FPT-PR-01 è mergiata e verificata. FPT-PR-02 persiste gli stati terminali, INITIAL_404 e REGRESSION_404. Non aprire FPT-PR-03 finché quella PR non è mergiata e la query Neon sull'intero catalogo conferma il gate.
 - Non chiudere la issue #12.
 - Non lanciare il drill sul servizio web e non impostare `FUTPYTHON_BACKFILL_ON_START=true`.
 - Il ledger non deve contenere API key. Il browser non chiama il provider.
-- Non dichiarare la FASE 1 completamente certificata senza il kill reale su Render.
+- Non dichiarare la FASE 1 priva del limite residuo: il SIGTERM live è fra i dataset, nel delay di 5 secondi, non a metà scrittura.
 - I default di budget non sono la quota del fornitore: non inventarli come piano reale.
 
 ## Evidenza reale

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { profileSchema } from './schema.mjs';
+import { persistRemovedDatasets } from './classification.mjs';
 
 export const sha256 = value => createHash('sha256').update(value).digest('hex');
 
@@ -79,6 +80,7 @@ export async function upsertCatalog(client, catalog) {
     );
   }
 
+  await persistRemovedDatasets(client);
   return {newDatasets};
 }
 

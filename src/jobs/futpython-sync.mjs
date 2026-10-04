@@ -4,6 +4,7 @@ import { migrate } from '../migrate.mjs';
 import { fetchCatalog, isCurrentSeason } from '../providers/futpython/catalog.mjs';
 import { fetchDataset, fetchToday } from '../providers/futpython/client.mjs';
 import { storeDataset, upsertCatalog, sha256 } from '../providers/futpython/store.mjs';
+import { persistOutcome } from '../providers/futpython/classification.mjs';
 import { shouldYieldToCritical } from '../providers/futpython/budget.mjs';
 import { emitAlert, resolveAlert } from '../alerts.mjs';
 
@@ -173,14 +174,24 @@ async function captureCatalogSnapshot(client, catalog) {
   return snapshotId;
 }
 
-async function markAvailability(client, datasetKey, availability, reason = null) {
-  await client.query(
-    `UPDATE fpt_dataset_state
-     SET availability=$2, unavailable_reason=$3, last_synced_at=now(),
-         last_error=CASE WHEN $2='error' THEN $3 ELSE NULL END
-     WHERE dataset_key=$1`,
-    [datasetKey, availability, reason]
-  );
+async function markAvailability(client, datasetKey, availability, reason = null, providerPath = null) {
+  if (availability === 'available') {
+    await persistOutcome(client, datasetKey, {kind: 'success', providerPath});
+    return;
+  }
+  if (availability === 'unavailable_404') {
+    await persistOutcome(client, datasetKey, {kind: 'initial_404', providerPath, reason});
+    return;
+  }
+  if (availability === 'deprecated') {
+    await persistOutcome(client, datasetKey, {kind: 'deprecated', providerPath, reason});
+    return;
+  }
+  await persistOutcome(client, datasetKey, {
+    kind: reason === 'REGRESSION_404' ? 'regression_404' : 'error',
+    providerPath,
+    reason
+  });
 }
 
 async function loadDatasetState(client, datasetKey) {
@@ -254,7 +265,7 @@ async function syncEntry(client, entry, stats) {
     stats.fieldsSeen = Math.max(stats.fieldsSeen, stored.fields);
     for (const field of stored.newFields || []) stats.newFields.add(field);
     if (!stored.complete) throw new Error('dataset snapshot was not committed with its match rows');
-    await markAvailability(client, entry.datasetKey, 'available');
+    await markAvailability(client, entry.datasetKey, 'available', null, data.providerPath);
     if (previousRows !== null && previousRows >= 20 && data.rows.length < Math.floor(previousRows * 0.5)) {
       stats.rowDrops.push({datasetKey: entry.datasetKey, previousRows, currentRows: data.rows.length});
     }
@@ -263,14 +274,18 @@ async function syncEntry(client, entry, stats) {
     const message = redact(error?.message || error);
     if (error?.status === 404 && !previouslySucceeded) {
       stats.unavailable404.push(entry.datasetKey);
-      await markAvailability(client, entry.datasetKey, 'unavailable_404', 'HTTP 404');
+      await markAvailability(client, entry.datasetKey, 'unavailable_404', 'HTTP 404', entry.route);
       return;
     }
     stats.failures.push({
       datasetKey: entry.datasetKey, error: message, status: error?.status || null,
       regression404: error?.status === 404 && previouslySucceeded
     });
-    await markAvailability(client, entry.datasetKey, 'error', message.slice(0, 1000));
+    await markAvailability(
+      client, entry.datasetKey, 'error',
+      error?.status === 404 && previouslySucceeded ? 'REGRESSION_404' : message.slice(0, 1000),
+      entry.route
+    );
   }
 }
 

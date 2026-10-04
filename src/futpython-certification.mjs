@@ -1,4 +1,5 @@
 import { withClient } from './db.mjs';
+import { loadClassification } from './providers/futpython/classification.mjs';
 
 export async function getFutpythonCertificationStatus() {
   return withClient(async client => {
@@ -12,7 +13,8 @@ export async function getFutpythonCertificationStatus() {
       latestBackfill,
       undefinedStates,
       duplicateCatalog,
-      phase1Checks
+      phase1Checks,
+      phase2
     ] = await Promise.all([
       client.query(`SELECT
         count(*)::int AS total,
@@ -44,7 +46,8 @@ export async function getFutpythonCertificationStatus() {
         FROM fpt_certification_checks
         WHERE phase='FPT_PHASE1'
         ORDER BY checked_at DESC,check_id DESC
-        LIMIT 20`)
+        LIMIT 20`),
+      loadClassification(client)
     ]);
 
     const byAvailability=Object.fromEntries(states.rows.map(r=>[r.availability,r.n]));
@@ -68,7 +71,8 @@ export async function getFutpythonCertificationStatus() {
       unique_matches:Number(matches.rows[0]?.n||0),
       schema_fields:fields.rows[0]?.n||0,
       latest_backfill:latestBackfill.rows[0]||null,
-      phase1_checks:phase1Checks.rows
+      phase1_checks:phase1Checks.rows,
+      phase2
     };
   });
 }
