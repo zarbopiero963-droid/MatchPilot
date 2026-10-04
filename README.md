@@ -331,3 +331,27 @@ Regola: **TotalCorner non può essere dichiarato CLOSED/CERTIFIED finché tutti 
 Le issue vengono dichiarate **CHIUDIBILI** dall'agente solo quando ogni punto del loro contenuto è implementato e verificato. L'agente deve pubblicare un commento finale con checklist ed evidenze, ma lasciare l'issue aperta.
 
 La chiusura viene effettuata dall'owner, salvo autorizzazione esplicita data all'agente per quella specifica issue.
+
+
+## Trading-first, non betting-first
+
+MatchPilot è un **tool di trading sportivo**, non un tipster e non un motore di scommesse secche.
+
+Il prodotto deve ragionare in termini di:
+- stato del mercato;
+- score vulnerabile;
+- BACK/LAY;
+- fair price;
+- edge;
+- timing di ingresso;
+- conferma live;
+- invalidation;
+- stop;
+- exit/hedge;
+- rischio e stake;
+- NO TRADE come risultato valido;
+- post-mortem e replay.
+
+Un pronostico 1/X/2 o Over/Under può essere un input analitico, ma non è il prodotto finale.
+
+Benchmark GOAT del 04/10/2026: i 21 report mostrano un'impostazione orientata a trading operativo (risultato vulnerabile, frequenza lay, fair lay, rischio, conferma live, check 75', stop e stake). MatchPilot deve superare questo approccio usando dati FutPythonTrader + TotalCorner più completi e replay live persistente.
