@@ -8,6 +8,11 @@ import { emitAlert, resolveAlert } from '../alerts.mjs';
 const LOCK_ID = 76420311;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+export function isBackfillTerminalState(state={}) {
+  return state.last_snapshot_id != null ||
+    ['available','unavailable_404','deprecated'].includes(state.availability);
+}
+
 async function recordRun(client, runId, kind, status, stats) {
   await client.query(
     `INSERT INTO fpt_sync_runs(
@@ -229,8 +234,7 @@ export async function runFutpythonSync({kind='manual',mode='incremental'}={}) {
             'SELECT availability,last_snapshot_id FROM fpt_dataset_state WHERE dataset_key=$1',
             [entry.datasetKey]
           );
-          const terminal=state.rows[0]?.last_snapshot_id!=null ||
-            ['available','unavailable_404','deprecated'].includes(state.rows[0]?.availability);
+          const terminal=isBackfillTerminalState(state.rows[0]||{});
           if (terminal) {
             stats.resumedSkips++;
             continue;
