@@ -11,6 +11,9 @@ export function getPool() {
       connectionTimeoutMillis: 15000,
       idleTimeoutMillis: 30000
     });
+    pool.on('error', error => {
+      console.error('PG_POOL_ERROR', String(error?.message || error).replace(/postgres(?:ql)?:\/\/\S+/gi, 'postgres://[REDACTED]'));
+    });
   }
   return pool;
 }
@@ -25,6 +28,13 @@ export async function closePool() {
 
 export async function withClient(fn) {
   const client = await getPool().connect();
+  const onError = error => {
+    console.error('PG_CLIENT_ERROR', String(error?.message || error).replace(/postgres(?:ql)?:\/\/\S+/gi, 'postgres://[REDACTED]'));
+  };
+  client.on('error', onError);
   try { return await fn(client); }
-  finally { client.release(); }
+  finally {
+    client.removeListener('error', onError);
+    client.release();
+  }
 }

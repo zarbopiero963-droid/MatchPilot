@@ -1,4 +1,4 @@
-const DOCS_URL = 'https://futpythontrader.com.br/api-docs';
+const DOCS_PATH = '/api-docs';
 
 function decodeHtml(value='') {
   return String(value)
@@ -67,14 +67,19 @@ export function parseCatalogHtml(html) {
   return [...found.values()].sort((a, b) => a.datasetKey.localeCompare(b.datasetKey));
 }
 
-export async function fetchCatalog({ signal } = {}) {
-  const response = await fetch(DOCS_URL, {
-    headers: {'user-agent': 'MatchPilot/0.1 catalog-sync'},
-    signal: signal || AbortSignal.timeout(30000)
+export async function fetchCatalog({signal, priority='critical', runId=null} = {}) {
+  const {requestProviderText} = await import('./client.mjs');
+  const result = await requestProviderText({
+    path: DOCS_PATH,
+    datasetKey: 'catalog',
+    priority,
+    runId,
+    timeoutMs: 30000,
+    authenticate: false,
+    signal
   });
-  if (!response.ok) throw new Error(`FutPython catalog HTTP ${response.status}`);
-  const html = await response.text();
-  const catalog = parseCatalogHtml(html);
+  if (result.cacheHit || !result.text) throw new Error('FutPython catalog returned no body');
+  const catalog = parseCatalogHtml(result.text);
   if (!catalog.length) throw new Error('FutPython catalog returned zero datasets');
   return catalog;
 }

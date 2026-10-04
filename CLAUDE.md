@@ -101,6 +101,15 @@ Ogni PR FPT-CERT deve riportare una sezione **EVIDENZA REALE** con, quando perti
 
 Se l'evidenza reale contraddice il test unitario, prevale il dato reale e la fase resta aperta.
 
+## Resume drill e budget FutPython — operativo
+
+- La migrazione `007-fpt-request-ledger.sql` aggiunge `ingest_complete`, `fpt_request_ledger` e `fpt_provider_hold`.
+- Il drill di resume è un comando one-off (`--resume-drill-requeue` poi `--backfill`), mai `FUTPYTHON_BACKFILL_ON_START`.
+- Non cambiare le env del servizio Render per il drill. `FUTPYTHON_BACKFILL_ON_START` e `FUTPYTHON_PHASE1_VERIFY_ON_START` restano false.
+- I default `FUTPYTHON_REQUESTS_PER_MINUTE` / `PER_DAY` / `BACKFILL_REQUESTS_PER_MINUTE` sono tetti conservativi di codice, non la quota reale del fornitore. L'owner li sostituisce quando la quota è nota.
+- Il browser non chiama FutPythonTrader. Nessun proxy verso il provider.
+- La FASE 1 non è completamente certificata finché il kill live su Render non è stato eseguito e documentato. Non chiudere la issue #12.
+
 ## Gate finale FutPythonTrader
 
 È vietato scrivere **“FutPythonTrader è chiuso”** fino a quando risultano verificati tutti i punti seguenti:

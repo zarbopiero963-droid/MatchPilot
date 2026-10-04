@@ -195,7 +195,7 @@ La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue *
 
 Stato corrente della sorgente: **IN CERTIFICAZIONE — non ancora CLOSED**.
 
-La sola FASE 1 (backfill storico + verifier, FPT-PR-01) è **CERTIFICATA** il 2026-10-04 sull'evidenza reale sotto. Non è certificata la pipeline FutPythonTrader, né la issue #12: il contratto di budget API non è implementato e le fasi FPT-PR-02 … FPT-PR-09 restano aperte.
+Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. La fase **non è completamente certificata**: il kill reale su Render non è ancora stato eseguito. Il budget richieste è implementato nel client ma non è stato collaudato contro FutPythonTrader reale. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-02 … FPT-PR-09 non partono.
 
 La certificazione richiede, nell'ordine:
 
@@ -296,9 +296,9 @@ Al momento di quel finding la FASE 1 restava **NON CERTIFICATA**: il catalogo es
 
 ### FASE 1 — stato corrente, evidenza 2026-10-04
 
-**FASE 1 backfill + verifier: CERTIFICATA.**
+**Gate dati FASE 1 (PR #33): evidenza reale, non certificazione completa della fase.**
 
-Il gate proprio di FPT-PR-01 è soddisfatto sull'infrastruttura reale. Il codice osservato è il commit `0307e72e977767cf4ee1a694bcbab9c635d40e39` su `main`. Questa PR non aggiunge migrazioni né modifica il comportamento del sync.
+I numeri sotto restano l'evidenza del backfill e del verifier. Non includono un kill a metà `storeDataset`. Il codice osservato allora era il commit `0307e72e977767cf4ee1a694bcbab9c635d40e39` su `main`. Quella PR non aggiungeva migrazioni né modificava il sync.
 
 Backfill `fpt-1791137791126-7a167652` (`kind=backfill`, `status=complete`):
 - avvio 20:16:31 Europe/Rome, fine 20:42:01 Europe/Rome;
@@ -327,7 +327,38 @@ Dopo il verifier è andato live un terzo deploy dello stesso commit, `dep-db19vb
 
 Scansione log runtime Render del servizio `matchpilot-test` sulla finestra 20:10–21:15 Europe/Rome (boot backfill, verifier e deploy successivo): nessuna occorrenza di `api_key=`, `postgres://`, `postgresql://`, `DATABASE_URL` o `FUTPYTHON_API_KEY`. Nessun token Telegram (cifre:token) nelle righe esaminate. Esito scansione: **PASS**.
 
-**Ancora non certificato.** Il client FutPythonTrader non implementa il contratto di budget API della #12 (cache-first oltre allo skip dei dataset terminali, ledger delle richieste, backoff sui 429, circuit breaker, budget provider configurabili). Quel contratto è un gate trasversale prima di dichiarare la pipeline CERTIFIED e prima del certificato finale FPT-PR-09, non un requisito aggiuntivo del gate di FPT-PR-01. Per questo la issue #12 resta aperta, FutPythonTrader non è CLOSED / CERTIFIED e FPT-PR-02 non parte con questa PR.
+Quella evidenza non chiudeva il test di interruzione. La issue #12 restava aperta.
+
+### FASE 1 — resume drill e budget richieste (stato corrente)
+
+**IMPLEMENTED / TESTED in locale. NON VERIFIED REAL. La FASE 1 non è completamente certificata.**
+
+Il kill live su Render **non è stato eseguito** in questa PR. Non è stato chiamato FutPythonTrader reale. Non sono state cambiate le variabili d'ambiente del servizio, non è stato fatto un deploy e non è stato avviato un backfill di produzione. `FUTPYTHON_BACKFILL_ON_START` e `FUTPYTHON_PHASE1_VERIFY_ON_START` non vanno toccati e restano disattivi.
+
+Cosa cambia nel codice:
+
+- uno snapshot non è visibile, e il dataset non diventa `available`, finché snapshot e righe match non sono committati nella stessa transazione. Uno snapshot `ingest_complete=false` non viene sigillato dallo short-circuit sull'hash: il resume finisce le righe mancanti. Gli snapshot già presenti vengono marcati completi dalla migrazione `007`, perché il backfill terminale li ha già chiusi;
+- il backfill di default continua a saltare `available`, `unavailable_404`, `deprecated` e `unknown` con snapshot completo. `error` resta ritentabile. Non si cancellano snapshot né versioni e il drill non azzera `last_snapshot_id`;
+- SIGTERM/SIGINT fra un dataset e il successivo chiude il run `running` come `partial` con `meta.interrupted=true` prima dell'uscita. Un SIGKILL non è intercettabile: il run successivo riconcilia ancora i `running` rimasti;
+- il client è cache-first, deduplica le chiamate identiche in corso, rispetta un budget al minuto e al giorno, limita il backfill a un ritmo più basso, cede il passo a un hold `critical`, onora `Retry-After` sui 429, usa backoff con jitter e un tetto di tentativi, e apre un circuit breaker dopo errori ripetuti (5xx/rete/429, non i 404). Il ledger `fpt_request_ledger` non salva la API key né l'URL completa. Il browser non chiama FutPythonTrader e non esiste un proxy verso il provider.
+
+Limiti, non presentati come piano del fornitore:
+
+- default conservativi di codice, da sostituire quando l'owner conosce la quota reale: `FUTPYTHON_REQUESTS_PER_MINUTE` 20, `FUTPYTHON_REQUESTS_PER_DAY` 2000, `FUTPYTHON_BACKFILL_REQUESTS_PER_MINUTE` 8, `FUTPYTHON_MAX_ATTEMPTS` 4;
+- un successo già persistito non viene riscaricato. Se la risposta è nel ledger ma lo snapshot non è committato, una nuova GET è ammessa: non si sigilla un buco;
+- catalogo e `jogos-do-dia` restano richieste di run, non dataset terminali;
+- il drill accetta al massimo 5 chiavi esplicite. Non è stato scelto un elenco di produzione oltre agli esempi già deduplicati in PR #33.
+
+Comando one-off per il processo che l'owner lancerà su Render **dopo il merge di questa PR**, nello shell del servizio, senza modificare le env del servizio e senza `--force`:
+
+```bash
+node src/jobs/futpython-sync.mjs --resume-drill-requeue=australia/a-league/2020-2021,austria/bundesliga/2020-2021
+FUTPYTHON_SYNC_DELAY_MS=5000 node src/jobs/futpython-sync.mjs --backfill
+# SIGTERM a quel processo dopo la prima GET di dataset e prima che esca
+node src/jobs/futpython-sync.mjs --backfill
+```
+
+Il delay di 5 secondi vale solo per quel processo, così il SIGTERM cade fra i due dataset. Poi il terzo comando riprende solo le chiavi non terminali. Le chiavi sono un esempio già verificato in dedup; l'owner può sostituirle con al massimo cinque chiavi di catalogo. Questo comando non è stato eseguito contro Neon/Render in questa PR.
 
 ### Contratto operativo agenti
 
