@@ -36,6 +36,12 @@ export async function runLiveSourceProbe(){
       .map(e=>({tag:e.tagName,id:e.id||'',text:(e.innerText||'').trim().slice(0,120),attrs:[...e.attributes].filter(a=>/^data-(match|event|fixture|game|id)/.test(a.name)).map(a=>[a.name,a.value])}))
       .filter(x=>x.id||x.attrs.length);
   });
+  const jsText=await page.evaluate(()=>fetch('/app.js').then(r=>r.text()).catch(()=>''));
+  const providerTerms=['thesports','footystats','aiscore','besoccer','betfair','futpython','rapidapi','api-football','sportmonks','sofascore','flashscore'];
+  const hints=[];
+  for(const term of providerTerms){const re=new RegExp(term,'ig');let m;let n=0;while((m=re.exec(jsText))&&n<10){hints.push({term,context:jsText.slice(Math.max(0,m.index-180),Math.min(jsText.length,m.index+260)).replace(/\\s+/g,' ')});n++;}}
+  const domains=[...new Set((jsText.match(/https?:\\/\\/[^\"'\\s)]+/g)||[]).map(u=>{try{return new URL(u).hostname}catch{return ''}}).filter(Boolean))];
+  console.log('LIVE_JS_PROVIDER_HINTS '+JSON.stringify({hints,domains}));
   const events=[...seen.entries()].map(([k,count])=>({request:k,count})).filter(x=>!x.request.includes('fonts.googleapis.com')&&!x.request.includes('fonts.gstatic.com'));
   console.log('LIVE_SOURCE_PROBE '+JSON.stringify({events,text:text.replace(/[^\s]+@[^\s]+/g,'[EMAIL]')}));
  }finally{if(browser)await browser.close().catch(()=>{});}
