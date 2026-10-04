@@ -1,4 +1,5 @@
-const EMPTY = new Set(['', 'null', 'undefined', 'nan', 'na', 'n/a', '-']);
+export const EMPTY_TOKENS = ['', 'null', 'undefined', 'nan', 'na', 'n/a', '-'];
+const EMPTY = new Set(EMPTY_TOKENS);
 
 export function inferValueType(value) {
   const s = String(value ?? '').trim();

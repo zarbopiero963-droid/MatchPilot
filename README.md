@@ -195,7 +195,7 @@ La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue *
 
 Stato corrente della sorgente: **IN CERTIFICAZIONE — non ancora CLOSED**.
 
-Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-05 … FPT-PR-09 non partono.
+Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-06 … FPT-PR-09 non partono.
 
 La certificazione richiede, nell'ordine:
 
@@ -373,6 +373,19 @@ Il gate conta i nomi header distinti in tutti gli snapshot raw, dataset e today,
 `fpt_field_transforms` e le colonne `source_provider`, `parser_version`, `schema_version`, `transform_version` su `fpt_match_versions` legano ogni valore normalizzato già persistito (`home`, `match_date`, `provider_match_id`) allo snapshot. Il default non riscrive il gzip. Il gate è `phase4` su `/api/futpython-certification` e `node src/jobs/futpython-audit-phase4.mjs`. I numeri reali stanno nel commento della PR.
 
 
+
+
+### FASE 5 — coverage multidimensionale
+
+La coverage non è una tabella nel README. La migrazione `012-fpt-field-coverage.sql` crea `fpt_field_coverage` e `fpt_coverage_audit`. Il job `node src/jobs/futpython-audit-phase5.mjs` le riempie dai payload già salvati in `fpt_match_versions`. Non riscrive i gzip e non riscarica FutPythonTrader.
+
+Una riga è nello scope di un campo solo se la chiave è presente nel payload. Il denominatore non è `rows_seen`, che resta il contatore cumulativo degli ingest. `nonempty` usa gli stessi token vuoti della discovery (`''`, `null`, `undefined`, `nan`, `na`, `n/a`, `-`). Lo zero numerico resta nonempty.
+
+Dimensioni persistite sull'intero mirror: `global`, `dataset`, `league` (`country/league`, oppure `unscoped` se manca lo slug), `season` (stagione salvata, oppure `unscoped`), `period` (anno civile di `match_date`, oppure `undated`), `normalized` (somma dei campi sorgente quando nessuna versione contiene due chiavi della stessa normalized field). Non è un censimento team × campo. La dimensione `team` è solo un campione: le 3 squadre con più partite già salvate e i campi `Home`, `Date`, `Match_ID`. Le righe today senza `country_slug` non entrano nel campione. Il campione non va letto come coverage di tutte le squadre.
+
+La classe di densità è una sola, sul globale e sul normalizzato: `always-empty` se nonempty è 0; `dense` se `nonempty * 10 >= rows * 9`; altrimenti `sparse`. I tag di scope sono aggiuntivi e solo se il predicato è vero: `league-specific` se le leghe con slug in cui il campo compare sono meno di tutte le leghe con slug che hanno partite; `season-specific` se il campo non ha alcuna lega con slug oppure manca da almeno una stagione salvata di una lega in cui compare; `newly-introduced` se, in ogni lega in cui compare, la prima stagione è successiva alla prima stagione salvata di quella lega ed è ancora presente nell'ultima; `deprecated-field` se manca dall'ultima stagione salvata di ogni lega in cui compare. Un campo che inizia tardi solo in una parte delle sue leghe non riceve `newly-introduced`. I numeri reali stanno nel commento della PR, non qui.
+
+Il gate `phase5` confronta i conteggi interi di global, dataset, league, season e period scritti con `jsonb_each_text` con un secondo passaggio `jsonb_object_keys` sullo stesso payload. Tolleranza zero. Il normalizzato si riconcilia sulla somma di quel secondo passaggio. Il campione team si riconcilia a parte, sempre con tolleranza zero, e il gate rifiuta un censimento completo (`team_census` deve restare false e le righe team devono essere 9). I numeri reali stanno nel commento della PR, non qui.
 
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
 
