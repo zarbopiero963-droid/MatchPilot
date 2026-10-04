@@ -230,3 +230,24 @@ Correzione prevista in questa PR:
 - il backfill resta restartable e non duplica dataset terminali.
 
 La FASE 1 resta **NON CERTIFICATA** fino al nuovo collaudo reale con `undefined_states=0`.
+
+
+### FASE 1 — ottimizzazione persistenza reale
+
+Il collaudo del backfill ha mostrato che la persistenza riga-per-riga verso Neon era corretta ma troppo lenta per una certificazione operativa ripetibile.
+
+Questa PR sostituisce:
+- upsert catalogo per singola riga;
+- upsert schema per singolo campo;
+- insert versione partita per singola riga;
+
+con operazioni PostgreSQL batch tramite `jsonb_to_recordset`.
+
+Il contratto dati non cambia:
+- raw snapshot immutabile;
+- payload completo JSONB;
+- deduplica per hash;
+- versioning partita;
+- schema discovery dinamico.
+
+La FASE 1 resta **NON CERTIFICATA** fino al completamento del backfill reale e alla riconciliazione finale.
