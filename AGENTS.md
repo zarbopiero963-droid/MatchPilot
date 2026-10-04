@@ -164,3 +164,34 @@ Quando il lavoro riguarda TotalCorner:
 10. verificare persistenza/replay dopo restart e giorno successivo;
 11. usare la stessa chat Telegram per alert TotalCorner;
 12. non dichiarare CLOSED/CERTIFIED prima del certificato finale.
+
+
+## Issue closure workflow — owner gate
+
+Le issue **non devono essere chiuse automaticamente dall'agente**.
+
+Quando ogni punto richiesto nel contenuto dell'issue risulta realmente:
+- implementato;
+- testato;
+- verificato con le evidenze richieste;
+- documentato;
+- privo di gate aperti;
+
+l'agente deve lasciare un **commento finale di chiudibilità** nell'issue.
+
+Il commento deve includere almeno:
+- stato: `READY TO CLOSE` / `CHIUDIBILE`;
+- checklist dei punti dell'issue e relativo esito;
+- PR/commit coinvolti;
+- CI/review status;
+- evidenze reali Render/Neon/API/Telegram quando richieste;
+- limiti noti residui, se presenti;
+- conferma che nessun punto del contenuto resta aperto.
+
+Dopo il commento, l'issue resta **OPEN**.
+
+La chiusura è riservata all'owner.
+
+Eccezione: se l'owner autorizza esplicitamente l'agente a chiudere quella specifica issue, l'agente può chiuderla solo dopo aver pubblicato il commento di chiudibilità e aver verificato nuovamente che tutti i gate siano passati.
+
+Non interpretare autorizzazioni precedenti o generiche come permesso permanente di chiudere issue future.
