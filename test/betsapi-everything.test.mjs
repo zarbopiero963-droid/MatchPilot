@@ -412,3 +412,39 @@ test('full catalog does not immediately retry rate limits', async () => {
   assert.equal(r.endpoint_results.events_inplay.status,'RATE_LIMITED');
   assert.equal(r.endpoint_results.events_inplay.attempts,1);
 });
+
+
+test('429 activates a global hold and blocks subsequent Everything calls until reset', async () => {
+  let nowMs=Date.parse('2026-10-05T12:00:00Z');
+  let calls=0;
+  const reset=Math.floor((nowMs+60000)/1000);
+  const rt=createEverythingRuntime({
+    env:{
+      BETSAPI_EVERYTHING_TOKEN:'x',
+      BETSAPI_EVERYTHING_ENABLED:'true',
+      BETSAPI_EVERYTHING_FAMILIES:'bwin'
+    },
+    now:()=>nowMs,
+    fetchImpl:async()=>{
+      calls++;
+      if (calls===1) return {
+        status:429,ok:false,
+        headers:{get:k=>k==='x-ratelimit-reset'?String(reset):null},
+        text:async()=>JSON.stringify({success:0,error:'TOO_MANY_REQUESTS'})
+      };
+      return {status:200,ok:true,headers:{get:()=>null},text:async()=>JSON.stringify({success:1,results:[]})};
+    }
+  });
+  const first=await rt.callDocumentedEndpoint('bwin_inplay',{});
+  assert.equal(first.classification,'RATE_LIMITED');
+  assert.equal(rt.status().rate_limit_hold.active,true);
+  const second=await rt.callDocumentedEndpoint('bwin_prematch',{});
+  assert.equal(second.skipped,true);
+  assert.equal(second.reason,'RATE_LIMIT_HOLD');
+  assert.equal(calls,1);
+  nowMs+=60001;
+  const third=await rt.callDocumentedEndpoint('bwin_prematch',{});
+  assert.equal(third.ok,true);
+  assert.equal(calls,2);
+  assert.equal(rt.status().rate_limit_hold.active,false);
+});
