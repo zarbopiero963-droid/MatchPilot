@@ -10,6 +10,8 @@ const TC_TOKEN = process.env.TOTALCORNER_API_TOKEN?.trim();
 const OUT = process.env.PROVIDER_TRIAL_FILE || '/tmp/provider-trial.jsonl';
 const DATABASE_URL = process.env.DATABASE_URL?.trim();
 const INSTANCE_ID = crypto.randomUUID();
+const KEEPALIVE_URL = (process.env.PROVIDER_TRIAL_KEEPALIVE_URL || 'https://betsapi-trial-collector.onrender.com/healthz').trim();
+const KEEPALIVE_MS = Number(process.env.PROVIDER_TRIAL_KEEPALIVE_MS || 600000);
 
 const BETS_INPLAY_MS = Number(process.env.BETSAPI_POLL_MS || 30000);
 const BETS_DETAIL_MS = Number(process.env.BETSAPI_DETAIL_EVERY_MS || 60000);
@@ -46,6 +48,12 @@ let flushing = false;
 let cumulativeMetrics = null;
 let cumulativeMetricsAt = null;
 let cumulativeMetricsError = null;
+let keepaliveAttempts = 0;
+let keepaliveSuccesses = 0;
+let keepaliveFailures = 0;
+let lastKeepaliveAt = null;
+let lastKeepaliveStatus = null;
+let lastKeepaliveError = null;
 let last = {
   bets_inplay:0,bets_detail:0,bets_upcoming:0,
   tc_inplay:0,tc_detail:0,tc_slow:0,
@@ -157,6 +165,25 @@ async function refreshCumulativeMetrics(force = false) {
   } catch (error) {
     cumulativeMetricsError = sanitizeError(error);
     return cumulativeMetrics;
+  }
+}
+
+async function runKeepalive() {
+  if (!KEEPALIVE_URL || !Number.isFinite(KEEPALIVE_MS) || KEEPALIVE_MS < 60000) return;
+  keepaliveAttempts++;
+  lastKeepaliveAt = new Date().toISOString();
+  try {
+    const res = await fetch(KEEPALIVE_URL, {
+      headers:{ 'user-agent':'matchpilot-provider-trial-keepalive/1.0' },
+      signal:AbortSignal.timeout(20000)
+    });
+    lastKeepaliveStatus = res.status;
+    if (!res.ok) throw new Error('keepalive HTTP ' + res.status);
+    keepaliveSuccesses++;
+    lastKeepaliveError = null;
+  } catch (error) {
+    keepaliveFailures++;
+    lastKeepaliveError = sanitizeError(error);
   }
 }
 
@@ -303,6 +330,10 @@ setInterval(() => flushPersistence().catch(error => {
   persistFailures++;
   lastPersistError = sanitizeError(error);
 }), 2000).unref();
+setInterval(() => runKeepalive().catch(error => {
+  keepaliveFailures++;
+  lastKeepaliveError = sanitizeError(error);
+}), KEEPALIVE_MS).unref();
 
 await initPersistence().catch(error => {
   dbReady = false;
@@ -343,8 +374,20 @@ http.createServer(async (req, res) => {
       bets_detail_events:betsEventIds.length,
       totalcorner_detail_matches:tcMatchIds.length,
       last_error:lastError,
+      keepalive:{
+        enabled:Boolean(KEEPALIVE_URL) && Number.isFinite(KEEPALIVE_MS) && KEEPALIVE_MS >= 60000,
+        interval_ms:KEEPALIVE_MS,
+        attempts:keepaliveAttempts,
+        successes:keepaliveSuccesses,
+        failures:keepaliveFailures,
+        last_at:lastKeepaliveAt,
+        last_status:lastKeepaliveStatus,
+        last_error:lastKeepaliveError
+      },
       persistence:{
         database_configured:Boolean(DATABASE_URL),
+    keepalive_enabled:Boolean(KEEPALIVE_URL) && Number.isFinite(KEEPALIVE_MS) && KEEPALIVE_MS >= 60000,
+    keepalive_ms:KEEPALIVE_MS,
         database_ready:dbReady,
         schema:'provider_trial',
         table:'records',
