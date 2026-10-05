@@ -27,8 +27,6 @@ const TC_DETAIL_MS = Number(process.env.TOTALCORNER_DETAIL_EVERY_MS || 60000);
 const TC_SLOW_MS = Number(process.env.TOTALCORNER_SLOW_EVERY_MS || 300000);
 const TC_MAX_DETAILS = Number(process.env.TOTALCORNER_MAX_DETAILS || 10);
 
-const SCORETREND_MS = Number(process.env.SCORETREND_POLL_MS || 30000);
-const SCORETREND_SLOW_MS = Number(process.env.SCORETREND_SLOW_EVERY_MS || 300000);
 const EVERYTHING_ENABLED = String(process.env.BETSAPI_EVERYTHING_ENABLED || '').toLowerCase() === 'true';
 const EVERYTHING_DISCOVERY_MS = Number(process.env.BETSAPI_EVERYTHING_DISCOVERY_MS || 60000);
 const EVERYTHING_PREMATCH_MS = Number(process.env.BETSAPI_EVERYTHING_PREMATCH_MS || 300000);
@@ -73,7 +71,6 @@ let lastKeepaliveError = null;
 let last = {
   bets_inplay:0,bets_detail:0,bets_upcoming:0,
   tc_inplay:0,tc_detail:0,tc_slow:0,
-  scoretrend:0,scoretrend_slow:0,
   everything_discovery:0,everything_prematch:0,everything_full_catalog:0,recon_census:0,recon_history:0,recon_odds:0
 };
 let betsEventIds = [];
@@ -169,7 +166,6 @@ async function refreshCumulativeMetrics(force = false) {
         max(observed_at) AS last_observed_at,
         count(*) FILTER (WHERE source_type LIKE 'betsapi_%')::bigint AS betsapi_records,
         count(*) FILTER (WHERE source_type LIKE 'totalcorner_%')::bigint AS totalcorner_records,
-        count(*) FILTER (WHERE source_type LIKE 'scoretrend_%')::bigint AS scoretrend_records,
         count(*) FILTER (WHERE source_type = 'collector_error' OR source_type LIKE '%_error')::bigint AS error_records,
         count(*) FILTER (WHERE (payload->>'status')::int = 429)::bigint AS http_429,
         count(*) FILTER (WHERE (payload->>'status')::int >= 500)::bigint AS http_5xx
@@ -183,7 +179,6 @@ async function refreshCumulativeMetrics(force = false) {
       last_observed_at:row.last_observed_at || null,
       betsapi_records:Number(row.betsapi_records || 0),
       totalcorner_records:Number(row.totalcorner_records || 0),
-      scoretrend_records:Number(row.scoretrend_records || 0),
       error_records:Number(row.error_records || 0),
       http_429:Number(row.http_429 || 0),
       http_5xx:Number(row.http_5xx || 0)
@@ -344,29 +339,6 @@ async function collectTcSlow() {
     write('totalcorner_today_' + type, { status:r.status, latency_ms:r.latency_ms, body:r.body });
   }
   last.tc_slow = Date.now();
-}
-
-async function collectScoreTrend() {
-  const r = await fetchJson('https://games.scoretrend.net/');
-  write('scoretrend_games', { status:r.status, latency_ms:r.latency_ms, body:r.body });
-  last.scoretrend = Date.now();
-}
-
-async function collectScoreTrendSlow() {
-  const day = new Date().toISOString().slice(0,10);
-  const endpoints = [
-    ['scoretrend_terminated','https://api.scoretrend.net/v1/get_terminated_games?date=' + day],
-    ['scoretrend_upcoming','https://api.scoretrend.net/full_upc_games/' + day + '?page=1']
-  ];
-  for (const [type,url] of endpoints) {
-    try {
-      const r = await fetchJson(url);
-      write(type, { status:r.status, latency_ms:r.latency_ms, body:r.body });
-    } catch (e) {
-      write(type + '_error', { error:String(e?.message || e) });
-    }
-  }
-  last.scoretrend_slow = Date.now();
 }
 
 
@@ -586,8 +558,6 @@ async function loop() {
     if (TC_TOKEN && tcMatchIds.length && now - last.tc_detail >= TC_DETAIL_MS) await collectTcDetails();
     if (TC_TOKEN && now - last.tc_slow >= TC_SLOW_MS) await collectTcSlow();
 
-    if (now - last.scoretrend >= SCORETREND_MS) await collectScoreTrend();
-    if (now - last.scoretrend_slow >= SCORETREND_SLOW_MS) await collectScoreTrendSlow();
 
     if (EVERYTHING_ENABLED && now - last.everything_discovery >= EVERYTHING_DISCOVERY_MS) {
       await everythingRuntime.discoveryCycle();
@@ -886,7 +856,6 @@ if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timel
     totalcorner_token_present:Boolean(TC_TOKEN),
     bets_inplay_ms:BETS_INPLAY_MS,
     tc_inplay_ms:TC_INPLAY_MS,
-    scoretrend_ms:SCORETREND_MS,
     database_configured:Boolean(DATABASE_URL),
     tc_max_details:TC_MAX_DETAILS,
     bets_max_details:BETS_MAX_DETAILS
