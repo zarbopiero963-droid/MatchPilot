@@ -318,3 +318,22 @@ test('concurrent full catalog probes collapse to one upstream cycle', async () =
   assert.equal(rt.fullCatalogStatus().cycles,1);
   assert.ok(calls > 0);
 });
+
+
+test('full catalog harvest recognizes squad player rows by id/type_id', async () => {
+  const rt=createEverythingRuntime({
+    env:{BETSAPI_EVERYTHING_TOKEN:'x',BETSAPI_EVERYTHING_ENABLED:'true'},
+    fetchImpl:async url=>{
+      const u=new URL(String(url));
+      let body={success:1,results:[]};
+      if (u.pathname==='/v3/events/inplay') {
+        body={success:1,results:[{id:123,time:1791158400,home:{id:10,name:'Home'},away:{id:11,name:'Away'},league:{id:20,name:'League'}}]};
+      } else if (u.pathname==='/v1/team/squad') {
+        body={success:1,results:[{id:6019,type_id:1,name:'Player'}]};
+      }
+      return {status:200,ok:true,headers:{get:()=>null},text:async()=>JSON.stringify(body)};
+    }
+  });
+  const r=await rt.fullCatalogCycle();
+  assert.ok(r.context.player_ids >= 1);
+});
