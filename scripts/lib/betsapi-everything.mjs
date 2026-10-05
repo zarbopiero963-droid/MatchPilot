@@ -338,6 +338,8 @@ export function createEverythingRuntime({
     cycles:0,last_at:null,attempted:0,ok:0,skipped:0,permission_denied:0,rate_limited:0,http_error:0,last_error:null,
     endpoint_results:{}
   };
+  let upstreamHoldUntil=0;
+  let upstreamHoldReason=null;
   const state=Object.fromEntries(families.map(k=>[k,{
     status:enabled ? (token ? 'READY' : 'NO_TOKEN') : 'DISABLED',
     last_at:null,
@@ -348,9 +350,27 @@ export function createEverythingRuntime({
     fields:[]
   }]));
 
+  function applyRateLimitHold(res) {
+    if (res?.status !== 429) return;
+    const reset=Number(res.headers?.get?.('x-ratelimit-reset'));
+    const t=now();
+    const resetMs=Number.isFinite(reset) && reset*1000>t ? reset*1000 : t+60000;
+    upstreamHoldUntil=Math.max(upstreamHoldUntil,resetMs);
+    upstreamHoldReason='HTTP_429';
+  }
+
+  function holdActive() {
+    if (upstreamHoldUntil && now()>=upstreamHoldUntil) {
+      upstreamHoldUntil=0;
+      upstreamHoldReason=null;
+    }
+    return upstreamHoldUntil>now();
+  }
+
   async function call(familyKey, endpoint, paramsOverride={}) {
     const family=EVERYTHING_FAMILIES[familyKey];
     if (!enabled || !token || !family) return null;
+    if (holdActive()) return {skipped:true,reason:'RATE_LIMIT_HOLD',status:429};
     if (!budget.spend(1)) {
       state[familyKey].status='BUDGET_HOLD';
       return null;
@@ -366,6 +386,7 @@ export function createEverythingRuntime({
       const text=await res.text();
       try { body=JSON.parse(text); } catch { body={raw:text.slice(0,50000)}; }
       const cls=classifyHttp(status);
+      applyRateLimitHold(res);
       state[familyKey].status=cls;
       state[familyKey].last_http_status=status;
       state[familyKey].last_at=new Date(now()).toISOString();
@@ -401,7 +422,7 @@ export function createEverythingRuntime({
   }
 
   async function discoveryCycle() {
-    if (!enabled || !token) return status();
+    if (!enabled || !token || holdActive()) return status();
     for (const familyKey of families) {
       const family=EVERYTHING_FAMILIES[familyKey];
       const inplay=family.endpoints.find(e=>e.key==='inplay') || family.endpoints[0];
@@ -421,7 +442,7 @@ export function createEverythingRuntime({
   }
 
   async function prematchCycle() {
-    if (!enabled || !token) return status();
+    if (!enabled || !token || holdActive()) return status();
     for (const familyKey of families) {
       const family=EVERYTHING_FAMILIES[familyKey];
       const ep=family.endpoints.find(e=>e.key==='upcoming' || e.key==='prematch');
@@ -437,6 +458,11 @@ export function createEverythingRuntime({
       token_source: env.BETSAPI_EVERYTHING_TOKEN ? 'BETSAPI_EVERYTHING_TOKEN' : token ? 'BETSAPI_TOKEN' : null,
       families,
       budget:budget.snapshot(),
+      rate_limit_hold:{
+        active:holdActive(),
+        until:upstreamHoldUntil ? new Date(upstreamHoldUntil).toISOString() : null,
+        reason:upstreamHoldReason
+      },
       state
     };
   }
@@ -451,6 +477,9 @@ export function createEverythingRuntime({
     if (!enabled || !token) {
       return { ok:false, skipped:true, reason:enabled ? 'NO_TOKEN' : 'DISABLED' };
     }
+    if (holdActive()) {
+      return {ok:false,skipped:true,reason:'RATE_LIMIT_HOLD',status:429};
+    }
     if (!budget.spend(1)) {
       return { ok:false, skipped:true, reason:'BUDGET_HOLD' };
     }
@@ -463,6 +492,7 @@ export function createEverythingRuntime({
       let body;
       try { body=JSON.parse(text); } catch { body={raw:text.slice(0,50000)}; }
       const classification=classifyHttp(res.status);
+      applyRateLimitHold(res);
       const fields=discoverFieldPaths(body);
       write('betsapi_documented_'+endpointKey,{
         endpoint_key:endpointKey,
@@ -520,6 +550,7 @@ export function createEverythingRuntime({
 
   async function fullCatalogCycle() {
     if (!enabled || !token) return { ...catalogProbe, disabled:true };
+    if (holdActive()) return { ...fullCatalogStatus(), held:true };
     if (fullCatalogPromise) return fullCatalogPromise;
 
     fullCatalogPromise=(async()=>{
@@ -604,7 +635,7 @@ export function createEverythingRuntime({
 
 
   async function censusCycle({pagesPerSport=3}={}) {
-    if (!enabled || !token) return censusStatus();
+    if (!enabled || !token || holdActive()) return censusStatus();
     const sport=BETSAPI_SPORTS[censusState.sport_index % BETSAPI_SPORTS.length];
     const sportKey=String(sport.sport_id);
     let maxId=censusState.max_id_by_sport.get(sportKey) || null;
