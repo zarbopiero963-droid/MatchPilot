@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash", "Read", "Edit", "Write",
+      "mcp__github", "mcp__claude-code-remote",
+      "mcp__Render__list_deploys", "mcp__Render__get_deploy",
+      "mcp__Render__list_logs", "mcp__Render__list_services",
+      "mcp__Render__get_service", "mcp__Render__get_metrics",
+      "mcp__Neon__run_sql", "mcp__Neon__explain_sql_statement",
+      "mcp__Neon__describe_table_schema", "mcp__Neon__get_database_tables",
+      "mcp__Neon__describe_branch", "mcp__Neon__list_branches"
+    ]
+  }
+}
