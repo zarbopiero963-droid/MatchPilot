@@ -467,3 +467,15 @@ Il prodotto deve ragionare in termini di:
 Un pronostico 1/X/2 o Over/Under può essere un input analitico, ma non è il prodotto finale.
 
 Benchmark GOAT del 04/10/2026: i 21 report mostrano un'impostazione orientata a trading operativo (risultato vulnerabile, frequenza lay, fair lay, rischio, conferma live, check 75', stop e stake). MatchPilot deve superare questo approccio usando dati FutPythonTrader + TotalCorner più completi e replay live persistente.
+
+
+## Provider trial persistence (temporary collector)
+
+The isolated `betsapi-trial-collector` keeps its NDJSON file only as a local emergency copy. When `DATABASE_URL` is configured, every collected BetsAPI / TotalCorner / ScoreTrend row is also batch-persisted to the dedicated Neon namespace:
+
+- schema: `provider_trial`
+- table: `provider_trial.records`
+
+This namespace is deliberately separate from operational MatchPilot/FutPython/TotalCorner tables. The collector self-provisions only this dedicated schema/table and reports persistence readiness, queue depth, persisted-row count and sanitized failures through `/healthz`.
+
+The Render filesystem remains ephemeral and must never be treated as the authoritative copy of the provider trial.
