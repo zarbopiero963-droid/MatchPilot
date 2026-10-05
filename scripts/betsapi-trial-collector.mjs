@@ -43,6 +43,9 @@ let persistFailures = 0;
 let lastPersistAt = null;
 let lastPersistError = null;
 let flushing = false;
+let cumulativeMetrics = null;
+let cumulativeMetricsAt = null;
+let cumulativeMetricsError = null;
 let last = {
   bets_inplay:0,bets_detail:0,bets_upcoming:0,
   tc_inplay:0,tc_detail:0,tc_slow:0,
@@ -104,6 +107,7 @@ async function flushPersistence() {
     );
     persistedRecords += batch.length;
     lastPersistAt = new Date().toISOString();
+    cumulativeMetricsAt = null;
     lastPersistError = null;
   } catch (error) {
     persistQueue = batch.concat(persistQueue);
@@ -111,6 +115,48 @@ async function flushPersistence() {
     lastPersistError = sanitizeError(error);
   } finally {
     flushing = false;
+  }
+}
+
+async function refreshCumulativeMetrics(force = false) {
+  if (!dbReady || !dbPool) return null;
+  if (!force && cumulativeMetricsAt && Date.now() - Date.parse(cumulativeMetricsAt) < 15000) {
+    return cumulativeMetrics;
+  }
+  try {
+    const { rows } = await dbPool.query(`
+      SELECT
+        count(*)::bigint AS total_records,
+        count(DISTINCT instance_id)::bigint AS instances,
+        min(observed_at) AS first_observed_at,
+        max(observed_at) AS last_observed_at,
+        count(*) FILTER (WHERE source_type LIKE 'betsapi_%')::bigint AS betsapi_records,
+        count(*) FILTER (WHERE source_type LIKE 'totalcorner_%')::bigint AS totalcorner_records,
+        count(*) FILTER (WHERE source_type LIKE 'scoretrend_%')::bigint AS scoretrend_records,
+        count(*) FILTER (WHERE source_type = 'collector_error' OR source_type LIKE '%_error')::bigint AS error_records,
+        count(*) FILTER (WHERE (payload->>'status')::int = 429)::bigint AS http_429,
+        count(*) FILTER (WHERE (payload->>'status')::int >= 500)::bigint AS http_5xx
+      FROM provider_trial.records
+    `);
+    const row = rows[0] || {};
+    cumulativeMetrics = {
+      total_records:Number(row.total_records || 0),
+      instances:Number(row.instances || 0),
+      first_observed_at:row.first_observed_at || null,
+      last_observed_at:row.last_observed_at || null,
+      betsapi_records:Number(row.betsapi_records || 0),
+      totalcorner_records:Number(row.totalcorner_records || 0),
+      scoretrend_records:Number(row.scoretrend_records || 0),
+      error_records:Number(row.error_records || 0),
+      http_429:Number(row.http_429 || 0),
+      http_5xx:Number(row.http_5xx || 0)
+    };
+    cumulativeMetricsAt = new Date().toISOString();
+    cumulativeMetricsError = null;
+    return cumulativeMetrics;
+  } catch (error) {
+    cumulativeMetricsError = sanitizeError(error);
+    return cumulativeMetrics;
   }
 }
 
@@ -283,8 +329,9 @@ async function shutdown(signal) {
 process.once('SIGTERM', () => shutdown('SIGTERM'));
 process.once('SIGINT', () => shutdown('SIGINT'));
 
-http.createServer((req, res) => {
+http.createServer(async (req, res) => {
   if (req.url === '/healthz' || req.url === '/') {
+    const cumulative = await refreshCumulativeMetrics();
     res.setHeader('content-type', 'application/json');
     return res.end(JSON.stringify({
       ok: !lastError,
@@ -306,8 +353,27 @@ http.createServer((req, res) => {
         persisted_records:persistedRecords,
         persist_failures:persistFailures,
         last_persist_at:lastPersistAt,
-        last_persist_error:lastPersistError
+        last_persist_error:lastPersistError,
+        cumulative,
+        cumulative_metrics_at:cumulativeMetricsAt,
+        cumulative_metrics_error:cumulativeMetricsError
       }
+    }));
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
     }));
   }
   if (req.url === '/export') {

@@ -479,3 +479,14 @@ The isolated `betsapi-trial-collector` keeps its NDJSON file only as a local eme
 This namespace is deliberately separate from operational MatchPilot/FutPython/TotalCorner tables. The collector self-provisions only this dedicated schema/table and reports persistence readiness, queue depth, persisted-row count and sanitized failures through `/healthz`.
 
 The Render filesystem remains ephemeral and must never be treated as the authoritative copy of the provider trial.
+
+
+### Provider trial cumulative health
+
+The temporary provider collector exposes:
+- `/healthz`: current-instance health plus cached cumulative Neon metrics;
+- `/metrics`: forced refresh of cumulative Neon metrics.
+
+Cumulative metrics include total persistent rows, instance count, first/last observation timestamps, per-provider row counts, stored error rows, HTTP 429 count and HTTP 5xx count. These values come from `provider_trial.records`, so they survive Render sleep/restarts.
+
+During the time-limited provider trial, a separate Render keep-alive cron may ping `/healthz` periodically. It exists only to avoid gaps in this temporary collection window and must be disabled/deleted when issue #40 reaches the shutdown gate.
