@@ -469,7 +469,10 @@ export async function reprocessingSection(client, sweep) {
       (SELECT count(*)::int FROM fpt_raw_retention_log) AS raw_deletions_logged,
       (SELECT count(*)::int FROM fpt_reprocessing_runs) AS runs,
       (SELECT count(*)::int FROM fpt_reprocessing_runs r WHERE r.status = 'failed' AND NOT EXISTS (
-         SELECT 1 FROM fpt_reprocessing_runs x WHERE x.status = 'complete' AND x.mode = r.mode AND x.started_at > r.started_at))
+         -- Resolved only by a later complete run of the same mode whose scope covers the failed one (full scope covers all).
+         SELECT 1 FROM fpt_reprocessing_runs x WHERE x.status = 'complete' AND x.mode = r.mode AND x.started_at > r.started_at
+           AND ((x.scope->'datasets') = 'null'::jsonb OR ((r.scope->'datasets') <> 'null'::jsonb
+             AND (x.scope->'datasets') @> (r.scope->'datasets')))))
         AS failed_runs_unresolved`);
   const versionSets = await all(client, `SELECT parser_version, schema_version, transform_version, count(*)::int AS n
     FROM fpt_match_versions GROUP BY 1, 2, 3 ORDER BY 1, 2, 3`);

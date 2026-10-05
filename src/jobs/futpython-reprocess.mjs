@@ -26,7 +26,16 @@ export async function runReprocessCommand(argv = process.argv) {
     const result = await reprocessRaw(client, {mode, actor: arg(argv, 'by'), reason: arg(argv, 'reason'),
       datasetKeys: datasets.length ? datasets : null});
     // New outputs reach the facts now; nothing changes when the run was a dry run or found no difference.
-    if (mode === 'apply' && result.inserted > 0) result.normalizedLayer = await refreshNormalizedLayer(client);
+    if (mode === 'apply' && result.inserted > 0) {
+      try {
+        result.normalizedLayer = await refreshNormalizedLayer(client);
+      } catch (error) {
+        // The versions are in, the facts are not: the run is not complete and the certificate gate must see it.
+        await client.query(`UPDATE fpt_reprocessing_runs SET status='failed', finished_at=now(), error=$2 WHERE run_id=$1`,
+          [result.runId, `facts refresh failed: ${redact(error?.message || error)}`.slice(0, 300)]).catch(() => {});
+        throw error;
+      }
+    }
     return result;
   });
 }

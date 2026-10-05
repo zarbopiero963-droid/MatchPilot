@@ -35,6 +35,8 @@ export async function reprocessRaw(client, {
     [runId, mode, lineage.parserVersion, lineage.schemaVersion, lineage.transformVersion, JSON.stringify(versionSets),
       actor, reason, JSON.stringify({datasets: datasetKeys}), before]);
   const stats = {snapshots: 0, hashMismatch: 0, rows: 0, unchanged: 0, newOutput: 0, inserted: 0, diffs: 0};
+  // The run row above is committed on its own; an apply is all-or-nothing, so a failure leaves no partial versions.
+  if (mode === 'apply') await client.query('BEGIN');
   try {
     const snapshots = (await client.query(
       `SELECT r.snapshot_id, r.dataset_key, r.source_kind, r.acquired_at, r.sha256,
@@ -88,7 +90,11 @@ export async function reprocessRaw(client, {
       }
       if (mode === 'apply' && fresh.length) {
         for (let i = 0; i < fresh.length; i += batchSize) stats.inserted += await insertMatchBatch(client, fresh.slice(i, i + batchSize));
-        for (const rec of fresh) known.set(`${rec.match_key}|${rec.payload_sha256}`, {match_key: rec.match_key, payload: rec.payload});
+        // Reload what this snapshot now holds, with version ids, so a later diff points at the right previous version.
+        const stored = (await client.query(
+          `SELECT match_key, payload_sha256, version_id, payload FROM fpt_match_versions WHERE snapshot_id=$1 ORDER BY version_id`,
+          [snap.snapshot_id])).rows;
+        for (const v of stored) known.set(`${v.match_key}|${v.payload_sha256}`, v);
       }
     }
     const after = Number((await client.query('SELECT count(*)::bigint AS n FROM fpt_match_versions')).rows[0].n);
@@ -97,8 +103,10 @@ export async function reprocessRaw(client, {
          rows_parsed=$4, rows_unchanged=$5, rows_new_output=$6, versions_inserted=$7, versions_after=$8
        WHERE run_id=$1`,
       [runId, stats.snapshots, stats.hashMismatch, stats.rows, stats.unchanged, stats.newOutput, stats.inserted, after]);
+    if (mode === 'apply') await client.query('COMMIT');
     return {runId, mode, lineage, versionsBefore: before, versionsAfter: after, ...stats};
   } catch (error) {
+    if (mode === 'apply') await client.query('ROLLBACK').catch(() => {});
     await client.query(`UPDATE fpt_reprocessing_runs SET status='failed', finished_at=now(), error=$2 WHERE run_id=$1`,
       [runId, String(error?.message || error).slice(0, 300)]).catch(() => {});
     throw error;

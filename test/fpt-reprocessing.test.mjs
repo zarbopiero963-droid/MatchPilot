@@ -114,3 +114,81 @@ test('a parser change is reprocessed from the raw: dry run, apply, idempotent re
     await admin.end();
   }
 });
+
+test('reprocessing apply is atomic, diffs keep version ids across snapshots, and the gate checks scope', {timeout: 60000}, async t => {
+  const schema = 'fpt_reprocess_atomic_test';
+  let pg;
+  try {
+    pg = (await import('pg')).default;
+    const admin = new pg.Client({connectionString: databaseUrl});
+    await admin.connect();
+    await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
+    await admin.query(`CREATE SCHEMA ${schema}`);
+    await admin.end();
+  } catch {
+    if (process.env.CI) throw new Error('throwaway postgres unavailable');
+    return t.skip('throwaway postgres unavailable');
+  }
+  const url = new URL(databaseUrl);
+  url.searchParams.set('options', `-c search_path=${schema}`);
+  process.env.DATABASE_URL = url.toString();
+  const db = await import('../src/db.mjs');
+  const { migrate } = await import('../src/migrate.mjs');
+  const store = await import('../src/providers/futpython/store.mjs');
+  const { reprocessRaw } = await import('../src/providers/futpython/reprocess.mjs');
+  const { parseCsv } = await import('../src/lib/csv.mjs');
+  const { fullRawSweep, reprocessingSection } = await import('../src/futpython-certificate.mjs');
+  try {
+    await migrate();
+    await db.withClient(async client => {
+      const put = async (key, text, at) => {
+        const [country, league, season] = key.split('/');
+        await client.query(`INSERT INTO fpt_catalog(dataset_key,country_slug,league_slug,season,route) VALUES($1,$2,$3,$4,$5)
+          ON CONFLICT DO NOTHING`, [key, country, league, season, `/api/download/${key}`]);
+        const parsed = parseCsv(text);
+        await store.storeDataset(client, {datasetKey: key, sourceKind: 'dataset', providerPath: `/api/download/${key}`,
+          countrySlug: country, leagueSlug: league, season, text, headers: parsed.headers, rows: parsed.rows, acquiredAt: new Date(at)});
+      };
+      // Same dataset, two snapshots: the padded team's score is corrected in the second one.
+      await put('netherlands/eredivisie/2024', 'Date,Home,Away,Home_Score\n2024-08-10,Ajax ,PSV,2\n', '2024-08-11T00:00:00Z');
+      await put('netherlands/eredivisie/2024', 'Date,Home,Away,Home_Score\n2024-08-10,Ajax ,PSV,3\n', '2024-08-12T00:00:00Z');
+      await put('netherlands/eredivisie/2025', 'Date,Home,Away,Home_Score\n2025-08-10,PSV ,Ajax,1\n', '2025-08-11T00:00:00Z');
+      const v2 = {sourceProvider: 'futpythontrader', parserVersion: 'fpt-csv-2', schemaVersion: 'fpt-schema-4', transformVersion: 'fpt-norm-1'};
+      const trim = txt => { const p = parseCsv(txt); return {...p, rows: p.rows.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, String(v).trim()])))}; };
+      const count = async () => Number((await client.query('SELECT count(*) AS n FROM fpt_match_versions')).rows[0].n);
+
+      // A failure on the last snapshot leaves no partial versions behind.
+      const before = await count();
+      const boom = txt => { if (txt.includes('2025-08-10')) throw new Error('parser crashed'); return trim(txt); };
+      await assert.rejects(reprocessRaw(client, {mode: 'apply', parse: boom, lineage: v2, actor: 'owner', reason: 'v2'}), /parser crashed/);
+      assert.equal(await count(), before, 'rolled back: no version from the first two snapshots survived');
+      let section = await reprocessingSection(client, await fullRawSweep(client));
+      assert.equal(section.failed_runs_unresolved, 1);
+      assert.equal(section.gate, false);
+
+      // A later complete run on a narrower scope does not resolve a failed full-scope run.
+      await reprocessRaw(client, {mode: 'apply', parse: trim, lineage: v2, actor: 'owner', reason: 'only 2025',
+        datasetKeys: ['netherlands/eredivisie/2025']});
+      section = await reprocessingSection(client, await fullRawSweep(client));
+      assert.equal(section.failed_runs_unresolved, 1);
+
+      // The full run resolves it; its diff for the second snapshot points at the version inserted from the first.
+      const run = await reprocessRaw(client, {mode: 'apply', parse: trim, lineage: v2, actor: 'owner', reason: 'v2 full'});
+      assert.equal(run.inserted, 2);
+      const diffs = (await client.query(`SELECT d.snapshot_id, d.previous_version_id, v.parser_version, v.payload->>'Home_Score' AS score
+        FROM fpt_reprocessing_diffs d LEFT JOIN fpt_match_versions v ON v.version_id = d.previous_version_id
+        WHERE d.run_id = $1 ORDER BY d.snapshot_id`, [run.runId])).rows;
+      assert.equal(diffs.length, 2);
+      assert.deepEqual([diffs[1].parser_version, diffs[1].score], ['fpt-csv-2', '2'],
+        'the second snapshot diff references the v2 version inserted from the first snapshot');
+      section = await reprocessingSection(client, await fullRawSweep(client));
+      assert.equal(section.failed_runs_unresolved, 0);
+    });
+  } finally {
+    await db.closePool();
+    const admin = new pg.Client({connectionString: databaseUrl});
+    await admin.connect();
+    await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
+    await admin.end();
+  }
+});
