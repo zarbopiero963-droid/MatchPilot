@@ -226,10 +226,21 @@ export function extractEventIds(body, max = 10) {
   return ids;
 }
 
-export function createHourlyBudget({ limitPerHour = DEFAULT_LIMIT_PER_HOUR, reserve = 120, now = () => Date.now() } = {}) {
+export function createHourlyBudget({ limitPerHour = DEFAULT_LIMIT_PER_HOUR, reserve = 120, now = () => Date.now(), initialState = null } = {}) {
   let windowStart=now();
   let used=0;
   const effectiveLimit=Math.max(1, Number(limitPerHour) - Math.max(0, Number(reserve)));
+  function restore(state) {
+    if (!state) return;
+    const restoredStart=Date.parse(state.window_started_at || '');
+    const restoredUsed=Number(state.used);
+    const t=now();
+    if (Number.isFinite(restoredStart) && Number.isFinite(restoredUsed) && restoredUsed >= 0 && t-restoredStart < 3600000) {
+      windowStart=restoredStart;
+      used=restoredUsed;
+    }
+  }
+  restore(initialState);
   function rollover() {
     const t=now();
     if (t - windowStart >= 3600000) {
@@ -245,6 +256,7 @@ export function createHourlyBudget({ limitPerHour = DEFAULT_LIMIT_PER_HOUR, rese
       used += cost;
       return true;
     },
+    restore,
     snapshot() {
       rollover();
       return {
@@ -303,7 +315,9 @@ export function createEverythingRuntime({
   fetchImpl=fetch,
   baseUrl='https://api.b365api.com',
   write=()=>{},
-  now=()=>Date.now()
+  now=()=>Date.now(),
+  initialRateState=null,
+  persistRateState=async()=>{}
 } = {}) {
   const enabled=String(env.BETSAPI_EVERYTHING_ENABLED || '').toLowerCase() === 'true';
   const token=resolveEverythingToken(env);
@@ -312,7 +326,8 @@ export function createEverythingRuntime({
   const budget=createHourlyBudget({
     limitPerHour:Number(env.BETSAPI_EVERYTHING_REQS_PER_HOUR || DEFAULT_LIMIT_PER_HOUR),
     reserve:Number(env.BETSAPI_EVERYTHING_RESERVE || 120),
-    now
+    now,
+    initialState:initialRateState?.budget || initialRateState
   });
   const censusState={
     sport_index:0,
@@ -338,8 +353,9 @@ export function createEverythingRuntime({
     cycles:0,last_at:null,attempted:0,ok:0,skipped:0,permission_denied:0,rate_limited:0,http_error:0,last_error:null,
     endpoint_results:{}
   };
-  let upstreamHoldUntil=0;
-  let upstreamHoldReason=null;
+  let upstreamHoldUntil=Number(initialRateState?.hold_until_ms || 0);
+  let upstreamHoldReason=initialRateState?.hold_reason || null;
+  let lastRateStatePersistError=null;
   const state=Object.fromEntries(families.map(k=>[k,{
     status:enabled ? (token ? 'READY' : 'NO_TOKEN') : 'DISABLED',
     last_at:null,
@@ -350,13 +366,41 @@ export function createEverythingRuntime({
     fields:[]
   }]));
 
-  function applyRateLimitHold(res) {
+  async function persistCurrentRateState() {
+    const snap=budget.snapshot();
+    const state={
+      version:1,
+      budget:snap,
+      hold_until_ms:upstreamHoldUntil || 0,
+      hold_until:upstreamHoldUntil ? new Date(upstreamHoldUntil).toISOString() : null,
+      hold_reason:upstreamHoldReason,
+      persisted_at:new Date(now()).toISOString()
+    };
+    try {
+      await persistRateState(state);
+      lastRateStatePersistError=null;
+    } catch (error) {
+      lastRateStatePersistError=String(error?.message||error);
+      throw error;
+    }
+    return state;
+  }
+
+  async function spendPersistentBudget(cost=1) {
+    if (!budget.canSpend(cost)) return false;
+    if (!budget.spend(cost)) return false;
+    await persistCurrentRateState();
+    return true;
+  }
+
+  async function applyRateLimitHold(res) {
     if (res?.status !== 429) return;
     const reset=Number(res.headers?.get?.('x-ratelimit-reset'));
     const t=now();
     const resetMs=Number.isFinite(reset) && reset*1000>t ? reset*1000 : t+60000;
     upstreamHoldUntil=Math.max(upstreamHoldUntil,resetMs);
     upstreamHoldReason='HTTP_429';
+    await persistCurrentRateState();
   }
 
   function holdActive() {
@@ -371,7 +415,7 @@ export function createEverythingRuntime({
     const family=EVERYTHING_FAMILIES[familyKey];
     if (!enabled || !token || !family) return null;
     if (holdActive()) return {skipped:true,reason:'RATE_LIMIT_HOLD',status:429};
-    if (!budget.spend(1)) {
+    if (!await spendPersistentBudget(1)) {
       state[familyKey].status='BUDGET_HOLD';
       return null;
     }
@@ -386,7 +430,7 @@ export function createEverythingRuntime({
       const text=await res.text();
       try { body=JSON.parse(text); } catch { body={raw:text.slice(0,50000)}; }
       const cls=classifyHttp(status);
-      applyRateLimitHold(res);
+      await applyRateLimitHold(res);
       state[familyKey].status=cls;
       state[familyKey].last_http_status=status;
       state[familyKey].last_at=new Date(now()).toISOString();
@@ -461,7 +505,9 @@ export function createEverythingRuntime({
       rate_limit_hold:{
         active:holdActive(),
         until:upstreamHoldUntil ? new Date(upstreamHoldUntil).toISOString() : null,
-        reason:upstreamHoldReason
+        reason:upstreamHoldReason,
+        persisted:Boolean(initialRateState) || budget.snapshot().used > 0,
+        persist_error:lastRateStatePersistError
       },
       state
     };
@@ -480,7 +526,7 @@ export function createEverythingRuntime({
     if (holdActive()) {
       return {ok:false,skipped:true,reason:'RATE_LIMIT_HOLD',status:429};
     }
-    if (!budget.spend(1)) {
+    if (!await spendPersistentBudget(1)) {
       return { ok:false, skipped:true, reason:'BUDGET_HOLD' };
     }
     const url=buildUrl(baseUrl,token,{path:endpoint.path,params:check.params});
@@ -492,7 +538,7 @@ export function createEverythingRuntime({
       let body;
       try { body=JSON.parse(text); } catch { body={raw:text.slice(0,50000)}; }
       const classification=classifyHttp(res.status);
-      applyRateLimitHold(res);
+      await applyRateLimitHold(res);
       const fields=discoverFieldPaths(body);
       write('betsapi_documented_'+endpointKey,{
         endpoint_key:endpointKey,
