@@ -4,7 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import pg from 'pg';
 import { createEverythingRuntime } from './lib/betsapi-everything.mjs';
-import { initReconciliation, normalizeTrialRows, persistNormalizedBatch, reconciliationSummary, rebuildOddsV3FromRaw, ensureRawRecordsAppendOnly, rawRecordsAppendOnlyStatus } from './lib/provider-trial-reconciliation.mjs';
+import { initReconciliation, normalizeTrialRows, persistNormalizedBatch, reconciliationSummary, rebuildOddsV3FromRaw, ensureRawRecordsAppendOnly, rawRecordsAppendOnlyStatus, ensureRateProtectionAuditMarker, rateProtectionAuditSplit } from './lib/provider-trial-reconciliation.mjs';
 
 const PORT = Number(process.env.PORT || 10000);
 const BETS_TOKEN = process.env.BETSAPI_TOKEN?.trim();
@@ -118,6 +118,7 @@ async function initPersistence() {
   `);
   await initReconciliation(dbPool);
   await ensureRawRecordsAppendOnly(dbPool);
+  await ensureRateProtectionAuditMarker(dbPool,{commit:process.env.RENDER_GIT_COMMIT||null});
   dbReady = true;
   oddsRebuildRunning = true;
   rebuildOddsV3FromRaw(dbPool)
@@ -430,6 +431,7 @@ async function reconciliationCertificate() {
 
   const databaseProbe=await dbPool.query('SELECT 1 AS ok');
   const rawStatus=await rawRecordsAppendOnlyStatus(dbPool);
+  const rateAudit=await rateProtectionAuditSplit(dbPool);
   const [
     summary,
     sports,
@@ -512,6 +514,7 @@ async function reconciliationCertificate() {
     raw_table_exists:rawStatus.raw_table_exists===true,
     raw_append_only_enforced:rawStatus.append_only_trigger_enabled===true,
     persistent_rate_state_present:Boolean(state.betsapi_rate_state_v1?.budget?.window_started_at),
+    rate_audit_marker_present:rateAudit.marker_present===true,
     legacy_bet365_disabled:!BETS_LEGACY_ENABLED,
     full_catalog_probe_disabled:!EVERYTHING_FULL_CATALOG_ENABLED,
     trial_runtime_configured:trialRuntimeConfigured
@@ -546,6 +549,7 @@ async function reconciliationCertificate() {
       odds_summary:os,
       raw:rawStatus,
       rate_state:state.betsapi_rate_state_v1||null,
+      rate_audit:rateAudit,
       state,
       collector:{
         everything_enabled:EVERYTHING_ENABLED,
