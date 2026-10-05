@@ -2,7 +2,7 @@
 
 **Esito: CERTIFIED WITH KNOWN LIMITATIONS**
 
-Sorgente del report: `GET https://matchpilot-test.onrender.com/api/futpython-certificate` (deploy live del commit `7072cd8`, risposta salvata alle 22:25Z e rirenderizzata con `--from-json`). Report costruito alle 2026-10-05T22:22:07.799Z (UTC). Ogni numero delle sezioni 1–20 viene dal report; nessun valore è stato scritto a mano. La sezione "Verifica incrociata" riporta controlli indipendenti fatti fuori dal report (solo richieste HTTP pubbliche al servizio Render, nessuna query manuale su Neon e nessuna chiamata a FutPythonTrader). Issue #12 (FPT-CERT).
+Sorgente del report: `GET https://matchpilot-test.onrender.com/api/futpython-certificate` (deploy live del commit `6f83e2e`, risposta salvata alle 22:42Z e rirenderizzata con `--from-json`). Report costruito alle 2026-10-05T22:39:32.375Z (UTC). Ogni numero delle sezioni 1–20 viene dal report; nessun valore è stato scritto a mano. La sezione "Verifica incrociata" riporta controlli indipendenti fatti fuori dal report (solo richieste HTTP pubbliche al servizio Render, nessuna query manuale su Neon e nessuna chiamata a FutPythonTrader). Issue #12 (FPT-CERT).
 
 ## Gate
 | gate | esito |
@@ -32,8 +32,8 @@ Sorgente del report: `GET https://matchpilot-test.onrender.com/api/futpython-cer
 | campo | valore |
 | --- | --- |
 | certificate_version | fpt-cert-1 |
-| generated_at | 2026-10-05T22:22:07.799Z |
-| commit_sha | 7072cd87b20f5c379d0806f1cd270c8b1ed87cdc |
+| generated_at | 2026-10-05T22:39:32.375Z |
+| commit_sha | 6f83e2ea82db7ab68df5780754668201ff7f7bba |
 | git_branch | main |
 | render_service_id | srv-davpi23ncjis73f9dkbg |
 | render_service_name | matchpilot-test |
@@ -41,7 +41,7 @@ Sorgente del report: `GET https://matchpilot-test.onrender.com/api/futpython-cer
 | node_version | v26.10.0 |
 | neon_server_version | 18.6 (4e955f5) |
 | database | neondb |
-| db_now | 2026-10-05T22:22:07Z |
+| db_now | 2026-10-05T22:39:32Z |
 | last_migration | 020-fpt-raw-retention-reprocessing.sql |
 | last_migration_applied_at | 2026-10-05T20:26:12Z |
 | migrations_applied | 20 |
@@ -1237,17 +1237,17 @@ Le risposte vengono da Neon. Il modulo non importa il client FutPythonTrader.
 
 | domanda | query | righe | upstream | filtri | ms | prima riga |
 | --- | --- | --- | --- | --- | --- | --- |
-| teamSearch | teamSearch | 2 | 0 |  | 102 | {"canonical_name":"Deportes Tolima","country_slug":"colombia"} |
-| teamSummary | teamSummary | 1 | 0 |  | 100 | {"played":285,"won":136,"drawn":80,"lost":69} |
-| headToHead | headToHead | 5 | 0 |  | 100 | {"internal_match_id":"fpt:hash:7ec40e86c0ef7f1f500ef7b88ddcc0d8","country_slug":"colombia","league_slug":"primera-a","season":"2026","match_date":"2026-07-25T00:00:00.000Z","home_name":"Deportes Tolima","away_name":"Junior","home_score":2,"away_score":1,"favorite_side":"HOME","favorite_odd":"2.050"} |
-| awayMatches | awayMatches | 20 | 0 |  | 100 | {"internal_match_id":"fpt:hash:ce915b1d43dd9ac4d2f3e76f7c027da4","country_slug":"colombia","league_slug":"primera-a","season":"2026","match_date":"2026-09-16T00:00:00.000Z","home_name":"Once Caldas","away_name":"Deportes Tolima","home_score":1,"away_score":0,"favorite_side":"HOME","favorite_odd":"2.250"} |
-| favoriteOddsRange | favoriteOddsRange | 50 | 0 | before fav_min fav_max | 198 | {"internal_match_id":"fpt:hash:c6309aa1703c63998cb93391fe43855d","country_slug":"japan","league_slug":"j2-league","season":"2026-2027","match_date":"2026-09-26T00:00:00.000Z","home_name":"Tegevajaro Miyazaki","away_name":"Hokkaido Consadole Sapporo","home_score":3,"away_score":2,"favorite_side":"HOME","favorite_odd":"1.810"} |
-| xgBySeason | xgBySeason | 6 | 0 |  | 100 | {"season":"2021","matches":52,"matches_with_xg":0,"xg_for_avg":null,"xg_against_avg":null} |
-| searchMatches | searchMatches | 27 | 0 | before team venue:home competition season fav_min fav_max result | 101 | {"internal_match_id":"fpt:hash:32e9d9fe84799e34764122dd8651e3b5","country_slug":"colombia","league_slug":"primera-a","season":"2025","match_date":"2025-12-16T00:00:00.000Z","home_name":"Deportes Tolima","away_name":"Junior","home_score":0,"away_score":1,"favorite_side":"HOME","favorite_odd":"1.670"} |
-| teamMatchesAsOf | teamMatchesAsOf | 20 | 0 |  | 113 | {"internal_match_id":"fpt:hash:6ba5bf32f8089d20c57b35afe5686fc0","match_date":"2026-09-20T00:00:00.000Z","home_name":"Deportes Tolima","away_name":"America De Cali","acquired_at":"2026-10-04T14:48:51.157Z","home_score":1,"away_score":1} |
-| teamMatchesAsOfRepeat | teamMatchesAsOf | 20 | 0 |  | 113 | {"internal_match_id":"fpt:hash:6ba5bf32f8089d20c57b35afe5686fc0","match_date":"2026-09-20T00:00:00.000Z","home_name":"Deportes Tolima","away_name":"America De Cali","acquired_at":"2026-10-04T14:48:51.157Z","home_score":1,"away_score":1} |
-| teamMatchesAsOfBeforeMirror | teamMatchesAsOf | 0 | 0 |  | 101 | null |
-| leaguesWithCoverage | leaguesWithCoverage | 34 | 0 |  | 103 | {"country_slug":"australia","league_slug":"a-league","available_seasons":6,"seasons_meeting_coverage":3,"matches":"995"} |
+| teamSearch | teamSearch | 2 | 0 |  | 104 | {"canonical_name":"Deportes Tolima","country_slug":"colombia"} |
+| teamSummary | teamSummary | 1 | 0 |  | 105 | {"played":285,"won":136,"drawn":80,"lost":69} |
+| headToHead | headToHead | 5 | 0 |  | 99 | {"internal_match_id":"fpt:hash:7ec40e86c0ef7f1f500ef7b88ddcc0d8","country_slug":"colombia","league_slug":"primera-a","season":"2026","match_date":"2026-07-25T00:00:00.000Z","home_name":"Deportes Tolima","away_name":"Junior","home_score":2,"away_score":1,"favorite_side":"HOME","favorite_odd":"2.050"} |
+| awayMatches | awayMatches | 20 | 0 |  | 97 | {"internal_match_id":"fpt:hash:ce915b1d43dd9ac4d2f3e76f7c027da4","country_slug":"colombia","league_slug":"primera-a","season":"2026","match_date":"2026-09-16T00:00:00.000Z","home_name":"Once Caldas","away_name":"Deportes Tolima","home_score":1,"away_score":0,"favorite_side":"HOME","favorite_odd":"2.250"} |
+| favoriteOddsRange | favoriteOddsRange | 50 | 0 | before fav_min fav_max | 194 | {"internal_match_id":"fpt:hash:c6309aa1703c63998cb93391fe43855d","country_slug":"japan","league_slug":"j2-league","season":"2026-2027","match_date":"2026-09-26T00:00:00.000Z","home_name":"Tegevajaro Miyazaki","away_name":"Hokkaido Consadole Sapporo","home_score":3,"away_score":2,"favorite_side":"HOME","favorite_odd":"1.810"} |
+| xgBySeason | xgBySeason | 6 | 0 |  | 98 | {"season":"2021","matches":52,"matches_with_xg":0,"xg_for_avg":null,"xg_against_avg":null} |
+| searchMatches | searchMatches | 27 | 0 | before team venue:home competition season fav_min fav_max result | 102 | {"internal_match_id":"fpt:hash:32e9d9fe84799e34764122dd8651e3b5","country_slug":"colombia","league_slug":"primera-a","season":"2025","match_date":"2025-12-16T00:00:00.000Z","home_name":"Deportes Tolima","away_name":"Junior","home_score":0,"away_score":1,"favorite_side":"HOME","favorite_odd":"1.670"} |
+| teamMatchesAsOf | teamMatchesAsOf | 20 | 0 |  | 145 | {"internal_match_id":"fpt:hash:6ba5bf32f8089d20c57b35afe5686fc0","match_date":"2026-09-20T00:00:00.000Z","home_name":"Deportes Tolima","away_name":"America De Cali","acquired_at":"2026-10-04T14:48:51.157Z","home_score":1,"away_score":1} |
+| teamMatchesAsOfRepeat | teamMatchesAsOf | 20 | 0 |  | 114 | {"internal_match_id":"fpt:hash:6ba5bf32f8089d20c57b35afe5686fc0","match_date":"2026-09-20T00:00:00.000Z","home_name":"Deportes Tolima","away_name":"America De Cali","acquired_at":"2026-10-04T14:48:51.157Z","home_score":1,"away_score":1} |
+| teamMatchesAsOfBeforeMirror | teamMatchesAsOf | 0 | 0 |  | 98 | null |
+| leaguesWithCoverage | leaguesWithCoverage | 34 | 0 |  | 106 | {"country_slug":"australia","league_slug":"a-league","available_seasons":6,"seasons_meeting_coverage":3,"matches":"995"} |
 
 | controllo sulle righe restituite | esito |
 | --- | --- |
@@ -1266,21 +1266,21 @@ Limiti: esecuzione ≤ 250 ms, righe lette ≤ 20,000, nessun Seq Scan su fpt_ma
 
 | query | esito | exec ms | plan ms | righe lette | indici | seq scan grandi |
 | --- | --- | --- | --- | --- | --- | --- |
-| awayMatches | PASS | 0.108 | 0.178 | 21 | fpt_match_facts_away_idx | - |
-| favoriteOddsRange | PASS | 0.466 | 0.201 | 297 | fpt_match_facts_date_desc_idx | - |
-| xgBySeason | PASS | 0.868 | 0.224 | 285 | fpt_match_facts_home_idx, fpt_match_facts_away_idx | - |
-| xgBySeason | PASS | 6.597 | 0.158 | 2496 | fpt_match_facts_comp_season_idx | - |
-| searchMatches | PASS | 0.834 | 0.244 | 452 | fpt_match_facts_comp_season_idx | - |
-| teamMatchesAsOf | PASS | 13.276 | 0.408 | 855 | fpt_match_facts_home_idx, fpt_match_facts_away_idx, fpt_match_versions_match_idx | - |
-| leagueFieldCoverage | PASS | 0.258 | 0.514 | 1033 | fpt_field_coverage_dataset_field_idx | - |
-| leaguesWithCoverage | PASS | 2.043 | 0.549 | 1642 | fpt_field_coverage_field_idx | - |
-| teamSearch | PASS | 0.138 | 16.564 | 6 | fpt_team_aliases_normalized_idx, fpt_teams_pkey | - |
-| teamMatches | PASS | 0.731 | 0.21 | 285 | fpt_match_facts_home_idx, fpt_match_facts_away_idx | - |
-| teamSummary | PASS | 0.678 | 0.223 | 285 | fpt_match_facts_home_idx, fpt_match_facts_away_idx | - |
-| headToHead | PASS | 0.484 | 0.214 | 283 | fpt_match_facts_away_idx | - |
-| competitionSeason | PASS | 1.844 | 0.162 | 745 | fpt_match_facts_comp_season_idx | - |
-| matchesOnDate | PASS | 0.909 | 0.127 | 350 | fpt_match_facts_date_idx | - |
-| matchDetail | PASS | 0.078 | 2.303 | 2 | fpt_match_facts_pkey, fpt_match_versions_pkey | - |
+| awayMatches | PASS | 0.115 | 0.203 | 21 | fpt_match_facts_away_idx | - |
+| favoriteOddsRange | PASS | 0.473 | 0.198 | 297 | fpt_match_facts_date_desc_idx | - |
+| xgBySeason | PASS | 0.795 | 0.226 | 285 | fpt_match_facts_home_idx, fpt_match_facts_away_idx | - |
+| xgBySeason | PASS | 5.153 | 0.188 | 2496 | fpt_match_facts_comp_season_idx | - |
+| searchMatches | PASS | 0.731 | 0.211 | 452 | fpt_match_facts_comp_season_idx | - |
+| teamMatchesAsOf | PASS | 25.127 | 0.4 | 855 | fpt_match_facts_home_idx, fpt_match_facts_away_idx, fpt_match_versions_match_idx | - |
+| leagueFieldCoverage | PASS | 0.271 | 0.528 | 1033 | fpt_field_coverage_dataset_field_idx | - |
+| leaguesWithCoverage | PASS | 2.066 | 0.56 | 1642 | fpt_field_coverage_field_idx | - |
+| teamSearch | PASS | 0.084 | 2.486 | 6 | fpt_team_aliases_normalized_idx, fpt_teams_pkey | - |
+| teamMatches | PASS | 0.634 | 0.19 | 285 | fpt_match_facts_home_idx, fpt_match_facts_away_idx | - |
+| teamSummary | PASS | 0.557 | 0.192 | 285 | fpt_match_facts_home_idx, fpt_match_facts_away_idx | - |
+| headToHead | PASS | 0.51 | 0.19 | 283 | fpt_match_facts_away_idx | - |
+| competitionSeason | PASS | 1.783 | 0.146 | 745 | fpt_match_facts_comp_season_idx | - |
+| matchesOnDate | PASS | 0.83 | 0.123 | 350 | fpt_match_facts_date_idx | - |
+| matchDetail | PASS | 0.067 | 2.066 | 2 | fpt_match_facts_pkey, fpt_match_versions_pkey | - |
 
 Gate: **PASS**
 
@@ -1318,11 +1318,11 @@ Checkpoint per pipeline aggiornati dal ciclo del watchdog (avvio e ogni ora); le
 
 | scope | stato | ultimo successo | aggiornato | retry | checkpoint |
 | --- | --- | --- | --- | --- | --- |
-| backfill | ok | 2026-10-04T20:16:06Z | 2026-10-05T22:20:46Z | 0 | {"remaining":0,"catalog_datasets":1027,"terminal_datasets":1027} |
-| catalog | ok | 2026-10-05T22:17:03Z | 2026-10-05T22:20:46Z | 0 | {"catalog_count":1027} |
-| current_season | stale | - | 2026-10-05T22:20:46Z | 0 | {"ttl_hours":24,"stale_datasets":54} |
-| incremental | ok | 2026-10-05T16:18:53Z | 2026-10-05T22:20:46Z | 0 | {"last_status":"running","max_gap_hours":7} |
-| today | ok | 2026-10-05T04:18:18Z | 2026-10-05T22:20:46Z | 0 | {} |
+| backfill | ok | 2026-10-04T20:16:06Z | 2026-10-05T22:38:23Z | 0 | {"remaining":0,"catalog_datasets":1027,"terminal_datasets":1027} |
+| catalog | ok | 2026-10-05T22:17:03Z | 2026-10-05T22:38:23Z | 0 | {"catalog_count":1027} |
+| current_season | stale | - | 2026-10-05T22:38:23Z | 0 | {"ttl_hours":24,"stale_datasets":54} |
+| incremental | ok | 2026-10-05T22:20:58Z | 2026-10-05T22:38:23Z | 0 | {"last_status":"complete","max_gap_hours":7} |
+| today | ok | 2026-10-05T04:18:18Z | 2026-10-05T22:38:23Z | 0 | {} |
 
 | gap | priorità | stato | righe |
 | --- | --- | --- | --- |
@@ -1370,8 +1370,9 @@ Controlli indipendenti eseguiti dall'agente dopo il cron reale, fuori dal report
 - `GET /api/fpt/reconciliation` alle 22:00Z: 104 `current_season_stale` QUEUED, 1 `season_not_published` UNRECOVERABLE (stato prima del primo cron di refresh introdotto dalla #88).
 - Stessa route alle 22:18:43Z, durante il cron delle 22:17: 8 RECOVERED, 42 RECOVERING, 54 QUEUED. Alle 22:21:10Z, a run finito: **50 RECOVERED** (tetto `FUTPYTHON_REFRESH_PER_RUN`=50), **54 QUEUED** per i cron delle 04:17 e 10:17 UTC, 0 RECOVERING, 0 FAILED. Tutte le route rispondono con `upstream_calls` 0.
 - Il run cron `fpt-1791238620320-097395bf` (22:17:00Z) è `complete` con 0 snapshot e 0 righe nuove: i 50 dataset riscaricati hanno contenuto identico a quello salvato, quindi nessuna versione duplicata (raw = DB resta 161.801 = 161.801).
+- Dopo il deploy di `6f83e2e` (#92) il checkpoint `incremental` riporta il run delle 22:17 `complete` con ultimo successo alle 22:20:58Z; sul deploy precedente mostrava `running` e il successo delle 16:18 (difetto corretto nella #92).
 - 20 richieste simultanee a `GET /api/fpt/away-matches?team=fpt:team:1e9b4769a363d1f58dcecae6&limit=20` alle 22:26:22Z: 20 risposte HTTP 200, 20 righe ciascuna, somma `upstream_calls` = 0, tempo DB massimo 102 ms.
-- `GET /coverage` 200 (1,70 s), `/coverage?country=italy&league=serie-a` 200, `/api/fpt/coverage-competitions?limit=500` 200, `/api/fpt/coverage-seasons?country=england&league=premier-league` 200; slug non valido 400; id squadra non valido su `/api/fpt/away-matches` 400; `/healthz` 200.
+- Dopo il deploy di `6f83e2e`: `GET /coverage` 200 (1,20 s), `/api/fpt/coverage-competitions?limit=500` 200, `/api/fpt/reconciliation` 200. Prima del deploy: `/coverage?country=italy&league=serie-a` 200, `/api/fpt/coverage-seasons?country=england&league=premier-league` 200, slug non valido 400, id squadra non valido su `/api/fpt/away-matches` 400, `/healthz` 200.
 
 ## Esito
 **CERTIFIED WITH KNOWN LIMITATIONS**
