@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import pg from 'pg';
+import { createEverythingRuntime } from './lib/betsapi-everything.mjs';
 
 const PORT = Number(process.env.PORT || 10000);
 const BETS_TOKEN = process.env.BETSAPI_TOKEN?.trim();
@@ -25,6 +26,9 @@ const TC_MAX_DETAILS = Number(process.env.TOTALCORNER_MAX_DETAILS || 10);
 
 const SCORETREND_MS = Number(process.env.SCORETREND_POLL_MS || 30000);
 const SCORETREND_SLOW_MS = Number(process.env.SCORETREND_SLOW_EVERY_MS || 300000);
+const EVERYTHING_ENABLED = String(process.env.BETSAPI_EVERYTHING_ENABLED || '').toLowerCase() === 'true';
+const EVERYTHING_DISCOVERY_MS = Number(process.env.BETSAPI_EVERYTHING_DISCOVERY_MS || 60000);
+const EVERYTHING_PREMATCH_MS = Number(process.env.BETSAPI_EVERYTHING_PREMATCH_MS || 300000);
 
 const TC_LIVE_COLUMNS = [
   'events','odds','asian','cornerLine','cornerLineHalf','goalLine','goalLineHalf',
@@ -57,7 +61,8 @@ let lastKeepaliveError = null;
 let last = {
   bets_inplay:0,bets_detail:0,bets_upcoming:0,
   tc_inplay:0,tc_detail:0,tc_slow:0,
-  scoretrend:0,scoretrend_slow:0
+  scoretrend:0,scoretrend_slow:0,
+  everything_discovery:0,everything_prematch:0
 };
 let betsEventIds = [];
 let tcMatchIds = [];
@@ -194,6 +199,12 @@ function write(type, payload) {
   if (DATABASE_URL) persistQueue.push(row);
 }
 
+
+const everythingRuntime = createEverythingRuntime({
+  env:process.env,
+  write:(type,payload)=>write(type,payload)
+});
+
 async function fetchJson(url, headers = {}) {
   const started = Date.now();
   const res = await fetch(url, { headers, signal: AbortSignal.timeout(20000) });
@@ -318,6 +329,15 @@ async function loop() {
     if (now - last.scoretrend >= SCORETREND_MS) await collectScoreTrend();
     if (now - last.scoretrend_slow >= SCORETREND_SLOW_MS) await collectScoreTrendSlow();
 
+    if (EVERYTHING_ENABLED && now - last.everything_discovery >= EVERYTHING_DISCOVERY_MS) {
+      await everythingRuntime.discoveryCycle();
+      last.everything_discovery = Date.now();
+    }
+    if (EVERYTHING_ENABLED && now - last.everything_prematch >= EVERYTHING_PREMATCH_MS) {
+      await everythingRuntime.prematchCycle();
+      last.everything_prematch = Date.now();
+    }
+
     lastError = null;
   } catch (e) {
     lastError = String(e?.message || e);
@@ -367,6 +387,8 @@ http.createServer(async (req, res) => {
     return res.end(JSON.stringify({
       ok: !lastError,
       betsapi_token_present:Boolean(BETS_TOKEN),
+    betsapi_everything_enabled:EVERYTHING_ENABLED,
+    betsapi_everything_token_present:everythingRuntime.status().token_present,
       totalcorner_token_present:Boolean(TC_TOKEN),
       records,
       file_bytes:fs.existsSync(OUT) ? fs.statSync(OUT).size : 0,
@@ -374,6 +396,7 @@ http.createServer(async (req, res) => {
       bets_detail_events:betsEventIds.length,
       totalcorner_detail_matches:tcMatchIds.length,
       last_error:lastError,
+      betsapi_everything:everythingRuntime.status(),
       keepalive:{
         enabled:Boolean(KEEPALIVE_URL) && Number.isFinite(KEEPALIVE_MS) && KEEPALIVE_MS >= 60000,
         interval_ms:KEEPALIVE_MS,
@@ -402,6 +425,10 @@ http.createServer(async (req, res) => {
         cumulative_metrics_error:cumulativeMetricsError
       }
     }));
+  }
+  if (req.url === '/everything-status') {
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify(everythingRuntime.status()));
   }
   if (req.url === '/metrics') {
     const cumulative = await refreshCumulativeMetrics(true);
