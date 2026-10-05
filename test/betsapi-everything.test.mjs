@@ -370,3 +370,45 @@ test('team squad result rows harvest player ids from official response shape', a
   assert.ok(r.context.player_ids >= 1);
   assert.equal(r.endpoint_results.player.status,'OK');
 });
+
+
+test('full catalog retries one transient transport failure and then records success', async () => {
+  const seen=new Map();
+  const rt=createEverythingRuntime({
+    env:{
+      BETSAPI_EVERYTHING_TOKEN:'x',
+      BETSAPI_EVERYTHING_ENABLED:'true',
+      BETSAPI_EVERYTHING_REQS_PER_HOUR:'1800',
+      BETSAPI_EVERYTHING_RESERVE:'120'
+    },
+    fetchImpl:async url=>{
+      const path=new URL(String(url)).pathname;
+      const count=(seen.get(path)||0)+1;
+      seen.set(path,count);
+      if (path==='/v1/bwin/prematch' && count===1) throw new Error('temporary timeout');
+      return {status:200,ok:true,headers:{get:()=>null},text:async()=>JSON.stringify({success:1,results:[]})};
+    }
+  });
+  const r=await rt.fullCatalogCycle();
+  assert.equal(r.endpoint_results.bwin_prematch.status,'OK');
+  assert.equal(r.endpoint_results.bwin_prematch.attempts,2);
+  assert.equal(seen.get('/v1/bwin/prematch'),2);
+});
+
+test('full catalog does not immediately retry rate limits', async () => {
+  let calls=0;
+  const rt=createEverythingRuntime({
+    env:{BETSAPI_EVERYTHING_TOKEN:'x',BETSAPI_EVERYTHING_ENABLED:'true'},
+    fetchImpl:async url=>{
+      calls++;
+      const path=new URL(String(url)).pathname;
+      if (path==='/v3/events/inplay') {
+        return {status:429,ok:false,headers:{get:()=>null},text:async()=>JSON.stringify({success:0,error:'RATE_LIMIT'})};
+      }
+      return {status:200,ok:true,headers:{get:()=>null},text:async()=>JSON.stringify({success:1,results:[]})};
+    }
+  });
+  const r=await rt.fullCatalogCycle();
+  assert.equal(r.endpoint_results.events_inplay.status,'RATE_LIMITED');
+  assert.equal(r.endpoint_results.events_inplay.attempts,1);
+});
