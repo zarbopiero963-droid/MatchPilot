@@ -536,7 +536,14 @@ export function createEverythingRuntime({
         }
         catalogProbe.attempted++;
         try {
-          const r=await callDocumentedEndpoint(endpointKey,params);
+          let r=await callDocumentedEndpoint(endpointKey,params);
+          let attempts=1;
+          const transient = () => !r?.skipped && (!r?.classification || r.classification === 'UPSTREAM_ERROR');
+          if (transient() && budget.canSpend(1)) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            r=await callDocumentedEndpoint(endpointKey,params);
+            attempts++;
+          }
           if (r?.skipped) {
             catalogProbe.skipped++;
             catalogProbe.endpoint_results[endpointKey]={status:'SKIPPED',reason:r.reason||'SKIPPED',missing:r.missing||[]};
@@ -545,7 +552,8 @@ export function createEverythingRuntime({
           catalogProbe.endpoint_results[endpointKey]={
             status:r?.classification||'ERROR',
             http_status:r?.status??null,
-            latency_ms:r?.latency_ms??null
+            latency_ms:r?.latency_ms??null,
+            attempts
           };
           if (r?.classification === 'OK') catalogProbe.ok++;
           else if (r?.classification === 'PERMISSION_DENIED') catalogProbe.permission_denied++;
@@ -554,7 +562,7 @@ export function createEverythingRuntime({
         } catch (error) {
           catalogProbe.http_error++;
           catalogProbe.last_error=String(error?.message||error);
-          catalogProbe.endpoint_results[endpointKey]={status:'ERROR',error:catalogProbe.last_error};
+          catalogProbe.endpoint_results[endpointKey]={status:'ERROR',error:catalogProbe.last_error,attempts:1};
         }
         if (!budget.canSpend(1)) break;
       }
