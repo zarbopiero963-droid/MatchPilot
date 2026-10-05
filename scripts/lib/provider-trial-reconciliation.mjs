@@ -223,9 +223,14 @@ export function normalizeTrialRows(rows) {
     const provider=providerForSource(row.type);
     const body=row.payload?.body ?? row.payload;
     const observedAt=row.ts;
+    const requestParams=row.payload?.request_params || {};
+    const contextSport=clean(requestParams.sport_id ?? row.payload?.sport_id);
+    const contextEvent=clean(requestParams.event_id ?? requestParams.FI ?? row.payload?.event_id);
     walkObjects(body,(obj)=>{
       const f=eventFact(obj,observedAt,provider);
       if (!f) return;
+      if (!f.sport_id && contextSport) f.sport_id=contextSport;
+      if (!f.event_id && contextEvent) f.event_id=contextEvent;
       if (f.sport_id) {
         const key=provider+'|'+f.sport_id;
         sports.set(key,{provider,sport_id:f.sport_id,sport_name:SPORT_NAMES.get(f.sport_id)||null,first_seen_at:observedAt,last_seen_at:observedAt});
@@ -256,7 +261,12 @@ export function normalizeTrialRows(rows) {
       }
     });
     if (/odds|prematch|event|inplay|match_view|match_odds/.test(row.type)) {
-      odds.push(...oddsFacts(body,row.type,observedAt,provider));
+      const extracted=oddsFacts(body,row.type,observedAt,provider);
+      for (const o of extracted) {
+        if (!o.sport_id && contextSport) o.sport_id=contextSport;
+        if (!o.event_id && contextEvent) o.event_id=contextEvent;
+      }
+      odds.push(...extracted);
     }
   }
   return {sports:[...sports.values()],competitions:[...competitions.values()],coverage:[...coverage.values()],events:[...events.values()],odds};
