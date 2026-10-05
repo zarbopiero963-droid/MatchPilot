@@ -18,7 +18,9 @@ jobs:
     timeout-minutes: 2
     env:
       TRIAL_URL: https://betsapi-trial-collector.onrender.com/healthz
-      TRIAL_KEEPALIVE_UNTIL: '2026-10-06T00:00:00Z'
+      # Everything One Day Trial was activated around 2026-10-05 10:32 UTC.
+      # Keep the free Render collector awake through the full 24h window plus a safety margin.
+      TRIAL_KEEPALIVE_UNTIL: '2026-10-06T13:00:00Z'
     steps:
       - name: Skip after trial window
         id: gate
