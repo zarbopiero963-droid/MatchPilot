@@ -64,7 +64,12 @@ test('registry reads index usage from the catalog and keeps first/last seen', {t
         assert.deepEqual(r.phases, ['HISTORICAL'], r.field_name);
         assert.equal(r.registry_version, 'fpt-filters-2');
       }
-      // A new index on the fact column is picked up from the catalog on the next refresh.
+      // A partial index does not make a field "indexed": general filters cannot rely on it.
+      await client.query("CREATE INDEX fpt_match_facts_xg_partial_test_idx ON fpt_match_facts(xg_home) WHERE phase = 'HISTORICAL'");
+      await client.query('SELECT fpt_refresh_filter_registry()');
+      const partial = (await client.query(`SELECT indexed FROM fpt_filter_registry WHERE field_name='xG_Home_FT'`)).rows[0];
+      assert.equal(partial.indexed, false);
+      // A new full index on the fact column is picked up from the catalog on the next refresh.
       await client.query('CREATE INDEX fpt_match_facts_odd_home_test_idx ON fpt_match_facts(odd_home)');
       await client.query('SELECT fpt_refresh_filter_registry()');
       const after = (await client.query(`SELECT indexed, index_names FROM fpt_filter_registry WHERE field_name='Odd_1_FT'`)).rows[0];

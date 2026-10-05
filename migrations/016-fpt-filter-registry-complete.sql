@@ -56,6 +56,14 @@ BEGIN
     missing_tokens, zero_is_missing, rows_scoped, nonempty_rows, coverage_ratio, provenance, registry_version, refreshed_at,
     source, fact_column, indexed, index_names, first_seen, last_seen, phases
   )
+  WITH phase_map AS (
+    -- Header keys are unnested once per refresh, then joined to the fields.
+    SELECT h AS field_name,
+           jsonb_agg(DISTINCT CASE r.source_kind WHEN 'dataset' THEN 'HISTORICAL' WHEN 'today' THEN 'PREMATCH' ELSE upper(r.source_kind) END) AS phases
+    FROM fpt_raw_snapshots r
+    CROSS JOIN LATERAL jsonb_array_elements_text(r.headers) AS h
+    GROUP BY h
+  )
   SELECT f.field_name,
          COALESCE(f.normalized_field, lower(f.field_name)),
          f.family,
@@ -80,7 +88,7 @@ BEGIN
            'coverage', CASE WHEN c.field_name IS NULL THEN NULL ELSE 'fpt_field_coverage.global' END,
            'timing_rule', 'family',
            'fact_mapping', fc.mapping,
-           'index_rule', 'btree on fpt_match_facts whose leading column is fact_column'
+           'index_rule', 'valid, non-partial index on fpt_match_facts whose leading column is fact_column'
          ),
          'fpt-filters-2',
          now(),
@@ -91,12 +99,8 @@ BEGIN
          COALESCE(ix.names, '[]'::jsonb),
          f.first_seen_at,
          f.last_seen_at,
-         COALESCE((
-           -- Phases come from the raw snapshot headers themselves, not from a cached list.
-           SELECT jsonb_agg(DISTINCT CASE r.source_kind WHEN 'dataset' THEN 'HISTORICAL' WHEN 'today' THEN 'PREMATCH' ELSE upper(r.source_kind) END)
-           FROM fpt_raw_snapshots r
-           WHERE r.headers ? f.field_name
-         ), '[]'::jsonb)
+         -- Phases come from the raw snapshot headers themselves, not from a cached list.
+         COALESCE(pm.phases, '[]'::jsonb)
   FROM fpt_schema_fields f
   CROSS JOIN LATERAL (
     SELECT CASE
@@ -108,6 +112,7 @@ BEGIN
   LEFT JOIN fpt_field_coverage c
     ON c.dimension = 'global' AND c.dimension_key = '' AND c.field_name = f.field_name
   LEFT JOIN fpt_fact_columns fc ON fc.field_name = f.field_name
+  LEFT JOIN phase_map pm ON pm.field_name = f.field_name
   LEFT JOIN LATERAL (
     -- Read from the catalog, not declared: the index must exist with fact_column as leading key.
     SELECT jsonb_agg(ic.relname ORDER BY ic.relname) AS names
@@ -115,6 +120,8 @@ BEGIN
     JOIN pg_class ic ON ic.oid = i.indexrelid
     JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = i.indkey[0]
     WHERE i.indrelid = 'fpt_match_facts'::regclass
+      AND i.indisvalid
+      AND i.indpred IS NULL
       AND a.attname = fc.fact_column
   ) ix ON true
   ON CONFLICT (field_name) DO UPDATE SET
