@@ -44,22 +44,21 @@ test('normalizer creates sport competition event and coverage facts', () => {
   assert.ok(n.coverage[0].earliest_event_time.startsWith('2016-09-01'));
 });
 
-test('request event_id is propagated into odds observations', () => {
+test('request event_id is propagated into BetsAPI Event Odds observations', () => {
   const rows=[{
     ts:'2026-10-05T10:00:00.000Z',
     type:'betsapi_documented_event_odds',
     payload:{
-      request_params:{event_id:'999'},
-      body:{results:[{
-        marketId:'1_1',
-        runnerDetails:[{selectionId:'home',runnerOdds:{decimalDisplayOdds:{decimalOdds:2.15}}}]
-      }]}
+      request_params:{event_id:'999',source:'bet365'},
+      body:{results:{odds:{
+        '1_1':[{home_od:'2.15',draw_od:'3.20',away_od:'3.40',add_time:1791190800}]
+      }}}
     }
   }];
   const n=normalizeTrialRows(rows);
   assert.ok(n.odds.length >= 1);
   assert.equal(n.odds[0].event_id,'999');
-  assert.ok(n.odds.some(x=>x.price===2.15));
+  assert.ok(n.odds.some(x=>x.market_key==='1_1' && x.selection_key==='home' && x.price===2.15));
   assert.ok(n.odds.every(x=>x.observation_hash?.length===64));
 });
 
