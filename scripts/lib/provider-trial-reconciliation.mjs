@@ -407,9 +407,13 @@ export async function ensureRateProtectionAuditMarker(pool, {commit=null}={}) {
 
 export async function rateProtectionAuditSplit(pool) {
   const key='betsapi_rate_persistence_v1_activation';
-  const markerResult=await pool.query(`SELECT value,updated_at FROM provider_trial.reconciliation_state WHERE key=$1`,[key]);
+  const markerResult=await pool.query(
+    `SELECT value,updated_at FROM provider_trial.reconciliation_state WHERE key=$1`,
+    [key]
+  );
   const marker=markerResult.rows[0];
   if (!marker?.value?.activated_at) return {marker_present:false};
+
   const activatedAt=new Date(marker.value.activated_at).toISOString();
   const {rows}=await pool.query(`
     WITH classified AS (
@@ -418,7 +422,47 @@ export async function rateProtectionAuditSplit(pool) {
         instance_id,
         source_type,
         CASE
-          WHEN payload->>'status' ~ '^[0-9]+
+          WHEN jsonb_typeof(payload->'status')='number'
+            THEN (payload->>'status')::int
+          ELSE NULL
+        END AS http_status
+      FROM provider_trial.records
+    )
+    SELECT
+      count(*) FILTER (WHERE observed_at < $1 AND http_status=429)::bigint AS http_429_before,
+      count(*) FILTER (WHERE observed_at >= $1 AND http_status=429)::bigint AS http_429_after,
+      count(*) FILTER (WHERE observed_at < $1 AND http_status>=500)::bigint AS http_5xx_before,
+      count(*) FILTER (WHERE observed_at >= $1 AND http_status>=500)::bigint AS http_5xx_after,
+      count(*) FILTER (
+        WHERE observed_at < $1
+          AND (source_type='collector_error' OR source_type LIKE '%_error')
+      )::bigint AS error_rows_before,
+      count(*) FILTER (
+        WHERE observed_at >= $1
+          AND (source_type='collector_error' OR source_type LIKE '%_error')
+      )::bigint AS error_rows_after,
+      count(DISTINCT instance_id) FILTER (WHERE observed_at < $1)::bigint AS instances_before,
+      count(DISTINCT instance_id) FILTER (WHERE observed_at >= $1)::bigint AS instances_after
+    FROM classified
+  `,[activatedAt]);
+
+  const row=rows[0]||{};
+  return {
+    marker_present:true,
+    activated_at:activatedAt,
+    commit:marker.value.commit||null,
+    http_429_before:Number(row.http_429_before||0),
+    http_429_after:Number(row.http_429_after||0),
+    http_5xx_before:Number(row.http_5xx_before||0),
+    http_5xx_after:Number(row.http_5xx_after||0),
+    error_rows_before:Number(row.error_rows_before||0),
+    error_rows_after:Number(row.error_rows_after||0),
+    instances_before:Number(row.instances_before||0),
+    instances_after:Number(row.instances_after||0)
+  };
+}
+
+export async function initReconciliation(pool) {
   await pool.query(RECONCILIATION_SCHEMA_SQL);
   const parserState=await pool.query(
     `SELECT value->>'version' AS version FROM provider_trial.reconciliation_state WHERE key='odds_parser_version'`
