@@ -1,3 +1,4 @@
+import { BETSAPI_SPORTS } from './provider-trial-reconciliation.mjs';
 const DEFAULT_LIMIT_PER_HOUR = 1800;
 
 
@@ -313,6 +314,15 @@ export function createEverythingRuntime({
     reserve:Number(env.BETSAPI_EVERYTHING_RESERVE || 120),
     now
   });
+  const censusState={
+    sport_index:0,
+    completed_sports:new Set(),
+    max_id_by_sport:new Map(),
+    last_at:null,
+    calls:0,
+    failures:0,
+    last_error:null
+  };
   const catalogContext={
     event_ids:new Set(),
     fi_ids:new Set(),
@@ -459,6 +469,7 @@ export function createEverythingRuntime({
         group:endpoint.group,
         mode:endpoint.mode,
         endpoint:endpoint.path,
+        request_params:check.params,
         status:res.status,
         latency_ms:latency,
         classification,
@@ -475,7 +486,7 @@ export function createEverythingRuntime({
     } catch (error) {
       const safe=String(error?.message||error);
       write('betsapi_documented_'+endpointKey+'_error',{
-        endpoint_key:endpointKey,group:endpoint.group,mode:endpoint.mode,endpoint:endpoint.path,error:safe
+        endpoint_key:endpointKey,group:endpoint.group,mode:endpoint.mode,endpoint:endpoint.path,request_params:check.params,error:safe
       });
       return {ok:false,error:safe};
     }
@@ -591,6 +602,72 @@ export function createEverythingRuntime({
     };
   }
 
+
+  async function censusCycle({pagesPerSport=3}={}) {
+    if (!enabled || !token) return censusStatus();
+    const sport=BETSAPI_SPORTS[censusState.sport_index % BETSAPI_SPORTS.length];
+    const sportKey=String(sport.sport_id);
+    let maxId=censusState.max_id_by_sport.get(sportKey) || null;
+    censusState.last_at=new Date(now()).toISOString();
+    censusState.last_error=null;
+
+    for (let page=0; page<pagesPerSport; page++) {
+      if (!budget.canSpend(1)) break;
+      const params={sport_id:sport.sport_id};
+      if (maxId) params.max_id=maxId;
+      const r=await callDocumentedEndpoint('league_list',params);
+      censusState.calls++;
+      if (!r || !r.ok) {
+        censusState.failures++;
+        censusState.last_error=r?.classification || r?.error || 'league_list_failed';
+        break;
+      }
+      const results=Array.isArray(r.body?.results)?r.body.results:[];
+      write('betsapi_census_leagues',{
+        sport_id:sport.sport_id,
+        sport_name:sport.name,
+        max_id:maxId,
+        status:r.status,
+        latency_ms:r.latency_ms,
+        body:r.body
+      });
+      if (!results.length) {
+        censusState.completed_sports.add(sportKey);
+        censusState.max_id_by_sport.delete(sportKey);
+        censusState.sport_index=(censusState.sport_index+1)%BETSAPI_SPORTS.length;
+        break;
+      }
+      const pagerMin=r.body?.pager?.min_id;
+      const ids=results.map(x=>Number(x?.id)).filter(Number.isFinite);
+      const next=Number.isFinite(Number(pagerMin)) ? Number(pagerMin) :
+        (ids.length ? Math.min(...ids) : null);
+      if (!next || next<=0 || String(next)===String(maxId)) {
+        censusState.completed_sports.add(sportKey);
+        censusState.max_id_by_sport.delete(sportKey);
+        censusState.sport_index=(censusState.sport_index+1)%BETSAPI_SPORTS.length;
+        break;
+      }
+      maxId=next;
+      censusState.max_id_by_sport.set(sportKey,maxId);
+    }
+
+    return censusStatus();
+  }
+
+  function censusStatus() {
+    const sport=BETSAPI_SPORTS[censusState.sport_index % BETSAPI_SPORTS.length];
+    return {
+      last_at:censusState.last_at,
+      current_sport:sport,
+      completed_sports:censusState.completed_sports.size,
+      total_sports:BETSAPI_SPORTS.length,
+      calls:censusState.calls,
+      failures:censusState.failures,
+      last_error:censusState.last_error,
+      checkpoint_max_id:censusState.max_id_by_sport.get(String(sport.sport_id)) || null
+    };
+  }
+
   function catalogStatus() {
     const all=documentedEndpointCatalog();
     return {
@@ -601,5 +678,5 @@ export function createEverythingRuntime({
     };
   }
 
-  return { discoveryCycle, prematchCycle, fullCatalogCycle, fullCatalogStatus, status, call, callDocumentedEndpoint, catalogStatus };
+  return { discoveryCycle, prematchCycle, fullCatalogCycle, fullCatalogStatus, censusCycle, censusStatus, status, call, callDocumentedEndpoint, catalogStatus };
 }
