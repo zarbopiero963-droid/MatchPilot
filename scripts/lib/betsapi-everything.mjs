@@ -1,5 +1,83 @@
 const DEFAULT_LIMIT_PER_HOUR = 1800;
 
+
+export const DOCUMENTED_ENDPOINTS = Object.freeze({
+  // Events API
+  events_inplay: { group:'events', method:'GET', path:'/v3/events/inplay', required:['sport_id'], defaults:{sport_id:1}, mode:'scheduled' },
+  events_upcoming: { group:'events', method:'GET', path:'/v3/events/upcoming', required:['sport_id'], defaults:{sport_id:1,skip_esports:1}, mode:'scheduled' },
+  events_ended: { group:'events', method:'GET', path:'/v3/events/ended', required:['sport_id'], defaults:{sport_id:1,skip_esports:1}, mode:'scheduled' },
+  events_search: { group:'events', method:'GET', path:'/v1/events/search', required:['sport_id','home','away','time'], defaults:{sport_id:1}, mode:'on_demand' },
+  event_view: { group:'events', method:'GET', path:'/v1/event/view', required:['event_id'], mode:'event' },
+  event_history: { group:'events', method:'GET', path:'/v1/event/history', required:['event_id'], defaults:{qty:10}, mode:'event' },
+  event_odds_summary: { group:'events', method:'GET', path:'/v2/event/odds/summary', required:['event_id'], mode:'event' },
+  event_odds: { group:'events', method:'GET', path:'/v2/event/odds', required:['event_id'], mode:'event' },
+  event_stats_trend: { group:'events', method:'GET', path:'/v1/event/stats_trend', required:['event_id'], mode:'event' },
+  event_lineup: { group:'events', method:'GET', path:'/v1/event/lineup', required:['event_id'], mode:'event' },
+  league_list: { group:'events', method:'GET', path:'/v3/league', required:['sport_id'], defaults:{sport_id:1}, mode:'scheduled' },
+  league_info: { group:'events', method:'GET', path:'/v1/league/info', required:['league_id'], mode:'league' },
+  league_table: { group:'events', method:'GET', path:'/v3/league/table', required:['league_id'], mode:'league' },
+  league_toplist: { group:'events', method:'GET', path:'/v1/league/toplist', required:['league_id'], mode:'league' },
+  team_list: { group:'events', method:'GET', path:'/v3/team', required:['sport_id'], defaults:{sport_id:1}, mode:'scheduled' },
+  team_info: { group:'events', method:'GET', path:'/v1/team/info', required:['team_id'], mode:'team' },
+  team_squad: { group:'events', method:'GET', path:'/v1/team/squad', required:['team_id'], mode:'team' },
+  team_members: { group:'events', method:'GET', path:'/v1/team/members', required:['team_id'], mode:'team' },
+  player: { group:'events', method:'GET', path:'/v1/player', required:['player_id'], mode:'player' },
+  tennis_ranking: { group:'events', method:'GET', path:'/v1/tennis/ranking', required:[], defaults:{type_id:1}, mode:'on_demand' },
+  event_merge_history: { group:'events', method:'GET', path:'/v1/event/merge_history', required:[], mode:'scheduled' },
+
+  // Bet365 API
+  bet365_inplay: { group:'bet365', method:'GET', path:'/v1/bet365/inplay', required:[], mode:'scheduled' },
+  bet365_inplay_filter: { group:'bet365', method:'GET', path:'/v1/bet365/inplay_filter', required:[], defaults:{sport_id:1}, mode:'scheduled' },
+  bet365_event: { group:'bet365', method:'GET', path:'/v1/bet365/event', required:['FI'], defaults:{stats:1}, mode:'event' },
+  bet365_league: { group:'bet365', method:'GET', path:'/v1/bet365/league', required:['sport_id'], defaults:{sport_id:1}, mode:'scheduled' },
+  bet365_upcoming: { group:'bet365', method:'GET', path:'/v1/bet365/upcoming', required:['sport_id'], defaults:{sport_id:1}, mode:'scheduled' },
+  bet365_prematch: { group:'bet365', method:'GET', path:'/v4/bet365/prematch', required:['FI'], mode:'event' },
+  bet365_result: { group:'bet365', method:'GET', path:'/v1/bet365/result', required:['event_id'], mode:'event' },
+
+  // BWin API
+  bwin_inplay: { group:'bwin', method:'GET', path:'/v1/bwin/inplay', required:[], defaults:{sport_id:4}, mode:'scheduled' },
+  bwin_event: { group:'bwin', method:'GET', path:'/v1/bwin/event', required:['event_id'], mode:'event' },
+  bwin_prematch: { group:'bwin', method:'GET', path:'/v1/bwin/prematch', required:[], defaults:{sport_id:4}, mode:'scheduled' },
+  bwin_result: { group:'bwin', method:'GET', path:'/v1/bwin/result', required:['event_id'], mode:'event' },
+
+  // Betfair API
+  betfair_sb_inplay: { group:'betfair', method:'GET', path:'/v1/betfair/sb/inplay', required:[], defaults:{sport_id:1}, mode:'scheduled' },
+  betfair_sb_upcoming: { group:'betfair', method:'GET', path:'/v1/betfair/sb/upcoming', required:[], defaults:{sport_id:1}, mode:'scheduled' },
+  betfair_sb_event: { group:'betfair', method:'GET', path:'/v1/betfair/sb/event', required:['event_id'], mode:'event' },
+  betfair_ex_inplay: { group:'betfair', method:'GET', path:'/v1/betfair/ex/inplay', required:[], defaults:{sport_id:1}, mode:'scheduled' },
+  betfair_ex_upcoming: { group:'betfair', method:'GET', path:'/v1/betfair/ex/upcoming', required:[], defaults:{sport_id:1}, mode:'scheduled' },
+  betfair_ex_event: { group:'betfair', method:'GET', path:'/v1/betfair/ex/event', required:['event_id'], mode:'event' },
+  betfair_timeline: { group:'betfair', method:'GET', path:'/v1/betfair/timeline', required:['event_id'], mode:'event' },
+  betfair_result: { group:'betfair', method:'GET', path:'/v1/betfair/result', required:['event_id'], mode:'event' },
+
+  // SBOBET API
+  sbobet_inplay: { group:'sbobet', method:'GET', path:'/v1/sbobet/inplay', required:[], defaults:{sport_id:1}, mode:'scheduled' },
+  sbobet_upcoming: { group:'sbobet', method:'GET', path:'/v1/sbobet/upcoming', required:[], defaults:{sport_id:1}, mode:'scheduled' },
+  sbobet_event: { group:'sbobet', method:'GET', path:'/v1/sbobet/event', required:['event_id'], mode:'event' },
+  sbobet_result: { group:'sbobet', method:'GET', path:'/v1/sbobet/result', required:['event_id'], mode:'event' },
+
+  // 1xBet API
+  onexbet_inplay: { group:'1xbet', method:'GET', path:'/v1/1xbet/inplay', required:[], defaults:{sport_id:1}, mode:'scheduled' },
+  onexbet_upcoming: { group:'1xbet', method:'GET', path:'/v1/1xbet/upcoming', required:[], defaults:{sport_id:1}, mode:'scheduled' },
+  onexbet_event: { group:'1xbet', method:'GET', path:'/v1/1xbet/event', required:['event_id'], mode:'event' },
+  onexbet_result: { group:'1xbet', method:'GET', path:'/v1/1xbet/result', required:['event_id'], mode:'event' },
+
+  // Results API
+  result_williamhill: { group:'results', method:'GET', path:'/v1/williamhill/result', required:['event_id'], mode:'on_demand' },
+  result_sbobet: { group:'results', method:'GET', path:'/v1/sbobet/result', required:['event_id'], mode:'on_demand' },
+  result_betsson: { group:'results', method:'GET', path:'/v1/betsson/result', required:['event_id'], mode:'on_demand' }
+});
+
+export function documentedEndpointCatalog() {
+  return Object.entries(DOCUMENTED_ENDPOINTS).map(([key, value]) => ({ key, ...value }));
+}
+
+export function validateEndpointParams(endpoint, params = {}) {
+  const merged = { ...(endpoint.defaults || {}), ...params };
+  const missing = (endpoint.required || []).filter(k => merged[k] === undefined || merged[k] === null || merged[k] === '');
+  return { ok: missing.length === 0, missing, params: merged };
+}
+
 export const EVERYTHING_FAMILIES = Object.freeze({
   bet365: {
     label:'Bet365',
@@ -286,5 +364,64 @@ export function createEverythingRuntime({
     };
   }
 
-  return { discoveryCycle, prematchCycle, status, call };
+  async function callDocumentedEndpoint(endpointKey, params={}) {
+    const endpoint=DOCUMENTED_ENDPOINTS[endpointKey];
+    if (!endpoint) throw new Error('unknown documented endpoint: '+endpointKey);
+    const check=validateEndpointParams(endpoint,params);
+    if (!check.ok) {
+      return { ok:false, skipped:true, reason:'MISSING_PARAMS', missing:check.missing };
+    }
+    if (!enabled || !token) {
+      return { ok:false, skipped:true, reason:enabled ? 'NO_TOKEN' : 'DISABLED' };
+    }
+    if (!budget.spend(1)) {
+      return { ok:false, skipped:true, reason:'BUDGET_HOLD' };
+    }
+    const url=buildUrl(baseUrl,token,{path:endpoint.path,params:check.params});
+    const started=now();
+    try {
+      const res=await fetchImpl(url,{signal:AbortSignal.timeout(20000)});
+      const latency=now()-started;
+      const text=await res.text();
+      let body;
+      try { body=JSON.parse(text); } catch { body={raw:text.slice(0,50000)}; }
+      const classification=classifyHttp(res.status);
+      const fields=discoverFieldPaths(body);
+      write('betsapi_documented_'+endpointKey,{
+        endpoint_key:endpointKey,
+        group:endpoint.group,
+        mode:endpoint.mode,
+        endpoint:endpoint.path,
+        status:res.status,
+        latency_ms:latency,
+        classification,
+        rate_limit:{
+          limit:res.headers?.get?.('x-ratelimit-limit') || null,
+          remaining:res.headers?.get?.('x-ratelimit-remaining') || null,
+          reset:res.headers?.get?.('x-ratelimit-reset') || null
+        },
+        fields,
+        body
+      });
+      return {ok:res.ok,status:res.status,classification,body,fields,latency_ms:latency};
+    } catch (error) {
+      const safe=String(error?.message||error);
+      write('betsapi_documented_'+endpointKey+'_error',{
+        endpoint_key:endpointKey,group:endpoint.group,mode:endpoint.mode,endpoint:endpoint.path,error:safe
+      });
+      return {ok:false,error:safe};
+    }
+  }
+
+  function catalogStatus() {
+    const all=documentedEndpointCatalog();
+    return {
+      total:all.length,
+      groups:Object.fromEntries([...new Set(all.map(x=>x.group))].map(g=>[g,all.filter(x=>x.group===g).length])),
+      modes:Object.fromEntries([...new Set(all.map(x=>x.mode))].map(m=>[m,all.filter(x=>x.mode===m).length])),
+      endpoints:all.map(x=>({key:x.key,group:x.group,method:x.method,path:x.path,mode:x.mode,required:x.required||[],defaults:x.defaults||{}}))
+    };
+  }
+
+  return { discoveryCycle, prematchCycle, status, call, callDocumentedEndpoint, catalogStatus };
 }
