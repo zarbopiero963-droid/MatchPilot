@@ -325,9 +325,9 @@ export async function reconcileFpt(client, {phase = 'periodic', runId = null, ru
   catchup = null, deliver = null, config = reconConfig()} = {}) {
   const orphanRuns = phase === 'startup' ? await markOrphanRuns(client) : 0;
   const inputs = await loadInputs(client);
-  // After a run the reconciliation is called before the run records its final status: it has finished its work.
+  // After a run the reconciliation is called before the run records its final status: use the status it is about to record.
   if (phase === 'post_run' && runId) {
-    inputs.runs = inputs.runs.map(r => r.run_id === runId ? {...r, status: 'complete', finished_at: now} : r);
+    inputs.runs = inputs.runs.map(r => r.run_id === runId ? {...r, status: runStatus, finished_at: now} : r);
   }
   const detected = detectGaps({...inputs, now, config});
   let created = 0;
