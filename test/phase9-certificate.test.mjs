@@ -271,6 +271,11 @@ test('markdown certificate has the 20 sections and the single verdict', () => {
   assert.match(md, /\*\*Esito: CERTIFIED WITH KNOWN LIMITATIONS\*\*/);
   assert.match(md, /dep-x/);
   assert.match(md, /Neon count matches/);
+  assert.match(md, /fuori dal report \(query di sola lettura su Neon e log Render\)/);
+  const http = renderCertificateMarkdown(fixtureReport(), {verification: ['GET /coverage 200'], verificationNote: 'solo richieste HTTP pubbliche'});
+  assert.match(http, /fuori dal report \(solo richieste HTTP pubbliche\)/);
+  assert.match(http, /fuori dal report: solo richieste HTTP pubbliche\./);
+  assert.equal(/Neon e log Render/.test(http), false, 'an HTTP-only cross-check never claims Neon queries');
   assert.match(md, /La issue #12 resta aperta/);
   assert.equal(/postgres:\/\/|api_key=/.test(md), false);
 });

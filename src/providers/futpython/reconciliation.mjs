@@ -224,7 +224,7 @@ async function closeVanished(client, detected, now, {deferred = new Set(), confi
   return closed;
 }
 
-async function writeCheckpoints(client, {now, config, detected}) {
+async function writeCheckpoints(client, {now, config, detected, currentRun = null}) {
   const runs = (await client.query(
     `SELECT COALESCE(meta->>'mode', CASE WHEN kind='backfill' THEN 'backfill' ELSE 'incremental' END) AS mode,
             max(started_at) AS last_attempt_at,
@@ -234,6 +234,12 @@ async function writeCheckpoints(client, {now, config, detected}) {
             (array_agg(status ORDER BY started_at DESC))[1] AS last_status
      FROM fpt_sync_runs WHERE kind IN ('cron','manual','recovery','backfill') GROUP BY 1`)).rows;
   const byMode = Object.fromEntries(runs.map(r => [r.mode, r]));
+  // post_run writes checkpoints before the run records its final status: use that status, not 'running'.
+  for (const r of runs) {
+    if (!currentRun || r.last_run_id !== currentRun.runId) continue;
+    r.last_status = currentRun.status;
+    if (['complete', 'partial'].includes(currentRun.status)) r.last_success_at = currentRun.now;
+  }
   const failedSince = async mode => Number((await client.query(
     `SELECT count(*)::int AS n FROM fpt_sync_runs
      WHERE COALESCE(meta->>'mode', CASE WHEN kind='backfill' THEN 'backfill' ELSE 'incremental' END) = $1
@@ -315,19 +321,20 @@ async function emitReconAlerts(client, summary, deliver) {
 
 // One reconciliation cycle: detect, ledger, close what vanished, checkpoints, alerts, and a catch-up run when the
 // incremental sync was skipped. phase: 'startup' | 'periodic' | 'post_run'.
-export async function reconcileFpt(client, {phase = 'periodic', runId = null, now = new Date(), deferred = [], catchup = null,
-  deliver = null, config = reconConfig()} = {}) {
+export async function reconcileFpt(client, {phase = 'periodic', runId = null, runStatus = 'complete', now = new Date(), deferred = [],
+  catchup = null, deliver = null, config = reconConfig()} = {}) {
   const orphanRuns = phase === 'startup' ? await markOrphanRuns(client) : 0;
   const inputs = await loadInputs(client);
-  // After a run the reconciliation is called before the run records its final status: it has finished its work.
+  // After a run the reconciliation is called before the run records its final status: use the status it is about to record.
   if (phase === 'post_run' && runId) {
-    inputs.runs = inputs.runs.map(r => r.run_id === runId ? {...r, status: 'complete', finished_at: now} : r);
+    inputs.runs = inputs.runs.map(r => r.run_id === runId ? {...r, status: runStatus, finished_at: now} : r);
   }
   const detected = detectGaps({...inputs, now, config});
   let created = 0;
   for (const g of detected) if (await upsertGap(client, g, now) === 'new') created++;
   const closed = await closeVanished(client, detected, now, {deferred: new Set(deferred), config, phase, runId});
-  await writeCheckpoints(client, {now, config, detected});
+  await writeCheckpoints(client, {now, config, detected,
+    currentRun: phase === 'post_run' && runId ? {runId, status: runStatus, now} : null});
   const alerts = await emitReconAlerts(client, closed, deliver);
   let catchupStarted = false;
   if (catchup && config.catchup && phase !== 'post_run' && detected.some(g => g.gap_kind === 'incremental_sync_skipped')) {

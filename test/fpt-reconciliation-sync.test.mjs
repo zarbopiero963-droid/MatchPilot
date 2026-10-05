@@ -138,6 +138,13 @@ test('reconciliation detects lost and stale data, recovers it through the normal
     hits.length = 0;
     run = await runSync([], env);
     assert.equal(run.code, 0, run.out);
+    // The post_run checkpoint carries the run's own final status, not 'running' and not the previous success.
+    const [lastRun] = await q(`SELECT run_id, status, started_at FROM fpt_sync_runs WHERE kind <> 'backfill' AND run_id <> 'fpt-crashed'
+      ORDER BY started_at DESC LIMIT 1`);
+    const [incr] = await q(`SELECT last_entity_id, checkpoint, last_success_at FROM data_checkpoints WHERE scope='incremental'`);
+    assert.equal(incr.last_entity_id, lastRun.run_id);
+    assert.equal(incr.checkpoint.last_status, lastRun.status, JSON.stringify(incr));
+    assert.ok(new Date(incr.last_success_at) >= new Date(lastRun.started_at), 'last success is this run, not an older one');
     for (const key of ['beta/cup/2025', 'alpha/league/2023', 'alpha/league/2022', 'alpha/league/2021', current]) {
       assert.ok(hits.includes(`/api/download/${key}`), `${key} fetched by the recovery`);
     }
@@ -201,6 +208,21 @@ test('reconciliation detects lost and stale data, recovers it through the normal
     assert.equal(hits.includes(`/api/download/${current}`), false);
     const deferred = (await q(`SELECT status, attempts FROM data_reconciliation_ledger WHERE gap_kind='current_season_stale' AND entity=$1 ORDER BY reconciliation_id DESC LIMIT 1`, [current]))[0];
     assert.deepEqual(deferred, {status: 'QUEUED', attempts: 0});
+
+    // post_run uses the run's real final status: a failed run never closes a skipped-sync gap, a complete one does.
+    await q(`UPDATE fpt_sync_runs SET started_at = started_at - interval '9 hours', finished_at = finished_at - interval '9 hours'`);
+    await db.withClient(c => reconcileFpt(c, {phase: 'periodic', deliver: async () => ({attempted: false})}));
+    const skipped = async () => (await q(`SELECT status FROM data_reconciliation_ledger WHERE gap_kind='incremental_sync_skipped'
+      ORDER BY reconciliation_id DESC LIMIT 1`))[0].status;
+    assert.equal(await skipped(), 'QUEUED');
+    for (const [id, status, expected] of [['fpt-post-failed', 'failed', 'QUEUED'], ['fpt-post-complete', 'complete', 'RECOVERED']]) {
+      await q(`INSERT INTO fpt_sync_runs(run_id, kind, status, started_at, meta) VALUES($1, 'cron', 'running', now(), '{"mode":"incremental"}')`, [id]);
+      await db.withClient(c => reconcileFpt(c, {phase: 'post_run', runId: id, runStatus: status, deliver: async () => ({attempted: false})}));
+      assert.equal(await skipped(), expected, `post_run with a ${status} run`);
+      const [cp] = await q(`SELECT last_entity_id, checkpoint FROM data_checkpoints WHERE scope='incremental'`);
+      assert.deepEqual([cp.last_entity_id, cp.checkpoint.last_status], [id, status]);
+      await q(`UPDATE fpt_sync_runs SET status=$2, finished_at=now() WHERE run_id=$1`, [id, status]);
+    }
   } finally {
     server.close();
     await db.closePool();
