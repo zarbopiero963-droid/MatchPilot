@@ -317,7 +317,9 @@ export function createEverythingRuntime({
   write=()=>{},
   now=()=>Date.now(),
   initialRateState=null,
-  persistRateState=async()=>{}
+  persistRateState=async()=>{},
+  initialCensusState=null,
+  persistCensusState=async()=>{}
 } = {}) {
   const enabled=String(env.BETSAPI_EVERYTHING_ENABLED || '').toLowerCase() === 'true';
   const token=resolveEverythingToken(env);
@@ -330,14 +332,32 @@ export function createEverythingRuntime({
     initialState:initialRateState?.budget || initialRateState
   });
   const censusState={
-    sport_index:0,
-    completed_sports:new Set(),
-    max_id_by_sport:new Map(),
-    last_at:null,
-    calls:0,
-    failures:0,
-    last_error:null
+    sport_index:Number(initialCensusState?.sport_index || 0),
+    completed_sports:new Set(Array.isArray(initialCensusState?.completed_sports)?initialCensusState.completed_sports.map(String):[]),
+    max_id_by_sport:new Map(Object.entries(initialCensusState?.max_id_by_sport || {}).map(([k,v])=>[String(k),v])),
+    last_at:initialCensusState?.last_at || null,
+    calls:Number(initialCensusState?.calls || 0),
+    failures:Number(initialCensusState?.failures || 0),
+    last_error:initialCensusState?.last_error || null,
+    persisted_at:initialCensusState?.persisted_at || null
   };
+
+  async function persistCurrentCensusState() {
+    const state={
+      version:1,
+      sport_index:censusState.sport_index,
+      completed_sports:[...censusState.completed_sports],
+      max_id_by_sport:Object.fromEntries(censusState.max_id_by_sport.entries()),
+      last_at:censusState.last_at,
+      calls:censusState.calls,
+      failures:censusState.failures,
+      last_error:censusState.last_error,
+      persisted_at:new Date(now()).toISOString()
+    };
+    await persistCensusState(state);
+    censusState.persisted_at=state.persisted_at;
+    return state;
+  }
   const catalogContext={
     event_ids:new Set(),
     fi_ids:new Set(),
@@ -698,6 +718,7 @@ export function createEverythingRuntime({
       if (!r || !r.ok) {
         censusState.failures++;
         censusState.last_error=r?.classification || r?.error || 'league_list_failed';
+        await persistCurrentCensusState();
         break;
       }
       const results=Array.isArray(r.body?.results)?r.body.results:[];
@@ -713,6 +734,7 @@ export function createEverythingRuntime({
         censusState.completed_sports.add(sportKey);
         censusState.max_id_by_sport.delete(sportKey);
         completedCurrent=true;
+        await persistCurrentCensusState();
         break;
       }
       const pagerMin=r.body?.pager?.min_id;
@@ -723,13 +745,16 @@ export function createEverythingRuntime({
         censusState.completed_sports.add(sportKey);
         censusState.max_id_by_sport.delete(sportKey);
         completedCurrent=true;
+        await persistCurrentCensusState();
         break;
       }
       maxId=next;
       censusState.max_id_by_sport.set(sportKey,maxId);
+      await persistCurrentCensusState();
     }
 
     censusState.sport_index=(censusState.sport_index+1)%BETSAPI_SPORTS.length;
+    await persistCurrentCensusState();
     return censusStatus();
   }
 
@@ -743,7 +768,9 @@ export function createEverythingRuntime({
       calls:censusState.calls,
       failures:censusState.failures,
       last_error:censusState.last_error,
-      checkpoint_max_id:censusState.max_id_by_sport.get(String(sport.sport_id)) || null
+      checkpoint_max_id:censusState.max_id_by_sport.get(String(sport.sport_id)) || null,
+      persisted_at:censusState.persisted_at,
+      persisted:Boolean(censusState.persisted_at)
     };
   }
 

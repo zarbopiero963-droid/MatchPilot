@@ -549,3 +549,98 @@ test('persisted 429 hold survives runtime restart until upstream reset', async (
   assert.equal(allowed.ok,true);
   assert.equal(calls2,1);
 });
+
+
+test('multi-sport census checkpoint survives runtime restart', async () => {
+  const env={
+    BETSAPI_EVERYTHING_TOKEN:'x',
+    BETSAPI_EVERYTHING_ENABLED:'true'
+  };
+  const initial={
+    version:1,
+    sport_index:5,
+    completed_sports:['1','18'],
+    max_id_by_sport:{'16':123},
+    calls:10,
+    failures:1
+  };
+  let persisted=null;
+  let seenUrl=null;
+  const rt1=createEverythingRuntime({
+    env,
+    initialCensusState:initial,
+    persistCensusState:async state=>{ persisted=structuredClone(state); },
+    persistRateState:async()=>{},
+    fetchImpl:async url=>{
+      seenUrl=new URL(String(url));
+      return {
+        status:200,ok:true,
+        headers:{get:()=>null},
+        text:async()=>JSON.stringify({success:1,results:[],pager:{}})
+      };
+    }
+  });
+  const before=rt1.censusStatus();
+  assert.equal(before.current_sport.sport_id,16);
+  assert.equal(before.completed_sports,2);
+  assert.equal(before.checkpoint_max_id,123);
+
+  await rt1.censusCycle({pagesPerSport:1});
+  assert.equal(seenUrl.searchParams.get('sport_id'),'16');
+  assert.equal(seenUrl.searchParams.get('max_id'),'123');
+  assert.ok(persisted.completed_sports.includes('16'));
+  assert.equal(persisted.sport_index,6);
+
+  const rt2=createEverythingRuntime({
+    env,
+    initialCensusState:persisted,
+    persistCensusState:async()=>{},
+    persistRateState:async()=>{},
+    fetchImpl:async()=>({
+      status:200,ok:true,headers:{get:()=>null},
+      text:async()=>JSON.stringify({success:1,results:[]})
+    })
+  });
+  const after=rt2.censusStatus();
+  assert.equal(after.current_sport.sport_id,2);
+  assert.equal(after.completed_sports,3);
+  assert.equal(after.persisted,true);
+});
+
+test('census pagination max_id survives restart even before sport completion', async () => {
+  const env={
+    BETSAPI_EVERYTHING_TOKEN:'x',
+    BETSAPI_EVERYTHING_ENABLED:'true'
+  };
+  let persisted=null;
+  const rt1=createEverythingRuntime({
+    env,
+    initialCensusState:{sport_index:0,completed_sports:[],max_id_by_sport:{}},
+    persistCensusState:async state=>{ persisted=structuredClone(state); },
+    persistRateState:async()=>{},
+    fetchImpl:async()=>({
+      status:200,ok:true,headers:{get:()=>null},
+      text:async()=>JSON.stringify({
+        success:1,
+        results:[{id:900,name:'League'}],
+        pager:{min_id:900}
+      })
+    })
+  });
+  await rt1.censusCycle({pagesPerSport:1});
+  assert.equal(persisted.max_id_by_sport['1'],900);
+
+  const rt2=createEverythingRuntime({
+    env,
+    initialCensusState:persisted,
+    persistCensusState:async()=>{},
+    persistRateState:async()=>{},
+    fetchImpl:async()=>({
+      status:200,ok:true,headers:{get:()=>null},
+      text:async()=>JSON.stringify({success:1,results:[]})
+    })
+  });
+  assert.equal(rt2.censusStatus().persisted,true);
+  // Soccer checkpoint remains stored while round-robin continues with the next sport.
+  assert.equal(persisted.max_id_by_sport['1'],900);
+});
