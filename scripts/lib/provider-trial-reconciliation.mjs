@@ -145,7 +145,11 @@ function eventFact(obj, observedAt, provider) {
   const leagueId=clean(leagueObj?.id ?? obj.league_id ?? obj.LeagueId ?? obj.competitionId);
   const leagueName=clean(leagueObj?.name ?? obj.league_name ?? obj.LeagueName);
   const countryCode=clean(leagueObj?.cc ?? obj.cc ?? obj.country_code ?? obj.RegionName) || '';
-  const eventId=clean(obj.our_event_id ?? obj.event_id ?? obj.eventId ?? obj.id ?? obj.Id);
+  const looksLikeEvent=Boolean(
+    obj.home || obj.away || obj.HomeTeam || obj.AwayTeam ||
+    obj.time !== undefined || obj.time_status !== undefined || obj.Date || obj.ss
+  );
+  const eventId=clean(obj.our_event_id ?? obj.event_id ?? obj.eventId ?? (looksLikeEvent ? (obj.id ?? obj.Id) : null));
   const kickoff=isoFromEpoch(obj.time ?? obj.start_time ?? obj.timestamp) ||
     (obj.Date && !Number.isNaN(Date.parse(obj.Date)) ? new Date(obj.Date).toISOString() : null);
   if (!sportId && !leagueId && !eventId) return null;
@@ -226,6 +230,29 @@ export function normalizeTrialRows(rows) {
     const requestParams=row.payload?.request_params || {};
     const contextSport=clean(requestParams.sport_id ?? row.payload?.sport_id);
     const contextEvent=clean(requestParams.event_id ?? requestParams.FI ?? row.payload?.event_id);
+
+    if (contextSport && /league_list|census_leagues/.test(row.type)) {
+      const leagueRows=Array.isArray(body?.results)?body.results:[];
+      for (const league of leagueRows) {
+        const leagueId=clean(league?.id ?? league?.league_id);
+        if (!leagueId) continue;
+        const countryCode=clean(league?.cc ?? league?.country_code) || '';
+        const leagueName=clean(league?.name ?? league?.league_name);
+        const key=[provider,contextSport,countryCode,leagueId].join('|');
+        const prev=competitions.get(key);
+        competitions.set(key,{
+          provider,sport_id:contextSport,country_code:countryCode,league_id:leagueId,league_name:leagueName||prev?.league_name||null,
+          first_seen_at:prev?.first_seen_at||observedAt,last_seen_at:observedAt
+        });
+        if (!sports.has(provider+'|'+contextSport)) {
+          sports.set(provider+'|'+contextSport,{
+            provider,sport_id:contextSport,sport_name:SPORT_NAMES.get(contextSport)||null,
+            first_seen_at:observedAt,last_seen_at:observedAt
+          });
+        }
+      }
+    }
+
     walkObjects(body,(obj)=>{
       const f=eventFact(obj,observedAt,provider);
       if (!f) return;

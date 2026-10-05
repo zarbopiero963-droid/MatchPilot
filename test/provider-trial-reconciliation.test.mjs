@@ -73,3 +73,21 @@ test('duplicate odds in one snapshot are deduplicated by observation identity', 
   const hashes=new Set(n.odds.map(x=>x.observation_hash));
   assert.equal(hashes.size,n.odds.length);
 });
+
+
+test('league catalog rows become competitions and never fake events', () => {
+  const rows=[{
+    ts:'2026-10-05T10:00:00.000Z',
+    type:'betsapi_documented_league_list',
+    payload:{
+      request_params:{sport_id:18},
+      body:{results:[{id:700,name:'Basket Test',cc:'us'}]}
+    }
+  }];
+  const n=normalizeTrialRows(rows);
+  assert.equal(n.competitions.length,1);
+  assert.equal(n.competitions[0].sport_id,'18');
+  assert.equal(n.competitions[0].league_id,'700');
+  assert.equal(n.competitions[0].country_code,'us');
+  assert.equal(n.events.length,0);
+});
