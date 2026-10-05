@@ -189,7 +189,8 @@ function oddsFacts(body, sourceType, observedAt, provider) {
   walkObjects(body,(obj,path)=>{
     if (!ODDS_CONTEXT.test(path)) return;
     const marketFromPath=path.match(/(?:^|\.)(\d+_\d+)(?:\.|$)/)?.[1] || null;
-    const market=clean(obj.market_key ?? obj.marketId ?? obj.market_id ?? obj.marketType ?? obj.marketName ?? marketFromPath);
+    const fallbackMarket=path.split('.').slice(-2,-1)[0] || null;
+    const market=clean(obj.market_key ?? obj.marketId ?? obj.market_id ?? obj.marketType ?? obj.marketName ?? marketFromPath ?? fallbackMarket);
     if (!market) return;
     const selection=clean(obj.selection_key ?? obj.selectionId ?? obj.id ?? obj.name ?? obj.runnerName ?? path.split('.').at(-1)) || 'unknown';
     const lineEntry=Object.entries(obj).find(([k])=>LINE_KEYS.test(k));
