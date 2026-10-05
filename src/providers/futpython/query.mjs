@@ -224,8 +224,8 @@ export const QUERIES = {
       ),
       m AS (
         SELECT dataset_key, count(*)::int AS matches, min(match_date) AS first_date, max(match_date) AS last_date,
-               count(*) FILTER (WHERE odd_home IS NOT NULL)::int AS with_odds,
-               count(*) FILTER (WHERE xg_home IS NOT NULL)::int AS with_xg
+               count(*) FILTER (WHERE odd_home IS NOT NULL AND odd_draw IS NOT NULL AND odd_away IS NOT NULL)::int AS with_odds,
+               count(*) FILTER (WHERE xg_home IS NOT NULL AND xg_away IS NOT NULL)::int AS with_xg
         FROM fpt_match_facts WHERE phase = 'HISTORICAL' GROUP BY dataset_key
       ),
       g AS (SELECT country_slug, league_slug, count(*)::int AS gaps FROM fpt_season_gaps GROUP BY 1, 2)
@@ -242,7 +242,12 @@ export const QUERIES = {
         round(COALESCE(sum(m.with_xg), 0)::numeric / NULLIF(sum(m.matches), 0), 4) AS xg_coverage,
         COALESCE(max(g.gaps), 0)::int AS season_gaps,
         count(*) FILTER (WHERE ds.onboarding_state IS DISTINCT FROM 'ACTIVE' AND ds.onboarding_state IS NOT NULL)::int AS seasons_in_onboarding,
-        'AVAILABLE' AS coverage_status,
+        -- Derived from the catalog, never a fixed label: a league with no production match says why.
+        CASE WHEN count(*) FILTER (WHERE m.matches > 0) > 0 THEN 'AVAILABLE'
+             WHEN count(*) FILTER (WHERE ds.onboarding_state IS DISTINCT FROM 'ACTIVE' AND ds.onboarding_state IS NOT NULL) > 0 THEN 'ONBOARDING'
+             WHEN bool_or(ds.availability = 'error') THEN 'ERROR'
+             WHEN bool_and(ds.availability = 'unavailable_404') THEN 'UNAVAILABLE_404'
+             ELSE 'NO_DATA' END AS coverage_status,
         NULL::text AS overlap_fpt_tc
       FROM ds
       LEFT JOIN m USING (dataset_key)
@@ -270,8 +275,8 @@ export const QUERIES = {
       LEFT JOIN fpt_raw_snapshots r ON r.snapshot_id = s.last_snapshot_id
       LEFT JOIN LATERAL (
         SELECT count(*)::int AS matches, min(match_date) AS first_date, max(match_date) AS last_date,
-               count(*) FILTER (WHERE odd_home IS NOT NULL)::int AS with_odds,
-               count(*) FILTER (WHERE xg_home IS NOT NULL)::int AS with_xg
+               count(*) FILTER (WHERE odd_home IS NOT NULL AND odd_draw IS NOT NULL AND odd_away IS NOT NULL)::int AS with_odds,
+               count(*) FILTER (WHERE xg_home IS NOT NULL AND xg_away IS NOT NULL)::int AS with_xg
         -- The competition id leads fpt_match_facts_comp_season_idx: one index range per league, not a full scan per season.
         FROM fpt_match_facts f
         WHERE f.internal_competition_id = 'fpt:competition:' || md5($1 || '|' || $2)

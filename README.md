@@ -631,8 +631,8 @@ Test `test/fpt-reprocessing.test.mjs`, con un cambio di parser simulato (v2 rimu
 - prima e ultima stagione con dati;
 - stagioni con dati su stagioni elencate e stagioni in 404;
 - partite;
-- stato (`AVAILABLE`);
-- coverage delle quote 1X2 e degli xG;
+- stato derivato dal catalogo: `AVAILABLE` se la lega ha partite in produzione, altrimenti `ONBOARDING`, `ERROR`, `UNAVAILABLE_404` (tutte le stagioni in 404) o `NO_DATA`;
+- coverage delle quote 1X2 (partite con tutte e tre le quote) e degli xG (partite con xG di casa e di trasferta);
 - buchi di stagione (`fpt_season_gaps`);
 - stagioni ancora in onboarding;
 - colonna overlap FPT/TC.

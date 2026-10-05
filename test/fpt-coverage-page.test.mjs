@@ -75,9 +75,18 @@ test('coverage queries answer from Postgres: league summary and season drill-dow
         await store.storeDataset(client, {datasetKey: key, sourceKind: 'dataset', providerPath: `/api/download/${key}`,
           countrySlug: 'italy', leagueSlug: 'serie-a', season, text, headers: parsed.headers, rows: parsed.rows});
       };
-      await add('2022-2023', 'Date,Home,Away,Odd_1_FT,xG_Home_FT\n2022-09-01,Inter,Milan,2.10,1.2\n2022-09-08,Milan,Roma,1.80,\n');
-      await add('2023-2024', 'Date,Home,Away,Odd_1_FT\n2023-09-01,Roma,Inter,0\n');
+      // Coverage counts complete pairs only: all three 1X2 prices, both xG values.
+      await add('2022-2023', 'Date,Home,Away,Odd_1_FT,Odd_X_FT,Odd_2_FT,xG_Home_FT,xG_Away_FT\n'
+        + '2022-09-01,Inter,Milan,2.10,3.20,3.50,1.2,0.8\n2022-09-08,Milan,Roma,1.80,3.40,4.50,1.1,\n');
+      await add('2023-2024', 'Date,Home,Away,Odd_1_FT,Odd_X_FT\n2023-09-01,Roma,Inter,2.50,3.10\n');
       await add('2024-2025', null, 'unavailable_404');
+      // A league whose catalog seasons are all 404 stays visible, with a status that says so.
+      for (const season of ['2023-2024', '2024-2025']) {
+        const key = `france/ligue-1/${season}`;
+        await client.query(`INSERT INTO fpt_catalog(dataset_key,country_slug,league_slug,season,route) VALUES($1,'france','ligue-1',$2,$3)`,
+          [key, season, `/api/download/${key}`]);
+        await client.query(`INSERT INTO fpt_dataset_state(dataset_key, availability) VALUES($1,'unavailable_404')`, [key]);
+      }
       await client.query(`INSERT INTO fpt_season_gaps(country_slug,league_slug,season,detector,in_catalog,missing_available)
         VALUES('italy','serie-a','2021-2022','cadence',false,false)`);
       await refreshNormalizedLayer(client);
@@ -86,8 +95,12 @@ test('coverage queries answer from Postgres: league summary and season drill-dow
       assert.equal(league.last_season, '2023-2024');
       assert.deepEqual([league.seasons_with_data, league.seasons_listed, league.seasons_unavailable_404, league.matches, league.season_gaps],
         [2, 3, 1, 3, 1]);
-      assert.equal(Number(league.odds_coverage), 0.6667, 'a 0 price is N/D, not a quote');
-      assert.equal(Number(league.xg_coverage), 0.3333);
+      assert.equal(Number(league.odds_coverage), 0.6667, 'a match without the away price is not 1X2 coverage');
+      assert.equal(Number(league.xg_coverage), 0.3333, 'a match without the away xG is not xG coverage');
+      assert.equal(league.coverage_status, 'AVAILABLE');
+      const france = (await runQuery(client, 'coverageCompetitions', {country: 'france'})).rows;
+      assert.deepEqual(france.map(r => [r.league_slug, r.coverage_status, r.matches, r.seasons_listed, r.seasons_unavailable_404, r.odds_coverage]),
+        [['ligue-1', 'UNAVAILABLE_404', 0, 2, 2, null]]);
       assert.equal((await runQuery(client, 'coverageCompetitions', {min_seasons: '3'})).rows.length, 0);
       const seasons = (await runQuery(client, 'coverageSeasons', {country: 'italy', league: 'serie-a'})).rows;
       assert.deepEqual(seasons.map(s => [s.season, s.matches, s.gap]),

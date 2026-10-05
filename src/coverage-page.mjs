@@ -20,7 +20,8 @@ function page(title, body) {
 }
 
 const NOTES = `<p class="muted">Fonte: FutPythonTrader, letta dal database MatchPilot (nessuna chiamata al provider). `
-  + `Stato stagione: AVAILABLE. COMPLETE/PARTIAL non sono calcolabili perché il provider non pubblica il numero atteso di partite. `
+  + `Stato lega: AVAILABLE se ha partite in produzione, altrimenti ONBOARDING, ERROR, UNAVAILABLE_404 o NO_DATA. `
+  + `Coverage quote = partite con tutte e tre le quote 1X2; coverage xG = partite con xG di casa e trasferta. COMPLETE/PARTIAL non sono calcolabili perché il provider non pubblica il numero atteso di partite. `
   + `Overlap FPT/TC: non disponibile finché TotalCorner (#20) non è integrato. Live: non disponibile per FutPythonTrader.</p>`;
 
 export function renderCoverageCompetitions(rows, filters = {}) {
