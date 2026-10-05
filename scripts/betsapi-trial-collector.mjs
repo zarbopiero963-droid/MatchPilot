@@ -15,6 +15,7 @@ const INSTANCE_ID = crypto.randomUUID();
 const KEEPALIVE_URL = (process.env.PROVIDER_TRIAL_KEEPALIVE_URL || 'https://betsapi-trial-collector.onrender.com/healthz').trim();
 const KEEPALIVE_MS = Number(process.env.PROVIDER_TRIAL_KEEPALIVE_MS || 600000);
 
+const BETS_LEGACY_ENABLED = String(process.env.BETSAPI_LEGACY_ENABLED || 'true').toLowerCase() === 'true';
 const BETS_INPLAY_MS = Number(process.env.BETSAPI_POLL_MS || 30000);
 const BETS_DETAIL_MS = Number(process.env.BETSAPI_DETAIL_EVERY_MS || 60000);
 const BETS_UPCOMING_MS = Number(process.env.BETSAPI_UPCOMING_EVERY_MS || 300000);
@@ -32,6 +33,13 @@ const EVERYTHING_DISCOVERY_MS = Number(process.env.BETSAPI_EVERYTHING_DISCOVERY_
 const EVERYTHING_PREMATCH_MS = Number(process.env.BETSAPI_EVERYTHING_PREMATCH_MS || 300000);
 const EVERYTHING_FULL_CATALOG_ENABLED = String(process.env.BETSAPI_EVERYTHING_FULL_CATALOG || '').toLowerCase() === 'true';
 const EVERYTHING_FULL_CATALOG_MS = Number(process.env.BETSAPI_EVERYTHING_FULL_CATALOG_MS || 300000);
+const RECON_CENSUS_ENABLED = String(process.env.PROVIDER_TRIAL_CENSUS_ENABLED || '').toLowerCase() === 'true';
+const RECON_CENSUS_MS = Number(process.env.PROVIDER_TRIAL_CENSUS_MS || 60000);
+const RECON_HISTORY_ENABLED = String(process.env.PROVIDER_TRIAL_HISTORY_ENABLED || '').toLowerCase() === 'true';
+const RECON_HISTORY_MS = Number(process.env.PROVIDER_TRIAL_HISTORY_MS || 60000);
+const RECON_ODDS_ENABLED = String(process.env.PROVIDER_TRIAL_ODDS_ENABLED || '').toLowerCase() === 'true';
+const RECON_ODDS_MS = Number(process.env.PROVIDER_TRIAL_ODDS_MS || 60000);
+const RECON_ODDS_MAX_EVENTS = Number(process.env.PROVIDER_TRIAL_ODDS_MAX_EVENTS || 8);
 
 const TC_LIVE_COLUMNS = [
   'events','odds','asian','cornerLine','cornerLineHalf','goalLine','goalLineHalf',
@@ -65,7 +73,7 @@ let last = {
   bets_inplay:0,bets_detail:0,bets_upcoming:0,
   tc_inplay:0,tc_detail:0,tc_slow:0,
   scoretrend:0,scoretrend_slow:0,
-  everything_discovery:0,everything_prematch:0,everything_full_catalog:0
+  everything_discovery:0,everything_prematch:0,everything_full_catalog:0,recon_census:0,recon_history:0,recon_odds:0
 };
 let betsEventIds = [];
 let tcMatchIds = [];
@@ -321,13 +329,68 @@ async function collectScoreTrendSlow() {
   last.scoretrend_slow = Date.now();
 }
 
+
+async function runHistoryScan() {
+  if (!dbReady || !dbPool || !EVERYTHING_ENABLED) return;
+  const {rows}=await dbPool.query(`
+    SELECT c.provider,c.sport_id,c.country_code,c.league_id,c.league_name,
+           COALESCE((s.value->>'page')::int,1) AS page,
+           COALESCE((s.value->>'done')::boolean,false) AS done
+    FROM provider_trial.competitions c
+    LEFT JOIN provider_trial.reconciliation_state s
+      ON s.key='history:'||c.provider||':'||c.sport_id||':'||c.country_code||':'||c.league_id
+    WHERE c.provider='betsapi'
+      AND COALESCE((s.value->>'done')::boolean,false)=false
+    ORDER BY s.updated_at NULLS FIRST,c.sport_id,c.country_code,c.league_id
+    LIMIT 2
+  `);
+  for (const item of rows) {
+    const key=['history',item.provider,item.sport_id,item.country_code,item.league_id].join(':');
+    const page=Math.max(1,Number(item.page||1));
+    const r=await everythingRuntime.callDocumentedEndpoint('events_ended',{
+      sport_id:item.sport_id,league_id:item.league_id,page
+    });
+    const results=Array.isArray(r?.body?.results)?r.body.results:[];
+    const done=!r?.ok || results.length===0 || page>=100;
+    await dbPool.query(`
+      INSERT INTO provider_trial.reconciliation_state(key,value,updated_at)
+      VALUES($1,$2::jsonb,now())
+      ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value,updated_at=now()
+    `,[key,JSON.stringify({page:done?page:page+1,done,last_status:r?.status??null,last_count:results.length})]);
+  }
+}
+
+async function runOddsTimelineScan() {
+  if (!dbReady || !dbPool || !EVERYTHING_ENABLED) return;
+  const {rows}=await dbPool.query(`
+    SELECT e.event_id,e.sport_id,e.kickoff_utc,
+           extract(epoch from max(o.provider_time))::bigint AS since_time
+    FROM provider_trial.events e
+    LEFT JOIN provider_trial.odds_observations o
+      ON o.provider='betsapi' AND o.event_id=e.event_id
+    WHERE e.provider='betsapi'
+      AND (
+        e.kickoff_utc IS NULL OR
+        e.kickoff_utc BETWEEN now()-interval '4 hours' AND now()+interval '48 hours'
+      )
+    GROUP BY e.event_id,e.sport_id,e.kickoff_utc
+    ORDER BY e.kickoff_utc NULLS LAST,e.last_seen_at DESC
+    LIMIT $1
+  `,[RECON_ODDS_MAX_EVENTS]);
+  for (const item of rows) {
+    const params={event_id:item.event_id};
+    if (item.since_time) params.since_time=Number(item.since_time);
+    await everythingRuntime.callDocumentedEndpoint('event_odds',params);
+  }
+}
+
 async function loop() {
   try {
     const now = Date.now();
 
-    if (BETS_TOKEN && now - last.bets_inplay >= BETS_INPLAY_MS) await collectBetsInplay();
-    if (BETS_TOKEN && betsEventIds.length && now - last.bets_detail >= BETS_DETAIL_MS) await collectBetsDetails();
-    if (BETS_TOKEN && now - last.bets_upcoming >= BETS_UPCOMING_MS) await collectBetsUpcoming();
+    if (BETS_LEGACY_ENABLED && BETS_TOKEN && now - last.bets_inplay >= BETS_INPLAY_MS) await collectBetsInplay();
+    if (BETS_LEGACY_ENABLED && BETS_TOKEN && betsEventIds.length && now - last.bets_detail >= BETS_DETAIL_MS) await collectBetsDetails();
+    if (BETS_LEGACY_ENABLED && BETS_TOKEN && now - last.bets_upcoming >= BETS_UPCOMING_MS) await collectBetsUpcoming();
 
     if (TC_TOKEN && now - last.tc_inplay >= TC_INPLAY_MS) await collectTcInplay();
     if (TC_TOKEN && tcMatchIds.length && now - last.tc_detail >= TC_DETAIL_MS) await collectTcDetails();
@@ -343,6 +406,18 @@ async function loop() {
     if (EVERYTHING_ENABLED && now - last.everything_prematch >= EVERYTHING_PREMATCH_MS) {
       await everythingRuntime.prematchCycle();
       last.everything_prematch = Date.now();
+    }
+    if (RECON_CENSUS_ENABLED && EVERYTHING_ENABLED && now-last.recon_census>=RECON_CENSUS_MS) {
+      await everythingRuntime.censusCycle({pagesPerSport:2});
+      last.recon_census=Date.now();
+    }
+    if (RECON_HISTORY_ENABLED && EVERYTHING_ENABLED && now-last.recon_history>=RECON_HISTORY_MS) {
+      await runHistoryScan();
+      last.recon_history=Date.now();
+    }
+    if (RECON_ODDS_ENABLED && EVERYTHING_ENABLED && now-last.recon_odds>=RECON_ODDS_MS) {
+      await runOddsTimelineScan();
+      last.recon_odds=Date.now();
     }
     if (EVERYTHING_ENABLED && EVERYTHING_FULL_CATALOG_ENABLED && !everythingFullCatalogRunning && now - last.everything_full_catalog >= EVERYTHING_FULL_CATALOG_MS) {
       everythingFullCatalogRunning = true;
@@ -412,7 +487,9 @@ http.createServer(async (req, res) => {
       bets_detail_events:betsEventIds.length,
       totalcorner_detail_matches:tcMatchIds.length,
       last_error:lastError,
+      betsapi_legacy_enabled:BETS_LEGACY_ENABLED,
       betsapi_everything:everythingRuntime.status(),
+      reconciliation_census:everythingRuntime.censusStatus(),
       betsapi_everything_full_catalog:{...everythingRuntime.fullCatalogStatus(),running:everythingFullCatalogRunning},
       keepalive:{
         enabled:Boolean(KEEPALIVE_URL) && Number.isFinite(KEEPALIVE_MS) && KEEPALIVE_MS >= 60000,
