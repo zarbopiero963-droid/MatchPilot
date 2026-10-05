@@ -195,7 +195,7 @@ La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue *
 
 Stato corrente della sorgente: **IN CERTIFICAZIONE — non ancora CLOSED**.
 
-Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-09 non parte.
+Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-09 (certificato finale) è in corso: l'esito si legge solo nel documento generato dai dati reali, non in questo paragrafo.
 
 La certificazione richiede, nell'ordine:
 
@@ -414,6 +414,38 @@ Il watchdog resta `src/jobs/data-watchdog.mjs`. Non esiste un secondo alerter. C
 
 `emitAlert` consegna al massimo una volta per fingerprint dentro `MATCHPILOT_ALERT_COOLDOWN_MINUTES` (default 180). La seconda occorrenza aggiorna il contatore e non rispedisce. Il resolve segna `resolved_at` e non manda un altro messaggio. Telegram, se il token e la chat sono già configurati, è outbound-only: `deleteWebhook` e nessun `getUpdates`. Un messaggio inbound non ha una route e non riceve risposta. I numeri del test, e se il messaggio unico è stato inviato, stanno nel commento della PR.
 
+### FASE 9 — layer normalizzato, query e certificato finale (FPT-PR-09)
+
+La migrazione `014-fpt-normalized-layer.sql` non riscrive gzip, snapshot o versioni. Aggiunge:
+
+- **ledger richieste**: `provider`, `endpoint_family` (`dataset`, `today`, `catalog`, `other`), `latency_ms`, `deduped`, `budget_state` (`ok`/`warning`/`critical`), `budget_remaining_day`, `budget_remaining_minute`, `provider_quota_remaining`. Una chiamata identica già in volo scrive una riga `deduped` e non va upstream. `provider_quota_remaining` è valorizzato solo se FutPythonTrader manda `x-ratelimit-remaining` o `ratelimit-remaining`. Le righe precedenti alla migrazione hanno solo `endpoint_family` ricavato dal path: latenza, stato budget e quota restano nulli perché non erano misurati;
+- **famiglie campo corrette**: `AH_*` ed `EH_*` sono prezzi (`market`), `Country` e `Div` sono `identity`, `Throw_Ins_*` è `set_pieces`. La famiglia ora segue sempre il codice a ogni ingest;
+- **`fpt_match_facts`**: una riga per `match_key` dalla sua ultima versione, con `internal_match_id`, `internal_competition_id`, `season_id`, `home_team_id`, `away_team_id`, `provider_match_id`, `kickoff_local_time`, `home_score`, `away_score`, `result_status` (`FINAL`, `NO_RESULT`, `NOT_STARTED`) e la lineage (`version_id`, `snapshot_id`, parser/schema/transform). `kickoff_utc` resta nullo con `kickoff_tz_status=PROVIDER_TZ_UNDOCUMENTED`: FutPythonTrader non documenta il fuso di `Date`/`Time` e il fuso non viene indovinato. `provider_competition_id` resta nullo perché il catalogo non lo espone. `fpt_match_facts_at(timestamp)` ricalcola le stesse righe solo da versioni acquisite entro quel timestamp;
+- **`fpt_filter_registry`**: una riga per campo della registry con tipo, operatori ammessi, copertura globale, `timing_class` e `prematch_safe`. `identity` è `PREMATCH_IDENTITY`; `market` è `PREMATCH_MARKET_UNTIMED` (prezzo pre-kickoff senza timestamp di cattura); tutte le altre famiglie sono `POSTMATCH_OUTCOME` e non sono mai sicure per un'analisi pre-match. Lo zero di un campo prezzo è `N/D` (`zero_is_missing`): il feed `jogos-do-dia` manda `0` per le quote non ancora quotate;
+- **`fpt_team_links`**: le squadre delle competizioni internazionali scritte `Club (XXX)` vengono collegate alla squadra domestica solo se il nome normalizzato è identico e unico nel paese del codice. Il paese del codice è ricavato dai dati (il paese con strettamente più nomi in comune), non da una tabella scritta a mano. Gli altri casi restano separati con stato esplicito (`NO_DOMESTIC_MATCH`, `AMBIGUOUS`, `CODE_UNRESOLVED`).
+
+La migrazione riempie le tre tabelle al boot. Il sync le riaggiorna, solo su DB, quando un run inserisce righe o campi nuovi.
+
+Route di sola lettura, servite da Neon, che non chiamano FutPythonTrader (il modulo `src/providers/futpython/query.mjs` non importa il client):
+
+| route | parametri |
+| --- | --- |
+| `GET /api/fpt/teams` | `q` |
+| `GET /api/fpt/team-matches` | `team`, `before` (default oggi UTC), `limit` |
+| `GET /api/fpt/team-summary` | `team`, `before`, `season` |
+| `GET /api/fpt/h2h` | `team`, `opponent`, `before`, `limit` |
+| `GET /api/fpt/competition-season` | `competition`, `season`, `limit` |
+| `GET /api/fpt/matches` | `date`, `limit` |
+| `GET /api/fpt/match` | `id` |
+| `GET /api/fpt/competitions` | — |
+| `GET /api/fpt/filters` | — |
+
+Lo storico squadra e gli scontri diretti sono sempre strettamente prima di `before`: un'analisi pre-match di una partita del giorno D non vede D né i giorni successivi.
+
+`GET /api/futpython-certificate` costruisce in background il report finale (17 sezioni: identità, catalogo, dati, integrità con rilettura completa di ogni gzip, schema, coverage, stagioni, point-in-time, entity resolution, lineage, ledger, sync incrementale, watchdog, layer normalizzato, registry filtri, query assistente, performance su Neon con `EXPLAIN (ANALYZE, BUFFERS)`). Risponde 202 finché il primo report non è pronto, poi 200 con il report in cache per 15 minuti. Il gate performance richiede, per ogni query, esecuzione ≤ 250 ms, righe lette ≤ 20000 e nessun Seq Scan su `fpt_match_facts`, `fpt_match_versions`, `fpt_raw_snapshots`.
+
+Il documento `docs/futpython-certification-YYYY-MM-DD.md` si genera con `node src/jobs/futpython-certificate.mjs --from-url=<servizio>/api/futpython-certificate --out=docs/futpython-certification-YYYY-MM-DD.md`. L'esito ammesso è uno solo: `CERTIFIED`, `CERTIFIED WITH KNOWN LIMITATIONS` o `NOT CERTIFIED`. Un gate falso dà sempre `NOT CERTIFIED`. I numeri reali stanno nel documento generato e nel commento della PR, non qui.
+
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
 
 **Stato al momento della PR, prima del merge.** Il kill live e la verifica post-merge sono nella sezione precedente. Questo paragrafo non va letto come lo stato attuale.
@@ -457,6 +489,7 @@ Per il lavoro FutPythonTrader:
 - evidenza reale prima del merge/chiusura fase;
 - nessuna checklist anticipata;
 - `CLOSED / CERTIFIED` solo dopo tutti i gate della #12.
+- una review AI (CodeRabbit, Codex o altre) ferma per rate limit, quota o limite del piano non si aspetta: si annota il motivo nella PR e si procede con CI verde, test ed evidenza reale; i finding già pubblicati restano da risolvere.
 
 
 ## TotalCorner — certificazione #20

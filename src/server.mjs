@@ -7,6 +7,9 @@ import { startDataWatchdog, stopDataWatchdog } from './jobs/data-watchdog.mjs';
 import { getDataHealth, configureTelegramOutboundOnly, sendTelegramConnectivityTest } from './alerts.mjs';
 import { getFutpythonCertificationStatus } from './futpython-certification.mjs';
 import { runPhase1Verification } from './jobs/futpython-certify-phase1.mjs';
+import { certificateReport } from './futpython-certificate.mjs';
+import { ROUTES, runQuery } from './providers/futpython/query.mjs';
+import { withClient } from './db.mjs';
 
 const port = Number(process.env.PORT || 3000);
 
@@ -30,6 +33,34 @@ if (process.env.FUTPYTHON_BACKFILL_ON_START === 'true') {
 const app = http.createServer((req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
+
+  const url = new URL(req.url || '/', 'http://localhost');
+
+  if (url.pathname === '/api/futpython-certificate') {
+    let result;
+    try { result = certificateReport(); }
+    catch { result = {state: 'error', report: null}; }
+    res.writeHead(result.report ? 200 : 202, {'Content-Type':'application/json'});
+    res.end(JSON.stringify(result));
+    return;
+  }
+
+  if (ROUTES[url.pathname]) {
+    if (req.method !== 'GET') {
+      res.writeHead(405, {'Content-Type':'application/json'});
+      return res.end(JSON.stringify({error:'method_not_allowed'}));
+    }
+    const input = Object.fromEntries(url.searchParams.entries());
+    withClient(client => runQuery(client, ROUTES[url.pathname], input)).then(data=>{
+      res.writeHead(200, {'Content-Type':'application/json'});
+      res.end(JSON.stringify(data));
+    }).catch(error=>{
+      const bad = error?.code === 'BAD_QUERY_INPUT';
+      res.writeHead(bad ? 400 : 503, {'Content-Type':'application/json'});
+      res.end(JSON.stringify(bad ? {error:'bad_request', message:error.message} : {status:'error'}));
+    });
+    return;
+  }
 
   if (req.url === '/api/futpython-certification') {
     getFutpythonCertificationStatus().then(data=>{

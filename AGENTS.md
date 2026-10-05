@@ -82,6 +82,15 @@ Per ogni fase di certificazione:
 - issue #12 aggiornata solo per punti realmente certificati;
 - nessun risultato “atteso” presentato come osservato.
 
+### Review AI — non attendere se bloccate
+
+Regola dell'owner, vale per CodeRabbit, Codex e qualunque altro reviewer AI.
+
+- Se la review AI non parte o si ferma per rate limit, quota d'uso esaurita, limite del piano (per esempio "fewer than 10 stars"), servizio non disponibile o nessuna risposta dopo il trigger, **non si aspetta**.
+- Si scrive nella PR una riga con il motivo e il link al commento del bot, e si procede. Il merge resta subordinato a CI verde, test pertinenti, evidenza reale e README aggiornato.
+- I finding già pubblicati da un reviewer AI restano da risolvere o da rispondere prima del merge. La regola copre solo l'attesa di una review che non arriva.
+- La regola non vale per review umane richieste, per CI rossa né per un gate reale fallito.
+
 ### Dopo il merge
 - verificare deploy Render;
 - verificare migrazioni Neon;
@@ -92,7 +101,7 @@ Per ogni fase di certificazione:
 
 ## Resume drill e budget FutPython
 
-- Una sola PR. FPT-PR-01 è mergiata e verificata. FPT-PR-02 persiste gli stati terminali, INITIAL_404 e REGRESSION_404. FPT-PR-03 persiste l'audit di integrità e l'identità squadra. FPT-PR-04 persiste registry e lineage. FPT-PR-05 persiste la coverage full su global/dataset/league/season/period/normalized e solo un campione team. FPT-PR-06 persiste il registry stagione, i buchi a cadenza annuale e il point-in-time. FPT-PR-07 è il doppio sync incrementale, senza refetch dei dataset terminali. FPT-PR-08 certifica watchdog e Telegram sullo stesso alerter. Non aprire FPT-PR-09 finché il gate phase8 è riletto.
+- Una sola PR. FPT-PR-01 è mergiata e verificata. FPT-PR-02 persiste gli stati terminali, INITIAL_404 e REGRESSION_404. FPT-PR-03 persiste l'audit di integrità e l'identità squadra. FPT-PR-04 persiste registry e lineage. FPT-PR-05 persiste la coverage full su global/dataset/league/season/period/normalized e solo un campione team. FPT-PR-06 persiste il registry stagione, i buchi a cadenza annuale e il point-in-time. FPT-PR-07 è il doppio sync incrementale, senza refetch dei dataset terminali. FPT-PR-08 certifica watchdog e Telegram sullo stesso alerter. Il gate phase8 è stato riletto vero su Neon prima di FPT-PR-09. FPT-PR-09 aggiunge la migrazione `014-fpt-normalized-layer.sql` (ledger con provider/endpoint/latenza/deduped/budget, famiglie AH/EH/Country/Div/throw-in corrette, `fpt_match_facts`, `fpt_filter_registry`, `fpt_team_links`), le route di sola lettura `/api/fpt/*` e `/api/futpython-certificate`. Il certificato `docs/futpython-certification-YYYY-MM-DD.md` si genera da quell'endpoint, non a mano. Dopo FPT-PR-09 non aprire altre PR FPT senza un gate fallito documentato nella #12.
 - Non chiudere la issue #12.
 - Non lanciare il drill sul servizio web e non impostare `FUTPYTHON_BACKFILL_ON_START=true`.
 - Il ledger non deve contenere API key. Il browser non chiama il provider.

@@ -28,6 +28,15 @@ Il prodotto segue:
 - Non effettuare trade reali, puntate o modifiche a conti esterni durante test di sviluppo.
 - Nessun secret in codice, fixture, issue, log o output di test.
 
+## Review AI — non attendere se bloccate
+
+Regola dell'owner, vale per CodeRabbit, Codex e qualunque altro reviewer AI.
+
+- Se la review AI non parte o si ferma per rate limit, quota d'uso esaurita, limite del piano (per esempio "fewer than 10 stars"), servizio non disponibile o nessuna risposta dopo il trigger, **non si aspetta**.
+- Si scrive nella PR una riga con il motivo e il link al commento del bot, e si procede. Il merge resta subordinato a CI verde, test pertinenti, evidenza reale e README aggiornato.
+- I finding già pubblicati da un reviewer AI restano da risolvere o da rispondere prima del merge. La regola copre solo l'attesa di una review che non arriva.
+- La regola non vale per review umane richieste, per CI rossa né per un gate reale fallito.
+
 ## README sincronizzato obbligatoriamente
 
 **README.md deve essere aggiornato in ogni PR** quando cambia uno dei seguenti elementi:
@@ -112,7 +121,7 @@ Se l'evidenza reale contraddice il test unitario, prevale il dato reale e la fas
 - FPT-PR-02 persiste la classificazione su Neon (AVAILABLE, UNAVAILABLE_404, ERROR_REAL, DEPRECATED, REMOVED, più INITIAL_404 e REGRESSION_404). `active=false` da solo non basta.
 - FPT-PR-03 riconcilia raw, parser e DB e persiste l'identità squadra (`internal_team_id`, alias, abbreviazioni, nomi storici).
 - FPT-PR-04 persiste la schema registry (`type_history`, `unique_rows_seen`, `normalized_field`, alias candidati) e la lineage fino allo snapshot.
-- FPT-PR-05 persiste la coverage per global, dataset, league, season, period e campo normalizzato. Il team è solo un campione di 3 squadre e dei campi Home, Date, Match_ID, non un censimento. FPT-PR-06 persiste una riga per lega/stagione, il rilevatore dei buchi annuali e la funzione point-in-time `fpt_known_matches`. `expected_match_count` resta nullo. FPT-PR-07 esegue due sync incrementali senza `--backfill` e senza `--force`. I dataset terminali della stagione corrente non vengono riscaricati. FPT-PR-08 certifica il watchdog esistente, con gli avvisi di budget, 429 e circuit breaker sullo stesso emitAlert. Non aprire FPT-PR-09 finché il gate phase8 è riletto.
+- FPT-PR-05 persiste la coverage per global, dataset, league, season, period e campo normalizzato. Il team è solo un campione di 3 squadre e dei campi Home, Date, Match_ID, non un censimento. FPT-PR-06 persiste una riga per lega/stagione, il rilevatore dei buchi annuali e la funzione point-in-time `fpt_known_matches`. `expected_match_count` resta nullo. FPT-PR-07 esegue due sync incrementali senza `--backfill` e senza `--force`. I dataset terminali della stagione corrente non vengono riscaricati. FPT-PR-08 certifica il watchdog esistente, con gli avvisi di budget, 429 e circuit breaker sullo stesso emitAlert. Il gate phase8 è stato riletto vero su Neon prima di FPT-PR-09. FPT-PR-09 aggiunge la migrazione `014-fpt-normalized-layer.sql` (ledger con provider/endpoint/latenza/deduped/budget, famiglie AH/EH/Country/Div/throw-in corrette, `fpt_match_facts`, `fpt_filter_registry`, `fpt_team_links`), le route di sola lettura `/api/fpt/*` e `/api/futpython-certificate`. Il certificato `docs/futpython-certification-YYYY-MM-DD.md` si genera da quell'endpoint, non a mano. Dopo FPT-PR-09 non aprire altre PR FPT senza un gate fallito documentato nella #12.
 
 ## Gate finale FutPythonTrader
 
