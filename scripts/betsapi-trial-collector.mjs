@@ -424,7 +424,7 @@ async function reconciliationCertificate() {
     competitions_present:Number(compRow.total||0)>0,
     countries_present:Number(compRow.countries||0)>0,
     real_history_present:Number(covRow.with_real_history||0)>0,
-    documented_history_floor:String(covRow.documented_floor||'').startsWith('2016-09-01'),
+    documented_history_floor:Boolean(covRow.documented_floor) && new Date(covRow.documented_floor).toISOString().startsWith('2016-09-01'),
     odds_parser_v3:state.odds_parser_version?.version==='3',
     raw_odds_rebuild_complete:!oddsRebuildRunning && oddsRebuildLastError===null && state.odds_v3_raw_rebuild?.complete===true && state.odds_v3_raw_rebuild?.version===3,
     odds_present:Number(oddsRow.observations||0)>0,
