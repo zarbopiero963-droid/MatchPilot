@@ -38,6 +38,30 @@ export function retryAfterMs(header, nowMs) {
   return null;
 }
 
+export function endpointFamily(path) {
+  const p = String(path || '');
+  if (p.startsWith('/api/download/')) return 'dataset';
+  if (p.startsWith('/api/jogos-do-dia')) return 'today';
+  if (p.startsWith('/api-docs')) return 'catalog';
+  return 'other';
+}
+
+function headerValue(headers, name) {
+  if (!headers) return null;
+  if (typeof headers.get === 'function') return headers.get(name);
+  return headers[name] ?? null;
+}
+
+export function providerQuotaRemaining(headers) {
+  for (const name of ['x-ratelimit-remaining', 'ratelimit-remaining']) {
+    const raw = headerValue(headers, name);
+    if (raw == null || String(raw).trim() === '') continue;
+    const n = Number(String(raw).trim());
+    if (Number.isInteger(n) && n >= 0) return n;
+  }
+  return null;
+}
+
 export function exponentialBackoffMs(attempt, config, rand = Math.random) {
   const exp = Math.min(config.backoffCapMs, config.backoffBaseMs * (2 ** Math.max(0, attempt - 1)));
   const jitter = Math.floor(rand() * Math.min(250, exp));
@@ -121,10 +145,36 @@ export function createRequestBudget({
     for (const resolve of pending) resolve();
   }
 
+  async function usage(priority) {
+    const t = now();
+    const minuteLimit = priority === 'backfill'
+      ? Math.min(config.perMinute, config.backfillPerMinute)
+      : config.perMinute;
+    const minuteUsed = await ledger.countSince(t - 60000, COUNTED);
+    const dayUsed = await ledger.countSince(t - 86400000, COUNTED);
+    return {minuteUsed, dayUsed, minuteLimit, dayLimit: config.perDay};
+  }
+
+  function budgetFields(u) {
+    if (!u) return {};
+    return {
+      budget_state: budgetPressure(u),
+      budget_remaining_day: Math.max(0, u.dayLimit - u.dayUsed),
+      budget_remaining_minute: Math.max(0, u.minuteLimit - u.minuteUsed)
+    };
+  }
+
   async function insertLedger(row) {
     const safe = safeProviderPath(row.url_path);
     if (safe.toLowerCase().includes('api_key=')) throw new Error('refusing to ledger a provider path with an api key');
+    const u = row.usage || await usage(row.priority || 'critical');
     await ledger.insert({
+      ...budgetFields(u),
+      provider: 'futpythontrader',
+      endpoint_family: endpointFamily(safe),
+      latency_ms: row.latency_ms ?? null,
+      deduped: row.outcome === 'deduped',
+      provider_quota_remaining: row.provider_quota_remaining ?? null,
       recorded_at: new Date(now()),
       dataset_key: row.dataset_key || null,
       url_path: safe,
@@ -173,7 +223,9 @@ export function createRequestBudget({
         error.code = 'BUDGET_EXHAUSTED';
         throw error;
       }
-      if (minuteUsed < limit) return;
+      if (minuteUsed < limit) {
+        return {minuteUsed: minuteUsed + 1, dayUsed: dayUsed + 1, minuteLimit: limit, dayLimit: config.perDay};
+      }
       const wait = Math.max(25, Math.min(1000, 60000 / limit));
       await sleep(wait);
     }
@@ -204,7 +256,8 @@ export function createRequestBudget({
         throw error;
       }
 
-      await takeSlot(priority);
+      const slot = await takeSlot(priority);
+      const started = now();
       let response;
       try {
         response = await fetchImpl(url, {
@@ -216,7 +269,8 @@ export function createRequestBudget({
         const backoff = exponentialBackoffMs(attempt, config, random);
         await insertLedger({
           dataset_key: opts.datasetKey, url_path: safe, outcome: 'error', attempt,
-          backoff_ms: backoff, http_status: null, run_id: opts.runId, priority
+          backoff_ms: backoff, http_status: null, run_id: opts.runId, priority,
+          usage: slot, latency_ms: Math.max(0, now() - started)
         });
         consecutiveFailures++;
         if (consecutiveFailures >= config.circuitFailures) openUntil = now() + config.circuitOpenMs;
@@ -235,7 +289,9 @@ export function createRequestBudget({
         const backoff = retryAfterMs(header, now()) ?? exponentialBackoffMs(attempt, config, random);
         await insertLedger({
           dataset_key: opts.datasetKey, url_path: safe, outcome: '429', attempt,
-          backoff_ms: backoff, http_status: 429, run_id: opts.runId, priority
+          backoff_ms: backoff, http_status: 429, run_id: opts.runId, priority,
+          usage: slot, latency_ms: Math.max(0, now() - started),
+          provider_quota_remaining: providerQuotaRemaining(response.headers)
         });
         consecutiveFailures++;
         if (consecutiveFailures >= config.circuitFailures) openUntil = now() + config.circuitOpenMs;
@@ -249,7 +305,9 @@ export function createRequestBudget({
         const backoff = retryable ? exponentialBackoffMs(attempt, config, random) : 0;
         await insertLedger({
           dataset_key: opts.datasetKey, url_path: safe, outcome: 'error', attempt,
-          backoff_ms: backoff, http_status: response.status, run_id: opts.runId, priority
+          backoff_ms: backoff, http_status: response.status, run_id: opts.runId, priority,
+          usage: slot, latency_ms: Math.max(0, now() - started),
+          provider_quota_remaining: providerQuotaRemaining(response.headers)
         });
         if (retryable) {
           consecutiveFailures++;
@@ -265,7 +323,9 @@ export function createRequestBudget({
       const text = await response.text();
       await insertLedger({
         dataset_key: opts.datasetKey, url_path: safe, outcome: 'upstream', attempt,
-        backoff_ms: 0, http_status: response.status, run_id: opts.runId, priority
+        backoff_ms: 0, http_status: response.status, run_id: opts.runId, priority,
+        usage: slot, latency_ms: Math.max(0, now() - started),
+        provider_quota_remaining: providerQuotaRemaining(response.headers)
       });
       consecutiveFailures = 0;
       openUntil = 0;
@@ -285,7 +345,13 @@ export function createRequestBudget({
         return {cacheHit: true, text: '', providerPath: safe};
       }
       const existing = inflight.get(safe);
-      if (existing) return existing;
+      if (existing) {
+        await insertLedger({
+          dataset_key: opts.datasetKey, url_path: safe, outcome: 'deduped', attempt: 0,
+          backoff_ms: 0, http_status: null, run_id: opts.runId, priority: opts.priority || 'critical'
+        });
+        return existing;
+      }
       const pending = fetchWithRetry(opts, safe).finally(() => inflight.delete(safe));
       inflight.set(safe, pending);
       return pending;

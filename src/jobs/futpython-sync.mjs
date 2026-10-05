@@ -6,6 +6,7 @@ import { fetchDataset, fetchToday } from '../providers/futpython/client.mjs';
 import { storeDataset, upsertCatalog, sha256 } from '../providers/futpython/store.mjs';
 import { persistOutcome } from '../providers/futpython/classification.mjs';
 import { shouldYieldToCritical } from '../providers/futpython/budget.mjs';
+import { refreshNormalizedLayer } from '../providers/futpython/query.mjs';
 import { emitAlert, resolveAlert } from '../alerts.mjs';
 
 const LOCK_ID = 76420311;
@@ -470,6 +471,14 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
         await syncToday(client, stats, new Date().toISOString().slice(0, 10));
       }
       await refreshFinalCounts(client, stats);
+      if (stats.rowsInserted > 0 || stats.newFields.size > 0) {
+        // Database-only refresh. A failure is recorded on the run and never hides the mirror result.
+        try {
+          stats.meta.normalizedLayer = await refreshNormalizedLayer(client);
+        } catch (error) {
+          stats.meta.normalizedLayerError = redact(error?.message || error);
+        }
+      }
 
       const undefinedCount = Object.values(stats.meta.undefinedStates || {}).reduce((sum, value) => sum + value, 0);
       const status = stats.failures.length || undefinedCount

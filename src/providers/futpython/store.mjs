@@ -116,9 +116,7 @@ async function upsertSchemaBatch(client, schema) {
          AND excluded.inferred_type NOT IN ('unknown')
          AND NOT (fpt_schema_fields.inferred_type IN ('integer','number') AND excluded.inferred_type IN ('integer','number'))
        ),
-       family=CASE
-         WHEN fpt_schema_fields.family='unclassified' THEN excluded.family
-         ELSE fpt_schema_fields.family END,
+       family=excluded.family,
        normalized_field=excluded.normalized_field,
        alias_candidates=excluded.alias_candidates,
        queryable=excluded.queryable,

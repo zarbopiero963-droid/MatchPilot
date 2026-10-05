@@ -1,8 +1,10 @@
 import { withClient } from '../../db.mjs';
 
 const INSERT = `INSERT INTO fpt_request_ledger(
-  recorded_at,dataset_key,url_path,outcome,attempt,backoff_ms,http_status,run_id,priority
-) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`;
+  recorded_at,dataset_key,url_path,outcome,attempt,backoff_ms,http_status,run_id,priority,
+  provider,endpoint_family,latency_ms,deduped,budget_state,budget_remaining_day,budget_remaining_minute,
+  provider_quota_remaining
+) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`;
 
 export function createPgLedger() {
   return {
@@ -16,7 +18,15 @@ export function createPgLedger() {
         row.backoff_ms || 0,
         row.http_status ?? null,
         row.run_id || null,
-        row.priority || null
+        row.priority || null,
+        row.provider || 'futpythontrader',
+        row.endpoint_family || null,
+        row.latency_ms ?? null,
+        row.deduped === true,
+        row.budget_state || null,
+        row.budget_remaining_day ?? null,
+        row.budget_remaining_minute ?? null,
+        row.provider_quota_remaining ?? null
       ]));
     },
     async countSince(sinceMs, outcomes) {

@@ -21,6 +21,9 @@ export function mergeTypes(types) {
 
 export function fieldFamily(name) {
   const n = String(name).toLowerCase();
+  if (/^(ah|eh)_/.test(n)) return 'market';
+  if (/^(country|div)$/.test(n)) return 'identity';
+  if (/throw_in/.test(n)) return 'set_pieces';
   if (/odd|bookie|asian|over_|under_|btts|dc_|cs_/.test(n)) return 'market';
   if (/xg|xgot|xa|big_chance/.test(n)) return 'expected_goals';
   if (/shot|woodwork/.test(n)) return 'shooting';
@@ -32,6 +35,26 @@ export function fieldFamily(name) {
   if (/_ht$|_2t$|half/.test(n)) return 'period_split';
   if (/home|away|league|season|date|time|round|id/.test(n)) return 'identity';
   return 'unclassified';
+}
+
+export const TIMING_CLASSES = ['PREMATCH_IDENTITY', 'PREMATCH_MARKET_UNTIMED', 'POSTMATCH_OUTCOME'];
+
+// Identity is known before kickoff. Market prices are pre-kickoff, but FutPythonTrader does not
+// publish their capture time. Every other family describes the match result and is post-match.
+export function fieldTiming(family) {
+  if (family === 'identity') return 'PREMATCH_IDENTITY';
+  if (family === 'market') return 'PREMATCH_MARKET_UNTIMED';
+  return 'POSTMATCH_OUTCOME';
+}
+
+// A decimal price is at least 1.01, so a market 0 is a provider placeholder, not a value.
+export function marketValueOrNull(family, value) {
+  const s = String(value ?? '').trim();
+  if (EMPTY.has(s.toLowerCase())) return null;
+  const n = Number(s.replace(',', '.'));
+  if (!Number.isFinite(n)) return null;
+  if (family === 'market' && n <= 0) return null;
+  return n;
 }
 
 export function profileSchema(headers, rows) {
