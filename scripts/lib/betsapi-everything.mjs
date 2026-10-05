@@ -611,6 +611,7 @@ export function createEverythingRuntime({
     censusState.last_at=new Date(now()).toISOString();
     censusState.last_error=null;
 
+    let completedCurrent=false;
     for (let page=0; page<pagesPerSport; page++) {
       if (!budget.canSpend(1)) break;
       const params={sport_id:sport.sport_id};
@@ -634,7 +635,7 @@ export function createEverythingRuntime({
       if (!results.length) {
         censusState.completed_sports.add(sportKey);
         censusState.max_id_by_sport.delete(sportKey);
-        censusState.sport_index=(censusState.sport_index+1)%BETSAPI_SPORTS.length;
+        completedCurrent=true;
         break;
       }
       const pagerMin=r.body?.pager?.min_id;
@@ -644,13 +645,14 @@ export function createEverythingRuntime({
       if (!next || next<=0 || String(next)===String(maxId)) {
         censusState.completed_sports.add(sportKey);
         censusState.max_id_by_sport.delete(sportKey);
-        censusState.sport_index=(censusState.sport_index+1)%BETSAPI_SPORTS.length;
+        completedCurrent=true;
         break;
       }
       maxId=next;
       censusState.max_id_by_sport.set(sportKey,maxId);
     }
 
+    censusState.sport_index=(censusState.sport_index+1)%BETSAPI_SPORTS.length;
     return censusStatus();
   }
 
