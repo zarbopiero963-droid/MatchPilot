@@ -210,6 +210,16 @@ test('raw odds v3 rebuild replays immutable provider_trial.records', async (tt) 
     await pool.query('CREATE SCHEMA provider_trial');
     await initReconciliation(pool);
     await pool.query(`
+      CREATE TABLE provider_trial.records (
+        record_id bigserial PRIMARY KEY,
+        observed_at timestamptz NOT NULL,
+        instance_id text NOT NULL,
+        source_type text NOT NULL,
+        payload jsonb NOT NULL,
+        persisted_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await pool.query(`
       INSERT INTO provider_trial.events(provider,event_id,sport_id,country_code,league_id,league_name,kickoff_utc,first_seen_at,last_seen_at)
       VALUES('betsapi','raw1','1','it','55','Serie Test','2026-10-05T12:00:00Z',now(),now())
     `);
