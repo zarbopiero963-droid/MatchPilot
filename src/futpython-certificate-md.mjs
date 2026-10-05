@@ -179,14 +179,16 @@ export function renderCertificateMarkdown(report, {deploy = null, verification =
   out.push('## 16. Layer di query per l’assistente');
   out.push('Le risposte vengono da Neon. Il modulo non importa il client FutPythonTrader.');
   out.push(table(['route', 'query'], Object.entries(a.routes)));
-  out.push(table(['query', 'righe', 'chiamate upstream', 'prima riga'], a.answers.map(x => [x.query, x.row_count, x.upstream_calls, JSON.stringify(x.first)])));
+  out.push(table(['domanda', 'query', 'righe', 'upstream', 'filtri', 'ms', 'prima riga'],
+    a.answers.map(x => [x.name || x.query, x.query, x.row_count, x.upstream_calls, (x.filters_applied || []).join(' '), x.elapsed_ms ?? '', JSON.stringify(x.first)])));
+  if (a.checks) out.push(table(['controllo sulle righe restituite', 'esito'], Object.entries(a.checks).map(([k, v]) => [k, yes(v)])));
   out.push(`Gate: **${yes(a.gate)}**\n`);
 
   const p = r.query_performance;
   out.push('## 17. Performance query su Neon');
   out.push(`Limiti: esecuzione ≤ ${p.limits.maxExecutionMs} ms, righe lette ≤ ${n(p.limits.maxRowsScanned)}, nessun Seq Scan su fpt_match_facts / fpt_match_versions / fpt_raw_snapshots. Una prima esecuzione scalda la cache, poi \`EXPLAIN (ANALYZE, BUFFERS)\`.\n`);
   out.push(table(['query', 'esito', 'exec ms', 'plan ms', 'righe lette', 'indici', 'seq scan grandi'],
-    p.queries.map(x => [x.query, yes(x.pass), x.execution_ms, x.planning_ms, x.rows_scanned, x.indexes.join(', '), x.seq_scan_on_large_table.join(', ') || '-'])));
+    p.queries.map(x => [x.query, yes(x.pass), x.execution_ms ?? x.error, x.planning_ms ?? '', x.rows_scanned ?? '', (x.indexes || []).join(', '), (x.seq_scan_on_large_table || []).join(', ') || '-'])));
   out.push(`Gate: **${yes(p.gate)}**\n`);
 
   out.push('## Limiti noti');

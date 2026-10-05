@@ -544,25 +544,84 @@ async function filtersSection(client) {
   return section;
 }
 
+// Every check below is a property of the rows actually returned, not only a row count.
+export function assistantChecks(answers, {before}) {
+  const by = name => answers.find(a => a.name === name);
+  const dateOk = rows => rows.every(r => String(r.match_date instanceof Date ? r.match_date.toISOString() : r.match_date).slice(0, 10) < before);
+  const away = by('awayMatches');
+  const odds = by('favoriteOddsRange');
+  const xg = by('xgBySeason');
+  const search = by('searchMatches');
+  const pit = by('teamMatchesAsOf');
+  const pitRepeat = by('teamMatchesAsOfRepeat');
+  const pitEmpty = by('teamMatchesAsOfBeforeMirror');
+  const leagues = by('leaguesWithCoverage');
+  const checks = {
+    away_last_20: Boolean(away) && away.rows.length === 20 && away.rows.every(r => r.away_team_id === away.input.team) && dateOk(away.rows),
+    favorite_150_190: Boolean(odds) && odds.rows.length > 0
+      && odds.rows.every(r => Number(r.favorite_odd) >= 1.5 && Number(r.favorite_odd) <= 1.9) && dateOk(odds.rows),
+    xg_by_season: Boolean(xg) && xg.rows.length > 0 && xg.rows.some(r => Number(r.matches_with_xg) > 0)
+      && xg.rows.every(r => Number(r.matches_with_xg) <= Number(r.matches)),
+    five_plus_filters: Boolean(search) && Number(search.filters_applied?.length) >= 5 && search.rows.length > 0
+      && search.rows.every(r => r.home_team_id === search.input.team && r.result_status === 'FINAL'
+        && r.internal_competition_id === search.input.competition && r.season_id === search.input.season) && dateOk(search.rows),
+    point_in_time: Boolean(pit && pitRepeat && pitEmpty) && pit.rows.length > 0
+      && JSON.stringify(pit.rows) === JSON.stringify(pitRepeat.rows)
+      && pit.rows.every(r => new Date(r.acquired_at).getTime() <= new Date(pit.as_of).getTime())
+      && pitEmpty.rows.length === 0,
+    leagues_with_coverage: Boolean(leagues) && leagues.rows.length > 0
+      && leagues.rows.every(r => Number(r.seasons_meeting_coverage) >= 2),
+    no_upstream: answers.every(a => a.upstream_calls === 0)
+  };
+  return {checks, gate: Object.values(checks).every(Boolean)};
+}
+
 async function assistantSection(client, perf) {
   const sample = perf.sample || null;
   const answers = [];
+  const before = '2100-01-01';
+  const asOf = new Date().toISOString();
   if (sample) {
-    const run = async (name, input) => {
-      const result = await runQuery(client, name, input, {now: new Date('2100-01-01T00:00:00Z')});
-      answers.push({query: name, row_count: result.row_count, upstream_calls: result.provenance.upstream_calls, first: result.rows[0] || null});
+    const run = async (label, name, input) => {
+      let result;
+      try {
+        result = await runQuery(client, name, input, {now: new Date('2100-01-01T00:00:00Z')});
+      } catch (error) {
+        answers.push({name: label, query: name, input, rows: [], row_count: 0, upstream_calls: 0,
+          error: String(error?.message || error).slice(0, 200)});
+        return;
+      }
+      answers.push({name: label, query: name, input, rows: result.rows, row_count: result.row_count,
+        upstream_calls: result.provenance.upstream_calls, filters_applied: result.provenance.filters_applied,
+        as_of: result.provenance.as_of, elapsed_ms: result.provenance.elapsed_ms});
     };
-    await run('teamSearch', {q: sample.normalized_name});
-    await run('teamSummary', {team: sample.team_id, before: '2100-01-01'});
-    await run('headToHead', {team: sample.team_id, opponent: sample.opponent_id, before: '2100-01-01', limit: 5});
+    await run('teamSearch', 'teamSearch', {q: sample.normalized_name});
+    await run('teamSummary', 'teamSummary', {team: sample.team_id, before});
+    await run('headToHead', 'headToHead', {team: sample.team_id, opponent: sample.opponent_id, before, limit: 5});
+    await run('awayMatches', 'awayMatches', {team: sample.team_id, before, limit: 20});
+    await run('favoriteOddsRange', 'favoriteOddsRange', {min: 1.5, max: 1.9, side: 'any', before, limit: 50});
+    await run('xgBySeason', 'xgBySeason', {team: sample.xg_team_id, before});
+    await run('searchMatches', 'searchMatches', {competition: sample.xg_competition_id, season: sample.xg_season_id,
+      team: sample.xg_team_id, venue: 'home', fav_min: 1.01, fav_max: 10, result: 'FINAL', before, limit: 50});
+    await run('teamMatchesAsOf', 'teamMatchesAsOf', {team: sample.team_id, as_of: asOf, before, limit: 20});
+    await run('teamMatchesAsOfRepeat', 'teamMatchesAsOf', {team: sample.team_id, as_of: asOf, before, limit: 20});
+    await run('teamMatchesAsOfBeforeMirror', 'teamMatchesAsOf', {team: sample.team_id, as_of: '2000-01-01T00:00:00Z', before, limit: 20});
+    await run('leaguesWithCoverage', 'leaguesWithCoverage', {field: 'xG_Home_FT', min_ratio: 0.9, min_seasons: 2, limit: 200});
   }
+  const {checks, gate} = assistantChecks(answers, {before});
+  const brief = row => row ? Object.fromEntries(Object.entries(row).filter(([k]) => [
+    'internal_match_id', 'match_date', 'home_name', 'away_name', 'home_score', 'away_score', 'favorite_side', 'favorite_odd',
+    'season', 'matches', 'matches_with_xg', 'xg_for_avg', 'xg_against_avg', 'country_slug', 'league_slug',
+    'available_seasons', 'seasons_meeting_coverage', 'acquired_at', 'canonical_name', 'played', 'won', 'drawn', 'lost'
+  ].includes(k))) : null;
   return {
     routes: ROUTES,
-    answers: answers.map(a => ({...a, first: a.query === 'headToHead' && a.first
-      ? {internal_match_id: a.first.internal_match_id, match_date: a.first.match_date, home_score: a.first.home_score, away_score: a.first.away_score}
-      : a.first})),
+    answers: answers.map(a => ({name: a.name, query: a.query, row_count: a.row_count, upstream_calls: a.upstream_calls, error: a.error || null,
+      filters_applied: a.filters_applied, as_of: a.as_of, elapsed_ms: a.elapsed_ms, first: brief(a.rows[0])})),
+    checks,
     upstream_calls: answers.reduce((sum, a) => sum + a.upstream_calls, 0),
-    gate: answers.length === 3 && answers.every(a => a.row_count > 0 && a.upstream_calls === 0)
+    gate: answers.length === 11 && gate && answers.every(a => !a.error)
+      && ['teamSearch', 'teamSummary', 'headToHead'].every(n => answers.find(a => a.name === n)?.row_count > 0)
   };
 }
 
