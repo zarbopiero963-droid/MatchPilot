@@ -364,6 +364,7 @@ async function runOddsTimelineScan() {
   if (!dbReady || !dbPool || !EVERYTHING_ENABLED) return;
   const {rows}=await dbPool.query(`
     SELECT e.event_id,e.sport_id,e.kickoff_utc,
+           max(e.last_seen_at) AS event_last_seen,
            extract(epoch from max(o.provider_time))::bigint AS since_time
     FROM provider_trial.events e
     LEFT JOIN provider_trial.odds_observations o
@@ -374,7 +375,7 @@ async function runOddsTimelineScan() {
         e.kickoff_utc BETWEEN now()-interval '4 hours' AND now()+interval '48 hours'
       )
     GROUP BY e.event_id,e.sport_id,e.kickoff_utc
-    ORDER BY e.kickoff_utc NULLS LAST,e.last_seen_at DESC
+    ORDER BY e.kickoff_utc NULLS LAST,event_last_seen DESC
     LIMIT $1
   `,[RECON_ODDS_MAX_EVENTS]);
   for (const item of rows) {
