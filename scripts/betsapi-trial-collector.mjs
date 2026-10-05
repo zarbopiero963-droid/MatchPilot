@@ -4,6 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import pg from 'pg';
 import { createEverythingRuntime } from './lib/betsapi-everything.mjs';
+import { initReconciliation, normalizeTrialRows, persistNormalizedBatch, reconciliationSummary } from './lib/provider-trial-reconciliation.mjs';
 
 const PORT = Number(process.env.PORT || 10000);
 const BETS_TOKEN = process.env.BETSAPI_TOKEN?.trim();
@@ -105,6 +106,7 @@ async function initPersistence() {
     CREATE INDEX IF NOT EXISTS provider_trial_records_source_idx
       ON provider_trial.records(source_type, observed_at DESC);
   `);
+  await initReconciliation(dbPool);
   dbReady = true;
   lastPersistError = null;
 }
@@ -121,6 +123,8 @@ async function flushPersistence() {
          AS x(ts text, instance_id text, type text, payload jsonb)`,
       [JSON.stringify(batch)]
     );
+    const normalized=normalizeTrialRows(batch);
+    await persistNormalizedBatch(dbPool,normalized);
     persistedRecords += batch.length;
     lastPersistAt = new Date().toISOString();
     cumulativeMetricsAt = null;
@@ -450,6 +454,94 @@ http.createServer(async (req, res) => {
   if (req.url === '/everything-status') {
     res.setHeader('content-type', 'application/json');
     return res.end(JSON.stringify(everythingRuntime.status()));
+  }
+  if (req.url === '/reconciliation/summary') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    try {
+      return res.end(JSON.stringify({ok:true,summary:await reconciliationSummary(dbPool)}));
+    } catch (error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url?.startsWith('/reconciliation/competitions')) {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const country=url.searchParams.get('country');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    if (provider) { params.push(provider); where.push(`c.provider=${params.length}`); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id=c.sport_id
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id=c.sport_id AND v.country_code=c.country_code AND v.league_id=c.league_id
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url?.startsWith('/reconciliation/odds')) {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) { params.push(val); where.push(`${col}=${params.length}`); }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url?.startsWith('/reconciliation/odds-timeline')) {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
   }
   if (req.url === '/metrics') {
     const cumulative = await refreshCumulativeMetrics(true);
