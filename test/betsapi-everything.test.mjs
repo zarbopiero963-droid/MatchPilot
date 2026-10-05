@@ -361,7 +361,7 @@ test('team squad result rows harvest player ids from official response shape', a
     fetchImpl:async url=>{
       const u=new URL(String(url));
       let body={success:1,results:[]};
-      if (u.pathname==='/v3/team') body={success:1,results:[{id:708,name:'Team'}]};
+      if (u.pathname==='/v3/team') body={success:1,results:[{id:708,name:'Team',sport_id:1,has_squad:1}]};
       if (u.pathname==='/v1/team/squad') body={success:1,results:[{id:6019,name:'Vincent Kompany',birthdate:'1986-04-09',position:'Defender',shirtnumber:'4'}]};
       return {status:200,ok:true,headers:{get:()=>null},text:async()=>JSON.stringify(body)};
     }
