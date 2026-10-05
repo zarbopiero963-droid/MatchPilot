@@ -195,7 +195,7 @@ La branch `main` rappresenta esclusivamente il nuovo MatchPilot Sports Trading O
 
 La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue **#12 — FPT-CERT**.
 
-Stato corrente della sorgente: certificato dati **CERTIFIED WITH KNOWN LIMITATIONS**, ma la issue #12 **non è ancora chiudibile** (gap della checklist finale elencati nella #12, in correzione dentro FPT-PR-09; il certificato ha ora 18 gate con `onboarding`). [`docs/futpython-certification-2026-10-05.md`](docs/futpython-certification-2026-10-05.md), 17 gate su 17 veri sul deploy `dep-db1ml36q1p3s73ffhpc0` (commit `9f09e1d`), report generato il 2026-10-05 alle 10:41:40 UTC dopo il cron reale delle 10:17 UTC. La issue #12 resta OPEN: la chiusura spetta all'owner.
+Stato corrente della sorgente: certificato dati **CERTIFIED WITH KNOWN LIMITATIONS**, ma la issue #12 **non è ancora chiudibile** (gap della checklist finale elencati nella #12, in correzione dentro FPT-PR-09; il certificato ha ora 19 gate con `onboarding` e `reconciliation`). [`docs/futpython-certification-2026-10-05.md`](docs/futpython-certification-2026-10-05.md), 17 gate su 17 veri sul deploy `dep-db1ml36q1p3s73ffhpc0` (commit `9f09e1d`), report generato il 2026-10-05 alle 10:41:40 UTC dopo il cron reale delle 10:17 UTC. La issue #12 resta OPEN: la chiusura spetta all'owner.
 
 Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. I paragrafi di fase qui sotto restano lo storico delle singole PR. Lo stato attuale e i numeri reali sono nel certificato finale, generato dai dati reali e non scritto a mano.
 
@@ -552,6 +552,41 @@ Il certificato ha un gate in più (`onboarding`, sezione 18). Richiede:
 Il gate dei facts conta solo i dataset in produzione.
 
 Limite noto: le righe del feed `jogos-do-dia` non portano lo slug di lega del catalogo (`internal_competition_id` nullo), quindi l'onboarding agisce sui dataset del catalogo, non sul feed del giorno.
+
+### FASE 9 — riconciliazione compatibile con #31 (correzione 5 della checklist #12)
+
+**Problema reale trovato prima di questa correzione.** Il sync incrementale non riscaricava mai un dataset della stagione corrente già `available`: ogni cron era una serie di `cache_hit`. Su Neon, il 2026-10-05, i 165 dataset correnti erano fermi al primo ingest del 2026-10-04 16:18 UTC, e la partita più recente nel mirror era del 2026-09-28.
+
+La migrazione `019-fpt-reconciliation.sql` aggiunge strutture con i nomi della #31, indipendenti dalla sorgente (TotalCorner le potrà usare):
+- **`data_checkpoints`**: un checkpoint per pipeline (`catalog`, `incremental`, `backfill`, `today`, `current_season`) con `last_attempt_at`, `last_success_at`, `last_acquired_at`, `last_entity_id`, `checkpoint`, `status`, `retry_count`;
+- **la vista `fpt_dataset_checkpoints`**: il checkpoint per dataset, che è già `fpt_dataset_state`;
+- **`data_reconciliation_ledger`**: un gap per riga, dalla rilevazione al recupero o alla classificazione. Stati: DETECTED, QUEUED, RECOVERING, RECOVERED, PARTIAL, UNRECOVERABLE, FAILED. Al massimo una riga aperta per entità.
+
+| gap FutPython (#31) | priorità | azione |
+| --- | --- | --- |
+| `incremental_sync_skipped` (nessun sync incrementale riuscito da `FUTPYTHON_INCREMENTAL_MAX_GAP_HOURS`, default 7) | P1 | run di recupero (`kind=recovery`) nello stesso processo, dietro lo stesso lock |
+| `interrupted_run` (run interrotto non seguito da un run concluso) | P1 | ripreso dal run successivo |
+| `current_season_stale` (stagione corrente non riscaricata da `FUTPYTHON_CURRENT_SEASON_TTL_HOURS`, default 24) | P1 | refresh forzato, massimo `FUTPYTHON_REFRESH_PER_RUN` (default 50) per run |
+| `never_attempted`, `available_without_snapshot`, `failed_dataset`, `missing_season` | P2 | download forzato, massimo `FUTPYTHON_RECOVERY_PER_RUN` (default 10) per run |
+| `regression_404`, `season_not_published` | P2/P3 | classificati `UNRECOVERABLE`: il provider non serve più o non ha mai pubblicato quei dati, nessun valore inventato |
+
+Ciclo di riconciliazione:
+- **Quando gira:** all'avvio (+30 s) e ogni ora, nello stesso ciclo del watchdog. Non c'è un timer da 5 minuti: FutPython cambia al massimo ogni 6 ore e un controllo ogni 5 minuti terrebbe sveglio Neon.
+- **All'avvio:**
+  - un run rimasto `running` viene marcato interrotto, solo se nessun processo tiene il lock del sync;
+  - poi rileva i gap, aggiorna il ledger, chiude come RECOVERED ciò che è sparito (o UNRECOVERABLE se il provider risponde 404), scrive i checkpoint e manda gli alert aggregati `RECON_GAPS` / `RECON_FAILED` sulla stessa chat. Il refresh quotidiano delle stagioni correnti è manutenzione ordinaria: genera l'alert solo se un refresh resta in coda per più di 24 ore.
+- **Recupero nel sync incrementale:** i gap in coda viaggiano nel normale sync incrementale e passano dai livelli di budget di #83 (in CRITICAL un refresh viene rinviato e non conta come tentativo). Il run che li ha tentati li giudica.
+- **Gap fallito:** dopo `FUTPYTHON_RECOVERY_MAX_ATTEMPTS` (default 3) tentativi un gap diventa FAILED e viene ritentato una volta ogni `FUTPYTHON_RECOVERY_RETRY_HOURS` (default 24).
+- **Idempotenza:** stesso payload = nessuno snapshot, versione o fact in più. Stesso gap = nessuna riga nuova nel ledger.
+
+Il controllo raw = DB del certificato (sweep), il campione della fase 3 e il controllo `rowGaps` ora cercano ogni riga del raw (chiave + hash del payload) fra le versioni del dataset, da qualunque snapshot. Il vecchio confronto con le sole versioni scritte da quello snapshot passava solo perché nessun dataset era mai stato riscaricato: con il refresh il primo snapshot aggiornato avrebbe fatto fallire il gate `integrity`. Il test della riconciliazione lo prova con la versione vecchia (fallisce) e con quella nuova (passa).
+
+Il lock del sync è ora per schema (`pg_try_advisory_lock(76420311, hashtext(current_schema()))`): in produzione resta un solo lock (`public`), mentre i test su schemi isolati non si bloccano più a vicenda.
+
+Altri punti:
+- **Route di sola lettura:** `GET /api/fpt/reconciliation` (gap per tipo, priorità e stato).
+- **Certificato, gate 19 `reconciliation`:** richiede checkpoint delle 5 pipeline aggiornati da meno di 2 ore, nessun gap FAILED e nessun gap recuperabile aperto da più di 48 ore.
+- **Traffico:** il refresh delle stagioni correnti aggiunge traffico verso FutPythonTrader, circa 165 richieste al giorno con i default, distribuite su 4 cron. Resta sotto i tetti di codice (`FUTPYTHON_REQUESTS_PER_DAY` 2000) e viene rinviato per primo sotto pressione di budget.
 
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
 

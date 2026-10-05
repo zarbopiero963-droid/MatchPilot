@@ -30,7 +30,7 @@ export function renderCertificateMarkdown(report, {deploy = null, verification =
   out.push('');
   out.push(`**Esito: ${r.verdict}**`);
   out.push('');
-  out.push(`Sorgente del report: ${source || 'non dichiarata'}. Report costruito alle ${id.generated_at} (UTC). Ogni numero delle sezioni 1–18 viene dal report; nessun valore è stato scritto a mano. La sezione "Verifica incrociata" riporta controlli indipendenti fatti fuori dal report (query dirette su Neon e log Render). Issue #12 (FPT-CERT).`);
+  out.push(`Sorgente del report: ${source || 'non dichiarata'}. Report costruito alle ${id.generated_at} (UTC). Ogni numero delle sezioni 1–19 viene dal report; nessun valore è stato scritto a mano. La sezione "Verifica incrociata" riporta controlli indipendenti fatti fuori dal report (query dirette su Neon e log Render). Issue #12 (FPT-CERT).`);
   out.push('');
   if (r.failed_gates?.length) {
     out.push(`Gate falliti: ${r.failed_gates.map(g => `\`${g}\``).join(', ')}.`);
@@ -202,6 +202,18 @@ export function renderCertificateMarkdown(report, {deploy = null, verification =
     if (o.pending.length) out.push(table(['dataset', 'tipo', 'promozione', 'stato', 'in attesa di', 'blocco', 'scoperto'],
       o.pending.map(x => [x.dataset_key, x.kind, x.promotion, x.state, x.waiting_for || '-', x.blocked_reason || '-', x.discovered_at])));
     out.push(`Gate: **${yes(o.gate)}**\n`);
+  }
+
+  const rc = r.reconciliation;
+  if (rc) {
+    out.push('## 19. Riconciliazione (#31)');
+    out.push('Checkpoint per pipeline aggiornati dal ciclo del watchdog (avvio e ogni ora); ledger dei gap dalla rilevazione al recupero o alla classificazione.\n');
+    out.push(kv({checkpoint_scopes: rc.checkpoint_scopes, checkpoints_age_hours: rc.checkpoints_age_hours, ledger_rows: rc.ledger_rows,
+      failed: rc.failed, open_older_than_48h: rc.open_older_than_48h, tests: rc.tests}));
+    out.push(table(['scope', 'stato', 'ultimo successo', 'aggiornato', 'retry', 'checkpoint'],
+      rc.checkpoints.map(x => [x.scope, x.status, x.last_success_at || '-', x.updated_at, x.retry_count, JSON.stringify(x.checkpoint)])));
+    out.push(table(['gap', 'priorità', 'stato', 'righe'], rc.by_kind_status.map(x => [x.gap_kind, x.priority, x.status, x.n])));
+    out.push(`Gate: **${yes(rc.gate)}**\n`);
   }
 
   out.push('## Limiti noti');

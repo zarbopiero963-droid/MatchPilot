@@ -1,6 +1,7 @@
 import { withClient } from '../db.mjs';
 import { emitAlert, resolveAlert } from '../alerts.mjs';
 import { budgetConfig, budgetPressure, countsTowardCircuit } from '../providers/futpython/budget.mjs';
+import { reconcileFpt } from '../providers/futpython/reconciliation.mjs';
 
 let timer;
 
@@ -83,7 +84,7 @@ export async function checkDataWatchdog(options = {}) {
     const last = await client.query(
       `SELECT run_id,status,started_at,finished_at
        FROM fpt_sync_runs
-       WHERE kind IN ('cron','manual')
+       WHERE kind IN ('cron','manual','recovery')
        ORDER BY started_at DESC LIMIT 1`
     );
     const row = last.rows[0];
@@ -112,6 +113,16 @@ export async function checkDataWatchdog(options = {}) {
     }, options.deliver);
 
     const budget = await evaluateProviderAlerts(client, options);
+    // #31 reconciliation rides on the watchdog cycle (startup, then hourly): no extra timer keeps Neon awake.
+    let reconciliation = null;
+    if (options.reconcile === true) {
+      try {
+        reconciliation = await reconcileFpt(client, {phase: options.phase || 'periodic', catchup: options.catchup || null,
+          deliver: options.deliver || null});
+      } catch (error) {
+        reconciliation = {error: String(error?.message || error).slice(0, 200)};
+      }
+    }
     await client.query(
       `INSERT INTO data_watchdog_state(source,last_checked_at,last_success_at,last_run_id,meta)
        VALUES('futpython',now(),CASE WHEN $1 THEN NULL ELSE now() END,$2,$3::jsonb)
@@ -124,14 +135,16 @@ export async function checkDataWatchdog(options = {}) {
         datasetErrors: failed.rowCount,
         budget: budget.level,
         recent429: budget.recent429,
-        circuitOpen: budget.circuitOpen
+        circuitOpen: budget.circuitOpen,
+        reconciliation
       })]
     );
     return {
       status: stale ? 'critical' : failed.rowCount ? 'warning' : 'ok',
       stale,
       datasetErrors: failed.rowCount,
-      budget
+      budget,
+      reconciliation
     };
   };
 
@@ -161,8 +174,13 @@ export function phase8Gate(details) {
 export function startDataWatchdog() {
   if (process.env.DATA_WATCHDOG_ENABLED === 'false') return;
   const intervalMs = Number(process.env.DATA_WATCHDOG_INTERVAL_MS || 3600000);
-  setTimeout(() => checkDataWatchdog().catch(error => console.error('DATA_WATCHDOG_ERROR', String(error?.message || error))), 30000);
-  timer = setInterval(() => checkDataWatchdog().catch(error => console.error('DATA_WATCHDOG_ERROR', String(error?.message || error))), intervalMs);
+  // A skipped incremental sync is caught up in this process, behind the same advisory lock and budget.
+  const catchup = () => import('./futpython-sync.mjs').then(m => m.runFutpythonSync({kind: 'recovery', mode: 'incremental'}));
+  const cycle = phase => checkDataWatchdog({reconcile: true, phase, catchup})
+    .then(result => { if (result?.reconciliation) console.log('FUTPYTHON_RECONCILIATION ' + JSON.stringify(result.reconciliation)); })
+    .catch(error => console.error('DATA_WATCHDOG_ERROR', String(error?.message || error)));
+  setTimeout(() => cycle('startup'), 30000);
+  timer = setInterval(() => cycle('periodic'), intervalMs);
   timer.unref?.();
   console.log('DATA_WATCHDOG_READY ' + JSON.stringify({intervalMs}));
 }

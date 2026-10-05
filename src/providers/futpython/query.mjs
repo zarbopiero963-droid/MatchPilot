@@ -213,6 +213,17 @@ export const QUERIES = {
       LIMIT $1`,
     params: ['limit']
   },
+  reconciliation: {
+    // #31 "cosa manca, cosa è recuperabile, cosa non lo è più"
+    sql: `SELECT gap_kind, priority, status, recovery_action, count(*)::int AS n,
+        min(detected_at) AS oldest_detected_at, max(last_seen_at) AS last_seen_at
+      FROM data_reconciliation_ledger
+      WHERE source = 'futpython'
+      GROUP BY gap_kind, priority, status, recovery_action
+      ORDER BY priority, gap_kind, status
+      LIMIT $1`,
+    params: ['limit']
+  },
   filters: {
     sql: `SELECT field_name, normalized_field, family, data_type, filterable, operators, timing_class,
         prematch_safe, missing_tokens, zero_is_missing, rows_scoped, nonempty_rows, coverage_ratio, registry_version,
@@ -448,6 +459,8 @@ export function buildQuery(name, input = {}, {now = new Date()} = {}) {
       return {name, sql: QUERIES.filters.sql, values: []};
     case 'onboarding':
       return {name, sql: QUERIES.onboarding.sql, values: [limitOf(input.limit, 200)]};
+    case 'reconciliation':
+      return {name, sql: QUERIES.reconciliation.sql, values: [limitOf(input.limit, 200)]};
     default:
       throw new QueryInputError(`unknown query ${name}`);
   }
@@ -483,6 +496,7 @@ export const ROUTES = {
   '/api/fpt/competitions': 'competitions',
   '/api/fpt/filters': 'filters',
   '/api/fpt/onboarding': 'onboarding',
+  '/api/fpt/reconciliation': 'reconciliation',
   '/api/fpt/away-matches': 'awayMatches',
   '/api/fpt/odds-range': 'favoriteOddsRange',
   '/api/fpt/search': 'searchMatches',
@@ -520,6 +534,8 @@ export const QUERY_CATALOG = [
   {name: 'competitions', route: '/api/fpt/competitions', question: 'Elenco competizioni e stagioni', params: {}},
   {name: 'filters', route: '/api/fpt/filters', question: 'Registry dei campi filtrabili', params: {}},
   {name: 'onboarding', route: '/api/fpt/onboarding', question: 'Nuove leghe/stagioni scoperte ma non ancora in produzione',
+    params: {limit: '1–500'}},
+  {name: 'reconciliation', route: '/api/fpt/reconciliation', question: 'Gap dati rilevati, recuperati, irrecuperabili',
     params: {limit: '1–500'}}
 ].map(entry => ({
   ...entry,

@@ -244,6 +244,9 @@ export function fixtureReport() {
       by_kind_state: [{kind: 'baseline', state: 'ACTIVE', n: 2}],
       pending: [{dataset_key: 'gamma/cup/2024', kind: 'new_league', promotion: 'owner', state: 'HARD_VERIFIED',
         waiting_for: 'owner_promotion', blocked_reason: null, discovered_at: '2026-10-05T00:00:00Z'}], gate: true},
+    reconciliation: {checkpoint_scopes: 5, checkpoints_age_hours: 0.2, ledger_rows: 2, failed: 0, open_older_than_48h: 0, tests: 't',
+      checkpoints: [{scope: 'incremental', status: 'ok', last_success_at: '2026-10-05T10:20:00Z', updated_at: '2026-10-05T10:21:00Z', retry_count: 0, checkpoint: {}}],
+      by_kind_status: [{gap_kind: 'current_season_stale', priority: 'P1', status: 'RECOVERED', n: 2}], gate: true},
     gates: {catalog: true},
     known_limitations: [{code: 'kickoff_timezone', text: 'tz'}],
     verdict: 'CERTIFIED WITH KNOWN LIMITATIONS',
@@ -251,12 +254,13 @@ export function fixtureReport() {
   };
 }
 
-test('markdown certificate has the 18 sections and the single verdict', () => {
+test('markdown certificate has the 19 sections and the single verdict', () => {
   const md = renderCertificateMarkdown(fixtureReport(), {deploy: 'dep-x', verification: ['Neon count matches']});
   assert.match(md, /Sorgente del report: non dichiarata/);
   assert.match(renderCertificateMarkdown(fixtureReport(), {source: '`GET https://x/api/futpython-certificate`'}), /Sorgente del report: `GET https:\/\/x\/api\/futpython-certificate`/);
-  for (let i = 1; i <= 18; i++) assert.match(md, new RegExp(`^## ${i}\\. `, 'm'), `section ${i}`);
+  for (let i = 1; i <= 19; i++) assert.match(md, new RegExp(`^## ${i}\\. `, 'm'), `section ${i}`);
   assert.match(md, /gamma\/cup\/2024 \| new_league \| owner \| HARD_VERIFIED/);
+  assert.match(md, /current_season_stale \| P1 \| RECOVERED \| 2/);
   assert.match(md, /\*\*Esito: CERTIFIED WITH KNOWN LIMITATIONS\*\*/);
   assert.match(md, /dep-x/);
   assert.match(md, /Neon count matches/);
