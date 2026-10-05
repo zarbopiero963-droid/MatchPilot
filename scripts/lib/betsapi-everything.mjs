@@ -142,6 +142,48 @@ export const EVERYTHING_FAMILIES = Object.freeze({
   }
 });
 
+
+function firstId(set) {
+  return set.size ? [...set][0] : null;
+}
+
+function harvestDiscoveryContext(body, ctx) {
+  const seen=new Set();
+  function add(set,value) {
+    if (value !== undefined && value !== null && String(value).length) set.add(String(value));
+  }
+  function walk(v,parentKey='',depth=0) {
+    if (!v || depth > 8) return;
+    if (typeof v !== 'object') return;
+    if (seen.has(v)) return;
+    seen.add(v);
+
+    if (Array.isArray(v)) {
+      for (const x of v.slice(0,50)) walk(x,parentKey,depth+1);
+      return;
+    }
+
+    if (parentKey === 'league') add(ctx.league_ids,v.id ?? v.league_id ?? v.leagueId);
+    if (parentKey === 'home' || parentKey === 'away' || parentKey === 'team') add(ctx.team_ids,v.id ?? v.team_id ?? v.teamId);
+    if (parentKey === 'player') add(ctx.player_ids,v.id ?? v.player_id ?? v.playerId);
+
+    add(ctx.event_ids,v.event_id ?? v.eventId ?? v.our_event_id);
+    if (parentKey === 'results' && (v.home || v.away || v.bet365_id || v.time_status !== undefined)) add(ctx.event_ids,v.id);
+    add(ctx.fi_ids,v.FI ?? v.bet365_id);
+    add(ctx.league_ids,v.league_id ?? v.leagueId);
+    add(ctx.team_ids,v.team_id ?? v.teamId);
+    add(ctx.player_ids,v.player_id ?? v.playerId);
+
+    if (v.home?.name && !ctx.home) ctx.home=String(v.home.name);
+    if (v.away?.name && !ctx.away) ctx.away=String(v.away.name);
+    if ((v.time ?? v.timestamp) && !ctx.time) ctx.time=String(v.time ?? v.timestamp);
+
+    for (const [k,x] of Object.entries(v)) walk(x,k,depth+1);
+  }
+  walk(body);
+  return ctx;
+}
+
 export function resolveEverythingToken(env = process.env) {
   return String(env.BETSAPI_EVERYTHING_TOKEN || env.BETSAPI_TOKEN || '').trim() || null;
 }
@@ -261,6 +303,19 @@ export function createEverythingRuntime({
     reserve:Number(env.BETSAPI_EVERYTHING_RESERVE || 120),
     now
   });
+  const catalogContext={
+    event_ids:new Set(),
+    fi_ids:new Set(),
+    league_ids:new Set(),
+    team_ids:new Set(),
+    player_ids:new Set(),
+    home:null,
+    away:null,
+    time:null
+  };
+  const catalogProbe={
+    cycles:0,last_at:null,attempted:0,ok:0,skipped:0,permission_denied:0,rate_limited:0,http_error:0,last_error:null
+  };
   const state=Object.fromEntries(families.map(k=>[k,{
     status:enabled ? (token ? 'READY' : 'NO_TOKEN') : 'DISABLED',
     last_at:null,
@@ -403,6 +458,7 @@ export function createEverythingRuntime({
         fields,
         body
       });
+      harvestDiscoveryContext(body,catalogContext);
       return {ok:res.ok,status:res.status,classification,body,fields,latency_ms:latency};
     } catch (error) {
       const safe=String(error?.message||error);
@@ -411,6 +467,91 @@ export function createEverythingRuntime({
       });
       return {ok:false,error:safe};
     }
+  }
+
+
+  function paramsForDocumentedEndpoint(endpointKey, endpoint) {
+    const group=endpoint.group;
+    let eventId=null;
+    if (group === 'betfair') eventId=state.betfair_exchange?.event_ids?.[0] || state.betfair_sportsbook?.event_ids?.[0] || firstId(catalogContext.event_ids);
+    else if (group === 'bwin') eventId=state.bwin?.event_ids?.[0] || firstId(catalogContext.event_ids);
+    else if (group === 'sbobet') eventId=state.sbobet?.event_ids?.[0] || firstId(catalogContext.event_ids);
+    else if (group === '1xbet') eventId=state.onexbet?.event_ids?.[0] || firstId(catalogContext.event_ids);
+    else eventId=firstId(catalogContext.event_ids);
+
+    const fi=state.bet365?.event_ids?.[0] || firstId(catalogContext.fi_ids);
+    const params={};
+    for (const key of endpoint.required || []) {
+      if (key === 'event_id' && eventId) params.event_id=eventId;
+      else if (key === 'FI' && fi) params.FI=fi;
+      else if (key === 'league_id' && firstId(catalogContext.league_ids)) params.league_id=firstId(catalogContext.league_ids);
+      else if (key === 'team_id' && firstId(catalogContext.team_ids)) params.team_id=firstId(catalogContext.team_ids);
+      else if (key === 'player_id' && firstId(catalogContext.player_ids)) params.player_id=firstId(catalogContext.player_ids);
+      else if (key === 'home' && catalogContext.home) params.home=catalogContext.home;
+      else if (key === 'away' && catalogContext.away) params.away=catalogContext.away;
+      else if (key === 'time' && catalogContext.time) params.time=catalogContext.time;
+      else if (key === 'sport_id') params.sport_id=1;
+    }
+    return params;
+  }
+
+  async function fullCatalogCycle() {
+    if (!enabled || !token) return { ...catalogProbe, disabled:true };
+
+    catalogProbe.cycles++;
+    catalogProbe.last_at=new Date(now()).toISOString();
+    catalogProbe.attempted=0;
+    catalogProbe.ok=0;
+    catalogProbe.skipped=0;
+    catalogProbe.permission_denied=0;
+    catalogProbe.rate_limited=0;
+    catalogProbe.http_error=0;
+    catalogProbe.last_error=null;
+
+    const order=['scheduled','event','league','team','player','on_demand'];
+    for (const mode of order) {
+      for (const [endpointKey,endpoint] of Object.entries(DOCUMENTED_ENDPOINTS)) {
+        if (endpoint.mode !== mode) continue;
+        const params=paramsForDocumentedEndpoint(endpointKey,endpoint);
+        const check=validateEndpointParams(endpoint,params);
+        if (!check.ok) {
+          catalogProbe.skipped++;
+          continue;
+        }
+        catalogProbe.attempted++;
+        try {
+          const r=await callDocumentedEndpoint(endpointKey,params);
+          if (r?.skipped) {
+            catalogProbe.skipped++;
+            continue;
+          }
+          if (r?.classification === 'OK') catalogProbe.ok++;
+          else if (r?.classification === 'PERMISSION_DENIED') catalogProbe.permission_denied++;
+          else if (r?.classification === 'RATE_LIMITED') catalogProbe.rate_limited++;
+          else catalogProbe.http_error++;
+        } catch (error) {
+          catalogProbe.http_error++;
+          catalogProbe.last_error=String(error?.message||error);
+        }
+        if (!budget.canSpend(1)) break;
+      }
+      if (!budget.canSpend(1)) break;
+    }
+    return fullCatalogStatus();
+  }
+
+  function fullCatalogStatus() {
+    return {
+      ...catalogProbe,
+      context:{
+        event_ids:catalogContext.event_ids.size,
+        fi_ids:catalogContext.fi_ids.size,
+        league_ids:catalogContext.league_ids.size,
+        team_ids:catalogContext.team_ids.size,
+        player_ids:catalogContext.player_ids.size,
+        has_search_tuple:Boolean(catalogContext.home && catalogContext.away && catalogContext.time)
+      }
+    };
   }
 
   function catalogStatus() {
@@ -423,5 +564,5 @@ export function createEverythingRuntime({
     };
   }
 
-  return { discoveryCycle, prematchCycle, status, call, callDocumentedEndpoint, catalogStatus };
+  return { discoveryCycle, prematchCycle, fullCatalogCycle, fullCatalogStatus, status, call, callDocumentedEndpoint, catalogStatus };
 }

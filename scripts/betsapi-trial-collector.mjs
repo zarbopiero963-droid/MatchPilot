@@ -29,6 +29,8 @@ const SCORETREND_SLOW_MS = Number(process.env.SCORETREND_SLOW_EVERY_MS || 300000
 const EVERYTHING_ENABLED = String(process.env.BETSAPI_EVERYTHING_ENABLED || '').toLowerCase() === 'true';
 const EVERYTHING_DISCOVERY_MS = Number(process.env.BETSAPI_EVERYTHING_DISCOVERY_MS || 60000);
 const EVERYTHING_PREMATCH_MS = Number(process.env.BETSAPI_EVERYTHING_PREMATCH_MS || 300000);
+const EVERYTHING_FULL_CATALOG_ENABLED = String(process.env.BETSAPI_EVERYTHING_FULL_CATALOG || '').toLowerCase() === 'true';
+const EVERYTHING_FULL_CATALOG_MS = Number(process.env.BETSAPI_EVERYTHING_FULL_CATALOG_MS || 300000);
 
 const TC_LIVE_COLUMNS = [
   'events','odds','asian','cornerLine','cornerLineHalf','goalLine','goalLineHalf',
@@ -62,7 +64,7 @@ let last = {
   bets_inplay:0,bets_detail:0,bets_upcoming:0,
   tc_inplay:0,tc_detail:0,tc_slow:0,
   scoretrend:0,scoretrend_slow:0,
-  everything_discovery:0,everything_prematch:0
+  everything_discovery:0,everything_prematch:0,everything_full_catalog:0
 };
 let betsEventIds = [];
 let tcMatchIds = [];
@@ -337,6 +339,10 @@ async function loop() {
       await everythingRuntime.prematchCycle();
       last.everything_prematch = Date.now();
     }
+    if (EVERYTHING_ENABLED && EVERYTHING_FULL_CATALOG_ENABLED && now - last.everything_full_catalog >= EVERYTHING_FULL_CATALOG_MS) {
+      await everythingRuntime.fullCatalogCycle();
+      last.everything_full_catalog = Date.now();
+    }
 
     lastError = null;
   } catch (e) {
@@ -397,6 +403,7 @@ http.createServer(async (req, res) => {
       totalcorner_detail_matches:tcMatchIds.length,
       last_error:lastError,
       betsapi_everything:everythingRuntime.status(),
+      betsapi_everything_full_catalog:everythingRuntime.fullCatalogStatus(),
       keepalive:{
         enabled:Boolean(KEEPALIVE_URL) && Number.isFinite(KEEPALIVE_MS) && KEEPALIVE_MS >= 60000,
         interval_ms:KEEPALIVE_MS,
@@ -429,6 +436,10 @@ http.createServer(async (req, res) => {
   if (req.url === '/everything-catalog') {
     res.setHeader('content-type', 'application/json');
     return res.end(JSON.stringify(everythingRuntime.catalogStatus()));
+  }
+  if (req.url === '/everything-probe-status') {
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify(everythingRuntime.fullCatalogStatus()));
   }
   if (req.url === '/everything-status') {
     res.setHeader('content-type', 'application/json');
