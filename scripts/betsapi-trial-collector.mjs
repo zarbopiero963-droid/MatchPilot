@@ -78,6 +78,8 @@ let last = {
 let betsEventIds = [];
 let tcMatchIds = [];
 let everythingFullCatalogRunning = false;
+let oddsRebuildRunning = false;
+let oddsRebuildLastError = null;
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 
@@ -115,8 +117,12 @@ async function initPersistence() {
       ON provider_trial.records(source_type, observed_at DESC);
   `);
   await initReconciliation(dbPool);
-  await rebuildOddsV3FromRaw(dbPool);
   dbReady = true;
+  oddsRebuildRunning = true;
+  rebuildOddsV3FromRaw(dbPool)
+    .then(() => { oddsRebuildLastError = null; })
+    .catch(error => { oddsRebuildLastError = sanitizeError(error); })
+    .finally(() => { oddsRebuildRunning = false; });
   lastPersistError = null;
 }
 
@@ -420,7 +426,7 @@ async function reconciliationCertificate() {
     real_history_present:Number(covRow.with_real_history||0)>0,
     documented_history_floor:String(covRow.documented_floor||'').startsWith('2016-09-01'),
     odds_parser_v3:state.odds_parser_version?.version==='3',
-    raw_odds_rebuild_complete:state.odds_v3_raw_rebuild?.complete===true && state.odds_v3_raw_rebuild?.version===3,
+    raw_odds_rebuild_complete:!oddsRebuildRunning && oddsRebuildLastError===null && state.odds_v3_raw_rebuild?.complete===true && state.odds_v3_raw_rebuild?.version===3,
     odds_present:Number(oddsRow.observations||0)>0,
     real_market_keys:Number(oddsRow.markets||0)>1,
     odds_opening_present:Number(os.with_opening||0)>0,
@@ -565,6 +571,10 @@ http.createServer(async (req, res) => {
       betsapi_legacy_enabled:BETS_LEGACY_ENABLED,
       betsapi_everything:everythingRuntime.status(),
       reconciliation_census:everythingRuntime.censusStatus(),
+      reconciliation_odds_rebuild:{
+        running:oddsRebuildRunning,
+        last_error:oddsRebuildLastError
+      },
       betsapi_everything_full_catalog:{...everythingRuntime.fullCatalogStatus(),running:everythingFullCatalogRunning},
       keepalive:{
         enabled:Boolean(KEEPALIVE_URL) && Number.isFinite(KEEPALIVE_MS) && KEEPALIVE_MS >= 60000,
