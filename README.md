@@ -1,5 +1,7 @@
 # MatchPilot — Sports Trading OS
 
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/zarbopiero963-droid/MatchPilot?utm_source=oss&utm_medium=github&utm_campaign=zarbopiero963-droid%2FMatchPilot&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+
 MatchPilot è una piattaforma web di **trading sportivo decisionale**, non un semplice sito di pronostici.
 
 ## Obiettivo
