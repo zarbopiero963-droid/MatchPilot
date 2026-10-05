@@ -490,3 +490,14 @@ The temporary provider collector exposes:
 Cumulative metrics include total persistent rows, instance count, first/last observation timestamps, per-provider row counts, stored error rows, HTTP 429 count and HTTP 5xx count. These values come from `provider_trial.records`, so they survive Render sleep/restarts.
 
 During the time-limited provider trial, a separate Render keep-alive cron may ping `/healthz` periodically. It exists only to avoid gaps in this temporary collection window and must be disabled/deleted when issue #40 reaches the shutdown gate.
+
+
+### Provider trial zero-cost keep-alive
+
+Render cron jobs require a paid plan, so the temporary trial collector uses an internal public-URL keep-alive instead of creating a paid resource. By default it requests its own `/healthz` every 10 minutes.
+
+Environment overrides:
+- `PROVIDER_TRIAL_KEEPALIVE_URL`
+- `PROVIDER_TRIAL_KEEPALIVE_MS` (minimum 60 seconds)
+
+`/healthz` exposes attempts, successes, failures, last HTTP status and sanitized error. This is a temporary trial-only mechanism and must be removed/disabled when issue #40 reaches shutdown. It does not create synthetic provider records.
