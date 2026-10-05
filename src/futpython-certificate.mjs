@@ -179,7 +179,12 @@ export function filtersGate(f) {
     && f.registry_rows === f.schema_fields
     && f.unclassified_family === 0
     && f.timing_unset === 0
-    && f.postmatch_marked_safe === 0;
+    && f.postmatch_marked_safe === 0
+    && f.without_seen === 0
+    && f.without_source === 0
+    && f.without_phases === 0
+    && f.indexed_fields > 0
+    && f.indexed_inconsistent === 0;
 }
 
 export function entityGate(e) {
@@ -531,7 +536,14 @@ async function filtersSection(client) {
       (SELECT count(*)::int FROM fpt_filter_registry WHERE timing_class='POSTMATCH_OUTCOME' AND prematch_safe) AS postmatch_marked_safe,
       (SELECT count(*)::int FROM fpt_filter_registry WHERE filterable) AS filterable,
       (SELECT count(*)::int FROM fpt_filter_registry WHERE zero_is_missing) AS zero_is_missing,
-      (SELECT count(*)::int FROM fpt_filter_registry WHERE coverage_ratio IS NULL) AS without_coverage`);
+      (SELECT count(*)::int FROM fpt_filter_registry WHERE coverage_ratio IS NULL) AS without_coverage,
+      (SELECT count(*)::int FROM fpt_filter_registry WHERE first_seen IS NULL OR last_seen IS NULL) AS without_seen,
+      (SELECT count(*)::int FROM fpt_filter_registry WHERE source IS NULL) AS without_source,
+      (SELECT count(*)::int FROM fpt_filter_registry WHERE phases = '[]'::jsonb) AS without_phases,
+      (SELECT count(*)::int FROM fpt_filter_registry WHERE indexed) AS indexed_fields,
+      (SELECT count(*)::int FROM fpt_filter_registry WHERE fact_column IS NOT NULL) AS fields_with_fact_column,
+      (SELECT count(*)::int FROM fpt_filter_registry WHERE indexed AND (fact_column IS NULL OR index_names = '[]'::jsonb)) AS indexed_inconsistent,
+      (SELECT jsonb_agg(field_name ORDER BY field_name) FROM fpt_filter_registry WHERE indexed) AS indexed_list`);
   const timing = await all(client, `SELECT timing_class, count(*)::int AS n FROM fpt_filter_registry GROUP BY 1 ORDER BY 1`);
   const families = await all(client, `SELECT family, count(*)::int AS n FROM fpt_schema_fields GROUP BY 1 ORDER BY 1`);
   const section = {

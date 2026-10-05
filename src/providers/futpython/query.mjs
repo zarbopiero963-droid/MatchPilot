@@ -3,7 +3,7 @@
 import { normalizeTeamName } from './teams.mjs';
 
 export const FACTS_VERSION = 'fpt-facts-2';
-export const FILTERS_VERSION = 'fpt-filters-1';
+export const FILTERS_VERSION = 'fpt-filters-2';
 
 const FACT_COLUMNS = `internal_match_id, internal_competition_id, season_id, country_slug, league_slug, season,
   match_date, kickoff_local_time, kickoff_utc, kickoff_tz_status, home_team_id, away_team_id, home_name, away_name,
@@ -200,7 +200,8 @@ export const QUERIES = {
   },
   filters: {
     sql: `SELECT field_name, normalized_field, family, data_type, filterable, operators, timing_class,
-        prematch_safe, missing_tokens, zero_is_missing, rows_scoped, nonempty_rows, coverage_ratio, registry_version
+        prematch_safe, missing_tokens, zero_is_missing, rows_scoped, nonempty_rows, coverage_ratio, registry_version,
+        source, fact_column, indexed, index_names, first_seen, last_seen, phases
       FROM fpt_filter_registry
       ORDER BY family, field_name`,
     params: []
