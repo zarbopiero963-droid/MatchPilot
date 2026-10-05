@@ -173,6 +173,7 @@ function harvestDiscoveryContext(body, ctx) {
     add(ctx.league_ids,v.league_id ?? v.leagueId);
     add(ctx.team_ids,v.team_id ?? v.teamId);
     add(ctx.player_ids,v.player_id ?? v.playerId);
+    if ((v.type_id !== undefined || v.typeId !== undefined) && v.id !== undefined) add(ctx.player_ids,v.id);
 
     if (v.home?.name && !ctx.home) ctx.home=String(v.home.name);
     if (v.away?.name && !ctx.away) ctx.away=String(v.away.name);
