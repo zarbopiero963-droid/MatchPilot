@@ -44,22 +44,21 @@ test('normalizer creates sport competition event and coverage facts', () => {
   assert.ok(n.coverage[0].earliest_event_time.startsWith('2016-09-01'));
 });
 
-test('request event_id is propagated into odds observations', () => {
+test('request event_id is propagated into BetsAPI Event Odds observations', () => {
   const rows=[{
     ts:'2026-10-05T10:00:00.000Z',
     type:'betsapi_documented_event_odds',
     payload:{
-      request_params:{event_id:'999'},
-      body:{results:[{
-        marketId:'1_1',
-        runnerDetails:[{selectionId:'home',runnerOdds:{decimalDisplayOdds:{decimalOdds:2.15}}}]
-      }]}
+      request_params:{event_id:'999',source:'bet365'},
+      body:{results:{odds:{
+        '1_1':[{home_od:'2.15',draw_od:'3.20',away_od:'3.40',add_time:1791190800}]
+      }}}
     }
   }];
   const n=normalizeTrialRows(rows);
   assert.ok(n.odds.length >= 1);
   assert.equal(n.odds[0].event_id,'999');
-  assert.ok(n.odds.some(x=>x.price===2.15));
+  assert.ok(n.odds.some(x=>x.market_key==='1_1' && x.selection_key==='home' && x.price===2.15));
   assert.ok(n.odds.every(x=>x.observation_hash?.length===64));
 });
 
@@ -126,4 +125,46 @@ test('odds_summary SQL returns opening latest and closing prices', async (tt) =>
     await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
     await pool.end();
   }
+});
+
+
+test('BetsAPI Event Odds v3 preserves market keys, selections and provider timeline', () => {
+  const rows=[{
+    ts:'2026-10-05T12:00:00.000Z',
+    type:'betsapi_documented_event_odds',
+    payload:{
+      request_params:{event_id:'13236644',source:'bet365'},
+      body:{results:{odds:{
+        '1_1':[
+          {id:'a',home_od:'2.10',draw_od:'3.20',away_od:'3.40',add_time:1791190800},
+          {id:'b',home_od:'1.95',draw_od:'3.25',away_od:'3.70',add_time:1791192600}
+        ],
+        '1_2':[
+          {id:'c',home_od:'1.90',away_od:'1.96',handicap:'-0.5',add_time:1791192600}
+        ],
+        '1_3':[
+          {id:'d',over_od:'1.88',under_od:'2.00',handicap:'2.5',add_time:1791192600}
+        ]
+      }}}
+    }
+  }];
+  const n=normalizeTrialRows(rows);
+  assert.equal(new Set(n.odds.map(x=>x.event_id)).size,1);
+  assert.equal(n.odds[0].event_id,'13236644');
+  assert.deepEqual([...new Set(n.odds.map(x=>x.market_key))].sort(),['1_1','1_2','1_3']);
+  assert.ok(n.odds.some(x=>x.market_key==='1_1' && x.selection_key==='home' && x.price===2.10));
+  assert.ok(n.odds.some(x=>x.market_key==='1_2' && x.line_value==='-0.5'));
+  assert.ok(n.odds.some(x=>x.market_key==='1_3' && x.selection_key==='over' && x.price===1.88));
+  assert.ok(n.odds.every(x=>x.bookmaker==='bet365'));
+  assert.ok(n.odds.every(x=>x.provider_time));
+});
+
+test('repeated BetsAPI Event Odds history uses provider time for stable dedupe hashes', () => {
+  const payload={
+    request_params:{event_id:'e1',source:'bet365'},
+    body:{results:{odds:{'1_1':[{home_od:'2.00',draw_od:'3.00',away_od:'4.00',add_time:1791190800}]}}}
+  };
+  const a=normalizeTrialRows([{ts:'2026-10-05T12:00:00Z',type:'betsapi_documented_event_odds',payload}]);
+  const b=normalizeTrialRows([{ts:'2026-10-05T12:01:00Z',type:'betsapi_documented_event_odds',payload}]);
+  assert.deepEqual(a.odds.map(x=>x.observation_hash).sort(),b.odds.map(x=>x.observation_hash).sort());
 });
