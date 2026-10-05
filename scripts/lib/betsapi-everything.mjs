@@ -168,6 +168,7 @@ function harvestDiscoveryContext(body, ctx) {
     if (parentKey === 'player') add(ctx.player_ids,v.id ?? v.player_id ?? v.playerId);
 
     add(ctx.event_ids,v.event_id ?? v.eventId ?? v.our_event_id);
+    if (parentKey === 'results' && (v.home || v.away || v.bet365_id || v.time_status !== undefined)) add(ctx.event_ids,v.id);
     add(ctx.fi_ids,v.FI ?? v.bet365_id);
     add(ctx.league_ids,v.league_id ?? v.leagueId);
     add(ctx.team_ids,v.team_id ?? v.teamId);
