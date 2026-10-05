@@ -574,7 +574,7 @@ Ciclo di riconciliazione:
 - **Quando gira:** all'avvio (+30 s) e ogni ora, nello stesso ciclo del watchdog. Non c'è un timer da 5 minuti: FutPython cambia al massimo ogni 6 ore e un controllo ogni 5 minuti terrebbe sveglio Neon.
 - **All'avvio:**
   - un run rimasto `running` viene marcato interrotto, solo se nessun processo tiene il lock del sync;
-  - poi rileva i gap, aggiorna il ledger, chiude come RECOVERED ciò che è sparito (o UNRECOVERABLE se il provider risponde 404), scrive i checkpoint e manda gli alert aggregati `RECON_GAPS` / `RECON_FAILED` sulla stessa chat.
+  - poi rileva i gap, aggiorna il ledger, chiude come RECOVERED ciò che è sparito (o UNRECOVERABLE se il provider risponde 404), scrive i checkpoint e manda gli alert aggregati `RECON_GAPS` / `RECON_FAILED` sulla stessa chat. Il refresh quotidiano delle stagioni correnti è manutenzione ordinaria: genera l'alert solo se un refresh resta in coda per più di 24 ore.
 - **Recupero nel sync incrementale:** i gap in coda viaggiano nel normale sync incrementale e passano dai livelli di budget di #83 (in CRITICAL un refresh viene rinviato e non conta come tentativo). Il run che li ha tentati li giudica.
 - **Gap fallito:** dopo `FUTPYTHON_RECOVERY_MAX_ATTEMPTS` (default 3) tentativi un gap diventa FAILED e viene ritentato una volta ogni `FUTPYTHON_RECOVERY_RETRY_HOURS` (default 24).
 - **Idempotenza:** stesso payload = nessuno snapshot, versione o fact in più. Stesso gap = nessuna riga nuova nel ledger.

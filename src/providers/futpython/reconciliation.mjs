@@ -289,7 +289,10 @@ async function emitReconAlerts(client, summary, deliver) {
   const options = deliver ? {deliver} : {};
   const open = (await client.query(
     `SELECT gap_kind, priority, count(*)::int AS n FROM data_reconciliation_ledger
-     WHERE source=$1 AND status IN ('DETECTED','QUEUED','RECOVERING','PARTIAL') GROUP BY 1, 2 ORDER BY 2, 1`, [SOURCE])).rows;
+     WHERE source=$1 AND status IN ('DETECTED','QUEUED','RECOVERING','PARTIAL')
+       -- The daily refresh of current seasons is routine: it alerts only once it falls a day behind.
+       AND NOT (gap_kind = 'current_season_stale' AND detected_at > now() - interval '24 hours')
+     GROUP BY 1, 2 ORDER BY 2, 1`, [SOURCE])).rows;
   if (open.length) {
     await emitAlert({source: SOURCE, severity: open.some(r => r.priority === 'P1') ? 'warning' : 'info',
       code: 'RECON_GAPS', key: 'futpython', title: 'Gap dati FutPython in recupero',

@@ -181,6 +181,12 @@ test('reconciliation detects lost and stale data, recovers it through the normal
     // Under CRITICAL budget a stale current season is deferred, not counted as a failed attempt.
     await q(`UPDATE fpt_dataset_state SET last_success_at = now() - interval '30 hours' WHERE dataset_key=$1`, [current]);
     await db.withClient(c => reconcileFpt(c, {phase: 'periodic', deliver: async () => ({attempted: false})}));
+    // A routine refresh in the queue does not raise the gap alert; one stuck for more than a day does.
+    const openAlert = async () => (await q(`SELECT count(*)::int AS n FROM data_alerts WHERE code='RECON_GAPS' AND resolved_at IS NULL`))[0].n;
+    assert.equal(await openAlert(), 0);
+    await q(`UPDATE data_reconciliation_ledger SET detected_at = now() - interval '25 hours' WHERE gap_kind='current_season_stale' AND status='QUEUED'`);
+    await db.withClient(c => reconcileFpt(c, {phase: 'periodic', deliver: async () => ({attempted: false})}));
+    assert.equal(await openAlert(), 1);
     const used = (await q(`SELECT count(*)::int AS n FROM fpt_request_ledger WHERE outcome IN ('upstream','429','error') AND recorded_at > now() - interval '1 day'`))[0].n;
     await q(`INSERT INTO fpt_request_ledger(recorded_at, url_path, outcome, attempt)
       SELECT now() - interval '2 hours', '/api/download/old/x/2020', 'upstream', 1 FROM generate_series(1, $1)`, [Math.max(0, 920 - used)]);
