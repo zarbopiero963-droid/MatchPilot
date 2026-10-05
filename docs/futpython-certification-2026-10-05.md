@@ -2,7 +2,7 @@
 
 **Esito: CERTIFIED WITH KNOWN LIMITATIONS**
 
-Generato da `/api/futpython-certificate` sul servizio Render alle 2026-10-05T10:41:40.041Z (UTC). Ogni numero delle sezioni 1–17 viene dal report; nessun valore è stato scritto a mano. La sezione "Verifica incrociata" riporta controlli indipendenti fatti fuori dal report (query dirette su Neon e log Render). Issue #12 (FPT-CERT).
+Sorgente del report: `GET https://matchpilot-test.onrender.com/api/futpython-certificate` (deploy live, risposta salvata e rirenderizzata con `--from-json`). Report costruito alle 2026-10-05T10:41:40.041Z (UTC). Ogni numero delle sezioni 1–17 viene dal report; nessun valore è stato scritto a mano. La sezione "Verifica incrociata" riporta controlli indipendenti fatti fuori dal report (query dirette su Neon e log Render). Issue #12 (FPT-CERT).
 
 ## Gate
 | gate | esito |
@@ -1248,7 +1248,7 @@ Controlli indipendenti eseguiti dall'agente dopo il cron reale, fuori dal report
 - Neon (query diretta di sola lettura) su `fpt_request_ledger` dopo `014` (applicata 08:52:23Z): 167 righe, tutte del run di servizio sopra; catalog `/api-docs` 10:17:03Z latency 1266 ms; today `/api/jogos-do-dia?date=2026-10-05` 10:18:53Z latency 643 ms; budget_state ok, residuo giorno 1986 e 1985, residuo minuto 19; provider_quota_remaining nullo (il provider non manda header di rate limit); 0 campi mancanti; attempt massimo 1, backoff 0; 0 righe 429/error nelle 24 ore; picco storico 4 richieste upstream al minuto.
 - Le richieste vengono dal servizio MatchPilot: run_id presente in `fpt_sync_runs` (kind cron); nessuna chiamata manuale o esterna a FutPythonTrader. Il workflow `provider-trial-keepalive` (commit `9f09e1d`) chiama solo `betsapi-trial-collector.onrender.com/healthz`, non FutPythonTrader né matchpilot-test.
 - Scansione log Render del servizio dalle 08:50Z alle 10:23Z per `api_key=`, `postgres://`, `postgresql://`, `DATABASE_URL`, `FUTPYTHON_API_KEY`, token Telegram: 0 occorrenze. Warning/error: solo l'avviso SSL di pg al boot.
-- Telegram: tutti i 54 alert con consegna sono del 2026-10-04. 52 dalla raffica 15:02-16:19Z (50 DATASET_SYNC_FAILED, 1 DATASET_ERRORS, 1 SYNC_STALE, 1 NEW_DATASETS_AGG) prima dell'aggregazione e del cooldown; 1 WATCHDOG_CERT di FPT-PR-08 alle 23:52Z. Dal 2026-10-04 23:52Z nessuna consegna. Unico alert aperto: NEW_DATASETS_AGG (info).
+- Telegram: tutti i 54 alert con consegna sono del 2026-10-04. 53 dalla raffica 15:02-16:19Z (50 DATASET_SYNC_FAILED, 1 DATASET_ERRORS, 1 SYNC_STALE, 1 NEW_DATASETS_AGG) prima dell'aggregazione e del cooldown; 1 WATCHDOG_CERT di FPT-PR-08 alle 23:52Z. Dal 2026-10-04 23:52Z nessuna consegna. Unico alert aperto: NEW_DATASETS_AGG (info).
 
 ## Esito
 **CERTIFIED WITH KNOWN LIMITATIONS**

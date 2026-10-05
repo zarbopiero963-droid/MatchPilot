@@ -38,7 +38,12 @@ async function main() {
   const json = arg('json');
   const report = fromJson ? JSON.parse(await readFile(fromJson, 'utf8')) : url ? await fromUrl(url) : await fromDb();
   const verification = (arg('verify') || '').split(';;').map(s => s.trim()).filter(Boolean);
-  const markdown = renderCertificateMarkdown(report, {deploy: arg('deploy'), verification});
+  // The provenance line names where this report really came from; --source overrides it for a saved JSON.
+  const source = arg('source')
+    || (fromJson ? `file JSON salvato \`${fromJson.split('/').pop()}\``
+      : url ? `\`GET ${url}\``
+        : 'build diretta dal database (`buildCertificateReport`)');
+  const markdown = renderCertificateMarkdown(report, {deploy: arg('deploy'), verification, source});
   if (out) await writeFile(out, markdown);
   if (json) await writeFile(json, JSON.stringify(report, null, 2) + '\n');
   console.log('FUTPYTHON_CERTIFICATE ' + JSON.stringify({verdict: report.verdict, failed_gates: report.failed_gates, out}));
