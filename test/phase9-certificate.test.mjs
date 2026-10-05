@@ -5,7 +5,7 @@ import { fieldFamily, fieldTiming, marketValueOrNull } from '../src/providers/fu
 import { createMemoryLedger, createRequestBudget, endpointFamily, providerQuotaRemaining } from '../src/providers/futpython/budget.mjs';
 import { buildQuery, presentPayload, QueryInputError, summarizePlan, perfInputs } from '../src/providers/futpython/query.mjs';
 import {
-  catalogGate, certificateReport, factsGate, incrementalGate, knownLimitations, rawSweepGate,
+  catalogGate, certificateReport, factsGate, incrementalGate, knownLimitations, ledgerGate, rawSweepGate,
   resetCertificateCacheForTests, sweepTotals, verdictFor
 } from '../src/futpython-certificate.mjs';
 import { renderCertificateMarkdown } from '../src/futpython-certificate-md.mjs';
@@ -183,6 +183,17 @@ test('gates fail closed and the verdict is one of the three allowed outcomes', (
   assert.equal(rawSweepGate(sweepTotals([{...sweepRow, db_rows: 1}])), false);
   assert.equal(rawSweepGate(sweepTotals([{...sweepRow, source_kind: 'today', db_rows: 1}])), true);
   assert.equal(rawSweepGate(sweepTotals([sweepRow]), [{snapshot_id: 1}]), false);
+  const emptyToday = {...sweepRow, source_kind: 'today', parser_rows: 0, row_count: 0, db_rows: 0, empty_payload: true};
+  const withEmptyToday = sweepTotals([sweepRow, emptyToday]);
+  assert.equal(rawSweepGate(withEmptyToday), true, 'an empty jogos-do-dia feed is a provider state');
+  assert.equal(withEmptyToday.today_empty_snapshots, 1);
+  assert.equal(withEmptyToday.empty_payload, 0);
+  assert.equal(rawSweepGate(sweepTotals([{...sweepRow, parser_rows: 0, row_count: 0, db_rows: 0, empty_payload: true}])), false, 'an empty dataset is a defect');
+  const ledger = {api_key_paths: 0, unknown_outcomes: 0, rows_without_endpoint_family: 0, config: {perDay: 2000},
+    rows_after_014: 5, rows_after_014_upstream: 2, rows_after_014_missing_fields: 0};
+  assert.equal(ledgerGate(ledger), true);
+  assert.equal(ledgerGate({...ledger, rows_after_014: 0, rows_after_014_upstream: 0}), false, 'tests alone do not prove the ledger');
+  assert.equal(ledgerGate({...ledger, rows_after_014_missing_fields: 1}), false);
   assert.equal(rawSweepGate(sweepTotals([])), false);
   const limits = knownLimitations({entity_resolution: {links_total: 5, link_status: {LINKED: 3}}, request_ledger: {rows: 10, rows_with_latency: 10}, filter_registry: {zero_is_missing: 0}});
   assert.ok(limits.some(l => l.code === 'team_links'));

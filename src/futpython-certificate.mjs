@@ -32,6 +32,7 @@ export function sweepTotals(results) {
     malformed_csv: 0,
     header_row_mismatch: 0,
     empty_payload: 0,
+    today_empty_snapshots: 0,
     parser_vs_row_count_mismatch: 0,
     dataset_row_count_vs_db_mismatch: 0,
     duplicate_match_keys_in_snapshot: 0,
@@ -47,7 +48,9 @@ export function sweepTotals(results) {
     if (!r.hash_ok) totals.hash_mismatch++;
     totals.malformed_csv += r.malformed_csv;
     totals.header_row_mismatch += r.header_row_mismatch;
-    if (r.empty_payload) totals.empty_payload++;
+    // An empty jogos-do-dia feed is a real provider state (no fixtures published yet), not a lost dataset.
+    if (r.empty_payload && r.source_kind === 'dataset') totals.empty_payload++;
+    if (r.empty_payload && r.source_kind !== 'dataset') totals.today_empty_snapshots++;
     if (r.parser_rows !== r.row_count) totals.parser_vs_row_count_mismatch++;
     if (r.source_kind === 'dataset' && r.row_count !== r.db_rows) totals.dataset_row_count_vs_db_mismatch++;
     totals.duplicate_match_keys_in_snapshot += r.duplicate_match_keys;
@@ -141,11 +144,15 @@ export function catalogGate(c) {
     && c.classification_sum === c.catalog_total;
 }
 
+// The new ledger fields must be proven by real requests written after migration 014, not only by tests.
 export function ledgerGate(l) {
   return l.api_key_paths === 0
     && l.unknown_outcomes === 0
     && l.rows_without_endpoint_family === 0
-    && l.config.perDay > 0;
+    && l.config.perDay > 0
+    && Number(l.rows_after_014) > 0
+    && Number(l.rows_after_014_upstream) > 0
+    && Number(l.rows_after_014_missing_fields) === 0;
 }
 
 export function incrementalGate(runs) {
@@ -425,6 +432,18 @@ async function ledgerSection(client) {
       to_char(min(recorded_at) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS first_row,
       to_char(max(recorded_at) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS last_row
     FROM fpt_request_ledger`);
+  const after = await one(client, `WITH m AS (
+      SELECT applied_at FROM schema_migrations WHERE filename = '014-fpt-normalized-layer.sql'
+    )
+    SELECT to_char((SELECT applied_at FROM m) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS migration_014_applied_at,
+      count(*)::int AS rows_after_014,
+      count(*) FILTER (WHERE l.outcome = 'upstream')::int AS rows_after_014_upstream,
+      count(*) FILTER (WHERE l.endpoint_family IS NULL OR l.budget_state IS NULL OR l.provider IS NULL
+        OR l.budget_remaining_day IS NULL OR l.budget_remaining_minute IS NULL
+        OR (l.outcome IN ('upstream','429','error') AND l.attempt > 0 AND l.latency_ms IS NULL))::int AS rows_after_014_missing_fields,
+      percentile_disc(0.5) WITHIN GROUP (ORDER BY l.latency_ms) FILTER (WHERE l.latency_ms IS NOT NULL) AS latency_p50_ms_after_014
+    FROM fpt_request_ledger l
+    WHERE l.recorded_at >= (SELECT applied_at FROM m)`);
   const byOutcome = await all(client, `SELECT outcome, COALESCE(endpoint_family, '-') AS endpoint_family, count(*)::int AS n,
       percentile_disc(0.5) WITHIN GROUP (ORDER BY latency_ms) FILTER (WHERE latency_ms IS NOT NULL) AS latency_p50_ms,
       max(latency_ms) AS latency_max_ms
@@ -440,6 +459,7 @@ async function ledgerSection(client) {
   const config = budgetConfig({});
   const section = {
     ...totals,
+    ...after,
     by_outcome: byOutcome,
     by_budget_state: Object.fromEntries(byState.map(r => [r.budget_state, r.n])),
     window,
@@ -571,6 +591,8 @@ export async function buildCertificateReport({env = process.env} = {}) {
   return withClient(async client => {
     const identityRow = await one(client, `SELECT current_setting('server_version') AS server_version, current_database() AS database,
       (SELECT filename FROM schema_migrations ORDER BY filename DESC LIMIT 1) AS last_migration,
+      (SELECT to_char(applied_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') FROM schema_migrations
+         ORDER BY filename DESC LIMIT 1) AS last_migration_applied_at,
       (SELECT count(*)::int FROM schema_migrations) AS migrations_applied,
       to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS db_now`);
     const identity = {
@@ -586,6 +608,7 @@ export async function buildCertificateReport({env = process.env} = {}) {
       database: identityRow.database,
       db_now: identityRow.db_now,
       last_migration: identityRow.last_migration,
+      last_migration_applied_at: identityRow.last_migration_applied_at,
       migrations_applied: identityRow.migrations_applied,
       parser_version: LINEAGE_VERSIONS.parserVersion,
       schema_version: LINEAGE_VERSIONS.schemaVersion,
