@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import pg from 'pg';
 import {
   BETSAPI_SPORTS,
   normalizeTrialRows,
-  providerForSource
+  providerForSource,
+  initReconciliation
 } from '../scripts/lib/provider-trial-reconciliation.mjs';
 
 test('official BetsAPI R-SportID catalog is versioned', () => {
@@ -90,4 +92,38 @@ test('league catalog rows become competitions and never fake events', () => {
   assert.equal(n.competitions[0].league_id,'700');
   assert.equal(n.competitions[0].country_code,'us');
   assert.equal(n.events.length,0);
+});
+
+
+test('odds_summary SQL returns opening latest and closing prices', async (tt) => {
+  const url=process.env.FUTPYTHON_TEST_DATABASE_URL;
+  if (!url) return tt.skip('FUTPYTHON_TEST_DATABASE_URL not set');
+  const pool=new pg.Pool({connectionString:url,max:1});
+  try {
+    await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
+    await pool.query('CREATE SCHEMA provider_trial');
+    await initReconciliation(pool);
+    await pool.query(`
+      INSERT INTO provider_trial.odds_observations(
+        observation_hash,observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+      ) VALUES
+      ('h1','2026-10-05T10:00:00Z','betsapi','betsapi_documented_event_odds','1','it','55','Serie Test','e1','2026-10-05T12:00:00Z','prematch','bet365','1_1','home',NULL,2.10,NULL,'a'),
+      ('h2','2026-10-05T11:30:00Z','betsapi','betsapi_documented_event_odds','1','it','55','Serie Test','e1','2026-10-05T12:00:00Z','prematch','bet365','1_1','home',NULL,1.95,NULL,'b'),
+      ('h3','2026-10-05T12:10:00Z','betsapi','betsapi_documented_event_odds','1','it','55','Serie Test','e1','2026-10-05T12:00:00Z','live_or_post','bet365','1_1','home',NULL,1.80,NULL,'c')
+    `);
+    const {rows}=await pool.query(`
+      SELECT opening_price::float8,latest_price::float8,closing_price::float8,
+             change_open_latest::float8,change_open_close::float8,observations
+      FROM provider_trial.odds_summary
+      WHERE event_id='e1' AND market_key='1_1' AND selection_key='home'
+    `);
+    assert.equal(rows.length,1);
+    assert.equal(rows[0].opening_price,2.10);
+    assert.equal(rows[0].latest_price,1.80);
+    assert.equal(rows[0].closing_price,1.95);
+    assert.equal(rows[0].observations,'3');
+  } finally {
+    await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
+    await pool.end();
+  }
 });
