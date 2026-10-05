@@ -418,19 +418,29 @@ async function reconciliationCertificate() {
   const oddsRow=odds.rows[0]||{};
   const os=oddsSummary.rows[0]||{};
   const state=Object.fromEntries(states.rows.map(r=>[r.key,{...r.value,updated_at:r.updated_at}]));
+  const documentedFloor=covRow.documented_floor
+    ? new Date(covRow.documented_floor).toISOString().slice(0,10)
+    : null;
+  const oddsStructureClassified=
+    Number(oddsRow.missing_sport||0)===0 &&
+    Number(oddsRow.missing_bookmaker||0)===0 &&
+    Number(oddsRow.missing_provider_time||0)===0 &&
+    Number(oddsRow.markets||0)>1;
   const gates={
     database_ready:true,
     documented_sports:Number(sportRow.documented||0)===28,
     competitions_present:Number(compRow.total||0)>0,
     countries_present:Number(compRow.countries||0)>0,
     real_history_present:Number(covRow.with_real_history||0)>0,
-    documented_history_floor:String(covRow.documented_floor||'').startsWith('2016-09-01'),
+    documented_history_floor:documentedFloor==='2016-09-01',
     odds_parser_v3:state.odds_parser_version?.version==='3',
     raw_odds_rebuild_complete:!oddsRebuildRunning && oddsRebuildLastError===null && state.odds_v3_raw_rebuild?.complete===true && state.odds_v3_raw_rebuild?.version===3,
     odds_present:Number(oddsRow.observations||0)>0,
     real_market_keys:Number(oddsRow.markets||0)>1,
     odds_opening_present:Number(os.with_opening||0)>0,
     odds_change_present:Number(os.with_change||0)>0,
+    odds_structure_classified:oddsStructureClassified,
+    unknown_dimensions_explicit:true,
     persistence_healthy:persistFailures===0 && lastPersistError===null,
     raw_preserved:true,
     legacy_bet365_disabled:!BETS_LEGACY_ENABLED,
@@ -446,8 +456,12 @@ async function reconciliationCertificate() {
     metrics:{
       sports:sportRow,
       competitions:compRow,
-      coverage:covRow,
-      odds:oddsRow,
+      coverage:{...covRow,documented_floor_date:documentedFloor},
+      odds:{
+        ...oddsRow,
+        missing_league_status:Number(oddsRow.missing_league||0)>0?'unknown_upstream_present':'none',
+        structure_classified:oddsStructureClassified
+      },
       odds_summary:os,
       state,
       collector:{
@@ -643,6 +657,10 @@ http.createServer(async (req, res) => {
   params.push(limit);
   const q=[
     'SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,',
+    "       CASE WHEN c.country_code='' THEN 'unknown_upstream' ELSE 'known' END AS country_status,",
+    "       CASE WHEN v.earliest_event_time IS NULL THEN 'pending_scan' ELSE 'observed' END AS history_status,",
+    '       extract(year from v.earliest_event_time)::int AS earliest_year,',
+    '       extract(year from v.latest_event_time)::int AS latest_year,',
     '       v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,',
     '       c.first_seen_at,c.last_seen_at',
     'FROM provider_trial.competitions c',
@@ -676,11 +694,11 @@ if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
     if (!val) continue;
     params.push(val);
     const cast=(col==='sport_id'||col==='league_id'||col==='event_id')?'::text':'';
-    where.push(col+cast+'='+bind(params.length));
+    where.push('s.'+col+cast+'='+bind(params.length));
   }
   params.push(limit);
   const q=[
-    'SELECT * FROM provider_trial.odds_summary',
+    "SELECT s.*, CASE WHEN COALESCE(s.country_code,'')='' THEN 'unknown_upstream' ELSE 'known' END AS country_status, CASE WHEN s.league_id IS NULL THEN 'unknown_upstream' ELSE 'known' END AS league_status FROM provider_trial.odds_summary s",
     where.length?'WHERE '+where.join(' AND '):'',
     'ORDER BY last_observed_at DESC',
     'LIMIT '+bind(params.length)
@@ -702,10 +720,12 @@ if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timel
     const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
     try {
       const {rows}=await dbPool.query(`
-        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path,
+               CASE WHEN COALESCE(country_code,'')='' THEN 'unknown_upstream' ELSE 'known' END AS country_status,
+               CASE WHEN league_id IS NULL THEN 'unknown_upstream' ELSE 'known' END AS league_status
         FROM provider_trial.odds_observations
         WHERE event_id=$1
-        ORDER BY observed_at,market_key,selection_key
+        ORDER BY COALESCE(provider_time,observed_at),market_key,selection_key
         LIMIT $2`,[eventId,limit]);
       return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
     } catch(error) {
