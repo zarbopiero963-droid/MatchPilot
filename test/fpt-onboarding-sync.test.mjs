@@ -56,7 +56,9 @@ test('a simulated new league waits for the owner, a new season of an active leag
     // A season of the active league whose rows fall years outside the season: stopped before production.
     'alpha/league/2019': csv([['2025-05-01', '18:00', 'Alpha A', 'Alpha B', 1, 1, '2.00']]),
     'gamma/cup/2024': csv([['2024-04-01', '20:00', 'Gamma One', 'Gamma Two', 2, 0, '1.80'], ['2024-04-08', '20:00', 'Gamma Two', 'Gamma Three', 1, 3, '2.60']]),
-    'gamma/cup/2025': csv([['2025-04-01', '20:00', 'Gamma Three', 'Gamma One', 0, 1, '2.20']])
+    'gamma/cup/2025': csv([['2025-04-01', '20:00', 'Gamma Three', 'Gamma One', 0, 1, '2.20']]),
+    [`gamma/cup/${current}`]: csv([[`${current}-04-01`, '20:00', 'Gamma One', 'Gamma Two', 1, 1, '2.00'],
+      [`${current}-04-02`, '20:00', 'Gamma Three', 'Gamma Two', 0, 2, '2.10']])
     // gamma/cup/2023 is listed but the provider answers 404.
   };
   const hits = [];
@@ -98,7 +100,7 @@ test('a simulated new league waits for the owner, a new season of an active leag
     assert.equal((await q(`SELECT count(*)::int AS n FROM fpt_match_facts WHERE dataset_key='alpha/league/2025'`))[0].n, 2);
 
     // 2. The provider now lists a new season of alpha, an old alpha season and a new league gamma.
-    leagues = [['alpha', 'league', ['2019', '2025', current]], ['gamma', 'cup', ['2023', '2024', '2025']]];
+    leagues = [['alpha', 'league', ['2019', '2025', current]], ['gamma', 'cup', ['2023', '2024', '2025', current]]];
     hits.length = 0;
     run = await runNode(['src/jobs/futpython-sync.mjs'], env);
     assert.equal(run.code, 0, run.out);
@@ -112,7 +114,7 @@ test('a simulated new league waits for the owner, a new season of an active leag
     assert.equal(state[`alpha/league/${current}`].activated_by, 'auto:new_season_of_active_league');
     assert.equal(state['alpha/league/2019'].state, 'COVERAGE_AUDITED');
     assert.equal(state['alpha/league/2019'].blocked_reason, 'dates_outside_season');
-    for (const key of ['gamma/cup/2024', 'gamma/cup/2025']) {
+    for (const key of ['gamma/cup/2024', 'gamma/cup/2025', `gamma/cup/${current}`]) {
       assert.equal(state[key].kind, 'new_league');
       assert.equal(state[key].state, 'HARD_VERIFIED', key);
       assert.equal(state[key].waiting_for, 'owner_promotion');
@@ -125,7 +127,7 @@ test('a simulated new league waits for the owner, a new season of an active leag
     assert.equal(facts[`alpha/league/${current}`], 2, 'the verified new season is in production in the same run');
     assert.equal(facts['gamma/cup/2024'], undefined, 'a new league never enters production by itself');
     assert.equal(facts['alpha/league/2019'], undefined, 'a blocked season stays out');
-    assert.equal((await q(`SELECT count(*)::int AS n FROM fpt_match_versions WHERE dataset_key LIKE 'gamma/%'`))[0].n, 3,
+    assert.equal((await q(`SELECT count(*)::int AS n FROM fpt_match_versions WHERE dataset_key LIKE 'gamma/%'`))[0].n, 5,
       'the raw and the versions are mirrored anyway');
     const teams = await q(`SELECT canonical_name FROM fpt_teams WHERE country_slug='gamma' ORDER BY 1`);
     assert.deepEqual(teams.map(r => r.canonical_name), ['Gamma One', 'Gamma Three', 'Gamma Two']);
@@ -133,7 +135,7 @@ test('a simulated new league waits for the owner, a new season of an active leag
     assert.deepEqual(steps, ['DISCOVERED', 'HARD_VERIFIED']);
     const alerts = Object.fromEntries((await q(`SELECT code, payload FROM data_alerts WHERE resolved_at IS NULL AND code LIKE 'ONBOARDING%'`))
       .map(r => [r.code, r.payload]));
-    assert.deepEqual(alerts.ONBOARDING_OWNER_PROMOTION.datasets.sort(), ['gamma/cup/2024', 'gamma/cup/2025']);
+    assert.deepEqual(alerts.ONBOARDING_OWNER_PROMOTION.datasets.sort(), ['gamma/cup/2024', 'gamma/cup/2025', `gamma/cup/${current}`].sort());
     assert.deepEqual(alerts.ONBOARDING_BLOCKED.blocked.map(b => b.datasetKey), ['alpha/league/2019']);
 
     const pending = await db.withClient(c => runQuery(c, 'onboarding', {}));
@@ -143,6 +145,24 @@ test('a simulated new league waits for the owner, a new season of an active leag
     let section = await db.withClient(c => onboardingSection(c));
     assert.equal(section.gate, true, JSON.stringify(section));
     assert.equal(section.facts_from_non_active, 0);
+
+    // 2b. While gamma waits for the owner, its current season changes upstream (one score fixed, one match added).
+    // The new snapshot only adds versions for the changed rows; the raw = DB check must still hold.
+    // Row 1 unchanged (its version belongs to the first snapshot), row 2 corrected, row 3 new.
+    datasets[`gamma/cup/${current}`] = csv([[`${current}-04-01`, '20:00', 'Gamma One', 'Gamma Two', 1, 1, '2.00'],
+      [`${current}-04-02`, '20:00', 'Gamma Three', 'Gamma Two', 1, 2, '2.10'],
+      [`${current}-04-08`, '20:00', 'Gamma Two', 'Gamma Three', 0, 0, '2.30']]);
+    // An available dataset is a cache hit for the incremental run: an error state makes this run fetch it again.
+    await q(`UPDATE fpt_dataset_state SET availability='error', last_error='x' WHERE dataset_key=$1`, [`gamma/cup/${current}`]);
+    run = await runNode(['src/jobs/futpython-sync.mjs'], env);
+    assert.equal(run.code, 0, run.out);
+    const gammaNow = (await q(`SELECT state, blocked_reason, checks FROM fpt_onboarding WHERE dataset_key=$1`, [`gamma/cup/${current}`]))[0];
+    assert.equal(gammaNow.state, 'HARD_VERIFIED', JSON.stringify(gammaNow));
+    assert.equal(gammaNow.checks.hard.matches, 3);
+    assert.equal((await q(`SELECT count(*)::int AS n FROM fpt_match_versions v JOIN fpt_dataset_state s ON s.last_snapshot_id = v.snapshot_id
+      WHERE s.dataset_key=$1`, [`gamma/cup/${current}`]))[0].n, 2, 'the latest snapshot itself only wrote the two changed rows');
+    assert.equal(gammaNow.checks.hard.reconciled, true);
+    assert.equal((await q(`SELECT count(*)::int AS n FROM fpt_raw_snapshots WHERE dataset_key=$1`, [`gamma/cup/${current}`]))[0].n, 2);
 
     // 3. Owner promotion: an actor and a reason are mandatory; then gamma enters production, 404 season left out.
     let promote = await runNode(['src/jobs/futpython-onboarding.mjs', '--promote=gamma/cup', '--reason=ok'], env);
@@ -157,9 +177,12 @@ test('a simulated new league waits for the owner, a new season of an active leag
     assert.deepEqual(rows.map(r => [r.dataset_key, r.state, r.activated_by]), [
       ['gamma/cup/2023', 'SEASONS_ENUMERATED', null],
       ['gamma/cup/2024', 'ACTIVE', 'owner:owner'],
-      ['gamma/cup/2025', 'ACTIVE', 'owner:owner']
-    ]);
-    assert.equal((await q(`SELECT count(*)::int AS n FROM fpt_match_facts WHERE dataset_key LIKE 'gamma/%'`))[0].n, 3);
+      ['gamma/cup/2025', 'ACTIVE', 'owner:owner'],
+      [`gamma/cup/${current}`, 'ACTIVE', 'owner:owner']
+    ].sort((a, b) => a[0].localeCompare(b[0])));
+    assert.equal((await q(`SELECT count(*)::int AS n FROM fpt_match_facts WHERE dataset_key LIKE 'gamma/%'`))[0].n, 6);
+    const fixed = await q(`SELECT home_score FROM fpt_match_facts WHERE dataset_key=$1 AND match_date=$2`, [`gamma/cup/${current}`, `${current}-04-02`]);
+    assert.equal(fixed[0].home_score, 1, 'the facts carry the latest version of a corrected row');
     const homeIds = await q(`SELECT count(*)::int AS n FROM fpt_match_facts WHERE dataset_key LIKE 'gamma/%' AND home_team_id IS NULL`);
     assert.equal(homeIds[0].n, 0, 'promoted facts carry the onboarding team ids');
     section = await db.withClient(c => onboardingSection(c));

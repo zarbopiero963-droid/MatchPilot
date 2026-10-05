@@ -9,7 +9,7 @@ const full = {
   availability: 'available', last_snapshot_id: 7, ingest_complete: true, snapshot_rows: 2,
   headers: ['Date', 'Home', 'Away'], unregistered_fields: [], unclassified_fields: [],
   coverage: {Date: {ratio: 1}, Home: {ratio: 1}, Away: {ratio: 1}},
-  hard: {matches: 2, no_date: 0, out_of_season: 0, unresolved_teams: 0, duplicate_keys: 0}
+  hard: {rows: 2, parser_rows: 2, stored_rows: 2, hash_ok: true, no_date: 0, out_of_season: 0, unresolved_teams: 0, duplicate_keys: 0}
 };
 
 test('the steps are the #12 onboarding flow, in order', () => {
@@ -28,7 +28,9 @@ test('a dataset stops at the last step whose checks pass, with what it waits for
     [{availability: 'unavailable_404'}, 'SEASONS_ENUMERATED', 'unavailable_404'],
     [{unclassified_fields: ['Weird']}, 'BACKFILLED', 'fields_not_classified'],
     [{coverage: {Date: {ratio: 1}, Home: {ratio: 0.5}, Away: {ratio: 1}}}, 'SCHEMA_AUDITED', 'identity_coverage_below_100'],
-    [{hard: {...full.hard, matches: 1}}, 'COVERAGE_AUDITED', 'raw_db_mismatch'],
+    [{hard: {...full.hard, stored_rows: 1}}, 'COVERAGE_AUDITED', 'raw_db_mismatch'],
+    [{hard: {...full.hard, hash_ok: false}}, 'COVERAGE_AUDITED', 'raw_db_mismatch'],
+    [{hard: {...full.hard, parser_rows: 3}}, 'COVERAGE_AUDITED', 'raw_db_mismatch'],
     [{hard: {...full.hard, out_of_season: 1}}, 'COVERAGE_AUDITED', 'dates_outside_season'],
     [{hard: {...full.hard, unresolved_teams: 1}}, 'COVERAGE_AUDITED', 'unresolved_teams'],
     [{hard: {...full.hard, duplicate_keys: 1}}, 'COVERAGE_AUDITED', 'duplicate_match_keys'],

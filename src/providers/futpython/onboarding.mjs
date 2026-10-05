@@ -1,4 +1,8 @@
+import { gunzipSync } from 'node:zlib';
 import { EMPTY_TOKENS } from './schema.mjs';
+import { inspectDatasetCsv } from './integrity.mjs';
+import { matchKey } from './identity.mjs';
+import { sha256 } from './store.mjs';
 import { buildTeamEntities, nameKind, normalizeTeamName } from './teams.mjs';
 import { seasonShape, startYear } from './seasons.mjs';
 import { isCurrentSeason } from './catalog.mjs';
@@ -72,8 +76,13 @@ export function evaluateSteps(f) {
 
   const h = f.hard || {};
   checks.hard = {
-    matches: Number(h.matches || 0),
-    reconciled: Number(h.matches || 0) === Number(f.snapshot_rows ?? -1),
+    matches: Number(h.rows || 0),
+    // Raw = DB: the stored CSV hashes to its sha256, parses to its row count, and every row (key + payload hash)
+    // exists as a match version of this dataset, whichever snapshot first wrote it.
+    reconciled: h.hash_ok === true && Number(h.parser_rows) === Number(f.snapshot_rows ?? -1)
+      && Number(h.stored_rows) === Number(h.rows),
+    hash_ok: h.hash_ok === true,
+    stored_rows: Number(h.stored_rows || 0),
     no_date: Number(h.no_date || 0),
     out_of_season: Number(h.out_of_season || 0),
     unresolved_teams: Number(h.unresolved_teams || 0),
@@ -259,23 +268,40 @@ async function datasetFacts(client, row) {
   return f;
 }
 
+// Hard verification reads the latest raw snapshot itself and checks the stored versions of exactly its rows.
 async function hardFacts(client, row) {
+  const snap = (await client.query(
+    'SELECT sha256, payload_gzip FROM fpt_raw_snapshots WHERE snapshot_id = $1', [row.last_snapshot_id])).rows[0];
+  if (!snap) return {rows: 0};
+  const text = gunzipSync(snap.payload_gzip).toString('utf8');
+  const inspected = inspectDatasetCsv(text, row.dataset_key);
+  const pairs = new Map();
+  for (const r of inspected.rows) pairs.set(`${matchKey(r, row.dataset_key)}|${sha256(JSON.stringify(r))}`, r);
+  const keys = [...pairs.keys()].map(k => k.slice(0, k.lastIndexOf('|')));
+  const hashes = [...pairs.keys()].map(k => k.slice(k.lastIndexOf('|') + 1));
   const window = seasonWindow(row.season);
   const res = await client.query(
-    `WITH v AS (SELECT * FROM fpt_match_versions WHERE snapshot_id = $1),
+    `WITH p AS (SELECT * FROM unnest($1::text[], $2::text[]) AS p(match_key, payload_sha256)),
+     v AS (
+       SELECT DISTINCT ON (v.match_key) v.match_key, v.match_date, v.home, v.away
+       FROM fpt_match_versions v JOIN p USING (match_key, payload_sha256)
+       WHERE v.dataset_key = $3
+       ORDER BY v.match_key, v.acquired_at DESC, v.version_id DESC
+     ),
      names AS (
        SELECT a.name, count(DISTINCT a.internal_team_id) AS n
        FROM fpt_team_aliases a JOIN fpt_teams t USING (internal_team_id)
-       WHERE t.country_slug = $2 GROUP BY a.name
+       WHERE t.country_slug = $4 GROUP BY a.name
      )
-     SELECT count(*)::int AS matches,
+     SELECT (SELECT count(*)::int FROM fpt_match_versions v JOIN p USING (match_key, payload_sha256)
+               WHERE v.dataset_key = $3) AS stored_rows,
             count(*) FILTER (WHERE v.match_date IS NULL)::int AS no_date,
-            count(*) FILTER (WHERE v.match_date < $3::date OR v.match_date > $4::date)::int AS out_of_season,
-            count(*) FILTER (WHERE COALESCE(h.n, 0) <> 1 OR COALESCE(a.n, 0) <> 1)::int AS unresolved_teams,
-            (count(*) - count(DISTINCT v.match_key))::int AS duplicate_keys
+            count(*) FILTER (WHERE v.match_date < $5::date OR v.match_date > $6::date)::int AS out_of_season,
+            count(*) FILTER (WHERE COALESCE(h.n, 0) <> 1 OR COALESCE(a.n, 0) <> 1)::int AS unresolved_teams
      FROM v LEFT JOIN names h ON h.name = v.home LEFT JOIN names a ON a.name = v.away`,
-    [row.last_snapshot_id, row.country_slug, window?.from || '1900-01-01', window?.to || '1900-01-01']);
-  return res.rows[0];
+    [keys, hashes, row.dataset_key, row.country_slug, window?.from || '1900-01-01', window?.to || '1900-01-01']);
+  return {...res.rows[0], rows: pairs.size, parser_rows: inspected.parser_rows,
+    hash_ok: sha256(text) === snap.sha256, duplicate_keys: inspected.duplicate_match_keys};
 }
 
 // Re-evaluates every dataset not yet ACTIVE. A season of an already active league is promoted automatically once
