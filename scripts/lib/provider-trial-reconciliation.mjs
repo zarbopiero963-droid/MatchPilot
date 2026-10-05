@@ -358,6 +358,46 @@ export function normalizeTrialRows(rows) {
   return {sports:[...sports.values()],competitions:[...competitions.values()],coverage:[...coverage.values()],events:[...events.values()],odds};
 }
 
+
+export async function ensureRawRecordsAppendOnly(pool) {
+  await pool.query(`
+    CREATE OR REPLACE FUNCTION provider_trial.reject_records_mutation()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $
+    BEGIN
+      RAISE EXCEPTION 'provider_trial.records is append-only';
+    END;
+    $;
+  `);
+  await pool.query(`DROP TRIGGER IF EXISTS provider_trial_records_append_only ON provider_trial.records`);
+  await pool.query(`
+    CREATE TRIGGER provider_trial_records_append_only
+    BEFORE UPDATE OR DELETE OR TRUNCATE ON provider_trial.records
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION provider_trial.reject_records_mutation()
+  `);
+}
+
+export async function rawRecordsAppendOnlyStatus(pool) {
+  const {rows}=await pool.query(`
+    SELECT
+      to_regclass('provider_trial.records') IS NOT NULL AS raw_table_exists,
+      EXISTS (
+        SELECT 1
+        FROM pg_trigger t
+        JOIN pg_class c ON c.oid=t.tgrelid
+        JOIN pg_namespace n ON n.oid=c.relnamespace
+        WHERE n.nspname='provider_trial'
+          AND c.relname='records'
+          AND t.tgname='provider_trial_records_append_only'
+          AND NOT t.tgisinternal
+          AND t.tgenabled <> 'D'
+      ) AS append_only_trigger_enabled
+  `);
+  return rows[0] || {raw_table_exists:false,append_only_trigger_enabled:false};
+}
+
 export async function initReconciliation(pool) {
   await pool.query(RECONCILIATION_SCHEMA_SQL);
   const parserState=await pool.query(
