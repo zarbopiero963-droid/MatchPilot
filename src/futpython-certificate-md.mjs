@@ -30,7 +30,7 @@ export function renderCertificateMarkdown(report, {deploy = null, verification =
   out.push('');
   out.push(`**Esito: ${r.verdict}**`);
   out.push('');
-  out.push(`Sorgente del report: ${source || 'non dichiarata'}. Report costruito alle ${id.generated_at} (UTC). Ogni numero delle sezioni 1–17 viene dal report; nessun valore è stato scritto a mano. La sezione "Verifica incrociata" riporta controlli indipendenti fatti fuori dal report (query dirette su Neon e log Render). Issue #12 (FPT-CERT).`);
+  out.push(`Sorgente del report: ${source || 'non dichiarata'}. Report costruito alle ${id.generated_at} (UTC). Ogni numero delle sezioni 1–18 viene dal report; nessun valore è stato scritto a mano. La sezione "Verifica incrociata" riporta controlli indipendenti fatti fuori dal report (query dirette su Neon e log Render). Issue #12 (FPT-CERT).`);
   out.push('');
   if (r.failed_gates?.length) {
     out.push(`Gate falliti: ${r.failed_gates.map(g => `\`${g}\``).join(', ')}.`);
@@ -190,6 +190,19 @@ export function renderCertificateMarkdown(report, {deploy = null, verification =
   out.push(table(['query', 'esito', 'exec ms', 'plan ms', 'righe lette', 'indici', 'seq scan grandi'],
     p.queries.map(x => [x.query, yes(x.pass), x.execution_ms ?? x.error, x.planning_ms ?? '', x.rows_scanned ?? '', (x.indexes || []).join(', '), (x.seq_scan_on_large_table || []).join(', ') || '-'])));
   out.push(`Gate: **${yes(p.gate)}**\n`);
+
+  const o = r.onboarding;
+  if (o) {
+    out.push('## 18. Onboarding nuove leghe e stagioni');
+    out.push(`Passi: ${o.steps}. Solo i dataset ACTIVE entrano in fpt_match_facts; una nuova lega diventa ACTIVE solo con promozione dell'owner.\n`);
+    out.push(kv({onboarding_rows: o.onboarding_rows, events: o.events, catalog_without_onboarding: o.catalog_without_onboarding,
+      facts_from_non_active: o.facts_from_non_active, new_league_active_without_owner: o.new_league_active_without_owner,
+      non_baseline_active_unverified: o.non_baseline_active_unverified, rows_without_event: o.rows_without_event, tests: o.tests}));
+    out.push(table(['tipo', 'stato', 'dataset'], o.by_kind_state.map(x => [x.kind, x.state, x.n])));
+    if (o.pending.length) out.push(table(['dataset', 'tipo', 'promozione', 'stato', 'in attesa di', 'blocco', 'scoperto'],
+      o.pending.map(x => [x.dataset_key, x.kind, x.promotion, x.state, x.waiting_for || '-', x.blocked_reason || '-', x.discovered_at])));
+    out.push(`Gate: **${yes(o.gate)}**\n`);
+  }
 
   out.push('## Limiti noti');
   out.push(r.known_limitations.length ? r.known_limitations.map(x => `- \`${x.code}\`: ${x.text}`).join('\n') + '\n' : '_nessuno_\n');

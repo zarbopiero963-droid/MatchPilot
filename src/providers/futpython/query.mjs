@@ -198,6 +198,21 @@ export const QUERIES = {
       LIMIT $4`,
     params: ['field', 'min_ratio', 'min_seasons', 'limit']
   },
+  onboarding: {
+    // #12 "Quali nuove leghe sono state scoperte ma non ancora verificate?"
+    sql: `SELECT country_slug, league_slug, kind, promotion,
+        jsonb_agg(jsonb_build_object('dataset_key', dataset_key, 'season', season, 'state', state,
+          'waiting_for', waiting_for, 'blocked', blocked, 'blocked_reason', blocked_reason) ORDER BY season) AS seasons,
+        min(discovered_at) AS discovered_at,
+        bool_and(state = 'HARD_VERIFIED' OR blocked_reason = 'unavailable_404')
+          AND bool_or(state = 'HARD_VERIFIED') AS ready_for_owner
+      FROM fpt_onboarding
+      WHERE state <> 'ACTIVE'
+      GROUP BY country_slug, league_slug, kind, promotion
+      ORDER BY min(discovered_at), country_slug, league_slug
+      LIMIT $1`,
+    params: ['limit']
+  },
   filters: {
     sql: `SELECT field_name, normalized_field, family, data_type, filterable, operators, timing_class,
         prematch_safe, missing_tokens, zero_is_missing, rows_scoped, nonempty_rows, coverage_ratio, registry_version,
@@ -431,6 +446,8 @@ export function buildQuery(name, input = {}, {now = new Date()} = {}) {
       return {name, sql: QUERIES.competitions.sql, values: []};
     case 'filters':
       return {name, sql: QUERIES.filters.sql, values: []};
+    case 'onboarding':
+      return {name, sql: QUERIES.onboarding.sql, values: [limitOf(input.limit, 200)]};
     default:
       throw new QueryInputError(`unknown query ${name}`);
   }
@@ -465,6 +482,7 @@ export const ROUTES = {
   '/api/fpt/match': 'matchDetail',
   '/api/fpt/competitions': 'competitions',
   '/api/fpt/filters': 'filters',
+  '/api/fpt/onboarding': 'onboarding',
   '/api/fpt/away-matches': 'awayMatches',
   '/api/fpt/odds-range': 'favoriteOddsRange',
   '/api/fpt/search': 'searchMatches',
@@ -500,7 +518,9 @@ export const QUERY_CATALOG = [
   {name: 'matchesOnDate', route: '/api/fpt/matches', question: 'Partite di un giorno', params: {date: 'YYYY-MM-DD'}},
   {name: 'matchDetail', route: '/api/fpt/match', question: 'Dettaglio partita con payload e timing di ogni campo', params: {id: 'fpt:hash:… | fpt:id:…'}},
   {name: 'competitions', route: '/api/fpt/competitions', question: 'Elenco competizioni e stagioni', params: {}},
-  {name: 'filters', route: '/api/fpt/filters', question: 'Registry dei campi filtrabili', params: {}}
+  {name: 'filters', route: '/api/fpt/filters', question: 'Registry dei campi filtrabili', params: {}},
+  {name: 'onboarding', route: '/api/fpt/onboarding', question: 'Nuove leghe/stagioni scoperte ma non ancora in produzione',
+    params: {limit: '1–500'}}
 ].map(entry => ({
   ...entry,
   rules: [

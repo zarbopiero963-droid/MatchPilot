@@ -7,6 +7,7 @@ import { storeDataset, upsertCatalog, sha256 } from '../providers/futpython/stor
 import { persistOutcome } from '../providers/futpython/classification.mjs';
 import { shouldYieldToCritical } from '../providers/futpython/budget.mjs';
 import { refreshNormalizedLayer } from '../providers/futpython/query.mjs';
+import { advanceOnboarding, onboardingTargets, registerDiscovered } from '../providers/futpython/onboarding.mjs';
 import { emitAlert, resolveAlert } from '../alerts.mjs';
 
 const LOCK_ID = 76420311;
@@ -256,7 +257,8 @@ async function syncEntry(client, entry, stats) {
   const previous = await loadDatasetState(client, entry.datasetKey);
   const previousRows = previous.last_row_count ?? null;
   const previouslySucceeded = previous.last_snapshot_id != null;
-  const priority = stats.meta?.mode === 'backfill' ? 'backfill' : 'critical';
+  // Past seasons of a league being onboarded travel as backfill traffic even inside an incremental run.
+  const priority = stats.meta?.mode === 'backfill' || entry.onboarding ? 'backfill' : 'critical';
   try {
     stats.datasetsAttempted++;
     const data = await fetchDataset(entry, {
@@ -386,6 +388,31 @@ export async function emitRunSummaryAlerts(client, stats, {bootstrap, deliver} =
   }
 }
 
+export async function emitOnboardingAlerts(client, summary, {deliver} = {}) {
+  const alertOptions = deliver ? {deliver} : {};
+  if (summary.awaitingOwner.length) {
+    await emitAlert({
+      source: 'futpython', severity: 'info', code: 'ONBOARDING_OWNER_PROMOTION', key: 'onboarding',
+      title: 'Nuova lega FutPython verificata, in attesa di promozione',
+      message: `${summary.awaitingOwner.length} stagioni HARD_VERIFIED attendono la promozione dell'owner: ${summary.awaitingOwner.slice(0, 10).join(', ')}`,
+      payload: {datasets: summary.awaitingOwner}
+    }, client, alertOptions);
+  } else {
+    await resolveAlert({source: 'futpython', code: 'ONBOARDING_OWNER_PROMOTION', key: 'onboarding'}, client);
+  }
+  const blocked = summary.blocked.filter(item => item.reason !== 'unavailable_404');
+  if (blocked.length) {
+    await emitAlert({
+      source: 'futpython', severity: 'warning', code: 'ONBOARDING_BLOCKED', key: 'onboarding',
+      title: 'Onboarding FutPython bloccato',
+      message: `${blocked.length} dataset fermi prima della produzione: ${blocked.slice(0, 10).map(b => `${b.datasetKey} (${b.reason})`).join(', ')}`,
+      payload: {blocked}
+    }, client, alertOptions);
+  } else {
+    await resolveAlert({source: 'futpython', code: 'ONBOARDING_BLOCKED', key: 'onboarding'}, client);
+  }
+}
+
 async function refreshFinalCounts(client, stats) {
   const rows = await client.query(
     `SELECT availability,count(*)::int AS n
@@ -461,6 +488,8 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
         try {
           const catalogResult = await upsertCatalog(client, catalog);
           for (const entry of catalogResult.newDatasets || []) stats.newDatasets.add(entry.datasetKey);
+          // A dataset listed for the first time starts onboarding; it is not production data yet.
+          stats.meta.onboardingRegistered = await registerDiscovered(client, catalogResult.newDatasets, {runId});
           await client.query('COMMIT');
         } catch (error) {
           await client.query('ROLLBACK');
@@ -469,6 +498,12 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
       }
 
       const targets = mode === 'backfill' ? catalog : incrementalTargets(catalog);
+      if (mode !== 'backfill') {
+        const known = new Set(targets.map(entry => entry.datasetKey));
+        const extra = await onboardingTargets(client, {limit: Number(process.env.FUTPYTHON_ONBOARDING_PER_RUN || 10)});
+        for (const entry of extra) if (!known.has(entry.datasetKey)) targets.push(entry);
+        stats.meta.onboardingTargets = extra.map(entry => entry.datasetKey);
+      }
       for (const entry of targets) {
         if (activeRun.stop) break;
         if (mode === 'backfill') await waitForCriticalYield(client);
@@ -514,6 +549,17 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
           stats.meta.normalizedLayerError = redact(error?.message || error);
         }
       }
+      try {
+        const onboarding = await advanceOnboarding(client, {runId});
+        stats.meta.onboarding = onboarding;
+        // A dataset that just became ACTIVE enters the facts in this same run.
+        if (onboarding.activated.length) {
+          stats.meta.onboardingFacts = Number((await client.query('SELECT fpt_refresh_match_facts() AS n')).rows[0].n);
+        }
+        await emitOnboardingAlerts(client, onboarding);
+      } catch (error) {
+        stats.meta.onboardingError = redact(error?.message || error);
+      }
 
       const undefinedCount = Object.values(stats.meta.undefinedStates || {}).reduce((sum, value) => sum + value, 0);
       const status = stats.failures.length || undefinedCount
@@ -545,6 +591,10 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
         available: stats.availableCount, unavailable404: stats.meta.finalAvailability?.unavailable_404 || 0,
         errorReal: stats.errorRealCount, newFields: stats.newFields.size,
         newDatasets: stats.newDatasets.size, errorCount: stats.failures.length, deferred: stats.deferred.length,
+        onboarding: stats.meta.onboarding
+          ? {pending: stats.meta.onboarding.pending, activated: stats.meta.onboarding.activated.length,
+            awaitingOwner: stats.meta.onboarding.awaitingOwner.length, blocked: stats.meta.onboarding.blocked.length}
+          : null,
         ledger: ledger.rows
       }));
       return {runId, status, ...stats};

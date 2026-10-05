@@ -195,7 +195,7 @@ La branch `main` rappresenta esclusivamente il nuovo MatchPilot Sports Trading O
 
 La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue **#12 — FPT-CERT**.
 
-Stato corrente della sorgente: certificato dati **CERTIFIED WITH KNOWN LIMITATIONS**, ma la issue #12 **non è ancora chiudibile** (gap della checklist finale elencati nella #12, in correzione dentro FPT-PR-09). [`docs/futpython-certification-2026-10-05.md`](docs/futpython-certification-2026-10-05.md), 17 gate su 17 veri sul deploy `dep-db1ml36q1p3s73ffhpc0` (commit `9f09e1d`), report generato il 2026-10-05 alle 10:41:40 UTC dopo il cron reale delle 10:17 UTC. La issue #12 resta OPEN: la chiusura spetta all'owner.
+Stato corrente della sorgente: certificato dati **CERTIFIED WITH KNOWN LIMITATIONS**, ma la issue #12 **non è ancora chiudibile** (gap della checklist finale elencati nella #12, in correzione dentro FPT-PR-09; il certificato ha ora 18 gate con `onboarding`). [`docs/futpython-certification-2026-10-05.md`](docs/futpython-certification-2026-10-05.md), 17 gate su 17 veri sul deploy `dep-db1ml36q1p3s73ffhpc0` (commit `9f09e1d`), report generato il 2026-10-05 alle 10:41:40 UTC dopo il cron reale delle 10:17 UTC. La issue #12 resta OPEN: la chiusura spetta all'owner.
 
 Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. I paragrafi di fase qui sotto restano lo storico delle singole PR. Lo stato attuale e i numeri reali sono nel certificato finale, generato dai dati reali e non scritto a mano.
 
@@ -503,6 +503,55 @@ Ogni richiesta FutPythonTrader ha uno scopo, in ordine di priorità: `today` (pr
 | EXHAUSTED | nessuno |
 
 Una richiesta non ammessa scrive una riga `throttled` e non chiama il provider; non conta come uso del budget. Il sync usa il catalogo già salvato su DB quando la discovery è sospesa (`meta.catalogSource = db:budget_<livello>`). Un dataset rimandato resta nello stato precedente, non diventa `error`, e il run successivo lo riprende. `retry_count` è derivato da `attempt` anche per le righe storiche; `budget_level` resta NULL dove non era misurato. Il certificato conosce l'outcome `throttled` (non è un outcome sconosciuto) e mostra le righe per `budget_level`. Il circuit breaker, al riavvio, legge solo i tentativi reali verso il provider (`upstream`, `429`, `error`): una cache hit, un dedup o un rinvio non azzerano la serie di errori.
+
+### FASE 9 — onboarding di nuove leghe e stagioni (correzione 4 della checklist #12)
+
+La migrazione `018-fpt-onboarding.sql` crea `fpt_onboarding` (una riga per dataset) e `fpt_onboarding_events` (traccia append-only di ogni passaggio e di ogni promozione). Tutto ciò che era nel catalogo alla migrazione è **baseline** `ACTIVE`, coperto dal certificato del 2026-10-05.
+
+Un dataset che il catalogo elenca per la prima volta segue, a ogni sync, i passi della #12:
+
+| passo | controllo |
+| --- | --- |
+| `DISCOVERED` | nuova voce del catalogo |
+| `CANDIDATE` | voce attiva, chiave e route valide |
+| `METADATA_FETCHED` | `internal_competition_id`, forma della stagione, riga in `fpt_dataset_state` |
+| `SEASONS_ENUMERATED` | stagioni della lega elencate, buchi di anni annotati |
+| `BACKFILLED` | snapshot raw completo e `available` (un 404 resta fermo con motivo `unavailable_404`) |
+| `SCHEMA_AUDITED` | ogni colonna registrata in `fpt_schema_fields` con una famiglia |
+| `COVERAGE_AUDITED` | coverage per campo del dataset; `Date`, `Home`, `Away` al 100% |
+| `HARD_VERIFIED` | righe raw = righe DB, nessuna data fuori stagione, squadre risolte, nessuna chiave duplicata |
+| `ACTIVE` | in produzione |
+
+**Solo i dataset `ACTIVE` entrano in `fpt_match_facts`**, cioè nel layer che leggono il sito e l'assistente. Raw e versioni vengono comunque salvati: il raw resta la fonte di verità ed è ciò che gli audit controllano.
+
+Promozione:
+- una **nuova stagione di una lega già attiva** diventa `ACTIVE` da sola quando è `HARD_VERIFIED`, ed entra nei facts nello stesso run;
+- una **nuova lega** si ferma a `HARD_VERIFIED` e aspetta l'owner:
+
+```bash
+node src/jobs/futpython-onboarding.mjs --status
+node src/jobs/futpython-onboarding.mjs --promote=<paese>/<lega> --by=<chi> --reason=<perché>
+```
+
+La promozione richiede attore e motivo e rifiuta una lega con stagioni non verificate; le stagioni 404 restano fuori. Il comando lavora solo sul DB, non chiama FutPythonTrader. L'agente non promuove leghe senza autorizzazione esplicita dell'owner.
+
+Comportamento del sync:
+- **Stagioni passate di una lega nuova:** vengono scaricate dal sync incrementale come traffico `backfill` (sospeso per primo dai livelli di budget), massimo `FUTPYTHON_ONBOARDING_PER_RUN` (default 10) per run.
+- **Squadre:** l'identità della lega nuova è additiva. Uno spelling nuovo si aggancia alla squadra del paese con lo stesso nome normalizzato; un nome mai visto diventa una squadra nuova. Gli id esistenti non vengono riscritti.
+- **Alert** sulla stessa chat Telegram:
+  - `ONBOARDING_OWNER_PROMOTION` (info) per le leghe in attesa;
+  - `ONBOARDING_BLOCKED` (warning) per i dataset fermi per un motivo reale. Il 404 non genera alert.
+- **Route di sola lettura:** `GET /api/fpt/onboarding` risponde a "quali nuove leghe sono state scoperte ma non ancora verificate?".
+
+Il certificato ha un gate in più (`onboarding`, sezione 18). Richiede:
+- ogni voce del catalogo tracciata;
+- nessun fact da dataset non `ACTIVE`;
+- nessuna nuova lega `ACTIVE` senza promozione dell'owner;
+- nessuna riga senza evento.
+
+Il gate dei facts conta solo i dataset in produzione.
+
+Limite noto: le righe del feed `jogos-do-dia` non portano lo slug di lega del catalogo (`internal_competition_id` nullo), quindi l'onboarding agisce sui dataset del catalogo, non sul feed del giorno.
 
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
 
