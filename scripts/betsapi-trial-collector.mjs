@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import pg from 'pg';
 import { createEverythingRuntime } from './lib/betsapi-everything.mjs';
 import { initReconciliation, normalizeTrialRows, persistNormalizedBatch, reconciliationSummary, rebuildOddsV3FromRaw, ensureRawRecordsAppendOnly, rawRecordsAppendOnlyStatus } from './lib/provider-trial-reconciliation.mjs';
+import { assessPersistenceHealth } from './lib/provider-trial-health.mjs';
 
 const PORT = Number(process.env.PORT || 10000);
 const BETS_TOKEN = process.env.BETSAPI_TOKEN?.trim();
@@ -491,6 +492,13 @@ async function reconciliationCertificate() {
     ? Number(covRow.with_real_history||0)/Number(compRow.total||1)
     : 0;
 
+  const persistenceHealth=assessPersistenceHealth({
+    dbReady,
+    lastPersistError,
+    lastPersistAt,
+    queueLength:persistQueue.length
+  });
+
   const gates={
     database_query_ok:databaseProbe.rows[0]?.ok===1,
     documented_sport_registry_seeded:Number(sportRow.documented||0)===28,
@@ -508,7 +516,7 @@ async function reconciliationCertificate() {
     unknown_dimensions_classified:
       Number(classRow.bad_country_status||0)===0 &&
       Number(classRow.bad_history_status||0)===0,
-    persistence_healthy:persistFailures===0 && lastPersistError===null,
+    persistence_healthy:persistenceHealth.healthy,
     raw_table_exists:rawStatus.raw_table_exists===true,
     raw_append_only_enforced:rawStatus.append_only_trigger_enabled===true,
     persistent_rate_state_present:Boolean(state.betsapi_rate_state_v1?.budget?.window_started_at),
@@ -554,8 +562,11 @@ async function reconciliationCertificate() {
         odds_enabled:RECON_ODDS_ENABLED,
         full_catalog_enabled:EVERYTHING_FULL_CATALOG_ENABLED,
         legacy_bet365_enabled:BETS_LEGACY_ENABLED,
-        persist_failures:persistFailures,
-        last_persist_error:lastPersistError
+        persist_failures_historical:persistFailures,
+        last_persist_error:lastPersistError,
+        last_persist_at:lastPersistAt,
+        queued_records:persistQueue.length,
+        persistence_health:persistenceHealth
       }
     },
     summary
