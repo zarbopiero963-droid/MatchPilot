@@ -540,3 +540,12 @@ Safety:
 - unknown fields are preserved in raw payload and field discovery rather than discarded.
 
 The Everything dataset will feed issue #40 provider comparison and issue #34 Indicator Library evaluation. Indicator formulas are deliberately not finalized here: candidate indicators must be classified KEEP / MERGE / REJECT from real coverage, freshness, redundancy and out-of-sample evidence.
+
+
+### Complete BetsAPI documented-call registry
+
+The provider trial implementation tracks the complete public BetsAPI documentation index in `docs/betsapi-endpoint-catalog.md`.
+
+Current audited total: **51 documented API calls** across Events, Bet365, BWin, Betfair, SBOBET, 1xBet and Results APIs.
+
+The registry is data-driven and exposes `/everything-catalog`. Every endpoint remains dormant while `BETSAPI_EVERYTHING_ENABLED=false`. Calls that require event/league/team/player identifiers validate those parameters and fail closed rather than inventing IDs.
