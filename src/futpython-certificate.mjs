@@ -3,6 +3,7 @@ import { gunzipSync } from 'node:zlib';
 import { withClient } from './db.mjs';
 import { getFutpythonCertificationStatus } from './futpython-certification.mjs';
 import { inspectDatasetCsv } from './providers/futpython/integrity.mjs';
+import { matchKey } from './providers/futpython/identity.mjs';
 import { sha256 } from './providers/futpython/store.mjs';
 import { LINEAGE_VERSIONS } from './providers/futpython/schema.mjs';
 import { DATA_CONTRACT } from './providers/futpython/seasons.mjs';
@@ -52,6 +53,7 @@ export function sweepTotals(results) {
     if (r.empty_payload && r.source_kind === 'dataset') totals.empty_payload++;
     if (r.empty_payload && r.source_kind !== 'dataset') totals.today_empty_snapshots++;
     if (r.parser_rows !== r.row_count) totals.parser_vs_row_count_mismatch++;
+    // Every raw row of a dataset snapshot must exist as a version of that dataset.
     if (r.source_kind === 'dataset' && r.row_count !== r.db_rows) totals.dataset_row_count_vs_db_mismatch++;
     totals.duplicate_match_keys_in_snapshot += r.duplicate_match_keys;
     totals.missing_home += r.missing_home;
@@ -82,21 +84,30 @@ export function rawSweepGate(totals, failures = []) {
 }
 
 // Re-reads every stored gzip, one at a time, and compares hash, parser rows, stored row_count and DB rows.
+// "DB rows" are the raw rows found as match versions of the dataset (match key + payload hash), whichever
+// snapshot first wrote them: a re-download only writes versions for the rows that changed.
 export async function fullRawSweep(client) {
-  const dbRows = new Map((await all(client,
-    `SELECT snapshot_id, count(*)::int AS n FROM fpt_match_versions GROUP BY snapshot_id`
-  )).map(row => [Number(row.snapshot_id), row.n]));
   const snapshots = await all(client,
     `SELECT snapshot_id, dataset_key, source_kind, sha256, row_count, ingest_complete
-     FROM fpt_raw_snapshots ORDER BY snapshot_id`);
+     FROM fpt_raw_snapshots ORDER BY dataset_key, snapshot_id`);
   const results = [];
   const failures = [];
+  let stored = new Set();
+  let storedDataset = null;
   for (const snap of snapshots) {
     const id = Number(snap.snapshot_id);
     try {
+      if (storedDataset !== snap.dataset_key) {
+        stored = new Set((await all(client,
+          `SELECT match_key || '|' || payload_sha256 AS k FROM fpt_match_versions WHERE dataset_key = $1`,
+          [snap.dataset_key])).map(row => row.k));
+        storedDataset = snap.dataset_key;
+      }
       const payload = await one(client, 'SELECT payload_gzip FROM fpt_raw_snapshots WHERE snapshot_id=$1', [id]);
       const text = gunzipSync(payload.payload_gzip).toString('utf8');
       const inspected = inspectDatasetCsv(text, snap.dataset_key);
+      const rowsStored = inspected.rows
+        .filter(row => stored.has(`${matchKey(row, snap.dataset_key)}|${sha256(JSON.stringify(row))}`)).length;
       results.push({
         snapshot_id: id,
         dataset_key: snap.dataset_key,
@@ -105,7 +116,7 @@ export async function fullRawSweep(client) {
         hash_ok: sha256(text) === snap.sha256,
         row_count: snap.row_count,
         parser_rows: inspected.parser_rows,
-        db_rows: dbRows.get(id) || 0,
+        db_rows: rowsStored,
         headers: inspected.headers.length,
         malformed_csv: inspected.malformed_csv,
         header_row_mismatch: inspected.header_row_mismatch,
@@ -196,6 +207,17 @@ export function onboardingGate(o) {
     && o.new_league_active_without_owner === 0
     && o.non_baseline_active_unverified === 0
     && o.rows_without_event === 0;
+}
+
+// #12 reconciliation compatibility (#31): checkpoints kept fresh by the watchdog cycle, no recovery given up,
+// no recoverable gap left open for more than two days.
+export const RECON_SCOPES = ['catalog', 'incremental', 'backfill', 'today', 'current_season'];
+
+export function reconciliationGate(r) {
+  return r.checkpoint_scopes === RECON_SCOPES.length
+    && r.checkpoints_age_hours != null && Number(r.checkpoints_age_hours) <= 2
+    && r.failed === 0
+    && r.open_older_than_48h === 0;
 }
 
 export function entityGate(e) {
@@ -406,6 +428,27 @@ export async function onboardingSection(client) {
     steps: 'DISCOVERED > CANDIDATE > METADATA_FETCHED > SEASONS_ENUMERATED > BACKFILLED > SCHEMA_AUDITED > COVERAGE_AUDITED > HARD_VERIFIED > ACTIVE',
     tests: 'test/fpt-onboarding.test.mjs (unit), test/fpt-onboarding-sync.test.mjs (real sync: simulated new league and new season)'};
   section.gate = onboardingGate(section);
+  return section;
+}
+
+export async function reconciliationSection(client) {
+  const row = await one(client, `SELECT
+      (SELECT count(*)::int FROM data_checkpoints WHERE source='futpython' AND scope = ANY($1::text[])) AS checkpoint_scopes,
+      (SELECT round(extract(epoch FROM now() - min(updated_at)) / 3600, 2) FROM data_checkpoints
+         WHERE source='futpython' AND scope = ANY($1::text[])) AS checkpoints_age_hours,
+      (SELECT count(*)::int FROM data_reconciliation_ledger WHERE source='futpython' AND status='FAILED') AS failed,
+      (SELECT count(*)::int FROM data_reconciliation_ledger WHERE source='futpython'
+         AND status IN ('DETECTED','QUEUED','RECOVERING','PARTIAL') AND detected_at < now() - interval '48 hours') AS open_older_than_48h,
+      (SELECT count(*)::int FROM data_reconciliation_ledger WHERE source='futpython') AS ledger_rows`, [RECON_SCOPES]);
+  const byStatus = await all(client, `SELECT gap_kind, priority, status, count(*)::int AS n
+    FROM data_reconciliation_ledger WHERE source='futpython' GROUP BY 1, 2, 3 ORDER BY 2, 1, 3`);
+  const checkpoints = await all(client, `SELECT scope, status, retry_count,
+      to_char(last_success_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS last_success_at,
+      to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS updated_at, checkpoint
+    FROM data_checkpoints WHERE source='futpython' ORDER BY scope`);
+  const section = {...row, by_kind_status: byStatus, checkpoints,
+    tests: 'test/fpt-reconciliation.test.mjs (unit), test/fpt-reconciliation-sync.test.mjs (real sync: simulated loss, recovery, no duplicates)'};
+  section.gate = reconciliationGate(section);
   return section;
 }
 
@@ -760,6 +803,7 @@ export async function buildCertificateReport({env = process.env} = {}) {
       assistant_query_layer: await assistantSection(client, {sample: perfSample}),
       query_performance: {...perf, sample: perfSample},
       onboarding: await onboardingSection(client),
+      reconciliation: await reconciliationSection(client),
       phase1: {gate: phase1Gate(status), latest_backfill: status.latest_backfill, checks: status.phase1_checks},
       phase2: {gate: status.phase2?.gate === true}
     };
@@ -781,7 +825,8 @@ export async function buildCertificateReport({env = process.env} = {}) {
       filter_registry: report.filter_registry.gate,
       assistant_query_layer: report.assistant_query_layer.gate,
       query_performance: report.query_performance.gate,
-      onboarding: report.onboarding.gate
+      onboarding: report.onboarding.gate,
+      reconciliation: report.reconciliation.gate
     };
     const limitations = knownLimitations(report);
     return {...report, gates, known_limitations: limitations, ...verdictFor(gates, limitations)};

@@ -114,9 +114,13 @@ export const PHASE3_SQL = {
     FROM fpt_raw_snapshots r
     WHERE r.source_kind='dataset' AND r.row_count > 0
       AND NOT EXISTS (SELECT 1 FROM fpt_match_versions v WHERE v.snapshot_id=r.snapshot_id)`,
+  // Only a dataset's first snapshot writes a version for every row; a later one writes the changed rows only
+  // (the certificate's raw sweep checks every snapshot row by row).
   rowGaps: `SELECT count(*)::int AS n
     FROM fpt_raw_snapshots r
     WHERE r.source_kind='dataset'
+      AND NOT EXISTS (SELECT 1 FROM fpt_raw_snapshots e WHERE e.dataset_key = r.dataset_key AND e.source_kind='dataset'
+                        AND e.snapshot_id < r.snapshot_id)
       AND r.row_count <> (SELECT count(*)::int FROM fpt_match_versions v WHERE v.snapshot_id=r.snapshot_id)`,
   missingIdentity: `SELECT
       count(*) FILTER (WHERE home IS NULL OR btrim(home)='')::int AS home,
@@ -223,8 +227,7 @@ export async function backfillProviderMatchIds(client) {
 
 export async function auditStoredSnapshot(client, datasetKey) {
   const snap = await client.query(
-    `SELECT r.snapshot_id, r.dataset_key, r.sha256, r.row_count, r.payload_gzip,
-            (SELECT count(*)::int FROM fpt_match_versions v WHERE v.snapshot_id=r.snapshot_id) AS db_rows
+    `SELECT r.snapshot_id, r.dataset_key, r.sha256, r.row_count, r.payload_gzip
      FROM fpt_raw_snapshots r
      WHERE r.dataset_key=$1 AND r.source_kind='dataset'
      ORDER BY r.snapshot_id DESC LIMIT 1`,
@@ -234,6 +237,10 @@ export async function auditStoredSnapshot(client, datasetKey) {
   if (!row) return {dataset_key: datasetKey, missing_snapshot: true};
   const text = gunzipSync(row.payload_gzip).toString('utf8');
   const inspected = inspectDatasetCsv(text, datasetKey);
+  // Rows of the snapshot found as versions of the dataset, whichever snapshot first wrote them.
+  const stored = new Set((await client.query(
+    `SELECT match_key || '|' || payload_sha256 AS k FROM fpt_match_versions WHERE dataset_key=$1`, [datasetKey])).rows.map(r => r.k));
+  row.db_rows = inspected.rows.filter(r => stored.has(`${matchKey(r, datasetKey)}|${sha256(JSON.stringify(r))}`)).length;
   return {
     dataset_key: datasetKey,
     snapshot_id: Number(row.snapshot_id),

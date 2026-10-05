@@ -8,9 +8,10 @@ import { persistOutcome } from '../providers/futpython/classification.mjs';
 import { shouldYieldToCritical } from '../providers/futpython/budget.mjs';
 import { refreshNormalizedLayer } from '../providers/futpython/query.mjs';
 import { advanceOnboarding, onboardingTargets, registerDiscovered } from '../providers/futpython/onboarding.mjs';
+import { reconcileFpt, recoveryTargets } from '../providers/futpython/reconciliation.mjs';
+import { releaseSyncLock, trySyncLock } from '../providers/futpython/lock.mjs';
 import { emitAlert, resolveAlert } from '../alerts.mjs';
 
-const LOCK_ID = 76420311;
 const DRILL_KEY_RE = /^[a-z0-9-]+\/[a-z0-9-]+\/20\d{2}(?:-20\d{2})?$/;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const activeRun = {
@@ -258,14 +259,18 @@ async function syncEntry(client, entry, stats) {
   const previousRows = previous.last_row_count ?? null;
   const previouslySucceeded = previous.last_snapshot_id != null;
   // Past seasons of a league being onboarded travel as backfill traffic even inside an incremental run.
-  const priority = stats.meta?.mode === 'backfill' || entry.onboarding ? 'backfill' : 'critical';
+  // A recovery fetch of a past season is backfill traffic too; a current-season refresh stays current_season.
+  const priority = stats.meta?.mode === 'backfill' || entry.onboarding
+    || (entry.recovery === 'fetch_dataset' && !isCurrentSeason(entry.season)) ? 'backfill' : 'critical';
   try {
     stats.datasetsAttempted++;
     const data = await fetchDataset(entry, {
       runId: stats.runId,
       priority,
       purpose: priority === 'backfill' ? 'backfill' : 'current_season',
-      cacheLookup: async () => backfillResumeDecision(await loadDatasetState(client, entry.datasetKey)).skip
+      // A reconciliation target is fetched even when the mirror already holds a snapshot of it.
+      cacheLookup: entry.force ? async () => false
+        : async () => backfillResumeDecision(await loadDatasetState(client, entry.datasetKey)).skip
     });
     if (data.cacheHit) {
       stats.datasetsAttempted--;
@@ -435,8 +440,7 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
   installInterruptHandlers();
 
   return withClient(async client => {
-    const lock = await client.query('SELECT pg_try_advisory_lock($1) AS ok', [LOCK_ID]);
-    if (!lock.rows[0]?.ok) return {status: 'skipped', reason: 'lock_busy'};
+    if (!await trySyncLock(client)) return {status: 'skipped', reason: 'lock_busy'};
     const critical = mode !== 'backfill';
     let criticalHeld = false;
     if (critical) {
@@ -503,6 +507,14 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
         const extra = await onboardingTargets(client, {limit: Number(process.env.FUTPYTHON_ONBOARDING_PER_RUN || 10)});
         for (const entry of extra) if (!known.has(entry.datasetKey)) targets.push(entry);
         stats.meta.onboardingTargets = extra.map(entry => entry.datasetKey);
+        // #31 recovery: queued gaps (stale current seasons, missing or failed datasets) ride on this run.
+        const recovery = await recoveryTargets(client, {runId});
+        for (const entry of recovery) {
+          const at = targets.findIndex(t => t.datasetKey === entry.datasetKey);
+          if (at >= 0) targets[at] = {...targets[at], ...entry};
+          else targets.push(entry);
+        }
+        stats.meta.recoveryTargets = recovery.map(entry => `${entry.recovery}:${entry.datasetKey}`);
       }
       for (const entry of targets) {
         if (activeRun.stop) break;
@@ -560,6 +572,12 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
       } catch (error) {
         stats.meta.onboardingError = redact(error?.message || error);
       }
+      try {
+        stats.meta.reconciliation = await reconcileFpt(client, {phase: 'post_run', runId,
+          deferred: stats.deferred.map(item => item.datasetKey)});
+      } catch (error) {
+        stats.meta.reconciliationError = redact(error?.message || error);
+      }
 
       const undefinedCount = Object.values(stats.meta.undefinedStates || {}).reduce((sum, value) => sum + value, 0);
       const status = stats.failures.length || undefinedCount
@@ -591,6 +609,10 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
         available: stats.availableCount, unavailable404: stats.meta.finalAvailability?.unavailable_404 || 0,
         errorReal: stats.errorRealCount, newFields: stats.newFields.size,
         newDatasets: stats.newDatasets.size, errorCount: stats.failures.length, deferred: stats.deferred.length,
+        reconciliation: stats.meta.reconciliation
+          ? {detected: stats.meta.reconciliation.detected, recovered: stats.meta.reconciliation.recovered,
+            failed: stats.meta.reconciliation.failed, refreshed: (stats.meta.recoveryTargets || []).length}
+          : null,
         onboarding: stats.meta.onboarding
           ? {pending: stats.meta.onboarding.pending, activated: stats.meta.onboarding.activated.length,
             awaitingOwner: stats.meta.onboarding.awaitingOwner.length, blocked: stats.meta.onboarding.blocked.length}
@@ -609,7 +631,7 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
       if (criticalHeld) {
         try { await releaseCritical(client); } catch { /* already closing */ }
       }
-      await client.query('SELECT pg_advisory_unlock($1)', [LOCK_ID]).catch(() => {});
+      await releaseSyncLock(client).catch(() => {});
     }
   });
 }
