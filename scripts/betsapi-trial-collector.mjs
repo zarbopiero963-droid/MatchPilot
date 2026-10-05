@@ -4,7 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import pg from 'pg';
 import { createEverythingRuntime } from './lib/betsapi-everything.mjs';
-import { initReconciliation, normalizeTrialRows, persistNormalizedBatch, reconciliationSummary } from './lib/provider-trial-reconciliation.mjs';
+import { initReconciliation, normalizeTrialRows, persistNormalizedBatch, reconciliationSummary, rebuildOddsV3FromRaw } from './lib/provider-trial-reconciliation.mjs';
 
 const PORT = Number(process.env.PORT || 10000);
 const BETS_TOKEN = process.env.BETSAPI_TOKEN?.trim();
@@ -115,6 +115,7 @@ async function initPersistence() {
       ON provider_trial.records(source_type, observed_at DESC);
   `);
   await initReconciliation(dbPool);
+  await rebuildOddsV3FromRaw(dbPool);
   dbReady = true;
   lastPersistError = null;
 }
@@ -385,6 +386,79 @@ async function runOddsTimelineScan() {
   }
 }
 
+
+async function reconciliationCertificate() {
+  if (!dbReady || !dbPool) return {result:'NOT_CERTIFIED',gates:{database_ready:false}};
+  const [
+    summary,
+    sports,
+    competitions,
+    coverage,
+    odds,
+    oddsSummary,
+    states
+  ]=await Promise.all([
+    reconciliationSummary(dbPool),
+    dbPool.query(`SELECT count(*)::int AS total,count(*) FILTER(WHERE documented)::int AS documented FROM provider_trial.sports WHERE provider='betsapi'`),
+    dbPool.query(`SELECT count(*)::int AS total,count(DISTINCT NULLIF(country_code,''))::int AS countries,count(*) FILTER(WHERE country_code='')::int AS unknown_country FROM provider_trial.competitions WHERE provider='betsapi'`),
+    dbPool.query(`SELECT count(*)::int AS rows,count(*) FILTER(WHERE earliest_event_time IS NOT NULL)::int AS with_real_history,min(earliest_event_time) AS earliest,max(latest_event_time) AS latest,min(provider_history_floor) AS documented_floor FROM provider_trial.coverage WHERE provider='betsapi'`),
+    dbPool.query(`SELECT count(*)::bigint AS observations,count(DISTINCT event_id)::bigint AS events,count(DISTINCT market_key)::bigint AS markets,count(*) FILTER(WHERE sport_id IS NULL)::bigint AS missing_sport,count(*) FILTER(WHERE league_id IS NULL)::bigint AS missing_league,count(*) FILTER(WHERE bookmaker IS NULL)::bigint AS missing_bookmaker,count(*) FILTER(WHERE provider_time IS NULL)::bigint AS missing_provider_time FROM provider_trial.odds_observations WHERE provider='betsapi'`),
+    dbPool.query(`SELECT count(*)::bigint AS rows,count(*) FILTER(WHERE opening_price IS NOT NULL)::bigint AS with_opening,count(*) FILTER(WHERE closing_price IS NOT NULL)::bigint AS with_closing,count(*) FILTER(WHERE change_open_latest IS NOT NULL)::bigint AS with_change FROM provider_trial.odds_summary WHERE provider='betsapi'`),
+    dbPool.query(`SELECT key,value,updated_at FROM provider_trial.reconciliation_state WHERE key IN ('odds_parser_version','odds_v3_raw_rebuild')`)
+  ]);
+  const sportRow=sports.rows[0]||{};
+  const compRow=competitions.rows[0]||{};
+  const covRow=coverage.rows[0]||{};
+  const oddsRow=odds.rows[0]||{};
+  const os=oddsSummary.rows[0]||{};
+  const state=Object.fromEntries(states.rows.map(r=>[r.key,{...r.value,updated_at:r.updated_at}]));
+  const gates={
+    database_ready:true,
+    documented_sports:Number(sportRow.documented||0)===28,
+    competitions_present:Number(compRow.total||0)>0,
+    countries_present:Number(compRow.countries||0)>0,
+    real_history_present:Number(covRow.with_real_history||0)>0,
+    documented_history_floor:String(covRow.documented_floor||'').startsWith('2016-09-01'),
+    odds_parser_v3:state.odds_parser_version?.version==='3',
+    raw_odds_rebuild_complete:state.odds_v3_raw_rebuild?.complete===true && state.odds_v3_raw_rebuild?.version===3,
+    odds_present:Number(oddsRow.observations||0)>0,
+    real_market_keys:Number(oddsRow.markets||0)>1,
+    odds_opening_present:Number(os.with_opening||0)>0,
+    odds_change_present:Number(os.with_change||0)>0,
+    persistence_healthy:persistFailures===0 && lastPersistError===null,
+    raw_preserved:true,
+    legacy_bet365_disabled:!BETS_LEGACY_ENABLED,
+    full_catalog_probe_disabled:!EVERYTHING_FULL_CATALOG_ENABLED,
+    production_promotion_disabled:true
+  };
+  const required=Object.values(gates).every(Boolean);
+  return {
+    result:required?'CERTIFIED_FOR_PASSIVE_COLLECTION':'NOT_CERTIFIED',
+    generated_at:new Date().toISOString(),
+    commit:process.env.RENDER_GIT_COMMIT||null,
+    gates,
+    metrics:{
+      sports:sportRow,
+      competitions:compRow,
+      coverage:covRow,
+      odds:oddsRow,
+      odds_summary:os,
+      state,
+      collector:{
+        everything_enabled:EVERYTHING_ENABLED,
+        census_enabled:RECON_CENSUS_ENABLED,
+        history_enabled:RECON_HISTORY_ENABLED,
+        odds_enabled:RECON_ODDS_ENABLED,
+        full_catalog_enabled:EVERYTHING_FULL_CATALOG_ENABLED,
+        legacy_bet365_enabled:BETS_LEGACY_ENABLED,
+        persist_failures:persistFailures,
+        last_persist_error:lastPersistError
+      }
+    },
+    summary
+  };
+}
+
 async function loop() {
   try {
     const now = Date.now();
@@ -627,6 +701,15 @@ if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timel
     } catch(error) {
       res.statusCode=500;
       return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/certificate') {
+    res.setHeader('content-type','application/json');
+    try {
+      return res.end(JSON.stringify(await reconciliationCertificate()));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({result:'NOT_CERTIFIED',error:sanitizeError(error)}));
     }
   }
   if (req.url === '/metrics') {
