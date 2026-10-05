@@ -353,3 +353,20 @@ test('full catalog diagnostics expose per-endpoint skip and HTTP outcome', async
   assert.equal(r.endpoint_results.events_inplay.status,'OK');
   assert.equal(r.endpoint_results.events_inplay.http_status,200);
 });
+
+
+test('team squad result rows harvest player ids from official response shape', async () => {
+  const rt=createEverythingRuntime({
+    env:{BETSAPI_EVERYTHING_TOKEN:'x',BETSAPI_EVERYTHING_ENABLED:'true'},
+    fetchImpl:async url=>{
+      const u=new URL(String(url));
+      let body={success:1,results:[]};
+      if (u.pathname==='/v3/team') body={success:1,results:[{id:708,name:'Team'}]};
+      if (u.pathname==='/v1/team/squad') body={success:1,results:[{id:6019,name:'Vincent Kompany',birthdate:'1986-04-09',position:'Defender',shirtnumber:'4'}]};
+      return {status:200,ok:true,headers:{get:()=>null},text:async()=>JSON.stringify(body)};
+    }
+  });
+  const r=await rt.fullCatalogCycle();
+  assert.ok(r.context.player_ids >= 1);
+  assert.equal(r.endpoint_results.player.status,'OK');
+});
