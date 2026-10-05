@@ -235,3 +235,58 @@ test('generic documented caller persists metadata but never token', async () => 
   assert.equal(JSON.stringify(writes).includes('secret-token'),false);
   assert.equal(writes[0].payload.endpoint_key,'events_inplay');
 });
+
+
+test('full catalog cycle stays dormant unless Everything is enabled', async () => {
+  let calls=0;
+  const rt=createEverythingRuntime({
+    env:{BETSAPI_TOKEN:'x',BETSAPI_EVERYTHING_ENABLED:'false'},
+    fetchImpl:async()=>{calls++; throw new Error('must not call');}
+  });
+  const r=await rt.fullCatalogCycle();
+  assert.equal(r.disabled,true);
+  assert.equal(calls,0);
+});
+
+test('full catalog cycle harvests real ids and probes dependent endpoints', async () => {
+  const called=[];
+  const rt=createEverythingRuntime({
+    env:{
+      BETSAPI_EVERYTHING_TOKEN:'x',
+      BETSAPI_EVERYTHING_ENABLED:'true',
+      BETSAPI_EVERYTHING_FAMILIES:'events_soccer,bet365,bwin,betfair_exchange,betfair_sportsbook,sbobet,onexbet',
+      BETSAPI_EVERYTHING_REQS_PER_HOUR:'1800',
+      BETSAPI_EVERYTHING_RESERVE:'120'
+    },
+    fetchImpl:async url=>{
+      const u=new URL(String(url));
+      called.push(u.pathname);
+      let body={success:1,results:[]};
+      if (u.pathname==='/v3/events/inplay') {
+        body={success:1,results:[{id:123,bet365_id:456,time:1791158400,home:{id:10,name:'Home'},away:{id:11,name:'Away'},league:{id:20,name:'League'}}]};
+      } else if (u.pathname==='/v3/league') {
+        body={success:1,results:[{id:20,name:'League'}]};
+      } else if (u.pathname==='/v3/team') {
+        body={success:1,results:[{id:10,name:'Home'}]};
+      } else if (u.pathname==='/v1/event/lineup') {
+        body={success:1,results:[{player_id:99}]};
+      }
+      return {status:200,ok:true,headers:{get:()=>null},text:async()=>JSON.stringify(body)};
+    }
+  });
+  const r=await rt.fullCatalogCycle();
+  assert.ok(r.attempted > 20);
+  assert.ok(r.ok > 20);
+  assert.ok(called.includes('/v1/event/view'));
+  assert.ok(called.includes('/v1/league/info'));
+  assert.ok(called.includes('/v1/team/info'));
+  assert.ok(called.includes('/v1/player'));
+  assert.ok(called.includes('/v1/events/search'));
+  assert.ok(called.includes('/v4/bet365/prematch'));
+  assert.ok(r.context.event_ids >= 1);
+  assert.ok(r.context.fi_ids >= 1);
+  assert.ok(r.context.league_ids >= 1);
+  assert.ok(r.context.team_ids >= 1);
+  assert.ok(r.context.player_ids >= 1);
+  assert.equal(r.context.has_search_tuple,true);
+});
