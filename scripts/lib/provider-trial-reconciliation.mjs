@@ -97,24 +97,24 @@ SELECT
   max(league_id) AS league_id,
   max(league_name) AS league_name,
   max(kickoff_utc) AS kickoff_utc,
-  (array_agg(price ORDER BY observed_at ASC))[1] AS opening_price,
-  (array_agg(price ORDER BY observed_at DESC))[1] AS latest_price,
-  (array_agg(price ORDER BY observed_at DESC)
-     FILTER (WHERE kickoff_utc IS NOT NULL AND observed_at <= kickoff_utc))[1] AS closing_price,
+  (array_agg(price ORDER BY COALESCE(provider_time,observed_at) ASC, observed_at ASC))[1] AS opening_price,
+  (array_agg(price ORDER BY COALESCE(provider_time,observed_at) DESC, observed_at DESC))[1] AS latest_price,
+  (array_agg(price ORDER BY COALESCE(provider_time,observed_at) DESC, observed_at DESC)
+     FILTER (WHERE kickoff_utc IS NOT NULL AND COALESCE(provider_time,observed_at) <= kickoff_utc))[1] AS closing_price,
   min(price) AS min_price,
   max(price) AS max_price,
   min(observed_at) AS first_observed_at,
   max(observed_at) AS last_observed_at,
   count(*)::bigint AS observations,
-  (array_agg(price ORDER BY observed_at DESC))[1] -
-    (array_agg(price ORDER BY observed_at ASC))[1] AS change_open_latest,
+  (array_agg(price ORDER BY COALESCE(provider_time,observed_at) DESC, observed_at DESC))[1] -
+    (array_agg(price ORDER BY COALESCE(provider_time,observed_at) ASC, observed_at ASC))[1] AS change_open_latest,
   CASE
-    WHEN (array_agg(price ORDER BY observed_at DESC)
-       FILTER (WHERE kickoff_utc IS NOT NULL AND observed_at <= kickoff_utc))[1] IS NOT NULL
+    WHEN (array_agg(price ORDER BY COALESCE(provider_time,observed_at) DESC, observed_at DESC)
+       FILTER (WHERE kickoff_utc IS NOT NULL AND COALESCE(provider_time,observed_at) <= kickoff_utc))[1] IS NOT NULL
     THEN
-      (array_agg(price ORDER BY observed_at DESC)
-         FILTER (WHERE kickoff_utc IS NOT NULL AND observed_at <= kickoff_utc))[1] -
-      (array_agg(price ORDER BY observed_at ASC))[1]
+      (array_agg(price ORDER BY COALESCE(provider_time,observed_at) DESC, observed_at DESC)
+         FILTER (WHERE kickoff_utc IS NOT NULL AND COALESCE(provider_time,observed_at) <= kickoff_utc))[1] -
+      (array_agg(price ORDER BY COALESCE(provider_time,observed_at) ASC, observed_at ASC))[1]
   END AS change_open_close
 FROM provider_trial.odds_observations
 GROUP BY provider,event_id,bookmaker,market_key,selection_key,line_value;
@@ -388,6 +388,82 @@ export async function initReconciliation(pool) {
   }
 }
 
+export async function persistOddsOnly(pool, odds) {
+  if (!odds.length) return 0;
+  let inserted=0;
+  for (let i=0;i<odds.length;i+=500) {
+    const chunk=odds.slice(i,i+500);
+    const result=await pool.query(`
+      INSERT INTO provider_trial.odds_observations(
+        observation_hash,observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+      )
+      SELECT observation_hash,observed_at::timestamptz,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc::timestamptz,phase,bookmaker,market_key,selection_key,line_value,price,provider_time::timestamptz,raw_path
+      FROM jsonb_to_recordset($1::jsonb) AS x(observation_hash text,observed_at text,provider text,source_type text,sport_id text,country_code text,league_id text,league_name text,event_id text,kickoff_utc text,phase text,bookmaker text,market_key text,selection_key text,line_value text,price numeric,provider_time text,raw_path text)
+      ON CONFLICT(observation_hash) DO NOTHING
+    `,[JSON.stringify(chunk)]);
+    inserted += result.rowCount || 0;
+  }
+  await pool.query(`
+    UPDATE provider_trial.odds_observations o
+    SET sport_id=COALESCE(o.sport_id,e.sport_id),
+        country_code=COALESCE(NULLIF(o.country_code,''),e.country_code),
+        league_id=COALESCE(o.league_id,e.league_id),
+        league_name=COALESCE(o.league_name,e.league_name),
+        kickoff_utc=COALESCE(o.kickoff_utc,e.kickoff_utc),
+        phase=CASE
+          WHEN COALESCE(o.kickoff_utc,e.kickoff_utc) IS NOT NULL
+           AND COALESCE(o.provider_time,o.observed_at) < COALESCE(o.kickoff_utc,e.kickoff_utc) THEN 'prematch'
+          WHEN COALESCE(o.kickoff_utc,e.kickoff_utc) IS NOT NULL THEN 'live_or_post'
+          ELSE o.phase
+        END
+    FROM provider_trial.events e
+    WHERE e.provider=o.provider AND e.event_id=o.event_id
+  `);
+  return inserted;
+}
+
+export async function rebuildOddsV3FromRaw(pool, {batchSize=200}={}) {
+  const stateKey='odds_v3_raw_rebuild';
+  const state=await pool.query(`SELECT value FROM provider_trial.reconciliation_state WHERE key=$1`,[stateKey]);
+  if (state.rows[0]?.value?.complete === true && state.rows[0]?.value?.version === 3) return state.rows[0].value;
+
+  await pool.query('TRUNCATE TABLE provider_trial.odds_observations RESTART IDENTITY');
+  let cursor=0, rawRows=0, oddsParsed=0, oddsInserted=0, batches=0;
+  while (true) {
+    const {rows}=await pool.query(`
+      SELECT record_id,observed_at,source_type,payload
+      FROM provider_trial.records
+      WHERE record_id > $1
+        AND source_type IN ('betsapi_documented_event_odds','totalcorner_match_odds')
+      ORDER BY record_id
+      LIMIT $2
+    `,[cursor,batchSize]);
+    if (!rows.length) break;
+    const normalized=normalizeTrialRows(rows.map(r=>({
+      ts:new Date(r.observed_at).toISOString(),
+      type:r.source_type,
+      payload:r.payload
+    })));
+    rawRows += rows.length;
+    oddsParsed += normalized.odds.length;
+    oddsInserted += await persistOddsOnly(pool,normalized.odds);
+    cursor=Number(rows.at(-1).record_id);
+    batches++;
+    await pool.query(`
+      INSERT INTO provider_trial.reconciliation_state(key,value,updated_at)
+      VALUES($1,$2::jsonb,now())
+      ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value,updated_at=now()
+    `,[stateKey,JSON.stringify({version:3,complete:false,cursor,raw_rows:rawRows,odds_parsed:oddsParsed,odds_inserted:oddsInserted,batches})]);
+  }
+  const result={version:3,complete:true,cursor,raw_rows:rawRows,odds_parsed:oddsParsed,odds_inserted:oddsInserted,batches,completed_at:new Date().toISOString()};
+  await pool.query(`
+    INSERT INTO provider_trial.reconciliation_state(key,value,updated_at)
+    VALUES($1,$2::jsonb,now())
+    ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value,updated_at=now()
+  `,[stateKey,JSON.stringify(result)]);
+  return result;
+}
+
 export async function persistNormalizedBatch(pool, normalized) {
   if (normalized.sports.length) {
     await pool.query(`
@@ -444,33 +520,7 @@ export async function persistNormalizedBatch(pool, normalized) {
     `,[JSON.stringify(normalized.coverage)]);
   }
   if (normalized.odds.length) {
-    for (let i=0;i<normalized.odds.length;i+=500) {
-      const chunk=normalized.odds.slice(i,i+500);
-      await pool.query(`
-        INSERT INTO provider_trial.odds_observations(
-          observation_hash,observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
-        )
-        SELECT observation_hash,observed_at::timestamptz,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc::timestamptz,phase,bookmaker,market_key,selection_key,line_value,price,provider_time::timestamptz,raw_path
-        FROM jsonb_to_recordset($1::jsonb) AS x(observation_hash text,observed_at text,provider text,source_type text,sport_id text,country_code text,league_id text,league_name text,event_id text,kickoff_utc text,phase text,bookmaker text,market_key text,selection_key text,line_value text,price numeric,provider_time text,raw_path text)
-        ON CONFLICT(observation_hash) DO NOTHING
-      `,[JSON.stringify(chunk)]);
-    }
-    await pool.query(`
-      UPDATE provider_trial.odds_observations o
-      SET sport_id=COALESCE(o.sport_id,e.sport_id),
-          country_code=COALESCE(NULLIF(o.country_code,''),e.country_code),
-          league_id=COALESCE(o.league_id,e.league_id),
-          league_name=COALESCE(o.league_name,e.league_name),
-          kickoff_utc=COALESCE(o.kickoff_utc,e.kickoff_utc),
-          phase=CASE
-            WHEN COALESCE(o.kickoff_utc,e.kickoff_utc) IS NOT NULL
-             AND o.observed_at < COALESCE(o.kickoff_utc,e.kickoff_utc) THEN 'prematch'
-            WHEN COALESCE(o.kickoff_utc,e.kickoff_utc) IS NOT NULL THEN 'live_or_post'
-            ELSE o.phase
-          END
-      FROM provider_trial.events e
-      WHERE e.provider=o.provider AND e.event_id=o.event_id
-    `);
+    await persistOddsOnly(pool,normalized.odds);
   }
 }
 
@@ -479,7 +529,7 @@ export async function reconciliationSummary(pool) {
     pool.query(`SELECT provider,count(*)::int AS sports,count(*) FILTER(WHERE documented)::int AS documented FROM provider_trial.sports GROUP BY provider ORDER BY provider`),
     pool.query(`SELECT provider,count(*)::int AS competitions,count(DISTINCT NULLIF(country_code,''))::int AS countries FROM provider_trial.competitions GROUP BY provider ORDER BY provider`),
     pool.query(`SELECT provider,min(earliest_event_time) AS earliest_event_time,max(latest_event_time) AS latest_event_time,min(provider_history_floor) AS provider_history_floor,sum(event_count)::bigint AS event_facts FROM provider_trial.coverage GROUP BY provider ORDER BY provider`),
-    pool.query(`SELECT provider,count(*)::bigint AS observations,count(DISTINCT event_id)::bigint AS events,count(DISTINCT market_key)::bigint AS markets,min(observed_at) AS first_observed_at,max(observed_at) AS last_observed_at FROM provider_trial.odds_observations GROUP BY provider ORDER BY provider`)
+    pool.query(`SELECT provider,count(*)::bigint AS observations,count(DISTINCT event_id)::bigint AS events,count(DISTINCT market_key)::bigint AS markets,min(COALESCE(provider_time,observed_at)) AS first_price_time,max(COALESCE(provider_time,observed_at)) AS last_price_time,count(*) FILTER(WHERE phase='prematch')::bigint AS prematch_observations,count(*) FILTER(WHERE phase='live_or_post')::bigint AS live_or_post_observations FROM provider_trial.odds_observations GROUP BY provider ORDER BY provider`)
   ]);
   return {sports:sports.rows,competitions:competitions.rows,coverage:coverage.rows,odds:odds.rows};
 }
