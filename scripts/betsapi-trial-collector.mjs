@@ -222,10 +222,24 @@ function write(type, payload) {
 }
 
 
-const everythingRuntime = createEverythingRuntime({
-  env:process.env,
-  write:(type,payload)=>write(type,payload)
-});
+let everythingRuntime=null;
+
+async function loadEverythingRateState() {
+  if (!dbReady || !dbPool) return null;
+  const {rows}=await dbPool.query(
+    `SELECT value FROM provider_trial.reconciliation_state WHERE key='betsapi_rate_state_v1'`
+  );
+  return rows[0]?.value || null;
+}
+
+async function persistEverythingRateState(state) {
+  if (!dbReady || !dbPool) throw new Error('rate-state database not ready');
+  await dbPool.query(`
+    INSERT INTO provider_trial.reconciliation_state(key,value,updated_at)
+    VALUES('betsapi_rate_state_v1',$1::jsonb,now())
+    ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value,updated_at=now()
+  `,[JSON.stringify(state)]);
+}
 
 async function fetchJson(url, headers = {}) {
   const started = Date.now();
@@ -546,6 +560,18 @@ await initPersistence().catch(error => {
   persistFailures++;
   lastPersistError = sanitizeError(error);
 });
+
+const persistedEverythingRateState=await loadEverythingRateState().catch(error=>{
+  lastPersistError=sanitizeError(error);
+  return null;
+});
+everythingRuntime=createEverythingRuntime({
+  env:process.env,
+  write:(type,payload)=>write(type,payload),
+  initialRateState:persistedEverythingRateState,
+  persistRateState:persistEverythingRateState
+});
+
 loop().catch(() => {});
 
 async function shutdown(signal) {
