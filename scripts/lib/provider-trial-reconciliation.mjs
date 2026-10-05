@@ -178,6 +178,56 @@ const PRICE_KEYS=/^(price|odds|decimalOdds|decimal_odds|home_od|draw_od|away_od|
 const ODDS_CONTEXT=/(odds|market|runner|option|exchange|price)/i;
 const LINE_KEYS=/^(handicap|line|spread|total|points)$/i;
 
+
+function betsapiEventOddsFacts(body, sourceType, observedAt, contextEvent, contextSport, bookmaker='bet365') {
+  const oddsMap=body?.results?.odds;
+  if (!oddsMap || typeof oddsMap!=='object' || Array.isArray(oddsMap)) return [];
+  const out=[];
+  const seen=new Set();
+  const selectionMap={home_od:'home',draw_od:'draw',away_od:'away',over_od:'over',under_od:'under'};
+  for (const [marketKey,entries] of Object.entries(oddsMap)) {
+    if (!Array.isArray(entries)) continue;
+    const sportId=contextSport || String(marketKey).split('_')[0] || null;
+    for (const entry of entries) {
+      if (!entry || typeof entry!=='object') continue;
+      const line=clean(entry.handicap ?? entry.line ?? entry.total ?? null);
+      const providerTime=isoFromEpoch(entry.add_time ?? entry.updated_at ?? entry.time);
+      for (const [key,value] of Object.entries(entry)) {
+        if (!/_od$/i.test(key)) continue;
+        const price=Number(value);
+        if (!Number.isFinite(price) || price<=1 || price>10000) continue;
+        const selection=selectionMap[key] || key.replace(/_od$/i,'');
+        const row={
+          observed_at:observedAt,
+          provider:'betsapi',
+          source_type:sourceType,
+          sport_id:sportId,
+          country_code:'',
+          league_id:null,
+          league_name:null,
+          event_id:contextEvent || null,
+          kickoff_utc:null,
+          phase:'prematch_or_unknown',
+          bookmaker:bookmaker || 'bet365',
+          market_key:String(marketKey),
+          selection_key:String(selection),
+          line_value:line,
+          price,
+          provider_time:providerTime,
+          raw_path:`results.odds.${marketKey}.${key}`
+        };
+        const identityTime=providerTime || observedAt;
+        const hashKey=[row.provider,row.event_id,row.bookmaker,row.market_key,row.selection_key,row.line_value,row.price,identityTime].join('|');
+        if (seen.has(hashKey)) continue;
+        seen.add(hashKey);
+        row.observation_hash=crypto.createHash('sha256').update(hashKey).digest('hex');
+        out.push(row);
+      }
+    }
+  }
+  return out;
+}
+
 function oddsFacts(body, sourceType, observedAt, provider) {
   const out=[];
   const seen=new Set();
@@ -293,7 +343,9 @@ export function normalizeTrialRows(rows) {
       }
     });
     if (row.type === 'betsapi_documented_event_odds' || row.type === 'totalcorner_match_odds') {
-      const extracted=oddsFacts(body,row.type,observedAt,provider);
+      const extracted=row.type === 'betsapi_documented_event_odds'
+        ? betsapiEventOddsFacts(body,row.type,observedAt,contextEvent,contextSport,clean(requestParams.source)||'bet365')
+        : oddsFacts(body,row.type,observedAt,provider);
       for (const o of extracted) {
         if (!o.sport_id && contextSport) o.sport_id=contextSport;
         if (!o.event_id && contextEvent) o.event_id=contextEvent;
@@ -311,13 +363,13 @@ export async function initReconciliation(pool) {
   const parserState=await pool.query(
     `SELECT value->>'version' AS version FROM provider_trial.reconciliation_state WHERE key='odds_parser_version'`
   );
-  if (parserState.rows[0]?.version !== '2') {
+  if (parserState.rows[0]?.version !== '3') {
     await pool.query('TRUNCATE TABLE provider_trial.odds_observations RESTART IDENTITY');
     await pool.query(`
       INSERT INTO provider_trial.reconciliation_state(key,value,updated_at)
       VALUES('odds_parser_version',$1::jsonb,now())
       ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value,updated_at=now()
-    `,[JSON.stringify({version:'2',reason:'strict_event_odds_and_totalcorner_only'})]);
+    `,[JSON.stringify({version:'3',reason:'betsapi_event_odds_specialized_v3'})]);
   }
   await pool.query(`
     DELETE FROM provider_trial.odds_observations
