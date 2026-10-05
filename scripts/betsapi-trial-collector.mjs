@@ -78,6 +78,9 @@ let tcMatchIds = [];
 let everythingFullCatalogRunning = false;
 let oddsRebuildRunning = false;
 let oddsRebuildLastError = null;
+let shuttingDown = false;
+const SHUTDOWN_FLUSH_RETRIES = Number(process.env.PROVIDER_TRIAL_SHUTDOWN_FLUSH_RETRIES || 8);
+const SHUTDOWN_FLUSH_DELAY_MS = Number(process.env.PROVIDER_TRIAL_SHUTDOWN_FLUSH_DELAY_MS || 500);
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 
@@ -212,10 +215,12 @@ async function runKeepalive() {
 }
 
 function write(type, payload) {
+  if (shuttingDown) return false;
   const row = { ts: new Date().toISOString(), instance_id: INSTANCE_ID, type, payload };
   fs.appendFileSync(OUT, JSON.stringify(row) + '\n');
   records++;
   if (DATABASE_URL) persistQueue.push(row);
+  return true;
 }
 
 
@@ -631,9 +636,40 @@ everythingRuntime=createEverythingRuntime({
 
 loop().catch(() => {});
 
-async function shutdown(signal) {
-  try {
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function drainPersistenceQueue() {
+  let attempts = 0;
+  let stableFailure = null;
+  while (persistQueue.length > 0 && attempts < SHUTDOWN_FLUSH_RETRIES) {
+    const before = persistQueue.length;
+    const failuresBefore = persistFailures;
     await flushPersistence();
+    if (persistQueue.length === 0) break;
+    if (persistFailures > failuresBefore || persistQueue.length >= before) {
+      stableFailure = lastPersistError || 'persistence queue did not drain';
+    } else {
+      stableFailure = null;
+    }
+    attempts++;
+    if (persistQueue.length > 0) await sleep(SHUTDOWN_FLUSH_DELAY_MS);
+  }
+  return {
+    drained: persistQueue.length === 0,
+    attempts,
+    remaining: persistQueue.length,
+    last_error: stableFailure || lastPersistError
+  };
+}
+
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  let drain = { drained: persistQueue.length === 0, attempts: 0, remaining: persistQueue.length, last_error: null };
+  try {
+    drain = await drainPersistenceQueue();
     if (dbPool) await dbPool.end();
   } finally {
     console.log('PROVIDER_TRIAL_COLLECTOR_STOP ' + JSON.stringify({
@@ -641,9 +677,10 @@ async function shutdown(signal) {
       records,
       persisted_records:persistedRecords,
       queued_records:persistQueue.length,
-      persist_failures:persistFailures
+      persist_failures:persistFailures,
+      shutdown_drain:drain
     }));
-    process.exit(0);
+    process.exit(drain.drained ? 0 : 1);
   }
 }
 process.once('SIGTERM', () => shutdown('SIGTERM'));
