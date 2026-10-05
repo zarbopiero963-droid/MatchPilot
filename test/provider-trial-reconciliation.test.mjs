@@ -6,7 +6,9 @@ import {
   normalizeTrialRows,
   providerForSource,
   initReconciliation,
-  rebuildOddsV3FromRaw
+  rebuildOddsV3FromRaw,
+  ensureRawRecordsAppendOnly,
+  rawRecordsAppendOnlyStatus
 } from '../scripts/lib/provider-trial-reconciliation.mjs';
 
 test('official BetsAPI R-SportID catalog is versioned', () => {
@@ -250,6 +252,50 @@ test('raw odds v3 rebuild replays immutable provider_trial.records', async (tt) 
     assert.equal(rows[0].closing_price,1.90);
     assert.equal(rows[0].latest_price,1.70);
     assert.equal(rows[0].observations,'3');
+  } finally {
+    await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
+    await pool.end();
+  }
+});
+
+
+test('raw provider records are protected by append-only trigger', async (tt) => {
+  const url=process.env.FUTPYTHON_TEST_DATABASE_URL;
+  if (!url) return tt.skip('FUTPYTHON_TEST_DATABASE_URL not set');
+  const pool=new pg.Pool({connectionString:url,max:1});
+  try {
+    await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
+    await pool.query('CREATE SCHEMA provider_trial');
+    await pool.query(`
+      CREATE TABLE provider_trial.records (
+        record_id bigserial PRIMARY KEY,
+        observed_at timestamptz NOT NULL,
+        instance_id text NOT NULL,
+        source_type text NOT NULL,
+        payload jsonb NOT NULL,
+        persisted_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await ensureRawRecordsAppendOnly(pool);
+    const status=await rawRecordsAppendOnlyStatus(pool);
+    assert.equal(status.raw_table_exists,true);
+    assert.equal(status.append_only_trigger_enabled,true);
+    await pool.query(`
+      INSERT INTO provider_trial.records(observed_at,instance_id,source_type,payload)
+      VALUES(now(),'test','x','{}'::jsonb)
+    `);
+    await assert.rejects(
+      pool.query(`DELETE FROM provider_trial.records`),
+      /append-only/
+    );
+    await assert.rejects(
+      pool.query(`UPDATE provider_trial.records SET source_type='y'`),
+      /append-only/
+    );
+    await assert.rejects(
+      pool.query(`TRUNCATE provider_trial.records`),
+      /append-only/
+    );
   } finally {
     await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
     await pool.end();
