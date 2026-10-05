@@ -8,7 +8,9 @@ import {
   initReconciliation,
   rebuildOddsV3FromRaw,
   ensureRawRecordsAppendOnly,
-  rawRecordsAppendOnlyStatus
+  rawRecordsAppendOnlyStatus,
+  ensureRateProtectionAuditMarker,
+  rateProtectionAuditSplit
 } from '../scripts/lib/provider-trial-reconciliation.mjs';
 
 test('official BetsAPI R-SportID catalog is versioned', () => {
@@ -296,6 +298,71 @@ test('raw provider records are protected by append-only trigger', async (tt) => 
       pool.query(`TRUNCATE provider_trial.records`),
       /append-only/
     );
+  } finally {
+    await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
+    await pool.end();
+  }
+});
+
+
+test('rate audit split separates 429/5xx/errors before and after persistent-rate activation', async (tt) => {
+  const url=process.env.FUTPYTHON_TEST_DATABASE_URL;
+  if (!url) return tt.skip('FUTPYTHON_TEST_DATABASE_URL not set');
+  const pool=new pg.Pool({connectionString:url,max:1});
+  try {
+    await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
+    await pool.query('CREATE SCHEMA provider_trial');
+    await pool.query(`
+      CREATE TABLE provider_trial.records (
+        record_id bigserial PRIMARY KEY,
+        observed_at timestamptz NOT NULL,
+        instance_id text NOT NULL,
+        source_type text NOT NULL,
+        payload jsonb NOT NULL,
+        persisted_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE TABLE provider_trial.reconciliation_state (
+        key text PRIMARY KEY,
+        value jsonb NOT NULL,
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+    `);
+    const marker=await ensureRateProtectionAuditMarker(pool,{commit:'test-commit'});
+    const activated=new Date(marker.value.activated_at).getTime();
+    const before=new Date(activated-60000).toISOString();
+    const after=new Date(activated+60000).toISOString();
+
+    await pool.query(`
+      INSERT INTO provider_trial.records(observed_at,instance_id,source_type,payload)
+      VALUES
+        ($1,'i1','betsapi_a',$2::jsonb),
+        ($1,'i1','betsapi_b',$3::jsonb),
+        ($1,'i1','collector_error',$4::jsonb),
+        ($5,'i2','betsapi_c',$6::jsonb),
+        ($5,'i2','betsapi_d',$7::jsonb),
+        ($5,'i2','betsapi_event_error',$8::jsonb)
+    `,[
+      before,
+      JSON.stringify({status:429}),
+      JSON.stringify({status:502}),
+      JSON.stringify({error:'before'}),
+      after,
+      JSON.stringify({status:429}),
+      JSON.stringify({status:503}),
+      JSON.stringify({error:'after'})
+    ]);
+
+    const split=await rateProtectionAuditSplit(pool);
+    assert.equal(split.marker_present,true);
+    assert.equal(split.commit,'test-commit');
+    assert.equal(split.http_429_before,1);
+    assert.equal(split.http_429_after,1);
+    assert.equal(split.http_5xx_before,1);
+    assert.equal(split.http_5xx_after,1);
+    assert.equal(split.error_rows_before,1);
+    assert.equal(split.error_rows_after,1);
+    assert.equal(split.instances_before,1);
+    assert.equal(split.instances_after,1);
   } finally {
     await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
     await pool.end();
