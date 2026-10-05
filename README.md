@@ -489,6 +489,21 @@ Il gate di performance del certificato misura su Neon, con `EXPLAIN (ANALYZE, BU
 
 La migrazione `016-fpt-filter-registry-complete.sql` completa `fpt_filter_registry` con: `source` (`fpt_match_facts.<colonna>` se il campo ha una colonna tipizzata, altrimenti `fpt_match_versions.payload`), `fact_column`, `indexed` e `index_names`, `first_seen` / `last_seen` (dalla schema registry), `phases` (`HISTORICAL` se il campo compare in uno snapshot di dataset, `PREMATCH` se compare nel feed del giorno, letto dagli header raw). `indexed` non è dichiarato: è vero solo se in `pg_index` esiste un indice su `fpt_match_facts` con quella colonna come chiave iniziale. Un campo letto solo dal payload resta `indexed=false`. `registry_version` passa a `fpt-filters-2`. Il gate filtri del certificato richiede date, sorgente e fasi per ogni campo e flag di indice coerenti.
 
+### FASE 9 — livelli di budget e traffico non essenziale (correzione 3 della checklist #12)
+
+La migrazione `017-fpt-budget-levels.sql` aggiunge al ledger `budget_level` e `retry_count` e l'outcome `throttled`. I livelli seguono la #31 e si calcolano sul budget **giornaliero** (la finestra al minuto resta un limite di cadenza gestito aspettando): `NORMAL` < 50%, `ELEVATED` < 70%, `CONSERVE` < 90%, `CRITICAL` < 100%, `EXHAUSTED`.
+
+Ogni richiesta FutPythonTrader ha uno scopo, in ordine di priorità: `today` (pre-match imminente, `jogos-do-dia`), `current_season` (risultati recenti), `backfill` (storico), `discovery` (catalogo). FutPythonTrader non ha live.
+
+| livello | scopi ammessi |
+| --- | --- |
+| NORMAL, ELEVATED | tutti |
+| CONSERVE | today, current_season (discovery e backfill sospesi) |
+| CRITICAL | solo today |
+| EXHAUSTED | nessuno |
+
+Una richiesta non ammessa scrive una riga `throttled` e non chiama il provider; non conta come uso del budget. Il sync usa il catalogo già salvato su DB quando la discovery è sospesa (`meta.catalogSource = db:budget_<livello>`). Un dataset rimandato resta nello stato precedente, non diventa `error`, e il run successivo lo riprende. `retry_count` è derivato da `attempt` anche per le righe storiche; `budget_level` resta NULL dove non era misurato. Il certificato conosce l'outcome `throttled` (non è un outcome sconosciuto) e mostra le righe per `budget_level`. Il circuit breaker, al riavvio, legge solo i tentativi reali verso il provider (`upstream`, `429`, `error`): una cache hit, un dedup o un rinvio non azzerano la serie di errori.
+
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
 
 **Stato al momento della PR, prima del merge.** Il kill live e la verifica post-merge sono nella sezione precedente. Questo paragrafo non va letto come lo stato attuale.

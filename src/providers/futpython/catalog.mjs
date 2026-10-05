@@ -73,6 +73,7 @@ export async function fetchCatalog({signal, priority='critical', runId=null} = {
     path: DOCS_PATH,
     datasetKey: 'catalog',
     priority,
+    purpose: 'discovery',
     runId,
     timeoutMs: 30000,
     authenticate: false,
