@@ -82,6 +82,15 @@ Per ogni fase di certificazione:
 - issue #12 aggiornata solo per punti realmente certificati;
 - nessun risultato “atteso” presentato come osservato.
 
+### Review AI — non attendere se bloccate
+
+Regola dell'owner, vale per CodeRabbit, Codex e qualunque altro reviewer AI.
+
+- Se la review AI non parte o si ferma per rate limit, quota d'uso esaurita, limite del piano (per esempio "fewer than 10 stars"), servizio non disponibile o nessuna risposta dopo il trigger, **non si aspetta**.
+- Si scrive nella PR una riga con il motivo e il link al commento del bot, e si procede. Il merge resta subordinato a CI verde, test pertinenti, evidenza reale e README aggiornato.
+- I finding già pubblicati da un reviewer AI restano da risolvere o da rispondere prima del merge. La regola copre solo l'attesa di una review che non arriva.
+- La regola non vale per review umane richieste, per CI rossa né per un gate reale fallito.
+
 ### Dopo il merge
 - verificare deploy Render;
 - verificare migrazioni Neon;

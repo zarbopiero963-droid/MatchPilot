@@ -489,6 +489,7 @@ Per il lavoro FutPythonTrader:
 - evidenza reale prima del merge/chiusura fase;
 - nessuna checklist anticipata;
 - `CLOSED / CERTIFIED` solo dopo tutti i gate della #12.
+- una review AI (CodeRabbit, Codex o altre) ferma per rate limit, quota o limite del piano non si aspetta: si annota il motivo nella PR e si procede con CI verde, test ed evidenza reale; i finding già pubblicati restano da risolvere.
 
 
 ## TotalCorner — certificazione #20

@@ -28,6 +28,15 @@ Il prodotto segue:
 - Non effettuare trade reali, puntate o modifiche a conti esterni durante test di sviluppo.
 - Nessun secret in codice, fixture, issue, log o output di test.
 
+## Review AI — non attendere se bloccate
+
+Regola dell'owner, vale per CodeRabbit, Codex e qualunque altro reviewer AI.
+
+- Se la review AI non parte o si ferma per rate limit, quota d'uso esaurita, limite del piano (per esempio "fewer than 10 stars"), servizio non disponibile o nessuna risposta dopo il trigger, **non si aspetta**.
+- Si scrive nella PR una riga con il motivo e il link al commento del bot, e si procede. Il merge resta subordinato a CI verde, test pertinenti, evidenza reale e README aggiornato.
+- I finding già pubblicati da un reviewer AI restano da risolvere o da rispondere prima del merge. La regola copre solo l'attesa di una review che non arriva.
+- La regola non vale per review umane richieste, per CI rossa né per un gate reale fallito.
+
 ## README sincronizzato obbligatoriamente
 
 **README.md deve essere aggiornato in ogni PR** quando cambia uno dei seguenti elementi:
