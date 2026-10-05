@@ -552,7 +552,6778 @@ http.createServer(async (req, res) => {
     const country=url.searchParams.get('country');
     const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
     const params=[]; const where=[];
-    if (provider) { params.push(provider); where.push(`c.provider=${params.length}`); }
+    if (provider) { params.push(provider); where.push('c.provider=; }
+    if (sportId) { params.push(sportId); where.push('c.sport_id::text=; }
+    if (country) { params.push(country); where.push('c.country_code=; }
+    params.push(limit);
+    const limitPlaceholder='
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${limitPlaceholder}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(col + cast + '=;
+      }
+    }
+    params.push(limit);
+    const oddsLimitPlaceholder='
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${oddsLimitPlaceholder}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
++params.length;
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
++params.length;
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
++params.length;
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
++params.length;
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
++params.length;
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
+    if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
+    params.push(limit);
+    const q=`
+      SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,
+             v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
+             c.first_seen_at,c.last_seen_at
+      FROM provider_trial.competitions c
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
+      LIMIT ${params.length}`;
+    try {
+      const {rows}=await dbPool.query(q,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    const provider=url.searchParams.get('provider');
+    const sportId=url.searchParams.get('sport_id');
+    const leagueId=url.searchParams.get('league_id');
+    const market=url.searchParams.get('market');
+    const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
+    const params=[]; const where=[];
+    for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
+    }
+    params.push(limit);
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT * FROM provider_trial.odds_summary
+        ${where.length?'WHERE '+where.join(' AND '):''}
+        ORDER BY last_observed_at DESC
+        LIMIT ${params.length}`,params);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
+    res.setHeader('content-type', 'application/json');
+    if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
+    const url=new URL(req.url,'http://localhost');
+    const eventId=url.searchParams.get('event_id');
+    if (!eventId) { res.statusCode=400; return res.end(JSON.stringify({ok:false,error:'event_id_required'})); }
+    const limit=Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||1000)));
+    try {
+      const {rows}=await dbPool.query(`
+        SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+        FROM provider_trial.odds_observations
+        WHERE event_id=$1
+        ORDER BY observed_at,market_key,selection_key
+        LIMIT $2`,[eventId,limit]);
+      return res.end(JSON.stringify({ok:true,count:rows.length,rows}));
+    } catch(error) {
+      res.statusCode=500;
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
+    }
+  }
+  if (req.url === '/metrics') {
+    const cumulative = await refreshCumulativeMetrics(true);
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify({
+      ok:Boolean(cumulative) && !cumulativeMetricsError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records'
+      },
+      cumulative,
+      refreshed_at:cumulativeMetricsAt,
+      error:cumulativeMetricsError
+    }));
+  }
+  if (req.url === '/export') {
+    if (!fs.existsSync(OUT)) { res.statusCode = 404; return res.end('no data yet'); }
+    res.setHeader('content-type', 'application/x-ndjson');
+    res.setHeader('content-disposition', 'attachment; filename="provider-trial.jsonl"');
+    return fs.createReadStream(OUT).pipe(res);
+  }
+  res.statusCode = 404;
+  res.end('not found');
+}).listen(PORT, () => {
+  console.log('PROVIDER_TRIAL_COLLECTOR_READY ' + JSON.stringify({
+    port:PORT,
+    betsapi_token_present:Boolean(BETS_TOKEN),
+    totalcorner_token_present:Boolean(TC_TOKEN),
+    bets_inplay_ms:BETS_INPLAY_MS,
+    tc_inplay_ms:TC_INPLAY_MS,
+    scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
+    tc_max_details:TC_MAX_DETAILS,
+    bets_max_details:BETS_MAX_DETAILS
+  }));
+});
+ + params.length); }
     if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
     if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
     params.push(limit);
