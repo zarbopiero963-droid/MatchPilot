@@ -316,7 +316,8 @@ export function createEverythingRuntime({
   };
   let fullCatalogPromise=null;
   const catalogProbe={
-    cycles:0,last_at:null,attempted:0,ok:0,skipped:0,permission_denied:0,rate_limited:0,http_error:0,last_error:null
+    cycles:0,last_at:null,attempted:0,ok:0,skipped:0,permission_denied:0,rate_limited:0,http_error:0,last_error:null,
+    endpoint_results:{}
   };
   const state=Object.fromEntries(families.map(k=>[k,{
     status:enabled ? (token ? 'READY' : 'NO_TOKEN') : 'DISABLED',
@@ -511,6 +512,7 @@ export function createEverythingRuntime({
     catalogProbe.rate_limited=0;
     catalogProbe.http_error=0;
     catalogProbe.last_error=null;
+    catalogProbe.endpoint_results={};
 
     const order=['scheduled','event','league','team','player','on_demand'];
     for (const mode of order) {
@@ -520,6 +522,7 @@ export function createEverythingRuntime({
         const check=validateEndpointParams(endpoint,params);
         if (!check.ok) {
           catalogProbe.skipped++;
+          catalogProbe.endpoint_results[endpointKey]={status:'SKIPPED',reason:'MISSING_PARAMS',missing:check.missing};
           continue;
         }
         catalogProbe.attempted++;
@@ -527,8 +530,14 @@ export function createEverythingRuntime({
           const r=await callDocumentedEndpoint(endpointKey,params);
           if (r?.skipped) {
             catalogProbe.skipped++;
+            catalogProbe.endpoint_results[endpointKey]={status:'SKIPPED',reason:r.reason||'SKIPPED',missing:r.missing||[]};
             continue;
           }
+          catalogProbe.endpoint_results[endpointKey]={
+            status:r?.classification||'ERROR',
+            http_status:r?.status??null,
+            latency_ms:r?.latency_ms??null
+          };
           if (r?.classification === 'OK') catalogProbe.ok++;
           else if (r?.classification === 'PERMISSION_DENIED') catalogProbe.permission_denied++;
           else if (r?.classification === 'RATE_LIMITED') catalogProbe.rate_limited++;
@@ -536,6 +545,7 @@ export function createEverythingRuntime({
         } catch (error) {
           catalogProbe.http_error++;
           catalogProbe.last_error=String(error?.message||error);
+          catalogProbe.endpoint_results[endpointKey]={status:'ERROR',error:catalogProbe.last_error};
         }
         if (!budget.canSpend(1)) break;
       }
