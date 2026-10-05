@@ -337,3 +337,19 @@ test('full catalog harvest recognizes squad player rows by id/type_id', async ()
   const r=await rt.fullCatalogCycle();
   assert.ok(r.context.player_ids >= 1);
 });
+
+
+test('full catalog diagnostics expose per-endpoint skip and HTTP outcome', async () => {
+  const rt=createEverythingRuntime({
+    env:{BETSAPI_EVERYTHING_TOKEN:'x',BETSAPI_EVERYTHING_ENABLED:'true'},
+    fetchImpl:async url=>({
+      status:200,ok:true,headers:{get:()=>null},text:async()=>JSON.stringify({success:1,results:[]})
+    })
+  });
+  const r=await rt.fullCatalogCycle();
+  assert.ok(r.endpoint_results);
+  assert.equal(r.endpoint_results.event_view.status,'SKIPPED');
+  assert.equal(r.endpoint_results.event_view.reason,'MISSING_PARAMS');
+  assert.equal(r.endpoint_results.events_inplay.status,'OK');
+  assert.equal(r.endpoint_results.events_inplay.http_status,200);
+});
