@@ -187,6 +187,17 @@ export function filtersGate(f) {
     && f.indexed_inconsistent === 0;
 }
 
+// #12 onboarding: every catalog dataset is tracked, nothing outside ACTIVE reaches the facts, and a new league is
+// ACTIVE only through an owner promotion.
+export function onboardingGate(o) {
+  return o.onboarding_rows > 0
+    && o.catalog_without_onboarding === 0
+    && o.facts_from_non_active === 0
+    && o.new_league_active_without_owner === 0
+    && o.non_baseline_active_unverified === 0
+    && o.rows_without_event === 0;
+}
+
 export function entityGate(e) {
   return e.team_splits === 0
     && e.teams > 0
@@ -334,7 +345,12 @@ async function seasonSection(client, status) {
 async function factsSection(client) {
   const row = await one(client, `SELECT
       (SELECT count(*)::int FROM fpt_match_facts) AS facts_rows,
-      (SELECT count(DISTINCT match_key)::int FROM fpt_match_versions) AS distinct_match_keys,
+      (SELECT count(DISTINCT match_key)::int FROM fpt_match_versions v
+         WHERE NOT EXISTS (SELECT 1 FROM fpt_onboarding o WHERE o.dataset_key = v.dataset_key AND o.state <> 'ACTIVE'))
+        AS distinct_match_keys,
+      (SELECT count(DISTINCT match_key)::int FROM fpt_match_versions v
+         WHERE EXISTS (SELECT 1 FROM fpt_onboarding o WHERE o.dataset_key = v.dataset_key AND o.state <> 'ACTIVE'))
+        AS held_back_match_keys,
       (SELECT count(*)::int FROM fpt_match_facts WHERE phase<>'HISTORICAL') AS today_rows,
       (SELECT count(*)::int FROM fpt_match_facts WHERE phase='HISTORICAL' AND (home_team_id IS NULL OR away_team_id IS NULL)) AS historical_without_team_ids,
       (SELECT count(*)::int FROM fpt_match_facts WHERE phase<>'HISTORICAL' AND (home_team_id IS NULL OR away_team_id IS NULL)) AS today_without_team_ids,
@@ -346,8 +362,11 @@ async function factsSection(client) {
       (SELECT count(*)::int FROM fpt_match_facts f
          WHERE f.version_id <> (SELECT v.version_id FROM fpt_match_versions v WHERE v.match_key = f.match_key
            ORDER BY v.acquired_at DESC, v.version_id DESC LIMIT 1)) AS facts_stale`);
-  const atNow = await one(client, `SELECT count(*)::int AS n FROM fpt_match_facts_at(now())`);
-  const atNowRepeat = await one(client, `SELECT count(*)::int AS n FROM fpt_match_facts_at(now())`);
+  // Production facts only: datasets still in onboarding are mirrored but held back from fpt_match_facts.
+  const productionAt = `SELECT count(*)::int AS n FROM fpt_match_facts_at(now()) f
+    WHERE NOT EXISTS (SELECT 1 FROM fpt_onboarding o WHERE o.dataset_key = f.dataset_key AND o.state <> 'ACTIVE')`;
+  const atNow = await one(client, productionAt);
+  const atNowRepeat = await one(client, productionAt);
   const results = await all(client, `SELECT result_status, count(*)::int AS n FROM fpt_match_facts GROUP BY 1 ORDER BY 1`);
   const tz = await all(client, `SELECT kickoff_tz_status, count(*)::int AS n FROM fpt_match_facts GROUP BY 1 ORDER BY 1`);
   const section = {
@@ -362,6 +381,31 @@ async function factsSection(client) {
       'result_status', 'version_id', 'snapshot_id']
   };
   section.gate = factsGate(section);
+  return section;
+}
+
+export async function onboardingSection(client) {
+  const row = await one(client, `SELECT
+      (SELECT count(*)::int FROM fpt_onboarding) AS onboarding_rows,
+      (SELECT count(*)::int FROM fpt_catalog c WHERE c.active
+         AND NOT EXISTS (SELECT 1 FROM fpt_onboarding o WHERE o.dataset_key = c.dataset_key)) AS catalog_without_onboarding,
+      (SELECT count(*)::int FROM fpt_match_facts f JOIN fpt_onboarding o USING (dataset_key)
+         WHERE o.state <> 'ACTIVE') AS facts_from_non_active,
+      (SELECT count(*)::int FROM fpt_onboarding WHERE kind = 'new_league' AND state = 'ACTIVE'
+         AND COALESCE(activated_by, '') NOT LIKE 'owner:%') AS new_league_active_without_owner,
+      (SELECT count(*)::int FROM fpt_onboarding WHERE kind <> 'baseline' AND state = 'ACTIVE'
+         AND (verified_at IS NULL OR checks->'hard' IS NULL)) AS non_baseline_active_unverified,
+      (SELECT count(*)::int FROM fpt_onboarding o
+         WHERE NOT EXISTS (SELECT 1 FROM fpt_onboarding_events e WHERE e.dataset_key = o.dataset_key)) AS rows_without_event,
+      (SELECT count(*)::int FROM fpt_onboarding_events) AS events`);
+  const byState = await all(client, `SELECT kind, state, count(*)::int AS n FROM fpt_onboarding GROUP BY 1, 2 ORDER BY 1, 2`);
+  const pending = await all(client, `SELECT dataset_key, kind, promotion, state, waiting_for, blocked_reason,
+      to_char(discovered_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS discovered_at
+    FROM fpt_onboarding WHERE state <> 'ACTIVE' ORDER BY discovered_at, dataset_key LIMIT 50`);
+  const section = {...row, by_kind_state: byState, pending,
+    steps: 'DISCOVERED > CANDIDATE > METADATA_FETCHED > SEASONS_ENUMERATED > BACKFILLED > SCHEMA_AUDITED > COVERAGE_AUDITED > HARD_VERIFIED > ACTIVE',
+    tests: 'test/fpt-onboarding.test.mjs (unit), test/fpt-onboarding-sync.test.mjs (real sync: simulated new league and new season)'};
+  section.gate = onboardingGate(section);
   return section;
 }
 
@@ -715,6 +759,7 @@ export async function buildCertificateReport({env = process.env} = {}) {
       filter_registry: await filtersSection(client),
       assistant_query_layer: await assistantSection(client, {sample: perfSample}),
       query_performance: {...perf, sample: perfSample},
+      onboarding: await onboardingSection(client),
       phase1: {gate: phase1Gate(status), latest_backfill: status.latest_backfill, checks: status.phase1_checks},
       phase2: {gate: status.phase2?.gate === true}
     };
@@ -735,7 +780,8 @@ export async function buildCertificateReport({env = process.env} = {}) {
       normalized_layer: report.normalized_layer.gate,
       filter_registry: report.filter_registry.gate,
       assistant_query_layer: report.assistant_query_layer.gate,
-      query_performance: report.query_performance.gate
+      query_performance: report.query_performance.gate,
+      onboarding: report.onboarding.gate
     };
     const limitations = knownLimitations(report);
     return {...report, gates, known_limitations: limitations, ...verdictFor(gates, limitations)};
