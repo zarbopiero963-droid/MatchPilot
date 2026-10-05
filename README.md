@@ -195,7 +195,7 @@ La branch `main` rappresenta esclusivamente il nuovo MatchPilot Sports Trading O
 
 La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue **#12 — FPT-CERT**.
 
-Stato corrente della sorgente: certificato dati **CERTIFIED WITH KNOWN LIMITATIONS**, ma la issue #12 **non è ancora chiudibile** (gap della checklist finale elencati nella #12, in correzione dentro FPT-PR-09; il certificato ha ora 19 gate con `onboarding` e `reconciliation`). [`docs/futpython-certification-2026-10-05.md`](docs/futpython-certification-2026-10-05.md), 17 gate su 17 veri sul deploy `dep-db1ml36q1p3s73ffhpc0` (commit `9f09e1d`), report generato il 2026-10-05 alle 10:41:40 UTC dopo il cron reale delle 10:17 UTC. La issue #12 resta OPEN: la chiusura spetta all'owner.
+Stato corrente della sorgente: certificato dati **CERTIFIED WITH KNOWN LIMITATIONS**, ma la issue #12 **non è ancora chiudibile** (gap della checklist finale elencati nella #12, in correzione dentro FPT-PR-09; il certificato ha ora 20 gate con `onboarding`, `reconciliation` e `reprocessing`). [`docs/futpython-certification-2026-10-05.md`](docs/futpython-certification-2026-10-05.md), 17 gate su 17 veri sul deploy `dep-db1ml36q1p3s73ffhpc0` (commit `9f09e1d`), report generato il 2026-10-05 alle 10:41:40 UTC dopo il cron reale delle 10:17 UTC. La issue #12 resta OPEN: la chiusura spetta all'owner.
 
 Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. I paragrafi di fase qui sotto restano lo storico delle singole PR. Lo stato attuale e i numeri reali sono nel certificato finale, generato dai dati reali e non scritto a mano.
 
@@ -587,6 +587,42 @@ Altri punti:
 - **Route di sola lettura:** `GET /api/fpt/reconciliation` (gap per tipo, priorità e stato).
 - **Certificato, gate 19 `reconciliation`:** richiede checkpoint delle 5 pipeline aggiornati da meno di 2 ore, nessun gap FAILED e nessun gap recuperabile aperto da più di 48 ore.
 - **Traffico:** il refresh delle stagioni correnti aggiunge traffico verso FutPythonTrader, circa 165 richieste al giorno con i default, distribuite su 4 cron. Resta sotto i tetti di codice (`FUTPYTHON_REQUESTS_PER_DAY` 2000) e viene rinviato per primo sotto pressione di budget.
+
+### FASE 9 — policy di versionamento parser/schema e rielaborazione (correzione 6 della checklist #12)
+
+Policy (vincolante):
+1. **Il raw è la fonte di verità ed è append-only.**
+   - La migrazione `020-fpt-raw-retention-reprocessing.sql` installa un trigger su `fpt_raw_snapshots`: il contenuto di uno snapshot non cambia mai, si può solo impostare `ingest_complete`.
+   - Una cancellazione è rifiutata, salvo autorizzazione esplicita dell'owner nella sessione (`matchpilot.raw_delete_authorization`). In quel caso resta una riga in `fpt_raw_retention_log`.
+2. **Ogni versione porta la sua lineage in modo esplicito** (`source_provider`, `parser_version`, `schema_version`, `transform_version` da `LINEAGE_VERSIONS`), non più dai default delle colonne.
+3. **Un cambio di parser o di trasformazione:**
+   - si dichiara alzando la versione in `LINEAGE_VERSIONS`;
+   - si misura con un dry run;
+   - si applica con una rielaborazione registrata.
+4. **La rielaborazione:**
+   - non sovrascrive e non cancella mai: una riga con un output diverso diventa una **nuova versione**, con la nuova lineage e l'`acquired_at` dello snapshot originale (la linea temporale point-in-time resta quella reale);
+   - la versione vecchia resta per l'audit;
+   - i facts seguono l'output più recente.
+5. **Ogni esecuzione** (dry run o apply) è una riga di `fpt_reprocessing_runs`: attore, motivo, versioni, righe invariate/nuove, versioni inserite, versioni prima e dopo. Il confronto vecchio/nuovo campo per campo sta in `fpt_reprocessing_diffs`.
+6. **Idempotenza:** la stessa rielaborazione ripetuta non inserisce nulla.
+
+```bash
+node src/jobs/futpython-reprocess.mjs --by=<chi> --reason=<perché> [--dataset=<chiave>]          # dry run
+node src/jobs/futpython-reprocess.mjs --apply --by=<chi> --reason=<perché> [--dataset=<chiave>]  # apply
+```
+
+Il comando lavora solo sul DB, non chiama FutPythonTrader. L'agente non lancia `--apply` in produzione senza autorizzazione dell'owner.
+
+Certificato, gate 20 `reprocessing`:
+- lo sweep del raw (che già decomprime ogni gzip) ri-parsa ogni riga con il parser corrente e richiede che esista come versione: una rielaborazione completa con il parser attuale sarebbe un no-op;
+- richiede anche il trigger installato e nessun run fallito non seguito da un run riuscito.
+
+Test `test/fpt-reprocessing.test.mjs`, con un cambio di parser simulato (v2 rimuove gli spazi):
+- il dry run misura la differenza (`Home: "Ajax " → "Ajax"`) senza scrivere;
+- l'apply aggiunge una versione `fpt-csv-2` e lascia intatta la vecchia;
+- i facts seguono il nuovo output;
+- ripetere l'apply inserisce 0 versioni;
+- il raw resta identico byte per byte, e modifica o cancellazione senza autorizzazione vengono rifiutate.
 
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
 

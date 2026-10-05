@@ -100,7 +100,12 @@ test('reconciliation detects lost and stale data, recovers it through the normal
     await q(`DELETE FROM fpt_match_facts WHERE dataset_key='beta/cup/2025'`);
     await q(`UPDATE fpt_dataset_state SET last_snapshot_id=NULL WHERE dataset_key='beta/cup/2025'`);
     await q(`DELETE FROM fpt_match_versions WHERE dataset_key='beta/cup/2025'`);
-    await q(`DELETE FROM fpt_raw_snapshots WHERE dataset_key='beta/cup/2025'`);
+    // Raw is append-only: the simulated loss needs the explicit authorization, and leaves a retention log row.
+    await db.withClient(async c => {
+      await c.query(`SELECT set_config('matchpilot.raw_delete_authorization', 'test:simulated loss', false)`);
+      await c.query(`DELETE FROM fpt_raw_snapshots WHERE dataset_key='beta/cup/2025'`);
+      await c.query(`SELECT set_config('matchpilot.raw_delete_authorization', '', false)`);
+    });
     alphaSeasons = ['2021', '2022', '2023', '2024', String(year)];
     for (const s of ['2023', '2022', '2021']) {
       await q(`INSERT INTO fpt_catalog(dataset_key,country_slug,league_slug,season,route) VALUES($1,'alpha','league',$2,$3)`,
