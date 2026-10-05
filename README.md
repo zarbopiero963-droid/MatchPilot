@@ -624,6 +624,29 @@ Test `test/fpt-reprocessing.test.mjs`, con un cambio di parser simulato (v2 rimu
 - ripetere l'apply inserisce 0 versioni;
 - il raw resta identico byte per byte, e modifica o cancellazione senza autorizzazione vengono rifiutate.
 
+### FASE 9 — pagina Data Coverage → Competizioni (gate del catalogo #12)
+
+**`GET /coverage`** è una pagina HTML server-side, senza JavaScript, che non chiama FutPythonTrader. Mostra una riga per lega:
+- paese, lega, provider;
+- prima e ultima stagione con dati;
+- stagioni con dati su stagioni elencate e stagioni in 404;
+- partite;
+- stato (`AVAILABLE`);
+- coverage delle quote 1X2 e degli xG;
+- buchi di stagione (`fpt_season_gaps`);
+- stagioni ancora in onboarding;
+- colonna overlap FPT/TC.
+
+Filtri: paese, stagioni minime, partite minime, coverage quote minima.
+
+**Drill-down** `GET /coverage?country=<paese>&league=<lega>`: per ogni stagione disponibilità, classificazione, stato di onboarding, partite, prima e ultima partita, coverage quote e xG, numero di campi, ultimo download, e le stagioni non pubblicate segnate come buco.
+
+**Route JSON di sola lettura:** `GET /api/fpt/coverage-competitions` e `GET /api/fpt/coverage-seasons`. Gli slug sono validati e ogni filtro è un parametro SQL.
+
+Limiti dichiarati nella pagina:
+- `COMPLETE/PARTIAL` non sono calcolabili, perché il provider non pubblica il numero atteso di partite;
+- **overlap FPT/TC** e **live** non sono disponibili finché TotalCorner (#20) non è integrato: i filtri sono presenti ma disattivati.
+
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
 
 **Stato al momento della PR, prima del merge.** Il kill live e la verifica post-merge sono nella sezione precedente. Questo paragrafo non va letto come lo stato attuale.

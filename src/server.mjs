@@ -10,6 +10,7 @@ import { runPhase1Verification } from './jobs/futpython-certify-phase1.mjs';
 import { certificateReport } from './futpython-certificate.mjs';
 import { ROUTES, runQuery } from './providers/futpython/query.mjs';
 import { withClient } from './db.mjs';
+import { renderCoverageCompetitions, renderCoverageSeasons } from './coverage-page.mjs';
 
 const port = Number(process.env.PORT || 3000);
 
@@ -42,6 +43,26 @@ const app = http.createServer((req, res) => {
     catch { result = {state: 'error', report: null}; }
     res.writeHead(result.report ? 200 : 202, {'Content-Type':'application/json'});
     res.end(JSON.stringify(result));
+    return;
+  }
+
+  // #12 Data Coverage → Competitions (HTML), from the same read-only queries as /api/fpt/coverage-*.
+  if (url.pathname === '/coverage') {
+    if (req.method !== 'GET') {
+      res.writeHead(405, {'Content-Type':'text/plain; charset=utf-8', 'Allow':'GET'});
+      res.end('Solo GET');
+      return;
+    }
+    const input = Object.fromEntries(url.searchParams.entries());
+    const drill = input.league != null && input.league !== '';
+    withClient(client => runQuery(client, drill ? 'coverageSeasons' : 'coverageCompetitions', input)).then(data => {
+      res.writeHead(200, {'Content-Type':'text/html; charset=utf-8'});
+      res.end(drill ? renderCoverageSeasons(input.country, input.league, data.rows) : renderCoverageCompetitions(data.rows, input));
+    }).catch(error => {
+      const bad = error?.code === 'BAD_QUERY_INPUT';
+      res.writeHead(bad ? 400 : 503, {'Content-Type':'text/plain; charset=utf-8'});
+      res.end(bad ? `Parametro non valido: ${String(error.message).replace(/[<>&]/g, '')}` : 'Coverage non disponibile');
+    });
     return;
   }
 
@@ -91,7 +112,7 @@ const app = http.createServer((req, res) => {
 
   if (req.url === '/') {
     res.writeHead(200, {'Content-Type':'text/html; charset=utf-8'});
-    return res.end(`<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MatchPilot — Sports Trading OS</title><style>body{margin:0;background:#07111f;color:#e6eef8;font-family:system-ui,-apple-system,sans-serif}main{max-width:1050px;margin:auto;padding:48px 20px}h1{font-size:42px;margin:0 0 10px}p{color:#a9bad0;line-height:1.6}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:32px}.card{background:#0e1d31;border:1px solid #203753;border-radius:18px;padding:20px}strong{display:block;font-size:18px;margin-bottom:8px}.badge{display:inline-block;background:#173652;border-radius:999px;padding:7px 11px;font-size:13px}</style></head><body><main><span class="badge">DATA FOUNDATION</span><h1>MatchPilot</h1><p>Sports Trading OS. Mirror FutPythonTrader con schema discovery automatico e TotalCorner per mercato/live.</p><div class="grid"><div class="card"><strong>Daily Board</strong><p>In costruzione.</p></div><div class="card"><strong>Match Center</strong><p>Tutti i dati FutPythonTrader saranno esposti in card.</p></div><div class="card"><strong>Live Trading</strong><p>TotalCorner sarà il layer live separato.</p></div><div class="card"><strong>Data Mirror</strong><p>Catalogo, raw snapshot, versioni e coverage automatici.</p></div></div></main></body></html>`);
+    return res.end(`<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MatchPilot — Sports Trading OS</title><style>body{margin:0;background:#07111f;color:#e6eef8;font-family:system-ui,-apple-system,sans-serif}main{max-width:1050px;margin:auto;padding:48px 20px}h1{font-size:42px;margin:0 0 10px}p{color:#a9bad0;line-height:1.6}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:32px}.card{background:#0e1d31;border:1px solid #203753;border-radius:18px;padding:20px}strong{display:block;font-size:18px;margin-bottom:8px}.badge{display:inline-block;background:#173652;border-radius:999px;padding:7px 11px;font-size:13px}</style></head><body><main><span class="badge">DATA FOUNDATION</span><h1>MatchPilot</h1><p>Sports Trading OS. Mirror FutPythonTrader con schema discovery automatico e TotalCorner per mercato/live.</p><div class="grid"><div class="card"><strong>Daily Board</strong><p>In costruzione.</p></div><div class="card"><strong>Match Center</strong><p>Tutti i dati FutPythonTrader saranno esposti in card.</p></div><div class="card"><strong>Live Trading</strong><p>TotalCorner sarà il layer live separato.</p></div><div class="card"><strong>Data Mirror</strong><p>Catalogo, raw snapshot, versioni e coverage automatici. <a style="color:#8cc8ff" href="/coverage">Data Coverage → Competizioni</a></p></div></div></main></body></html>`);
   }
 
   res.writeHead(404, {'Content-Type':'application/json'});

@@ -213,6 +213,80 @@ export const QUERIES = {
       LIMIT $1`,
     params: ['limit']
   },
+  // #12 "Data Coverage → Competitions": one row per league, computed from the catalog and the production facts.
+  coverageCompetitions: {
+    sql: `WITH ds AS (
+        SELECT c.country_slug, c.league_slug, c.season, c.dataset_key, s.availability, o.state AS onboarding_state
+        FROM fpt_catalog c
+        JOIN fpt_dataset_state s USING (dataset_key)
+        LEFT JOIN fpt_onboarding o USING (dataset_key)
+        WHERE c.active AND ($1::text IS NULL OR c.country_slug = $1)
+      ),
+      m AS (
+        SELECT dataset_key, count(*)::int AS matches, min(match_date) AS first_date, max(match_date) AS last_date,
+               count(*) FILTER (WHERE odd_home IS NOT NULL)::int AS with_odds,
+               count(*) FILTER (WHERE xg_home IS NOT NULL)::int AS with_xg
+        FROM fpt_match_facts WHERE phase = 'HISTORICAL' GROUP BY dataset_key
+      ),
+      g AS (SELECT country_slug, league_slug, count(*)::int AS gaps FROM fpt_season_gaps GROUP BY 1, 2)
+      SELECT ds.country_slug, ds.league_slug, 'futpythontrader' AS provider,
+        'fpt:competition:' || md5(ds.country_slug || '|' || ds.league_slug) AS internal_competition_id,
+        min(ds.season) FILTER (WHERE m.matches > 0) AS first_season,
+        max(ds.season) FILTER (WHERE m.matches > 0) AS last_season,
+        count(*)::int AS seasons_listed,
+        count(*) FILTER (WHERE m.matches > 0)::int AS seasons_with_data,
+        count(*) FILTER (WHERE ds.availability = 'unavailable_404')::int AS seasons_unavailable_404,
+        COALESCE(sum(m.matches), 0)::int AS matches,
+        min(m.first_date) AS first_match_date, max(m.last_date) AS last_match_date,
+        round(COALESCE(sum(m.with_odds), 0)::numeric / NULLIF(sum(m.matches), 0), 4) AS odds_coverage,
+        round(COALESCE(sum(m.with_xg), 0)::numeric / NULLIF(sum(m.matches), 0), 4) AS xg_coverage,
+        COALESCE(max(g.gaps), 0)::int AS season_gaps,
+        count(*) FILTER (WHERE ds.onboarding_state IS DISTINCT FROM 'ACTIVE' AND ds.onboarding_state IS NOT NULL)::int AS seasons_in_onboarding,
+        'AVAILABLE' AS coverage_status,
+        NULL::text AS overlap_fpt_tc
+      FROM ds
+      LEFT JOIN m USING (dataset_key)
+      LEFT JOIN g ON g.country_slug = ds.country_slug AND g.league_slug = ds.league_slug
+      GROUP BY ds.country_slug, ds.league_slug
+      HAVING count(*) FILTER (WHERE m.matches > 0) >= $2 AND COALESCE(sum(m.matches), 0) >= $3
+         AND ($4::numeric IS NULL OR COALESCE(sum(m.with_odds), 0)::numeric / NULLIF(sum(m.matches), 0) >= $4)
+      ORDER BY ds.country_slug, ds.league_slug
+      LIMIT $5`,
+    params: ['country', 'min_seasons', 'min_matches', 'min_odds_coverage', 'limit']
+  },
+  // Drill-down of one league: every catalog season with its state, matches, coverage and gaps.
+  coverageSeasons: {
+    sql: `SELECT c.season, c.dataset_key, s.availability, s.classification, o.state AS onboarding_state,
+        COALESCE(m.matches, 0)::int AS matches, m.first_date, m.last_date,
+        round(m.with_odds::numeric / NULLIF(m.matches, 0), 4) AS odds_coverage,
+        round(m.with_xg::numeric / NULLIF(m.matches, 0), 4) AS xg_coverage,
+        jsonb_array_length(COALESCE(r.headers, '[]'::jsonb)) AS fields_available,
+        s.last_success_at,
+        EXISTS (SELECT 1 FROM fpt_season_gaps gg WHERE gg.country_slug = c.country_slug AND gg.league_slug = c.league_slug
+                AND gg.season = c.season) AS gap
+      FROM fpt_catalog c
+      JOIN fpt_dataset_state s USING (dataset_key)
+      LEFT JOIN fpt_onboarding o USING (dataset_key)
+      LEFT JOIN fpt_raw_snapshots r ON r.snapshot_id = s.last_snapshot_id
+      LEFT JOIN LATERAL (
+        SELECT count(*)::int AS matches, min(match_date) AS first_date, max(match_date) AS last_date,
+               count(*) FILTER (WHERE odd_home IS NOT NULL)::int AS with_odds,
+               count(*) FILTER (WHERE xg_home IS NOT NULL)::int AS with_xg
+        -- The competition id leads fpt_match_facts_comp_season_idx: one index range per league, not a full scan per season.
+        FROM fpt_match_facts f
+        WHERE f.internal_competition_id = 'fpt:competition:' || md5($1 || '|' || $2)
+          AND f.dataset_key = c.dataset_key AND f.phase = 'HISTORICAL'
+      ) m ON true
+      WHERE c.active AND c.country_slug = $1 AND c.league_slug = $2
+      UNION ALL
+      SELECT gg.season, NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, 0, NULL, true
+      FROM fpt_season_gaps gg
+      WHERE gg.country_slug = $1 AND gg.league_slug = $2
+        AND NOT EXISTS (SELECT 1 FROM fpt_catalog c2 WHERE c2.active AND c2.country_slug = gg.country_slug
+                        AND c2.league_slug = gg.league_slug AND c2.season = gg.season)
+      ORDER BY 1`,
+    params: ['country', 'league']
+  },
   reconciliation: {
     // #31 "cosa manca, cosa è recuperabile, cosa non lo è più"
     sql: `SELECT gap_kind, priority, status, recovery_action, count(*)::int AS n,
@@ -261,6 +335,12 @@ function idOf(value, name, {optional = false} = {}) {
   if (optional && (value == null || value === '')) return null;
   const s = String(value ?? '').trim();
   if (!ID_PATTERNS[name].test(s)) throw new QueryInputError(`invalid ${name}`);
+  return s;
+}
+
+function slugOf(value, name) {
+  const s = String(value ?? '').trim().toLowerCase();
+  if (!/^[a-z0-9-]{1,80}$/.test(s)) throw new QueryInputError(`${name} must be a catalog slug`);
   return s;
 }
 
@@ -459,6 +539,15 @@ export function buildQuery(name, input = {}, {now = new Date()} = {}) {
       return {name, sql: QUERIES.filters.sql, values: []};
     case 'onboarding':
       return {name, sql: QUERIES.onboarding.sql, values: [limitOf(input.limit, 200)]};
+    case 'coverageCompetitions': {
+      const country = input.country == null || input.country === '' ? null : slugOf(input.country, 'country');
+      const odds = input.min_odds_coverage == null || input.min_odds_coverage === '' ? null : ratioOf(input.min_odds_coverage, 'min_odds_coverage');
+      return {name, sql: QUERIES.coverageCompetitions.sql, values: [country,
+        intOf(input.min_seasons ?? 0, 'min_seasons', {min: 0, max: 100}),
+        intOf(input.min_matches ?? 0, 'min_matches', {min: 0, max: 1000000}), odds, limitOf(input.limit, 500)]};
+    }
+    case 'coverageSeasons':
+      return {name, sql: QUERIES.coverageSeasons.sql, values: [slugOf(input.country, 'country'), slugOf(input.league, 'league')]};
     case 'reconciliation':
       return {name, sql: QUERIES.reconciliation.sql, values: [limitOf(input.limit, 200)]};
     default:
@@ -497,6 +586,8 @@ export const ROUTES = {
   '/api/fpt/filters': 'filters',
   '/api/fpt/onboarding': 'onboarding',
   '/api/fpt/reconciliation': 'reconciliation',
+  '/api/fpt/coverage-competitions': 'coverageCompetitions',
+  '/api/fpt/coverage-seasons': 'coverageSeasons',
   '/api/fpt/away-matches': 'awayMatches',
   '/api/fpt/odds-range': 'favoriteOddsRange',
   '/api/fpt/search': 'searchMatches',
@@ -535,6 +626,10 @@ export const QUERY_CATALOG = [
   {name: 'filters', route: '/api/fpt/filters', question: 'Registry dei campi filtrabili', params: {}},
   {name: 'onboarding', route: '/api/fpt/onboarding', question: 'Nuove leghe/stagioni scoperte ma non ancora in produzione',
     params: {limit: '1–500'}},
+  {name: 'coverageCompetitions', route: '/api/fpt/coverage-competitions', question: 'Da quale stagione abbiamo una lega, quante partite, con quale coverage',
+    params: {country: 'slug opzionale', min_seasons: '0–100', min_matches: '0–1000000', min_odds_coverage: '0–1', limit: '1–500'}},
+  {name: 'coverageSeasons', route: '/api/fpt/coverage-seasons', question: 'Stagioni di una lega con stato, partite, coverage e buchi',
+    params: {country: 'slug', league: 'slug'}},
   {name: 'reconciliation', route: '/api/fpt/reconciliation', question: 'Gap dati rilevati, recuperati, irrecuperabili',
     params: {limit: '1–500'}}
 ].map(entry => ({
