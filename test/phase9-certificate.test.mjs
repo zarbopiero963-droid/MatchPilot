@@ -248,6 +248,8 @@ export function fixtureReport() {
 
 test('markdown certificate has the 17 sections and the single verdict', () => {
   const md = renderCertificateMarkdown(fixtureReport(), {deploy: 'dep-x', verification: ['Neon count matches']});
+  assert.match(md, /Sorgente del report: non dichiarata/);
+  assert.match(renderCertificateMarkdown(fixtureReport(), {source: '`GET https://x/api/futpython-certificate`'}), /Sorgente del report: `GET https:\/\/x\/api\/futpython-certificate`/);
   for (let i = 1; i <= 17; i++) assert.match(md, new RegExp(`^## ${i}\\. `, 'm'), `section ${i}`);
   assert.match(md, /\*\*Esito: CERTIFIED WITH KNOWN LIMITATIONS\*\*/);
   assert.match(md, /dep-x/);

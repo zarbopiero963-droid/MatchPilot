@@ -195,9 +195,9 @@ La branch `main` rappresenta esclusivamente il nuovo MatchPilot Sports Trading O
 
 La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue **#12 — FPT-CERT**.
 
-Stato corrente della sorgente: **IN CERTIFICAZIONE — non ancora CLOSED**.
+Stato corrente della sorgente: **CERTIFIED WITH KNOWN LIMITATIONS** — certificato [`docs/futpython-certification-2026-10-05.md`](docs/futpython-certification-2026-10-05.md), 17 gate su 17 veri sul deploy `dep-db1ml36q1p3s73ffhpc0` (commit `9f09e1d`), report generato il 2026-10-05 alle 10:41:40 UTC dopo il cron reale delle 10:17 UTC. La issue #12 resta OPEN: la chiusura spetta all'owner.
 
-Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. La pipeline FutPythonTrader non è CLOSED / CERTIFIED. La issue #12 resta aperta. FPT-PR-09 (certificato finale) è in corso: l'esito si legge solo nel documento generato dai dati reali, non in questo paragrafo.
+Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. I paragrafi di fase qui sotto restano lo storico delle singole PR. Lo stato attuale e i numeri reali sono nel certificato finale, generato dai dati reali e non scritto a mano.
 
 La certificazione richiede, nell'ordine:
 
@@ -209,7 +209,7 @@ La certificazione richiede, nell'ordine:
 6. audit delle stagioni mancanti;
 7. due sync incrementali reali con verifica idempotenza;
 8. certificazione Data Health/Watchdog/Telegram;
-9. documento finale `docs/futpython-certification-YYYY-MM-DD.md`.
+9. documento finale `docs/futpython-certification-YYYY-MM-DD.md` — prodotto: `docs/futpython-certification-2026-10-05.md`.
 
 ### FASE 1 — Backfill
 
@@ -447,6 +447,21 @@ Lo storico squadra e gli scontri diretti sono sempre strettamente prima di `befo
 `GET /api/futpython-certificate` costruisce in background il report finale (17 sezioni: identità, catalogo, dati, integrità con rilettura completa di ogni gzip, schema, coverage, stagioni, point-in-time, entity resolution, lineage, ledger, sync incrementale, watchdog, layer normalizzato, registry filtri, query assistente, performance su Neon con `EXPLAIN (ANALYZE, BUFFERS)`). Risponde 202 finché il primo report non è pronto, poi 200 con il report in cache per 15 minuti. Il gate integrità conta `empty_payload` solo sugli snapshot di dataset storici: un feed `jogos-do-dia` senza partite è riportato a parte (`today_empty_snapshots`) perché è lo stato reale del provider. Il gate ledger richiede righe reali scritte dopo la migrazione 014, con almeno una richiesta upstream e nessun campo nuovo mancante: i test da soli non bastano. Il gate performance richiede, per ogni query, esecuzione ≤ 250 ms, righe lette ≤ 20000 e nessun Seq Scan su `fpt_match_facts`, `fpt_match_versions`, `fpt_raw_snapshots`.
 
 Il documento `docs/futpython-certification-YYYY-MM-DD.md` si genera con `node src/jobs/futpython-certificate.mjs --from-url=<servizio>/api/futpython-certificate --out=docs/futpython-certification-YYYY-MM-DD.md`. L'esito ammesso è uno solo: `CERTIFIED`, `CERTIFIED WITH KNOWN LIMITATIONS` o `NOT CERTIFIED`. Un gate falso dà sempre `NOT CERTIFIED`. I numeri reali stanno nel documento generato e nel commento della PR, non qui.
+
+### FASE 9 — esito reale
+
+Il primo certificato (commit `11b1e84`, 08:54 UTC) era **NOT CERTIFIED** sul solo gate `integrity`: il feed `jogos-do-dia` del 2026-10-05 era vuoto e il gate lo contava come dataset perso. PR #49 ha corretto il gate e reso il gate ledger dipendente da righe reali dopo la migrazione 014. Il cron reale delle 10:17 UTC (run `fpt-1791195420927-282816e5`, 165 `cache_hit`, 2 upstream, 0 errori) ha scritto le prime righe con latenza e stato budget. Il report delle 10:41 UTC sul deploy `dep-db1ml36q1p3s73ffhpc0` ha 17 gate veri: **CERTIFIED WITH KNOWN LIMITATIONS**.
+
+Limiti noti, tutti dichiarati nel certificato:
+
+- `expected_match_count` non pubblicato dal provider: nessuna stagione è COMPLETE, solo AVAILABLE;
+- fuso di Date/Time non documentato: `kickoff_utc` nullo;
+- quote storiche senza timestamp di cattura (`PREMATCH_MARKET_UNTIMED`);
+- quota reale del provider non nota: i tetti sono default di codice e il provider non manda header di rate limit;
+- SIGTERM live del drill fra due dataset, non a metà scrittura;
+- 134 squadre internazionali non collegate alla squadra domestica (133 di paesi senza campionato nel catalogo, 1 senza nome coincidente); 421 collegate;
+- righe del ledger precedenti alla 014 senza latenza e stato budget;
+- lo `0` delle quote del feed del giorno è N/D.
 
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
 
