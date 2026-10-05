@@ -82,6 +82,7 @@ export function renderCertificateMarkdown(report, {deploy = null, verification =
   }));
   out.push('Controlli SQL FASE 3:');
   out.push(kv(i.phase3));
+  out.push('`empty_payload` conta solo gli snapshot di dataset storici. Un feed `jogos-do-dia` senza partite è contato a parte in `today_empty_snapshots`: è lo stato reale del provider, non un dataset perso.\n');
   if (i.raw_sweep.today.length) {
     out.push('Snapshot `jogos-do-dia`: le righe DB possono essere meno di `row_count` perché una versione identica non viene reinserita.');
     out.push(table(['snapshot', 'dataset', 'row_count', 'db_rows'], i.raw_sweep.today.map(x => [x.snapshot_id, x.dataset_key, x.row_count, x.db_rows])));
@@ -122,6 +123,7 @@ export function renderCertificateMarkdown(report, {deploy = null, verification =
     historical_unresolved_home: e.historical_unresolved_home, historical_unresolved_away: e.historical_unresolved_away,
     coded_international_teams: e.coded_international_teams, links_total: e.links_total, link_status: e.link_status
   }));
+  out.push('`CODE_UNRESOLVED`: il codice paese non ha un campionato domestico nel catalogo con nomi in comune, quindi non esiste una squadra a cui collegare. `NO_DOMESTIC_MATCH`: il paese è noto ma nessun nome normalizzato coincide. Nessun collegamento è fuzzy.\n');
   out.push(details(`Codici paese internazionali (${e.codes.length})`, table(['codice', 'paese derivato', 'squadre', 'collegate'],
     e.codes.map(x => [x.country_code, x.code_country_slug, x.teams, x.linked]))));
   out.push(`Gate: **${yes(e.gate)}**\n`);
@@ -135,6 +137,9 @@ export function renderCertificateMarkdown(report, {deploy = null, verification =
   out.push('## 11. Request ledger e budget API');
   out.push(kv({
     rows: l.rows, first_row: l.first_row, last_row: l.last_row, api_key_paths: l.api_key_paths,
+    migration_014_applied_at: l.migration_014_applied_at, rows_after_014: l.rows_after_014,
+    rows_after_014_upstream: l.rows_after_014_upstream, rows_after_014_missing_fields: l.rows_after_014_missing_fields,
+    latency_p50_ms_after_014: l.latency_p50_ms_after_014,
     unknown_outcomes: l.unknown_outcomes, rows_without_endpoint_family: l.rows_without_endpoint_family,
     rows_with_latency: l.rows_with_latency, rows_with_budget_state: l.rows_with_budget_state,
     rows_with_provider_quota: l.rows_with_provider_quota, deduped_rows: l.deduped_rows,
