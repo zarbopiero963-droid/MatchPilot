@@ -247,6 +247,12 @@ export function fixtureReport() {
     reconciliation: {checkpoint_scopes: 5, checkpoints_age_hours: 0.2, ledger_rows: 2, failed: 0, open_older_than_48h: 0, tests: 't',
       checkpoints: [{scope: 'incremental', status: 'ok', last_success_at: '2026-10-05T10:20:00Z', updated_at: '2026-10-05T10:21:00Z', retry_count: 0, checkpoint: {}}],
       by_kind_status: [{gap_kind: 'current_season_stale', priority: 'P1', status: 'RECOVERED', n: 2}], gate: true},
+    reprocessing: {snapshots_checked: 3, rows_checked: 10, rows_without_version: 0, hash_mismatch: 0, raw_guard_installed: true,
+      raw_deletions_logged: 0, runs: 1, failed_runs_unresolved: 0, tests: 't',
+      current_lineage: {parser_version: 'fpt-csv-1', schema_version: 'fpt-schema-4', transform_version: 'fpt-norm-1'},
+      stored_version_sets: [{parser_version: 'fpt-csv-1', schema_version: 'fpt-schema-4', transform_version: 'fpt-norm-1', n: 10}],
+      last_runs: [{run_id: 'fpt-reprocess-1', mode: 'dry_run', status: 'complete', parser_version: 'fpt-csv-1', actor: 'owner',
+        rows_parsed: 10, rows_unchanged: 10, rows_new_output: 0, versions_inserted: 0, started_at: '2026-10-05T16:00:00Z'}], gate: true},
     gates: {catalog: true},
     known_limitations: [{code: 'kickoff_timezone', text: 'tz'}],
     verdict: 'CERTIFIED WITH KNOWN LIMITATIONS',
@@ -254,13 +260,14 @@ export function fixtureReport() {
   };
 }
 
-test('markdown certificate has the 19 sections and the single verdict', () => {
+test('markdown certificate has the 20 sections and the single verdict', () => {
   const md = renderCertificateMarkdown(fixtureReport(), {deploy: 'dep-x', verification: ['Neon count matches']});
   assert.match(md, /Sorgente del report: non dichiarata/);
   assert.match(renderCertificateMarkdown(fixtureReport(), {source: '`GET https://x/api/futpython-certificate`'}), /Sorgente del report: `GET https:\/\/x\/api\/futpython-certificate`/);
-  for (let i = 1; i <= 19; i++) assert.match(md, new RegExp(`^## ${i}\\. `, 'm'), `section ${i}`);
+  for (let i = 1; i <= 20; i++) assert.match(md, new RegExp(`^## ${i}\\. `, 'm'), `section ${i}`);
   assert.match(md, /gamma\/cup\/2024 \| new_league \| owner \| HARD_VERIFIED/);
   assert.match(md, /current_season_stale \| P1 \| RECOVERED \| 2/);
+  assert.match(md, /fpt-reprocess-1 \| dry_run \| complete/);
   assert.match(md, /\*\*Esito: CERTIFIED WITH KNOWN LIMITATIONS\*\*/);
   assert.match(md, /dep-x/);
   assert.match(md, /Neon count matches/);

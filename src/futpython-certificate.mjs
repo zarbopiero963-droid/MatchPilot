@@ -134,7 +134,7 @@ export async function fullRawSweep(client) {
   const totals = sweepTotals(results);
   const today = results.filter(r => r.source_kind === 'today')
     .map(r => ({snapshot_id: r.snapshot_id, dataset_key: r.dataset_key, row_count: r.row_count, db_rows: r.db_rows}));
-  return {totals, today, failures, gate: rawSweepGate(totals, failures)};
+  return {totals, today, failures, results, gate: rawSweepGate(totals, failures)};
 }
 
 function phase1Gate(status) {
@@ -218,6 +218,16 @@ export function reconciliationGate(r) {
     && r.checkpoints_age_hours != null && Number(r.checkpoints_age_hours) <= 2
     && r.failed === 0
     && r.open_older_than_48h === 0;
+}
+
+// #12 parser / schema policy: re-parsing every raw with the current parser reproduces stored versions only
+// (a full reprocessing would be a no-op), the raw is append-only, and reprocessing runs are registered.
+export function reprocessingGate(r) {
+  return r.rows_checked > 0
+    && r.rows_without_version === 0
+    && r.hash_mismatch === 0
+    && r.raw_guard_installed === true
+    && r.failed_runs_unresolved === 0;
 }
 
 export function entityGate(e) {
@@ -319,7 +329,7 @@ async function integritySection(client, status, sweep) {
   return {
     ...dup,
     phase3: sql,
-    raw_sweep: sweep,
+    raw_sweep: {totals: sweep.totals, today: sweep.today, failures: sweep.failures, gate: sweep.gate},
     zero_loss: zeroLoss,
     gate: status.phase3.gate === true && sweep.gate && zeroLoss
       && dup.duplicate_snapshot_hashes === 0 && dup.duplicate_versions === 0
@@ -449,6 +459,40 @@ export async function reconciliationSection(client) {
   const section = {...row, by_kind_status: byStatus, checkpoints,
     tests: 'test/fpt-reconciliation.test.mjs (unit), test/fpt-reconciliation-sync.test.mjs (real sync: simulated loss, recovery, no duplicates)'};
   section.gate = reconciliationGate(section);
+  return section;
+}
+
+export async function reprocessingSection(client, sweep) {
+  const rows = sweep.results || [];
+  const row = await one(client, `SELECT
+      EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'fpt_raw_guard_trg' AND NOT tgisinternal) AS raw_guard_installed,
+      (SELECT count(*)::int FROM fpt_raw_retention_log) AS raw_deletions_logged,
+      (SELECT count(*)::int FROM fpt_reprocessing_runs) AS runs,
+      (SELECT count(*)::int FROM fpt_reprocessing_runs r WHERE r.status = 'failed' AND NOT EXISTS (
+         -- Resolved only by a later complete run of the same mode whose scope covers the failed one (full scope covers all).
+         SELECT 1 FROM fpt_reprocessing_runs x WHERE x.status = 'complete' AND x.mode = r.mode AND x.started_at > r.started_at
+           AND ((x.scope->'datasets') = 'null'::jsonb OR ((r.scope->'datasets') <> 'null'::jsonb
+             AND (x.scope->'datasets') @> (r.scope->'datasets')))))
+        AS failed_runs_unresolved`);
+  const versionSets = await all(client, `SELECT parser_version, schema_version, transform_version, count(*)::int AS n
+    FROM fpt_match_versions GROUP BY 1, 2, 3 ORDER BY 1, 2, 3`);
+  const lastRuns = await all(client, `SELECT run_id, mode, status, parser_version, actor, rows_parsed, rows_unchanged,
+      rows_new_output, versions_inserted, to_char(started_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS started_at
+    FROM fpt_reprocessing_runs ORDER BY started_at DESC LIMIT 10`);
+  const section = {
+    ...row,
+    // The certificate's raw sweep re-parses every stored gzip with the current parser: this is the dry run.
+    rows_checked: rows.reduce((sum, r) => sum + r.parser_rows, 0),
+    rows_without_version: rows.reduce((sum, r) => sum + Math.max(0, r.parser_rows - r.db_rows), 0),
+    snapshots_checked: rows.length,
+    hash_mismatch: rows.filter(r => !r.hash_ok).length,
+    current_lineage: {parser_version: LINEAGE_VERSIONS.parserVersion, schema_version: LINEAGE_VERSIONS.schemaVersion,
+      transform_version: LINEAGE_VERSIONS.transformVersion},
+    stored_version_sets: versionSets,
+    last_runs: lastRuns,
+    tests: 'test/fpt-reprocessing.test.mjs (simulated parser change: dry run, apply, idempotent replay, raw guard)'
+  };
+  section.gate = reprocessingGate(section);
   return section;
 }
 
@@ -804,6 +848,7 @@ export async function buildCertificateReport({env = process.env} = {}) {
       query_performance: {...perf, sample: perfSample},
       onboarding: await onboardingSection(client),
       reconciliation: await reconciliationSection(client),
+      reprocessing: await reprocessingSection(client, sweep),
       phase1: {gate: phase1Gate(status), latest_backfill: status.latest_backfill, checks: status.phase1_checks},
       phase2: {gate: status.phase2?.gate === true}
     };
@@ -826,7 +871,8 @@ export async function buildCertificateReport({env = process.env} = {}) {
       assistant_query_layer: report.assistant_query_layer.gate,
       query_performance: report.query_performance.gate,
       onboarding: report.onboarding.gate,
-      reconciliation: report.reconciliation.gate
+      reconciliation: report.reconciliation.gate,
+      reprocessing: report.reprocessing.gate
     };
     const limitations = knownLimitations(report);
     return {...report, gates, known_limitations: limitations, ...verdictFor(gates, limitations)};

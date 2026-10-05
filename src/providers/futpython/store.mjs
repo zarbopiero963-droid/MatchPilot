@@ -141,8 +141,9 @@ async function upsertSchemaBatch(client, schema) {
   );
 }
 
-function normalizeMatchRecord(row,{
-  datasetKey,snapshotId,acquiredAt,countrySlug,leagueSlug,season,sourceKind
+// Lineage is written explicitly from the code's versions, never left to column defaults (#12 parser policy).
+export function normalizeMatchRecord(row,{
+  datasetKey,snapshotId,acquiredAt,countrySlug,leagueSlug,season,sourceKind,lineage=LINEAGE_VERSIONS
 }) {
   const payloadJson=JSON.stringify(row);
   return {
@@ -160,20 +161,26 @@ function normalizeMatchRecord(row,{
     away:first(row,['Away','away']),
     phase:sourceKind==='dataset'?'HISTORICAL':'PREMATCH',
     payload:row,
-    payload_sha256:sha256(payloadJson)
+    payload_sha256:sha256(payloadJson),
+    source_provider:lineage.sourceProvider,
+    parser_version:lineage.parserVersion,
+    schema_version:lineage.schemaVersion,
+    transform_version:lineage.transformVersion
   };
 }
 
-async function insertMatchBatch(client, records) {
+export async function insertMatchBatch(client, records) {
   if (!records.length) return 0;
   const result=await client.query(
     `INSERT INTO fpt_match_versions(
       match_key,provider_match_id,dataset_key,snapshot_id,acquired_at,country_slug,league_slug,season,
-      match_date,match_time,home,away,phase,payload,payload_sha256
+      match_date,match_time,home,away,phase,payload,payload_sha256,
+      source_provider,parser_version,schema_version,transform_version
      )
      SELECT
        match_key,provider_match_id,dataset_key,snapshot_id,acquired_at,country_slug,league_slug,season,
-       match_date,match_time,home,away,phase,payload,payload_sha256
+       match_date,match_time,home,away,phase,payload,payload_sha256,
+       source_provider,parser_version,schema_version,transform_version
      FROM jsonb_to_recordset($1::jsonb) AS x(
        match_key text,
        provider_match_id text,
@@ -189,7 +196,11 @@ async function insertMatchBatch(client, records) {
        away text,
        phase text,
        payload jsonb,
-       payload_sha256 text
+       payload_sha256 text,
+       source_provider text,
+       parser_version text,
+       schema_version text,
+       transform_version text
      )
      ON CONFLICT(match_key,payload_sha256) DO NOTHING`,
     [JSON.stringify(records)]

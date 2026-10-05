@@ -30,7 +30,7 @@ export function renderCertificateMarkdown(report, {deploy = null, verification =
   out.push('');
   out.push(`**Esito: ${r.verdict}**`);
   out.push('');
-  out.push(`Sorgente del report: ${source || 'non dichiarata'}. Report costruito alle ${id.generated_at} (UTC). Ogni numero delle sezioni 1–19 viene dal report; nessun valore è stato scritto a mano. La sezione "Verifica incrociata" riporta controlli indipendenti fatti fuori dal report (query dirette su Neon e log Render). Issue #12 (FPT-CERT).`);
+  out.push(`Sorgente del report: ${source || 'non dichiarata'}. Report costruito alle ${id.generated_at} (UTC). Ogni numero delle sezioni 1–20 viene dal report; nessun valore è stato scritto a mano. La sezione "Verifica incrociata" riporta controlli indipendenti fatti fuori dal report (query dirette su Neon e log Render). Issue #12 (FPT-CERT).`);
   out.push('');
   if (r.failed_gates?.length) {
     out.push(`Gate falliti: ${r.failed_gates.map(g => `\`${g}\``).join(', ')}.`);
@@ -214,6 +214,19 @@ export function renderCertificateMarkdown(report, {deploy = null, verification =
       rc.checkpoints.map(x => [x.scope, x.status, x.last_success_at || '-', x.updated_at, x.retry_count, JSON.stringify(x.checkpoint)])));
     out.push(table(['gap', 'priorità', 'stato', 'righe'], rc.by_kind_status.map(x => [x.gap_kind, x.priority, x.status, x.n])));
     out.push(`Gate: **${yes(rc.gate)}**\n`);
+  }
+
+  const rp = r.reprocessing;
+  if (rp) {
+    out.push('## 20. Versionamento parser/schema e rielaborazione');
+    out.push('Lo sweep del raw ri-parsa ogni gzip con il parser corrente: è il dry run di una rielaborazione completa. Il raw è append-only (trigger), ogni rielaborazione è registrata.\n');
+    out.push(kv({snapshots_checked: rp.snapshots_checked, rows_checked: rp.rows_checked, rows_without_version: rp.rows_without_version,
+      hash_mismatch: rp.hash_mismatch, raw_guard_installed: rp.raw_guard_installed, raw_deletions_logged: rp.raw_deletions_logged,
+      runs: rp.runs, failed_runs_unresolved: rp.failed_runs_unresolved, current_lineage: rp.current_lineage, tests: rp.tests}));
+    out.push(table(['parser', 'schema', 'transform', 'versioni'], rp.stored_version_sets.map(x => [x.parser_version, x.schema_version, x.transform_version, x.n])));
+    if (rp.last_runs.length) out.push(table(['run', 'modo', 'stato', 'parser', 'attore', 'righe', 'invariate', 'nuove', 'inserite', 'inizio'],
+      rp.last_runs.map(x => [x.run_id, x.mode, x.status, x.parser_version, x.actor, x.rows_parsed, x.rows_unchanged, x.rows_new_output, x.versions_inserted, x.started_at])));
+    out.push(`Gate: **${yes(rp.gate)}**\n`);
   }
 
   out.push('## Limiti noti');
