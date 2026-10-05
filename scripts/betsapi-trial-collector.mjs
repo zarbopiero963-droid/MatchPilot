@@ -543,7 +543,7 @@ http.createServer(async (req, res) => {
       return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
     }
   }
-  if (req.url?.startsWith('/reconciliation/competitions')) {
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/competitions') {
     res.setHeader('content-type', 'application/json');
     if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
     const url=new URL(req.url,'http://localhost');
@@ -553,7 +553,7 @@ http.createServer(async (req, res) => {
     const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
     const params=[]; const where=[];
     if (provider) { params.push(provider); where.push(`c.provider=${params.length}`); }
-    if (sportId) { params.push(sportId); where.push(`c.sport_id=${params.length}`); }
+    if (sportId) { params.push(sportId); where.push(`c.sport_id::text=${params.length}`); }
     if (country) { params.push(country); where.push(`c.country_code=${params.length}`); }
     params.push(limit);
     const q=`
@@ -574,7 +574,7 @@ http.createServer(async (req, res) => {
       return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
     }
   }
-  if (req.url?.startsWith('/reconciliation/odds')) {
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
     res.setHeader('content-type', 'application/json');
     if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
     const url=new URL(req.url,'http://localhost');
@@ -586,7 +586,11 @@ http.createServer(async (req, res) => {
     const limit=Math.min(1000,Math.max(1,Number(url.searchParams.get('limit')||200)));
     const params=[]; const where=[];
     for (const [col,val] of [['event_id',eventId],['provider',provider],['sport_id',sportId],['league_id',leagueId],['market_key',market]]) {
-      if (val) { params.push(val); where.push(`${col}=${params.length}`); }
+      if (val) {
+        params.push(val);
+        const cast = (col==='sport_id' || col==='league_id' || col==='event_id') ? '::text' : '';
+        where.push(`${col}${cast}=${params.length}`);
+      }
     }
     params.push(limit);
     try {
@@ -601,7 +605,7 @@ http.createServer(async (req, res) => {
       return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
     }
   }
-  if (req.url?.startsWith('/reconciliation/odds-timeline')) {
+  if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timeline') {
     res.setHeader('content-type', 'application/json');
     if (!dbReady || !dbPool) { res.statusCode=503; return res.end(JSON.stringify({ok:false,error:'database_not_ready'})); }
     const url=new URL(req.url,'http://localhost');
