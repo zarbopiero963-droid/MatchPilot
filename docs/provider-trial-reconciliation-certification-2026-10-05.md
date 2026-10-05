@@ -12,7 +12,7 @@ Certification endpoint:
 
 `/reconciliation/certificate`
 
-All certification gates were true.
+All certification gates were true on the live certificate generated at **2026-10-05T13:09:18.433Z**.
 
 ## Certified scope
 
@@ -69,7 +69,7 @@ BetsAPI:
 - documented sports: **28 / 28**
 - competitions indexed: **4,132**
 - known countries/country codes observed: **198**
-- competitions with upstream country unknown are retained and explicitly classified as `unknown_upstream`
+- competitions with upstream country unknown: **2,572**, retained and explicitly classified as `unknown_upstream`
 
 ScoreTrend:
 - sports observed: 1
@@ -83,7 +83,7 @@ BetsAPI:
 - earliest event actually observed by reconciliation at certification time: **2017-10-06T10:20:00Z**
 - latest event actually observed: **2026-10-06T17:00:00Z**
 - competition coverage rows with real history: **412 / 412**
-- aggregate event facts: **49,689**
+- aggregate event facts: **53,629**
 
 Important: `provider_history_floor` and `earliest_event_time` are intentionally different fields.
 
@@ -92,7 +92,7 @@ The first represents provider documentation; the second represents actual eviden
 ### Odds
 
 BetsAPI normalized odds:
-- observations: **23,968**
+- observations: **23,976**
 - distinct events: **23**
 - distinct market keys: **16**
 - missing sport: **0**
@@ -108,9 +108,9 @@ Odds summary:
 
 Observed timeline:
 - first provider price time: **2026-10-04T00:10:26Z**
-- last provider price time at certification: **2026-10-05T13:05:30Z**
+- last provider price time at certification: **2026-10-05T13:07:30Z**
 - prematch observations: **1,285**
-- live/post observations: **22,683**
+- live/post observations: **22,691**
 
 ### Raw replay
 
