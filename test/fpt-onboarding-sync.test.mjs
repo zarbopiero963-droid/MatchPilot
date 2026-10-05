@@ -141,6 +141,12 @@ test('a simulated new league waits for the owner, a new season of an active leag
     const pending = await db.withClient(c => runQuery(c, 'onboarding', {}));
     const gamma = pending.rows.find(r => r.country_slug === 'gamma');
     assert.equal(gamma.ready_for_owner, true);
+    // A season still waiting (blocked_reason NULL) makes the league not ready, as the promotion command says.
+    await q(`INSERT INTO fpt_onboarding(dataset_key,country_slug,league_slug,season,kind,promotion,state,waiting_for)
+      VALUES('gamma/cup/2022','gamma','cup','2022','new_league','owner','BACKFILLED','schema')`);
+    const waiting = (await db.withClient(c => runQuery(c, 'onboarding', {}))).rows.find(r => r.country_slug === 'gamma');
+    assert.equal(waiting.ready_for_owner, false);
+    await q(`DELETE FROM fpt_onboarding WHERE dataset_key='gamma/cup/2022'`);
     assert.equal(pending.provenance.upstream_calls, 0);
     let section = await db.withClient(c => onboardingSection(c));
     assert.equal(section.gate, true, JSON.stringify(section));

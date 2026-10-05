@@ -204,7 +204,7 @@ export const QUERIES = {
         jsonb_agg(jsonb_build_object('dataset_key', dataset_key, 'season', season, 'state', state,
           'waiting_for', waiting_for, 'blocked', blocked, 'blocked_reason', blocked_reason) ORDER BY season) AS seasons,
         min(discovered_at) AS discovered_at,
-        bool_and(state = 'HARD_VERIFIED' OR blocked_reason = 'unavailable_404')
+        bool_and(state = 'HARD_VERIFIED' OR blocked_reason IS NOT DISTINCT FROM 'unavailable_404')
           AND bool_or(state = 'HARD_VERIFIED') AS ready_for_owner
       FROM fpt_onboarding
       WHERE state <> 'ACTIVE'

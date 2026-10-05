@@ -352,7 +352,8 @@ export async function promoteLeague(client, {country, league, actor, reason}) {
   if (!reason || !String(reason).trim()) throw new Error('promotion needs a reason');
   const rows = (await client.query(
     `SELECT dataset_key, state, blocked_reason FROM fpt_onboarding
-     WHERE country_slug = $1 AND league_slug = $2 AND state <> 'ACTIVE' ORDER BY dataset_key`, [country, league])).rows;
+     WHERE country_slug = $1 AND league_slug = $2 AND state <> 'ACTIVE' ORDER BY dataset_key
+     FOR UPDATE`, [country, league])).rows;
   if (!rows.length) throw new Error(`no pending onboarding rows for ${country}/${league}`);
   const notReady = rows.filter(r => r.state !== 'HARD_VERIFIED' && r.blocked_reason !== 'unavailable_404');
   if (notReady.length) {
@@ -363,10 +364,12 @@ export async function promoteLeague(client, {country, league, actor, reason}) {
   const ready = rows.filter(r => r.state === 'HARD_VERIFIED');
   if (!ready.length) throw new Error(`no HARD_VERIFIED season for ${country}/${league}`);
   for (const r of ready) {
-    await client.query(
+    const res = await client.query(
       `UPDATE fpt_onboarding SET state = 'ACTIVE', waiting_for = NULL, activated_at = now(), activated_by = $2,
          updated_at = now() WHERE dataset_key = $1 AND state = 'HARD_VERIFIED'`,
       [r.dataset_key, `owner:${actor}`]);
+    // The audit trail never records a promotion that did not happen.
+    if (res.rowCount !== 1) throw new Error(`${r.dataset_key} changed state during promotion`);
     await logEvent(client, {dataset_key: r.dataset_key, from_state: 'HARD_VERIFIED', to_state: 'ACTIVE',
       actor: `owner:${actor}`, reason});
   }
