@@ -82,12 +82,17 @@ export function extractEventIds(body, max = 10) {
     body?.results?.events
   ].find(Array.isArray) || [];
   const ids=[];
+  const seen=new Set();
   for (const item of candidates) {
     const id=item?.id ?? item?.event_id ?? item?.FI ?? item?.our_event_id;
-    if (id !== undefined && id !== null && String(id).length) ids.push(String(id));
+    if (id === undefined || id === null || !String(id).length) continue;
+    const value=String(id);
+    if (seen.has(value)) continue;
+    seen.add(value);
+    ids.push(value);
     if (ids.length >= max) break;
   }
-  return [...new Set(ids)].slice(0,max);
+  return ids;
 }
 
 export function createHourlyBudget({ limitPerHour = DEFAULT_LIMIT_PER_HOUR, reserve = 120, now = () => Date.now() } = {}) {
