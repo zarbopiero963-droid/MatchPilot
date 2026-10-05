@@ -501,3 +501,42 @@ Environment overrides:
 - `PROVIDER_TRIAL_KEEPALIVE_MS` (minimum 60 seconds)
 
 `/healthz` exposes attempts, successes, failures, last HTTP status and sanitized error. This is a temporary trial-only mechanism and must be removed/disabled when issue #40 reaches shutdown. It does not create synthetic provider records.
+
+
+## BetsAPI Everything — pre-integration dormant
+
+The temporary provider-trial branch contains a dormant multi-family BetsAPI adapter layer so the 24-hour Everything trial can be used for data collection immediately after activation.
+
+Default contract:
+- `BETSAPI_EVERYTHING_ENABLED=false` (no Everything calls);
+- token resolution: `BETSAPI_EVERYTHING_TOKEN` first, fallback to existing `BETSAPI_TOKEN`;
+- `BETSAPI_EVERYTHING_FAMILIES=all` or comma-separated allowlist;
+- `BETSAPI_EVERYTHING_REQS_PER_HOUR=1800`;
+- `BETSAPI_EVERYTHING_RESERVE=120` keeps safety headroom;
+- `BETSAPI_EVERYTHING_MAX_DETAILS=5`;
+- discovery cycle default 60s;
+- prematch/upcoming cycle default 300s.
+
+Prepared football families:
+- Bet365;
+- BWin;
+- Betfair Exchange;
+- Betfair Sportsbook;
+- Sbobet;
+- 1xBet;
+- Events / Soccer.
+
+The adapter persists raw responses through the existing provider-trial write path, including family, endpoint, HTTP status, latency, rate-limit headers, discovered field paths and raw body. A 403 is classified as `PERMISSION_DENIED`, 429 as `RATE_LIMITED`, and 5xx as `UPSTREAM_ERROR`.
+
+Endpoints:
+- `/everything-status` exposes feature flag, token presence/source, enabled families, hourly budget and per-family state.
+- `/healthz` embeds the same Everything status.
+
+Safety:
+- with the feature flag off, tests prove zero Everything network calls;
+- the token is never written to persisted metadata;
+- current Bet365/TotalCorner/ScoreTrend collection remains independent;
+- no Everything family should be activated before the owner purchases/enables the trial;
+- unknown fields are preserved in raw payload and field discovery rather than discarded.
+
+The Everything dataset will feed issue #40 provider comparison and issue #34 Indicator Library evaluation. Indicator formulas are deliberately not finalized here: candidate indicators must be classified KEEP / MERGE / REJECT from real coverage, freshness, redundancy and out-of-sample evidence.
