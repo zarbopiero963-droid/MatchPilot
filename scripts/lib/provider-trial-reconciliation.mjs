@@ -44,6 +44,23 @@ CREATE TABLE IF NOT EXISTS provider_trial.coverage (
   provider_history_floor date,
   PRIMARY KEY(provider,sport_id,country_code,league_id)
 );
+CREATE TABLE IF NOT EXISTS provider_trial.events (
+  provider text NOT NULL,
+  event_id text NOT NULL,
+  sport_id text,
+  country_code text NOT NULL DEFAULT '',
+  league_id text,
+  league_name text,
+  kickoff_utc timestamptz,
+  time_status text,
+  home_name text,
+  away_name text,
+  first_seen_at timestamptz NOT NULL,
+  last_seen_at timestamptz NOT NULL,
+  PRIMARY KEY(provider,event_id)
+);
+CREATE INDEX IF NOT EXISTS provider_trial_events_filter_idx
+  ON provider_trial.events(provider,sport_id,country_code,league_id,kickoff_utc);
 CREATE TABLE IF NOT EXISTS provider_trial.odds_observations (
   observation_id bigserial PRIMARY KEY,
   observation_hash text NOT NULL UNIQUE,
@@ -132,7 +149,12 @@ function eventFact(obj, observedAt, provider) {
   const kickoff=isoFromEpoch(obj.time ?? obj.start_time ?? obj.timestamp) ||
     (obj.Date && !Number.isNaN(Date.parse(obj.Date)) ? new Date(obj.Date).toISOString() : null);
   if (!sportId && !leagueId && !eventId) return null;
-  return {provider,sport_id:sportId,country_code:countryCode,league_id:leagueId,league_name:leagueName,event_id:eventId,kickoff_utc:kickoff,observed_at:observedAt};
+  return {
+    provider,sport_id:sportId,country_code:countryCode,league_id:leagueId,league_name:leagueName,event_id:eventId,kickoff_utc:kickoff,observed_at:observedAt,
+    time_status:clean(obj.time_status ?? obj.status),
+    home_name:clean(obj.home?.name ?? obj.HomeTeam),
+    away_name:clean(obj.away?.name ?? obj.AwayTeam)
+  };
 }
 
 function walkObjects(value, cb, path='', depth=0) {
@@ -195,6 +217,7 @@ export function normalizeTrialRows(rows) {
   const sports=new Map();
   const competitions=new Map();
   const coverage=new Map();
+  const events=new Map();
   const odds=[];
   for (const row of rows) {
     const provider=providerForSource(row.type);
@@ -206,6 +229,17 @@ export function normalizeTrialRows(rows) {
       if (f.sport_id) {
         const key=provider+'|'+f.sport_id;
         sports.set(key,{provider,sport_id:f.sport_id,sport_name:SPORT_NAMES.get(f.sport_id)||null,first_seen_at:observedAt,last_seen_at:observedAt});
+      }
+      if (f.event_id) {
+        const ekey=provider+'|'+f.event_id;
+        const prevEvent=events.get(ekey);
+        events.set(ekey,{
+          provider,event_id:f.event_id,sport_id:f.sport_id||prevEvent?.sport_id||null,
+          country_code:f.country_code||prevEvent?.country_code||'',league_id:f.league_id||prevEvent?.league_id||null,
+          league_name:f.league_name||prevEvent?.league_name||null,kickoff_utc:f.kickoff_utc||prevEvent?.kickoff_utc||null,
+          time_status:f.time_status||prevEvent?.time_status||null,home_name:f.home_name||prevEvent?.home_name||null,away_name:f.away_name||prevEvent?.away_name||null,
+          first_seen_at:prevEvent?.first_seen_at||observedAt,last_seen_at:observedAt
+        });
       }
       if (f.sport_id && f.league_id) {
         const key=[provider,f.sport_id,f.country_code,f.league_id].join('|');
@@ -225,7 +259,7 @@ export function normalizeTrialRows(rows) {
       odds.push(...oddsFacts(body,row.type,observedAt,provider));
     }
   }
-  return {sports:[...sports.values()],competitions:[...competitions.values()],coverage:[...coverage.values()],odds};
+  return {sports:[...sports.values()],competitions:[...competitions.values()],coverage:[...coverage.values()],events:[...events.values()],odds};
 }
 
 export async function initReconciliation(pool) {
@@ -261,6 +295,24 @@ export async function persistNormalizedBatch(pool, normalized) {
         first_seen_at=LEAST(provider_trial.competitions.first_seen_at,EXCLUDED.first_seen_at),
         last_seen_at=GREATEST(provider_trial.competitions.last_seen_at,EXCLUDED.last_seen_at)
     `,[JSON.stringify(normalized.competitions)]);
+  }
+  if (normalized.events.length) {
+    await pool.query(`
+      INSERT INTO provider_trial.events(provider,event_id,sport_id,country_code,league_id,league_name,kickoff_utc,time_status,home_name,away_name,first_seen_at,last_seen_at)
+      SELECT provider,event_id,sport_id,country_code,league_id,league_name,kickoff_utc::timestamptz,time_status,home_name,away_name,first_seen_at::timestamptz,last_seen_at::timestamptz
+      FROM jsonb_to_recordset($1::jsonb) AS x(provider text,event_id text,sport_id text,country_code text,league_id text,league_name text,kickoff_utc text,time_status text,home_name text,away_name text,first_seen_at text,last_seen_at text)
+      ON CONFLICT(provider,event_id) DO UPDATE SET
+        sport_id=COALESCE(EXCLUDED.sport_id,provider_trial.events.sport_id),
+        country_code=COALESCE(NULLIF(EXCLUDED.country_code,''),provider_trial.events.country_code),
+        league_id=COALESCE(EXCLUDED.league_id,provider_trial.events.league_id),
+        league_name=COALESCE(EXCLUDED.league_name,provider_trial.events.league_name),
+        kickoff_utc=COALESCE(EXCLUDED.kickoff_utc,provider_trial.events.kickoff_utc),
+        time_status=COALESCE(EXCLUDED.time_status,provider_trial.events.time_status),
+        home_name=COALESCE(EXCLUDED.home_name,provider_trial.events.home_name),
+        away_name=COALESCE(EXCLUDED.away_name,provider_trial.events.away_name),
+        first_seen_at=LEAST(provider_trial.events.first_seen_at,EXCLUDED.first_seen_at),
+        last_seen_at=GREATEST(provider_trial.events.last_seen_at,EXCLUDED.last_seen_at)
+    `,[JSON.stringify(normalized.events)]);
   }
   if (normalized.coverage.length) {
     await pool.query(`
