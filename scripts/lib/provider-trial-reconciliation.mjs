@@ -360,16 +360,11 @@ export function normalizeTrialRows(rows) {
 
 
 export async function ensureRawRecordsAppendOnly(pool) {
-  await pool.query(`
-    CREATE OR REPLACE FUNCTION provider_trial.reject_records_mutation()
-    RETURNS trigger
-    LANGUAGE plpgsql
-    AS $
-    BEGIN
-      RAISE EXCEPTION 'provider_trial.records is append-only';
-    END;
-    $;
-  `);
+  await pool.query(
+    "CREATE OR REPLACE FUNCTION provider_trial.reject_records_mutation() " +
+    "RETURNS trigger LANGUAGE plpgsql AS " +
+    "'BEGIN RAISE EXCEPTION ''provider_trial.records is append-only''; END;'"
+  );
   await pool.query(`DROP TRIGGER IF EXISTS provider_trial_records_append_only ON provider_trial.records`);
   await pool.query(`
     CREATE TRIGGER provider_trial_records_append_only
