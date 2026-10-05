@@ -188,7 +188,10 @@ function oddsFacts(body, sourceType, observedAt, provider) {
   });
   walkObjects(body,(obj,path)=>{
     if (!ODDS_CONTEXT.test(path)) return;
-    const market=clean(obj.market_key ?? obj.marketId ?? obj.market_id ?? obj.marketType ?? obj.marketName ?? obj.name ?? path.split('.').slice(-2,-1)[0]) || 'unknown';
+    const marketFromPath=path.match(/(?:^|\.)(\d+_\d+)(?:\.|$)/)?.[1] || null;
+    const fallbackMarket=path.split('.').slice(-2,-1)[0] || null;
+    const market=clean(obj.market_key ?? obj.marketId ?? obj.market_id ?? obj.marketType ?? obj.marketName ?? marketFromPath ?? fallbackMarket);
+    if (!market) return;
     const selection=clean(obj.selection_key ?? obj.selectionId ?? obj.id ?? obj.name ?? obj.runnerName ?? path.split('.').at(-1)) || 'unknown';
     const lineEntry=Object.entries(obj).find(([k])=>LINE_KEYS.test(k));
     const line=lineEntry ? clean(lineEntry[1]) : null;
@@ -287,11 +290,13 @@ export function normalizeTrialRows(rows) {
         coverage.set(key,cov);
       }
     });
-    if (/odds|prematch|event|inplay|match_view|match_odds/.test(row.type)) {
+    if (row.type === 'betsapi_documented_event_odds' || row.type === 'totalcorner_match_odds') {
       const extracted=oddsFacts(body,row.type,observedAt,provider);
       for (const o of extracted) {
         if (!o.sport_id && contextSport) o.sport_id=contextSport;
         if (!o.event_id && contextEvent) o.event_id=contextEvent;
+        if (!o.event_id && row.payload?.id) o.event_id=clean(row.payload.id);
+        if (!o.bookmaker && requestParams.source) o.bookmaker=clean(requestParams.source);
       }
       odds.push(...extracted);
     }
@@ -301,6 +306,14 @@ export function normalizeTrialRows(rows) {
 
 export async function initReconciliation(pool) {
   await pool.query(RECONCILIATION_SCHEMA_SQL);
+  await pool.query(`
+    DELETE FROM provider_trial.odds_observations
+    WHERE source_type NOT IN ('betsapi_documented_event_odds','totalcorner_match_odds')
+       OR event_id IS NULL
+       OR market_key IS NULL
+       OR market_key=''
+       OR market_key='unknown'
+  `);
   for (const sport of BETSAPI_SPORTS) {
     await pool.query(`
       INSERT INTO provider_trial.sports(provider,sport_id,sport_name,documented)
@@ -377,6 +390,22 @@ export async function persistNormalizedBatch(pool, normalized) {
         ON CONFLICT(observation_hash) DO NOTHING
       `,[JSON.stringify(chunk)]);
     }
+    await pool.query(`
+      UPDATE provider_trial.odds_observations o
+      SET sport_id=COALESCE(o.sport_id,e.sport_id),
+          country_code=COALESCE(NULLIF(o.country_code,''),e.country_code),
+          league_id=COALESCE(o.league_id,e.league_id),
+          league_name=COALESCE(o.league_name,e.league_name),
+          kickoff_utc=COALESCE(o.kickoff_utc,e.kickoff_utc),
+          phase=CASE
+            WHEN COALESCE(o.kickoff_utc,e.kickoff_utc) IS NOT NULL
+             AND o.observed_at < COALESCE(o.kickoff_utc,e.kickoff_utc) THEN 'prematch'
+            WHEN COALESCE(o.kickoff_utc,e.kickoff_utc) IS NOT NULL THEN 'live_or_post'
+            ELSE o.phase
+          END
+      FROM provider_trial.events e
+      WHERE e.provider=o.provider AND e.event_id=o.event_id
+    `);
   }
 }
 
