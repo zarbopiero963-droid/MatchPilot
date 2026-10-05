@@ -90,32 +90,34 @@ CREATE TABLE IF NOT EXISTS provider_trial.reconciliation_state (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE OR REPLACE VIEW provider_trial.odds_summary AS
-WITH ranked AS (
-  SELECT *,
-    row_number() OVER (PARTITION BY provider,event_id,bookmaker,market_key,selection_key,line_value ORDER BY observed_at) AS rn_open,
-    row_number() OVER (PARTITION BY provider,event_id,bookmaker,market_key,selection_key,line_value ORDER BY observed_at DESC) AS rn_latest,
-    row_number() OVER (
-      PARTITION BY provider,event_id,bookmaker,market_key,selection_key,line_value
-      ORDER BY CASE WHEN kickoff_utc IS NOT NULL AND observed_at <= kickoff_utc THEN observed_at END DESC NULLS LAST
-    ) AS rn_close
-  FROM provider_trial.odds_observations
-), agg AS (
-  SELECT provider,event_id,bookmaker,market_key,selection_key,line_value,
-    max(sport_id) AS sport_id,max(country_code) AS country_code,max(league_id) AS league_id,max(league_name) AS league_name,
-    max(kickoff_utc) AS kickoff_utc,
-    max(price) FILTER (WHERE rn_open=1) AS opening_price,
-    max(price) FILTER (WHERE rn_latest=1) AS latest_price,
-    max(price) FILTER (WHERE rn_close=1 AND kickoff_utc IS NOT NULL AND observed_at <= kickoff_utc) AS closing_price,
-    min(price) AS min_price,max(price) AS max_price,
-    min(observed_at) AS first_observed_at,max(observed_at) AS last_observed_at,
-    count(*)::bigint AS observations
-  FROM ranked
-  GROUP BY provider,event_id,bookmaker,market_key,selection_key,line_value
-)
-SELECT *,
-  CASE WHEN opening_price IS NOT NULL AND latest_price IS NOT NULL THEN latest_price-opening_price END AS change_open_latest,
-  CASE WHEN opening_price IS NOT NULL AND closing_price IS NOT NULL THEN closing_price-opening_price END AS change_open_close
-FROM agg;
+SELECT
+  provider,event_id,bookmaker,market_key,selection_key,line_value,
+  max(sport_id) AS sport_id,
+  max(country_code) AS country_code,
+  max(league_id) AS league_id,
+  max(league_name) AS league_name,
+  max(kickoff_utc) AS kickoff_utc,
+  (array_agg(price ORDER BY observed_at ASC))[1] AS opening_price,
+  (array_agg(price ORDER BY observed_at DESC))[1] AS latest_price,
+  (array_agg(price ORDER BY observed_at DESC)
+     FILTER (WHERE kickoff_utc IS NOT NULL AND observed_at <= kickoff_utc))[1] AS closing_price,
+  min(price) AS min_price,
+  max(price) AS max_price,
+  min(observed_at) AS first_observed_at,
+  max(observed_at) AS last_observed_at,
+  count(*)::bigint AS observations,
+  (array_agg(price ORDER BY observed_at DESC))[1] -
+    (array_agg(price ORDER BY observed_at ASC))[1] AS change_open_latest,
+  CASE
+    WHEN (array_agg(price ORDER BY observed_at DESC)
+       FILTER (WHERE kickoff_utc IS NOT NULL AND observed_at <= kickoff_utc))[1] IS NOT NULL
+    THEN
+      (array_agg(price ORDER BY observed_at DESC)
+         FILTER (WHERE kickoff_utc IS NOT NULL AND observed_at <= kickoff_utc))[1] -
+      (array_agg(price ORDER BY observed_at ASC))[1]
+  END AS change_open_close
+FROM provider_trial.odds_observations
+GROUP BY provider,event_id,bookmaker,market_key,selection_key,line_value;
 `;
 
 export function providerForSource(sourceType='') {
@@ -306,6 +308,17 @@ export function normalizeTrialRows(rows) {
 
 export async function initReconciliation(pool) {
   await pool.query(RECONCILIATION_SCHEMA_SQL);
+  const parserState=await pool.query(
+    `SELECT value->>'version' AS version FROM provider_trial.reconciliation_state WHERE key='odds_parser_version'`
+  );
+  if (parserState.rows[0]?.version !== '2') {
+    await pool.query('TRUNCATE TABLE provider_trial.odds_observations RESTART IDENTITY');
+    await pool.query(`
+      INSERT INTO provider_trial.reconciliation_state(key,value,updated_at)
+      VALUES('odds_parser_version',$1::jsonb,now())
+      ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value,updated_at=now()
+    `,[JSON.stringify({version:'2',reason:'strict_event_odds_and_totalcorner_only'})]);
+  }
   await pool.query(`
     DELETE FROM provider_trial.odds_observations
     WHERE source_type NOT IN ('betsapi_documented_event_odds','totalcorner_match_odds')
