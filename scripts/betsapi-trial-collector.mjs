@@ -561,8 +561,8 @@ http.createServer(async (req, res) => {
              v.earliest_event_time,v.latest_event_time,v.provider_history_floor,v.event_count,
              c.first_seen_at,c.last_seen_at
       FROM provider_trial.competitions c
-      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id=c.sport_id
-      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id=c.sport_id AND v.country_code=c.country_code AND v.league_id=c.league_id
+      LEFT JOIN provider_trial.sports s ON s.provider=c.provider AND s.sport_id::text=c.sport_id::text
+      LEFT JOIN provider_trial.coverage v ON v.provider=c.provider AND v.sport_id::text=c.sport_id::text AND v.country_code=c.country_code AND v.league_id::text=c.league_id::text
       ${where.length?'WHERE '+where.join(' AND '):''}
       ORDER BY c.provider,s.sport_name,c.country_code,c.league_name
       LIMIT ${params.length}`;
