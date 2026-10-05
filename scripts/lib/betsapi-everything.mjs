@@ -469,6 +469,7 @@ export function createEverythingRuntime({
         group:endpoint.group,
         mode:endpoint.mode,
         endpoint:endpoint.path,
+        request_params:check.params,
         status:res.status,
         latency_ms:latency,
         classification,
@@ -485,7 +486,7 @@ export function createEverythingRuntime({
     } catch (error) {
       const safe=String(error?.message||error);
       write('betsapi_documented_'+endpointKey+'_error',{
-        endpoint_key:endpointKey,group:endpoint.group,mode:endpoint.mode,endpoint:endpoint.path,error:safe
+        endpoint_key:endpointKey,group:endpoint.group,mode:endpoint.mode,endpoint:endpoint.path,request_params:check.params,error:safe
       });
       return {ok:false,error:safe};
     }
