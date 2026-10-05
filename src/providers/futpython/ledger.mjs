@@ -50,8 +50,10 @@ export function createPgLedger() {
     },
     async recent(limit) {
       const result = await withClient(client => client.query(
+        // Only real provider attempts: a cache hit, dedup or deferral says nothing about provider health.
         `SELECT outcome, http_status
          FROM fpt_request_ledger
+         WHERE outcome = ANY('{upstream,429,error}'::text[])
          ORDER BY recorded_at DESC, ledger_id DESC
          LIMIT $1`,
         [limit]

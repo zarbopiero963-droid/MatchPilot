@@ -137,6 +137,10 @@ export function purposeOf(opts = {}) {
   return opts.priority === 'backfill' ? 'backfill' : 'current_season';
 }
 
+// Every outcome the ledger accepts (migration 017 CHECK), and the subset that is a real provider attempt.
+export const LEDGER_OUTCOMES = ['cache_hit', 'upstream', '429', 'error', 'deduped', 'throttled'];
+export const REQUEST_OUTCOMES = ['upstream', '429', 'error'];
+
 export function createMemoryLedger() {
   const rows = [];
   return {
@@ -154,7 +158,7 @@ export function createMemoryLedger() {
       return rows.some(row => row.run_id === runId && row.dataset_key === datasetKey && row.outcome === 'upstream');
     },
     async recent(limit) {
-      return [...rows].reverse().slice(0, limit);
+      return [...rows].reverse().filter(row => REQUEST_OUTCOMES.includes(row.outcome)).slice(0, limit);
     }
   };
 }

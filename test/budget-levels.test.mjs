@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  admits, budgetLevel, dayLevel, purposeOf, createMemoryLedger, createRequestBudget, BUDGET_LEVELS, REQUEST_PURPOSES
+  admits, budgetLevel, dayLevel, purposeOf, createMemoryLedger, createRequestBudget, BUDGET_LEVELS, REQUEST_PURPOSES,
+  LEDGER_OUTCOMES
 } from '../src/providers/futpython/budget.mjs';
 
 test('budget levels follow #31 and admission is a strict priority ladder', () => {
@@ -70,4 +71,20 @@ test('CRITICAL keeps only today; EXHAUSTED keeps nothing; throttled rows do not 
   for (let i = 0; i < 5; i++) await outcome(normal.budget, {purpose: 'discovery', path: `/api-docs?i=${i}`});
   assert.equal(normal.calls(), 5);
   assert.ok(normal.ledger.rows.filter(r => r.outcome === 'upstream' && r.budget_level).every(r => r.budget_level === 'NORMAL'));
+});
+
+test('a restarted process still opens the circuit when deferrals, cache hits and dedups follow the failures', async () => {
+  const ledger = createMemoryLedger();
+  const t = Date.parse('2026-10-05T12:00:00Z');
+  for (let i = 0; i < 5; i++) ledger.rows.push({recorded_at: new Date(t - 5000 + i), outcome: 'error', http_status: 503, url_path: '/x', attempt: 1});
+  for (const o of ['throttled', 'cache_hit', 'deduped']) ledger.rows.push({recorded_at: new Date(t - 100), outcome: o, url_path: '/x', attempt: 0});
+  let calls = 0;
+  const budget = createRequestBudget({
+    ledger, now: () => t, sleep: async () => {}, apiKey: () => 'k', random: () => 0,
+    config: {perMinute: 20, perDay: 1000, backfillPerMinute: 8, maxAttempts: 1, backoffBaseMs: 1, backoffCapMs: 1, circuitFailures: 5, circuitOpenMs: 60000},
+    fetchImpl: async () => { calls++; return {status: 200, ok: true, headers: {}, text: async () => 'Date,Home,Away\n'}; }
+  });
+  assert.equal(await outcome(budget, {purpose: 'today', path: '/api/jogos-do-dia?date=2026-10-05&format=csv'}), 'CIRCUIT_OPEN');
+  assert.equal(calls, 0, 'rows that are not provider attempts do not reset the failure streak');
+  assert.ok(LEDGER_OUTCOMES.includes('throttled'), 'the certificate knows the deferral outcome');
 });

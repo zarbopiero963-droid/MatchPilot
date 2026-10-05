@@ -96,6 +96,10 @@ test('a real incremental sync under CONSERVE and CRITICAL defers traffic instead
     const last = (await db.withClient(c => c.query(`SELECT status, meta FROM fpt_sync_runs ORDER BY started_at DESC LIMIT 1`))).rows[0];
     assert.ok(last.meta.deferred.some(d => d.datasetKey === current && d.level === 'CRITICAL'));
     assert.notEqual(last.status, 'failed');
+    const {LEDGER_OUTCOMES} = await import('../src/providers/futpython/budget.mjs');
+    const unknown = (await db.withClient(c => c.query(
+      'SELECT count(*)::int AS n FROM fpt_request_ledger WHERE outcome <> ALL($1::text[])', [LEDGER_OUTCOMES]))).rows[0].n;
+    assert.equal(unknown, 0, 'every ledger outcome written by the sync is known to the certificate');
   } finally {
     server.close();
     await db.closePool();

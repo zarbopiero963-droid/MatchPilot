@@ -143,7 +143,7 @@ export function renderCertificateMarkdown(report, {deploy = null, verification =
     unknown_outcomes: l.unknown_outcomes, rows_without_endpoint_family: l.rows_without_endpoint_family,
     rows_with_latency: l.rows_with_latency, rows_with_budget_state: l.rows_with_budget_state,
     rows_with_provider_quota: l.rows_with_provider_quota, deduped_rows: l.deduped_rows,
-    by_budget_state: l.by_budget_state, window: l.window, config: l.config
+    by_budget_state: l.by_budget_state, by_budget_level: l.by_budget_level, window: l.window, config: l.config
   }));
   out.push(table(['outcome', 'endpoint', 'righe', 'latenza p50 ms', 'latenza max ms'],
     l.by_outcome.map(x => [x.outcome, x.endpoint_family, x.n, x.latency_p50_ms, x.latency_max_ms])));

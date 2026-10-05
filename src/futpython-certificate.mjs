@@ -6,7 +6,7 @@ import { inspectDatasetCsv } from './providers/futpython/integrity.mjs';
 import { sha256 } from './providers/futpython/store.mjs';
 import { LINEAGE_VERSIONS } from './providers/futpython/schema.mjs';
 import { DATA_CONTRACT } from './providers/futpython/seasons.mjs';
-import { budgetConfig } from './providers/futpython/budget.mjs';
+import { budgetConfig, LEDGER_OUTCOMES } from './providers/futpython/budget.mjs';
 import { FACTS_VERSION, FILTERS_VERSION, ROUTES, perfSamples, runPerfGate, runQuery } from './providers/futpython/query.mjs';
 
 export const CERTIFICATE_VERSION = 'fpt-cert-1';
@@ -428,7 +428,7 @@ async function lineageSection(client, status) {
 async function ledgerSection(client) {
   const totals = await one(client, `SELECT count(*)::int AS rows,
       count(*) FILTER (WHERE position('api_key=' in lower(url_path)) > 0)::int AS api_key_paths,
-      count(*) FILTER (WHERE outcome NOT IN ('cache_hit','upstream','429','error','deduped'))::int AS unknown_outcomes,
+      count(*) FILTER (WHERE outcome <> ALL($1::text[]))::int AS unknown_outcomes,
       count(*) FILTER (WHERE endpoint_family IS NULL)::int AS rows_without_endpoint_family,
       count(*) FILTER (WHERE latency_ms IS NOT NULL)::int AS rows_with_latency,
       count(*) FILTER (WHERE budget_state IS NOT NULL)::int AS rows_with_budget_state,
@@ -436,7 +436,7 @@ async function ledgerSection(client) {
       count(*) FILTER (WHERE deduped)::int AS deduped_rows,
       to_char(min(recorded_at) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS first_row,
       to_char(max(recorded_at) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS last_row
-    FROM fpt_request_ledger`);
+    FROM fpt_request_ledger`, [LEDGER_OUTCOMES]);
   const after = await one(client, `WITH m AS (
       SELECT applied_at FROM schema_migrations WHERE filename = '014-fpt-normalized-layer.sql'
     )
@@ -455,6 +455,9 @@ async function ledgerSection(client) {
     FROM fpt_request_ledger GROUP BY 1, 2 ORDER BY 1, 2`);
   const byState = await all(client, `SELECT COALESCE(budget_state, 'not_recorded') AS budget_state, count(*)::int AS n
     FROM fpt_request_ledger GROUP BY 1 ORDER BY 1`);
+  const byLevel = await all(client, `SELECT COALESCE(budget_level, 'not_recorded') AS budget_level, count(*)::int AS n,
+      count(*) FILTER (WHERE outcome = 'throttled')::int AS throttled
+    FROM fpt_request_ledger GROUP BY 1 ORDER BY 1`);
   const window = await one(client, `SELECT
       count(*) FILTER (WHERE recorded_at >= now() - interval '1 minute' AND outcome IN ('upstream','429','error'))::int AS minute_used,
       count(*) FILTER (WHERE recorded_at >= now() - interval '1 day' AND outcome IN ('upstream','429','error'))::int AS day_used,
@@ -467,6 +470,7 @@ async function ledgerSection(client) {
     ...after,
     by_outcome: byOutcome,
     by_budget_state: Object.fromEntries(byState.map(r => [r.budget_state, r.n])),
+    by_budget_level: Object.fromEntries(byLevel.map(r => [r.budget_level, {rows: r.n, throttled: r.throttled}])),
     window,
     config,
     mechanisms: {
@@ -477,7 +481,8 @@ async function ledgerSection(client) {
       backoff_jitter: 'test/request-budget.test.mjs',
       circuit_breaker: 'test/request-budget.test.mjs, test/phase8-watchdog.test.mjs',
       backfill_throttling: 'test/request-budget.test.mjs',
-      budget_warning_critical: 'test/phase8-watchdog.test.mjs'
+      budget_warning_critical: 'test/phase8-watchdog.test.mjs',
+      budget_levels_deferral: 'test/budget-levels.test.mjs, test/budget-throttle-sync.test.mjs'
     }
   };
   section.gate = ledgerGate(section);

@@ -502,7 +502,7 @@ Ogni richiesta FutPythonTrader ha uno scopo, in ordine di priorità: `today` (pr
 | CRITICAL | solo today |
 | EXHAUSTED | nessuno |
 
-Una richiesta non ammessa scrive una riga `throttled` e non chiama il provider; non conta come uso del budget. Il sync usa il catalogo già salvato su DB quando la discovery è sospesa (`meta.catalogSource = db:budget_<livello>`). Un dataset rimandato resta nello stato precedente, non diventa `error`, e il run successivo lo riprende. `retry_count` è derivato da `attempt` anche per le righe storiche; `budget_level` resta NULL dove non era misurato.
+Una richiesta non ammessa scrive una riga `throttled` e non chiama il provider; non conta come uso del budget. Il sync usa il catalogo già salvato su DB quando la discovery è sospesa (`meta.catalogSource = db:budget_<livello>`). Un dataset rimandato resta nello stato precedente, non diventa `error`, e il run successivo lo riprende. `retry_count` è derivato da `attempt` anche per le righe storiche; `budget_level` resta NULL dove non era misurato. Il certificato conosce l'outcome `throttled` (non è un outcome sconosciuto) e mostra le righe per `budget_level`. Il circuit breaker, al riavvio, legge solo i tentativi reali verso il provider (`upstream`, `429`, `error`): una cache hit, un dedup o un rinvio non azzerano la serie di errori.
 
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
 
