@@ -290,3 +290,31 @@ test('full catalog cycle harvests real ids and probes dependent endpoints', asyn
   assert.ok(r.context.player_ids >= 1);
   assert.equal(r.context.has_search_tuple,true);
 });
+
+
+test('concurrent full catalog probes collapse to one upstream cycle', async () => {
+  let calls=0;
+  const rt=createEverythingRuntime({
+    env:{
+      BETSAPI_EVERYTHING_TOKEN:'x',
+      BETSAPI_EVERYTHING_ENABLED:'true',
+      BETSAPI_EVERYTHING_REQS_PER_HOUR:'1800',
+      BETSAPI_EVERYTHING_RESERVE:'120'
+    },
+    fetchImpl:async url=>{
+      calls++;
+      await new Promise(r=>setTimeout(r,2));
+      const u=new URL(String(url));
+      let body={success:1,results:[]};
+      if (u.pathname==='/v3/events/inplay') {
+        body={success:1,results:[{id:123,bet365_id:456,time:1791158400,home:{id:10,name:'Home'},away:{id:11,name:'Away'},league:{id:20,name:'League'}}]};
+      }
+      return {status:200,ok:true,headers:{get:()=>null},text:async()=>JSON.stringify(body)};
+    }
+  });
+  const [a,b]=await Promise.all([rt.fullCatalogCycle(),rt.fullCatalogCycle()]);
+  assert.equal(a.cycles,1);
+  assert.equal(b.cycles,1);
+  assert.equal(rt.fullCatalogStatus().cycles,1);
+  assert.ok(calls > 0);
+});
