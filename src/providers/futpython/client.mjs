@@ -42,6 +42,7 @@ async function fetchCsv(path, timeoutMs, opts = {}) {
     datasetKey: opts.datasetKey || null,
     runId: opts.runId || null,
     priority: opts.priority || 'critical',
+    purpose: opts.purpose,
     cacheLookup: opts.cacheLookup,
     authenticate: opts.authenticate !== false
   });
@@ -60,6 +61,6 @@ export function fetchToday(dateIso, opts = {}) {
   return fetchCsv(
     `/api/jogos-do-dia?date=${encodeURIComponent(dateIso)}&format=csv`,
     45000,
-    {...opts, datasetKey: opts.datasetKey || `today/${dateIso}`}
+    {...opts, purpose: 'today', datasetKey: opts.datasetKey || `today/${dateIso}`}
   );
 }

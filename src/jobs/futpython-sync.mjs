@@ -34,6 +34,7 @@ export function createRunStats({mode, bootstrap, startedAt = new Date()} = {}) {
     finalUnavailable404: 0,
     rowDrops: [],
     resumedSkips: 0,
+    deferred: [],
     availableCount: 0,
     errorRealCount: 0,
     catalogSnapshotId: null,
@@ -166,6 +167,17 @@ async function markRunInterrupted(client) {
   await recordRun(client, activeRun.runId, activeRun.kind, 'partial', activeRun.stats);
 }
 
+export async function loadStoredCatalog(client) {
+  const result = await client.query(
+    `SELECT dataset_key, country_slug, league_slug, season, route
+     FROM fpt_catalog WHERE active ORDER BY dataset_key`
+  );
+  return result.rows.map(row => ({
+    datasetKey: row.dataset_key, countrySlug: row.country_slug, leagueSlug: row.league_slug,
+    season: row.season, route: row.route
+  }));
+}
+
 async function captureCatalogSnapshot(client, catalog) {
   const stable = JSON.stringify(catalog);
   const hash = sha256(stable);
@@ -250,6 +262,7 @@ async function syncEntry(client, entry, stats) {
     const data = await fetchDataset(entry, {
       runId: stats.runId,
       priority,
+      purpose: priority === 'backfill' ? 'backfill' : 'current_season',
       cacheLookup: async () => backfillResumeDecision(await loadDatasetState(client, entry.datasetKey)).skip
     });
     if (data.cacheHit) {
@@ -276,6 +289,12 @@ async function syncEntry(client, entry, stats) {
     }
   } catch (error) {
     if (error?.code === 'CIRCUIT_OPEN' || error?.code === 'BUDGET_EXHAUSTED') throw error;
+    if (error?.code === 'BUDGET_THROTTLED') {
+      // Deferred by the budget level: not a dataset error, the next run retries it.
+      stats.datasetsAttempted--;
+      stats.deferred.push({datasetKey: entry.datasetKey, level: error.budgetLevel, purpose: error.purpose});
+      return;
+    }
     const message = redact(error?.message || error);
     if (error?.status === 404 && !previouslySucceeded) {
       stats.unavailable404.push(entry.datasetKey);
@@ -310,6 +329,10 @@ async function syncToday(client, stats, dateIso) {
     for (const field of stored.newFields || []) stats.newFields.add(field);
   } catch (error) {
     if (error?.code === 'CIRCUIT_OPEN' || error?.code === 'BUDGET_EXHAUSTED') throw error;
+    if (error?.code === 'BUDGET_THROTTLED') {
+      stats.deferred.push({datasetKey: `today/${dateIso}`, level: error.budgetLevel, purpose: error.purpose});
+      return;
+    }
     stats.failures.push({
       datasetKey: `today/${dateIso}`,
       error: redact(error?.message || error),
@@ -416,21 +439,33 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
 
     try {
       await recordRun(client, runId, kind, 'running', stats);
-      const catalog = await fetchCatalog({
-        priority: mode === 'backfill' ? 'backfill' : 'critical',
-        runId
-      });
-      stats.catalogEntries = catalog.length;
-      stats.catalogSnapshotId = await captureCatalogSnapshot(client, catalog);
-
-      await client.query('BEGIN');
+      let catalog;
+      let catalogFromDb = false;
       try {
-        const catalogResult = await upsertCatalog(client, catalog);
-        for (const entry of catalogResult.newDatasets || []) stats.newDatasets.add(entry.datasetKey);
-        await client.query('COMMIT');
+        catalog = await fetchCatalog({
+          priority: mode === 'backfill' ? 'backfill' : 'critical',
+          runId
+        });
       } catch (error) {
-        await client.query('ROLLBACK');
-        throw error;
+        // Discovery is the first traffic suspended under budget pressure: keep using the stored catalog.
+        if (error?.code !== 'BUDGET_THROTTLED') throw error;
+        catalog = await loadStoredCatalog(client);
+        catalogFromDb = true;
+        stats.meta.catalogSource = `db:budget_${String(error.budgetLevel || '').toLowerCase()}`;
+        stats.deferred.push({datasetKey: 'catalog', level: error.budgetLevel, purpose: error.purpose});
+      }
+      stats.catalogEntries = catalog.length;
+      if (!catalogFromDb) {
+        stats.catalogSnapshotId = await captureCatalogSnapshot(client, catalog);
+        await client.query('BEGIN');
+        try {
+          const catalogResult = await upsertCatalog(client, catalog);
+          for (const entry of catalogResult.newDatasets || []) stats.newDatasets.add(entry.datasetKey);
+          await client.query('COMMIT');
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        }
       }
 
       const targets = mode === 'backfill' ? catalog : incrementalTargets(catalog);
@@ -485,6 +520,7 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
         ? (stats.datasetsChanged || stats.rowsInserted || stats.resumedSkips ? 'partial' : 'failed')
         : 'complete';
 
+      stats.meta.deferred = stats.deferred;
       stats.meta.newFields = [...stats.newFields];
       stats.meta.newDatasets = [...stats.newDatasets];
       stats.meta.unavailable404ThisRun = stats.unavailable404;
@@ -508,7 +544,7 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
         rowsInserted: stats.rowsInserted, fieldsSeen: stats.fieldsSeen,
         available: stats.availableCount, unavailable404: stats.meta.finalAvailability?.unavailable_404 || 0,
         errorReal: stats.errorRealCount, newFields: stats.newFields.size,
-        newDatasets: stats.newDatasets.size, errorCount: stats.failures.length,
+        newDatasets: stats.newDatasets.size, errorCount: stats.failures.length, deferred: stats.deferred.length,
         ledger: ledger.rows
       }));
       return {runId, status, ...stats};

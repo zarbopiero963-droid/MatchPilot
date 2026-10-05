@@ -93,6 +93,50 @@ export function budgetPressure(usage = {}, thresholds = {}) {
   return 'ok';
 }
 
+// #31 budget levels, from the day/minute usage ratio (the higher of the two).
+export const BUDGET_LEVELS = ['NORMAL', 'ELEVATED', 'CONSERVE', 'CRITICAL', 'EXHAUSTED'];
+
+export function budgetLevel(usage = {}, thresholds = {}) {
+  const elevated = Number(thresholds.elevated ?? 0.5);
+  const conserve = Number(thresholds.conserve ?? 0.7);
+  const critical = Number(thresholds.critical ?? 0.9);
+  const ratios = [];
+  if (usage.dayLimit > 0) ratios.push(Number(usage.dayUsed || 0) / usage.dayLimit);
+  if (usage.minuteLimit > 0) ratios.push(Number(usage.minuteUsed || 0) / usage.minuteLimit);
+  const ratio = ratios.length ? Math.max(...ratios) : 0;
+  if (ratio >= 1) return 'EXHAUSTED';
+  if (ratio >= critical) return 'CRITICAL';
+  if (ratio >= conserve) return 'CONSERVE';
+  if (ratio >= elevated) return 'ELEVATED';
+  return 'NORMAL';
+}
+
+// FutPythonTrader has no live feed. Priority, highest first: today (imminent pre-match), current season
+// (recent results), backfill (history), discovery (catalog refresh).
+export const REQUEST_PURPOSES = ['today', 'current_season', 'backfill', 'discovery'];
+
+const ADMITTED = {
+  NORMAL: new Set(REQUEST_PURPOSES),
+  ELEVATED: new Set(REQUEST_PURPOSES),
+  CONSERVE: new Set(['today', 'current_season']),
+  CRITICAL: new Set(['today']),
+  EXHAUSTED: new Set()
+};
+
+// Admission uses the daily budget only: the per-minute window is a pacing limit, handled by waiting.
+export function dayLevel(usage = {}) {
+  return budgetLevel({dayUsed: usage.dayUsed, dayLimit: usage.dayLimit});
+}
+
+export function admits(level, purpose) {
+  return Boolean(ADMITTED[level]?.has(purpose));
+}
+
+export function purposeOf(opts = {}) {
+  if (REQUEST_PURPOSES.includes(opts.purpose)) return opts.purpose;
+  return opts.priority === 'backfill' ? 'backfill' : 'current_season';
+}
+
 export function createMemoryLedger() {
   const rows = [];
   return {
@@ -159,6 +203,7 @@ export function createRequestBudget({
     if (!u) return {};
     return {
       budget_state: budgetPressure(u),
+      budget_level: dayLevel(u),
       budget_remaining_day: Math.max(0, u.dayLimit - u.dayUsed),
       budget_remaining_minute: Math.max(0, u.minuteLimit - u.minuteUsed)
     };
@@ -174,6 +219,7 @@ export function createRequestBudget({
       endpoint_family: endpointFamily(safe),
       latency_ms: row.latency_ms ?? null,
       deduped: row.outcome === 'deduped',
+      retry_count: Number(row.attempt) > 1 ? Number(row.attempt) - 1 : 0,
       provider_quota_remaining: row.provider_quota_remaining ?? null,
       recorded_at: new Date(now()),
       dataset_key: row.dataset_key || null,
@@ -334,6 +380,26 @@ export function createRequestBudget({
     throw httpError(429, safe);
   }
 
+  // Non-essential traffic is deferred, not sent, once the daily budget level no longer admits its purpose.
+  async function admitAndFetch(opts, safe) {
+    const purpose = purposeOf(opts);
+    const u = await usage(opts.priority || 'critical');
+    const level = dayLevel(u);
+    if (!admits(level, purpose)) {
+      await insertLedger({
+        dataset_key: opts.datasetKey, url_path: safe, outcome: 'throttled', attempt: 0,
+        backoff_ms: 0, http_status: null, run_id: opts.runId, priority: opts.priority || 'critical', usage: u
+      });
+      const error = new Error(`FutPython request deferred: budget ${level} does not admit ${purpose}`);
+      error.code = level === 'EXHAUSTED' ? 'BUDGET_EXHAUSTED' : 'BUDGET_THROTTLED';
+      error.budgetLevel = level;
+      error.purpose = purpose;
+      error.providerPath = safe;
+      throw error;
+    }
+    return fetchWithRetry(opts, safe);
+  }
+
   return {
     async requestText(opts) {
       const safe = safeProviderPath(opts.path);
@@ -352,7 +418,9 @@ export function createRequestBudget({
         });
         return existing;
       }
-      const pending = fetchWithRetry(opts, safe).finally(() => inflight.delete(safe));
+      // Registered synchronously after the in-flight check, so an identical concurrent request is deduplicated
+      // even while the budget level is being read.
+      const pending = admitAndFetch(opts, safe).finally(() => inflight.delete(safe));
       inflight.set(safe, pending);
       return pending;
     },
