@@ -1,11 +1,15 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
+import pg from 'pg';
 
 const PORT = Number(process.env.PORT || 10000);
 const BETS_TOKEN = process.env.BETSAPI_TOKEN?.trim();
 const TC_TOKEN = process.env.TOTALCORNER_API_TOKEN?.trim();
 const OUT = process.env.PROVIDER_TRIAL_FILE || '/tmp/provider-trial.jsonl';
+const DATABASE_URL = process.env.DATABASE_URL?.trim();
+const INSTANCE_ID = crypto.randomUUID();
 
 const BETS_INPLAY_MS = Number(process.env.BETSAPI_POLL_MS || 30000);
 const BETS_DETAIL_MS = Number(process.env.BETSAPI_DETAIL_EVERY_MS || 60000);
@@ -31,6 +35,14 @@ const TC_ODDS_COLUMNS = [
 
 let records = 0;
 let lastError = null;
+let dbPool = null;
+let dbReady = false;
+let persistQueue = [];
+let persistedRecords = 0;
+let persistFailures = 0;
+let lastPersistAt = null;
+let lastPersistError = null;
+let flushing = false;
 let last = {
   bets_inplay:0,bets_detail:0,bets_upcoming:0,
   tc_inplay:0,tc_detail:0,tc_slow:0,
@@ -41,10 +53,72 @@ let tcMatchIds = [];
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 
+function sanitizeError(error) {
+  return String(error?.message || error)
+    .replace(/postgres(?:ql)?:\/\/\S+/gi, 'postgres://[REDACTED]')
+    .replace(/token=[^&\s]+/gi, 'token=[REDACTED]');
+}
+
+async function initPersistence() {
+  if (!DATABASE_URL) return;
+  dbPool = new pg.Pool({
+    connectionString: DATABASE_URL,
+    max: 1,
+    connectionTimeoutMillis: 15000,
+    idleTimeoutMillis: 30000
+  });
+  dbPool.on('error', error => {
+    lastPersistError = sanitizeError(error);
+    persistFailures++;
+  });
+  await dbPool.query(`
+    CREATE SCHEMA IF NOT EXISTS provider_trial;
+    CREATE TABLE IF NOT EXISTS provider_trial.records (
+      record_id bigserial PRIMARY KEY,
+      observed_at timestamptz NOT NULL,
+      instance_id text NOT NULL,
+      source_type text NOT NULL,
+      payload jsonb NOT NULL,
+      persisted_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS provider_trial_records_observed_idx
+      ON provider_trial.records(observed_at DESC);
+    CREATE INDEX IF NOT EXISTS provider_trial_records_source_idx
+      ON provider_trial.records(source_type, observed_at DESC);
+  `);
+  dbReady = true;
+  lastPersistError = null;
+}
+
+async function flushPersistence() {
+  if (!dbReady || !dbPool || flushing || persistQueue.length === 0) return;
+  flushing = true;
+  const batch = persistQueue.splice(0, 100);
+  try {
+    await dbPool.query(
+      `INSERT INTO provider_trial.records(observed_at, instance_id, source_type, payload)
+       SELECT x.ts::timestamptz, x.instance_id, x.type, x.payload
+       FROM jsonb_to_recordset($1::jsonb)
+         AS x(ts text, instance_id text, type text, payload jsonb)`,
+      [JSON.stringify(batch)]
+    );
+    persistedRecords += batch.length;
+    lastPersistAt = new Date().toISOString();
+    lastPersistError = null;
+  } catch (error) {
+    persistQueue = batch.concat(persistQueue);
+    persistFailures++;
+    lastPersistError = sanitizeError(error);
+  } finally {
+    flushing = false;
+  }
+}
+
 function write(type, payload) {
-  const row = { ts: new Date().toISOString(), type, payload };
+  const row = { ts: new Date().toISOString(), instance_id: INSTANCE_ID, type, payload };
   fs.appendFileSync(OUT, JSON.stringify(row) + '\n');
   records++;
+  if (DATABASE_URL) persistQueue.push(row);
 }
 
 async function fetchJson(url, headers = {}) {
@@ -179,7 +253,35 @@ async function loop() {
 }
 
 setInterval(() => loop().catch(() => {}), 5000).unref();
+setInterval(() => flushPersistence().catch(error => {
+  persistFailures++;
+  lastPersistError = sanitizeError(error);
+}), 2000).unref();
+
+await initPersistence().catch(error => {
+  dbReady = false;
+  persistFailures++;
+  lastPersistError = sanitizeError(error);
+});
 loop().catch(() => {});
+
+async function shutdown(signal) {
+  try {
+    await flushPersistence();
+    if (dbPool) await dbPool.end();
+  } finally {
+    console.log('PROVIDER_TRIAL_COLLECTOR_STOP ' + JSON.stringify({
+      signal,
+      records,
+      persisted_records:persistedRecords,
+      queued_records:persistQueue.length,
+      persist_failures:persistFailures
+    }));
+    process.exit(0);
+  }
+}
+process.once('SIGTERM', () => shutdown('SIGTERM'));
+process.once('SIGINT', () => shutdown('SIGINT'));
 
 http.createServer((req, res) => {
   if (req.url === '/healthz' || req.url === '/') {
@@ -193,7 +295,19 @@ http.createServer((req, res) => {
       last:Object.fromEntries(Object.entries(last).map(([k,v]) => [k, v ? new Date(v).toISOString() : null])),
       bets_detail_events:betsEventIds.length,
       totalcorner_detail_matches:tcMatchIds.length,
-      last_error:lastError
+      last_error:lastError,
+      persistence:{
+        database_configured:Boolean(DATABASE_URL),
+        database_ready:dbReady,
+        schema:'provider_trial',
+        table:'records',
+        instance_id:INSTANCE_ID,
+        queued_records:persistQueue.length,
+        persisted_records:persistedRecords,
+        persist_failures:persistFailures,
+        last_persist_at:lastPersistAt,
+        last_persist_error:lastPersistError
+      }
     }));
   }
   if (req.url === '/export') {
@@ -212,6 +326,7 @@ http.createServer((req, res) => {
     bets_inplay_ms:BETS_INPLAY_MS,
     tc_inplay_ms:TC_INPLAY_MS,
     scoretrend_ms:SCORETREND_MS,
+    database_configured:Boolean(DATABASE_URL),
     tc_max_details:TC_MAX_DETAILS,
     bets_max_details:BETS_MAX_DETAILS
   }));
