@@ -448,3 +448,104 @@ test('429 activates a global hold and blocks subsequent Everything calls until r
   assert.equal(calls,2);
   assert.equal(rt.status().rate_limit_hold.active,false);
 });
+
+
+test('persistent budget survives runtime restart and cannot be reset to zero', async () => {
+  let nowMs=Date.parse('2026-10-05T13:00:00Z');
+  let persisted=null;
+  let calls1=0;
+  const env={
+    BETSAPI_EVERYTHING_TOKEN:'x',
+    BETSAPI_EVERYTHING_ENABLED:'true',
+    BETSAPI_EVERYTHING_REQS_PER_HOUR:'10',
+    BETSAPI_EVERYTHING_RESERVE:'2'
+  };
+  const rt1=createEverythingRuntime({
+    env,
+    now:()=>nowMs,
+    persistRateState:async state=>{ persisted=structuredClone(state); },
+    fetchImpl:async()=>{
+      calls1++;
+      return {status:200,ok:true,headers:{get:()=>null},text:async()=>JSON.stringify({success:1,results:[]})};
+    }
+  });
+  for (let i=0;i<5;i++) {
+    const r=await rt1.callDocumentedEndpoint('events_inplay',{});
+    assert.equal(r.ok,true);
+  }
+  assert.equal(calls1,5);
+  assert.equal(persisted.budget.used,5);
+
+  let persisted2=persisted;
+  let calls2=0;
+  const rt2=createEverythingRuntime({
+    env,
+    now:()=>nowMs,
+    initialRateState:persisted,
+    persistRateState:async state=>{ persisted2=structuredClone(state); },
+    fetchImpl:async()=>{
+      calls2++;
+      return {status:200,ok:true,headers:{get:()=>null},text:async()=>JSON.stringify({success:1,results:[]})};
+    }
+  });
+  assert.equal(rt2.status().budget.used,5);
+  for (let i=0;i<3;i++) {
+    const r=await rt2.callDocumentedEndpoint('events_inplay',{});
+    assert.equal(r.ok,true);
+  }
+  const blocked=await rt2.callDocumentedEndpoint('events_inplay',{});
+  assert.equal(blocked.skipped,true);
+  assert.equal(blocked.reason,'BUDGET_HOLD');
+  assert.equal(calls2,3);
+  assert.equal(persisted2.budget.used,8);
+});
+
+test('persisted 429 hold survives runtime restart until upstream reset', async () => {
+  let nowMs=Date.parse('2026-10-05T13:00:00Z');
+  const resetMs=nowMs+120000;
+  let persisted=null;
+  let calls1=0;
+  const env={
+    BETSAPI_EVERYTHING_TOKEN:'x',
+    BETSAPI_EVERYTHING_ENABLED:'true',
+    BETSAPI_EVERYTHING_FAMILIES:'bwin'
+  };
+  const rt1=createEverythingRuntime({
+    env,
+    now:()=>nowMs,
+    persistRateState:async state=>{ persisted=structuredClone(state); },
+    fetchImpl:async()=>{
+      calls1++;
+      return {
+        status:429,ok:false,
+        headers:{get:k=>k==='x-ratelimit-reset'?String(Math.floor(resetMs/1000)):null},
+        text:async()=>JSON.stringify({success:0,error:'TOO_MANY_REQUESTS'})
+      };
+    }
+  });
+  const first=await rt1.callDocumentedEndpoint('bwin_inplay',{});
+  assert.equal(first.classification,'RATE_LIMITED');
+  assert.equal(persisted.hold_until_ms,resetMs);
+  assert.equal(calls1,1);
+
+  let calls2=0;
+  const rt2=createEverythingRuntime({
+    env,
+    now:()=>nowMs,
+    initialRateState:persisted,
+    persistRateState:async()=>{},
+    fetchImpl:async()=>{
+      calls2++;
+      return {status:200,ok:true,headers:{get:()=>null},text:async()=>JSON.stringify({success:1,results:[]})};
+    }
+  });
+  const blocked=await rt2.callDocumentedEndpoint('bwin_prematch',{});
+  assert.equal(blocked.skipped,true);
+  assert.equal(blocked.reason,'RATE_LIMIT_HOLD');
+  assert.equal(calls2,0);
+
+  nowMs=resetMs+1;
+  const allowed=await rt2.callDocumentedEndpoint('bwin_prematch',{});
+  assert.equal(allowed.ok,true);
+  assert.equal(calls2,1);
+});
