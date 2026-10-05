@@ -313,6 +313,7 @@ export function createEverythingRuntime({
     away:null,
     time:null
   };
+  let fullCatalogPromise=null;
   const catalogProbe={
     cycles:0,last_at:null,attempted:0,ok:0,skipped:0,permission_denied:0,rate_limited:0,http_error:0,last_error:null
   };
@@ -497,7 +498,9 @@ export function createEverythingRuntime({
 
   async function fullCatalogCycle() {
     if (!enabled || !token) return { ...catalogProbe, disabled:true };
+    if (fullCatalogPromise) return fullCatalogPromise;
 
+    fullCatalogPromise=(async()=>{
     catalogProbe.cycles++;
     catalogProbe.last_at=new Date(now()).toISOString();
     catalogProbe.attempted=0;
@@ -538,6 +541,12 @@ export function createEverythingRuntime({
       if (!budget.canSpend(1)) break;
     }
     return fullCatalogStatus();
+    })();
+    try {
+      return await fullCatalogPromise;
+    } finally {
+      fullCatalogPromise=null;
+    }
   }
 
   function fullCatalogStatus() {
