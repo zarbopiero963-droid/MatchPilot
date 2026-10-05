@@ -4,7 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import pg from 'pg';
 import { createEverythingRuntime } from './lib/betsapi-everything.mjs';
-import { initReconciliation, normalizeTrialRows, persistNormalizedBatch, reconciliationSummary, rebuildOddsV3FromRaw } from './lib/provider-trial-reconciliation.mjs';
+import { initReconciliation, normalizeTrialRows, persistNormalizedBatch, reconciliationSummary, rebuildOddsV3FromRaw, ensureRawRecordsAppendOnly, rawRecordsAppendOnlyStatus } from './lib/provider-trial-reconciliation.mjs';
 
 const PORT = Number(process.env.PORT || 10000);
 const BETS_TOKEN = process.env.BETSAPI_TOKEN?.trim();
@@ -117,6 +117,7 @@ async function initPersistence() {
       ON provider_trial.records(source_type, observed_at DESC);
   `);
   await initReconciliation(dbPool);
+  await ensureRawRecordsAppendOnly(dbPool);
   dbReady = true;
   oddsRebuildRunning = true;
   rebuildOddsV3FromRaw(dbPool)
@@ -408,7 +409,10 @@ async function runOddsTimelineScan() {
 
 
 async function reconciliationCertificate() {
-  if (!dbReady || !dbPool) return {result:'NOT_CERTIFIED',gates:{database_ready:false}};
+  if (!dbReady || !dbPool) return {result:'NOT_CERTIFIED',version:2,gates:{database_query_ok:false}};
+
+  const databaseProbe=await dbPool.query('SELECT 1 AS ok');
+  const rawStatus=await rawRecordsAppendOnlyStatus(dbPool);
   const [
     summary,
     sports,
@@ -416,7 +420,8 @@ async function reconciliationCertificate() {
     coverage,
     odds,
     oddsSummary,
-    states
+    states,
+    classification
   ]=await Promise.all([
     reconciliationSummary(dbPool),
     dbPool.query(`SELECT count(*)::int AS total,count(*) FILTER(WHERE documented)::int AS documented FROM provider_trial.sports WHERE provider='betsapi'`),
@@ -424,13 +429,34 @@ async function reconciliationCertificate() {
     dbPool.query(`SELECT count(*)::int AS rows,count(*) FILTER(WHERE earliest_event_time IS NOT NULL)::int AS with_real_history,min(earliest_event_time) AS earliest,max(latest_event_time) AS latest,min(provider_history_floor) AS documented_floor FROM provider_trial.coverage WHERE provider='betsapi'`),
     dbPool.query(`SELECT count(*)::bigint AS observations,count(DISTINCT event_id)::bigint AS events,count(DISTINCT market_key)::bigint AS markets,count(*) FILTER(WHERE sport_id IS NULL)::bigint AS missing_sport,count(*) FILTER(WHERE league_id IS NULL)::bigint AS missing_league,count(*) FILTER(WHERE bookmaker IS NULL)::bigint AS missing_bookmaker,count(*) FILTER(WHERE provider_time IS NULL)::bigint AS missing_provider_time FROM provider_trial.odds_observations WHERE provider='betsapi'`),
     dbPool.query(`SELECT count(*)::bigint AS rows,count(*) FILTER(WHERE opening_price IS NOT NULL)::bigint AS with_opening,count(*) FILTER(WHERE closing_price IS NOT NULL)::bigint AS with_closing,count(*) FILTER(WHERE change_open_latest IS NOT NULL)::bigint AS with_change FROM provider_trial.odds_summary WHERE provider='betsapi'`),
-    dbPool.query(`SELECT key,value,updated_at FROM provider_trial.reconciliation_state WHERE key IN ('odds_parser_version','odds_v3_raw_rebuild')`)
+    dbPool.query(`SELECT key,value,updated_at FROM provider_trial.reconciliation_state WHERE key IN ('odds_parser_version','odds_v3_raw_rebuild','betsapi_rate_state_v1')`),
+    dbPool.query(`
+      SELECT
+        count(*) FILTER (WHERE country_status NOT IN ('known','unknown_upstream'))::int AS bad_country_status,
+        count(*) FILTER (WHERE history_status NOT IN ('observed','pending_scan'))::int AS bad_history_status
+      FROM (
+        SELECT
+          CASE WHEN country_code='' THEN 'unknown_upstream' ELSE 'known' END AS country_status,
+          CASE WHEN EXISTS (
+            SELECT 1 FROM provider_trial.coverage v
+            WHERE v.provider=c.provider
+              AND v.sport_id::text=c.sport_id::text
+              AND v.country_code=c.country_code
+              AND v.league_id::text=c.league_id::text
+              AND v.earliest_event_time IS NOT NULL
+          ) THEN 'observed' ELSE 'pending_scan' END AS history_status
+        FROM provider_trial.competitions c
+        WHERE c.provider='betsapi'
+      ) q
+    `)
   ]);
+
   const sportRow=sports.rows[0]||{};
   const compRow=competitions.rows[0]||{};
   const covRow=coverage.rows[0]||{};
   const oddsRow=odds.rows[0]||{};
   const os=oddsSummary.rows[0]||{};
+  const classRow=classification.rows[0]||{};
   const state=Object.fromEntries(states.rows.map(r=>[r.key,{...r.value,updated_at:r.updated_at}]));
   const documentedFloor=covRow.documented_floor
     ? new Date(covRow.documented_floor).toISOString().slice(0,10)
@@ -440,13 +466,21 @@ async function reconciliationCertificate() {
     Number(oddsRow.missing_bookmaker||0)===0 &&
     Number(oddsRow.missing_provider_time||0)===0 &&
     Number(oddsRow.markets||0)>1;
+  const trialRuntimeConfigured=
+    String(process.env.PROVIDER_TRIAL_MODE||'').toLowerCase()==='true' &&
+    String(process.env.BETSAPI_PRODUCTION_ENABLED||'false').toLowerCase()!=='true';
+  const census=everythingRuntime?.censusStatus?.() || {};
+  const coverageFraction=Number(compRow.total||0)>0
+    ? Number(covRow.with_real_history||0)/Number(compRow.total||1)
+    : 0;
+
   const gates={
-    database_ready:true,
-    documented_sports:Number(sportRow.documented||0)===28,
-    competitions_present:Number(compRow.total||0)>0,
-    countries_present:Number(compRow.countries||0)>0,
-    real_history_present:Number(covRow.with_real_history||0)>0,
-    documented_history_floor:documentedFloor==='2016-09-01',
+    database_query_ok:databaseProbe.rows[0]?.ok===1,
+    documented_sport_registry_seeded:Number(sportRow.documented||0)===28,
+    competition_registry_present:Number(compRow.total||0)>0,
+    country_values_present:Number(compRow.countries||0)>0,
+    history_scanner_has_real_evidence:Number(covRow.with_real_history||0)>0,
+    documented_history_floor_recorded:documentedFloor==='2016-09-01',
     odds_parser_v3:state.odds_parser_version?.version==='3',
     raw_odds_rebuild_complete:!oddsRebuildRunning && oddsRebuildLastError===null && state.odds_v3_raw_rebuild?.complete===true && state.odds_v3_raw_rebuild?.version===3,
     odds_present:Number(oddsRow.observations||0)>0,
@@ -454,21 +488,37 @@ async function reconciliationCertificate() {
     odds_opening_present:Number(os.with_opening||0)>0,
     odds_change_present:Number(os.with_change||0)>0,
     odds_structure_classified:oddsStructureClassified,
-    unknown_dimensions_explicit:true,
+    unknown_dimensions_classified:
+      Number(classRow.bad_country_status||0)===0 &&
+      Number(classRow.bad_history_status||0)===0,
     persistence_healthy:persistFailures===0 && lastPersistError===null,
-    raw_preserved:true,
+    raw_table_exists:rawStatus.raw_table_exists===true,
+    raw_append_only_enforced:rawStatus.append_only_trigger_enabled===true,
+    persistent_rate_state_present:Boolean(state.betsapi_rate_state_v1?.budget?.window_started_at),
     legacy_bet365_disabled:!BETS_LEGACY_ENABLED,
     full_catalog_probe_disabled:!EVERYTHING_FULL_CATALOG_ENABLED,
-    production_promotion_disabled:true
+    trial_runtime_configured:trialRuntimeConfigured
   };
+
   const required=Object.values(gates).every(Boolean);
   return {
-    result:required?'CERTIFIED_FOR_PASSIVE_COLLECTION':'NOT_CERTIFIED',
+    result:required?'CERTIFIED_FOR_PASSIVE_COLLECTION_V2':'NOT_CERTIFIED',
+    version:2,
     generated_at:new Date().toISOString(),
     commit:process.env.RENDER_GIT_COMMIT||null,
     gates,
+    non_gate_metrics:{
+      census_completed_sports:Number(census.completed_sports||0),
+      census_total_sports:Number(census.total_sports||28),
+      competition_history_coverage_fraction:coverageFraction,
+      competition_history_coverage_complete:
+        Number(covRow.with_real_history||0)===Number(compRow.total||0),
+      unknown_country_competitions:Number(compRow.unknown_country||0),
+      runtime_service_name:process.env.RENDER_SERVICE_NAME||null,
+      runtime_git_branch:process.env.RENDER_GIT_BRANCH||null
+    },
     metrics:{
-      sports:sportRow,
+      sports:{...sportRow,meaning:'documented registry seed, not completed census'},
       competitions:compRow,
       coverage:{...covRow,documented_floor_date:documentedFloor},
       odds:{
@@ -477,6 +527,8 @@ async function reconciliationCertificate() {
         structure_classified:oddsStructureClassified
       },
       odds_summary:os,
+      raw:rawStatus,
+      rate_state:state.betsapi_rate_state_v1||null,
       state,
       collector:{
         everything_enabled:EVERYTHING_ENABLED,
@@ -492,6 +544,7 @@ async function reconciliationCertificate() {
     summary
   };
 }
+
 
 async function loop() {
   try {
