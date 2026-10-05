@@ -2,7 +2,7 @@
 
 **Esito: CERTIFIED WITH KNOWN LIMITATIONS**
 
-Sorgente del report: `GET https://matchpilot-test.onrender.com/api/futpython-certificate` (deploy live, risposta salvata e rirenderizzata con `--from-json`). Report costruito alle 2026-10-05T10:41:40.041Z (UTC). Ogni numero delle sezioni 1–17 viene dal report; nessun valore è stato scritto a mano. La sezione "Verifica incrociata" riporta controlli indipendenti fatti fuori dal report (query dirette su Neon e log Render). Issue #12 (FPT-CERT).
+Sorgente del report: `GET https://matchpilot-test.onrender.com/api/futpython-certificate` (deploy live del commit `7072cd8`, risposta salvata alle 22:25Z e rirenderizzata con `--from-json`). Report costruito alle 2026-10-05T22:22:07.799Z (UTC). Ogni numero delle sezioni 1–20 viene dal report; nessun valore è stato scritto a mano. La sezione "Verifica incrociata" riporta controlli indipendenti fatti fuori dal report (solo richieste HTTP pubbliche al servizio Render, nessuna query manuale su Neon e nessuna chiamata a FutPythonTrader). Issue #12 (FPT-CERT).
 
 ## Gate
 | gate | esito |
@@ -24,13 +24,16 @@ Sorgente del report: `GET https://matchpilot-test.onrender.com/api/futpython-cer
 | filter_registry | PASS |
 | assistant_query_layer | PASS |
 | query_performance | PASS |
+| onboarding | PASS |
+| reconciliation | PASS |
+| reprocessing | PASS |
 
 ## 1. Identità
 | campo | valore |
 | --- | --- |
 | certificate_version | fpt-cert-1 |
-| generated_at | 2026-10-05T10:41:40.041Z |
-| commit_sha | 9f09e1d1ea525c1ec364828994f38e931a906534 |
+| generated_at | 2026-10-05T22:22:07.799Z |
+| commit_sha | 7072cd87b20f5c379d0806f1cd270c8b1ed87cdc |
 | git_branch | main |
 | render_service_id | srv-davpi23ncjis73f9dkbg |
 | render_service_name | matchpilot-test |
@@ -38,18 +41,18 @@ Sorgente del report: `GET https://matchpilot-test.onrender.com/api/futpython-cer
 | node_version | v26.10.0 |
 | neon_server_version | 18.6 (4e955f5) |
 | database | neondb |
-| db_now | 2026-10-05T10:41:39Z |
-| last_migration | 014-fpt-normalized-layer.sql |
-| last_migration_applied_at | 2026-10-05T08:52:23Z |
-| migrations_applied | 14 |
+| db_now | 2026-10-05T22:22:07Z |
+| last_migration | 020-fpt-raw-retention-reprocessing.sql |
+| last_migration_applied_at | 2026-10-05T20:26:12Z |
+| migrations_applied | 20 |
 | parser_version | fpt-csv-1 |
 | schema_version | fpt-schema-4 |
 | transform_version | fpt-norm-1 |
 | data_contract | fpt-schema-4 |
-| facts_version | fpt-facts-1 |
-| filters_version | fpt-filters-1 |
+| facts_version | fpt-facts-2 |
+| filters_version | fpt-filters-2 |
 | source_provider | futpythontrader |
-| render_deploy_id | dep-db1ml36q1p3s73ffhpc0 |
+| render_deploy_id | N/D |
 
 ## 2. Catalogo
 | campo | valore |
@@ -1088,31 +1091,32 @@ Gate: **PASS**
 ## 11. Request ledger e budget API
 | campo | valore |
 | --- | --- |
-| rows | 840 |
+| rows | 1,174 |
 | first_row | 2026-10-04T20:12:09Z |
-| last_row | 2026-10-05T10:18:53Z |
+| last_row | 2026-10-05T22:20:45Z |
 | api_key_paths | 0 |
 | migration_014_applied_at | 2026-10-05T08:52:23Z |
-| rows_after_014 | 167 |
-| rows_after_014_upstream | 2 |
+| rows_after_014 | 501 |
+| rows_after_014_upstream | 56 |
 | rows_after_014_missing_fields | 0 |
-| latency_p50_ms_after_014 | 643 |
+| latency_p50_ms_after_014 | 801 |
 | unknown_outcomes | 0 |
 | rows_without_endpoint_family | 0 |
-| rows_with_latency | 2 |
-| rows_with_budget_state | 167 |
+| rows_with_latency | 56 |
+| rows_with_budget_state | 501 |
 | rows_with_provider_quota | 0 |
 | deduped_rows | 0 |
-| by_budget_state | {"not_recorded":673,"ok":167} |
-| window | {"minute_used":0,"day_used":15,"rate_limited_day":0,"max_backoff_ms":0} |
+| by_budget_state | {"critical":59,"not_recorded":673,"ok":412,"warning":30} |
+| by_budget_level | {"NORMAL":{"rows":334,"throttled":0},"not_recorded":{"rows":840,"throttled":0}} |
+| window | {"minute_used":0,"day_used":62,"rate_limited_day":0,"max_backoff_ms":0} |
 | config | {"perMinute":20,"perDay":2000,"backfillPerMinute":8,"maxAttempts":4,"backoffBaseMs":500,"backoffCapMs":30000,"circuitFailures":5,"circuitOpenMs":60000} |
 
 | outcome | endpoint | righe | latenza p50 ms | latenza max ms |
 | --- | --- | --- | --- | --- |
-| cache_hit | dataset | 825 | N/D | N/D |
-| upstream | catalog | 7 | 1266 | 1266 |
-| upstream | dataset | 2 | N/D | N/D |
-| upstream | today | 6 | 643 | 643 |
+| cache_hit | dataset | 1105 | N/D | N/D |
+| upstream | catalog | 9 | 1294 | 1453 |
+| upstream | dataset | 52 | 801 | 1397 |
+| upstream | today | 8 | 643 | 650 |
 
 Meccanismi e test che li provano:
 | meccanismo | test |
@@ -1125,6 +1129,7 @@ Meccanismi e test che li provano:
 | circuit_breaker | test/request-budget.test.mjs, test/phase8-watchdog.test.mjs |
 | backfill_throttling | test/request-budget.test.mjs |
 | budget_warning_critical | test/phase8-watchdog.test.mjs |
+| budget_levels_deferral | test/budget-levels.test.mjs, test/budget-throttle-sync.test.mjs |
 
 Gate: **PASS**
 
@@ -1134,12 +1139,14 @@ Gate: **PASS**
 | fpt-1791157076578-4231ba2e | manual | complete | 165 | 2 | 0 | 0 | 0 | 0 |
 | fpt-1791157259618-a37a60a5 | manual | complete | 165 | 2 | 0 | 0 | 0 | 0 |
 
-Run successivi non backfill: 2
+Run successivi non backfill: 4
 
 | run | kind | status | started_at | snapshot | righe |
 | --- | --- | --- | --- | --- | --- |
 | fpt-1791173821493-91ab3f24 | cron | complete | 2026-10-05T04:17:01.606Z | 1 | 0 |
 | fpt-1791195420927-282816e5 | cron | complete | 2026-10-05T10:17:01.030Z | 0 | 0 |
+| fpt-1791217020920-72f661cd | cron | complete | 2026-10-05T16:17:01.044Z | 0 | 0 |
+| fpt-1791238620320-097395bf | cron | complete | 2026-10-05T22:17:00.450Z | 0 | 0 |
 
 Gate: **PASS**
 
@@ -1149,7 +1156,7 @@ Gate: **PASS**
 | phase8_gate | true |
 | phase8_status | pass |
 | check | {"status":"pass","checked_at":"2026-10-04T23:52:21Z","telegram":{"sent":true,"messages":1,"outbound":true,"configured":true,"secondSuppressed":true}} |
-| alerts | {"alerts":54,"open_alerts":1,"delivered":54,"occurrences":181,"delivered_last_day":54} |
+| alerts | {"alerts":54,"open_alerts":1,"delivered":54,"occurrences":181,"delivered_last_day":1} |
 | deliveries_without_repeat | true |
 
 | code | severity | occorrenze | ultimo |
@@ -1161,6 +1168,7 @@ Gate: **PASS**
 | --- | --- |
 | facts_rows | 161,801 |
 | distinct_match_keys | 161,801 |
+| held_back_match_keys | 0 |
 | today_rows | 24 |
 | historical_without_team_ids | 0 |
 | today_without_team_ids | 24 |
@@ -1174,7 +1182,7 @@ Gate: **PASS**
 | facts_at_now_repeat | 161,801 |
 | result_status | {"FINAL":161754,"NOT_STARTED":24,"NO_RESULT":23} |
 | kickoff_tz_status | {"PROVIDER_TZ_UNDOCUMENTED":161801} |
-| facts_version | fpt-facts-1 |
+| facts_version | fpt-facts-2 |
 | columns | internal_match_id, internal_competition_id, season_id, kickoff_utc, kickoff_local_time, home_team_id, away_team_id, provider_match_id, provider_competition_id, home_score, away_score, result_status, version_id, snapshot_id |
 | gate | true |
 
@@ -1189,9 +1197,16 @@ Gate: **PASS**
 | filterable | 278 |
 | zero_is_missing | 144 |
 | without_coverage | 0 |
+| without_seen | 0 |
+| without_source | 0 |
+| without_phases | 0 |
+| indexed_fields | 5 |
+| fields_with_fact_column | 25 |
+| indexed_inconsistent | 0 |
+| indexed_list | ["Away","Country","Date","Home","League"] |
 | timing_classes | {"POSTMATCH_OUTCOME":126,"PREMATCH_IDENTITY":11,"PREMATCH_MARKET_UNTIMED":188} |
 | families | {"corners":6,"defense":18,"discipline":24,"expected_goals":26,"goals":4,"identity":11,"market":188,"possession_creation":18,"set_pieces":2,"shooting":28} |
-| version | fpt-filters-1 |
+| version | fpt-filters-2 |
 | gate | true |
 
 ## 16. Layer di query per l’assistente
@@ -1207,12 +1222,42 @@ Le risposte vengono da Neon. Il modulo non importa il client FutPythonTrader.
 | /api/fpt/match | matchDetail |
 | /api/fpt/competitions | competitions |
 | /api/fpt/filters | filters |
+| /api/fpt/onboarding | onboarding |
+| /api/fpt/reconciliation | reconciliation |
+| /api/fpt/coverage-competitions | coverageCompetitions |
+| /api/fpt/coverage-seasons | coverageSeasons |
+| /api/fpt/away-matches | awayMatches |
+| /api/fpt/odds-range | favoriteOddsRange |
+| /api/fpt/search | searchMatches |
+| /api/fpt/xg-by-season | xgBySeason |
+| /api/fpt/team-matches-asof | teamMatchesAsOf |
+| /api/fpt/league-field-coverage | leagueFieldCoverage |
+| /api/fpt/leagues-with-coverage | leaguesWithCoverage |
+| /api/fpt/catalog | catalog |
 
-| query | righe | chiamate upstream | prima riga |
-| --- | --- | --- | --- |
-| teamSearch | 2 | 0 | {"internal_team_id":"fpt:team:a395287f448454d4ffce600c","canonical_name":"Deportes Tolima","country_slug":"colombia","competitions":["primera-a"]} |
-| teamSummary | 1 | 0 | {"played":285,"won":136,"drawn":80,"lost":69,"goals_for":382,"goals_against":261,"first_match":"2021-01-18T00:00:00.000Z","last_match":"2026-09-20T00:00:00.000Z"} |
-| headToHead | 5 | 0 | {"internal_match_id":"fpt:hash:7ec40e86c0ef7f1f500ef7b88ddcc0d8","match_date":"2026-07-25T00:00:00.000Z","home_score":2,"away_score":1} |
+| domanda | query | righe | upstream | filtri | ms | prima riga |
+| --- | --- | --- | --- | --- | --- | --- |
+| teamSearch | teamSearch | 2 | 0 |  | 102 | {"canonical_name":"Deportes Tolima","country_slug":"colombia"} |
+| teamSummary | teamSummary | 1 | 0 |  | 100 | {"played":285,"won":136,"drawn":80,"lost":69} |
+| headToHead | headToHead | 5 | 0 |  | 100 | {"internal_match_id":"fpt:hash:7ec40e86c0ef7f1f500ef7b88ddcc0d8","country_slug":"colombia","league_slug":"primera-a","season":"2026","match_date":"2026-07-25T00:00:00.000Z","home_name":"Deportes Tolima","away_name":"Junior","home_score":2,"away_score":1,"favorite_side":"HOME","favorite_odd":"2.050"} |
+| awayMatches | awayMatches | 20 | 0 |  | 100 | {"internal_match_id":"fpt:hash:ce915b1d43dd9ac4d2f3e76f7c027da4","country_slug":"colombia","league_slug":"primera-a","season":"2026","match_date":"2026-09-16T00:00:00.000Z","home_name":"Once Caldas","away_name":"Deportes Tolima","home_score":1,"away_score":0,"favorite_side":"HOME","favorite_odd":"2.250"} |
+| favoriteOddsRange | favoriteOddsRange | 50 | 0 | before fav_min fav_max | 198 | {"internal_match_id":"fpt:hash:c6309aa1703c63998cb93391fe43855d","country_slug":"japan","league_slug":"j2-league","season":"2026-2027","match_date":"2026-09-26T00:00:00.000Z","home_name":"Tegevajaro Miyazaki","away_name":"Hokkaido Consadole Sapporo","home_score":3,"away_score":2,"favorite_side":"HOME","favorite_odd":"1.810"} |
+| xgBySeason | xgBySeason | 6 | 0 |  | 100 | {"season":"2021","matches":52,"matches_with_xg":0,"xg_for_avg":null,"xg_against_avg":null} |
+| searchMatches | searchMatches | 27 | 0 | before team venue:home competition season fav_min fav_max result | 101 | {"internal_match_id":"fpt:hash:32e9d9fe84799e34764122dd8651e3b5","country_slug":"colombia","league_slug":"primera-a","season":"2025","match_date":"2025-12-16T00:00:00.000Z","home_name":"Deportes Tolima","away_name":"Junior","home_score":0,"away_score":1,"favorite_side":"HOME","favorite_odd":"1.670"} |
+| teamMatchesAsOf | teamMatchesAsOf | 20 | 0 |  | 113 | {"internal_match_id":"fpt:hash:6ba5bf32f8089d20c57b35afe5686fc0","match_date":"2026-09-20T00:00:00.000Z","home_name":"Deportes Tolima","away_name":"America De Cali","acquired_at":"2026-10-04T14:48:51.157Z","home_score":1,"away_score":1} |
+| teamMatchesAsOfRepeat | teamMatchesAsOf | 20 | 0 |  | 113 | {"internal_match_id":"fpt:hash:6ba5bf32f8089d20c57b35afe5686fc0","match_date":"2026-09-20T00:00:00.000Z","home_name":"Deportes Tolima","away_name":"America De Cali","acquired_at":"2026-10-04T14:48:51.157Z","home_score":1,"away_score":1} |
+| teamMatchesAsOfBeforeMirror | teamMatchesAsOf | 0 | 0 |  | 101 | null |
+| leaguesWithCoverage | leaguesWithCoverage | 34 | 0 |  | 103 | {"country_slug":"australia","league_slug":"a-league","available_seasons":6,"seasons_meeting_coverage":3,"matches":"995"} |
+
+| controllo sulle righe restituite | esito |
+| --- | --- |
+| away_last_20 | PASS |
+| favorite_150_190 | PASS |
+| xg_by_season | PASS |
+| five_plus_filters | PASS |
+| point_in_time | PASS |
+| leagues_with_coverage | PASS |
+| no_upstream | PASS |
 
 Gate: **PASS**
 
@@ -1221,13 +1266,91 @@ Limiti: esecuzione ≤ 250 ms, righe lette ≤ 20,000, nessun Seq Scan su fpt_ma
 
 | query | esito | exec ms | plan ms | righe lette | indici | seq scan grandi |
 | --- | --- | --- | --- | --- | --- | --- |
-| teamSearch | PASS | 0.086 | 2.168 | 6 | fpt_team_aliases_normalized_idx, fpt_teams_pkey | - |
-| teamMatches | PASS | 0.607 | 0.177 | 285 | fpt_match_facts_home_idx, fpt_match_facts_away_idx | - |
-| teamSummary | PASS | 0.649 | 0.2 | 285 | fpt_match_facts_home_idx, fpt_match_facts_away_idx | - |
-| headToHead | PASS | 0.497 | 0.217 | 287 | fpt_match_facts_home_idx | - |
-| competitionSeason | PASS | 1.54 | 0.13 | 745 | fpt_match_facts_comp_season_idx | - |
-| matchesOnDate | PASS | 0.767 | 0.108 | 350 | fpt_match_facts_date_idx | - |
-| matchDetail | PASS | 0.054 | 0.523 | 2 | fpt_match_facts_pkey, fpt_match_versions_pkey | - |
+| awayMatches | PASS | 0.108 | 0.178 | 21 | fpt_match_facts_away_idx | - |
+| favoriteOddsRange | PASS | 0.466 | 0.201 | 297 | fpt_match_facts_date_desc_idx | - |
+| xgBySeason | PASS | 0.868 | 0.224 | 285 | fpt_match_facts_home_idx, fpt_match_facts_away_idx | - |
+| xgBySeason | PASS | 6.597 | 0.158 | 2496 | fpt_match_facts_comp_season_idx | - |
+| searchMatches | PASS | 0.834 | 0.244 | 452 | fpt_match_facts_comp_season_idx | - |
+| teamMatchesAsOf | PASS | 13.276 | 0.408 | 855 | fpt_match_facts_home_idx, fpt_match_facts_away_idx, fpt_match_versions_match_idx | - |
+| leagueFieldCoverage | PASS | 0.258 | 0.514 | 1033 | fpt_field_coverage_dataset_field_idx | - |
+| leaguesWithCoverage | PASS | 2.043 | 0.549 | 1642 | fpt_field_coverage_field_idx | - |
+| teamSearch | PASS | 0.138 | 16.564 | 6 | fpt_team_aliases_normalized_idx, fpt_teams_pkey | - |
+| teamMatches | PASS | 0.731 | 0.21 | 285 | fpt_match_facts_home_idx, fpt_match_facts_away_idx | - |
+| teamSummary | PASS | 0.678 | 0.223 | 285 | fpt_match_facts_home_idx, fpt_match_facts_away_idx | - |
+| headToHead | PASS | 0.484 | 0.214 | 283 | fpt_match_facts_away_idx | - |
+| competitionSeason | PASS | 1.844 | 0.162 | 745 | fpt_match_facts_comp_season_idx | - |
+| matchesOnDate | PASS | 0.909 | 0.127 | 350 | fpt_match_facts_date_idx | - |
+| matchDetail | PASS | 0.078 | 2.303 | 2 | fpt_match_facts_pkey, fpt_match_versions_pkey | - |
+
+Gate: **PASS**
+
+## 18. Onboarding nuove leghe e stagioni
+Passi: DISCOVERED > CANDIDATE > METADATA_FETCHED > SEASONS_ENUMERATED > BACKFILLED > SCHEMA_AUDITED > COVERAGE_AUDITED > HARD_VERIFIED > ACTIVE. Solo i dataset ACTIVE entrano in fpt_match_facts; una nuova lega diventa ACTIVE solo con promozione dell'owner.
+
+| campo | valore |
+| --- | --- |
+| onboarding_rows | 1,027 |
+| events | 1,027 |
+| catalog_without_onboarding | 0 |
+| facts_from_non_active | 0 |
+| new_league_active_without_owner | 0 |
+| non_baseline_active_unverified | 0 |
+| rows_without_event | 0 |
+| tests | test/fpt-onboarding.test.mjs (unit), test/fpt-onboarding-sync.test.mjs (real sync: simulated new league and new season) |
+
+| tipo | stato | dataset |
+| --- | --- | --- |
+| baseline | ACTIVE | 1027 |
+
+Gate: **PASS**
+
+## 19. Riconciliazione (#31)
+Checkpoint per pipeline aggiornati dal ciclo del watchdog (avvio e ogni ora); ledger dei gap dalla rilevazione al recupero o alla classificazione.
+
+| campo | valore |
+| --- | --- |
+| checkpoint_scopes | 5 |
+| checkpoints_age_hours | 0.07 |
+| ledger_rows | 105 |
+| failed | 0 |
+| open_older_than_48h | 0 |
+| tests | test/fpt-reconciliation.test.mjs (unit), test/fpt-reconciliation-sync.test.mjs (real sync: simulated loss, recovery, no duplicates) |
+
+| scope | stato | ultimo successo | aggiornato | retry | checkpoint |
+| --- | --- | --- | --- | --- | --- |
+| backfill | ok | 2026-10-04T20:16:06Z | 2026-10-05T22:20:46Z | 0 | {"remaining":0,"catalog_datasets":1027,"terminal_datasets":1027} |
+| catalog | ok | 2026-10-05T22:17:03Z | 2026-10-05T22:20:46Z | 0 | {"catalog_count":1027} |
+| current_season | stale | - | 2026-10-05T22:20:46Z | 0 | {"ttl_hours":24,"stale_datasets":54} |
+| incremental | ok | 2026-10-05T16:18:53Z | 2026-10-05T22:20:46Z | 0 | {"last_status":"running","max_gap_hours":7} |
+| today | ok | 2026-10-05T04:18:18Z | 2026-10-05T22:20:46Z | 0 | {} |
+
+| gap | priorità | stato | righe |
+| --- | --- | --- | --- |
+| current_season_stale | P1 | QUEUED | 54 |
+| current_season_stale | P1 | RECOVERED | 50 |
+| season_not_published | P3 | UNRECOVERABLE | 1 |
+
+Gate: **PASS**
+
+## 20. Versionamento parser/schema e rielaborazione
+Lo sweep del raw ri-parsa ogni gzip con il parser corrente: è il dry run di una rielaborazione completa. Il raw è append-only (trigger), ogni rielaborazione è registrata.
+
+| campo | valore |
+| --- | --- |
+| snapshots_checked | 617 |
+| rows_checked | 161,801 |
+| rows_without_version | 0 |
+| hash_mismatch | 0 |
+| raw_guard_installed | true |
+| raw_deletions_logged | 0 |
+| runs | 0 |
+| failed_runs_unresolved | 0 |
+| current_lineage | {"parser_version":"fpt-csv-1","schema_version":"fpt-schema-4","transform_version":"fpt-norm-1"} |
+| tests | test/fpt-reprocessing.test.mjs (simulated parser change: dry run, apply, idempotent replay, raw guard) |
+
+| parser | schema | transform | versioni |
+| --- | --- | --- | --- |
+| fpt-csv-1 | fpt-schema-4 | fpt-norm-1 | 161801 |
 
 Gate: **PASS**
 
@@ -1242,13 +1365,13 @@ Gate: **PASS**
 - `today_odds_placeholder`: Il feed jogos-do-dia manda 0 nelle quote non ancora quotate: lo zero di un campo di mercato è N/D, non un prezzo.
 
 ## Verifica incrociata
-Controlli indipendenti eseguiti dall'agente dopo il cron reale, fuori dal report: query di sola lettura su Neon e log Render.
+Controlli indipendenti eseguiti dall'agente dopo il cron reale, fuori dal report: solo richieste HTTP pubbliche al servizio Render, nessuna query manuale su Neon e nessuna chiamata a FutPythonTrader.
 
-- Render log del cron reale: `FUTPYTHON_SYNC` run `fpt-1791195420927-282816e5` (cron, avvio 10:17:00Z, fine 10:18:54Z) sull'istanza `srv-davpi23ncjis73f9dkbg-cgvrd` del deploy live `dep-db1ml36q1p3s73ffhpc0` (commit `9f09e1d`): status complete, 165 cache_hit, 2 upstream HTTP 200, 0 dataset scaricati, 0 errori.
-- Neon (query diretta di sola lettura) su `fpt_request_ledger` dopo `014` (applicata 08:52:23Z): 167 righe, tutte del run di servizio sopra; catalog `/api-docs` 10:17:03Z latency 1266 ms; today `/api/jogos-do-dia?date=2026-10-05` 10:18:53Z latency 643 ms; budget_state ok, residuo giorno 1986 e 1985, residuo minuto 19; provider_quota_remaining nullo (il provider non manda header di rate limit); 0 campi mancanti; attempt massimo 1, backoff 0; 0 righe 429/error nelle 24 ore; picco storico 4 richieste upstream al minuto.
-- Le richieste vengono dal servizio MatchPilot: run_id presente in `fpt_sync_runs` (kind cron); nessuna chiamata manuale o esterna a FutPythonTrader. Il workflow `provider-trial-keepalive` (commit `9f09e1d`) chiama solo `betsapi-trial-collector.onrender.com/healthz`, non FutPythonTrader né matchpilot-test.
-- Scansione log Render del servizio dalle 08:50Z alle 10:23Z per `api_key=`, `postgres://`, `postgresql://`, `DATABASE_URL`, `FUTPYTHON_API_KEY`, token Telegram: 0 occorrenze. Warning/error: solo l'avviso SSL di pg al boot.
-- Telegram: tutti i 54 alert con consegna sono del 2026-10-04. 53 dalla raffica 15:02-16:19Z (50 DATASET_SYNC_FAILED, 1 DATASET_ERRORS, 1 SYNC_STALE, 1 NEW_DATASETS_AGG) prima dell'aggregazione e del cooldown; 1 WATCHDOG_CERT di FPT-PR-08 alle 23:52Z. Dal 2026-10-04 23:52Z nessuna consegna. Unico alert aperto: NEW_DATASETS_AGG (info).
+- `GET /api/fpt/reconciliation` alle 22:00Z: 104 `current_season_stale` QUEUED, 1 `season_not_published` UNRECOVERABLE (stato prima del primo cron di refresh introdotto dalla #88).
+- Stessa route alle 22:18:43Z, durante il cron delle 22:17: 8 RECOVERED, 42 RECOVERING, 54 QUEUED. Alle 22:21:10Z, a run finito: **50 RECOVERED** (tetto `FUTPYTHON_REFRESH_PER_RUN`=50), **54 QUEUED** per i cron delle 04:17 e 10:17 UTC, 0 RECOVERING, 0 FAILED. Tutte le route rispondono con `upstream_calls` 0.
+- Il run cron `fpt-1791238620320-097395bf` (22:17:00Z) è `complete` con 0 snapshot e 0 righe nuove: i 50 dataset riscaricati hanno contenuto identico a quello salvato, quindi nessuna versione duplicata (raw = DB resta 161.801 = 161.801).
+- 20 richieste simultanee a `GET /api/fpt/away-matches?team=fpt:team:1e9b4769a363d1f58dcecae6&limit=20` alle 22:26:22Z: 20 risposte HTTP 200, 20 righe ciascuna, somma `upstream_calls` = 0, tempo DB massimo 102 ms.
+- `GET /coverage` 200 (1,70 s), `/coverage?country=italy&league=serie-a` 200, `/api/fpt/coverage-competitions?limit=500` 200, `/api/fpt/coverage-seasons?country=england&league=premier-league` 200; slug non valido 400; id squadra non valido su `/api/fpt/away-matches` 400; `/healthz` 200.
 
 ## Esito
 **CERTIFIED WITH KNOWN LIMITATIONS**

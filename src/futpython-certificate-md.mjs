@@ -21,7 +21,9 @@ function details(summary, body) {
   return `<details><summary>${summary}</summary>\n\n${body}\n</details>\n`;
 }
 
-export function renderCertificateMarkdown(report, {deploy = null, verification = [], source = null} = {}) {
+// verificationNote says how the cross-checks were made (Neon/Render logs or public HTTP only); it is never implied.
+export function renderCertificateMarkdown(report, {deploy = null, verification = [], source = null,
+  verificationNote = 'query di sola lettura su Neon e log Render'} = {}) {
   const r = report;
   const id = r.identity;
   const out = [];
@@ -30,7 +32,7 @@ export function renderCertificateMarkdown(report, {deploy = null, verification =
   out.push('');
   out.push(`**Esito: ${r.verdict}**`);
   out.push('');
-  out.push(`Sorgente del report: ${source || 'non dichiarata'}. Report costruito alle ${id.generated_at} (UTC). Ogni numero delle sezioni 1–20 viene dal report; nessun valore è stato scritto a mano. La sezione "Verifica incrociata" riporta controlli indipendenti fatti fuori dal report (query dirette su Neon e log Render). Issue #12 (FPT-CERT).`);
+  out.push(`Sorgente del report: ${source || 'non dichiarata'}. Report costruito alle ${id.generated_at} (UTC). Ogni numero delle sezioni 1–20 viene dal report; nessun valore è stato scritto a mano. La sezione "Verifica incrociata" riporta controlli indipendenti fatti fuori dal report (${verificationNote}). Issue #12 (FPT-CERT).`);
   out.push('');
   if (r.failed_gates?.length) {
     out.push(`Gate falliti: ${r.failed_gates.map(g => `\`${g}\``).join(', ')}.`);
@@ -234,7 +236,7 @@ export function renderCertificateMarkdown(report, {deploy = null, verification =
 
   if (verification.length) {
     out.push('## Verifica incrociata');
-    out.push('Controlli indipendenti eseguiti dall\'agente dopo il cron reale, fuori dal report: query di sola lettura su Neon e log Render.\n');
+    out.push(`Controlli indipendenti eseguiti dall'agente dopo il cron reale, fuori dal report: ${verificationNote}.\n`);
     out.push(verification.map(line => `- ${line}`).join('\n') + '\n');
   }
 

@@ -572,17 +572,17 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
       } catch (error) {
         stats.meta.onboardingError = redact(error?.message || error);
       }
-      try {
-        stats.meta.reconciliation = await reconcileFpt(client, {phase: 'post_run', runId,
-          deferred: stats.deferred.map(item => item.datasetKey)});
-      } catch (error) {
-        stats.meta.reconciliationError = redact(error?.message || error);
-      }
-
       const undefinedCount = Object.values(stats.meta.undefinedStates || {}).reduce((sum, value) => sum + value, 0);
       const status = stats.failures.length || undefinedCount
         ? (stats.datasetsChanged || stats.rowsInserted || stats.resumedSkips ? 'partial' : 'failed')
         : 'complete';
+
+      try {
+        stats.meta.reconciliation = await reconcileFpt(client, {phase: 'post_run', runId, runStatus: status,
+          deferred: stats.deferred.map(item => item.datasetKey)});
+      } catch (error) {
+        stats.meta.reconciliationError = redact(error?.message || error);
+      }
 
       stats.meta.deferred = stats.deferred;
       stats.meta.newFields = [...stats.newFields];

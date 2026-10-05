@@ -138,6 +138,13 @@ test('reconciliation detects lost and stale data, recovers it through the normal
     hits.length = 0;
     run = await runSync([], env);
     assert.equal(run.code, 0, run.out);
+    // The post_run checkpoint carries the run's own final status, not 'running' and not the previous success.
+    const [lastRun] = await q(`SELECT run_id, status, started_at FROM fpt_sync_runs WHERE kind <> 'backfill' AND run_id <> 'fpt-crashed'
+      ORDER BY started_at DESC LIMIT 1`);
+    const [incr] = await q(`SELECT last_entity_id, checkpoint, last_success_at FROM data_checkpoints WHERE scope='incremental'`);
+    assert.equal(incr.last_entity_id, lastRun.run_id);
+    assert.equal(incr.checkpoint.last_status, lastRun.status, JSON.stringify(incr));
+    assert.ok(new Date(incr.last_success_at) >= new Date(lastRun.started_at), 'last success is this run, not an older one');
     for (const key of ['beta/cup/2025', 'alpha/league/2023', 'alpha/league/2022', 'alpha/league/2021', current]) {
       assert.ok(hits.includes(`/api/download/${key}`), `${key} fetched by the recovery`);
     }
