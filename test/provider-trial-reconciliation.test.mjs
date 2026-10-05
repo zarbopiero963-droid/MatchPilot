@@ -5,7 +5,8 @@ import {
   BETSAPI_SPORTS,
   normalizeTrialRows,
   providerForSource,
-  initReconciliation
+  initReconciliation,
+  rebuildOddsV3FromRaw
 } from '../scripts/lib/provider-trial-reconciliation.mjs';
 
 test('official BetsAPI R-SportID catalog is versioned', () => {
@@ -167,4 +168,90 @@ test('repeated BetsAPI Event Odds history uses provider time for stable dedupe h
   const a=normalizeTrialRows([{ts:'2026-10-05T12:00:00Z',type:'betsapi_documented_event_odds',payload}]);
   const b=normalizeTrialRows([{ts:'2026-10-05T12:01:00Z',type:'betsapi_documented_event_odds',payload}]);
   assert.deepEqual(a.odds.map(x=>x.observation_hash).sort(),b.odds.map(x=>x.observation_hash).sort());
+});
+
+
+test('odds_summary orders same-response history by provider_time, not fetch time', async (tt) => {
+  const url=process.env.FUTPYTHON_TEST_DATABASE_URL;
+  if (!url) return tt.skip('FUTPYTHON_TEST_DATABASE_URL not set');
+  const pool=new pg.Pool({connectionString:url,max:1});
+  try {
+    await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
+    await pool.query('CREATE SCHEMA provider_trial');
+    await initReconciliation(pool);
+    await pool.query(`
+      INSERT INTO provider_trial.odds_observations(
+        observation_hash,observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path
+      ) VALUES
+      ('pt1','2026-10-05T12:30:00Z','betsapi','betsapi_documented_event_odds','1','it','55','Serie Test','e2','2026-10-05T12:00:00Z','prematch','bet365','1_1','home',NULL,2.20,'2026-10-05T09:00:00Z','a'),
+      ('pt2','2026-10-05T12:30:00Z','betsapi','betsapi_documented_event_odds','1','it','55','Serie Test','e2','2026-10-05T12:00:00Z','prematch','bet365','1_1','home',NULL,1.90,'2026-10-05T11:59:00Z','b'),
+      ('pt3','2026-10-05T12:30:00Z','betsapi','betsapi_documented_event_odds','1','it','55','Serie Test','e2','2026-10-05T12:00:00Z','live_or_post','bet365','1_1','home',NULL,1.70,'2026-10-05T12:10:00Z','c')
+    `);
+    const {rows}=await pool.query(`
+      SELECT opening_price::float8,latest_price::float8,closing_price::float8
+      FROM provider_trial.odds_summary
+      WHERE event_id='e2' AND market_key='1_1' AND selection_key='home'
+    `);
+    assert.equal(rows[0].opening_price,2.20);
+    assert.equal(rows[0].closing_price,1.90);
+    assert.equal(rows[0].latest_price,1.70);
+  } finally {
+    await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
+    await pool.end();
+  }
+});
+
+test('raw odds v3 rebuild replays immutable provider_trial.records', async (tt) => {
+  const url=process.env.FUTPYTHON_TEST_DATABASE_URL;
+  if (!url) return tt.skip('FUTPYTHON_TEST_DATABASE_URL not set');
+  const pool=new pg.Pool({connectionString:url,max:1});
+  try {
+    await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
+    await pool.query('CREATE SCHEMA provider_trial');
+    await initReconciliation(pool);
+    await pool.query(`
+      CREATE TABLE provider_trial.records (
+        record_id bigserial PRIMARY KEY,
+        observed_at timestamptz NOT NULL,
+        instance_id text NOT NULL,
+        source_type text NOT NULL,
+        payload jsonb NOT NULL,
+        persisted_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await pool.query(`
+      INSERT INTO provider_trial.events(provider,event_id,sport_id,country_code,league_id,league_name,kickoff_utc,first_seen_at,last_seen_at)
+      VALUES('betsapi','raw1','1','it','55','Serie Test','2026-10-05T12:00:00Z',now(),now())
+    `);
+    await pool.query(`
+      INSERT INTO provider_trial.records(observed_at,instance_id,source_type,payload)
+      VALUES(
+        '2026-10-05T12:30:00Z','test','betsapi_documented_event_odds',
+        $1::jsonb
+      )
+    `,[JSON.stringify({
+      request_params:{event_id:'raw1',source:'bet365'},
+      body:{results:{odds:{'1_1':[
+        {home_od:'2.20',draw_od:'3.1',away_od:'3.5',add_time:1791187200},
+        {home_od:'1.90',draw_od:'3.2',away_od:'3.8',add_time:1791191940},
+        {home_od:'1.70',draw_od:'3.4',away_od:'4.2',add_time:1791202200}
+      ]}}}
+    })]);
+    const result=await rebuildOddsV3FromRaw(pool,{batchSize:10});
+    assert.equal(result.complete,true);
+    assert.equal(result.raw_rows,1);
+    const {rows}=await pool.query(`
+      SELECT opening_price::float8,latest_price::float8,closing_price::float8,observations
+      FROM provider_trial.odds_summary
+      WHERE event_id='raw1' AND market_key='1_1' AND selection_key='home'
+    `);
+    assert.equal(rows.length,1);
+    assert.equal(rows[0].opening_price,2.20);
+    assert.equal(rows[0].closing_price,1.90);
+    assert.equal(rows[0].latest_price,1.70);
+    assert.equal(rows[0].observations,'3');
+  } finally {
+    await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
+    await pool.end();
+  }
 });
