@@ -1,4 +1,4 @@
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { renderCertificateMarkdown } from '../futpython-certificate-md.mjs';
 
 function arg(name) {
@@ -33,9 +33,10 @@ async function fromDb() {
 
 async function main() {
   const url = arg('from-url');
+  const fromJson = arg('from-json');
   const out = arg('out');
   const json = arg('json');
-  const report = url ? await fromUrl(url) : await fromDb();
+  const report = fromJson ? JSON.parse(await readFile(fromJson, 'utf8')) : url ? await fromUrl(url) : await fromDb();
   const verification = (arg('verify') || '').split(';;').map(s => s.trim()).filter(Boolean);
   const markdown = renderCertificateMarkdown(report, {deploy: arg('deploy'), verification});
   if (out) await writeFile(out, markdown);
