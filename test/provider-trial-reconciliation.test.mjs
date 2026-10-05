@@ -234,7 +234,7 @@ test('raw odds v3 rebuild replays immutable provider_trial.records', async (tt) 
       body:{results:{odds:{'1_1':[
         {home_od:'2.20',draw_od:'3.1',away_od:'3.5',add_time:1791187200},
         {home_od:'1.90',draw_od:'3.2',away_od:'3.8',add_time:1791191940},
-        {home_od:'1.70',draw_od:'3.4',away_od:'4.2',add_time:1791192600}
+        {home_od:'1.70',draw_od:'3.4',away_od:'4.2',add_time:1791202200}
       ]}}}
     })]);
     const result=await rebuildOddsV3FromRaw(pool,{batchSize:10});
