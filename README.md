@@ -485,6 +485,10 @@ Ogni valore è un parametro SQL: nessun input entra nel testo della query. Lo st
 
 Il gate di performance del certificato misura su Neon, con `EXPLAIN (ANALYZE, BUFFERS)`, 15 query (le 7 di prima più trasferte, range quote, xG per squadra e per competizione, ricerca con 8 filtri, point-in-time, coverage per lega/stagione, leghe con coverage). Il gate richiede almeno 5 filtri combinati, esecuzione ≤ 250 ms, righe lette ≤ 20000 e nessun Seq Scan sulle tabelle grandi. La sezione assistente del certificato controlla le righe restituite: 20 trasferte tutte in trasferta, quote dentro il range, xG con coverage, ricerca coerente con ogni filtro, point-in-time ripetibile e vuoto prima del mirror, nessuna data oltre il cut-off, 0 chiamate upstream. I numeri reali stanno nel commento della PR.
 
+### FASE 9 — registry dei filtri completa (correzione 2 della checklist #12)
+
+La migrazione `016-fpt-filter-registry-complete.sql` completa `fpt_filter_registry` con: `source` (`fpt_match_facts.<colonna>` se il campo ha una colonna tipizzata, altrimenti `fpt_match_versions.payload`), `fact_column`, `indexed` e `index_names`, `first_seen` / `last_seen` (dalla schema registry), `phases` (`HISTORICAL` se il campo compare in uno snapshot di dataset, `PREMATCH` se compare nel feed del giorno, letto dagli header raw). `indexed` non è dichiarato: è vero solo se in `pg_index` esiste un indice su `fpt_match_facts` con quella colonna come chiave iniziale. Un campo letto solo dal payload resta `indexed=false`. `registry_version` passa a `fpt-filters-2`. Il gate filtri del certificato richiede date, sorgente e fasi per ogni campo e flag di indice coerenti.
+
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
 
 **Stato al momento della PR, prima del merge.** Il kill live e la verifica post-merge sono nella sezione precedente. Questo paragrafo non va letto come lo stato attuale.
