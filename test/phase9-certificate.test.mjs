@@ -366,8 +366,14 @@ test('normalized layer, team links, raw sweep and query answers on a real Postgr
 
       const perf = await query.runPerfGate(client);
       assert.equal(perf.sample_found, true);
-      assert.equal(perf.queries.length, 7);
-      assert.ok(perf.queries.every(q => Number.isFinite(q.execution_ms)));
+      assert.equal(perf.queries.length, 15);
+      // This fixture has no xG: the xG samples are missing, so those queries fail the gate with a reason.
+      // (On a tiny table the planner may also pick a Seq Scan, which the gate rejects too.)
+      const xg = perf.queries.filter(q => q.query === 'xgBySeason');
+      assert.equal(xg.length, 2);
+      assert.ok(xg.every(q => q.pass === false && /team or competition/.test(q.error)));
+      assert.equal(perf.gate, false);
+      assert.ok(perf.queries.filter(q => !q.error).every(q => Number.isFinite(q.execution_ms)));
     });
   } finally {
     await db.closePool();

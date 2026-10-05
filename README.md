@@ -195,7 +195,7 @@ La branch `main` rappresenta esclusivamente il nuovo MatchPilot Sports Trading O
 
 La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue **#12 — FPT-CERT**.
 
-Stato corrente della sorgente: **CERTIFIED WITH KNOWN LIMITATIONS** — certificato [`docs/futpython-certification-2026-10-05.md`](docs/futpython-certification-2026-10-05.md), 17 gate su 17 veri sul deploy `dep-db1ml36q1p3s73ffhpc0` (commit `9f09e1d`), report generato il 2026-10-05 alle 10:41:40 UTC dopo il cron reale delle 10:17 UTC. La issue #12 resta OPEN: la chiusura spetta all'owner.
+Stato corrente della sorgente: certificato dati **CERTIFIED WITH KNOWN LIMITATIONS**, ma la issue #12 **non è ancora chiudibile** (gap della checklist finale elencati nella #12, in correzione dentro FPT-PR-09). [`docs/futpython-certification-2026-10-05.md`](docs/futpython-certification-2026-10-05.md), 17 gate su 17 veri sul deploy `dep-db1ml36q1p3s73ffhpc0` (commit `9f09e1d`), report generato il 2026-10-05 alle 10:41:40 UTC dopo il cron reale delle 10:17 UTC. La issue #12 resta OPEN: la chiusura spetta all'owner.
 
 Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. I paragrafi di fase qui sotto restano lo storico delle singole PR. Lo stato attuale e i numeri reali sono nel certificato finale, generato dai dati reali e non scritto a mano.
 
@@ -462,6 +462,28 @@ Limiti noti, tutti dichiarati nel certificato:
 - 134 squadre internazionali non collegate alla squadra domestica (133 di paesi senza campionato nel catalogo, 1 senza nome coincidente); 421 collegate;
 - righe del ledger precedenti alla 014 senza latenza e stato budget;
 - lo `0` delle quote del feed del giorno è N/D.
+
+### FASE 9 — query layer per l'assistente (correzione 1 della checklist #12)
+
+La migrazione `015-fpt-query-facts.sql` aggiunge a `fpt_match_facts` colonne tipizzate prese dal payload della stessa versione: `odd_home`, `odd_draw`, `odd_away` (da `Odd_1_FT`/`Odd_X_FT`/`Odd_2_FT`, o `Odd_H_FT`/`Odd_D_FT`/`Odd_A_FT` nel feed del giorno), `odd_over25`, `odd_under25`, `odd_btts_yes`, `favorite_side`, `favorite_odd`, `xg_home`, `xg_away`, `total_goals`. Una quota vale solo se è un decimale maggiore di 1: `0` e placeholder restano NULL (N/D). Lo xG assente resta NULL, mai 0. `facts_version` passa a `fpt-facts-2`.
+
+Nuove route di sola lettura (nessuna chiamata a FutPythonTrader):
+
+| route | domanda |
+| --- | --- |
+| `GET /api/fpt/away-matches?team=…` | ultime 20 trasferte |
+| `GET /api/fpt/team-matches?team=…&venue=home\|away\|both` | ultime N partite per campo |
+| `GET /api/fpt/odds-range?min=1.50&max=1.90&side=any` | favorito in un range di quota |
+| `GET /api/fpt/search?…` | filtri combinati in AND: `competition`, `season`, `team`+`venue`, `from`, `before`, `fav_min`, `fav_max`, `fav_side`, `home_odd_min/max`, `over25_min/max`, `result`, `min_goals`, `max_goals`, `min_xg_total`, `phase` |
+| `GET /api/fpt/xg-by-season?team=…` o `?competition=…` | xG per stagione, con `matches_with_xg` come coverage |
+| `GET /api/fpt/team-matches-asof?team=…&as_of=…` | cosa sapeva MatchPilot al timestamp T (versione acquisita entro T) |
+| `GET /api/fpt/league-field-coverage?field=…` | coverage di un campo per lega e stagione |
+| `GET /api/fpt/leagues-with-coverage?field=…&min_ratio=…&min_seasons=…` | leghe con almeno N stagioni AVAILABLE con coverage sufficiente |
+| `GET /api/fpt/catalog` | catalogo leggibile dalle macchine di tutte le query, per MatchPilot Copilot (#44) |
+
+Ogni valore è un parametro SQL: nessun input entra nel testo della query. Lo storico è sempre strettamente prima di `before`. Le stagioni "complete" non esistono (il provider non pubblica il numero atteso di partite): `leagues-with-coverage` conta le stagioni AVAILABLE.
+
+Il gate di performance del certificato misura su Neon, con `EXPLAIN (ANALYZE, BUFFERS)`, 15 query (le 7 di prima più trasferte, range quote, xG per squadra e per competizione, ricerca con 8 filtri, point-in-time, coverage per lega/stagione, leghe con coverage). Il gate richiede almeno 5 filtri combinati, esecuzione ≤ 250 ms, righe lette ≤ 20000 e nessun Seq Scan sulle tabelle grandi. La sezione assistente del certificato controlla le righe restituite: 20 trasferte tutte in trasferta, quote dentro il range, xG con coverage, ricerca coerente con ogni filtro, point-in-time ripetibile e vuoto prima del mirror, nessuna data oltre il cut-off, 0 chiamate upstream. I numeri reali stanno nel commento della PR.
 
 ### FASE 1 — resume drill e budget richieste (testo della PR, prima del merge)
 
