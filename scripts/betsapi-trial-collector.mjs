@@ -68,6 +68,7 @@ let last = {
 };
 let betsEventIds = [];
 let tcMatchIds = [];
+let everythingFullCatalogRunning = false;
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 
@@ -339,9 +340,14 @@ async function loop() {
       await everythingRuntime.prematchCycle();
       last.everything_prematch = Date.now();
     }
-    if (EVERYTHING_ENABLED && EVERYTHING_FULL_CATALOG_ENABLED && now - last.everything_full_catalog >= EVERYTHING_FULL_CATALOG_MS) {
-      await everythingRuntime.fullCatalogCycle();
-      last.everything_full_catalog = Date.now();
+    if (EVERYTHING_ENABLED && EVERYTHING_FULL_CATALOG_ENABLED && !everythingFullCatalogRunning && now - last.everything_full_catalog >= EVERYTHING_FULL_CATALOG_MS) {
+      everythingFullCatalogRunning = true;
+      last.everything_full_catalog = now;
+      try {
+        await everythingRuntime.fullCatalogCycle();
+      } finally {
+        everythingFullCatalogRunning = false;
+      }
     }
 
     lastError = null;
@@ -403,7 +409,7 @@ http.createServer(async (req, res) => {
       totalcorner_detail_matches:tcMatchIds.length,
       last_error:lastError,
       betsapi_everything:everythingRuntime.status(),
-      betsapi_everything_full_catalog:everythingRuntime.fullCatalogStatus(),
+      betsapi_everything_full_catalog:{...everythingRuntime.fullCatalogStatus(),running:everythingFullCatalogRunning},
       keepalive:{
         enabled:Boolean(KEEPALIVE_URL) && Number.isFinite(KEEPALIVE_MS) && KEEPALIVE_MS >= 60000,
         interval_ms:KEEPALIVE_MS,
