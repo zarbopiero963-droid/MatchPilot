@@ -449,11 +449,11 @@ async function reconciliationCertificate() {
     dbPool.query(`SELECT key,value,updated_at FROM provider_trial.reconciliation_state WHERE key IN ('odds_parser_version','odds_v3_raw_rebuild','betsapi_rate_state_v1')`),
     dbPool.query(`
       SELECT
-        count(*) FILTER (WHERE country_status NOT IN ('known','unknown_upstream'))::int AS bad_country_status,
+        count(*) FILTER (WHERE country_status NOT IN ('known','unknown_unverified'))::int AS bad_country_status,
         count(*) FILTER (WHERE history_status NOT IN ('observed','pending_scan'))::int AS bad_history_status
       FROM (
         SELECT
-          CASE WHEN country_code='' THEN 'unknown_upstream' ELSE 'known' END AS country_status,
+          CASE WHEN country_code='' THEN 'unknown_unverified' ELSE 'known' END AS country_status,
           CASE WHEN EXISTS (
             SELECT 1 FROM provider_trial.coverage v
             WHERE v.provider=c.provider
@@ -540,7 +540,7 @@ async function reconciliationCertificate() {
       coverage:{...covRow,documented_floor_date:documentedFloor},
       odds:{
         ...oddsRow,
-        missing_league_status:Number(oddsRow.missing_league||0)>0?'unknown_upstream_present':'none',
+        missing_league_status:Number(oddsRow.missing_league||0)>0?'unknown_unverified_present':'none',
         structure_classified:oddsStructureClassified
       },
       odds_summary:os,
@@ -759,7 +759,7 @@ http.createServer(async (req, res) => {
   params.push(limit);
   const q=[
     'SELECT c.provider,c.sport_id,s.sport_name,c.country_code,c.league_id,c.league_name,',
-    "       CASE WHEN c.country_code='' THEN 'unknown_upstream' ELSE 'known' END AS country_status,",
+    "       CASE WHEN c.country_code='' THEN 'unknown_unverified' ELSE 'known' END AS country_status,",
     "       CASE WHEN v.earliest_event_time IS NULL THEN 'pending_scan' ELSE 'observed' END AS history_status,",
     '       extract(year from v.earliest_event_time)::int AS earliest_year,',
     '       extract(year from v.latest_event_time)::int AS latest_year,',
@@ -800,7 +800,7 @@ if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds') {
   }
   params.push(limit);
   const q=[
-    "SELECT s.*, CASE WHEN COALESCE(s.country_code,'')='' THEN 'unknown_upstream' ELSE 'known' END AS country_status, CASE WHEN s.league_id IS NULL THEN 'unknown_upstream' ELSE 'known' END AS league_status FROM provider_trial.odds_summary s",
+    "SELECT s.*, CASE WHEN COALESCE(s.country_code,'')='' THEN 'unknown_unverified' ELSE 'known' END AS country_status, CASE WHEN s.league_id IS NULL THEN 'unknown_unverified' ELSE 'known' END AS league_status FROM provider_trial.odds_summary s",
     where.length?'WHERE '+where.join(' AND '):'',
     'ORDER BY last_observed_at DESC',
     'LIMIT '+bind(params.length)
@@ -823,8 +823,8 @@ if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timel
     try {
       const {rows}=await dbPool.query(`
         SELECT observed_at,provider,source_type,sport_id,country_code,league_id,league_name,event_id,kickoff_utc,phase,bookmaker,market_key,selection_key,line_value,price,provider_time,raw_path,
-               CASE WHEN COALESCE(country_code,'')='' THEN 'unknown_upstream' ELSE 'known' END AS country_status,
-               CASE WHEN league_id IS NULL THEN 'unknown_upstream' ELSE 'known' END AS league_status
+               CASE WHEN COALESCE(country_code,'')='' THEN 'unknown_unverified' ELSE 'known' END AS country_status,
+               CASE WHEN league_id IS NULL THEN 'unknown_unverified' ELSE 'known' END AS league_status
         FROM provider_trial.odds_observations
         WHERE event_id=$1
         ORDER BY COALESCE(provider_time,observed_at),market_key,selection_key
