@@ -426,6 +426,10 @@ http.createServer(async (req, res) => {
       }
     }));
   }
+  if (req.url === '/everything-catalog') {
+    res.setHeader('content-type', 'application/json');
+    return res.end(JSON.stringify(everythingRuntime.catalogStatus()));
+  }
   if (req.url === '/everything-status') {
     res.setHeader('content-type', 'application/json');
     return res.end(JSON.stringify(everythingRuntime.status()));
