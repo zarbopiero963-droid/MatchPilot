@@ -4,7 +4,7 @@
 
 1. Leggere **README.md**.
 2. Leggere **CLAUDE.md**.
-3. Leggere la issue master corrente.
+3. Leggere la issue master corrente e la roadmap canonica **#97** (fase, dipendenze, owner di dominio).
 4. Se il lavoro riguarda FutPythonTrader, leggere integralmente **#12 FPT-CERT**.
 5. Verificare branch, PR aperte, CI, deploy e stato delle dipendenze.
 6. Verificare che non esista già un'altra PR aperta prima di crearne una nuova.
@@ -41,6 +41,20 @@ Il README deve distinguere chiaramente:
 - **CERTIFIED**
 
 Non usare “completato”, “certificato” o “chiuso” come sinonimi se i gate reali non sono passati.
+
+## Roadmap #97, ownership e mock vivo — regola per ogni agente
+
+Vale per qualunque agente (Claude, Codex, ChatGPT o altri) e per ogni PR.
+
+- Rispettare l'ordine di **#97** (fasi 0–16) e indicare nella PR la fase implementata. Riassunto: `docs/integration-map.md`.
+- Backend / API-first: ogni dominio espone i propri tool; #98 certifica l'intero percorso senza sito prima della UI finale (fase 15).
+- **Nessuna logica di business nella UI.** La UI e il mock consumano contratti; solver, formule, policy, settlement e ledger stanno nei domini.
+- Mantenere l'ownership: #94 math, #95 settings, #96 policy MM e `operational_mode` (legge da #99, non scrive), #100 regole di mercato, #99 posizioni / settlement / ledger, #34 strategie e backtest, #28 segnali e intent, #45 ordini reali, #44 assistente globale, #102 Trading Copilot senza logica propria.
+- **Mock vivo**: ogni feature, stato, dominio, tool, impostazione o cambio UX con impatto visibile o concettuale aggiorna `docs/mockups/matchpilot-trading-os.html` e `docs/mockups/README.md` (changelog con SHA-256) nella stessa PR o nella stessa sequenza pianificata. Ogni PR risponde: "Questa modifica richiede un aggiornamento del mock MatchPilot? SÌ / NO".
+- Distinguere sempre REAL da DEMO: REAL solo per valori da route certificate. Il prototipo simula la persistenza nel browser e non deve dichiararla account-level.
+- Aggiornare i tag `data-issue` del mock quando cambia l'owner di una funzione.
+- **Mai certificare dal mock**: una funzione presente solo nel mock non è IMPLEMENTED, TESTED, HARD_VERIFIED_REAL, TOOL_VERIFIED né CERTIFIED.
+- Ciclo di certificazione: DISCOVERED → SPECIFIED → CONTRACT_FROZEN → IMPLEMENTED → TESTED → MATH_VERIFIED (se applicabile) → HARD_VERIFIED_REAL → TOOL_VERIFIED → CERTIFIED → OWNER_ACCEPTED.
 
 ## Data integrity
 
@@ -155,7 +169,7 @@ Non usare come certificazione:
 - Branch archivio non è fonte di contratto corrente.
 - Test prima del merge.
 - Review/thread prima del merge.
-- README/CLAUDE/AGENTS devono restare coerenti tra loro.
+- README/CLAUDE/AGENTS devono restare coerenti tra loro e con `docs/integration-map.md` e il mock.
 
 ## Definizione di chiusura FutPythonTrader
 
