@@ -6,6 +6,7 @@ import pg from 'pg';
 import { createEverythingRuntime } from './lib/betsapi-everything.mjs';
 import { initReconciliation, normalizeTrialRows, persistNormalizedBatch, reconciliationSummary, rebuildOddsV3FromRaw, ensureRawRecordsAppendOnly, rawRecordsAppendOnlyStatus } from './lib/provider-trial-reconciliation.mjs';
 import { assessPersistenceHealth } from './lib/provider-trial-health.mjs';
+import { createOrReadFreezeBoundary, exportMetadata, streamDatasetNdjsonGzip, isSafeExportDatasetName } from './lib/provider-trial-final-export.mjs';
 
 const PORT = Number(process.env.PORT || 10000);
 const BETS_TOKEN = process.env.BETSAPI_TOKEN?.trim();
@@ -15,6 +16,7 @@ const DATABASE_URL = process.env.DATABASE_URL?.trim();
 const INSTANCE_ID = crypto.randomUUID();
 const KEEPALIVE_URL = (process.env.PROVIDER_TRIAL_KEEPALIVE_URL || 'https://betsapi-trial-collector.onrender.com/healthz').trim();
 const KEEPALIVE_MS = Number(process.env.PROVIDER_TRIAL_KEEPALIVE_MS || 600000);
+const EXPORT_TOKEN = process.env.PROVIDER_TRIAL_EXPORT_TOKEN?.trim();
 
 const BETS_LEGACY_ENABLED = String(process.env.BETSAPI_LEGACY_ENABLED || 'true').toLowerCase() === 'true';
 const BETS_INPLAY_MS = Number(process.env.BETSAPI_POLL_MS || 30000);
@@ -860,6 +862,53 @@ if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timel
     } catch(error) {
       res.statusCode=500;
       return res.end(JSON.stringify({result:'NOT_CERTIFIED',error:sanitizeError(error)}));
+    }
+  }
+  const requestUrl = new URL(req.url,'http://localhost');
+  const exportAuthorized = Boolean(EXPORT_TOKEN) && req.headers['x-provider-trial-export-token'] === EXPORT_TOKEN;
+  if (requestUrl.pathname.startsWith('/final-export/')) {
+    res.setHeader('cache-control','no-store');
+    if (!exportAuthorized) {
+      res.statusCode=401;
+      res.setHeader('content-type','application/json');
+      return res.end(JSON.stringify({ok:false,error:'unauthorized'}));
+    }
+    if (!dbReady || !dbPool) {
+      res.statusCode=503;
+      res.setHeader('content-type','application/json');
+      return res.end(JSON.stringify({ok:false,error:'database_not_ready'}));
+    }
+    try {
+      if (requestUrl.pathname === '/final-export/freeze') {
+        const freeze=await createOrReadFreezeBoundary(dbPool,{
+          collector_commit:process.env.RENDER_GIT_COMMIT||null,
+          render_service:process.env.RENDER_SERVICE_NAME||null,
+          export_contract:'2026-10-06-v1'
+        });
+        res.setHeader('content-type','application/json');
+        return res.end(JSON.stringify({ok:true,freeze}));
+      }
+      if (requestUrl.pathname === '/final-export/meta') {
+        res.setHeader('content-type','application/json');
+        return res.end(JSON.stringify({ok:true,...await exportMetadata(dbPool)}));
+      }
+      if (requestUrl.pathname === '/final-export/stream') {
+        const name=requestUrl.searchParams.get('name')||'';
+        if (!isSafeExportDatasetName(name)) {
+          res.statusCode=400;
+          res.setHeader('content-type','application/json');
+          return res.end(JSON.stringify({ok:false,error:'invalid_dataset'}));
+        }
+        const excludeScoretrend=requestUrl.searchParams.get('exclude_scoretrend')==='true';
+        return await streamDatasetNdjsonGzip(dbPool,res,name,{excludeScoretrend});
+      }
+      res.statusCode=404;
+      res.setHeader('content-type','application/json');
+      return res.end(JSON.stringify({ok:false,error:'not_found'}));
+    } catch(error) {
+      res.statusCode=500;
+      res.setHeader('content-type','application/json');
+      return res.end(JSON.stringify({ok:false,error:sanitizeError(error)}));
     }
   }
   if (req.url === '/metrics') {
