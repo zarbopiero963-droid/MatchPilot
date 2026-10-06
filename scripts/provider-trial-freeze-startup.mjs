@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { createOrReadFreezeBoundary } from './lib/provider-trial-final-export.mjs';
+import { createOrReadFreezeBoundary, exportMetadata } from './lib/provider-trial-final-export.mjs';
 
 const DATABASE_URL=process.env.DATABASE_URL?.trim();
 // Temporary provider-trial branch: collection is already disabled; create/read the immutable freeze boundary on every startup.
@@ -17,6 +17,11 @@ if (ENABLED && DATABASE_URL) {
       freeze_at_utc:freeze.freeze_at_utc,
       max_raw_record_id:freeze.max_raw_record_id,
       total_raw:freeze.total_raw
+    }));
+    const meta=await exportMetadata(pool);
+    console.log('PROVIDER_TRIAL_FINAL_COUNTS '+JSON.stringify({
+      freeze:meta.freeze,
+      datasets:meta.datasets
     }));
   } finally {
     await pool.end();
