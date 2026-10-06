@@ -6,7 +6,7 @@ import pg from 'pg';
 import { createEverythingRuntime } from './lib/betsapi-everything.mjs';
 import { initReconciliation, normalizeTrialRows, persistNormalizedBatch, reconciliationSummary, rebuildOddsV3FromRaw, ensureRawRecordsAppendOnly, rawRecordsAppendOnlyStatus } from './lib/provider-trial-reconciliation.mjs';
 import { assessPersistenceHealth } from './lib/provider-trial-health.mjs';
-import { createOrReadFreezeBoundary, exportMetadata, streamDatasetNdjsonGzip, isSafeExportDatasetName } from './lib/provider-trial-final-export.mjs';
+import { createOrReadFreezeBoundary, exportMetadata, streamDatasetNdjsonGzip, isSafeExportDatasetName, isExportAuthorized } from './lib/provider-trial-final-export.mjs';
 
 const PORT = Number(process.env.PORT || 10000);
 const BETS_TOKEN = process.env.BETSAPI_TOKEN?.trim();
@@ -865,7 +865,7 @@ if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timel
     }
   }
   const requestUrl = new URL(req.url,'http://localhost');
-  const exportAuthorized = Boolean(EXPORT_TOKEN) && req.headers['x-provider-trial-export-token'] === EXPORT_TOKEN;
+  const exportAuthorized = isExportAuthorized(req.headers, EXPORT_TOKEN);
   if (requestUrl.pathname.startsWith('/final-export/')) {
     res.setHeader('cache-control','no-store');
     if (!exportAuthorized) {
