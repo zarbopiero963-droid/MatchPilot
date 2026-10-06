@@ -9,6 +9,7 @@ import { initReconciliation, normalizeTrialRows, persistNormalizedBatch, reconci
 import { assessPersistenceHealth } from './lib/provider-trial-health.mjs';
 import { createOrReadFreezeBoundary, exportMetadata, streamDatasetNdjsonGzip, isSafeExportDatasetName, isExportAuthorized } from './lib/provider-trial-final-export.mjs';
 import { runFinalFileExport } from './provider-trial-final-file-export.mjs';
+import { auditAndExportScoretrend } from './provider-trial-scoretrend-segregation.mjs';
 
 const PORT = Number(process.env.PORT || 10000);
 const BETS_TOKEN = process.env.BETSAPI_TOKEN?.trim();
@@ -958,6 +959,7 @@ if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timel
       });
       try {
         await exportPool.query("SET statement_timeout TO '120s'");
+        await auditAndExportScoretrend(exportPool);
         await runFinalFileExport(exportPool);
       } catch (error) {
         console.error('PROVIDER_TRIAL_EXPORT_ERROR ' + sanitizeError(error));
