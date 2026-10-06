@@ -1,6 +1,8 @@
 # MatchPilot UX / Product References
 
-## Canonical demo reference — 2026-10-06
+> **Canonical mock moved.** The living mock is now [`docs/mockups/matchpilot-trading-os.html`](../mockups/matchpilot-trading-os.html), with its changelog in [`docs/mockups/README.md`](../mockups/README.md). It is aligned with roadmap #97 and includes #94, #95, #96, #98, #99, #100 and #102. The two files below are historical snapshots and are no longer updated. Where they disagree with the living mock or with the issues, they are wrong: for example, they attribute ledger and settlement to #96 (now #99) and claim account-level persistence that the prototype does not have.
+
+## Historical snapshot — 2026-10-06 (v2)
 
 - File: `matchpilot-trading-os-demo-2026-10-06.html`
 - Title: `MatchPilot Trading OS`
@@ -31,7 +33,7 @@ Outside the Data status section the values remain demonstrative. In the prototyp
 
 ### Contract
 
-Both artifacts are **reference prototypes**, not a statement that the shown features are implemented or certified.
+All artifacts, including the living mock, are **reference prototypes**, not a statement that the shown features are implemented or certified.
 
 Use it to preserve:
 - information architecture;

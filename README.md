@@ -12,6 +12,75 @@ Il flusso prodotto è:
 
 **PRE-MATCH → LIVE VALIDATION → ENTRY → MANAGEMENT → EXIT → POST-MORTEM**
 
+## Roadmap canonica #97 — Backend / API-first, UI per ultima
+
+L'ordine di lavoro non segue il numero delle issue: segue la issue **#97 — ROADMAP** (revisione owner del 06/10/2026). Riassunto, ownership e superfici tool: [`docs/integration-map.md`](docs/integration-map.md).
+
+Gerarchia delle fonti di verità: decisioni dell'owner → #97 → issue di dominio → README / CLAUDE / AGENTS → `docs/` → mock.
+
+| Fase | Issue | Scope |
+| --- | --- | --- |
+| 0 | #23 | identità + security baseline |
+| 1 | #95 | settings e commissione via API |
+| 2 | #12 → #20 → #31 | dati certificati |
+| 3 | #24 | replay backend / PIT minimo |
+| 4 | #94 | Math Core + API/tool |
+| 5 | #96 | MM Registry / Profiles / Policy + API/tool |
+| 6 | #100 | Market Rules |
+| 7 | #99 | Position / Settlement / Ledger + API/tool |
+| 8 | #34 | Strategy Lab / Backtest + API/tool |
+| 9 | #28 | Trading Engine + API/tool |
+| 10 | #27 + query backend #25 / #30 | benchmark e contratti backend |
+| 11 | #98 | certificazione integrata pre-UI |
+| 12 | #44 | AI Assistant |
+| 13 | #45 | Exchange Gateway, owner-gated |
+| 14 | #32 | hardening avanzato |
+| 15 | UI finale | #30, #29, #24, #25, #94, #95, #96, #34, #102, eventuale #91 |
+| 16 | #46 | Billing / SaaS |
+
+#102 Trading Copilot attraversa più fasi: tool contestuali dopo #28, spiegazione conversazionale dopo #44, certificazione in #98, card visuale in fase 15.
+
+### API/tool-first e #98 incrementale
+
+Ogni componente segue DATA CONTRACT → DOMAIN / MATH → DB → API → TEST MATEMATICI → HARD TEST REALI → TOOL / MCP → UI. Ogni dominio espone subito i propri tool (#12/#20/#31 dati e PIT, #95 settings, #94 math, #96 MM e operational mode, #100 regole di mercato, #99 posizioni e ledger, #34 strategie e backtest, #28 segnali, #102 contesto del Copilot). #98 non è una fase monolitica tardiva: certifica l'intero percorso end-to-end, senza sito, prima della UI finale.
+
+### Ownership di dominio
+
+- **#94 Math**: formule pure (Kelly, EV, liability, hedge, cashout, dutching, arbitraggio, Poisson, progressioni), Decimal/fixed precision, solver, oracle e test vector.
+- **#95 Settings**: impostazioni account, commissione, default, versioni, snapshot, concorrenza.
+- **#96 Money Management**: registry, profili, capability, staking policy, limiti, filtri, regole, sequence state solo dove serve, decisione ALLOW / REDUCE / BLOCK / SIMULATION_ONLY e `operational_mode`. Legge bankroll, riserve ed esposizione da #99, **non scrive** posizioni, ledger o saldo.
+- **#100 Market Rules**: WIN/LOSS, VOID, PUSH, rinvii, partite abbandonate, dead heat, esiti asiatici a metà, supplementari e rigori, correzioni, versione della regola.
+- **#99 Settlement / Ledger**: posizioni, fill e leg, fondi riservati, esposizione, contabilità, P/L realizzato e non realizzato, equity, settlement, commissione applicata, ledger append-only, reversal, correzioni, idempotenza.
+- **#34 Strategy Lab**: strategie, DSL, versioni, backtest, assegnazione MM, matching.
+- **#28 Trading Engine**: piano pre-partita, segnale live, BACK / LAY / DUTCH / NO TRADE, intent di entry, invalidation, exit e hedge.
+- **#45 Execution**: unico percorso per ordini reali, fill, riconciliazione provider, kill switch.
+- **#44 Assistente globale**: query generali, dati, coverage, storico, strategie, domande sul sistema.
+- **#102 Trading Copilot**: contesto della partita aperta (strategia, MM, posizione, P/L, esposizione, prossima azione, settlement, post-mortem). Non possiede logica: consuma i tool certificati via #98.
+
+### STOP OPERATIONS e ADVISORY_ONLY
+
+Ogni profilo MM ha uno stato operativo persistente: `ACTIVE_OPERATIONAL`, `ADVISORY_ONLY`, `PAUSED`, `ARCHIVED`. STOP OPERATIONS (dal profilo o dal Trading Copilot) porta in `ADVISORY_ONLY`: dati, segnali, analisi, stake e liability teorici e consigli HOLD / HEDGE / EXIT continuano; nuove paper position, riserve, modifiche all'esposizione, scritture finanziarie nel ledger e avanzamento delle progressioni per trade non registrati si fermano. L'output è marcato "ADVISORY ONLY — operazione non registrata". Le posizioni già aperte continuano fino al settlement. RESUME OPERATIONS non ricostruisce trade retroattivi.
+
+### Replay con Money Management
+
+Il replay (#24) può girare neutro o con un profilo MM. I dati del replay non cambiano mai: il MM aggiunge solo un layer operativo in una sessione di simulazione separata (`replay_simulation_id`, snapshot, profilo e versione, strategia, impostazioni e commissione congelate, bankroll virtuale), che non scrive mai nel ledger #99. Il MM si cambia prima del Play, in pausa o con un reset. Al timestamp T si usano solo dati ≤ T.
+
+### Ciclo di certificazione
+
+DISCOVERED → SPECIFIED → CONTRACT_FROZEN → IMPLEMENTED → TESTED → MATH_VERIFIED (se applicabile) → HARD_VERIFIED_REAL → TOOL_VERIFIED → CERTIFIED → OWNER_ACCEPTED.
+
+Stato al 06/10/2026: #12 CERTIFIED WITH KNOWN LIMITATIONS e READY TO CLOSE (chiusura riservata all'owner); parte FutPythonTrader di #31 verificata nel certificato #12; tutte le altre issue di dominio sono SPECIFIED, senza implementazione backend.
+
+### Mock UX vivo
+
+Il mock è [`docs/mockups/matchpilot-trading-os.html`](docs/mockups/matchpilot-trading-os.html) (**Mock UX v2026.10.06**, allineato a #97, include #94 #95 #96 #98 #99 #100 #102). Changelog, parti REAL e DEMO e gap noti: [`docs/mockups/README.md`](docs/mockups/README.md).
+
+- **Il mock deve restare vivo.** Ogni nuova feature, comportamento, stato, dominio, tool, impostazione, issue di prodotto o cambio UX con impatto visibile o concettuale aggiorna il mock nella stessa PR o nella stessa sequenza di PR pianificata. Ordine: NUOVA FEATURE → issue/contratto → backend/dominio/API → docs → mock, se rilevante.
+- Ogni PR con una feature visibile risponde a: **"Questa modifica richiede un aggiornamento del mock MatchPilot? SÌ / NO"**. Se SÌ, aggiorna mock e changelog; se NO, scrive il motivo in una riga.
+- **Il mock non certifica il backend.** Una funzione presente solo nel mock non è IMPLEMENTED, TESTED, HARD_VERIFIED_REAL, TOOL_VERIFIED né CERTIFIED. Il mock distingue sempre DEMO/FUTURE da REAL: REAL solo per valori letti dalle route certificate.
+- Nel prototipo la persistenza account è simulata in `localStorage`; nel prodotto la fonte di verità è il database account-level (#95).
+- `test/mockup-alignment.test.mjs` (in CI) controlla roadmap, ownership #96/#99, dichiarazioni sulla persistenza, versione del mock e coerenza con il changelog.
+
 ## Fonti dati
 
 ### FutPythonTrader — motore statistico/pre-match
@@ -75,6 +144,8 @@ Ogni record deve avere:
 Un'analisi pre-match deve poter essere ricostruita usando esclusivamente snapshot anteriori al kickoff.
 
 ## Web app
+
+> La web app definitiva è la **fase 15** di #97: consuma API già certificate e non contiene logica finanziaria autorevole. Fino ad allora il riferimento UX è il mock vivo in `docs/mockups/`, che non certifica nulla.
 
 ### Home / Daily Board
 Card per tutte le partite disponibili con:
@@ -691,6 +762,8 @@ Per il lavoro FutPythonTrader:
 - nessuna checklist anticipata;
 - `CLOSED / CERTIFIED` solo dopo tutti i gate della #12.
 - una review AI (CodeRabbit, Codex o altre) ferma per rate limit, quota o limite del piano non si aspetta: si annota il motivo nella PR e si procede con CI verde, test ed evidenza reale; i finding già pubblicati restano da risolvere.
+
+Per ogni PR, non solo FutPythonTrader: leggere #97, indicare fase e owner di dominio, dichiarare la superficie tool/API e i test, e rispondere alla domanda sul mock (SÌ / NO). Le regole complete sono in CLAUDE.md e AGENTS.md.
 
 
 ## TotalCorner — certificazione #20
