@@ -202,6 +202,7 @@ export async function buildAnalyticsPackage() {
   const viewCounts={};
   for (const v of viewNames) viewCounts[v]=await count(conn,v);
 
+  await conn.run('CHECKPOINT');
   conn.closeSync();
 
   const files=[];
