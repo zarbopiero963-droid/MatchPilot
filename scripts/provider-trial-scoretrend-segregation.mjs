@@ -16,6 +16,7 @@ async function sha256File(file) {
 }
 
 export async function auditAndExportScoretrend(pool) {
+  fs.mkdirSync(OUT_DIR,{recursive:true});
   const freeze=await getFreezeBoundary(pool);
   if (!freeze) throw new Error('freeze_not_created');
 
