@@ -865,7 +865,8 @@ if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timel
     }
   }
   const requestUrl = new URL(req.url,'http://localhost');
-  const exportAuthorized = Boolean(EXPORT_TOKEN) && req.headers['x-provider-trial-export-token'] === EXPORT_TOKEN;
+  const expectedBasic = EXPORT_TOKEN ? 'Basic ' + Buffer.from('export:' + EXPORT_TOKEN).toString('base64') : null;
+  const exportAuthorized = Boolean(EXPORT_TOKEN) && (req.headers['x-provider-trial-export-token'] === EXPORT_TOKEN || req.headers.authorization === expectedBasic);
   if (requestUrl.pathname.startsWith('/final-export/')) {
     res.setHeader('cache-control','no-store');
     if (!exportAuthorized) {
