@@ -13,6 +13,7 @@ import { auditAndExportScoretrend } from './provider-trial-scoretrend-segregatio
 import { buildAnalyticsPackage } from './provider-trial-build-analytics-package.mjs';
 import { runFinalSecretScan } from './provider-trial-secret-scan.mjs';
 import { runFinalChecksums } from './provider-trial-final-checksums.mjs';
+import { runFinalReconciliation } from './provider-trial-final-reconciliation.mjs';
 
 const PORT = Number(process.env.PORT || 10000);
 const BETS_TOKEN = process.env.BETSAPI_TOKEN?.trim();
@@ -967,6 +968,7 @@ if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timel
         await buildAnalyticsPackage();
         await runFinalSecretScan();
         await runFinalChecksums();
+        await runFinalReconciliation(exportPool);
       } catch (error) {
         console.error('PROVIDER_TRIAL_EXPORT_ERROR ' + sanitizeError(error));
       } finally {
