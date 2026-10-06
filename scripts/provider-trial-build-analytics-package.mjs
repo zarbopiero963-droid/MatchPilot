@@ -117,7 +117,7 @@ export async function buildAnalyticsPackage() {
 
     CREATE OR REPLACE VIEW v_provider_comparison AS
       SELECT provider,sport_id,country_code,league_id,
-             sum(event_count)::BIGINT AS event_count,
+             sum(CAST(event_count AS BIGINT))::BIGINT AS event_count,
              min(earliest_event_time) AS earliest_event_time,
              max(latest_event_time) AS latest_event_time,
              'IDENTITY_JOIN_UNRESOLVED'::VARCHAR AS identity_join_status
