@@ -8,6 +8,7 @@ import { createEverythingRuntime } from './lib/betsapi-everything.mjs';
 import { initReconciliation, normalizeTrialRows, persistNormalizedBatch, reconciliationSummary, rebuildOddsV3FromRaw, ensureRawRecordsAppendOnly, rawRecordsAppendOnlyStatus } from './lib/provider-trial-reconciliation.mjs';
 import { assessPersistenceHealth } from './lib/provider-trial-health.mjs';
 import { createOrReadFreezeBoundary, exportMetadata, streamDatasetNdjsonGzip, isSafeExportDatasetName, isExportAuthorized } from './lib/provider-trial-final-export.mjs';
+import { runFinalFileExport } from './provider-trial-final-file-export.mjs';
 
 const PORT = Number(process.env.PORT || 10000);
 const BETS_TOKEN = process.env.BETSAPI_TOKEN?.trim();
@@ -947,4 +948,9 @@ if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timel
     tc_max_details:TC_MAX_DETAILS,
     bets_max_details:BETS_MAX_DETAILS
   }));
+  if (dbReady && dbPool) {
+    setTimeout(() => runFinalFileExport(dbPool).catch(error => {
+      console.error('PROVIDER_TRIAL_EXPORT_ERROR ' + sanitizeError(error));
+    }), 1000).unref();
+  }
 });
