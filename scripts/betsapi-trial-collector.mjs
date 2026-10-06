@@ -948,9 +948,22 @@ if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timel
     tc_max_details:TC_MAX_DETAILS,
     bets_max_details:BETS_MAX_DETAILS
   }));
-  if (dbReady && dbPool) {
-    setTimeout(() => runFinalFileExport(dbPool).catch(error => {
-      console.error('PROVIDER_TRIAL_EXPORT_ERROR ' + sanitizeError(error));
-    }), 1000).unref();
+  if (dbReady && DATABASE_URL) {
+    setTimeout(async () => {
+      const exportPool=new pg.Pool({
+        connectionString:DATABASE_URL,
+        max:1,
+        connectionTimeoutMillis:30000,
+        idleTimeoutMillis:30000
+      });
+      try {
+        await exportPool.query("SET statement_timeout TO '120s'");
+        await runFinalFileExport(exportPool);
+      } catch (error) {
+        console.error('PROVIDER_TRIAL_EXPORT_ERROR ' + sanitizeError(error));
+      } finally {
+        await exportPool.end().catch(()=>{});
+      }
+    }, 3000).unref();
   }
 });
