@@ -153,3 +153,10 @@ export async function streamDatasetNdjsonGzip(pool,res,name,{excludeScoretrend=f
 export function isSafeExportDatasetName(name) {
   return IDENT.test(name||'');
 }
+
+
+export function isExportAuthorized(headers={}, token='') {
+  if (!token) return false;
+  const expectedBasic='Basic ' + Buffer.from('export:' + token).toString('base64');
+  return headers['x-provider-trial-export-token']===token || headers.authorization===expectedBasic;
+}
