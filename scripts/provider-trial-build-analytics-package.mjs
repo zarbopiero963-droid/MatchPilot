@@ -54,7 +54,8 @@ export async function buildAnalyticsPackage() {
     if (!fs.existsSync(file)) throw new Error('missing_source_'+name);
   }
 
-  const instance=await DuckDBInstance.create(DB_PATH,{threads:'2',max_memory:'384MB'});
+  console.log('PROVIDER_TRIAL_ANALYTICS_PACKAGE_START '+JSON.stringify({db_path:DB_PATH,threads:1,max_memory:'192MB'}));
+  const instance=await DuckDBInstance.create(DB_PATH,{threads:'1',max_memory:'192MB'});
   const conn=await instance.connect();
 
   const specs=[
