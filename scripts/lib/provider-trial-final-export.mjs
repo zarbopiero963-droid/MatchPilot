@@ -10,12 +10,9 @@ function qid(value) {
 
 export async function listProviderTrialDatasets(pool) {
   const {rows}=await pool.query(`
-    SELECT table_name, table_type
+    SELECT table_name,
+           CASE WHEN table_type='VIEW' THEN 'VIEW' ELSE 'BASE TABLE' END AS table_type
     FROM information_schema.tables
-    WHERE table_schema='provider_trial'
-    UNION ALL
-    SELECT table_name, 'VIEW' AS table_type
-    FROM information_schema.views
     WHERE table_schema='provider_trial'
     ORDER BY table_name
   `);
