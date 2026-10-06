@@ -15,6 +15,41 @@ async function sha256File(file) {
   return h.digest('hex');
 }
 
+
+async function exportCanonicalWithoutScoretrend(pool,table) {
+  const canonicalDir=path.join(OUT_DIR,'canonical_without_scoretrend');
+  fs.mkdirSync(canonicalDir,{recursive:true});
+  const file=path.join(canonicalDir,table+'.ndjson.gz');
+  const output=fs.createWriteStream(file,{flags:'w'});
+  const gzip=createGzip({level:6});
+  gzip.pipe(output);
+
+  let offset=0;
+  let exported=0;
+  while (true) {
+    const {rows}=await pool.query(
+      'SELECT * FROM provider_trial.'+table+' WHERE provider <> $1 ORDER BY provider LIMIT 1000 OFFSET '+offset,
+      ['scoretrend']
+    );
+    if (!rows.length) break;
+    for (const row of rows) {
+      if (!gzip.write(JSON.stringify(row)+'\n')) await once(gzip,'drain');
+    }
+    exported += rows.length;
+    offset += rows.length;
+    if (rows.length<1000) break;
+  }
+  gzip.end();
+  await once(output,'close');
+  return {
+    table,
+    rows:exported,
+    file:path.relative(OUT_DIR,file),
+    bytes:fs.statSync(file).size,
+    sha256:await sha256File(file)
+  };
+}
+
 export async function auditAndExportScoretrend(pool) {
   fs.mkdirSync(OUT_DIR,{recursive:true});
   const freeze=await getFreezeBoundary(pool);
@@ -28,7 +63,7 @@ export async function auditAndExportScoretrend(pool) {
   `,[freeze.max_raw_record_id]);
 
   const canonical={};
-  for (const table of ['competitions','coverage','events','odds_observations']) {
+  for (const table of ['sports','competitions','coverage','events','odds_observations']) {
     const {rows}=await pool.query('SELECT count(*)::bigint AS n FROM provider_trial.'+table+' WHERE provider=$1',['scoretrend']);
     canonical[table]=Number(rows[0]?.n||0);
   }
@@ -59,10 +94,16 @@ export async function auditAndExportScoretrend(pool) {
   gzip.end();
   await once(output,'close');
 
+  const canonicalClean=[];
+  for (const table of ['sports','competitions','coverage','events']) {
+    canonicalClean.push(await exportCanonicalWithoutScoretrend(pool,table));
+  }
+
   const result={
     raw_by_source:raw.rows.map(r=>({source_type:r.source_type,records:Number(r.n)})),
     raw_total:raw.rows.reduce((a,r)=>a+Number(r.n),0),
     canonical_scoretrend_rows:canonical,
+    canonical_without_scoretrend:canonicalClean,
     export_file:path.basename(file),
     export_rows:exported,
     export_bytes:fs.statSync(file).size,
