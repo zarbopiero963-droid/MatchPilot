@@ -9,6 +9,7 @@ const CANON_DIR=path.join(PARQUET_DIR,'canonical');
 const QUALITY_DIR=path.join(PARQUET_DIR,'quality');
 const COMP_DIR=path.join(PARQUET_DIR,'comparison');
 const DB_PATH=path.join(OUT_DIR,'matchpilot_trial.duckdb');
+export const DUCKDB_ANALYTICS_CONFIG=Object.freeze({threads:'1',max_memory:'192MB'});
 
 function sqlString(v) { return "'" + String(v).replaceAll("'","''") + "'"; }
 
@@ -54,7 +55,8 @@ export async function buildAnalyticsPackage() {
     if (!fs.existsSync(file)) throw new Error('missing_source_'+name);
   }
 
-  const instance=await DuckDBInstance.create(DB_PATH,{threads:'2',max_memory:'384MB'});
+  console.log('PROVIDER_TRIAL_ANALYTICS_PACKAGE_START '+JSON.stringify({db_path:DB_PATH,...DUCKDB_ANALYTICS_CONFIG}));
+  const instance=await DuckDBInstance.create(DB_PATH,DUCKDB_ANALYTICS_CONFIG);
   const conn=await instance.connect();
 
   const specs=[
