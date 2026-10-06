@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isSafeExportDatasetName, createOrReadFreezeBoundary } from '../scripts/lib/provider-trial-final-export.mjs';
+import { isSafeExportDatasetName, createOrReadFreezeBoundary, isExportAuthorized } from '../scripts/lib/provider-trial-final-export.mjs';
 
 test('final export dataset name rejects injection-like identifiers',()=>{
   assert.equal(isSafeExportDatasetName('records'),true);
@@ -23,4 +23,15 @@ test('freeze boundary is immutable after first creation',async()=>{
   const got=await createOrReadFreezeBoundary(pool,{collector_commit:'ignored'});
   assert.deepEqual(got,stored);
   assert.equal(pool.calls,1);
+});
+
+
+test('final export accepts header token or basic auth and rejects wrong credentials',()=>{
+  const token='unit-test-token';
+  const basic='Basic '+Buffer.from('export:'+token).toString('base64');
+  assert.equal(isExportAuthorized({'x-provider-trial-export-token':token},token),true);
+  assert.equal(isExportAuthorized({authorization:basic},token),true);
+  assert.equal(isExportAuthorized({authorization:'Basic '+Buffer.from('export:wrong').toString('base64')},token),false);
+  assert.equal(isExportAuthorized({},token),false);
+  assert.equal(isExportAuthorized({'x-provider-trial-export-token':token},''),false);
 });
