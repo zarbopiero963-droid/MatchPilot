@@ -29,3 +29,18 @@ test('secret scan passes clean files and catches exact env secret inside gzip', 
     fs.rmSync(root,{recursive:true,force:true});
   }
 });
+
+
+test('secret scan ignores transient DuckDB WAL files but not final files', async () => {
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'provider-trial-secret-scan-wal-'));
+  try {
+    fs.writeFileSync(path.join(root,'matchpilot_trial.duckdb'),'final-bytes');
+    fs.writeFileSync(path.join(root,'matchpilot_trial.duckdb.wal'),'temporary-wal');
+    const report=await runFinalSecretScan({root});
+    assert.equal(report.result,'PASS');
+    assert.equal(report.findings.length,0);
+    assert.equal(report.files_scanned,1);
+  } finally {
+    fs.rmSync(root,{recursive:true,force:true});
+  }
+});

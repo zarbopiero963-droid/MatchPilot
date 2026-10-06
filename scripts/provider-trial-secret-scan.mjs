@@ -14,12 +14,16 @@ const genericRules=[
   ['sensitive_query_string',/[?&](?:token|api[_-]?key|access[_-]?token|secret|password|passwd|pwd)=[^&\s"']{8,}/i]
 ];
 
+function isTransientDuckdbFile(file){
+  return /(?:\.duckdb\.wal|\.wal|\.tmp|\.lock)$/i.test(file);
+}
+
 function listFiles(root){
   const out=[];
   for(const entry of fs.readdirSync(root,{withFileTypes:true})){
     const full=path.join(root,entry.name);
     if(entry.isDirectory()) out.push(...listFiles(full));
-    else if(entry.isFile()) out.push(full);
+    else if(entry.isFile() && !isTransientDuckdbFile(full)) out.push(full);
   }
   return out;
 }
@@ -43,9 +47,14 @@ async function scanStream(stream, rules, exactSecrets){
 }
 
 async function scanFile(file,rules,exactSecrets){
-  const source=fs.createReadStream(file);
-  const stream=file.endsWith('.gz') ? source.pipe(createGunzip()) : source;
-  return scanStream(stream,rules,exactSecrets);
+  try {
+    const source=fs.createReadStream(file);
+    const stream=file.endsWith('.gz') ? source.pipe(createGunzip()) : source;
+    return await scanStream(stream,rules,exactSecrets);
+  } catch(error) {
+    if(error?.code==='ENOENT' && isTransientDuckdbFile(file)) return [];
+    throw error;
+  }
 }
 
 export async function runFinalSecretScan({root=DEFAULT_DIR}={}){
