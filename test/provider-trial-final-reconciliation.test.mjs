@@ -95,6 +95,7 @@ test('final reconciliation passes on a consistent DB -> export -> canonical -> a
     assert.equal(report.result,'PASS');
     assert.deepEqual(report.mismatches,[]);
     assert.equal(report.export.records.max_id,3);
+    assert.equal(report.records_id_contiguous,true);
     assert.equal(report.canonical.events.distinct_keys,2);
     assert.ok(report.final_checksums.entries_verified>=10);
     assert.ok(fs.existsSync(path.join(root,'final_reconciliation_report.json')));
@@ -116,8 +117,20 @@ test('final reconciliation fails when the raw export contains a record after the
     await assert.rejects(()=>runFinalReconciliation(pool,{root}),/final_reconciliation_failed/);
     const report=JSON.parse(fs.readFileSync(path.join(root,'final_reconciliation_report.json'),'utf8'));
     assert.ok(report.mismatches.includes('export_rows_vs_db_records'));
-    assert.ok(report.mismatches.includes('export_records_id_range_contiguous'));
+    assert.ok(report.mismatches.includes('export_records_id_range'));
     assert.ok(report.mismatches.includes('export_after_freeze_records'));
+  } finally { fs.rmSync(root,{recursive:true,force:true}); }
+});
+
+test('final reconciliation accepts a gap in record_id when the boundary and DB count still match', async () => {
+  const {root,pool}=await fixture({mutateRecords:rows=>{ rows.splice(1,1); }});
+  try {
+    pool.query=(orig=>async(sql,params)=>/provider_trial\.records WHERE record_id <= \$1$/.test(sql)?{rows:[{n:'2'}]}:orig(sql,params))(pool.query);
+    const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
+    assert.equal(manifest.raw_exported,2);
+    const report=await runFinalReconciliation(pool,{root}).catch(e=>JSON.parse(fs.readFileSync(path.join(root,'final_reconciliation_report.json'),'utf8')));
+    assert.ok(!report.mismatches.includes('export_records_id_range'));
+    assert.equal(report.records_id_contiguous,false);
   } finally { fs.rmSync(root,{recursive:true,force:true}); }
 });
 

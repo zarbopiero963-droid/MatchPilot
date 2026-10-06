@@ -127,7 +127,9 @@ export async function runFinalReconciliation(pool,{root=OUT_DIR}={}){
     if(spec.time && scan.max_time) check(ms(scan.max_time)<=freezeAt,'export_after_freeze_'+name);
   }
   const rec=exportLayer.records||{};
-  check(rec.min_id===Number(freeze.min_raw_record_id) && rec.max_id===max && rec.rows===max-rec.min_id+1,'export_records_id_range_contiguous');
+  // bigserial ids may have gaps (a failed insert consumes sequence values): gate on the boundary, report contiguity only.
+  check(rec.min_id===Number(freeze.min_raw_record_id) && rec.max_id===max,'export_records_id_range');
+  const recordsContiguous=rec.rows===rec.max_id-rec.min_id+1;
   check(rec.max_time!=null && ms(rec.max_time)<=lastObserved,'export_records_after_last_observed');
   check(exportManifest.raw_expected===Number(freeze.total_raw) && exportManifest.raw_exported===rec.rows,'export_manifest_raw_expected_exported');
   check(exportManifest.freeze?.freeze_at_utc===freeze.freeze_at_utc && Number(exportManifest.freeze?.max_raw_record_id)===max,'export_manifest_freeze');
@@ -195,6 +197,7 @@ export async function runFinalReconciliation(pool,{root=OUT_DIR}={}){
     created_at:new Date().toISOString(),
     freeze:{freeze_at_utc:freeze.freeze_at_utc,min_raw_record_id:Number(freeze.min_raw_record_id),max_raw_record_id:max,total_raw:Number(freeze.total_raw),first_observed_at:freeze.first_observed_at,last_observed_at:freeze.last_observed_at},
     db,db_canonical_without_scoretrend:dbClean,db_scoretrend_raw:dbScoretrendRaw,
+    records_id_contiguous:recordsContiguous,
     export:exportLayer,scoretrend_excluded:st,canonical,
     analytics_manifest:{files:analyticsFiles,counts:analytics.counts,contamination:analytics.contamination,liquidity_status:analytics.liquidity_status},
     final_checksums:{files_hashed:finalJson.files_hashed,entries_verified:finalVerified,sha256sums_final_lines:finalTxt.length,duckdb:duckFinal||null},
@@ -212,7 +215,7 @@ export async function runFinalReconciliation(pool,{root=OUT_DIR}={}){
     freeze:report.freeze,
     db_records:db.records,db_records_post_freeze:db.records_post_freeze,
     export:short(exportLayer),
-    export_records_id_range:[rec.min_id,rec.max_id],export_records_max_observed_at:rec.max_time,
+    export_records_id_range:[rec.min_id,rec.max_id],export_records_id_contiguous:recordsContiguous,export_records_max_observed_at:rec.max_time,
     scoretrend_excluded:{db:dbScoretrendRaw,rows:st.rows,row_check_failures:st.row_check_failures},
     canonical:short(canonical),
     analytics_files_verified:analyticsFiles.length,
