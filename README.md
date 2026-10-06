@@ -561,4 +561,16 @@ On the temporary branch `temp/betsapi-trial-collector`, the provider-trial colle
 
 All final-export routes require the `x-provider-trial-export-token` header. The token is supplied only from Render environment variables and must never be committed or logged. These routes are not part of the MatchPilot production API and do not promote BetsAPI to a production provider.
 
+### Final reconciliation gate (issue #40, point 9)
+
+After the final SHA-256 gate, `scripts/provider-trial-final-reconciliation.mjs` re-verifies the whole chain on the same run, read-only:
+
+- **DB / freeze**: live counts at the freeze boundary, zero raw records after `max_raw_record_id`, raw id range;
+- **export**: every `*.ndjson.gz` is decompressed and recounted, with distinct primary keys (composite keys for keyless-paginated tables and for the `odds_summary` view), id range and max timestamp vs the freeze; `manifest.json` and `SHA256SUMS.txt` are compared with the real files;
+- **ScoreTrend / canonical**: `scoretrend_excluded.ndjson.gz` and `canonical_without_scoretrend/*` are recounted against the DB, with no ScoreTrend row in the canonical layer;
+- **analytics manifest**: counts against the recounted canonical layer, files (Parquet, DuckDB) against the real files; the pre-checkpoint 12,288-byte DuckDB is rejected;
+- **final checksums**: every entry of `final_checksums.json` is re-hashed, the entry set must equal the real file set, and `SHA256SUMS.final.txt` must match it line by line.
+
+It writes `final_reconciliation_report.json` and logs `PROVIDER_TRIAL_FINAL_RECONCILIATION` with `result`, `mismatch_count` and per-layer counts. Any mismatch fails the run (`PROVIDER_TRIAL_EXPORT_ERROR`). A row count alone is not accepted as proof: duplicate keys with an equal count are reported as mismatches.
+
 Mock update required: **NO** — this is an internal temporary export/recovery surface with no product UX change.
