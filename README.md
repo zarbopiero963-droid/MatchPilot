@@ -549,3 +549,16 @@ The provider trial implementation tracks the complete public BetsAPI documentati
 Current audited total: **51 documented API calls** across Events, Bet365, BWin, Betfair, SBOBET, 1xBet and Results APIs.
 
 The registry is data-driven and exposes `/everything-catalog`. Every endpoint remains dormant while `BETSAPI_EVERYTHING_ENABLED=false`. Calls that require event/league/team/player identifiers validate those parameters and fail closed rather than inventing IDs.
+
+
+## Provider trial final export — temporary branch only
+
+On the temporary branch `temp/betsapi-trial-collector`, the provider-trial collector exposes authenticated, read-only final export routes used only for the end-of-trial freeze/archive workflow:
+
+- `/final-export/freeze` — create/read immutable freeze boundary in `provider_trial.reconciliation_state`;
+- `/final-export/meta` — list datasets and row counts at the freeze boundary;
+- `/final-export/stream?name=<dataset>` — gzip NDJSON stream for one `provider_trial` table/view.
+
+All final-export routes require the `x-provider-trial-export-token` header. The token is supplied only from Render environment variables and must never be committed or logged. These routes are not part of the MatchPilot production API and do not promote BetsAPI to a production provider.
+
+Mock update required: **NO** — this is an internal temporary export/recovery surface with no product UX change.
