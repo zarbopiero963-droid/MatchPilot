@@ -959,8 +959,8 @@ if (new URL(req.url,'http://localhost').pathname === '/reconciliation/odds-timel
       });
       try {
         await exportPool.query("SET statement_timeout TO '120s'");
-        await runFinalFileExport(exportPool);
         await auditAndExportScoretrend(exportPool);
+        await runFinalFileExport(exportPool);
       } catch (error) {
         console.error('PROVIDER_TRIAL_EXPORT_ERROR ' + sanitizeError(error));
       } finally {
