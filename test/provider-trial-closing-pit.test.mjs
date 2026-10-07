@@ -15,11 +15,11 @@ test('PostgreSQL optimized PIT query is semantically identical to closing_odds_p
  await client.connect();
  const table='pit_equiv_'+process.pid;
  try{
-  await client.query(\`CREATE TEMP TABLE \${table}(
+  await client.query(`CREATE TEMP TABLE ${table}(
     provider text,event_id text,bookmaker text,market_key text,selection_key text,line_value text,
     observation_id bigint,price numeric,provider_time timestamptz,observed_at timestamptz,kickoff_utc timestamptz
-  )\`);
-  await client.query(\`INSERT INTO \${table} VALUES
+  )`);
+  await client.query(`INSERT INTO ${table} VALUES
    ('p','before','b','m','s',NULL,1,2,'2026-10-05 10:00+00','2026-10-05 10:01+00','2026-10-05 11:00+00'),
    ('p','late_acquisition','b','m','s',NULL,2,3,'2026-10-05 10:00+00','2026-10-05 11:01+00','2026-10-05 11:00+00'),
    ('p','late_provider','b','m','s',NULL,3,4,'2026-10-05 11:01+00','2026-10-05 10:00+00','2026-10-05 11:00+00'),
@@ -28,7 +28,7 @@ test('PostgreSQL optimized PIT query is semantically identical to closing_odds_p
    ('p','ambiguous','b','m','s',NULL,7,3,'2026-10-05 10:00+00','2026-10-05 10:01+00','2026-10-05 11:00+00'),
    ('p','ambiguous','b','m','s',NULL,99,2,'2026-10-05 10:00+00','2026-10-05 10:01+00','2026-10-05 11:00+00'),
    ('p','same_price','b','m','s','',8,2,'2026-10-05 10:00+00','2026-10-05 10:01+00','2026-10-05 11:00+00'),
-   ('p','same_price','b','m','s','',9,2,'2026-10-05 10:00+00','2026-10-05 10:01+00','2026-10-05 11:00+00')\`);
+   ('p','same_price','b','m','s','',9,2,'2026-10-05 10:00+00','2026-10-05 10:01+00','2026-10-05 11:00+00')`);
   const order='provider,event_id,bookmaker,market_key,selection_key,line_value NULLS FIRST';
   const oldRows=(await client.query('SELECT * FROM ('+closingSql(table)+') q ORDER BY '+order)).rows;
   const newRows=(await client.query('SELECT * FROM ('+postgresClosingSql(table)+') q ORDER BY '+order)).rows;
