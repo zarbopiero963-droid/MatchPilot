@@ -59,7 +59,10 @@ export async function verifyPortableDuckDB(root){
   for(const [name,count] of Object.entries(analytics.views)){
    if(!/^v_[a-z_]+$/.test(name)||await value('SELECT count(*) AS n FROM '+name)!==count) throw new Error('duckdb_view_mismatch_'+name);
   }
-  if(analytics.closing_rule_version==='closing_odds_pit_v1') await verifyPitRelations(conn);
+  if(analytics.closing_rule_version==='closing_odds_pit_v1'){
+   const pit=await verifyPitRelations(conn);
+   verifyPitManifest(analytics,pit);
+  }
   for(const e of analytics.files.filter(e=>e.file.endsWith('.parquet'))){
    await value('SELECT count(*) AS n FROM read_parquet('+literal(path.join(root,e.file))+')');
   }
@@ -79,4 +82,11 @@ export async function verifyPitRelations(conn){
    }
 
  return {result:'PASS',mismatch_count:0,closing_rule_version:'closing_odds_pit_v1',statuses:(await conn.runAndReadAll('SELECT closing_status,count(*) AS groups FROM v_closing_odds_pit GROUP BY closing_status ORDER BY closing_status')).getRowObjectsJson()};
+}
+
+export function verifyPitManifest(analytics,pit){
+   const states=Object.fromEntries(pit.statuses.map(r=>[r.closing_status,Number(r.groups)]));
+   const expected={total_groups:Object.values(states).reduce((a,b)=>a+b,0),available:states.AVAILABLE||0,unavailable:states.UNAVAILABLE||0,ambiguous_same_timestamp:states.AMBIGUOUS_SAME_TIMESTAMP||0,arbitrary_prices_selected:0};
+   if(JSON.stringify(analytics.closing_pit_coverage)!==JSON.stringify(expected)||analytics.readiness?.retrospective!=='AUDIT_RESEARCH_ONLY_NOT_PIT_FEATURE'||(expected.available===0&&analytics.readiness?.closing_odds_pit!=='UNAVAILABLE')) throw new Error('pit_manifest_readiness_mismatch');
+ return true;
 }

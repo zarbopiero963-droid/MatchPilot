@@ -1,4 +1,4 @@
-import {verifyPitRelations} from '../scripts/lib/provider-trial-package-verify.mjs';
+import {verifyPitRelations,verifyPitManifest} from '../scripts/lib/provider-trial-package-verify.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -70,3 +70,12 @@ test('PIT closing, ambiguity and prematch consumers enforce both clocks',async()
  assert.equal((await c.runAndReadAll("SELECT closing_odds_pit FROM read_parquet('"+path.join(dir,'summary.parquet')+"')")).getRowObjectsJson()[0].closing_odds_pit,null);
  }finally{c.closeSync();db.closeSync();fs.rmSync(dir,{recursive:true,force:true});}
  });
+
+test('manifest/readiness explicitly preserves unavailable closing coverage',()=>{
+ const analytics={closing_pit_coverage:{total_groups:64446,available:0,unavailable:64446,ambiguous_same_timestamp:0,arbitrary_prices_selected:0},readiness:{closing_odds_pit:'UNAVAILABLE',retrospective:'AUDIT_RESEARCH_ONLY_NOT_PIT_FEATURE'}};
+ const pit={statuses:[{closing_status:'UNAVAILABLE',groups:'64446'}]};
+ assert.equal(verifyPitManifest(analytics,pit),true);
+ assert.throws(()=>verifyPitManifest({...analytics,closing_pit_coverage:{...analytics.closing_pit_coverage,available:1}},pit),/pit_manifest_readiness_mismatch/);
+ assert.throws(()=>verifyPitManifest({...analytics,readiness:{...analytics.readiness,closing_odds_pit:'READY'}},pit),/pit_manifest_readiness_mismatch/);
+ assert.throws(()=>verifyPitManifest({...analytics,readiness:{...analytics.readiness,retrospective:'PIT_FEATURE'}},pit),/pit_manifest_readiness_mismatch/);
+});

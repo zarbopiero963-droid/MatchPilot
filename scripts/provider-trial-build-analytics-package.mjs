@@ -207,6 +207,12 @@ export async function buildAnalyticsPackage({portable=false}={}) {
   const viewCounts={};
   for (const v of viewNames) viewCounts[v]=await count(conn,v);
 
+  let closingPitCoverage=null;
+  if(portable){
+    const rows=(await conn.runAndReadAll('SELECT closing_status,count(*) AS groups FROM v_closing_odds_pit GROUP BY closing_status ORDER BY closing_status')).getRowObjectsJson();
+    const states=Object.fromEntries(rows.map(r=>[r.closing_status,Number(r.groups)]));
+    closingPitCoverage={total_groups:Object.values(states).reduce((a,b)=>a+b,0),available:states.AVAILABLE||0,unavailable:states.UNAVAILABLE||0,ambiguous_same_timestamp:states.AMBIGUOUS_SAME_TIMESTAMP||0,arbitrary_prices_selected:0};
+  }
   await conn.run('CHECKPOINT');
   conn.closeSync();
   if(portable) instance.closeSync();
@@ -224,6 +230,7 @@ export async function buildAnalyticsPackage({portable=false}={}) {
     package_version:portable?'matchpilot-trial-analytics-pit-v2':'matchpilot-trial-analytics-v1',
     closing_rule_version:portable?CLOSING_RULE_VERSION:null,
     odds_summary_semantics:portable?'closing_price=PIT; change_open_close=UNAVAILABLE; opening/latest are audit only':'legacy',
+    ...(portable?{closing_pit_coverage:closingPitCoverage,readiness:{closing_odds_pit:closingPitCoverage.available===0?'UNAVAILABLE':'PARTIAL_OR_AVAILABLE',limitation:closingPitCoverage.available===0?'NO_FROZEN_OBSERVATION_SATISFIES_BOTH_PREMATCH_CLOCKS':'UNAVAILABLE_AND_AMBIGUOUS_GROUPS_HAVE_NO_SCALAR',retrospective:'AUDIT_RESEARCH_ONLY_NOT_PIT_FEATURE'}}:{}),
     created_at:new Date().toISOString(),
     scoretrend_excluded:true,
     liquidity_status:'UNAVAILABLE',
