@@ -180,7 +180,7 @@ jobs:
           sha256sum "$BUNDLE" "$INVENTORY" | tee "$EVIDENCE_DIR/transfer-sha256.txt"
 
       - name: Upload transfer artifact
-        if: steps.secret_gate.outputs.present == 'true' && success()
+        if: steps.secret_gate.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: regenerated-20261007-r01-transfer
