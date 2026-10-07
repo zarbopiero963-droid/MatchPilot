@@ -1,0 +1,133 @@
+name: Provider Trial Drive Readback Final
+
+on:
+  push:
+    branches:
+      - temp/provider-trial-regenerated-zero-cost
+    paths:
+      - .github/workflows/provider-trial-drive-readback-final.yml
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  final-readback:
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_COMMIT: "1500be816ec9fa4dd2b6a20267b8b0ce7cfb4e60"
+      BUNDLE_SHA256: "fb07443646a7f6d98afe1f0769eda6849a8339a8a84ecd556ae1e1a2b89ac456"
+      BUNDLE_BYTES: "498614829"
+      INVENTORY_SHA256: "377a85327d0dd3fc61356ef48b1606b1522b87561a4e057133e415a02b004041"
+    steps:
+      - name: Checkout certified commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+          fetch-depth: 1
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install pinned runtime dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Download exact 40MB artifacts proven identical to Drive readback
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/readback/artifacts"
+          cd "$RUNNER_TEMP/readback/artifacts"
+          gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/11517660447/zip" > "a000.zip"
+          mkdir "x000"
+          unzip -q "a000.zip" -d "x000"
+          test -f "x000/bundle40.part000"
+          gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/11517675446/zip" > "a001.zip"
+          mkdir "x001"
+          unzip -q "a001.zip" -d "x001"
+          test -f "x001/bundle40.part001"
+          gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/11517322883/zip" > "a002.zip"
+          mkdir "x002"
+          unzip -q "a002.zip" -d "x002"
+          test -f "x002/bundle40.part002"
+          gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/11517481987/zip" > "a003.zip"
+          mkdir "x003"
+          unzip -q "a003.zip" -d "x003"
+          test -f "x003/bundle40.part003"
+          gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/11517298041/zip" > "a004.zip"
+          mkdir "x004"
+          unzip -q "a004.zip" -d "x004"
+          test -f "x004/bundle40.part004"
+          gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/11517845059/zip" > "a005.zip"
+          mkdir "x005"
+          unzip -q "a005.zip" -d "x005"
+          test -f "x005/bundle40.part005"
+          gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/11517695424/zip" > "a006.zip"
+          mkdir "x006"
+          unzip -q "a006.zip" -d "x006"
+          test -f "x006/bundle40.part006"
+          gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/11517163324/zip" > "a007.zip"
+          mkdir "x007"
+          unzip -q "a007.zip" -d "x007"
+          test -f "x007/bundle40.part007"
+          gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/11517407051/zip" > "a008.zip"
+          mkdir "x008"
+          unzip -q "a008.zip" -d "x008"
+          test -f "x008/bundle40.part008"
+          gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/11516424316/zip" > "a009.zip"
+          mkdir "x009"
+          unzip -q "a009.zip" -d "x009"
+          test -f "x009/bundle40.part009"
+          gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/11516813392/zip" > "a010.zip"
+          mkdir "x010"
+          unzip -q "a010.zip" -d "x010"
+          test -f "x010/bundle40.part010"
+          gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/11517052748/zip" > "a011.zip"
+          mkdir "x011"
+          unzip -q "a011.zip" -d "x011"
+          test -f "x011/bundle40.part011"
+          gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/11516684006/zip" > "a012.zip"
+          mkdir "x012"
+          unzip -q "a012.zip" -d "x012"
+          test -f "x012/bundle40.part012"
+          gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/11517212490/zip" > metadata.zip
+          mkdir xmeta
+          unzip -q metadata.zip -d xmeta
+          echo "READBACK_ARTIFACT_DOWNLOAD_PASS"
+
+      - name: Reconstruct byte-identical Drive-proven bundle
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/readback/artifacts"
+          cat x000/bundle40.part000 x001/bundle40.part001 x002/bundle40.part002 x003/bundle40.part003 x004/bundle40.part004 x005/bundle40.part005 x006/bundle40.part006 x007/bundle40.part007 x008/bundle40.part008 x009/bundle40.part009 x010/bundle40.part010 x011/bundle40.part011 x012/bundle40.part012 > "$RUNNER_TEMP/readback/regenerated-20261007-r01.tar.gz"
+          inv="$(find xmeta -type f -name 'trusted-inventory.json' -print -quit)"
+          test -n "$inv"
+          cp "$inv" "$RUNNER_TEMP/readback/trusted-inventory.json"
+          test "$(stat -c %s "$RUNNER_TEMP/readback/regenerated-20261007-r01.tar.gz")" = "$BUNDLE_BYTES"
+          test "$(sha256sum "$RUNNER_TEMP/readback/regenerated-20261007-r01.tar.gz" | awk '{print $1}')" = "$BUNDLE_SHA256"
+          test "$(sha256sum "$RUNNER_TEMP/readback/trusted-inventory.json" | awk '{print $1}')" = "$INVENTORY_SHA256"
+          echo "DRIVE_PROVEN_BUNDLE_RECONSTRUCTION_PASS sha256=$BUNDLE_SHA256 bytes=$BUNDLE_BYTES"
+
+      - name: Independent extract readback
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/readback/extracted"
+          test ! -e "$root"
+          node scripts/provider-trial-regenerate-archive.mjs extract-readback             "$RUNNER_TEMP/readback/regenerated-20261007-r01.tar.gz"             "$RUNNER_TEMP/readback/trusted-inventory.json"             "$root" | tee "$RUNNER_TEMP/readback/extract-readback.log"
+          grep -F 'PROVIDER_TRIAL_READBACK_LOCAL_VERIFICATION' "$RUNNER_TEMP/readback/extract-readback.log"
+          grep -F '"result":"PASS"' "$RUNNER_TEMP/readback/extract-readback.log"
+          echo "INDEPENDENT_DRIVE_READBACK_GATE_PASS"
+
+      - name: Delete temporary GitHub transfer artifacts after PASS
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for id in 11517660447 11517675446 11517322883 11517481987 11517298041 11517845059 11517695424 11517163324 11517407051 11516424316 11516813392 11517052748 11516684006 11517212490; do
+            gh api --method DELETE -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/$id"
+          done
+          echo "TEMP_GITHUB_TRANSFER_ARTIFACTS_DELETED"
