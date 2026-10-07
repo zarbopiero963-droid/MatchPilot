@@ -1,3 +1,5 @@
+import {verifyPitRelations,verifyPitManifest} from './lib/provider-trial-package-verify.mjs';
+import {ARCHIVE_VERSION,ANALYTICS_VERSION} from './lib/provider-trial-package-contract.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -12,6 +14,10 @@ const OUT_DIR=process.env.PROVIDER_TRIAL_FINAL_EXPORT_DIR || '/tmp/provider-tria
 export const RECONCILIATION_REPORT='final_reconciliation_report.json';
 const OWN_OUTPUTS=new Set(['final_checksums.json','SHA256SUMS.final.txt',RECONCILIATION_REPORT]);
 const LEGACY_DUCKDB_BYTES=12288;
+
+export function assertReconciliationPit(pit){
+  if(!pit || pit.result!=='PASS' || pit.mismatch_count!==0 || pit.closing_rule_version!=='closing_odds_pit_v1') throw new Error('pit_result_not_verified');
+}
 
 // Primary keys from scripts/lib/provider-trial-reconciliation.mjs and the records DDL (odds_summary: GROUP BY key of the view).
 export const DATASET_KEYS=Object.freeze({
@@ -86,7 +92,7 @@ export async function diffDbKeys(pool,{table,spec,where=null,exportKeys}){
   const client=await pool.connect();
   let dbKeys=0,missing=0;
   try{
-    await client.query('BEGIN READ ONLY');
+    if(!pool.readOnlySnapshot) await client.query('BEGIN READ ONLY');
     await client.query('DECLARE reconciliation_keys NO SCROLL CURSOR FOR SELECT '+cols.map(qid).join(',')+' FROM provider_trial.'+qid(table)+(where?' WHERE '+where:''));
     while(true){
       const {rows}=await client.query('FETCH 10000 FROM reconciliation_keys');
@@ -94,9 +100,9 @@ export async function diffDbKeys(pool,{table,spec,where=null,exportKeys}){
       for(const r of rows){ dbKeys++; if(!exportKeys.has(keyOf(r))) missing++; }
     }
     await client.query('CLOSE reconciliation_keys');
-    await client.query('COMMIT');
+    if(!pool.readOnlySnapshot) await client.query('COMMIT');
   }catch(e){
-    await client.query('ROLLBACK').catch(()=>{});
+    if(!pool.readOnlySnapshot) await client.query('ROLLBACK').catch(()=>{});
     throw e;
   }finally{
     client.release();
@@ -213,6 +219,26 @@ export async function runFinalReconciliation(pool,{root=OUT_DIR}={}){
   const duck=analyticsFiles.find(f=>f.file==='matchpilot_trial.duckdb');
   check(duck && duck.bytes!==LEGACY_DUCKDB_BYTES,'duckdb_not_checkpointed');
 
+  let pit=null;
+  // The separate runner's snapshot requires PIT even if both manifests lose their versions.
+  // Legacy collector archives retain their existing reconciliation path.
+  const requiresPit=pool.readOnlySnapshot===true || Boolean(pool.datasetSources?.odds_summary) || exportManifest.archive_version===ARCHIVE_VERSION || analytics.package_version===ANALYTICS_VERSION || analytics.closing_rule_version==='closing_odds_pit_v1';
+  if(requiresPit){
+    check(analytics.closing_rule_version==='closing_odds_pit_v1','pit_closing_rule_version');
+    let instance,conn;
+    try{
+      const {DuckDBInstance}=await import('@duckdb/node-api');
+      instance=await DuckDBInstance.create(path.join(root,'matchpilot_trial.duckdb'),{access_mode:'READ_ONLY',threads:'1',max_memory:'192MB'});
+      conn=await instance.connect();
+      pit=await verifyPitRelations(conn);
+      verifyPitManifest(analytics,pit);
+      assertReconciliationPit(pit);
+    }catch{check(false,'pit_semantic_reconciliation');}
+    finally{conn?.closeSync();instance?.closeSync();}
+    // Never allow a swallowed verifier error or absent result to produce PASS.
+    try{assertReconciliationPit(pit);}catch{check(false,'pit_result_not_verified');}
+  }
+
   // 5. Final checksums: every entry re-hashed; the entry set must equal the real file set.
   const finalJson=readJson('final_checksums.json');
   const finalTxt=fs.readFileSync(path.join(root,'SHA256SUMS.final.txt'),'utf8').split('\n').filter(Boolean).map(l=>{const [sha,...rest]=l.split('  ');return {sha256:sha,file:rest.join('  ')};});
@@ -236,6 +262,7 @@ export async function runFinalReconciliation(pool,{root=OUT_DIR}={}){
 
   const report={
     version:'provider-trial-final-reconciliation-v2',
+    pit,
     created_at:new Date().toISOString(),
     freeze:{freeze_at_utc:freeze.freeze_at_utc,min_raw_record_id:Number(freeze.min_raw_record_id),max_raw_record_id:max,total_raw:Number(freeze.total_raw),first_observed_at:freeze.first_observed_at,last_observed_at:freeze.last_observed_at},
     db,db_canonical_without_scoretrend:dbClean,db_scoretrend_raw:dbScoretrendRaw,
@@ -252,6 +279,7 @@ export async function runFinalReconciliation(pool,{root=OUT_DIR}={}){
   const short=o=>Object.fromEntries(Object.entries(o).map(([k,v])=>[k,{db:v.db,rows:v.rows,distinct_keys:v.distinct_keys,duplicate_keys:v.duplicate_keys,missing_keys:v.missing_keys,extra_keys:v.extra_keys}]));
   console.log('PROVIDER_TRIAL_FINAL_RECONCILIATION '+JSON.stringify({
     result:report.result,
+    pit,
     mismatch_count:mismatches.length,
     mismatches,
     freeze:report.freeze,

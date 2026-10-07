@@ -1,3 +1,4 @@
+import {pitViewsSql,CLOSING_RULE_VERSION,summaryProjection} from './lib/provider-trial-closing-pit.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -36,7 +37,7 @@ async function scoretrendCount(conn, relation) {
   return Number(rows[0]?.n||0);
 }
 
-export async function buildAnalyticsPackage() {
+export async function buildAnalyticsPackage({portable=false}={}) {
   fs.mkdirSync(CANON_DIR,{recursive:true});
   fs.mkdirSync(QUALITY_DIR,{recursive:true});
   fs.mkdirSync(COMP_DIR,{recursive:true});
@@ -68,18 +69,20 @@ export async function buildAnalyticsPackage() {
     ['odds_summary',src.odds_summary,path.join(CANON_DIR,'odds_summary.parquet')]
   ];
 
-  for (const [,input,output] of specs) {
-    await conn.run(`COPY (SELECT * FROM read_json_auto(${sqlString(input)}, format='newline_delimited')) TO ${sqlString(output)} (FORMAT PARQUET, COMPRESSION ZSTD)`);
+  for (const [name,input,output] of specs) {
+    const source=`read_json_auto(${sqlString(input)}, format='newline_delimited')`;
+    const select=portable && name==='odds_summary' ? summaryProjection(source) : `SELECT * FROM ${source}`;
+    await conn.run(`COPY (${select}) TO ${sqlString(output)} (FORMAT PARQUET, COMPRESSION ZSTD)`);
   }
 
   const pq=Object.fromEntries(specs.map(([name,,output])=>[name,output]));
   await conn.run(`
-    CREATE OR REPLACE VIEW canonical_sports AS SELECT * FROM read_parquet(${sqlString(pq.sports)});
-    CREATE OR REPLACE VIEW canonical_competitions AS SELECT * FROM read_parquet(${sqlString(pq.competitions)});
-    CREATE OR REPLACE VIEW canonical_coverage AS SELECT * FROM read_parquet(${sqlString(pq.coverage)});
-    CREATE OR REPLACE VIEW canonical_events AS SELECT * FROM read_parquet(${sqlString(pq.events)});
-    CREATE OR REPLACE VIEW canonical_odds_observations AS SELECT * FROM read_parquet(${sqlString(pq.odds_observations)});
-    CREATE OR REPLACE VIEW canonical_odds_summary AS SELECT * FROM read_parquet(${sqlString(pq.odds_summary)});
+    CREATE OR REPLACE ${portable?'TABLE':'VIEW'} canonical_sports AS SELECT * FROM read_parquet(${sqlString(pq.sports)});
+    CREATE OR REPLACE ${portable?'TABLE':'VIEW'} canonical_competitions AS SELECT * FROM read_parquet(${sqlString(pq.competitions)});
+    CREATE OR REPLACE ${portable?'TABLE':'VIEW'} canonical_coverage AS SELECT * FROM read_parquet(${sqlString(pq.coverage)});
+    CREATE OR REPLACE ${portable?'TABLE':'VIEW'} canonical_events AS SELECT * FROM read_parquet(${sqlString(pq.events)});
+    CREATE OR REPLACE ${portable?'TABLE':'VIEW'} canonical_odds_observations AS SELECT * FROM read_parquet(${sqlString(pq.odds_observations)});
+    CREATE OR REPLACE ${portable?'TABLE':'VIEW'} canonical_odds_summary AS SELECT * FROM read_parquet(${sqlString(pq.odds_summary)});
 
     CREATE OR REPLACE VIEW v_events AS SELECT * FROM canonical_events;
     CREATE OR REPLACE VIEW v_coverage AS SELECT * FROM canonical_coverage;
@@ -178,6 +181,8 @@ export async function buildAnalyticsPackage() {
       FROM canonical_events;
   `);
 
+  if(portable) await conn.run(pitViewsSql());
+
   await conn.run(`
     COPY (SELECT * FROM read_json_auto(${sqlString(src.reconciliation_state)}, format='newline_delimited'))
     TO ${sqlString(path.join(QUALITY_DIR,'reconciliation_state.parquet'))}
@@ -198,12 +203,19 @@ export async function buildAnalyticsPackage() {
     if (contamination[name]!==0) throw new Error('scoretrend_contamination_'+name+'_'+contamination[name]);
   }
 
-  const viewNames=['v_prematch','v_live','v_replay_asof','v_events','v_odds_timeline','v_market_movement','v_coverage','v_provider_comparison','v_strategy_fields','v_indicator_inputs','v_math_inputs','v_backtest_observations','v_outcomes'];
+  const viewNames=[...(portable?['v_closing_odds_pit','v_provider_closing_retrospective','v_pit_observation_timeline']:[]),'v_prematch','v_live','v_replay_asof','v_events','v_odds_timeline','v_market_movement','v_coverage','v_provider_comparison','v_strategy_fields','v_indicator_inputs','v_math_inputs','v_backtest_observations','v_outcomes'];
   const viewCounts={};
   for (const v of viewNames) viewCounts[v]=await count(conn,v);
 
+  let closingPitCoverage=null;
+  if(portable){
+    const rows=(await conn.runAndReadAll('SELECT closing_status,count(*) AS groups FROM v_closing_odds_pit GROUP BY closing_status ORDER BY closing_status')).getRowObjectsJson();
+    const states=Object.fromEntries(rows.map(r=>[r.closing_status,Number(r.groups)]));
+    closingPitCoverage={total_groups:Object.values(states).reduce((a,b)=>a+b,0),available:states.AVAILABLE||0,unavailable:states.UNAVAILABLE||0,ambiguous_same_timestamp:states.AMBIGUOUS_SAME_TIMESTAMP||0,arbitrary_prices_selected:0};
+  }
   await conn.run('CHECKPOINT');
   conn.closeSync();
+  if(portable) instance.closeSync();
 
   const files=[];
   for (const dir of [CANON_DIR,QUALITY_DIR,COMP_DIR]) {
@@ -215,7 +227,10 @@ export async function buildAnalyticsPackage() {
   files.push({file:path.basename(DB_PATH),bytes:fs.statSync(DB_PATH).size,sha256:await sha256File(DB_PATH)});
 
   const manifest={
-    package_version:'matchpilot-trial-analytics-v1',
+    package_version:portable?'matchpilot-trial-analytics-pit-v2':'matchpilot-trial-analytics-v1',
+    closing_rule_version:portable?CLOSING_RULE_VERSION:null,
+    odds_summary_semantics:portable?'closing_price=PIT; change_open_close=UNAVAILABLE; opening/latest are audit only':'legacy',
+    ...(portable?{closing_pit_coverage:closingPitCoverage,readiness:{closing_odds_pit:closingPitCoverage.available===0?'UNAVAILABLE':'PARTIAL_OR_AVAILABLE',limitation:closingPitCoverage.available===0?'NO_FROZEN_OBSERVATION_SATISFIES_BOTH_PREMATCH_CLOCKS':'UNAVAILABLE_AND_AMBIGUOUS_GROUPS_HAVE_NO_SCALAR',retrospective:'AUDIT_RESEARCH_ONLY_NOT_PIT_FEATURE'}}:{}),
     created_at:new Date().toISOString(),
     scoretrend_excluded:true,
     liquidity_status:'UNAVAILABLE',

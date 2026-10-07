@@ -1,5 +1,16 @@
 # MatchPilot — Sports Trading OS
 
+## #40 — regenerated archive runner, owner authorization 07/10/2026
+
+The original post-#124 package on instance `m7rgj` remains **ORIGINAL CERTIFIED ARCHIVE — UNRECOVERABLE FROM CURRENT INSTANCE ACCESS**. The new runner qualifies its output separately as **REGENERATED CERTIFIED ARCHIVE FROM SAME FROZEN DATASET**. It does not recover or claim byte equality with that original.
+
+This PR prepares a separate read-only runner and portable DuckDB, plus a sealed binary bundle/inventory and independent readback verifier. Its regenerated final reconciliation cannot emit PASS without the required PIT version and successful source/manifest verification; the package verifier separately enforces the same contract. **IMPLEMENTED / TESTED on fixtures; NOT VERIFIED REAL / NOT CERTIFIED on the complete frozen dataset.** No collector, provider, Render configuration or database migration is changed. No collection, export run, redeploy, restart, shutdown, #20 or point10 is authorized by opening this PR.
+
+Read-only Neon preflight: `damp-pond-29296680`, `neondb`, `provider_trial`; freeze `2026-10-06T11:18:19.484Z`, total/max raw `82862`, zero records beyond ID/time boundary. Seven real PKs match #124; `odds_summary` is a view keyed by its six GROUP BY columns, with zero duplicate keys. Owner decision 07/10: `closing_odds_pit_v1` requires BOTH provider_time and observed_at <= kickoff, ranks by provider_time DESC then observed_at DESC, and preserves indistinguishable differing prices as AMBIGUOUS_SAME_TIMESTAMP with NULL scalar. Missing provider time is ineligible. The twelve real cases all return UNAVAILABLE (no earlier PIT-eligible observation), verified read-only on Neon. The full frozen set also returns UNAVAILABLE for all 64,446 groups; zero arbitrary scalars. This archive therefore has no PIT closing coverage. Retrospective closing is audit-only and never feeds PIT consumers. No view or frozen data was modified.
+
+The separate runner exports an explicitly versioned derived odds_summary with PIT closing, candidate lineage and statuses; legacy opening/latest remain audit-only and change_open_close is unavailable. Keyset order and independent missing/extra/duplicate gates are unchanged. Portable prematch/replay/backtest expose only the authoritative closing view with explicit status and candidate IDs. Eligible observation history is separate (v_pit_observation_timeline), used by research indicator/math inputs. Replay valid_from is the later closing clock, with no semantic revision inferred from observation_id. The readback uses an independent source anti-join oracle, requires the complete regenerated package contract, and compares report.pit with its recalculation. Full archive generation, Drive readback and certification remain pending. PR #126 is OPEN (never draft); merge and the real run remain owner-gated. **#40 SAFE WINDOW — NOT ATTESTED.** [Runbook](docs/provider-trial-regenerated-archive.md).
+
+
 MatchPilot è una piattaforma web di **trading sportivo decisionale**, non un semplice sito di pronostici.
 
 ## Obiettivo

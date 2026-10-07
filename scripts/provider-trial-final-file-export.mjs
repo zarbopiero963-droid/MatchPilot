@@ -1,3 +1,4 @@
+import {ARCHIVE_VERSION} from './lib/provider-trial-package-contract.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -59,7 +60,8 @@ export async function runFinalFileExport(pool,{outDir=OUT_DIR}={}) {
   }
 
   const manifest={
-    archive_version:'provider-trial-freeze-v1',
+    ...(pool.datasetSources?.odds_summary?{odds_summary_semantics:"derived closing_odds_pit_v1; frozen DB view unchanged; opening/latest audit only; change_open_close unavailable"}:{}),
+    archive_version:pool.datasetSources?.odds_summary?ARCHIVE_VERSION:'provider-trial-freeze-v1',
     created_at:new Date().toISOString(),
     freeze,
     datasets:results,
@@ -81,3 +83,4 @@ export async function runFinalFileExport(pool,{outDir=OUT_DIR}={}) {
   }));
   return manifest;
 }
+

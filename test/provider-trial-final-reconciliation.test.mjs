@@ -6,7 +6,10 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { runFinalChecksums } from '../scripts/provider-trial-final-checksums.mjs';
-import { runFinalReconciliation, scanNdjson } from '../scripts/provider-trial-final-reconciliation.mjs';
+import { runFinalReconciliation, scanNdjson, assertReconciliationPit } from '../scripts/provider-trial-final-reconciliation.mjs';
+import {DuckDBInstance} from '@duckdb/node-api';
+import {pitViewsSql} from '../scripts/lib/provider-trial-closing-pit.mjs';
+import {ARCHIVE_VERSION,ANALYTICS_VERSION} from '../scripts/lib/provider-trial-package-contract.mjs';
 
 const FREEZE={freeze_at_utc:'2026-10-06T11:18:19.484Z',min_raw_record_id:1,max_raw_record_id:3,total_raw:3,
   first_observed_at:'2026-10-05T08:22:36.532Z',last_observed_at:'2026-10-06T10:45:39.950Z'};
@@ -27,7 +30,7 @@ function baseData(){
 }
 
 // Builds a complete final package (export, ScoreTrend split, analytics manifest, final checksums) plus a fake DB pool.
-async function fixture({mutateCanonicalEvents=null,mutateRecords=null,duckdbBytes=4096}={}){
+async function fixture({mutateCanonicalEvents=null,mutateRecords=null,duckdbBytes=4096,regenerated=false,closingVersion='closing_odds_pit_v1',pitFailure=null}={}){
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'provider-trial-reconcile-'));
   const data=baseData();
   const dbRows=baseData();
@@ -38,7 +41,7 @@ async function fixture({mutateCanonicalEvents=null,mutateRecords=null,duckdbByte
     fs.writeFileSync(file,nd(rows));
     datasets.push({name,rows:rows.length,file:name+'.ndjson.gz',bytes:fs.statSync(file).size,sha256:sha(file)});
   }
-  fs.writeFileSync(path.join(root,'manifest.json'),JSON.stringify({freeze:FREEZE,datasets,raw_expected:3,raw_exported:data.records.length},null,2)+'\n');
+  fs.writeFileSync(path.join(root,'manifest.json'),JSON.stringify({...(regenerated?{archive_version:ARCHIVE_VERSION}:{}),freeze:FREEZE,datasets,raw_expected:3,raw_exported:data.records.length},null,2)+'\n');
   fs.writeFileSync(path.join(root,'SHA256SUMS.txt'),datasets.map(d=>d.sha256+'  '+d.file).join('\n')+'\n');
   fs.writeFileSync(path.join(root,'scoretrend_excluded.ndjson.gz'),nd(data.records.filter(r=>r.source_type.startsWith('scoretrend'))));
   fs.mkdirSync(path.join(root,'canonical_without_scoretrend'));
@@ -52,9 +55,23 @@ async function fixture({mutateCanonicalEvents=null,mutateRecords=null,duckdbByte
   fs.mkdirSync(path.join(root,'parquet','canonical'),{recursive:true});
   fs.writeFileSync(path.join(root,'parquet','canonical','events.parquet'),'events');
   fs.writeFileSync(path.join(root,'matchpilot_trial.duckdb'),Buffer.alloc(duckdbBytes,1));
+  if(regenerated){
+    fs.unlinkSync(path.join(root,'matchpilot_trial.duckdb'));
+    const instance=await DuckDBInstance.create(path.join(root,'matchpilot_trial.duckdb'));const conn=await instance.connect();
+    try{
+      await conn.run(`CREATE TABLE canonical_odds_observations(provider VARCHAR,event_id VARCHAR,bookmaker VARCHAR,market_key VARCHAR,selection_key VARCHAR,line_value VARCHAR,observation_id BIGINT,price DOUBLE,provider_time TIMESTAMP,observed_at TIMESTAMP,kickoff_utc TIMESTAMP);
+      INSERT INTO canonical_odds_observations VALUES ('betsapi','e1',NULL,'1x2','h1',NULL,1,2,'2026-10-06 08:00','2026-10-06 09:00','2026-10-06 07:00');
+      CREATE VIEW v_odds_timeline AS SELECT *,observed_at acquisition_time,provider_time effective_at FROM canonical_odds_observations;
+      CREATE TABLE strategy_field_catalog(source_view VARCHAR,field_name VARCHAR,phases VARCHAR,temporal_semantics VARCHAR);`);
+      await conn.run(pitViewsSql());await conn.run('CREATE TABLE canonical_odds_summary AS SELECT * FROM v_closing_odds_pit');
+      if(pitFailure==='relations')await conn.run("UPDATE canonical_odds_summary SET closing_status='AVAILABLE',closing_odds_pit=99");
+      await conn.run('CHECKPOINT');
+    }finally{conn.closeSync();instance.closeSync();}
+  }
   fs.writeFileSync(path.join(root,'secret_scan_report.json'),'{"result":"PASS"}\n');
   const afile=f=>({file:f,bytes:fs.statSync(path.join(root,f)).size,sha256:sha(path.join(root,f))});
   fs.writeFileSync(path.join(root,'analytics_manifest.json'),JSON.stringify({
+    ...(regenerated?{package_version:ANALYTICS_VERSION,closing_rule_version:closingVersion==='MISSING'?undefined:closingVersion,closing_pit_coverage:{total_groups:1,available:0,unavailable:pitFailure==='manifest'?2:1,ambiguous_same_timestamp:0,arbitrary_prices_selected:0},readiness:{closing_odds_pit:'UNAVAILABLE',retrospective:'AUDIT_RESEARCH_ONLY_NOT_PIT_FEATURE'}}:{}),
     scoretrend_excluded:true,liquidity_status:'UNAVAILABLE',
     counts:{...clean,odds_observations:data.odds_observations.length,odds_summary:data.odds_summary.length},
     contamination:{sports:0,competitions:0,coverage:0,events:0,odds_observations:0,odds_summary:0},
@@ -100,6 +117,49 @@ async function fixture({mutateCanonicalEvents=null,mutateRecords=null,duckdbByte
   }};
   return {root,pool};
 }
+
+for(const [name,options,reason] of [
+  ['missing version',{closingVersion:'MISSING'},'pit_closing_rule_version'],
+  ['null version',{closingVersion:null},'pit_closing_rule_version'],
+  ['empty version',{closingVersion:''},'pit_closing_rule_version'],
+  ['legacy version',{closingVersion:'legacy'},'pit_closing_rule_version'],
+  ['verifyPitRelations error',{pitFailure:'relations'},'pit_semantic_reconciliation'],
+  ['verifyPitManifest error',{pitFailure:'manifest'},'pit_semantic_reconciliation']
+])test('regenerated FINAL_RECONCILIATION fails without PASS marker: '+name,async t=>{
+  const {root,pool}=await fixture({regenerated:true,...options});const logs=[];
+  t.mock.method(console,'log',(...args)=>logs.push(args.join(' ')));
+  try{
+    await assert.rejects(()=>runFinalReconciliation(pool,{root}),/final_reconciliation_failed/);
+    const report=JSON.parse(fs.readFileSync(path.join(root,'final_reconciliation_report.json'),'utf8'));
+    assert.equal(report.result,'FAIL');assert.ok(report.mismatches.includes(reason));
+    const markers=logs.filter(s=>s.startsWith('PROVIDER_TRIAL_FINAL_RECONCILIATION ')).map(s=>JSON.parse(s.slice(s.indexOf(' ')+1)));
+    assert.equal(markers.length,1);assert.equal(markers[0].result,'FAIL');
+    assert.ok(!markers.some(m=>m.result==='PASS'));
+  }finally{fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('regenerated FINAL_RECONCILIATION PASS requires a verified non-null PIT result',async()=>{
+  const {root,pool}=await fixture({regenerated:true});
+  try{const report=await runFinalReconciliation(pool,{root});assert.equal(report.result,'PASS');assertReconciliationPit(report.pit);}
+  finally{fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('runner snapshot cannot bypass PIT by removing both archive version markers',async t=>{
+  const {root,pool}=await fixture({regenerated:true});const logs=[];t.mock.method(console,'log',s=>logs.push(s));
+  try{
+    for(const [file,fields] of [['manifest.json',['archive_version']],['analytics_manifest.json',['package_version','closing_rule_version']]]){
+      const value=JSON.parse(fs.readFileSync(path.join(root,file),'utf8'));for(const field of fields)delete value[field];fs.writeFileSync(path.join(root,file),JSON.stringify(value)+'\n');
+    }
+    await runFinalChecksums({root});pool.readOnlySnapshot=true;
+    await assert.rejects(()=>runFinalReconciliation(pool,{root}),/final_reconciliation_failed/);
+    const report=JSON.parse(fs.readFileSync(path.join(root,'final_reconciliation_report.json'),'utf8'));
+    assert.equal(report.result,'FAIL');assert.ok(report.mismatches.includes('pit_closing_rule_version'));
+    assert.ok(!logs.some(s=>s.startsWith('PROVIDER_TRIAL_FINAL_RECONCILIATION ')&&JSON.parse(s.slice(s.indexOf(' ')+1)).result==='PASS'));
+  }finally{fs.rmSync(root,{recursive:true,force:true});}
+});
+
+for(const pit of [undefined,null,{}, {result:null}, {result:'FAIL',mismatch_count:0,closing_rule_version:'closing_odds_pit_v1'}, {result:'PASS',mismatch_count:1,closing_rule_version:'closing_odds_pit_v1'}, {result:'PASS',mismatch_count:0,closing_rule_version:'legacy'}])
+  test('final PIT result assertion rejects '+JSON.stringify(pit),()=>assert.throws(()=>assertReconciliationPit(pit),/pit_result_not_verified/));
 
 test('scanNdjson counts duplicate composite keys even when the row count looks right', async () => {
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'provider-trial-scan-'));
