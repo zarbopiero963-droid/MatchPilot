@@ -45,10 +45,12 @@ const isTransient=rel=>/(?:\.duckdb\.wal|\.wal|\.tmp|\.lock)$/i.test(rel);
 const ms=v=>v==null?null:new Date(v).getTime();
 
 // Streams one gzip NDJSON file and recomputes rows, distinct primary keys, id range and max timestamp.
-export async function scanNdjson(file,{numericKey=null,keys=null,time=null,rowCheck=null}={}){
+// With collectKeys the key set is returned too, to diff it against the DB keys (missing / extra).
+export async function scanNdjson(file,{numericKey=null,keys=null,time=null,rowCheck=null,collectKeys=false}={}){
   const rl=readline.createInterface({input:fs.createReadStream(file).pipe(createGunzip()),crlfDelay:Infinity});
   let rows=0,duplicates=0,nonMonotonic=0,rowCheckFailures=0,prev=null,minId=null,maxId=null,maxTime=null;
   const seen=keys?new Set():null;
+  const idSet=numericKey&&collectKeys?new Set():null;
   for await (const line of rl){
     if(!line) continue;
     const row=JSON.parse(line);
@@ -57,6 +59,7 @@ export async function scanNdjson(file,{numericKey=null,keys=null,time=null,rowCh
       const id=Number(row[numericKey]);
       if(prev!==null && !(id>prev)) nonMonotonic++;
       prev=id;
+      if(idSet) idSet.add(id);
       if(minId===null||id<minId) minId=id;
       if(maxId===null||id>maxId) maxId=id;
     }
@@ -69,7 +72,36 @@ export async function scanNdjson(file,{numericKey=null,keys=null,time=null,rowCh
   }
   const distinct=seen?seen.size:(nonMonotonic===0?rows:null);
   return {rows,distinct_keys:distinct,duplicate_keys:seen?duplicates:nonMonotonic,min_id:minId,max_id:maxId,
-    max_time:maxTime===null?null:new Date(maxTime).toISOString(),row_check_failures:rowCheckFailures};
+    max_time:maxTime===null?null:new Date(maxTime).toISOString(),row_check_failures:rowCheckFailures,
+    ...(collectKeys?{key_set:idSet||seen}:{})};
+}
+
+const qid=v=>{ if(!/^[A-Za-z_][A-Za-z0-9_]*$/.test(v)) throw new Error('invalid_identifier'); return '"'+v+'"'; };
+
+// Enumerates the DB keys through a server-side cursor (no ORDER BY, no LIMIT/OFFSET), independent of the export
+// paging, and diffs them with the exported key set: missing = in DB not exported, extra = exported not in DB.
+export async function diffDbKeys(pool,{table,spec,where=null,exportKeys}){
+  const cols=spec.numericKey?[spec.numericKey]:spec.keys;
+  const keyOf=spec.numericKey?r=>Number(r[spec.numericKey]):r=>JSON.stringify(cols.map(c=>r[c]??null));
+  const client=await pool.connect();
+  let dbKeys=0,missing=0;
+  try{
+    await client.query('BEGIN READ ONLY');
+    await client.query('DECLARE reconciliation_keys NO SCROLL CURSOR FOR SELECT '+cols.map(qid).join(',')+' FROM provider_trial.'+qid(table)+(where?' WHERE '+where:''));
+    while(true){
+      const {rows}=await client.query('FETCH 10000 FROM reconciliation_keys');
+      if(!rows.length) break;
+      for(const r of rows){ dbKeys++; if(!exportKeys.has(keyOf(r))) missing++; }
+    }
+    await client.query('CLOSE reconciliation_keys');
+    await client.query('COMMIT');
+  }catch(e){
+    await client.query('ROLLBACK').catch(()=>{});
+    throw e;
+  }finally{
+    client.release();
+  }
+  return {db_keys:dbKeys,missing_keys:missing,extra_keys:exportKeys.size-(dbKeys-missing)};
 }
 
 async function dbCount(pool,sql,params=[]){
@@ -116,13 +148,16 @@ export async function runFinalReconciliation(pool,{root=OUT_DIR}={}){
   for(const [name,spec] of Object.entries(DATASET_KEYS)){
     const file=name+'.ndjson.gz';
     if(!check(fs.existsSync(path.join(root,file)),'export_file_missing_'+name)) continue;
-    const scan=await scanNdjson(path.join(root,file),spec);
+    const {key_set:keySet,...scan}=await scanNdjson(path.join(root,file),{...spec,collectKeys:true});
+    const keys=await diffDbKeys(pool,{table:name,spec,where:name==='records'?'record_id <= '+max:null,exportKeys:keySet});
     const entry=(exportManifest.datasets||[]).find(d=>d.name===name)||{};
     const bytes=fs.statSync(path.join(root,file)).size, sha=await sha256File(path.join(root,file));
-    exportLayer[name]={db:db[name],...scan,manifest_rows:entry.rows,bytes,sha256:sha};
+    exportLayer[name]={db:db[name],...scan,...keys,manifest_rows:entry.rows,bytes,sha256:sha};
     check(scan.rows===db[name],'export_rows_vs_db_'+name);
     check(scan.distinct_keys===db[name],'export_distinct_keys_vs_db_'+name);
     check(scan.duplicate_keys===0,'export_duplicate_keys_'+name);
+    check(keys.db_keys===db[name] && keys.missing_keys===0,'export_missing_keys_'+name);
+    check(keys.extra_keys===0,'export_extra_keys_'+name);
     check(entry.rows===scan.rows && entry.bytes===bytes && entry.sha256===sha,'export_manifest_vs_file_'+name);
     if(spec.time && scan.max_time) check(ms(scan.max_time)<=freezeAt,'export_after_freeze_'+name);
   }
@@ -139,19 +174,26 @@ export async function runFinalReconciliation(pool,{root=OUT_DIR}={}){
   }
 
   // 3. ScoreTrend segregation and clean canonical files.
-  const st=await scanNdjson(path.join(root,'scoretrend_excluded.ndjson.gz'),{numericKey:'record_id',time:'observed_at',rowCheck:r=>String(r.source_type||'').startsWith('scoretrend') && Number(r.record_id)<=max});
+  const stSpec={numericKey:'record_id',time:'observed_at'};
+  const {key_set:stKeys,...st}=await scanNdjson(path.join(root,'scoretrend_excluded.ndjson.gz'),{...stSpec,collectKeys:true,rowCheck:r=>String(r.source_type||'').startsWith('scoretrend') && Number(r.record_id)<=max});
+  Object.assign(st,await diffDbKeys(pool,{table:'records',spec:stSpec,where:"record_id <= "+max+" AND source_type LIKE 'scoretrend%'",exportKeys:stKeys}));
   check(st.rows===dbScoretrendRaw && st.duplicate_keys===0 && st.row_check_failures===0,'scoretrend_excluded_vs_db');
+  check(st.missing_keys===0 && st.extra_keys===0,'scoretrend_excluded_keys_vs_db');
   const canonical={};
   for(const name of CANONICAL_CLEAN){
-    const scan=await scanNdjson(path.join(root,'canonical_without_scoretrend',name+'.ndjson.gz'),{...DATASET_KEYS[name],rowCheck:r=>r.provider!=='scoretrend'});
-    canonical[name]={db:dbClean[name],...scan};
+    const {key_set:keySet,...scan}=await scanNdjson(path.join(root,'canonical_without_scoretrend',name+'.ndjson.gz'),{...DATASET_KEYS[name],collectKeys:true,rowCheck:r=>r.provider!=='scoretrend'});
+    const keys=await diffDbKeys(pool,{table:name,spec:DATASET_KEYS[name],where:"provider <> 'scoretrend'",exportKeys:keySet});
+    canonical[name]={db:dbClean[name],...scan,...keys};
+    check(keys.db_keys===dbClean[name] && keys.missing_keys===0,'canonical_missing_keys_'+name);
+    check(keys.extra_keys===0,'canonical_extra_keys_'+name);
     check(scan.rows===dbClean[name],'canonical_rows_vs_db_'+name);
     check(scan.distinct_keys===dbClean[name] && scan.duplicate_keys===0,'canonical_distinct_keys_vs_db_'+name);
     check(scan.row_check_failures===0,'canonical_scoretrend_contamination_'+name);
   }
   // odds tables have no ScoreTrend rows in the DB; the analytics layer reads them from the export files.
-  canonical.odds_observations={db:dbClean.odds_observations,rows:exportLayer.odds_observations?.rows,distinct_keys:exportLayer.odds_observations?.distinct_keys};
-  canonical.odds_summary={db:dbClean.odds_summary,rows:exportLayer.odds_summary?.rows,distinct_keys:exportLayer.odds_summary?.distinct_keys};
+  const fromExport=n=>({db:dbClean[n],rows:exportLayer[n]?.rows,distinct_keys:exportLayer[n]?.distinct_keys,duplicate_keys:exportLayer[n]?.duplicate_keys,missing_keys:exportLayer[n]?.missing_keys,extra_keys:exportLayer[n]?.extra_keys});
+  canonical.odds_observations=fromExport('odds_observations');
+  canonical.odds_summary=fromExport('odds_summary');
   check(dbClean.odds_observations===db.odds_observations && dbClean.odds_summary===db.odds_summary,'canonical_odds_scoretrend_free_in_db');
 
   // 4. Analytics manifest: counts against the recounted canonical layer, files against the real files.
@@ -193,7 +235,7 @@ export async function runFinalReconciliation(pool,{root=OUT_DIR}={}){
   const duckFinal=(finalJson.files||[]).find(x=>x.file==='matchpilot_trial.duckdb');
 
   const report={
-    version:'provider-trial-final-reconciliation-v1',
+    version:'provider-trial-final-reconciliation-v2',
     created_at:new Date().toISOString(),
     freeze:{freeze_at_utc:freeze.freeze_at_utc,min_raw_record_id:Number(freeze.min_raw_record_id),max_raw_record_id:max,total_raw:Number(freeze.total_raw),first_observed_at:freeze.first_observed_at,last_observed_at:freeze.last_observed_at},
     db,db_canonical_without_scoretrend:dbClean,db_scoretrend_raw:dbScoretrendRaw,
@@ -207,7 +249,7 @@ export async function runFinalReconciliation(pool,{root=OUT_DIR}={}){
   };
   fs.writeFileSync(path.join(root,RECONCILIATION_REPORT),JSON.stringify(report,null,2)+'\n');
   const reportSha=await sha256File(path.join(root,RECONCILIATION_REPORT));
-  const short=o=>Object.fromEntries(Object.entries(o).map(([k,v])=>[k,{db:v.db,rows:v.rows,distinct_keys:v.distinct_keys,duplicate_keys:v.duplicate_keys}]));
+  const short=o=>Object.fromEntries(Object.entries(o).map(([k,v])=>[k,{db:v.db,rows:v.rows,distinct_keys:v.distinct_keys,duplicate_keys:v.duplicate_keys,missing_keys:v.missing_keys,extra_keys:v.extra_keys}]));
   console.log('PROVIDER_TRIAL_FINAL_RECONCILIATION '+JSON.stringify({
     result:report.result,
     mismatch_count:mismatches.length,
@@ -216,7 +258,7 @@ export async function runFinalReconciliation(pool,{root=OUT_DIR}={}){
     db_records:db.records,db_records_post_freeze:db.records_post_freeze,
     export:short(exportLayer),
     export_records_id_range:[rec.min_id,rec.max_id],export_records_id_contiguous:recordsContiguous,export_records_max_observed_at:rec.max_time,
-    scoretrend_excluded:{db:dbScoretrendRaw,rows:st.rows,row_check_failures:st.row_check_failures},
+    scoretrend_excluded:{db:dbScoretrendRaw,rows:st.rows,duplicate_keys:st.duplicate_keys,missing_keys:st.missing_keys,extra_keys:st.extra_keys,row_check_failures:st.row_check_failures},
     canonical:short(canonical),
     analytics_files_verified:analyticsFiles.length,
     final_checksums_entries_verified:finalVerified,

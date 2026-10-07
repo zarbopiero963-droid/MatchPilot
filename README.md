@@ -573,4 +573,23 @@ After the final SHA-256 gate, `scripts/provider-trial-final-reconciliation.mjs` 
 
 It writes `final_reconciliation_report.json` and logs `PROVIDER_TRIAL_FINAL_RECONCILIATION` with `result`, `mismatch_count` and per-layer counts. Any mismatch fails the run (`PROVIDER_TRIAL_EXPORT_ERROR`). A row count alone is not accepted as proof: duplicate keys with an equal count are reported as mismatches.
 
+For every export and canonical dataset the gate also re-reads the DB keys through a server-side cursor (no ORDER BY, no paging) and diffs them with the file: `missing_keys` (in the DB, not exported) and `extra_keys` (exported, not in the DB) must both be 0.
+
+**Live run of 2026-10-06 (commit `600ab8f`): FAIL, `mismatch_count=4`.**
+- coverage export: 1414 rows but 1132 distinct keys;
+- canonical coverage: 1336 rows but 1073 distinct keys.
+
+The cause was the pagination: `ORDER BY` on a non-unique column (`provider`) with `LIMIT/OFFSET` can return a row on two pages and skip another. The checks of points 4–8 counted rows, not keys, so they did not catch it. Point 8 verified the integrity of the produced files, which was correct within its scope.
+
+**Deterministic paging** (`scripts/lib/provider-trial-final-export.mjs`). It is used by the file export, the ScoreTrend-free canonical export and the authenticated HTTP stream:
+- **Order key from the real PRIMARY KEY.** The key is read from the catalog and must equal `DATASET_ORDER_KEYS`: records `record_id`; odds_observations `observation_id`; sports `(provider, sport_id)`; competitions and coverage `(provider, sport_id, country_code, league_id)`; events `(provider, event_id)`; reconciliation_state `key`. The `odds_summary` view has no PK, so its key is its GROUP BY `(provider, event_id, bookmaker, market_key, selection_key, line_value)`.
+- **Errors instead of fallbacks.** A dataset with no unique key, or whose PK differs from `DATASET_ORDER_KEYS`, is an error. The export never falls back to ordering by `observed_at`, `updated_at` or the first column.
+- **Keyset pagination.** Each page is read with `ORDER BY <full key>` and `(key) > (last key)`, never OFFSET. A nullable key column of the view sorts as `(col IS NULL, COALESCE(col,''))`, so NULL and an empty string stay distinct.
+- **Row count check.** After each dataset the exported row count is compared with `count(*)` on the same filter. A difference fails the export (`export_row_count_mismatch_*` / `canonical_row_count_mismatch_*`).
+
+`test/provider-trial-deterministic-paging.test.mjs` covers this:
+- It shows that the old `ORDER BY provider LIMIT/OFFSET` duplicates and loses coverage rows, raw and canonical, with an unchanged row count. It uses a DB emulator that orders tied rows differently on each page, as SQL allows.
+- It checks every dataset, raw, canonical and over HTTP, for zero duplicates and zero missing keys across several pages.
+- On real Postgres, it also checks every dataset, raw and canonical, for zero duplicates and zero missing keys.
+
 Mock update required: **NO** — this is an internal temporary export/recovery surface with no product UX change.

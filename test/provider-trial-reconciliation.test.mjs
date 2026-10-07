@@ -101,6 +101,7 @@ test('odds_summary SQL returns opening latest and closing prices', async (tt) =>
   const url=process.env.FUTPYTHON_TEST_DATABASE_URL;
   if (!url) return tt.skip('FUTPYTHON_TEST_DATABASE_URL not set');
   const pool=new pg.Pool({connectionString:url,max:1});
+  await pool.query('SELECT pg_advisory_lock(40409)'); // provider_trial schema is shared with the paging test file
   try {
     await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
     await pool.query('CREATE SCHEMA provider_trial');
@@ -126,6 +127,7 @@ test('odds_summary SQL returns opening latest and closing prices', async (tt) =>
     assert.equal(rows[0].observations,'3');
   } finally {
     await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
+    await pool.query('SELECT pg_advisory_unlock(40409)');
     await pool.end();
   }
 });
@@ -177,6 +179,7 @@ test('odds_summary orders same-response history by provider_time, not fetch time
   const url=process.env.FUTPYTHON_TEST_DATABASE_URL;
   if (!url) return tt.skip('FUTPYTHON_TEST_DATABASE_URL not set');
   const pool=new pg.Pool({connectionString:url,max:1});
+  await pool.query('SELECT pg_advisory_lock(40409)'); // provider_trial schema is shared with the paging test file
   try {
     await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
     await pool.query('CREATE SCHEMA provider_trial');
@@ -199,6 +202,7 @@ test('odds_summary orders same-response history by provider_time, not fetch time
     assert.equal(rows[0].latest_price,1.70);
   } finally {
     await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
+    await pool.query('SELECT pg_advisory_unlock(40409)');
     await pool.end();
   }
 });
@@ -207,6 +211,7 @@ test('raw odds v3 rebuild replays immutable provider_trial.records', async (tt) 
   const url=process.env.FUTPYTHON_TEST_DATABASE_URL;
   if (!url) return tt.skip('FUTPYTHON_TEST_DATABASE_URL not set');
   const pool=new pg.Pool({connectionString:url,max:1});
+  await pool.query('SELECT pg_advisory_lock(40409)'); // provider_trial schema is shared with the paging test file
   try {
     await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
     await pool.query('CREATE SCHEMA provider_trial');
@@ -254,6 +259,7 @@ test('raw odds v3 rebuild replays immutable provider_trial.records', async (tt) 
     assert.equal(rows[0].observations,'3');
   } finally {
     await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
+    await pool.query('SELECT pg_advisory_unlock(40409)');
     await pool.end();
   }
 });
@@ -263,6 +269,7 @@ test('raw provider records are protected by append-only trigger', async (tt) => 
   const url=process.env.FUTPYTHON_TEST_DATABASE_URL;
   if (!url) return tt.skip('FUTPYTHON_TEST_DATABASE_URL not set');
   const pool=new pg.Pool({connectionString:url,max:1});
+  await pool.query('SELECT pg_advisory_lock(40409)'); // provider_trial schema is shared with the paging test file
   try {
     await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
     await pool.query('CREATE SCHEMA provider_trial');
@@ -298,6 +305,7 @@ test('raw provider records are protected by append-only trigger', async (tt) => 
     );
   } finally {
     await pool.query('DROP SCHEMA IF EXISTS provider_trial CASCADE');
+    await pool.query('SELECT pg_advisory_unlock(40409)');
     await pool.end();
   }
 });
