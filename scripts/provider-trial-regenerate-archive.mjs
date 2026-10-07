@@ -6,11 +6,19 @@ import {assertFrozenDataset,ARCHIVE_QUALIFICATION} from './lib/provider-trial-re
 import {assertNewOutput,createTransferBundle,verifyInventory,hashFile,extractVerifiedBundle} from './lib/provider-trial-transfer.mjs';
 import {verifyPackageFiles,verifyPortableDuckDB} from './lib/provider-trial-package-verify.mjs';
 
-export async function withReadOnlySnapshot(client,work){
+export function regeneratedStatementTimeoutMs(env=process.env){
+ const raw=env.PROVIDER_TRIAL_REGENERATED_STATEMENT_TIMEOUT_MS;
+ if(raw==null||raw==='') return 600000;
+ const value=Number(raw);
+ if(!Number.isInteger(value)||value<120000||value>1800000) throw new Error('invalid_regenerated_statement_timeout_ms');
+ return value;
+}
+
+export async function withReadOnlySnapshot(client,work,{statementTimeoutMs=regeneratedStatementTimeoutMs()}={}){
  await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
  const pool={readOnlySnapshot:true,query:(...args)=>client.query(...args),connect:async()=>({query:(...args)=>client.query(...args),release(){}})};
  try{
-  await client.query("SET LOCAL statement_timeout TO '120s'");
+  await client.query("SELECT set_config('statement_timeout',$1,true)",[String(statementTimeoutMs)]);
   const r=await client.query('SHOW transaction_read_only');
   if(r.rows[0].transaction_read_only!=='on') throw new Error('read_only_not_enforced');
   const result=await work(pool);
