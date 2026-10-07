@@ -19,8 +19,6 @@ jobs:
     env:
       EXPECTED_COMMIT: 458a13455285aad4bb36f0e2df1f754bd6e70db5
       RAW_DATABASE_URL: ${{ secrets.PROVIDER_TRIAL_DATABASE_URL }}
-      OUT_ROOT: ${{ runner.temp }}/regenerated-20261007-r01
-      EVIDENCE_DIR: ${{ runner.temp }}/evidence
     steps:
       - name: Secret gate
         id: secret_gate
@@ -52,6 +50,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+
+      - name: Initialize runtime paths
+        if: steps.secret_gate.outputs.present == 'true'
+        shell: bash
+        run: |
+          echo "OUT_ROOT=$RUNNER_TEMP/regenerated-20261007-r01" >> "$GITHUB_ENV"
+          echo "EVIDENCE_DIR=$RUNNER_TEMP/evidence" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/evidence"
 
       - name: Environment evidence
         if: steps.secret_gate.outputs.present == 'true'
