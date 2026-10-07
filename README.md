@@ -1,5 +1,42 @@
 # MatchPilot — Sports Trading OS
 
+## Ingresso operativo corrente — 07/10/2026
+
+Leggere README → CLAUDE.md → AGENTS.md, poi **#3 → #97 → #104** e la issue di dominio; partire dai blocchi “Stato corrente / Prossima attività”, non dalla cronologia dei commenti.
+### Prossima attività unica / autorizzazione corrente
+
+L'owner il **07/10/2026 alle 15:23 Europe/Rome** ha autorizzato **una sola PR documentale/governance**, dopo il PASS del punto 9 della #40, e ha vietato il merge automatico.
+**Prossima azione: owner review e autorizzazione al merge della PR governance.**
+Non iniziare operativamente #20, il punto 10 della #40 o altri domini durante questa PR.
+
+Dopo il merge, il primo controllo operativo è **verificare e registrare la finestra sicura di #40 per riprendere lo sviluppo core**. Il PASS del punto 9 certifica la riconciliazione locale, non la durabilità dell'archivio né automaticamente tale finestra. Se la finestra è attestata secondo il contratto vigente, la priorità owner è **#20 / TC-CORE-01**, con i prerequisiti security/identity applicabili, senza riattivare il trial. Se non è attestata, fermare l'avvio core e riportare il blocker; nessun punto successivo #40 è autorizzato da questa PR. Definizioni o scelte nuove sui criteri di finestra sicura restano **OPEN / OWNER DECISION REQUIRED**.
+
+### Gerarchia vigente
+
+Decisioni esplicite owner (con fonte, data e scope) → **[#3](https://github.com/zarbopiero963-droid/MatchPilot/issues/3) master di prodotto/stato globale → [#97](https://github.com/zarbopiero963-droid/MatchPilot/issues/97) roadmap/fasi → [#104](https://github.com/zarbopiero963-droid/MatchPilot/issues/104) piano operativo delle PR** → contratti e gate delle issue di dominio → README / CLAUDE / AGENTS → documenti di integrazione → mock.
+La gerarchia non permette a #104 di eliminare acceptance criteria di dominio o alle docs di inventare decisioni owner. I documenti di supporto e gli snapshot di questa PR non sono una quarta master. Il piano proposto nell'audit non è stato approvato come nuova roadmap.
+
+### Stato corrente verificato — 07/10/2026
+
+| Perimetro | Stato corrente | Residuo / gate |
+|---|---|---|
+| main | `5b39f3308d266752409ef4bdcb9e86b2d3d9423e` prima della PR governance; backend principalmente FPT | nessuna feature implementata da questa PR |
+| #12 FPT | implementazione e certificazione storica del perimetro 05/10 disponibili; issue OPEN, **NON globalmente READY TO CLOSE / NON 0 lavoro residuo** | audit 412/412 dopo TC messo in sicurezza; rischio PIT/reprocessing aperto |
+| #20 TC core | **URGENTE**, core persistente non avviato/certificato; trial #40 distinto dal core | finestra sicura #40 attestata, discovery reale, overlap VERIFIED; scadenza membership **11/10/2026 15:20:27 Europe/Rome** |
+| #40 trial | freeze → FAIL storico #123 → fix #124 mergiata → **punto 9 PASS, mismatch_count=0** | portabilità DuckDB e punti 10–16 aperti; punto 17 owner-gated; nessuno shutdown autorizzato |
+| #104 | catalogo card pre-MCP conservato | **82 è baseline storica, NON conteggio verificato del residuo attuale** |
+| core downstream / #98 | contratti pianificati; certificazione integrata non ottenuta | componenti, consumer, paper bridge e integrazioni reali prima del gate E2E; UI finale deferita |
+
+Dettagli verificabili: [integrazione e stato corrente](docs/integration-map.md#stato-operativo-corrente--07102026), [matrice requisiti/fonti/gate](docs/governance/reconciliation-matrix-2026-10-07.md). Questi sono supporti della gerarchia, non master concorrenti.
+
+**Scope e owner:** solo calcio, FPT e TC feed core primari, FPT ∩ TC VERIFIED. #96=policy/risk/MM; #99=ledger/accounting/positions/settlement; #100=market rules; #28=trading intent; #34=Indicator Library/DSL. Shared ingestion/computation vincolante.
+**Tre livelli distinti:** implementazione; certificazione componente scoped; certificazione integrata #98. Mock e CI da soli non sono hard evidence.
+**SUPERSEDED:** #12 globalmente “0 lavoro residuo / READY TO CLOSE”, 82 PR come residuo verificato, accounting #96, vecchi ordini incompatibili con gli override TC/audit412. Il certificato FPT 05/10 resta evidenza storica del suo perimetro.
+**PIT aperto:** parser/reprocessing e versioni identità possono cambiare il risultato allo stesso T; registrare prima/dopo, raw/acquisition, parser/schema/transform/data-contract e mapping/versioni. Nessun apply prod senza owner.
+**OPEN / OWNER DECISION REQUIRED:** punto10+/shutdown #40, nuovi criteri di finestra sicura, scelta PIT non registrata, WeWeb, sport/overlap aggiuntivi, BetsAPI core, execution reale. Il piano audit non è approvazione owner.
+**Gate PR:** scope solo documenti, fonti linkate, nessun requisito perso, walkthrough10punti, CI/review; merge di questa PR solo dopo owner. Non chiudere issue.
+
+
 ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/zarbopiero963-droid/MatchPilot?utm_source=oss&utm_medium=github&utm_campaign=zarbopiero963-droid%2FMatchPilot&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
 MatchPilot è una piattaforma web di **trading sportivo decisionale**, non un semplice sito di pronostici.
@@ -16,7 +53,7 @@ Il flusso prodotto è:
 
 L'ordine di lavoro non segue il numero delle issue: segue la issue **#97 — ROADMAP** (revisione owner del 06/10/2026). Riassunto, ownership e superfici tool: [`docs/integration-map.md`](docs/integration-map.md).
 
-Gerarchia delle fonti di verità: decisioni dell'owner → #97 → issue di dominio → README / CLAUDE / AGENTS → `docs/` → mock.
+Gerarchia: decisioni owner → #3 prodotto/stato globale → #97 roadmap/fasi → #104 PR → issue di dominio → README / CLAUDE / AGENTS → docs → mock.
 
 | Fase | Issue | Scope |
 | --- | --- | --- |
@@ -69,7 +106,7 @@ Il replay (#24) può girare neutro o con un profilo MM. I dati del replay non ca
 
 DISCOVERED → SPECIFIED → CONTRACT_FROZEN → IMPLEMENTED → TESTED → MATH_VERIFIED (se applicabile) → HARD_VERIFIED_REAL → TOOL_VERIFIED → CERTIFIED → OWNER_ACCEPTED.
 
-Stato al 06/10/2026: #12 CERTIFIED WITH KNOWN LIMITATIONS e READY TO CLOSE (chiusura riservata all'owner); parte FutPythonTrader di #31 verificata nel certificato #12; tutte le altre issue di dominio sono SPECIFIED, senza implementazione backend.
+Stato storico al 06/10 prima degli override: certificato FPT del 05/10 e porzione FPT #31 verificati nel loro perimetro. Il claim globale READY TO CLOSE è SUPERSEDED dall'audit 412 e non rappresenta lo stato corrente; leggere il blocco di ingresso.
 
 ### Mock UX vivo
 
@@ -209,7 +246,7 @@ MatchPilot non deve limitarsi a "pronostico sì/no". Ogni opportunità deve desc
 - stop;
 - evidenze usate.
 
-Esempio concettuale:
+Esempio didattico di **LAY senza edge statico positivo** (il precedente +17.8% è ERRATO / SUPERSEDED):
 
 ```text
 LAY 1-0
@@ -217,11 +254,14 @@ Confidence: 78/100
 Entry window: 68'-76'
 Current odds: 8.40
 Fair lay odds: 6.90
-Edge: +17.8%
+Static EV / lay stake: -21.7391% before commission
+Decision from static EV: NO TRADE
 Pressure: HIGH
 Pre-match vulnerability: HIGH
 Stop: 82' or momentum reversal
 ```
+
+Con p=1/6.90 e lay stake 1, liability=8.40−1=7.40: EV=(1−p)−7.40p=1−8.40/6.90=−0.217391. La commissione riduce ulteriormente l'EV. Confidence/pressure e movimento quota non trasformano questo EV in positivo. Un modello di exit dinamico richiede un contratto e un oracle espliciti prima di attribuirgli un edge; qui non viene inventato.
 
 ## Strategie
 
@@ -266,9 +306,9 @@ La branch `main` rappresenta esclusivamente il nuovo MatchPilot Sports Trading O
 
 La chiusura definitiva della sorgente FutPythonTrader è governata dalla issue **#12 — FPT-CERT**.
 
-Stato corrente della sorgente: certificato dati **CERTIFIED WITH KNOWN LIMITATIONS**, **20 gate su 20 veri** sul deploy live del commit `6f83e2e` (20 migrazioni, ultima `020-fpt-raw-retention-reprocessing.sql`), report generato il 2026-10-05 alle 22:39:32 UTC dopo il primo cron reale di refresh delle stagioni correnti (22:17 UTC) e dopo la correzione del checkpoint `post_run` (#92). Documento versionato: [`docs/futpython-certification-2026-10-05.md`](docs/futpython-certification-2026-10-05.md), rigenerato da `GET /api/futpython-certificate` con `--from-json`, con verifica incrociata solo via HTTP pubblico. I gap della checklist finale della #12 sono stati corretti dentro FPT-PR-09 (#81 query assistente, #82 registry filtri, #83 livelli di budget, #86 onboarding, #88 riconciliazione, #89 versionamento e raw append-only, #90 pagina `/coverage`, #92 certificato rigenerato e checkpoint `post_run`). Refresh stagioni correnti: al primo cron 50 delle 104 stagioni scadute sono state riscaricate (`RECOVERED`, contenuto identico, 0 righe duplicate); le altre 54 sono `QUEUED` per i cron successivi (massimo 50 per run). La valutazione di chiudibilità è pubblicata nella #12; la issue resta OPEN e la chiusura spetta all'owner.
+Evidenza storica della sorgente, limitata al perimetro del report del 05/10: certificato dati **CERTIFIED WITH KNOWN LIMITATIONS**, **20 gate su 20 veri** sul deploy live del commit `6f83e2e` (20 migrazioni, ultima `020-fpt-raw-retention-reprocessing.sql`), report generato il 2026-10-05 alle 22:39:32 UTC dopo il primo cron reale di refresh delle stagioni correnti (22:17 UTC) e dopo la correzione del checkpoint `post_run` (#92). Documento versionato: [`docs/futpython-certification-2026-10-05.md`](docs/futpython-certification-2026-10-05.md), rigenerato da `GET /api/futpython-certificate` con `--from-json`, con verifica incrociata solo via HTTP pubblico. I gap della checklist finale della #12 sono stati corretti dentro FPT-PR-09 (#81 query assistente, #82 registry filtri, #83 livelli di budget, #86 onboarding, #88 riconciliazione, #89 versionamento e raw append-only, #90 pagina `/coverage`, #92 certificato rigenerato e checkpoint `post_run`). Refresh stagioni correnti: al primo cron 50 delle 104 stagioni scadute sono state riscaricate (`RECOVERED`, contenuto identico, 0 righe duplicate); le altre 54 sono `QUEUED` per i cron successivi (massimo 50 per run). La valutazione di chiudibilità è pubblicata nella #12; la issue resta OPEN e la chiusura spetta all'owner.
 
-Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. I paragrafi di fase qui sotto restano lo storico delle singole PR. Lo stato attuale e i numeri reali sono nel certificato finale, generato dai dati reali e non scritto a mano.
+Il gate dati della FASE 1 (backfill storico + verifier, PR #33) resta valido sull'evidenza reale sotto. Il kill live e il budget sono stati verificati dopo il merge di PR #35, con il limite esplicito che il SIGTERM di produzione è caduto fra due dataset e non a metà scrittura. I paragrafi di fase qui sotto restano lo storico delle singole PR. I numeri di quel perimetro storico sono nel certificato generato; lo stato corrente include anche audit 412 e rischio PIT nel blocco di ingresso.
 
 La certificazione richiede, nell'ordine:
 
