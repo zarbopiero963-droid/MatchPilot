@@ -5,7 +5,7 @@
 **Gerarchia: decisioni owner → #3 prodotto/stato → #97 roadmap/fasi → #104 piano PR → issue di dominio.** Nessuna quarta master; il piano audit è proposta, non nuova decisione owner.
 
 ### Prossima attività unica
-Owner 07/10 15:23 Europe/Rome: **una PR documentale/governance; prossima azione owner review/autorizzazione merge**, niente merge automatico. Nessuna feature/provider/collector/runtime, nessun #20 operativo, punto10 #40 o chiusura issue in questa PR.
+Owner 07/10 15:23 Europe/Rome: **una PR documentale/governance; prossima azione owner review/autorizzazione merge della [PR #125](https://github.com/zarbopiero963-droid/MatchPilot/pull/125)**, niente merge automatico. Nessuna feature/provider/collector/runtime, nessun #20 operativo, punto10 #40 o chiusura issue in questa PR.
 Dopo merge: prima verificare/registrare finestra sicura #40 per sviluppo core; se attestata, priorità #20 TC-CORE-01 con prerequisiti applicabili. PASS9 non prova durabilità archivio né finestra sicura. Se non attestata, segnalare blocker; criteri nuovi **OPEN / OWNER DECISION REQUIRED**.
 
 ### Residuo owner: audit412 dopo TC messo in sicurezza
