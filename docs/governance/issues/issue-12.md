@@ -32,6 +32,8 @@ Separare implementazione, certificazione componente (hard evidence scoped) e cer
 
 ### Decisioni aperte / chiusura
 **OPEN / OWNER DECISION REQUIRED:** punto10+/shutdown #40, criteri nuovi finestra sicura, semantica PIT non registrata, apply produzione/raw deletion/promozione nuova lega, WeWeb #91, altri sport/overlap, BetsAPI core e real execution #45.
+**OPEN / OWNER DECISION REQUIRED — STOP/ADVISORY_ONLY sulle posizioni già aperte:** #96 e #97 vietano exposure mutation/financial ledger writes in ADVISORY_ONLY, mentre README descrive la continuazione di chiusura/settlement delle posizioni esistenti. Il confine di ownership è chiaro (#99 scrive), ma l'eccezione operativa non è univoca. Prima della relativa integrazione, l'owner deve chiarire quali scritture #99 restano consentite per posizioni già aperte. Non scegliere automaticamente “blocca tutto” o “settle comunque”; nessun comportamento runtime cambiato qui.
+
 Per chiudibilità #12 servono tutti requisiti vigenti e gate, compresi audit412 e PIT applicabili, hard evidence e limiti espliciti; commento finale e issue OPEN all'owner. Il certificato del05/10 non viene riscritto.
 
 ---

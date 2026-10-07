@@ -47,6 +47,8 @@ Per i dettagli non sintetizzati, i requisiti e test dei contratti di dominio res
 | R26 Decisions open | #3/#97; #91 proposta; #45 owner gate; owner07/10 | #owner | decision record esplicito | #91; #45; #40; governance PR | verifica assenza azioni non autorizzate | fonte/data e scope autorizzazione | OPEN / OWNER DECISION REQUIRED | WeWeb, nuovi sport/overlap, BetsAPI core, live execution non automatici |
 | R27 Shared ingestion/economy | #3 commento6026194935 | #12/#20 dati; domini calcolo | #31 budget/dedup; account isolation | #3/#97/#104; integrazioni future | N client→0 upstream duplicato; cache/version key | una ingestion/database/calcolo riusabile; cost metrics | VIGENTE; requisito residuo dove non implementato | no costo upstream per utente; raw retention owner-gated |
 | R28 Governance PR / prossima azione | owner07/10 15:23; audit è proposta | #3/#97/#104 | punto9PASS; una PR; merge owner | #3/#97/#104/#12/#20/#40 e docs | diff solo md; matrice; walkthrough10punti; CI/review | PR+snapshot issue prima/dopo+audit | AUTORIZZATA; merge NON autorizzato | unica prossima azione: owner review/merge; poi verifica finestra #40 |
+| R29 STOP su posizioni già aperte | #96/#97 divieto write vs README prosecuzione settlement | #96 policy; #99 scritture; owner chiarisce | decisione prima integrazione MM/ledger | #3/#97/#104; MM-INTEGRATION-01 | nuove posizioni bloccate; azioni posizione esistente secondo decisione | contratti ADVISORY_ONLY e STOP non modifica aperte | OPEN / OWNER DECISION REQUIRED | eccezioni contabili esplicite; non scegliere policy nuova |
+
 
 ### Rischio aperto PIT / parser / identità / reprocessing FPT — #12
 
@@ -59,6 +61,8 @@ Evidenza tecnica su main `5b39f33`:
 Il dry-run no-op certificato il 05/10 non dimostra questo caso. Registrare in #12: data disponibile/osservata a T, snapshot ID/hash, versione parser/schema/transform/data-contract, identità e mapping/versioni, reprocessing run/time, output e test **prima e dopo la correzione**. Test richiesti: T anteriore/posteriore a ingest/correzione, parser v1/v2, rename/alias/cambio ID, aggregati senza futuro, riproduzione delle versioni storiche e raw immutato. **RISCHIO APERTO**, nessuna correzione runtime qui. La scelta non registrata tra replay “come conosciuto allora” e ricostruzione col parser nuovo è **OPEN / OWNER DECISION REQUIRED**; il requisito di riproducibilità resta vincolante. Apply produzione e cancellazione raw richiedono autorizzazione specifica owner.
 
 ### OPEN / OWNER DECISION REQUIRED
+
+**OPEN / OWNER DECISION REQUIRED — STOP/ADVISORY_ONLY sulle posizioni già aperte:** #96 e #97 vietano exposure mutation/financial ledger writes in ADVISORY_ONLY, mentre README descrive la continuazione di chiusura/settlement delle posizioni esistenti. Il confine di ownership è chiaro (#99 scrive), ma l'eccezione operativa non è univoca. Prima della relativa integrazione, l'owner deve chiarire quali scritture #99 restano consentite per posizioni già aperte. Non scegliere automaticamente “blocca tutto” o “settle comunque”; nessun comportamento runtime cambiato qui.
 
 - Punto 10 e successivi della #40: non autorizzati da questa PR; portabilità DuckDB aperta prima dell'upload; shutdown punto 17 sempre autorizzazione specifica.
 - Criteri aggiuntivi/non registrati di finestra sicura #40: da sottoporre all'owner, non assumere PASS9 = archivio persistente.

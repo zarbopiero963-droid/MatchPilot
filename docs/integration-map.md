@@ -49,6 +49,8 @@ Dopo il merge, il primo controllo operativo è **verificare e registrare la fine
 
 ### OPEN / OWNER DECISION REQUIRED
 
+**OPEN / OWNER DECISION REQUIRED — STOP/ADVISORY_ONLY sulle posizioni già aperte:** #96 e #97 vietano exposure mutation/financial ledger writes in ADVISORY_ONLY, mentre README descrive la continuazione di chiusura/settlement delle posizioni esistenti. Il confine di ownership è chiaro (#99 scrive), ma l'eccezione operativa non è univoca. Prima della relativa integrazione, l'owner deve chiarire quali scritture #99 restano consentite per posizioni già aperte. Non scegliere automaticamente “blocca tutto” o “settle comunque”; nessun comportamento runtime cambiato qui.
+
 - Punto 10 e successivi della #40: non autorizzati da questa PR; portabilità DuckDB aperta prima dell'upload; shutdown punto 17 sempre autorizzazione specifica.
 - Criteri aggiuntivi/non registrati di finestra sicura #40: da sottoporre all'owner, non assumere PASS9 = archivio persistente.
 - Semantica/version pinning PIT/reprocessing non definita oltre il contratto vigente; apply prod/raw deletion/promozione nuova lega owner-gated.
@@ -201,12 +203,12 @@ Regola: #96 legge da #99 bankroll, fondi riservati, liability aperta, esposizion
 
 | Stato | Comportamento |
 | --- | --- |
-| `ACTIVE_OPERATIONAL` | decide ALLOW / REDUCE / BLOCK / SIMULATION_ONLY, può preparare/registrare paper trade, aggiorna la sequenza dopo il settlement |
+| `ACTIVE_OPERATIONAL` | decide ALLOW / REDUCE / BLOCK / SIMULATION_ONLY, può autorizzare paper trade; #99 registra posizioni/ledger, aggiorna la sequenza dopo il settlement |
 | `ADVISORY_ONLY` | continua dati, segnali, analisi, stake e liability teorici, consigli HOLD / HEDGE / EXIT; blocca nuove paper position, riserve, modifiche all'esposizione, scritture finanziarie nel ledger e avanzamento delle progressioni per trade non registrati. Output marcato "ADVISORY ONLY — operazione non registrata" |
 | `PAUSED` | nessuna valutazione operativa automatica; dati e storico leggibili |
 | `ARCHIVED` | non utilizzabile per nuove strategie o trade; storico immutabile |
 
-STOP OPERATIONS porta in `ADVISORY_ONLY`, RESUME OPERATIONS riporta `ACTIVE_OPERATIONAL`. Le posizioni già aperte continuano: P/L live, chiusura e settlement. Nessun trade viene ricostruito retroattivamente per il periodo advisory.
+STOP OPERATIONS porta in `ADVISORY_ONLY`, RESUME OPERATIONS riporta `ACTIVE_OPERATIONAL`. L'indicazione precedente di continuazione chiusura/settlement delle posizioni già aperte non risolve il divieto ADVISORY_ONLY sulle scritture #99: **OPEN / OWNER DECISION REQUIRED** come sopra. Le letture/consigli non autorizzano scritture contabili. Nessun trade viene ricostruito retroattivamente per il periodo advisory.
 
 ## Profili MM: identità e versioni
 
