@@ -31,7 +31,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      EXPECTED_COMMIT: 458a13455285aad4bb36f0e2df1f754bd6e70db5
+      EXPECTED_COMMIT: 2e27b6dee2287c3263717188f32a445763d2b990
       FUTPYTHON_TEST_DATABASE_URL: postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt
       RAW_DATABASE_URL: ${{ secrets.PROVIDER_TRIAL_DATABASE_URL }}
     steps:
