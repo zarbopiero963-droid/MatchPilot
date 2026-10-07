@@ -1,4 +1,4 @@
-import {verifyPitRelations} from './lib/provider-trial-package-verify.mjs';
+import {verifyPitRelations,verifyPitManifest} from './lib/provider-trial-package-verify.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -219,7 +219,7 @@ export async function runFinalReconciliation(pool,{root=OUT_DIR}={}){
     const {DuckDBInstance}=await import('@duckdb/node-api');
     const instance=await DuckDBInstance.create(path.join(root,'matchpilot_trial.duckdb'),{access_mode:'READ_ONLY',threads:'1',max_memory:'192MB'});
     const conn=await instance.connect();
-    try{pit=await verifyPitRelations(conn);}catch{check(false,'pit_semantic_reconciliation');}
+    try{pit=await verifyPitRelations(conn);verifyPitManifest(analytics,pit);}catch{check(false,'pit_semantic_reconciliation');}
     finally{conn.closeSync();instance.closeSync();}
   }
 

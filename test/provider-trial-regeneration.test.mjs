@@ -72,7 +72,7 @@ test('download digest failure blocks extraction before any readback directory ex
   assert.equal(fs.existsSync(root),false);
  }finally{fs.rmSync(parent,{recursive:true,force:true});}
 });
-test('real DuckDB materialized tables remain queryable after relocation and match Parquet',async()=>{
+test('relocated DuckDB is portable but minimal self-consistent package is rejected',async()=>{
  const parent=fs.mkdtempSync(path.join(os.tmpdir(),'portable-test-')),root=path.join(parent,'source'),moved=path.join(parent,'readback');fs.mkdirSync(root);fs.mkdirSync(path.join(root,'parquet','canonical'),{recursive:true});
  const json=(name,obj)=>fs.writeFileSync(path.join(root,name),JSON.stringify(obj));
  try{
@@ -88,7 +88,11 @@ test('real DuckDB materialized tables remain queryable after relocation and matc
   json('secret_scan_report.json',{result:'PASS'});await runFinalChecksums({root});
   json('final_reconciliation_report.json',{freeze:FROZEN_DATASET,result:'PASS',mismatches:[],db:{records:82862,records_post_freeze:0},export:{},canonical:{},scoretrend_excluded:{duplicate_keys:0,missing_keys:0,extra_keys:0}});
   const before=await fileInventory(root);fs.renameSync(root,moved);
-  assert.equal((await verifyPortableDuckDB(moved)).result,'PASS');
+  await assert.rejects(()=>verifyPortableDuckDB(moved),/package_contract/);
+  const relocated=await DuckDBInstance.create(path.join(moved,'matchpilot_trial.duckdb'),{access_mode:'READ_ONLY'});const read=await relocated.connect();
+  try{assert.equal(Number((await read.runAndReadAll('SELECT count(*) n FROM v_events')).getRowObjectsJson()[0].n),1);
+  assert.equal(Number((await read.runAndReadAll("SELECT count(*) n FROM (SELECT * FROM canonical_events EXCEPT ALL SELECT * FROM read_parquet('"+path.join(moved,'parquet','canonical','events.parquet')+"'))")).getRowObjectsJson()[0].n),0);
+  }finally{read.closeSync();relocated.closeSync();}
   await verifyInventory(moved,before);assert.equal(fs.existsSync(root),false);
  }finally{fs.rmSync(parent,{recursive:true,force:true});}
 });

@@ -27,13 +27,14 @@ export function regeneratedSummarySql(){
 export function pitViewsSql(){return `
  CREATE OR REPLACE VIEW v_closing_odds_pit AS ${closingSql('canonical_odds_observations')};
  CREATE OR REPLACE VIEW v_provider_closing_retrospective AS ${closingSql('canonical_odds_observations',{retrospective:true}).replaceAll('closing_odds_pit','provider_closing_retrospective')};
- CREATE OR REPLACE VIEW v_prematch AS SELECT * FROM v_odds_timeline WHERE provider_time<=kickoff_utc AND observed_at<=kickoff_utc;
- CREATE OR REPLACE VIEW v_replay_asof AS SELECT *,greatest(provider_time,observed_at) AS valid_from FROM v_prematch;
+ CREATE OR REPLACE VIEW v_pit_observation_timeline AS SELECT * FROM v_odds_timeline WHERE provider_time<=kickoff_utc AND observed_at<=kickoff_utc;
+ CREATE OR REPLACE VIEW v_prematch AS SELECT * FROM v_closing_odds_pit;
+ CREATE OR REPLACE VIEW v_replay_asof AS SELECT *,greatest(closing_provider_time,closing_observed_at) AS valid_from FROM v_closing_odds_pit;
  CREATE OR REPLACE VIEW v_market_movement AS SELECT * FROM v_closing_odds_pit;
- CREATE OR REPLACE VIEW v_backtest_observations AS SELECT *,kickoff_utc AS kickoff_cutoff,'${CLOSING_RULE_VERSION}' AS closing_rule FROM v_prematch;
- CREATE OR REPLACE VIEW v_indicator_inputs AS SELECT provider,event_id,market_key,selection_key,line_value,price,provider_time,observed_at,acquisition_time,effective_at,kickoff_utc,'UNAVAILABLE'::VARCHAR AS liquidity_status,'INDICATOR_INPUT_READY'::VARCHAR AS readiness FROM v_prematch;
- UPDATE strategy_field_catalog SET source_view='v_prematch',phases='prematch',temporal_semantics='provider_time AND observed_at <= kickoff; apply valid_from <= as_of for replay' WHERE source_view='v_odds_timeline';
- CREATE OR REPLACE VIEW v_math_inputs AS SELECT provider,event_id,bookmaker,market_key,selection_key,line_value,price,provider_time,observed_at,acquisition_time,effective_at,kickoff_utc,'UNAVAILABLE'::VARCHAR AS liquidity_status,NULL::DOUBLE AS available_liquidity,NULL::DOUBLE AS matched_fill_price,'MATH_INPUT_READY'::VARCHAR AS readiness FROM v_prematch;
+ CREATE OR REPLACE VIEW v_backtest_observations AS SELECT * FROM v_closing_odds_pit;
+ CREATE OR REPLACE VIEW v_indicator_inputs AS SELECT provider,event_id,market_key,selection_key,line_value,price,provider_time,observed_at,acquisition_time,effective_at,kickoff_utc,'UNAVAILABLE'::VARCHAR AS liquidity_status,'INDICATOR_INPUT_READY'::VARCHAR AS readiness FROM v_pit_observation_timeline;
+ UPDATE strategy_field_catalog SET source_view='v_prematch',field_name=CASE WHEN field_name='price' THEN 'closing_odds_pit' ELSE field_name END,phases='prematch',temporal_semantics='closing_odds_pit_v1 with explicit status; replay requires closing timestamps <= as_of' WHERE source_view='v_odds_timeline';
+ CREATE OR REPLACE VIEW v_math_inputs AS SELECT provider,event_id,bookmaker,market_key,selection_key,line_value,price,provider_time,observed_at,acquisition_time,effective_at,kickoff_utc,'UNAVAILABLE'::VARCHAR AS liquidity_status,NULL::DOUBLE AS available_liquidity,NULL::DOUBLE AS matched_fill_price,'MATH_INPUT_READY'::VARCHAR AS readiness FROM v_pit_observation_timeline;
  `;}
 
 // All frozen groups may be UNAVAILABLE: never rely on JSON null-only type inference.

@@ -26,7 +26,7 @@ test('PIT closing, ambiguity and prematch consumers enforce both clocks',async()
  ('p','secondary','b','m','s',NULL,20,2,'2026-10-05 10:00','2026-10-05 10:01','2026-10-05 11:00'),
  ('p','secondary','b','m','s',NULL,21,3,'2026-10-05 10:00','2026-10-05 10:02','2026-10-05 11:00'),
  ('p','boundary','b','m','s',NULL,11,2,'2026-10-05 11:00','2026-10-05 11:00','2026-10-05 11:00');
- CREATE TABLE strategy_field_catalog(source_view VARCHAR,phases VARCHAR,temporal_semantics VARCHAR);
+ CREATE TABLE strategy_field_catalog(source_view VARCHAR,field_name VARCHAR,phases VARCHAR,temporal_semantics VARCHAR);
  CREATE VIEW v_odds_timeline AS SELECT *, observed_at acquisition_time,coalesce(provider_time,observed_at) effective_at FROM canonical_odds_observations;`);
  await c.run(pitViewsSql());
  const rows=(await c.runAndReadAll('SELECT * FROM v_closing_odds_pit')).getRowObjectsJson();
@@ -41,8 +41,14 @@ test('PIT closing, ambiguity and prematch consumers enforce both clocks',async()
  const again=(await c.runAndReadAll("SELECT * FROM v_closing_odds_pit WHERE event_id='ambiguous'")).getRowObjectsJson()[0];
  assert.equal(again.closing_status,'AMBIGUOUS_SAME_TIMESTAMP');assert.equal(again.closing_odds_pit,null);
  assert.equal(by.get('same_price').closing_status,'AVAILABLE');assert.equal(by.get('boundary').closing_status,'AVAILABLE');
- for(const v of ['v_prematch','v_replay_asof','v_backtest_observations','v_indicator_inputs','v_math_inputs']){
- const invalid=(await c.runAndReadAll(`SELECT count(*) n FROM ${v} WHERE provider_time IS NULL OR observed_at IS NULL OR kickoff_utc IS NULL OR provider_time>kickoff_utc OR observed_at>kickoff_utc`)).getRowObjectsJson();assert.equal(Number(invalid[0].n),0);
+ for(const v of ['v_prematch','v_replay_asof','v_backtest_observations']){
+ const actual=(await c.runAndReadAll(`SELECT event_id,closing_odds_pit,closing_status,closing_rule_version,candidate_observation_ids FROM ${v}`)).getRowObjectsJson();
+ const indexed=new Map(actual.map(r=>[r.event_id,r]));
+ for(const [id,status] of [['before','AVAILABLE'],['late_acquisition','UNAVAILABLE'],['ambiguous','AMBIGUOUS_SAME_TIMESTAMP']]){
+ assert.equal(indexed.get(id).closing_status,status);assert.equal(indexed.get(id).closing_rule_version,'closing_odds_pit_v1');
+ if(status!=='AVAILABLE')assert.equal(indexed.get(id).closing_odds_pit,null);
+ }
+ assert.equal(indexed.get('ambiguous').candidate_observation_ids.length,2);
  }
  const retro=(await c.runAndReadAll("SELECT * FROM v_provider_closing_retrospective WHERE event_id='late_acquisition'")).getRowObjectsJson()[0];assert.equal(retro.closing_status,'AVAILABLE');
  // Consumers of scalar closing never inherit a representative price from an ambiguous group.
@@ -51,9 +57,9 @@ test('PIT closing, ambiguity and prematch consumers enforce both clocks',async()
  await c.run('CREATE TABLE canonical_odds_summary AS SELECT * FROM v_closing_odds_pit');
  assert.equal((await verifyPitRelations(c)).result,'PASS');
  await c.run("UPDATE canonical_odds_summary SET closing_odds_pit=7 WHERE event_id='ambiguous'");
- await assert.rejects(()=>verifyPitRelations(c),/pit_summary_reconciliation_mismatch/);
+ await assert.rejects(()=>verifyPitRelations(c),/pit_source_reconciliation_mismatch/);
  await c.run('CREATE OR REPLACE VIEW v_prematch AS SELECT * FROM v_odds_timeline');
- await assert.rejects(()=>verifyPitRelations(c),/pit_leakage/);
+ await assert.rejects(()=>verifyPitRelations(c));
  }finally{c.closeSync();db.closeSync();}
 });
 

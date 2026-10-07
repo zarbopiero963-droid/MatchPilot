@@ -40,7 +40,7 @@ The stored freeze metadata includes odds_summary twice in its historical dataset
 
 The regenerated export's odds_summary is a versioned DERIVED projection: closing_price and closing_odds_pit follow this rule; statuses, timestamps and candidate arrays carry lineage. Legacy opening/latest are audit-only; change_open_close is NULL because the legacy opening is not a certified PIT feature. Source PostgreSQL odds_summary is NOT changed. Its keyset keys/counts remain unchanged; reconciliation independently compares source keys, while portable verification compares derived closing fields against independent canonical observation views.
 
-Portable analytics exposes v_closing_odds_pit and v_provider_closing_retrospective separately. The latter can include prices acquired after kickoff, preserves ties and is audit/research-only. Prematch, replay, backtest, indicator and math inputs enforce both clocks. Replay valid_from uses greatest(provider_time,observed_at); it provides eligible observations, not arbitrary price selection or an inferred temporal revision sequence. Candidates remain preserved in raw observations.
+Portable analytics exposes v_closing_odds_pit and v_provider_closing_retrospective separately. The latter can include prices acquired after kickoff, preserves ties and is audit/research-only. Prematch, replay and backtest expose closing_odds_pit/status/rule/candidate IDs only from v_closing_odds_pit. Research observations remain in v_odds_timeline; v_pit_observation_timeline is the separately filtered history for indicator/math inputs. Replay valid_from uses greatest(closing_provider_time,closing_observed_at), and is NULL for UNAVAILABLE; apply valid_from <= as_of before using an AVAILABLE closing. No temporal revision is inferred from an observation ID. Candidates remain preserved in raw observations.
 
 Opening/latest ambiguity still blocks export because those retained audit fields use the legacy ordering. Closing ambiguity is a legitimate explicit status, never silently resolved. No collector or frozen data mutation.
 
@@ -84,4 +84,18 @@ Only after both independent Drive provenance and local checks PASS/mismatch0 may
 
 ## Current status and verification limits
 
-Prepared/tested code; no full dataset generation, no Drive upload/readback, no safe-window attestation. The native relocated DuckDB tests are small fixtures, not certification of the complete trial archive. The closing decision is implemented; review and owner merge/run authorization remain pending. No PR has been opened for this patch. PRs must always be normal OPEN, never draft. Mock update: NO, archival tooling does not change product UX.
+Prepared/tested code; no full dataset generation, no Drive upload/readback, no safe-window attestation. The native relocated DuckDB tests are small fixtures, not certification of the complete trial archive. The closing decision is implemented; review and owner merge/run authorization remain pending. PR #126 is OPEN and has not been merged. PRs must always be normal OPEN, never draft. Mock update: NO, archival tooling does not change product UX.
+
+## PR #126 blocker corrections
+
+B1: read-only verifier independently computes eligible source candidates with an anti-join against strictly newer (provider_time,observed_at), not the generator's dense_rank or agreement between derived views. It verifies price, status, both timestamps and the entire candidate set against source-derived expected output, including each authoritative consumer.
+
+B2: closing consumers expose all three states and their source IDs. Raw observation history is separately named and cannot silently substitute for closing.
+
+B3: archive_version=provider-trial-regenerated-pit-v1; analytics version=matchpilot-trial-analytics-pit-v2; closing_rule_version=closing_odds_pit_v1 are mandatory. Exact raw/canonical/Parquet/required-view/file sets, nonempty required report sections and the fixed freeze's unavailable coverage are required. The regenerated verifier has no legacy bypass. report.pit must equal its independently recalculated result. A minimal fixture with coherent checksums is deliberately rejected; a separate DuckDB relocation check demonstrates physical portability without relaxing the production contract.
+
+Performance limitation: the derived PostgreSQL odds_summary query may recompute ranking/aggregation for each keyset page. Duration and the 120-second per-statement timeout must be monitored in the authorized run. Failure retains an uncertified partial output; it does not trigger DDL, fallback, provider fetch or restart.
+
+Freeze limitation: guards establish boundary/count/PK/acquisition-time consistency, not cryptographic identity of all PostgreSQL content. Retrodated content changes or a different DB reproducing the metadata cannot be ruled out by those checks. No new cryptographic freeze scheme is introduced in this PR; original archive hashes remain unavailable.
+
+Tests include five self-consistent-but-wrong closing cases, wrong ranking, all states in each consumer, missing versions/sections/files/views and report mismatch. Snapshot integration uses two connections ONLY to a localhost/CI throwaway PostgreSQL, demonstrates repeatable reads across a committed concurrent insert and rejects a write in the adapter transaction. It never targets Neon.

@@ -203,7 +203,7 @@ export async function buildAnalyticsPackage({portable=false}={}) {
     if (contamination[name]!==0) throw new Error('scoretrend_contamination_'+name+'_'+contamination[name]);
   }
 
-  const viewNames=[...(portable?['v_closing_odds_pit','v_provider_closing_retrospective']:[]),'v_prematch','v_live','v_replay_asof','v_events','v_odds_timeline','v_market_movement','v_coverage','v_provider_comparison','v_strategy_fields','v_indicator_inputs','v_math_inputs','v_backtest_observations','v_outcomes'];
+  const viewNames=[...(portable?['v_closing_odds_pit','v_provider_closing_retrospective','v_pit_observation_timeline']:[]),'v_prematch','v_live','v_replay_asof','v_events','v_odds_timeline','v_market_movement','v_coverage','v_provider_comparison','v_strategy_fields','v_indicator_inputs','v_math_inputs','v_backtest_observations','v_outcomes'];
   const viewCounts={};
   for (const v of viewNames) viewCounts[v]=await count(conn,v);
 
