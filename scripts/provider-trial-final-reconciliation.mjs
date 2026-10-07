@@ -1,4 +1,5 @@
 import {verifyPitRelations,verifyPitManifest} from './lib/provider-trial-package-verify.mjs';
+import {ARCHIVE_VERSION,ANALYTICS_VERSION} from './lib/provider-trial-package-contract.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -13,6 +14,10 @@ const OUT_DIR=process.env.PROVIDER_TRIAL_FINAL_EXPORT_DIR || '/tmp/provider-tria
 export const RECONCILIATION_REPORT='final_reconciliation_report.json';
 const OWN_OUTPUTS=new Set(['final_checksums.json','SHA256SUMS.final.txt',RECONCILIATION_REPORT]);
 const LEGACY_DUCKDB_BYTES=12288;
+
+export function assertReconciliationPit(pit){
+  if(!pit || pit.result!=='PASS' || pit.mismatch_count!==0 || pit.closing_rule_version!=='closing_odds_pit_v1') throw new Error('pit_result_not_verified');
+}
 
 // Primary keys from scripts/lib/provider-trial-reconciliation.mjs and the records DDL (odds_summary: GROUP BY key of the view).
 export const DATASET_KEYS=Object.freeze({
@@ -215,12 +220,23 @@ export async function runFinalReconciliation(pool,{root=OUT_DIR}={}){
   check(duck && duck.bytes!==LEGACY_DUCKDB_BYTES,'duckdb_not_checkpointed');
 
   let pit=null;
-  if(analytics.closing_rule_version==='closing_odds_pit_v1'){
-    const {DuckDBInstance}=await import('@duckdb/node-api');
-    const instance=await DuckDBInstance.create(path.join(root,'matchpilot_trial.duckdb'),{access_mode:'READ_ONLY',threads:'1',max_memory:'192MB'});
-    const conn=await instance.connect();
-    try{pit=await verifyPitRelations(conn);verifyPitManifest(analytics,pit);}catch{check(false,'pit_semantic_reconciliation');}
-    finally{conn.closeSync();instance.closeSync();}
+  // The separate runner's snapshot requires PIT even if both manifests lose their versions.
+  // Legacy collector archives retain their existing reconciliation path.
+  const requiresPit=pool.readOnlySnapshot===true || Boolean(pool.datasetSources?.odds_summary) || exportManifest.archive_version===ARCHIVE_VERSION || analytics.package_version===ANALYTICS_VERSION || analytics.closing_rule_version==='closing_odds_pit_v1';
+  if(requiresPit){
+    check(analytics.closing_rule_version==='closing_odds_pit_v1','pit_closing_rule_version');
+    let instance,conn;
+    try{
+      const {DuckDBInstance}=await import('@duckdb/node-api');
+      instance=await DuckDBInstance.create(path.join(root,'matchpilot_trial.duckdb'),{access_mode:'READ_ONLY',threads:'1',max_memory:'192MB'});
+      conn=await instance.connect();
+      pit=await verifyPitRelations(conn);
+      verifyPitManifest(analytics,pit);
+      assertReconciliationPit(pit);
+    }catch{check(false,'pit_semantic_reconciliation');}
+    finally{conn?.closeSync();instance?.closeSync();}
+    // Never allow a swallowed verifier error or absent result to produce PASS.
+    try{assertReconciliationPit(pit);}catch{check(false,'pit_result_not_verified');}
   }
 
   // 5. Final checksums: every entry re-hashed; the entry set must equal the real file set.
