@@ -12,12 +12,13 @@ import {diffDbKeys} from '../scripts/provider-trial-final-reconciliation.mjs';
 import {verifyPortableDuckDB} from '../scripts/lib/provider-trial-package-verify.mjs';
 import {runFinalChecksums} from '../scripts/provider-trial-final-checksums.mjs';
 
-function guardedPool({freeze=FROZEN_DATASET,post=0,ties=0,pkWrong=false}={}){
+function guardedPool({freeze=FROZEN_DATASET,post=0,ties=0,pkWrong=false,nullablePitKeys=0}={}){
  return {query:async(sql,p=[])=>{
   if(sql.includes('WHERE key=$1')) return {rows:[{value:freeze}]};
   if(sql.includes('AS post_freeze')) return {rows:[{n:82862,min_id:1,max_id:82862,post_freeze:post}]};
   if(sql.includes('information_schema.tables')) return {rows:Object.keys(DATASET_ORDER_KEYS).map(table_name=>({table_name}))};
   if(sql.includes('information_schema.columns')) return {rows:DATASET_ORDER_KEYS[p[0]].map((column_name,i)=>({column_name,is_nullable:'NO',data_type:'text',pk_position:p[0]==='odds_summary'?null:(pkWrong?null:i+1)}))};
+  if(sql.includes('provider IS NULL OR event_id IS NULL')) return {rows:[{n:nullablePitKeys}]};
   if(sql.includes('WITH ranked')) return {rows:[{n:ties}]};
   return {rows:[{n:0}]};
  }};
@@ -28,6 +29,7 @@ test('immutable boundary and unresolved opening/latest prices block regeneration
  await assert.rejects(()=>assertFrozenDataset(guardedPool({post:1})),/records_mismatch/);
  await assert.rejects(()=>assertFrozenDataset(guardedPool({ties:12})),/OWNER_DECISION_REQUIRED.*12/);
  await assert.rejects(()=>assertFrozenDataset(guardedPool({pkWrong:true})),/primary_key_mismatch/);
+ await assert.rejects(()=>assertFrozenDataset(guardedPool({nullablePitKeys:1})),/pit_hash_keys_nullable/);
 });
 
 test('regenerated statement timeout is bounded and defaults to ten minutes',()=>{
