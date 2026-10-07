@@ -1,0 +1,203 @@
+name: Provider Trial Transfer Resplit 40MB
+
+on:
+  push:
+    branches:
+      - temp/provider-trial-regenerated-zero-cost
+    paths:
+      - .github/workflows/provider-trial-transfer-resplit40.yml
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  resplit40:
+    runs-on: ubuntu-latest
+    env:
+      BUNDLE_SHA256: "fb07443646a7f6d98afe1f0769eda6849a8339a8a84ecd556ae1e1a2b89ac456"
+      BUNDLE_BYTES: "498614829"
+      INVENTORY_SHA256: "377a85327d0dd3fc61356ef48b1606b1522b87561a4e057133e415a02b004041"
+      CHUNK_BYTES: "40000000"
+    steps:
+      - name: Download current chunk artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/resplit/in" "$RUNNER_TEMP/resplit/out"
+          cd "$RUNNER_TEMP/resplit/in"
+          declare -A IDS=(
+            [000]=11515873070
+            [001]=11516340624
+            [002]=11514934975
+            [003]=11516525189
+            [004]=11515334229
+            [005]=11515059951
+            [meta]=11515578314
+          )
+          for k in 000 001 002 003 004 005 meta; do
+            gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/${IDS[$k]}/zip" > "$k.zip"
+          done
+          echo "DOWNLOAD_CURRENT_ARTIFACTS_PASS"
+
+      - name: Reconstruct and verify certified bundle
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/resplit/in"
+          for k in 000 001 002 003 004 005; do
+            mkdir "x$k"
+            unzip -q "$k.zip" -d "x$k"
+            test -f "x$k/bundle.part$k"
+          done
+          mkdir xmeta
+          unzip -q meta.zip -d xmeta
+          cat x000/bundle.part000 x001/bundle.part001 x002/bundle.part002 x003/bundle.part003 x004/bundle.part004 x005/bundle.part005 > "$RUNNER_TEMP/resplit/certified-bundle.tar.gz"
+          test "$(stat -c %s "$RUNNER_TEMP/resplit/certified-bundle.tar.gz")" = "$BUNDLE_BYTES"
+          test "$(sha256sum "$RUNNER_TEMP/resplit/certified-bundle.tar.gz" | awk '{print $1}')" = "$BUNDLE_SHA256"
+          inv="$(find xmeta -type f -name 'trusted-inventory.json' -print -quit)"
+          test -n "$inv"
+          test "$(sha256sum "$inv" | awk '{print $1}')" = "$INVENTORY_SHA256"
+          cp "$inv" "$RUNNER_TEMP/resplit/out/trusted-inventory.json"
+          echo "RECONSTRUCT_CERTIFIED_BUNDLE_PASS"
+
+      - name: Split to 40MB and manifest
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/resplit"
+          split -b "$CHUNK_BYTES" -d -a 3 certified-bundle.tar.gz out/bundle40.part
+          test "$(find out -type f -name 'bundle40.part*' | wc -l)" -eq 13
+          sha256sum out/bundle40.part* > out/parts40.sha256
+          python - <<'PY'
+          import hashlib,json,pathlib
+          root=pathlib.Path("out")
+          parts=[]
+          for p in sorted(root.glob("bundle40.part*")):
+              b=p.read_bytes()
+              parts.append({"file":p.name,"bytes":len(b),"sha256":hashlib.sha256(b).hexdigest()})
+          m={
+            "qualification":"REGENERATED CERTIFIED ARCHIVE FROM SAME FROZEN DATASET",
+            "source_bundle":{"bytes":498614829,"sha256":"fb07443646a7f6d98afe1f0769eda6849a8339a8a84ecd556ae1e1a2b89ac456"},
+            "trusted_inventory_sha256":"377a85327d0dd3fc61356ef48b1606b1522b87561a4e057133e415a02b004041",
+            "parts":parts,
+            "drive_readback":"PENDING",
+            "safe_window":"NOT ATTESTED"
+          }
+          root.joinpath("transfer40-manifest.json").write_text(json.dumps(m,indent=2)+"\n")
+          assert len(parts)==13
+          assert sum(x["bytes"] for x in parts)==498614829
+          assert max(x["bytes"] for x in parts)<=40000000
+          print("SPLIT40_MANIFEST_PASS",len(parts),sum(x["bytes"] for x in parts))
+          PY
+
+      - name: Delete 90MB artifacts after verified reconstruction
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for id in 11515873070 11516340624 11514934975 11516525189 11515334229 11515059951 11515578314; do
+            gh api --method DELETE -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/actions/artifacts/$id"
+          done
+          echo "OLD_ARTIFACTS_DELETED_AFTER_VERIFICATION"
+
+      - name: Upload 40MB chunk 000
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-40-part000
+          path: ${{ runner.temp }}/resplit/out/bundle40.part000
+          retention-days: 1
+          compression-level: 0
+      - name: Upload 40MB chunk 001
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-40-part001
+          path: ${{ runner.temp }}/resplit/out/bundle40.part001
+          retention-days: 1
+          compression-level: 0
+      - name: Upload 40MB chunk 002
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-40-part002
+          path: ${{ runner.temp }}/resplit/out/bundle40.part002
+          retention-days: 1
+          compression-level: 0
+      - name: Upload 40MB chunk 003
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-40-part003
+          path: ${{ runner.temp }}/resplit/out/bundle40.part003
+          retention-days: 1
+          compression-level: 0
+      - name: Upload 40MB chunk 004
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-40-part004
+          path: ${{ runner.temp }}/resplit/out/bundle40.part004
+          retention-days: 1
+          compression-level: 0
+      - name: Upload 40MB chunk 005
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-40-part005
+          path: ${{ runner.temp }}/resplit/out/bundle40.part005
+          retention-days: 1
+          compression-level: 0
+      - name: Upload 40MB chunk 006
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-40-part006
+          path: ${{ runner.temp }}/resplit/out/bundle40.part006
+          retention-days: 1
+          compression-level: 0
+      - name: Upload 40MB chunk 007
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-40-part007
+          path: ${{ runner.temp }}/resplit/out/bundle40.part007
+          retention-days: 1
+          compression-level: 0
+      - name: Upload 40MB chunk 008
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-40-part008
+          path: ${{ runner.temp }}/resplit/out/bundle40.part008
+          retention-days: 1
+          compression-level: 0
+      - name: Upload 40MB chunk 009
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-40-part009
+          path: ${{ runner.temp }}/resplit/out/bundle40.part009
+          retention-days: 1
+          compression-level: 0
+      - name: Upload 40MB chunk 010
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-40-part010
+          path: ${{ runner.temp }}/resplit/out/bundle40.part010
+          retention-days: 1
+          compression-level: 0
+      - name: Upload 40MB chunk 011
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-40-part011
+          path: ${{ runner.temp }}/resplit/out/bundle40.part011
+          retention-days: 1
+          compression-level: 0
+      - name: Upload 40MB chunk 012
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-40-part012
+          path: ${{ runner.temp }}/resplit/out/bundle40.part012
+          retention-days: 1
+          compression-level: 0
+      - name: Upload 40MB metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-40-metadata
+          path: |
+            ${{ runner.temp }}/resplit/out/transfer40-manifest.json
+            ${{ runner.temp }}/resplit/out/parts40.sha256
+            ${{ runner.temp }}/resplit/out/trusted-inventory.json
+          retention-days: 1
+          compression-level: 0
