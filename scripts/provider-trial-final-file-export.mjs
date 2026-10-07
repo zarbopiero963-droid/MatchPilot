@@ -59,6 +59,7 @@ export async function runFinalFileExport(pool,{outDir=OUT_DIR}={}) {
   }
 
   const manifest={
+    ...(pool.datasetSources?.odds_summary?{odds_summary_semantics:"derived closing_odds_pit_v1; frozen DB view unchanged; opening/latest audit only; change_open_close unavailable"}:{}),
     archive_version:'provider-trial-freeze-v1',
     created_at:new Date().toISOString(),
     freeze,
@@ -81,3 +82,4 @@ export async function runFinalFileExport(pool,{outDir=OUT_DIR}={}) {
   }));
   return manifest;
 }
+

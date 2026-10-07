@@ -1,3 +1,4 @@
+import {regeneratedSummarySql} from './lib/provider-trial-closing-pit.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -47,7 +48,8 @@ export async function main(args=process.argv.slice(2)){
  await client.connect();
  try{
   await withReadOnlySnapshot(client,async pool=>{
-   const freeze=await assertFrozenDataset(pool); // before any output; never creates/changes freeze.
+   const freeze=await assertFrozenDataset(pool);
+   pool.datasetSources={odds_summary:"("+regeneratedSummarySql()+") regenerated_summary"}; // before any output; never creates/changes freeze.
    fs.mkdirSync(root,{recursive:false});
    const {auditAndExportScoretrend}=await import('./provider-trial-scoretrend-segregation.mjs');
    const {runFinalFileExport}=await import('./provider-trial-final-file-export.mjs');

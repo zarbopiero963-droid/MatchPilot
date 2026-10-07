@@ -1,3 +1,4 @@
+import {verifyPitRelations} from './lib/provider-trial-package-verify.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -213,6 +214,15 @@ export async function runFinalReconciliation(pool,{root=OUT_DIR}={}){
   const duck=analyticsFiles.find(f=>f.file==='matchpilot_trial.duckdb');
   check(duck && duck.bytes!==LEGACY_DUCKDB_BYTES,'duckdb_not_checkpointed');
 
+  let pit=null;
+  if(analytics.closing_rule_version==='closing_odds_pit_v1'){
+    const {DuckDBInstance}=await import('@duckdb/node-api');
+    const instance=await DuckDBInstance.create(path.join(root,'matchpilot_trial.duckdb'),{access_mode:'READ_ONLY',threads:'1',max_memory:'192MB'});
+    const conn=await instance.connect();
+    try{pit=await verifyPitRelations(conn);}catch{check(false,'pit_semantic_reconciliation');}
+    finally{conn.closeSync();instance.closeSync();}
+  }
+
   // 5. Final checksums: every entry re-hashed; the entry set must equal the real file set.
   const finalJson=readJson('final_checksums.json');
   const finalTxt=fs.readFileSync(path.join(root,'SHA256SUMS.final.txt'),'utf8').split('\n').filter(Boolean).map(l=>{const [sha,...rest]=l.split('  ');return {sha256:sha,file:rest.join('  ')};});
@@ -236,6 +246,7 @@ export async function runFinalReconciliation(pool,{root=OUT_DIR}={}){
 
   const report={
     version:'provider-trial-final-reconciliation-v2',
+    pit,
     created_at:new Date().toISOString(),
     freeze:{freeze_at_utc:freeze.freeze_at_utc,min_raw_record_id:Number(freeze.min_raw_record_id),max_raw_record_id:max,total_raw:Number(freeze.total_raw),first_observed_at:freeze.first_observed_at,last_observed_at:freeze.last_observed_at},
     db,db_canonical_without_scoretrend:dbClean,db_scoretrend_raw:dbScoretrendRaw,
@@ -252,6 +263,7 @@ export async function runFinalReconciliation(pool,{root=OUT_DIR}={}){
   const short=o=>Object.fromEntries(Object.entries(o).map(([k,v])=>[k,{db:v.db,rows:v.rows,distinct_keys:v.distinct_keys,duplicate_keys:v.duplicate_keys,missing_keys:v.missing_keys,extra_keys:v.extra_keys}]));
   console.log('PROVIDER_TRIAL_FINAL_RECONCILIATION '+JSON.stringify({
     result:report.result,
+    pit,
     mismatch_count:mismatches.length,
     mismatches,
     freeze:report.freeze,

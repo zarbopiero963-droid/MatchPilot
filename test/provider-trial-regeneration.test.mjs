@@ -22,7 +22,7 @@ function guardedPool({freeze=FROZEN_DATASET,post=0,ties=0,pkWrong=false}={}){
   return {rows:[{n:0}]};
  }};
 }
-test('immutable boundary and ambiguous closing prices block regeneration',async()=>{
+test('immutable boundary and unresolved opening/latest prices block regeneration',async()=>{
  await assertFrozenDataset(guardedPool());
  await assert.rejects(()=>assertFrozenDataset(guardedPool({freeze:{...FROZEN_DATASET,total_raw:82863}})),/boundary_mismatch/);
  await assert.rejects(()=>assertFrozenDataset(guardedPool({post:1})),/records_mismatch/);

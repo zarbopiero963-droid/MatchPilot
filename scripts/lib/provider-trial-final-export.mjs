@@ -85,7 +85,7 @@ export async function forEachDatasetPage(pool,{name,order,where=[],params=[],bat
       w.push('('+orderSql+') > ('+ph.join(', ')+')');
     }
     const sql=[
-      'SELECT * FROM provider_trial.'+qid(name),
+      'SELECT * FROM '+(pool.datasetSources?.[name] || 'provider_trial.'+qid(name)),
       w.length?'WHERE '+w.join(' AND '):'',
       'ORDER BY '+orderSql,
       'LIMIT '+batchSize

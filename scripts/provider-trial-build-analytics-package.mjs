@@ -1,3 +1,4 @@
+import {pitViewsSql,CLOSING_RULE_VERSION,summaryProjection} from './lib/provider-trial-closing-pit.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -68,8 +69,10 @@ export async function buildAnalyticsPackage({portable=false}={}) {
     ['odds_summary',src.odds_summary,path.join(CANON_DIR,'odds_summary.parquet')]
   ];
 
-  for (const [,input,output] of specs) {
-    await conn.run(`COPY (SELECT * FROM read_json_auto(${sqlString(input)}, format='newline_delimited')) TO ${sqlString(output)} (FORMAT PARQUET, COMPRESSION ZSTD)`);
+  for (const [name,input,output] of specs) {
+    const source=`read_json_auto(${sqlString(input)}, format='newline_delimited')`;
+    const select=portable && name==='odds_summary' ? summaryProjection(source) : `SELECT * FROM ${source}`;
+    await conn.run(`COPY (${select}) TO ${sqlString(output)} (FORMAT PARQUET, COMPRESSION ZSTD)`);
   }
 
   const pq=Object.fromEntries(specs.map(([name,,output])=>[name,output]));
@@ -178,6 +181,8 @@ export async function buildAnalyticsPackage({portable=false}={}) {
       FROM canonical_events;
   `);
 
+  if(portable) await conn.run(pitViewsSql());
+
   await conn.run(`
     COPY (SELECT * FROM read_json_auto(${sqlString(src.reconciliation_state)}, format='newline_delimited'))
     TO ${sqlString(path.join(QUALITY_DIR,'reconciliation_state.parquet'))}
@@ -198,7 +203,7 @@ export async function buildAnalyticsPackage({portable=false}={}) {
     if (contamination[name]!==0) throw new Error('scoretrend_contamination_'+name+'_'+contamination[name]);
   }
 
-  const viewNames=['v_prematch','v_live','v_replay_asof','v_events','v_odds_timeline','v_market_movement','v_coverage','v_provider_comparison','v_strategy_fields','v_indicator_inputs','v_math_inputs','v_backtest_observations','v_outcomes'];
+  const viewNames=[...(portable?['v_closing_odds_pit','v_provider_closing_retrospective']:[]),'v_prematch','v_live','v_replay_asof','v_events','v_odds_timeline','v_market_movement','v_coverage','v_provider_comparison','v_strategy_fields','v_indicator_inputs','v_math_inputs','v_backtest_observations','v_outcomes'];
   const viewCounts={};
   for (const v of viewNames) viewCounts[v]=await count(conn,v);
 
@@ -216,7 +221,9 @@ export async function buildAnalyticsPackage({portable=false}={}) {
   files.push({file:path.basename(DB_PATH),bytes:fs.statSync(DB_PATH).size,sha256:await sha256File(DB_PATH)});
 
   const manifest={
-    package_version:'matchpilot-trial-analytics-v1',
+    package_version:portable?'matchpilot-trial-analytics-pit-v2':'matchpilot-trial-analytics-v1',
+    closing_rule_version:portable?CLOSING_RULE_VERSION:null,
+    odds_summary_semantics:portable?'closing_price=PIT; change_open_close=UNAVAILABLE; opening/latest are audit only':'legacy',
     created_at:new Date().toISOString(),
     scoretrend_excluded:true,
     liquidity_status:'UNAVAILABLE',

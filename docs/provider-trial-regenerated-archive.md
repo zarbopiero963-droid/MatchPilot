@@ -34,11 +34,15 @@ Project `damp-pond-29296680`, database `neondb`, schema `provider_trial`.
 
 The stored freeze metadata includes odds_summary twice in its historical datasets array. Preserve that metadata as read; runtime dataset enumeration must match the actual eight objects, not rewrite the freeze.
 
-### Determinism blocker — OWNER DECISION REQUIRED
+### Closing decision — owner 07/10/2026
 
-Existing odds_summary uses array_agg ordered by effective_at/observed_at, without a unique final tie-break. Read-only queries found 31 price-tie groups in the observation timeline, zero at opening/latest boundaries, but **12 at the closing boundary**. A repeated DB query can select a different closing price. This invalidates an unconditional deterministic claim even with correct keyset paging.
+`closing_odds_pit_v1`: BOTH provider_time <= kickoff and observed_at <= kickoff are mandatory; NULL timestamps are ineligible. Rank provider_time DESC then observed_at DESC, never observation_id. If winning timestamps have different prices, return AMBIGUOUS_SAME_TIMESTAMP, NULL scalar and all candidates ordered technically by observation_id. No eligible row returns UNAVAILABLE. All twelve real problematic groups have no earlier PIT-eligible candidate and return UNAVAILABLE in the read-only Neon query using the implementation SQL. The full frozen set has 64,446 groups, ALL UNAVAILABLE; arbitrary scalar count is zero. Legacy opening/latest tie guard count is zero. This is a real coverage limitation, not a reason to weaken PIT. Null-only closing fields receive explicit Parquet types.
 
-The guard detects ambiguous selected prices, including mixed NULL/non-NULL ties, before creating output. It fails with OWNER_DECISION_REQUIRED. This PR does not choose observation_id order, min/max, or another rule; selecting one would change derived semantics and needs an explicit owner decision. Until then, the complete regenerated run is BLOCKED. That finding does not retract the historical scoped point9 PASS, which compared each run's export to that run's DB query.
+The regenerated export's odds_summary is a versioned DERIVED projection: closing_price and closing_odds_pit follow this rule; statuses, timestamps and candidate arrays carry lineage. Legacy opening/latest are audit-only; change_open_close is NULL because the legacy opening is not a certified PIT feature. Source PostgreSQL odds_summary is NOT changed. Its keyset keys/counts remain unchanged; reconciliation independently compares source keys, while portable verification compares derived closing fields against independent canonical observation views.
+
+Portable analytics exposes v_closing_odds_pit and v_provider_closing_retrospective separately. The latter can include prices acquired after kickoff, preserves ties and is audit/research-only. Prematch, replay, backtest, indicator and math inputs enforce both clocks. Replay valid_from uses greatest(provider_time,observed_at); it provides eligible observations, not arbitrary price selection or an inferred temporal revision sequence. Candidates remain preserved in raw observations.
+
+Opening/latest ambiguity still blocks export because those retained audit fields use the legacy ordering. Closing ambiguity is a legitimate explicit status, never silently resolved. No collector or frozen data mutation.
 
 ## Separate runner and unchanged data semantics
 
@@ -46,7 +50,7 @@ The guard detects ambiguous selected prices, including mixed NULL/non-NULL ties,
 
 The guard verifies the exact freeze, all eight dataset objects, real PKs and acquisition timestamps before export. It reads the full unchanged frozen normalized tables; future event/kickoff dates are valid payload, not new acquisition. Runtime data remains authoritative; failure does not filter contaminated data away to manufacture PASS.
 
-The analytics portable option changes physical storage only: canonical relations become materialized DuckDB tables sourced from the same Parquet; downstream SQL/formulas remain unchanged. The original collector's default build path remains unchanged. CHECKPOINT and close precede hashing. Portability is tested after moving the NEW output to another directory with its former path absent. The original m7rgj directory is never accessed or renamed.
+The portable option materializes canonical DuckDB tables from Parquet and applies the authorized PIT-v1 derived views. The original collector's default build path remains unchanged. CHECKPOINT and close precede hashing. Portability is tested after moving the NEW output to another directory with its former path absent. The original m7rgj directory is never accessed or renamed.
 
 Chain: frozen DB → ScoreTrend segregation/canonical → keyset file export → analytics/Parquet → portable DuckDB/CHECKPOINT → secret scan → final checksums → PROVIDER_TRIAL_FINAL_RECONCILIATION PASS/mismatch0 → relocated queries/content equality → complete binary bundle + inventory. The existing order segregates ScoreTrend before raw export; no step is omitted.
 
@@ -56,7 +60,7 @@ Logical determinism is distinguished from physical byte identity. manifest.creat
 
 The legacy final_checksums excludes its two own outputs and the late-written reconciliation report. The separate transfer inventory hashes **every final file**, including both checksum files and report, after reconciliation. It also records the tar.gz size/hash. It is outside the certified directory to avoid self-referential checksums. No file is rewritten after sealing. A failed partial output is retained, never accepted; use a fresh run directory for retries.
 
-## Execution — only after owner clears blocker, review and merge authorization
+## Execution — only after review and owner merge/run authorization
 
 Use a machine with installed Node >=22, pinned package dependencies, read access to the confirmed Neon DB and connectivity, and sufficient disk/memory. Use an existing configured DATABASE_URL through secure runtime configuration; never paste/print it. Running the separate command on that machine does not restart Render. Do not use the collector start command or restart the Render service.
 
@@ -80,4 +84,4 @@ Only after both independent Drive provenance and local checks PASS/mismatch0 may
 
 ## Current status and verification limits
 
-Prepared/tested code; no full dataset generation, no Drive upload/readback, no safe-window attestation. The native relocated DuckDB tests are small fixtures, not certification of the complete trial archive. The closing-tie finding is blocking for a real deterministic run. This PR is a draft until its decision-dependent behavior and reviews are resolved. Mock update: NO, archival tooling does not change product UX.
+Prepared/tested code; no full dataset generation, no Drive upload/readback, no safe-window attestation. The native relocated DuckDB tests are small fixtures, not certification of the complete trial archive. The closing decision is implemented; review and owner merge/run authorization remain pending. No PR has been opened for this patch. PRs must always be normal OPEN, never draft. Mock update: NO, archival tooling does not change product UX.

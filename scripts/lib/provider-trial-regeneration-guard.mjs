@@ -3,21 +3,18 @@ import { getFreezeBoundary, listProviderTrialDatasets, resolveDatasetOrder, DATA
 export const FROZEN_DATASET=Object.freeze({freeze_at_utc:'2026-10-06T11:18:19.484Z',max_raw_record_id:82862,total_raw:82862});
 export const ARCHIVE_QUALIFICATION='REGENERATED CERTIFIED ARCHIVE FROM SAME FROZEN DATASET';
 
-// Uses precisely the legacy ordering, to detect ambiguity rather than choose a new price.
+// Legacy opening/latest are retained only for audit; ambiguity there still blocks export.
+// Closing is separately derived under the owner-authorized PIT rule.
 export const PRICE_TIE_SQL=`WITH ranked AS (
  SELECT provider,event_id,bookmaker,market_key,selection_key,line_value,price,
  coalesce(provider_time,observed_at) AS effective_at,observed_at,
  dense_rank() OVER (PARTITION BY provider,event_id,bookmaker,market_key,selection_key,line_value ORDER BY coalesce(provider_time,observed_at),observed_at) AS first_rank,
  dense_rank() OVER (PARTITION BY provider,event_id,bookmaker,market_key,selection_key,line_value ORDER BY coalesce(provider_time,observed_at) DESC,observed_at DESC) AS last_rank
  FROM provider_trial.odds_observations
-), closing AS (
- SELECT provider,event_id,bookmaker,market_key,selection_key,line_value,price,
- dense_rank() OVER (PARTITION BY provider,event_id,bookmaker,market_key,selection_key,line_value ORDER BY coalesce(provider_time,observed_at) DESC,observed_at DESC) AS rank
- FROM provider_trial.odds_observations WHERE kickoff_utc IS NOT NULL AND coalesce(provider_time,observed_at)<=kickoff_utc
 ), candidates AS (
  SELECT 'opening' AS kind,provider,event_id,bookmaker,market_key,selection_key,line_value,price FROM ranked WHERE first_rank=1
  UNION ALL SELECT 'latest',provider,event_id,bookmaker,market_key,selection_key,line_value,price FROM ranked WHERE last_rank=1
- UNION ALL SELECT 'closing',provider,event_id,bookmaker,market_key,selection_key,line_value,price FROM closing WHERE rank=1
+
 ) SELECT count(*)::bigint AS n FROM (
  SELECT kind,provider,event_id,bookmaker,market_key,selection_key,line_value FROM candidates
  GROUP BY kind,provider,event_id,bookmaker,market_key,selection_key,line_value

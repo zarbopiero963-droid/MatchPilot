@@ -59,9 +59,24 @@ export async function verifyPortableDuckDB(root){
   for(const [name,count] of Object.entries(analytics.views)){
    if(!/^v_[a-z_]+$/.test(name)||await value('SELECT count(*) AS n FROM '+name)!==count) throw new Error('duckdb_view_mismatch_'+name);
   }
+  if(analytics.closing_rule_version==='closing_odds_pit_v1') await verifyPitRelations(conn);
   for(const e of analytics.files.filter(e=>e.file.endsWith('.parquet'))){
    await value('SELECT count(*) AS n FROM read_parquet('+literal(path.join(root,e.file))+')');
   }
  }finally{conn.closeSync();instance.closeSync();}
  return {result:'PASS',mismatch_count:0};
+}
+
+export async function verifyPitRelations(conn){
+ const value=async sql=>Number((await conn.runAndReadAll(sql)).getRowObjectsJson()[0].n);
+   for(const name of ['v_prematch','v_replay_asof','v_backtest_observations','v_indicator_inputs','v_math_inputs']){
+    if(await value('SELECT count(*) n FROM '+name+' WHERE effective_at>kickoff_utc OR acquisition_time>kickoff_utc OR kickoff_utc IS NULL OR acquisition_time IS NULL')!==0) throw new Error('pit_leakage_'+name);
+   }
+   if(await value("SELECT count(*) n FROM v_closing_odds_pit WHERE (closing_status<>'AVAILABLE' AND closing_odds_pit IS NOT NULL) OR (closing_status='AVAILABLE' AND (closing_provider_time IS NULL OR closing_observed_at IS NULL))")!==0) throw new Error('pit_status_mismatch');
+   const fields='provider,event_id,bookmaker,market_key,selection_key,line_value,closing_odds_pit,closing_status,closing_provider_time,closing_observed_at,candidate_prices,candidate_observation_ids,closing_rule_version';
+   for(const [left,right] of [['canonical_odds_summary','v_closing_odds_pit'],['v_closing_odds_pit','canonical_odds_summary']]){
+    if(await value('SELECT count(*) n FROM (SELECT '+fields+' FROM '+left+' EXCEPT ALL SELECT '+fields+' FROM '+right+')')!==0) throw new Error('pit_summary_reconciliation_mismatch');
+   }
+
+ return {result:'PASS',mismatch_count:0,closing_rule_version:'closing_odds_pit_v1',statuses:(await conn.runAndReadAll('SELECT closing_status,count(*) AS groups FROM v_closing_odds_pit GROUP BY closing_status ORDER BY closing_status')).getRowObjectsJson()};
 }
