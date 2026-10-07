@@ -3,7 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { createGzip } from 'node:zlib';
 import { once } from 'node:events';
-import { getFreezeBoundary } from './lib/provider-trial-final-export.mjs';
+import { getFreezeBoundary, resolveDatasetOrder, forEachDatasetPage, countDatasetRows } from './lib/provider-trial-final-export.mjs';
 
 const OUT_DIR=process.env.PROVIDER_TRIAL_FINAL_EXPORT_DIR || '/tmp/provider-trial-final-export';
 
@@ -16,42 +16,39 @@ async function sha256File(file) {
 }
 
 
-async function exportCanonicalWithoutScoretrend(pool,table) {
-  const canonicalDir=path.join(OUT_DIR,'canonical_without_scoretrend');
+// Keyset pagination on the table's full primary key; never ORDER BY provider with OFFSET (issue #40, point 9).
+export async function exportCanonicalWithoutScoretrend(pool,table,outDir=OUT_DIR) {
+  const canonicalDir=path.join(outDir,'canonical_without_scoretrend');
   fs.mkdirSync(canonicalDir,{recursive:true});
   const file=path.join(canonicalDir,table+'.ndjson.gz');
   const output=fs.createWriteStream(file,{flags:'w'});
   const gzip=createGzip({level:6});
   gzip.pipe(output);
 
-  let offset=0;
-  let exported=0;
-  while (true) {
-    const {rows}=await pool.query(
-      'SELECT * FROM provider_trial.'+table+' WHERE provider <> $1 ORDER BY provider LIMIT 1000 OFFSET '+offset,
-      ['scoretrend']
-    );
-    if (!rows.length) break;
+  const {order}=await resolveDatasetOrder(pool,table);
+  const where=['provider <> $1'];
+  const params=['scoretrend'];
+  const exported=await forEachDatasetPage(pool,{name:table,order,where,params,batchSize:1000},async rows=>{
     for (const row of rows) {
       if (!gzip.write(JSON.stringify(row)+'\n')) await once(gzip,'drain');
     }
-    exported += rows.length;
-    offset += rows.length;
-    if (rows.length<1000) break;
-  }
+  });
   gzip.end();
   await once(output,'close');
+  const expected=await countDatasetRows(pool,{name:table,where,params});
+  if (exported!==expected) throw new Error('canonical_row_count_mismatch_'+table+'_'+exported+'_'+expected);
   return {
     table,
     rows:exported,
-    file:path.relative(OUT_DIR,file),
+    file:path.relative(outDir,file),
     bytes:fs.statSync(file).size,
-    sha256:await sha256File(file)
+    sha256:await sha256File(file),
+    order_key:order.map(o=>o.column)
   };
 }
 
-export async function auditAndExportScoretrend(pool) {
-  fs.mkdirSync(OUT_DIR,{recursive:true});
+export async function auditAndExportScoretrend(pool,{outDir=OUT_DIR}={}) {
+  fs.mkdirSync(outDir,{recursive:true});
   const freeze=await getFreezeBoundary(pool);
   if (!freeze) throw new Error('freeze_not_created');
 
@@ -68,7 +65,7 @@ export async function auditAndExportScoretrend(pool) {
     canonical[table]=Number(rows[0]?.n||0);
   }
 
-  const file=path.join(OUT_DIR,'scoretrend_excluded.ndjson.gz');
+  const file=path.join(outDir,'scoretrend_excluded.ndjson.gz');
   const output=fs.createWriteStream(file,{flags:'w'});
   const gzip=createGzip({level:6});
   gzip.pipe(output);
@@ -96,7 +93,7 @@ export async function auditAndExportScoretrend(pool) {
 
   const canonicalClean=[];
   for (const table of ['sports','competitions','coverage','events']) {
-    canonicalClean.push(await exportCanonicalWithoutScoretrend(pool,table));
+    canonicalClean.push(await exportCanonicalWithoutScoretrend(pool,table,outDir));
   }
 
   const result={

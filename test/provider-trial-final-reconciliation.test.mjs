@@ -30,6 +30,7 @@ function baseData(){
 async function fixture({mutateCanonicalEvents=null,mutateRecords=null,duckdbBytes=4096}={}){
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'provider-trial-reconcile-'));
   const data=baseData();
+  const dbRows=baseData();
   if(mutateRecords) mutateRecords(data.records);
   const datasets=[];
   for(const [name,rows] of Object.entries(data)){
@@ -72,6 +73,30 @@ async function fixture({mutateCanonicalEvents=null,mutateRecords=null,duckdbByte
     const name=m[1];
     if(/provider <> \$1/.test(sql)) return {rows:[{n:String(name==='sports'?1:counts[name])}]};
     return {rows:[{n:String(counts[name])}]};
+  },
+  // Server-side cursor over the DB keys, as diffDbKeys reads them (DECLARE ... FETCH).
+  async connect(){
+    let pending=[];
+    return {
+      release(){},
+      async query(sql){
+        const m=/^DECLARE \w+ NO SCROLL CURSOR FOR SELECT (.+) FROM provider_trial\."(\w+)"(?: WHERE (.+))?$/.exec(sql);
+        if (m) {
+          const cols=m[1].split(',').map(c=>c.replaceAll('"',''));
+          const where=m[3]||'';
+          const max=/record_id <= (\d+)/.exec(where);
+          pending=dbRows[m[2]]
+            .filter(r=>!max || Number(r.record_id)<=Number(max[1]))
+            .filter(r=>!/source_type LIKE 'scoretrend%'/.test(where) || r.source_type.startsWith('scoretrend'))
+            .filter(r=>!/provider <> 'scoretrend'/.test(where) || r.provider!=='scoretrend')
+            .map(r=>Object.fromEntries(cols.map(c=>[c,r[c]??null])));
+          return {rows:[]};
+        }
+        const f=/^FETCH (\d+)/.exec(sql);
+        if (f) return {rows:pending.splice(0,Number(f[1]))};
+        return {rows:[]};
+      }
+    };
   }};
   return {root,pool};
 }
@@ -97,6 +122,8 @@ test('final reconciliation passes on a consistent DB -> export -> canonical -> a
     assert.equal(report.export.records.max_id,3);
     assert.equal(report.records_id_contiguous,true);
     assert.equal(report.canonical.events.distinct_keys,2);
+    for(const [name,e] of Object.entries(report.export)) assert.deepEqual([e.missing_keys,e.extra_keys,e.duplicate_keys],[0,0,0],name);
+    for(const name of ['sports','competitions','coverage','events']) assert.deepEqual([report.canonical[name].missing_keys,report.canonical[name].extra_keys],[0,0],name);
     assert.ok(report.final_checksums.entries_verified>=10);
     assert.ok(fs.existsSync(path.join(root,'final_reconciliation_report.json')));
   } finally { fs.rmSync(root,{recursive:true,force:true}); }
@@ -108,6 +135,9 @@ test('final reconciliation fails when canonical has a duplicate key replacing a 
     await assert.rejects(()=>runFinalReconciliation(pool,{root}),/final_reconciliation_failed/);
     const report=JSON.parse(fs.readFileSync(path.join(root,'final_reconciliation_report.json'),'utf8'));
     assert.ok(report.mismatches.includes('canonical_distinct_keys_vs_db_events'));
+    assert.ok(report.mismatches.includes('canonical_missing_keys_events'));
+    assert.equal(report.canonical.events.missing_keys,1);
+    assert.equal(report.canonical.events.duplicate_keys,1);
   } finally { fs.rmSync(root,{recursive:true,force:true}); }
 });
 
@@ -119,6 +149,7 @@ test('final reconciliation fails when the raw export contains a record after the
     assert.ok(report.mismatches.includes('export_rows_vs_db_records'));
     assert.ok(report.mismatches.includes('export_records_id_range'));
     assert.ok(report.mismatches.includes('export_after_freeze_records'));
+    assert.ok(report.mismatches.includes('export_extra_keys_records'));
   } finally { fs.rmSync(root,{recursive:true,force:true}); }
 });
 
