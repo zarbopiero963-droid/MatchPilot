@@ -1,5 +1,44 @@
 # AGENTS.md — Regole operative MatchPilot
 
+## Ingresso operativo corrente — 07/10/2026
+
+Leggere README → CLAUDE.md → AGENTS.md, poi **#3 → #97 → #104** e la issue di dominio; partire dai blocchi “Stato corrente / Prossima attività”, non dalla cronologia dei commenti.
+### Prossima attività unica / autorizzazione corrente
+
+L'owner il **07/10/2026 alle 15:23 Europe/Rome** ha autorizzato **una sola PR documentale/governance**, dopo il PASS del punto 9 della #40, e ha vietato il merge automatico.
+**Prossima azione: owner review e autorizzazione al merge della [PR #125](https://github.com/zarbopiero963-droid/MatchPilot/pull/125).**
+Non iniziare operativamente #20, il punto 10 della #40 o altri domini durante questa PR.
+
+Dopo il merge, il primo controllo operativo è **verificare e registrare la finestra sicura di #40 per riprendere lo sviluppo core**. Il PASS del punto 9 certifica la riconciliazione locale, non la durabilità dell'archivio né automaticamente tale finestra. Se la finestra è attestata secondo il contratto vigente, la priorità owner è **#20 / TC-CORE-01**, con i prerequisiti security/identity applicabili, senza riattivare il trial. Se non è attestata, fermare l'avvio core e riportare il blocker; nessun punto successivo #40 è autorizzato da questa PR. Definizioni o scelte nuove sui criteri di finestra sicura restano **OPEN / OWNER DECISION REQUIRED**.
+
+### Gerarchia vigente
+
+Decisioni esplicite owner (con fonte, data e scope) → **[#3](https://github.com/zarbopiero963-droid/MatchPilot/issues/3) master di prodotto/stato globale → [#97](https://github.com/zarbopiero963-droid/MatchPilot/issues/97) roadmap/fasi → [#104](https://github.com/zarbopiero963-droid/MatchPilot/issues/104) piano operativo delle PR** → contratti e gate delle issue di dominio → README / CLAUDE / AGENTS → documenti di integrazione → mock.
+La gerarchia non permette a #104 di eliminare acceptance criteria di dominio o alle docs di inventare decisioni owner. I documenti di supporto e gli snapshot di questa PR non sono una quarta master. Il piano proposto nell'audit non è stato approvato come nuova roadmap.
+
+### Stato corrente verificato — 07/10/2026
+
+| Perimetro | Stato corrente | Residuo / gate |
+|---|---|---|
+| main | `5b39f3308d266752409ef4bdcb9e86b2d3d9423e` prima della PR governance; backend principalmente FPT | nessuna feature implementata da questa PR |
+| #12 FPT | implementazione e certificazione storica del perimetro 05/10 disponibili; issue OPEN, **NON globalmente READY TO CLOSE / NON 0 lavoro residuo** | audit 412/412 dopo TC messo in sicurezza; rischio PIT/reprocessing aperto |
+| #20 TC core | **URGENTE**, core persistente non avviato/certificato; trial #40 distinto dal core | finestra sicura #40 attestata, discovery reale, overlap VERIFIED; scadenza membership **11/10/2026 15:20:27 Europe/Rome** |
+| #40 trial | freeze → FAIL storico #123 → fix #124 mergiata → **punto 9 PASS, mismatch_count=0** | portabilità DuckDB e punti 10–16 aperti; punto 17 owner-gated; nessuno shutdown autorizzato |
+| #104 | catalogo card pre-MCP conservato | **82 è baseline storica, NON conteggio verificato del residuo attuale** |
+| core downstream / #98 | contratti pianificati; certificazione integrata non ottenuta | componenti, consumer, paper bridge e integrazioni reali prima del gate E2E; UI finale deferita |
+
+Dettagli verificabili: [integrazione e stato corrente](docs/integration-map.md#stato-operativo-corrente--07102026), [matrice requisiti/fonti/gate](docs/governance/reconciliation-matrix-2026-10-07.md). Questi sono supporti della gerarchia, non master concorrenti.
+
+**Scope e owner:** solo calcio, FPT e TC feed core primari, FPT ∩ TC VERIFIED. #96=policy/risk/MM; #99=ledger/accounting/positions/settlement; #100=market rules; #28=trading intent; #34=Indicator Library/DSL. Shared ingestion/computation vincolante.
+**Tre livelli distinti:** implementazione; certificazione componente scoped; certificazione integrata #98. Mock e CI da soli non sono hard evidence.
+**SUPERSEDED:** #12 globalmente “0 lavoro residuo / READY TO CLOSE”, 82 PR come residuo verificato, accounting #96, vecchi ordini incompatibili con gli override TC/audit412. Il certificato FPT 05/10 resta evidenza storica del suo perimetro.
+**PIT aperto:** parser/reprocessing e versioni identità possono cambiare il risultato allo stesso T; registrare prima/dopo, raw/acquisition, parser/schema/transform/data-contract e mapping/versioni. Nessun apply prod senza owner.
+**OPEN / OWNER DECISION REQUIRED — STOP/ADVISORY_ONLY sulle posizioni già aperte:** #96 e #97 vietano exposure mutation/financial ledger writes in ADVISORY_ONLY, mentre README descrive la continuazione di chiusura/settlement delle posizioni esistenti. Il confine di ownership è chiaro (#99 scrive), ma l'eccezione operativa non è univoca. Prima della relativa integrazione, l'owner deve chiarire quali scritture #99 restano consentite per posizioni già aperte. Non scegliere automaticamente “blocca tutto” o “settle comunque”; nessun comportamento runtime cambiato qui.
+
+**OPEN / OWNER DECISION REQUIRED:** punto10+/shutdown #40, nuovi criteri di finestra sicura, scelta PIT non registrata, WeWeb, sport/overlap aggiuntivi, BetsAPI core, execution reale. Il piano audit non è approvazione owner.
+**Gate PR:** scope solo documenti, fonti linkate, nessun requisito perso, walkthrough10punti, CI/review; merge di questa PR solo dopo owner. Non chiudere issue.
+
+
 ## Prima di lavorare
 
 1. Leggere **README.md**.
@@ -115,7 +154,7 @@ Regola dell'owner, vale per CodeRabbit, Codex e qualunque altro reviewer AI.
 
 ## Resume drill e budget FutPython
 
-- Una sola PR. FPT-PR-01 è mergiata e verificata. FPT-PR-02 persiste gli stati terminali, INITIAL_404 e REGRESSION_404. FPT-PR-03 persiste l'audit di integrità e l'identità squadra. FPT-PR-04 persiste registry e lineage. FPT-PR-05 persiste la coverage full su global/dataset/league/season/period/normalized e solo un campione team. FPT-PR-06 persiste il registry stagione, i buchi a cadenza annuale e il point-in-time. FPT-PR-07 è il doppio sync incrementale, senza refetch dei dataset terminali delle stagioni chiuse. FPT-PR-08 certifica watchdog e Telegram sullo stesso alerter. Il gate phase8 è stato riletto vero su Neon prima di FPT-PR-09. FPT-PR-09 aggiunge la migrazione `014-fpt-normalized-layer.sql` (ledger con provider/endpoint/latenza/deduped/budget, famiglie AH/EH/Country/Div/throw-in corrette, `fpt_match_facts`, `fpt_filter_registry`, `fpt_team_links`), le route di sola lettura `/api/fpt/*` e `/api/futpython-certificate`. Il certificato `docs/futpython-certification-YYYY-MM-DD.md` si genera da quell'endpoint, non a mano. Dopo FPT-PR-09 non aprire altre PR FPT senza un gate fallito documentato nella #12. Correzioni della checklist finale #12 dentro FPT-PR-09: query layer assistente, registry filtri completa, livelli di budget #31, onboarding controllato (una nuova lega entra in produzione solo con promozione dell'owner, `node src/jobs/futpython-onboarding.mjs --promote`: l'agente non promuove senza autorizzazione esplicita), riconciliazione #31 (checkpoint, ledger dei gap, recupero nel sync; le stagioni correnti `available` vengono riscaricate con TTL `FUTPYTHON_CURRENT_SEASON_TTL_HOURS`, default 24, massimo `FUTPYTHON_REFRESH_PER_RUN` per run: il "nessun refetch dei terminali" di FPT-PR-07 vale ora solo per le stagioni chiuse), raw append-only (cancellazione solo con `matchpilot.raw_delete_authorization` dell'owner), rielaborazione registrata (`node src/jobs/futpython-reprocess.mjs`: l'agente non lancia `--apply` in produzione senza autorizzazione), pagina `/coverage`.
+- Una sola PR. FPT-PR-01 è mergiata e verificata. FPT-PR-02 persiste gli stati terminali, INITIAL_404 e REGRESSION_404. FPT-PR-03 persiste l'audit di integrità e l'identità squadra. FPT-PR-04 persiste registry e lineage. FPT-PR-05 persiste la coverage full su global/dataset/league/season/period/normalized e solo un campione team. FPT-PR-06 persiste il registry stagione, i buchi a cadenza annuale e il point-in-time. FPT-PR-07 è il doppio sync incrementale, senza refetch dei dataset terminali delle stagioni chiuse. FPT-PR-08 certifica watchdog e Telegram sullo stesso alerter. Il gate phase8 è stato riletto vero su Neon prima di FPT-PR-09. FPT-PR-09 aggiunge la migrazione `014-fpt-normalized-layer.sql` (ledger con provider/endpoint/latenza/deduped/budget, famiglie AH/EH/Country/Div/throw-in corrette, `fpt_match_facts`, `fpt_filter_registry`, `fpt_team_links`), le route di sola lettura `/api/fpt/*` e `/api/futpython-certificate`. Il certificato `docs/futpython-certification-YYYY-MM-DD.md` si genera da quell'endpoint, non a mano. La precedente restrizione post FPT-PR-09 è SUPERSEDED nella parte che escluderebbe il nuovo audit owner dei 412 dataset e il rischio PIT documentato nella #12; gli altri lavori richiedono un requisito/gate vigente. Correzioni della checklist finale #12 dentro FPT-PR-09: query layer assistente, registry filtri completa, livelli di budget #31, onboarding controllato (una nuova lega entra in produzione solo con promozione dell'owner, `node src/jobs/futpython-onboarding.mjs --promote`: l'agente non promuove senza autorizzazione esplicita), riconciliazione #31 (checkpoint, ledger dei gap, recupero nel sync; le stagioni correnti `available` vengono riscaricate con TTL `FUTPYTHON_CURRENT_SEASON_TTL_HOURS`, default 24, massimo `FUTPYTHON_REFRESH_PER_RUN` per run: il "nessun refetch dei terminali" di FPT-PR-07 vale ora solo per le stagioni chiuse), raw append-only (cancellazione solo con `matchpilot.raw_delete_authorization` dell'owner), rielaborazione registrata (`node src/jobs/futpython-reprocess.mjs`: l'agente non lancia `--apply` in produzione senza autorizzazione), pagina `/coverage`.
 - Non chiudere la issue #12.
 - Non lanciare il drill sul servizio web e non impostare `FUTPYTHON_BACKFILL_ON_START=true`.
 - Il ledger non deve contenere API key. Il browser non chiama il provider.
