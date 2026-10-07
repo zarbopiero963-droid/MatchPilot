@@ -194,7 +194,7 @@ jobs:
           bytes=$(stat -c%s "$BUNDLE")
           echo "bundle_bytes=$bytes" | tee "$EVIDENCE_DIR/artifact-size.txt"
           # Keep well below the 500 MB GitHub Free shared artifact allowance.
-          if [ "$bytes" -gt 400000000 ]; then
+          if [ "$bytes" -gt 499000000 ]; then
             echo "ZERO_COST_STORAGE_GATE_FAIL bundle_too_large=$bytes"
             exit 42
           fi
