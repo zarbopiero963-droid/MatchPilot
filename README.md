@@ -582,10 +582,13 @@ For every export and canonical dataset the gate also re-reads the DB keys throug
 The cause was the pagination: `ORDER BY` on a non-unique column (`provider`) with `LIMIT/OFFSET` can return a row on two pages and skip another. The checks of points 4–8 counted rows, not keys, so they did not catch it. Point 8 verified the integrity of the produced files, which was correct within its scope.
 
 **Deterministic paging** (`scripts/lib/provider-trial-final-export.mjs`). It is used by the file export, the ScoreTrend-free canonical export and the authenticated HTTP stream:
+
+Status: **IMPLEMENTED** and **TESTED**. The tests use the emulator and real Postgres; the real Postgres test runs in CI, where `FUTPYTHON_TEST_DATABASE_URL` is set. **VERIFIED REAL: pending** until a full live run reports `result=PASS` with `mismatch_count=0`.
+
 - **Order key from the real PRIMARY KEY.** The key is read from the catalog and must equal `DATASET_ORDER_KEYS`: records `record_id`; odds_observations `observation_id`; sports `(provider, sport_id)`; competitions and coverage `(provider, sport_id, country_code, league_id)`; events `(provider, event_id)`; reconciliation_state `key`. The `odds_summary` view has no PK, so its key is its GROUP BY `(provider, event_id, bookmaker, market_key, selection_key, line_value)`.
 - **Errors instead of fallbacks.** A dataset with no unique key, or whose PK differs from `DATASET_ORDER_KEYS`, is an error. The export never falls back to ordering by `observed_at`, `updated_at` or the first column.
 - **Keyset pagination.** Each page is read with `ORDER BY <full key>` and `(key) > (last key)`, never OFFSET. A nullable key column of the view sorts as `(col IS NULL, COALESCE(col,''))`, so NULL and an empty string stay distinct.
-- **Row count check.** After each dataset the exported row count is compared with `count(*)` on the same filter. A difference fails the export (`export_row_count_mismatch_*` / `canonical_row_count_mismatch_*`).
+- **Row count check.** After each dataset of the file export and of the canonical export, the exported row count is compared with `count(*)` on the same filter. A difference fails the export (`export_row_count_mismatch_*` / `canonical_row_count_mismatch_*`). The HTTP stream has already sent its headers when paging ends, so it does not run this check.
 
 `test/provider-trial-deterministic-paging.test.mjs` covers this:
 - It shows that the old `ORDER BY provider LIMIT/OFFSET` duplicates and loses coverage rows, raw and canonical, with an unchanged row count. It uses a DB emulator that orders tied rows differently on each page, as SQL allows.
