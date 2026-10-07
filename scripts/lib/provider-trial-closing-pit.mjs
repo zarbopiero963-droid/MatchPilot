@@ -18,11 +18,42 @@ export function closingSql(source,{retrospective=false}={}) {
  w.candidate_prices,w.candidate_observation_ids,'${CLOSING_RULE_VERSION}' AS closing_rule_version
  FROM universe u LEFT JOIN winners w ON ${keys.map(k=>`u.${k} IS NOT DISTINCT FROM w.${k}`).join(' AND ')}`;
 }
+
+const postgresHashKeys=['provider','event_id','bookmaker','market_key','selection_key'];
+function postgresJoin(left,right){
+ return postgresHashKeys.map(k=>left+'.'+k+'='+right+'.'+k).concat(left+'.line_value IS NOT DISTINCT FROM '+right+'.line_value').join(' AND ');
+}
+
+// PostgreSQL-only equivalent of closingSql for the fixed frozen archive.
+// assertFrozenDataset proves postgresHashKeys are non-null before this is used.
+// DISTINCT ON picks the same maximum (provider_time, observed_at) pair as dense_rank(...)=1;
+// the join back preserves all rows tied at that exact winning timestamp pair.
+export function postgresClosingSql(source){
+ const key=keys.join(',');
+ return `WITH universe AS (SELECT DISTINCT ${key} FROM ${source}), eligible AS (
+ SELECT observation_id,${key},price,provider_time,observed_at
+ FROM ${source} WHERE provider_time<=kickoff_utc AND observed_at<=kickoff_utc
+ ), latest AS (
+ SELECT DISTINCT ON (${key}) ${key},provider_time,observed_at
+ FROM eligible ORDER BY ${key},provider_time DESC,observed_at DESC
+ ), winners AS (
+ SELECT ${keys.map(k=>'e.'+k).join(',')},l.provider_time AS closing_provider_time,l.observed_at AS closing_observed_at,
+ CASE WHEN count(DISTINCT e.price)=1 AND count(e.price)=count(*) THEN (array_agg(e.price ORDER BY e.observation_id))[1] END AS closing_odds_pit,
+ CASE WHEN count(DISTINCT e.price)=1 AND count(e.price)=count(*) THEN 'AVAILABLE' ELSE 'AMBIGUOUS_SAME_TIMESTAMP' END AS closing_status,
+ array_agg(e.price ORDER BY e.observation_id) AS candidate_prices,array_agg(e.observation_id ORDER BY e.observation_id) AS candidate_observation_ids
+ FROM eligible e JOIN latest l ON ${postgresJoin('e','l')} AND e.provider_time=l.provider_time AND e.observed_at=l.observed_at
+ GROUP BY ${keys.map(k=>'e.'+k).join(',')},l.provider_time,l.observed_at
+ ) SELECT ${keys.map(k=>'u.'+k).join(',')},w.closing_odds_pit,
+ coalesce(w.closing_status,'UNAVAILABLE') AS closing_status,w.closing_provider_time,w.closing_observed_at,
+ w.candidate_prices,w.candidate_observation_ids,'${CLOSING_RULE_VERSION}' AS closing_rule_version
+ FROM universe u LEFT JOIN winners w ON ${postgresJoin('u','w')}`;
+}
+
 export function regeneratedSummarySql(){
  const fields=['provider','event_id','bookmaker','market_key','selection_key','line_value','sport_id','country_code','league_id','league_name','kickoff_utc','opening_price','latest_price','min_price','max_price','first_observed_at','last_observed_at','observations','change_open_latest'];
  return `SELECT ${fields.map(k=>'s.'+k).join(',')},c.closing_odds_pit AS closing_price,
  NULL::numeric AS change_open_close,c.closing_odds_pit,c.closing_status,c.closing_provider_time,c.closing_observed_at,c.candidate_prices,c.candidate_observation_ids,c.closing_rule_version
- FROM provider_trial.odds_summary s JOIN (${closingSql('provider_trial.odds_observations')}) c ON ${keys.map(k=>`s.${k} IS NOT DISTINCT FROM c.${k}`).join(' AND ')}`;
+ FROM provider_trial.odds_summary s JOIN (${postgresClosingSql('provider_trial.odds_observations')}) c ON ${postgresJoin('s','c')}`;
 }
 export function pitViewsSql(){return `
  CREATE OR REPLACE VIEW v_closing_odds_pit AS ${closingSql('canonical_odds_observations')};
