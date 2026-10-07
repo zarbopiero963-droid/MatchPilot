@@ -6,7 +6,7 @@ import path from 'node:path';
 import {DuckDBInstance} from '@duckdb/node-api';
 import {assertFrozenDataset,FROZEN_DATASET} from '../scripts/lib/provider-trial-regeneration-guard.mjs';
 import {DATASET_ORDER_KEYS} from '../scripts/lib/provider-trial-final-export.mjs';
-import {withReadOnlySnapshot} from '../scripts/provider-trial-regenerate-archive.mjs';
+import {withReadOnlySnapshot,regeneratedStatementTimeoutMs} from '../scripts/provider-trial-regenerate-archive.mjs';
 import {fileInventory,verifyInventory,assertNewOutput,createTransferBundle,hashFile,extractVerifiedBundle} from '../scripts/lib/provider-trial-transfer.mjs';
 import {diffDbKeys} from '../scripts/provider-trial-final-reconciliation.mjs';
 import {verifyPortableDuckDB} from '../scripts/lib/provider-trial-package-verify.mjs';
@@ -29,6 +29,25 @@ test('immutable boundary and unresolved opening/latest prices block regeneration
  await assert.rejects(()=>assertFrozenDataset(guardedPool({ties:12})),/OWNER_DECISION_REQUIRED.*12/);
  await assert.rejects(()=>assertFrozenDataset(guardedPool({pkWrong:true})),/primary_key_mismatch/);
 });
+
+test('regenerated statement timeout is bounded and defaults to ten minutes',()=>{
+ assert.equal(regeneratedStatementTimeoutMs({}),600000);
+ assert.equal(regeneratedStatementTimeoutMs({PROVIDER_TRIAL_REGENERATED_STATEMENT_TIMEOUT_MS:'900000'}),900000);
+ assert.throws(()=>regeneratedStatementTimeoutMs({PROVIDER_TRIAL_REGENERATED_STATEMENT_TIMEOUT_MS:'119999'}),/invalid_regenerated_statement_timeout_ms/);
+ assert.throws(()=>regeneratedStatementTimeoutMs({PROVIDER_TRIAL_REGENERATED_STATEMENT_TIMEOUT_MS:'1800001'}),/invalid_regenerated_statement_timeout_ms/);
+ assert.throws(()=>regeneratedStatementTimeoutMs({PROVIDER_TRIAL_REGENERATED_STATEMENT_TIMEOUT_MS:'600000;DROP TABLE x'}),/invalid_regenerated_statement_timeout_ms/);
+});
+
+test('read-only snapshot applies timeout through parameterized set_config',async()=>{
+ const calls=[];
+ const client={query:async(sql,params)=>{calls.push({sql,params});return {rows:[{transaction_read_only:'on'}]};}};
+ await withReadOnlySnapshot(client,async()=>{}, {statementTimeoutMs:600000});
+ const timeoutCall=calls.find(x=>x.sql.includes("set_config('statement_timeout'"));
+ assert.ok(timeoutCall);assert.deepEqual(timeoutCall.params,['600000']);
+ assert.equal(calls[0].sql,'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+ assert.equal(calls.at(-1).sql,'ROLLBACK');
+});
+
 test('one read-only repeatable-read transaction is rolled back on success and failure',async()=>{
  const calls=[];const client={query:async sql=>{calls.push(sql);return {rows:[{transaction_read_only:'on'}]};}};
  await withReadOnlySnapshot(client,async pool=>{assert.equal(pool.readOnlySnapshot,true);await pool.query('SELECT 1');});
