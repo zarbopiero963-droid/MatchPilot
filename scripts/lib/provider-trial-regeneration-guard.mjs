@@ -40,6 +40,12 @@ export async function assertFrozenDataset(pool){
   const q=await pool.query('SELECT count(*)::bigint AS n FROM provider_trial.'+name+' WHERE '+col+'>$1::timestamptz',[FROZEN_DATASET.freeze_at_utc]);
   if(Number(q.rows[0].n)!==0) throw new Error('post_freeze_'+name);
  }
+ const nonHashable=await pool.query(`
+ SELECT count(*)::bigint AS n
+ FROM provider_trial.odds_observations
+ WHERE provider IS NULL OR event_id IS NULL OR bookmaker IS NULL OR market_key IS NULL OR selection_key IS NULL
+ `);
+ if(Number(nonHashable.rows[0].n)!==0) throw new Error('frozen_pit_hash_keys_nullable');
  const ties=await pool.query(PRICE_TIE_SQL);
  if(Number(ties.rows[0].n)!==0) throw new Error('OWNER_DECISION_REQUIRED_ambiguous_odds_summary_prices_'+ties.rows[0].n);
  return freeze;
