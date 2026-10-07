@@ -5,7 +5,41 @@ import path from 'node:path';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DuckDBInstance} from '@duckdb/node-api';
-import {closingSql,pitViewsSql,summaryProjection} from '../scripts/lib/provider-trial-closing-pit.mjs';
+import pg from 'pg';
+import {closingSql,postgresClosingSql,pitViewsSql,summaryProjection} from '../scripts/lib/provider-trial-closing-pit.mjs';
+
+
+test('PostgreSQL optimized PIT query is semantically identical to closing_odds_pit_v1',async t=>{
+ if(!process.env.FUTPYTHON_TEST_DATABASE_URL){t.skip('FUTPYTHON_TEST_DATABASE_URL not set');return;}
+ const client=new pg.Client({connectionString:process.env.FUTPYTHON_TEST_DATABASE_URL});
+ await client.connect();
+ const table='pit_equiv_'+process.pid;
+ try{
+  await client.query(\`CREATE TEMP TABLE \${table}(
+    provider text,event_id text,bookmaker text,market_key text,selection_key text,line_value text,
+    observation_id bigint,price numeric,provider_time timestamptz,observed_at timestamptz,kickoff_utc timestamptz
+  )\`);
+  await client.query(\`INSERT INTO \${table} VALUES
+   ('p','before','b','m','s',NULL,1,2,'2026-10-05 10:00+00','2026-10-05 10:01+00','2026-10-05 11:00+00'),
+   ('p','late_acquisition','b','m','s',NULL,2,3,'2026-10-05 10:00+00','2026-10-05 11:01+00','2026-10-05 11:00+00'),
+   ('p','late_provider','b','m','s',NULL,3,4,'2026-10-05 11:01+00','2026-10-05 10:00+00','2026-10-05 11:00+00'),
+   ('p','different','b','m','s','2.5',4,2,'2026-10-05 10:00+00','2026-10-05 10:01+00','2026-10-05 11:00+00'),
+   ('p','different','b','m','s','2.5',5,3,'2026-10-05 10:02+00','2026-10-05 10:03+00','2026-10-05 11:00+00'),
+   ('p','ambiguous','b','m','s',NULL,7,3,'2026-10-05 10:00+00','2026-10-05 10:01+00','2026-10-05 11:00+00'),
+   ('p','ambiguous','b','m','s',NULL,99,2,'2026-10-05 10:00+00','2026-10-05 10:01+00','2026-10-05 11:00+00'),
+   ('p','same_price','b','m','s','',8,2,'2026-10-05 10:00+00','2026-10-05 10:01+00','2026-10-05 11:00+00'),
+   ('p','same_price','b','m','s','',9,2,'2026-10-05 10:00+00','2026-10-05 10:01+00','2026-10-05 11:00+00')\`);
+  const order='provider,event_id,bookmaker,market_key,selection_key,line_value NULLS FIRST';
+  const oldRows=(await client.query('SELECT * FROM ('+closingSql(table)+') q ORDER BY '+order)).rows;
+  const newRows=(await client.query('SELECT * FROM ('+postgresClosingSql(table)+') q ORDER BY '+order)).rows;
+  const normalize=rows=>rows.map(row=>Object.fromEntries(Object.entries(row).map(([k,v])=>[
+    k,
+    v instanceof Date?v.toISOString():Array.isArray(v)?v.map(x=>typeof x==='string'?x:String(x)):v==null?null:String(v)
+  ])));
+  assert.deepEqual(normalize(newRows),normalize(oldRows));
+ }finally{await client.end();}
+});
+
 
 test('PIT closing, ambiguity and prematch consumers enforce both clocks',async()=>{
  const db=await DuckDBInstance.create(':memory:');const c=await db.connect();
