@@ -1,5 +1,15 @@
 # MatchPilot — Sports Trading OS
 
+## #40 — regenerated archive runner, owner authorization 07/10/2026
+
+The original post-#124 package on instance `m7rgj` remains **ORIGINAL CERTIFIED ARCHIVE — UNRECOVERABLE FROM CURRENT INSTANCE ACCESS**. The new runner qualifies its output separately as **REGENERATED CERTIFIED ARCHIVE FROM SAME FROZEN DATASET**. It does not recover or claim byte equality with that original.
+
+This PR prepares a separate read-only runner and portable DuckDB, plus a sealed binary bundle/inventory and independent readback verifier. **IMPLEMENTED / TESTED on fixtures; NOT VERIFIED REAL / NOT CERTIFIED on the complete frozen dataset.** No collector, provider, Render configuration or database migration is changed. No collection, export run, redeploy, restart, shutdown, #20 or point10 is authorized by opening this PR.
+
+Read-only Neon preflight: `damp-pond-29296680`, `neondb`, `provider_trial`; freeze `2026-10-06T11:18:19.484Z`, total/max raw `82862`, zero records beyond ID/time boundary. Seven real PKs match #124; `odds_summary` is a view keyed by its six GROUP BY columns, with zero duplicate keys. **OPEN / OWNER DECISION REQUIRED:** 12 closing-price groups contain different prices tied under the existing view ordering. The runner aborts before writing output rather than silently selecting a new price. No view or frozen data was modified.
+
+Next action: review this single technical PR and resolve that tie policy before authorizing merge/run. Full run, upload to Drive and independently downloaded readback remain pending. **#40 SAFE WINDOW — NOT ATTESTED.** [Runbook and metadata limits](docs/provider-trial-regenerated-archive.md). This owner-specific scope supersedes incompatible historical status/sequence on this temporary trial branch; main governance remains #3 → #97 → #104.
+
 MatchPilot è una piattaforma web di **trading sportivo decisionale**, non un semplice sito di pronostici.
 
 ## Obiettivo

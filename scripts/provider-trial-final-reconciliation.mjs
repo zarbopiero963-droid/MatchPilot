@@ -86,7 +86,7 @@ export async function diffDbKeys(pool,{table,spec,where=null,exportKeys}){
   const client=await pool.connect();
   let dbKeys=0,missing=0;
   try{
-    await client.query('BEGIN READ ONLY');
+    if(!pool.readOnlySnapshot) await client.query('BEGIN READ ONLY');
     await client.query('DECLARE reconciliation_keys NO SCROLL CURSOR FOR SELECT '+cols.map(qid).join(',')+' FROM provider_trial.'+qid(table)+(where?' WHERE '+where:''));
     while(true){
       const {rows}=await client.query('FETCH 10000 FROM reconciliation_keys');
@@ -94,9 +94,9 @@ export async function diffDbKeys(pool,{table,spec,where=null,exportKeys}){
       for(const r of rows){ dbKeys++; if(!exportKeys.has(keyOf(r))) missing++; }
     }
     await client.query('CLOSE reconciliation_keys');
-    await client.query('COMMIT');
+    if(!pool.readOnlySnapshot) await client.query('COMMIT');
   }catch(e){
-    await client.query('ROLLBACK').catch(()=>{});
+    if(!pool.readOnlySnapshot) await client.query('ROLLBACK').catch(()=>{});
     throw e;
   }finally{
     client.release();

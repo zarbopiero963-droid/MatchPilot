@@ -36,7 +36,7 @@ async function scoretrendCount(conn, relation) {
   return Number(rows[0]?.n||0);
 }
 
-export async function buildAnalyticsPackage() {
+export async function buildAnalyticsPackage({portable=false}={}) {
   fs.mkdirSync(CANON_DIR,{recursive:true});
   fs.mkdirSync(QUALITY_DIR,{recursive:true});
   fs.mkdirSync(COMP_DIR,{recursive:true});
@@ -74,12 +74,12 @@ export async function buildAnalyticsPackage() {
 
   const pq=Object.fromEntries(specs.map(([name,,output])=>[name,output]));
   await conn.run(`
-    CREATE OR REPLACE VIEW canonical_sports AS SELECT * FROM read_parquet(${sqlString(pq.sports)});
-    CREATE OR REPLACE VIEW canonical_competitions AS SELECT * FROM read_parquet(${sqlString(pq.competitions)});
-    CREATE OR REPLACE VIEW canonical_coverage AS SELECT * FROM read_parquet(${sqlString(pq.coverage)});
-    CREATE OR REPLACE VIEW canonical_events AS SELECT * FROM read_parquet(${sqlString(pq.events)});
-    CREATE OR REPLACE VIEW canonical_odds_observations AS SELECT * FROM read_parquet(${sqlString(pq.odds_observations)});
-    CREATE OR REPLACE VIEW canonical_odds_summary AS SELECT * FROM read_parquet(${sqlString(pq.odds_summary)});
+    CREATE OR REPLACE ${portable?'TABLE':'VIEW'} canonical_sports AS SELECT * FROM read_parquet(${sqlString(pq.sports)});
+    CREATE OR REPLACE ${portable?'TABLE':'VIEW'} canonical_competitions AS SELECT * FROM read_parquet(${sqlString(pq.competitions)});
+    CREATE OR REPLACE ${portable?'TABLE':'VIEW'} canonical_coverage AS SELECT * FROM read_parquet(${sqlString(pq.coverage)});
+    CREATE OR REPLACE ${portable?'TABLE':'VIEW'} canonical_events AS SELECT * FROM read_parquet(${sqlString(pq.events)});
+    CREATE OR REPLACE ${portable?'TABLE':'VIEW'} canonical_odds_observations AS SELECT * FROM read_parquet(${sqlString(pq.odds_observations)});
+    CREATE OR REPLACE ${portable?'TABLE':'VIEW'} canonical_odds_summary AS SELECT * FROM read_parquet(${sqlString(pq.odds_summary)});
 
     CREATE OR REPLACE VIEW v_events AS SELECT * FROM canonical_events;
     CREATE OR REPLACE VIEW v_coverage AS SELECT * FROM canonical_coverage;
@@ -204,6 +204,7 @@ export async function buildAnalyticsPackage() {
 
   await conn.run('CHECKPOINT');
   conn.closeSync();
+  if(portable) instance.closeSync();
 
   const files=[];
   for (const dir of [CANON_DIR,QUALITY_DIR,COMP_DIR]) {

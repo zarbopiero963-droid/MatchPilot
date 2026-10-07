@@ -58,7 +58,7 @@ export async function resolveDatasetOrder(pool,name) {
     if (nullable && !['text','character varying'].includes(c.data_type)) throw new Error('order_key_nullable_non_text_'+name+'_'+col);
     return {column:col,nullable};
   });
-  return {name,columns:rows.map(r=>r.column_name),key,order};
+  return {name,columns:rows.map(r=>r.column_name),key,order,primary_key:pk};
 }
 
 // A nullable key column sorts as (col IS NULL, COALESCE(col,'')) so NULL and '' stay distinct and comparable.
