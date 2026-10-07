@@ -1,0 +1,152 @@
+name: Provider Trial Transfer Split
+
+on:
+  push:
+    branches:
+      - temp/provider-trial-regenerated-zero-cost
+    paths:
+      - .github/workflows/provider-trial-transfer-split.yml
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  split-transfer:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_ARTIFACT_ID: "11513984878"
+      SOURCE_ARTIFACT_SHA256: "7c661b1c286c0d6ee3fec22b3ef32b651141de841441c32065ece83b1c7be204"
+      BUNDLE_SHA256: "fb07443646a7f6d98afe1f0769eda6849a8339a8a84ecd556ae1e1a2b89ac456"
+      BUNDLE_BYTES: "498614829"
+      INVENTORY_SHA256: "377a85327d0dd3fc61356ef48b1606b1522b87561a4e057133e415a02b004041"
+      CHUNK_BYTES: "90000000"
+    steps:
+      - name: Download existing certified transfer artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/split-work"
+          cd "$RUNNER_TEMP/split-work"
+          gh api -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/actions/artifacts/${SOURCE_ARTIFACT_ID}/zip" > source-artifact.zip
+          actual="$(sha256sum source-artifact.zip | awk '{print $1}')"
+          test "$actual" = "$SOURCE_ARTIFACT_SHA256"
+          echo "SOURCE_ARTIFACT_SHA256_PASS $actual"
+
+      - name: Verify certified bundle and inventory
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/split-work"
+          mkdir extracted
+          unzip -q source-artifact.zip -d extracted
+          bundle="$(find extracted -type f -name 'regenerated-20261007-r01.tar.gz' -print -quit)"
+          inventory="$(find extracted -type f -name '*inventory*.json' -print -quit)"
+          test -n "$bundle"
+          test -n "$inventory"
+          test "$(stat -c %s "$bundle")" = "$BUNDLE_BYTES"
+          test "$(sha256sum "$bundle" | awk '{print $1}')" = "$BUNDLE_SHA256"
+          test "$(sha256sum "$inventory" | awk '{print $1}')" = "$INVENTORY_SHA256"
+          cp "$bundle" certified-bundle.tar.gz
+          cp "$inventory" trusted-inventory.json
+          echo "CERTIFIED_INPUTS_PASS"
+
+      - name: Split bundle and build transfer manifest
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/split-work"
+          mkdir chunks
+          split -b "$CHUNK_BYTES" -d -a 3 certified-bundle.tar.gz chunks/bundle.part
+          test "$(find chunks -type f -name 'bundle.part*' | wc -l)" -eq 6
+          sha256sum chunks/bundle.part* > chunks/parts.sha256
+          cp trusted-inventory.json chunks/trusted-inventory.json
+          python - <<'PY'
+          import hashlib, json, pathlib
+          root=pathlib.Path("chunks")
+          parts=[]
+          for p in sorted(root.glob("bundle.part*")):
+              b=p.read_bytes()
+              parts.append({"file":p.name,"bytes":len(b),"sha256":hashlib.sha256(b).hexdigest()})
+          manifest={
+              "qualification":"REGENERATED CERTIFIED ARCHIVE FROM SAME FROZEN DATASET",
+              "source_bundle":{"file":"regenerated-20261007-r01.tar.gz","bytes":498614829,"sha256":"fb07443646a7f6d98afe1f0769eda6849a8339a8a84ecd556ae1e1a2b89ac456"},
+              "trusted_inventory_sha256":"377a85327d0dd3fc61356ef48b1606b1522b87561a4e057133e415a02b004041",
+              "chunk_bytes":90000000,
+              "parts":parts,
+              "reassembly":"concatenate parts in lexical order",
+              "drive_readback":"PENDING",
+              "safe_window":"NOT ATTESTED"
+          }
+          root.joinpath("transfer-manifest.json").write_text(json.dumps(manifest,indent=2)+"\n")
+          PY
+          python - <<'PY'
+          import json
+          m=json.load(open("chunks/transfer-manifest.json"))
+          assert len(m["parts"])==6
+          assert sum(p["bytes"] for p in m["parts"])==m["source_bundle"]["bytes"]
+          assert max(p["bytes"] for p in m["parts"])<100_000_000
+          print("SPLIT_MANIFEST_PASS",sum(p["bytes"] for p in m["parts"]),max(p["bytes"] for p in m["parts"]))
+          PY
+
+      - name: Delete large source artifact after verified split
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --method DELETE -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/actions/artifacts/${SOURCE_ARTIFACT_ID}"
+          echo "SOURCE_ARTIFACT_DELETED_AFTER_VERIFIED_SPLIT"
+
+      - name: Upload chunk 000
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-part000
+          path: ${{ runner.temp }}/split-work/chunks/bundle.part000
+          retention-days: 1
+          compression-level: 0
+      - name: Upload chunk 001
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-part001
+          path: ${{ runner.temp }}/split-work/chunks/bundle.part001
+          retention-days: 1
+          compression-level: 0
+      - name: Upload chunk 002
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-part002
+          path: ${{ runner.temp }}/split-work/chunks/bundle.part002
+          retention-days: 1
+          compression-level: 0
+      - name: Upload chunk 003
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-part003
+          path: ${{ runner.temp }}/split-work/chunks/bundle.part003
+          retention-days: 1
+          compression-level: 0
+      - name: Upload chunk 004
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-part004
+          path: ${{ runner.temp }}/split-work/chunks/bundle.part004
+          retention-days: 1
+          compression-level: 0
+      - name: Upload chunk 005
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-part005
+          path: ${{ runner.temp }}/split-work/chunks/bundle.part005
+          retention-days: 1
+          compression-level: 0
+      - name: Upload transfer metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-r01-metadata
+          path: |
+            ${{ runner.temp }}/split-work/chunks/transfer-manifest.json
+            ${{ runner.temp }}/split-work/chunks/parts.sha256
+            ${{ runner.temp }}/split-work/chunks/trusted-inventory.json
+          retention-days: 1
+          compression-level: 0
