@@ -1,0 +1,193 @@
+name: Provider Trial Regenerated Zero Cost
+
+on:
+  push:
+    branches:
+      - temp/provider-trial-regenerated-zero-cost
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provider-trial-regenerated-zero-cost
+  cancel-in-progress: false
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      EXPECTED_COMMIT: 458a13455285aad4bb36f0e2df1f754bd6e70db5
+      RAW_DATABASE_URL: ${{ secrets.PROVIDER_TRIAL_DATABASE_URL }}
+      OUT_ROOT: ${{ runner.temp }}/regenerated-20261007-r01
+      EVIDENCE_DIR: ${{ runner.temp }}/evidence
+    steps:
+      - name: Secret gate
+        id: secret_gate
+        shell: bash
+        run: |
+          if [ -z "$RAW_DATABASE_URL" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "REGENERATED_RUN_BLOCKED missing_PROVIDER_TRIAL_DATABASE_URL"
+          else
+            echo "::add-mask::$RAW_DATABASE_URL"
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop safely when secret is absent
+        if: steps.secret_gate.outputs.present != 'true'
+        run: |
+          echo "No database access attempted."
+          exit 0
+
+      - name: Checkout certified commit
+        if: steps.secret_gate.outputs.present == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+          fetch-depth: 1
+
+      - name: Setup Node 22
+        if: steps.secret_gate.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Environment evidence
+        if: steps.secret_gate.outputs.present == 'true'
+        shell: bash
+        run: |
+          mkdir -p "$EVIDENCE_DIR"
+          {
+            echo "utc=$(date -u +%FT%TZ)"
+            echo "uname=$(uname -a)"
+            echo "node=$(node -v)"
+            echo "npm=$(npm -v)"
+            echo "git_head=$(git rev-parse HEAD)"
+            echo "git_status=$(git status --porcelain)"
+            df -h .
+            free -h
+          } | tee "$EVIDENCE_DIR/environment.txt"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          test -z "$(git status --porcelain)"
+
+      - name: Install pinned runtime dependencies
+        if: steps.secret_gate.outputs.present == 'true'
+        run: |
+          npm install --no-audit --no-fund
+          node - <<'NODE' | tee "$EVIDENCE_DIR/runtime-versions.txt"
+          for (const p of ['pg','@duckdb/node-api','croner']) {
+            console.log(p, require('./node_modules/'+p+'/package.json').version)
+          }
+          NODE
+          test "$(node -p "require('./node_modules/pg/package.json').version")" = "8.16.3"
+          test "$(node -p "require('./node_modules/@duckdb/node-api/package.json').version")" = "1.5.6-r.1"
+          test "$(node -p "require('./node_modules/croner/package.json').version")" = "9.1.0"
+
+      - name: Static checks
+        if: steps.secret_gate.outputs.present == 'true'
+        run: |
+          npm run check
+          npm test
+
+      - name: Force session-default read only
+        if: steps.secret_gate.outputs.present == 'true'
+        shell: bash
+        run: |
+          DATABASE_URL="$(node - <<'NODE'
+          const u = new URL(process.env.RAW_DATABASE_URL);
+          u.searchParams.set('options','-c default_transaction_read_only=on -c application_name=matchpilot_regenerated_zero_cost');
+          process.stdout.write(u.toString());
+          NODE
+          )"
+          echo "::add-mask::$DATABASE_URL"
+          echo "DATABASE_URL=$DATABASE_URL" >> "$GITHUB_ENV"
+
+      - name: Read-only and freeze preflight
+        if: steps.secret_gate.outputs.present == 'true'
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE' | tee "$EVIDENCE_DIR/db-preflight.txt"
+          import pg from 'pg';
+          const c=new pg.Client({connectionString:process.env.DATABASE_URL,connectionTimeoutMillis:30000});
+          await c.connect();
+          try {
+            const d=await c.query('SHOW default_transaction_read_only');
+            console.log('default_transaction_read_only='+d.rows[0].default_transaction_read_only);
+            if(d.rows[0].default_transaction_read_only!=='on') throw new Error('session_default_not_read_only');
+            await c.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+            const t=await c.query('SHOW transaction_read_only');
+            console.log('transaction_read_only='+t.rows[0].transaction_read_only);
+            if(t.rows[0].transaction_read_only!=='on') throw new Error('transaction_not_read_only');
+            const q=await c.query(`
+              SELECT
+                min(record_id)::bigint AS min_raw_record_id,
+                max(record_id)::bigint AS max_raw_record_id,
+                count(*)::bigint AS total_raw,
+                count(*) FILTER (WHERE record_id > 82862)::bigint AS post_id,
+                count(*) FILTER (WHERE observed_at > '2026-10-06T11:18:19.484Z'::timestamptz)::bigint AS post_time
+              FROM provider_trial.records
+            `);
+            console.log(JSON.stringify(q.rows[0]));
+            const r=q.rows[0];
+            if(Number(r.min_raw_record_id)!==1 || Number(r.max_raw_record_id)!==82862 || Number(r.total_raw)!==82862 || Number(r.post_id)!==0 || Number(r.post_time)!==0) {
+              throw new Error('freeze_boundary_mismatch');
+            }
+            await c.query('ROLLBACK');
+          } finally { await c.end(); }
+          NODE
+
+      - name: Verify write rejection
+        if: steps.secret_gate.outputs.present == 'true'
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE' | tee "$EVIDENCE_DIR/write-rejection.txt"
+          import pg from 'pg';
+          const c=new pg.Client({connectionString:process.env.DATABASE_URL,connectionTimeoutMillis:30000});
+          await c.connect();
+          let rejected=false;
+          try {
+            await c.query("UPDATE provider_trial.records SET source_type=source_type WHERE record_id=1");
+          } catch (e) {
+            rejected=true;
+            console.log('WRITE_REJECTED');
+          } finally { await c.end(); }
+          if(!rejected) throw new Error('write_was_not_rejected');
+          NODE
+
+      - name: Generate regenerated archive
+        if: steps.secret_gate.outputs.present == 'true'
+        shell: bash
+        run: |
+          test ! -e "$OUT_ROOT"
+          node scripts/provider-trial-regenerate-archive.mjs generate "$OUT_ROOT" 2>&1 | tee "$EVIDENCE_DIR/generate.log"
+
+      - name: Final zero-cost artifact gate
+        if: steps.secret_gate.outputs.present == 'true'
+        shell: bash
+        run: |
+          BUNDLE="$OUT_ROOT.tar.gz"
+          INVENTORY="$OUT_ROOT.inventory.json"
+          test -f "$BUNDLE"
+          test -f "$INVENTORY"
+          bytes=$(stat -c%s "$BUNDLE")
+          echo "bundle_bytes=$bytes" | tee "$EVIDENCE_DIR/artifact-size.txt"
+          # Keep well below the 500 MB GitHub Free shared artifact allowance.
+          if [ "$bytes" -gt 400000000 ]; then
+            echo "ZERO_COST_STORAGE_GATE_FAIL bundle_too_large=$bytes"
+            exit 42
+          fi
+          sha256sum "$BUNDLE" "$INVENTORY" | tee "$EVIDENCE_DIR/transfer-sha256.txt"
+
+      - name: Upload transfer artifact
+        if: steps.secret_gate.outputs.present == 'true' && success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-20261007-r01-transfer
+          path: |
+            ${{ runner.temp }}/regenerated-20261007-r01.tar.gz
+            ${{ runner.temp }}/regenerated-20261007-r01.inventory.json
+            ${{ runner.temp }}/evidence
+          retention-days: 1
+          compression-level: 0
+          if-no-files-found: error
