@@ -88,3 +88,11 @@ test('league schedule parser reads the real data.matches envelope and never the 
   assert.deepEqual(scheduleMatches({success:1,data:[]}), []);
   assert.deepEqual(scheduleMatches({success:1,data:{league:{}}}), []);
 });
+
+
+test('historical audit recognises TotalCorner schedule HT and card field names', () => {
+  const a = historicalAudit({hf_hg:'1',hf_ag:'0',hf_hc:'3',hf_ac:'2',hyc:'2',ayc:'1',hrc:'0',arc:'1'}, {}, {});
+  assert.equal(a.score_ht_present, true);
+  assert.equal(a.corners_present, true);
+  assert.equal(a.cards_present, true);
+});
