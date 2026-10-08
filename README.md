@@ -826,6 +826,35 @@ Obiettivi:
 
 Regola: **TotalCorner non può essere dichiarato CLOSED/CERTIFIED finché tutti i gate hard reali della #20 non sono passati.**
 
+### TC-CORE-01 — contratto provider, discovery, raw lossless (#104)
+
+Stato: **IMPLEMENTED, TESTED**. **HARD VERIFIED REAL: in corso** (evidenza del run reale nella #20). Nessun collector, nessuna promozione nel core.
+
+- **Client** (`src/providers/totalcorner/client.mjs`):
+  - un solo rate limiter: default 4 richieste ogni 10 s. Il limite osservato upstream è di 5 richieste in 10 secondi, ed è configurabile con `TOTALCORNER_MAX_REQUESTS_PER_WINDOW` e `TOTALCORNER_RATE_WINDOW_MS`;
+  - retry limitati: massimo 2. Su 429 o `TOO_MANY_REQUEST` la pausa è globale, di almeno 10 s;
+  - classificazione degli esiti: `ok`, `no_data`, `rate_limited`, `auth`, `not_found`, `bad_request`, `server_error`, `timeout`, `network`, `malformed`, `upstream_error`.
+  - Il token `TOTALCORNER_API_TOKEN` viaggia solo nell'URL in uscita. Non viene mai scritto in DB o log, e la chiave della richiesta lo esclude.
+- **Migrazione** `021-tc-core-discovery.sql`:
+  - `tc_raw_responses`: body conservato byte per byte, comprese le risposte d'errore, con sha256. È deduplicato per richiesta + hash, con `seen_count` e `first/last_acquired_at`. Contiene inoltre fase, provenance, `schema_version` e `parser_version`;
+  - `tc_request_ledger`: un record per ogni tentativo upstream, con esito, HTTP, latenza, backoff, header di rate limit e id del raw;
+  - `tc_schema_registry`: famiglia endpoint × fase × percorso campo, con tipi, `rows_seen`, `nonnull_seen`, `first_seen`, `last_seen` e valore campione;
+  - `tc_discovery_runs`.
+- **Discovery** (`src/jobs/totalcorner-discovery.mjs`, versione `tc-core-01-v1`). Parte al boot del servizio core se il token è presente e la versione non è già completa. È protetta da advisory lock e gira una volta sola; `TOTALCORNER_DISCOVERY_ON_BOOT=false` la disattiva. Interroga:
+  - `/match/today` (upcoming, inplay ed ended, con e senza `columns`);
+  - `/match/schedule`: il formato data viene provato, poi interroga oggi, +1, −1, −7, −30 e −365 giorni;
+  - per un campione di partite di leghe diverse e in tutte le fasi, compreso lo storico a −30 e −365 giorni: `/match/view/{id}`, `/match/odds/{id}` (con `bttsList`) e `/match/bookmaker_odds/{id}`;
+  - il movimento per bookmaker su Pinnacle, Betfair, 1xBet, Bwin e SNAI (Pinnacle con 1X2, Asian, Goal e Corner);
+  - `/league/table/{id}` (table, corner, card) e `/league/schedule/{id}`.
+- **Nel riepilogo della discovery**:
+  - esiti per famiglia;
+  - prova empirica del fuso del campo `start`;
+  - campi presenti solo nel dettaglio e non nelle liste;
+  - campi `btts`;
+  - bookmaker restituiti.
+- **NULL e assenze.** Un NULL non significa assenza upstream: le liste vengono confrontate con il dettaglio, e nessun campo è dichiarato assente sulla base di un solo endpoint.
+- **API di sola lettura:** `GET /api/tc/discovery` e `GET /api/tc/schema-registry?endpoint_family=&phase=`.
+
 
 ## Chiusura delle issue
 
