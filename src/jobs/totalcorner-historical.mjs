@@ -353,7 +353,7 @@ export async function maybeStartTcHistorical({env=process.env,log=console.log}={
 export function stopTcHistorical(){if(timer) clearInterval(timer); timer=null;}
 
 export async function tcHistoricalReport(db){
-  const [runs,coverage,checkpoint,matches,movement]=await Promise.all([
+  const [runs,coverage,checkpoint,matches,movement,movementGates,audit,seasons,raw,secrets]=await Promise.all([
     db.query(`SELECT run_id,version,kind,status,started_at,finished_at,summary,error FROM tc_historical_runs ORDER BY run_id DESC LIMIT 10`),
     db.query(`SELECT * FROM tc_historical_league_coverage ORDER BY matches_seen DESC,league_id LIMIT 500`),
     db.query(`SELECT count(*)::int AS leagues,count(*) FILTER(WHERE sampled)::int AS sampled,
@@ -368,7 +368,29 @@ export async function tcHistoricalReport(db){
       count(*) FILTER(WHERE retroactive_live_stats_present)::int AS retroactive_live_stats
       FROM tc_historical_match_audit`),
     db.query(`SELECT bookmaker,columns_name,outcome,count(*)::int AS probes,sum(rows_seen)::int AS rows_seen,
-      sum(suspended_rows)::int AS suspended_rows FROM tc_historical_movement_audit GROUP BY 1,2,3 ORDER BY 1,2,3`)
+      sum(suspended_rows)::int AS suspended_rows FROM tc_historical_movement_audit GROUP BY 1,2,3 ORDER BY 1,2,3`),
+    db.query(`SELECT
+      count(DISTINCT match_id) FILTER (WHERE bookmaker='pinnacle' AND columns_name='asianList' AND outcome='ok' AND rows_seen>0)::int AS pinnacle_asian_matches,
+      count(DISTINCT match_id) FILTER (WHERE bookmaker='pinnacle' AND columns_name='goalList' AND outcome='ok' AND rows_seen>0)::int AS pinnacle_goal_matches,
+      count(DISTINCT match_id) FILTER (WHERE bookmaker='pinnacle' AND columns_name='cornerList' AND outcome='ok' AND rows_seen>0)::int AS pinnacle_corner_matches,
+      count(DISTINCT match_id) FILTER (WHERE bookmaker='pinnacle' AND columns_name='oddsList' AND outcome='ok' AND rows_seen>0)::int AS pinnacle_odds_matches,
+      count(*) FILTER (WHERE outcome='no_data')::int AS no_data_probes,
+      count(*) FILTER (WHERE outcome='ok' AND rows_seen>0)::int AS probes_with_rows,
+      count(*) FILTER (WHERE raw_id IS NULL)::int AS movement_missing_raw,
+      count(*)::int AS movement_rows
+      FROM tc_historical_movement_audit`),
+    db.query(`SELECT count(*)::int AS audit_rows, count(DISTINCT match_id)::int AS distinct_matches,
+      count(*) FILTER (WHERE view_raw_id IS NULL)::int AS missing_view_raw,
+      count(DISTINCT season_key)::int AS seasons
+      FROM tc_historical_match_audit`),
+    db.query(`SELECT season_key, count(*)::int AS matches FROM tc_historical_match_audit GROUP BY 1 ORDER BY 1`),
+    db.query(`SELECT count(*)::int AS raw_rows, count(*) FILTER (WHERE seen_count>1)::int AS deduped_raw,
+      coalesce(sum(seen_count),0)::int AS raw_observations
+      FROM tc_raw_responses WHERE provenance='HISTORICAL_UPSTREAM'`),
+    db.query(`SELECT
+      (SELECT count(*) FROM tc_raw_responses WHERE provenance='HISTORICAL_UPSTREAM' AND (url_path ILIKE '%api_key=%' OR url_path ILIKE '%token=%'))::int AS raw_url_secret_hits,
+      (SELECT count(*) FROM tc_request_ledger WHERE endpoint_family LIKE 'historical_%' AND url_path ILIKE '%api_key=%')::int AS ledger_url_secret_hits`)
   ]);
-  return {version:HISTORICAL_VERSION,runs:runs.rows,checkpoint:checkpoint.rows[0],matches:matches.rows[0],coverage:coverage.rows,movement:movement.rows};
+  return {version:HISTORICAL_VERSION,runs:runs.rows,checkpoint:checkpoint.rows[0],matches:matches.rows[0],coverage:coverage.rows,movement:movement.rows,
+    gates:{movement:movementGates.rows[0], audit:audit.rows[0], seasons:seasons.rows, raw:raw.rows[0], secrets:secrets.rows[0]}};
 }
