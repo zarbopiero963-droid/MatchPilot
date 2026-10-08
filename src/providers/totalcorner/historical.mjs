@@ -94,14 +94,19 @@ export function historicalAudit(record, oddsRecord, bookmakerRecord) {
 }
 
 export function movementStats(body) {
-  const r = rowsOf(body)[0] || {};
+  const match = rowsOf(body)[0] || {};
+  // bookmaker movement is nested below data[0].bookmakers[0], while older discovery helpers
+  // also encountered direct list fields. Support both shapes losslessly.
+  const sources = [match, ...(Array.isArray(match.bookmakers) ? match.bookmakers : [])];
   const lists = ['asian_list','goal_list','corner_list','odds_list'];
   let rows = 0, suspended = 0;
-  for (const k of lists) {
-    for (const x of Array.isArray(r[k]) ? r[k] : []) {
-      rows++;
-      const flag = Array.isArray(x) ? x[7] : null;
-      if (flag !== null && flag !== undefined && Number(flag) !== 0) suspended++;
+  for (const source of sources) {
+    for (const k of lists) {
+      for (const x of Array.isArray(source?.[k]) ? source[k] : []) {
+        rows++;
+        const flag = Array.isArray(x) ? x[7] : null;
+        if (flag !== null && flag !== undefined && Number(flag) !== 0) suspended++;
+      }
     }
   }
   return {rows, suspended};

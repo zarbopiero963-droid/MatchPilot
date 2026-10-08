@@ -150,7 +150,7 @@ async function ingestHistoricalMatch({tc, db, runId, league, record, timezone, m
            ON CONFLICT(match_id,bookmaker,columns_name) DO UPDATE SET
              outcome=EXCLUDED.outcome,rows_seen=EXCLUDED.rows_seen,suspended_rows=EXCLUDED.suspended_rows,
              raw_id=EXCLUDED.raw_id,acquired_at=EXCLUDED.acquired_at,run_id=EXCLUDED.run_id`,
-          [String(record.id),bookmakerSlug,columns,r.outcome,s.rows,s.suspended,r.raw_id,r.acquired_at||new Date(),runId]);
+          [String(record.id),bookmakerSlug,columns,(r.outcome==='ok'&&s.rows===0)?'no_data':r.outcome,s.rows,s.suspended,r.raw_id,r.acquired_at||new Date(),runId]);
       }
     }
   }
@@ -205,6 +205,28 @@ async function runSample({tc,db,config,runId}) {
   }
   return {leagues:stats.leagues,countries:stats.countries.size,matches:stats.matches,seasons:[...stats.seasons].filter(Boolean).sort(),
     movement_matches:stats.movement_matches,outcomes:stats.outcomes};
+}
+
+async function repairMovementAuditFromRaw(db) {
+  const r = await db.query(
+    `SELECT a.match_id,a.bookmaker,a.columns_name,a.raw_id,x.body
+     FROM tc_historical_movement_audit a
+     JOIN tc_raw_responses x ON x.raw_id=a.raw_id
+     WHERE a.raw_id IS NOT NULL`);
+  let repaired=0, withRows=0, noData=0, suspended=0;
+  for (const row of r.rows) {
+    let body=null;
+    try { body=JSON.parse(row.body); } catch { continue; }
+    const s=movementStats(body);
+    const outcome=s.rows>0?'ok':'no_data';
+    await db.query(
+      `UPDATE tc_historical_movement_audit
+       SET outcome=$4,rows_seen=$5,suspended_rows=$6,acquired_at=coalesce(acquired_at,now())
+       WHERE match_id=$1 AND bookmaker=$2 AND columns_name=$3`,
+      [row.match_id,row.bookmaker,row.columns_name,outcome,s.rows,s.suspended]);
+    repaired++; if(s.rows>0) withRows++; else noData++; suspended+=s.suspended;
+  }
+  return {repaired,with_rows:withRows,no_data:noData,suspended_rows:suspended};
 }
 
 async function runBatch({tc,db,config,runId}) {
@@ -275,6 +297,8 @@ export async function maybeStartTcHistorical({env=process.env,log=console.log}={
     try{
       await guarded(async db=>{
         await db.query(`UPDATE tc_historical_runs SET status='interrupted',finished_at=now() WHERE status='running'`);
+        const movement_repair=await repairMovementAuditFromRaw(db);
+        if(movement_repair.repaired) log('TC_HISTORICAL_MOVEMENT_REPAIRED '+JSON.stringify(movement_repair));
         const sample=await db.query(`SELECT run_id FROM tc_historical_runs WHERE version=$1 AND kind='sample' AND status='complete' AND coalesce((summary->>'hold')::boolean,false)=false LIMIT 1`,[HISTORICAL_VERSION]);
         return runHistorical({tc,db,config,kind:sample.rowCount?'batch':'sample',log});
       });

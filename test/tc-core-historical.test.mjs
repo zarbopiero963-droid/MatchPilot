@@ -96,3 +96,15 @@ test('historical audit recognises TotalCorner schedule HT and card field names',
   assert.equal(a.corners_present, true);
   assert.equal(a.cards_present, true);
 });
+
+
+test('movement audit reads the real nested bookmaker lists and suspension flags', () => {
+  const body={data:[{bookmakers:[{slug:'pinnacle',
+    asian_list:[
+      [null,1.5,1.9,2.0,'2026-09-20 14:00:00',null,null,0],
+      ['03',null,null,null,'2026-09-20 14:35:05',0,0,1]
+    ],
+    goal_list:[['07',3.5,1.8,2.0,'2026-09-20 14:39:00',0,1,0]]
+  }]}]};
+  assert.deepEqual(movementStats(body),{rows:3,suspended:1});
+});
