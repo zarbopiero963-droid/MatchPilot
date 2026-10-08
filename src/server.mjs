@@ -15,6 +15,7 @@ import { maybeStartTcDiscovery, tcDiscoveryReport, tcSchemaRegistry } from './jo
 import { maybeStartTcMapping, tcMappingReport } from './jobs/totalcorner-mapping.mjs';
 import { maybeStartTcPrematch, stopTcPrematch, tcPrematchMatch, tcPrematchReport } from './jobs/totalcorner-prematch.mjs';
 import { maybeStartTcHistorical, stopTcHistorical, tcHistoricalReport } from './jobs/totalcorner-historical.mjs';
+import { maybeStartTcLive, stopTcLive, tcLiveReport } from './jobs/totalcorner-live.mjs';
 import { redactSecrets } from './providers/totalcorner/client.mjs';
 
 const port = Number(process.env.PORT || 3000);
@@ -40,6 +41,7 @@ maybeStartTcDiscovery()
   .then(()=>maybeStartTcPrematch())
   .catch(e=>console.error('TC_PREMATCH_ERROR', redactSecrets(String(e?.message||e))))
   .then(()=>maybeStartTcHistorical())
+  .then(()=>maybeStartTcLive())
   .catch(e=>console.error('TC_HISTORICAL_ERROR', redactSecrets(String(e?.message||e))));
 if (process.env.FUTPYTHON_BACKFILL_ON_START === 'true') {
   runFutpythonSync({kind:'backfill',mode:'backfill'})
@@ -62,11 +64,13 @@ const app = http.createServer((req, res) => {
   }
 
   // #12 Data Coverage → Competitions (HTML), from the same read-only queries as /api/fpt/coverage-*.
-  if (['/api/tc/discovery', '/api/tc/schema-registry', '/api/tc/mapping', '/api/tc/prematch', '/api/tc/prematch/match', '/api/tc/historical'].includes(url.pathname)) {
+  if (['/api/tc/discovery', '/api/tc/schema-registry', '/api/tc/mapping', '/api/tc/prematch', '/api/tc/prematch/match', '/api/tc/historical', '/api/tc/live'].includes(url.pathname)) {
     const read = url.pathname === '/api/tc/discovery'
       ? client => tcDiscoveryReport(client)
       : url.pathname === '/api/tc/historical'
       ? client => tcHistoricalReport(client)
+      : url.pathname === '/api/tc/live'
+      ? client => tcLiveReport(client)
       : url.pathname === '/api/tc/prematch'
       ? client => tcPrematchReport(client)
       : url.pathname === '/api/tc/prematch/match'
@@ -164,6 +168,7 @@ async function shutdown() {
   stopDataWatchdog();
   stopTcPrematch();
   stopTcHistorical();
+  stopTcLive();
   app.close(async()=>{ await closePool().catch(()=>{}); process.exit(0); });
 }
 process.on('SIGTERM',shutdown);
