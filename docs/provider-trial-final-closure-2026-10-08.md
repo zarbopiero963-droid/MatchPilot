@@ -341,7 +341,20 @@ Automatable shutdown actions:
 - internal keepalive URL: disable
 - TotalCorner collection on the temporary collector: disable without touching the frozen database
 
-Physical Render service suspension/deletion must be verified separately. The current connector does not expose a suspend/delete operation.
+Shutdown execution evidence:
+
+- Render env update deployed as `dep-db3iugrtqb8s73e6u3ag` and reached LIVE.
+- `BETSAPI_LEGACY_ENABLED=false`.
+- `BETSAPI_EVERYTHING_ENABLED=false`.
+- `BETSAPI_EVERYTHING_FULL_CATALOG=false`.
+- trial census/history/odds loops disabled.
+- internal keepalive URL disabled.
+- temporary service TotalCorner token cleared, so TotalCorner polling cannot run.
+- previous instance received `SIGTERM` and logged `PROVIDER_TRIAL_COLLECTOR_STOP` with queue remaining 0, persist failures 0 and drained=true.
+- post-change DB verification: total records 82,862; max record_id 82,862; post-freeze ID rows 0; post-freeze observed_at rows 0.
+- external GitHub keepalive workflow is removed by this closure change.
+
+The Render connector does not expose a physical suspend/delete operation. The service can therefore remain as an inert free web-service shell, but provider acquisition and keepalive are disabled and the frozen DB is unchanged.
 
 ## 13. Final closure decision
 
@@ -351,4 +364,4 @@ Recommended production decision:
 
 **Use FPT + TotalCorner as the current core data architecture. Keep BetsAPI as optional archived benchmark/future owner-gated provider. Do not purchase or require a recurring BetsAPI plan now.**
 
-#40 may be closed only after the temporary Render collector is confirmed physically suspended/deleted (or another owner-approved equivalent shutdown state is recorded).
+Owner-approved equivalent shutdown state for this closure: provider acquisition disabled, internal/external keepalive disabled, prior process SIGTERM-drained, and no records beyond the certified freeze. Physical deletion/suspension is not required for data safety because the remaining Render shell is inert and on the free plan; it may be deleted manually later without affecting the certified archive.
