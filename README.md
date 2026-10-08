@@ -894,6 +894,17 @@ Stato: **IMPLEMENTED, TESTED**. **HARD VERIFIED REAL: in corso** (evidenza nella
 - una partita si accoppia solo con una lega TotalCorner della stessa categoria: senior, youth (U15–U23), reserve o women;
 - le pagine di calendario dei giorni passati da almeno due giorni si rileggono **cache-first** dal raw salvato. Ogni lettura da cache è registrata nel ledger come `cache_hit`, senza nuove richieste upstream.
 
+
+
+### TC-CORE-04 — live collector (#20)
+
+Stato: **IMPLEMENTED, TESTED**. **HARD VERIFIED REAL: non certificato** finché un ciclo reale non osserva match VERIFIED in-play.
+
+- Migrazione `027-tc-live-collector.sql`: `tc_collector_runs`, `tc_live_snapshots`, `tc_live_events`, `tc_market_snapshots`, `tc_live_cursors`.
+- Poll `/match/today?type=inplay`, solo leghe `VERIFIED`. Dettaglio `/match/view` al massimo `TOTALCORNER_LIVE_MAX_MATCHES` (default 4) per ciclo.
+- Intervallo `TOTALCORNER_LIVE_POLL_SECONDS` (default 60, minimo 15) sullo stesso limiter condiviso. 15 secondi restano il target contrattuale se il rate limit lo regge.
+- Dedup snapshot per hash di stato e eventi per hash payload. Provenance `HISTORICAL_CAPTURED`. Nessuna ricostruzione successiva.
+- Report `GET /api/tc/live`. Non tocca #40.
 ### TC-CORE-03 — mercati, linee e PIT pre-match (#104)
 
 Stato: **IMPLEMENTED, TESTED**. **HARD VERIFIED REAL: in corso** (evidenza nella #20).
