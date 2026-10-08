@@ -49,6 +49,15 @@ export function createLimiter({maxRequests, windowMs, now = () => Date.now(), sl
   };
 }
 
+// Wait after a rate limit: retry-after first, else x-rate-limit-reset (seconds left, as observed 04/10, or an epoch);
+// never below 10 s nor above 120 s so a malformed header cannot freeze the shared limiter.
+export function rateLimitBackoffMs(rate, nowMs = Date.now()) {
+  let ms = Number(rate?.retry_after || 0) * 1000;
+  const reset = Number(rate?.reset || 0);
+  if (!(ms > 0) && reset > 0) ms = reset > 1e9 ? reset * 1000 - nowMs : reset * 1000;
+  return Math.min(120000, Math.max(10000, Number.isFinite(ms) ? ms : 0));
+}
+
 const RETRYABLE = new Set(['rate_limited', 'server_error', 'timeout', 'network']);
 
 export function classifyResponse({status = null, text = null, error = null}) {
@@ -134,9 +143,8 @@ export function createTcClient({token, fetchImpl = fetch, limiter, store, maxRet
         const rate = rateHeaders(headers);
         const retry = RETRYABLE.has(cls.outcome) && attempt <= maxRetries;
         if (retry) {
-          const retryAfter = Number(rate?.retry_after || rate?.reset || 0) * 1000;
           backoff = cls.outcome === 'rate_limited'
-            ? Math.max(10000, retryAfter)
+            ? rateLimitBackoffMs(rate)
             : Math.min(30000, 1000 * 2 ** attempt) + Math.floor(random() * 500);
           if (cls.outcome === 'rate_limited') limiter.pause(backoff);
         } else backoff = 0;

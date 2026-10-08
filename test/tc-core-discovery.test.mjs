@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyResponse, createLimiter, createTcClient, redactSecrets, requestKey } from '../src/providers/totalcorner/client.mjs';
+import { classifyResponse, createLimiter, createTcClient, rateLimitBackoffMs, redactSecrets, requestKey } from '../src/providers/totalcorner/client.mjs';
 import { walkRow, phaseOf, bodyRows, createCensus } from '../src/providers/totalcorner/schema.mjs';
 import { bookmakerNames, kickoffOffsetEvidence, maybeStartTcDiscovery } from '../src/jobs/totalcorner-discovery.mjs';
 
@@ -45,6 +45,16 @@ test('the limiter admits at most N requests per sliding window and honours a pau
   const before = t;
   await limiter.acquire();
   assert.ok(t - before >= 30000, 'a 429 pause blocks every caller');
+});
+
+test('rate-limit backoff: retry-after first, reset as seconds or epoch, bounded 10..120 s', () => {
+  assert.equal(rateLimitBackoffMs({retry_after: '30'}), 30000);
+  assert.equal(rateLimitBackoffMs({reset: '4'}), 10000);
+  assert.equal(rateLimitBackoffMs({reset: '45'}), 45000);
+  assert.equal(rateLimitBackoffMs({reset: String(1791453300)}, 1791453300000 - 20000), 20000);
+  assert.equal(rateLimitBackoffMs({reset: String(1791453300 + 86400)}, 1791453300000), 120000);
+  assert.equal(rateLimitBackoffMs({reset: 'abc'}), 10000);
+  assert.equal(rateLimitBackoffMs(null), 10000);
 });
 
 test('field census keeps every path: pairs, movement tuples, nested events, envelope; phase from status', () => {
