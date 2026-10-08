@@ -7,6 +7,7 @@ import {
   movementStats,
   offsetMinutesAt,
   providerLocalToUtc,
+  scheduleMatches,
   seasonKey
 } from '../src/providers/totalcorner/historical.mjs';
 
@@ -72,4 +73,18 @@ test('season key is deterministic for common European season boundaries', () => 
   assert.equal(seasonKey('2026-10-08 20:00:00'),'2026/27');
   assert.equal(seasonKey('2026-03-08 20:00:00'),'2025/26');
   assert.equal(seasonKey('bad'),null);
+});
+
+
+test('league schedule parser reads the real data.matches envelope and never the wrapper object', () => {
+  const body = {success:1,pagination:{current:101,pages:101,next:false},data:{
+    league:{league_id:'116',name:'China Super League',country:'China'},
+    matches:[
+      {id:'882964',l_id:'116',start:'2014-03-22 12:30:00',status:'full'},
+      {id:'882828',l_id:'116',start:'2014-03-16 09:00:00',status:'full'}
+    ]
+  }};
+  assert.deepEqual(scheduleMatches(body).map(x=>x.id), ['882964','882828']);
+  assert.deepEqual(scheduleMatches({success:1,data:[]}), []);
+  assert.deepEqual(scheduleMatches({success:1,data:{league:{}}}), []);
 });
