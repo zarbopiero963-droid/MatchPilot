@@ -19,6 +19,9 @@ test('youth, reserve and women leagues never pair with senior competitions (run 
   assert.equal(categoryOf('usa/nwsl-women'), 'women');
   assert.equal(categoryOf('Mexico Liga MX'), 'senior');
   assert.equal(categoryOf('Germany Bundesliga II'), 'senior');
+  assert.equal(categoryOf('Spain Primera División Femenina'), 'women');
+  assert.equal(categoryOf('England U19 Women'), 'women-youth');
+  assert.notEqual(categoryOf('England U19 Women'), categoryOf('England U19 League'), 'gender and age stay distinct');
   const f = [1, 2, 3, 4].map(i => ({league_key: 'mexico/liga-mx', date: '2026-09-20', home: `Club ${i}`, away: `Team ${i}`}));
   const t = [...f.map((x, i) => ({league_id: '779', league_name: 'Mexico Liga MX', date: x.date, home: x.home, away: x.away, id: 's' + i})),
     ...f.map((x, i) => ({league_id: '10', league_name: 'Mexico U21 League', date: x.date, home: x.home, away: x.away, id: 'y' + i}))];

@@ -90,7 +90,7 @@ export async function runTcMapping({tc, db, config = mappingConfig(), log = cons
     const today = now().toISOString().slice(0, 10);
     for (const d of dates) {
       // Pages of days at least two days old cannot change any more: read them from the raw store first.
-      const immutable = d < new Date(Date.parse(today) - 2 * 86400000).toISOString().slice(0, 10);
+      const immutable = d <= new Date(Date.parse(today) - 2 * 86400000).toISOString().slice(0, 10);
       const rows = await allPages(call, 'match_schedule', '/match/schedule', {date: ymd(d)}, {phase: 'MIXED'}, notes, immutable ? cache : null);
       for (const r of rows) {
         if (!r?.id || !r?.l_id) continue;

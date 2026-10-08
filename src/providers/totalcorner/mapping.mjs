@@ -42,10 +42,11 @@ export function similarity(a, b) {
 // only pair inside the same category (run 1: Liga MX vs Mexico U21, Super Lig vs Turkiye U19).
 export function categoryOf(name) {
   const s = String(name ?? '');
-  if (/\bU-?(1[5-9]|2[0-3])\b|youth|junior|primavera|juvenil|sub-?(1[5-9]|2[0-3])\b/i.test(s)) return 'youth';
-  if (/\breserves?\b|\breserva\b/i.test(s)) return 'reserve';
-  if (/women|womens|female|feminin|frauen|ladies|nwsl|\bwsl\b|liga-f\b|\bliga f\b/i.test(s)) return 'women';
-  return 'senior';
+  // Gender and age are independent: a women's U19 league must not pair with a men's U19 league.
+  const women = /women|womens|female|feminin|femenin|frauen|ladies|nwsl|\bwsl\b|liga-f\b|\bliga f\b/i.test(s);
+  const age = /\bU-?(1[5-9]|2[0-3])\b|youth|junior|primavera|juvenil|sub-?(1[5-9]|2[0-3])\b/i.test(s) ? 'youth'
+    : /\breserves?\b|\breserva\b/i.test(s) ? 'reserve' : 'senior';
+  return women ? (age === 'senior' ? 'women' : `women-${age}`) : age;
 }
 
 const dayNum = iso => Math.floor(Date.parse(String(iso).slice(0, 10) + 'T00:00:00Z') / 86400000);
