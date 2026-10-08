@@ -3,7 +3,7 @@ import { createTcClient, createPgStore, redactSecrets, sharedLimiter } from '../
 import { LIST_COLUMNS, ODDS_COLUMNS, MOVEMENT_BOOKMAKERS, MOVEMENT_COLUMNS } from './totalcorner-discovery.mjs';
 import { ingestBody } from './totalcorner-prematch.mjs';
 import { HISTORICAL_VERSION, DEFAULT_PROVIDER_TIME_ZONE, historicalAudit, historicalZoneDecision,
-  movementStats, providerLocalToUtc, rowsOf, seasonKey } from '../providers/totalcorner/historical.mjs';
+  movementStats, providerLocalToUtc, rowsOf, scheduleMatches, seasonKey } from '../providers/totalcorner/historical.mjs';
 
 // TC-CORE-03B (#20): resumable HISTORICAL_UPSTREAM backfill. Raw is lossless in tc_raw_responses;
 // compact normalized/audit state is persisted separately. The first run is a bounded hard-test sample
@@ -169,8 +169,8 @@ async function runSample({tc,db,config,runId}) {
     const first=await schedulePage(tc,league,1);
     const pages=Math.max(1,Number(first.body?.pagination?.pages||1));
     const probe=uniq([1,Math.max(1,Math.ceil(pages/2)),pages]);
-    const rows=[...rowsOf(first.body)];
-    for(const p of probe.slice(1)){ const r=await schedulePage(tc,league,p); rows.push(...rowsOf(r.body)); }
+    const rows=[...scheduleMatches(first.body)];
+    for(const p of probe.slice(1)){ const r=await schedulePage(tc,league,p); rows.push(...scheduleMatches(r.body)); }
     const matches=[];
     const ids=new Set();
     for(const r of rows.filter(ended)){
@@ -207,7 +207,7 @@ async function runBatch({tc,db,config,runId}) {
     const page=Math.max(1,Number(league.next_page||1));
     const r=await schedulePage(tc,league,page);
     const pages=Math.max(page,Number(r.body?.pagination?.pages||page));
-    const matches=rowsOf(r.body).filter(ended).slice(0,config.batchMatchesPerLeague);
+    const matches=scheduleMatches(r.body).filter(ended).slice(0,config.batchMatchesPerLeague);
     for(const record of matches){
       const x=await ingestHistoricalMatch({tc,db,runId,league,record,timezone:config.providerTimeZone,movement:false});
       stats.matches++;
