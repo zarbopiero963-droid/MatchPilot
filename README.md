@@ -918,13 +918,20 @@ Stato: **IMPLEMENTED, TESTED**. **HARD VERIFIED REAL: in corso** (evidenza nella
   - scarica `/match/odds` con cadenza adattiva: ogni 180 min oltre 6 h dal kickoff, 60 min tra 1 e 6 h, 15 min nell'ultima ora, 5 min negli ultimi 15 minuti. Dopo il kickoff non scarica più;
   - scarica `/match/bookmaker_odds` ogni 360, 120 o 30 minuti con le stesse fasce;
   - usa lo stesso rate limiter condiviso e un advisory lock. Se il token risulta non valido o scaduto (`auth`), sospende i cicli per `TOTALCORNER_AUTH_PAUSE_MS` (default 30 min). Si disattiva con `TOTALCORNER_PREMATCH_ENABLED=false`.
+- **Gate del fuso provider (`tc-tz-gate-v1`, migrazione `024-tc-tz-observations.sql`).** Gli orari TotalCorner sono locali del provider. UTC+2 è stato misurato l'08/10, ma non viene dato per scontato: il cambio d'ora o un cambio del provider non devono mai spostare in silenzio il cutoff PIT.
+  - Ogni `TOTALCORNER_TZ_CHECK_MINUTES` (default 30) il ciclo legge la lista `/match/today?type=inplay` (da 1 a 3 pagine, stesso rate limiter) e misura l'offset sulle partite al primo tempo: `start − (acquired_at − minuto)`. Le partite e-soccer o virtuali sono escluse perché il loro minuto non è tempo reale. Il valore è la mediana, arrotondata a 15 minuti; servono almeno 2 campioni con dispersione massima di 20 minuti.
+  - Ogni misura è salvata in `tc_tz_observations` (stato `MEASURED`, `INSUFFICIENT`, `INCONSISTENT` o `UNAVAILABLE`, campioni, mediana, min/max, offset, offset configurato, accordo, raw collegati).
+  - Il ciclo normalizza solo se l'ultima misura `MEASURED` coincide con `TOTALCORNER_TZ_OFFSET_MINUTES` ed è più recente di `TOTALCORNER_TZ_MAX_AGE_MINUTES` (default 360). Altrimenti il ciclo è **fail-closed** (`TC_PREMATCH_TZ_HOLD`): nessuna lista, nessuna quota, nessuno snapshot e nessuna riga normalizzata con un offset non verificato. Per riprendere serve una misura che torni a coincidere, oppure l'aggiornamento esplicito dell'offset configurato.
+  - `tc_prematch_runs.tz_observation_id` e `tc_matches.tz_observation_id` collegano ogni ciclo e ogni partita catturata alla misura che ne ha garantito l'offset. Il replay storico non ha una misura live (`tz_observation_id` NULL): l'offset delle date passate va verificato data per data nella card dello storico upstream (TC-CORE-03B), non assunto.
+  - I cicli hanno versione `tc-core-03-v2`; il replay dal raw resta `tc-core-03-v1` e non viene ripetuto al deploy.
 - **Replay dal raw.** Un replay una tantum per versione (`tc-core-03-v1`) normalizza le risposte `/match/odds` e `/match/bookmaker_odds` già salvate dalla discovery e dal mapping, solo per le leghe VERIFIED e senza richieste upstream.
 - **API di sola lettura:**
   - `GET /api/tc/prematch`: run, conteggi per fase, fonte e mercato, quarantena, provenance e audit di leakage. Il leakage comprende righe PREMATCH al o dopo il kickoff, snapshot al o dopo il kickoff, duplicati e partite fuori dalle leghe VERIFIED; tutti questi contatori devono essere 0;
   - `GET /api/tc/prematch/match?id=&as_of=&knowledge=provider|captured`: per ogni fonte, mercato e periodo, l'apertura e l'ultima quota nota a `as_of` e strettamente prima del kickoff. Con `knowledge=captured` conta solo ciò che MatchPilot aveva già acquisito a `as_of`.
 - **Limiti noti:**
   - il kickoff è quello schedulato. Un ritardo d'inizio reale finisce in QUARANTINE, non in PREMATCH;
-  - l'offset del fuso del provider è fisso (UTC+2 misurato l'08/10), configurabile; un eventuale cambio d'ora del provider va rimisurato;
+  - l'offset configurato resta un valore unico (UTC+2). Il gate non lo cambia da solo: se la misura cambia, ad esempio con il cambio d'ora, i cicli si fermano finché la misura non torna a coincidere o l'offset non viene aggiornato. È una scelta voluta: meglio non catturare che sbagliare il cutoff;
+  - le righe già acquisite restano con l'offset di quando sono state acquisite. Tutte le date presenti oggi (07/10/2025 e 03/09–09/10/2026) cadono nello stesso regime di ora legale;
   - la membership TotalCorner scade l'11/10/2026 15:20:27 Europe/Rome.
 
 

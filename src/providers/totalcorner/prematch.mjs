@@ -161,3 +161,50 @@ export function pitSummary(rows, {kickoffUtc, asOf}) {
   }
   return [...groups.values()].sort((a, b) => (a.source + a.market + a.period).localeCompare(b.source + b.market + b.period));
 }
+
+// ---- Provider timezone gate (TC-CORE-03 fix) ----
+// TotalCorner timestamps are provider-local. UTC+2 was measured on 08/10/2026, but it is not assumed forever (DST,
+// provider change). Every prematch cycle relies on a fresh, persisted measurement: first-half in-play rows give
+// offset ~= start_as_utc - (acquired_at - minute). The configured offset is used only while a measurement agrees.
+export const TZ_GATE_VERSION = 'tc-tz-gate-v1';
+const NOT_REAL_TIME = /e-?soccer|cyber|virtual|mins? play|e-?football|fifa|pes\b/i;
+
+// samples: [{row, acquiredAt}] — each list row with the acquisition time of the page it came from.
+export function measureProviderOffset(samples, {roundTo = 15, maxSpread = 20, minSamples = 2} = {}) {
+  const estimates = [];
+  let excluded = 0;
+  for (const {row: r, acquiredAt} of Array.isArray(samples) ? samples : []) {
+    if (!(acquiredAt instanceof Date)) continue;
+    const status = String(r?.status ?? '').trim();
+    if (!/^\d+$/.test(status)) continue;
+    const minute = Number(status);
+    if (minute < 1 || minute > 45) continue;
+    if (NOT_REAL_TIME.test(String(r?.l ?? ''))) { excluded++; continue; }
+    const s = String(r?.start ?? '').trim();
+    if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(s)) continue;
+    const startAsUtc = Date.parse(s.replace(' ', 'T') + 'Z');
+    if (Number.isNaN(startAsUtc)) continue;
+    estimates.push((startAsUtc - (acquiredAt.getTime() - minute * 60000)) / 60000);
+  }
+  estimates.sort((a, b) => a - b);
+  const n = estimates.length;
+  const median = n ? (n % 2 ? estimates[(n - 1) / 2] : (estimates[n / 2 - 1] + estimates[n / 2]) / 2) : null;
+  const base = {samples: n, excluded_not_real_time: excluded, median_minutes: median === null ? null : Math.round(median * 10) / 10,
+    min_minutes: n ? Math.round(estimates[0] * 10) / 10 : null, max_minutes: n ? Math.round(estimates[n - 1] * 10) / 10 : null};
+  if (n < minSamples) return {...base, status: 'INSUFFICIENT', offset_minutes: null};
+  if (estimates[n - 1] - estimates[0] > maxSpread) return {...base, status: 'INCONSISTENT', offset_minutes: null};
+  return {...base, status: 'MEASURED', offset_minutes: Math.round(median / roundTo) * roundTo};
+}
+
+// Decision for one cycle. observations: newest first, each {status, offset_minutes, observed_at}. Verified only when the
+// newest usable measurement (MEASURED) is fresh and equals the configured offset; any newer mismatch holds the cycle.
+export function tzDecision({observations, configuredOffset, now, maxAgeMinutes = 360}) {
+  const usable = (observations || []).find(o => o.status === 'MEASURED');
+  if (!usable) return {verified: false, offset: null, reason: 'no_measurement'};
+  const ageMin = (now - new Date(usable.observed_at)) / 60000;
+  if (Number(usable.offset_minutes) !== Number(configuredOffset)) {
+    return {verified: false, offset: null, reason: 'mismatch', measured: Number(usable.offset_minutes), configured: Number(configuredOffset)};
+  }
+  if (ageMin > maxAgeMinutes) return {verified: false, offset: null, reason: 'stale', age_minutes: Math.round(ageMin)};
+  return {verified: true, offset: Number(configuredOffset), reason: 'agree', age_minutes: Math.round(ageMin)};
+}
