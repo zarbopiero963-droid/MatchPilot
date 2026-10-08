@@ -166,11 +166,14 @@ export function pitSummary(rows, {kickoffUtc, asOf}) {
 // TotalCorner timestamps are provider-local. UTC+2 was measured on 08/10/2026, but it is not assumed forever (DST,
 // provider change). Every prematch cycle relies on a fresh, persisted measurement: first-half in-play rows give
 // offset ~= start_as_utc - (acquired_at - minute). The configured offset is used only while a measurement agrees.
-export const TZ_GATE_VERSION = 'tc-tz-gate-v1';
+export const TZ_GATE_VERSION = 'tc-tz-gate-v2';
 const NOT_REAL_TIME = /e-?soccer|cyber|virtual|mins? play|e-?football|fifa|pes\b/i;
 
 // samples: [{row, acquiredAt}] — each list row with the acquisition time of the page it came from.
-export function measureProviderOffset(samples, {roundTo = 15, maxSpread = 20, minSamples = 2} = {}) {
+// Robust to outliers (a late kickoff, a stale minute): the estimate is the median of the inliers within `tolerance`
+// minutes of the overall median, and it is accepted only when the inliers are at least `minSamples` and at least
+// `minInlierShare` of all samples. Real list of 08/10 15:41: 20 samples, median 118.7, one outlier at 93.7.
+export function measureProviderOffset(samples, {roundTo = 15, tolerance = 10, minSamples = 2, minInlierShare = 0.6} = {}) {
   const estimates = [];
   let excluded = 0;
   for (const {row: r, acquiredAt} of Array.isArray(samples) ? samples : []) {
@@ -186,14 +189,18 @@ export function measureProviderOffset(samples, {roundTo = 15, maxSpread = 20, mi
     if (Number.isNaN(startAsUtc)) continue;
     estimates.push((startAsUtc - (acquiredAt.getTime() - minute * 60000)) / 60000);
   }
-  estimates.sort((a, b) => a - b);
+  const median = xs => { const a = [...xs].sort((x, y) => x - y); const n = a.length;
+    return n ? (n % 2 ? a[(n - 1) / 2] : (a[n / 2 - 1] + a[n / 2]) / 2) : null; };
+  const r1 = v => (v === null ? null : Math.round(v * 10) / 10);
   const n = estimates.length;
-  const median = n ? (n % 2 ? estimates[(n - 1) / 2] : (estimates[n / 2 - 1] + estimates[n / 2]) / 2) : null;
-  const base = {samples: n, excluded_not_real_time: excluded, median_minutes: median === null ? null : Math.round(median * 10) / 10,
-    min_minutes: n ? Math.round(estimates[0] * 10) / 10 : null, max_minutes: n ? Math.round(estimates[n - 1] * 10) / 10 : null};
-  if (n < minSamples) return {...base, status: 'INSUFFICIENT', offset_minutes: null};
-  if (estimates[n - 1] - estimates[0] > maxSpread) return {...base, status: 'INCONSISTENT', offset_minutes: null};
-  return {...base, status: 'MEASURED', offset_minutes: Math.round(median / roundTo) * roundTo};
+  const m0 = median(estimates);
+  const inliers = n ? estimates.filter(v => Math.abs(v - m0) <= tolerance) : [];
+  const mi = median(inliers);
+  const base = {samples: n, inliers: inliers.length, excluded_not_real_time: excluded, median_minutes: r1(mi ?? m0),
+    min_minutes: n ? r1(Math.min(...estimates)) : null, max_minutes: n ? r1(Math.max(...estimates)) : null};
+  if (inliers.length < minSamples) return {...base, status: n < minSamples ? 'INSUFFICIENT' : 'INCONSISTENT', offset_minutes: null};
+  if (inliers.length < minInlierShare * n) return {...base, status: 'INCONSISTENT', offset_minutes: null};
+  return {...base, status: 'MEASURED', offset_minutes: Math.round(mi / roundTo) * roundTo};
 }
 
 // Measure again when there is no fresh MEASURED observation (older than checkMinutes) and the last attempt of any kind
