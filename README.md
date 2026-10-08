@@ -894,6 +894,39 @@ Stato: **IMPLEMENTED, TESTED**. **HARD VERIFIED REAL: in corso** (evidenza nella
 - una partita si accoppia solo con una lega TotalCorner della stessa categoria: senior, youth (U15–U23), reserve o women;
 - le pagine di calendario dei giorni passati da almeno due giorni si rileggono **cache-first** dal raw salvato. Ogni lettura da cache è registrata nel ledger come `cache_hit`, senza nuove richieste upstream.
 
+### TC-CORE-03 — mercati, linee e PIT pre-match (#104)
+
+Stato: **IMPLEMENTED, TESTED**. **HARD VERIFIED REAL: in corso** (evidenza nella #20).
+
+- **Migrazione** `023-tc-prematch.sql`:
+  - `tc_matches`: le partite delle sole leghe con mapping **VERIFIED**. Per ognuna l'orario provider, l'offset usato, `kickoff_utc` e il collegamento alla competizione FPT;
+  - `tc_prematch_snapshots`: una riga per ogni acquisizione fatta prima del kickoff. Il vincolo `CHECK (acquired_at < kickoff_utc)` rende impossibile salvare come PREMATCH uno snapshot preso al kickoff o dopo;
+  - `tc_market_rows`: righe di mercato normalizzate, ognuna salvata una sola volta (`UNIQUE` su partita, sorgente, mercato, periodo, tipo e hash della riga). Le righe già note aggiornano solo `last_acquired_at` e `seen_count`;
+  - `tc_prematch_runs`.
+- **Fonti** (`src/providers/totalcorner/prematch.mjs`):
+  - `/match/odds`: lo storico movimenti di TotalCorner, con fonte `consensus`. Mercati 1X2, Asian Handicap, Goal Line, Corner Line e BTTS, sia FT sia HT, con linea, quote, orario provider e punteggio della riga;
+  - `/match/bookmaker_odds`: le quote open, close e inplay per bookmaker, con fonte `bookmaker:<slug>`.
+- **Regola PIT.** Una riga è PREMATCH solo se non ha il minuto in-play e il suo orario provider, convertito in UTC, è **strettamente prima** del kickoff schedulato. Le altre righe non entrano mai nel PREMATCH:
+  - INPLAY: righe con il minuto, e tutte le quote `inplay` dei bookmaker;
+  - QUARANTINE con motivo: righe senza minuto ma con orario uguale o successivo al kickoff (dato reale: righe `minute=null` a 00:13 su un kickoff alle 00:00, e `close` dei bookmaker a kickoff+30 s), oppure righe con orario illeggibile.
+- **Provenance:**
+  - `PREMATCH_CAPTURED`: la riga è stata acquisita da MatchPilot prima del kickoff;
+  - `HISTORICAL_UPSTREAM`: la riga è pre-kickoff ma è stata acquisita dopo, dallo storico del provider;
+  - `LIVE_UPSTREAM`: la riga è in-play.
+- **Collector** (`src/jobs/totalcorner-prematch.mjs`):
+  - ogni `TOTALCORNER_PREMATCH_INTERVAL_MS` (default 5 min) legge la lista `upcoming` e tiene solo le leghe VERIFIED con kickoff entro `TOTALCORNER_PREMATCH_HORIZON_HOURS` (default 36);
+  - scarica `/match/odds` con cadenza adattiva: ogni 180 min oltre 6 h dal kickoff, 60 min tra 1 e 6 h, 15 min nell'ultima ora, 5 min negli ultimi 15 minuti. Dopo il kickoff non scarica più;
+  - scarica `/match/bookmaker_odds` ogni 360, 120 o 30 minuti con le stesse fasce;
+  - usa lo stesso rate limiter condiviso e un advisory lock. Se il token risulta non valido o scaduto (`auth`), sospende i cicli per `TOTALCORNER_AUTH_PAUSE_MS` (default 30 min). Si disattiva con `TOTALCORNER_PREMATCH_ENABLED=false`.
+- **Replay dal raw.** Un replay una tantum per versione (`tc-core-03-v1`) normalizza le risposte `/match/odds` e `/match/bookmaker_odds` già salvate dalla discovery e dal mapping, solo per le leghe VERIFIED e senza richieste upstream.
+- **API di sola lettura:**
+  - `GET /api/tc/prematch`: run, conteggi per fase, fonte e mercato, quarantena, provenance e audit di leakage. Il leakage comprende righe PREMATCH al o dopo il kickoff, snapshot al o dopo il kickoff, duplicati e partite fuori dalle leghe VERIFIED; tutti questi contatori devono essere 0;
+  - `GET /api/tc/prematch/match?id=&as_of=&knowledge=provider|captured`: per ogni fonte, mercato e periodo, l'apertura e l'ultima quota nota a `as_of` e strettamente prima del kickoff. Con `knowledge=captured` conta solo ciò che MatchPilot aveva già acquisito a `as_of`.
+- **Limiti noti:**
+  - il kickoff è quello schedulato. Un ritardo d'inizio reale finisce in QUARANTINE, non in PREMATCH;
+  - l'offset del fuso del provider è fisso (UTC+2 misurato l'08/10), configurabile; un eventuale cambio d'ora del provider va rimisurato;
+  - la membership TotalCorner scade l'11/10/2026 15:20:27 Europe/Rome.
+
 
 ## Chiusura delle issue
 
