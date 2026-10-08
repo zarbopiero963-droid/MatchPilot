@@ -2,7 +2,7 @@
 // A competition is VERIFIED only when enough FPT fixtures are found in one TotalCorner league on the same dates
 // with matching teams, the pairing is unique in both directions, and the evidence is persisted.
 
-export const MAPPING_METHOD = 'fixture-overlap-v1';
+export const MAPPING_METHOD = 'fixture-overlap-v2';
 export const THRESHOLDS = Object.freeze({minMatched: 3, minCoverage: 0.5, maxRunnerUpRatio: 0.25, pairAvg: 0.6, pairMin: 0.34, dateToleranceDays: 1});
 
 const STOP = new Set(['fc', 'cf', 'sc', 'ac', 'afc', 'cd', 'sd', 'ud', 'club', 'de', 'da', 'do', 'del', 'the', 'fk', 'sk', 'nk', 'if', 'bk',
@@ -38,6 +38,17 @@ export function similarity(a, b) {
   return Math.max(jaccard, dice);
 }
 
+// Team category of a competition name: youth, reserve and women sides reuse the senior club names, so a fixture may
+// only pair inside the same category (run 1: Liga MX vs Mexico U21, Super Lig vs Turkiye U19).
+export function categoryOf(name) {
+  const s = String(name ?? '');
+  // Gender and age are independent: a women's U19 league must not pair with a men's U19 league.
+  const women = /women|womens|female|feminin|femenin|frauen|ladies|nwsl|\bwsl\b|liga-f\b|\bliga f\b/i.test(s);
+  const age = /\bU-?(1[5-9]|2[0-3])\b|youth|junior|primavera|juvenil|sub-?(1[5-9]|2[0-3])\b/i.test(s) ? 'youth'
+    : /\breserves?\b|\breserva\b/i.test(s) ? 'reserve' : 'senior';
+  return women ? (age === 'senior' ? 'women' : `women-${age}`) : age;
+}
+
 const dayNum = iso => Math.floor(Date.parse(String(iso).slice(0, 10) + 'T00:00:00Z') / 86400000);
 
 // TotalCorner `start` is provider-local (UTC+2 observed on 08/10); the UTC date is start - offset.
@@ -51,6 +62,7 @@ export function tcUtcDate(start, offsetMinutes) {
 export function pairFixtures(fpt, tc, t = THRESHOLDS) {
   const byDay = new Map();
   for (const m of tc) {
+    m.category ??= categoryOf(m.league_name);
     const d = dayNum(m.date);
     if (!byDay.has(d)) byDay.set(d, []);
     byDay.get(d).push({...m, hk: teamKey(m.home), ak: teamKey(m.away)});
@@ -58,10 +70,12 @@ export function pairFixtures(fpt, tc, t = THRESHOLDS) {
   const pairs = [];
   for (const f of fpt) {
     const hk = teamKey(f.home), ak = teamKey(f.away), d = dayNum(f.date);
+    const category = f.category ?? categoryOf(f.league_key);
     // Best candidate per TotalCorner league: a fixture found in two leagues counts for both, so competition is visible.
     const perLeague = new Map();
     for (let k = -t.dateToleranceDays; k <= t.dateToleranceDays; k++) {
       for (const m of byDay.get(d + k) || []) {
+        if (m.category !== category) continue;
         const sh = similarity(hk, m.hk), sa = similarity(ak, m.ak);
         const avg = (sh + sa) / 2;
         if (avg < t.pairAvg || Math.min(sh, sa) < t.pairMin) continue;
