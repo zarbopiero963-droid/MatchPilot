@@ -1,14 +1,18 @@
 import { withClient } from '../db.mjs';
 import { createTcClient, createPgStore, redactSecrets, sharedLimiter } from '../providers/totalcorner/client.mjs';
-import { PREMATCH_PARSER_VERSION, bookmakerIntervalMinutes, isDue, matchIdentity, normalizeBookmakerRows, normalizeOddsRows,
-  pitSummary } from '../providers/totalcorner/prematch.mjs';
+import { PREMATCH_PARSER_VERSION, TZ_GATE_VERSION, bookmakerIntervalMinutes, isDue, matchIdentity, measureProviderOffset,
+  normalizeBookmakerRows, normalizeOddsRows, pitSummary, tzDecision, tzNeedsMeasure } from '../providers/totalcorner/prematch.mjs';
 import { LIST_COLUMNS, ODDS_COLUMNS } from './totalcorner-discovery.mjs';
 
 // TC-CORE-03 (#20): prematch market mirror for fixtures of VERIFIED competitions only. A cycle reads the upcoming list,
 // takes /match/odds (and, less often, /match/bookmaker_odds) snapshots on an adaptive cadence before kickoff and stores
 // every movement row once with its point-in-time phase. A one-shot replay normalizes the raw bodies already acquired.
 
-export const PREMATCH_VERSION = 'tc-core-03-v1';
+// v2: cycles run only behind the provider timezone gate. The raw replay keeps its own version so a deploy does not
+// replay (and re-snapshot) the discovery/mapping bodies a second time.
+export const PREMATCH_VERSION = 'tc-core-03-v2';
+export const PREMATCH_REPLAY_VERSION = 'tc-core-03-v1';
+const TZ_MAX_PAGES = 3;
 export const TC_PREMATCH_LOCK = 76420322;
 const MAX_LIST_PAGES = 30;
 
@@ -20,7 +24,10 @@ export function prematchConfig(env = process.env) {
     tzOffsetMinutes: Number(env.TOTALCORNER_TZ_OFFSET_MINUTES || 120),
     horizonHours: Math.max(1, Math.min(72, Number(env.TOTALCORNER_PREMATCH_HORIZON_HOURS || 36))),
     maxMatchesPerCycle: Math.max(1, Math.min(200, Number(env.TOTALCORNER_PREMATCH_MAX_MATCHES || 60))),
-    authPauseMs: Math.max(60000, Number(env.TOTALCORNER_AUTH_PAUSE_MS || 1800000))
+    authPauseMs: Math.max(60000, Number(env.TOTALCORNER_AUTH_PAUSE_MS || 1800000)),
+    // How often the provider offset is re-measured, and how old the last agreeing measurement may be.
+    tzCheckMinutes: Math.max(5, Math.min(180, Number(env.TOTALCORNER_TZ_CHECK_MINUTES || 30))),
+    tzMaxAgeMinutes: Math.max(30, Math.min(720, Number(env.TOTALCORNER_TZ_MAX_AGE_MINUTES || 360)))
   };
 }
 
@@ -31,16 +38,17 @@ export async function verifiedLeagues(db) {
   return new Map(r.rows.map(x => [String(x.totalcorner_league_id), x]));
 }
 
-export async function upsertMatch(db, m, mapping, seenAt) {
+export async function upsertMatch(db, m, mapping, seenAt, tzObservationId = null) {
   await db.query(
     `INSERT INTO tc_matches(match_id,league_id,league_name,home,home_id,away,away_id,start_provider,tz_offset_minutes,kickoff_utc,
-       futpython_country_slug,futpython_league_slug,last_status,first_seen_at,last_seen_at)
-     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$14)
+       futpython_country_slug,futpython_league_slug,last_status,first_seen_at,last_seen_at,tz_observation_id)
+     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$14,$15)
      ON CONFLICT (match_id) DO UPDATE SET league_name=EXCLUDED.league_name, home=EXCLUDED.home, away=EXCLUDED.away,
        start_provider=EXCLUDED.start_provider, tz_offset_minutes=EXCLUDED.tz_offset_minutes, kickoff_utc=EXCLUDED.kickoff_utc,
-       last_status=EXCLUDED.last_status, last_seen_at=GREATEST(tc_matches.last_seen_at, EXCLUDED.last_seen_at)`,
+       last_status=EXCLUDED.last_status, last_seen_at=GREATEST(tc_matches.last_seen_at, EXCLUDED.last_seen_at),
+       tz_observation_id=COALESCE(EXCLUDED.tz_observation_id, tc_matches.tz_observation_id)`,
     [m.match_id, m.league_id, m.league_name, m.home, m.home_id, m.away, m.away_id, m.start_provider, m.tz_offset_minutes, m.kickoff_utc,
-      mapping?.futpython_country_slug ?? null, mapping?.futpython_league_slug ?? null, m.last_status, seenAt]);
+      mapping?.futpython_country_slug ?? null, mapping?.futpython_league_slug ?? null, m.last_status, seenAt, tzObservationId]);
 }
 
 // One statement per body: rows already stored only bump last_acquired_at/seen_count; phase and provenance stay those
@@ -83,11 +91,11 @@ async function insertSnapshot(db, {matchId, runId, source, acquiredAt, kickoffUt
 }
 
 // Normalize one acquired body (odds or bookmaker) and record the snapshot when it was taken before kickoff.
-export async function ingestBody(db, {source, body, rawId, acquiredAt, offset, runId, mapping, snapshot = true}) {
+export async function ingestBody(db, {source, body, rawId, acquiredAt, offset, runId, mapping, snapshot = true, tzObservationId = null}) {
   const record = rowsOf(body)[0];
   const m = matchIdentity(record, offset);
   if (!m) return {skipped: 'no_identity'};
-  await upsertMatch(db, m, mapping, acquiredAt);
+  await upsertMatch(db, m, mapping, acquiredAt, tzObservationId);
   const ctx = {offset, kickoffUtc: m.kickoff_utc, acquiredAt};
   const rows = source === 'match_odds' ? normalizeOddsRows(record, ctx) : normalizeBookmakerRows(record, ctx);
   const counts = await storeRows(db, {matchId: m.match_id, rows, rawId, acquiredAt});
@@ -97,6 +105,52 @@ export async function ingestBody(db, {source, body, rawId, acquiredAt, offset, r
 }
 
 const bump = (o, k, n = 1) => { o[k] = (o[k] || 0) + n; };
+
+async function recentTzObservations(db) {
+  const r = await db.query(`SELECT observation_id, observed_at, status, offset_minutes FROM tc_tz_observations ORDER BY observed_at DESC, observation_id DESC LIMIT 20`);
+  return r.rows.map(x => ({...x, observation_id: Number(x.observation_id)}));
+}
+
+// Measure the provider offset from the in-play list when no MEASURED observation is fresher than tzCheckMinutes, persist it,
+// and decide whether this cycle may normalize. One to TZ_MAX_PAGES list calls per check, on the shared limiter.
+export async function providerTzGate({db, call, config, now}) {
+  let observations = await recentTzObservations(db);
+  const t = now();
+  let measuredNow = null;
+  if (tzNeedsMeasure({observations, now: t, checkMinutes: config.tzCheckMinutes, retryMinutes: Math.min(config.tzCheckMinutes, 5)})) {
+    const rows = [];
+    const rawIds = [];
+    let acquiredAt = null;
+    let auth = false;
+    for (let page = 1; page <= TZ_MAX_PAGES; page++) {
+      const r = await call('tz_inplay_list', '/match/today', {type: 'inplay', page}, {phase: 'LIVE'});
+      if (r.outcome === 'auth') { auth = true; break; }
+      if (r.outcome !== 'ok') break;
+      if (r.raw_id) rawIds.push(Number(r.raw_id));
+      acquiredAt ||= r.acquired_at;
+      // Each page is measured against its own acquisition time.
+      for (const row of rowsOf(r.body)) rows.push({row, at: r.acquired_at instanceof Date ? r.acquired_at : new Date(r.acquired_at)});
+      const pg = r.body?.pagination;
+      if (!pg || Number(pg.current) !== page || pg.next === false || pg.next === 'false') break;
+    }
+    if (auth) return {verified: false, offset: null, reason: 'auth', auth_failed: true};
+    const m = rows.length
+      ? measureProviderOffset(rows.map(x => ({row: x.row, acquiredAt: x.at})))
+      : {status: 'UNAVAILABLE', samples: 0, excluded_not_real_time: 0, median_minutes: null, min_minutes: null, max_minutes: null, offset_minutes: null};
+    const ins = await db.query(
+      `INSERT INTO tc_tz_observations(observed_at,gate_version,status,samples,excluded_not_real_time,median_minutes,min_minutes,max_minutes,
+         offset_minutes,configured_offset_minutes,agrees,raw_ids)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING observation_id`,
+      [acquiredAt || t, TZ_GATE_VERSION, m.status, m.samples, m.excluded_not_real_time, m.median_minutes, m.min_minutes, m.max_minutes,
+        m.offset_minutes, config.tzOffsetMinutes, m.status === 'MEASURED' ? m.offset_minutes === config.tzOffsetMinutes : null, rawIds]);
+    measuredNow = {...m, observation_id: Number(ins.rows[0].observation_id)};
+    observations = await recentTzObservations(db);
+  }
+  const d = tzDecision({observations, configuredOffset: config.tzOffsetMinutes, now: t, maxAgeMinutes: config.tzMaxAgeMinutes});
+  const basis = observations.find(o => o.status === 'MEASURED');
+  return {...d, observation_id: basis?.observation_id ?? null, measured_now: measuredNow};
+}
+
 
 export async function runPrematchCycle({tc, db, config = prematchConfig(), now = () => new Date(), log = console.log}) {
   const run = await db.query(`INSERT INTO tc_prematch_runs(kind,version,status) VALUES('cycle',$1,'running') RETURNING run_id`, [PREMATCH_VERSION]);
@@ -109,6 +163,18 @@ export async function runPrematchCycle({tc, db, config = prematchConfig(), now =
     return r;
   };
   try {
+    const tz = await providerTzGate({db, call, config, now});
+    if (tz.observation_id) await db.query(`UPDATE tc_prematch_runs SET tz_observation_id=$2 WHERE run_id=$1`, [runId, tz.observation_id]);
+    if (!tz.verified) {
+      // Fail closed: no normalization and no snapshot under an unverified offset. Movement history stays available
+      // upstream (HISTORICAL_UPSTREAM) and can be acquired once the offset is verified again.
+      const summary = {version: PREMATCH_VERSION, tz_gate: TZ_GATE_VERSION, run_id: runId, tz_hold: true, tz, auth_failed: Boolean(tz.auth_failed), outcomes};
+      await db.query(`UPDATE tc_prematch_runs SET status=$2, finished_at=now(), summary=$3 WHERE run_id=$1`,
+        [runId, tz.auth_failed ? 'failed' : 'complete', JSON.stringify(summary)]);
+      log('TC_PREMATCH_TZ_HOLD ' + JSON.stringify(summary));
+      return summary;
+    }
+    const offset = tz.offset;
     const leagues = await verifiedLeagues(db);
     const upcoming = [];
     let authFailed = false;
@@ -125,9 +191,9 @@ export async function runPrematchCycle({tc, db, config = prematchConfig(), now =
     for (const row of upcoming) {
       const mapping = leagues.get(String(row?.l_id));
       if (!mapping) continue;
-      const m = matchIdentity(row, config.tzOffsetMinutes);
+      const m = matchIdentity(row, offset);
       if (!m || m.kickoff_utc <= t0 || m.kickoff_utc.getTime() > horizon) continue;
-      await upsertMatch(db, m, mapping, t0);
+      await upsertMatch(db, m, mapping, t0, tz.observation_id);
       candidates.push({m, mapping});
     }
     const last = await db.query(
@@ -145,7 +211,7 @@ export async function runPrematchCycle({tc, db, config = prematchConfig(), now =
       if (odds.outcome === 'auth') { authFailed = true; break; }
       if (odds.outcome === 'ok') {
         const res = await ingestBody(db, {source: 'match_odds', body: odds.body, rawId: odds.raw_id, acquiredAt: odds.acquired_at,
-          offset: config.tzOffsetMinutes, runId, mapping});
+          offset, runId, mapping, tzObservationId: tz.observation_id});
         if (res.snapshot) totals.snapshots++;
         if (res.late) totals.late++;
         if (res.counts) { totals.rows_new += res.counts.new; for (const k of ['PREMATCH', 'INPLAY', 'QUARANTINE']) totals[k] += res.counts[k]; }
@@ -156,13 +222,15 @@ export async function runPrematchCycle({tc, db, config = prematchConfig(), now =
       if (bm.outcome === 'auth') { authFailed = true; break; }
       if (bm.outcome === 'ok') {
         const res = await ingestBody(db, {source: 'bookmaker_odds', body: bm.body, rawId: bm.raw_id, acquiredAt: bm.acquired_at,
-          offset: config.tzOffsetMinutes, runId, mapping});
+          offset, runId, mapping, tzObservationId: tz.observation_id});
         if (res.snapshot) totals.snapshots++;
         if (res.late) totals.late++;
         if (res.counts) { totals.rows_new += res.counts.new; for (const k of ['PREMATCH', 'INPLAY', 'QUARANTINE']) totals[k] += res.counts[k]; }
       }
     }
-    const summary = {version: PREMATCH_VERSION, run_id: runId, upcoming: upcoming.length, verified_upcoming: candidates.length,
+    const summary = {version: PREMATCH_VERSION, tz_gate: TZ_GATE_VERSION, tz: {reason: tz.reason, offset, observation_id: tz.observation_id,
+      measured_now: tz.measured_now ? {status: tz.measured_now.status, samples: tz.measured_now.samples, offset_minutes: tz.measured_now.offset_minutes} : null},
+      run_id: runId, upcoming: upcoming.length, verified_upcoming: candidates.length,
       verified_leagues_upcoming: new Set(candidates.map(c => c.m.league_id)).size, due: due.length, ...totals, auth_failed: authFailed, outcomes};
     await db.query(`UPDATE tc_prematch_runs SET status=$2, finished_at=now(), summary=$3 WHERE run_id=$1`,
       [runId, authFailed ? 'failed' : 'complete', JSON.stringify(summary)]);
@@ -177,7 +245,7 @@ export async function runPrematchCycle({tc, db, config = prematchConfig(), now =
 // One-shot: normalize the /match/odds and /match/bookmaker_odds raw bodies already stored by discovery/mapping, for
 // VERIFIED leagues only. No upstream call.
 export async function runPrematchRawReplay({db, config = prematchConfig(), log = console.log}) {
-  const run = await db.query(`INSERT INTO tc_prematch_runs(kind,version,status) VALUES('raw_replay',$1,'running') RETURNING run_id`, [PREMATCH_VERSION]);
+  const run = await db.query(`INSERT INTO tc_prematch_runs(kind,version,status) VALUES('raw_replay',$1,'running') RETURNING run_id`, [PREMATCH_REPLAY_VERSION]);
   const runId = Number(run.rows[0].run_id);
   try {
     const leagues = await verifiedLeagues(db);
@@ -194,6 +262,8 @@ export async function runPrematchRawReplay({db, config = prematchConfig(), log =
       if (!mapping) { stats.skipped_unverified++; continue; }
       const source = raw.endpoint_family.endsWith('bookmaker_odds') ? 'bookmaker_odds' : 'match_odds';
       const res = await ingestBody(db, {source, body, rawId: Number(raw.raw_id), acquiredAt: new Date(raw.first_acquired_at),
+        // Historical bodies: the live timezone gate cannot vouch for past dates (tz_observation_id stays NULL); the
+        // per-date offset of historical upstream data is verified by the historical backfill card, not assumed here.
         offset: config.tzOffsetMinutes, runId, mapping});
       if (res.skipped) { stats.skipped_no_identity++; continue; }
       stats.ingested++;
@@ -202,7 +272,7 @@ export async function runPrematchRawReplay({db, config = prematchConfig(), log =
       stats.rows_new += res.counts.new;
       for (const k of ['PREMATCH', 'INPLAY', 'QUARANTINE']) stats[k] += res.counts[k];
     }
-    const summary = {version: PREMATCH_VERSION, run_id: runId, ...stats, matches: stats.matches.size, leagues: stats.leagues.size};
+    const summary = {version: PREMATCH_REPLAY_VERSION, run_id: runId, ...stats, matches: stats.matches.size, leagues: stats.leagues.size};
     await db.query(`UPDATE tc_prematch_runs SET status='complete', finished_at=now(), summary=$2 WHERE run_id=$1`, [runId, JSON.stringify(summary)]);
     log('TC_PREMATCH_REPLAY ' + JSON.stringify(summary));
     return summary;
@@ -232,7 +302,7 @@ export async function maybeStartTcPrematch({env = process.env, log = console.log
   const config = prematchConfig(env);
   await guarded(env, log, async db => {
     await db.query(`UPDATE tc_prematch_runs SET status='interrupted', finished_at=now() WHERE status='running'`);
-    const done = await db.query(`SELECT run_id FROM tc_prematch_runs WHERE kind='raw_replay' AND version=$1 AND status='complete' LIMIT 1`, [PREMATCH_VERSION]);
+    const done = await db.query(`SELECT run_id FROM tc_prematch_runs WHERE kind='raw_replay' AND version=$1 AND status='complete' LIMIT 1`, [PREMATCH_REPLAY_VERSION]);
     if (done.rowCount) return log('TC_PREMATCH_REPLAY_SKIPPED ' + JSON.stringify({reason: 'already_complete', run_id: Number(done.rows[0].run_id)}));
     return runPrematchRawReplay({db, config, log});
   });
@@ -260,7 +330,7 @@ export function stopTcPrematch() { if (timer) clearInterval(timer); timer = null
 
 export async function tcPrematchReport(db) {
   const q = async (sql, p = []) => (await db.query(sql, p)).rows;
-  const [runs, matches, snapshots, rows, quarantine, leakage, provenance] = await Promise.all([
+  const [runs, matches, snapshots, rows, quarantine, leakage, provenance, tz] = await Promise.all([
     q(`SELECT run_id, kind, version, status, started_at, finished_at, summary, error FROM tc_prematch_runs ORDER BY run_id DESC LIMIT 5`),
     q(`SELECT count(*)::int AS matches, count(DISTINCT league_id)::int AS leagues,
          count(*) FILTER (WHERE EXISTS (SELECT 1 FROM tc_prematch_snapshots s WHERE s.match_id=m.match_id))::int AS with_snapshot,
@@ -278,9 +348,12 @@ export async function tcPrematchReport(db) {
          (SELECT count(*) FROM (SELECT 1 FROM tc_market_rows GROUP BY match_id,source,market,period,kind,row_hash HAVING count(*)>1) d)::int AS duplicate_rows,
          (SELECT count(*) FROM tc_matches m WHERE NOT EXISTS (SELECT 1 FROM competition_mapping c WHERE c.active AND c.mapping_status='VERIFIED'
            AND c.totalcorner_league_id=m.league_id))::int AS matches_outside_verified`),
-    q(`SELECT provenance, phase, count(*)::int AS n FROM tc_market_rows GROUP BY 1,2 ORDER BY 1,2`)
+    q(`SELECT provenance, phase, count(*)::int AS n FROM tc_market_rows GROUP BY 1,2 ORDER BY 1,2`),
+    q(`SELECT observation_id, observed_at, gate_version, status, samples, excluded_not_real_time, median_minutes, min_minutes, max_minutes,
+         offset_minutes, configured_offset_minutes, agrees FROM tc_tz_observations ORDER BY observed_at DESC, observation_id DESC LIMIT 5`)
   ]);
-  return {version: PREMATCH_VERSION, runs, matches: matches[0], snapshots, rows, quarantine, leakage: leakage[0], provenance};
+  return {version: PREMATCH_VERSION, replay_version: PREMATCH_REPLAY_VERSION, tz_gate: TZ_GATE_VERSION, runs, matches: matches[0], snapshots, rows,
+    quarantine, leakage: leakage[0], provenance, tz_observations: tz};
 }
 
 // Point-in-time prematch view of one match. knowledge='provider' uses provider time only; 'captured' additionally
