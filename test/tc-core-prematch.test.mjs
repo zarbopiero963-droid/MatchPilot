@@ -277,6 +277,15 @@ test('provider offset is measured from first-half real-time rows, rounded, and r
   assert.equal(measureProviderOffset([]).status, 'INSUFFICIENT');
   const wide = [{l: 'A', start: '2026-10-08 11:30:00', status: '39'}, {l: 'B', start: '2026-10-08 12:30:00', status: '20'}];
   assert.equal(measureProviderOffset(wide.map(row => ({row, acquiredAt: at}))).status, 'INCONSISTENT');
+  // Real shape of 08/10 15:41 UTC+2: many agreeing rows and one late kickoff (93.7) — the outlier is ignored.
+  const many = [...Array(19)].map((_, i) => ({l: 'L' + i, start: '2026-10-08 11:30:00', status: String(38 + (i % 3))}))
+    .concat([{l: 'Late', start: '2026-10-08 11:05:00', status: '39'}]);
+  const mm = measureProviderOffset(many.map(row => ({row, acquiredAt: at})));
+  assert.deepEqual([mm.status, mm.samples, mm.inliers, mm.offset_minutes, mm.min_minutes], ['MEASURED', 20, 19, 120, 94.3]);
+  // No clear majority: two camps one hour apart are not a measurement.
+  const split = [...Array(4)].map(() => ({l: 'A', start: '2026-10-08 11:30:00', status: '39'}))
+    .concat([...Array(4)].map(() => ({l: 'B', start: '2026-10-08 10:30:00', status: '39'})));
+  assert.equal(measureProviderOffset(split.map(row => ({row, acquiredAt: at}))).status, 'INCONSISTENT');
   // Same rows read in winter at UTC+1 would round to 60, never silently to 120.
   const winter = [{l: 'A', start: '2026-10-08 10:30:00', status: '39'}, {l: 'B', start: '2026-10-08 10:45:00', status: '23'}];
   assert.equal(measureProviderOffset(winter.map(row => ({row, acquiredAt: at}))).offset_minutes, 60);

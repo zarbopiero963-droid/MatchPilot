@@ -136,13 +136,13 @@ export async function providerTzGate({db, call, config, now}) {
     if (auth) return {verified: false, offset: null, reason: 'auth', auth_failed: true};
     const m = rows.length
       ? measureProviderOffset(rows.map(x => ({row: x.row, acquiredAt: x.at})))
-      : {status: 'UNAVAILABLE', samples: 0, excluded_not_real_time: 0, median_minutes: null, min_minutes: null, max_minutes: null, offset_minutes: null};
+      : {status: 'UNAVAILABLE', samples: 0, inliers: 0, excluded_not_real_time: 0, median_minutes: null, min_minutes: null, max_minutes: null, offset_minutes: null};
     const ins = await db.query(
       `INSERT INTO tc_tz_observations(observed_at,gate_version,status,samples,excluded_not_real_time,median_minutes,min_minutes,max_minutes,
-         offset_minutes,configured_offset_minutes,agrees,raw_ids)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING observation_id`,
+         offset_minutes,configured_offset_minutes,agrees,raw_ids,inliers)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING observation_id`,
       [acquiredAt || t, TZ_GATE_VERSION, m.status, m.samples, m.excluded_not_real_time, m.median_minutes, m.min_minutes, m.max_minutes,
-        m.offset_minutes, config.tzOffsetMinutes, m.status === 'MEASURED' ? m.offset_minutes === config.tzOffsetMinutes : null, rawIds]);
+        m.offset_minutes, config.tzOffsetMinutes, m.status === 'MEASURED' ? m.offset_minutes === config.tzOffsetMinutes : null, rawIds, m.inliers ?? 0]);
     measuredNow = {...m, observation_id: Number(ins.rows[0].observation_id)};
     observations = await recentTzObservations(db);
   }
@@ -349,7 +349,7 @@ export async function tcPrematchReport(db) {
          (SELECT count(*) FROM tc_matches m WHERE NOT EXISTS (SELECT 1 FROM competition_mapping c WHERE c.active AND c.mapping_status='VERIFIED'
            AND c.totalcorner_league_id=m.league_id))::int AS matches_outside_verified`),
     q(`SELECT provenance, phase, count(*)::int AS n FROM tc_market_rows GROUP BY 1,2 ORDER BY 1,2`),
-    q(`SELECT observation_id, observed_at, gate_version, status, samples, excluded_not_real_time, median_minutes, min_minutes, max_minutes,
+    q(`SELECT observation_id, observed_at, gate_version, status, samples, inliers, excluded_not_real_time, median_minutes, min_minutes, max_minutes,
          offset_minutes, configured_offset_minutes, agrees FROM tc_tz_observations ORDER BY observed_at DESC, observation_id DESC LIMIT 5`)
   ]);
   return {version: PREMATCH_VERSION, replay_version: PREMATCH_REPLAY_VERSION, tz_gate: TZ_GATE_VERSION, runs, matches: matches[0], snapshots, rows,
