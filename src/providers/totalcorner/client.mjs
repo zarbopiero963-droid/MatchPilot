@@ -49,6 +49,13 @@ export function createLimiter({maxRequests, windowMs, now = () => Date.now(), sl
   };
 }
 
+// One limiter per process: every TotalCorner job shares the same upstream window.
+let shared = null;
+export function sharedLimiter(env = process.env) {
+  if (!shared) shared = createLimiter(limiterConfig(env));
+  return shared;
+}
+
 // Wait after a rate limit: retry-after first, else x-rate-limit-reset (seconds left, as observed 04/10, or an epoch);
 // never below 10 s nor above 120 s so a malformed header cannot freeze the shared limiter.
 export function rateLimitBackoffMs(rate, nowMs = Date.now()) {

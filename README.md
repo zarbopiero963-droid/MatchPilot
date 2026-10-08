@@ -855,6 +855,35 @@ Stato: **IMPLEMENTED, TESTED**. **HARD VERIFIED REAL: in corso** (evidenza del r
 - **NULL e assenze.** Un NULL non significa assenza upstream: le liste vengono confrontate con il dettaglio, e nessun campo è dichiarato assente sulla base di un solo endpoint.
 - **API di sola lettura:** `GET /api/tc/discovery` e `GET /api/tc/schema-registry?endpoint_family=&phase=`.
 
+**Evidenza reale TC-CORE-01** (run 1, 08/10/2026, nella #20). Esito: **PASS WITH KNOWN LIMITATIONS**.
+- 100 richieste, tutte `ok`, nessun 429; 100 risposte grezze, 1.346 righe di registry, nessun token.
+- `bookmaker_odds` ha restituito tutti i 18 bookmaker dichiarati (open, close, inplay e movimento per bookmaker).
+- I campi BTTS reali sono `p_btts`/`po_btts` nelle liste e `btts_list` in `/match/odds`.
+- I timestamp TotalCorner sono in **UTC+2**, non UTC.
+- Le liste sono paginate (30 righe per pagina).
+
+### TC-CORE-02 — mapping competizioni FPT ↔ TotalCorner (#104)
+
+Stato: **IMPLEMENTED, TESTED**. **HARD VERIFIED REAL: in corso** (evidenza nella #20).
+
+- **Migrazione** `022-tc-competition-mapping.sql`:
+  - `competition_mapping` con le colonne del contratto #20. Il vincolo `UNIQUE` su `(futpython_country_slug, futpython_league_slug)` e l'indice unico sulla lega TotalCorner per le righe VERIFIED attive impediscono i duplicati;
+  - `tc_competitions`: tutte le leghe TotalCorner viste, mappate o no; è la lista di quelle fuori sovrapposizione;
+  - `tc_mapping_runs`.
+- **Metodo `fixture-overlap-v1`** (`src/providers/totalcorner/mapping.mjs`). Il mapping si basa sulle partite reali, non sui nomi di lega:
+  - si prendono le date più ricche di partite FPT degli ultimi 30 giorni e si legge il calendario TotalCorner degli stessi giorni, tutte le pagine;
+  - la data TotalCorner viene convertita in UTC con l'offset misurato, configurabile con `TOTALCORNER_TZ_OFFSET_MINUTES`, default 120;
+  - una partita FPT e una TotalCorner si accoppiano se la data differisce di al massimo ±1 giorno e i nomi delle squadre sono simili: accenti, sigle di club e sinonimi normalizzati, similarità = max(Jaccard sulle parole, Dice sui trigrammi).
+- **Stati del mapping:**
+  - **VERIFIED**: almeno 3 partite accoppiate, almeno il 50% delle partite FPT coperte, la seconda lega TotalCorner candidata con al massimo il 25% delle partite della prima, e corrispondenza univoca anche nel verso TotalCorner → FPT;
+  - **AMBIGUOUS**: la stessa lega TotalCorner copre più competizioni FPT, ad esempio i gironi, oppure ci sono due candidate vicine;
+  - **CANDIDATE**: poche partite accoppiate;
+  - **UNMAPPED**, con il motivo: nessuna partita FPT nella finestra, oppure nessuna corrispondenza TotalCorner.
+  - Ogni stato salva l'evidenza: partite accoppiate (campione), coperture, seconda candidata e conflitti inversi.
+- **Uso nel core.** Solo le righe **VERIFIED** potranno alimentare i collector, nessuna promozione automatica fuori dalla sovrapposizione. Dopo il mapping, la discovery dei campi viene ripetuta sulle sole leghe VERIFIED (famiglie `verified_*`).
+- **Esecuzione.** Il job gira una sola volta per versione (`tc-core-02-v1`) dopo la discovery, sullo stesso rate limiter condiviso. Si disattiva con `TOTALCORNER_MAPPING_ON_BOOT=false`.
+- **API di sola lettura:** `GET /api/tc/mapping?status=`.
+
 
 ## Chiusura delle issue
 
