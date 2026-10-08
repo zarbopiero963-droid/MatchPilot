@@ -93,6 +93,30 @@ export function historicalAudit(record, oddsRecord, bookmakerRecord) {
   };
 }
 
+export const MOVEMENT_BOOKMAKERS = ['pinnacle', 'betfair', '1xbet', 'bwin', 'snai'];
+export const MOVEMENT_COLUMNS = ['oddsList', 'asianList', 'goalList', 'cornerList'];
+
+export function movementColumnsFor(bookmaker) {
+  return bookmaker === 'pinnacle' ? MOVEMENT_COLUMNS : ['asianList'];
+}
+
+export function expectedMovementKeys(bookmakers = MOVEMENT_BOOKMAKERS) {
+  return bookmakers.flatMap(bookmaker => movementColumnsFor(bookmaker).map(columns => `${bookmaker}:${columns}`));
+}
+
+// A match still needs movement work until every expected bookmaker/column probe exists.
+// Existing no_data probes count as done: they must not be repeated just because rows_seen is 0.
+export function matchesNeedingMovement(matchIds, existingKeysByMatch = {}, limit = 1) {
+  const needed = [];
+  const expected = expectedMovementKeys();
+  for (const id of matchIds) {
+    const have = new Set(existingKeysByMatch[String(id)] || []);
+    if (expected.some(key => !have.has(key))) needed.push(String(id));
+    if (needed.length >= limit) break;
+  }
+  return needed;
+}
+
 export function movementStats(body) {
   const match = rowsOf(body)[0] || {};
   // bookmaker movement is nested below data[0].bookmakers[0], while older discovery helpers

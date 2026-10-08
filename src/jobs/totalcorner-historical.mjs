@@ -3,6 +3,7 @@ import { createTcClient, createPgStore, redactSecrets, sharedLimiter } from '../
 import { LIST_COLUMNS, ODDS_COLUMNS, MOVEMENT_BOOKMAKERS, MOVEMENT_COLUMNS } from './totalcorner-discovery.mjs';
 import { ingestBody } from './totalcorner-prematch.mjs';
 import { HISTORICAL_VERSION, DEFAULT_PROVIDER_TIME_ZONE, historicalAudit, historicalZoneDecision,
+  expectedMovementKeys, matchesNeedingMovement, movementColumnsFor,
   movementStats, providerLocalToUtc, rowsOf, scheduleMatches, seasonKey } from '../providers/totalcorner/historical.mjs';
 
 // TC-CORE-03B (#20): resumable HISTORICAL_UPSTREAM backfill. Raw is lossless in tc_raw_responses;
@@ -18,6 +19,7 @@ export function historicalConfig(env = process.env) {
     sampleMatchesPerLeague: Math.max(4, Math.min(12, Number(env.TOTALCORNER_HISTORY_SAMPLE_MATCHES_PER_LEAGUE || 4))),
     batchLeagues: Math.max(1, Math.min(8, Number(env.TOTALCORNER_HISTORY_BATCH_LEAGUES || 2))),
     batchMatchesPerLeague: Math.max(1, Math.min(12, Number(env.TOTALCORNER_HISTORY_BATCH_MATCHES_PER_LEAGUE || 3))),
+    batchMovementMatches: Math.max(0, Math.min(4, Number(env.TOTALCORNER_HISTORY_BATCH_MOVEMENT_MATCHES || 1))),
     batchIntervalMs: Math.max(120000, Number(env.TOTALCORNER_HISTORY_BATCH_INTERVAL_MS || 600000)),
     maxAgeMinutes: Math.max(30, Math.min(720, Number(env.TOTALCORNER_TZ_MAX_AGE_MINUTES || 360)))
   };
@@ -229,9 +231,47 @@ async function repairMovementAuditFromRaw(db) {
   return {repaired,with_rows:withRows,no_data:noData,suspended_rows:suspended};
 }
 
+
+async function movementCatchUp(tc, db, runId, limit) {
+  if (!limit) return {targeted: 0, probed: 0};
+  const known = await db.query(
+    `SELECT a.match_id, a.acquired_at,
+            coalesce(array_agg(m.bookmaker || ':' || m.columns_name) FILTER (WHERE m.match_id IS NOT NULL), '{}') AS keys
+     FROM tc_historical_match_audit a
+     LEFT JOIN tc_historical_movement_audit m ON m.match_id=a.match_id
+     GROUP BY a.match_id, a.acquired_at
+     ORDER BY a.acquired_at ASC
+     LIMIT 200`);
+  const byMatch = Object.fromEntries(known.rows.map(r => [String(r.match_id), r.keys || []]));
+  const targets = matchesNeedingMovement(known.rows.map(r => r.match_id), byMatch, limit);
+  let probed = 0;
+  for (const matchId of targets) {
+    const row = {match_id: matchId};
+    const ctx = {match_id:String(row.match_id), phase:'ENDED', provenance:'HISTORICAL_UPSTREAM'};
+    for (const bookmakerSlug of MOVEMENT_BOOKMAKERS) {
+      for (const columns of movementColumnsFor(bookmakerSlug)) {
+        const r = await tc.get(`/match/bookmaker_odds/${encodeURIComponent(row.match_id)}`, {bookmaker:bookmakerSlug, columns},
+          {...ctx, endpoint_family:'historical_bookmaker_movement'});
+        const s = movementStats(r.body);
+        await db.query(
+          `INSERT INTO tc_historical_movement_audit(match_id,bookmaker,columns_name,outcome,rows_seen,suspended_rows,raw_id,acquired_at,run_id)
+           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
+           ON CONFLICT(match_id,bookmaker,columns_name) DO UPDATE SET
+             outcome=EXCLUDED.outcome,rows_seen=EXCLUDED.rows_seen,suspended_rows=EXCLUDED.suspended_rows,
+             raw_id=EXCLUDED.raw_id,acquired_at=EXCLUDED.acquired_at,run_id=EXCLUDED.run_id`,
+          [String(row.match_id), bookmakerSlug, columns, (r.outcome==='ok' && s.rows===0) ? 'no_data' : r.outcome,
+            s.rows, s.suspended, r.raw_id, r.acquired_at || new Date(), runId]);
+        probed++;
+      }
+    }
+  }
+  return {targeted: targets.length, probed};
+}
+
 async function runBatch({tc,db,config,runId}) {
+  const movement = await movementCatchUp(tc, db, runId, config.batchMovementMatches);
   const leagues=await allVerifiedForBatch(db,config.batchLeagues);
-  const stats={leagues:0,matches:0,completed:0,outcomes:{}};
+  const stats={leagues:0,matches:0,completed:0,outcomes:{},movement};
   for(const league of leagues){
     const page=Math.max(1,Number(league.next_page||1));
     const r=await schedulePage(tc,league,page);

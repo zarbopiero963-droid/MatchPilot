@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  expectedMovementKeys,
   historicalAudit,
   historicalZoneDecision,
+  matchesNeedingMovement,
   movementStats,
   offsetMinutesAt,
   providerLocalToUtc,
@@ -107,4 +109,13 @@ test('movement audit reads the real nested bookmaker lists and suspension flags'
     goal_list:[['07',3.5,1.8,2.0,'2026-09-20 14:39:00',0,1,0]]
   }]}]};
   assert.deepEqual(movementStats(body),{rows:3,suspended:1});
+});
+
+test('movement catch-up selects only matches missing an expected probe and keeps no_data as done', () => {
+  const expected = expectedMovementKeys();
+  assert.equal(expected.length, 8);
+  const done = Object.fromEntries([['10', expected], ['11', expected]]);
+  const partial = {'12': expected.slice(0, 3)};
+  assert.deepEqual(matchesNeedingMovement(['10','11','12','13'], {...done, ...partial}, 2), ['12','13']);
+  assert.deepEqual(matchesNeedingMovement(['10'], done, 1), []);
 });
