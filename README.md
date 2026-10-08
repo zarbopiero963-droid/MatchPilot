@@ -927,6 +927,7 @@ Stato: **IMPLEMENTED, TESTED**. **HARD VERIFIED REAL: in corso** (evidenza nella
 - **Replay dal raw.** Un replay una tantum per versione (`tc-core-03-v1`) normalizza le risposte `/match/odds` e `/match/bookmaker_odds` già salvate dalla discovery e dal mapping, solo per le leghe VERIFIED e senza richieste upstream.
 - **API di sola lettura:**
   - `GET /api/tc/prematch`: run, conteggi per fase, fonte e mercato, quarantena, provenance e audit di leakage. Il leakage comprende righe PREMATCH al o dopo il kickoff, snapshot al o dopo il kickoff, duplicati e partite fuori dalle leghe VERIFIED; tutti questi contatori devono essere 0;
+  - lo stesso report espone `cutoff`: match PREMATCH già oltre kickoff, ultimo snapshot e ultimo timestamp provider prima del kickoff, margini minimi e raw linkage mancanti. È una lettura Neon, non una certificazione;
   - `GET /api/tc/prematch/match?id=&as_of=&knowledge=provider|captured`: per ogni fonte, mercato e periodo, l'apertura e l'ultima quota nota a `as_of` e strettamente prima del kickoff. Con `knowledge=captured` conta solo ciò che MatchPilot aveva già acquisito a `as_of`.
 - **Limiti noti:**
   - il kickoff è quello schedulato. Un ritardo d'inizio reale finisce in QUARANTINE, non in PREMATCH;

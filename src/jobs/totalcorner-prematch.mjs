@@ -330,7 +330,7 @@ export function stopTcPrematch() { if (timer) clearInterval(timer); timer = null
 
 export async function tcPrematchReport(db) {
   const q = async (sql, p = []) => (await db.query(sql, p)).rows;
-  const [runs, matches, snapshots, rows, quarantine, leakage, provenance, tz] = await Promise.all([
+  const [runs, matches, snapshots, rows, quarantine, leakage, provenance, tz, cutoff] = await Promise.all([
     q(`SELECT run_id, kind, version, status, started_at, finished_at, summary, error FROM tc_prematch_runs ORDER BY run_id DESC LIMIT 5`),
     q(`SELECT count(*)::int AS matches, count(DISTINCT league_id)::int AS leagues,
          count(*) FILTER (WHERE EXISTS (SELECT 1 FROM tc_prematch_snapshots s WHERE s.match_id=m.match_id))::int AS with_snapshot,
@@ -350,10 +350,39 @@ export async function tcPrematchReport(db) {
            AND c.totalcorner_league_id=m.league_id))::int AS matches_outside_verified`),
     q(`SELECT provenance, phase, count(*)::int AS n FROM tc_market_rows GROUP BY 1,2 ORDER BY 1,2`),
     q(`SELECT observation_id, observed_at, gate_version, status, samples, inliers, excluded_not_real_time, median_minutes, min_minutes, max_minutes,
-         offset_minutes, configured_offset_minutes, agrees FROM tc_tz_observations ORDER BY observed_at DESC, observation_id DESC LIMIT 5`)
+         offset_minutes, configured_offset_minutes, agrees FROM tc_tz_observations ORDER BY observed_at DESC, observation_id DESC LIMIT 5`),
+    q(`WITH captured AS (
+         SELECT m.match_id, m.league_id, m.kickoff_utc
+         FROM tc_matches m
+         WHERE EXISTS (SELECT 1 FROM tc_prematch_snapshots s WHERE s.match_id=m.match_id AND s.phase='PREMATCH')
+       ), passed AS (
+         SELECT * FROM captured WHERE kickoff_utc <= now()
+       ), last_snap AS (
+         SELECT p.match_id, max(s.acquired_at) AS last_acquired_at
+         FROM passed p JOIN tc_prematch_snapshots s ON s.match_id=p.match_id
+         GROUP BY p.match_id
+       ), last_provider AS (
+         SELECT p.match_id, max(r.provider_time_utc) AS last_provider_time_utc
+         FROM passed p JOIN tc_market_rows r ON r.match_id=p.match_id
+         WHERE r.phase='PREMATCH' AND r.provenance='PREMATCH_CAPTURED'
+         GROUP BY p.match_id
+       )
+       SELECT
+         (SELECT count(*) FROM captured)::int AS prematch_matches,
+         (SELECT count(DISTINCT league_id) FROM captured)::int AS prematch_leagues,
+         (SELECT count(*) FROM passed)::int AS passed_kickoff,
+         (SELECT count(DISTINCT league_id) FROM passed)::int AS passed_leagues,
+         (SELECT count(*) FROM tc_prematch_snapshots WHERE raw_id IS NULL)::int AS snapshots_missing_raw,
+         (SELECT count(*) FROM tc_market_rows WHERE provenance='PREMATCH_CAPTURED' AND first_raw_id IS NULL)::int AS captured_rows_missing_raw,
+         (SELECT count(*) FROM passed p JOIN last_snap s USING (match_id) WHERE s.last_acquired_at >= p.kickoff_utc)::int AS last_snapshot_at_or_after_kickoff,
+         (SELECT count(*) FROM passed p JOIN last_provider r USING (match_id) WHERE r.last_provider_time_utc >= p.kickoff_utc)::int AS last_provider_at_or_after_kickoff,
+         (SELECT count(*) FROM passed p WHERE NOT EXISTS (SELECT 1 FROM last_snap s WHERE s.match_id=p.match_id))::int AS passed_without_snapshot,
+         (SELECT count(*) FROM passed p WHERE NOT EXISTS (SELECT 1 FROM last_provider r WHERE r.match_id=p.match_id))::int AS passed_without_provider_time,
+         (SELECT round(min(extract(epoch FROM (p.kickoff_utc - s.last_acquired_at))) / 60.0, 2) FROM passed p JOIN last_snap s USING (match_id)) AS min_acquisition_margin_min,
+         (SELECT round(min(extract(epoch FROM (p.kickoff_utc - r.last_provider_time_utc))) / 60.0, 2) FROM passed p JOIN last_provider r USING (match_id)) AS min_provider_margin_min`)
   ]);
   return {version: PREMATCH_VERSION, replay_version: PREMATCH_REPLAY_VERSION, tz_gate: TZ_GATE_VERSION, runs, matches: matches[0], snapshots, rows,
-    quarantine, leakage: leakage[0], provenance, tz_observations: tz};
+    quarantine, leakage: leakage[0], provenance, tz_observations: tz, cutoff: cutoff[0]};
 }
 
 // Point-in-time prematch view of one match. knowledge='provider' uses provider time only; 'captured' additionally
