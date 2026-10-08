@@ -196,6 +196,17 @@ export function measureProviderOffset(samples, {roundTo = 15, maxSpread = 20, mi
   return {...base, status: 'MEASURED', offset_minutes: Math.round(median / roundTo) * roundTo};
 }
 
+// Measure again when there is no fresh MEASURED observation (older than checkMinutes) and the last attempt of any kind
+// is at least retryMinutes old: a thin in-play list (INSUFFICIENT) is retried on the next cycle, not after checkMinutes.
+export function tzNeedsMeasure({observations, now, checkMinutes = 30, retryMinutes = 5}) {
+  const obs = observations || [];
+  if (!obs.length) return true;
+  const age = o => (now - new Date(o.observed_at)) / 60000;
+  const measured = obs.find(o => o.status === 'MEASURED');
+  if (measured && age(measured) < checkMinutes) return false;
+  return age(obs[0]) >= retryMinutes;
+}
+
 // Decision for one cycle. observations: newest first, each {status, offset_minutes, observed_at}. Verified only when the
 // newest usable measurement (MEASURED) is fresh and equals the configured offset; any newer mismatch holds the cycle.
 export function tzDecision({observations, configuredOffset, now, maxAgeMinutes = 360}) {

@@ -1,7 +1,7 @@
 import { withClient } from '../db.mjs';
 import { createTcClient, createPgStore, redactSecrets, sharedLimiter } from '../providers/totalcorner/client.mjs';
 import { PREMATCH_PARSER_VERSION, TZ_GATE_VERSION, bookmakerIntervalMinutes, isDue, matchIdentity, measureProviderOffset,
-  normalizeBookmakerRows, normalizeOddsRows, pitSummary, tzDecision } from '../providers/totalcorner/prematch.mjs';
+  normalizeBookmakerRows, normalizeOddsRows, pitSummary, tzDecision, tzNeedsMeasure } from '../providers/totalcorner/prematch.mjs';
 import { LIST_COLUMNS, ODDS_COLUMNS } from './totalcorner-discovery.mjs';
 
 // TC-CORE-03 (#20): prematch market mirror for fixtures of VERIFIED competitions only. A cycle reads the upcoming list,
@@ -111,14 +111,13 @@ async function recentTzObservations(db) {
   return r.rows.map(x => ({...x, observation_id: Number(x.observation_id)}));
 }
 
-// Measure the provider offset from the in-play list when the last observation is older than tzCheckMinutes, persist it,
+// Measure the provider offset from the in-play list when no MEASURED observation is fresher than tzCheckMinutes, persist it,
 // and decide whether this cycle may normalize. One to TZ_MAX_PAGES list calls per check, on the shared limiter.
 export async function providerTzGate({db, call, config, now}) {
   let observations = await recentTzObservations(db);
   const t = now();
-  const last = observations[0];
   let measuredNow = null;
-  if (!last || (t - new Date(last.observed_at)) / 60000 >= config.tzCheckMinutes) {
+  if (tzNeedsMeasure({observations, now: t, checkMinutes: config.tzCheckMinutes, retryMinutes: Math.min(config.tzCheckMinutes, 5)})) {
     const rows = [];
     const rawIds = [];
     let acquiredAt = null;

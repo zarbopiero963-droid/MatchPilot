@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { classifyRow, isDue, matchIdentity, measureProviderOffset, normalizeBookmakerRows, normalizeOddsRows, pitSummary, providerToUtc,
-  snapshotIntervalMinutes, tzDecision } from '../src/providers/totalcorner/prematch.mjs';
+  snapshotIntervalMinutes, tzDecision, tzNeedsMeasure } from '../src/providers/totalcorner/prematch.mjs';
 
 const OFF = 120;
 // Shapes copied from real /match/odds and /match/bookmaker_odds bodies (08/10/2026), match 200583718, start 00:00 UTC+2.
@@ -292,4 +292,15 @@ test('timezone decision: fresh agreement passes, mismatch / stale / missing hold
   assert.equal(tzDecision({observations: [o(400, 'MEASURED', 120)], configuredOffset: 120, now}).reason, 'stale');
   assert.equal(tzDecision({observations: [o(5, 'UNAVAILABLE', null)], configuredOffset: 120, now}).reason, 'no_measurement');
   assert.equal(tzDecision({observations: [], configuredOffset: 120, now}).verified, false);
+});
+
+test('timezone re-measure: fresh measurement waits, thin lists retry on the next cycle', () => {
+  const now = new Date('2026-10-08T12:00:00Z');
+  const o = (min, status) => ({observed_at: new Date(now.getTime() - min * 60000), status});
+  assert.equal(tzNeedsMeasure({observations: [], now}), true);
+  assert.equal(tzNeedsMeasure({observations: [o(10, 'MEASURED')], now}), false);
+  assert.equal(tzNeedsMeasure({observations: [o(31, 'MEASURED')], now}), true);
+  assert.equal(tzNeedsMeasure({observations: [o(6, 'INSUFFICIENT'), o(40, 'MEASURED')], now}), true);
+  assert.equal(tzNeedsMeasure({observations: [o(2, 'INSUFFICIENT'), o(40, 'MEASURED')], now}), false, 'no retry storm inside one interval');
+  assert.equal(tzNeedsMeasure({observations: [o(6, 'UNAVAILABLE')], now}), true);
 });
