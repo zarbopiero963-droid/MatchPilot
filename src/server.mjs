@@ -12,6 +12,7 @@ import { ROUTES, runQuery } from './providers/futpython/query.mjs';
 import { withClient } from './db.mjs';
 import { renderCoverageCompetitions, renderCoverageSeasons } from './coverage-page.mjs';
 import { maybeStartTcDiscovery, tcDiscoveryReport, tcSchemaRegistry } from './jobs/totalcorner-discovery.mjs';
+import { maybeStartTcMapping, tcMappingReport } from './jobs/totalcorner-mapping.mjs';
 import { redactSecrets } from './providers/totalcorner/client.mjs';
 
 const port = Number(process.env.PORT || 3000);
@@ -29,8 +30,11 @@ if (process.env.FUTPYTHON_PHASE1_VERIFY_ON_START === 'true') {
     .catch(e=>console.error('FUTPYTHON_PHASE1_VERIFY_ERROR',String(e?.message||e).replace(/api_key=[^&\\s]+/gi,'api_key=[REDACTED]')));
 }
 // TC-CORE-01 (#20): one bounded discovery per version on the real TotalCorner account; skipped once complete.
+// TC-CORE-02 (#20): competition mapping runs after discovery, sequentially, on the same shared rate limiter.
 maybeStartTcDiscovery()
-  .catch(e=>console.error('TC_DISCOVERY_ERROR', redactSecrets(String(e?.message||e))));
+  .catch(e=>console.error('TC_DISCOVERY_ERROR', redactSecrets(String(e?.message||e))))
+  .then(()=>maybeStartTcMapping())
+  .catch(e=>console.error('TC_MAPPING_ERROR', redactSecrets(String(e?.message||e))));
 if (process.env.FUTPYTHON_BACKFILL_ON_START === 'true') {
   runFutpythonSync({kind:'backfill',mode:'backfill'})
     .catch(e => console.error('FUTPYTHON_BACKFILL_ERROR', String(e?.message||e).replace(/api_key=[^&\\s]+/gi,'api_key=[REDACTED]')));
@@ -52,9 +56,11 @@ const app = http.createServer((req, res) => {
   }
 
   // #12 Data Coverage → Competitions (HTML), from the same read-only queries as /api/fpt/coverage-*.
-  if (url.pathname === '/api/tc/discovery' || url.pathname === '/api/tc/schema-registry') {
+  if (url.pathname === '/api/tc/discovery' || url.pathname === '/api/tc/schema-registry' || url.pathname === '/api/tc/mapping') {
     const read = url.pathname === '/api/tc/discovery'
       ? client => tcDiscoveryReport(client)
+      : url.pathname === '/api/tc/mapping'
+      ? client => tcMappingReport(client, {status: url.searchParams.get('status')})
       : client => tcSchemaRegistry(client, {family: url.searchParams.get('endpoint_family'), phase: url.searchParams.get('phase'), limit: url.searchParams.get('limit')});
     withClient(read).then(data=>{
       res.writeHead(200, {'Content-Type':'application/json'});

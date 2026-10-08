@@ -1,5 +1,5 @@
 import { withClient } from '../db.mjs';
-import { createTcClient, createLimiter, createPgStore, limiterConfig, redactSecrets } from '../providers/totalcorner/client.mjs';
+import { createTcClient, createPgStore, limiterConfig, redactSecrets, sharedLimiter } from '../providers/totalcorner/client.mjs';
 import { createCensus, phaseOf } from '../providers/totalcorner/schema.mjs';
 
 // TC-CORE-01 (#20): bounded empirical discovery endpoint x field x phase x competition on the real account.
@@ -193,7 +193,7 @@ export async function maybeStartTcDiscovery({env = process.env, log = console.lo
       const done = await db.query(`SELECT run_id FROM tc_discovery_runs WHERE version=$1 AND status='complete' LIMIT 1`, [DISCOVERY_VERSION]);
       if (done.rowCount) return log('TC_DISCOVERY_SKIPPED ' + JSON.stringify({reason: 'already_complete', run_id: Number(done.rows[0].run_id)}));
       const store = createPgStore(withClient);
-      const tc = createTcClient({token, store, limiter: createLimiter(limiterConfig(env))});
+      const tc = createTcClient({token, store, limiter: sharedLimiter(env)});
       log('TC_DISCOVERY_START ' + JSON.stringify({version: DISCOVERY_VERSION, token_present: true, limiter: limiterConfig(env)}));
       return await runTcDiscovery({tc, db, log});
     } finally {
