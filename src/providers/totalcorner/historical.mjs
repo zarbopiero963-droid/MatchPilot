@@ -2,7 +2,7 @@
 // Historical provider-local timestamps are converted with an IANA zone only after that zone is validated
 // against a fresh measured live offset. This avoids hardcoding +120 across DST.
 
-export const HISTORICAL_VERSION = 'tc-core-03b-v1';
+export const HISTORICAL_VERSION = 'tc-core-03b-v2';
 export const DEFAULT_PROVIDER_TIME_ZONE = 'Europe/Rome';
 
 const parts = (date, timeZone) => Object.fromEntries(
@@ -53,6 +53,13 @@ export function seasonKey(providerStart) {
 
 export function rowsOf(body) {
   return Array.isArray(body?.data) ? body.data : body?.data && typeof body.data === 'object' ? [body.data] : [];
+}
+
+// /league/schedule is an envelope: data={league,matches:[...]}, unlike match endpoints where data is the rows array.
+// Keep the distinction explicit so a successful schedule response can never silently become a zero-match sample.
+export function scheduleMatches(body) {
+  if (Array.isArray(body?.data?.matches)) return body.data.matches;
+  return Array.isArray(body?.data) ? body.data : [];
 }
 
 export function historicalAudit(record, oddsRecord, bookmakerRecord) {
