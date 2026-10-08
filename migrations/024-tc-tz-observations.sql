@@ -18,5 +18,5 @@ CREATE TABLE IF NOT EXISTS tc_tz_observations (
 );
 CREATE INDEX IF NOT EXISTS tc_tz_observations_time ON tc_tz_observations(observed_at DESC);
 
-ALTER TABLE tc_prematch_runs ADD COLUMN IF NOT EXISTS tz_observation_id bigint;
-ALTER TABLE tc_matches ADD COLUMN IF NOT EXISTS tz_observation_id bigint;
+ALTER TABLE tc_prematch_runs ADD COLUMN IF NOT EXISTS tz_observation_id bigint REFERENCES tc_tz_observations(observation_id);
+ALTER TABLE tc_matches ADD COLUMN IF NOT EXISTS tz_observation_id bigint REFERENCES tc_tz_observations(observation_id);
