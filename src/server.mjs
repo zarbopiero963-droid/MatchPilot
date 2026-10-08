@@ -11,6 +11,8 @@ import { certificateReport } from './futpython-certificate.mjs';
 import { ROUTES, runQuery } from './providers/futpython/query.mjs';
 import { withClient } from './db.mjs';
 import { renderCoverageCompetitions, renderCoverageSeasons } from './coverage-page.mjs';
+import { maybeStartTcDiscovery, tcDiscoveryReport, tcSchemaRegistry } from './jobs/totalcorner-discovery.mjs';
+import { redactSecrets } from './providers/totalcorner/client.mjs';
 
 const port = Number(process.env.PORT || 3000);
 
@@ -26,6 +28,9 @@ if (process.env.FUTPYTHON_PHASE1_VERIFY_ON_START === 'true') {
     .then(r=>console.log('FUTPYTHON_PHASE1_VERIFY_ON_START '+JSON.stringify({status:r.status,checks:r.checks,failed:r.failed})))
     .catch(e=>console.error('FUTPYTHON_PHASE1_VERIFY_ERROR',String(e?.message||e).replace(/api_key=[^&\\s]+/gi,'api_key=[REDACTED]')));
 }
+// TC-CORE-01 (#20): one bounded discovery per version on the real TotalCorner account; skipped once complete.
+maybeStartTcDiscovery()
+  .catch(e=>console.error('TC_DISCOVERY_ERROR', redactSecrets(String(e?.message||e))));
 if (process.env.FUTPYTHON_BACKFILL_ON_START === 'true') {
   runFutpythonSync({kind:'backfill',mode:'backfill'})
     .catch(e => console.error('FUTPYTHON_BACKFILL_ERROR', String(e?.message||e).replace(/api_key=[^&\\s]+/gi,'api_key=[REDACTED]')));
@@ -47,6 +52,20 @@ const app = http.createServer((req, res) => {
   }
 
   // #12 Data Coverage → Competitions (HTML), from the same read-only queries as /api/fpt/coverage-*.
+  if (url.pathname === '/api/tc/discovery' || url.pathname === '/api/tc/schema-registry') {
+    const read = url.pathname === '/api/tc/discovery'
+      ? client => tcDiscoveryReport(client)
+      : client => tcSchemaRegistry(client, {family: url.searchParams.get('endpoint_family'), phase: url.searchParams.get('phase'), limit: url.searchParams.get('limit')});
+    withClient(read).then(data=>{
+      res.writeHead(200, {'Content-Type':'application/json'});
+      res.end(JSON.stringify(data));
+    }).catch(()=>{
+      res.writeHead(503, {'Content-Type':'application/json'});
+      res.end(JSON.stringify({status:'error'}));
+    });
+    return;
+  }
+
   if (url.pathname === '/coverage') {
     if (req.method !== 'GET') {
       res.writeHead(405, {'Content-Type':'text/plain; charset=utf-8', 'Allow':'GET'});
