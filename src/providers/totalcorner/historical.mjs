@@ -2,7 +2,7 @@
 // Historical provider-local timestamps are converted with an IANA zone only after that zone is validated
 // against a fresh measured live offset. This avoids hardcoding +120 across DST.
 
-export const HISTORICAL_VERSION = 'tc-core-03b-v2';
+export const HISTORICAL_VERSION = 'tc-core-03b-v3';
 export const DEFAULT_PROVIDER_TIME_ZONE = 'Europe/Rome';
 
 const parts = (date, timeZone) => Object.fromEntries(
@@ -76,9 +76,9 @@ export function historicalAudit(record, oddsRecord, bookmakerRecord) {
   return {
     events_count: events.length,
     score_ft_present: present('score','ss','ft_score'),
-    score_ht_present: present('ht','ht_score'),
-    corners_present: present('corner','corners','hc','ac'),
-    cards_present: present('yellow','red','cards','home_yellow','away_yellow'),
+    score_ht_present: present('ht','ht_score','hf_hg','hf_ag'),
+    corners_present: present('corner','corners','hc','ac','hf_hc','hf_ac'),
+    cards_present: present('yellow','red','cards','home_yellow','away_yellow','hyc','ayc','hrc','arc'),
     attacks_present: stats.attacks,
     dangerous_attacks_present: stats.dangerous,
     shots_present: stats.shots,

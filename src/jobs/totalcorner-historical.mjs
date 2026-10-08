@@ -169,14 +169,21 @@ async function runSample({tc,db,config,runId}) {
     const first=await schedulePage(tc,league,1);
     const pages=Math.max(1,Number(first.body?.pagination?.pages||1));
     const probe=uniq([1,Math.max(1,Math.ceil(pages/2)),pages]);
-    const rows=[...scheduleMatches(first.body)];
-    for(const p of probe.slice(1)){ const r=await schedulePage(tc,league,p); rows.push(...scheduleMatches(r.body)); }
+    const rowsByPage=new Map([[1,scheduleMatches(first.body)]]);
+    for(const p of probe.slice(1)){ const r=await schedulePage(tc,league,p); rowsByPage.set(p,scheduleMatches(r.body)); }
+    // Hard-test sample must span the available history, not just the newest ended fixtures.
+    // Take one ended match from each probed page first (recent/middle/oldest), then fill the remaining slots round-robin.
     const matches=[];
     const ids=new Set();
-    for(const r of rows.filter(ended)){
-      if(!r?.id||ids.has(String(r.id))) continue;
-      ids.add(String(r.id)); matches.push(r);
-      if(matches.length>=config.sampleMatchesPerLeague) break;
+    const add=r=>{if(!r?.id||ids.has(String(r.id))||!ended(r)) return false; ids.add(String(r.id)); matches.push(r); return true;};
+    for(const p of probe){const r=(rowsByPage.get(p)||[]).find(x=>ended(x)&&x?.id&&!ids.has(String(x.id))); if(r) add(r);}
+    if(matches.length<config.sampleMatchesPerLeague){
+      const pools=probe.map(p=>(rowsByPage.get(p)||[]).filter(ended));
+      let idx=0;
+      while(matches.length<config.sampleMatchesPerLeague && pools.some(x=>idx<x.length)){
+        for(const pool of pools){if(matches.length>=config.sampleMatchesPerLeague) break; if(idx<pool.length) add(pool[idx]);}
+        idx++;
+      }
     }
     let n=0;
     for(const record of matches){
