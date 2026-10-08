@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyMappings, namingDiffers, normalizeName, pairFixtures, similarity, tcUtcDate, teamKey } from '../src/providers/totalcorner/mapping.mjs';
+import { categoryOf, classifyMappings, namingDiffers, normalizeName, pairFixtures, similarity, tcUtcDate, teamKey } from '../src/providers/totalcorner/mapping.mjs';
 
 test('team names normalise accents, club tokens and B-team synonyms', () => {
   assert.deepEqual(normalizeName('Atlético de Madrid'), ['atletico', 'madrid']);
@@ -9,6 +9,23 @@ test('team names normalise accents, club tokens and B-team synonyms', () => {
   assert.ok(similarity(teamKey('Manchester Utd'), teamKey('Manchester United')) === 1);
   assert.ok(similarity(teamKey('Bayern München'), teamKey('Bayern Munchen')) === 1);
   assert.ok(similarity(teamKey('Inter'), teamKey('Juventus')) < 0.2);
+});
+
+test('youth, reserve and women leagues never pair with senior competitions (run 1: Liga MX vs Mexico U21)', () => {
+  assert.equal(categoryOf('Mexico U21 League'), 'youth');
+  assert.equal(categoryOf('Türkiye U19 League'), 'youth');
+  assert.equal(categoryOf('Paraguay Reserve League'), 'reserve');
+  assert.equal(categoryOf('England WSL'), 'women');
+  assert.equal(categoryOf('usa/nwsl-women'), 'women');
+  assert.equal(categoryOf('Mexico Liga MX'), 'senior');
+  assert.equal(categoryOf('Germany Bundesliga II'), 'senior');
+  const f = [1, 2, 3, 4].map(i => ({league_key: 'mexico/liga-mx', date: '2026-09-20', home: `Club ${i}`, away: `Team ${i}`}));
+  const t = [...f.map((x, i) => ({league_id: '779', league_name: 'Mexico Liga MX', date: x.date, home: x.home, away: x.away, id: 's' + i})),
+    ...f.map((x, i) => ({league_id: '10', league_name: 'Mexico U21 League', date: x.date, home: x.home, away: x.away, id: 'y' + i}))];
+  const pairs = pairFixtures(f, t);
+  assert.ok(pairs.every(p => p.tc.league_id === '779'));
+  const [m] = classifyMappings({fptLeagues: [{country_slug: 'mexico', league_slug: 'liga-mx', league_key: 'mexico/liga-mx'}], fpt: f, tc: t, pairs});
+  assert.equal(m.status, 'VERIFIED');
 });
 
 test('TotalCorner provider-local start converts to a UTC date', () => {
@@ -150,7 +167,12 @@ test('mapping on Postgres: paginated schedules, persisted states with evidence, 
     });
     // Re-run: the mapping is replaced, not duplicated, and the verified TC league stays unique.
     await db.withClient(c => c.query(`UPDATE tc_mapping_runs SET version='old'`));
-    await db.withClient(c => runTcMapping({tc: tcClient, db: c, log: () => {}, config: {dates: 5, windowDays: 30, tzOffsetMinutes: 120}}));
+    const scheduleCalls = hits.filter(h => h.includes('/match/schedule')).length;
+    const second = await db.withClient(c => runTcMapping({tc: tcClient, db: c, log: () => {}, config: {dates: 5, windowDays: 30, tzOffsetMinutes: 120}}));
+    assert.equal(hits.filter(h => h.includes('/match/schedule')).length, scheduleCalls, 'past schedule pages come from the raw store');
+    assert.equal(second.cache.hits, scheduleCalls);
+    const ledgerHits = await db.withClient(c => c.query(`SELECT count(*)::int AS n FROM tc_request_ledger WHERE outcome='cache_hit'`));
+    assert.equal(ledgerHits.rows[0].n, scheduleCalls, 'every cache hit is in the ledger');
     const again = await db.withClient(c => c.query(`SELECT count(*)::int AS n FROM competition_mapping`));
     assert.equal(again.rows[0].n, fptLeagues.length);
   } finally {

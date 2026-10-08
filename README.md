@@ -884,6 +884,16 @@ Stato: **IMPLEMENTED, TESTED**. **HARD VERIFIED REAL: in corso** (evidenza nella
 - **Esecuzione.** Il job gira una sola volta per versione (`tc-core-02-v1`) dopo la discovery, sullo stesso rate limiter condiviso. Si disattiva con `TOTALCORNER_MAPPING_ON_BOOT=false`.
 - **API di sola lettura:** `GET /api/tc/mapping?status=`.
 
+**Evidenza reale run 1 (`tc-core-02-v1`, 08/10/2026, nella #20).** Esito: gate quantitativi PASS.
+- 652 richieste, tutte `ok`.
+- 2118 partite FPT confrontate con 18.298 partite TotalCorner in 708 leghe, per 2040 coppie.
+- **92 VERIFIED** in 51 paesi, 39 con nomi diversi tra i provider; 4 AMBIGUOUS, 1 CANDIDATE, 88 UNMAPPED con motivo; 0 duplicati.
+- Le 4 AMBIGUOUS sono leghe giovanili o riserve di TotalCorner con gli stessi nomi di squadra delle prime squadre: Liga MX contro Mexico U21, Super Lig contro Türkiye U19, Greek Super League contro U19, Primera paraguaiana contro Reserve.
+
+**v2 (`tc-core-02-v2`, metodo `fixture-overlap-v2`):**
+- una partita si accoppia solo con una lega TotalCorner della stessa categoria: senior, youth (U15–U23), reserve o women;
+- le pagine di calendario dei giorni passati da almeno due giorni si rileggono **cache-first** dal raw salvato. Ogni lettura da cache è registrata nel ledger come `cache_hit`, senza nuove richieste upstream.
+
 
 ## Chiusura delle issue
 

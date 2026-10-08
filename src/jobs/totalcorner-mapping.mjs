@@ -1,5 +1,5 @@
 import { withClient } from '../db.mjs';
-import { createTcClient, createPgStore, limiterConfig, redactSecrets, sharedLimiter } from '../providers/totalcorner/client.mjs';
+import { createTcClient, createPgStore, limiterConfig, redactSecrets, requestKey, sharedLimiter } from '../providers/totalcorner/client.mjs';
 import { createCensus, phaseOf } from '../providers/totalcorner/schema.mjs';
 import { MAPPING_METHOD, THRESHOLDS, classifyMappings, namingDiffers, pairFixtures, tcUtcDate } from '../providers/totalcorner/mapping.mjs';
 import { LIST_COLUMNS, ODDS_COLUMNS } from './totalcorner-discovery.mjs';
@@ -7,7 +7,7 @@ import { LIST_COLUMNS, ODDS_COLUMNS } from './totalcorner-discovery.mjs';
 // TC-CORE-02 (#20): map FPT competitions to TotalCorner leagues on real fixture overlap, persist every state with
 // evidence, then re-run the field discovery on VERIFIED leagues only. Runs once per MAPPING_VERSION.
 
-export const MAPPING_VERSION = 'tc-core-02-v1';
+export const MAPPING_VERSION = 'tc-core-02-v2';
 export const TC_MAPPING_LOCK = 76420321;
 const MAX_PAGES = 80;
 
@@ -23,11 +23,31 @@ export function mappingConfig(env = process.env) {
   };
 }
 
+// Cache-first for immutable pages (past dates): the latest stored raw body is reused and the hit is recorded in the
+// ledger; only missing pages go upstream.
+export function createRawCache(db, {runId = null} = {}) {
+  const stats = {hits: 0, misses: 0};
+  return {
+    stats,
+    async get(family, path, params) {
+      const key = requestKey(path, params);
+      const r = await db.query(
+        `SELECT raw_id, body FROM tc_raw_responses WHERE request_key=$1 AND outcome='ok' ORDER BY last_acquired_at DESC LIMIT 1`, [key]);
+      if (!r.rowCount) { stats.misses++; return null; }
+      stats.hits++;
+      await db.query(
+        `INSERT INTO tc_request_ledger(run_id,endpoint_family,url_path,attempt,outcome,raw_id) VALUES(NULL,$1,$2,0,'cache_hit',$3)`,
+        [family, key, r.rows[0].raw_id]);
+      return {outcome: 'ok', body: JSON.parse(r.rows[0].body), cache_hit: true, run_id: runId};
+    }
+  };
+}
+
 // All pages of one paginated list; stops when the provider says there is no next page or the page is not honoured.
-async function allPages(call, family, path, params, ctx, notes) {
+async function allPages(call, family, path, params, ctx, notes, cache = null) {
   const rows = [];
   for (let page = 1; page <= MAX_PAGES; page++) {
-    const r = await call(family, path, {...params, page}, ctx);
+    const r = (cache && await cache.get(family, path, {...params, page})) || await call(family, path, {...params, page}, ctx);
     const pg = r.body?.pagination;
     rows.push(...rowsOf(r.body));
     if (r.outcome !== 'ok') break;
@@ -66,8 +86,12 @@ export async function runTcMapping({tc, db, config = mappingConfig(), log = cons
     const fpt = fptRes.rows;
 
     const tcFixtures = [];
+    const cache = createRawCache(db, {runId});
+    const today = now().toISOString().slice(0, 10);
     for (const d of dates) {
-      const rows = await allPages(call, 'match_schedule', '/match/schedule', {date: ymd(d)}, {phase: 'MIXED'}, notes);
+      // Pages of days at least two days old cannot change any more: read them from the raw store first.
+      const immutable = d < new Date(Date.parse(today) - 2 * 86400000).toISOString().slice(0, 10);
+      const rows = await allPages(call, 'match_schedule', '/match/schedule', {date: ymd(d)}, {phase: 'MIXED'}, notes, immutable ? cache : null);
       for (const r of rows) {
         if (!r?.id || !r?.l_id) continue;
         tcFixtures.push({id: String(r.id), league_id: String(r.l_id), league_name: String(r.l ?? ''), date: tcUtcDate(r.start, config.tzOffsetMinutes) || d,
@@ -126,14 +150,14 @@ export async function runTcMapping({tc, db, config = mappingConfig(), log = cons
     const pickEnded = tcFixtures.filter(m => verified.has(m.league_id) && m.status === 'full').filter(m => {
       const n = perLeague.get(m.league_id) || 0; if (n >= 1) return false; perLeague.set(m.league_id, n + 1); return true;
     }).slice(0, 10);
-    const today = {};
+    const todayRows = {};
     for (const type of ['upcoming', 'inplay']) {
       const rows = await allPages(call, 'match_today', '/match/today', {type, columns: LIST_COLUMNS}, {phase: type === 'upcoming' ? 'PREMATCH' : 'LIVE', census: true, provenance: 'DISCOVERY_VERIFIED'}, notes);
-      today[type] = rows.filter(r => verified.has(String(r.l_id))).slice(0, 5);
+      todayRows[type] = rows.filter(r => verified.has(String(r.l_id))).slice(0, 5);
     }
     const sample = [...pickEnded.map(m => ({id: m.id, league_id: m.league_id, why: 'ended_window'})),
-      ...today.upcoming.map(r => ({id: String(r.id), league_id: String(r.l_id), why: 'upcoming'})),
-      ...today.inplay.map(r => ({id: String(r.id), league_id: String(r.l_id), why: 'inplay'}))];
+      ...todayRows.upcoming.map(r => ({id: String(r.id), league_id: String(r.l_id), why: 'upcoming'})),
+      ...todayRows.inplay.map(r => ({id: String(r.id), league_id: String(r.l_id), why: 'inplay'}))];
     for (const s of sample) {
       const ctx = {match_id: s.id, league_id: s.league_id, census: true, provenance: 'DISCOVERY_VERIFIED'};
       const v = await call('verified_match_view', `/match/view/${encodeURIComponent(s.id)}`, {columns: LIST_COLUMNS}, ctx);
@@ -168,14 +192,14 @@ export async function runTcMapping({tc, db, config = mappingConfig(), log = cons
       ambiguous: mapped.filter(m => m.status === 'AMBIGUOUS').map(m => ({league: m.league_key, tc: m.totalcorner_league_name, matched: m.evidence.matched,
         runner_up: m.evidence.runner_up, reverse_others: m.evidence.reverse_others})),
       tc_leagues_unmapped: [...tcLeagues.keys()].filter(id => !mapped.some(m => m.totalcorner_league_id === id)).length,
-      duplicates: dup.rows[0], verified_discovery: {sample, fields: fields.rows, key_fields: keyFields.rows},
+      duplicates: dup.rows[0], cache: cache.stats, verified_discovery: {sample, fields: fields.rows, key_fields: keyFields.rows},
       outcomes, notes
     };
     await db.query(`UPDATE tc_mapping_runs SET status='complete', finished_at=now(), summary=$2 WHERE run_id=$1`, [runId, JSON.stringify(summary)]);
     log('TC_MAPPING_COMPLETE ' + JSON.stringify({run_id: runId, window_dates: dates, fpt_fixtures: fpt.length, tc_fixtures: tcFixtures.length,
       tc_leagues_seen: tcLeagues.size, pairs: pairs.length, status, verified_countries: summary.verified_countries.length,
       naming_differs: summary.naming_differs.length, ambiguous: summary.ambiguous.length, duplicates: summary.duplicates,
-      verified_discovery_sample: sample.length, outcomes, notes: notes.length}));
+      verified_discovery_sample: sample.length, cache: cache.stats, outcomes, notes: notes.length}));
     return summary;
   } catch (e) {
     await census.flush(db).catch(() => {});
