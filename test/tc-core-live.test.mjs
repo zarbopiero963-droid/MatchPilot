@@ -2,6 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import { eventsOf, isInplay, snapshotHash, verifiedInplay } from '../src/providers/totalcorner/live.mjs';
+import {terminalPagePlan} from '../src/jobs/totalcorner-live.mjs';
+
+test('terminal recovery spends its bounded budget on the newest ended pages', () => {
+  assert.deepEqual(terminalPagePlan({pages: 18}, 6), [1, 14, 15, 16, 17, 18]);
+  assert.deepEqual(terminalPagePlan({pages: 4}, 6), [1, 2, 3, 4]);
+  assert.deepEqual(terminalPagePlan({pages: 18}, 1), [1]);
+  assert.deepEqual(terminalPagePlan(undefined, 6), [1]);
+});
 
 test('live selection keeps only in-play rows from verified leagues and drops duplicates', () => {
   const rows = [
