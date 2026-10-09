@@ -1,52 +1,27 @@
 import http from 'node:http';
 import { migrate } from './migrate.mjs';
-import { startFutpythonCron, stopFutpythonCron } from './jobs/futpython-cron.mjs';
-import { runFutpythonSync } from './jobs/futpython-sync.mjs';
 import { closePool } from './db.mjs';
-import { startDataWatchdog, stopDataWatchdog } from './jobs/data-watchdog.mjs';
-import { getDataHealth, configureTelegramOutboundOnly, sendTelegramConnectivityTest } from './alerts.mjs';
+import { getDataHealth } from './alerts.mjs';
 import { getFutpythonCertificationStatus } from './futpython-certification.mjs';
-import { runPhase1Verification } from './jobs/futpython-certify-phase1.mjs';
 import { certificateReport } from './futpython-certificate.mjs';
 import { ROUTES, runQuery } from './providers/futpython/query.mjs';
 import { withClient } from './db.mjs';
 import { renderCoverageCompetitions, renderCoverageSeasons } from './coverage-page.mjs';
-import { maybeStartTcDiscovery, tcDiscoveryReport, tcSchemaRegistry } from './jobs/totalcorner-discovery.mjs';
-import { maybeStartTcMapping, tcMappingReport } from './jobs/totalcorner-mapping.mjs';
-import { maybeStartTcPrematch, stopTcPrematch, tcPrematchMatch, tcPrematchReport } from './jobs/totalcorner-prematch.mjs';
-import { maybeStartTcHistorical, stopTcHistorical, tcHistoricalReport } from './jobs/totalcorner-historical.mjs';
-import { maybeStartTcLive, stopTcLive, tcLiveReport } from './jobs/totalcorner-live.mjs';
-import { redactSecrets } from './providers/totalcorner/client.mjs';
+import { tcDiscoveryReport, tcSchemaRegistry } from './jobs/totalcorner-discovery.mjs';
+import { tcMappingReport } from './jobs/totalcorner-mapping.mjs';
+import { tcPrematchMatch, tcPrematchReport } from './jobs/totalcorner-prematch.mjs';
+import { tcHistoricalReport } from './jobs/totalcorner-historical.mjs';
+import { tcLiveReport } from './jobs/totalcorner-live.mjs';
+import { assertRuntimeSafety, startBackgroundServices, stopBackgroundServices } from './background.mjs';
 
 const port = Number(process.env.PORT || 3000);
 
+const runtime = assertRuntimeSafety();
 await migrate();
-startFutpythonCron();
-startDataWatchdog();
-configureTelegramOutboundOnly()
-  .then(()=>sendTelegramConnectivityTest())
-  .then(r=>console.log('TELEGRAM_OUTBOUND_ONLY '+JSON.stringify({status:r?.status || 'configured'})))
-  .catch(e=>console.error('TELEGRAM_SETUP_ERROR', String(e?.message||e).replace(/bot\d+:[A-Za-z0-9_-]+/g,'bot[REDACTED]')));
-if (process.env.FUTPYTHON_PHASE1_VERIFY_ON_START === 'true') {
-  runPhase1Verification()
-    .then(r=>console.log('FUTPYTHON_PHASE1_VERIFY_ON_START '+JSON.stringify({status:r.status,checks:r.checks,failed:r.failed})))
-    .catch(e=>console.error('FUTPYTHON_PHASE1_VERIFY_ERROR',String(e?.message||e).replace(/api_key=[^&\\s]+/gi,'api_key=[REDACTED]')));
-}
-// TC-CORE-01 (#20): one bounded discovery per version on the real TotalCorner account; skipped once complete.
-// TC-CORE-02 (#20): competition mapping runs after discovery, sequentially, on the same shared rate limiter.
-maybeStartTcDiscovery()
-  .catch(e=>console.error('TC_DISCOVERY_ERROR', redactSecrets(String(e?.message||e))))
-  .then(()=>maybeStartTcMapping())
-  .catch(e=>console.error('TC_MAPPING_ERROR', redactSecrets(String(e?.message||e))))
-  .then(()=>maybeStartTcPrematch())
-  .catch(e=>console.error('TC_PREMATCH_ERROR', redactSecrets(String(e?.message||e))))
-  .then(()=>maybeStartTcHistorical())
-  .then(()=>maybeStartTcLive())
-  .catch(e=>console.error('TC_HISTORICAL_ERROR', redactSecrets(String(e?.message||e))));
-if (process.env.FUTPYTHON_BACKFILL_ON_START === 'true') {
-  runFutpythonSync({kind:'backfill',mode:'backfill'})
-    .catch(e => console.error('FUTPYTHON_BACKFILL_ERROR', String(e?.message||e).replace(/api_key=[^&\\s]+/gi,'api_key=[REDACTED]')));
-}
+// The HTTP process must never wait for provider/collector initialization.
+void startBackgroundServices().catch(error => {
+  console.error('MATCHPILOT_BACKGROUND_ERROR', String(error?.message || error));
+});
 
 const app = http.createServer((req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -161,14 +136,10 @@ const app = http.createServer((req, res) => {
   res.end(JSON.stringify({error:'not_found'}));
 });
 
-app.listen(port,'0.0.0.0',()=>console.log(`MatchPilot Trading OS listening on ${port}`));
+app.listen(port,'0.0.0.0',()=>console.log(`MatchPilot Trading OS listening on ${port} (${runtime.mode})`));
 
 async function shutdown() {
-  stopFutpythonCron();
-  stopDataWatchdog();
-  stopTcPrematch();
-  stopTcHistorical();
-  stopTcLive();
+  stopBackgroundServices();
   app.close(async()=>{ await closePool().catch(()=>{}); process.exit(0); });
 }
 process.on('SIGTERM',shutdown);
