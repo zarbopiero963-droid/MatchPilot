@@ -87,8 +87,8 @@ test('PostgreSQL restart recovery persists a provider-confirmed ended row as FT 
       VALUES('m-ft','10','2026-10-09T09:00:00Z','2026-10-09T09:00:00Z','94',61)`);
     const ended = {id:'m-ft',l_id:'10',status:'full',hg:'2',ag:'1',events:[{tp:'g',t:'85',h:'h'}]};
     const args = {row:ended,rawId:777,acquiredAt:new Date('2026-10-09T09:07:00Z'),runId:null};
-    assert.equal(await captureTerminal(db,args),1);
-    assert.equal(await captureTerminal(db,args),0);
+    assert.deepEqual(await captureTerminal(db,args),{snapshots:1,events:1});
+    assert.deepEqual(await captureTerminal(db,args),{snapshots:0,events:0});
     const cursor = (await db.query("SELECT last_status,terminal_source,terminal_raw_id,terminal_at FROM tc_live_cursors WHERE match_id='m-ft'")).rows[0];
     assert.equal(cursor.last_status,'FT');
     assert.equal(cursor.terminal_source,'today_ended');
@@ -97,6 +97,9 @@ test('PostgreSQL restart recovery persists a provider-confirmed ended row as FT 
     const snap = (await db.query("SELECT provider_status,hash_version,raw_id,payload->>'hg' hg FROM tc_live_snapshots WHERE match_id='m-ft'")).rows[0];
     assert.deepEqual({status:snap.provider_status,version:snap.hash_version,raw:String(snap.raw_id),hg:snap.hg},
       {status:'FT',version:'v2',raw:'777',hg:'2'});
+    const event = (await db.query("SELECT hash_version,raw_id,payload->>'tp' tp FROM tc_live_events WHERE match_id='m-ft'")).rows[0];
+    assert.deepEqual({version:event.hash_version,raw:String(event.raw_id),tp:event.tp},
+      {version:'v2',raw:'777',tp:'g'});
   } finally { await db.query('ROLLBACK'); await db.end(); }
 });
 
