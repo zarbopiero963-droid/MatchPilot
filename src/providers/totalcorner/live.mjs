@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-export const LIVE_VERSION = 'tc-core-04-v1';
+export const LIVE_VERSION = 'tc-core-04-v2';
 
 export function rowsOf(body) {
   if (Array.isArray(body?.data)) return body.data;
@@ -28,22 +28,20 @@ export function verifiedInplay(rows, leagueIds) {
 }
 
 function stable(value) {
-  return JSON.stringify(value, Object.keys(value || {}).sort());
+  // A JSON replacer key whitelist also filters nested objects, losing values.
+  // Sort objects recursively; retain array order and every upstream JSON field.
+  function canonical(item) {
+    if (Array.isArray(item)) return item.map(canonical);
+    if (item !== null && typeof item === 'object') {
+      return Object.fromEntries(Object.keys(item).sort().map(key => [key, canonical(item[key])]));
+    }
+    return item;
+  }
+  return JSON.stringify(canonical(value));
 }
 
 export function snapshotHash(row) {
-  return createHash('sha256').update(stable({
-    status: row?.status ?? null,
-    minute: row?.minute ?? row?.time ?? null,
-    score: row?.score ?? row?.ss ?? null,
-    ht: row?.ht_score ?? row?.ht ?? null,
-    corners: row?.corners ?? row?.corner ?? null,
-    cards: row?.cards ?? null,
-    attacks: row?.attacks ?? row?.att ?? null,
-    dangerous: row?.dangerous_attacks ?? row?.dang_attacks ?? null,
-    shots: row?.shot_on ?? row?.shotOn ?? null,
-    possession: row?.possession ?? null
-  })).digest('hex');
+  return createHash('sha256').update(stable(row ?? {})).digest('hex');
 }
 
 export function eventsOf(row) {

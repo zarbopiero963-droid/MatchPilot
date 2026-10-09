@@ -903,7 +903,8 @@ Stato: **IMPLEMENTED, TESTED**. **HARD VERIFIED REAL: non certificato** finché 
 - Migrazione `027-tc-live-collector.sql`: `tc_collector_runs`, `tc_live_snapshots`, `tc_live_events`, `tc_market_snapshots`, `tc_live_cursors`.
 - Poll `/match/today?type=inplay`, solo leghe `VERIFIED`. Dettaglio `/match/view` al massimo `TOTALCORNER_LIVE_MAX_MATCHES` (default 4) per ciclo.
 - Intervallo `TOTALCORNER_LIVE_POLL_SECONDS` (default 60, minimo 15) sullo stesso limiter condiviso. 15 secondi restano il target contrattuale se il rate limit lo regge.
-- Dedup snapshot per hash di stato e eventi per hash payload. Provenance `HISTORICAL_CAPTURED`. Nessuna ricostruzione successiva.
+- Dedup snapshot per hash canonico ricorsivo dell'intero payload upstream, inclusi alias (`hg/ag`, `hc/ac`, `i_odds`) e campi sconosciuti; eventi per hash canonico payload. Versione proposta `tc-core-04-v2`: gli hash v1 storici restano immutati e non sono equivalenti a v2; al passaggio può comparire una nuova copia dello stesso stato/evento con hash v2. Nessuna rielaborazione produttiva autorizzata. Provenance `HISTORICAL_CAPTURED`. Nessuna ricostruzione successiva.
+- Audit 09/10/2026 su v1: 800 snapshot / 15 match / 6 leghe, raw linkage completo; 0 snapshot terminali, massimo intervallo tra snapshot 1320,65s. Questi intervalli non equivalgono automaticamente a gap di polling. Frequenza, recovery/restart e chiusura FT restano **BLOCKED**, non certificati dalla correzione hash. Test hash locali distinguono dati sintetici da alias osservati nei payload reali.
 - Report `GET /api/tc/live`. Non tocca #40.
 ### TC-CORE-03 — mercati, linee e PIT pre-match (#104)
 
