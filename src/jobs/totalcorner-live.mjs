@@ -82,7 +82,7 @@ export async function runLiveCycle({tc, db, config = liveConfig(), now = () => n
     bump('live_list', list.outcome);
     if (list.outcome === 'auth') {
       const summary = {version: LIVE_VERSION, run_id: runId, auth_failed: true, outcomes, tz_hold: !tz.verified};
-      await db.query(`UPDATE tc_collector_runs SET status='failed', finished_at=now(), summary=$2 WHERE run_id=$1`, [runId, JSON.stringify(summary)]);
+      await db.query(`UPDATE tc_collector_runs SET status='failed', finished_at=clock_timestamp(), summary=$2 WHERE run_id=$1`, [runId, JSON.stringify(summary)]);
       return summary;
     }
     const leagues = await verifiedLeagueIds(db);
@@ -135,11 +135,11 @@ export async function runLiveCycle({tc, db, config = liveConfig(), now = () => n
       if (ended.outcome !== 'ok' || !pg || pg.next === false || pg.next === 'false') break;
     }
     const summary = {version: LIVE_VERSION, run_id: runId, inplay_seen: rowsOf(list.body).length, verified_live: live.length, snapshots_new: snapshots, events_new: events, views, terminal_confirmed: terminalConfirmed, terminal_pending: pending.size, tz_hold: !tz.verified, outcomes};
-    await db.query(`UPDATE tc_collector_runs SET status='complete', finished_at=now(), summary=$2 WHERE run_id=$1`, [runId, JSON.stringify(summary)]);
+    await db.query(`UPDATE tc_collector_runs SET status='complete', finished_at=clock_timestamp(), summary=$2 WHERE run_id=$1`, [runId, JSON.stringify(summary)]);
     log('TC_LIVE_CYCLE ' + JSON.stringify(summary));
     return summary;
   } catch (e) {
-    await db.query(`UPDATE tc_collector_runs SET status='failed', finished_at=now(), error=$2 WHERE run_id=$1`, [runId, redactSecrets(String(e?.message || e)).slice(0, 500)]);
+    await db.query(`UPDATE tc_collector_runs SET status='failed', finished_at=clock_timestamp(), error=$2 WHERE run_id=$1`, [runId, redactSecrets(String(e?.message || e)).slice(0, 500)]);
     throw e;
   }
 }
