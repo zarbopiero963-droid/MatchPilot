@@ -6,27 +6,34 @@ import { LIVE_VERSION, eventsOf, rowsOf, snapshotHash, verifiedInplay } from '..
 
 export const TC_LIVE_LOCK = 76420324;
 
+/** Insert a v2 snapshot, bridging equal immutable v1 payloads through a partial fingerprint index. */
 export async function insertLiveSnapshot(db, params) {
   return db.query(
-    `INSERT INTO tc_live_snapshots(match_id,league_id,run_id,acquired_at,provider_status,minute,score,snapshot_hash,raw_id,payload)
-     SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb
-     WHERE NOT EXISTS (SELECT 1 FROM tc_live_snapshots WHERE match_id=$1 AND payload=$10::jsonb)
+    `INSERT INTO tc_live_snapshots(match_id,league_id,run_id,acquired_at,provider_status,minute,score,snapshot_hash,raw_id,payload,hash_version)
+     SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,'v2'
+     WHERE NOT EXISTS (SELECT 1 FROM tc_live_snapshots WHERE match_id=$1 AND hash_version='v1'
+       AND md5(payload::text)=md5(($10::jsonb)::text) AND payload=$10::jsonb)
      ON CONFLICT(match_id,snapshot_hash) DO NOTHING RETURNING snapshot_id`, params);
 }
 
+/** Insert a v2 event with the same bounded v1 compatibility rule as snapshots. */
 export async function insertLiveEvent(db, params) {
   return db.query(
-    `INSERT INTO tc_live_events(match_id,event_hash,minute,event_type,raw_id,acquired_at,payload)
-     SELECT $1,$2,$3,$4,$5,$6,$7::jsonb
-     WHERE NOT EXISTS (SELECT 1 FROM tc_live_events WHERE match_id=$1 AND payload=$7::jsonb)
+    `INSERT INTO tc_live_events(match_id,event_hash,minute,event_type,raw_id,acquired_at,payload,hash_version)
+     SELECT $1,$2,$3,$4,$5,$6,$7::jsonb,'v2'
+     WHERE NOT EXISTS (SELECT 1 FROM tc_live_events WHERE match_id=$1 AND hash_version='v1'
+       AND md5(payload::text)=md5(($7::jsonb)::text) AND payload=$7::jsonb)
      ON CONFLICT(match_id,event_hash) DO NOTHING RETURNING event_id`, params);
 }
 
+/** Read and clamp live polling, recovery, and authentication settings. */
 export function liveConfig(env = process.env) {
   return {
     intervalMs: Math.max(15000, Number(env.TOTALCORNER_LIVE_POLL_SECONDS || 60) * 1000),
     maxMatches: Math.max(1, Math.min(8, Number(env.TOTALCORNER_LIVE_MAX_MATCHES || 4))),
-    authPauseMs: Math.max(60000, Number(env.TOTALCORNER_AUTH_PAUSE_MS || 900000))
+    authPauseMs: Math.max(60000, Number(env.TOTALCORNER_AUTH_PAUSE_MS || 900000)),
+    endedPages: Math.max(1, Math.min(10, Number(env.TOTALCORNER_LIVE_ENDED_PAGES || 6))),
+    terminalGraceHours: Math.max(1, Math.min(24, Number(env.TOTALCORNER_LIVE_TERMINAL_GRACE_HOURS || 6)))
   };
 }
 
@@ -35,6 +42,24 @@ async function verifiedLeagueIds(db) {
   return new Set(r.rows.map(x => String(x.totalcorner_league_id)));
 }
 
+/** Find previously captured matches that still require an explicit ended-list confirmation. */
+async function pendingTerminalIds(db, config, now) {
+  const since = new Date(now().getTime() - config.terminalGraceHours * 3600000);
+  const r = await db.query(`SELECT match_id FROM tc_live_cursors WHERE terminal_at IS NULL AND last_polled_at >= $1`, [since]);
+  return new Set(r.rows.map(x => String(x.match_id)));
+}
+
+/** Persist the provider's documented type=ended row as the terminal snapshot and cursor proof. */
+export async function captureTerminal(db, {row, rawId, acquiredAt, runId}) {
+  const matchId = String(row.id), leagueId = String(row.l_id);
+  const inserted = await insertLiveSnapshot(db, [matchId, leagueId, runId, acquiredAt, 'FT', row.minute ?? row.time ?? null,
+    row.score ?? row.ss ?? `${row.hg ?? ''}-${row.ag ?? ''}`, snapshotHash(row), rawId, JSON.stringify(row)]);
+  await db.query(`UPDATE tc_live_cursors SET terminal_at=$2,terminal_raw_id=$3,terminal_source='today_ended',last_status='FT',
+    last_snapshot_at=GREATEST(COALESCE(last_snapshot_at,$2),$2) WHERE match_id=$1`, [matchId, acquiredAt, rawId]);
+  return inserted.rowCount;
+}
+
+/** Execute one persisted live cycle under the caller's cross-process advisory lock. */
 export async function runLiveCycle({tc, db, config = liveConfig(), now = () => new Date(), log = console.log}) {
   const run = await db.query(`INSERT INTO tc_collector_runs(version,status) VALUES($1,'running') RETURNING run_id`, [LIVE_VERSION]);
   const runId = Number(run.rows[0].run_id);
@@ -55,7 +80,7 @@ export async function runLiveCycle({tc, db, config = liveConfig(), now = () => n
     }
     const leagues = await verifiedLeagueIds(db);
     const live = verifiedInplay(rowsOf(list.body), leagues).slice(0, config.maxMatches);
-    let snapshots = 0, events = 0, views = 0;
+    let snapshots = 0, events = 0, views = 0, terminalConfirmed = 0;
     for (const row of live) {
       const view = await tc.get(`/match/view/${encodeURIComponent(row.id)}`, {columns: LIST_COLUMNS}, {endpoint_family: 'live_view', match_id: String(row.id), league_id: String(row.l_id), phase: 'LIVE', provenance: 'HISTORICAL_CAPTURED'});
       bump('live_view', view.outcome);
@@ -85,7 +110,22 @@ export async function runLiveCycle({tc, db, config = liveConfig(), now = () => n
          ON CONFLICT(match_id) DO UPDATE SET last_polled_at=EXCLUDED.last_polled_at, last_snapshot_at=COALESCE(EXCLUDED.last_snapshot_at, tc_live_cursors.last_snapshot_at), last_status=EXCLUDED.last_status, poll_count=tc_live_cursors.poll_count+1`,
         [String(row.id), String(row.l_id), view.acquired_at || now(), source.status ?? null]);
     }
-    const summary = {version: LIVE_VERSION, run_id: runId, inplay_seen: rowsOf(list.body).length, verified_live: live.length, snapshots_new: snapshots, events_new: events, views, tz_hold: !tz.verified, outcomes};
+    const pending = await pendingTerminalIds(db, config, now);
+    for (const row of live) pending.delete(String(row.id));
+    for (let page = 1; pending.size && page <= config.endedPages; page++) {
+      const ended = await tc.get('/match/today', {type: 'ended', columns: LIST_COLUMNS, page},
+        {endpoint_family: 'live_ended', phase: 'LIVE', provenance: 'HISTORICAL_CAPTURED'});
+      bump('live_ended', ended.outcome);
+      for (const row of rowsOf(ended.body)) {
+        if (!pending.has(String(row.id)) || !leagues.has(String(row.l_id))) continue;
+        snapshots += await captureTerminal(db, {row, rawId: ended.raw_id, acquiredAt: ended.acquired_at || now(), runId});
+        terminalConfirmed++;
+        pending.delete(String(row.id));
+      }
+      const pg = ended.body?.pagination;
+      if (ended.outcome !== 'ok' || !pg || pg.next === false || pg.next === 'false') break;
+    }
+    const summary = {version: LIVE_VERSION, run_id: runId, inplay_seen: rowsOf(list.body).length, verified_live: live.length, snapshots_new: snapshots, events_new: events, views, terminal_confirmed: terminalConfirmed, terminal_pending: pending.size, tz_hold: !tz.verified, outcomes};
     await db.query(`UPDATE tc_collector_runs SET status='complete', finished_at=now(), summary=$2 WHERE run_id=$1`, [runId, JSON.stringify(summary)]);
     log('TC_LIVE_CYCLE ' + JSON.stringify(summary));
     return summary;
@@ -129,13 +169,15 @@ export async function maybeStartTcLive({env = process.env, log = console.log} = 
 
 export function stopTcLive() { if (timer) clearInterval(timer); timer = null; }
 
+/** Return current collector evidence without mutating provider or database state. */
 export async function tcLiveReport(db) {
   const [runs, snapshots, events, markets, cursors] = await Promise.all([
     db.query(`SELECT run_id, version, status, started_at, finished_at, summary, error FROM tc_collector_runs ORDER BY run_id DESC LIMIT 8`),
     db.query(`SELECT count(*)::int AS snapshots, count(DISTINCT match_id)::int AS matches, count(DISTINCT league_id)::int AS leagues, min(acquired_at) AS earliest, max(acquired_at) AS latest FROM tc_live_snapshots`),
     db.query(`SELECT count(*)::int AS events, count(DISTINCT match_id)::int AS matches FROM tc_live_events`),
     db.query(`SELECT count(*)::int AS market_snapshots FROM tc_market_snapshots`),
-    db.query(`SELECT count(*)::int AS cursors, max(last_polled_at) AS last_polled_at FROM tc_live_cursors`)
+    db.query(`SELECT count(*)::int AS cursors, count(*) FILTER(WHERE terminal_at IS NOT NULL)::int AS terminal_confirmed,
+      count(*) FILTER(WHERE terminal_at IS NULL)::int AS terminal_pending, max(last_polled_at) AS last_polled_at FROM tc_live_cursors`)
   ]);
   return {version: LIVE_VERSION, runs: runs.rows, snapshots: snapshots.rows[0], events: events.rows[0], markets: markets.rows[0], cursors: cursors.rows[0]};
 }

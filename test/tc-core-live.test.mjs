@@ -33,6 +33,7 @@ test('PostgreSQL legacy hash transition preserves old rows, dedups equal payload
     await db.query('CREATE SCHEMA tc_live_hash_transition_test');
     await db.query('SET LOCAL search_path TO tc_live_hash_transition_test');
     await db.query(await readFile(new URL('../migrations/027-tc-live-collector.sql', import.meta.url), 'utf8'));
+    await db.query(await readFile(new URL('../migrations/028-tc-live-v2-terminal.sql', import.meta.url), 'utf8'));
     const row = {status: '70', hg: '1', ag: '0', i_odds: ['2.0', '3.0', '4.0']};
     const args = payload => ['m1', 'l1', null, '2026-10-09T09:00:00Z', '70', null, null,
       snapshotHash(payload), null, JSON.stringify(payload)];
@@ -53,6 +54,45 @@ test('PostgreSQL legacy hash transition preserves old rows, dedups equal payload
     assert.equal(retained.rowCount, 1);
     assert.equal((await db.query('SELECT count(*)::int n FROM tc_live_snapshots')).rows[0].n, 2);
     assert.equal((await db.query('SELECT count(*)::int n FROM tc_live_events')).rows[0].n, 2);
+    const plan = await db.query(`EXPLAIN (ANALYZE, FORMAT JSON) SELECT 1 WHERE NOT EXISTS
+      (SELECT 1 FROM tc_live_snapshots WHERE match_id='m1' AND hash_version='v1'
+       AND md5(payload::text)=md5(($1::jsonb)::text) AND payload=$1::jsonb)`, [JSON.stringify(row)]);
+    const executionMs = plan.rows[0]['QUERY PLAN'][0]['Execution Time'];
+    assert.ok(executionMs < 100, `legacy lookup took ${executionMs} ms`);
+  } finally { await db.query('ROLLBACK'); await db.end(); }
+});
+
+test('PostgreSQL restart recovery persists a provider-confirmed ended row as FT once', {timeout: 30000}, async t => {
+  const pg = (await import('pg')).default;
+  const db = new pg.Client({connectionString: process.env.FUTPYTHON_TEST_DATABASE_URL
+    || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt', connectionTimeoutMillis: 2000});
+  try { await db.connect(); }
+  catch (e) {
+    await db.end().catch(() => {});
+    if (process.env.CI) throw e;
+    return t.skip('throwaway postgres unavailable');
+  }
+  const {captureTerminal} = await import('../src/jobs/totalcorner-live.mjs');
+  try {
+    await db.query('BEGIN');
+    await db.query('CREATE SCHEMA tc_live_restart_test');
+    await db.query('SET LOCAL search_path TO tc_live_restart_test');
+    await db.query(await readFile(new URL('../migrations/027-tc-live-collector.sql', import.meta.url), 'utf8'));
+    await db.query(await readFile(new URL('../migrations/028-tc-live-v2-terminal.sql', import.meta.url), 'utf8'));
+    await db.query(`INSERT INTO tc_live_cursors(match_id,league_id,last_polled_at,last_snapshot_at,last_status,poll_count)
+      VALUES('m-ft','10','2026-10-09T09:00:00Z','2026-10-09T09:00:00Z','94',61)`);
+    const ended = {id:'m-ft',l_id:'10',status:'full',hg:'2',ag:'1',events:[{tp:'g',t:'85',h:'h'}]};
+    const args = {row:ended,rawId:777,acquiredAt:new Date('2026-10-09T09:07:00Z'),runId:null};
+    assert.equal(await captureTerminal(db,args),1);
+    assert.equal(await captureTerminal(db,args),0);
+    const cursor = (await db.query("SELECT last_status,terminal_source,terminal_raw_id,terminal_at FROM tc_live_cursors WHERE match_id='m-ft'")).rows[0];
+    assert.equal(cursor.last_status,'FT');
+    assert.equal(cursor.terminal_source,'today_ended');
+    assert.equal(String(cursor.terminal_raw_id),'777');
+    assert.ok(cursor.terminal_at);
+    const snap = (await db.query("SELECT provider_status,hash_version,raw_id,payload->>'hg' hg FROM tc_live_snapshots WHERE match_id='m-ft'")).rows[0];
+    assert.deepEqual({status:snap.provider_status,version:snap.hash_version,raw:String(snap.raw_id),hg:snap.hg},
+      {status:'FT',version:'v2',raw:'777',hg:'2'});
   } finally { await db.query('ROLLBACK'); await db.end(); }
 });
 
