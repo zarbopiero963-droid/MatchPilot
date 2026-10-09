@@ -45,6 +45,10 @@ Dettagli verificabili: [integrazione e stato corrente](docs/integration-map.md#s
 
 GitHub Actions classifies each diff and routes it through documentation, targeted UI, or complete PostgreSQL integration checks. The stable required check is `CI gate`; unknown files and classifier failures select the complete suite. Live/provider and other heavy certifications remain explicit evidence gates and are never implied by CI. See [`docs/ci-zero-cost.md`](docs/ci-zero-cost.md).
 
+## Runtime isolation
+
+The backend defaults to `MATCHPILOT_RUNTIME_MODE=offline`: cron, watchdog, recovery, backfill, Telegram startup work and every FutPython/TotalCorner collector remain disabled. Offline/test modes reject remote database hosts. Production background work requires the explicit pair `MATCHPILOT_RUNTIME_MODE=production` and `MATCHPILOT_BACKGROUND_ENABLED=true`; provider-specific gates still apply. See [`docs/runtime-isolation.md`](docs/runtime-isolation.md).
+
 MatchPilot è una piattaforma web di **trading sportivo decisionale**, non un semplice sito di pronostici.
 
 ## Obiettivo
