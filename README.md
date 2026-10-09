@@ -41,6 +41,10 @@ Dettagli verificabili: [integrazione e stato corrente](docs/integration-map.md#s
 
 ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/zarbopiero963-droid/MatchPilot?utm_source=oss&utm_medium=github&utm_campaign=zarbopiero963-droid%2FMatchPilot&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
+## Continuous integration
+
+GitHub Actions classifies each diff and routes it through documentation, targeted UI, or complete PostgreSQL integration checks. The stable required check is `CI gate`; unknown files and classifier failures select the complete suite. Live/provider and other heavy certifications remain explicit evidence gates and are never implied by CI. See [`docs/ci-zero-cost.md`](docs/ci-zero-cost.md).
+
 MatchPilot è una piattaforma web di **trading sportivo decisionale**, non un semplice sito di pronostici.
 
 ## Obiettivo
