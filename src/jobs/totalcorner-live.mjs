@@ -78,6 +78,14 @@ export async function captureTerminal(db, {row, rawId, acquiredAt, runId}) {
   return {snapshots: inserted.rowCount, events};
 }
 
+/** Best-effort failed-run evidence must never replace the cycle's original error. */
+export async function recordLiveFailure(db, runId, error) {
+  try {
+    await db.query(`UPDATE tc_collector_runs SET status='failed', finished_at=clock_timestamp(), error=$2 WHERE run_id=$1`,
+      [runId, redactSecrets(String(error?.message || error)).slice(0, 500)]);
+  } catch {}
+}
+
 /** Execute one persisted live cycle under the caller's cross-process advisory lock. */
 export async function runLiveCycle({tc, db, config = liveConfig(), now = () => new Date(), log = console.log}) {
   const run = await db.query(`INSERT INTO tc_collector_runs(version,status) VALUES($1,'running') RETURNING run_id`, [LIVE_VERSION]);
@@ -154,7 +162,7 @@ export async function runLiveCycle({tc, db, config = liveConfig(), now = () => n
     log('TC_LIVE_CYCLE ' + JSON.stringify(summary));
     return summary;
   } catch (e) {
-    await db.query(`UPDATE tc_collector_runs SET status='failed', finished_at=clock_timestamp(), error=$2 WHERE run_id=$1`, [runId, redactSecrets(String(e?.message || e)).slice(0, 500)]);
+    await recordLiveFailure(db, runId, e);
     throw e;
   }
 }
