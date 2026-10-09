@@ -145,13 +145,29 @@ export async function runLiveCycle({tc, db, config = liveConfig(), now = () => n
 }
 
 let timer = null, busy = false, pausedUntil = 0;
+/** Run one cycle with a transaction-scoped lock that PostgreSQL cannot leak through the pool. */
+export async function withLiveLock(db, log, fn) {
+  await db.query('BEGIN');
+  try {
+    const lock = await db.query('SELECT pg_try_advisory_xact_lock($1) AS locked', [TC_LIVE_LOCK]);
+    if (!lock.rows[0]?.locked) {
+      await db.query('ROLLBACK');
+      return log('TC_LIVE_SKIPPED ' + JSON.stringify({reason: 'lock'}));
+    }
+    const result = await fn(db);
+    await db.query('COMMIT');
+    return result;
+  } catch (error) {
+    // runLiveCycle records its failed run before rethrowing. Preserve that evidence
+    // when the transaction remains usable; COMMIT on an aborted transaction acts as ROLLBACK.
+    try { await db.query('COMMIT'); }
+    catch { await db.query('ROLLBACK').catch(() => {}); }
+    throw error;
+  }
+}
+
 async function guarded(env, log, fn) {
-  return withClient(async db => {
-    const lock = await db.query('SELECT pg_try_advisory_lock($1) AS locked', [TC_LIVE_LOCK]);
-    if (!lock.rows[0]?.locked) return log('TC_LIVE_SKIPPED ' + JSON.stringify({reason: 'lock'}));
-    try { return await fn(db); }
-    finally { await db.query('SELECT pg_advisory_unlock($1)', [TC_LIVE_LOCK]); }
-  });
+  return withClient(db => withLiveLock(db, log, fn));
 }
 
 export async function maybeStartTcLive({env = process.env, log = console.log} = {}) {
