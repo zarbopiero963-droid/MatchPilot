@@ -6,6 +6,22 @@ import { LIVE_VERSION, eventsOf, rowsOf, snapshotHash, verifiedInplay } from '..
 
 export const TC_LIVE_LOCK = 76420324;
 
+export async function insertLiveSnapshot(db, params) {
+  return db.query(
+    `INSERT INTO tc_live_snapshots(match_id,league_id,run_id,acquired_at,provider_status,minute,score,snapshot_hash,raw_id,payload)
+     SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb
+     WHERE NOT EXISTS (SELECT 1 FROM tc_live_snapshots WHERE match_id=$1 AND payload=$10::jsonb)
+     ON CONFLICT(match_id,snapshot_hash) DO NOTHING RETURNING snapshot_id`, params);
+}
+
+export async function insertLiveEvent(db, params) {
+  return db.query(
+    `INSERT INTO tc_live_events(match_id,event_hash,minute,event_type,raw_id,acquired_at,payload)
+     SELECT $1,$2,$3,$4,$5,$6,$7::jsonb
+     WHERE NOT EXISTS (SELECT 1 FROM tc_live_events WHERE match_id=$1 AND payload=$7::jsonb)
+     ON CONFLICT(match_id,event_hash) DO NOTHING RETURNING event_id`, params);
+}
+
 export function liveConfig(env = process.env) {
   return {
     intervalMs: Math.max(15000, Number(env.TOTALCORNER_LIVE_POLL_SECONDS || 60) * 1000),
@@ -45,17 +61,12 @@ export async function runLiveCycle({tc, db, config = liveConfig(), now = () => n
       bump('live_view', view.outcome);
       const source = rowsOf(view.body)[0] || row;
       const hash = snapshotHash(source);
-      const inserted = await db.query(
-        `INSERT INTO tc_live_snapshots(match_id,league_id,run_id,acquired_at,provider_status,minute,score,snapshot_hash,raw_id,payload)
-         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-         ON CONFLICT(match_id,snapshot_hash) DO NOTHING RETURNING snapshot_id`,
+      // Called under TC_LIVE_LOCK: payload equality bridges immutable v1 hashes.
+      const inserted = await insertLiveSnapshot(db,
         [String(row.id), String(row.l_id), runId, view.acquired_at || list.acquired_at || now(), source.status ?? null, source.minute ?? source.time ?? null, source.score ?? source.ss ?? null, hash, view.raw_id || list.raw_id || null, JSON.stringify(source)]);
       if (inserted.rowCount) snapshots++;
       for (const event of eventsOf(source)) {
-        const ev = await db.query(
-          `INSERT INTO tc_live_events(match_id,event_hash,minute,event_type,raw_id,acquired_at,payload)
-           VALUES($1,$2,$3,$4,$5,$6,$7)
-           ON CONFLICT(match_id,event_hash) DO NOTHING RETURNING event_id`,
+        const ev = await insertLiveEvent(db,
           [String(row.id), event.event_hash, event.minute == null ? null : String(event.minute), event.event_type, view.raw_id || null, view.acquired_at || now(), JSON.stringify(event.payload)]);
         if (ev.rowCount) events++;
       }
