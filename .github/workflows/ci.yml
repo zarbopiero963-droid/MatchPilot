@@ -1,11 +1,81 @@
 name: CI
+
 on:
   pull_request:
   push:
     branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  test:
+  classify:
+    name: Classify changes
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      mode: ${{ steps.classify.outputs.mode }}
+      categories: ${{ steps.classify.outputs.categories }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - id: classify
+        name: Select required suites
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/ci-classify.mjs
+
+  fast:
+    name: Fast checks
+    needs: classify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Dependency security audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: Classifier regression tests
+        run: node --test test/ci-classify.test.mjs
+      - name: Syntax checks
+        if: needs.classify.outputs.mode != 'docs'
+        run: npm run check
+
+  ui:
+    name: UI checks
+    needs: classify
+    if: needs.classify.outputs.mode == 'ui'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node --test test/mockup-alignment.test.mjs
+
+  full:
+    name: PostgreSQL integration suite
+    needs: classify
+    if: needs.classify.outputs.mode == 'full'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:17
@@ -23,10 +93,48 @@ jobs:
     env:
       FUTPYTHON_TEST_DATABASE_URL: postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
-      - run: npm install
-      - run: npm run check
+          cache: npm
+      - run: npm ci --ignore-scripts
       - run: npm test
+
+  gate:
+    name: CI gate
+    if: always()
+    needs: [classify, fast, ui, full]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      MODE: ${{ needs.classify.outputs.mode }}
+      CLASSIFY_RESULT: ${{ needs.classify.result }}
+      FAST_RESULT: ${{ needs.fast.result }}
+      UI_RESULT: ${{ needs.ui.result }}
+      FULL_RESULT: ${{ needs.full.result }}
+    steps:
+      - name: Enforce selected checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$CLASSIFY_RESULT" = success
+          test "$FAST_RESULT" = success
+          case "$MODE" in
+            docs)
+              test "$UI_RESULT" = skipped
+              test "$FULL_RESULT" = skipped
+              ;;
+            ui)
+              test "$UI_RESULT" = success
+              test "$FULL_RESULT" = skipped
+              ;;
+            full)
+              test "$UI_RESULT" = skipped
+              test "$FULL_RESULT" = success
+              ;;
+            *)
+              echo "Unsafe classifier mode: $MODE" >&2
+              exit 1
+              ;;
+          esac
