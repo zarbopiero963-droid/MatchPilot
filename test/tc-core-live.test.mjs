@@ -117,6 +117,7 @@ test('PostgreSQL live lock is released after a failed cycle and can be reacquire
   }
   const {TC_LIVE_LOCK, withLiveLock} = await import('../src/jobs/totalcorner-live.mjs');
   try {
+    assert.equal(TC_LIVE_LOCK, 76420325);
     await assert.rejects(withLiveLock(first, () => {}, async () => { throw new Error('cycle failed'); }), /cycle failed/);
     const acquired = await second.query('SELECT pg_try_advisory_lock($1) AS locked', [TC_LIVE_LOCK]);
     assert.equal(acquired.rows[0].locked, true);
