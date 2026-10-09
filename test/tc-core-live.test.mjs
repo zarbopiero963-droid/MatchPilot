@@ -38,7 +38,9 @@ test('PostgreSQL legacy hash transition preserves old rows, dedups equal payload
     const args = payload => ['m1', 'l1', null, '2026-10-09T09:00:00Z', '70', null, null,
       snapshotHash(payload), null, JSON.stringify(payload)];
     const legacy = args(row); legacy[7] = 'legacy-v1-hash';
-    assert.equal((await insertLiveSnapshot(db, legacy)).rowCount, 1);
+    assert.equal((await db.query(`INSERT INTO tc_live_snapshots
+      (match_id,league_id,run_id,acquired_at,provider_status,minute,score,snapshot_hash,raw_id,payload,hash_version)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'v1')`, legacy)).rowCount, 1);
     assert.equal((await insertLiveSnapshot(db, args(row))).rowCount, 0);
     const changed = {...row, hg: '2'};
     assert.equal((await insertLiveSnapshot(db, args(changed))).rowCount, 1);
@@ -47,7 +49,9 @@ test('PostgreSQL legacy hash transition preserves old rows, dedups equal payload
     const evArgs = payload => ['m1', eventsOf({events:[payload]})[0].event_hash, '70', 'goal', null,
       '2026-10-09T09:00:00Z', JSON.stringify(payload)];
     const oldEvent = evArgs(event); oldEvent[1] = 'legacy-event-v1-hash';
-    assert.equal((await insertLiveEvent(db, oldEvent)).rowCount, 1);
+    assert.equal((await db.query(`INSERT INTO tc_live_events
+      (match_id,event_hash,minute,event_type,raw_id,acquired_at,payload,hash_version)
+      VALUES($1,$2,$3,$4,$5,$6,$7,'v1')`, oldEvent)).rowCount, 1);
     assert.equal((await insertLiveEvent(db, evArgs(event))).rowCount, 0);
     assert.equal((await insertLiveEvent(db, evArgs({detail:{team:'home',player:2}}))).rowCount, 1);
     const retained = await db.query("SELECT snapshot_hash FROM tc_live_snapshots WHERE snapshot_hash='legacy-v1-hash'");
