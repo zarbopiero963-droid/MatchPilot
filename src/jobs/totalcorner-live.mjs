@@ -4,7 +4,9 @@ import { LIST_COLUMNS } from './totalcorner-discovery.mjs';
 import { prematchConfig, providerTzGate } from './totalcorner-prematch.mjs';
 import { LIVE_VERSION, eventsOf, rowsOf, snapshotHash, verifiedInplay } from '../providers/totalcorner/live.mjs';
 
-export const TC_LIVE_LOCK = 76420324;
+// v2 uses a fresh namespace: a leaked v1 session lock on 76420324 was observed
+// in Neon during the 2026-10-09 restart drill. This transaction lock cannot leak.
+export const TC_LIVE_LOCK = 76420325;
 
 /** Insert a v2 snapshot, bridging equal immutable v1 payloads through a partial fingerprint index. */
 export async function insertLiveSnapshot(db, params) {
