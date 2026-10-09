@@ -1,0 +1,71 @@
+{
+  "schema_version": "matchpilot-independent-sample-v1",
+  "generated_at": "2026-10-09T14:56:00Z",
+  "source": {
+    "project_id": "damp-pond-29296680",
+    "branch_id": "br-aged-river-b590aqst",
+    "database": "neondb",
+    "mode": "read-only-sanitized-metadata",
+    "query_timestamp": "2026-10-09T14:56:00Z"
+  },
+  "futpython": [
+    {
+      "internal_match_id": "fpt:hash:c2d3069040dcf109a4c4fd7ed4743cde",
+      "internal_competition_id": "fpt:competition:da95c25ed0c2371a1432eb2210ae84ec",
+      "season_id": "fpt:season:b0651fd94659e63fd5aa0f1d692e9dd3",
+      "match_date": "2026-09-28",
+      "home_name": "Necaxa",
+      "away_name": "Club America",
+      "home_score": 2,
+      "away_score": 4,
+      "result_status": "FINAL",
+      "phase": "HISTORICAL",
+      "source_provider": "futpythontrader",
+      "parser_version": "fpt-csv-1",
+      "schema_version": "fpt-schema-4",
+      "transform_version": "fpt-norm-1",
+      "acquired_at": "2026-10-04T15:30:57.857Z"
+    },
+    {
+      "internal_match_id": "fpt:hash:e2f30bad13149215048df17efb5a03ee",
+      "internal_competition_id": "fpt:competition:2bebbe09b27625f6073d4726adce4832",
+      "season_id": "fpt:season:cd2ecd979ac62d1a68207d3fd3d2c964",
+      "match_date": "2026-09-28",
+      "home_name": "Leganes",
+      "away_name": "Castellon",
+      "home_score": 0,
+      "away_score": 2,
+      "result_status": "FINAL",
+      "phase": "HISTORICAL",
+      "source_provider": "futpythontrader",
+      "parser_version": "fpt-csv-1",
+      "schema_version": "fpt-schema-4",
+      "transform_version": "fpt-norm-1",
+      "acquired_at": "2026-10-04T15:45:00.611Z"
+    }
+  ],
+  "totalcorner": [
+    {
+      "match_id": "202472520",
+      "league_id": "319",
+      "acquired_at": "2026-10-09T14:39:14.820Z",
+      "provider_status": "FT",
+      "score": "0-3",
+      "source_raw_id": "10263",
+      "source_body_sha256": "a8e977957426c9cc7b25b5def92ef4e5912266c38095733e8b51e964c0b5b2f2",
+      "hash_version": "v2",
+      "provenance": "HISTORICAL_CAPTURED"
+    },
+    {
+      "match_id": "200933914",
+      "league_id": "116",
+      "acquired_at": "2026-10-09T13:58:05.579Z",
+      "provider_status": "FT",
+      "score": "2-4",
+      "source_raw_id": "9679",
+      "source_body_sha256": "4759b52f5f18274acb361d8e5c0baf9050f60b6f0c7682c152defa2cdd4fe93d",
+      "hash_version": "v2",
+      "provenance": "HISTORICAL_CAPTURED"
+    }
+  ]
+}
