@@ -103,6 +103,27 @@ test('PostgreSQL restart recovery persists a provider-confirmed ended row as FT 
   } finally { await db.query('ROLLBACK'); await db.end(); }
 });
 
+test('PostgreSQL live lock is released after a failed cycle and can be reacquired', {timeout: 30000}, async t => {
+  const pg = (await import('pg')).default;
+  const connectionString = process.env.FUTPYTHON_TEST_DATABASE_URL
+    || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
+  const first = new pg.Client({connectionString, connectionTimeoutMillis: 2000});
+  const second = new pg.Client({connectionString, connectionTimeoutMillis: 2000});
+  try { await first.connect(); await second.connect(); }
+  catch (e) {
+    await first.end().catch(() => {}); await second.end().catch(() => {});
+    if (process.env.CI) throw e;
+    return t.skip('throwaway postgres unavailable');
+  }
+  const {TC_LIVE_LOCK, withLiveLock} = await import('../src/jobs/totalcorner-live.mjs');
+  try {
+    await assert.rejects(withLiveLock(first, () => {}, async () => { throw new Error('cycle failed'); }), /cycle failed/);
+    const acquired = await second.query('SELECT pg_try_advisory_lock($1) AS locked', [TC_LIVE_LOCK]);
+    assert.equal(acquired.rows[0].locked, true);
+    assert.equal((await second.query('SELECT pg_advisory_unlock($1) AS unlocked', [TC_LIVE_LOCK])).rows[0].unlocked, true);
+  } finally { await first.end(); await second.end(); }
+});
+
 test('unchanged live snapshot hashes are stable and events dedup on payload', () => {
   const row = {status: '1', minute: '12', score: '1-0', events: [{type: 'goal', minute: 11, side: 'home'}]};
   assert.equal(snapshotHash(row), snapshotHash({...row}));
