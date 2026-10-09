@@ -54,9 +54,16 @@ export async function captureTerminal(db, {row, rawId, acquiredAt, runId}) {
   const matchId = String(row.id), leagueId = String(row.l_id);
   const inserted = await insertLiveSnapshot(db, [matchId, leagueId, runId, acquiredAt, 'FT', row.minute ?? row.time ?? null,
     row.score ?? row.ss ?? `${row.hg ?? ''}-${row.ag ?? ''}`, snapshotHash(row), rawId, JSON.stringify(row)]);
+  let events = 0;
+  for (const event of eventsOf(row)) {
+    const result = await insertLiveEvent(db, [matchId, event.event_hash,
+      event.minute == null ? null : String(event.minute), event.event_type, rawId, acquiredAt,
+      JSON.stringify(event.payload)]);
+    events += result.rowCount;
+  }
   await db.query(`UPDATE tc_live_cursors SET terminal_at=$2,terminal_raw_id=$3,terminal_source='today_ended',last_status='FT',
     last_snapshot_at=GREATEST(COALESCE(last_snapshot_at,$2),$2) WHERE match_id=$1`, [matchId, acquiredAt, rawId]);
-  return inserted.rowCount;
+  return {snapshots: inserted.rowCount, events};
 }
 
 /** Execute one persisted live cycle under the caller's cross-process advisory lock. */
@@ -118,7 +125,9 @@ export async function runLiveCycle({tc, db, config = liveConfig(), now = () => n
       bump('live_ended', ended.outcome);
       for (const row of rowsOf(ended.body)) {
         if (!pending.has(String(row.id)) || !leagues.has(String(row.l_id))) continue;
-        snapshots += await captureTerminal(db, {row, rawId: ended.raw_id, acquiredAt: ended.acquired_at || now(), runId});
+        const terminal = await captureTerminal(db, {row, rawId: ended.raw_id, acquiredAt: ended.acquired_at || now(), runId});
+        snapshots += terminal.snapshots;
+        events += terminal.events;
         terminalConfirmed++;
         pending.delete(String(row.id));
       }
