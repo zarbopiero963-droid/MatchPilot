@@ -124,6 +124,27 @@ test('PostgreSQL live lock is released after a failed cycle and can be reacquire
   } finally { await first.end(); await second.end(); }
 });
 
+test('PostgreSQL clock_timestamp advances inside the transaction-scoped live lock', {timeout: 30000}, async t => {
+  const pg = (await import('pg')).default;
+  const db = new pg.Client({connectionString: process.env.FUTPYTHON_TEST_DATABASE_URL
+    || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt', connectionTimeoutMillis: 2000});
+  try { await db.connect(); }
+  catch (e) {
+    await db.end().catch(() => {});
+    if (process.env.CI) throw e;
+    return t.skip('throwaway postgres unavailable');
+  }
+  const {withLiveLock} = await import('../src/jobs/totalcorner-live.mjs');
+  try {
+    await withLiveLock(db, () => {}, async client => {
+      const stamps = await client.query(`SELECT now() transaction_started, clock_timestamp() wall_started,
+        pg_sleep(0.01), clock_timestamp() wall_finished`);
+      assert.equal(stamps.rows[0].transaction_started < stamps.rows[0].wall_finished, true);
+      assert.equal(stamps.rows[0].wall_started < stamps.rows[0].wall_finished, true);
+    });
+  } finally { await db.end(); }
+});
+
 test('unchanged live snapshot hashes are stable and events dedup on payload', () => {
   const row = {status: '1', minute: '12', score: '1-0', events: [{type: 'goal', minute: 11, side: 'home'}]};
   assert.equal(snapshotHash(row), snapshotHash({...row}));
