@@ -177,7 +177,7 @@ test('PostgreSQL 17 independent migration, verified sample replay and API are de
       assert.equal(after.rows[0].n, before.rows[0].n);
     } finally { await idempotency.end(); }
   } finally {
-    if (child?.exitCode == null) {
+    if (child && child.exitCode == null) {
       child.kill('SIGTERM');
       await new Promise(resolve => child.once('exit', resolve));
     }
