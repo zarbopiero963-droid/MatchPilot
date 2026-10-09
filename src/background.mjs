@@ -73,8 +73,13 @@ export async function startBackgroundServices({env = process.env, log = console.
   await services.maybeStartTcDiscovery().catch(cause => error('TC_DISCOVERY_ERROR', redactSecrets(String(cause?.message || cause))));
   await services.maybeStartTcMapping().catch(cause => error('TC_MAPPING_ERROR', redactSecrets(String(cause?.message || cause))));
   await services.maybeStartTcPrematch().catch(cause => error('TC_PREMATCH_ERROR', redactSecrets(String(cause?.message || cause))));
-  await services.maybeStartTcHistorical().catch(cause => error('TC_HISTORICAL_ERROR', redactSecrets(String(cause?.message || cause))));
-  await services.maybeStartTcLive().catch(cause => error('TC_LIVE_START_ERROR', redactSecrets(String(cause?.message || cause))));
+  try {
+    await services.maybeStartTcHistorical();
+    await services.maybeStartTcLive();
+  } catch (cause) {
+    // Preserve the existing production chain: live starts only after historical startup succeeds.
+    error('TC_HISTORICAL_ERROR', redactSecrets(String(cause?.message || cause)));
+  }
 
   if (env.FUTPYTHON_BACKFILL_ON_START === 'true') {
     services.runFutpythonSync({kind: 'backfill', mode: 'backfill'})

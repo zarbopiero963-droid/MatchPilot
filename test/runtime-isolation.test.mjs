@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import http from 'node:http';
 import test from 'node:test';
 
@@ -27,6 +28,12 @@ test('runtime defaults offline and rejects unknown modes', () => {
   assert.equal(runtimeMode({}), 'offline');
   assert.equal(runtimeMode({MATCHPILOT_RUNTIME_MODE: 'TEST'}), 'test');
   assert.throws(() => runtimeMode({MATCHPILOT_RUNTIME_MODE: 'unsafe'}), /Invalid MATCHPILOT_RUNTIME_MODE/);
+});
+
+test('HTTP startup does not await background initialization', () => {
+  const source = readFileSync(new URL('../src/server.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /await\s+startBackgroundServices\s*\(/);
+  assert.match(source, /void\s+startBackgroundServices\s*\(\)\.catch/);
 });
 
 test('offline and test modes reject every non-local database URL', () => {

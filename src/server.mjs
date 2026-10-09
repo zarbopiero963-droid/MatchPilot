@@ -18,7 +18,10 @@ const port = Number(process.env.PORT || 3000);
 
 const runtime = assertRuntimeSafety();
 await migrate();
-await startBackgroundServices();
+// The HTTP process must never wait for provider/collector initialization.
+void startBackgroundServices().catch(error => {
+  console.error('MATCHPILOT_BACKGROUND_ERROR', String(error?.message || error));
+});
 
 const app = http.createServer((req, res) => {
   res.setHeader('Cache-Control', 'no-store');
