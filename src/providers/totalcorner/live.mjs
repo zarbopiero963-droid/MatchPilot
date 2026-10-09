@@ -1,18 +1,21 @@
 import { createHash } from 'node:crypto';
 
-export const LIVE_VERSION = 'tc-core-04-v1';
+export const LIVE_VERSION = 'tc-core-04-v2';
 
+/** Return match rows from either documented TotalCorner response envelope. */
 export function rowsOf(body) {
   if (Array.isArray(body?.data)) return body.data;
   if (Array.isArray(body?.data?.matches)) return body.data.matches;
   return [];
 }
 
+/** True only for a row whose provider status denotes an active match. */
 export function isInplay(row) {
   const status = String(row?.status ?? '').toLowerCase();
   return status !== '' && status !== 'full' && status !== 'ended' && status !== 'upcoming' && status !== 'notstarted' && status !== 'ns';
 }
 
+/** Select unique in-play matches belonging to VERIFIED provider leagues. */
 export function verifiedInplay(rows, leagueIds) {
   const allowed = leagueIds instanceof Set ? leagueIds : new Set(leagueIds);
   const out = [];
@@ -27,25 +30,26 @@ export function verifiedInplay(rows, leagueIds) {
   return out;
 }
 
+/** Serialize JSON recursively with stable object keys and preserved array order. */
 function stable(value) {
-  return JSON.stringify(value, Object.keys(value || {}).sort());
+  // A JSON replacer key whitelist also filters nested objects, losing values.
+  // Sort objects recursively; retain array order and every upstream JSON field.
+  function canonical(item) {
+    if (Array.isArray(item)) return item.map(canonical);
+    if (item !== null && typeof item === 'object') {
+      return Object.fromEntries(Object.keys(item).sort().map(key => [key, canonical(item[key])]));
+    }
+    return item;
+  }
+  return JSON.stringify(canonical(value));
 }
 
+/** Hash every upstream snapshot field without discarding unknown keys. */
 export function snapshotHash(row) {
-  return createHash('sha256').update(stable({
-    status: row?.status ?? null,
-    minute: row?.minute ?? row?.time ?? null,
-    score: row?.score ?? row?.ss ?? null,
-    ht: row?.ht_score ?? row?.ht ?? null,
-    corners: row?.corners ?? row?.corner ?? null,
-    cards: row?.cards ?? null,
-    attacks: row?.attacks ?? row?.att ?? null,
-    dangerous: row?.dangerous_attacks ?? row?.dang_attacks ?? null,
-    shots: row?.shot_on ?? row?.shotOn ?? null,
-    possession: row?.possession ?? null
-  })).digest('hex');
+  return createHash('sha256').update(stable(row ?? {})).digest('hex');
 }
 
+/** Normalize event identity while retaining its original payload. */
 export function eventsOf(row) {
   const events = Array.isArray(row?.events) ? row.events : [];
   return events.map(event => {
