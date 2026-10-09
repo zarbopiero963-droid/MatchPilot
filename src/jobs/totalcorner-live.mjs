@@ -51,6 +51,16 @@ async function pendingTerminalIds(db, config, now) {
   return new Set(r.rows.map(x => String(x.match_id)));
 }
 
+/** Spend the bounded ended-list budget on the newest provider pages. Page 1 is
+ * retained to read pagination metadata and to support single-page responses. */
+export function terminalPagePlan(pagination, budget) {
+  const pages = Math.max(1, Number(pagination?.pages) || 1);
+  const limit = Math.max(1, Math.min(pages, Number(budget) || 1));
+  if (pages <= limit) return Array.from({length: pages}, (_, index) => index + 1);
+  const tailStart = pages - limit + 2;
+  return [1, ...Array.from({length: limit - 1}, (_, index) => tailStart + index)];
+}
+
 /** Persist the provider's documented type=ended row as the terminal snapshot and cursor proof. */
 export async function captureTerminal(db, {row, rawId, acquiredAt, runId}) {
   const matchId = String(row.id), leagueId = String(row.l_id);
@@ -121,7 +131,9 @@ export async function runLiveCycle({tc, db, config = liveConfig(), now = () => n
     }
     const pending = await pendingTerminalIds(db, config, now);
     for (const row of live) pending.delete(String(row.id));
-    for (let page = 1; pending.size && page <= config.endedPages; page++) {
+    let endedPages = [1];
+    for (let index = 0; pending.size && index < endedPages.length; index++) {
+      const page = endedPages[index];
       const ended = await tc.get('/match/today', {type: 'ended', columns: LIST_COLUMNS, page},
         {endpoint_family: 'live_ended', phase: 'LIVE', provenance: 'HISTORICAL_CAPTURED'});
       bump('live_ended', ended.outcome);
@@ -134,6 +146,7 @@ export async function runLiveCycle({tc, db, config = liveConfig(), now = () => n
         pending.delete(String(row.id));
       }
       const pg = ended.body?.pagination;
+      if (page === 1 && ended.outcome === 'ok') endedPages = terminalPagePlan(pg, config.endedPages);
       if (ended.outcome !== 'ok' || !pg || pg.next === false || pg.next === 'false') break;
     }
     const summary = {version: LIVE_VERSION, run_id: runId, inplay_seen: rowsOf(list.body).length, verified_live: live.length, snapshots_new: snapshots, events_new: events, views, terminal_confirmed: terminalConfirmed, terminal_pending: pending.size, tz_hold: !tz.verified, outcomes};
