@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 35,
+  "revision": 36,
   "tasks": [
     {
       "id": "R-01",
@@ -101,7 +101,7 @@
       "id": "R-12",
       "title": "Mathematical oracle and statistical metrics (part 1: MATH-CORE-01 Decimal/common contracts)",
       "issue": 94,
-      "pr": null,
+      "pr": 156,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
       "state": "REVIEW",
@@ -110,7 +110,8 @@
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261018T231022Z-agent-a-claude-code"
+      "latest_checkpoint": "CP-20261018T231022Z-agent-a-claude-code",
+      "pr_open": true
     }
   ]
 }
