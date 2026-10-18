@@ -1,0 +1,83 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261018T231704Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-18T23:17:04Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-12 part 1: independent review (comment 6256377132, CHANGES REQUESTED on 45a3259) addressed: B-1, NB-1..NB-5",
+  "task": "R-12",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 94,
+  "pr": 156,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "6ced83247c4d224d40adca37936fc9b5d1c42180",
+  "tree_sha": "126183d1622ab6e670dca6eebf08e90f6981e353",
+  "requirements": [
+    "MP-MTH-001"
+  ],
+  "changes": [
+    "src/math/decimal.mjs",
+    "src/math/core.mjs",
+    "test/math-core.test.mjs",
+    "docs/math-core.md, README; MP-MTH-001 FAIL -> NOT_VERIFIED"
+  ],
+  "tests": [
+    {
+      "command": "npm test against throwaway PostgreSQL 16",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1",
+      "commit": "6ced83247c4d224d40adca37936fc9b5d1c42180",
+      "time": "2026-10-18T23:17:04Z",
+      "limits": [
+        "251 tests, 250 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only)",
+        "new tests fail on the previous decimal.mjs"
+      ]
+    },
+    {
+      "command": "npm run check; governance:validate; governance:check; render-inventory --check",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "6ced83247c4d224d40adca37936fc9b5d1c42180",
+      "time": "2026-10-18T23:17:04Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "CHANGES REQUESTED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/156#issuecomment-6256377132"
+  },
+  "findings": [
+    {
+      "id": "B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "FLOOR/CEIL wrong for negative inputs with more than 18 decimals"
+    },
+    {
+      "id": "R12-SCOPE",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "money/commission formulas MATH-CORE-02..06, Poisson MATH-CORE-07 and API MATH-CORE-08 follow; commission-aware results depend on #95"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01"
+  ],
+  "dependencies": [
+    "CP-20261018T231022Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "Obtain CI green and a new independent review on the PR #156 head; auto-merge under merge-gate; then MATH-CORE-02 unless the owner decides on #23 / #97.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": "CP-20261018T231022Z-agent-a-claude-code"
+}
