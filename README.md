@@ -7,8 +7,8 @@ L'inventario atomico machine-readable è fissato sulla baseline `353dfc6523d357a
 Dopo l'audit indipendente `MP-GATE-A-REVIEW-ROADMAP-01` (correzioni R-00) e la PR R-01, il denominatore **PROVISIONAL** è il seguente (blocco generato da `npm run governance:render`):
 <!-- inventory:summary:start -->
 - **Requisiti:** 138 (census PROVISIONAL), di cui 104 P0 e 34 P1.
-- **Verdetti:** 35 PASS (tutti con evidenza, ciascuno limitato al proprio scope), 59 FAIL, 6 BLOCKED, 38 NOT_VERIFIED.
-- **Gate:** 76 P0 aperti. Gate A del prodotto **NON PASS**.
+- **Verdetti:** 36 PASS (tutti con evidenza, ciascuno limitato al proprio scope), 58 FAIL, 7 BLOCKED, 37 NOT_VERIFIED.
+- **Gate:** 75 P0 aperti. Gate A del prodotto **NON PASS**.
 <!-- inventory:summary:end -->
 
 Il denominatore definitivo uscirà dal censimento completo; nessun gruppo ha una dimensione fissa. Nessuna percentuale aggregata rende superabile un P0 aperto.

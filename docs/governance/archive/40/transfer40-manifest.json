@@ -1,0 +1,77 @@
+{
+  "qualification": "REGENERATED CERTIFIED ARCHIVE FROM SAME FROZEN DATASET",
+  "source_bundle": {
+    "bytes": 498614829,
+    "sha256": "fb07443646a7f6d98afe1f0769eda6849a8339a8a84ecd556ae1e1a2b89ac456"
+  },
+  "trusted_inventory_sha256": "377a85327d0dd3fc61356ef48b1606b1522b87561a4e057133e415a02b004041",
+  "parts": [
+    {
+      "file": "bundle40.part000",
+      "bytes": 40000000,
+      "sha256": "c000f87782edcb11d7a3666cfd9e296a4763f8214e33a9b8b66c695d5778bd83"
+    },
+    {
+      "file": "bundle40.part001",
+      "bytes": 40000000,
+      "sha256": "6f916417a54c42c7dfd0b80595574b5415fcecc9df2409776dfe99eb51b95807"
+    },
+    {
+      "file": "bundle40.part002",
+      "bytes": 40000000,
+      "sha256": "49195867cf7b6d3c20e007832ca592dc28b6d7b19e98a8a51e36b69dc40e28ee"
+    },
+    {
+      "file": "bundle40.part003",
+      "bytes": 40000000,
+      "sha256": "72faa2d15786cdb473e0cd1cb54293427ea566e69810257fd9672750ec5604d4"
+    },
+    {
+      "file": "bundle40.part004",
+      "bytes": 40000000,
+      "sha256": "2abe252fcc16d33583d8deffb3caf783f32a9c722189e489f79c73fa90c412d8"
+    },
+    {
+      "file": "bundle40.part005",
+      "bytes": 40000000,
+      "sha256": "7057f47069f2fbac05d3d3e272a0236f0ca9f9ded3d7f5a76849a774e867abd4"
+    },
+    {
+      "file": "bundle40.part006",
+      "bytes": 40000000,
+      "sha256": "8d993467ebceb00d46c35000d4f0bc085955fcc7eda85e9a5755731f95275aad"
+    },
+    {
+      "file": "bundle40.part007",
+      "bytes": 40000000,
+      "sha256": "c8df40242812060d0ae5cbbd447e099a0efd13e70ac108b4f1fc81d4cc85d4fd"
+    },
+    {
+      "file": "bundle40.part008",
+      "bytes": 40000000,
+      "sha256": "270fd4df63a0a657f390055c5203ab6158dd067be66154db1a4ed4ea3999cb46"
+    },
+    {
+      "file": "bundle40.part009",
+      "bytes": 40000000,
+      "sha256": "820481ad0d9b975b1f97612b8000914385e28f5b5064bfdf04ed90afa331ce51"
+    },
+    {
+      "file": "bundle40.part010",
+      "bytes": 40000000,
+      "sha256": "36ce9306698f903d38a069591e83d7d53bc5e90d3ba4b80c8e23c4fb82bc19e7"
+    },
+    {
+      "file": "bundle40.part011",
+      "bytes": 40000000,
+      "sha256": "547c2ef76da9f5e6065ca65dc5e5ff9f8d43c68e25810812a12ee3442602402e"
+    },
+    {
+      "file": "bundle40.part012",
+      "bytes": 18614829,
+      "sha256": "10b673646826c0579517fb478844e393d4306c66c6a47376e59ef8f5d57a0c9d"
+    }
+  ],
+  "drive_readback": "PENDING",
+  "safe_window": "NOT ATTESTED"
+}

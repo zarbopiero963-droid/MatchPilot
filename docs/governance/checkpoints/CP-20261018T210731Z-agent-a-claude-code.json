@@ -1,0 +1,100 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261018T210731Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-18T21:07:31Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Integration Agent"
+  },
+  "activity": "R-01 merged into main as d80d345e7d4b94e0256cdb3ebce6711f677f424e (squash of PR #151 head); record carried by the next PR per HANDOFF.md",
+  "task": "R-01",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 150,
+  "pr": 151,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "10edee07a68576642d3d7fa48712a81645eeca78",
+  "tree_sha": "3db497fff758846816cc45b3228172b7fc8fe4fc",
+  "requirements": [
+    "MP-GOV-013",
+    "MP-GOV-014",
+    "MP-GOV-016",
+    "MP-GOV-017",
+    "MP-GOV-018",
+    "MP-GOV-019",
+    "MP-GOV-022",
+    "MP-GOV-023"
+  ],
+  "changes": [
+    "squash merge d80d345e7d4b94e0256cdb3ebce6711f677f424e into main"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI (classify, fast checks incl. governance gate, PostgreSQL 17 suite, CI gate)",
+      "result": "PASS",
+      "environment": "GitHub Actions ubuntu-latest",
+      "commit": "10edee07a68576642d3d7fa48712a81645eeca78",
+      "time": "2026-10-18T20:37:46Z",
+      "limits": [
+        "run 39164108599, triggered by the final PR description edit"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39164108599,
+    "conclusion": "SUCCESS",
+    "head_sha": "10edee07a68576642d3d7fa48712a81645eeca78"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/151#issuecomment-6254832956",
+    "reviewed_sha": "10edee07a68576642d3d7fa48712a81645eeca78"
+  },
+  "findings": [
+    {
+      "id": "R-1",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "merge commits can rewrite checkpoints unnoticed; fixed in R-02 PR with regression test"
+    },
+    {
+      "id": "R-2",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "schema lacks reviewed_sha / ci.head_sha; fixed in R-02 PR (schema v2)"
+    },
+    {
+      "id": "R-3",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "extra closing-keyword forms; fixed in R-02 PR"
+    },
+    {
+      "id": "R-4",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "GOV-022 evidence revision count; fixed in R-02 PR"
+    },
+    {
+      "id": "N-04",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "audit authorship not provable by hash"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTOMERGE-01",
+    "MP-OWNER-CERT-ISSUE-CLOSURE-01",
+    "MP-OWNER-R01-AUTH-20261018"
+  ],
+  "dependencies": [
+    "CP-20261018T203228Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "R-01 is done. Continue with R-02 (archive #40 read-only verification) and land the R-1..R-4 fixes there.",
+  "resume_conditions": [
+    "main contains d80d345e7d4b94e0256cdb3ebce6711f677f424e"
+  ],
+  "supersedes": "CP-20261018T203228Z-agent-a-claude-code"
+}

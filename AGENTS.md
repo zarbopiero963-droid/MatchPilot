@@ -127,7 +127,7 @@ Se manca una prova obbligatoria si usa BLOCKED o NOT VERIFIED. Una PR che comple
 ## 6. Checkpoint, handoff e recovery (MP-MULTIAGENT-SYNC-CHECKPOINT-01, #150)
 
 Ogni ciclo di lavoro lascia su GitHub un checkpoint machine-readable in `docs/governance/checkpoints/<id>.json`:
-- append-only, schema `mp-checkpoint-v1`;
+- append-only, schema `mp-checkpoint-v2` (v1 accettato solo per i checkpoint storici precedenti al 18/10 21:00Z);
 - stati ammessi: PLANNED, RUNNING, BLOCKED, REVIEW, HANDOFF READY, CERTIFIED, MERGED, COMPLETED;
 - ogni checkpoint ha un commento corrispondente su issue o PR con marker `<!-- mp-checkpoint:<id> -->`.
 

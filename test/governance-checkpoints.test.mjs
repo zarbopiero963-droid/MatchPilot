@@ -5,7 +5,7 @@ import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {commentMarker, loadCheckpoints, planComment, reconcile, resolveLatest, validateCheckpoint, validateEvidence, writeCheckpoint} from '../tools/governance/checkpoints.mjs';
-import {realityFor} from '../tools/governance/git.mjs';
+import {realityFor, rewrittenCheckpoints} from '../tools/governance/git.mjs';
 
 const SHA_A = 'a'.repeat(40);
 const SHA_T = 'b'.repeat(40);
@@ -172,4 +172,37 @@ test('checkpoint persistence and comment publication are idempotent', t => {
   assert.throws(() => loadCheckpoints(dir), /does not match id/);
   assert.equal(planComment(['hello', `body ${commentMarker(cp.id)}`], cp.id), 'skip');
   assert.equal(planComment(['hello'], cp.id), 'post');
+});
+
+test('schema v2 binds reviews and CI runs to the commit they covered (#151 review R-2)', () => {
+  const ts = '2026-10-18T22:00:00Z';
+  const v2 = makeCheckpoint({schema_version: 'mp-checkpoint-v2', id: 'CP-20261018T220000Z-agent-a', timestamp_utc: ts});
+  assert.deepEqual(validateCheckpoint(v2, context), []);
+  assert.ok(validateCheckpoint({...v2, review: {verdict: 'APPROVED', reference: 'x'}}, context).some(e => e.includes('reviewed_sha')));
+  assert.ok(validateCheckpoint({...v2, ci: {run_id: 1, conclusion: 'SUCCESS'}}, context).some(e => e.includes('ci.head_sha')));
+  assert.deepEqual(validateCheckpoint({...v2, ci: {run_id: 1, conclusion: 'SUCCESS', head_sha: SHA_A}}, context), []);
+  const merged = {...v2, state: 'MERGED', gate_b: 'PASS', review: {verdict: 'APPROVED', reference: 'x', reviewed_sha: 'c'.repeat(40)}};
+  assert.ok(validateCheckpoint(merged, context).some(e => e.includes('review covers')));
+  assert.deepEqual(validateCheckpoint({...merged, review: {...merged.review, reviewed_sha: SHA_A}}, context), []);
+  assert.ok(validateCheckpoint({...v2, schema_version: 'mp-checkpoint-v1'}, context).some(e => e.includes('schema_version')), 'v1 is legacy-only');
+});
+
+test('a merge commit that rewrites an existing checkpoint is detected (#151 review R-1)', t => {
+  const repo = gitRepo();
+  t.after(repo.cleanup);
+  const base = repo.commit('docs/governance/checkpoints/CP-a.json', '{"original": true}\n', 'checkpoint');
+  repo.git('checkout', '-q', '-b', 'side');
+  repo.commit('src/b.mjs', 'export const b = 1;\n', 'side work');
+  repo.git('checkout', '-q', 'feature');
+  repo.commit('src/c.mjs', 'export const c = 1;\n', 'main work');
+  repo.git('merge', '-q', '--no-ff', '--no-commit', 'side');
+  writeFileSync(join(repo.dir, 'docs/governance/checkpoints/CP-a.json'), '{"rewritten": true}\n');
+  repo.git('add', '.');
+  repo.git('commit', '-q', '-m', 'evil merge');
+  const head = repo.git('rev-parse', 'HEAD');
+  const plainLog = repo.git('log', '--name-status', '--format=', `${base}..${head}`);
+  assert.ok(!plainLog.includes('CP-a.json'), 'precondition: a plain git log hides the merge rewrite');
+  assert.deepEqual(rewrittenCheckpoints(repo.dir, base, head).map(c => c.file), ['docs/governance/checkpoints/CP-a.json', 'docs/governance/checkpoints/CP-a.json']);
+  const clean = repo.commit('docs/governance/checkpoints/CP-b.json', '{}\n', 'append only');
+  assert.deepEqual(rewrittenCheckpoints(repo.dir, head, clean), []);
 });

@@ -44,6 +44,14 @@ test('incompatible concurrent work is refused', () => {
   assert.equal(code(() => claim(claimed, 'R-99', agentB, now)), 'UNKNOWN_TASK');
 });
 
+test('a BLOCKED implementation task does not block an independent one', () => {
+  const reg = registry();
+  reg.tasks[0].state = 'BLOCKED';
+  const claimed = claim(reg, 'R-02', agentB, now);
+  assert.equal(task(claimed, 'R-02').state, 'RUNNING');
+  assert.deepEqual(validateRegistry(claimed), []);
+});
+
 test('an expired lease is taken over only after reconciliation', () => {
   const claimed = claim(registry(), 'R-01', agentA, now);
   assert.equal(code(() => claim(claimed, 'R-01', agentB, later(121))), 'CONFLICT_UNRECONCILED');
