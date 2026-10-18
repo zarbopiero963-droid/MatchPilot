@@ -13,7 +13,7 @@ Every record that answers "what was known at T" carries `pit.times`:
 | `event_time`, `event_time_earliest`, `event_time_latest` | when the real-world event happened. `event_time` is set only when it is known to the instant; otherwise only the interval is given. |
 | `provider_time`, `provider_time_verified` | the time the provider declares for the record, in UTC, and whether that conversion is proven. |
 | `acquisition_time` | when MatchPilot first stored the record. |
-| `availability_time` | effective availability: the earliest instant at which MatchPilot provably held the record. This is the acquisition time, or for an FPT version the end of the latest re-parse run with its lineage, when that is later (R-08b). |
+| `availability_time` | effective availability: the earliest instant at which MatchPilot provably held the record. This is the acquisition time, or for an FPT version the end of the latest re-parse run with its lineage that wrote versions, when that is later (R-08b). |
 | `decision_time` | the simulated decision instant (`as_of`). |
 
 A missing time stays `null` and is listed in `pit.missing`. It is never invented or repaired.
@@ -71,14 +71,14 @@ A re-parse (`reprocessRaw`) never rewrites a version. It writes a new version wi
 
 - **Availability of a version:** nothing records which versions a re-parse wrote. A version therefore becomes available at the later of two instants:
   - its acquisition;
-  - the end (`finished_at`, recorded with `clock_timestamp()`) of the latest complete `apply` run with the same lineage.
+  - the end of the latest `apply` run with the same lineage that committed versions (`versions_inserted > 0`).
 
-  With no such run the version cannot come from a re-parse, and it is available from its acquisition. The rule does not depend on which snapshot holds the version.
+  The run counts whatever its final status: the reprocess job marks a run `failed` when the facts refresh fails after the commit. A run that committed versions without a recorded end makes them never available. With no such run the version cannot come from a re-parse, and it is available from its acquisition. A run that wrote nothing (dry run, rolled back, no difference) changes nothing.
 - **`teamMatchesAsOf`:** returns, per match, the latest version available at `as_of`, with its lineage and `version_available_at`. The record's `availability_time` is that instant.
 - **Effect:** a re-parse after T does not change the versions or values answered at T. The answer becomes `NON_PIT` (`FACTS_CHANGED_AFTER_DECISION`), because the current facts now come from the re-parse.
-- **Conservative cases**, which never advance an availability and may delay one:
-  - Re-running a lineage moves the availability of all its versions to the latest run. An answer at a T between two runs can then change, toward older versions, and become `NON_PIT`.
-  - A re-parse that reuses the ingest lineage delays the ingest versions of that lineage too. Re-parses should change lineage, as the #12 policy requires.
+- **Conservative cases**, which never advance an availability and may delay one. They are always reported: an answer is `NON_PIT` (`TEAM_MATCHES_CHANGED_AFTER_DECISION`) whenever a match involving the team has a version acquired by T that is not available at T.
+  - Re-running a lineage with new output moves the availability of all its versions to the latest run.
+  - A re-parse that reuses the ingest lineage also delays the ingest versions of that lineage, so matches known at T can be missing from the answer at T. Re-parses should change lineage, as the #12 policy requires.
   - The per-row flag `changed_after_as_of` is also set for unavailable versions of older snapshots.
 - **Limits:**
   - `finished_at` is written a few milliseconds before the run commits; ingest has the same gap with `acquired_at`.

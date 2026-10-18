@@ -190,6 +190,85 @@ test('a re-parsed version written into a later snapshot is not dated with that s
       assert.deepEqual(view(after), view(before), 'same T: the re-parsed version is not usable before its run ended');
       assert.ok(after.rows.every(r => r.parser_version === LINEAGE_VERSIONS.parserVersion));
       assert.equal(after.pit.label, 'NON_PIT', 'the current facts now come from the re-parse');
+
+      // Review B-3: the reprocess job marks a run 'failed' when the facts refresh fails after the versions were
+      // committed. Those versions must stay unusable before the run's end.
+      await c.query(`UPDATE fpt_reprocessing_runs SET status='failed', finished_at=now(), error='facts refresh failed' WHERE run_id=$1`, [run.runId]);
+      const afterFailed = await query.runQuery(c, 'teamMatchesAsOf', at);
+      assert.deepEqual(view(afterFailed), view(before), 'a committed run marked failed still delays its versions');
+      assert.equal(afterFailed.pit.label, 'NON_PIT');
+    });
+  } finally {
+    await db.closePool?.().catch?.(() => {});
+    try { await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`); }
+    finally { await admin.end(); }
+  }
+});
+
+// PR #155 review B-2: a re-parse that reuses the ingest lineage delays every version of that lineage, so matches known
+// at T can vanish from the answer at T. Such an answer must be NON_PIT, never a silently shorter PIT_VERIFIED one. A
+// no-op apply (0 versions written) must change nothing.
+test('a re-parse reusing the ingest lineage cannot silently drop matches known at T (MP-FPT-005)', {timeout: 90000}, async t => {
+  const pg = (await import('pg')).default;
+  const rootUrl = process.env.FUTPYTHON_TEST_DATABASE_URL || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
+  const base = new URL(rootUrl);
+  assert.ok(['localhost', '127.0.0.1', '[::1]'].includes(base.hostname), 'remote PostgreSQL is forbidden');
+  const admin = new pg.Client({connectionString: rootUrl, connectionTimeoutMillis: 2000});
+  try { await admin.connect(); }
+  catch (cause) {
+    await admin.end().catch(() => {});
+    if (process.env.CI) throw cause;
+    return t.skip('throwaway postgres unavailable');
+  }
+  const schema = `pit_fpt_c_${process.pid}`;
+  await admin.query(`CREATE SCHEMA ${schema}`);
+  base.searchParams.set('options', `-c search_path=${schema}`);
+  process.env.DATABASE_URL = base.toString();
+  process.env.MATCHPILOT_RUNTIME_MODE = 'test';
+  const db = await import('../src/db.mjs');
+  try {
+    const {migrate} = await import('../src/migrate.mjs');
+    const store = await import('../src/providers/futpython/store.mjs');
+    const teams = await import('../src/providers/futpython/teams.mjs');
+    const query = await import('../src/providers/futpython/query.mjs');
+    const {reprocessRaw} = await import('../src/providers/futpython/reprocess.mjs');
+    const {parseCsv} = await import('../src/lib/csv.mjs');
+    await migrate();
+    await db.withClient(async c => {
+      const H = ['Id', 'Date', 'Time', 'Home', 'Away', 'Home_Score', 'Away_Score', 'Odd_1_FT', 'Odd_X_FT', 'Odd_2_FT'];
+      const line = r => H.map(h => r[h] ?? '').join(',');
+      const key = 'netherlands/eredivisie/2024-2025';
+      await c.query(`INSERT INTO fpt_catalog(dataset_key,country_slug,league_slug,season,route) VALUES($1,'netherlands','eredivisie','2024-2025','/x')`, [key]);
+      const m = (id, home, away) => ({Id: id, Date: '2025-03-01', Time: '20:00', Home: home, Away: away, Home_Score: '2', Away_Score: '1',
+        Odd_1_FT: '1.8', Odd_X_FT: '3.5', Odd_2_FT: '4.0'});
+      const text = H.join(',') + '\n' + line(m('100', 'Ajax', 'PSV')) + '\n' + line(m('101', 'PSV', 'Ajax')) + '\n';
+      const parsed = parseCsv(text);
+      await store.storeDataset(c, {datasetKey: key, sourceKind: 'dataset', providerPath: '/x', countrySlug: 'netherlands', leagueSlug: 'eredivisie',
+        season: '2024-2025', text, headers: parsed.headers, rows: parsed.rows, acquiredAt: new Date('2025-05-01T00:00:00Z')});
+      await teams.replaceTeamEntities(c, teams.buildTeamEntities(await teams.loadTeamSpellings(c)));
+      await query.refreshNormalizedLayer(c);
+      const ajax = (await query.runQuery(c, 'teamSearch', {q: 'Ajax'})).rows[0].internal_team_id;
+      const at = {team: ajax, as_of: '2025-08-01T00:00:00Z', before: '2100-01-01', limit: 50};
+      const before = await query.runQuery(c, 'teamMatchesAsOf', at);
+      assert.equal(before.rows.length, 2);
+      assert.equal(before.pit.label, 'PIT_VERIFIED');
+
+      // The default command: apply with the ingest lineage and the ingest parser writes nothing and changes nothing.
+      const noop = await reprocessRaw(c, {mode: 'apply', actor: 'test', reason: 'no-op'});
+      assert.equal(noop.inserted, 0);
+      const afterNoop = await query.runQuery(c, 'teamMatchesAsOf', at);
+      assert.deepEqual(afterNoop.rows.map(r => r.version_id), before.rows.map(r => r.version_id));
+      assert.equal(afterNoop.pit.label, 'PIT_VERIFIED');
+
+      // A re-parse with the ingest lineage that changes match 100: every version of the lineage now waits for the run.
+      const reuse = await reprocessRaw(c, {mode: 'apply', actor: 'test', reason: 'reuse lineage',
+        parse: t2 => { const p = parseCsv(t2); return {...p, rows: p.rows.map(r => r.Id === '100' ? {...r, Odd_1_FT: '9.99'} : r)}; }});
+      assert.ok(reuse.inserted > 0);
+      await query.refreshNormalizedLayer(c);
+      const afterReuse = await query.runQuery(c, 'teamMatchesAsOf', at);
+      assert.ok(afterReuse.rows.length < before.rows.length, 'the delayed ingest versions are no longer usable at T');
+      assert.equal(afterReuse.pit.label, 'NON_PIT', 'the missing matches are reported, not hidden');
+      assert.ok(afterReuse.pit.changed_matches >= 2);
     });
   } finally {
     await db.closePool?.().catch?.(() => {});
