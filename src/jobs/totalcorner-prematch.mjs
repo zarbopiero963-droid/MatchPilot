@@ -3,6 +3,7 @@ import { createTcClient, createPgStore, redactSecrets, sharedLimiter } from '../
 import { PREMATCH_PARSER_VERSION, TZ_GATE_VERSION, bookmakerIntervalMinutes, isDue, matchIdentity, measureProviderOffset,
   normalizeBookmakerRows, normalizeOddsRows, pitSummary, tzDecision, tzNeedsMeasure } from '../providers/totalcorner/prematch.mjs';
 import { LIST_COLUMNS, ODDS_COLUMNS } from './totalcorner-discovery.mjs';
+import { classifyTcPrematchRows } from '../pit/readers.mjs';
 
 // TC-CORE-03 (#20): prematch market mirror for fixtures of VERIFIED competitions only. A cycle reads the upcoming list,
 // takes /match/odds (and, less often, /match/bookmaker_odds) snapshots on an adaptive cadence before kickoff and stores
@@ -399,6 +400,12 @@ export async function tcPrematchMatch(db, {matchId, asOf = null, knowledge = 'pr
      ORDER BY provider_time_utc`, [match.match_id, knowledge, at]);
   const norm = rows.rows.map(r => ({...r, provider_time_utc: new Date(r.provider_time_utc).toISOString()}));
   const snaps = await db.query(`SELECT source, count(*)::int AS n, max(acquired_at) AS last_at FROM tc_prematch_snapshots WHERE match_id=$1 GROUP BY 1`, [match.match_id]);
+  // R-08: every row the summary uses carries its five timestamps and PIT status; the answer carries its PIT label.
+  const observation = match.tz_observation_id == null ? null : (await db.query(
+    `SELECT observation_id, observed_at, status, offset_minutes FROM tc_tz_observations WHERE observation_id=$1`, [match.tz_observation_id])).rows[0] ?? null;
+  const used = norm.filter(r => r.phase === 'PREMATCH' && Date.parse(r.provider_time_utc) <= at.getTime() && Date.parse(r.provider_time_utc) < kickoffUtc.getTime());
+  const {classified, label} = classifyTcPrematchRows(used, {match, observation, decisionTime: at, knowledge});
+  used.forEach((row, i) => { row.pit = classified[i]; });
   return {match, as_of: at.toISOString(), knowledge, cutoff: new Date(Math.min(at.getTime(), kickoffUtc.getTime() - 1)).toISOString(),
-    snapshots: snaps.rows, markets: pitSummary(norm, {kickoffUtc, asOf: at})};
+    snapshots: snaps.rows, markets: pitSummary(norm, {kickoffUtc, asOf: at}), pit: label};
 }

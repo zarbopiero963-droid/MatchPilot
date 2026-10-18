@@ -208,6 +208,12 @@ test('assistant queries answer from Postgres with indexes and point-in-time', {t
       const pitBetween = await query.runQuery(client, 'teamMatchesAsOf', {team: ajax, as_of: '2025-01-01T00:00:00Z', before: '2100-01-01', limit: 500});
       assert.equal(pitBetween.rows.length, 10, 'only the season acquired before as_of is known');
       assert.ok(pitBetween.rows.every(r => new Date(r.acquired_at) <= new Date('2025-01-01T00:00:00Z')));
+      // R-08: every version carries its PIT record; availability is the acquisition time, never after as_of.
+      assert.ok(pitBetween.rows.every(r => r.pit.policy_version === 'mp-pit-v1' && r.pit.status !== 'NOT_AVAILABLE_AT_DECISION'
+        && r.pit.times.availability_time === new Date(r.acquired_at).toISOString() && r.pit.times.decision_time === '2025-01-01T00:00:00.000Z'
+        && r.pit.times.provider_time === null && r.pit.times.event_time === null && r.pit.times.event_time_earliest !== null));
+      assert.equal(pitBetween.pit.records, 10);
+      assert.equal(pitBetween.pit.label, pitBetween.rows.every(r => r.pit.status === 'PIT_VERIFIED') ? 'PIT_VERIFIED' : 'NON_PIT');
       const pitAll = await query.runQuery(client, 'teamMatchesAsOf', {team: ajax, as_of: '2026-01-01T00:00:00Z', before: '2100-01-01', limit: 500});
       assert.equal(pitAll.rows.length, 20);
       const pitNone = await query.runQuery(client, 'teamMatchesAsOf', {team: ajax, as_of: '2000-01-01T00:00:00Z', before: '2100-01-01'});

@@ -116,6 +116,14 @@ test('meta.as_of is the instant the reader applied, never an echo of the raw inp
   assert.equal((await get('/api/v1/fpt/competitions')).body.meta.as_of, null);
 });
 
+test('point-in-time answers expose their PIT label in meta.pit; other endpoints report null (MP-PIT-005)', async () => {
+  const label = {policy_version: 'mp-pit-v1', label: 'NON_PIT', why: ['PROVIDER_KNOWLEDGE'], records: 0};
+  const result = await handleV1({method: 'GET', url: new URL('http://localhost/api/v1/tc/prematch/match?id=42&knowledge=provider')},
+    {...deps, tc: {...tc, prematchMatch: async () => ({as_of: '2026-10-09T19:45:00.000Z', pit: label})}});
+  assert.deepEqual(result.body.meta.pit, label);
+  assert.equal((await get('/api/v1/tc/live')).body.meta.pit, null);
+});
+
 test('TotalCorner parameters are validated, never silently capped or defaulted (review B-2)', async () => {
   const seen = [];
   const spy = {...tc, schemaRegistry: async (_c, input) => { seen.push(input); return []; }, prematchMatch: async (_c, input) => { seen.push(input); return {as_of: null}; }};

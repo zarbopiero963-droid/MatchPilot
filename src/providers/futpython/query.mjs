@@ -1,6 +1,7 @@
 // Normalized query layer. Every answer comes from Neon tables already written by the mirror.
 // This module never imports the provider client and never calls FutPythonTrader.
 import { normalizeTeamName } from './teams.mjs';
+import { classifyFptVersions } from '../../pit/readers.mjs';
 
 export const FACTS_VERSION = 'fpt-facts-2';
 export const FILTERS_VERSION = 'fpt-filters-2';
@@ -652,6 +653,13 @@ export async function runQuery(client, name, input = {}, opts = {}) {
   const started = Date.now();
   const result = q.sql ? await client.query(q.sql, q.values) : {rows: QUERY_CATALOG};
   let rows = result.rows;
+  let pit = null;
+  if (name === 'teamMatchesAsOf') {
+    // R-08: each returned version carries its five timestamps and PIT status; the answer carries its PIT label.
+    const result = classifyFptVersions(rows, {decisionTime: q.values[1]});
+    rows = rows.map((row, i) => ({...row, pit: result.classified[i]}));
+    pit = result.label;
+  }
   if (name === 'matchDetail' && rows[0]) {
     const registry = await client.query(QUERIES.filters.sql);
     rows = [{...rows[0], payload: presentPayload(rows[0].payload, registry.rows)}];
@@ -674,7 +682,8 @@ export async function runQuery(client, name, input = {}, opts = {}) {
       venue: q.venue || null,
       scope: q.scope || null,
       elapsed_ms: Date.now() - started
-    }
+    },
+    ...(pit ? {pit} : {})
   };
 }
 
