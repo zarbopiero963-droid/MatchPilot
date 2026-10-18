@@ -1,0 +1,7 @@
+{
+  "note": "Independent pins for the #40 archive, taken from documents produced before R-02 (not from the metadata zip). verify-archive.mjs requires the metadata to match them (#152 review N-1).",
+  "source": "docs/provider-trial-final-closure-2026-10-08.md (merged in PR #129)",
+  "bundle_sha256": "fb07443646a7f6d98afe1f0769eda6849a8339a8a84ecd556ae1e1a2b89ac456",
+  "trusted_inventory_sha256": "377a85327d0dd3fc61356ef48b1606b1522b87561a4e057133e415a02b004041",
+  "part_count": 13
+}

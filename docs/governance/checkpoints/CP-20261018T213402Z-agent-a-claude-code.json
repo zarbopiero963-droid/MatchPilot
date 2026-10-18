@@ -1,0 +1,115 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261018T213402Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-18T21:34:02Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-03: independent review (comment 6255373702, CHANGES REQUESTED on a1c92af) addressed: B-1, B-2, NB-1, NB-3..NB-7 fixed",
+  "task": "R-03",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 98,
+  "pr": 153,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "f88cb4ffac67bec9d7f31b3eb5d175bf1d2e1d95",
+  "tree_sha": "551cb7b12562fa34d4b9b0cb960201f0db4a8829",
+  "requirements": [
+    "MP-API-001",
+    "MP-API-002",
+    "MP-API-003",
+    "MP-API-004",
+    "MP-API-005",
+    "MP-API-006",
+    "MP-QAC-003",
+    "MP-SEC-006"
+  ],
+  "changes": [
+    "src/api/v1.mjs: as_of from the reader, parameter checks before DB, required FPT params, error classification",
+    "src/server.mjs: response write failure handled",
+    "tools/governance/registry.mjs: implementation slot fails closed",
+    "tests and README/HANDOFF updated"
+  ],
+  "tests": [
+    {
+      "command": "npm test against throwaway PostgreSQL 16",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1",
+      "commit": "f88cb4ffac67bec9d7f31b3eb5d175bf1d2e1d95",
+      "time": "2026-10-18T21:34:02Z",
+      "limits": [
+        "226 tests, 225 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only)"
+      ]
+    },
+    {
+      "command": "npm run check; governance:validate; render-inventory --check",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "f88cb4ffac67bec9d7f31b3eb5d175bf1d2e1d95",
+      "time": "2026-10-18T21:34:02Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "CHANGES REQUESTED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/153#issuecomment-6255373702"
+  },
+  "findings": [
+    {
+      "id": "B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "meta.as_of echoed raw input"
+    },
+    {
+      "id": "B-2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "TotalCorner parameters silently capped or defaulted"
+    },
+    {
+      "id": "NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "provider trap proves little; FPT v1/legacy comparison runs on 0 rows"
+    },
+    {
+      "id": "NB-8",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "coverage.rows null for object payloads; coverage.limit null on FPT defaults (documented)"
+    },
+    {
+      "id": "NB-9",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "R-02 checkpoint labels its blocker NON_BLOCKING; checkpoints are append-only, the R-02 BLOCKED state is authoritative"
+    },
+    {
+      "id": "R03-AUTH",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "API requirements cannot be PASS until MP-SEC-001 (R-04) lands"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01",
+    "MP-OWNER-AUTOMERGE-01"
+  ],
+  "dependencies": [
+    "CP-20261018T212314Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "Obtain CI green and a new independent review on the PR #153 head; auto-merge under merge-gate; then R-04 owner/admin authentication baseline.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha",
+    "PR #153 open"
+  ],
+  "supersedes": "CP-20261018T212314Z-agent-a-claude-code"
+}

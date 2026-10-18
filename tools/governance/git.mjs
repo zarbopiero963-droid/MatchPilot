@@ -44,10 +44,24 @@ export function changedFiles(cwd, base, head) {
   return [...parseNameStatus(perCommit), ...parseNameStatus(cumulative)];
 }
 
-// Checkpoints are append-only: any change other than an addition to docs/governance/checkpoints/ is a rewrite.
+// Checkpoints are append-only: any change other than an addition to docs/governance/checkpoints/ is a rewrite,
+// and so is a path that is "added" with two different contents within the range (e.g. added on a side branch,
+// then rewritten in the merge commit: #152 review N-2).
 export function rewrittenCheckpoints(cwd, base, head) {
   const changes = changedFiles(cwd, base, head);
-  return changes === null ? null : changes.filter(({status, file}) => file.startsWith('docs/governance/checkpoints/') && status !== 'A');
+  const raw = git(cwd, ['log', '--diff-merges=first-parent', '--raw', '--no-abbrev', '--no-renames', '--format=', `${base}..${head}`]);
+  if (changes === null || raw === null) return null;
+  const isCheckpoint = file => file.startsWith('docs/governance/checkpoints/');
+  const rewritten = changes.filter(({status, file}) => isCheckpoint(file) && status !== 'A');
+  const blobs = new Map();
+  for (const line of raw.split('\n').filter(Boolean)) {
+    const [meta, file] = line.split('\t');
+    if (!isCheckpoint(file)) continue;
+    const newBlob = meta.split(' ')[3];
+    blobs.set(file, new Set([...(blobs.get(file) || []), newBlob]));
+  }
+  for (const [file, set] of blobs) if (set.size > 1) rewritten.push({status: 'M', file});
+  return rewritten;
 }
 
 // Reality for one checkpoint: branch head, ancestry, tree and files changed after the checkpoint.

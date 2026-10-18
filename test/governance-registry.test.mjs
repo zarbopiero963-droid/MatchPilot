@@ -52,6 +52,32 @@ test('a BLOCKED implementation task does not block an independent one', () => {
   assert.deepEqual(validateRegistry(claimed), []);
 });
 
+test('a BLOCKED implementation task with an open PR still holds the single slot (#152 review N-4)', () => {
+  const reg = registry();
+  reg.tasks[0].state = 'BLOCKED';
+  reg.tasks[0].pr = 99;
+  reg.tasks[0].pr_open = true;
+  assert.equal(code(() => claim(reg, 'R-02', agentB, now)), 'CONFLICT_PARALLEL_IMPLEMENTATION');
+  reg.tasks[0].pr_open = false;
+  assert.equal(task(claim(reg, 'R-02', agentB, now), 'R-02').state, 'RUNNING');
+});
+
+test('a task with a PR and no explicit pr_open fails closed; HANDOFF READY and CERTIFIED hold the slot (#153 review NB-5)', () => {
+  for (const state of ['BLOCKED', 'HANDOFF READY', 'CERTIFIED']) {
+    const reg = registry();
+    reg.tasks[0].state = state;
+    reg.tasks[0].pr = 99;
+    assert.equal(code(() => claim(reg, 'R-02', agentB, now)), 'CONFLICT_PARALLEL_IMPLEMENTATION', state);
+    assert.ok(validateRegistry(reg).some(error => /no pr_open/.test(error)), state);
+    reg.tasks[0].pr_open = true;
+    assert.equal(code(() => claim(reg, 'R-02', agentB, now)), 'CONFLICT_PARALLEL_IMPLEMENTATION', state);
+  }
+  const merged = registry();
+  merged.tasks[0].state = 'MERGED';
+  merged.tasks[0].pr = 99;
+  assert.equal(task(claim(merged, 'R-02', agentB, now), 'R-02').state, 'RUNNING');
+});
+
 test('an expired lease is taken over only after reconciliation', () => {
   const claimed = claim(registry(), 'R-01', agentA, now);
   assert.equal(code(() => claim(claimed, 'R-01', agentB, later(121))), 'CONFLICT_UNRECONCILED');

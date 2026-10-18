@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 12,
+  "revision": 16,
   "tasks": [
     {
       "id": "R-01",
@@ -21,7 +21,23 @@
       "id": "R-02",
       "title": "Archive #40 read-only materialization and independent hash/portability verification",
       "issue": 40,
-      "pr": null,
+      "pr": 152,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
+      "state": "BLOCKED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261018T211916Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "R-03",
+      "title": "API v1 contract, error envelope, provenance, bounded queries, legacy route inventory",
+      "issue": 98,
+      "pr": 153,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
       "state": "REVIEW",
@@ -30,7 +46,8 @@
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261018T211033Z-agent-a-claude-code"
+      "latest_checkpoint": "CP-20261018T213402Z-agent-a-claude-code",
+      "pr_open": true
     }
   ]
 }

@@ -6,7 +6,8 @@ import {findSecrets} from './secrets.mjs';
 
 export const SCHEMA_VERSION = 'mp-checkpoint-v2';
 // v1 checkpoints written before v2 (#151 review R-2) stay valid as history; new ones must be v2.
-export const LEGACY_SCHEMA = {version: 'mp-checkpoint-v1', until: '2026-10-18T21:00:00Z'};
+// Only these historical v1 checkpoints are accepted: a new checkpoint cannot dodge v2 by backdating (#152 review N-3).
+export const LEGACY_SCHEMA = {version: 'mp-checkpoint-v1', ids: new Set(['CP-20261018T201559Z-agent-a-claude-code', 'CP-20261018T202029Z-agent-b-claude-subagent', 'CP-20261018T202316Z-agent-a-claude-code', 'CP-20261018T202336Z-agent-a-claude-code', 'CP-20261018T203228Z-agent-a-claude-code'])};
 export const STATES = ['PLANNED', 'RUNNING', 'BLOCKED', 'REVIEW', 'HANDOFF READY', 'CERTIFIED', 'MERGED', 'COMPLETED'];
 export const ROLES = ['Development Agent', 'Test Agent', 'Independent Reviewer', 'Requirements Auditor', 'Roadmap Coordinator', 'Integration Agent'];
 export const GATE_RESULTS = ['PASS', 'FAIL', 'BLOCKED', 'NOT_VERIFIED', 'NOT_APPLICABLE'];
@@ -42,7 +43,7 @@ export function validateCheckpoint(cp, {decisionIds, requirementIds, taskIds} = 
   const errors = [];
   const at = `checkpoint ${cp?.id}`;
   if (!cp || typeof cp !== 'object') return ['checkpoint must be an object'];
-  const legacy = cp.schema_version === LEGACY_SCHEMA.version && Date.parse(cp.timestamp_utc) < Date.parse(LEGACY_SCHEMA.until);
+  const legacy = cp.schema_version === LEGACY_SCHEMA.version && LEGACY_SCHEMA.ids.has(cp.id);
   if (cp.schema_version !== SCHEMA_VERSION && !legacy) errors.push(`${at} schema_version must be ${SCHEMA_VERSION}`);
   if (!legacy) {
     // v2: a review and a CI run are only evidence for the exact commit they covered.
