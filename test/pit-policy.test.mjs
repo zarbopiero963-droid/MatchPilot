@@ -112,7 +112,7 @@ test('an analysis is PIT only when every record is PIT_VERIFIED under captured k
 });
 
 test('reader adapters: TotalCorner rows follow their match timezone measurement, FPT dates their undocumented zone', () => {
-  const match = {tz_offset_minutes: 120, first_seen_at: '2026-10-20T10:00:00Z'};
+  const match = {tz_offset_minutes: 120, first_seen_at: '2026-10-20T10:00:00Z', last_seen_at: '2026-10-20T10:00:00Z'};
   const observation = {observed_at: '2026-10-20T10:00:00Z', status: 'MEASURED', offset_minutes: 120};
   const rows = [
     {provider_time_utc: '2026-10-21T08:00:00.000Z', first_acquired_at: '2026-10-21T08:01:00Z'},

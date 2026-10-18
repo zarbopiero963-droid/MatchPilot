@@ -147,6 +147,8 @@ export function classifyRecord(input) {
   if (input.providerTimeUsed && providerTime && input.providerTimeVerified !== true) reasons.push(input.providerTimeReason ?? 'PROVIDER_TZ_NOT_VERIFIED');
   if (providerTime && acquisition && providerTime.getTime() > acquisition.getTime() + PROVIDER_CLOCK_TOLERANCE_MS) reasons.push('PROVIDER_TIME_AFTER_ACQUISITION');
   if (eventEarliest && eventLatest && eventEarliest > eventLatest) reasons.push('EVENT_INTERVAL_INVERTED');
+  // Reader-specific evidence that the stored record may differ from what was known at the decision time.
+  for (const reason of input.extraReasons ?? []) reasons.push(reason);
   // An uncertain event time matters only when the uncertainty straddles the decision instant.
   if (eventEarliest && eventLatest && decision && eventEarliest <= decision && eventLatest > decision) reasons.push('EVENT_TIME_AMBIGUOUS_AT_DECISION');
   if (status === PIT_STATUS.VERIFIED && reasons.length) status = PIT_STATUS.NOT_VERIFIED;

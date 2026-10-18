@@ -32,6 +32,7 @@ A missing time stays `null` and is listed in `pit.missing`. It is never invented
   | `PROVIDER_TIME_AFTER_ACQUISITION` | the provider stamps the record more than 5 minutes after MatchPilot acquired it |
   | `EVENT_INTERVAL_INVERTED` | the event interval ends before it starts |
   | `EVENT_TIME_AMBIGUOUS_AT_DECISION` | the event's possible interval contains the decision instant: whether it had happened is unknown |
+  | `MATCH_STATE_OBSERVED_AFTER_DECISION` | the stored TotalCorner match state (kickoff, teams, league, offset) was observed again after the decision time, so it may differ from the state known then |
 - `PIT_VERIFIED`: none of the above.
 
 ## Label of an answer (MP-PIT-005)
@@ -49,7 +50,7 @@ A missing time stays `null` and is listed in `pit.missing`. It is never invented
 - **Undocumented zone** (FutPythonTrader kickoff, `PROVIDER_TZ_UNDOCUMENTED`, #12): only the interval of every possible instant is known, between UTC−12 and UTC+14. A match date gives `[date 00:00 at UTC+14, date 23:59:59.999 at UTC−12]`.
 - **Measured fixed offset** (TotalCorner, `tc_tz_observations`, gate `tc-tz-gate-v2`): a provider time converted with the match offset is verified only when all of the following hold:
   1. the match is linked to a `MEASURED` observation with the same offset;
-  2. the measurement was taken at or before the decision time, so a replay's label cannot change later;
+  2. the measurement was taken at or before the decision time. A later cycle can still link the match to a newer measurement; the label then can only move from `PIT_VERIFIED` to `NON_PIT` (fail-safe);
   3. the time is within 30 days of the measurement;
   4. at least one IANA zone uses that offset, and every IANA zone that had it at the measurement still has it at that time.
 
@@ -59,7 +60,7 @@ A missing time stays `null` and is listed in `pit.missing`. It is never invented
 
 | Reader | Decision time | Records |
 |---|---|---|
-| `tcPrematchMatch` (`/api/tc/prematch/match`, `/api/v1/tc/prematch/match`) | `as_of`, default kickoff | the match identity (`match.pit`, acquired at `first_seen_at`) and every prematch row the summary uses, including `opening` and `last`. With captured knowledge, `snapshots` counts only snapshots taken by `as_of`, and the match fields observed later (`last_status`, `last_seen_at`) are `null` |
+| `tcPrematchMatch` (`/api/tc/prematch/match`, `/api/v1/tc/prematch/match`) | `as_of`, default kickoff | the match identity (`match.pit`, acquired at `first_seen_at`; `PIT_NOT_VERIFIED` when `last_seen_at` is after the decision, because `tc_matches` keeps only the latest state) and every prematch row the summary uses, including `opening` and `last`. With captured knowledge, `snapshots` counts only snapshots taken by `as_of`, and the match fields observed later (`last_status`, `last_seen_at`) are `null` |
 | FPT `teamMatchesAsOf` (`/api/fpt/team-matches-asof`, `/api/v1/fpt/team-matches-asof`) | `as_of` | every returned match version |
 
 ## Parameters chosen by the agent (PROPOSAL, versioned)
@@ -80,3 +81,4 @@ D4 requires an explicit, tested policy but does not fix these values. They are p
 - FPT `teamMatchesAsOf` takes the payload from the version known at T, but candidate fields (phase, date, team names) come from the current facts table. Pinning them to T is part of MP-FPT-005.
 - TotalCorner rows do not store the offset used to convert their provider time: the reader assumes the match offset (`tz_offset_minutes`), which the gate applied at acquisition.
 - Without `as_of`, `tc/prematch/match` decides at the kickoff, itself a converted provider time.
+- **TotalCorner match state:** `tc_matches` keeps only the latest state of each match, and an answer is PIT for it only when that state was last observed by the decision time. Making older decisions PIT needs a per-version history of the match state. That is a schema migration, which on an auto-deployed service would also write to the production database, so it requires owner authorisation (PROPOSAL).

@@ -22,8 +22,12 @@ export function classifyTcPrematchRows(rows, {match, observation, decisionTime, 
       acquisitionTime: row.first_acquired_at, decisionTime,
     });
   });
-  // The match identity (teams, kickoff) is itself a record: unknown at T when MatchPilot first saw the match later.
-  const matchRecord = classifyRecord({acquisitionTime: match?.first_seen_at, decisionTime});
+  // The match identity (teams, kickoff, offset) is itself a record: unknown at T when MatchPilot first saw the match
+  // later. tc_matches keeps only the latest state, so when it was observed again after T the state shown may not be the
+  // one known at T: not PIT-verified (a per-version history needs a migration, see docs/pit-policy.md).
+  const lastSeen = match?.last_seen_at ? new Date(match.last_seen_at) : null;
+  const matchRecord = classifyRecord({acquisitionTime: match?.first_seen_at, decisionTime,
+    extraReasons: !lastSeen || !decision || lastSeen > decision ? ['MATCH_STATE_OBSERVED_AFTER_DECISION'] : []});
   return {classified, matchRecord, label: analysisLabel([matchRecord, ...classified], {knowledge, decisionTime})};
 }
 
