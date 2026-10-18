@@ -13,7 +13,7 @@ Every record that answers "what was known at T" carries `pit.times`:
 | `event_time`, `event_time_earliest`, `event_time_latest` | when the real-world event happened. `event_time` is set only when it is known to the instant; otherwise only the interval is given. |
 | `provider_time`, `provider_time_verified` | the time the provider declares for the record, in UTC, and whether that conversion is proven. |
 | `acquisition_time` | when MatchPilot first stored the record. |
-| `availability_time` | effective availability: the earliest instant at which MatchPilot provably held the record. This is the acquisition time, or the end of the reprocessing run for a re-parsed FPT version (R-08b). |
+| `availability_time` | effective availability: the earliest instant at which MatchPilot provably held the record. This is the acquisition time, or for an FPT version the end of the latest re-parse run with its lineage, when that is later (R-08b). |
 | `decision_time` | the simulated decision instant (`as_of`). |
 
 A missing time stays `null` and is listed in `pit.missing`. It is never invented or repaired.
@@ -26,7 +26,7 @@ A missing time stays `null` and is listed in `pit.missing`. It is never invented
   | Reason | Meaning |
   |---|---|
   | `ACQUISITION_TIME_MISSING` | the acquisition time is missing |
-  | `AVAILABILITY_TIME_UNKNOWN` | the record was written later than its acquisition (a re-parse) and when it became usable is not recorded |
+  | `AVAILABILITY_TIME_UNKNOWN` | the reader declares that the record may have been written later than its acquisition but cannot say when |
   | `DECISION_TIME_MISSING` | the decision time is missing |
   | `PROVIDER_TIME_MISSING` | the answer needs the provider time and it is missing |
   | `PROVIDER_TZ_NOT_VERIFIED`, `TZ_NOT_MEASURED`, `TZ_OFFSET_MISMATCH`, `TZ_MEASUREMENT_OUT_OF_WINDOW`, `TZ_MEASURED_AFTER_DECISION`, `TZ_DST_CHANGE_POSSIBLE`, `TZ_OFFSET_NO_IANA_ZONE` | the provider time is used but its UTC conversion is not proven |
@@ -69,12 +69,19 @@ A missing time stays `null` and is listed in `pit.missing`. It is never invented
 
 A re-parse (`reprocessRaw`) never rewrites a version. It writes a new version with the new lineage (`parser_version`, `schema_version`, `transform_version`), dated with the raw snapshot's `acquired_at`. Without a rule, a re-parse run after T would change what a query "at T" returns. The rule:
 
-- **Version written at ingest:** the first version of its match in its snapshot. It is available from its acquisition.
-- **Version written by a re-parse:** available from the end (`finished_at`, recorded with `clock_timestamp()`) of the latest complete `apply` run with the same lineage. Taking the latest such run is conservative. Without a recorded run, the version is never available.
+- **Availability of a version:** nothing records which versions a re-parse wrote. A version therefore becomes available at the later of two instants:
+  - its acquisition;
+  - the end (`finished_at`, recorded with `clock_timestamp()`) of the latest complete `apply` run with the same lineage.
+
+  With no such run the version cannot come from a re-parse, and it is available from its acquisition. The rule does not depend on which snapshot holds the version.
 - **`teamMatchesAsOf`:** returns, per match, the latest version available at `as_of`, with its lineage and `version_available_at`. The record's `availability_time` is that instant.
-- **Effect:** the same T gives the same versions and values before and after a re-parse. The answer becomes `NON_PIT` (`FACTS_CHANGED_AFTER_DECISION`) because the current facts now come from the re-parse.
+- **Effect:** a re-parse after T does not change the versions or values answered at T. The answer becomes `NON_PIT` (`FACTS_CHANGED_AFTER_DECISION`), because the current facts now come from the re-parse.
+- **Conservative cases**, which never advance an availability and may delay one:
+  - Re-running a lineage moves the availability of all its versions to the latest run. An answer at a T between two runs can then change, toward older versions, and become `NON_PIT`.
+  - A re-parse that reuses the ingest lineage delays the ingest versions of that lineage too. Re-parses should change lineage, as the #12 policy requires.
+  - The per-row flag `changed_after_as_of` is also set for unavailable versions of older snapshots.
 - **Limits:**
-  - A re-parse that produces a new `match_key` (one with no ingest version in that snapshot) is taken as an ingest version, available from the snapshot's acquisition.
+  - `finished_at` is written a few milliseconds before the run commits; ingest has the same gap with `acquired_at`.
   - Team identity (aliases) and dataset activation are not versioned: they are the current ones.
 
 ## Parameters chosen by the agent (PROPOSAL, versioned)

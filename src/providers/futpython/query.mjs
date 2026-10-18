@@ -28,18 +28,15 @@ function teamMatchesSql(venue) {
       LIMIT $3`;
 }
 
-// R-08b (MP-FPT-005): when a version became usable. A version written at ingest is usable from its acquisition. A
-// re-parse (reprocessRaw) writes new versions with the raw snapshot's acquired_at, so those are usable only from the
-// end of the reprocessing run that wrote them: the latest complete apply run with the same lineage (conservative),
-// or never (NULL) when no such run is recorded. A version is from ingest when it is the first version of its match
-// in its snapshot.
-const VERSION_AVAILABLE_AT = v => `(CASE
-    WHEN (SELECT o.version_id FROM fpt_match_versions o WHERE o.match_key = ${v}.match_key AND o.snapshot_id = ${v}.snapshot_id
-          ORDER BY o.version_id LIMIT 1) = ${v}.version_id THEN ${v}.acquired_at
-    ELSE (SELECT max(r.finished_at) FROM fpt_reprocessing_runs r
-          WHERE r.mode = 'apply' AND r.status = 'complete' AND r.parser_version = ${v}.parser_version
-            AND r.schema_version = ${v}.schema_version AND r.transform_version = ${v}.transform_version)
-  END)`;
+// R-08b (MP-FPT-005): when a version became usable. A re-parse (reprocessRaw) writes new versions dated with the raw
+// snapshot's acquired_at, and nothing records which versions it wrote. A version therefore becomes usable at the later
+// of its acquisition and the end of the latest complete apply run with the same lineage (parser, schema, transform):
+// with no such run it cannot come from a re-parse. Conservative: an ingest version sharing a re-parse lineage is
+// delayed too, never advanced.
+const VERSION_AVAILABLE_AT = v => `GREATEST(${v}.acquired_at, (
+    SELECT max(r.finished_at) FROM fpt_reprocessing_runs r
+    WHERE r.mode = 'apply' AND r.status = 'complete' AND r.parser_version = ${v}.parser_version
+      AND r.schema_version = ${v}.schema_version AND r.transform_version = ${v}.transform_version))`;
 
 export const QUERIES = {
   teamSearch: {

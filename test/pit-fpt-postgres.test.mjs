@@ -116,3 +116,84 @@ test('FPT team-matches-asof flags facts corrected after as_of (MP-PIT-002, MP-PI
     finally { await admin.end(); }
   }
 });
+
+// PR #155 review B-1: a later snapshot that repeats an unchanged match stores no version for it (UNIQUE(match_key,
+// payload_sha256)). A re-parse may write the first version of that match there; it must still be usable only from the
+// end of its run, never from that snapshot's acquisition.
+test('a re-parsed version written into a later snapshot is not dated with that snapshot (MP-FPT-005)', {timeout: 90000}, async t => {
+  const pg = (await import('pg')).default;
+  const rootUrl = process.env.FUTPYTHON_TEST_DATABASE_URL || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
+  const base = new URL(rootUrl);
+  assert.ok(['localhost', '127.0.0.1', '[::1]'].includes(base.hostname), 'remote PostgreSQL is forbidden');
+  const admin = new pg.Client({connectionString: rootUrl, connectionTimeoutMillis: 2000});
+  try { await admin.connect(); }
+  catch (cause) {
+    await admin.end().catch(() => {});
+    if (process.env.CI) throw cause;
+    return t.skip('throwaway postgres unavailable');
+  }
+  const schema = `pit_fpt_b_${process.pid}`;
+  await admin.query(`CREATE SCHEMA ${schema}`);
+  base.searchParams.set('options', `-c search_path=${schema}`);
+  process.env.DATABASE_URL = base.toString();
+  process.env.MATCHPILOT_RUNTIME_MODE = 'test';
+  const db = await import('../src/db.mjs');
+  try {
+    const {migrate} = await import('../src/migrate.mjs');
+    const store = await import('../src/providers/futpython/store.mjs');
+    const teams = await import('../src/providers/futpython/teams.mjs');
+    const query = await import('../src/providers/futpython/query.mjs');
+    const {reprocessRaw} = await import('../src/providers/futpython/reprocess.mjs');
+    const {LINEAGE_VERSIONS} = await import('../src/providers/futpython/schema.mjs');
+    const {parseCsv} = await import('../src/lib/csv.mjs');
+    await migrate();
+    await db.withClient(async c => {
+      const H = ['Id', 'Date', 'Time', 'Home', 'Away', 'Home_Score', 'Away_Score', 'Odd_1_FT', 'Odd_X_FT', 'Odd_2_FT'];
+      const line = (r, extra) => H.map(h => r[h] ?? '').join(',') + (extra ? ',' + extra : '');
+      const key = 'netherlands/eredivisie/2024-2025';
+      await c.query(`INSERT INTO fpt_catalog(dataset_key,country_slug,league_slug,season,route) VALUES($1,'netherlands','eredivisie','2024-2025','/x')`, [key]);
+      const put = async (text, at) => {
+        const p = parseCsv(text);
+        await store.storeDataset(c, {datasetKey: key, sourceKind: 'dataset', providerPath: '/x', countrySlug: 'netherlands', leagueSlug: 'eredivisie',
+          season: '2024-2025', text, headers: p.headers, rows: p.rows, acquiredAt: new Date(at)});
+      };
+      const m = (id, home, away) => ({Id: id, Date: '2025-03-01', Time: '20:00', Home: home, Away: away, Home_Score: '2', Away_Score: '1',
+        Odd_1_FT: '1.8', Odd_X_FT: '3.5', Odd_2_FT: '4.0'});
+      // S2 repeats match 100 with a trailing cell the ingest parser drops: S2 stores no version for match 100.
+      await put(H.join(',') + '\n' + line(m('100', 'Ajax', 'PSV')) + '\n' + line(m('101', 'PSV', 'Ajax')) + '\n', '2025-05-01T00:00:00Z');
+      await put(H.join(',') + '\n' + line(m('100', 'Ajax', 'PSV'), '7.77') + '\n' + line({...m('101', 'PSV', 'Ajax'), Home_Score: '3'}) + '\n', '2025-07-01T00:00:00Z');
+      await teams.replaceTeamEntities(c, teams.buildTeamEntities(await teams.loadTeamSpellings(c)));
+      await query.refreshNormalizedLayer(c);
+      const ajax = (await query.runQuery(c, 'teamSearch', {q: 'Ajax'})).rows[0].internal_team_id;
+      const at = {team: ajax, as_of: '2025-08-01T00:00:00Z', before: '2100-01-01', limit: 50};
+      const view = r => r.rows.map(x => [x.internal_match_id, x.version_id, String(x.odd_home), x.parser_version]);
+      const before = await query.runQuery(c, 'teamMatchesAsOf', at);
+      // A parser that keeps the trailing cell as Odd_1_FT: it writes match 100's first version in S2.
+      const keepExtra = text => {
+        const lines = text.trim().split('\n');
+        const hs = lines[0].split(',');
+        return {headers: hs, rows: lines.slice(1).map(l => {
+          const cells = l.split(',');
+          const o = Object.fromEntries(hs.map((h, i) => [h, cells[i] ?? '']));
+          if (cells.length > hs.length) o.Odd_1_FT = cells[hs.length];
+          return o;
+        })};
+      };
+      const run = await reprocessRaw(c, {mode: 'apply', actor: 'test', reason: 'review B-1', datasetKeys: [key],
+        lineage: {...LINEAGE_VERSIONS, parserVersion: 'fpt-csv-test-3'}, parse: keepExtra});
+      assert.ok(run.inserted > 0);
+      await query.refreshNormalizedLayer(c);
+      const reparsed = (await c.query(`SELECT v.snapshot_id, v.acquired_at FROM fpt_match_versions v WHERE v.parser_version = 'fpt-csv-test-3'
+        AND v.payload->>'Odd_1_FT' = '7.77'`)).rows;
+      assert.equal(reparsed.length, 1, 'the re-parse wrote the first version of match 100 in S2');
+      const after = await query.runQuery(c, 'teamMatchesAsOf', at);
+      assert.deepEqual(view(after), view(before), 'same T: the re-parsed version is not usable before its run ended');
+      assert.ok(after.rows.every(r => r.parser_version === LINEAGE_VERSIONS.parserVersion));
+      assert.equal(after.pit.label, 'NON_PIT', 'the current facts now come from the re-parse');
+    });
+  } finally {
+    await db.closePool?.().catch?.(() => {});
+    try { await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`); }
+    finally { await admin.end(); }
+  }
+});
