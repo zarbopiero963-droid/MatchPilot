@@ -7,13 +7,13 @@ La fonte machine-readable è `requirements.json`. Questo documento rende leggibi
 <!-- inventory:groups:start -->
 | Gruppo | Requisiti | P0 | PASS | FAIL | BLOCKED | NOT_VERIFIED |
 |---|---:|---:|---:|---:|---:|---:|
-| GOV | 23 | 19 | 9 | 7 | 0 | 7 |
+| GOV | 23 | 19 | 17 | 0 | 0 | 6 |
 | FPT | 12 | 8 | 4 | 1 | 1 | 6 |
 | TC | 15 | 9 | 8 | 2 | 1 | 4 |
 | WEB | 14 | 10 | 0 | 10 | 0 | 4 |
 | RPL | 12 | 9 | 0 | 8 | 2 | 2 |
 | STA | 13 | 9 | 0 | 11 | 1 | 1 |
-| QAC | 13 | 12 | 3 | 5 | 0 | 5 |
+| QAC | 13 | 12 | 3 | 4 | 0 | 6 |
 | SEC | 11 | 9 | 3 | 2 | 1 | 5 |
 | API | 6 | 5 | 0 | 5 | 0 | 1 |
 | ARC | 5 | 4 | 0 | 2 | 0 | 3 |
@@ -22,7 +22,7 @@ La fonte machine-readable è `requirements.json`. Questo documento rende leggibi
 | MKT | 3 | 3 | 0 | 3 | 0 | 0 |
 | MTH | 3 | 1 | 0 | 3 | 0 | 0 |
 | OPS | 1 | 0 | 0 | 1 | 0 | 0 |
-| **Totale** | **138** | **104** | **27** | **67** | **6** | **38** |
+| **Totale** | **138** | **104** | **35** | **59** | **6** | **38** |
 <!-- inventory:groups:end -->
 
 Ogni PASS ha evidenza e vale solo nel proprio scope (es. TC-007/TC-008 = runtime PR #145). Nessun PASS equivale a GLOBAL HARD CERTIFIED.
@@ -81,7 +81,7 @@ Ogni PASS ha evidenza e vale solo nel proprio scope (es. TC-007/TC-008 = runtime
 | R-16 | FPT 412 audit (read-only part) and FPT residual certification | #12 | — | 5 |
 | R-17 | Adversarial, recovery, performance, security, TC alerts and ops drills | #23 #31 #144 #20 | TC-CORE-07, RECON-CORE-02, RECON-CORE-04, RECON-CORE-05 | 14 |
 | R-18 | Integrated Gate A/B and IV&V for OFFLINE v1 | #3 #97 #98 | — | 6 |
-| continuous | Cross-cutting rule applied by every PR | — | — | 24 |
+| continuous | Cross-cutting rule applied by every PR | — | — | 25 |
 <!-- inventory:prs:end -->
 
 ## Reverse-mapping gaps

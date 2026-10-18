@@ -112,6 +112,25 @@ Il sistema è indipendente dal modello e dal fornitore. Usa soltanto file nel re
 - le evidenze vanno pubblicate su #150;
 - solo dopo si può dichiarare `MULTI-AGENT HANDOFF CERTIFIED`.
 
+## Collaudo reale A → B (18/10/2026)
+
+1. **Agente A** (`agent-a-claude-code`):
+   - ha implementato R-01 nel commit `26fa7f8`;
+   - ha pubblicato `CP-20261018T201559Z-agent-a-claude-code` in stato HANDOFF READY (#150, commento 6254638793);
+   - ha liberato il lease e ha smesso di lavorare su R-01.
+2. **Agente B** (`agent-b-claude-subagent`):
+   - sessione separata, senza la conversazione di A, in un clone fresco;
+   - ha eseguito `resume R-01` e ottenuto zero divergenze;
+   - ha verificato lo SHA, il tree, la PR #151 aperta e i test dichiarati;
+   - ha fatto il claim del lease (`9989e45`);
+   - ha completato la `next_action` (N-06, `477c434`) e pubblicato `CP-20261018T202029Z-agent-b-claude-subagent` in stato REVIEW (#150, commento 6254688637).
+3. **Agente A, alla ripresa:**
+   - ha rieseguito `resume` sul nuovo head e ottenuto zero divergenze;
+   - ha riverificato in modo indipendente il lavoro di B su PostgreSQL 16: skip in 0,2 s, fallimento immediato con `CI=1`, 198/198 test;
+   - ha ripreso il lease.
+
+**Limite:** B era una sessione separata dello stesso strumento nello stesso container, non un fornitore diverso. Il protocollo non dipende dal modello.
+
 ## Limiti noti
 
 - Gli agenti operano con lo stesso account GitHub dell'owner, quindi GitHub non distingue tecnicamente chi chiude una issue. La protezione è procedurale (AGENTS §5) e preventiva: la CI rifiuta le parole chiave di auto-chiusura.
