@@ -66,7 +66,9 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: npm run governance:scan-closing
+        run: |
+          npm run governance:scan-closing
+          node tools/governance/cli.mjs check-append-only
       - name: Syntax checks
         if: needs.classify.outputs.mode != 'docs'
         run: npm run check

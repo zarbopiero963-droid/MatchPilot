@@ -2,7 +2,8 @@
 // MP-OWNER-CERT-ISSUE-CLOSURE-01 auto-closing keyword guard.
 
 // GitHub closing keywords followed by an issue reference (#N, owner/repo#N or an issue URL).
-const CLOSING = /\b(close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b\s*:?\s+(?:[\w.-]+\/[\w.-]+#\d+|#\d+|https?:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+)/gi;
+// Fail closed: tolerate emphasis markers, a colon, missing spaces and parentheses around the reference.
+const CLOSING = /\b(close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b[*_]*\s*:?\s*[*_]*\s*\(?\s*(?:[\w.-]+\/[\w.-]+#\d+|#\d+|https?:\/\/(?:www\.)?github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+)/gi;
 
 export function findClosingReferences(text) {
   return [...String(text || '').matchAll(CLOSING)].map(match => match[0]);

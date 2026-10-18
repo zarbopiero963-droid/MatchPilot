@@ -26,5 +26,5 @@
 
 - Nelle sessioni cloud il repository è un clone fresco. Per i test PostgreSQL locali: `FUTPYTHON_TEST_DATABASE_URL` punta solo a un'istanza locale usa-e-getta, e `test/postgres-independence.test.mjs` richiede PostgreSQL 17.
 - Interazioni GitHub tramite gli strumenti MCP GitHub. Ogni commento o review termina con il footer di attribuzione di Claude Code.
-- Nessun identificativo di modello nei commit, nelle PR o nei file del repository.
+- Nessun identificativo di modello nei file del repository, nei titoli o nei testi delle PR. Unica eccezione: le righe di attribuzione dei commit (`Co-Authored-By`) richieste dall'ambiente Claude Code. Questa regola deriva dall'ambiente, non da una decisione owner.
 - **Prima di un merge:** usare `merge_pull_request` con `expectedHeadSha`. Non serve aspettare CodeRabbit se è bloccato da limiti di piano; in quel caso vale la review indipendente D2.

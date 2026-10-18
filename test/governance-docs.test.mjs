@@ -46,6 +46,7 @@ test('CI enforces the governance gate and the closing-keyword scan on every PR',
   assert.match(ci, /test\/governance-\*\.test\.mjs/);
   assert.match(ci, /PR_BODY: \$\{\{ github\.event\.pull_request\.body \}\}/);
   assert.match(ci, /npm run governance:scan-closing/);
+  assert.match(ci, /cli\.mjs check-append-only/);
   const gateStep = ci.indexOf('Governance gate');
   assert.ok(gateStep > 0 && !ci.slice(gateStep, ci.indexOf('Syntax checks')).includes("mode != 'docs'"), 'governance gate must run in docs mode too');
 });

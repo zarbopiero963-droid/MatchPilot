@@ -18,7 +18,8 @@ const ID = /^CP-(\d{8}T\d{6}Z)-[a-z0-9][a-z0-9-]*$/;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
 export const commentMarker = id => `<!-- mp-checkpoint:${id} -->`;
-export const isBookkeeping = file => /^docs\/governance\/checkpoints\/CP-[^/]+\.json$/.test(file) || file === 'docs/governance/work-registry.json';
+// Bookkeeping after a checkpoint: newly added checkpoint files (append-only) and registry updates.
+export const isBookkeeping = ({status, file}) => (status === 'A' && /^docs\/governance\/checkpoints\/CP-[^/]+\.json$/.test(file)) || file === 'docs/governance/work-registry.json';
 const compactStamp = iso => iso.replace(/\.\d{3}Z$/, 'Z').replace(/[-:]/g, '');
 const validIso = value => ISO.test(value || '') && !Number.isNaN(Date.parse(value));
 
@@ -109,7 +110,7 @@ export function reconcile(cp, reality, {now = new Date(), staleAfterHours = 24} 
     const changed = reality.changedSinceCheckpoint;
     if (!reality.checkpointIsAncestor) divergences.push({code: 'SHA_MISMATCH', detail: `${cp.commit_sha} is not an ancestor of ${reality.branchHead}`});
     else if (!Array.isArray(changed) || !changed.length || !changed.every(isBookkeeping)) {
-      divergences.push({code: 'UNRECONCILED_COMMITS', detail: `${cp.branch} moved from ${cp.commit_sha} to ${reality.branchHead}: ${(changed || ['unknown files']).filter(file => !isBookkeeping(file)).join(', ')}`});
+      divergences.push({code: 'UNRECONCILED_COMMITS', detail: `${cp.branch} moved from ${cp.commit_sha} to ${reality.branchHead}: ${(changed || [{status: '?', file: 'unknown files'}]).filter(entry => !isBookkeeping(entry)).map(entry => `${entry.status} ${entry.file}`).join(', ')}`});
     }
   }
   if (reality.treeSha && reality.branchHead === cp.commit_sha && reality.treeSha !== cp.tree_sha) divergences.push({code: 'TREE_MISMATCH', detail: `tree ${reality.treeSha} != ${cp.tree_sha}`});

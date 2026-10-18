@@ -134,4 +134,13 @@ Il sistema è indipendente dal modello e dal fornitore. Usa soltanto file nel re
 ## Limiti noti
 
 - Gli agenti operano con lo stesso account GitHub dell'owner, quindi GitHub non distingue tecnicamente chi chiude una issue. La protezione è procedurale (AGENTS §5) e preventiva: la CI rifiuta le parole chiave di auto-chiusura.
+- **Lock orfano.** Se un processo termina mentre scrive il registro, resta `work-registry.json.lock` e ogni scrittura successiva viene rifiutata (fail-safe); `CONFLICT_LOCKED` riporta l'età del lock. Prima di rimuoverlo:
+  1. verificare che nessun processo stia scrivendo nello stesso worktree;
+  2. verificare che `work-registry.json` sia JSON valido;
+  3. eseguire `npm run governance:check`.
+
+  Solo dopo si rimuove il file `.lock` e lo si annota nel checkpoint successivo.
+- **Input di `merge-gate`.** Il comando valuta un input JSON che l'agente compila con i fatti letti da GitHub (CI del head, review, branch protection). Non interroga GitHub da solo: il revisore indipendente riverifica quei fatti.
+- **Verifiche prima del claim.** Le verifiche in sola lettura (resume, test locali, lettura di GitHub) possono precedere il claim. Ogni scrittura su branch, registro, checkpoint o commenti richiede il lease.
+- **Append-only in CI.** Una PR che modifica o elimina un checkpoint esistente viene rifiutata in CI (`check-append-only`). Le correzioni si fanno con un nuovo checkpoint che sostituisce il precedente tramite `supersedes`.
 - Il lock su file protegge i processi nello stesso worktree. Fra worktree o macchine diversi la protezione è la compare-and-swap su `revision` più il rifiuto git dei push non fast-forward: chi perde la corsa ricarica e rivaluta.

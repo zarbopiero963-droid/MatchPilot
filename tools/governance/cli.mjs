@@ -4,13 +4,14 @@
 //   status [--json]           where the work stands: tasks, leases, latest checkpoints, divergences
 //   resume <task>             handoff/recovery check for <task>; exit 2 on divergence
 //   scan-closing [files...]   reject auto-closing references in files, PR_TITLE/PR_BODY and BASE_SHA..HEAD_SHA commits
-//   merge-gate <file.json>    evaluate MP-OWNER-AUTOMERGE-01 for a recorded merge input
+//   merge-gate <file.json>    evaluate MP-OWNER-AUTOMERGE-01 for a merge input filled from GitHub facts
+//   check-append-only         fail if BASE_SHA..HEAD_SHA modifies or deletes an existing checkpoint
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {loadCheckpoints, reconcile, resolveLatest, validateCheckpoint} from './checkpoints.mjs';
 import {validateRegistry} from './registry.mjs';
 import {evaluateMergeGate, findClosingReferences} from './policy.mjs';
-import {commitMessages, realityFor} from './git.mjs';
+import {changedFiles, commitMessages, realityFor} from './git.mjs';
 import {loadDecisions, loadInventory, validateDecisions} from '../validate-requirements.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -93,12 +94,22 @@ async function main([command, ...args]) {
     console.log(JSON.stringify({result: 'PASS'}));
     return 0;
   }
+  if (command === 'check-append-only') {
+    const {BASE_SHA: base, HEAD_SHA: head} = process.env;
+    if (!base || !head || /^0+$/.test(base)) { console.log(JSON.stringify({result: 'PASS', note: 'no range to check'})); return 0; }
+    const changes = changedFiles(root, base, head);
+    if (changes === null) { console.error(JSON.stringify({result: 'FAIL', error: `history ${base}..${head} unavailable (fail closed)`})); return 1; }
+    const rewritten = changes.filter(({status, file}) => file.startsWith('docs/governance/checkpoints/') && status !== 'A');
+    if (rewritten.length) { console.error(JSON.stringify({result: 'FAIL', rewritten_checkpoints: rewritten}, null, 2)); return 1; }
+    console.log(JSON.stringify({result: 'PASS'}));
+    return 0;
+  }
   if (command === 'merge-gate') {
     const verdict = evaluateMergeGate(JSON.parse(readFileSync(args[0], 'utf8')));
     console.log(JSON.stringify(verdict, null, 2));
     return verdict.allowed ? 0 : 3;
   }
-  console.error('usage: cli.mjs validate | status [--json] | resume <task> | scan-closing [files...] | merge-gate <file.json>');
+  console.error('usage: cli.mjs validate | status [--json] | resume <task> | scan-closing [files...] | check-append-only | merge-gate <file.json>');
   return 1;
 }
 

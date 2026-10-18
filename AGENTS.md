@@ -177,26 +177,40 @@ Il README distingue IMPLEMENTED / TESTED / VERIFIED REAL / CERTIFIED e non dichi
 
 #102 Trading Copilot attraversa più fasi. Riassunto: `docs/integration-map.md`.
 
-**Ownership:**
-- #94 formule pure;
-- #95 settings e commissione;
-- #96 policy MM e `operational_mode` (legge da #99, non scrive);
-- #100 regole di mercato;
-- #99 posizioni, settlement e ledger;
-- #34 strategie e backtest;
-- #28 segnali e intent;
-- #45 unico percorso per ordini reali;
-- #44 assistente globale;
-- #102 Copilot senza logica propria.
+**Ownership di dominio:**
+- **#94 Math:** formule pure, Decimal/fixed precision, solver, oracle e test vector.
+- **#95 Settings:** impostazioni account, commissione, default, versioni, snapshot, concorrenza.
+- **#96 Money Management:**
+  - registry, profili, capability, staking policy, limiti, filtri, regole;
+  - sequence state solo se serve;
+  - decisioni ALLOW / REDUCE / BLOCK / SIMULATION_ONLY;
+  - `operational_mode` (ACTIVE_OPERATIONAL / ADVISORY_ONLY / PAUSED / ARCHIVED).
+
+  Legge da #99; non scrive posizioni, ledger o saldo.
+- **#100 Market Rules:** risoluzione dei mercati, VOID, PUSH, rinvii, abbandoni, dead heat, esiti asiatici a metà, supplementari e rigori, correzioni, versione della regola.
+- **#99 Settlement / Ledger:** posizioni, leg, riserve, esposizione, contabilità, P/L, equity, settlement, commissione applicata, ledger append-only, reversal, idempotenza.
+- **#34 Strategy Lab:** strategie, DSL, versioni, backtest, assegnazione MM, matching. L'Indicator Library/DSL appartiene solo a #34.
+- **#28 Trading Engine:** piano, segnali, BACK / LAY / DUTCH / NO TRADE, intent di entry, invalidation, exit e hedge.
+- **#45 Execution:** unico percorso per ordini reali.
+- **#44:** assistente globale.
+- **#102:** Trading Copilot in partita, senza logica propria.
 
 **Nessuna logica di business nella UI.**
 
 **Profili MM:**
-- versioni immutabili;
-- STOP OPERATIONS porta il profilo in ADVISORY_ONLY;
-- il replay con MM gira in sessione di simulazione separata, senza scritture nel ledger.
+- identità stabile e versioni immutabili: ogni modifica crea una versione e lo storico resta sulla versione usata;
+- eliminazione fisica solo se il profilo non è mai stato referenziato;
+- STOP OPERATIONS porta il profilo in ADVISORY_ONLY: l'analisi continua, ma nessuna nuova posizione, riserva o scrittura nel ledger;
+- il replay con MM gira in una sessione di simulazione separata, senza dati futuri e senza scritture nel ledger.
 
-L'eccezione STOP/ADVISORY sulle posizioni già aperte resta **OPEN** (`OWN-OPEN-STOP-ADVISORY`).
+**Livelli di certificazione distinti:** implementazione; certificazione di componente nel proprio scope; certificazione integrata #98. Mock e CI da soli non sono hard evidence.
+
+**OPEN / OWNER DECISION REQUIRED:**
+- eccezione STOP/ADVISORY sulle posizioni già aperte (`OWN-OPEN-STOP-ADVISORY`): non scegliere automaticamente "blocca tutto" né "settle comunque";
+- WeWeb;
+- sport o overlap aggiuntivi;
+- BetsAPI come provider core;
+- execution reale.
 
 **Mock vivo:**
 - Ogni feature, stato, dominio, tool, impostazione o cambio UX con impatto visibile o concettuale aggiorna `docs/mockups/matchpilot-trading-os.html` e `docs/mockups/README.md` (changelog con SHA-256) nella stessa PR o sequenza pianificata.
@@ -215,6 +229,12 @@ L'eccezione STOP/ADVISORY sulle posizioni già aperte resta **OPEN** (`OWN-OPEN-
 - si distinguono tempo dell'evento, del provider, di acquisizione, di disponibilità e di decisione;
 - timestamp assenti o ambigui ⇒ dato non PIT-verificato, mai orari inventati;
 - policy UTC/timezone/DST esplicita e testata;
+- parser, reprocessing e versioni dell'identità possono cambiare il risultato allo stesso T, quindi a ogni reprocessing si registrano:
+  - prima e dopo;
+  - raw e acquisition;
+  - versioni di parser, schema, transform e data contract;
+  - versioni di mapping;
+- nessun apply in produzione senza owner;
 - i dati non PIT escono dai backtest certificati o vengono etichettati come non PIT.
 
 ## 10. FutPythonTrader — protocollo #12
@@ -238,6 +258,12 @@ Codice presente, CI verde, test unitari, endpoint che risponde o deploy live non
 - review chiuse;
 - nessun ERROR_REAL imputabile a MatchPilot.
 
+**Disciplina di fase** (#12 e #20):
+- una fase non si suddivide in PR parallele senza autorizzazione owner;
+- un failure reale ⇒ si resta nella stessa fase;
+- vietato saltare alla fase successiva per aggirare un gate fallito;
+- vietato marcare checklist completate in anticipo.
+
 **Durante una patch FPT:**
 - non modificare i criteri per far passare i test;
 - non nascondere ERROR_REAL;
@@ -249,7 +275,9 @@ Codice presente, CI verde, test unitari, endpoint che risponde o deploy live non
 
 **Resume drill e budget:**
 - **migrazione:** `007-fpt-request-ledger.sql` aggiunge `ingest_complete`, `fpt_request_ledger` e `fpt_provider_hold`;
-- **drill:** è one-off (`--resume-drill-requeue` poi `--backfill`), mai con `FUTPYTHON_BACKFILL_ON_START`;
+- **drill:** è one-off (`--resume-drill-requeue` poi `--backfill`), mai con `FUTPYTHON_BACKFILL_ON_START`. Non si cambiano le env del servizio per il drill e `FUTPYTHON_BACKFILL_ON_START` e `FUTPYTHON_PHASE1_VERIFY_ON_START` restano false;
+- **FASE 1:** è VERIFIED REAL (deploy `dep-db1bbujtqb8s7396dg50`, commit `222be65`) con un limite residuo dichiarato: il SIGTERM live cade fra i dataset, nel delay di 5 secondi, non a metà scrittura;
+- **classificazione:** gli stati AVAILABLE, UNAVAILABLE_404, ERROR_REAL, DEPRECATED, REMOVED, INITIAL_404 e REGRESSION_404 sono persistiti; `active=false` da solo non basta;
 - **budget:** i default `FUTPYTHON_REQUESTS_PER_MINUTE` / `PER_DAY` / `BACKFILL_REQUESTS_PER_MINUTE` sono tetti di codice, non la quota del fornitore;
 - **provider:** il browser non chiama FPT e non esiste un proxy verso il provider;
 - **ledger:** non contiene API key.

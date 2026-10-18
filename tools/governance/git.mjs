@@ -29,9 +29,14 @@ export function commitMessages(cwd, base, head) {
   return out === null ? null : out.split('\0').map(text => text.trim()).filter(Boolean);
 }
 
+// Changed paths with their git status letter (A added, M modified, D deleted), commit by commit:
+// a cumulative diff would report "added then rewritten" as a plain addition.
 export function changedFiles(cwd, base, head) {
-  const out = git(cwd, ['diff', '--name-only', base, head]);
-  return out === null ? null : out.split('\n').filter(Boolean);
+  const out = git(cwd, ['log', '--name-status', '--no-renames', '--format=', `${base}..${head}`]);
+  return out === null ? null : out.split('\n').filter(Boolean).map(line => {
+    const [status, file] = line.split('\t');
+    return {status: status[0], file};
+  });
 }
 
 // Reality for one checkpoint: branch head, ancestry, tree and files changed after the checkpoint.

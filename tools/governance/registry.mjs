@@ -1,6 +1,6 @@
 // Shared activity registry (#150): verifiable assignments, leases, one active implementation task,
 // optimistic concurrency (revision compare-and-swap) and a local file lock for same-worktree writers.
-import {closeSync, existsSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync} from 'node:fs';
+import {closeSync, existsSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync} from 'node:fs';
 import {STATES} from './checkpoints.mjs';
 
 export const REGISTRY_SCHEMA = 'mp-work-registry-v1';
@@ -74,7 +74,12 @@ export function updateRegistryFile(file, mutate) {
   let fd;
   try { fd = openSync(lock, 'wx'); }
   catch (error) {
-    if (error.code === 'EEXIST') throw new RegistryConflict('CONFLICT_LOCKED', `${lock} exists`);
+    if (error.code === 'EEXIST') {
+      // The holder may release the lock between our open and stat: the age is then unknown, the conflict stands.
+      let age = 'unknown';
+      try { age = `${Math.round((Date.now() - statSync(lock).mtimeMs) / 1000)}s`; } catch {}
+      throw new RegistryConflict('CONFLICT_LOCKED', `${lock} exists (age ${age}); if no writer is running, follow the stale-lock recovery in docs/governance/HANDOFF.md`);
+    }
     throw error;
   }
   try {

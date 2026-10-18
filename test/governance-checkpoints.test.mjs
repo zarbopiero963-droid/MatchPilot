@@ -136,6 +136,9 @@ test('reconciliation against a real git repository detects SHA mismatch and unre
   repo.commit('docs/governance/work-registry.json', '{}\n', 'registry only');
   assert.deepEqual(reconcile(cp, realityFor(repo.dir, cp)), [], 'bookkeeping-only commits are reconciled');
 
+  repo.commit('docs/governance/checkpoints/CP-x.json', '{"rewritten": true}\n', 'rewrite an existing checkpoint');
+  assert.deepEqual(reconcile(cp, realityFor(repo.dir, cp)).map(d => d.code), ['UNRECONCILED_COMMITS'], 'modifying an existing checkpoint is not bookkeeping');
+
   repo.commit('src/a.mjs', 'export const a = 2;\n', 'unrecorded work');
   assert.deepEqual(reconcile(cp, realityFor(repo.dir, cp)).map(d => d.code), ['UNRECONCILED_COMMITS']);
 
