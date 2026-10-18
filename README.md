@@ -1,5 +1,13 @@
 # MatchPilot — Sports Trading OS
 
+## Gate A OFFLINE v1 — MP-PR-00
+
+Il mandato owner `MP-ENTERPRISE-GATE-AB-WEB-SIM-01` usa un inventario atomico machine-readable, fissato sulla baseline `353dfc6523d357aae52615fdfb102fdf1e2a6795`. Il denominatore iniziale è **96 requisiti**: 70 P0, 25 P1 e 1 P2. Lo stato iniziale è 26 PASS circoscritti, 33 FAIL, 7 BLOCKED, 29 NOT_VERIFIED e 1 NOT_APPLICABLE; nessuna percentuale aggregata rende superabile un P0 aperto.
+
+Il perimetro include FutPythonTrader, TotalCorner, sito read-only reale, backend/API, replay autentico, backtest/statistica e certificazione continua. Execution Exchange, billing SaaS e attivazione LIVE di produzione restano nel registro futuro e fuori dal denominatore v1. Inventario, matrice, conflitti e criteri delle PR successive: [`docs/governance/mp-pr-00/`](docs/governance/mp-pr-00/). Validazione: `npm run governance:validate`.
+
+MP-PR-00 non modifica runtime, API, schema o UX e non certifica il prodotto. Il mock MatchPilot non richiede aggiornamento: **NO — governance e tooling documentale soltanto**.
+
 ## Ingresso operativo corrente — 07/10/2026
 
 Leggere README → CLAUDE.md → AGENTS.md, poi **#3 → #97 → #104** e la issue di dominio; partire dai blocchi “Stato corrente / Prossima attività”, non dalla cronologia dei commenti.
