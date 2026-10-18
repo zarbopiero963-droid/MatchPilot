@@ -223,6 +223,7 @@ test('assistant queries answer from Postgres with indexes and point-in-time', {t
         assert.equal(r.pit.status, day.latest <= new Date('2025-01-01T00:00:00Z') ? 'PIT_VERIFIED' : 'PIT_NOT_VERIFIED');
       }
       assert.ok(pitBetween.rows.some(r => r.pit.status === 'PIT_VERIFIED'));
+      assert.equal(pitBetween.pit.changed_matches, 0, 'the later season holds new matches, not changes to matches known at as_of');
       assert.equal(pitBetween.pit.label, pitBetween.rows.every(r => r.pit.status === 'PIT_VERIFIED') ? 'PIT_VERIFIED' : 'NON_PIT');
       const pitAll = await query.runQuery(client, 'teamMatchesAsOf', {team: ajax, as_of: '2026-01-01T00:00:00Z', before: '2100-01-01', limit: 500});
       assert.equal(pitAll.rows.length, 20);

@@ -40,9 +40,9 @@ function calendarDate(value) {
 
 // FutPythonTrader match versions. The kickoff time zone is undocumented (PROVIDER_TZ_UNDOCUMENTED, #12): the event is
 // known only as the interval of its calendar date in every possible zone, and FPT declares no per-record time.
-// The candidate set comes from the current facts: a row whose match changed after T, or matches that named the team at T
-// but no longer link it (`omitted`), mean the answer may differ from what was known at T.
-export function classifyFptVersions(rows, {decisionTime, omitted = 0}) {
+// The answer is built from the current facts. `changedMatches` counts matches involving the team whose latest version
+// was acquired after T: while any exists, rows may have changed, disappeared or moved out of the limit since T.
+export function classifyFptVersions(rows, {decisionTime, changedMatches = 0}) {
   const classified = rows.map(row => {
     // The event date is the one the version known at T declares, not the current one.
     const date = calendarDate(row.known_match_date ?? row.match_date);
@@ -54,10 +54,10 @@ export function classifyFptVersions(rows, {decisionTime, omitted = 0}) {
       extraReasons: row.changed_after_as_of ? ['FACTS_CHANGED_AFTER_DECISION'] : [],
     });
   });
-  const label = {...analysisLabel(classified, {knowledge: 'captured', decisionTime}), omitted};
-  if (omitted > 0) {
+  const label = {...analysisLabel(classified, {knowledge: 'captured', decisionTime}), changed_matches: changedMatches};
+  if (changedMatches > 0) {
     label.label = 'NON_PIT';
-    label.why.push('MATCHES_OMITTED_BY_LATER_FACTS');
+    label.why.push('TEAM_MATCHES_CHANGED_AFTER_DECISION');
   }
   return {classified, label};
 }

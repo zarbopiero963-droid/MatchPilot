@@ -1,5 +1,5 @@
-// R-08 Gate B (PR #154 review B-2): FPT teamMatchesAsOf takes its candidates from the current facts. A provider
-// correction acquired after as_of must not reach a PIT_VERIFIED answer: changed rows and omitted matches are flagged.
+// R-08 Gate B (PR #154 reviews B-2, B-3): FPT teamMatchesAsOf builds its answer from the current facts. A provider
+// correction acquired after as_of must never reach a PIT_VERIFIED answer, whether it changes, drops or reorders rows.
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
@@ -43,8 +43,9 @@ test('FPT team-matches-asof flags facts corrected after as_of (MP-PIT-002, MP-PI
         Odd_1_FT: '1.8', Odd_X_FT: '3.5', Odd_2_FT: '4.0'});
       const stable = [match('200', '2025-03-01', 'Feyenoord', 'PSV'), match('201', '2025-03-02', 'PSV', 'Ajax')];
       // Known at T: match 100 is Ajax v PSV on 2025-04-10. After T the provider corrects it to Feyenoord v Ajax on 2025-04-12.
-      await put([match('100', '2025-04-10', 'Ajax', 'PSV'), ...stable], '2025-05-01T00:00:00Z');
-      await put([match('100', '2025-04-12', 'Feyenoord', 'Ajax'), ...stable], '2025-07-01T00:00:00Z');
+      // Known at T: match 300 is Ajax v Utrecht on 2025-05-20. After T its date is corrected to 2025-06-10 (review B-3).
+      await put([match('100', '2025-04-10', 'Ajax', 'PSV'), match('300', '2025-05-20', 'Ajax', 'Utrecht'), ...stable], '2025-05-01T00:00:00Z');
+      await put([match('100', '2025-04-12', 'Feyenoord', 'Ajax'), match('300', '2025-06-10', 'Ajax', 'Utrecht'), ...stable], '2025-07-01T00:00:00Z');
       await teams.replaceTeamEntities(c, teams.buildTeamEntities(await teams.loadTeamSpellings(c)));
       await query.refreshNormalizedLayer(c);
       const teamId = async name => (await query.runQuery(c, 'teamSearch', {q: name})).rows[0].internal_team_id;
@@ -59,6 +60,7 @@ test('FPT team-matches-asof flags facts corrected after as_of (MP-PIT-002, MP-PI
       assert.deepEqual(corrected.pit.reasons, ['FACTS_CHANGED_AFTER_DECISION']);
       assert.equal(corrected.pit.times.event_time_earliest, '2025-04-09T10:00:00.000Z', 'the event date is the one known at T (2025-04-10)');
       assert.equal(fey.pit.label, 'NON_PIT');
+      assert.equal(fey.pit.changed_matches, 1);
       const unchanged = fey.rows.find(r => r.known_home === 'Feyenoord');
       assert.equal(unchanged.pit.status, 'PIT_VERIFIED', 'a match unchanged since T stays verified');
 
@@ -66,13 +68,21 @@ test('FPT team-matches-asof flags facts corrected after as_of (MP-PIT-002, MP-PI
       const psv = await query.runQuery(c, 'teamMatchesAsOf', {team: await teamId('PSV'), ...asOf});
       assert.ok(psv.rows.every(r => r.pit.status === 'PIT_VERIFIED'));
       assert.equal(psv.pit.label, 'NON_PIT');
-      assert.ok(psv.pit.why.includes('MATCHES_OMITTED_BY_LATER_FACTS'));
-      assert.equal(psv.pit.omitted, 1);
+      assert.deepEqual(psv.pit.why, ['TEAM_MATCHES_CHANGED_AFTER_DECISION']);
+      assert.equal(psv.pit.changed_matches, 1);
+
+      // Utrecht (review B-3): match 300 was known at T (2025-05-20 < before) but its later date correction drops it
+      // from the current-facts answer. The answer must not be PIT_VERIFIED.
+      const utrecht = await query.runQuery(c, 'teamMatchesAsOf', {team: await teamId('Utrecht'), ...asOf});
+      assert.equal(utrecht.rows.length, 0, 'the current facts no longer place match 300 before 2025-06-01');
+      assert.equal(utrecht.pit.label, 'NON_PIT');
+      assert.equal(utrecht.pit.changed_matches, 1);
 
       // After the correction was acquired, the same questions are PIT again.
       const later = {as_of: '2025-08-01T00:00:00Z', before: '2025-08-01', limit: 50};
       assert.equal((await query.runQuery(c, 'teamMatchesAsOf', {team: await teamId('Feyenoord'), ...later})).pit.label, 'PIT_VERIFIED');
       assert.equal((await query.runQuery(c, 'teamMatchesAsOf', {team: await teamId('PSV'), ...later})).pit.label, 'PIT_VERIFIED');
+      assert.equal((await query.runQuery(c, 'teamMatchesAsOf', {team: await teamId('Utrecht'), ...later})).pit.label, 'PIT_VERIFIED');
     });
   } finally {
     await db.closePool?.().catch?.(() => {});

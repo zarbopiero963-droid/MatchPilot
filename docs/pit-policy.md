@@ -41,7 +41,7 @@ A missing time stays `null` and is listed in `pit.missing`. It is never invented
 `pit` on the answer, and `meta.pit` in API v1:
 
 - `PIT_VERIFIED` only when the reader used captured knowledge and every record it used is `PIT_VERIFIED`. An empty answer at T (no record known yet) is `PIT_VERIFIED` with `records: 0`;
-- otherwise `NON_PIT`, with `why` (`PROVIDER_KNOWLEDGE`, `RECORDS_NOT_PIT_VERIFIED`, `RECORDS_NOT_AVAILABLE_AT_DECISION`, `MATCHES_OMITTED_BY_LATER_FACTS`) and counts per status and reason.
+- otherwise `NON_PIT`, with `why` (`PROVIDER_KNOWLEDGE`, `RECORDS_NOT_PIT_VERIFIED`, `RECORDS_NOT_AVAILABLE_AT_DECISION`, `TEAM_MATCHES_CHANGED_AFTER_DECISION`) and counts per status and reason.
 
 `knowledge=provider` trusts provider times and is `NON_PIT` by construction. A `NON_PIT` answer must not feed certified backtest metrics (R-14).
 
@@ -62,7 +62,7 @@ A missing time stays `null` and is listed in `pit.missing`. It is never invented
 | Reader | Decision time | Records |
 |---|---|---|
 | `tcPrematchMatch` (`/api/tc/prematch/match`, `/api/v1/tc/prematch/match`) | `as_of`, default kickoff | the match identity (`match.pit`, acquired at `first_seen_at`; `PIT_NOT_VERIFIED` when `last_seen_at` is after the decision, because `tc_matches` keeps only the latest state) and every prematch row the summary uses, including `opening` and `last`. With captured knowledge, `snapshots` counts only snapshots taken by `as_of`, and the match fields observed later (`last_status`, `last_seen_at`) are `null` |
-| FPT `teamMatchesAsOf` (`/api/fpt/team-matches-asof`, `/api/v1/fpt/team-matches-asof`) | `as_of` | every returned match version, with `known_match_date`, `known_home`, `known_away`, `known_phase` from the version known at `as_of` (the event interval uses `known_match_date`) and `changed_after_as_of`. Candidates come from the current facts, so a row changed after `as_of` is `FACTS_CHANGED_AFTER_DECISION`, and matches that named the team at `as_of` but no longer link it make the answer `NON_PIT` (`omitted`) |
+| FPT `teamMatchesAsOf` (`/api/fpt/team-matches-asof`, `/api/v1/fpt/team-matches-asof`) | `as_of` | every returned match version, with `known_match_date`, `known_home`, `known_away`, `known_phase` from the version known at `as_of` (the event interval uses `known_match_date`) and `changed_after_as_of`. The answer is selected, filtered, ordered and limited on the current facts. A row changed after `as_of` is `FACTS_CHANGED_AFTER_DECISION`. If any match involving the team changed after `as_of`, the answer is `NON_PIT` (`TEAM_MATCHES_CHANGED_AFTER_DECISION`, count in `changed_matches`), because a row may have changed, disappeared or left the limit. Only matches already known at `as_of` count; one first acquired later cannot affect the answer. A match involves the team if it is linked to it now or named it in its version known at `as_of`. |
 
 ## Parameters chosen by the agent (PROPOSAL, versioned)
 
@@ -79,7 +79,11 @@ D4 requires an explicit, tested policy but does not fix these values. They are p
 - Replay (R-09), statistics (R-12) and backtest (R-14) do not exist yet. They must build on these records, so MP-PIT-001, 002 and 005 stay NOT_VERIFIED until they do.
 - The PIT label is in the API and not yet in a UI (R-05+).
 - Version pinning of parser/schema/transform (MP-FPT-005) and cross-provider identity (MP-XPR-001/002) are later parts of R-08.
-- FPT `teamMatchesAsOf` still selects candidates from the current facts and flags the differences instead of rebuilding the facts known at T. Rebuilding them (and team aliases, which are also current) is part of MP-FPT-005. The omission check matches team names the way the facts layer does (exact alias name), and it is not in the performance gate.
+- FPT `teamMatchesAsOf` does not rebuild the facts known at T. It answers from the current facts and is `NON_PIT` as soon as any match involving the team changed after T. Rebuilding the facts is part of MP-FPT-005.
+  - Consequence: answers for a T before the latest acquisitions of the team's matches are usually `NON_PIT`.
+  - The change check reads every row of `fpt_match_facts` acquired after T. There is no index on `acquired_at`, and adding one is a migration. In synthetic tests it took about 340 ms with 200k rows, and it is not in the performance gate.
+  - The check matches team names exactly as the facts layer does (exact alias name), but ignores the country. A homonym in another country can therefore cause a false `NON_PIT`, which errs on the safe side.
+  - Team aliases and dataset activation are the current ones, not those at T.
 - TotalCorner rows do not store the offset used to convert their provider time: the reader assumes the match offset (`tz_offset_minutes`), which the gate applied at acquisition.
 - Without `as_of`, `tc/prematch/match` decides at the kickoff, itself a converted provider time.
 - **TotalCorner match state:** `tc_matches` keeps only the latest state of each match, and an answer is PIT for it only when that state was last observed by the decision time. Making older decisions PIT needs a per-version history of the match state. That is a schema migration, which on an auto-deployed service would also write to the production database, so it requires owner authorisation (PROPOSAL).

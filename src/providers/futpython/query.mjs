@@ -173,12 +173,16 @@ export const QUERIES = {
       LIMIT $4`,
     params: ['team_id', 'as_of', 'before', 'limit']
   },
-  // R-08: a match that named the team in its version known at as_of but whose current facts no longer link it is
-  // missing from teamMatchesAsOf. Names are matched as the facts layer links them (exact alias name).
-  teamMatchesAsOfOmissions: {
+  // R-08: teamMatchesAsOf selects, filters, orders and limits on the current facts. They can differ from what was known
+  // at as_of only through a match known at as_of and involving the team (linked now, or named in its version known at
+  // as_of) whose latest version was acquired after as_of: if any exists, the answer may differ from the one at as_of (changed, dropped or
+  // reordered rows). fpt_match_facts.acquired_at is the acquisition time of each match's latest version.
+  teamMatchesAsOfChanged: {
     sql: `SELECT count(*)::int AS n FROM (
         SELECT 1
         FROM fpt_match_facts f
+        -- Only matches already known at as_of: a match first acquired later has no version at as_of and cannot
+        -- affect the answer (the reader drops it before the limit).
         CROSS JOIN LATERAL (
           SELECT v.home, v.away
           FROM fpt_match_versions v
@@ -187,10 +191,10 @@ export const QUERIES = {
           LIMIT 1
         ) pit
         WHERE f.acquired_at > $2::timestamptz
-          AND f.home_team_id IS DISTINCT FROM $1 AND f.away_team_id IS DISTINCT FROM $1
-          AND EXISTS (SELECT 1 FROM fpt_team_aliases a WHERE a.internal_team_id = $1 AND a.name IN (pit.home, pit.away))
+          AND (f.home_team_id = $1 OR f.away_team_id = $1
+            OR EXISTS (SELECT 1 FROM fpt_team_aliases a WHERE a.internal_team_id = $1 AND a.name IN (pit.home, pit.away)))
         LIMIT 1000
-      ) omitted`,
+      ) changed`,
     params: ['team_id', 'as_of']
   },
   leagueFieldCoverage: {
@@ -680,8 +684,8 @@ export async function runQuery(client, name, input = {}, opts = {}) {
   let pit = null;
   if (name === 'teamMatchesAsOf') {
     // R-08: each returned version carries its five timestamps and PIT status; the answer carries its PIT label.
-    const omitted = (await client.query(QUERIES.teamMatchesAsOfOmissions.sql, [q.values[0], q.values[1]])).rows[0]?.n ?? 0;
-    const result = classifyFptVersions(rows, {decisionTime: q.values[1], omitted});
+    const changedMatches = (await client.query(QUERIES.teamMatchesAsOfChanged.sql, [q.values[0], q.values[1]])).rows[0]?.n ?? 0;
+    const result = classifyFptVersions(rows, {decisionTime: q.values[1], changedMatches});
     rows = rows.map((row, i) => ({...row, pit: result.classified[i]}));
     pit = result.label;
   }
