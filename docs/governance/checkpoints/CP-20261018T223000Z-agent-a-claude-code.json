@@ -1,0 +1,112 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261018T223000Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-18T22:30:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Integration Agent"
+  },
+  "activity": "R-08 part 1 merged into main as e66e329d97c6b17994032b30966466881bb63c5d (squash of PR #154 head); record carried by the next PR per HANDOFF.md",
+  "task": "R-08",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 31,
+  "pr": 154,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "9ca8c8c8b825f0717429d401d6e7a077f9a7988c",
+  "tree_sha": "267a5d72d1e654fe5e4c490785eba759c31e49f4",
+  "requirements": [
+    "MP-PIT-001",
+    "MP-PIT-002",
+    "MP-PIT-003",
+    "MP-PIT-004",
+    "MP-PIT-005"
+  ],
+  "changes": [
+    "squash merge e66e329d97c6b17994032b30966466881bb63c5d into main"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI (classify, fast checks incl. governance gate, PostgreSQL 17 suite, CI gate)",
+      "result": "PASS",
+      "environment": "GitHub Actions ubuntu-latest",
+      "commit": "9ca8c8c8b825f0717429d401d6e7a077f9a7988c",
+      "time": "2026-10-18T22:24:05Z",
+      "limits": [
+        "run 39171969983"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39171969983,
+    "conclusion": "SUCCESS",
+    "head_sha": "9ca8c8c8b825f0717429d401d6e7a077f9a7988c"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/154#issuecomment-6255940670",
+    "reviewed_sha": "9ca8c8c8b825f0717429d401d6e7a077f9a7988c"
+  },
+  "findings": [
+    {
+      "id": "NB-REPROCESS",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "reprocessed versions carry the snapshot acquired_at; addressed in R-08b (MP-FPT-005)"
+    },
+    {
+      "id": "NB-CHANGED-SCAN",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "change check scans fpt_match_facts acquired after as_of (no index; migration owner-gated); not in perf gate"
+    },
+    {
+      "id": "NB-LEGACY-ASOF",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "legacy /api/tc/prematch/match parses as_of without validation (pre-existing)"
+    },
+    {
+      "id": "NB-TC-HISTORY",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "per-version TotalCorner match history needs a migration (production write on auto-deploy): owner-gated proposal"
+    },
+    {
+      "id": "NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "rows do not store their conversion offset (documented)"
+    },
+    {
+      "id": "NB-6",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "FPT candidate fields from current facts; pinning is MP-FPT-005 (documented)"
+    },
+    {
+      "id": "NB-8",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "default decision time is the converted kickoff (documented)"
+    },
+    {
+      "id": "R08-SCOPE",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "MP-FPT-005 version pinning and MP-XPR-001/002 identity are later R-08 parts; PIT requirements stay NOT_VERIFIED until replay/statistics/backtest consume the records"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-DECISIONS-D1-D9-20261018.D4",
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01"
+  ],
+  "dependencies": [
+    "CP-20261018T222159Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "None for R-08 part 1. Continue with R-08b (MP-FPT-005 version pinning).",
+  "resume_conditions": [],
+  "supersedes": "CP-20261018T222159Z-agent-a-claude-code"
+}
