@@ -111,6 +111,17 @@ test('API v1 serves real database content with the v1 envelope, matching the leg
     assert.equal(unknown.status, 400);
     assert.equal(unknown.body.error.code, 'UNKNOWN_PARAMETER');
     assert.equal((await call('/api/v1/missing')).status, 404);
+    assert.equal(live.body.meta.as_of, null, 'a report endpoint has no point in time');
+    const limited = await call('/api/v1/tc/schema-registry?limit=99999');
+    assert.equal(limited.status, 400, 'a limit above the reader cap is rejected, not silently capped');
+    const pit = await call('/api/v1/tc/prematch/match?id=1&as_of=garbage');
+    assert.equal(pit.status, 400);
+    const registryRows = await call('/api/v1/tc/schema-registry');
+    assert.equal(registryRows.status, 200);
+    assert.equal(registryRows.body.meta.coverage.limit, 2000);
+    const healthz = await fetch(`${base}/healthz`);
+    assert.equal(healthz.status, 200);
+    assert.equal(healthz.headers.get('deprecation'), null, '/healthz stays KEPT');
 
     const health = await call('/api/v1/health');
     assert.equal(health.status, 200);

@@ -68,7 +68,7 @@ test('responses carry the envelope with provenance, coverage, as_of and versions
   assertEnvelope(live.body, '/api/v1/tc/live');
   assert.equal(live.body.meta.provenance.source_provider, 'totalcorner');
   const pit = await get('/api/v1/tc/prematch/match?id=42&as_of=2026-10-08T18:00:00Z');
-  assert.equal(pit.body.meta.as_of, '2026-10-08T18:00:00Z');
+  assert.equal(pit.body.meta.as_of, '2026-10-08T18:00:00.000Z');
   const health = await get('/api/v1/health');
   assertEnvelope(health.body, '/api/v1/health');
 });
@@ -104,4 +104,60 @@ test('validated input reaches the query layer only as bound parameters', async (
   assert.equal(ok.status, 200);
   assert.equal(ok.body.meta.coverage.limit, 7);
   assert.ok(calls.length === 1 && calls[0].values.includes(7) && !calls[0].sql.includes('7'), 'limit must be a bound parameter');
+});
+
+test('meta.as_of is the instant the reader applied, never an echo of the raw input (review B-1)', async () => {
+  assertError(await get('/api/v1/tc/prematch/match?id=42&as_of=garbage'), 400, 'BAD_REQUEST');
+  assertError(await get('/api/v1/tc/prematch/match?id=42&as_of=2026-10-08T18:00:00'), 400, 'BAD_REQUEST');
+  const kickoff = await handleV1({method: 'GET', url: new URL('http://localhost/api/v1/tc/prematch/match?id=42')},
+    {...deps, tc: {...tc, prematchMatch: async () => ({as_of: '2026-10-09T19:45:00.000Z'})}});
+  assert.equal(kickoff.body.meta.as_of, '2026-10-09T19:45:00.000Z', 'default as_of is the kickoff the reader used');
+  assert.equal((await get('/api/v1/tc/live')).body.meta.as_of, null, 'no point in time on a report endpoint');
+  assert.equal((await get('/api/v1/fpt/competitions')).body.meta.as_of, null);
+});
+
+test('TotalCorner parameters are validated, never silently capped or defaulted (review B-2)', async () => {
+  const seen = [];
+  const spy = {...tc, schemaRegistry: async (_c, input) => { seen.push(input); return []; }, prematchMatch: async (_c, input) => { seen.push(input); return {as_of: null}; }};
+  const call = path => handleV1({method: 'GET', url: new URL(`http://localhost${path}`)}, {...deps, tc: spy});
+  for (const bad of ['99999', '5001', '0', 'abc', '1.5', '-1', '']) assertError(await call(`/api/v1/tc/schema-registry?limit=${bad}`), 400, 'BAD_REQUEST');
+  assertError(await call('/api/v1/tc/prematch/match?id=1&knowledge=anything'), 400, 'BAD_REQUEST');
+  assert.equal(seen.length, 0, 'rejected input never reaches the reader');
+  const capped = await call('/api/v1/tc/schema-registry?limit=5000');
+  assert.equal(capped.status, 200);
+  assert.equal(capped.body.meta.coverage.limit, 5000);
+  const byDefault = await call('/api/v1/tc/schema-registry');
+  assert.equal(byDefault.body.meta.coverage.limit, 2000);
+  assert.deepEqual(seen.map(input => input.limit), [5000, 2000]);
+  await call('/api/v1/tc/prematch/match?id=1&knowledge=captured');
+  assert.equal(seen.at(-1).knowledge, 'captured');
+});
+
+test('the registry marks the parameters the query layer requires and errors use API parameter names (review NB-1, NB-7)', async () => {
+  const {endpoints} = (await get('/api/v1/endpoints')).body.data;
+  const required = path => Object.entries(endpoints.find(e => e.path === path).params).filter(([, spec]) => spec.required).map(([name]) => name);
+  assert.deepEqual(required('/api/v1/fpt/team-matches'), ['team']);
+  assert.deepEqual(required('/api/v1/fpt/h2h'), ['team', 'opponent']);
+  assert.deepEqual(required('/api/v1/tc/prematch/match'), ['id']);
+  for (const e of endpoints) {
+    const names = Object.keys(e.params).filter(n => e.params[n].required);
+    if (!names.length) continue;
+    const r = await get(e.path);
+    assertError(r, 400, 'BAD_REQUEST');
+    assert.equal(r.body.error.message, `missing required parameter: ${names[0]}`, e.path);
+  }
+  const bad = await get('/api/v1/fpt/team-matches?team=nope');
+  assert.match(bad.body.error.message, /invalid team$/);
+  assert.equal(legacyInventory(createEndpoints(tc)).find(item => item.route === '/healthz').status, 'KEPT');
+});
+
+test('input is validated before a connection is taken and only database failures are UNAVAILABLE (review NB-3)', async () => {
+  const down = {...deps, withClient: async () => { throw new Error('connection refused'); }};
+  const bad = await handleV1({method: 'GET', url: new URL('http://localhost/api/v1/fpt/matches?date=2026-13-45')}, down);
+  assertError(bad, 400, 'BAD_REQUEST');
+  const pgError = Object.assign(new Error('terminating connection'), {code: '57P01'});
+  assertError(await handleV1({method: 'GET', url: new URL('http://localhost/api/v1/tc/live')},
+    {...deps, tc: {...tc, live: async () => { throw pgError; }}}), 503, 'UNAVAILABLE');
+  assertError(await handleV1({method: 'GET', url: new URL('http://localhost/api/v1/tc/live')},
+    {...deps, tc: {...tc, live: async () => { throw new TypeError('cannot read properties of undefined'); }}}), 500, 'INTERNAL');
 });

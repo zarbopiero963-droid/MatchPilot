@@ -5,10 +5,13 @@ import {STATES} from './checkpoints.mjs';
 
 export const REGISTRY_SCHEMA = 'mp-work-registry-v1';
 export const KINDS = ['implementation', 'review', 'audit', 'readonly'];
-// A BLOCKED task without an open PR has no work in flight and must not stop independent tasks
-// (MP-OWNER-AUTONOMOUS-EXECUTION-01, "stop conditions"); with an open PR it still occupies the single
-// implementation slot (#152 review N-4).
-const isLive = task => task.state === 'RUNNING' || task.state === 'REVIEW' || (task.state === 'BLOCKED' && task.pr_open === true);
+// RUNNING and REVIEW always occupy the single implementation slot. Any other non-final state occupies it
+// while its PR may still be open: only an explicit `pr_open: false` releases it, so a missing flag fails
+// closed (#152 review N-4, #153 review NB-5). A BLOCKED task without an open PR has no work in flight and
+// must not stop independent tasks (MP-OWNER-AUTONOMOUS-EXECUTION-01, "stop conditions").
+const FINAL_STATES = new Set(['MERGED', 'COMPLETED']);
+const isLive = task => task.state === 'RUNNING' || task.state === 'REVIEW'
+  || (!FINAL_STATES.has(task.state) && Number.isInteger(task.pr) && task.pr_open !== false);
 
 export class RegistryConflict extends Error {
   constructor(code, detail) { super(`${code}: ${detail}`); this.code = code; }
@@ -29,6 +32,7 @@ export function validateRegistry(registry, {checkpointIds} = {}) {
     if (!Number.isInteger(task.issue)) errors.push(`${task.id} issue must be a number`);
     if (task.pr_open !== undefined && typeof task.pr_open !== 'boolean') errors.push(`${task.id} pr_open must be a boolean`);
     if (task.pr_open === true && !Number.isInteger(task.pr)) errors.push(`${task.id} pr_open without pr`);
+    if (Number.isInteger(task.pr) && !FINAL_STATES.has(task.state) && typeof task.pr_open !== 'boolean') errors.push(`${task.id} has pr ${task.pr} in state ${task.state} but no pr_open`);
     if (task.lease && !(task.lease.holder && Date.parse(task.lease.acquired_at) < Date.parse(task.lease.expires_at))) errors.push(`${task.id} malformed lease`);
     if (task.lease && task.assignee?.agent !== task.lease.holder) errors.push(`${task.id} lease holder is not the assignee`);
     if (checkpointIds && task.latest_checkpoint && !checkpointIds.has(task.latest_checkpoint)) errors.push(`${task.id} latest_checkpoint ${task.latest_checkpoint} not found`);

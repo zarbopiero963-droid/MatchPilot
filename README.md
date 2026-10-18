@@ -60,14 +60,14 @@ Lo stato dettagliato del 07/10 resta consultabile nella cronologia di git e nell
 Tutte le route `/api/v1/*` sono in sola lettura. Leggono soltanto il database di MatchPilot: nessuna chiamata ai provider, nessuna attività LIVE, nessuna scrittura.
 
 - **Registro machine-readable:** `GET /api/v1/endpoints` elenca ogni endpoint con lo schema dei parametri, la fonte e la route legacy che sostituisce, oltre all'inventario delle route legacy e ai codici di errore.
-- **Envelope:** ogni risposta ha la forma `{api_version, endpoint, data, meta}`. `meta` contiene `source`, `provenance` (provider, `upstream_calls: 0`, versioni dei dati), `as_of`, `generated_at`, `code_version` e `coverage` (righe e limite).
-- **Errori:** `{api_version, error: {code, message}}` con i codici `BAD_REQUEST`, `UNKNOWN_PARAMETER`, `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `URI_TOO_LONG`, `UNAVAILABLE` e `INTERNAL`. Non espongono mai stack trace o dettagli interni.
-- **Validazione:** i parametri sconosciuti, ripetuti o troppo lunghi vengono rifiutati prima di accedere al database. Formati e limiti (`limit` 1–500, date, identificativi) sono validati, e i valori arrivano alle query solo come parametri bound.
+- **Envelope:** ogni risposta ha la forma `{api_version, endpoint, data, meta}`. `meta` contiene `source`, `provenance` (provider, `upstream_calls: 0`, versioni dei dati), `as_of` (l'istante point-in-time effettivamente applicato dal lettore, `null` se l'endpoint non ne ha), `generated_at`, `code_version` e `coverage` (righe e limite applicato; `null` = default della query).
+- **Errori:** `{api_version, error: {code, message}}` con i codici `BAD_REQUEST`, `UNKNOWN_PARAMETER`, `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `URI_TOO_LONG`, `UNAVAILABLE` (database non raggiungibile o in errore) e `INTERNAL` (difetto del codice). Non espongono mai stack trace o dettagli interni.
+- **Validazione:** prima di accedere al database vengono rifiutati i parametri sconosciuti, ripetuti, troppo lunghi, mancanti se obbligatori o malformati. Valgono questi limiti: `limit` 1–500 sugli endpoint FPT e 1–5000 (default 2000) su `tc/schema-registry`; `as_of` è un istante ISO-8601 con fuso; `knowledge` è `provider` o `captured`; date e identificativi seguono il proprio formato. Nessun valore viene corretto in silenzio. I valori arrivano alle query solo come parametri bound.
 - **Endpoint:**
   - `/api/v1/health`, `/api/v1/providers`;
   - `/api/v1/fpt/*`, generati dal catalogo delle query FPT;
   - `/api/v1/tc/{discovery,schema-registry,mapping,prematch,prematch/match,historical,live}`.
-- **Route legacy** (`/api/fpt/*`, `/api/tc/*`, `/healthz`, …): restano disponibili con gli header `Deprecation: true` e `Link: <successore v1>`.
+- **Route legacy** (`/api/fpt/*`, `/api/tc/*`, …): restano disponibili con gli header `Deprecation: true` e `Link: <successore v1>`. `/healthz` resta KEPT, senza successore, perché è il percorso di health check della piattaforma di hosting.
 - **Limite:** l'autenticazione server-side di tutte le route è **R-04** (MP-SEC-001). Fino ad allora i requisiti API restano NOT_VERIFIED nell'inventario.
 
 ## Continuous integration

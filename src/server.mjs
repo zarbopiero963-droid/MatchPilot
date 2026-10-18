@@ -46,6 +46,10 @@ const app = http.createServer((req, res) => {
     handleV1({method: req.method, url}, {withClient, tc: TC_READERS, codeVersion: CODE_VERSION}).then(({status, body}) => {
       res.writeHead(status, {'Content-Type': 'application/json'});
       res.end(JSON.stringify(body));
+    }).catch(error => {
+      console.error('MATCHPILOT_API_V1_RESPONSE_ERROR', String(error?.message || error));
+      if (!res.headersSent) res.writeHead(500, {'Content-Type': 'application/json'});
+      res.end();
     });
     return;
   }
