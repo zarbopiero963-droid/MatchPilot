@@ -7,7 +7,7 @@ L'inventario atomico machine-readable è fissato sulla baseline `353dfc6523d357a
 Dopo l'audit indipendente `MP-GATE-A-REVIEW-ROADMAP-01` (correzioni R-00) e la PR R-01, il denominatore **PROVISIONAL** è il seguente (blocco generato da `npm run governance:render`):
 <!-- inventory:summary:start -->
 - **Requisiti:** 138 (census PROVISIONAL), di cui 104 P0 e 34 P1.
-- **Verdetti:** 36 PASS (tutti con evidenza, ciascuno limitato al proprio scope), 52 FAIL, 7 BLOCKED, 43 NOT_VERIFIED.
+- **Verdetti:** 36 PASS (tutti con evidenza, ciascuno limitato al proprio scope), 47 FAIL, 7 BLOCKED, 48 NOT_VERIFIED.
 - **Gate:** 75 P0 aperti. Gate A del prodotto **NON PASS**.
 <!-- inventory:summary:end -->
 
@@ -69,6 +69,14 @@ Tutte le route `/api/v1/*` sono in sola lettura. Leggono soltanto il database di
   - `/api/v1/tc/{discovery,schema-registry,mapping,prematch,prematch/match,historical,live}`.
 - **Route legacy** (`/api/fpt/*`, `/api/tc/*`, …): restano disponibili con gli header `Deprecation: true` e `Link: <successore v1>`. `/healthz` resta KEPT, senza successore, perché è il percorso di health check della piattaforma di hosting.
 - **Limite:** l'autenticazione server-side di tutte le route è **R-04** (MP-SEC-001). Fino ad allora i requisiti API restano NOT_VERIFIED nell'inventario.
+
+## Politica point-in-time (R-08, `mp-pit-v1`)
+
+Ogni record usato per rispondere a "che cosa si sapeva al tempo T" porta cinque tempi distinti (evento, dichiarato dal provider, acquisizione, disponibilità effettiva, decisione) e uno stato PIT. La disponibilità è il tempo di acquisizione. Un tempo mancante resta `null` e non viene mai inventato. Fusi orari e ora legale seguono una politica versionata e testata.
+
+- **Lettori:** la politica si applica a `tc/prematch/match` e a `fpt/team-matches-asof`.
+- **Etichetta:** la risposta porta l'etichetta `PIT_VERIFIED` o `NON_PIT`, anche in `meta.pit` dell'API v1.
+- **Documentazione:** [`docs/pit-policy.md`](docs/pit-policy.md).
 
 ## Continuous integration
 

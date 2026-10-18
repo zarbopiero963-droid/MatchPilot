@@ -1,6 +1,7 @@
 // Normalized query layer. Every answer comes from Neon tables already written by the mirror.
 // This module never imports the provider client and never calls FutPythonTrader.
 import { normalizeTeamName } from './teams.mjs';
+import { classifyFptVersions } from '../../pit/readers.mjs';
 
 export const FACTS_VERSION = 'fpt-facts-2';
 export const FILTERS_VERSION = 'fpt-filters-2';
@@ -152,13 +153,17 @@ export const QUERIES = {
       )
       SELECT f.internal_match_id, f.internal_competition_id, f.season_id, f.match_date, f.home_team_id, f.away_team_id,
         f.home_name, f.away_name, pit.version_id, pit.acquired_at,
+        -- R-08: what the version known at as_of says, and whether the match changed after as_of (the candidate
+        -- set and the columns above come from the current facts).
+        pit.match_date AS known_match_date, pit.home AS known_home, pit.away AS known_away, pit.phase AS known_phase,
+        EXISTS (SELECT 1 FROM fpt_match_versions later WHERE later.match_key = f.match_key AND later.acquired_at > $2::timestamptz) AS changed_after_as_of,
         fpt_score_int(pit.payload->>'Home_Score') AS home_score,
         fpt_score_int(pit.payload->>'Away_Score') AS away_score,
         fpt_price(pit.payload->>'Odd_1_FT') AS odd_home,
         fpt_price(pit.payload->>'Odd_2_FT') AS odd_away
       FROM candidates f
       CROSS JOIN LATERAL (
-        SELECT v.version_id, v.acquired_at, v.payload
+        SELECT v.version_id, v.acquired_at, v.payload, v.match_date, v.home, v.away, v.phase
         FROM fpt_match_versions v
         WHERE v.match_key = f.match_key AND v.acquired_at <= $2::timestamptz
         ORDER BY v.acquired_at DESC, v.version_id DESC
@@ -167,6 +172,30 @@ export const QUERIES = {
       ORDER BY f.match_date DESC, f.internal_match_id
       LIMIT $4`,
     params: ['team_id', 'as_of', 'before', 'limit']
+  },
+  // R-08: teamMatchesAsOf selects, filters, orders and limits on the current facts. They can differ from what was known
+  // at as_of only through a match known at as_of and involving the team (linked now, or named in its version known at
+  // as_of) whose latest version was acquired after as_of: if any exists, the answer may differ from the one at as_of (changed, dropped or
+  // reordered rows). fpt_match_facts.acquired_at is the acquisition time of each match's latest version.
+  teamMatchesAsOfChanged: {
+    sql: `SELECT count(*)::int AS n FROM (
+        SELECT 1
+        FROM fpt_match_facts f
+        -- Only matches already known at as_of: a match first acquired later has no version at as_of and cannot
+        -- affect the answer (the reader drops it before the limit).
+        CROSS JOIN LATERAL (
+          SELECT v.home, v.away
+          FROM fpt_match_versions v
+          WHERE v.match_key = f.match_key AND v.acquired_at <= $2::timestamptz
+          ORDER BY v.acquired_at DESC, v.version_id DESC
+          LIMIT 1
+        ) pit
+        WHERE f.acquired_at > $2::timestamptz
+          AND (f.home_team_id = $1 OR f.away_team_id = $1
+            OR EXISTS (SELECT 1 FROM fpt_team_aliases a WHERE a.internal_team_id = $1 AND a.name IN (pit.home, pit.away)))
+        LIMIT 1000
+      ) changed`,
+    params: ['team_id', 'as_of']
   },
   leagueFieldCoverage: {
     sql: `SELECT cs.internal_competition_id, cs.country_slug, cs.league_slug, cs.season, cs.season_id_key AS dataset_key,
@@ -652,6 +681,14 @@ export async function runQuery(client, name, input = {}, opts = {}) {
   const started = Date.now();
   const result = q.sql ? await client.query(q.sql, q.values) : {rows: QUERY_CATALOG};
   let rows = result.rows;
+  let pit = null;
+  if (name === 'teamMatchesAsOf') {
+    // R-08: each returned version carries its five timestamps and PIT status; the answer carries its PIT label.
+    const changedMatches = (await client.query(QUERIES.teamMatchesAsOfChanged.sql, [q.values[0], q.values[1]])).rows[0]?.n ?? 0;
+    const result = classifyFptVersions(rows, {decisionTime: q.values[1], changedMatches});
+    rows = rows.map((row, i) => ({...row, pit: result.classified[i]}));
+    pit = result.label;
+  }
   if (name === 'matchDetail' && rows[0]) {
     const registry = await client.query(QUERIES.filters.sql);
     rows = [{...rows[0], payload: presentPayload(rows[0].payload, registry.rows)}];
@@ -674,7 +711,8 @@ export async function runQuery(client, name, input = {}, opts = {}) {
       venue: q.venue || null,
       scope: q.scope || null,
       elapsed_ms: Date.now() - started
-    }
+    },
+    ...(pit ? {pit} : {})
   };
 }
 

@@ -1,0 +1,90 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261018T214905Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-18T21:49:05Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-08 part 1: PIT policy mp-pit-v1 implemented and applied to the two point-in-time readers",
+  "task": "R-08",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 31,
+  "pr": null,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "c61ea1c5bbf9de844233de6b0b1965c191c1a4e7",
+  "tree_sha": "39a51cad88ac221d8587619b67103674d9bbc2a8",
+  "requirements": [
+    "MP-PIT-001",
+    "MP-PIT-002",
+    "MP-PIT-003",
+    "MP-PIT-004",
+    "MP-PIT-005"
+  ],
+  "changes": [
+    "src/pit/policy.mjs, src/pit/readers.mjs",
+    "tcPrematchMatch and FPT teamMatchesAsOf carry per-record pit and an answer label; meta.pit in API v1",
+    "docs/pit-policy.md, README",
+    "requirements MP-PIT-001..005 FAIL -> NOT_VERIFIED"
+  ],
+  "tests": [
+    {
+      "command": "npm test against throwaway PostgreSQL 16",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1",
+      "commit": "c61ea1c5bbf9de844233de6b0b1965c191c1a4e7",
+      "time": "2026-10-18T21:49:05Z",
+      "limits": [
+        "237 tests, 236 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only)"
+      ]
+    },
+    {
+      "command": "node --test test/pit-policy.test.mjs with TZ=America/Los_Angeles, Asia/Tokyo, Pacific/Kiritimati",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "c61ea1c5bbf9de844233de6b0b1965c191c1a4e7",
+      "time": "2026-10-18T21:49:05Z",
+      "limits": []
+    },
+    {
+      "command": "npm run check; governance:validate; governance:check; render-inventory --check",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "c61ea1c5bbf9de844233de6b0b1965c191c1a4e7",
+      "time": "2026-10-18T21:49:05Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "R08-SCOPE",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "MP-FPT-005 version pinning and MP-XPR-001/002 identity are later R-08 parts; PIT requirements stay NOT_VERIFIED until replay/statistics/backtest consume the records"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-DECISIONS-D1-D9-20261018.D4",
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01"
+  ],
+  "dependencies": [
+    "CP-20261018T214500Z-agent-a-claude-code",
+    "CP-20261018T214600Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "Open the R-08 PR, obtain CI green and an independent review on its head; auto-merge under merge-gate; then R-08 part 2 (MP-FPT-005 version pinning) unless the owner unblocks R-04.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": null
+}

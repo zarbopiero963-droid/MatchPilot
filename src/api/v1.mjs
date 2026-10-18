@@ -158,6 +158,8 @@ export function envelope(endpoint, data, {codeVersion, now = new Date(), input =
       as_of: endpoint.asOf?.(data) ?? null,
       generated_at: now.toISOString(),
       code_version: codeVersion,
+      // R-08: PIT label of point-in-time answers (MP-PIT-005); null for endpoints without a decision time.
+      pit: data?.pit ?? null,
       coverage: {rows: rowCount(data), limit: endpoint.limit ? endpoint.limit(input) : input.limit != null ? Number(input.limit) : null},
     },
   };

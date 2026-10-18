@@ -1,0 +1,131 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261018T222159Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-18T22:21:59Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-08 part 1: fourth independent review (comment 6255861371, CHANGES REQUESTED on 04790c8) addressed: B-3",
+  "task": "R-08",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 31,
+  "pr": 154,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "44b47e9832e52d8a5cca617a11d353eda1f53ee4",
+  "tree_sha": "73975def30323f402ff4cdb2ff11fc64498ae39b",
+  "requirements": [
+    "MP-PIT-001",
+    "MP-PIT-002",
+    "MP-PIT-003",
+    "MP-PIT-004",
+    "MP-PIT-005"
+  ],
+  "changes": [
+    "src/pit/policy.mjs, src/pit/readers.mjs",
+    "tcPrematchMatch and FPT teamMatchesAsOf carry per-record pit and an answer label; meta.pit in API v1",
+    "docs/pit-policy.md, README",
+    "requirements MP-PIT-001..005 FAIL -> NOT_VERIFIED"
+  ],
+  "tests": [
+    {
+      "command": "npm test against throwaway PostgreSQL 16",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1",
+      "commit": "44b47e9832e52d8a5cca617a11d353eda1f53ee4",
+      "time": "2026-10-18T22:21:59Z",
+      "limits": [
+        "238 tests, 237 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only)"
+      ]
+    },
+    {
+      "command": "node --test test/pit-policy.test.mjs with TZ=America/Los_Angeles, Asia/Tokyo, Pacific/Kiritimati",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "44b47e9832e52d8a5cca617a11d353eda1f53ee4",
+      "time": "2026-10-18T22:21:59Z",
+      "limits": []
+    },
+    {
+      "command": "npm run check; governance:validate; governance:check; render-inventory --check",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "44b47e9832e52d8a5cca617a11d353eda1f53ee4",
+      "time": "2026-10-18T22:21:59Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "CHANGES REQUESTED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/154#issuecomment-6255861371"
+  },
+  "findings": [
+    {
+      "id": "B-3",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "FPT answer PIT_VERIFIED although a later correction dropped or reordered rows; now NON_PIT when any match known at as_of involving the team changed later"
+    },
+    {
+      "id": "NB-CHANGED-SCAN",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "change check scans fpt_match_facts acquired after as_of (no index; migration owner-gated); not in perf gate"
+    },
+    {
+      "id": "NB-LEGACY-ASOF",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "legacy /api/tc/prematch/match parses as_of without validation (pre-existing)"
+    },
+    {
+      "id": "NB-TC-HISTORY",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "per-version TotalCorner match history needs a migration (production write on auto-deploy): owner-gated proposal"
+    },
+    {
+      "id": "NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "rows do not store their conversion offset (documented)"
+    },
+    {
+      "id": "NB-6",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "FPT candidate fields from current facts; pinning is MP-FPT-005 (documented)"
+    },
+    {
+      "id": "NB-8",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "default decision time is the converted kickoff (documented)"
+    },
+    {
+      "id": "R08-SCOPE",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "MP-FPT-005 version pinning and MP-XPR-001/002 identity are later R-08 parts; PIT requirements stay NOT_VERIFIED until replay/statistics/backtest consume the records"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-DECISIONS-D1-D9-20261018.D4",
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01"
+  ],
+  "dependencies": [
+    "CP-20261018T220945Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "Obtain CI green and a new independent review on the PR #154 head; auto-merge under merge-gate; then R-08 part 2 (MP-FPT-005 version pinning) unless the owner unblocks R-04.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": "CP-20261018T220945Z-agent-a-claude-code"
+}
