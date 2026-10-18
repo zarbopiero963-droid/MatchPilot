@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 20,
+  "revision": 21,
   "tasks": [
     {
       "id": "R-01",
@@ -78,7 +78,7 @@
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261018T214905Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261018T215633Z-agent-a-claude-code",
       "pr_open": true
     }
   ]
