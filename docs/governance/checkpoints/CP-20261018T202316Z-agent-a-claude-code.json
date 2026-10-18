@@ -1,0 +1,114 @@
+{
+  "schema_version": "mp-checkpoint-v1",
+  "id": "CP-20261018T202316Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-18T20:23:16Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "resumed R-01 after agent B, re-verified B work independently, recorded verdicts and handoff evidence; ready for independent review",
+  "task": "R-01",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 150,
+  "pr": 151,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "d8ef5f5d4fb70adfca0235a86eda3dfa5783c39d",
+  "tree_sha": "11ef440571fe8d5fb07b5a9b354b8d8891b8a25f",
+  "requirements": [
+    "MP-GOV-013",
+    "MP-GOV-014",
+    "MP-GOV-016",
+    "MP-GOV-017",
+    "MP-GOV-018",
+    "MP-GOV-019",
+    "MP-GOV-022",
+    "MP-GOV-023",
+    "MP-QAC-010",
+    "MP-QAC-012",
+    "MP-QAC-013"
+  ],
+  "changes": [
+    "inventory verdicts for R-01 requirements with evidence",
+    "docs/governance/HANDOFF.md handoff run record",
+    "regenerated inventory count blocks"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/governance-*.test.mjs test/requirements-inventory.test.mjs test/mockup-alignment.test.mjs",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "d8ef5f5d4fb70adfca0235a86eda3dfa5783c39d",
+      "time": "2026-10-18T20:23:16Z",
+      "limits": [
+        "48/48"
+      ]
+    },
+    {
+      "command": "node --test (all files except postgres-independence) against throwaway PostgreSQL 16",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16.15 on 127.0.0.1",
+      "commit": "d8ef5f5d4fb70adfca0235a86eda3dfa5783c39d",
+      "time": "2026-10-18T20:23:16Z",
+      "limits": [
+        "198/198 on PostgreSQL 16 at agent B head; PostgreSQL 17 path only in CI"
+      ]
+    },
+    {
+      "command": "node --test test/postgres-independence.test.mjs (PostgreSQL 16, CI unset / CI=1)",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16.15",
+      "commit": "d8ef5f5d4fb70adfca0235a86eda3dfa5783c39d",
+      "time": "2026-10-18T20:23:16Z",
+      "limits": [
+        "skip in 0.2s locally; immediate failure with CI=1, as designed"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39162523837,
+    "conclusion": "SUCCESS"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "N-04",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "audit report authorship not provable by hash; accepted limitation"
+    },
+    {
+      "id": "N-06",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "fixed by agent B in 477c4344a9ca9b65d34dfecc549b1aebabf63497, re-verified by agent A"
+    },
+    {
+      "id": "QAC-010/012/013",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "continuous requirements: schema and template delivered, adoption by later PRs"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-R01-AUTH-20261018",
+    "MP-OWNER-MASTER-GOVERNANCE-2026-10-18",
+    "MP-OWNER-AUTOMERGE-01",
+    "MP-OWNER-CERT-ISSUE-CLOSURE-01"
+  ],
+  "dependencies": [
+    "CP-20261018T202029Z-agent-b-claude-subagent"
+  ],
+  "state": "REVIEW",
+  "next_action": "Obtain an independent review of PR #151 on its final head from an agent that is neither agent-a-claude-code nor agent-b-claude-subagent; wait for CI green on that head; evaluate node tools/governance/cli.mjs merge-gate; if allowed, squash-merge with expectedHeadSha, then publish a MERGED checkpoint comment on #150 and #97 and commit the MERGED checkpoint file at the start of the next PR (R-02).",
+  "resume_conditions": [
+    "origin/ccr-e45875c0-5r0fnf reconciles with commit_sha",
+    "PR #151 open",
+    "npm run governance:check passes"
+  ],
+  "supersedes": "CP-20261018T202029Z-agent-b-claude-subagent"
+}
