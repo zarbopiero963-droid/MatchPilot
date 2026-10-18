@@ -69,10 +69,28 @@ test('PostgreSQL 17 independent migration, verified sample replay and API are de
     return t.skip('throwaway postgres unavailable');
   }
 
+  // N-06: the root client is closed on every path, so a wrong server version
+  // can no longer leave an open socket that keeps the test process alive.
+  let serverVersion;
+  try {
+    const version = await root.query("SELECT current_setting('server_version_num')::int AS n");
+    serverVersion = version.rows[0].n;
+    if (process.env.CI) assert.ok(serverVersion >= 170000 && serverVersion < 180000, `PostgreSQL 17 is required, found server_version_num ${serverVersion}`);
+  } catch (cause) {
+    await root.end().catch(() => {});
+    throw cause;
+  }
+  if (!(serverVersion >= 170000 && serverVersion < 180000)) {
+    await root.end();
+    return t.skip(`PostgreSQL 17 is required, found server_version_num ${serverVersion} (local run; CI fails instead)`);
+  }
+
   const schema = `postgres_independent_${process.pid}`;
-  const version = await root.query("SELECT current_setting('server_version_num')::int AS n");
-  assert.ok(version.rows[0].n >= 170000 && version.rows[0].n < 180000, 'PostgreSQL 17 is required');
-  await root.query(`CREATE SCHEMA ${schema}`);
+  try { await root.query(`CREATE SCHEMA ${schema}`); }
+  catch (cause) {
+    await root.end().catch(() => {});
+    throw cause;
+  }
   dbUrl.searchParams.set('options', `-csearch_path=${schema}`);
   const isolatedEnv = {
     PATH: process.env.PATH,
@@ -182,7 +200,7 @@ test('PostgreSQL 17 independent migration, verified sample replay and API are de
       await new Promise(resolve => child.once('exit', resolve));
     }
     if (trap) await new Promise(resolve => trap.close(resolve));
-    await root.query(`DROP SCHEMA ${schema} CASCADE`);
-    await root.end();
+    try { await root.query(`DROP SCHEMA ${schema} CASCADE`); }
+    finally { await root.end(); }
   }
 });
