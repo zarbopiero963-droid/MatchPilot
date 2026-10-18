@@ -12,7 +12,7 @@ const SHA_T = 'b'.repeat(40);
 
 export function makeCheckpoint(overrides = {}) {
   return {
-    schema_version: 'mp-checkpoint-v1',
+    schema_version: 'mp-checkpoint-v2',
     id: 'CP-20261018T200000Z-agent-a',
     timestamp_utc: '2026-10-18T20:00:00Z',
     agent: {id: 'agent-a', role: 'Development Agent'},
@@ -63,7 +63,7 @@ test('checkpoints are cross-checked against owner decisions and requirements', (
 });
 
 test('terminal states require gates, APPROVED review and no open blocking finding', () => {
-  const merged = makeCheckpoint({state: 'MERGED', gate_b: 'PASS', review: {verdict: 'APPROVED', reference: 'https://example.invalid/review'}});
+  const merged = makeCheckpoint({state: 'MERGED', gate_b: 'PASS', review: {verdict: 'APPROVED', reference: 'https://example.invalid/review', reviewed_sha: SHA_A}});
   assert.deepEqual(validateCheckpoint(merged, context), []);
   assert.ok(validateCheckpoint({...merged, review: {verdict: 'NOT VERIFIED', reference: null}}, context).some(e => e.includes('APPROVED')));
   assert.ok(validateCheckpoint({...merged, gate_b: 'NOT_VERIFIED'}, context).some(e => e.includes('Gate B')));
@@ -205,4 +205,27 @@ test('a merge commit that rewrites an existing checkpoint is detected (#151 revi
   assert.deepEqual(rewrittenCheckpoints(repo.dir, base, head).map(c => c.file), ['docs/governance/checkpoints/CP-a.json', 'docs/governance/checkpoints/CP-a.json']);
   const clean = repo.commit('docs/governance/checkpoints/CP-b.json', '{}\n', 'append only');
   assert.deepEqual(rewrittenCheckpoints(repo.dir, head, clean), []);
+});
+
+test('a checkpoint added on a side branch and rewritten in the merge is detected; an unchanged one is not (#152 review N-2)', t => {
+  const repo = gitRepo();
+  t.after(repo.cleanup);
+  const base = repo.commit('README.md', 'base\n', 'base');
+  repo.git('checkout', '-q', '-b', 'side');
+  repo.commit('docs/governance/checkpoints/CP-side.json', '{"original": true}\n', 'side adds checkpoint');
+  repo.commit('docs/governance/checkpoints/CP-keep.json', '{"keep": true}\n', 'side adds second checkpoint');
+  repo.git('checkout', '-q', 'feature');
+  repo.commit('src/c.mjs', 'export const c = 1;\n', 'main work');
+  repo.git('merge', '-q', '--no-ff', '--no-commit', 'side');
+  writeFileSync(join(repo.dir, 'docs/governance/checkpoints/CP-side.json'), '{"rewritten": true}\n');
+  repo.git('add', '.');
+  repo.git('commit', '-q', '-m', 'evil merge');
+  const files = rewrittenCheckpoints(repo.dir, base, repo.git('rev-parse', 'HEAD')).map(c => c.file);
+  assert.ok(files.includes('docs/governance/checkpoints/CP-side.json'));
+  assert.ok(!files.includes('docs/governance/checkpoints/CP-keep.json'), 'an unchanged checkpoint merged from a side branch is append-only');
+});
+
+test('a new v1 checkpoint cannot dodge v2 by backdating (#152 review N-3)', () => {
+  const backdated = makeCheckpoint({schema_version: 'mp-checkpoint-v1', id: 'CP-20261018T190000Z-agent-x', timestamp_utc: '2026-10-18T19:00:00Z'});
+  assert.ok(validateCheckpoint(backdated, context).some(e => e.includes('schema_version')));
 });

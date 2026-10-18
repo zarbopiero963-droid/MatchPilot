@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {evaluateMergeGate, findClosingReferences} from '../tools/governance/policy.mjs';
 
 test('GitHub auto-closing references are detected in every form', () => {
-  for (const text of ['Closes #12', 'fixes: #3', 'Resolved owner/repo#4', 'close https://github.com/a/b/issues/5', 'FIX #1', 'This PR resolves #150.', 'closes:#2', '**Fixes** #4', 'fixes (#8)', 'Resolves https://www.github.com/a/b/issues/9', '__Closes__: #6', 'Closes: [#12](https://github.com/o/r/issues/12)', 'Closes `#12`']) {
+  for (const text of ['Closes #12', 'fixes: #3', 'Resolved owner/repo#4', 'close https://github.com/a/b/issues/5', 'FIX #1', 'This PR resolves #150.', 'closes:#2', '**Fixes** #4', 'fixes (#8)', 'Resolves https://www.github.com/a/b/issues/9', '__Closes__: #6', 'Closes: [#12](https://github.com/o/r/issues/12)', 'Closes `#12`', 'Closes ( [#12](u) )', 'Closes <#12>']) {
     assert.equal(findClosingReferences(text).length, 1, text);
   }
   for (const text of ['Refs #12', 'closes the gap', 'fix #', 'prefix #12', 'never Closes/Fixes/Resolves #N', 'Fixed a bug in #12 handling? no: "in" breaks it', 'unfixed #3', 'enclosed #4', 'fixture #5']) {

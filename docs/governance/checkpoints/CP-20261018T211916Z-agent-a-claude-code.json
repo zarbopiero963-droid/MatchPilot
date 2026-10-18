@@ -1,0 +1,79 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261018T211916Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-18T21:19:16Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Integration Agent"
+  },
+  "activity": "R-02 PR #152 merged into main as c686daefc621a59e4271f19108e35e6197364ca8; remaining archive checks BLOCKED (Drive tool 10 MB download limit, no Drive API credentials)",
+  "task": "R-02",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 40,
+  "pr": 152,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "a0125f5984340f8bb43ff796a0b913b1f7524353",
+  "tree_sha": "bd1a0d50f1968f0833ce2686d55d00fcaec6d396",
+  "requirements": [
+    "MP-ARC-001",
+    "MP-ARC-002",
+    "MP-ARC-005",
+    "MP-SEC-010",
+    "MP-GOV-010"
+  ],
+  "changes": [
+    "squash merge c686daefc621a59e4271f19108e35e6197364ca8 into main"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #152 head",
+      "result": "PASS",
+      "environment": "GitHub Actions ubuntu-latest, PostgreSQL 17",
+      "commit": "a0125f5984340f8bb43ff796a0b913b1f7524353",
+      "time": "2026-10-18T21:19:16Z",
+      "limits": [
+        "run 39166682943"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39166682943,
+    "conclusion": "SUCCESS",
+    "head_sha": "a0125f5984340f8bb43ff796a0b913b1f7524353"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/152#issuecomment-6255246991",
+    "reviewed_sha": "a0125f5984340f8bb43ff796a0b913b1f7524353"
+  },
+  "findings": [
+    {
+      "id": "R02-BLOCKER",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "part SHA-256, DuckDB portability, readback, schema/counts, PIT need the 13 parts: Drive tool refuses downloads over 10 MB; no Drive API credentials"
+    },
+    {
+      "id": "N-1..N-7",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "#152 review findings: fixed with regression tests in the R-03 PR (first commit)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-DECISIONS-D1-D9-20261018.D7",
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01"
+  ],
+  "dependencies": [
+    "CP-20261018T211033Z-agent-a-claude-code"
+  ],
+  "state": "BLOCKED",
+  "next_action": "Resume R-02 only when the 13 archive parts are obtainable read-only (owner download or read-only Drive API credentials): run tools/archive/verify-archive.mjs with --parts and --pins, then DuckDB portability, schema/counts and PIT checks.",
+  "resume_conditions": [
+    "13 parts of readback40 available locally",
+    "docs/governance/archive/40/external-pins.json unchanged"
+  ],
+  "supersedes": "CP-20261018T211033Z-agent-a-claude-code"
+}

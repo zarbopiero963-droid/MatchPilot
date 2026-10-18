@@ -52,6 +52,16 @@ test('a BLOCKED implementation task does not block an independent one', () => {
   assert.deepEqual(validateRegistry(claimed), []);
 });
 
+test('a BLOCKED implementation task with an open PR still holds the single slot (#152 review N-4)', () => {
+  const reg = registry();
+  reg.tasks[0].state = 'BLOCKED';
+  reg.tasks[0].pr = 99;
+  reg.tasks[0].pr_open = true;
+  assert.equal(code(() => claim(reg, 'R-02', agentB, now)), 'CONFLICT_PARALLEL_IMPLEMENTATION');
+  reg.tasks[0].pr_open = false;
+  assert.equal(task(claim(reg, 'R-02', agentB, now), 'R-02').state, 'RUNNING');
+});
+
 test('an expired lease is taken over only after reconciliation', () => {
   const claimed = claim(registry(), 'R-01', agentA, now);
   assert.equal(code(() => claim(claimed, 'R-01', agentB, later(121))), 'CONFLICT_UNRECONCILED');

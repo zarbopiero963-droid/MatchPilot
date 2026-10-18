@@ -39,7 +39,8 @@ function syntheticArchive(t) {
   writeFileSync(join(meta, 'parts40.sha256'), manifestParts.map(p => `${p.sha256}  out/${p.file}`).join('\n') + '\n');
   chunks.forEach((chunk, i) => writeFileSync(join(parts, `regenerated-r01-40-part00${i}.zip`), storedZip(`bundle40.part00${i}`, chunk)));
   const listing = manifestParts.map(p => ({title: `regenerated-r01-40-${p.file.split('.').pop()}.zip`, fileSize: String(storedZipSize(p.file, p.bytes))}));
-  return {meta, parts, listing};
+  const pins = {bundle_sha256: sha256(bundle), trusted_inventory_sha256: sha256(inventory), part_count: 3, source: 'synthetic'};
+  return {meta, parts, listing, pins};
 }
 
 test('the real Drive metadata zip is read by the stored-ZIP reader and matches the pinned files', () => {
@@ -58,7 +59,8 @@ test('pinned archive files match SHA256SUMS', () => {
 test('real #40 metadata is internally consistent and Drive sizes agree; parts stay NOT_VERIFIED without access', () => {
   const metadataDir = archiveDir.pathname;
   const listing = JSON.parse(readFileSync(new URL('drive-listing-2026-10-18.json', archiveDir), 'utf8'));
-  const report = verifyArchive({metadataDir, driveListing: listing});
+  const pins = JSON.parse(readFileSync(new URL('external-pins.json', archiveDir), 'utf8'));
+  const report = verifyArchive({metadataDir, driveListing: listing, pins});
   assert.ok(report.metadata.every(c => c.result === 'PASS'), JSON.stringify(report.metadata));
   assert.equal(report.metadata[0].detail, '377a85327d0dd3fc61356ef48b1606b1522b87561a4e057133e415a02b004041');
   assert.equal(report.drive_listing.length, 13);
@@ -67,11 +69,34 @@ test('real #40 metadata is internally consistent and Drive sizes agree; parts st
   assert.equal(report.result, 'PARTIAL', 'never PASS without the parts');
 });
 
-test('a complete archive verifies part by part and as a whole bundle', t => {
-  const {meta, parts, listing} = syntheticArchive(t);
-  const report = verifyArchive({metadataDir: meta, partsDir: parts, driveListing: listing});
+test('a complete archive verifies part by part and as a whole bundle, anchored to external pins', t => {
+  const {meta, parts, listing, pins} = syntheticArchive(t);
+  const report = verifyArchive({metadataDir: meta, partsDir: parts, driveListing: listing, pins});
   assert.equal(report.result, 'PASS', JSON.stringify(report, null, 1));
   assert.equal(report.bundle.result, 'PASS');
+  assert.equal(verifyArchive({metadataDir: meta, partsDir: parts}).result, 'PARTIAL', 'without independent pins it is never PASS');
+});
+
+test('a forged but self-consistent archive fails against the independent pins (#152 review N-1)', t => {
+  const {meta, parts} = syntheticArchive(t);
+  const realPins = JSON.parse(readFileSync(new URL('external-pins.json', archiveDir), 'utf8'));
+  const report = verifyArchive({metadataDir: meta, partsDir: parts, pins: realPins});
+  assert.equal(report.result, 'FAIL');
+  assert.equal(report.metadata.find(c => c.name.includes('external pins')).result, 'FAIL');
+});
+
+test('external pins equal the values recorded in the closure report', () => {
+  const pins = JSON.parse(readFileSync(new URL('external-pins.json', archiveDir), 'utf8'));
+  const closure = readFileSync(new URL('../docs/provider-trial-final-closure-2026-10-08.md', import.meta.url), 'utf8');
+  assert.ok(closure.includes(pins.bundle_sha256));
+  assert.ok(closure.includes(pins.trusted_inventory_sha256));
+});
+
+test('extra or duplicated files in the Drive listing are reported (#152 review N-7)', t => {
+  const {meta, listing} = syntheticArchive(t);
+  const report = verifyArchive({metadataDir: meta, driveListing: [...listing, listing[0], {title: 'unexpected.zip', fileSize: '1'}]});
+  assert.equal(report.result, 'FAIL');
+  assert.deepEqual(report.drive_listing.filter(c => c.result === 'FAIL').map(c => c.file).sort(), ['regenerated-r01-40-part000.zip', 'unexpected.zip']);
 });
 
 test('a tampered part, a corrupt wrapper or a wrong Drive size fail', t => {

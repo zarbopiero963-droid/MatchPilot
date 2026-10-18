@@ -5,7 +5,7 @@
 // Fail closed: tolerate emphasis markers, a colon, missing spaces and parentheses around the reference.
 // Letter boundaries (not \b) so that underscores used for emphasis do not hide the keyword; a markdown link
 // bracket or a code-span backtick before the reference is tolerated too (#151 review R-3).
-const CLOSING = /(?<![A-Za-z0-9])(close[sd]?|fix(?:e[sd])?|resolve[sd]?)(?![A-Za-z0-9])[*_]*\s*:?\s*[*_]*\s*[(\[`]?\s*(?:[\w.-]+\/[\w.-]+#\d+|#\d+|https?:\/\/(?:www\.)?github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+)/gi;
+const CLOSING = /(?<![A-Za-z0-9])(close[sd]?|fix(?:e[sd])?|resolve[sd]?)(?![A-Za-z0-9])[*_]*\s*:?\s*[*_]*\s*(?:[(\[`<]\s*)*(?:[\w.-]+\/[\w.-]+#\d+|#\d+|https?:\/\/(?:www\.)?github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+)/gi;
 
 export function findClosingReferences(text) {
   return [...String(text || '').matchAll(CLOSING)].map(match => match[0]);

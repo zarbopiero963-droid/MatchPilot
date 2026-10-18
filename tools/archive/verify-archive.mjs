@@ -6,6 +6,7 @@
 //   <metadata dir>  transfer40-manifest.json, parts40.sha256, trusted-inventory.json
 //   <parts dir>     bundle40.partNNN files, or the Drive zip wrappers regenerated-r01-40-partNNN.zip
 //   <listing>       [{"title", "fileSize"}] as returned by the Drive file listing
+//   --pins <file>   independent pins (bundle_sha256, trusted_inventory_sha256, part_count); without them the result is at best PARTIAL
 import {createHash} from 'node:crypto';
 import {existsSync, readFileSync, readdirSync} from 'node:fs';
 import {join} from 'node:path';
@@ -58,7 +59,7 @@ export function loadMetadata(dir) {
   return {manifest, partsList, inventoryRaw, inventory: JSON.parse(inventoryRaw)};
 }
 
-export function verifyMetadata({manifest, partsList, inventoryRaw, inventory}) {
+export function verifyMetadata({manifest, partsList, inventoryRaw, inventory}, pins) {
   const checks = [];
   const check = (name, ok, detail) => checks.push({name, result: ok ? 'PASS' : 'FAIL', detail});
   check('trusted inventory SHA-256 equals manifest pin', sha256(inventoryRaw) === manifest.trusted_inventory_sha256, sha256(inventoryRaw));
@@ -66,6 +67,9 @@ export function verifyMetadata({manifest, partsList, inventoryRaw, inventory}) {
   const total = manifest.parts.reduce((sum, part) => sum + part.bytes, 0);
   check('part sizes add up to the bundle size', total === manifest.source_bundle.bytes, `${total} bytes`);
   check('bundle pin agrees between manifest and trusted inventory', manifest.source_bundle.sha256 === inventory.bundle?.sha256 && manifest.source_bundle.bytes === inventory.bundle?.bytes, manifest.source_bundle.sha256);
+  // Self-consistency alone would accept a forged archive: anchor it to pins recorded independently (#152 review N-1).
+  if (!pins) checks.push({name: 'metadata matches independent external pins', result: 'NOT_VERIFIED', detail: 'no external pins supplied'});
+  else check('metadata matches independent external pins', pins.bundle_sha256 === manifest.source_bundle.sha256 && pins.trusted_inventory_sha256 === sha256(inventoryRaw) && pins.part_count === manifest.parts.length, pins.source);
   return checks;
 }
 
@@ -97,18 +101,24 @@ export function verifyParts(manifest, dir) {
 }
 
 export function verifyDriveListing(manifest, listing) {
-  return manifest.parts.map(part => {
+  const expectedNames = new Set([...manifest.parts.map(part => `regenerated-r01-40-${part.file.split('.').pop()}.zip`), 'regenerated-r01-40-metadata.zip']);
+  const counts = new Map();
+  for (const entry of listing) counts.set(entry.title, (counts.get(entry.title) || 0) + 1);
+  // Unexpected or duplicated files in the folder are reported, not ignored (#152 review N-7).
+  const extra = [...counts].filter(([title, n]) => !expectedNames.has(title) || n > 1)
+    .map(([title, n]) => ({file: title, result: 'FAIL', detail: n > 1 ? `${n} files with this name` : 'not part of the manifest'}));
+  return [...extra, ...manifest.parts.map(part => {
     const name = `regenerated-r01-40-${part.file.split('.').pop()}.zip`;
     const item = listing.find(entry => entry.title === name);
     const expected = storedZipSize(part.file, part.bytes);
     if (!item) return {file: name, result: 'FAIL', detail: 'missing from Drive listing'};
     return {file: name, result: Number(item.fileSize) === expected ? 'PASS' : 'FAIL', detail: `${item.fileSize} bytes, expected ${expected}`};
-  });
+  })];
 }
 
-export function verifyArchive({metadataDir, partsDir = null, driveListing = null}) {
+export function verifyArchive({metadataDir, partsDir = null, driveListing = null, pins = null}) {
   const metadata = loadMetadata(metadataDir);
-  const metadataChecks = verifyMetadata(metadata);
+  const metadataChecks = verifyMetadata(metadata, pins);
   const {parts, bundle} = verifyParts(metadata.manifest, partsDir);
   const listing = driveListing ? verifyDriveListing(metadata.manifest, driveListing) : [];
   const all = [...metadataChecks, ...parts, bundle, ...listing];
@@ -119,9 +129,10 @@ export function verifyArchive({metadataDir, partsDir = null, driveListing = null
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const arg = name => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : null; };
   const metadataDir = arg('--metadata');
-  if (!metadataDir) { console.error('usage: verify-archive.mjs --metadata <dir> [--parts <dir>] [--drive-listing <file.json>]'); process.exit(1); }
+  if (!metadataDir) { console.error('usage: verify-archive.mjs --metadata <dir> [--parts <dir>] [--drive-listing <file.json>] [--pins <file.json>]'); process.exit(1); }
   const listingFile = arg('--drive-listing');
-  const report = verifyArchive({metadataDir, partsDir: arg('--parts'), driveListing: listingFile ? JSON.parse(readFileSync(listingFile, 'utf8')) : null});
+  const pinsFile = arg('--pins');
+  const report = verifyArchive({metadataDir, partsDir: arg('--parts'), driveListing: listingFile ? JSON.parse(readFileSync(listingFile, 'utf8')) : null, pins: pinsFile ? JSON.parse(readFileSync(pinsFile, 'utf8')) : null});
   console.log(JSON.stringify(report, null, 2));
   process.exitCode = report.result === 'FAIL' ? 1 : 0;
 }
