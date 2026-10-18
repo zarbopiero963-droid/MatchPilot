@@ -13,8 +13,21 @@ import { tcPrematchMatch, tcPrematchReport } from './jobs/totalcorner-prematch.m
 import { tcHistoricalReport } from './jobs/totalcorner-historical.mjs';
 import { tcLiveReport } from './jobs/totalcorner-live.mjs';
 import { assertRuntimeSafety, startBackgroundServices, stopBackgroundServices } from './background.mjs';
+import { readFileSync } from 'node:fs';
+import { createEndpoints, handleV1, legacyInventory } from './api/v1.mjs';
 
 const port = Number(process.env.PORT || 3000);
+
+// R-03: read-only API v1 over the same database readers as the legacy routes.
+const TC_READERS = {
+  discovery: client => tcDiscoveryReport(client), schemaRegistry: tcSchemaRegistry, mapping: tcMappingReport,
+  prematch: client => tcPrematchReport(client), prematchMatch: tcPrematchMatch,
+  historical: client => tcHistoricalReport(client), live: client => tcLiveReport(client),
+  dataHealth: () => getDataHealth(), fptCertification: () => getFutpythonCertificationStatus(),
+};
+const CODE_VERSION = process.env.MATCHPILOT_CODE_VERSION
+  || `package-${JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version}`;
+const LEGACY_SUCCESSORS = new Map(legacyInventory(createEndpoints(TC_READERS)).filter(item => item.successor).map(item => [item.route, item.successor]));
 
 const runtime = assertRuntimeSafety();
 await migrate();
@@ -28,6 +41,18 @@ const app = http.createServer((req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
 
   const url = new URL(req.url || '/', 'http://localhost');
+
+  if (url.pathname.startsWith('/api/v1/')) {
+    handleV1({method: req.method, url}, {withClient, tc: TC_READERS, codeVersion: CODE_VERSION}).then(({status, body}) => {
+      res.writeHead(status, {'Content-Type': 'application/json'});
+      res.end(JSON.stringify(body));
+    });
+    return;
+  }
+  if (LEGACY_SUCCESSORS.has(url.pathname)) {
+    res.setHeader('Deprecation', 'true');
+    res.setHeader('Link', `<${LEGACY_SUCCESSORS.get(url.pathname)}>; rel="successor-version"`);
+  }
 
   if (url.pathname === '/api/futpython-certificate') {
     let result;
