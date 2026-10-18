@@ -1,0 +1,126 @@
+{
+  "schema_version": "mp-checkpoint-v1",
+  "id": "CP-20261018T203228Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-18T20:32:28Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "addressed non-blocking findings F-1..F-9 of the independent review (comment 6254772214); requesting re-review on the new head",
+  "task": "R-01",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 150,
+  "pr": 151,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "bbe5666af346ad9790be7aaf791889d7d404c1a9",
+  "tree_sha": "2cee0a467f209a4f552b63d3dc24685d3ad9cd13",
+  "requirements": [
+    "MP-GOV-013",
+    "MP-GOV-014",
+    "MP-GOV-016",
+    "MP-GOV-017",
+    "MP-GOV-018",
+    "MP-GOV-019",
+    "MP-GOV-022",
+    "MP-GOV-023",
+    "MP-QAC-010",
+    "MP-QAC-012",
+    "MP-QAC-013"
+  ],
+  "changes": [
+    "F-3 restored rules in AGENTS.md",
+    "F-2 closing-keyword scanner",
+    "F-4 append-only checkpoints (per-commit analysis, CI step)",
+    "F-1 race-safe lock age and stale-lock recovery doc",
+    "F-6/F-7/F-8/F-9 documentation and evidence corrections"
+  ],
+  "tests": [
+    {
+      "command": "node --test",
+      "result": "PASS",
+      "environment": "local container, node 22, no PostgreSQL",
+      "commit": "bbe5666af346ad9790be7aaf791889d7d404c1a9",
+      "time": "2026-10-18T20:32:28Z",
+      "limits": [
+        "199 tests, 0 fail, 19 PostgreSQL skips; PostgreSQL covered by CI"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern=\"real concurrent\" test/governance-registry.test.mjs (x20)",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "bbe5666af346ad9790be7aaf791889d7d404c1a9",
+      "time": "2026-10-18T20:32:28Z",
+      "limits": [
+        "20/20 after fixing a stat race introduced by F-1"
+      ]
+    },
+    {
+      "command": "BASE_SHA=e424c8c HEAD_SHA=<head> node tools/governance/cli.mjs check-append-only",
+      "result": "PASS",
+      "environment": "local container, git",
+      "commit": "bbe5666af346ad9790be7aaf791889d7d404c1a9",
+      "time": "2026-10-18T20:32:28Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": 39163101065,
+    "conclusion": "SUCCESS"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/151#issuecomment-6254772214"
+  },
+  "findings": [
+    {
+      "id": "N-04",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "audit report authorship not provable by hash; accepted limitation"
+    },
+    {
+      "id": "N-06",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "fixed by agent B in 477c4344a9ca9b65d34dfecc549b1aebabf63497, re-verified by agent A"
+    },
+    {
+      "id": "QAC-010/012/013",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "continuous requirements: schema and template delivered, adoption by later PRs"
+    },
+    {
+      "id": "F-5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "ci.run_id now cites run 39163101065, the green run on head b0bf00677da5686a7382c272076ef39a30f41871 reviewed as APPROVED; the previous checkpoints cited run 39162523837 which ran on 9547eca"
+    },
+    {
+      "id": "F-1..F-4,F-6..F-9",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "addressed in this commit; F-8/F-9 as documented limits"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-R01-AUTH-20261018",
+    "MP-OWNER-MASTER-GOVERNANCE-2026-10-18",
+    "MP-OWNER-AUTOMERGE-01",
+    "MP-OWNER-CERT-ISSUE-CLOSURE-01"
+  ],
+  "dependencies": [
+    "CP-20261018T202029Z-agent-b-claude-subagent"
+  ],
+  "state": "REVIEW",
+  "next_action": "Independent re-review of PR #151 on this head (the APPROVED review covered b0bf006); wait for CI green on the final head; evaluate merge-gate with GitHub facts; squash-merge with expectedHeadSha; publish MERGED checkpoint comments on #150 and #97; commit the MERGED checkpoint file at the start of R-02.",
+  "resume_conditions": [
+    "origin/ccr-e45875c0-5r0fnf reconciles with commit_sha",
+    "PR #151 open",
+    "npm run governance:check passes"
+  ],
+  "supersedes": "CP-20261018T202336Z-agent-a-claude-code"
+}
