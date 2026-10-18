@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 19,
+  "revision": 20,
   "tasks": [
     {
       "id": "R-01",
@@ -69,7 +69,7 @@
       "id": "R-08",
       "title": "PIT policy, version pinning, cross-provider identity, timezone/DST",
       "issue": 31,
-      "pr": null,
+      "pr": 154,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
       "state": "REVIEW",
@@ -78,7 +78,8 @@
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261018T214905Z-agent-a-claude-code"
+      "latest_checkpoint": "CP-20261018T214905Z-agent-a-claude-code",
+      "pr_open": true
     }
   ]
 }
