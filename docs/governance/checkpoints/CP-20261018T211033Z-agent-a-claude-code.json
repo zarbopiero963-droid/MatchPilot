@@ -1,0 +1,104 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261018T211033Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-18T21:10:33Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-02 read-only verification of the #40 archive: metadata verified, part hashes BLOCKED by the Drive tool download limit; R-01 review findings R-1..R-4 fixed",
+  "task": "R-02",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 40,
+  "pr": null,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "912866dcaa9fd61f162848ff5bc21246b2713efc",
+  "tree_sha": "1b54e34cc4c04a39d8059b9086a4a3c2872dadd9",
+  "requirements": [
+    "MP-ARC-001",
+    "MP-ARC-002",
+    "MP-ARC-005",
+    "MP-SEC-010",
+    "MP-GOV-010",
+    "MP-GOV-014",
+    "MP-GOV-017",
+    "MP-GOV-018"
+  ],
+  "changes": [
+    "tools/archive/verify-archive.mjs + tests",
+    "docs/governance/archive/40 pinned metadata and report",
+    "R-1..R-4 fixes with regression tests",
+    "registry: BLOCKED does not block independent tasks"
+  ],
+  "tests": [
+    {
+      "command": "node --test",
+      "result": "PASS",
+      "environment": "local container, node 22, no PostgreSQL",
+      "commit": "912866dcaa9fd61f162848ff5bc21246b2713efc",
+      "time": "2026-10-18T21:10:33Z",
+      "limits": [
+        "208 tests, 0 fail, 19 PostgreSQL skips; PostgreSQL covered by CI"
+      ]
+    },
+    {
+      "command": "node tools/archive/verify-archive.mjs --metadata docs/governance/archive/40 --drive-listing docs/governance/archive/40/drive-listing-2026-10-18.json",
+      "result": "NOT_VERIFIED",
+      "environment": "local container; Drive accessed read-only through the Drive tool",
+      "commit": "912866dcaa9fd61f162848ff5bc21246b2713efc",
+      "time": "2026-10-18T21:10:33Z",
+      "limits": [
+        "metadata 4/4 PASS, Drive sizes 13/13 PASS, part hashes NOT_VERIFIED: download over 10 MB refused"
+      ]
+    },
+    {
+      "command": "RED: new tests against the main implementation; GREEN: with the fixes",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "912866dcaa9fd61f162848ff5bc21246b2713efc",
+      "time": "2026-10-18T21:10:33Z",
+      "limits": [
+        "RED 3 failing (R-1, R-2, R-3), GREEN 40/40"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "R02-BLOCKER",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "archive part SHA-256, DuckDB portability, readback, schema/counts, PIT not verifiable: Drive tool 10 MB limit, no Drive API credentials"
+    },
+    {
+      "id": "R-1..R-4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "fixed with regression tests in this commit"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01",
+    "MP-OWNER-DECISIONS-D1-D9-20261018.D7",
+    "MP-OWNER-DECISIONS-D1-D9-20261018.D9"
+  ],
+  "dependencies": [
+    "CP-20261018T210731Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "Open the R-02 PR, obtain CI green and an independent review on its head, auto-merge under merge-gate, post progress on #40 (not READY TO CLOSE) and #150, then set R-02 BLOCKED (remaining archive checks) and start R-03 API v1.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha",
+    "npm run governance:check passes"
+  ],
+  "supersedes": null
+}

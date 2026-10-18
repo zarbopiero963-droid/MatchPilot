@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 11,
+  "revision": 12,
   "tasks": [
     {
       "id": "R-01",
@@ -24,17 +24,13 @@
       "pr": null,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "RUNNING",
+      "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "lease": {
-        "holder": "agent-a-claude-code",
-        "acquired_at": "2026-10-18T21:07:31.339Z",
-        "expires_at": "2026-10-19T01:07:31.339Z"
-      },
-      "latest_checkpoint": null
+      "lease": null,
+      "latest_checkpoint": "CP-20261018T211033Z-agent-a-claude-code"
     }
   ]
 }
