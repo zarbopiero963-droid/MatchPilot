@@ -4,14 +4,12 @@
 
 L'inventario atomico machine-readable è fissato sulla baseline `353dfc6523d357aae52615fdfb102fdf1e2a6795`. Il perimetro OFFLINE v1 è ratificato dalla decisione owner D3 del 18/10/2026.
 
-Dopo l'audit indipendente `MP-GATE-A-REVIEW-ROADMAP-01` e le correzioni R-00, il denominatore **PROVISIONAL** è di **136 requisiti**:
-- **Priorità:** 102 P0 e 34 P1.
-- **Verdetti:**
-  - 27 PASS, tutti con evidenza e ciascuno limitato al proprio scope;
-  - 65 FAIL;
-  - 6 BLOCKED;
-  - 38 NOT_VERIFIED.
-- **Gate:** 82 P0 aperti. Gate A **NON PASS**.
+Dopo l'audit indipendente `MP-GATE-A-REVIEW-ROADMAP-01` (correzioni R-00) e la PR R-01, il denominatore **PROVISIONAL** è il seguente (blocco generato da `npm run governance:render`):
+<!-- inventory:summary:start -->
+- **Requisiti:** 138 (census PROVISIONAL), di cui 104 P0 e 34 P1.
+- **Verdetti:** 27 PASS (tutti con evidenza, ciascuno limitato al proprio scope), 67 FAIL, 6 BLOCKED, 38 NOT_VERIFIED.
+- **Gate:** 84 P0 aperti. Gate A del prodotto **NON PASS**.
+<!-- inventory:summary:end -->
 
 Il denominatore definitivo uscirà dal censimento completo; nessun gruppo ha una dimensione fissa. Nessuna percentuale aggregata rende superabile un P0 aperto.
 
@@ -28,48 +26,32 @@ Regole owner del 18/10/2026:
 - **le issue le chiude solo l'owner** (READY TO CLOSE — OWNER APPROVAL REQUIRED; riferimenti `Refs #`);
 - nessun deploy, costo, produzione o LIVE senza autorizzazione esplicita.
 
-Il blocco "Ingresso operativo corrente — 07/10/2026" qui sotto è storico. Il suo allineamento con queste decisioni è pianificato nella PR R-01.
 
 MP-PR-00 non modifica runtime, API, schema o UX e non certifica il prodotto. Il mock MatchPilot non richiede aggiornamento: **NO — governance e tooling documentale soltanto**.
 
-## Ingresso operativo corrente — 07/10/2026
+## Ingresso operativo corrente
 
-Leggere README → CLAUDE.md → AGENTS.md, poi **#3 → #97 → #104** e la issue di dominio; partire dai blocchi “Stato corrente / Prossima attività”, non dalla cronologia dei commenti.
-### Prossima attività unica / autorizzazione corrente
+Le regole operative canoniche sono in [AGENTS.md](AGENTS.md); [CLAUDE.md](CLAUDE.md) rimanda a esse. Le decisioni owner vigenti sono nel registro [`docs/governance/owner-decisions.json`](docs/governance/owner-decisions.json).
 
-L'owner il **07/10/2026 alle 15:23 Europe/Rome** ha autorizzato **una sola PR documentale/governance**, dopo il PASS del punto 9 della #40, e ha vietato il merge automatico.
-**Prossima azione: owner review e autorizzazione al merge della [PR #125](https://github.com/zarbopiero963-droid/MatchPilot/pull/125).**
-Non iniziare operativamente #20, il punto 10 della #40 o altri domini durante questa PR.
+Per sapere dove si è arrivati, cosa manca e quale attività eseguire:
 
-Dopo il merge, il primo controllo operativo è **verificare e registrare la finestra sicura di #40 per riprendere lo sviluppo core**. Il PASS del punto 9 certifica la riconciliazione locale, non la durabilità dell'archivio né automaticamente tale finestra. Se la finestra è attestata secondo il contratto vigente, la priorità owner è **#20 / TC-CORE-01**, con i prerequisiti security/identity applicabili, senza riattivare il trial. Se non è attestata, fermare l'avvio core e riportare il blocker; nessun punto successivo #40 è autorizzato da questa PR. Definizioni o scelte nuove sui criteri di finestra sicura restano **OPEN / OWNER DECISION REQUIRED**.
+```bash
+npm run governance:status          # attività, lease, ultimo checkpoint, prossima azione, divergenze
+npm run governance:resume -- R-01  # verifica di ripresa per un'attività (exit 2 su divergenza)
+```
 
-### Gerarchia vigente
+Checkpoint machine-readable: `docs/governance/checkpoints/`. Registro attività: `docs/governance/work-registry.json`. Procedura di subentro e recovery: [`docs/governance/HANDOFF.md`](docs/governance/HANDOFF.md). Issue: #150, MP-MULTIAGENT-SYNC-CHECKPOINT-01.
 
-Decisioni esplicite owner (con fonte, data e scope) → **[#3](https://github.com/zarbopiero963-droid/MatchPilot/issues/3) master di prodotto/stato globale → [#97](https://github.com/zarbopiero963-droid/MatchPilot/issues/97) roadmap/fasi → [#104](https://github.com/zarbopiero963-droid/MatchPilot/issues/104) piano operativo delle PR** → contratti e gate delle issue di dominio → README / CLAUDE / AGENTS → documenti di integrazione → mock.
-La gerarchia non permette a #104 di eliminare acceptance criteria di dominio o alle docs di inventare decisioni owner. I documenti di supporto e gli snapshot di questa PR non sono una quarta master. Il piano proposto nell'audit non è stato approvato come nuova roadmap.
+**Gerarchia:** decisioni owner registrate → #3 master di prodotto → #97 roadmap operativa canonica → issue di dominio → requisiti Gate A → AGENTS → CLAUDE/README → docs → mock. #104 resta il catalogo storico delle 82 card.
 
-### Stato corrente verificato — 07/10/2026
+**Stato al 18/10/2026:**
+- **FPT (#12):** certificato storico del 05/10 nel proprio perimetro; audit 412 (solo parte read-only) e policy PIT D4 ancora da applicare.
+- **TotalCorner (#20):** componenti TC-CORE-01/02/03/03B/04 certificati per componente; normalizzazione residua offline; nessuna spesa autorizzata (D6). #20 resta OPEN.
+- **Archivio #40:** completato con riserve; resta OPEN fino alla verifica indipendente di portabilità e hash (D9).
+- **Infrastruttura:** Render e Neon sospesi dal 09/10; sviluppo offline (#144).
+- **Prodotto:** Gate A NON PASS; nessuna componente è GLOBAL HARD CERTIFIED.
 
-| Perimetro | Stato corrente | Residuo / gate |
-|---|---|---|
-| main | `5b39f3308d266752409ef4bdcb9e86b2d3d9423e` prima della PR governance; backend principalmente FPT | nessuna feature implementata da questa PR |
-| #12 FPT | implementazione e certificazione storica del perimetro 05/10 disponibili; issue OPEN, **NON globalmente READY TO CLOSE / NON 0 lavoro residuo** | audit 412/412 dopo TC messo in sicurezza; rischio PIT/reprocessing aperto |
-| #20 TC core | **URGENTE**, core persistente non avviato/certificato; trial #40 distinto dal core | finestra sicura #40 attestata, discovery reale, overlap VERIFIED; scadenza membership **11/10/2026 15:20:27 Europe/Rome** |
-| #40 trial | freeze → FAIL storico #123 → fix #124 mergiata → **punto 9 PASS, mismatch_count=0** | portabilità DuckDB e punti 10–16 aperti; punto 17 owner-gated; nessuno shutdown autorizzato |
-| #104 | catalogo card pre-MCP conservato | **82 è baseline storica, NON conteggio verificato del residuo attuale** |
-| core downstream / #98 | contratti pianificati; certificazione integrata non ottenuta | componenti, consumer, paper bridge e integrazioni reali prima del gate E2E; UI finale deferita |
-
-Dettagli verificabili: [integrazione e stato corrente](docs/integration-map.md#stato-operativo-corrente--07102026), [matrice requisiti/fonti/gate](docs/governance/reconciliation-matrix-2026-10-07.md). Questi sono supporti della gerarchia, non master concorrenti.
-
-**Scope e owner:** solo calcio, FPT e TC feed core primari, FPT ∩ TC VERIFIED. #96=policy/risk/MM; #99=ledger/accounting/positions/settlement; #100=market rules; #28=trading intent; #34=Indicator Library/DSL. Shared ingestion/computation vincolante.
-**Tre livelli distinti:** implementazione; certificazione componente scoped; certificazione integrata #98. Mock e CI da soli non sono hard evidence.
-**SUPERSEDED:** #12 globalmente “0 lavoro residuo / READY TO CLOSE”, 82 PR come residuo verificato, accounting #96, vecchi ordini incompatibili con gli override TC/audit412. Il certificato FPT 05/10 resta evidenza storica del suo perimetro.
-**PIT aperto:** parser/reprocessing e versioni identità possono cambiare il risultato allo stesso T; registrare prima/dopo, raw/acquisition, parser/schema/transform/data-contract e mapping/versioni. Nessun apply prod senza owner.
-**OPEN / OWNER DECISION REQUIRED — STOP/ADVISORY_ONLY sulle posizioni già aperte:** #96 e #97 vietano exposure mutation/financial ledger writes in ADVISORY_ONLY, mentre README descrive la continuazione di chiusura/settlement delle posizioni esistenti. Il confine di ownership è chiaro (#99 scrive), ma l'eccezione operativa non è univoca. Prima della relativa integrazione, l'owner deve chiarire quali scritture #99 restano consentite per posizioni già aperte. Non scegliere automaticamente “blocca tutto” o “settle comunque”; nessun comportamento runtime cambiato qui.
-
-**OPEN / OWNER DECISION REQUIRED:** punto10+/shutdown #40, nuovi criteri di finestra sicura, scelta PIT non registrata, WeWeb, sport/overlap aggiuntivi, BetsAPI core, execution reale. Il piano audit non è approvazione owner.
-**Gate PR:** scope solo documenti, fonti linkate, nessun requisito perso, walkthrough10punti, CI/review; merge di questa PR solo dopo owner. Non chiudere issue.
-
+Lo stato dettagliato del 07/10 resta consultabile nella cronologia di git e nelle issue #3/#97; non è più un'istruzione operativa.
 
 ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/zarbopiero963-droid/MatchPilot?utm_source=oss&utm_medium=github&utm_campaign=zarbopiero963-droid%2FMatchPilot&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
@@ -995,9 +977,7 @@ Stato: **IMPLEMENTED, TESTED**. **HARD VERIFIED REAL: in corso** (evidenza nella
 
 ## Chiusura delle issue
 
-Le issue vengono dichiarate **CHIUDIBILI** dall'agente solo quando ogni punto del loro contenuto è implementato e verificato. L'agente deve pubblicare un commento finale con checklist ed evidenze, ma lasciare l'issue aperta.
-
-La chiusura viene effettuata dall'owner, salvo autorizzazione esplicita data all'agente per quella specifica issue.
+**Solo l'owner chiude le issue** (MP-OWNER-CERT-ISSUE-CLOSURE-01). Quando ogni requisito approvato di una issue è implementato e certificato, l'agente pubblica il commento `READY TO CLOSE — OWNER APPROVAL REQUIRED` con checklist ed evidenze (AGENTS.md §5) e lascia la issue aperta. Le PR usano `Refs #N`; la CI rifiuta le parole chiave di auto-chiusura.
 
 
 ## Trading-first, non betting-first

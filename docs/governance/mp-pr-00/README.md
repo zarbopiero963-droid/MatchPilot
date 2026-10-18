@@ -35,17 +35,19 @@ Il validatore (`npm run governance:validate`) rifiuta:
 
 ## Denominatore corrente (calcolato dal JSON)
 
+<!-- inventory:counts:start -->
 | Dimensione | Conteggio |
 |---|---:|
-| Totale | 136 |
-| P0 / P1 | 102 / 34 |
+| Totale | 138 |
+| P0 / P1 | 104 / 34 |
 | PASS (tutti con evidenza, ciascuno limitato al proprio scope) | 27 |
-| FAIL | 65 |
+| FAIL | 67 |
 | BLOCKED | 6 |
 | NOT_VERIFIED | 38 |
-| P0 aperti | 82 |
-| Con mapping a codice / test / evidenza | 35 / 42 / 36 |
+| P0 aperti | 84 |
+| Con mapping a codice / test / evidenza | 44 / 51 / 36 |
 | Future register (fuori denominatore) | 22 |
+<!-- inventory:counts:end -->
 
 **La dimensione dei gruppi segue le fonti, non una quota.** L'inventario v1 imponeva 8 gruppi da 12 requisiti e il suo test lo bloccava. Il vincolo è stato rimosso (B-03).
 
