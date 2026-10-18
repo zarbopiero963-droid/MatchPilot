@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "qualification": "REGENERATED CERTIFIED ARCHIVE FROM SAME FROZEN DATASET",
+  "files": [
+    {
+      "file": "SHA256SUMS.final.txt",
+      "bytes": 2530,
+      "sha256": "49e6a7718c4d9b85fe759c4b9e509e545fe121fe4acafbb830f97071dd15dcb9"
+    },
+    {
+      "file": "SHA256SUMS.txt",
+      "bytes": 784,
+      "sha256": "3d96f99c99726281703f6037c61c5f41938072ad57071ada0e23b3dac9046ead"
+    },
+    {
+      "file": "analytics_manifest.json",
+      "bytes": 3102,
+      "sha256": "86cad85d1a0ec5ea98f7c27cf5fff08f8592ebb402d110364e63dcc7591883d7"
+    },
+    {
+      "file": "canonical_without_scoretrend/competitions.ndjson.gz",
+      "bytes": 303073,
+      "sha256": "0a9c738658906a75266373090b3197f7579c2e19944a3f7b779a9e03cfd5be5f"
+    },
+    {
+      "file": "canonical_without_scoretrend/coverage.ndjson.gz",
+      "bytes": 36457,
+      "sha256": "c304d50fded5c1a5763ef8cb3a91be0491628c3dd580c61a3dd6cf3a91b6e9a2"
+    },
+    {
+      "file": "canonical_without_scoretrend/events.ndjson.gz",
+      "bytes": 2717892,
+      "sha256": "8947ee5788fbcad83d52d9ec19c51d69112d23bf988f2fe7df252774507fd5d2"
+    },
+    {
+      "file": "canonical_without_scoretrend/sports.ndjson.gz",
+      "bytes": 767,
+      "sha256": "4f89faa02ee253f4a0d2b046eff91a721490e3eb83679e2bf55e04408b1ac441"
+    },
+    {
+      "file": "competitions.ndjson.gz",
+      "bytes": 304501,
+      "sha256": "3a123ff213486a139393dbc37c17f3f70c346c9b6242201ef67d1833bf121a35"
+    },
+    {
+      "file": "coverage.ndjson.gz",
+      "bytes": 37528,
+      "sha256": "dc70648f358d806139b9a64debd8cc00f5957f3a94b2a19e1f89bbbfdaaf3a27"
+    },
+    {
+      "file": "events.ndjson.gz",
+      "bytes": 2723731,
+      "sha256": "dabd835a8d27e1df76d6bd0ee8a0cbabd9984737d3fbf7ba55059b88637ec0c9"
+    },
+    {
+      "file": "final_checksums.json",
+      "bytes": 4520,
+      "sha256": "2fcf9cae5054f28aac8142285e65c4fb401f44806664c9d2ed5e2720d155ac24"
+    },
+    {
+      "file": "final_reconciliation_report.json",
+      "bytes": 10251,
+      "sha256": "efeffd516c12ad83b9cc599c0777ab52dcb93e85b8f72e3ad8fdd0421bd600a1"
+    },
+    {
+      "file": "manifest.json",
+      "bytes": 24100,
+      "sha256": "dc7812e7e16a47b22084cc2d7c2a66f99f16f793bd441b66ae0181cf45c860bc"
+    },
+    {
+      "file": "matchpilot_trial.duckdb",
+      "bytes": 59518976,
+      "sha256": "efe94b92e9ad54813951d56c986f94f410954968d77912a7ef7a5086e1656188"
+    },
+    {
+      "file": "odds_observations.ndjson.gz",
+      "bytes": 41583076,
+      "sha256": "4ad71c2fff3ac576ce00ed8c260a8f31b5e99d8af5006f521c73ddfa5d9ac7ed"
+    },
+    {
+      "file": "odds_summary.ndjson.gz",
+      "bytes": 1175307,
+      "sha256": "06ac32d0ef274b4cebbc4448f1335387a421eb9cfbd3ae3fcd4954cfce73e637"
+    },
+    {
+      "file": "parquet/canonical/competitions.parquet",
+      "bytes": 259106,
+      "sha256": "1dc93148e01ef54bf55e6055ed8ce2520b37ff8d6f967b693454b579d4890cd9"
+    },
+    {
+      "file": "parquet/canonical/coverage.parquet",
+      "bytes": 31319,
+      "sha256": "d44a9cdfc667d081298f5f7aadbb64be29cebdcc1e1957245feb0dd4559712db"
+    },
+    {
+      "file": "parquet/canonical/events.parquet",
+      "bytes": 2235382,
+      "sha256": "f55c71553027b3ed51f4f153821fbc60486c2945a20600cd62bd4614b3e60217"
+    },
+    {
+      "file": "parquet/canonical/odds_observations.parquet",
+      "bytes": 31784904,
+      "sha256": "941f72d1f20cba05464d653538bbf1debac15b01bd6c1506cf88bca740aa7566"
+    },
+    {
+      "file": "parquet/canonical/odds_summary.parquet",
+      "bytes": 398904,
+      "sha256": "917330f0b9a3629bb900a9b6edf55af6f20792560e41278d67d48d6fcb12e485"
+    },
+    {
+      "file": "parquet/canonical/sports.parquet",
+      "bytes": 1649,
+      "sha256": "12699771929a2c54e9b8c7b4daf5f9c2671b1ec6d3a6bcc23db5e6171316b935"
+    },
+    {
+      "file": "parquet/comparison/provider_comparison.parquet",
+      "bytes": 20060,
+      "sha256": "71622d02eb6ec26c5dcdf9f26756fd6f12f3eef85c7fab5cf451ed02d7bc95e1"
+    },
+    {
+      "file": "parquet/quality/reconciliation_state.parquet",
+      "bytes": 31444,
+      "sha256": "8c027e5cd92bc979fc229e483c9dd4df0f82733776c891af3799ac3f5aeb0b1b"
+    },
+    {
+      "file": "reconciliation_state.ndjson.gz",
+      "bytes": 19990,
+      "sha256": "ca16ab023bc7e42c55185cc4c30380318304b010e7912fd95e421a0ce9b6060b"
+    },
+    {
+      "file": "records.ndjson.gz",
+      "bytes": 369865583,
+      "sha256": "4e305cf959116131344c2c16f3c6fa50cc5fd2e8d5a024135204848741e6ee2b"
+    },
+    {
+      "file": "scoretrend_excluded.ndjson.gz",
+      "bytes": 15934010,
+      "sha256": "5c3fcef03d484ea4130f7a789e668f2442ca0744db951ae26446d58fd6cc9b62"
+    },
+    {
+      "file": "secret_scan_report.json",
+      "bytes": 451,
+      "sha256": "a83af3274a055cce63f7e1a62fb18c397b0147b2bee56684e2d2d5a9b6971342"
+    },
+    {
+      "file": "sports.ndjson.gz",
+      "bytes": 798,
+      "sha256": "5dd22479262b3921c6844600de07e7310279b976b60d09e803bcf3fa37316646"
+    }
+  ],
+  "bundle": {
+    "file": "regenerated-20261007-r01.tar.gz",
+    "bytes": 498614829,
+    "sha256": "fb07443646a7f6d98afe1f0769eda6849a8339a8a84ecd556ae1e1a2b89ac456"
+  }
+}

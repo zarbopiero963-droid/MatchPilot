@@ -10,7 +10,7 @@ Il sistema è indipendente dal modello e dal fornitore. Usa soltanto file nel re
 |---|---|---|
 | Decisioni owner | `docs/governance/owner-decisions.json` | registro canonico, validato |
 | Registro attività | `docs/governance/work-registry.json` | attività, assegnatario, lease, stato, ultimo checkpoint; `revision` cresce a ogni modifica |
-| Checkpoint | `docs/governance/checkpoints/<id>.json` | schema `mp-checkpoint-v1`, append-only, catena `supersedes` per attività |
+| Checkpoint | `docs/governance/checkpoints/<id>.json` | schema `mp-checkpoint-v2` (v1 accettato solo per i checkpoint storici precedenti al 18/10 21:00Z), append-only, catena `supersedes` per attività |
 | Commento GitHub | issue o PR dell'attività | contiene `<!-- mp-checkpoint:<id> -->`: un solo commento per checkpoint |
 
 - **Stati:** PLANNED, RUNNING, BLOCKED, REVIEW, HANDOFF READY, CERTIFIED, MERGED, COMPLETED.
@@ -142,5 +142,7 @@ Il sistema è indipendente dal modello e dal fornitore. Usa soltanto file nel re
   Solo dopo si rimuove il file `.lock` e lo si annota nel checkpoint successivo.
 - **Input di `merge-gate`.** Il comando valuta un input JSON che l'agente compila con i fatti letti da GitHub (CI del head, review, branch protection). Non interroga GitHub da solo: il revisore indipendente riverifica quei fatti.
 - **Verifiche prima del claim.** Le verifiche in sola lettura (resume, test locali, lettura di GitHub) possono precedere il claim. Ogni scrittura su branch, registro, checkpoint o commenti richiede il lease.
+- **Schema v2.** Una review APPROVED richiede `review.reviewed_sha` e un run CI richiede `ci.head_sha`: un'evidenza vale solo per il commit che ha coperto. Un checkpoint MERGED o CERTIFIED deve avere la review sul proprio `commit_sha`.
+- **Merge commit.** L'analisi append-only include anche ciò che i merge commit cambiano rispetto al primo genitore, oltre al diff cumulativo dalla base.
 - **Append-only in CI.** Una PR che modifica o elimina un checkpoint esistente viene rifiutata in CI (`check-append-only`). Le correzioni si fanno con un nuovo checkpoint che sostituisce il precedente tramite `supersedes`.
 - Il lock su file protegge i processi nello stesso worktree. Fra worktree o macchine diversi la protezione è la compare-and-swap su `revision` più il rifiuto git dei push non fast-forward: chi perde la corsa ricarica e rivaluta.

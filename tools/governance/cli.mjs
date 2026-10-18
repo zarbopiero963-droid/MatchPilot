@@ -11,7 +11,7 @@ import {fileURLToPath} from 'node:url';
 import {loadCheckpoints, reconcile, resolveLatest, validateCheckpoint} from './checkpoints.mjs';
 import {validateRegistry} from './registry.mjs';
 import {evaluateMergeGate, findClosingReferences} from './policy.mjs';
-import {changedFiles, commitMessages, realityFor} from './git.mjs';
+import {commitMessages, realityFor, rewrittenCheckpoints} from './git.mjs';
 import {loadDecisions, loadInventory, validateDecisions} from '../validate-requirements.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -97,9 +97,8 @@ async function main([command, ...args]) {
   if (command === 'check-append-only') {
     const {BASE_SHA: base, HEAD_SHA: head} = process.env;
     if (!base || !head || /^0+$/.test(base)) { console.log(JSON.stringify({result: 'PASS', note: 'no range to check'})); return 0; }
-    const changes = changedFiles(root, base, head);
-    if (changes === null) { console.error(JSON.stringify({result: 'FAIL', error: `history ${base}..${head} unavailable (fail closed)`})); return 1; }
-    const rewritten = changes.filter(({status, file}) => file.startsWith('docs/governance/checkpoints/') && status !== 'A');
+    const rewritten = rewrittenCheckpoints(root, base, head);
+    if (rewritten === null) { console.error(JSON.stringify({result: 'FAIL', error: `history ${base}..${head} unavailable (fail closed)`})); return 1; }
     if (rewritten.length) { console.error(JSON.stringify({result: 'FAIL', rewritten_checkpoints: rewritten}, null, 2)); return 1; }
     console.log(JSON.stringify({result: 'PASS'}));
     return 0;

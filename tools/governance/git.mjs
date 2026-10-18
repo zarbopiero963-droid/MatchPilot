@@ -29,14 +29,25 @@ export function commitMessages(cwd, base, head) {
   return out === null ? null : out.split('\0').map(text => text.trim()).filter(Boolean);
 }
 
-// Changed paths with their git status letter (A added, M modified, D deleted), commit by commit:
-// a cumulative diff would report "added then rewritten" as a plain addition.
+const parseNameStatus = out => out.split('\n').filter(Boolean).map(line => {
+  const [status, file] = line.split('\t');
+  return {status: status[0], file};
+});
+
+// Changed paths with their git status letter (A added, M modified, D deleted), commit by commit
+// (a cumulative diff reports "added then rewritten" as a plain addition), including what merge
+// commits change against their first parent, plus the cumulative diff from base (#151 review R-1).
 export function changedFiles(cwd, base, head) {
-  const out = git(cwd, ['log', '--name-status', '--no-renames', '--format=', `${base}..${head}`]);
-  return out === null ? null : out.split('\n').filter(Boolean).map(line => {
-    const [status, file] = line.split('\t');
-    return {status: status[0], file};
-  });
+  const perCommit = git(cwd, ['log', '--diff-merges=first-parent', '--name-status', '--no-renames', '--format=', `${base}..${head}`]);
+  const cumulative = git(cwd, ['diff', '--name-status', '--no-renames', base, head]);
+  if (perCommit === null || cumulative === null) return null;
+  return [...parseNameStatus(perCommit), ...parseNameStatus(cumulative)];
+}
+
+// Checkpoints are append-only: any change other than an addition to docs/governance/checkpoints/ is a rewrite.
+export function rewrittenCheckpoints(cwd, base, head) {
+  const changes = changedFiles(cwd, base, head);
+  return changes === null ? null : changes.filter(({status, file}) => file.startsWith('docs/governance/checkpoints/') && status !== 'A');
 }
 
 // Reality for one checkpoint: branch head, ancestry, tree and files changed after the checkpoint.

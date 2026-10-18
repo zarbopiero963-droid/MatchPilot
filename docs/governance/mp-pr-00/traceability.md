@@ -16,13 +16,13 @@ La fonte machine-readable è `requirements.json`. Questo documento rende leggibi
 | QAC | 13 | 12 | 3 | 4 | 0 | 6 |
 | SEC | 11 | 9 | 3 | 2 | 1 | 5 |
 | API | 6 | 5 | 0 | 5 | 0 | 1 |
-| ARC | 5 | 4 | 0 | 2 | 0 | 3 |
+| ARC | 5 | 4 | 1 | 1 | 1 | 2 |
 | PIT | 5 | 5 | 0 | 5 | 0 | 0 |
 | XPR | 2 | 1 | 0 | 2 | 0 | 0 |
 | MKT | 3 | 3 | 0 | 3 | 0 | 0 |
 | MTH | 3 | 1 | 0 | 3 | 0 | 0 |
 | OPS | 1 | 0 | 0 | 1 | 0 | 0 |
-| **Totale** | **138** | **104** | **35** | **59** | **6** | **38** |
+| **Totale** | **138** | **104** | **36** | **58** | **7** | **37** |
 <!-- inventory:groups:end -->
 
 Ogni PASS ha evidenza e vale solo nel proprio scope (es. TC-007/TC-008 = runtime PR #145). Nessun PASS equivale a GLOBAL HARD CERTIFIED.

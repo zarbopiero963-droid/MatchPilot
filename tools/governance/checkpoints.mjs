@@ -4,7 +4,9 @@ import {existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, renameS
 import {join} from 'node:path';
 import {findSecrets} from './secrets.mjs';
 
-export const SCHEMA_VERSION = 'mp-checkpoint-v1';
+export const SCHEMA_VERSION = 'mp-checkpoint-v2';
+// v1 checkpoints written before v2 (#151 review R-2) stay valid as history; new ones must be v2.
+export const LEGACY_SCHEMA = {version: 'mp-checkpoint-v1', until: '2026-10-18T21:00:00Z'};
 export const STATES = ['PLANNED', 'RUNNING', 'BLOCKED', 'REVIEW', 'HANDOFF READY', 'CERTIFIED', 'MERGED', 'COMPLETED'];
 export const ROLES = ['Development Agent', 'Test Agent', 'Independent Reviewer', 'Requirements Auditor', 'Roadmap Coordinator', 'Integration Agent'];
 export const GATE_RESULTS = ['PASS', 'FAIL', 'BLOCKED', 'NOT_VERIFIED', 'NOT_APPLICABLE'];
@@ -40,7 +42,14 @@ export function validateCheckpoint(cp, {decisionIds, requirementIds, taskIds} = 
   const errors = [];
   const at = `checkpoint ${cp?.id}`;
   if (!cp || typeof cp !== 'object') return ['checkpoint must be an object'];
-  if (cp.schema_version !== SCHEMA_VERSION) errors.push(`${at} schema_version must be ${SCHEMA_VERSION}`);
+  const legacy = cp.schema_version === LEGACY_SCHEMA.version && Date.parse(cp.timestamp_utc) < Date.parse(LEGACY_SCHEMA.until);
+  if (cp.schema_version !== SCHEMA_VERSION && !legacy) errors.push(`${at} schema_version must be ${SCHEMA_VERSION}`);
+  if (!legacy) {
+    // v2: a review and a CI run are only evidence for the exact commit they covered.
+    if (cp.review?.verdict === 'APPROVED' && !SHA.test(cp.review?.reviewed_sha || '')) errors.push(`${at} APPROVED review needs review.reviewed_sha`);
+    if (cp.ci?.run_id !== null && cp.ci?.run_id !== undefined && !SHA.test(cp.ci?.head_sha || '')) errors.push(`${at} ci.run_id needs ci.head_sha`);
+    if (['CERTIFIED', 'MERGED'].includes(cp.state) && cp.review?.reviewed_sha && cp.review.reviewed_sha !== cp.commit_sha) errors.push(`${at} ${cp.state} review covers ${cp.review.reviewed_sha}, not ${cp.commit_sha}`);
+  }
   const match = ID.exec(cp.id || '');
   if (!match) errors.push(`${at} invalid id`);
   if (!validIso(cp.timestamp_utc)) errors.push(`${at} timestamp_utc must be ISO UTC`);

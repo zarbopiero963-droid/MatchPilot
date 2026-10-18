@@ -5,7 +5,8 @@ import {STATES} from './checkpoints.mjs';
 
 export const REGISTRY_SCHEMA = 'mp-work-registry-v1';
 export const KINDS = ['implementation', 'review', 'audit', 'readonly'];
-const LIVE = new Set(['RUNNING', 'REVIEW', 'BLOCKED']);
+// A BLOCKED task has no work in flight: it must not stop independent tasks (MP-OWNER-AUTONOMOUS-EXECUTION-01 §15).
+const LIVE = new Set(['RUNNING', 'REVIEW']);
 
 export class RegistryConflict extends Error {
   constructor(code, detail) { super(`${code}: ${detail}`); this.code = code; }

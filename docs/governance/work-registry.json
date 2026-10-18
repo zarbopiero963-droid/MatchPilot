@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 9,
+  "revision": 11,
   "tasks": [
     {
       "id": "R-01",
@@ -9,24 +9,31 @@
       "pr": 151,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261018T203228Z-agent-a-claude-code"
+      "latest_checkpoint": "CP-20261018T210731Z-agent-a-claude-code"
     },
     {
       "id": "R-02",
       "title": "Archive #40 read-only materialization and independent hash/portability verification",
       "issue": 40,
       "pr": null,
-      "branch": "unassigned",
+      "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "PLANNED",
-      "assignee": null,
-      "lease": null,
+      "state": "RUNNING",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": {
+        "holder": "agent-a-claude-code",
+        "acquired_at": "2026-10-18T21:07:31.339Z",
+        "expires_at": "2026-10-19T01:07:31.339Z"
+      },
       "latest_checkpoint": null
     }
   ]
