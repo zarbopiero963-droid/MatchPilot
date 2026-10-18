@@ -1,292 +1,375 @@
-# AGENTS.md — Regole operative MatchPilot
+# AGENTS.md — Regole operative canoniche MatchPilot
 
-## Ingresso operativo corrente — 07/10/2026
+Questo file è la **fonte canonica delle regole operative** per qualunque agente (Claude, Codex, ChatGPT o altri) e per ogni PR. Lo stabilisce la decisione owner `MP-GITHUB-SINGLE-SOURCE-OF-TRUTH-01`.
 
-Leggere README → CLAUDE.md → AGENTS.md, poi **#3 → #97 → #104** e la issue di dominio; partire dai blocchi “Stato corrente / Prossima attività”, non dalla cronologia dei commenti.
-### Prossima attività unica / autorizzazione corrente
+- **CLAUDE.md** rimanda qui e non duplica le regole.
+- **Prevalenza:** se un altro documento contraddice questo file o il registro delle decisioni owner, prevalgono le decisioni owner registrate e poi questo file.
 
-L'owner il **07/10/2026 alle 15:23 Europe/Rome** ha autorizzato **una sola PR documentale/governance**, dopo il PASS del punto 9 della #40, e ha vietato il merge automatico.
-**Prossima azione: owner review e autorizzazione al merge della [PR #125](https://github.com/zarbopiero963-droid/MatchPilot/pull/125).**
-Non iniziare operativamente #20, il punto 10 della #40 o altri domini durante questa PR.
+## 0. Ingresso operativo — come riprendere il lavoro
 
-Dopo il merge, il primo controllo operativo è **verificare e registrare la finestra sicura di #40 per riprendere lo sviluppo core**. Il PASS del punto 9 certifica la riconciliazione locale, non la durabilità dell'archivio né automaticamente tale finestra. Se la finestra è attestata secondo il contratto vigente, la priorità owner è **#20 / TC-CORE-01**, con i prerequisiti security/identity applicabili, senza riattivare il trial. Se non è attestata, fermare l'avvio core e riportare il blocker; nessun punto successivo #40 è autorizzato da questa PR. Definizioni o scelte nuove sui criteri di finestra sicura restano **OPEN / OWNER DECISION REQUIRED**.
+Ogni agente, prima di toccare il repository:
 
-### Gerarchia vigente
+1. Legge questo file e [CLAUDE.md](CLAUDE.md).
+2. Legge le decisioni owner vigenti in [`docs/governance/owner-decisions.json`](docs/governance/owner-decisions.json), stato `IN_FORCE`. È il registro canonico, con id, data, ambito, precedenza e riferimenti.
+3. Esegue `npm run governance:status` per vedere attività, lease, ultimo checkpoint, prossima azione e divergenze. Poi legge la issue assegnata.
+4. Controlla roadmap e dipendenze: **#97** è la roadmap canonica; #104 è il catalogo storico; `docs/governance/mp-pr-00/requirements.json → pr_registry` è la sequenza R-xx.
+5. Verifica lo stato reale: branch, SHA, PR aperte, CI su GitHub.
+6. Identifica i blocker.
+7. Riprende dall'ultimo checkpoint **verificato** seguendo la procedura in [`docs/governance/HANDOFF.md`](docs/governance/HANDOFF.md) (`npm run governance:resume -- <task>`).
 
-Decisioni esplicite owner (con fonte, data e scope) → **[#3](https://github.com/zarbopiero963-droid/MatchPilot/issues/3) master di prodotto/stato globale → [#97](https://github.com/zarbopiero963-droid/MatchPilot/issues/97) roadmap/fasi → [#104](https://github.com/zarbopiero963-droid/MatchPilot/issues/104) piano operativo delle PR** → contratti e gate delle issue di dominio → README / CLAUDE / AGENTS → documenti di integrazione → mock.
-La gerarchia non permette a #104 di eliminare acceptance criteria di dominio o alle docs di inventare decisioni owner. I documenti di supporto e gli snapshot di questa PR non sono una quarta master. Il piano proposto nell'audit non è stato approvato come nuova roadmap.
+**Regole di ripresa:**
+- Un checkpoint dichiarato PASS non vale finché le sue evidenze non sono state verificate.
+- In caso di divergenza fra checkpoint e realtà ci si ferma e si registra il conflitto.
+- Non si ripete lavoro già certificato.
 
-### Stato corrente verificato — 07/10/2026
+## 1. Gerarchia
 
-| Perimetro | Stato corrente | Residuo / gate |
-|---|---|---|
-| main | `5b39f3308d266752409ef4bdcb9e86b2d3d9423e` prima della PR governance; backend principalmente FPT | nessuna feature implementata da questa PR |
-| #12 FPT | implementazione e certificazione storica del perimetro 05/10 disponibili; issue OPEN, **NON globalmente READY TO CLOSE / NON 0 lavoro residuo** | audit 412/412 dopo TC messo in sicurezza; rischio PIT/reprocessing aperto |
-| #20 TC core | **URGENTE**, core persistente non avviato/certificato; trial #40 distinto dal core | finestra sicura #40 attestata, discovery reale, overlap VERIFIED; scadenza membership **11/10/2026 15:20:27 Europe/Rome** |
-| #40 trial | freeze → FAIL storico #123 → fix #124 mergiata → **punto 9 PASS, mismatch_count=0** | portabilità DuckDB e punti 10–16 aperti; punto 17 owner-gated; nessuno shutdown autorizzato |
-| #104 | catalogo card pre-MCP conservato | **82 è baseline storica, NON conteggio verificato del residuo attuale** |
-| core downstream / #98 | contratti pianificati; certificazione integrata non ottenuta | componenti, consumer, paper bridge e integrazioni reali prima del gate E2E; UI finale deferita |
+Decisioni owner registrate → **#3** master di prodotto → **#97** roadmap operativa → contratti e gate delle issue di dominio → requisiti Gate A (`docs/governance/mp-pr-00/`) → AGENTS.md → CLAUDE.md / README → documenti di integrazione → mock.
 
-Dettagli verificabili: [integrazione e stato corrente](docs/integration-map.md#stato-operativo-corrente--07102026), [matrice requisiti/fonti/gate](docs/governance/reconciliation-matrix-2026-10-07.md). Questi sono supporti della gerarchia, non master concorrenti.
+- **#104** resta il catalogo storico delle 82 card (D8).
+- Ogni card è COMPLETED / PARTIAL / PLANNED / SUPERSEDED / DEFERRED / NOT VERIFIED.
+- Una PR mergiata non completa da sola una card.
 
-**Scope e owner:** solo calcio, FPT e TC feed core primari, FPT ∩ TC VERIFIED. #96=policy/risk/MM; #99=ledger/accounting/positions/settlement; #100=market rules; #28=trading intent; #34=Indicator Library/DSL. Shared ingestion/computation vincolante.
-**Tre livelli distinti:** implementazione; certificazione componente scoped; certificazione integrata #98. Mock e CI da soli non sono hard evidence.
-**SUPERSEDED:** #12 globalmente “0 lavoro residuo / READY TO CLOSE”, 82 PR come residuo verificato, accounting #96, vecchi ordini incompatibili con gli override TC/audit412. Il certificato FPT 05/10 resta evidenza storica del suo perimetro.
-**PIT aperto:** parser/reprocessing e versioni identità possono cambiare il risultato allo stesso T; registrare prima/dopo, raw/acquisition, parser/schema/transform/data-contract e mapping/versioni. Nessun apply prod senza owner.
-**OPEN / OWNER DECISION REQUIRED — STOP/ADVISORY_ONLY sulle posizioni già aperte:** #96 e #97 vietano exposure mutation/financial ledger writes in ADVISORY_ONLY, mentre README descrive la continuazione di chiusura/settlement delle posizioni esistenti. Il confine di ownership è chiaro (#99 scrive), ma l'eccezione operativa non è univoca. Prima della relativa integrazione, l'owner deve chiarire quali scritture #99 restano consentite per posizioni già aperte. Non scegliere automaticamente “blocca tutto” o “settle comunque”; nessun comportamento runtime cambiato qui.
+## 2. Contratto prodotto
 
-**OPEN / OWNER DECISION REQUIRED:** punto10+/shutdown #40, nuovi criteri di finestra sicura, scelta PIT non registrata, WeWeb, sport/overlap aggiuntivi, BetsAPI core, execution reale. Il piano audit non è approvazione owner.
-**Gate PR:** scope solo documenti, fonti linkate, nessun requisito perso, walkthrough10punti, CI/review; merge di questa PR solo dopo owner. Non chiudere issue.
+MatchPilot è una piattaforma web di **trading sportivo**: solo calcio, con feed core **FutPythonTrader** (storico, statistiche, pre-match) e **TotalCorner** (mercato pre-match e live). Il perimetro operativo è l'intersezione FPT ∩ TC con mapping VERIFIED.
 
+Ciclo: **PRE-MATCH → LIVE VALIDATION → ENTRY → MANAGEMENT → EXIT → POST-MORTEM**.
 
-## Prima di lavorare
+Il perimetro **HARD CERTIFIED OFFLINE v1** è fissato dalla decisione D3. Le funzioni LIVE, Exchange, SaaS e quelle avanzate del Trading OS restano nella roadmap globale.
 
-1. Leggere **README.md**.
-2. Leggere **CLAUDE.md**.
-3. Leggere la issue master corrente e la roadmap canonica **#97** (fase, dipendenze, owner di dominio).
-4. Se il lavoro riguarda FutPythonTrader, leggere integralmente **#12 FPT-CERT**.
-5. Verificare branch, PR aperte, CI, deploy e stato delle dipendenze.
-6. Verificare che non esista già un'altra PR aperta prima di crearne una nuova.
+**Regole obbligatorie:**
+- normalizzare e rendere interrogabili tutti i campi FPT realmente disponibili;
+- PREMATCH e LIVE separati in modo verificabile;
+- vietato usare dati successivi al kickoff per analisi pre-match;
+- ogni metrica con provenance e coverage;
+- nessun valore inventato né fallback numerico silenzioso (N/D non è 0);
+- nessuna dipendenza funzionale dal vecchio progetto;
+- nessun trade reale, puntata o modifica a conti esterni durante lo sviluppo;
+- nessun secret in codice, fixture, issue, log, checkpoint o output di test.
 
-## Regola PR
+Il contratto prodotto si modifica solo con decisione owner registrata.
 
-- Una PR aperta alla volta.
-- Una fase non può essere suddivisa in PR parallele salvo autorizzazione esplicita owner.
-- La PR successiva parte solo dopo il merge della precedente.
-- Ogni PR deve avere criteri di accettazione espliciti.
-- Ogni PR deve includere test automatici pertinenti.
-- Ogni PR FPT-CERT deve includere test reali su Render/Neon prima di essere considerata completata.
-- Un test reale fallito blocca il merge o richiede una PR/fix nella stessa fase.
-- Nessuna checklist va marcata completata prima dell'evidenza reale.
+## 3. PR, Gate A / Gate B e certificazione
 
-## README sempre sincronizzato
+- **Una sola PR di implementazione attiva alla volta**, salvo decisione owner diversa. Analisi e review in sola lettura possono procedere in parallelo. Il registro attività lo impone (`docs/governance/work-registry.json`).
+- Ogni lavoro parte da una **issue di riferimento**. Se manca, si chiede l'autorizzazione owner prima di crearla.
+- **Gate A locale:** fonte autorizzata, requisiti atomici, comportamento, invarianti, I/O, failure mode, dipendenze, criteri di accettazione, mapping issue → requisito → codice → test, nessun conflitto owner irrisolto.
+- **Gate B locale:** test reali pertinenti (unit, integrazione, regressione, contract, DB, E2E browser, anti-leakage temporale, replay deterministico, backtest, sicurezza, recovery/concorrenza dove applicabili). Ogni record di evidenza riporta comando, risultato, ambiente, commit, ora e limiti (schema `validateEvidence`).
+- Un controllo obbligatorio non eseguito è NOT_VERIFIED o BLOCKED, mai PASS. Un controllo non applicabile va motivato.
+- **HARD OFFLINE (D5):** è valida senza Render/Neon di produzione quando il perimetro non li richiede (PostgreSQL di test, dataset autentici con hash, runtime reale, browser reale). Mock e stub vanno dichiarati. Non si dichiara certificata un'integrazione esterna non provata.
+- **Tre stati distinti:** `PR CERTIFIED`, `ISSUE READY TO CLOSE`, `GLOBAL HARD CERTIFIED`. Nessuno implica gli altri.
+- **Ciclo di certificazione dei domini:** DISCOVERED → SPECIFIED → CONTRACT_FROZEN → IMPLEMENTED → TESTED → MATH_VERIFIED (se applicabile) → HARD_VERIFIED_REAL → TOOL_VERIFIED → CERTIFIED → OWNER_ACCEPTED.
+- **Difetti:** RED → fix minimo → GREEN → regressione pertinente.
 
-README.md fa parte del contratto di ogni PR.
+**Regola pre-PR (#97):**
+1. dichiarare fase #97, issue (`Refs #N`), card #104 e ID requisiti;
+2. identificare l'owner di dominio senza spostare logica;
+3. verificare la superficie tool/API;
+4. definire i test (automatici, matematici dove c'è matematica, hard);
+5. rispondere a "Questa modifica richiede un aggiornamento del mock MatchPilot? SÌ / NO", con il motivo se NO.
 
-Aggiornarlo quando cambia:
-- stato;
+## 4. Review indipendente e auto-merge (MP-OWNER-AUTOMERGE-01, D2)
+
+**L'agente esegue il merge senza chiedere l'approvazione owner** solo quando valgono tutte le condizioni:
+- scope autorizzato;
+- Gate A locale PASS;
+- Gate B locale PASS;
+- test obbligatori PASS;
+- GitHub Actions verdi;
+- branch protection soddisfatta;
+- **review indipendente APPROVED** sul head corrente;
+- nessun finding bloccante;
+- nessun conflitto owner irrisolto;
+- nessuna operazione esterna non autorizzata (deploy, costo, produzione, LIVE);
+- nessun riferimento di auto-chiusura nella PR.
+
+La valutazione eseguibile è `node tools/governance/cli.mjs merge-gate <input.json>`.
+
+**Requisiti della review indipendente:**
+- il revisore non ha prodotto la modifica;
+- verifica diff e SHA;
+- esamina requisiti, codice, test, evidenze e rischi;
+- pubblica su GitHub un rapporto con verdetto esplicito: APPROVED / CHANGES REQUESTED / BLOCKED / NOT VERIFIED;
+- un commento positivo generico non vale come APPROVED;
+- se la branch protection richiede un'approvazione formale, serve un account autorizzato indipendente;
+- vietato simulare o aggirare.
+
+**Altre regole di merge:**
+- Merge con lo SHA atteso, tracciato con commit, timestamp, review ed evidenze nel checkpoint successivo.
+- L'auto-merge non autorizza deploy, costi o accessi alla produzione. Dopo il merge non si avvia né si verifica un deploy Render salvo autorizzazione owner specifica.
+
+**Review AI bloccata:** se il reviewer automatico (CodeRabbit o altri) non parte per limiti di piano, quota o disponibilità, non si aspetta. Si scrive una riga nella PR con il link e si usa la review indipendente D2. I finding già pubblicati vanno risolti o motivati prima del merge.
+
+## 5. Issue — chiusura solo owner (MP-OWNER-CERT-ISSUE-CLOSURE-01)
+
+**Solo l'owner chiude le issue.**
+
+Gli agenti non chiudono issue, né direttamente né tramite script, workflow, API o merge. Nelle PR, nei commit e nei documenti si usa `Refs #N`, mai le parole chiave GitHub di auto-chiusura (Closes/Fixes/Resolves seguite da un riferimento). La CI rifiuta queste parole chiave in titolo, corpo e commit della PR e nei documenti canonici (`npm run governance:scan-closing`).
+
+Quando **tutti** i requisiti approvati di una issue sono implementati e certificati, e tutte le PR necessarie sono mergiate, l'agente pubblica nella issue un commento intitolato **`READY TO CLOSE — OWNER APPROVAL REQUIRED`** con:
+1. issue e obiettivo;
+2. requisiti completati;
+3. PR e commit mergiati;
+4. codice implementato;
+5. test eseguiti e risultati;
+6. CI;
+7. review indipendente;
+8. Gate A/B;
+9. certificazione e perimetro;
+10. limiti residui approvati;
+11. dipendenze verificate;
+12. assenza di blocker;
+13. verdetto.
+
+Se manca una prova obbligatoria si usa BLOCKED o NOT VERIFIED. Una PR che completa solo una parte di una issue produce un aggiornamento di avanzamento, non READY TO CLOSE. La issue resta OPEN fino alla decisione dell'owner.
+
+## 6. Checkpoint, handoff e recovery (MP-MULTIAGENT-SYNC-CHECKPOINT-01, #150)
+
+Ogni ciclo di lavoro lascia su GitHub un checkpoint machine-readable in `docs/governance/checkpoints/<id>.json`:
+- append-only, schema `mp-checkpoint-v1`;
+- stati ammessi: PLANNED, RUNNING, BLOCKED, REVIEW, HANDOFF READY, CERTIFIED, MERGED, COMPLETED;
+- ogni checkpoint ha un commento corrispondente su issue o PR con marker `<!-- mp-checkpoint:<id> -->`.
+
+Il registro attività `docs/governance/work-registry.json` gestisce assegnazioni e lease:
+- un lease attivo di un altro agente non si scavalca;
+- un lease scaduto si rileva solo dopo aver riconciliato il suo ultimo checkpoint con lo stato reale.
+
+Quando un agente interrompe il lavoro pubblica `HANDOFF READY`. Procedura completa, regole di idempotenza e casi di recovery (crash, timeout, limiti d'uso, cambio di modello, agente o ambiente): [`docs/governance/HANDOFF.md`](docs/governance/HANDOFF.md).
+
+## 7. README sincronizzato
+
+README.md va aggiornato in ogni PR che cambia:
+- stato di una fase;
 - architettura;
-- schema;
+- contratto dati;
 - endpoint;
-- cron/job;
+- job/cron;
+- fonti dati;
 - certificazione;
-- limiti;
-- risultati reali.
+- limiti noti;
+- criteri di accettazione;
+- evidenze reali;
+- roadmap.
 
-Il README deve distinguere chiaramente:
-- **IMPLEMENTED**
-- **TESTED**
-- **VERIFIED REAL**
-- **CERTIFIED**
+Il README distingue IMPLEMENTED / TESTED / VERIFIED REAL / CERTIFIED e non dichiara completato nulla che non sia verificato.
 
-Non usare “completato”, “certificato” o “chiuso” come sinonimi se i gate reali non sono passati.
+## 8. Roadmap #97, ownership e mock vivo
 
-## Roadmap #97, ownership e mock vivo — regola per ogni agente
+**Ordine canonico #97** (revisione owner 06/10/2026), con sequenza operativa R-00…R-18 (D8):
+0. #23 identità + security baseline;
+1. #95 settings;
+2. #12 → #20 → #31 dati certificati;
+3. #24 replay backend;
+4. #94 Math Core;
+5. #96 MM;
+6. #100 Market Rules;
+7. #99 Settlement/Ledger;
+8. #34 Strategy Lab;
+9. #28 Trading Engine;
+10. #27 benchmark e query #25/#30;
+11. #98 certificazione integrata;
+12. #44 AI Assistant;
+13. #45 Exchange (owner-gated);
+14. #32 hardening;
+15. UI finale;
+16. #46 Billing.
 
-Vale per qualunque agente (Claude, Codex, ChatGPT o altri) e per ogni PR.
+#102 Trading Copilot attraversa più fasi. Riassunto: `docs/integration-map.md`.
 
-- Rispettare l'ordine di **#97** (fasi 0–16) e indicare nella PR la fase implementata. Riassunto: `docs/integration-map.md`.
-- Backend / API-first: ogni dominio espone i propri tool; #98 certifica l'intero percorso senza sito prima della UI finale (fase 15).
-- **Nessuna logica di business nella UI.** La UI e il mock consumano contratti; solver, formule, policy, settlement e ledger stanno nei domini.
-- Mantenere l'ownership: #94 math, #95 settings, #96 policy MM e `operational_mode` (legge da #99, non scrive), #100 regole di mercato, #99 posizioni / settlement / ledger, #34 strategie e backtest, #28 segnali e intent, #45 ordini reali, #44 assistente globale, #102 Trading Copilot senza logica propria.
-- **Mock vivo**: ogni feature, stato, dominio, tool, impostazione o cambio UX con impatto visibile o concettuale aggiorna `docs/mockups/matchpilot-trading-os.html` e `docs/mockups/README.md` (changelog con SHA-256) nella stessa PR o nella stessa sequenza pianificata. Ogni PR risponde: "Questa modifica richiede un aggiornamento del mock MatchPilot? SÌ / NO".
-- Distinguere sempre REAL da DEMO: REAL solo per valori da route certificate. Il prototipo simula la persistenza nel browser e non deve dichiararla account-level.
-- Aggiornare i tag `data-issue` del mock quando cambia l'owner di una funzione.
-- **Mai certificare dal mock**: una funzione presente solo nel mock non è IMPLEMENTED, TESTED, HARD_VERIFIED_REAL, TOOL_VERIFIED né CERTIFIED.
-- Ciclo di certificazione: DISCOVERED → SPECIFIED → CONTRACT_FROZEN → IMPLEMENTED → TESTED → MATH_VERIFIED (se applicabile) → HARD_VERIFIED_REAL → TOOL_VERIFIED → CERTIFIED → OWNER_ACCEPTED.
+**Ownership di dominio:**
+- **#94 Math:** formule pure, Decimal/fixed precision, solver, oracle e test vector.
+- **#95 Settings:** impostazioni account, commissione, default, versioni, snapshot, concorrenza.
+- **#96 Money Management:**
+  - registry, profili, capability, staking policy, limiti, filtri, regole;
+  - sequence state solo se serve;
+  - decisioni ALLOW / REDUCE / BLOCK / SIMULATION_ONLY;
+  - `operational_mode` (ACTIVE_OPERATIONAL / ADVISORY_ONLY / PAUSED / ARCHIVED).
 
-## Data integrity
+  Legge da #99; non scrive posizioni, ledger o saldo.
+- **#100 Market Rules:** risoluzione dei mercati, VOID, PUSH, rinvii, abbandoni, dead heat, esiti asiatici a metà, supplementari e rigori, correzioni, versione della regola.
+- **#99 Settlement / Ledger:** posizioni, leg, riserve, esposizione, contabilità, P/L, equity, settlement, commissione applicata, ledger append-only, reversal, idempotenza.
+- **#34 Strategy Lab:** strategie, DSL, versioni, backtest, assegnazione MM, matching. L'Indicator Library/DSL appartiene solo a #34.
+- **#28 Trading Engine:** piano, segnali, BACK / LAY / DUTCH / NO TRADE, intent di entry, invalidation, exit e hedge.
+- **#45 Execution:** unico percorso per ordini reali.
+- **#44:** assistente globale.
+- **#102:** Trading Copilot in partita, senza logica propria.
 
-- Conservare raw payload e normalized payload separatamente.
-- Salvare provider timestamp e acquisition timestamp.
-- Non contaminare PREMATCH con LIVE.
-- Ogni trasformazione deve essere deterministica e testabile.
-- Ogni campo sconosciuto va preservato nel raw payload e registrato nello schema discovery.
-- Mai trasformare N/D in 0.
-- Mai perdere una colonna upstream perché non ancora mappata nella UI.
-- Snapshot e versioni devono essere idempotenti.
-- Backfill deve essere restartable.
-- Errori upstream e bug MatchPilot devono essere classificati separatamente.
+**Nessuna logica di business nella UI.**
 
-## FutPythonTrader — protocollo #12
+**Profili MM:**
+- identità stabile e versioni immutabili: ogni modifica crea una versione e lo storico resta sulla versione usata;
+- eliminazione fisica solo se il profilo non è mai stato referenziato;
+- STOP OPERATIONS porta il profilo in ADVISORY_ONLY: l'analisi continua, ma nessuna nuova posizione, riserva o scrittura nel ledger;
+- il replay con MM gira in una sessione di simulazione separata, senza dati futuri e senza scritture nel ledger.
 
-Per ogni fase di certificazione:
+**Livelli di certificazione distinti:** implementazione; certificazione di componente nel proprio scope; certificazione integrata #98. Mock e CI da soli non sono hard evidence.
 
-### Prima della patch
-- leggere stato reale della #12;
-- verificare ultima evidenza Render/Neon;
-- identificare gate ancora falliti;
-- definire cosa deve dimostrare la PR.
+**OPEN / OWNER DECISION REQUIRED:**
+- eccezione STOP/ADVISORY sulle posizioni già aperte (`OWN-OPEN-STOP-ADVISORY`): non scegliere automaticamente "blocca tutto" né "settle comunque";
+- WeWeb;
+- sport o overlap aggiuntivi;
+- BetsAPI come provider core;
+- execution reale.
 
-### Durante la patch
-- non modificare criteri di accettazione per far passare il test;
-- non nascondere ERROR_REAL;
-- non classificare un 404 iniziale come bug MatchPilot;
-- non classificare una regressione 404 come semplice unavailable;
-- mantenere contatori e ledger riproducibili;
-- mantenere provenance.
+**Mock vivo:**
+- Ogni feature, stato, dominio, tool, impostazione o cambio UX con impatto visibile o concettuale aggiorna `docs/mockups/matchpilot-trading-os.html` e `docs/mockups/README.md` (changelog con SHA-256) nella stessa PR o sequenza pianificata.
+- Ogni PR risponde: "Questa modifica richiede un aggiornamento del mock MatchPilot? SÌ / NO".
+- REAL solo per valori da route certificate. Il prototipo simula la persistenza nel browser: non dichiararla account-level.
+- Una funzione presente solo nel mock non è mai IMPLEMENTED, TESTED né CERTIFIED.
 
-### Prima del merge
+## 9. Data integrity e point-in-time (D4)
+
+- Raw e normalized separati. Provider timestamp e acquisition timestamp sempre salvati. Campi sconosciuti preservati nel raw e registrati nello schema discovery.
+- Mai trasformare N/D in 0. Mai perdere una colonna upstream perché non mappata nella UI.
+- Snapshot idempotenti, backfill restartable, trasformazioni deterministiche e testabili. Errori upstream e bug MatchPilot classificati separatamente.
+
+**PIT (D4)** per replay, statistiche e backtest:
+- si usa un dato solo se la sua disponibilità è dimostrabile entro il tempo della decisione simulata;
+- si distinguono tempo dell'evento, del provider, di acquisizione, di disponibilità e di decisione;
+- timestamp assenti o ambigui ⇒ dato non PIT-verificato, mai orari inventati;
+- policy UTC/timezone/DST esplicita e testata;
+- parser, reprocessing e versioni dell'identità possono cambiare il risultato allo stesso T, quindi a ogni reprocessing si registrano:
+  - prima e dopo;
+  - raw e acquisition;
+  - versioni di parser, schema, transform e data contract;
+  - versioni di mapping;
+- nessun apply in produzione senza owner;
+- i dati non PIT escono dai backtest certificati o vengono etichettati come non PIT.
+
+## 10. FutPythonTrader — protocollo #12
+
+#12 è il contratto vincolante FPT. FPT si dichiara CLOSED / CERTIFIED solo con tutti i gate #12 verificati. Esito finale: CERTIFIED / CERTIFIED WITH KNOWN LIMITATIONS / NOT CERTIFIED.
+
+Codice presente, CI verde, test unitari, endpoint che risponde o deploy live non bastano.
+
+**Gate finale** ("FutPythonTrader è chiuso" solo se):
+- backfill completo;
+- dataset classificati;
+- conteggi riconciliati;
+- colonne censite;
+- coverage completa;
+- missing available seasons = 0;
+- secondo sync incrementale;
+- nessuna duplicazione;
+- watchdog e alert Telegram certificati;
+- certificato finale;
 - CI verde;
-- test reali eseguiti;
-- endpoint/query reali verificati;
-- review/thread risolti;
-- README aggiornato;
-- issue #12 aggiornata solo per punti realmente certificati;
-- nessun risultato “atteso” presentato come osservato.
+- review chiuse;
+- nessun ERROR_REAL imputabile a MatchPilot.
 
-### Review AI — non attendere se bloccate
+**Disciplina di fase** (#12 e #20):
+- una fase non si suddivide in PR parallele senza autorizzazione owner;
+- un failure reale ⇒ si resta nella stessa fase;
+- vietato saltare alla fase successiva per aggirare un gate fallito;
+- vietato marcare checklist completate in anticipo.
 
-Regola dell'owner, vale per CodeRabbit, Codex e qualunque altro reviewer AI.
+**Durante una patch FPT:**
+- non modificare i criteri per far passare i test;
+- non nascondere ERROR_REAL;
+- un 404 iniziale non è un bug MatchPilot;
+- una regressione 404 non è semplice unavailable;
+- contatori, ledger e provenance riproducibili.
 
-- Se la review AI non parte o si ferma per rate limit, quota d'uso esaurita, limite del piano (per esempio "fewer than 10 stars"), servizio non disponibile o nessuna risposta dopo il trigger, **non si aspetta**.
-- Si scrive nella PR una riga con il motivo e il link al commento del bot, e si procede. Il merge resta subordinato a CI verde, test pertinenti, evidenza reale e README aggiornato.
-- I finding già pubblicati da un reviewer AI restano da risolvere o da rispondere prima del merge. La regola copre solo l'attesa di una review che non arriva.
-- La regola non vale per review umane richieste, per CI rossa né per un gate reale fallito.
+**Evidenza reale FPT:** commit SHA, migration, query/contatori, endpoint, dataset, righe, match, colonne, coverage, available / unavailable_404 / error_real, idempotenza, resume, alert/watchdog, failure e correzioni. Se l'evidenza reale contraddice il test, prevale il dato reale.
 
-### Dopo il merge
-- verificare deploy Render;
-- verificare migrazioni Neon;
-- controllare log senza secret;
-- acquisire numeri reali;
-- annotare failure reali;
-- solo allora passare alla PR successiva.
+**Resume drill e budget:**
+- **migrazione:** `007-fpt-request-ledger.sql` aggiunge `ingest_complete`, `fpt_request_ledger` e `fpt_provider_hold`;
+- **drill:** è one-off (`--resume-drill-requeue` poi `--backfill`), mai con `FUTPYTHON_BACKFILL_ON_START`. Non si cambiano le env del servizio per il drill e `FUTPYTHON_BACKFILL_ON_START` e `FUTPYTHON_PHASE1_VERIFY_ON_START` restano false;
+- **FASE 1:** è VERIFIED REAL (deploy `dep-db1bbujtqb8s7396dg50`, commit `222be65`) con un limite residuo dichiarato: il SIGTERM live cade fra i dataset, nel delay di 5 secondi, non a metà scrittura;
+- **classificazione:** gli stati AVAILABLE, UNAVAILABLE_404, ERROR_REAL, DEPRECATED, REMOVED, INITIAL_404 e REGRESSION_404 sono persistiti; `active=false` da solo non basta;
+- **budget:** i default `FUTPYTHON_REQUESTS_PER_MINUTE` / `PER_DAY` / `BACKFILL_REQUESTS_PER_MINUTE` sono tetti di codice, non la quota del fornitore;
+- **provider:** il browser non chiama FPT e non esiste un proxy verso il provider;
+- **ledger:** non contiene API key.
 
-## Resume drill e budget FutPython
+**Storico FPT-PR-01..09 (evidenze storiche nel proprio perimetro):**
+- **migrazione `014-fpt-normalized-layer.sql`** introduce `fpt_match_facts`, `fpt_filter_registry` e `fpt_team_links`.
+- **Route di sola lettura:** `/api/fpt/*`, `/api/futpython-certificate` e la pagina `/coverage`.
+- **Certificato:** `docs/futpython-certification-YYYY-MM-DD.md` si genera dall'endpoint, non a mano.
+- **Stagioni:** le stagioni correnti `available` sono riscaricate con TTL `FUTPYTHON_CURRENT_SEASON_TTL_HOURS` (default 24, massimo `FUTPYTHON_REFRESH_PER_RUN` per run); il divieto di refetch dei terminali vale solo per le stagioni chiuse.
 
-- Una sola PR. FPT-PR-01 è mergiata e verificata. FPT-PR-02 persiste gli stati terminali, INITIAL_404 e REGRESSION_404. FPT-PR-03 persiste l'audit di integrità e l'identità squadra. FPT-PR-04 persiste registry e lineage. FPT-PR-05 persiste la coverage full su global/dataset/league/season/period/normalized e solo un campione team. FPT-PR-06 persiste il registry stagione, i buchi a cadenza annuale e il point-in-time. FPT-PR-07 è il doppio sync incrementale, senza refetch dei dataset terminali delle stagioni chiuse. FPT-PR-08 certifica watchdog e Telegram sullo stesso alerter. Il gate phase8 è stato riletto vero su Neon prima di FPT-PR-09. FPT-PR-09 aggiunge la migrazione `014-fpt-normalized-layer.sql` (ledger con provider/endpoint/latenza/deduped/budget, famiglie AH/EH/Country/Div/throw-in corrette, `fpt_match_facts`, `fpt_filter_registry`, `fpt_team_links`), le route di sola lettura `/api/fpt/*` e `/api/futpython-certificate`. Il certificato `docs/futpython-certification-YYYY-MM-DD.md` si genera da quell'endpoint, non a mano. La precedente restrizione post FPT-PR-09 è SUPERSEDED nella parte che escluderebbe il nuovo audit owner dei 412 dataset e il rischio PIT documentato nella #12; gli altri lavori richiedono un requisito/gate vigente. Correzioni della checklist finale #12 dentro FPT-PR-09: query layer assistente, registry filtri completa, livelli di budget #31, onboarding controllato (una nuova lega entra in produzione solo con promozione dell'owner, `node src/jobs/futpython-onboarding.mjs --promote`: l'agente non promuove senza autorizzazione esplicita), riconciliazione #31 (checkpoint, ledger dei gap, recupero nel sync; le stagioni correnti `available` vengono riscaricate con TTL `FUTPYTHON_CURRENT_SEASON_TTL_HOURS`, default 24, massimo `FUTPYTHON_REFRESH_PER_RUN` per run: il "nessun refetch dei terminali" di FPT-PR-07 vale ora solo per le stagioni chiuse), raw append-only (cancellazione solo con `matchpilot.raw_delete_authorization` dell'owner), rielaborazione registrata (`node src/jobs/futpython-reprocess.mjs`: l'agente non lancia `--apply` in produzione senza autorizzazione), pagina `/coverage`.
-- Non chiudere la issue #12.
-- Non lanciare il drill sul servizio web e non impostare `FUTPYTHON_BACKFILL_ON_START=true`.
-- Il ledger non deve contenere API key. Il browser non chiama il provider.
-- Non dichiarare la FASE 1 priva del limite residuo: il SIGTERM live è fra i dataset, nel delay di 5 secondi, non a metà scrittura.
-- I default di budget non sono la quota del fornitore: non inventarli come piano reale.
+**Restano owner-gated:**
+- promozione di una nuova lega (`node src/jobs/futpython-onboarding.mjs --promote`);
+- cancellazione raw (`matchpilot.raw_delete_authorization`);
+- `node src/jobs/futpython-reprocess.mjs --apply` in produzione.
 
-## Evidenza reale
+L'audit dei 412 `UNAVAILABLE_404` è autorizzato solo nella parte read-only (D7).
 
-Una evidenza accettabile deve essere riconducibile a:
+## 11. TotalCorner — protocollo #20
+
+1. Leggere integralmente la #20.
+2. Nel collector entrano solo campionati FPT ∩ TC con mapping VERIFIED.
+3. PREMATCH e LIVE temporalmente separati.
+4. Il collector live persiste snapshot, eventi e market movement deduplicati.
+5. Preservare raw e campi sconosciuti.
+6. Rispettare rate limit e backoff.
+7. Alert sulla stessa chat Telegram di FPT.
+8. Nessun token TotalCorner nei log.
+9. Verificare persistenza e replay dopo un restart.
+10. `TotalCorner CLOSED / CERTIFIED` solo dopo tutti i gate della #20.
+11. **D6:**
+    - nessun rinnovo, credito o servizio a pagamento;
+    - nessun riavvio di collector che produca costi senza approvazione owner con costo, beneficio e impatto;
+    - lo sviluppo continua offline sui dati già acquisiti.
+
+## 12. Archivio #40 (D7) e produzione
+
+**Archivio #40:** solo lettura (inventario, SHA-256, readback, verifica DuckDB/Parquet, PIT, riconciliazione). Mai modifica, rigenerazione, backfill o pubblicazione dei dati. #40 resta OPEN fino alla verifica indipendente di portabilità, hash e integrità (D9).
+
+**Produzione:**
+- nessun deploy, scrittura Neon/Render, costo o operazione LIVE senza autorizzazione owner esplicita;
+- Render e Neon sono sospesi dal 09/10 (#144);
+- lo sviluppo è offline su PostgreSQL isolato.
+
+## 13. Evidenza
+
+**Fonti accettabili:**
 - output CI;
-- deploy Render;
-- log Render;
-- dati Neon;
+- test eseguiti su codice reale;
+- dati di PostgreSQL di test;
 - endpoint MatchPilot;
 - risposta upstream verificata;
-- test reale Telegram;
-- snapshot/hash/ledger persistito.
+- snapshot, hash o ledger persistiti;
+- commenti GitHub con ID.
 
-Non usare come certificazione:
+**Fonti non accettabili:**
 - supposizioni;
 - screenshot vecchi;
 - output del vecchio progetto;
-- test solo mock se è richiesto un test reale;
-- numeri copiati da una run precedente non compatibile.
+- test solo mock dove serve un test reale;
+- numeri copiati da run incompatibili;
+- etichette senza fonte verificabile.
 
-## UI
+## 14. UI e trading
 
-- Web responsive desktop/mobile.
-- Daily Board a card.
-- Match Center a card.
-- Ogni card deve mostrare N/coverage.
-- Le metriche non disponibili devono risultare **N/D**, non 0.
-- PREMATCH e LIVE devono essere visualmente distinti.
-- Stato dati e freschezza devono essere ispezionabili.
+**UI:**
+- web responsive;
+- Daily Board e Match Center a card con N e coverage;
+- metriche non disponibili mostrate come N/D;
+- PREMATCH e LIVE visivamente distinti;
+- stato e freschezza dei dati ispezionabili.
 
-## Trading
-
-- Nessun segnale senza evidenze associate.
-- Nessun edge senza fair probability/fair price esplicita.
-- NO TRADE deve essere supportato.
-- Le strategie devono essere versionate e riproducibili.
-- Backtest cronologico, senza leakage.
-- Modello e movimento quota restano segnali distinti.
-
-## Repository
-
-- Niente codice esplorativo one-shot su main.
-- Probe/forensics solo in tools/ o rimossi dopo uso.
-- Nessun secret in codice/log/test fixture.
-- Nessun riferimento operativo al vecchio progetto su main.
-- Branch archivio non è fonte di contratto corrente.
-- Test prima del merge.
-- Review/thread prima del merge.
-- README/CLAUDE/AGENTS devono restare coerenti tra loro e con `docs/integration-map.md` e il mock.
-
-## Definizione di chiusura FutPythonTrader
-
-Non dichiarare FutPythonTrader chiuso finché la #12 non ha tutti i gate finali verificati.
-
-Solo il certificato finale può promuovere lo stato a:
-- CERTIFIED;
-- CERTIFIED WITH KNOWN LIMITATIONS;
-- NOT CERTIFIED.
-
-
-## TotalCorner — protocollo #20
-
-Quando il lavoro riguarda TotalCorner:
-1. leggere integralmente la issue #20;
-2. verificare overlap campionati con FutPythonTrader;
-3. usare solo mapping VERIFIED per produzione;
-4. una PR alla volta;
-5. ogni PR richiede CI + hard test reali;
-6. README sempre sincronizzato;
-7. preservare raw payload e campi sconosciuti;
-8. rispettare rate limit e backoff;
-9. non contaminare PREMATCH con dati live;
-10. verificare persistenza/replay dopo restart e giorno successivo;
-11. usare la stessa chat Telegram per alert TotalCorner;
-12. non dichiarare CLOSED/CERTIFIED prima del certificato finale.
-
-
-## Issue closure workflow — owner gate
-
-Le issue **non devono essere chiuse automaticamente dall'agente**.
-
-Quando ogni punto richiesto nel contenuto dell'issue risulta realmente:
-- implementato;
-- testato;
-- verificato con le evidenze richieste;
-- documentato;
-- privo di gate aperti;
-
-l'agente deve lasciare un **commento finale di chiudibilità** nell'issue.
-
-Il commento deve includere almeno:
-- stato: `READY TO CLOSE` / `CHIUDIBILE`;
-- checklist dei punti dell'issue e relativo esito;
-- PR/commit coinvolti;
-- CI/review status;
-- evidenze reali Render/Neon/API/Telegram quando richieste;
-- limiti noti residui, se presenti;
-- conferma che nessun punto del contenuto resta aperto.
-
-Dopo il commento, l'issue resta **OPEN**.
-
-La chiusura è riservata all'owner.
-
-Eccezione: se l'owner autorizza esplicitamente l'agente a chiudere quella specifica issue, l'agente può chiuderla solo dopo aver pubblicato il commento di chiudibilità e aver verificato nuovamente che tutti i gate siano passati.
-
-Non interpretare autorizzazioni precedenti o generiche come permesso permanente di chiudere issue future.
-
-
-## Trading-first, non betting-first
-
-MatchPilot è un **tool di trading sportivo**, non un tipster e non un motore di scommesse secche.
-
-Il prodotto deve ragionare in termini di:
+**Trading-first, non betting-first.** Il prodotto ragiona in termini di:
 - stato del mercato;
 - score vulnerabile;
 - BACK/LAY;
 - fair price;
 - edge;
-- timing di ingresso;
+- timing;
 - conferma live;
 - invalidation;
 - stop;
 - exit/hedge;
-- rischio e stake;
-- NO TRADE come risultato valido;
-- post-mortem e replay.
+- rischio e stake.
 
-Un pronostico 1/X/2 o Over/Under può essere un input analitico, ma non è il prodotto finale.
+NO TRADE è un risultato valido. Strategie versionate e riproducibili; backtest cronologico senza leakage; modello e movimento quota restano segnali distinti.
 
-Benchmark GOAT del 04/10/2026: i 21 report mostrano un'impostazione orientata a trading operativo (risultato vulnerabile, frequenza lay, fair lay, rischio, conferma live, check 75', stop e stake). MatchPilot deve superare questo approccio usando dati FutPythonTrader + TotalCorner più completi e replay live persistente.
+Benchmark GOAT del 04/10/2026: MatchPilot deve superarlo con dati FPT + TC più completi e replay persistente.
+
+## 15. Repository
+
+- Niente codice esplorativo one-shot su main: probe e forensics vanno in `tools/` o si rimuovono.
+- Nessun riferimento operativo al vecchio progetto.
+- Il branch archivio non è fonte di contratto.
+- Test e review prima del merge.
+- AGENTS, CLAUDE, README, `docs/integration-map.md` e il mock restano coerenti. La coerenza è verificata da `test/governance-docs.test.mjs` e `test/mockup-alignment.test.mjs`.

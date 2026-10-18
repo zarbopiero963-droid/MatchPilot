@@ -21,4 +21,6 @@ FUTPYTHON_TEST_DATABASE_URL=postgres://matchpilot:matchpilot_local_test@127.0.0.
 node --test test/postgres-independence.test.mjs
 ```
 
+On a server other than PostgreSQL 17 the test closes its connection and is skipped with the detected `server_version_num` when run locally; with `CI` set it fails immediately instead. In both cases it terminates instead of hanging.
+
 The test creates and drops a unique schema. It never accepts a remote database URL and never starts collectors in isolated mode.

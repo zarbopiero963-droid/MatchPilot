@@ -2,6 +2,7 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
   push:
     branches: [main]
 
@@ -42,6 +43,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
@@ -51,6 +54,21 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - name: Classifier regression tests
         run: node --test test/ci-classify.test.mjs
+      - name: Governance gate (inventory, owner decisions, checkpoints, registry)
+        run: |
+          npm run governance:validate
+          npm run governance:check
+          node tools/governance/render-inventory.mjs --check
+          node --test test/requirements-inventory.test.mjs test/governance-*.test.mjs
+      - name: Reject auto-closing issue references
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          npm run governance:scan-closing
+          node tools/governance/cli.mjs check-append-only
       - name: Syntax checks
         if: needs.classify.outputs.mode != 'docs'
         run: npm run check

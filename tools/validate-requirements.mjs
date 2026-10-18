@@ -1,5 +1,5 @@
 import {readFile} from 'node:fs/promises';
-import {existsSync} from 'node:fs';
+import {existsSync, readdirSync} from 'node:fs';
 
 const root = new URL('../', import.meta.url);
 const path = new URL('docs/governance/mp-pr-00/requirements.json', root);
@@ -13,7 +13,33 @@ export async function loadDecisions() {
   return JSON.parse(await readFile(decisionsPath, 'utf8'));
 }
 
-const repoPathExists = file => file.includes('*') || existsSync(new URL(file, root));
+// A wildcard path (only in the file name, e.g. test/*.test.mjs) must match at least one file.
+const repoPathExists = file => {
+  if (!file.includes('*')) return existsSync(new URL(file, root));
+  const slash = file.lastIndexOf('/');
+  const dir = new URL(file.slice(0, slash + 1), root);
+  const name = new RegExp('^' + file.slice(slash + 1).split('*').map(part => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$');
+  return existsSync(dir) && readdirSync(dir).some(entry => name.test(entry));
+};
+const realDate = value => {
+  const time = Date.parse(`${value}T00:00:00Z`);
+  return /^\d{4}-\d{2}-\d{2}$/.test(value || '') && !Number.isNaN(time) && new Date(time).toISOString().slice(0, 10) === value;
+};
+
+function dependencyCycles(requirements) {
+  const deps = new Map(requirements.map(req => [req.id, req.dependencies || []]));
+  const state = new Map();
+  const cycles = [];
+  const visit = (id, trail) => {
+    if (state.get(id) === 'done' || !deps.has(id)) return;
+    if (state.get(id) === 'open') { cycles.push([...trail.slice(trail.indexOf(id)), id].join(' -> ')); return; }
+    state.set(id, 'open');
+    for (const next of deps.get(id)) visit(next, [...trail, id]);
+    state.set(id, 'done');
+  };
+  for (const id of deps.keys()) visit(id, []);
+  return cycles;
+}
 
 export function validateInventory(inventory, {pathExists = repoPathExists} = {}) {
   const errors = [];
@@ -51,6 +77,7 @@ export function validateInventory(inventory, {pathExists = repoPathExists} = {})
       if (!Array.isArray(req[key])) errors.push(`${req.id} ${key} must be an array`);
     }
     if (req.verdict === 'PASS' && !req.evidence?.length) errors.push(`${req.id} PASS without evidence`);
+    for (const item of req.evidence || []) if (!String(item).trim()) errors.push(`${req.id} empty evidence entry`);
     if (!req.target_prs?.length) errors.push(`${req.id} has no target PR`);
     for (const pr of req.target_prs || []) {
       if (!prIds.has(pr)) errors.push(`${req.id} target PR ${pr} not in pr_registry`);
@@ -73,6 +100,7 @@ export function validateInventory(inventory, {pathExists = repoPathExists} = {})
       }
     }
   }
+  for (const cycle of dependencyCycles(requirements)) errors.push(`dependency cycle ${cycle}`);
   for (const pr of inventory.pr_registry || []) {
     if (!usedPrs.has(pr.id)) errors.push(`PR ${pr.id} has no requirement`);
   }
@@ -96,12 +124,13 @@ export function validateDecisions(register) {
     }
     if (ids.has(item.id)) errors.push(`duplicate decision ${item.id}`);
     ids.add(item.id);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(item.date || '')) errors.push(`decision ${item.id} invalid date`);
+    if (!realDate(item.date)) errors.push(`decision ${item.id} invalid date`);
     if (!states.has(item.status)) errors.push(`decision ${item.id} invalid status ${item.status}`);
   }
   for (const item of register.decisions || []) {
     for (const ref of item.superseded_by || []) if (!ids.has(ref)) errors.push(`decision ${item.id} superseded_by unknown ${ref}`);
-    if (item.status === 'SUPERSEDED' && !item.superseded_by?.length) errors.push(`decision ${item.id} SUPERSEDED without superseded_by`);
+    if (['SUPERSEDED', 'PARTIALLY_SUPERSEDED'].includes(item.status) && !item.superseded_by?.length) errors.push(`decision ${item.id} ${item.status} without superseded_by`);
+    for (const ref of item.supersedes || []) if (/^[A-Z][A-Z0-9-]*(?:\.D\d+)?$/.test(ref) && !ids.has(ref)) errors.push(`decision ${item.id} supersedes unknown ${ref}`);
   }
   if (!ids.size) errors.push('decision register must not be empty');
   return errors;

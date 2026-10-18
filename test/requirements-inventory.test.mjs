@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {loadDecisions, loadInventory, summarize, validateDecisions, validateInventory} from '../tools/validate-requirements.mjs';
+import {apply, renderBlocks, TARGETS} from '../tools/governance/render-inventory.mjs';
 
 const clone = value => structuredClone(value);
 const find = (inventory, id) => inventory.requirements.find(req => req.id === id);
@@ -84,15 +85,12 @@ test('P0 blockers cannot be hidden by aggregate coverage', async () => {
   assert.equal(summarize(inventory).p0_open, blocking.length);
 });
 
-test('human-readable inventory docs state the computed counts', async () => {
-  const summary = summarize(await loadInventory());
-  const readme = await readFile(new URL('../docs/governance/mp-pr-00/README.md', import.meta.url), 'utf8');
-  const matrix = await readFile(new URL('../docs/governance/mp-pr-00/traceability.md', import.meta.url), 'utf8');
-  assert.ok(readme.includes(`| Totale | ${summary.denominator} |`));
-  assert.ok(readme.includes(`| PASS (tutti con evidenza, ciascuno limitato al proprio scope) | ${summary.pass_with_evidence} |`));
-  assert.ok(readme.includes(`| P0 aperti | ${summary.p0_open} |`));
-  const v = summary.by_verdict;
-  assert.ok(matrix.includes(`| **Totale** | **${summary.denominator}** | **${summary.by_priority.P0}** | **${v.PASS}** | **${v.FAIL}** | **${v.BLOCKED || 0}** | **${v.NOT_VERIFIED}** |`));
+test('human-readable inventory docs carry the generated counts (no drift)', async () => {
+  const blocks = renderBlocks(await loadInventory());
+  for (const [file, names] of Object.entries(TARGETS)) {
+    const text = await readFile(new URL(`../${file}`, import.meta.url), 'utf8');
+    assert.equal(apply(text, blocks, names), text, `${file} is stale: run npm run governance:render`);
+  }
 });
 
 test('persisted audit report matches its recorded SHA-256', async () => {

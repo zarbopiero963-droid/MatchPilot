@@ -1,0 +1,150 @@
+{
+  "schema_version": "mp-checkpoint-v1",
+  "id": "CP-20261018T202029Z-agent-b-claude-subagent",
+  "timestamp_utc": "2026-10-18T20:20:29Z",
+  "agent": {
+    "id": "agent-b-claude-subagent",
+    "role": "Development Agent"
+  },
+  "activity": "Resumed R-01 from GitHub without agent A conversation; fixed finding N-06 (postgres-independence test hang on non-17 PostgreSQL)",
+  "task": "R-01",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 150,
+  "pr": 151,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "477c4344a9ca9b65d34dfecc549b1aebabf63497",
+  "tree_sha": "80705e0ee11ab9fc9d85513addf1f7d1992a5620",
+  "requirements": [
+    "MP-GOV-013",
+    "MP-GOV-014",
+    "MP-GOV-016",
+    "MP-GOV-017",
+    "MP-GOV-018",
+    "MP-GOV-019",
+    "MP-GOV-022",
+    "MP-GOV-023",
+    "MP-QAC-010",
+    "MP-QAC-012",
+    "MP-QAC-013"
+  ],
+  "changes": [
+    "test/postgres-independence.test.mjs: root pg client closed on every path; non-17 server skipped locally with server_version_num, still fails with CI set; schema drop guarded",
+    "docs/postgres-independent.md: non-17 behavior documented",
+    "docs/governance/work-registry.json: R-01 claimed by agent-b-claude-subagent (commit 9989e45) and released at this checkpoint"
+  ],
+  "tests": [
+    {
+      "command": "FUTPYTHON_TEST_DATABASE_URL=<local pg16> timeout 60 node --test test/postgres-independence.test.mjs (before fix, at 9547eca)",
+      "result": "FAIL",
+      "environment": "throwaway local PostgreSQL 16.0 (server_version_num 160015) on 127.0.0.1:55432, node 22.22.0",
+      "commit": "9547eca096408da87362d211f0cafed95bbd3677",
+      "time": "2026-10-18T20:18:00Z",
+      "limits": [
+        "RED reproduction: no output, killed by timeout after 60s (exit 124)"
+      ]
+    },
+    {
+      "command": "FUTPYTHON_TEST_DATABASE_URL=<local pg16> node --test test/postgres-independence.test.mjs (CI unset)",
+      "result": "PASS",
+      "environment": "throwaway local PostgreSQL 16.0 (server_version_num 160015) on 127.0.0.1:55432, node 22.22.0",
+      "commit": "477c4344a9ca9b65d34dfecc549b1aebabf63497",
+      "time": "2026-10-18T20:20:29Z",
+      "limits": [
+        "1 test SKIP \"PostgreSQL 17 is required, found server_version_num 160015\", exit 0 in <1s; no postgres_independent_* schema left"
+      ]
+    },
+    {
+      "command": "CI=1 FUTPYTHON_TEST_DATABASE_URL=<local pg16> node --test test/postgres-independence.test.mjs",
+      "result": "PASS",
+      "environment": "throwaway local PostgreSQL 16.0 (server_version_num 160015) on 127.0.0.1:55432, node 22.22.0",
+      "commit": "477c4344a9ca9b65d34dfecc549b1aebabf63497",
+      "time": "2026-10-18T20:20:29Z",
+      "limits": [
+        "expected failure: 1 fail with the version message, exit 1 in <1s, no hang"
+      ]
+    },
+    {
+      "command": "FUTPYTHON_TEST_DATABASE_URL=<unreachable port> node --test test/postgres-independence.test.mjs",
+      "result": "PASS",
+      "environment": "local container, node 22.22.0, no server on port",
+      "commit": "477c4344a9ca9b65d34dfecc549b1aebabf63497",
+      "time": "2026-10-18T20:20:29Z",
+      "limits": [
+        "SKIP \"throwaway postgres unavailable\", unchanged path"
+      ]
+    },
+    {
+      "command": "node --test test/governance-*.test.mjs test/requirements-inventory.test.mjs",
+      "result": "PASS",
+      "environment": "local container, node 22.22.0",
+      "commit": "477c4344a9ca9b65d34dfecc549b1aebabf63497",
+      "time": "2026-10-18T20:20:29Z",
+      "limits": [
+        "38/38"
+      ]
+    },
+    {
+      "command": "node --test",
+      "result": "PASS",
+      "environment": "local container, node 22.22.0, no PostgreSQL on default URL",
+      "commit": "477c4344a9ca9b65d34dfecc549b1aebabf63497",
+      "time": "2026-10-18T20:20:29Z",
+      "limits": [
+        "199 tests, 180 pass, 0 fail, 19 PostgreSQL skipped; PG17 path covered only by the CI PostgreSQL 17 job"
+      ]
+    },
+    {
+      "command": "npm run governance:validate && npm run governance:check && node tools/governance/render-inventory.mjs --check && npm run governance:scan-closing",
+      "result": "PASS",
+      "environment": "local container, node 22.22.0",
+      "commit": "477c4344a9ca9b65d34dfecc549b1aebabf63497",
+      "time": "2026-10-18T20:20:29Z",
+      "limits": [
+        "all exit 0"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "N-04",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "audit report committed by the implementer: SHA proves integrity since commit, not authorship; accepted limitation recorded on #150"
+    },
+    {
+      "id": "N-06",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "root client closed on every path; non-17 PostgreSQL skipped locally, fails in CI; proven on local PostgreSQL 16 (RED hang, GREEN skip/fail-fast)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-R01-AUTH-20261018",
+    "MP-OWNER-MASTER-GOVERNANCE-2026-10-18",
+    "MP-OWNER-DECISIONS-D1-D9-20261018.D11",
+    "MP-OWNER-AUTOMERGE-01",
+    "MP-OWNER-CERT-ISSUE-CLOSURE-01"
+  ],
+  "dependencies": [
+    "#149 merged at e424c8ca417757a4ff3265cd58d6c790a080ea7f"
+  ],
+  "state": "REVIEW",
+  "next_action": "Verify CI on the PR #151 head (Fast checks and PostgreSQL 17 integration suite must be green, proving the PG17 path is unchanged), then obtain an independent review (reviewer not agent-a-claude-code nor agent-b-claude-subagent) published on PR #151 with an explicit verdict on the head SHA. Gate B stays NOT_VERIFIED until CI passes on the final head. Then publish the real handoff evidence (CP-20261018T201559Z-agent-a-claude-code -> this checkpoint) on #150. Merge only via merge-gate; no deploy, no issue closure.",
+  "resume_conditions": [
+    "origin/ccr-e45875c0-5r0fnf head reconciles with commit_sha (only checkpoint/registry commits after it)",
+    "PR #151 is open and not merged",
+    "npm run governance:check passes",
+    "R-01 lease is free in docs/governance/work-registry.json"
+  ],
+  "supersedes": "CP-20261018T201559Z-agent-a-claude-code"
+}

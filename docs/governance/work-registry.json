@@ -1,0 +1,33 @@
+{
+  "schema_version": "mp-work-registry-v1",
+  "revision": 9,
+  "tasks": [
+    {
+      "id": "R-01",
+      "title": "Governance alignment, closure guards, Gate B evidence schema, MP-MULTIAGENT-SYNC-CHECKPOINT-01",
+      "issue": 150,
+      "pr": 151,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261018T203228Z-agent-a-claude-code"
+    },
+    {
+      "id": "R-02",
+      "title": "Archive #40 read-only materialization and independent hash/portability verification",
+      "issue": 40,
+      "pr": null,
+      "branch": "unassigned",
+      "kind": "implementation",
+      "state": "PLANNED",
+      "assignee": null,
+      "lease": null,
+      "latest_checkpoint": null
+    }
+  ]
+}
