@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 27,
+  "revision": 28,
   "tasks": [
     {
       "id": "R-01",
@@ -85,7 +85,7 @@
       "id": "R-08b",
       "title": "Version pinning for point-in-time reproduction (MP-FPT-005, R-08 part 2)",
       "issue": 12,
-      "pr": null,
+      "pr": 155,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
       "state": "REVIEW",
@@ -94,7 +94,8 @@
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261018T223245Z-agent-a-claude-code"
+      "latest_checkpoint": "CP-20261018T223245Z-agent-a-claude-code",
+      "pr_open": true
     }
   ]
 }
