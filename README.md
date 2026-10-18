@@ -1,5 +1,37 @@
 # MatchPilot — Sports Trading OS
 
+## Gate A OFFLINE v1 — MP-PR-00
+
+L'inventario atomico machine-readable è fissato sulla baseline `353dfc6523d357aae52615fdfb102fdf1e2a6795`. Il perimetro OFFLINE v1 è ratificato dalla decisione owner D3 del 18/10/2026.
+
+Dopo l'audit indipendente `MP-GATE-A-REVIEW-ROADMAP-01` e le correzioni R-00, il denominatore **PROVISIONAL** è di **136 requisiti**:
+- **Priorità:** 102 P0 e 34 P1.
+- **Verdetti:**
+  - 27 PASS, tutti con evidenza e ciascuno limitato al proprio scope;
+  - 65 FAIL;
+  - 6 BLOCKED;
+  - 38 NOT_VERIFIED.
+- **Gate:** 82 P0 aperti. Gate A **NON PASS**.
+
+Il denominatore definitivo uscirà dal censimento completo; nessun gruppo ha una dimensione fissa. Nessuna percentuale aggregata rende superabile un P0 aperto.
+
+- **Perimetro:** FutPythonTrader, TotalCorner, archivio storico, backend/API, sito reale, dashboard, Daily Board, Match Center, analisi partita, replay, statistiche, backtest, correttezza temporale (policy PIT D4), sicurezza, test e certificazione.
+- **Fuori dal denominatore v1:** LIVE, Exchange, SaaS e le funzioni avanzate del Trading OS, conservate nel registro futuro.
+- **Riferimenti:**
+  - inventario, matrice, conflitti e sequenza R-00…R-18: [`docs/governance/mp-pr-00/`](docs/governance/mp-pr-00/);
+  - registro canonico delle decisioni owner: [`docs/governance/owner-decisions.json`](docs/governance/owner-decisions.json);
+  - audit con hash: [`docs/governance/audits/`](docs/governance/audits/).
+- **Validazione:** `npm run governance:validate`.
+
+Regole owner del 18/10/2026:
+- auto-merge solo per PR certificate (Gate A/B, CI, review indipendente APPROVED, nessun finding bloccante);
+- **le issue le chiude solo l'owner** (READY TO CLOSE — OWNER APPROVAL REQUIRED; riferimenti `Refs #`);
+- nessun deploy, costo, produzione o LIVE senza autorizzazione esplicita.
+
+Il blocco "Ingresso operativo corrente — 07/10/2026" qui sotto è storico. Il suo allineamento con queste decisioni è pianificato nella PR R-01.
+
+MP-PR-00 non modifica runtime, API, schema o UX e non certifica il prodotto. Il mock MatchPilot non richiede aggiornamento: **NO — governance e tooling documentale soltanto**.
+
 ## Ingresso operativo corrente — 07/10/2026
 
 Leggere README → CLAUDE.md → AGENTS.md, poi **#3 → #97 → #104** e la issue di dominio; partire dai blocchi “Stato corrente / Prossima attività”, non dalla cronologia dei commenti.
