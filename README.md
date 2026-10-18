@@ -2,9 +2,33 @@
 
 ## Gate A OFFLINE v1 — MP-PR-00
 
-Il mandato owner `MP-ENTERPRISE-GATE-AB-WEB-SIM-01` usa un inventario atomico machine-readable, fissato sulla baseline `353dfc6523d357aae52615fdfb102fdf1e2a6795`. Il denominatore iniziale è **96 requisiti**: 70 P0, 25 P1 e 1 P2. Lo stato iniziale è 26 PASS circoscritti, 33 FAIL, 7 BLOCKED, 29 NOT_VERIFIED e 1 NOT_APPLICABLE; nessuna percentuale aggregata rende superabile un P0 aperto.
+L'inventario atomico machine-readable è fissato sulla baseline `353dfc6523d357aae52615fdfb102fdf1e2a6795`. Il perimetro OFFLINE v1 è ratificato dalla decisione owner D3 del 18/10/2026.
 
-Il perimetro include FutPythonTrader, TotalCorner, sito read-only reale, backend/API, replay autentico, backtest/statistica e certificazione continua. Execution Exchange, billing SaaS e attivazione LIVE di produzione restano nel registro futuro e fuori dal denominatore v1. Inventario, matrice, conflitti e criteri delle PR successive: [`docs/governance/mp-pr-00/`](docs/governance/mp-pr-00/). Validazione: `npm run governance:validate`.
+Dopo l'audit indipendente `MP-GATE-A-REVIEW-ROADMAP-01` e le correzioni R-00, il denominatore **PROVISIONAL** è di **136 requisiti**:
+- **Priorità:** 102 P0 e 34 P1.
+- **Verdetti:**
+  - 27 PASS, tutti con evidenza e ciascuno limitato al proprio scope;
+  - 65 FAIL;
+  - 6 BLOCKED;
+  - 38 NOT_VERIFIED.
+- **Gate:** 82 P0 aperti. Gate A **NON PASS**.
+
+Il denominatore definitivo uscirà dal censimento completo; nessun gruppo ha una dimensione fissa. Nessuna percentuale aggregata rende superabile un P0 aperto.
+
+- **Perimetro:** FutPythonTrader, TotalCorner, archivio storico, backend/API, sito reale, dashboard, Daily Board, Match Center, analisi partita, replay, statistiche, backtest, correttezza temporale (policy PIT D4), sicurezza, test e certificazione.
+- **Fuori dal denominatore v1:** LIVE, Exchange, SaaS e le funzioni avanzate del Trading OS, conservate nel registro futuro.
+- **Riferimenti:**
+  - inventario, matrice, conflitti e sequenza R-00…R-18: [`docs/governance/mp-pr-00/`](docs/governance/mp-pr-00/);
+  - registro canonico delle decisioni owner: [`docs/governance/owner-decisions.json`](docs/governance/owner-decisions.json);
+  - audit con hash: [`docs/governance/audits/`](docs/governance/audits/).
+- **Validazione:** `npm run governance:validate`.
+
+Regole owner del 18/10/2026:
+- auto-merge solo per PR certificate (Gate A/B, CI, review indipendente APPROVED, nessun finding bloccante);
+- **le issue le chiude solo l'owner** (READY TO CLOSE — OWNER APPROVAL REQUIRED; riferimenti `Refs #`);
+- nessun deploy, costo, produzione o LIVE senza autorizzazione esplicita.
+
+Il blocco "Ingresso operativo corrente — 07/10/2026" qui sotto è storico. Il suo allineamento con queste decisioni è pianificato nella PR R-01.
 
 MP-PR-00 non modifica runtime, API, schema o UX e non certifica il prodotto. Il mock MatchPilot non richiede aggiornamento: **NO — governance e tooling documentale soltanto**.
 

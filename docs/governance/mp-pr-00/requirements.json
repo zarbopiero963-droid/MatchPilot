@@ -1,193 +1,620 @@
 {
-  "schema_version": "mp-gate-a-v1",
+  "schema_version": "mp-gate-a-v2",
   "baseline": "353dfc6523d357aae52615fdfb102fdf1e2a6795",
-  "scope": {
-    "included": ["FutPythonTrader", "TotalCorner", "read-only web", "backend/API", "historical replay", "backtest/statistical validation", "automated tests", "continuous certification"],
-    "excluded_v1": ["Exchange execution", "SaaS billing", "LIVE production activation"]
+  "revision": {
+    "id": "R-00",
+    "previous_schema": "mp-gate-a-v1",
+    "audit": "docs/governance/audits/2026-10-18-MP-GATE-A-REVIEW-ROADMAP-01.md",
+    "owner_decisions": "docs/governance/owner-decisions.json"
   },
-  "states": ["PASS", "FAIL", "BLOCKED", "NOT_VERIFIED", "NOT_APPLICABLE"],
+  "scope": {
+    "ratified_by": "MP-OWNER-DECISIONS-D1-D9-20261018 D3",
+    "included": [
+      "FutPythonTrader",
+      "TotalCorner",
+      "historical archive",
+      "backend/API",
+      "real website",
+      "dashboard",
+      "Daily Board",
+      "Match Center",
+      "match analysis",
+      "historical replay",
+      "statistics",
+      "backtest",
+      "temporal correctness",
+      "security",
+      "tests and certification"
+    ],
+    "excluded_v1": [
+      "LIVE trading",
+      "Exchange execution",
+      "SaaS",
+      "other advanced Trading OS features unless an explicit technical dependency"
+    ]
+  },
+  "census": {
+    "status": "PROVISIONAL",
+    "denominator_ratified": false,
+    "note": "Owner D3: the definitive denominator is the one obtained from the complete verified census; no fixed group size.",
+    "known_gaps": [
+      {
+        "source": "#3",
+        "gap": "web card catalogue (~25 cards) not yet atomized card by card",
+        "resolution": "atomize in Gate A of R-06/R-07 before implementation"
+      },
+      {
+        "source": "#25/#30",
+        "gap": "Match Center (26 cards) and analysis hub (22 cards) card-level requirements",
+        "resolution": "atomize in Gate A of R-07"
+      },
+      {
+        "source": "#20",
+        "gap": "contract sections (retention, request economy, queryability) aggregated in MP-TC-*",
+        "resolution": "atomize in Gate A of R-15"
+      },
+      {
+        "source": "not sourced",
+        "gap": "accessibility level, i18n, legal disclaimer, retention size policy",
+        "resolution": "OPEN — owner decision required before becoming requirements"
+      }
+    ]
+  },
+  "states": [
+    "PASS",
+    "FAIL",
+    "BLOCKED",
+    "NOT_VERIFIED",
+    "NOT_APPLICABLE"
+  ],
   "groups": {
     "GOV": {
       "title": "Governance and certification",
-      "conditions": ["repository baseline is pinned", "owner scope is authoritative"],
-      "inputs": ["owner mandate", "GitHub issues", "repository tree"],
-      "outputs": ["machine-readable verdict", "traceable evidence"],
-      "invariants": ["no evidence means no PASS", "no protected action without authorization", "one PR at a time"],
-      "failure_modes": ["stale source treated as current", "aggregate percentage hides a P0", "BLOCKED converted to PASS"]
+      "conditions": [
+        "repository baseline is pinned",
+        "owner scope is authoritative"
+      ],
+      "inputs": [
+        "owner mandate",
+        "GitHub issues",
+        "repository tree"
+      ],
+      "outputs": [
+        "machine-readable verdict",
+        "traceable evidence"
+      ],
+      "invariants": [
+        "no evidence means no PASS",
+        "no protected action without authorization",
+        "one PR at a time"
+      ],
+      "failure_modes": [
+        "stale source treated as current",
+        "aggregate percentage hides a P0",
+        "BLOCKED converted to PASS"
+      ]
     },
     "FPT": {
       "title": "FutPythonTrader data",
-      "conditions": ["football-only scope", "provider data available or explicitly unavailable"],
-      "inputs": ["FutPython raw payload", "provider and acquisition timestamps"],
-      "outputs": ["normalized queryable data", "coverage and provenance"],
-      "invariants": ["raw is immutable", "N/D is not zero", "point-in-time reads do not use future data"],
-      "failure_modes": ["silent field loss", "parser drift changes history without version", "provider failure classified as unavailable"]
+      "conditions": [
+        "football-only scope",
+        "provider data available or explicitly unavailable"
+      ],
+      "inputs": [
+        "FutPython raw payload",
+        "provider and acquisition timestamps"
+      ],
+      "outputs": [
+        "normalized queryable data",
+        "coverage and provenance"
+      ],
+      "invariants": [
+        "raw is immutable",
+        "N/D is not zero",
+        "point-in-time reads do not use future data"
+      ],
+      "failure_modes": [
+        "silent field loss",
+        "parser drift changes history without version",
+        "provider failure classified as unavailable"
+      ]
     },
     "TC": {
       "title": "TotalCorner data",
-      "conditions": ["football-only", "FPT intersection", "VERIFIED competition mapping"],
-      "inputs": ["TotalCorner raw response", "provider_time", "observed_at"],
-      "outputs": ["prematch and live records", "market timeline and quality flags"],
-      "invariants": ["PREMATCH and LIVE are separated", "unknown fields remain in raw", "deduplication is idempotent"],
-      "failure_modes": ["future leakage", "wrong timezone cutoff", "duplicate or invented snapshots"]
+      "conditions": [
+        "football-only",
+        "FPT intersection",
+        "VERIFIED competition mapping"
+      ],
+      "inputs": [
+        "TotalCorner raw response",
+        "provider_time",
+        "observed_at"
+      ],
+      "outputs": [
+        "prematch and live records",
+        "market timeline and quality flags"
+      ],
+      "invariants": [
+        "PREMATCH and LIVE are separated",
+        "unknown fields remain in raw",
+        "deduplication is idempotent"
+      ],
+      "failure_modes": [
+        "future leakage",
+        "wrong timezone cutoff",
+        "duplicate or invented snapshots"
+      ]
     },
     "WEB": {
       "title": "Read-only web product",
-      "conditions": ["certified read APIs exist", "no business authority in the browser"],
-      "inputs": ["versioned API responses"],
-      "outputs": ["responsive read-only UI"],
-      "invariants": ["coverage and provenance remain visible", "missing is N/D", "loading and errors are explicit"],
-      "failure_modes": ["mock presented as real", "frontend bypasses API contract", "stale data shown without quality state"]
+      "conditions": [
+        "certified read APIs exist",
+        "no business authority in the browser"
+      ],
+      "inputs": [
+        "versioned API responses"
+      ],
+      "outputs": [
+        "responsive read-only UI"
+      ],
+      "invariants": [
+        "coverage and provenance remain visible",
+        "missing is N/D",
+        "loading and errors are explicit"
+      ],
+      "failure_modes": [
+        "mock presented as real",
+        "frontend bypasses API contract",
+        "stale data shown without quality state"
+      ]
     },
     "RPL": {
       "title": "Historical replay",
-      "conditions": ["immutable historical dataset is verified", "simulation clock is explicit"],
-      "inputs": ["match id", "simulation timestamp", "dataset/version/seed"],
-      "outputs": ["state known at simulated time", "replay event log"],
-      "invariants": ["no future information", "same input yields same output", "no interpolation presented as observed"],
-      "failure_modes": ["look-ahead", "out-of-order mutation", "restart changes result"]
+      "conditions": [
+        "immutable historical dataset is verified",
+        "simulation clock is explicit"
+      ],
+      "inputs": [
+        "match id",
+        "simulation timestamp",
+        "dataset/version/seed"
+      ],
+      "outputs": [
+        "state known at simulated time",
+        "replay event log"
+      ],
+      "invariants": [
+        "no future information",
+        "same input yields same output",
+        "no interpolation presented as observed"
+      ],
+      "failure_modes": [
+        "look-ahead",
+        "out-of-order mutation",
+        "restart changes result"
+      ]
     },
     "STA": {
       "title": "Backtest and statistical validation",
-      "conditions": ["replay is certified", "outcomes and sampling rules are defined"],
-      "inputs": ["versioned strategy", "chronological dataset", "frozen configuration"],
-      "outputs": ["metrics and uncertainty", "reproducible run manifest"],
-      "invariants": ["software correctness differs from predictive validity", "out-of-sample evidence is separate", "no profit claim from in-sample data"],
-      "failure_modes": ["overfitting", "selection bias", "wrong formula or outcome leakage"]
+      "conditions": [
+        "replay is certified",
+        "outcomes and sampling rules are defined"
+      ],
+      "inputs": [
+        "versioned strategy",
+        "chronological dataset",
+        "frozen configuration"
+      ],
+      "outputs": [
+        "metrics and uncertainty",
+        "reproducible run manifest"
+      ],
+      "invariants": [
+        "software correctness differs from predictive validity",
+        "out-of-sample evidence is separate",
+        "no profit claim from in-sample data"
+      ],
+      "failure_modes": [
+        "overfitting",
+        "selection bias",
+        "wrong formula or outcome leakage"
+      ]
     },
     "QAC": {
       "title": "Automated quality and continuous certification",
-      "conditions": ["commit and environment are identified", "test fixtures declare authenticity"],
-      "inputs": ["code", "tests", "datasets", "configuration"],
-      "outputs": ["test report", "immutable/verifiable evidence"],
-      "invariants": ["mock is not integration evidence", "mandatory failure blocks promotion", "skipped is not PASS"],
-      "failure_modes": ["test expectation weakened", "required lane skipped", "untrusted PR gains secrets"]
+      "conditions": [
+        "commit and environment are identified",
+        "test fixtures declare authenticity"
+      ],
+      "inputs": [
+        "code",
+        "tests",
+        "datasets",
+        "configuration"
+      ],
+      "outputs": [
+        "test report",
+        "immutable/verifiable evidence"
+      ],
+      "invariants": [
+        "mock is not integration evidence",
+        "mandatory failure blocks promotion",
+        "skipped is not PASS"
+      ],
+      "failure_modes": [
+        "test expectation weakened",
+        "required lane skipped",
+        "untrusted PR gains secrets"
+      ]
     },
     "SEC": {
       "title": "Offline security and isolation",
-      "conditions": ["offline certification scope", "production credentials are unnecessary"],
-      "inputs": ["request", "identity/session where applicable", "runtime configuration"],
-      "outputs": ["authorized read response or controlled denial"],
-      "invariants": ["no production write", "no secret disclosure", "fail closed on unsafe configuration"],
-      "failure_modes": ["remote DB used in tests", "unauthorized direct URL", "credential in log/artifact"]
+      "conditions": [
+        "offline certification scope",
+        "production credentials are unnecessary"
+      ],
+      "inputs": [
+        "request",
+        "identity/session where applicable",
+        "runtime configuration"
+      ],
+      "outputs": [
+        "authorized read response or controlled denial"
+      ],
+      "invariants": [
+        "no production write",
+        "no secret disclosure",
+        "fail closed on unsafe configuration"
+      ],
+      "failure_modes": [
+        "remote DB used in tests",
+        "unauthorized direct URL",
+        "credential in log/artifact"
+      ]
+    },
+    "API": {
+      "title": "Backend API contracts",
+      "conditions": [
+        "read-only offline v1",
+        "authenticated access"
+      ],
+      "inputs": [
+        "HTTP request",
+        "validated parameters"
+      ],
+      "outputs": [
+        "versioned JSON response",
+        "deterministic error"
+      ],
+      "invariants": [
+        "schema-versioned",
+        "provenance on every response",
+        "bounded resource use"
+      ],
+      "failure_modes": [
+        "undeclared field",
+        "unbounded query",
+        "error leaks internals"
+      ]
+    },
+    "ARC": {
+      "title": "Historical archive #40",
+      "conditions": [
+        "frozen archive",
+        "read-only access (owner D7)"
+      ],
+      "inputs": [
+        "manifest",
+        "archive parts",
+        "DuckDB/Parquet"
+      ],
+      "outputs": [
+        "hash-verified datasets",
+        "declared limitations"
+      ],
+      "invariants": [
+        "original bytes immutable",
+        "manifest verified before read"
+      ],
+      "failure_modes": [
+        "hash mismatch",
+        "absolute path dependency",
+        "reservation hidden as value"
+      ]
+    },
+    "PIT": {
+      "title": "Point-in-time temporal correctness (owner D4)",
+      "conditions": [
+        "simulated decision time known"
+      ],
+      "inputs": [
+        "event, provider, acquisition and availability timestamps"
+      ],
+      "outputs": [
+        "PIT-eligible data set",
+        "PIT_NOT_VERIFIED flags"
+      ],
+      "invariants": [
+        "no data later than decision time",
+        "no invented timestamps"
+      ],
+      "failure_modes": [
+        "temporal leakage",
+        "timezone/DST shift",
+        "reprocessing changes history"
+      ]
+    },
+    "XPR": {
+      "title": "Cross-provider reconciliation #31",
+      "conditions": [
+        "VERIFIED competition mapping"
+      ],
+      "inputs": [
+        "FPT entities",
+        "TotalCorner entities"
+      ],
+      "outputs": [
+        "versioned identity map",
+        "gap ledger"
+      ],
+      "invariants": [
+        "joins only on VERIFIED identity"
+      ],
+      "failure_modes": [
+        "false match",
+        "silent unmatched entity"
+      ]
+    },
+    "MKT": {
+      "title": "Backtest outcomes and frozen configuration",
+      "conditions": [
+        "versioned rule set",
+        "frozen settings snapshot"
+      ],
+      "inputs": [
+        "final match data",
+        "market definition",
+        "settings snapshot"
+      ],
+      "outputs": [
+        "deterministic resolution",
+        "reproducible run configuration"
+      ],
+      "invariants": [
+        "same input and version give same result"
+      ],
+      "failure_modes": [
+        "inferred outcome",
+        "settings drift changes history"
+      ]
+    },
+    "MTH": {
+      "title": "Mathematical core for statistics",
+      "conditions": [
+        "Decimal fixed precision"
+      ],
+      "inputs": [
+        "probabilities",
+        "odds",
+        "commission"
+      ],
+      "outputs": [
+        "verified metrics"
+      ],
+      "invariants": [
+        "oracle agreement",
+        "no float rounding drift"
+      ],
+      "failure_modes": [
+        "formula error",
+        "precision loss"
+      ]
+    },
+    "OPS": {
+      "title": "Operational resilience offline",
+      "conditions": [
+        "no production access"
+      ],
+      "inputs": [
+        "development database",
+        "archive"
+      ],
+      "outputs": [
+        "restore and compatibility evidence"
+      ],
+      "invariants": [
+        "production untouched"
+      ],
+      "failure_modes": [
+        "untested restore",
+        "version incompatibility"
+      ]
     }
   },
-  "requirements": [
-    {"id":"MP-GOV-001","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-ENTERPRISE-GATE-AB-WEB-SIM-01","priority":"P0","statement":"Limit HARD CERTIFIED OFFLINE v1 to the owner-approved included scope.","behavior":"All Gate A/B reports use the approved scope and retain excluded roadmap items as future.","design":["docs/governance/mp-pr-00/requirements.json"],"code":[],"tests":["test/requirements-inventory.test.mjs"],"evidence":["owner authorization 2026-10-18"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"MP-PR-00"},
-    {"id":"MP-GOV-002","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-PR-00 authorization","priority":"P0","statement":"Do not merge, deploy, write Neon, reactivate Render, acquire LIVE data or incur cost in MP-PR-00.","behavior":"The PR changes governance artifacts and validators only.","design":["docs/governance/mp-pr-00/README.md"],"code":[],"tests":["test/requirements-inventory.test.mjs"],"evidence":["git diff classification"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"MP-PR-00"},
-    {"id":"MP-GOV-003","group":"GOV","source":"#3","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/3","priority":"P0","statement":"Preserve source hierarchy owner → #3 → #97 → #104 → domain issues → repository documents → mock.","behavior":"Lower sources cannot override higher sources.","design":["docs/governance/mp-pr-00/README.md"],"code":[],"tests":["test/requirements-inventory.test.mjs"],"evidence":["source field on every requirement"],"verdict":"PASS","conflicts":[],"dependencies":["MP-GOV-001"],"target_pr":"MP-PR-00"},
-    {"id":"MP-GOV-004","group":"GOV","source":"AGENTS.md","source_ref":"AGENTS.md#regola-pr","priority":"P0","statement":"Allow only one operational pull request at a time.","behavior":"PR creation is blocked if another PR is open.","design":["repository governance"],"code":[],"tests":[],"evidence":["pre-flight open PR count 0"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"continuous"},
-    {"id":"MP-GOV-005","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-PR-00 authorization","priority":"P0","statement":"Stop before merge and require owner approval.","behavior":"PR remains open after CI/review readiness.","design":["PR acceptance contract"],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":["historical permanent auto-merge permission in #3 is superseded for this PR"],"dependencies":["MP-GOV-004"],"target_pr":"MP-PR-00"},
-    {"id":"MP-GOV-006","group":"GOV","source":"#97","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/97","priority":"P0","statement":"Develop backend/API and certify integrated paths before final UI authority.","behavior":"UI consumes contracts and contains no authoritative business logic.","design":["docs/integration-map.md"],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-GOV-003"],"target_pr":"all implementation PRs"},
-    {"id":"MP-GOV-007","group":"GOV","source":"#3","source_ref":"#3 Definition of Done","priority":"P0","statement":"Do not declare product complete until data, temporal separation, coverage, reproducibility, responsive UI and secret gates pass.","behavior":"Certification fails when any mandatory P0 remains non-PASS.","design":["Gate A/B policy"],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":[],"target_pr":"MP-PR-15"},
-    {"id":"MP-GOV-008","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-PR-00 authorization","priority":"P0","statement":"Use PASS, FAIL, BLOCKED, NOT_VERIFIED and NOT_APPLICABLE without status promotion.","behavior":"Validator rejects unknown states.","design":["requirements schema"],"code":["tools/validate-requirements.mjs"],"tests":["test/requirements-inventory.test.mjs"],"evidence":[],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"MP-PR-00"},
-    {"id":"MP-GOV-009","group":"GOV","source":"#144","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/144","priority":"P1","statement":"Use standard GitHub-hosted runners with zero additional Actions spend during public development.","behavior":"No larger or paid runner is selected; measured cost remains explicit.","design":[".github/workflows/ci.yml"],"code":[],"tests":[],"evidence":["current runs-on ubuntu-latest"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"continuous"},
-    {"id":"MP-GOV-010","group":"GOV","source":"#40","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/40","priority":"P0","statement":"Keep the frozen provider-trial archive immutable and do not treat it as runtime certification.","behavior":"Archive is read-only evidence; materialization requires MP-PR-01 authorization.","design":["archive boundary"],"code":[],"tests":[],"evidence":["safe-window evidence"],"verdict":"PASS","conflicts":["issue remains administratively open despite completion evidence"],"dependencies":[],"target_pr":"MP-PR-01"},
-    {"id":"MP-GOV-011","group":"GOV","source":"#104","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/104","priority":"P1","statement":"Treat the historical 82-PR plan as planning history, not the verified Gate A denominator.","behavior":"The atomic inventory is the only v1 denominator after owner acceptance.","design":["docs/governance/mp-pr-00/requirements.json"],"code":[],"tests":["test/requirements-inventory.test.mjs"],"evidence":[],"verdict":"PASS","conflicts":["old 82 residual count is superseded"],"dependencies":["MP-GOV-003"],"target_pr":"MP-PR-00"},
-    {"id":"MP-GOV-012","group":"GOV","source":"AGENTS.md","source_ref":"AGENTS.md#mock-vivo","priority":"P1","statement":"State whether each PR changes visible product behavior and update the mock only when it does.","behavior":"MP-PR-00 declares mock update NO because it changes governance only.","design":["PR template"],"code":[],"tests":["test/mockup-alignment.test.mjs"],"evidence":[],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"continuous"},
-
-    {"id":"MP-FPT-001","group":"FPT","source":"#12","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/12","priority":"P0","statement":"Discover and preserve every FutPythonTrader field returned upstream.","behavior":"Unknown and future fields enter raw/schema registry without loss.","design":["migrations/011-fpt-schema-registry.sql"],"code":["src/providers/futpython/schema.mjs"],"tests":["test/schema.test.mjs","test/phase4-registry.test.mjs"],"evidence":["historical FPT certificate"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"FPT residual certification"},
-    {"id":"MP-FPT-002","group":"FPT","source":"#12","source_ref":"#12 raw retention","priority":"P0","statement":"Preserve immutable raw snapshots with content hashes and lineage.","behavior":"Derived changes never overwrite original raw bytes.","design":["migrations/020-fpt-raw-retention-reprocessing.sql"],"code":["src/providers/futpython/store.mjs"],"tests":["test/fpt-reprocessing.test.mjs"],"evidence":["historical certificate scope"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"FPT residual certification"},
-    {"id":"MP-FPT-003","group":"FPT","source":"#3","source_ref":"#3 FutPython contract","priority":"P0","statement":"Normalize and make queryable every available field, not only fields displayed in UI.","behavior":"Normalized and query layers retain all covered fields.","design":["migrations/014-fpt-normalized-layer.sql"],"code":["src/providers/futpython/query.mjs"],"tests":["test/fpt-assistant-queries.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-FPT-001"],"target_pr":"FPT residual certification"},
-    {"id":"MP-FPT-004","group":"FPT","source":"#3","source_ref":"#3 data contract","priority":"P0","statement":"Expose coverage N and provenance for each metric and dataset slice.","behavior":"Consumers receive scope, counts, timestamps and source.","design":["migrations/012-fpt-field-coverage.sql"],"code":["src/providers/futpython/coverage.mjs"],"tests":["test/phase5-coverage.test.mjs"],"evidence":[],"verdict":"PASS","conflicts":[],"dependencies":["MP-FPT-001"],"target_pr":"MP-PR-04"},
-    {"id":"MP-FPT-005","group":"FPT","source":"#12","source_ref":"#12 PIT risk","priority":"P0","statement":"Pin parser/schema/transform/data-contract and identity versions for point-in-time reproduction.","behavior":"The same T and contract version reproduce the same result before and after reprocessing.","design":[],"code":["src/providers/futpython/reprocess.mjs","migrations/014-fpt-normalized-layer.sql"],"tests":["test/fpt-reprocessing.test.mjs"],"evidence":["documented open PIT risk"],"verdict":"FAIL","conflicts":["latest parser output can alter historical query at same T"],"dependencies":["MP-FPT-002"],"target_pr":"FPT-PIT-VERSIONING"},
-    {"id":"MP-FPT-006","group":"FPT","source":"#31","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/31","priority":"P0","statement":"Detect gaps, stale checkpoints and interrupted synchronization and recover idempotently.","behavior":"Recovery uses recorded gaps and does not duplicate persisted facts.","design":["migrations/019-fpt-reconciliation.sql"],"code":["src/providers/futpython/reconciliation.mjs"],"tests":["test/fpt-reconciliation.test.mjs","test/fpt-reconciliation-sync.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-FPT-002"],"target_pr":"MP-PR-14"},
-    {"id":"MP-FPT-007","group":"FPT","source":"#12","source_ref":"#12 classification","priority":"P1","statement":"Distinguish AVAILABLE, initial unavailable, regression, provider error, deprecated and removed datasets.","behavior":"Provider unavailability and MatchPilot defects remain distinct.","design":["migrations/008-fpt-dataset-classification.sql"],"code":["src/providers/futpython/classification.mjs"],"tests":["test/phase2-classification.test.mjs"],"evidence":[],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"FPT residual certification"},
-    {"id":"MP-FPT-008","group":"FPT","source":"#12","source_ref":"#12 audit 412","priority":"P0","statement":"Resolve or explicitly classify the 412 historical UNAVAILABLE_404 datasets before global FPT certification.","behavior":"Each dataset has evidence-backed terminal or actionable state.","design":[],"code":[],"tests":[],"evidence":["owner audit requirement"],"verdict":"BLOCKED","conflicts":[],"dependencies":["MP-FPT-007"],"target_pr":"FPT-412-AUDIT"},
-    {"id":"MP-FPT-009","group":"FPT","source":"#3","source_ref":"#3 Intelligence","priority":"P1","statement":"Provide pre-match feature slices for form, home/away, goals, xG, shooting, possession, defence, discipline, corners, halves, timing, H2H and odds where available.","behavior":"Unavailable families remain N/D with coverage.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-FPT-003","MP-FPT-004"],"target_pr":"MP-PR-04/09/10"},
-    {"id":"MP-FPT-010","group":"FPT","source":"#12","source_ref":"#12 onboarding","priority":"P1","statement":"Require owner promotion for a new league while permitting controlled new-season onboarding.","behavior":"Unapproved leagues cannot enter operational scope.","design":["migrations/018-fpt-onboarding.sql"],"code":["src/providers/futpython/onboarding.mjs"],"tests":["test/fpt-onboarding.test.mjs"],"evidence":[],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"continuous"},
-    {"id":"MP-FPT-011","group":"FPT","source":"#12","source_ref":"#12 watchdog","priority":"P1","statement":"Monitor freshness, failures, budget state and schema changes without alert spam.","behavior":"Alerts are fingerprinted, outbound-only and evidence-backed.","design":["migrations/002-data-watchdog.sql","migrations/003-alert-aggregation.sql"],"code":["src/jobs/data-watchdog.mjs","src/alerts.mjs"],"tests":["test/alerts.test.mjs","test/alert-aggregation.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":[],"target_pr":"MP-PR-14"},
-    {"id":"MP-FPT-012","group":"FPT","source":"#12","source_ref":"#12 final gate","priority":"P0","statement":"Do not call FutPythonTrader globally certified while residual classification, PIT or real gates remain open.","behavior":"Final verdict is CERTIFIED, CERTIFIED WITH KNOWN LIMITATIONS or NOT CERTIFIED only after all gates.","design":["certification policy"],"code":["src/futpython-certification.mjs"],"tests":["test/phase9-certificate.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":["historical 20/20 certificate is scoped, not global"],"dependencies":["MP-FPT-005","MP-FPT-008"],"target_pr":"MP-PR-15"},
-
-    {"id":"MP-TC-001","group":"TC","source":"#20","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/20","priority":"P0","statement":"Store lossless TotalCorner raw responses and a request ledger without token leakage.","behavior":"Every attempt is classified and raw-linked when present.","design":["migrations/021-tc-core-discovery.sql"],"code":["src/providers/totalcorner/client.mjs"],"tests":["test/tc-core-discovery.test.mjs"],"evidence":["TC-CORE-01 scoped evidence"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"TC residual certification"},
-    {"id":"MP-TC-002","group":"TC","source":"#20","source_ref":"#20 competition mapping","priority":"P0","statement":"Use only VERIFIED FPT↔TotalCorner competition mappings in operational collectors.","behavior":"Candidate, ambiguous and unmapped competitions remain excluded with reasons.","design":["migrations/022-tc-competition-mapping.sql"],"code":["src/providers/totalcorner/mapping.mjs"],"tests":["test/tc-core-mapping.test.mjs"],"evidence":["96 VERIFIED scoped evidence"],"verdict":"PASS","conflicts":[],"dependencies":["MP-TC-001"],"target_pr":"continuous"},
-    {"id":"MP-TC-003","group":"TC","source":"#20","source_ref":"#20 prematch PIT","priority":"P0","statement":"Classify PREMATCH only when provider time is strictly before scheduled kickoff and no in-play minute exists.","behavior":"Late or live rows are INPLAY or QUARANTINE, never PREMATCH.","design":["migrations/023-tc-prematch.sql"],"code":["src/providers/totalcorner/prematch.mjs"],"tests":["test/tc-core-prematch.test.mjs"],"evidence":["TC-CORE-03 14/14 pre-kickoff"],"verdict":"PASS","conflicts":[],"dependencies":["MP-TC-002"],"target_pr":"continuous"},
-    {"id":"MP-TC-004","group":"TC","source":"#20","source_ref":"#20 timezone gate","priority":"P0","statement":"Measure provider timezone and fail closed when missing, stale or inconsistent.","behavior":"Prematch capture stops rather than applying an unverified offset.","design":["migrations/024-tc-tz-observations.sql","migrations/025-tc-tz-inliers.sql"],"code":["src/jobs/totalcorner-prematch.mjs"],"tests":["test/tc-core-prematch.test.mjs"],"evidence":["tc-tz-gate-v2 evidence"],"verdict":"PASS","conflicts":[],"dependencies":["MP-TC-003"],"target_pr":"continuous"},
-    {"id":"MP-TC-005","group":"TC","source":"#20","source_ref":"#20 market scope","priority":"P1","statement":"Expose opening and last-prematch 1X2, Asian, Goal, Corner, HT and BTTS where upstream provides them.","behavior":"Point-in-time queries respect provider and captured knowledge modes.","design":["migrations/023-tc-prematch.sql"],"code":["src/jobs/totalcorner-prematch.mjs"],"tests":["test/tc-core-prematch.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-TC-003"],"target_pr":"MP-PR-04/10"},
-    {"id":"MP-TC-006","group":"TC","source":"#20","source_ref":"#20 historical upstream","priority":"P1","statement":"Keep HISTORICAL_UPSTREAM distinct from HISTORICAL_CAPTURED live history.","behavior":"Final-state fields cannot masquerade as minute-by-minute capture.","design":["migrations/026-tc-historical-backfill.sql"],"code":["src/providers/totalcorner/historical.mjs"],"tests":["test/tc-core-historical.test.mjs"],"evidence":["TC-CORE-03B limitations"],"verdict":"PASS","conflicts":[],"dependencies":["MP-TC-001"],"target_pr":"continuous"},
-    {"id":"MP-TC-007","group":"TC","source":"#20","source_ref":"#20 live collector","priority":"P0","statement":"Persist live snapshots, events and markets from VERIFIED leagues with canonical deduplication.","behavior":"Unknown payload changes affect identity and identical payloads remain idempotent.","design":["migrations/027-tc-live-collector.sql","migrations/028-tc-live-v2-terminal.sql"],"code":["src/providers/totalcorner/live.mjs","src/jobs/totalcorner-live.mjs"],"tests":["test/tc-core-live.test.mjs"],"evidence":["historical 800 snapshot audit"],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-TC-002"],"target_pr":"TC-LIVE-CERT"},
-    {"id":"MP-TC-008","group":"TC","source":"#20","source_ref":"#20 restart/terminal","priority":"P0","statement":"Recover live cursors after restart and persist provider-confirmed FT exactly once.","behavior":"Restart does not lose terminal state or duplicate snapshot/event rows.","design":["migrations/028-tc-live-v2-terminal.sql"],"code":["src/jobs/totalcorner-live.mjs"],"tests":["test/tc-core-live.test.mjs"],"evidence":[],"verdict":"BLOCKED","conflicts":[],"dependencies":["MP-TC-007"],"target_pr":"TC-LIVE-CERT"},
-    {"id":"MP-TC-009","group":"TC","source":"#20","source_ref":"#20 rate limiting","priority":"P1","statement":"Share a bounded rate limiter, classify 429/5xx/timeout and apply controlled retry/backoff.","behavior":"Rate-limit failure cannot create an unbounded burst.","design":["provider client contract"],"code":["src/providers/totalcorner/client.mjs"],"tests":["test/tc-core-discovery.test.mjs"],"evidence":[],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"continuous"},
-    {"id":"MP-TC-010","group":"TC","source":"#20","source_ref":"#20 data quality","priority":"P0","statement":"Expose raw linkage, duplicates, gaps, provenance, freshness and leakage counters.","behavior":"Quality problems are visible and machine-readable.","design":["TotalCorner report contracts"],"code":["src/jobs/totalcorner-prematch.mjs","src/jobs/totalcorner-live.mjs"],"tests":["test/tc-core-prematch.test.mjs","test/tc-core-live.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-TC-003","MP-TC-007"],"target_pr":"MP-PR-04"},
-    {"id":"MP-TC-011","group":"TC","source":"#20","source_ref":"#20 alerts","priority":"P1","statement":"Route TotalCorner operational alerts through the same outbound-only alert channel as FPT.","behavior":"No inbound Telegram control and no token leakage.","design":["shared alerter"],"code":["src/alerts.mjs"],"tests":["test/telegram.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-TC-001"],"target_pr":"MP-PR-14"},
-    {"id":"MP-TC-012","group":"TC","source":"#20","source_ref":"#20 final certification","priority":"P0","statement":"Do not declare TotalCorner globally certified before prematch, historical, live frequency, restart, FT and replay gates pass.","behavior":"Scoped component evidence cannot promote the full provider.","design":["certification policy"],"code":[],"tests":[],"evidence":[],"verdict":"BLOCKED","conflicts":["component certifications are not global certification"],"dependencies":["MP-TC-008","MP-RPL-012"],"target_pr":"MP-PR-15"},
-
-    {"id":"MP-WEB-001","group":"WEB","source":"OWNER-2026-10-18","source_ref":"HARD CERTIFIED OFFLINE v1","priority":"P0","statement":"Provide a real executable read-only website, not a visual prototype.","behavior":"The browser loads product data from real isolated APIs.","design":[],"code":["src/server.mjs"],"tests":[],"evidence":["current homepage says In costruzione"],"verdict":"FAIL","conflicts":[],"dependencies":["MP-SEC-001"],"target_pr":"MP-PR-08"},
-    {"id":"MP-WEB-002","group":"WEB","source":"#3","source_ref":"#3 Web Daily Board","priority":"P0","statement":"Show a responsive Daily Board with all available matches and data-quality state.","behavior":"Cards expose teams, competition, kickoff, analytics, markets and coverage when available.","design":["docs/mockups/matchpilot-trading-os.html"],"code":[],"tests":["test/mockup-alignment.test.mjs"],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-WEB-001","MP-FPT-009","MP-TC-005"],"target_pr":"MP-PR-09"},
-    {"id":"MP-WEB-003","group":"WEB","source":"#30","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/30","priority":"P0","statement":"Provide Match Center search, filters and Home/Away/Both analytical cards.","behavior":"Every available data family is inspectable with provenance and N.","design":["docs/mockups/matchpilot-trading-os.html"],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-WEB-001","MP-FPT-009"],"target_pr":"MP-PR-10"},
-    {"id":"MP-WEB-004","group":"WEB","source":"#25","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/25","priority":"P1","statement":"Provide a finished-match page combining prematch, final state, timeline, markets, replay and post-mortem.","behavior":"Prematch/live/final sections remain visibly and temporally separate.","design":["docs/mockups/matchpilot-trading-os.html"],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-WEB-003","MP-RPL-012"],"target_pr":"MP-PR-10/11"},
-    {"id":"MP-WEB-005","group":"WEB","source":"#3","source_ref":"#3 card contract","priority":"P0","statement":"Render missing values as N/D rather than numeric zero.","behavior":"Zero is shown only when source semantics prove a real zero.","design":["API/UI contract"],"code":["src/coverage-page.mjs"],"tests":["test/fpt-coverage-page.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-FPT-004"],"target_pr":"MP-PR-08/10"},
-    {"id":"MP-WEB-006","group":"WEB","source":"#3","source_ref":"#3 provenance contract","priority":"P0","statement":"Display coverage, source, freshness, gap and quality status for each module.","behavior":"Users can inspect why a value is present, missing or stale.","design":[],"code":["src/coverage-page.mjs"],"tests":["test/fpt-coverage-page.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-FPT-004","MP-TC-010"],"target_pr":"MP-PR-10"},
-    {"id":"MP-WEB-007","group":"WEB","source":"OWNER-2026-10-18","source_ref":"web scope","priority":"P0","statement":"Support search and filters for match, date, competition and quality dimensions.","behavior":"Inputs are validated and produce deterministic paginated results.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-API-004"],"target_pr":"MP-PR-09"},
-    {"id":"MP-WEB-008","group":"WEB","source":"#3","source_ref":"#3 Web app","priority":"P1","statement":"Provide charts for historical odds, statistics and replay without implying fabricated continuity.","behavior":"Charts identify observed points, gaps and unavailable series.","design":["docs/mockups/matchpilot-trading-os.html"],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-008"],"target_pr":"MP-PR-10/11"},
-    {"id":"MP-WEB-009","group":"WEB","source":"#3","source_ref":"#3 responsive DoD","priority":"P1","statement":"Operate on supported desktop and mobile viewports.","behavior":"Primary flows remain usable and readable at both viewport classes.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-WEB-001"],"target_pr":"MP-PR-08/14"},
-    {"id":"MP-WEB-010","group":"WEB","source":"OWNER-2026-10-18","source_ref":"site web real","priority":"P0","statement":"Handle loading, empty, partial and error states explicitly.","behavior":"No silent blank page or stale-success fallback.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-WEB-001"],"target_pr":"MP-PR-08"},
-    {"id":"MP-WEB-011","group":"WEB","source":"#97","source_ref":"#97 UI phase 15","priority":"P0","statement":"Keep authoritative formulas, strategy, replay and data rules outside the UI.","behavior":"Frontend renders API contracts and cannot change certified outcomes.","design":["domain ownership"],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-GOV-006"],"target_pr":"MP-PR-08 onward"},
-    {"id":"MP-WEB-012","group":"WEB","source":"#24","source_ref":"#24 replay UI","priority":"P1","statement":"Expose replay controls and synchronized state in the real site.","behavior":"Play, pause, stop, step, seek and speed controls drive the certified replay clock.","design":["docs/mockups/matchpilot-trading-os.html"],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-012"],"target_pr":"MP-PR-11"},
-
-    {"id":"MP-RPL-001","group":"RPL","source":"#24","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/24","priority":"P0","statement":"Select a finished match and reconstruct its chronological state from authentic captured data.","behavior":"Replay consumes verified archive records, not generated demo data.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"BLOCKED","conflicts":[],"dependencies":["MP-GOV-010","MP-TC-007"],"target_pr":"MP-PR-06"},
-    {"id":"MP-RPL-002","group":"RPL","source":"#24","source_ref":"#24 deterministic replay","priority":"P0","statement":"Return the same state for match, timestamp, dataset, code, config and seed.","behavior":"Every run emits a reproducibility manifest.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-001"],"target_pr":"MP-PR-06"},
-    {"id":"MP-RPL-003","group":"RPL","source":"OWNER-2026-10-18","source_ref":"historical replay rule","priority":"P0","statement":"Prevent algorithms from reading any information later than simulated time.","behavior":"All source reads apply provider_time and observed_at knowledge cutoffs.","design":[],"code":["src/providers/totalcorner/prematch.mjs"],"tests":["test/tc-core-prematch.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-FPT-005","MP-TC-003"],"target_pr":"MP-PR-06"},
-    {"id":"MP-RPL-004","group":"RPL","source":"OWNER-2026-10-18","source_ref":"replay controls","priority":"P1","statement":"Support configurable speed, pause, resume and event-by-event stepping.","behavior":"Clock transitions are deterministic and testable.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-002"],"target_pr":"MP-PR-06/11"},
-    {"id":"MP-RPL-005","group":"RPL","source":"#24","source_ref":"#24 jump controls","priority":"P1","statement":"Support seek and jumps to kickoff, HT, 60, 75, 90, FT and available events.","behavior":"Jump targets correspond to real timestamps and cannot reveal later state.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-002"],"target_pr":"MP-PR-06/11"},
-    {"id":"MP-RPL-006","group":"RPL","source":"#24","source_ref":"#24 replay state","priority":"P0","statement":"Expose score, status, statistics, markets and last event available at each replay instant.","behavior":"Each value carries provenance and quality.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-001"],"target_pr":"MP-PR-06/07"},
-    {"id":"MP-RPL-007","group":"RPL","source":"#24","source_ref":"#24 data rules","priority":"P0","statement":"Never invent intermediate snapshots or interpolate unauthorized information.","behavior":"Only observed or explicitly last-known values are emitted with labels.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-RPL-001"],"target_pr":"MP-PR-06"},
-    {"id":"MP-RPL-008","group":"RPL","source":"#24","source_ref":"#24 gap handling","priority":"P0","statement":"Identify missing snapshots, gaps, late data and incomplete matches.","behavior":"Timeline shows gap duration and last valid snapshot without claiming continuity.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-001"],"target_pr":"MP-PR-06"},
-    {"id":"MP-RPL-009","group":"RPL","source":"OWNER-2026-10-18","source_ref":"replay adversarial cases","priority":"P0","statement":"Handle out-of-order timestamps, duplicates, corrections and simultaneous events deterministically.","behavior":"Ordering and correction rules are explicit and stable.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-002"],"target_pr":"MP-PR-06"},
-    {"id":"MP-RPL-010","group":"RPL","source":"OWNER-2026-10-18","source_ref":"replay recovery","priority":"P0","statement":"Restart a replay without changing state or duplicating predictions/events.","behavior":"Persisted checkpoint resumes exactly once.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-002"],"target_pr":"MP-PR-06/14"},
-    {"id":"MP-RPL-011","group":"RPL","source":"#24","source_ref":"#24 API/service","priority":"P1","statement":"Expose replay through a versioned read-only API with validated match/time inputs.","behavior":"Invalid or unavailable ranges return explicit contract errors.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-006","MP-API-001"],"target_pr":"MP-PR-07"},
-    {"id":"MP-RPL-012","group":"RPL","source":"#24","source_ref":"#24 final acceptance","priority":"P0","statement":"Certify replay on complete, incomplete, multi-goal, market-movement and event-rich authentic matches.","behavior":"Raw-to-replay comparison passes with documented limitations.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"BLOCKED","conflicts":[],"dependencies":["MP-RPL-003","MP-RPL-008","MP-RPL-010","MP-GOV-010"],"target_pr":"MP-PR-15"},
-
-    {"id":"MP-STA-001","group":"STA","source":"#34","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/34","priority":"P0","statement":"Version every strategy, rule set and parameter set immutably.","behavior":"Backtest result references the exact strategy version.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":[],"target_pr":"MP-PR-13"},
-    {"id":"MP-STA-002","group":"STA","source":"OWNER-2026-10-18","source_ref":"statistical certification A","priority":"P0","statement":"Verify mathematical formulas independently from data and predictive performance.","behavior":"Oracle vectors and property tests validate calculations.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-MATH-001"],"target_pr":"MP-PR-12"},
-    {"id":"MP-STA-003","group":"STA","source":"OWNER-2026-10-18","source_ref":"statistical certification B","priority":"P0","statement":"Verify authenticity, temporal validity, provenance and coherence of backtest inputs.","behavior":"Runs fail on unknown dataset hash or invalid timestamps.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"BLOCKED","conflicts":[],"dependencies":["MP-GOV-010","MP-RPL-003"],"target_pr":"MP-PR-13"},
-    {"id":"MP-STA-004","group":"STA","source":"OWNER-2026-10-18","source_ref":"statistical certification C","priority":"P0","statement":"Evaluate predictive validity strictly outside training/selection data.","behavior":"In-sample metrics cannot satisfy the predictive gate.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-STA-003"],"target_pr":"MP-PR-13"},
-    {"id":"MP-STA-005","group":"STA","source":"#3","source_ref":"#3 backtest","priority":"P0","statement":"Run chronological backtests with no look-ahead leakage.","behavior":"Decisions at T consume only the replay state at T.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-012"],"target_pr":"MP-PR-13"},
-    {"id":"MP-STA-006","group":"STA","source":"OWNER-2026-10-18","source_ref":"walk-forward validation","priority":"P0","statement":"Support walk-forward validation with frozen train, validation and test windows.","behavior":"Window definitions are stored in the run manifest.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-STA-005"],"target_pr":"MP-PR-13"},
-    {"id":"MP-STA-007","group":"STA","source":"OWNER-2026-10-18","source_ref":"calibration metrics","priority":"P1","statement":"Calculate Brier score, log loss and calibration where probabilistic forecasts exist.","behavior":"Undefined metrics for insufficient data are reported, not coerced to zero.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-STA-002"],"target_pr":"MP-PR-12"},
-    {"id":"MP-STA-008","group":"STA","source":"#3","source_ref":"#3 backtest metrics","priority":"P1","statement":"Report ROI, strike rate, drawdown and sample size with consistent definitions.","behavior":"Metric formulas and units are versioned.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-STA-002"],"target_pr":"MP-PR-12/13"},
-    {"id":"MP-STA-009","group":"STA","source":"OWNER-2026-10-18","source_ref":"uncertainty","priority":"P1","statement":"Report confidence intervals or justified uncertainty estimates.","behavior":"Small samples are flagged and cannot support reliability claims.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-STA-008"],"target_pr":"MP-PR-13"},
-    {"id":"MP-STA-010","group":"STA","source":"OWNER-2026-10-18","source_ref":"baseline comparison","priority":"P1","statement":"Compare predictive models with simple documented baselines.","behavior":"Improvement is reported with uncertainty and identical test windows.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-STA-004"],"target_pr":"MP-PR-13"},
-    {"id":"MP-STA-011","group":"STA","source":"#3","source_ref":"#3 strategy rules","priority":"P0","statement":"Treat NO TRADE as a valid reproducible strategy outcome.","behavior":"Failed evidence, edge or quality gates emit NO TRADE with reasons.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-STA-001"],"target_pr":"MP-PR-13"},
-    {"id":"MP-STA-012","group":"STA","source":"OWNER-2026-10-18","source_ref":"predictive claim rule","priority":"P0","statement":"Prohibit profitable/reliable claims based on few matches or in-sample results.","behavior":"Certification report separates technical correctness from predictive validity.","design":["certification policy"],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-STA-004","MP-STA-009"],"target_pr":"MP-PR-15"},
-
-    {"id":"MP-QAC-001","group":"QAC","source":"OWNER-2026-10-18","source_ref":"Gate B test families","priority":"P0","statement":"Execute unit tests against production functions with meaningful assertions.","behavior":"Test existence without behavioral assertion is rejected.","design":["node:test suite"],"code":[],"tests":["test/*.test.mjs"],"evidence":["161-test baseline"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"continuous"},
-    {"id":"MP-QAC-002","group":"QAC","source":"OWNER-2026-10-18","source_ref":"Gate B integration","priority":"P0","statement":"Run integration tests against isolated real PostgreSQL and real backend code.","behavior":"Migrations and HTTP process execute in CI without provider calls.","design":[".github/workflows/ci.yml"],"code":[],"tests":["test/postgres-independence.test.mjs"],"evidence":["run 37952583495"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"continuous"},
-    {"id":"MP-QAC-003","group":"QAC","source":"OWNER-2026-10-18","source_ref":"contract/API tests","priority":"P0","statement":"Validate versioned API schemas, inputs, errors and compatibility.","behavior":"Breaking changes fail contract tests.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-API-001"],"target_pr":"MP-PR-04"},
-    {"id":"MP-QAC-004","group":"QAC","source":"OWNER-2026-10-18","source_ref":"frontend/browser tests","priority":"P0","statement":"Run frontend and browser E2E tests on the real web application.","behavior":"Playwright records failures, traces and scoped screenshots.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-WEB-001"],"target_pr":"MP-PR-03/08"},
-    {"id":"MP-QAC-005","group":"QAC","source":"OWNER-2026-10-18","source_ref":"security tests","priority":"P0","statement":"Run dependency, secret, authorization and unsafe-configuration tests.","behavior":"HIGH/CRITICAL findings block promotion.","design":["CI security lanes"],"code":[],"tests":[],"evidence":["npm audit high exists"],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-SEC-012"],"target_pr":"MP-PR-03/14"},
-    {"id":"MP-QAC-006","group":"QAC","source":"OWNER-2026-10-18","source_ref":"recovery/concurrency","priority":"P0","statement":"Test crash, restart, concurrent requests and idempotent recovery.","behavior":"No duplicate event, replay prediction or database mutation occurs.","design":[],"code":[],"tests":["test/resume-drill.test.mjs","test/tc-core-live.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-RPL-010"],"target_pr":"MP-PR-14"},
-    {"id":"MP-QAC-007","group":"QAC","source":"OWNER-2026-10-18","source_ref":"performance tests","priority":"P1","statement":"Measure API, database and replay performance against explicit budgets.","behavior":"Reports include dataset size, hardware and percentile latency.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-012"],"target_pr":"MP-PR-14"},
-    {"id":"MP-QAC-008","group":"QAC","source":"OWNER-2026-10-18","source_ref":"RED GREEN","priority":"P0","statement":"For every defect, preserve RED evidence, apply the minimal fix, obtain GREEN and run pertinent regression.","behavior":"Changing expectations to accept wrong behavior is forbidden.","design":["PR template"],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":[],"target_pr":"continuous"},
-    {"id":"MP-QAC-009","group":"QAC","source":"#144","source_ref":"#144 CI gate","priority":"P0","statement":"Maintain a stable required CI gate that fails closed on unknown or failed selected lanes.","behavior":"Classifier errors select full suite and cannot leave required checks pending.","design":[".github/workflows/ci.yml"],"code":["scripts/ci-classify.mjs"],"tests":["test/ci-classify.test.mjs"],"evidence":["ruleset 24790739"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"continuous"},
-    {"id":"MP-QAC-010","group":"QAC","source":"OWNER-2026-10-18","source_ref":"evidence matrix","priority":"P0","statement":"Record commit, environment, dependencies, dataset hash, command, result, log, artifact, time and limitations for certifications.","behavior":"Missing mandatory evidence yields NOT_VERIFIED.","design":["certification report schema"],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":[],"target_pr":"MP-PR-02"},
-    {"id":"MP-QAC-011","group":"QAC","source":"OWNER-2026-10-18","source_ref":"IV&V","priority":"P0","statement":"Separate implementer, reviewer and certifier roles where possible.","behavior":"Review records identity, commit, findings, severity, correction and re-review.","design":["PR template"],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":[],"target_pr":"continuous"},
-    {"id":"MP-QAC-012","group":"QAC","source":"OWNER-2026-10-18","source_ref":"continuous certification","priority":"P0","statement":"Link every new PR to requirements and risk-sized mandatory tests.","behavior":"Nonconforming changes cannot be promoted through configured GitHub checks.","design":["requirements validator","CI gate"],"code":["tools/validate-requirements.mjs","scripts/ci-classify.mjs"],"tests":["test/requirements-inventory.test.mjs","test/ci-classify.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-GOV-008","MP-QAC-009"],"target_pr":"MP-PR-02/03"},
-
-    {"id":"MP-SEC-001","group":"SEC","source":"#23","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/23","priority":"P0","statement":"Protect the real read-only website and API with server-side authentication/authorization appropriate to offline v1.","behavior":"Direct URL or API access without authority is denied.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":["full SaaS user foundation is future, but owner/admin security baseline is phase 0"],"dependencies":[],"target_pr":"AUTH baseline before MP-PR-08"},
-    {"id":"MP-SEC-002","group":"SEC","source":"#23","source_ref":"#23 secret rules","priority":"P0","statement":"Keep credentials out of repository, docs, fixtures, logs, errors and endpoints.","behavior":"Only environment/config references are permitted and values are never emitted.","design":["secret handling policy"],"code":["src/providers/totalcorner/client.mjs","src/db.mjs"],"tests":["test/tc-core-discovery.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":[],"target_pr":"MP-PR-03/14"},
-    {"id":"MP-SEC-003","group":"SEC","source":"#144","source_ref":"#144 isolated CI","priority":"P0","statement":"Never provide production Neon credentials or provider secrets to ordinary PR test jobs.","behavior":"CI uses local PostgreSQL and sanitized fixtures.","design":[".github/workflows/ci.yml"],"code":["src/background.mjs"],"tests":["test/postgres-independence.test.mjs"],"evidence":["run 37952583495"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"continuous"},
-    {"id":"MP-SEC-004","group":"SEC","source":"#144","source_ref":"#144 workflow permissions","priority":"P0","statement":"Use least-privilege workflow permissions and immutable action pins.","behavior":"Untrusted code cannot write repository contents or access secrets.","design":[".github/workflows/ci.yml"],"code":[],"tests":[],"evidence":["permissions contents:read; actions SHA-pinned"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"continuous"},
-    {"id":"MP-SEC-005","group":"SEC","source":"OWNER-2026-10-18","source_ref":"database isolation","priority":"P0","statement":"Reject non-local DATABASE_URL in offline and test modes before connection or migration.","behavior":"Unsafe startup exits fail closed.","design":["runtime isolation"],"code":["src/background.mjs"],"tests":["test/runtime-isolation.test.mjs"],"evidence":["CI isolated backend"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_pr":"continuous"},
-    {"id":"MP-SEC-006","group":"SEC","source":"OWNER-2026-10-18","source_ref":"input validation","priority":"P0","statement":"Validate and bind all API inputs; prohibit query injection and unbounded resource requests.","behavior":"Invalid input returns explicit 4xx without executing unsafe query.","design":["query contracts"],"code":["src/providers/futpython/query.mjs"],"tests":["test/fpt-assistant-queries.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-API-001"],"target_pr":"MP-PR-04/14"},
-    {"id":"MP-SEC-007","group":"SEC","source":"#23","source_ref":"#23 session security","priority":"P1","statement":"Protect sessions against fixation, CSRF, brute force and stale/revoked access.","behavior":"Logout and revocation invalidate access server-side.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-SEC-001"],"target_pr":"AUTH baseline"},
-    {"id":"MP-SEC-008","group":"SEC","source":"OWNER-2026-10-18","source_ref":"adversarial QA","priority":"P0","statement":"Fail safely on corrupt input, unavailable DB, timeout, crash, malformed API, bad manifest and insufficient resources.","behavior":"Expected error is observable and does not corrupt persistent state.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-QAC-006"],"target_pr":"MP-PR-14"},
-    {"id":"MP-SEC-009","group":"SEC","source":"#144","source_ref":"#144 dependency security","priority":"P1","statement":"Audit dependencies and record unresolved vulnerabilities without hiding unavailable alert state.","behavior":"High-severity dependency findings fail CI or receive an approved exception.","design":[".github/workflows/ci.yml"],"code":[],"tests":[],"evidence":["npm audit --audit-level=high"],"verdict":"NOT_VERIFIED","conflicts":["Dependabot/code/secret scanning API state not available in pre-flight"],"dependencies":[],"target_pr":"MP-PR-03"},
-    {"id":"MP-SEC-010","group":"SEC","source":"OWNER-2026-10-18","source_ref":"archive safety","priority":"P0","statement":"Verify manifest and SHA before reading an archive and never modify original archive bytes.","behavior":"Mismatch blocks replay and backtest.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"BLOCKED","conflicts":[],"dependencies":["MP-GOV-010"],"target_pr":"MP-PR-01"},
-    {"id":"MP-SEC-011","group":"SEC","source":"#32","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/32","priority":"P2","statement":"Apply advanced API/feed protection only after core security and integrated certification.","behavior":"Hardening cannot substitute for authentication, authorization or tests.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"NOT_APPLICABLE","conflicts":[],"dependencies":["MP-SEC-001"],"target_pr":"future phase 14"},
-    {"id":"MP-SEC-012","group":"SEC","source":"#23","source_ref":"#23 final gate","priority":"P0","statement":"Leave no open HIGH/CRITICAL security finding attributable to MatchPilot in offline v1.","behavior":"Any such finding blocks HARD CERTIFIED OFFLINE.","design":["security gate"],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-SEC-001","MP-SEC-008","MP-SEC-009"],"target_pr":"MP-PR-15"}
+  "pr_registry": [
+    {"id":"R-00","title":"MP-PR-00 / PR #149: atomic inventory v2, owner-decision register, audit persistence","issues":["#3","#97","#104","#149"],"cards":[],"status":"REVIEW"},
+    {"id":"R-01","title":"Governance alignment AGENTS/CLAUDE, closure guards, Gate B evidence schema, MP-MULTIAGENT-SYNC-CHECKPOINT-01","issues":["#3","#97","#144"],"cards":[],"status":"PLANNED"},
+    {"id":"R-02","title":"Archive #40 read-only materialization and independent hash/portability verification","issues":["#40","#144"],"cards":[],"status":"PLANNED"},
+    {"id":"R-03","title":"API v1 contract, error envelope, provenance, bounded queries, legacy route inventory","issues":["#98","#3","#30"],"cards":["MCP-CORE-00"],"status":"PLANNED"},
+    {"id":"R-04","title":"Owner/admin auth baseline","issues":["#23","#32"],"cards":["AUTH-CORE-01","AUTH-CORE-02"],"status":"PLANNED"},
+    {"id":"R-05","title":"Real web shell, browser E2E and security lanes","issues":["#3","#97"],"cards":[],"status":"PLANNED"},
+    {"id":"R-06","title":"Dashboard, Daily Board, search and filters","issues":["#3","#30"],"cards":["QUERY-CORE-02"],"status":"PLANNED"},
+    {"id":"R-07","title":"Match Center, match analysis, data quality and charts","issues":["#3","#25","#30"],"cards":["QUERY-CORE-01"],"status":"PLANNED"},
+    {"id":"R-08","title":"PIT policy, version pinning, cross-provider identity, timezone/DST","issues":["#12","#20","#31"],"cards":["RECON-CORE-01"],"status":"PLANNED"},
+    {"id":"R-09","title":"Archive query layer and deterministic replay core","issues":["#24"],"cards":["REPLAY-CORE-01"],"status":"PLANNED"},
+    {"id":"R-10","title":"Replay API","issues":["#24","#98"],"cards":["REPLAY-CORE-02"],"status":"PLANNED"},
+    {"id":"R-11","title":"Replay UI","issues":["#24","#25"],"cards":[],"status":"PLANNED"},
+    {"id":"R-12","title":"Mathematical oracle and statistical metrics","issues":["#94","#3"],"cards":["MATH-CORE-01","MATH-CORE-07","MATH-CORE-08"],"status":"PLANNED"},
+    {"id":"R-13","title":"Backtest market outcomes and frozen configuration snapshot","issues":["#100","#95","#99"],"cards":[],"status":"PLANNED"},
+    {"id":"R-14","title":"Chronological backtest, walk-forward and out-of-sample validation","issues":["#34","#3"],"cards":["STRAT-CORE-03","STRAT-CORE-04"],"status":"PLANNED"},
+    {"id":"R-15","title":"TotalCorner residual normalization on captured data","issues":["#20"],"cards":["TC-CORE-05","TC-CORE-06","TC-CORE-06B"],"status":"PLANNED"},
+    {"id":"R-16","title":"FPT 412 audit (read-only part) and FPT residual certification","issues":["#12"],"cards":[],"status":"PLANNED"},
+    {"id":"R-17","title":"Adversarial, recovery, performance, security, TC alerts and ops drills","issues":["#23","#31","#144","#20"],"cards":["TC-CORE-07","RECON-CORE-02","RECON-CORE-04","RECON-CORE-05"],"status":"PLANNED"},
+    {"id":"R-18","title":"Integrated Gate A/B and IV&V for OFFLINE v1","issues":["#3","#97","#98"],"cards":[],"status":"PLANNED"},
+    {"id":"continuous","title":"Cross-cutting rule applied by every PR","issues":[],"cards":[],"status":"CONTINUOUS"}
   ],
-  "referenced_external_ids": {
-    "MP-API-001": "Versioned read-only API contract, created in MP-PR-04",
-    "MP-API-004": "Search/filter/pagination API contract, created in MP-PR-04",
-    "MP-MATH-001": "Independent mathematical oracle contract, created in MP-PR-12"
-  },
+  "requirements": [
+    {"id":"MP-GOV-001","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-OWNER-DECISIONS-D1-D9-20261018 D3 (ratifies MP-ENTERPRISE-GATE-AB-WEB-SIM-01 scope)","priority":"P0","statement":"Limit HARD CERTIFIED OFFLINE v1 to the owner-approved included scope.","behavior":"All Gate A/B reports use the approved scope and retain excluded roadmap items as future.","design":["docs/governance/mp-pr-00/requirements.json"],"code":[],"tests":["test/requirements-inventory.test.mjs"],"evidence":["owner decision D3 2026-10-18 recorded in docs/governance/owner-decisions.json"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["R-00"]},
+    {"id":"MP-GOV-002","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-PR-00 authorization","priority":"P0","statement":"Perform no deploy, Neon/Render write, LIVE acquisition, archive mutation or spend in MP-PR-00.","behavior":"The PR changes governance artifacts and validators only.","design":["docs/governance/mp-pr-00/README.md"],"code":[],"tests":["test/requirements-inventory.test.mjs"],"evidence":["git diff main...HEAD touches only README.md, docs/governance/**, package.json script, test/ and tools/"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["R-00"]},
+    {"id":"MP-GOV-003","group":"GOV","source":"#3","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/3","priority":"P0","statement":"Preserve source hierarchy owner → #3 → #97 → #104 → domain issues → repository documents → mock.","behavior":"Lower sources cannot override higher sources.","design":["docs/governance/mp-pr-00/README.md"],"code":[],"tests":["test/requirements-inventory.test.mjs"],"evidence":["source field on every requirement"],"verdict":"PASS","conflicts":[],"dependencies":["MP-GOV-001"],"target_prs":["R-00"]},
+    {"id":"MP-GOV-004","group":"GOV","source":"AGENTS.md","source_ref":"AGENTS.md#regola-pr","priority":"P0","statement":"Allow only one operational pull request at a time.","behavior":"PR creation is blocked if another PR is open.","design":["repository governance"],"code":[],"tests":[],"evidence":["pre-flight open PR count 0"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["continuous"]},
+    {"id":"MP-GOV-005","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-OWNER-AUTOMERGE-01; MP-OWNER-MASTER-GOVERNANCE-2026-10-18 §5","priority":"P0","statement":"Merge a PR only when every MP-OWNER-AUTOMERGE-01 condition holds, without bypassing GitHub protections.","behavior":"Scope, Gate A, Gate B, mandatory tests, Actions, branch protection, independent review APPROVED, no blocking finding and no unresolved owner conflict are all PASS before merge; otherwise merge is forbidden.","design":["PR acceptance contract"],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":["historical permanent auto-merge permission in #3 is superseded for this PR"],"dependencies":["MP-GOV-004"],"history":"v1 statement \"Stop before merge and require owner approval\" superseded by MP-OWNER-AUTOMERGE-01 (2026-10-18)","target_prs":["R-00"]},
+    {"id":"MP-GOV-006","group":"GOV","source":"#97","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/97","priority":"P0","statement":"Develop backend/API and certify integrated paths before final UI authority.","behavior":"UI consumes contracts and contains no authoritative business logic.","design":["docs/integration-map.md"],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-GOV-003"],"target_prs":["continuous"]},
+    {"id":"MP-GOV-007","group":"GOV","source":"#3","source_ref":"#3 Definition of Done","priority":"P0","statement":"Do not declare product complete until data, temporal separation, coverage, reproducibility, responsive UI and secret gates pass.","behavior":"Certification fails when any mandatory P0 remains non-PASS.","design":["Gate A/B policy"],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":[],"target_prs":["R-18"]},
+    {"id":"MP-GOV-008","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-PR-00 authorization","priority":"P0","statement":"Use PASS, FAIL, BLOCKED, NOT_VERIFIED and NOT_APPLICABLE without status promotion.","behavior":"Validator rejects unknown states.","design":["requirements schema"],"code":["tools/validate-requirements.mjs"],"tests":["test/requirements-inventory.test.mjs"],"evidence":["CI run 39140793621 on 21eee83 (Fast checks + PostgreSQL integration suite PASS): test/requirements-inventory.test.mjs exercised the closed verdict vocabulary"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["R-00"]},
+    {"id":"MP-GOV-009","group":"GOV","source":"#144","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/144","priority":"P1","statement":"Use standard GitHub-hosted runners with zero additional Actions spend during public development.","behavior":"No larger or paid runner is selected; measured cost remains explicit.","design":[".github/workflows/ci.yml"],"code":[],"tests":[],"evidence":["current runs-on ubuntu-latest"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["continuous"]},
+    {"id":"MP-GOV-010","group":"GOV","source":"#40","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/40","priority":"P0","statement":"Keep the frozen provider-trial archive immutable and do not treat it as runtime certification.","behavior":"Archive is read-only evidence; materialization requires MP-PR-01 authorization.","design":["archive boundary"],"code":[],"tests":[],"evidence":["docs/provider-trial-final-closure-2026-10-08.md point 14 SHA readback PASS (not independently re-verified)"],"verdict":"NOT_VERIFIED","conflicts":["issue remains administratively open despite completion evidence"],"dependencies":[],"history":"v1 PASS downgraded: immutability cannot PASS while MP-SEC-010 SHA/manifest verification is BLOCKED (audit B-07; owner D9)","target_prs":["R-02"]},
+    {"id":"MP-GOV-011","group":"GOV","source":"#104","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/104","priority":"P1","statement":"Treat the historical 82-PR plan as planning history, not the verified Gate A denominator.","behavior":"The atomic inventory is the only v1 denominator after owner acceptance.","design":["docs/governance/mp-pr-00/requirements.json"],"code":[],"tests":["test/requirements-inventory.test.mjs"],"evidence":["#104 body edited 2026-10-07 by PR #125: \"82 è baseline storica, NON conteggio verificato\"","docs/governance/audits/2026-10-18-MP-GATE-A-REVIEW-ROADMAP-01.md §4"],"verdict":"PASS","conflicts":["old 82 residual count is superseded"],"dependencies":["MP-GOV-003"],"target_prs":["R-00"]},
+    {"id":"MP-GOV-012","group":"GOV","source":"AGENTS.md","source_ref":"AGENTS.md#mock-vivo","priority":"P1","statement":"State whether each PR changes visible product behavior and update the mock only when it does.","behavior":"MP-PR-00 declares mock update NO because it changes governance only.","design":["PR template"],"code":[],"tests":["test/mockup-alignment.test.mjs"],"evidence":[".github/pull_request_template.md \"Mock UX\" SÌ/NO section","CI run 39140793621 on 21eee83 (Fast checks + PostgreSQL integration suite PASS): test/mockup-alignment.test.mjs"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["continuous"]},
+    {"id":"MP-FPT-001","group":"FPT","source":"#12","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/12","priority":"P0","statement":"Discover and preserve every FutPythonTrader field returned upstream.","behavior":"Unknown and future fields enter raw/schema registry without loss.","design":["migrations/011-fpt-schema-registry.sql"],"code":["src/providers/futpython/schema.mjs"],"tests":["test/schema.test.mjs","test/phase4-registry.test.mjs"],"evidence":["historical FPT certificate"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["R-16"]},
+    {"id":"MP-FPT-002","group":"FPT","source":"#12","source_ref":"#12 raw retention","priority":"P0","statement":"Preserve immutable raw snapshots with content hashes and lineage.","behavior":"Derived changes never overwrite original raw bytes.","design":["migrations/020-fpt-raw-retention-reprocessing.sql"],"code":["src/providers/futpython/store.mjs"],"tests":["test/fpt-reprocessing.test.mjs"],"evidence":["historical certificate scope"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["R-16"]},
+    {"id":"MP-FPT-003","group":"FPT","source":"#3","source_ref":"#3 FutPython contract","priority":"P0","statement":"Normalize and make queryable every available field, not only fields displayed in UI.","behavior":"Normalized and query layers retain all covered fields.","design":["migrations/014-fpt-normalized-layer.sql"],"code":["src/providers/futpython/query.mjs"],"tests":["test/fpt-assistant-queries.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-FPT-001"],"target_prs":["R-16"]},
+    {"id":"MP-FPT-004","group":"FPT","source":"#3","source_ref":"#3 data contract","priority":"P0","statement":"Expose coverage N and provenance for each metric and dataset slice.","behavior":"Consumers receive scope, counts, timestamps and source.","design":["migrations/012-fpt-field-coverage.sql"],"code":["src/providers/futpython/coverage.mjs"],"tests":["test/phase5-coverage.test.mjs"],"evidence":["docs/futpython-certification-2026-10-05.md gate coverage PASS (dataset/league/season/field scope only)"],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-FPT-001"],"history":"v1 PASS without evidence; per-metric provenance exposure not proven (audit B-02)","target_prs":["R-03"]},
+    {"id":"MP-FPT-005","group":"FPT","source":"#12","source_ref":"#12 PIT risk","priority":"P0","statement":"Pin parser/schema/transform/data-contract and identity versions for point-in-time reproduction.","behavior":"The same T and contract version reproduce the same result before and after reprocessing.","design":[],"code":["src/providers/futpython/reprocess.mjs","migrations/014-fpt-normalized-layer.sql"],"tests":["test/fpt-reprocessing.test.mjs"],"evidence":["documented open PIT risk"],"verdict":"FAIL","conflicts":["latest parser output can alter historical query at same T"],"dependencies":["MP-FPT-002"],"target_prs":["R-08"]},
+    {"id":"MP-FPT-006","group":"FPT","source":"#31","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/31","priority":"P0","statement":"Detect gaps, stale checkpoints and interrupted synchronization and recover idempotently.","behavior":"Recovery uses recorded gaps and does not duplicate persisted facts.","design":["migrations/019-fpt-reconciliation.sql"],"code":["src/providers/futpython/reconciliation.mjs"],"tests":["test/fpt-reconciliation.test.mjs","test/fpt-reconciliation-sync.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-FPT-002"],"target_prs":["R-17"]},
+    {"id":"MP-FPT-007","group":"FPT","source":"#12","source_ref":"#12 classification","priority":"P1","statement":"Distinguish AVAILABLE, initial unavailable, regression, provider error, deprecated and removed datasets.","behavior":"Provider unavailability and MatchPilot defects remain distinct.","design":["migrations/008-fpt-dataset-classification.sql"],"code":["src/providers/futpython/classification.mjs"],"tests":["test/phase2-classification.test.mjs"],"evidence":["docs/futpython-certification-2026-10-05.md gate classification_phase2 PASS (1,027 datasets classified)"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["R-16"]},
+    {"id":"MP-FPT-008","group":"FPT","source":"#12","source_ref":"#12 audit 412","priority":"P0","statement":"Resolve or explicitly classify the 412 historical UNAVAILABLE_404 datasets before global FPT certification.","behavior":"Each dataset has evidence-backed terminal or actionable state.","design":[],"code":[],"tests":[],"evidence":["owner audit requirement"],"verdict":"BLOCKED","conflicts":[],"dependencies":["MP-FPT-007"],"target_prs":["R-16"]},
+    {"id":"MP-FPT-009","group":"FPT","source":"#3","source_ref":"#3 Intelligence","priority":"P1","statement":"Provide pre-match feature slices for form, home/away, goals, xG, shooting, possession, defence, discipline, corners, halves, timing, H2H and odds where available.","behavior":"Unavailable families remain N/D with coverage.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-FPT-003","MP-FPT-004"],"target_prs":["R-03","R-06","R-07"]},
+    {"id":"MP-FPT-010","group":"FPT","source":"#12","source_ref":"#12 onboarding","priority":"P1","statement":"Require owner promotion for a new league while permitting controlled new-season onboarding.","behavior":"Unapproved leagues cannot enter operational scope.","design":["migrations/018-fpt-onboarding.sql"],"code":["src/providers/futpython/onboarding.mjs"],"tests":["test/fpt-onboarding.test.mjs"],"evidence":["docs/futpython-certification-2026-10-05.md §18 onboarding gate PASS (catalog_without_onboarding 0)"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["continuous"]},
+    {"id":"MP-FPT-011","group":"FPT","source":"#12","source_ref":"#12 watchdog","priority":"P1","statement":"Monitor freshness, failures, budget state and schema changes without alert spam.","behavior":"Alerts are fingerprinted, outbound-only and evidence-backed.","design":["migrations/002-data-watchdog.sql","migrations/003-alert-aggregation.sql"],"code":["src/jobs/data-watchdog.mjs","src/alerts.mjs"],"tests":["test/alerts.test.mjs","test/alert-aggregation.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":[],"target_prs":["R-17"]},
+    {"id":"MP-FPT-012","group":"FPT","source":"#12","source_ref":"#12 final gate","priority":"P0","statement":"Do not call FutPythonTrader globally certified while residual classification, PIT or real gates remain open.","behavior":"Final verdict is CERTIFIED, CERTIFIED WITH KNOWN LIMITATIONS or NOT CERTIFIED only after all gates.","design":["certification policy"],"code":["src/futpython-certification.mjs"],"tests":["test/phase9-certificate.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":["historical 20/20 certificate is scoped, not global"],"dependencies":["MP-FPT-005","MP-FPT-008"],"target_prs":["R-18"]},
+    {"id":"MP-TC-001","group":"TC","source":"#20","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/20","priority":"P0","statement":"Store lossless TotalCorner raw responses and a request ledger without token leakage.","behavior":"Every attempt is classified and raw-linked when present.","design":["migrations/021-tc-core-discovery.sql"],"code":["src/providers/totalcorner/client.mjs"],"tests":["test/tc-core-discovery.test.mjs"],"evidence":["TC-CORE-01 scoped evidence"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["R-15"]},
+    {"id":"MP-TC-002","group":"TC","source":"#20","source_ref":"#20 competition mapping","priority":"P0","statement":"Use only VERIFIED FPT↔TotalCorner competition mappings in operational collectors.","behavior":"Candidate, ambiguous and unmapped competitions remain excluded with reasons.","design":["migrations/022-tc-competition-mapping.sql"],"code":["src/providers/totalcorner/mapping.mjs"],"tests":["test/tc-core-mapping.test.mjs"],"evidence":["96 VERIFIED scoped evidence"],"verdict":"PASS","conflicts":[],"dependencies":["MP-TC-001"],"target_prs":["continuous"]},
+    {"id":"MP-TC-003","group":"TC","source":"#20","source_ref":"#20 prematch PIT","priority":"P0","statement":"Classify PREMATCH only when provider time is strictly before scheduled kickoff and no in-play minute exists.","behavior":"Late or live rows are INPLAY or QUARANTINE, never PREMATCH.","design":["migrations/023-tc-prematch.sql"],"code":["src/providers/totalcorner/prematch.mjs"],"tests":["test/tc-core-prematch.test.mjs"],"evidence":["TC-CORE-03 14/14 pre-kickoff"],"verdict":"PASS","conflicts":[],"dependencies":["MP-TC-002"],"target_prs":["continuous"]},
+    {"id":"MP-TC-004","group":"TC","source":"#20","source_ref":"#20 timezone gate","priority":"P0","statement":"Measure provider timezone and fail closed when missing, stale or inconsistent.","behavior":"Prematch capture stops rather than applying an unverified offset.","design":["migrations/024-tc-tz-observations.sql","migrations/025-tc-tz-inliers.sql"],"code":["src/jobs/totalcorner-prematch.mjs"],"tests":["test/tc-core-prematch.test.mjs"],"evidence":["tc-tz-gate-v2 evidence"],"verdict":"PASS","conflicts":[],"dependencies":["MP-TC-003"],"target_prs":["continuous"]},
+    {"id":"MP-TC-005","group":"TC","source":"#20","source_ref":"#20 market scope","priority":"P1","statement":"Expose opening and last-prematch 1X2, Asian, Goal, Corner, HT and BTTS where upstream provides them.","behavior":"Point-in-time queries respect provider and captured knowledge modes.","design":["migrations/023-tc-prematch.sql"],"code":["src/jobs/totalcorner-prematch.mjs"],"tests":["test/tc-core-prematch.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-TC-003"],"target_prs":["R-03","R-07"]},
+    {"id":"MP-TC-006","group":"TC","source":"#20","source_ref":"#20 historical upstream","priority":"P1","statement":"Keep HISTORICAL_UPSTREAM distinct from HISTORICAL_CAPTURED live history.","behavior":"Final-state fields cannot masquerade as minute-by-minute capture.","design":["migrations/026-tc-historical-backfill.sql"],"code":["src/providers/totalcorner/historical.mjs"],"tests":["test/tc-core-historical.test.mjs"],"evidence":["TC-CORE-03B limitations"],"verdict":"PASS","conflicts":[],"dependencies":["MP-TC-001"],"target_prs":["continuous"]},
+    {"id":"MP-TC-007","group":"TC","source":"#20","source_ref":"#20 live collector","priority":"P0","statement":"Persist live snapshots and events from VERIFIED leagues with canonical deduplication.","behavior":"Unknown payload changes affect identity and identical payloads remain idempotent.","design":["migrations/027-tc-live-collector.sql","migrations/028-tc-live-v2-terminal.sql"],"code":["src/providers/totalcorner/live.mjs","src/jobs/totalcorner-live.mjs"],"tests":["test/tc-core-live.test.mjs"],"evidence":["#20 comment 6081058030 (2026-10-09): 1,114 snapshots, 239 events, 0 snapshot/event duplicates; scope PR #145 runtime"],"verdict":"PASS","conflicts":[],"dependencies":["MP-TC-002"],"history":"v1 statement split: market persistence moved to MP-TC-015 (audit B-07)","target_prs":["R-15"]},
+    {"id":"MP-TC-008","group":"TC","source":"#20","source_ref":"#20 restart/terminal","priority":"P0","statement":"Recover live cursors after restart and persist provider-confirmed FT exactly once.","behavior":"Restart does not lose terminal state or duplicate snapshot/event rows.","design":["migrations/028-tc-live-v2-terminal.sql"],"code":["src/jobs/totalcorner-live.mjs"],"tests":["test/tc-core-live.test.mjs"],"evidence":["#20 comment 6081058030: exact-SHA restart PASS, transaction lock PASS, 2 provider-confirmed FT persisted exactly once; scope PR #145, not multi-day"],"verdict":"PASS","conflicts":[],"dependencies":["MP-TC-007"],"history":"v1 BLOCKED contradicted certified #145 evidence (audit B-07); multi-day live stays in future register MP-FUT-007","target_prs":["R-15"]},
+    {"id":"MP-TC-009","group":"TC","source":"#20","source_ref":"#20 rate limiting","priority":"P1","statement":"Share a bounded rate limiter, classify 429/5xx/timeout and apply controlled retry/backoff.","behavior":"Rate-limit failure cannot create an unbounded burst.","design":["provider client contract"],"code":["src/providers/totalcorner/client.mjs"],"tests":["test/tc-core-discovery.test.mjs"],"evidence":["#20 comment 6057763877: limiter 4/10 s held over 100 real requests, 0 429; 429/5xx/timeout classification unit-tested in test/tc-core-discovery.test.mjs"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["continuous"]},
+    {"id":"MP-TC-010","group":"TC","source":"#20","source_ref":"#20 data quality","priority":"P0","statement":"Expose raw linkage, duplicates, gaps, provenance, freshness and leakage counters.","behavior":"Quality problems are visible and machine-readable.","design":["TotalCorner report contracts"],"code":["src/jobs/totalcorner-prematch.mjs","src/jobs/totalcorner-live.mjs"],"tests":["test/tc-core-prematch.test.mjs","test/tc-core-live.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-TC-003","MP-TC-007"],"target_prs":["R-03"]},
+    {"id":"MP-TC-011","group":"TC","source":"#20","source_ref":"#20 alerts","priority":"P1","statement":"Route TotalCorner operational alerts through the same outbound-only alert channel as FPT.","behavior":"No inbound Telegram control and no token leakage.","design":["shared alerter"],"code":["src/alerts.mjs"],"tests":["test/telegram.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-TC-001"],"target_prs":["R-17"]},
+    {"id":"MP-TC-012","group":"TC","source":"#20","source_ref":"#20 final certification","priority":"P0","statement":"Do not declare TotalCorner globally certified before prematch, historical, live frequency, restart, FT and replay gates pass.","behavior":"Scoped component evidence cannot promote the full provider.","design":["certification policy"],"code":[],"tests":[],"evidence":[],"verdict":"BLOCKED","conflicts":["component certifications are not global certification"],"dependencies":["MP-TC-008","MP-RPL-012"],"target_prs":["R-18"]},
+    {"id":"MP-WEB-001","group":"WEB","source":"OWNER-2026-10-18","source_ref":"HARD CERTIFIED OFFLINE v1","priority":"P0","statement":"Provide a real executable read-only website, not a visual prototype.","behavior":"The browser loads product data from real isolated APIs.","design":[],"code":["src/server.mjs"],"tests":[],"evidence":["current homepage says In costruzione"],"verdict":"FAIL","conflicts":[],"dependencies":["MP-SEC-001"],"target_prs":["R-05"]},
+    {"id":"MP-WEB-002","group":"WEB","source":"#3","source_ref":"#3 Web Daily Board","priority":"P0","statement":"Show a responsive Daily Board with all available matches and data-quality state.","behavior":"Cards expose teams, competition, kickoff, analytics, markets and coverage when available.","design":["docs/mockups/matchpilot-trading-os.html"],"code":[],"tests":["test/mockup-alignment.test.mjs"],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-WEB-001","MP-FPT-009","MP-TC-005"],"target_prs":["R-06"]},
+    {"id":"MP-WEB-003","group":"WEB","source":"#30","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/30","priority":"P0","statement":"Provide Match Center search, filters and Home/Away/Both analytical cards.","behavior":"Every available data family is inspectable with provenance and N.","design":["docs/mockups/matchpilot-trading-os.html"],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-WEB-001","MP-FPT-009"],"target_prs":["R-07"]},
+    {"id":"MP-WEB-004","group":"WEB","source":"#25","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/25","priority":"P1","statement":"Provide a finished-match page combining prematch, final state, timeline, markets, replay and post-mortem.","behavior":"Prematch/live/final sections remain visibly and temporally separate.","design":["docs/mockups/matchpilot-trading-os.html"],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-WEB-003","MP-RPL-012"],"target_prs":["R-07","R-11"]},
+    {"id":"MP-WEB-005","group":"WEB","source":"#3","source_ref":"#3 card contract","priority":"P0","statement":"Render missing values as N/D rather than numeric zero.","behavior":"Zero is shown only when source semantics prove a real zero.","design":["API/UI contract"],"code":["src/coverage-page.mjs"],"tests":["test/fpt-coverage-page.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-FPT-004"],"target_prs":["R-05","R-07"]},
+    {"id":"MP-WEB-006","group":"WEB","source":"#3","source_ref":"#3 provenance contract","priority":"P0","statement":"Display coverage, source, freshness, gap and quality status for each module.","behavior":"Users can inspect why a value is present, missing or stale.","design":[],"code":["src/coverage-page.mjs"],"tests":["test/fpt-coverage-page.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-FPT-004","MP-TC-010"],"target_prs":["R-07"]},
+    {"id":"MP-WEB-007","group":"WEB","source":"OWNER-2026-10-18","source_ref":"web scope","priority":"P0","statement":"Support search and filters for match, date, competition and quality dimensions.","behavior":"Inputs are validated and produce deterministic paginated results.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-API-004"],"target_prs":["R-06"]},
+    {"id":"MP-WEB-008","group":"WEB","source":"#3","source_ref":"#3 Web app","priority":"P1","statement":"Provide charts for historical odds, statistics and replay without implying fabricated continuity.","behavior":"Charts identify observed points, gaps and unavailable series.","design":["docs/mockups/matchpilot-trading-os.html"],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-008"],"target_prs":["R-07","R-11"]},
+    {"id":"MP-WEB-009","group":"WEB","source":"#3","source_ref":"#3 responsive DoD","priority":"P1","statement":"Operate on supported desktop and mobile viewports.","behavior":"Primary flows remain usable and readable at both viewport classes.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-WEB-001"],"target_prs":["R-05","R-17"]},
+    {"id":"MP-WEB-010","group":"WEB","source":"OWNER-2026-10-18","source_ref":"site web real","priority":"P0","statement":"Handle loading, empty, partial and error states explicitly.","behavior":"No silent blank page or stale-success fallback.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-WEB-001"],"target_prs":["R-05"]},
+    {"id":"MP-WEB-011","group":"WEB","source":"#97","source_ref":"#97 UI phase 15","priority":"P0","statement":"Keep authoritative formulas, strategy, replay and data rules outside the UI.","behavior":"Frontend renders API contracts and cannot change certified outcomes.","design":["domain ownership"],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-GOV-006"],"target_prs":["R-05","continuous"]},
+    {"id":"MP-WEB-012","group":"WEB","source":"#24","source_ref":"#24 replay UI","priority":"P1","statement":"Expose replay controls and synchronized state in the real site.","behavior":"Play, pause, stop, step, seek and speed controls drive the certified replay clock.","design":["docs/mockups/matchpilot-trading-os.html"],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-012"],"target_prs":["R-11"]},
+    {"id":"MP-RPL-001","group":"RPL","source":"#24","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/24","priority":"P0","statement":"Select a finished match and reconstruct its chronological state from authentic captured data.","behavior":"Replay consumes verified archive records, not generated demo data.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"BLOCKED","conflicts":[],"dependencies":["MP-GOV-010","MP-TC-007"],"target_prs":["R-09"]},
+    {"id":"MP-RPL-002","group":"RPL","source":"#24","source_ref":"#24 deterministic replay","priority":"P0","statement":"Return the same state for match, timestamp, dataset, code, config and seed.","behavior":"Every run emits a reproducibility manifest.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-001"],"target_prs":["R-09"]},
+    {"id":"MP-RPL-003","group":"RPL","source":"OWNER-2026-10-18","source_ref":"historical replay rule","priority":"P0","statement":"Prevent algorithms from reading any information later than simulated time.","behavior":"All source reads apply provider_time and observed_at knowledge cutoffs.","design":[],"code":["src/providers/totalcorner/prematch.mjs"],"tests":["test/tc-core-prematch.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-FPT-005","MP-TC-003"],"target_prs":["R-09"]},
+    {"id":"MP-RPL-004","group":"RPL","source":"OWNER-2026-10-18","source_ref":"replay controls","priority":"P1","statement":"Support configurable speed, pause, resume and event-by-event stepping.","behavior":"Clock transitions are deterministic and testable.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-002"],"target_prs":["R-09","R-11"]},
+    {"id":"MP-RPL-005","group":"RPL","source":"#24","source_ref":"#24 jump controls","priority":"P1","statement":"Support seek and jumps to kickoff, HT, 60, 75, 90, FT and available events.","behavior":"Jump targets correspond to real timestamps and cannot reveal later state.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-002"],"target_prs":["R-09","R-11"]},
+    {"id":"MP-RPL-006","group":"RPL","source":"#24","source_ref":"#24 replay state","priority":"P0","statement":"Expose score, status, statistics, markets and last event available at each replay instant.","behavior":"Each value carries provenance and quality.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-001"],"target_prs":["R-09","R-10"]},
+    {"id":"MP-RPL-007","group":"RPL","source":"#24","source_ref":"#24 data rules","priority":"P0","statement":"Never invent intermediate snapshots or interpolate unauthorized information.","behavior":"Only observed or explicitly last-known values are emitted with labels.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-RPL-001"],"target_prs":["R-09"]},
+    {"id":"MP-RPL-008","group":"RPL","source":"#24","source_ref":"#24 gap handling","priority":"P0","statement":"Identify missing snapshots, gaps, late data and incomplete matches.","behavior":"Timeline shows gap duration and last valid snapshot without claiming continuity.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-001"],"target_prs":["R-09"]},
+    {"id":"MP-RPL-009","group":"RPL","source":"OWNER-2026-10-18","source_ref":"replay adversarial cases","priority":"P0","statement":"Handle out-of-order timestamps, duplicates, corrections and simultaneous events deterministically.","behavior":"Ordering and correction rules are explicit and stable.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-002"],"target_prs":["R-09"]},
+    {"id":"MP-RPL-010","group":"RPL","source":"OWNER-2026-10-18","source_ref":"replay recovery","priority":"P0","statement":"Restart a replay without changing state or duplicating predictions/events.","behavior":"Persisted checkpoint resumes exactly once.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-002"],"target_prs":["R-09","R-17"]},
+    {"id":"MP-RPL-011","group":"RPL","source":"#24","source_ref":"#24 API/service","priority":"P1","statement":"Expose replay through a versioned read-only API with validated match/time inputs.","behavior":"Invalid or unavailable ranges return explicit contract errors.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-006","MP-API-001"],"target_prs":["R-10"]},
+    {"id":"MP-RPL-012","group":"RPL","source":"#24","source_ref":"#24 final acceptance","priority":"P0","statement":"Certify replay on complete, incomplete, multi-goal, market-movement and event-rich authentic matches.","behavior":"Raw-to-replay comparison passes with documented limitations.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"BLOCKED","conflicts":[],"dependencies":["MP-RPL-003","MP-RPL-008","MP-RPL-010","MP-GOV-010"],"target_prs":["R-18"]},
+    {"id":"MP-STA-001","group":"STA","source":"#34","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/34","priority":"P0","statement":"Version every strategy, rule set and parameter set immutably.","behavior":"Backtest result references the exact strategy version.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":[],"target_prs":["R-14"]},
+    {"id":"MP-STA-002","group":"STA","source":"OWNER-2026-10-18","source_ref":"statistical certification A","priority":"P0","statement":"Verify mathematical formulas independently from data and predictive performance.","behavior":"Oracle vectors and property tests validate calculations.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-MTH-001"],"target_prs":["R-12"]},
+    {"id":"MP-STA-003","group":"STA","source":"OWNER-2026-10-18","source_ref":"statistical certification B","priority":"P0","statement":"Verify authenticity, temporal validity, provenance and coherence of backtest inputs.","behavior":"Runs fail on unknown dataset hash or invalid timestamps.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"BLOCKED","conflicts":[],"dependencies":["MP-GOV-010","MP-RPL-003"],"target_prs":["R-14"]},
+    {"id":"MP-STA-004","group":"STA","source":"OWNER-2026-10-18","source_ref":"statistical certification C","priority":"P0","statement":"Evaluate predictive validity strictly outside training/selection data.","behavior":"In-sample metrics cannot satisfy the predictive gate.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-STA-003"],"target_prs":["R-14"]},
+    {"id":"MP-STA-005","group":"STA","source":"#3","source_ref":"#3 backtest","priority":"P0","statement":"Run chronological backtests with no look-ahead leakage.","behavior":"Decisions at T consume only the replay state at T.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-012"],"target_prs":["R-14"]},
+    {"id":"MP-STA-006","group":"STA","source":"OWNER-2026-10-18","source_ref":"walk-forward validation","priority":"P0","statement":"Support walk-forward validation with frozen train, validation and test windows.","behavior":"Window definitions are stored in the run manifest.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-STA-005"],"target_prs":["R-14"]},
+    {"id":"MP-STA-007","group":"STA","source":"OWNER-2026-10-18","source_ref":"calibration metrics","priority":"P1","statement":"Calculate Brier score, log loss and calibration where probabilistic forecasts exist.","behavior":"Undefined metrics for insufficient data are reported, not coerced to zero.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-STA-002"],"target_prs":["R-12"]},
+    {"id":"MP-STA-008","group":"STA","source":"#3","source_ref":"#3 backtest metrics","priority":"P1","statement":"Report ROI, strike rate, drawdown and sample size with consistent definitions.","behavior":"Metric formulas and units are versioned.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-STA-002"],"target_prs":["R-12","R-14"]},
+    {"id":"MP-STA-009","group":"STA","source":"OWNER-2026-10-18","source_ref":"uncertainty","priority":"P1","statement":"Report confidence intervals or justified uncertainty estimates.","behavior":"Small samples are flagged and cannot support reliability claims.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-STA-008"],"target_prs":["R-14"]},
+    {"id":"MP-STA-010","group":"STA","source":"OWNER-2026-10-18","source_ref":"baseline comparison","priority":"P1","statement":"Compare predictive models with simple documented baselines.","behavior":"Improvement is reported with uncertainty and identical test windows.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-STA-004"],"target_prs":["R-14"]},
+    {"id":"MP-STA-011","group":"STA","source":"#3","source_ref":"#3 strategy rules","priority":"P0","statement":"Treat NO TRADE as a valid reproducible strategy outcome.","behavior":"Failed evidence, edge or quality gates emit NO TRADE with reasons.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-STA-001"],"target_prs":["R-14"]},
+    {"id":"MP-STA-012","group":"STA","source":"OWNER-2026-10-18","source_ref":"predictive claim rule","priority":"P0","statement":"Prohibit profitable/reliable claims based on few matches or in-sample results.","behavior":"Certification report separates technical correctness from predictive validity.","design":["certification policy"],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-STA-004","MP-STA-009"],"target_prs":["R-18"]},
+    {"id":"MP-QAC-001","group":"QAC","source":"OWNER-2026-10-18","source_ref":"Gate B test families","priority":"P0","statement":"Execute unit tests against production functions with meaningful assertions.","behavior":"Test existence without behavioral assertion is rejected.","design":["node:test suite"],"code":[],"tests":["test/*.test.mjs"],"evidence":["161-test baseline"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["continuous"]},
+    {"id":"MP-QAC-002","group":"QAC","source":"OWNER-2026-10-18","source_ref":"Gate B integration","priority":"P0","statement":"Run integration tests against isolated real PostgreSQL and real backend code.","behavior":"Migrations and HTTP process execute in CI without provider calls.","design":[".github/workflows/ci.yml"],"code":[],"tests":["test/postgres-independence.test.mjs"],"evidence":["run 37952583495"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["continuous"]},
+    {"id":"MP-QAC-003","group":"QAC","source":"OWNER-2026-10-18","source_ref":"contract/API tests","priority":"P0","statement":"Validate versioned API schemas, inputs, errors and compatibility.","behavior":"Breaking changes fail contract tests.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-API-001"],"target_prs":["R-03"]},
+    {"id":"MP-QAC-004","group":"QAC","source":"OWNER-2026-10-18","source_ref":"frontend/browser tests","priority":"P0","statement":"Run frontend and browser E2E tests on the real web application.","behavior":"Playwright records failures, traces and scoped screenshots.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-WEB-001"],"target_prs":["R-05"]},
+    {"id":"MP-QAC-005","group":"QAC","source":"OWNER-2026-10-18","source_ref":"security tests","priority":"P0","statement":"Run dependency, secret, authorization and unsafe-configuration tests.","behavior":"HIGH/CRITICAL findings block promotion.","design":["CI security lanes"],"code":[],"tests":[],"evidence":["npm audit high exists"],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-SEC-012"],"target_prs":["R-05","R-17"]},
+    {"id":"MP-QAC-006","group":"QAC","source":"OWNER-2026-10-18","source_ref":"recovery/concurrency","priority":"P0","statement":"Test crash, restart, concurrent requests and idempotent recovery.","behavior":"No duplicate event, replay prediction or database mutation occurs.","design":[],"code":[],"tests":["test/resume-drill.test.mjs","test/tc-core-live.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-RPL-010"],"target_prs":["R-17"]},
+    {"id":"MP-QAC-007","group":"QAC","source":"OWNER-2026-10-18","source_ref":"performance tests","priority":"P1","statement":"Measure API, database and replay performance against explicit budgets.","behavior":"Reports include dataset size, hardware and percentile latency.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-RPL-012"],"target_prs":["R-17"]},
+    {"id":"MP-QAC-008","group":"QAC","source":"OWNER-2026-10-18","source_ref":"RED GREEN","priority":"P0","statement":"For every defect, preserve RED evidence, apply the minimal fix, obtain GREEN and run pertinent regression.","behavior":"Changing expectations to accept wrong behavior is forbidden.","design":["PR template"],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":[],"target_prs":["continuous"]},
+    {"id":"MP-QAC-009","group":"QAC","source":"#144","source_ref":"#144 CI gate","priority":"P0","statement":"Maintain a stable required CI gate that fails closed on unknown or failed selected lanes.","behavior":"Classifier errors select full suite and cannot leave required checks pending.","design":[".github/workflows/ci.yml"],"code":["scripts/ci-classify.mjs"],"tests":["test/ci-classify.test.mjs"],"evidence":["ruleset 24790739"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["continuous"]},
+    {"id":"MP-QAC-010","group":"QAC","source":"OWNER-2026-10-18","source_ref":"evidence matrix","priority":"P0","statement":"Record commit, environment, dependencies, dataset hash, command, result, log, artifact, time and limitations for certifications.","behavior":"Missing mandatory evidence yields NOT_VERIFIED.","design":["certification report schema"],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":[],"target_prs":["R-01"]},
+    {"id":"MP-QAC-011","group":"QAC","source":"OWNER-2026-10-18","source_ref":"IV&V","priority":"P0","statement":"Separate implementer, reviewer and certifier roles where possible.","behavior":"Review records identity, commit, findings, severity, correction and re-review.","design":["PR template"],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":[],"target_prs":["continuous"]},
+    {"id":"MP-QAC-012","group":"QAC","source":"OWNER-2026-10-18","source_ref":"continuous certification","priority":"P0","statement":"Link every new PR to requirements and risk-sized mandatory tests.","behavior":"Nonconforming changes cannot be promoted through configured GitHub checks.","design":["requirements validator","CI gate"],"code":["tools/validate-requirements.mjs","scripts/ci-classify.mjs"],"tests":["test/requirements-inventory.test.mjs","test/ci-classify.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-GOV-008","MP-QAC-009"],"target_prs":["R-01","R-05"]},
+    {"id":"MP-SEC-001","group":"SEC","source":"#23","source_ref":"https://github.com/zarbopiero963-droid/MatchPilot/issues/23","priority":"P0","statement":"Protect the real read-only website and API with server-side authentication/authorization appropriate to offline v1.","behavior":"Direct URL or API access without authority is denied.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":["full SaaS user foundation is future, but owner/admin security baseline is phase 0"],"dependencies":[],"target_prs":["R-04"]},
+    {"id":"MP-SEC-002","group":"SEC","source":"#23","source_ref":"#23 secret rules","priority":"P0","statement":"Keep credentials out of repository, docs, fixtures, logs, errors and endpoints.","behavior":"Only environment/config references are permitted and values are never emitted.","design":["secret handling policy"],"code":["src/providers/totalcorner/client.mjs","src/db.mjs"],"tests":["test/tc-core-discovery.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":[],"target_prs":["R-05","R-17"]},
+    {"id":"MP-SEC-003","group":"SEC","source":"#144","source_ref":"#144 isolated CI","priority":"P0","statement":"Never provide production Neon credentials or provider secrets to ordinary PR test jobs.","behavior":"CI uses local PostgreSQL and sanitized fixtures.","design":[".github/workflows/ci.yml"],"code":["src/background.mjs"],"tests":["test/postgres-independence.test.mjs"],"evidence":["run 37952583495"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["continuous"]},
+    {"id":"MP-SEC-004","group":"SEC","source":"#144","source_ref":"#144 workflow permissions","priority":"P0","statement":"Use least-privilege workflow permissions and immutable action pins.","behavior":"Untrusted code cannot write repository contents or access secrets.","design":[".github/workflows/ci.yml"],"code":[],"tests":[],"evidence":["permissions contents:read; actions SHA-pinned"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["continuous"]},
+    {"id":"MP-SEC-005","group":"SEC","source":"OWNER-2026-10-18","source_ref":"database isolation","priority":"P0","statement":"Reject non-local DATABASE_URL in offline and test modes before connection or migration.","behavior":"Unsafe startup exits fail closed.","design":["runtime isolation"],"code":["src/background.mjs"],"tests":["test/runtime-isolation.test.mjs"],"evidence":["CI isolated backend"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["continuous"]},
+    {"id":"MP-SEC-006","group":"SEC","source":"OWNER-2026-10-18","source_ref":"input validation","priority":"P0","statement":"Validate and bind all API inputs; prohibit query injection and unbounded resource requests.","behavior":"Invalid input returns explicit 4xx without executing unsafe query.","design":["query contracts"],"code":["src/providers/futpython/query.mjs"],"tests":["test/fpt-assistant-queries.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-API-001"],"target_prs":["R-03","R-17"]},
+    {"id":"MP-SEC-007","group":"SEC","source":"#23","source_ref":"#23 session security","priority":"P1","statement":"Protect sessions against fixation, CSRF, brute force and stale/revoked access.","behavior":"Logout and revocation invalidate access server-side.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-SEC-001"],"target_prs":["R-04"]},
+    {"id":"MP-SEC-008","group":"SEC","source":"OWNER-2026-10-18","source_ref":"adversarial QA","priority":"P0","statement":"Fail safely on corrupt input, unavailable DB, timeout, crash, malformed API, bad manifest and insufficient resources.","behavior":"Expected error is observable and does not corrupt persistent state.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-QAC-006"],"target_prs":["R-17"]},
+    {"id":"MP-SEC-009","group":"SEC","source":"#144","source_ref":"#144 dependency security","priority":"P1","statement":"Audit dependencies and record unresolved vulnerabilities without hiding unavailable alert state.","behavior":"High-severity dependency findings fail CI or receive an approved exception.","design":[".github/workflows/ci.yml"],"code":[],"tests":[],"evidence":["npm audit --audit-level=high"],"verdict":"NOT_VERIFIED","conflicts":["Dependabot/code/secret scanning API state not available in pre-flight"],"dependencies":[],"target_prs":["R-05"]},
+    {"id":"MP-SEC-010","group":"SEC","source":"OWNER-2026-10-18","source_ref":"archive safety","priority":"P0","statement":"Verify manifest and SHA before reading an archive and never modify original archive bytes.","behavior":"Mismatch blocks replay and backtest.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"BLOCKED","conflicts":[],"dependencies":["MP-GOV-010"],"target_prs":["R-02"]},
+    {"id":"MP-SEC-012","group":"SEC","source":"#23","source_ref":"#23 final gate","priority":"P0","statement":"Leave no open HIGH/CRITICAL security finding attributable to MatchPilot in offline v1.","behavior":"Any such finding blocks HARD CERTIFIED OFFLINE.","design":["security gate"],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-SEC-001","MP-SEC-008","MP-SEC-009"],"target_prs":["R-18"]},
+    {"id":"MP-GOV-013","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-OWNER-CERT-ISSUE-CLOSURE-01; MP-OWNER-DECISIONS-D1-D9-20261018 D9","priority":"P0","statement":"Only the owner closes issues; agents publish \"READY TO CLOSE — OWNER APPROVAL REQUIRED\" only after full certification.","behavior":"No agent, script, workflow or merge closes an issue; the READY TO CLOSE comment lists requirements, PRs, commits, tests, CI, review, Gate A/B, evidence, limits and verdict.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":[],"target_prs":["R-01","continuous"]},
+    {"id":"MP-GOV-014","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-OWNER-CERT-ISSUE-CLOSURE-01; MP-OWNER-DECISIONS-D1-D9-20261018 D10","priority":"P0","statement":"Reject auto-closing keywords (Closes/Fixes/Resolves #) in PR text and canonical documents; use Refs #.","behavior":"An automated check fails when a PR template, canonical document or PR body contains a GitHub auto-closing keyword.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":[],"target_prs":["R-01"]},
+    {"id":"MP-GOV-015","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-GITHUB-SINGLE-SOURCE-OF-TRUTH-01; MP-OWNER-DECISIONS-D1-D9-20261018 D10","priority":"P0","statement":"Record every owner decision on GitHub with identifier, date, decision, scope, precedence, references and status.","behavior":"docs/governance/owner-decisions.json is validated: unique ids, mandatory fields, resolvable supersedes references.","design":[],"code":["tools/validate-requirements.mjs"],"tests":["test/requirements-inventory.test.mjs"],"evidence":["docs/governance/owner-decisions.json validated by npm run governance:validate"],"verdict":"PASS","conflicts":[],"dependencies":[],"target_prs":["R-00"]},
+    {"id":"MP-GOV-016","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-GITHUB-SINGLE-SOURCE-OF-TRUTH-01; MP-OWNER-DECISIONS-D1-D9-20261018 D10","priority":"P0","statement":"Keep AGENTS.md as canonical operating rules and CLAUDE.md as a non-contradicting pointer.","behavior":"Divergent duplicated rules and stale operating entry blocks are removed; CLAUDE.md links AGENTS.md and the owner-decision register.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-GOV-015"],"target_prs":["R-01"]},
+    {"id":"MP-GOV-017","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-OWNER-DECISIONS-D1-D9-20261018 D11; MP-OWNER-MASTER-GOVERNANCE-2026-10-18 §9","priority":"P0","statement":"Persist machine-readable checkpoints with id, UTC time, agent, branch, commit/tree SHA, issue, PR, requirements, tests, CI, gates, review, findings, decisions, state and next action.","behavior":"Checkpoints validate against a schema, contain no secrets, use the admitted states and resolve the latest valid checkpoint deterministically.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-GOV-015"],"target_prs":["R-01"]},
+    {"id":"MP-GOV-018","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-OWNER-DECISIONS-D1-D9-20261018 D11; MP-OWNER-MASTER-GOVERNANCE-2026-10-18 §10-11","priority":"P0","statement":"Support handoff and recovery idempotently, rejecting SHA mismatch, stale checkpoints and uncoordinated concurrent work.","behavior":"A lease or claim protocol prevents two agents from writing the same PR or worktree; an expired lease never overwrites unreconciled work; repeated recovery creates no duplicate commit, PR, comment, review, merge or checkpoint.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-GOV-017"],"target_prs":["R-01"]},
+    {"id":"MP-GOV-019","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-OWNER-DECISIONS-D1-D9-20261018 D11; MP-OWNER-MASTER-GOVERNANCE-2026-10-18 §12","priority":"P0","statement":"Certify multi-agent continuity only through a real Agent A → GitHub checkpoint → interruption → Agent B recovery and completion test.","behavior":"MULTI-AGENT HANDOFF CERTIFIED is declared only with GitHub evidence that agent B completed a task without agent A conversation; simulated tests are labelled as such.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-GOV-018"],"target_prs":["R-01"]},
+    {"id":"MP-GOV-020","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-OWNER-DECISIONS-D1-D9-20261018 D8","priority":"P1","statement":"Keep #97 as canonical roadmap and #104 as historical card catalogue; link every PR to its cards and requirements.","behavior":"Each historical card carries COMPLETED, PARTIAL, PLANNED, SUPERSEDED, DEFERRED or NOT VERIFIED; no PR duplicates implemented work; a merged PR alone never completes a card.","design":[],"code":[],"tests":[],"evidence":["docs/governance/audits/2026-10-18-MP-GATE-A-REVIEW-ROADMAP-01.md §4 card classification"],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-GOV-011"],"target_prs":["R-00","continuous"]},
+    {"id":"MP-GOV-021","group":"GOV","source":"OWNER-2026-10-18","source_ref":"MP-OWNER-DECISIONS-D1-D9-20261018 D6/D7; MP-OWNER-MASTER-GOVERNANCE-2026-10-18 §0.10","priority":"P0","statement":"Incur no cost, deploy, production change, provider renewal or LIVE operation without explicit owner authorization.","behavior":"Any action needing spend or production access stops and presents exact cost, benefit and operational impact.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":[],"target_prs":["continuous"]},
+    {"id":"MP-QAC-013","group":"QAC","source":"OWNER-2026-10-18","source_ref":"MP-OWNER-DECISIONS-D1-D9-20261018 D5","priority":"P0","statement":"Record HARD OFFLINE certifications with environment, commit, dataset, limits and executed tests; declare every mock or stub.","behavior":"An offline certification runs real code on isolated PostgreSQL, authentic hashed datasets or a real browser; external integrations not actually exercised are never declared certified.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-QAC-010"],"target_prs":["R-01","continuous"]},
+    {"id":"MP-API-001","group":"API","source":"#98","source_ref":"#98 contratto tool-first; MP-OWNER-DECISIONS-D1-D9-20261018 D3 backend/API","priority":"P0","statement":"Expose a versioned read-only API with an explicit input/output schema per endpoint.","behavior":"Every v1 endpoint has a versioned path and a machine-readable schema; contract tests fail on undeclared fields.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-SEC-001"],"target_prs":["R-03"]},
+    {"id":"MP-API-002","group":"API","source":"#98","source_ref":"#98 deterministic errors","priority":"P0","statement":"Return a deterministic error envelope with stable codes for invalid input, missing data and internal failure.","behavior":"Errors never leak stack traces or secrets and map to documented codes and HTTP statuses.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-API-001"],"target_prs":["R-03"]},
+    {"id":"MP-API-003","group":"API","source":"#3","source_ref":"#3 provenance contract; #98","priority":"P0","statement":"Attach provenance, coverage, as_of and data/code versions to every API response.","behavior":"A response without provenance, coverage or version metadata fails the contract test.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-API-001","MP-FPT-004","MP-TC-010"],"target_prs":["R-03"]},
+    {"id":"MP-API-004","group":"API","source":"#30","source_ref":"#30 filters; owner web scope","priority":"P0","statement":"Support bounded, validated search, filter and pagination parameters.","behavior":"Unbounded page sizes, unknown filters and injection payloads are rejected before database access.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-API-001","MP-SEC-006"],"target_prs":["R-03"]},
+    {"id":"MP-API-005","group":"API","source":"#98","source_ref":"#104 MCP-CORE-00","priority":"P1","statement":"Publish a machine-readable endpoint/tool registry usable without the UI.","behavior":"The registry lists every v1 endpoint with schema, auth requirement and version.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-API-001"],"target_prs":["R-03"]},
+    {"id":"MP-API-006","group":"API","source":"#98","source_ref":"src/server.mjs; src/providers/futpython/query.mjs","priority":"P0","statement":"Inventory existing unversioned /api/fpt/* and /api/tc/* routes and define authorization and compatibility or deprecation for each.","behavior":"No legacy route stays reachable without an explicit auth decision and mapping to a v1 endpoint or deprecation.","design":[],"code":["src/server.mjs","src/providers/futpython/query.mjs"],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-SEC-001"],"target_prs":["R-03"]},
+    {"id":"MP-ARC-001","group":"ARC","source":"#40","source_ref":"#40 points 10/16; #144 phase 2","priority":"P0","statement":"Make the archive manifest and data dictionary readable with pinned hashes from the repository.","behavior":"Readers resolve dataset files only through the hash-pinned manifest.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-GOV-010"],"target_prs":["R-02"]},
+    {"id":"MP-ARC-002","group":"ARC","source":"#40","source_ref":"#40 DuckDB portability; MP-OWNER-DECISIONS-D1-D9-20261018 D7/D9","priority":"P0","statement":"Independently verify DuckDB portability and the SHA-256 of every archive part.","behavior":"Relocated DuckDB opens without absolute paths; every part matches the trusted inventory; original bytes stay unchanged.","design":[],"code":[],"tests":[],"evidence":["docs/provider-trial-final-closure-2026-10-08.md §11 claims portability; not independently re-verified (audit 6055386180)"],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-ARC-001"],"target_prs":["R-02"]},
+    {"id":"MP-ARC-003","group":"ARC","source":"#40","source_ref":"#40 independent audit reservations","priority":"P0","statement":"Surface archive reservations as data limits in query results.","behavior":"PIT closing UNAVAILABLE for 64,446 groups, unavailable liquidity and non-canonical TC data are reported as N/D or limitations, never as values.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-ARC-001"],"target_prs":["R-02"]},
+    {"id":"MP-ARC-004","group":"ARC","source":"#144","source_ref":"#144 phase 0 dataset licences","priority":"P1","statement":"Verify publishability of real-data fixtures committed to the public repository.","behavior":"Each committed real-data fixture has a recorded licence/publishability check.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":[],"target_prs":["R-17"]},
+    {"id":"MP-ARC-005","group":"ARC","source":"OWNER-2026-10-18","source_ref":"MP-OWNER-DECISIONS-D1-D9-20261018 D7","priority":"P0","statement":"Access the archive read-only: no modification, regeneration, backfill, Neon write or external publication.","behavior":"Archive tooling opens files read-only and fails if a write path is requested.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":[],"target_prs":["R-02","continuous"]},
+    {"id":"MP-PIT-001","group":"PIT","source":"OWNER-2026-10-18","source_ref":"MP-OWNER-DECISIONS-D1-D9-20261018 D4","priority":"P0","statement":"Store event time, provider-declared time, acquisition time, effective availability time and simulated decision time separately.","behavior":"Each record used by replay, statistics or backtest exposes the five timestamps or marks the missing ones explicitly.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":[],"target_prs":["R-08"]},
+    {"id":"MP-PIT-002","group":"PIT","source":"OWNER-2026-10-18","source_ref":"MP-OWNER-DECISIONS-D1-D9-20261018 D4","priority":"P0","statement":"Use a record only when its availability is provably at or before the simulated decision time.","behavior":"Queries filter on effective availability ≤ decision time; data acquired later is never returned.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-PIT-001"],"target_prs":["R-08","R-09"]},
+    {"id":"MP-PIT-003","group":"PIT","source":"OWNER-2026-10-18","source_ref":"MP-OWNER-DECISIONS-D1-D9-20261018 D4","priority":"P0","statement":"Classify records with missing, ambiguous or inconsistent timestamps as not PIT-verified without inventing times.","behavior":"Such records carry PIT_NOT_VERIFIED and are excluded from certified backtests.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-PIT-001"],"target_prs":["R-08"]},
+    {"id":"MP-PIT-004","group":"PIT","source":"#12","source_ref":"#12 PROVIDER_TZ_UNDOCUMENTED; #20 TC-CORE-01/03B; MP-OWNER-DECISIONS-D1-D9-20261018 D4","priority":"P0","statement":"Apply an explicit tested policy for UTC, provider time zones and daylight saving per historical date.","behavior":"FPT kickoff without documented time zone and TC offsets across DST changes are resolved by a versioned policy with tests, or flagged PIT_NOT_VERIFIED.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-PIT-001"],"target_prs":["R-08"]},
+    {"id":"MP-PIT-005","group":"PIT","source":"OWNER-2026-10-18","source_ref":"MP-OWNER-DECISIONS-D1-D9-20261018 D4","priority":"P0","statement":"Label any analysis using non-PIT-verified data as non-PIT and exclude it from certified results.","behavior":"Non-PIT analyses carry a visible label in API and UI and never feed certified backtest metrics.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-PIT-003"],"target_prs":["R-08","R-14"]},
+    {"id":"MP-XPR-001","group":"XPR","source":"#31","source_ref":"#104 RECON-CORE-01; #20 TC-CORE-02 limitation","priority":"P0","statement":"Resolve and version FPT↔TotalCorner match and team identity with VERIFIED status.","behavior":"Cross-provider joins use only VERIFIED identities; unresolved entities stay explicit.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-TC-002"],"target_prs":["R-08"]},
+    {"id":"MP-XPR-002","group":"XPR","source":"#31","source_ref":"#104 RECON-CORE-01/02","priority":"P1","statement":"Detect cross-provider gaps and inconsistencies between FPT and TotalCorner prematch data.","behavior":"Gaps are recorded in a reconciliation ledger and exposed as data-quality state.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-XPR-001"],"target_prs":["R-08","R-17"]},
+    {"id":"MP-TC-013","group":"TC","source":"#20","source_ref":"#104 TC-CORE-05/06/06B","priority":"P1","statement":"Normalize captured live statistics, events and market lines and report per-minute and per-field coverage.","behavior":"Normalization runs offline on captured data, is idempotent and never fabricates continuity.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-TC-007"],"target_prs":["R-15"]},
+    {"id":"MP-TC-014","group":"TC","source":"#20","source_ref":"#20 owner comment 6057237124 (2026-10-08)","priority":"P1","statement":"Expose bookmaker_odds across observed bookmakers, per-bookmaker movement and BTTS where upstream provides them.","behavior":"Values come from captured raw data with provenance; absent bookmakers are N/D.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-TC-005"],"target_prs":["R-15"]},
+    {"id":"MP-TC-015","group":"TC","source":"#20","source_ref":"#20 live collector (market movement)","priority":"P0","statement":"Persist live market snapshots from VERIFIED leagues with canonical deduplication.","behavior":"Market movement is stored deduplicated with provider and acquisition times.","design":[],"code":["src/jobs/totalcorner-live.mjs"],"tests":["test/tc-core-live.test.mjs"],"evidence":[],"verdict":"NOT_VERIFIED","conflicts":[],"dependencies":["MP-TC-007"],"target_prs":["R-15"],"history":"split from v1 MP-TC-007; #144 checkpoint 6078457434 reported 0 market snapshots at 09:45Z, later count not verified"},
+    {"id":"MP-WEB-013","group":"WEB","source":"OWNER-2026-10-18","source_ref":"MP-OWNER-DECISIONS-D1-D9-20261018 D3 Dashboard","priority":"P0","statement":"Provide a dashboard summarizing data health, coverage, freshness and certification state from real APIs.","behavior":"Every tile reads a certified route or shows N/D with reason; no demo value is presented as REAL.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-API-003","MP-WEB-001"],"target_prs":["R-06"]},
+    {"id":"MP-WEB-014","group":"WEB","source":"#30","source_ref":"#30 Match Analysis Hub; MP-OWNER-DECISIONS-D1-D9-20261018 D3","priority":"P0","statement":"Provide match analysis with Home/Away/Both, 5/10/20/season windows and auditable drill-down.","behavior":"Each analytical card shows N, coverage and provenance and can drill down to source rows.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-API-004","MP-FPT-009"],"target_prs":["R-07"]},
+    {"id":"MP-MKT-001","group":"MKT","source":"#100","source_ref":"#100; #99 market_rule_version","priority":"P0","statement":"Resolve backtest market outcomes with a versioned rule set including VOID/PUSH and Asian half lines.","behavior":"The same input and rule version always yield the same resolution for 1X2, O/U, AH, BTTS and corners.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":[],"target_prs":["R-13"]},
+    {"id":"MP-MKT-002","group":"MKT","source":"#40","source_ref":"#40 reservation: outcome labels not materialized","priority":"P0","statement":"Materialize outcome labels for backtest matches or mark them N/D.","behavior":"Backtests never infer outcomes not present in authentic data.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-MKT-001","MP-ARC-001"],"target_prs":["R-13"]},
+    {"id":"MP-MKT-003","group":"MKT","source":"#95","source_ref":"#95 acceptance 6-8; #24 replay session; #34 controls","priority":"P0","statement":"Freeze a configuration snapshot with settings_snapshot_id and Decimal commission_rate_used for every replay and backtest run.","behavior":"Re-running with the same snapshot reproduces identical results; changing settings never alters past runs.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":[],"target_prs":["R-13"]},
+    {"id":"MP-MTH-001","group":"MTH","source":"#94","source_ref":"#94; owner math baseline 2026-10-07","priority":"P0","statement":"Verify formulas against an independent oracle with Decimal fixed precision and test vectors.","behavior":"Every formula used by statistics or backtest has oracle test vectors and property tests.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":[],"target_prs":["R-12"]},
+    {"id":"MP-MTH-002","group":"MTH","source":"#94","source_ref":"owner math baseline 2026-10-07; #3 Intelligence","priority":"P1","statement":"Provide deterministic low-cost baselines: Poisson, fair odds and calibration; heavy ML is out of scope.","behavior":"Baselines are versioned, reproducible and compared against simple references.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-MTH-001"],"target_prs":["R-12"]},
+    {"id":"MP-MTH-003","group":"MTH","source":"#94","source_ref":"#94; #34 commission control","priority":"P1","statement":"Apply commission and define P/L in Decimal consistently across statistics and backtest.","behavior":"P/L reconciles to the cent against oracle examples including commission.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-MTH-001","MP-MKT-003"],"target_prs":["R-12"]},
+    {"id":"MP-STA-013","group":"STA","source":"#34","source_ref":"#34 slippage/minimum liquidity; #94 LIQUIDITY_UNAVAILABLE; #40 reservations","priority":"P0","statement":"Define backtest P/L semantics when liquidity or fills are unavailable.","behavior":"Results under unavailable liquidity are labelled and never presented as executable P/L.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":["MP-MKT-001"],"target_prs":["R-14"]},
+    {"id":"MP-OPS-001","group":"OPS","source":"#144","source_ref":"#144 Gate B and phase 4; #3 observability","priority":"P1","statement":"Drill backup and restore of the development database and verify PostgreSQL 17 CI against production PostgreSQL 18 compatibility.","behavior":"A restore drill and a version-compatibility test produce recorded evidence without touching production.","design":[],"code":[],"tests":[],"evidence":[],"verdict":"FAIL","conflicts":[],"dependencies":[],"target_prs":["R-17"]}
+  ],
+  "referenced_external_ids": {},
   "future_register": [
-    {"id":"MP-FUT-001","source":"#45","domain":"Exchange execution","reason":"explicitly excluded from OFFLINE v1; retained for roadmap"},
-    {"id":"MP-FUT-002","source":"#46","domain":"SaaS billing","reason":"explicitly excluded from OFFLINE v1; retained for roadmap"},
-    {"id":"MP-FUT-003","source":"#20/#144","domain":"production LIVE activation","reason":"explicitly excluded; offline certification does not authorize deployment"},
-    {"id":"MP-FUT-004","source":"#91","domain":"WeWeb migration","reason":"proposal only, not owner-approved architecture"},
-    {"id":"MP-FUT-005","source":"#132","domain":"ML Lab/paid compute","reason":"idea not approved and may incur cost"},
-    {"id":"MP-FUT-006","source":"#23/#46","domain":"public registration and multi-tenant subscriptions","reason":"future SaaS scope"}
+    {"id":"MP-FUT-001","source":"#45","domain":"Exchange execution","reason":"explicitly excluded from OFFLINE v1; retained for roadmap","status":"APPROVED_ROADMAP_OWNER_GATED"},
+    {"id":"MP-FUT-002","source":"#46","domain":"SaaS billing","reason":"explicitly excluded from OFFLINE v1; retained for roadmap","status":"APPROVED_ROADMAP"},
+    {"id":"MP-FUT-003","source":"#20/#144","domain":"production LIVE activation","reason":"explicitly excluded; offline certification does not authorize deployment","status":"APPROVED_ROADMAP_OWNER_GATED"},
+    {"id":"MP-FUT-004","source":"#91","domain":"WeWeb migration","reason":"proposal only, not owner-approved architecture","status":"NOT_APPROVED_PROPOSAL"},
+    {"id":"MP-FUT-005","source":"#132","domain":"ML Lab/paid compute","reason":"idea not approved and may incur cost","status":"NOT_APPROVED_IDEA"},
+    {"id":"MP-FUT-006","source":"#23/#46","domain":"public registration and multi-tenant subscriptions","reason":"future SaaS scope","status":"APPROVED_ROADMAP"},
+    {"id":"MP-FUT-007","source":"#20/#104 TC-CORE-08","domain":"multi-day LIVE TotalCorner certification","status":"APPROVED_ROADMAP_OWNER_GATED","reason":"requires LIVE capture and possibly paid renewal (owner D6)"},
+    {"id":"MP-FUT-008","source":"#32","domain":"advanced security hardening (former MP-SEC-011)","status":"APPROVED_ROADMAP","reason":"phase 14 after core security and integrated certification","former_requirement":"MP-SEC-011"},
+    {"id":"MP-FUT-009","source":"#28","domain":"Trading Engine","status":"APPROVED_ROADMAP","reason":"MatchPilot complete scope (owner D3)"},
+    {"id":"MP-FUT-010","source":"#94","domain":"Trading Tools beyond statistical oracle","status":"APPROVED_ROADMAP","reason":"MATH-CORE-02..06"},
+    {"id":"MP-FUT-011","source":"#34","domain":"Strategy Lab DSL, MM assignment, live matcher, Indicator Library","status":"APPROVED_ROADMAP","reason":"STRAT-CORE-01/02/05/06/07"},
+    {"id":"MP-FUT-012","source":"#96","domain":"Money Management","status":"APPROVED_ROADMAP","reason":"MM-CORE-01..08; STOP/ADVISORY exception remains OPEN owner decision"},
+    {"id":"MP-FUT-013","source":"#99","domain":"Settlement / Ledger / Paper bridge","status":"APPROVED_ROADMAP","reason":"LEDGER-CORE-01..07, PAPER-CORE-01"},
+    {"id":"MP-FUT-014","source":"#100","domain":"Market Rules beyond backtest outcomes","status":"APPROVED_ROADMAP","reason":"MARKET-CORE-01..05 remainder"},
+    {"id":"MP-FUT-015","source":"#98","domain":"Operator API/MCP integrated certification","status":"APPROVED_ROADMAP","reason":"MCP-CORE-01..03"},
+    {"id":"MP-FUT-016","source":"#102","domain":"Trading Copilot","status":"APPROVED_ROADMAP","reason":"TCOP-CORE-01..04"},
+    {"id":"MP-FUT-017","source":"#44","domain":"AI Assistant","status":"APPROVED_ROADMAP","reason":"phase 12"},
+    {"id":"MP-FUT-018","source":"#23","domain":"second admin, audit events, SaaS user foundation","status":"APPROVED_ROADMAP","reason":"AUTH-CORE-03/04 beyond owner baseline"},
+    {"id":"MP-FUT-019","source":"#95","domain":"Account settings beyond frozen snapshot","status":"APPROVED_ROADMAP","reason":"SETTINGS-CORE-01..04"},
+    {"id":"MP-FUT-020","source":"#29/#97","domain":"Live Trading Board and final UI phase 15","status":"APPROVED_ROADMAP","reason":"requires LIVE and phase 15"},
+    {"id":"MP-FUT-021","source":"#27","domain":"GOAT benchmark","status":"APPROVED_ROADMAP","reason":"BENCH-CORE-01 depends on #28"},
+    {"id":"MP-FUT-022","source":"#87","domain":"production infrastructure cost comparison","status":"APPROVED_ROADMAP_OWNER_GATED","reason":"parked until end of main development"}
   ]
 }
