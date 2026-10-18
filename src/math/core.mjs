@@ -24,9 +24,13 @@ function parse(field, value) {
 
 // ---- Validators ----
 
+// Exchange decimal odds stop at 1000; MAX_ODDS leaves headroom while keeping 1/O far above the 1e-18 resolution.
+export const MAX_ODDS = '1000000';
+
 export function decimalOdds(field, value) {
   const o = parse(field, value);
   if (!o.gt(1)) throw new MathInputError(field, 'decimal odds must be greater than 1');
+  if (o.gt(MAX_ODDS)) throw new MathInputError(field, `decimal odds must be at most ${MAX_ODDS}`);
   return o;
 }
 
@@ -62,15 +66,16 @@ const show = value => (value instanceof Decimal ? value.toString() : Array.isArr
 
 // formula: stable name; inputs: what the caller passed; normalized: the validated values used; result: unrounded
 // values (kept for audit); rounded: optional display/settlement values with the policy that produced them.
+// The envelope holds copies, so a caller changing its own objects later cannot alter the audit record.
 export function envelope(formula, {inputs, normalized, result, rounded = null, warnings = []}) {
   return {
     formula,
     formula_version: MATH_CORE_VERSION,
-    inputs,
+    inputs: structuredClone(inputs),
     normalized_inputs: show(normalized),
     result: show(result),
-    rounded: rounded ? {policy_version: ROUNDING_POLICY_VERSION, ...show(rounded)} : null,
-    warnings,
+    rounded: rounded ? {...show(rounded), policy_version: ROUNDING_POLICY_VERSION} : null,
+    warnings: [...warnings],
   };
 }
 
@@ -111,6 +116,12 @@ export function fairOdds({probability: p}) {
 
 // Money rounding helper: keeps the unrounded value and the value rounded to a step (default one cent).
 export function roundMoney(value, {step = '0.01', mode = ROUNDING.HALF_EVEN} = {}) {
-  const v = Decimal.from(value);
-  return {unrounded: v, rounded: v.roundToStep(step, mode), step: Decimal.from(step), mode};
+  const v = parse('value', value);
+  const s = nonNegative('step', step);
+  if (s.isZero()) throw new MathInputError('step', 'must be positive');
+  try { return {unrounded: v, rounded: v.roundToStep(s, mode), step: s, mode}; }
+  catch (error) {
+    if (error instanceof DecimalError) throw new MathInputError('mode', error.message);
+    throw error;
+  }
 }

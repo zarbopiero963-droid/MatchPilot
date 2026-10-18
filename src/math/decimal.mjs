@@ -1,6 +1,7 @@
 // R-12 / MATH-CORE-01 (#94): fixed-precision decimal arithmetic for the Math Core. Values are BigInt multiples of
-// 10^-SCALE, so money and probabilities never pass through binary floating point. Inputs are decimal strings,
-// BigInts or safe integers; a non-integer JS number is refused because it may already carry a binary error.
+// 10^-SCALE, so money and probabilities never pass through binary floating point. Inputs are decimal strings
+// (surrounding whitespace is ignored), BigInts or safe integers; a non-integer JS number is refused because it may
+// already carry a binary error.
 
 export const SCALE = 18;
 const UNIT = 10n ** BigInt(SCALE);
@@ -17,7 +18,10 @@ export class DecimalError extends Error {
 const DECIMAL_TEXT = /^([+-])?(\d+)(?:\.(\d+))?$/;
 
 // Integer division of n by d (d > 0) rounded with the given mode.
+const MODES = new Set(Object.values(ROUNDING));
+
 function divRound(n, d, mode) {
+  if (!MODES.has(mode)) throw new DecimalError('BAD_ROUNDING', `unknown rounding mode ${mode}`);
   if (d <= 0n) throw new DecimalError('INTERNAL', 'divisor must be positive');
   const q = n / d; // truncates toward zero
   const r = n % d;
@@ -59,12 +63,11 @@ export class Decimal {
     const match = DECIMAL_TEXT.exec(value.trim());
     if (!match) throw new DecimalError('BAD_DECIMAL', `not a plain decimal: ${String(value).slice(0, 40)}`);
     const [, sign, whole, fraction = ''] = match;
-    const digits = BigInt(whole + fraction);
+    // Sign first, then round: FLOOR and CEIL depend on it.
+    const digits = (sign === '-' ? -1n : 1n) * BigInt(whole + fraction);
     const exponent = fraction.length;
-    let units;
-    if (exponent <= SCALE) units = digits * 10n ** BigInt(SCALE - exponent);
-    else units = divRound(digits, 10n ** BigInt(exponent - SCALE), mode);
-    return new Decimal(sign === '-' ? -units : units);
+    if (exponent <= SCALE) return new Decimal(digits * 10n ** BigInt(SCALE - exponent));
+    return new Decimal(divRound(digits, 10n ** BigInt(exponent - SCALE), mode));
   }
 
   static zero() { return ZERO; }

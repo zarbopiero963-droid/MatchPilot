@@ -3,8 +3,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {Decimal, DecimalError, ROUNDING, SCALE, sum} from '../src/math/decimal.mjs';
-import {MATH_CORE_VERSION, MathInputError, commissionRate, decimalOdds, fairOdds, impliedProbability, normalizedProbabilities,
-  overround, probability, roundMoney} from '../src/math/core.mjs';
+import {MATH_CORE_VERSION, MAX_ODDS, MathInputError, commissionRate, decimalOdds, envelope, fairOdds, impliedProbability,
+  normalizedProbabilities, overround, probability, roundMoney} from '../src/math/core.mjs';
 
 // ---- Independent oracle: exact fractions ----
 const gcd = (a, b) => { a = a < 0n ? -a : a; b = b < 0n ? -b : b; while (b) [a, b] = [b, a % b]; return a; };
@@ -148,4 +148,61 @@ test('results are deterministic and never read the clock', () => {
   Date.now = () => { throw new Error('the Math Core must not read the clock'); };
   try { assert.equal(JSON.stringify(normalizedProbabilities(input)), first); }
   finally { Date.now = realNow; }
+});
+
+// Independent rounding oracle: an exact fraction rounded to 18 decimals with floor-based definitions of each mode.
+const floorDiv = (a, b) => (a >= 0n ? a / b : -((-a + b - 1n) / b));
+function oracleUnits(x, mode) {
+  const scaled = frac(x.n * 10n ** BigInt(SCALE), x.d);
+  const floor = floorDiv(scaled.n, scaled.d);
+  const ceil = -floorDiv(-scaled.n, scaled.d);
+  const twiceRemainder = 2n * (scaled.n - floor * scaled.d); // 2 * (x - floor) * d, in [0, 2d)
+  switch (mode) {
+    case ROUNDING.FLOOR: return floor;
+    case ROUNDING.CEIL: return ceil;
+    case ROUNDING.DOWN: return scaled.n >= 0n ? floor : ceil;
+    case ROUNDING.HALF_UP:
+      if (twiceRemainder === scaled.d) return scaled.n >= 0n ? ceil : floor;
+      return twiceRemainder < scaled.d ? floor : ceil;
+    case ROUNDING.HALF_EVEN:
+      if (twiceRemainder === scaled.d) return floor % 2n === 0n ? floor : ceil;
+      return twiceRemainder < scaled.d ? floor : ceil;
+  }
+}
+const units = text => { const f = fromText(text); return f.n * 10n ** BigInt(SCALE) / f.d; };
+
+test('every rounding mode matches the oracle for parsing, mul and div with both signs (review B-1, NB-1)', () => {
+  const next = rng(156);
+  const modes = Object.values(ROUNDING);
+  for (let i = 0; i < 1500; i++) {
+    const sign = next() < 0.5 ? '-' : '';
+    const digits = Array.from({length: 19 + Math.floor(next() * 6)}, () => Math.floor(next() * 10)).join('');
+    const text = `${sign}${Math.floor(next() * 1000)}.${digits}`;
+    const a = `${next() < 0.5 ? '-' : ''}${randomOdds(next)}`;
+    const b = `${next() < 0.5 ? '-' : ''}${randomOdds(next)}`;
+    for (const mode of modes) {
+      assert.equal(units(Decimal.from(text, {mode}).toString()), oracleUnits(fromText(text), mode), `from ${text} ${mode}`);
+      assert.equal(units(Decimal.from(a).mul(b, {mode}).toString()), oracleUnits(fmul(fromText(a), fromText(b)), mode), `mul ${a} ${b} ${mode}`);
+      assert.equal(units(Decimal.from(a).div(b, {mode}).toString()), oracleUnits(fdiv(fromText(a), fromText(b)), mode), `div ${a} ${b} ${mode}`);
+    }
+  }
+  assert.equal(Decimal.from('-1.0000000000000000001', {mode: ROUNDING.FLOOR}).toString(), '-1.000000000000000001');
+  assert.equal(Decimal.from('-1.0000000000000000009', {mode: ROUNDING.CEIL}).toString(), '-1');
+  assert.equal(Decimal.from('-2.341').round(2, ROUNDING.CEIL).toString(), '-2.34');
+  assert.throws(() => Decimal.from('1.5').round(2, 'NEAREST'), e => e.code === 'BAD_ROUNDING', 'an unknown mode is refused even when no rounding is needed');
+});
+
+test('odds are bounded, money rounding reports input errors, envelopes copy their inputs (review NB-2..NB-4)', () => {
+  assert.throws(() => decimalOdds('odds', '10000000000000000000'), MathInputError);
+  assert.equal(decimalOdds('odds', MAX_ODDS).toString(), MAX_ODDS);
+  assert.throws(() => normalizedProbabilities({odds: ['1.5', '2.9', '6', '3000000000000000000']}), MathInputError);
+  for (const [value, opts] of [['x', {}], ['1', {step: '0'}], ['1', {step: '-1'}], ['1', {mode: 'NEAREST'}]]) {
+    assert.throws(() => roundMoney(value, opts), MathInputError, `${value} ${JSON.stringify(opts)}`);
+  }
+  const odds = ['2.10', '3.40', '3.60'];
+  const result = overround({odds});
+  odds[0] = '9.99';
+  assert.deepEqual(result.inputs.odds, ['2.10', '3.40', '3.60'], 'the audit record does not follow later caller changes');
+  assert.equal(envelope('x', {inputs: {}, normalized: {}, result: {}, rounded: {policy_version: 'forged'}}).rounded.policy_version, 'mp-rounding-1');
+  assert.equal(Decimal.from('  2.5 ').toString(), '2.5', 'surrounding whitespace is ignored (documented)');
 });

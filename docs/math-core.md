@@ -12,11 +12,11 @@ Tests: `test/math-core.test.mjs`. Both modules are pure: no database, no network
 
 - **Representation:** values are BigInt multiples of 10⁻¹⁸ (`SCALE = 18`). No binary floating point enters a calculation.
 - **Inputs:**
-  - accepted: plain decimal strings (`"2.10"`), BigInts and safe integers;
+  - accepted: plain decimal strings (`"2.10"`, surrounding whitespace ignored), BigInts and safe integers;
   - refused (`BINARY_FLOAT`): JS numbers with a fraction, because they may already carry a binary error;
   - refused: exponents, hexadecimal, empty values and comma decimals.
-- **Precision:** inputs with more than 18 decimals are rounded half-even on entry. `mul` and `div` round half-even to 18 decimals unless a mode is given.
-- **Rounding modes:** `HALF_EVEN`, `HALF_UP` (away from zero), `DOWN` (toward zero), `FLOOR`, `CEIL`.
+- **Precision:** inputs with more than 18 decimals are rounded on entry (half-even unless a mode is given; the sign is applied before rounding). `mul` and `div` round half-even to 18 decimals unless a mode is given.
+- **Rounding modes:** `HALF_EVEN`, `HALF_UP` (away from zero), `DOWN` (toward zero), `FLOOR`, `CEIL`. An unknown mode is refused even when no rounding is needed.
   - `round(places, mode)` rounds to a number of decimals.
   - `roundToStep(step, mode)` rounds to a stake increment or price tick.
 - **Formatting:** `toString(places)` pads and never rounds silently. A value with more decimals is refused (`PRECISION_LOSS`).
@@ -28,7 +28,7 @@ Tests: `test/math-core.test.mjs`. Both modules are pure: no database, no network
 Every formula:
 1. validates its inputs and fails with `BAD_MATH_INPUT` naming the field;
 2. computes in Decimal;
-3. returns an envelope with these fields:
+3. returns an envelope with these fields (holding copies of the inputs, so later changes by the caller cannot alter it):
 
 | Field | Content |
 |---|---|
@@ -43,7 +43,7 @@ Validators:
 
 | Validator | Accepts |
 |---|---|
-| decimal odds | `O > 1`, decimal odds only |
+| decimal odds | `1 < O ≤ 1,000,000`, decimal odds only (exchange odds stop at 1000; the cap keeps `1/O` far above the 10⁻¹⁸ resolution) |
 | probability | in `[0, 1]`, or `(0, 1)` when required |
 | non-negative amounts | `≥ 0` |
 | commission rate | `0 ≤ c < 1`, on net winnings |
@@ -62,7 +62,7 @@ The warning always says which kind of probability a result is (raw implied or ma
 
 ## Verification
 
-- **Oracle:** an independent exact rational implementation (BigInt fractions) in the test file. It checks add, sub, mul and div on 2,000 seeded cases, plus every base formula. Tolerance: at most 1 to 4 units of 10⁻¹⁸, well inside the #94 tolerance of 1e-9 for non-monetary values.
+- **Oracle:** an independent exact rational implementation (BigInt fractions) in the test file. It checks add, sub, mul and div on 2,000 seeded cases, plus every base formula. A second oracle rounds exact fractions with floor-based definitions of each mode. It checks parsing, `mul` and `div` in all five modes, with both signs, on 1,500 seeded cases. Tolerance: at most 1 to 4 units of 10⁻¹⁸, well inside the #94 tolerance of 1e-9 for non-monetary values.
 - **Property and metamorphic tests** (seeded, 500 books):
   - probabilities in `[0, 1]`;
   - normalized probabilities sum exactly to 1;
