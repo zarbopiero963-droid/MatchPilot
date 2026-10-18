@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 24,
+  "revision": 31,
   "tasks": [
     {
       "id": "R-01",
@@ -67,9 +67,25 @@
     },
     {
       "id": "R-08",
-      "title": "PIT policy, version pinning, cross-provider identity, timezone/DST",
+      "title": "PIT policy, five timestamps, timezone/DST (R-08 part 1)",
       "issue": 31,
       "pr": 154,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261018T223000Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "R-08b",
+      "title": "Version pinning for point-in-time reproduction (MP-FPT-005, R-08 part 2)",
+      "issue": 12,
+      "pr": 155,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
       "state": "REVIEW",
@@ -78,7 +94,7 @@
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261018T222159Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261018T230006Z-agent-a-claude-code",
       "pr_open": true
     }
   ]

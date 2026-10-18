@@ -1,0 +1,91 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261018T224109Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-18T22:41:09Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-08b: independent review (comment 6256044751, CHANGES REQUESTED on 723c1ff) addressed: B-1",
+  "task": "R-08b",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 12,
+  "pr": 155,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "ef2c2f1ab24c3da2fe4628ad61e09f9bfdafb0a7",
+  "tree_sha": "5ccf2b31d43d5f67c3ab1d1582154d34787c1d3d",
+  "requirements": [
+    "MP-FPT-005",
+    "MP-PIT-002"
+  ],
+  "changes": [
+    "src/providers/futpython/query.mjs: VERSION_AVAILABLE_AT, teamMatchesAsOf and change check use it",
+    "src/pit/policy.mjs: availabilityTime",
+    "src/providers/futpython/reprocess.mjs: finished_at = clock_timestamp()",
+    "docs/pit-policy.md; MP-FPT-005 FAIL -> NOT_VERIFIED"
+  ],
+  "tests": [
+    {
+      "command": "npm test against throwaway PostgreSQL 16",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1",
+      "commit": "ef2c2f1ab24c3da2fe4628ad61e09f9bfdafb0a7",
+      "time": "2026-10-18T22:41:09Z",
+      "limits": [
+        "240 tests, 239 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only)",
+        "new regression test fails on the previous rule"
+      ]
+    },
+    {
+      "command": "npm run check; governance:validate; governance:check; render-inventory --check",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "ef2c2f1ab24c3da2fe4628ad61e09f9bfdafb0a7",
+      "time": "2026-10-18T22:41:09Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "CHANGES REQUESTED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/155#issuecomment-6256044751"
+  },
+  "findings": [
+    {
+      "id": "B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "re-parsed version written into a later snapshot was dated with that snapshot"
+    },
+    {
+      "id": "NB-CONSERVATIVE",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "re-runs and ingest-lineage re-parses delay availability (documented)"
+    },
+    {
+      "id": "R08B-LIMITS",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "team identity and dataset activation not versioned; re-parse creating a new match_key treated as ingest"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-DECISIONS-D1-D9-20261018.D4",
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01"
+  ],
+  "dependencies": [
+    "CP-20261018T223245Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "Obtain CI green and a new independent review on the PR #155 head; auto-merge under merge-gate; then R-08c (MP-XPR-001/002) unless the owner unblocks R-04.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": "CP-20261018T223245Z-agent-a-claude-code"
+}

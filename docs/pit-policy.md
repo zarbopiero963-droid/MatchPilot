@@ -13,7 +13,7 @@ Every record that answers "what was known at T" carries `pit.times`:
 | `event_time`, `event_time_earliest`, `event_time_latest` | when the real-world event happened. `event_time` is set only when it is known to the instant; otherwise only the interval is given. |
 | `provider_time`, `provider_time_verified` | the time the provider declares for the record, in UTC, and whether that conversion is proven. |
 | `acquisition_time` | when MatchPilot first stored the record. |
-| `availability_time` | effective availability: the acquisition time, the only instant at which MatchPilot provably held the record. |
+| `availability_time` | effective availability: the earliest instant at which MatchPilot provably held the record. This is the acquisition time, or for an FPT version the end of the latest re-parse run with its lineage that wrote versions, when that is later (R-08b). |
 | `decision_time` | the simulated decision instant (`as_of`). |
 
 A missing time stays `null` and is listed in `pit.missing`. It is never invented or repaired.
@@ -26,6 +26,7 @@ A missing time stays `null` and is listed in `pit.missing`. It is never invented
   | Reason | Meaning |
   |---|---|
   | `ACQUISITION_TIME_MISSING` | the acquisition time is missing |
+  | `AVAILABILITY_TIME_UNKNOWN` | the reader declares that the record may have been written later than its acquisition but cannot say when |
   | `DECISION_TIME_MISSING` | the decision time is missing |
   | `PROVIDER_TIME_MISSING` | the answer needs the provider time and it is missing |
   | `PROVIDER_TZ_NOT_VERIFIED`, `TZ_NOT_MEASURED`, `TZ_OFFSET_MISMATCH`, `TZ_MEASUREMENT_OUT_OF_WINDOW`, `TZ_MEASURED_AFTER_DECISION`, `TZ_DST_CHANGE_POSSIBLE`, `TZ_OFFSET_NO_IANA_ZONE` | the provider time is used but its UTC conversion is not proven |
@@ -64,6 +65,25 @@ A missing time stays `null` and is listed in `pit.missing`. It is never invented
 | `tcPrematchMatch` (`/api/tc/prematch/match`, `/api/v1/tc/prematch/match`) | `as_of`, default kickoff | the match identity (`match.pit`, acquired at `first_seen_at`; `PIT_NOT_VERIFIED` when `last_seen_at` is after the decision, because `tc_matches` keeps only the latest state) and every prematch row the summary uses, including `opening` and `last`. With captured knowledge, `snapshots` counts only snapshots taken by `as_of`, and the match fields observed later (`last_status`, `last_seen_at`) are `null` |
 | FPT `teamMatchesAsOf` (`/api/fpt/team-matches-asof`, `/api/v1/fpt/team-matches-asof`) | `as_of` | every returned match version, with `known_match_date`, `known_home`, `known_away`, `known_phase` from the version known at `as_of` (the event interval uses `known_match_date`) and `changed_after_as_of`. The answer is selected, filtered, ordered and limited on the current facts. A row changed after `as_of` is `FACTS_CHANGED_AFTER_DECISION`. If any match involving the team changed after `as_of`, the answer is `NON_PIT` (`TEAM_MATCHES_CHANGED_AFTER_DECISION`, count in `changed_matches`), because a row may have changed, disappeared or left the limit. Only matches already known at `as_of` count; one first acquired later cannot affect the answer. A match involves the team if it is linked to it now or named it in its version known at `as_of`. |
 
+## Version pinning (R-08b, MP-FPT-005)
+
+Two paths re-parse stored raw: `reprocessRaw` and the phase 3 repair (`repairShortSnapshots`). Neither rewrites a version. Both write new versions with their lineage (`parser_version`, `schema_version`, `transform_version`), dated with the raw snapshot's `acquired_at`. Both record an `apply` row in `fpt_reprocessing_runs`; the repair writes it in the same transaction as its versions. Without a rule, a re-parse run after T would change what a query "at T" returns. The rule:
+
+- **Availability of a version:** nothing records which versions a re-parse wrote. A version therefore becomes available at the later of two instants:
+  - its acquisition;
+  - the end of the latest `apply` run with the same lineage that committed versions (`versions_inserted > 0`).
+
+  The run counts whatever its final status: the reprocess job marks a run `failed` when the facts refresh fails after the commit. A run that committed versions without a recorded end makes them never available. With no such run the version cannot come from either re-parse path, and it is available from its acquisition. Any new code that writes versions dated before its own run must record such a row too. A run that wrote nothing (dry run, rolled back, no difference) changes nothing.
+- **`teamMatchesAsOf`:** returns, per match, the latest version available at `as_of`, with its lineage and `version_available_at`. The record's `availability_time` is that instant.
+- **Effect:** a re-parse after T does not change the versions or values answered at T. The answer becomes `NON_PIT` (`FACTS_CHANGED_AFTER_DECISION`), because the current facts now come from the re-parse.
+- **Conservative cases**, which never advance an availability and may delay one. They are always reported: an answer is `NON_PIT` (`TEAM_MATCHES_CHANGED_AFTER_DECISION`) whenever a match involving the team has a version acquired by T that is not available at T.
+  - Re-running a lineage with new output moves the availability of all its versions to the latest run.
+  - A re-parse that reuses the ingest lineage also delays the ingest versions of that lineage, so matches known at T can be missing from the answer at T. Re-parses should change lineage, as the #12 policy requires.
+  - The per-row flag `changed_after_as_of` is also set for unavailable versions of older snapshots.
+- **Limits:**
+  - `finished_at` is written a few milliseconds before the run commits; ingest has the same gap with `acquired_at`.
+  - Team identity (aliases) and dataset activation are not versioned: they are the current ones.
+
 ## Parameters chosen by the agent (PROPOSAL, versioned)
 
 D4 requires an explicit, tested policy but does not fix these values. They are part of `mp-pit-v1`; changing any of them means a new policy version.
@@ -78,10 +98,10 @@ D4 requires an explicit, tested policy but does not fix these values. They are p
 
 - Replay (R-09), statistics (R-12) and backtest (R-14) do not exist yet. They must build on these records, so MP-PIT-001, 002 and 005 stay NOT_VERIFIED until they do.
 - The PIT label is in the API and not yet in a UI (R-05+).
-- Version pinning of parser/schema/transform (MP-FPT-005) and cross-provider identity (MP-XPR-001/002) are later parts of R-08.
+- Cross-provider identity (MP-XPR-001/002) is a later part of R-08.
 - FPT `teamMatchesAsOf` does not rebuild the facts known at T. It answers from the current facts and is `NON_PIT` as soon as any match involving the team changed after T. Rebuilding the facts is part of MP-FPT-005.
   - Consequence: answers for a T before the latest acquisitions of the team's matches are usually `NON_PIT`.
-  - The change check reads every row of `fpt_match_facts` acquired after T. There is no index on `acquired_at`, and adding one is a migration. In synthetic tests it took about 340 ms with 200k rows, and it is not in the performance gate.
+  - The change check scans `fpt_match_facts` and every version of the matches involving the team, because there is no index on `acquired_at` and adding one is a migration. In synthetic tests it took about 340 ms with 200k facts; with the R-08b check it took about 390 ms with 300k versions. It is not in the performance gate.
   - The check matches team names exactly as the facts layer does (exact alias name), but ignores the country. A homonym in another country can therefore cause a false `NON_PIT`, which errs on the safe side.
   - Team aliases and dataset activation are the current ones, not those at T.
 - TotalCorner rows do not store the offset used to convert their provider time: the reader assumes the match offset (`tz_offset_minutes`), which the gate applied at acquisition.

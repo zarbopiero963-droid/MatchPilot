@@ -38,6 +38,19 @@ test('availability is the acquisition time; records acquired after the decision 
   assert.equal(claimed.status, PIT_STATUS.NOT_AVAILABLE);
 });
 
+test('a later availability (a re-parsed version) delays when a record is usable; unknown availability is not verified (MP-FPT-005)', () => {
+  const reparsed = {acquisitionTime: '2026-10-01T00:00:00Z', availabilityTime: '2026-10-22T00:00:00Z', decisionTime: T};
+  assert.equal(classifyRecord(reparsed).status, PIT_STATUS.NOT_AVAILABLE, 'acquired before T, usable only after T');
+  assert.equal(classifyRecord(reparsed).times.availability_time, '2026-10-22T00:00:00.000Z');
+  assert.equal(classifyRecord({...reparsed, decisionTime: '2026-10-23T00:00:00Z'}).status, PIT_STATUS.VERIFIED);
+  assert.equal(classifyRecord({...reparsed, availabilityTime: '2026-09-01T00:00:00Z'}).times.availability_time, '2026-10-01T00:00:00.000Z',
+    'availability is never earlier than acquisition');
+  const unknown = classifyRecord({...reparsed, availabilityTime: null});
+  assert.equal(unknown.status, PIT_STATUS.NOT_VERIFIED);
+  assert.deepEqual(unknown.reasons, ['AVAILABILITY_TIME_UNKNOWN']);
+  assert.equal(unknown.times.availability_time, null);
+});
+
 test('missing, ambiguous or inconsistent timestamps are PIT_NOT_VERIFIED, never repaired (MP-PIT-003)', () => {
   const cases = [
     [{decisionTime: T}, 'ACQUISITION_TIME_MISSING'],

@@ -123,15 +123,22 @@ export function measuredOffsetValidity({offsetMinutes, observedAt, observationSt
 //   providerTime                 the time the provider declares for the record, already in UTC
 //   providerTimeVerified         whether that UTC conversion is proven (false: time zone not verified)
 //   providerTimeUsed             whether the answer depends on providerTime (ordering, cutoffs)
-//   acquisitionTime              when MatchPilot first stored the record
+//   acquisitionTime              when the record's source was acquired
+//   availabilityTime             when the record itself became usable, if later than its acquisition (e.g. a version
+//                                written by a reprocessing run: usable from the run's end, not from the raw's time);
+//                                pass null when it is unknown: the record is then PIT_NOT_VERIFIED
 //   decisionTime                 the simulated decision instant
-// Effective availability is the acquisition time: the only instant at which MatchPilot provably held the record.
+// Effective availability is the acquisition time unless a later availability is given: the earliest instant at
+// which MatchPilot provably held the record.
 export function classifyRecord(input) {
   const eventEarliest = toDate(input.eventEarliest);
   const eventLatest = toDate(input.eventLatest ?? input.eventEarliest);
   const providerTime = toDate(input.providerTime);
   const acquisition = toDate(input.acquisitionTime);
   const decision = toDate(input.decisionTime);
+  const availabilityGiven = Object.hasOwn(input, 'availabilityTime');
+  const declared = availabilityGiven ? toDate(input.availabilityTime) : null;
+  const availability = !availabilityGiven ? acquisition : declared && acquisition && declared > acquisition ? declared : declared ? acquisition : null;
   const reasons = [];
   const missing = [];
   if (!eventEarliest) missing.push('event_time');
@@ -142,7 +149,8 @@ export function classifyRecord(input) {
   let status = PIT_STATUS.VERIFIED;
   if (!acquisition) reasons.push('ACQUISITION_TIME_MISSING');
   if (!decision) reasons.push('DECISION_TIME_MISSING');
-  if (acquisition && decision && acquisition > decision) status = PIT_STATUS.NOT_AVAILABLE;
+  if (acquisition && availabilityGiven && !availability) reasons.push('AVAILABILITY_TIME_UNKNOWN');
+  if (availability && decision && availability > decision) status = PIT_STATUS.NOT_AVAILABLE;
   if (input.providerTimeUsed && !providerTime) reasons.push('PROVIDER_TIME_MISSING');
   if (input.providerTimeUsed && providerTime && input.providerTimeVerified !== true) reasons.push(input.providerTimeReason ?? 'PROVIDER_TZ_NOT_VERIFIED');
   if (providerTime && acquisition && providerTime.getTime() > acquisition.getTime() + PROVIDER_CLOCK_TOLERANCE_MS) reasons.push('PROVIDER_TIME_AFTER_ACQUISITION');
@@ -166,7 +174,7 @@ export function classifyRecord(input) {
       provider_time: iso(providerTime),
       provider_time_verified: providerTime ? input.providerTimeVerified === true : null,
       acquisition_time: iso(acquisition),
-      availability_time: iso(acquisition),
+      availability_time: iso(availability),
       decision_time: iso(decision),
     },
   };

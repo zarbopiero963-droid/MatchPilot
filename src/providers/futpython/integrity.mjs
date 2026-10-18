@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import { gunzipSync } from 'node:zlib';
 import { parseCsv } from '../../lib/csv.mjs';
 import { first, dateOrNull, matchKey, PROVIDER_MATCH_ID_FIELDS } from './identity.mjs';
+import { LINEAGE_VERSIONS } from './schema.mjs';
 import { sha256, insertMissingMatchRows } from './store.mjs';
 
 export function inspectDatasetCsv(text, datasetKey) {
@@ -166,7 +168,33 @@ export function phase3SqlGate(summary) {
     && summary.date_parse_failures === 0;
 }
 
+// The repair re-parses stored raw with the current parser and writes versions dated with the snapshot's acquired_at:
+// it is a re-parse. In the same transaction as its versions it records an apply row in fpt_reprocessing_runs, so
+// point-in-time reads treat those versions as usable only from the end of the repair (R-08b, MP-FPT-005).
 export async function repairShortSnapshots(client) {
+  const owns = (await client.query('SELECT txid_current_if_assigned() AS tx')).rows[0]?.tx == null;
+  if (owns) await client.query('BEGIN');
+  try {
+    const repaired = await repairShortSnapshotsInTransaction(client);
+    const inserted = repaired.reduce((sum, item) => sum + item.inserted, 0);
+    if (inserted > 0) {
+      await client.query(
+        `INSERT INTO fpt_reprocessing_runs(run_id, mode, parser_version, schema_version, transform_version, actor, reason, scope,
+           status, finished_at, snapshots_scanned, rows_new_output, versions_inserted)
+         VALUES($1,'apply',$2,$3,$4,'repairShortSnapshots','phase 3 short snapshot repair',$5::jsonb,'complete',clock_timestamp(),$6,$7,$7)`,
+        [`fpt-repair-${Date.now()}-${randomUUID().slice(0, 8)}`, LINEAGE_VERSIONS.parserVersion, LINEAGE_VERSIONS.schemaVersion,
+          LINEAGE_VERSIONS.transformVersion, JSON.stringify({snapshots: repaired.filter(item => item.inserted > 0).map(item => item.snapshot_id)}),
+          repaired.length, inserted]);
+    }
+    if (owns) await client.query('COMMIT');
+    return repaired;
+  } catch (error) {
+    if (owns) await client.query('ROLLBACK').catch(() => {});
+    throw error;
+  }
+}
+
+async function repairShortSnapshotsInTransaction(client) {
   const short = await client.query(
     `SELECT r.snapshot_id, r.dataset_key, r.source_kind, r.acquired_at, r.sha256, r.row_count, r.payload_gzip,
             c.country_slug, c.league_slug, c.season
