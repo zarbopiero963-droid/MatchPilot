@@ -276,3 +276,77 @@ test('a re-parse reusing the ingest lineage cannot silently drop matches known a
     finally { await admin.end(); }
   }
 });
+
+// PR #155 review B-4: the phase 3 repair (repairShortSnapshots) re-parses stored raw with the current parser and writes
+// versions dated with the snapshot's acquired_at. It records itself as a reprocessing run, so its versions are not
+// usable before it ran and an answer at an earlier T that they affect is NON_PIT.
+test('the short-snapshot repair is a recorded re-parse (MP-FPT-005)', {timeout: 90000}, async t => {
+  const pg = (await import('pg')).default;
+  const rootUrl = process.env.FUTPYTHON_TEST_DATABASE_URL || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
+  const base = new URL(rootUrl);
+  assert.ok(['localhost', '127.0.0.1', '[::1]'].includes(base.hostname), 'remote PostgreSQL is forbidden');
+  const admin = new pg.Client({connectionString: rootUrl, connectionTimeoutMillis: 2000});
+  try { await admin.connect(); }
+  catch (cause) {
+    await admin.end().catch(() => {});
+    if (process.env.CI) throw cause;
+    return t.skip('throwaway postgres unavailable');
+  }
+  const schema = `pit_fpt_d_${process.pid}`;
+  await admin.query(`CREATE SCHEMA ${schema}`);
+  base.searchParams.set('options', `-c search_path=${schema}`);
+  process.env.DATABASE_URL = base.toString();
+  process.env.MATCHPILOT_RUNTIME_MODE = 'test';
+  const db = await import('../src/db.mjs');
+  try {
+    const {migrate} = await import('../src/migrate.mjs');
+    const store = await import('../src/providers/futpython/store.mjs');
+    const teams = await import('../src/providers/futpython/teams.mjs');
+    const query = await import('../src/providers/futpython/query.mjs');
+    const integrity = await import('../src/providers/futpython/integrity.mjs');
+    const {parseCsv} = await import('../src/lib/csv.mjs');
+    await migrate();
+    await db.withClient(async c => {
+      const H = ['Id', 'Date', 'Time', 'Home', 'Away', 'Home_Score', 'Away_Score', 'Odd_1_FT', 'Odd_X_FT', 'Odd_2_FT'];
+      const line = r => H.map(h => r[h] ?? '').join(',');
+      const key = 'netherlands/eredivisie/2024-2025';
+      await c.query(`INSERT INTO fpt_catalog(dataset_key,country_slug,league_slug,season,route) VALUES($1,'netherlands','eredivisie','2024-2025','/x')`, [key]);
+      // The parser in force at ingest did not keep Odd_1_FT (stands for any parser change deployed later).
+      const oldParse = text => { const p = parseCsv(text); return {...p, rows: p.rows.map(({Odd_1_FT, ...r}) => r)}; };
+      const put = async (text, at) => {
+        const p = oldParse(text);
+        await store.storeDataset(c, {datasetKey: key, sourceKind: 'dataset', providerPath: '/x', countrySlug: 'netherlands', leagueSlug: 'eredivisie',
+          season: '2024-2025', text, headers: p.headers, rows: p.rows, acquiredAt: new Date(at)});
+      };
+      const m = (id, home, away) => ({Id: id, Date: '2025-03-01', Time: '20:00', Home: home, Away: away, Home_Score: '2', Away_Score: '1',
+        Odd_1_FT: '1.8', Odd_X_FT: '3.5', Odd_2_FT: '4.0'});
+      await put(H.join(',') + '\n' + line(m('100', 'Ajax', 'PSV')) + '\n' + line(m('101', 'PSV', 'Ajax')) + '\n', '2025-05-01T00:00:00Z');
+      await put(H.join(',') + '\n' + line(m('100', 'Ajax', 'PSV')) + '\n' + line(m('101', 'PSV', 'Ajax')) + '\n' + line(m('102', 'PSV', 'Twente')) + '\n',
+        '2025-07-01T00:00:00Z');
+      await teams.replaceTeamEntities(c, teams.buildTeamEntities(await teams.loadTeamSpellings(c)));
+      await query.refreshNormalizedLayer(c);
+      const ajax = (await query.runQuery(c, 'teamSearch', {q: 'Ajax'})).rows[0].internal_team_id;
+      const at = {team: ajax, as_of: '2025-08-01T00:00:00Z', before: '2100-01-01', limit: 50};
+      const before = await query.runQuery(c, 'teamMatchesAsOf', at);
+      assert.equal(before.pit.label, 'PIT_VERIFIED');
+      assert.ok(before.rows.every(r => r.odd_home === null), 'the old parser kept no Odd_1_FT');
+
+      const repaired = await integrity.repairShortSnapshots(c);
+      assert.ok(repaired.some(r => r.inserted > 0), 'the repair wrote versions with the current parser');
+      const runs = (await c.query(`SELECT mode, status, actor, versions_inserted, finished_at FROM fpt_reprocessing_runs`)).rows;
+      assert.equal(runs.length, 1);
+      assert.deepEqual([runs[0].mode, runs[0].status, runs[0].actor], ['apply', 'complete', 'repairShortSnapshots']);
+      assert.equal(Number(runs[0].versions_inserted), repaired.reduce((n, r) => n + r.inserted, 0));
+      await query.refreshNormalizedLayer(c);
+      const after = await query.runQuery(c, 'teamMatchesAsOf', at);
+      assert.ok(after.rows.every(r => r.odd_home === null), 'no repaired value reaches the answer at T');
+      assert.equal(after.pit.label, 'NON_PIT');
+      const now = await query.runQuery(c, 'teamMatchesAsOf', {...at, as_of: new Date(new Date(runs[0].finished_at).getTime() + 1000).toISOString()});
+      assert.ok(now.rows.some(r => Number(r.odd_home) === 1.8), 'after the repair its versions are usable');
+    });
+  } finally {
+    await db.closePool?.().catch?.(() => {});
+    try { await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`); }
+    finally { await admin.end(); }
+  }
+});

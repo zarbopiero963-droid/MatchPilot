@@ -67,13 +67,13 @@ A missing time stays `null` and is listed in `pit.missing`. It is never invented
 
 ## Version pinning (R-08b, MP-FPT-005)
 
-A re-parse (`reprocessRaw`) never rewrites a version. It writes a new version with the new lineage (`parser_version`, `schema_version`, `transform_version`), dated with the raw snapshot's `acquired_at`. Without a rule, a re-parse run after T would change what a query "at T" returns. The rule:
+Two paths re-parse stored raw: `reprocessRaw` and the phase 3 repair (`repairShortSnapshots`). Neither rewrites a version. Both write new versions with their lineage (`parser_version`, `schema_version`, `transform_version`), dated with the raw snapshot's `acquired_at`. Both record an `apply` row in `fpt_reprocessing_runs`; the repair writes it in the same transaction as its versions. Without a rule, a re-parse run after T would change what a query "at T" returns. The rule:
 
 - **Availability of a version:** nothing records which versions a re-parse wrote. A version therefore becomes available at the later of two instants:
   - its acquisition;
   - the end of the latest `apply` run with the same lineage that committed versions (`versions_inserted > 0`).
 
-  The run counts whatever its final status: the reprocess job marks a run `failed` when the facts refresh fails after the commit. A run that committed versions without a recorded end makes them never available. With no such run the version cannot come from a re-parse, and it is available from its acquisition. A run that wrote nothing (dry run, rolled back, no difference) changes nothing.
+  The run counts whatever its final status: the reprocess job marks a run `failed` when the facts refresh fails after the commit. A run that committed versions without a recorded end makes them never available. With no such run the version cannot come from either re-parse path, and it is available from its acquisition. Any new code that writes versions dated before its own run must record such a row too. A run that wrote nothing (dry run, rolled back, no difference) changes nothing.
 - **`teamMatchesAsOf`:** returns, per match, the latest version available at `as_of`, with its lineage and `version_available_at`. The record's `availability_time` is that instant.
 - **Effect:** a re-parse after T does not change the versions or values answered at T. The answer becomes `NON_PIT` (`FACTS_CHANGED_AFTER_DECISION`), because the current facts now come from the re-parse.
 - **Conservative cases**, which never advance an availability and may delay one. They are always reported: an answer is `NON_PIT` (`TEAM_MATCHES_CHANGED_AFTER_DECISION`) whenever a match involving the team has a version acquired by T that is not available at T.
@@ -101,7 +101,7 @@ D4 requires an explicit, tested policy but does not fix these values. They are p
 - Cross-provider identity (MP-XPR-001/002) is a later part of R-08.
 - FPT `teamMatchesAsOf` does not rebuild the facts known at T. It answers from the current facts and is `NON_PIT` as soon as any match involving the team changed after T. Rebuilding the facts is part of MP-FPT-005.
   - Consequence: answers for a T before the latest acquisitions of the team's matches are usually `NON_PIT`.
-  - The change check reads every row of `fpt_match_facts` acquired after T. There is no index on `acquired_at`, and adding one is a migration. In synthetic tests it took about 340 ms with 200k rows, and it is not in the performance gate.
+  - The change check scans `fpt_match_facts` and every version of the matches involving the team, because there is no index on `acquired_at` and adding one is a migration. In synthetic tests it took about 340 ms with 200k facts; with the R-08b check it took about 390 ms with 300k versions. It is not in the performance gate.
   - The check matches team names exactly as the facts layer does (exact alias name), but ignores the country. A homonym in another country can therefore cause a false `NON_PIT`, which errs on the safe side.
   - Team aliases and dataset activation are the current ones, not those at T.
 - TotalCorner rows do not store the offset used to convert their provider time: the reader assumes the match offset (`tz_offset_minutes`), which the gate applied at acquisition.
