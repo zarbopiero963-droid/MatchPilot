@@ -206,3 +206,22 @@ test('odds are bounded, money rounding reports input errors, envelopes copy thei
   assert.equal(envelope('x', {inputs: {}, normalized: {}, result: {}, rounded: {policy_version: 'forged'}}).rounded.policy_version, 'mp-rounding-1');
   assert.equal(Decimal.from('  2.5 ').toString(), '2.5', 'surrounding whitespace is ignored (documented)');
 });
+
+test('envelopes built from Decimal inputs serialize to JSON and can be chained (second review B-1, NB-1, NB-2)', () => {
+  const implied = impliedProbability({odds: Decimal.from('2.5')});
+  assert.equal(JSON.parse(JSON.stringify(implied)).inputs.odds, '2.5');
+  assert.deepEqual(JSON.parse(JSON.stringify(overround({odds: [Decimal.from('2'), '2.5']}))).inputs.odds, ['2', '2.5']);
+  const chained = fairOdds({probability: Decimal.from(implied.result.probability)});
+  assert.equal(JSON.parse(JSON.stringify(chained)).result.odds, '2.5');
+  // mul in every mode, with operands whose product needs rounding at 18 decimals.
+  const next = rng(1561);
+  for (let i = 0; i < 1000; i++) {
+    const digits = () => Array.from({length: 12}, () => Math.floor(next() * 10)).join('');
+    const a = `${next() < 0.5 ? '-' : ''}${Math.floor(next() * 100)}.${digits()}`;
+    const b = `${next() < 0.5 ? '-' : ''}${Math.floor(next() * 100)}.${digits()}`;
+    for (const mode of Object.values(ROUNDING)) {
+      assert.equal(units(Decimal.from(a).mul(b, {mode}).toString()), oracleUnits(fmul(fromText(a), fromText(b)), mode), `mul ${a} ${b} ${mode}`);
+    }
+  }
+  assert.throws(() => Decimal.from('1.5', {mode: 'BOGUS'}), e => e.code === 'BAD_ROUNDING', 'an unknown mode is refused on input too');
+});

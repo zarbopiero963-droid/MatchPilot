@@ -17,11 +17,14 @@ export class DecimalError extends Error {
 
 const DECIMAL_TEXT = /^([+-])?(\d+)(?:\.(\d+))?$/;
 
-// Integer division of n by d (d > 0) rounded with the given mode.
 const MODES = new Set(Object.values(ROUNDING));
-
-function divRound(n, d, mode) {
+const checkMode = mode => {
   if (!MODES.has(mode)) throw new DecimalError('BAD_ROUNDING', `unknown rounding mode ${mode}`);
+};
+
+// Integer division of n by d (d > 0) rounded with the given mode.
+function divRound(n, d, mode) {
+  checkMode(mode);
   if (d <= 0n) throw new DecimalError('INTERNAL', 'divisor must be positive');
   const q = n / d; // truncates toward zero
   const r = n % d;
@@ -53,6 +56,7 @@ export class Decimal {
   }
 
   static from(value, {mode = ROUNDING.HALF_EVEN} = {}) {
+    checkMode(mode);
     if (value instanceof Decimal) return value;
     if (typeof value === 'bigint') return new Decimal(value * UNIT);
     if (typeof value === 'number') {

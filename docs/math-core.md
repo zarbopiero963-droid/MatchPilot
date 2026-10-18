@@ -28,7 +28,7 @@ Tests: `test/math-core.test.mjs`. Both modules are pure: no database, no network
 Every formula:
 1. validates its inputs and fails with `BAD_MATH_INPUT` naming the field;
 2. computes in Decimal;
-3. returns an envelope with these fields (holding copies of the inputs, so later changes by the caller cannot alter it):
+3. returns an envelope with these fields (holding copies of the inputs, with Decimal values as text, so later changes by the caller cannot alter it and it always serializes to JSON):
 
 | Field | Content |
 |---|---|
@@ -43,7 +43,7 @@ Validators:
 
 | Validator | Accepts |
 |---|---|
-| decimal odds | `1 < O ≤ 1,000,000`, decimal odds only (exchange odds stop at 1000; the cap keeps `1/O` far above the 10⁻¹⁸ resolution) |
+| decimal odds | `1 < O ≤ 1,000,000`, decimal odds only. #94 requires only `O > 1`; the upper cap is the agent's choice (PROPOSAL, part of `mp-math-core-1`): exchange odds stop at 1000, and the cap keeps `1/O` far above the 10⁻¹⁸ resolution |
 | probability | in `[0, 1]`, or `(0, 1)` when required |
 | non-negative amounts | `≥ 0` |
 | commission rate | `0 ≤ c < 1`, on net winnings |

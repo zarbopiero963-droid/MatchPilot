@@ -66,12 +66,13 @@ const show = value => (value instanceof Decimal ? value.toString() : Array.isArr
 
 // formula: stable name; inputs: what the caller passed; normalized: the validated values used; result: unrounded
 // values (kept for audit); rounded: optional display/settlement values with the policy that produced them.
-// The envelope holds copies, so a caller changing its own objects later cannot alter the audit record.
+// The envelope holds copies (Decimal values as text), so a caller changing its own objects later cannot alter the
+// audit record, and the envelope always serializes to JSON.
 export function envelope(formula, {inputs, normalized, result, rounded = null, warnings = []}) {
   return {
     formula,
     formula_version: MATH_CORE_VERSION,
-    inputs: structuredClone(inputs),
+    inputs: show(inputs),
     normalized_inputs: show(normalized),
     result: show(result),
     rounded: rounded ? {...show(rounded), policy_version: ROUNDING_POLICY_VERSION} : null,
