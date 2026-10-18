@@ -28,7 +28,7 @@ A missing time stays `null` and is listed in `pit.missing`. It is never invented
   | `ACQUISITION_TIME_MISSING` | the acquisition time is missing |
   | `DECISION_TIME_MISSING` | the decision time is missing |
   | `PROVIDER_TIME_MISSING` | the answer needs the provider time and it is missing |
-  | `PROVIDER_TZ_NOT_VERIFIED`, `TZ_NOT_MEASURED`, `TZ_OFFSET_MISMATCH`, `TZ_MEASUREMENT_OUT_OF_WINDOW`, `TZ_DST_CHANGE_POSSIBLE` | the provider time is used but its UTC conversion is not proven |
+  | `PROVIDER_TZ_NOT_VERIFIED`, `TZ_NOT_MEASURED`, `TZ_OFFSET_MISMATCH`, `TZ_MEASUREMENT_OUT_OF_WINDOW`, `TZ_MEASURED_AFTER_DECISION`, `TZ_DST_CHANGE_POSSIBLE`, `TZ_OFFSET_NO_IANA_ZONE` | the provider time is used but its UTC conversion is not proven |
   | `PROVIDER_TIME_AFTER_ACQUISITION` | the provider stamps the record more than 5 minutes after MatchPilot acquired it |
   | `EVENT_INTERVAL_INVERTED` | the event interval ends before it starts |
   | `EVENT_TIME_AMBIGUOUS_AT_DECISION` | the event's possible interval contains the decision instant: whether it had happened is unknown |
@@ -38,7 +38,7 @@ A missing time stays `null` and is listed in `pit.missing`. It is never invented
 
 `pit` on the answer, and `meta.pit` in API v1:
 
-- `PIT_VERIFIED` only when the reader used captured knowledge and every record it used is `PIT_VERIFIED`;
+- `PIT_VERIFIED` only when the reader used captured knowledge and every record it used is `PIT_VERIFIED`. An empty answer at T (no record known yet) is `PIT_VERIFIED` with `records: 0`;
 - otherwise `NON_PIT`, with `why` (`PROVIDER_KNOWLEDGE`, `RECORDS_NOT_PIT_VERIFIED`, `RECORDS_NOT_AVAILABLE_AT_DECISION`) and counts per status and reason.
 
 `knowledge=provider` trusts provider times and is `NON_PIT` by construction. A `NON_PIT` answer must not feed certified backtest metrics (R-14).
@@ -49,8 +49,9 @@ A missing time stays `null` and is listed in `pit.missing`. It is never invented
 - **Undocumented zone** (FutPythonTrader kickoff, `PROVIDER_TZ_UNDOCUMENTED`, #12): only the interval of every possible instant is known, between UTC−12 and UTC+14. A match date gives `[date 00:00 at UTC+14, date 23:59:59.999 at UTC−12]`.
 - **Measured fixed offset** (TotalCorner, `tc_tz_observations`, gate `tc-tz-gate-v2`): a provider time converted with the match offset is verified only when all of the following hold:
   1. the match is linked to a `MEASURED` observation with the same offset;
-  2. the time is within 30 days of the measurement;
-  3. every IANA zone that had that offset at the measurement still has it at that time.
+  2. the measurement was taken at or before the decision time, so a replay's label cannot change later;
+  3. the time is within 30 days of the measurement;
+  4. at least one IANA zone uses that offset, and every IANA zone that had it at the measurement still has it at that time.
 
   Example: UTC+2 measured on 08/10/2026 is consistent with Central European Summer Time, which ends on 25/10/2026, so any TotalCorner time after that date needs a new measurement. Historical bodies have no measurement (`tz_observation_id` NULL) and stay `TZ_NOT_MEASURED`.
 
@@ -58,7 +59,7 @@ A missing time stays `null` and is listed in `pit.missing`. It is never invented
 
 | Reader | Decision time | Records |
 |---|---|---|
-| `tcPrematchMatch` (`/api/tc/prematch/match`, `/api/v1/tc/prematch/match`) | `as_of`, default kickoff | every prematch row the summary uses, including `opening` and `last` |
+| `tcPrematchMatch` (`/api/tc/prematch/match`, `/api/v1/tc/prematch/match`) | `as_of`, default kickoff | the match identity (`match.pit`, acquired at `first_seen_at`) and every prematch row the summary uses, including `opening` and `last`. With captured knowledge, `snapshots` counts only snapshots taken by `as_of`, and the match fields observed later (`last_status`, `last_seen_at`) are `null` |
 | FPT `teamMatchesAsOf` (`/api/fpt/team-matches-asof`, `/api/v1/fpt/team-matches-asof`) | `as_of` | every returned match version |
 
 ## Parameters chosen by the agent (PROPOSAL, versioned)
@@ -76,3 +77,6 @@ D4 requires an explicit, tested policy but does not fix these values. They are p
 - Replay (R-09), statistics (R-12) and backtest (R-14) do not exist yet. They must build on these records, so MP-PIT-001, 002 and 005 stay NOT_VERIFIED until they do.
 - The PIT label is in the API and not yet in a UI (R-05+).
 - Version pinning of parser/schema/transform (MP-FPT-005) and cross-provider identity (MP-XPR-001/002) are later parts of R-08.
+- FPT `teamMatchesAsOf` takes the payload from the version known at T, but candidate fields (phase, date, team names) come from the current facts table. Pinning them to T is part of MP-FPT-005.
+- TotalCorner rows do not store the offset used to convert their provider time: the reader assumes the match offset (`tz_offset_minutes`), which the gate applied at acquisition.
+- Without `as_of`, `tc/prematch/match` decides at the kickoff, itself a converted provider time.

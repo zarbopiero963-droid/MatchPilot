@@ -52,10 +52,25 @@ test('TotalCorner prematch answers carry per-row PIT status and a PIT label (MP-
     await row('k1', 3, '2026-10-24T12:00:00Z', '2026-10-27T17:00:00Z'); // acquired long after its provider time
     await row('k1', 4, '2026-10-26T09:00:00Z', '2026-10-26T09:02:00Z'); // after a possible DST change of the measured offset
     await row('k2', 5, '2026-10-21T08:00:00Z', '2026-10-21T08:01:00Z'); // match without a timezone measurement
+    for (const acquired of ['2026-10-21T08:00:00Z', '2026-10-27T17:00:00Z']) {
+      await db.query(`INSERT INTO tc_prematch_snapshots(match_id,source,acquired_at,kickoff_utc,minutes_to_kickoff) VALUES('k1','match_odds',$1,'2026-10-27T18:00:00Z',60)`, [acquired]);
+    }
+    await db.query(`UPDATE tc_matches SET last_status='upcoming' WHERE match_id='k1'`);
 
     const early = await tcPrematchMatch(db, {matchId: 'k1', asOf: '2026-10-21T12:00:00Z', knowledge: 'captured'});
     assert.equal(early.pit.label, 'PIT_VERIFIED');
-    assert.equal(early.pit.records, 1);
+    assert.equal(early.pit.records, 2, 'the match identity and one market row');
+    // Review B-1: nothing acquired after as_of leaks into a captured answer.
+    assert.deepEqual(early.snapshots.map(s => [s.source, s.n, new Date(s.last_at).toISOString()]), [['match_odds', 1, '2026-10-21T08:00:00.000Z']]);
+    assert.equal(early.match.last_seen_at, null);
+    assert.equal(early.match.last_status, null);
+    assert.equal(early.match.pit.status, 'PIT_VERIFIED');
+    const providerEarly = await tcPrematchMatch(db, {matchId: 'k1', asOf: '2026-10-21T12:00:00Z', knowledge: 'provider'});
+    assert.equal(providerEarly.snapshots[0].n, 2, 'provider knowledge keeps the full, NON_PIT view');
+    assert.equal(providerEarly.pit.label, 'NON_PIT');
+    const beforeSeen = await tcPrematchMatch(db, {matchId: 'k1', asOf: '2026-10-19T00:00:00Z', knowledge: 'captured'});
+    assert.equal(beforeSeen.match.pit.status, 'NOT_AVAILABLE_AT_DECISION', 'a match first seen after as_of is not known at as_of');
+    assert.equal(beforeSeen.pit.label, 'NON_PIT');
     const used = early.markets[0].opening;
     assert.equal(used.pit.status, 'PIT_VERIFIED');
     assert.deepEqual(Object.keys(used.pit.times), ['event_time', 'event_time_earliest', 'event_time_latest', 'provider_time', 'provider_time_verified',
@@ -65,13 +80,13 @@ test('TotalCorner prematch answers carry per-row PIT status and a PIT label (MP-
 
     const late = await tcPrematchMatch(db, {matchId: 'k1', asOf: '2026-10-27T17:30:00Z', knowledge: 'captured'});
     assert.equal(late.pit.label, 'NON_PIT');
-    assert.deepEqual([late.pit.records, late.pit.verified, late.pit.not_verified, late.pit.not_available], [4, 2, 2, 0]);
+    assert.deepEqual([late.pit.records, late.pit.verified, late.pit.not_verified, late.pit.not_available], [5, 3, 2, 0]);
     assert.deepEqual(late.pit.reasons, {PROVIDER_TIME_AFTER_ACQUISITION: 1, TZ_DST_CHANGE_POSSIBLE: 1});
     assert.equal(late.markets[0].last.pit.status, 'PIT_NOT_VERIFIED', 'the last movement is after the possible DST change');
 
     // Captured knowledge never returns a row acquired after the decision; provider knowledge does, and is NON_PIT.
     const captured = await tcPrematchMatch(db, {matchId: 'k1', asOf: '2026-10-25T00:00:00Z', knowledge: 'captured'});
-    assert.ok(captured.pit.records === 2 && captured.pit.not_available === 0);
+    assert.ok(captured.pit.records === 3 && captured.pit.not_available === 0);
     const provider = await tcPrematchMatch(db, {matchId: 'k1', asOf: '2026-10-25T00:00:00Z', knowledge: 'provider'});
     assert.equal(provider.pit.label, 'NON_PIT');
     assert.deepEqual(provider.pit.why, ['PROVIDER_KNOWLEDGE', 'RECORDS_NOT_PIT_VERIFIED', 'RECORDS_NOT_AVAILABLE_AT_DECISION']);

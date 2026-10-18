@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { buildQuery, QueryInputError, QUERY_CATALOG, ROUTES, SEARCH_FILTERS, perfInputs, ASSISTANT_PERF_QUERIES } from '../src/providers/futpython/query.mjs';
 import { assistantChecks } from '../src/futpython-certificate.mjs';
+import { undocumentedDateInterval } from '../src/pit/policy.mjs';
+
+// node-postgres returns a DATE as a Date at local midnight.
+const pitCalendar = d => d instanceof Date ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : String(d).slice(0, 10);
 
 const TEAM = 'fpt:team:' + 'a'.repeat(24);
 const COMP = 'fpt:competition:' + 'b'.repeat(32);
@@ -213,6 +217,12 @@ test('assistant queries answer from Postgres with indexes and point-in-time', {t
         && r.pit.times.availability_time === new Date(r.acquired_at).toISOString() && r.pit.times.decision_time === '2025-01-01T00:00:00.000Z'
         && r.pit.times.provider_time === null && r.pit.times.event_time === null && r.pit.times.event_time_earliest !== null));
       assert.equal(pitBetween.pit.records, 10);
+      for (const r of pitBetween.rows) {
+        const day = undocumentedDateInterval(pitCalendar(r.match_date));
+        assert.deepEqual([r.pit.times.event_time_earliest, r.pit.times.event_time_latest], [day.earliest.toISOString(), day.latest.toISOString()]);
+        assert.equal(r.pit.status, day.latest <= new Date('2025-01-01T00:00:00Z') ? 'PIT_VERIFIED' : 'PIT_NOT_VERIFIED');
+      }
+      assert.ok(pitBetween.rows.some(r => r.pit.status === 'PIT_VERIFIED'));
       assert.equal(pitBetween.pit.label, pitBetween.rows.every(r => r.pit.status === 'PIT_VERIFIED') ? 'PIT_VERIFIED' : 'NON_PIT');
       const pitAll = await query.runQuery(client, 'teamMatchesAsOf', {team: ajax, as_of: '2026-01-01T00:00:00Z', before: '2100-01-01', limit: 500});
       assert.equal(pitAll.rows.length, 20);

@@ -399,13 +399,18 @@ export async function tcPrematchMatch(db, {matchId, asOf = null, knowledge = 'pr
      FROM tc_market_rows WHERE match_id=$1 AND phase='PREMATCH' AND ($2::text <> 'captured' OR first_acquired_at <= $3)
      ORDER BY provider_time_utc`, [match.match_id, knowledge, at]);
   const norm = rows.rows.map(r => ({...r, provider_time_utc: new Date(r.provider_time_utc).toISOString()}));
-  const snaps = await db.query(`SELECT source, count(*)::int AS n, max(acquired_at) AS last_at FROM tc_prematch_snapshots WHERE match_id=$1 GROUP BY 1`, [match.match_id]);
+  const captured = knowledge === 'captured';
+  // Captured knowledge counts only the snapshots MatchPilot had taken by as_of.
+  const snaps = await db.query(`SELECT source, count(*)::int AS n, max(acquired_at) AS last_at FROM tc_prematch_snapshots
+    WHERE match_id=$1 AND (NOT $2::boolean OR acquired_at <= $3) GROUP BY 1`, [match.match_id, captured, at]);
   // R-08: every row the summary uses carries its five timestamps and PIT status; the answer carries its PIT label.
   const observation = match.tz_observation_id == null ? null : (await db.query(
     `SELECT observation_id, observed_at, status, offset_minutes FROM tc_tz_observations WHERE observation_id=$1`, [match.tz_observation_id])).rows[0] ?? null;
   const used = norm.filter(r => r.phase === 'PREMATCH' && Date.parse(r.provider_time_utc) <= at.getTime() && Date.parse(r.provider_time_utc) < kickoffUtc.getTime());
-  const {classified, label} = classifyTcPrematchRows(used, {match, observation, decisionTime: at, knowledge});
+  const {classified, label, matchRecord} = classifyTcPrematchRows(used, {match, observation, decisionTime: at, knowledge});
   used.forEach((row, i) => { row.pit = classified[i]; });
-  return {match, as_of: at.toISOString(), knowledge, cutoff: new Date(Math.min(at.getTime(), kickoffUtc.getTime() - 1)).toISOString(),
+  // The match row is the latest state; with captured knowledge its fields observed after as_of are withheld.
+  const known = captured ? {...match, last_status: null, last_seen_at: null} : match;
+  return {match: {...known, pit: matchRecord}, as_of: at.toISOString(), knowledge, cutoff: new Date(Math.min(at.getTime(), kickoffUtc.getTime() - 1)).toISOString(),
     snapshots: snaps.rows, markets: pitSummary(norm, {kickoffUtc, asOf: at}), pit: label};
 }

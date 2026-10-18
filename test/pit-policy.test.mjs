@@ -96,6 +96,7 @@ test('a measured fixed offset is valid only near its measurement and while no co
     assert.equal(measuredOffsetValidity({...measured, observationStatus: status, at: '2026-10-09T00:00:00Z'}).reason, 'TZ_NOT_MEASURED');
   }
   assert.equal(measuredOffsetValidity({...measured, at: null}).reason, 'TIME_MISSING');
+  assert.deepEqual(measuredOffsetValidity({...measured, offsetMinutes: 75, at: '2026-10-09T00:00:00Z'}), {verified: false, reason: 'TZ_OFFSET_NO_IANA_ZONE', zones_consistent: 0});
 });
 
 test('an analysis is PIT only when every record is PIT_VERIFIED under captured knowledge (MP-PIT-005)', () => {
@@ -111,7 +112,7 @@ test('an analysis is PIT only when every record is PIT_VERIFIED under captured k
 });
 
 test('reader adapters: TotalCorner rows follow their match timezone measurement, FPT dates their undocumented zone', () => {
-  const match = {tz_offset_minutes: 120};
+  const match = {tz_offset_minutes: 120, first_seen_at: '2026-10-20T10:00:00Z'};
   const observation = {observed_at: '2026-10-20T10:00:00Z', status: 'MEASURED', offset_minutes: 120};
   const rows = [
     {provider_time_utc: '2026-10-21T08:00:00.000Z', first_acquired_at: '2026-10-21T08:01:00Z'},
@@ -123,6 +124,8 @@ test('reader adapters: TotalCorner rows follow their match timezone measurement,
   assert.equal(tc.classified[1].times.event_time, null, 'an unverified conversion gives no event instant');
   assert.equal(tc.label.label, 'NON_PIT');
   assert.deepEqual(classifyTcPrematchRows(rows, {match, observation: null, decisionTime: decision, knowledge: 'captured'}).label.reasons, {TZ_NOT_MEASURED: 2});
+  assert.deepEqual(classifyTcPrematchRows(rows.slice(0, 1), {match, observation, decisionTime: '2026-10-20T09:00:00Z', knowledge: 'provider'}).classified[0].reasons,
+    ['TZ_MEASURED_AFTER_DECISION'], 'a measurement taken after the decision cannot vouch for it');
   assert.deepEqual(classifyTcPrematchRows(rows, {match, observation: {...observation, offset_minutes: 60}, decisionTime: decision, knowledge: 'captured'}).label.reasons,
     {TZ_OFFSET_MISMATCH: 2});
 

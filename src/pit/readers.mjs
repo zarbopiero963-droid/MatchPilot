@@ -6,10 +6,13 @@ import {analysisLabel, classifyRecord, measuredOffsetValidity, undocumentedDateI
 // `rows` are the rows the reader uses (already cut at kickoff and at the decision time).
 export function classifyTcPrematchRows(rows, {match, observation, decisionTime, knowledge}) {
   const offset = Number(match?.tz_offset_minutes);
+  const decision = decisionTime ? new Date(decisionTime) : null;
   const classified = rows.map(row => {
     let tz;
     if (!observation) tz = {verified: false, reason: 'TZ_NOT_MEASURED'};
     else if (Number(observation.offset_minutes) !== offset) tz = {verified: false, reason: 'TZ_OFFSET_MISMATCH'};
+    // The evidence for the conversion must itself be known at the decision time, so a replay's label cannot change later.
+    else if (decision && new Date(observation.observed_at) > decision) tz = {verified: false, reason: 'TZ_MEASURED_AFTER_DECISION'};
     else tz = measuredOffsetValidity({offsetMinutes: offset, observedAt: observation.observed_at, observationStatus: observation.status, at: row.provider_time_utc});
     const providerTime = row.provider_time_utc ?? null;
     return classifyRecord({
@@ -19,7 +22,9 @@ export function classifyTcPrematchRows(rows, {match, observation, decisionTime, 
       acquisitionTime: row.first_acquired_at, decisionTime,
     });
   });
-  return {classified, label: analysisLabel(classified, {knowledge, decisionTime})};
+  // The match identity (teams, kickoff) is itself a record: unknown at T when MatchPilot first saw the match later.
+  const matchRecord = classifyRecord({acquisitionTime: match?.first_seen_at, decisionTime});
+  return {classified, matchRecord, label: analysisLabel([matchRecord, ...classified], {knowledge, decisionTime})};
 }
 
 // node-postgres returns a DATE as a Date at local midnight; read it back with local fields, never through UTC.

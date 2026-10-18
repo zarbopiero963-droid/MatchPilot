@@ -104,11 +104,16 @@ export function measuredOffsetValidity({offsetMinutes, observedAt, observationSt
   if (!instant) return {verified: false, reason: 'TIME_MISSING'};
   if (Math.abs(instant - observed) > OFFSET_VALIDITY_MS) return {verified: false, reason: 'TZ_MEASUREMENT_OUT_OF_WINDOW'};
   const key = `${offsetMinutes}|${observed.getTime()}`;
-  if (!consistentZones.has(key)) consistentZones.set(key, allZones().filter(zone => zoneOffsetMinutes(zone, observed) === offsetMinutes));
+  if (!consistentZones.has(key)) {
+    if (consistentZones.size >= 1000) consistentZones.clear();
+    consistentZones.set(key, allZones().filter(zone => zoneOffsetMinutes(zone, observed) === offsetMinutes));
+  }
   const consistent = consistentZones.get(key);
   const changed = consistent.filter(zone => zoneOffsetMinutes(zone, instant) !== offsetMinutes);
   if (changed.length) return {verified: false, reason: 'TZ_DST_CHANGE_POSSIBLE', zones_changed: changed.length, zones_consistent: consistent.length};
-  return {verified: true, reason: consistent.length ? 'TZ_OFFSET_STABLE' : 'TZ_OFFSET_NO_IANA_ZONE', zones_consistent: consistent.length};
+  // An offset no IANA zone uses cannot be checked for DST changes: it is not verified.
+  if (!consistent.length) return {verified: false, reason: 'TZ_OFFSET_NO_IANA_ZONE', zones_consistent: 0};
+  return {verified: true, reason: 'TZ_OFFSET_STABLE', zones_consistent: consistent.length};
 }
 
 // ---- Records ----
