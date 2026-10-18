@@ -28,6 +28,19 @@ function teamMatchesSql(venue) {
       LIMIT $3`;
 }
 
+// R-08b (MP-FPT-005): when a version became usable. A version written at ingest is usable from its acquisition. A
+// re-parse (reprocessRaw) writes new versions with the raw snapshot's acquired_at, so those are usable only from the
+// end of the reprocessing run that wrote them: the latest complete apply run with the same lineage (conservative),
+// or never (NULL) when no such run is recorded. A version is from ingest when it is the first version of its match
+// in its snapshot.
+const VERSION_AVAILABLE_AT = v => `(CASE
+    WHEN (SELECT o.version_id FROM fpt_match_versions o WHERE o.match_key = ${v}.match_key AND o.snapshot_id = ${v}.snapshot_id
+          ORDER BY o.version_id LIMIT 1) = ${v}.version_id THEN ${v}.acquired_at
+    ELSE (SELECT max(r.finished_at) FROM fpt_reprocessing_runs r
+          WHERE r.mode = 'apply' AND r.status = 'complete' AND r.parser_version = ${v}.parser_version
+            AND r.schema_version = ${v}.schema_version AND r.transform_version = ${v}.transform_version)
+  END)`;
+
 export const QUERIES = {
   teamSearch: {
     sql: `SELECT t.internal_team_id, t.canonical_name, t.country_slug, t.competitions
@@ -140,7 +153,7 @@ export const QUERIES = {
       ORDER BY season`,
     params: ['competition_id', 'before']
   },
-  // Point-in-time: for each candidate match, the version acquired at or before as_of.
+  // Point-in-time: for each candidate match, the latest version available at or before as_of (R-08b, MP-FPT-005).
   // A match first acquired after as_of has no such version and is not returned.
   teamMatchesAsOf: {
     sql: `WITH candidates AS MATERIALIZED (
@@ -156,16 +169,23 @@ export const QUERIES = {
         -- R-08: what the version known at as_of says, and whether the match changed after as_of (the candidate
         -- set and the columns above come from the current facts).
         pit.match_date AS known_match_date, pit.home AS known_home, pit.away AS known_away, pit.phase AS known_phase,
-        EXISTS (SELECT 1 FROM fpt_match_versions later WHERE later.match_key = f.match_key AND later.acquired_at > $2::timestamptz) AS changed_after_as_of,
+        pit.available_at AS version_available_at, pit.parser_version, pit.schema_version, pit.transform_version,
+        EXISTS (
+          SELECT 1 FROM fpt_match_versions later
+          WHERE later.match_key = f.match_key AND later.version_id <> pit.version_id
+            AND (later.acquired_at > $2::timestamptz OR NOT COALESCE(${VERSION_AVAILABLE_AT('later')} <= $2::timestamptz, false))
+        ) AS changed_after_as_of,
         fpt_score_int(pit.payload->>'Home_Score') AS home_score,
         fpt_score_int(pit.payload->>'Away_Score') AS away_score,
         fpt_price(pit.payload->>'Odd_1_FT') AS odd_home,
         fpt_price(pit.payload->>'Odd_2_FT') AS odd_away
       FROM candidates f
       CROSS JOIN LATERAL (
-        SELECT v.version_id, v.acquired_at, v.payload, v.match_date, v.home, v.away, v.phase
+        SELECT v.version_id, v.acquired_at, v.payload, v.match_date, v.home, v.away, v.phase,
+          v.parser_version, v.schema_version, v.transform_version, av.available_at
         FROM fpt_match_versions v
-        WHERE v.match_key = f.match_key AND v.acquired_at <= $2::timestamptz
+        CROSS JOIN LATERAL (SELECT ${VERSION_AVAILABLE_AT('v')} AS available_at) av
+        WHERE v.match_key = f.match_key AND v.acquired_at <= $2::timestamptz AND av.available_at <= $2::timestamptz
         ORDER BY v.acquired_at DESC, v.version_id DESC
         LIMIT 1
       ) pit
@@ -187,10 +207,14 @@ export const QUERIES = {
           SELECT v.home, v.away
           FROM fpt_match_versions v
           WHERE v.match_key = f.match_key AND v.acquired_at <= $2::timestamptz
+            AND ${VERSION_AVAILABLE_AT('v')} <= $2::timestamptz
           ORDER BY v.acquired_at DESC, v.version_id DESC
           LIMIT 1
         ) pit
-        WHERE f.acquired_at > $2::timestamptz
+        -- The facts row is the match's latest version; it differs from the one at as_of when that version was
+        -- acquired after as_of or became available after it (a later reprocessing run).
+        JOIN fpt_match_versions cur ON cur.version_id = f.version_id
+        WHERE (f.acquired_at > $2::timestamptz OR NOT COALESCE(${VERSION_AVAILABLE_AT('cur')} <= $2::timestamptz, false))
           AND (f.home_team_id = $1 OR f.away_team_id = $1
             OR EXISTS (SELECT 1 FROM fpt_team_aliases a WHERE a.internal_team_id = $1 AND a.name IN (pit.home, pit.away)))
         LIMIT 1000

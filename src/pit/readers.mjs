@@ -51,6 +51,8 @@ export function classifyFptVersions(rows, {decisionTime, changedMatches = 0}) {
       eventEarliest: interval?.earliest ?? null, eventLatest: interval?.latest ?? null,
       providerTime: null, providerTimeUsed: false,
       acquisitionTime: row.acquired_at, decisionTime,
+      // R-08b: a version written by a later reprocessing run is usable only from that run's end.
+      ...(Object.hasOwn(row, 'version_available_at') ? {availabilityTime: row.version_available_at} : {}),
       extraReasons: row.changed_after_as_of ? ['FACTS_CHANGED_AFTER_DECISION'] : [],
     });
   });

@@ -99,7 +99,9 @@ export async function reprocessRaw(client, {
     }
     const after = Number((await client.query('SELECT count(*)::bigint AS n FROM fpt_match_versions')).rows[0].n);
     await client.query(
-      `UPDATE fpt_reprocessing_runs SET status='complete', finished_at=now(), snapshots_scanned=$2, snapshots_hash_mismatch=$3,
+      // clock_timestamp(): the end of the run, not the start of its transaction (now()). Point-in-time reads use it as
+      // the instant the versions written by this run became usable (R-08b).
+      `UPDATE fpt_reprocessing_runs SET status='complete', finished_at=clock_timestamp(), snapshots_scanned=$2, snapshots_hash_mismatch=$3,
          rows_parsed=$4, rows_unchanged=$5, rows_new_output=$6, versions_inserted=$7, versions_after=$8
        WHERE run_id=$1`,
       [runId, stats.snapshots, stats.hashMismatch, stats.rows, stats.unchanged, stats.newOutput, stats.inserted, after]);

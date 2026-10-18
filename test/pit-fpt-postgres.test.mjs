@@ -83,6 +83,32 @@ test('FPT team-matches-asof flags facts corrected after as_of (MP-PIT-002, MP-PI
       assert.equal((await query.runQuery(c, 'teamMatchesAsOf', {team: await teamId('Feyenoord'), ...later})).pit.label, 'PIT_VERIFIED');
       assert.equal((await query.runQuery(c, 'teamMatchesAsOf', {team: await teamId('PSV'), ...later})).pit.label, 'PIT_VERIFIED');
       assert.equal((await query.runQuery(c, 'teamMatchesAsOf', {team: await teamId('Utrecht'), ...later})).pit.label, 'PIT_VERIFIED');
+
+      // R-08b (MP-FPT-005): a re-parse writes new versions with the raw snapshot's acquired_at. They are usable only
+      // from the end of their run, so the rows answered at an earlier T do not change.
+      const {reprocessRaw} = await import('../src/providers/futpython/reprocess.mjs');
+      const {LINEAGE_VERSIONS} = await import('../src/providers/futpython/schema.mjs');
+      const feyId = await teamId('Feyenoord');
+      const pinned = {team: feyId, as_of: '2025-08-01T00:00:00Z', before: '2025-08-01', limit: 50};
+      const strip = r => ({id: r.internal_match_id, version: r.version_id, odd_home: r.odd_home, parser: r.parser_version});
+      const beforeRun = await query.runQuery(c, 'teamMatchesAsOf', pinned);
+      assert.ok(beforeRun.rows.every(r => r.parser_version === LINEAGE_VERSIONS.parserVersion));
+      const run = await reprocessRaw(c, {mode: 'apply', actor: 'test', reason: 'R-08b reproduction', datasetKeys: [key],
+        lineage: {...LINEAGE_VERSIONS, parserVersion: 'fpt-csv-test-2'},
+        parse: text => { const p = parseCsv(text); return {...p, rows: p.rows.map(r => ({...r, Odd_1_FT: '9.99'}))}; }});
+      assert.ok(run.inserted > 0, 'the re-parse wrote new versions');
+      await query.refreshNormalizedLayer(c);
+      const runEnd = (await c.query(`SELECT finished_at FROM fpt_reprocessing_runs WHERE run_id=$1`, [run.runId])).rows[0].finished_at;
+      const afterRun = await query.runQuery(c, 'teamMatchesAsOf', pinned);
+      assert.deepEqual(afterRun.rows.map(strip), beforeRun.rows.map(strip), 'same T, same versions and values before and after the re-parse');
+      assert.equal(afterRun.pit.label, 'NON_PIT', 'the current facts now come from the re-parse, so the answer is flagged');
+      assert.ok(afterRun.rows.every(r => r.changed_after_as_of === true));
+      const now = await query.runQuery(c, 'teamMatchesAsOf', {...pinned, as_of: new Date(new Date(runEnd).getTime() + 1000).toISOString()});
+      assert.ok(now.rows.length > 0 && now.rows.every(r => r.parser_version === 'fpt-csv-test-2' && Number(r.odd_home) === 9.99));
+      assert.ok(now.rows.every(r => new Date(r.pit.times.availability_time).getTime() === new Date(runEnd).getTime()),
+        'a re-parsed version is available from the end of its run');
+      assert.ok(now.rows.every(r => new Date(r.pit.times.acquisition_time) < new Date(r.pit.times.availability_time)));
+      assert.equal(now.pit.label, 'PIT_VERIFIED');
     });
   } finally {
     await db.closePool?.().catch?.(() => {});
