@@ -1,0 +1,76 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261018T231022Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-18T23:10:22Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-12 part 1 (MATH-CORE-01): Decimal and common contracts of the Math Core",
+  "task": "R-12",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 94,
+  "pr": null,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "f8f18a259209ed38ff2f4e6dbaab888adbda29f9",
+  "tree_sha": "4b71b639e888c45d1c208a2661cd73cb8a11b3fc",
+  "requirements": [
+    "MP-MTH-001"
+  ],
+  "changes": [
+    "src/math/decimal.mjs",
+    "src/math/core.mjs",
+    "test/math-core.test.mjs",
+    "docs/math-core.md, README; MP-MTH-001 FAIL -> NOT_VERIFIED"
+  ],
+  "tests": [
+    {
+      "command": "npm test against throwaway PostgreSQL 16",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1",
+      "commit": "f8f18a259209ed38ff2f4e6dbaab888adbda29f9",
+      "time": "2026-10-18T23:10:22Z",
+      "limits": [
+        "249 tests, 248 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only)"
+      ]
+    },
+    {
+      "command": "npm run check; governance:validate; governance:check; render-inventory --check",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "f8f18a259209ed38ff2f4e6dbaab888adbda29f9",
+      "time": "2026-10-18T23:10:22Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "R12-SCOPE",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "money/commission formulas MATH-CORE-02..06, Poisson MATH-CORE-07 and API MATH-CORE-08 follow; commission-aware results depend on #95"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01"
+  ],
+  "dependencies": [
+    "CP-20261018T231000Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "Open the R-12 PR, obtain CI green and an independent review on its head; auto-merge under merge-gate; then MATH-CORE-02 (Kelly/EV/Liability) unless the owner decides on #23 / #97.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": null
+}
