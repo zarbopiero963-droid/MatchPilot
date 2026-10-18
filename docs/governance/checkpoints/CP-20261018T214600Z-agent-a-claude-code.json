@@ -1,0 +1,54 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261018T214600Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-18T21:46:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-04 Gate A: blocked on owner input (names of the Render owner-credential variables; authorisation of a deny-by-default merge with autoDeploy on matchpilot-test)",
+  "task": "R-04",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 23,
+  "pr": null,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "c211836542a7a12fa60d8e7cace7fc50ff3ecc9d",
+  "tree_sha": "e73b4053e27537c52c848088d93dc310a8a14e9e",
+  "requirements": [
+    "MP-SEC-001",
+    "MP-SEC-007"
+  ],
+  "changes": [],
+  "tests": [],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN"
+  },
+  "gate_a": "BLOCKED",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "R04-OWNER",
+      "severity": "BLOCKING",
+      "status": "OPEN",
+      "summary": "owner questions Q1/Q2 in #23 comment 6255484605"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01"
+  ],
+  "dependencies": [
+    "CP-20261018T214500Z-agent-a-claude-code"
+  ],
+  "state": "BLOCKED",
+  "next_action": "Wait for the owner answers to Q1 (variable names) and Q2 (merge with autoDeploy) on #23; then implement the proposal in comment 6255484605.",
+  "resume_conditions": [
+    "owner answers Q1 and Q2 on #23",
+    "no other implementation PR open"
+  ],
+  "supersedes": null
+}

@@ -1,0 +1,115 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261018T214500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-18T21:45:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Integration Agent"
+  },
+  "activity": "R-03 merged into main as c211836542a7a12fa60d8e7cace7fc50ff3ecc9d (squash of PR #153 head); record carried by the next PR per HANDOFF.md",
+  "task": "R-03",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 98,
+  "pr": 153,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "ab5fc44ea49781f3b4bb9eac724f1ff66dd20bd2",
+  "tree_sha": "e73b4053e27537c52c848088d93dc310a8a14e9e",
+  "requirements": [
+    "MP-API-001",
+    "MP-API-002",
+    "MP-API-003",
+    "MP-API-004",
+    "MP-API-005",
+    "MP-API-006",
+    "MP-QAC-003",
+    "MP-SEC-006"
+  ],
+  "changes": [
+    "squash merge c211836542a7a12fa60d8e7cace7fc50ff3ecc9d into main"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI (classify, fast checks incl. governance gate, PostgreSQL 17 suite, CI gate)",
+      "result": "PASS",
+      "environment": "GitHub Actions ubuntu-latest",
+      "commit": "ab5fc44ea49781f3b4bb9eac724f1ff66dd20bd2",
+      "time": "2026-10-18T21:35:22Z",
+      "limits": [
+        "run 39168436769"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39168436769,
+    "conclusion": "SUCCESS",
+    "head_sha": "ab5fc44ea49781f3b4bb9eac724f1ff66dd20bd2"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/153#issuecomment-6255466221",
+    "reviewed_sha": "ab5fc44ea49781f3b4bb9eac724f1ff66dd20bd2"
+  },
+  "findings": [
+    {
+      "id": "NB-A",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "impossible calendar dates in as_of roll over instead of being rejected (also FPT timestampOf)"
+    },
+    {
+      "id": "NB-B",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "prematch/match accepts as_of after kickoff; id has no format check"
+    },
+    {
+      "id": "NB-C",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "some error messages still use internal names (fav_min)"
+    },
+    {
+      "id": "NB-D",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "response write failure after headers sends a truncated 200"
+    },
+    {
+      "id": "NB-E",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "MERGED with pr_open true accepted; pr_open self-declared"
+    },
+    {
+      "id": "NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "provider trap proves little; FPT v1/legacy comparison on 0 rows"
+    },
+    {
+      "id": "NB-8",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "coverage null cases (documented)"
+    },
+    {
+      "id": "R03-AUTH",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "API requirements cannot be PASS until MP-SEC-001 (R-04) lands"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01",
+    "MP-OWNER-AUTOMERGE-01"
+  ],
+  "dependencies": [
+    "CP-20261018T213402Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "None for R-03. Open NB findings are carried into the next API-touching PR.",
+  "resume_conditions": [],
+  "supersedes": "CP-20261018T213402Z-agent-a-claude-code"
+}

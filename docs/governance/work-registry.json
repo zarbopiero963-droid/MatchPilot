@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 16,
+  "revision": 18,
   "tasks": [
     {
       "id": "R-01",
@@ -40,14 +40,49 @@
       "pr": 153,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261018T213402Z-agent-a-claude-code",
-      "pr_open": true
+      "latest_checkpoint": "CP-20261018T214500Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "R-04",
+      "title": "Owner/admin auth baseline",
+      "issue": 23,
+      "pr": null,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
+      "state": "BLOCKED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261018T214600Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "R-08",
+      "title": "PIT policy, version pinning, cross-provider identity, timezone/DST",
+      "issue": 31,
+      "pr": null,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
+      "state": "RUNNING",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": {
+        "holder": "agent-a-claude-code",
+        "acquired_at": "2026-10-18T21:43:26.327Z",
+        "expires_at": "2026-10-18T23:43:26.327Z"
+      },
+      "latest_checkpoint": null
     }
   ]
 }
