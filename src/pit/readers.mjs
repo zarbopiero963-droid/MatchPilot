@@ -40,15 +40,24 @@ function calendarDate(value) {
 
 // FutPythonTrader match versions. The kickoff time zone is undocumented (PROVIDER_TZ_UNDOCUMENTED, #12): the event is
 // known only as the interval of its calendar date in every possible zone, and FPT declares no per-record time.
-export function classifyFptVersions(rows, {decisionTime}) {
+// The candidate set comes from the current facts: a row whose match changed after T, or matches that named the team at T
+// but no longer link it (`omitted`), mean the answer may differ from what was known at T.
+export function classifyFptVersions(rows, {decisionTime, omitted = 0}) {
   const classified = rows.map(row => {
-    const date = calendarDate(row.match_date);
+    // The event date is the one the version known at T declares, not the current one.
+    const date = calendarDate(row.known_match_date ?? row.match_date);
     const interval = undocumentedDateInterval(date);
     return classifyRecord({
       eventEarliest: interval?.earliest ?? null, eventLatest: interval?.latest ?? null,
       providerTime: null, providerTimeUsed: false,
       acquisitionTime: row.acquired_at, decisionTime,
+      extraReasons: row.changed_after_as_of ? ['FACTS_CHANGED_AFTER_DECISION'] : [],
     });
   });
-  return {classified, label: analysisLabel(classified, {knowledge: 'captured', decisionTime})};
+  const label = {...analysisLabel(classified, {knowledge: 'captured', decisionTime}), omitted};
+  if (omitted > 0) {
+    label.label = 'NON_PIT';
+    label.why.push('MATCHES_OMITTED_BY_LATER_FACTS');
+  }
+  return {classified, label};
 }
