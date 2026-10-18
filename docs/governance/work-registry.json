@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 14,
+  "revision": 15,
   "tasks": [
     {
       "id": "R-01",
@@ -37,20 +37,17 @@
       "id": "R-03",
       "title": "API v1 contract, error envelope, provenance, bounded queries, legacy route inventory",
       "issue": 98,
-      "pr": null,
+      "pr": 153,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "RUNNING",
+      "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "lease": {
-        "holder": "agent-a-claude-code",
-        "acquired_at": "2026-10-18T21:19:16.698Z",
-        "expires_at": "2026-10-19T01:19:16.698Z"
-      },
-      "latest_checkpoint": null
+      "lease": null,
+      "latest_checkpoint": "CP-20261018T212314Z-agent-a-claude-code",
+      "pr_open": true
     }
   ]
 }
