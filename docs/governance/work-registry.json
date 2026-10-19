@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 72,
+  "revision": 76,
   "tasks": [
     {
       "id": "R-01",
@@ -296,13 +296,29 @@
       "pr": 168,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261019T184245Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "V-B1",
+      "title": "Visual conformity V-B1 under MP-OWNER-UI-NO-RAW-TEXT-01: no technical text in user views (Daily Board, Ricerca, shared states), UI text inventory, Browser QA invariant",
+      "issue": 3,
+      "pr": 169,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
       "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T180935Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261019T192623Z-agent-a-claude-code",
       "pr_open": true
     }
   ]

@@ -18,8 +18,9 @@ export const SEEDED_DEFECTS = [
     from: "if (missing) return el('span', {class: 'nd', title: 'Valore non disponibile'}, ND);",
     to: "if (missing) return el('span', {class: 'nd', title: 'Valore non disponibile'}, '0');"},
   {id: 'S3', rule: 'Italian labels', from: "more: 'Carica altre partite'", to: "more: 'Load more matches'"},
+  // V-B1 changed the heading to the day in words; the seed keeps the same defect class (the day before the chosen one).
   {id: 'S4', rule: 'the Daily Board heading names the chosen day',
-    from: '`Partite del ${date}`', to: '`Partite del ${new Date(Date.parse(date) - 864e5).toISOString().slice(0, 10)}`'},
+    from: "calendarDay(date, LONG_DAY)),", to: "calendarDay(shiftDay(date, -1), LONG_DAY)),"},
 ];
 
 // Applies every seeded defect to the page script; a seed that no longer matches the source fails loudly.

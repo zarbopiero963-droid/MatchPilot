@@ -1,0 +1,109 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "e71b1ab7eec2ab4fd7c8441c34b78fe00d806970",
+  "tree_sha": "02193400ccba17f3e7687b8eaa6570d334152c83",
+  "supersedes": null,
+  "pr": 169,
+  "id": "CP-20261019T185953Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T18:59:53Z",
+  "activity": "V-B1 under MP-OWNER-UI-NO-RAW-TEXT-01: rule registered, global UI text inventory, technical-text invariant in the Browser QA gate, Daily Board, Ricerca, shared states and footer cleaned; ready for review",
+  "task": "V-B1",
+  "issue": 3,
+  "requirements": [
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "src/web/app.js, app.css, index.html (user views without technical text, match card, Italian dates and codes, plain error states)",
+    "tools/qa/browser-qa.mjs (technicalText invariant), tools/qa/journeys.mjs (data kept in attributes, non-final states, areas), tools/qa/ai-eval-seeds.mjs (S4 seed)",
+    "test/web-e2e.test.mjs, test/browser-qa-gate.test.mjs",
+    "docs/governance/owner-decisions.json (MP-OWNER-UI-NO-RAW-TEXT-01), requirements MP-WEB-015, docs/web.md, docs/qa/ui-text-inventory.md",
+    "docs/audits/V-B1-UI-NO-RAW-TEXT + evidence/audits@1129bab6e2ca0fc743922282ba7bb11362d362c4"
+  ],
+  "tests": [
+    {
+      "command": "node tools/qa/browser-qa.mjs (new tests, src/web of main 3521a07)",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "629be0dbb62fcb48394f7a5a75cfe72799598c01",
+      "time": "2026-10-19T18:55:47Z",
+      "limits": [
+        "intended RED on an uncommitted tree: 10/10 fail on the footer; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs (new tests, src/web of main + view areas and new footer only)",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "629be0dbb62fcb48394f7a5a75cfe72799598c01",
+      "time": "2026-10-19T18:56:08Z",
+      "limits": [
+        "intended RED on an uncommitted tree: daily-board, search and general-navigation fail with technical text on desktop and mobile"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs + verify-report on the committed change",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "629be0dbb62fcb48394f7a5a75cfe72799598c01",
+      "time": "2026-10-19T18:55:35Z",
+      "limits": [
+        "10/10, clean tree, verifier ok; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "CI=1 node --test web-e2e, mockup-alignment, browser-qa-gate, explore, requirements-inventory, governance-*; npm run check; governance:check/validate/evidence; check-append-only",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "e71b1ab7eec2ab4fd7c8441c34b78fe00d806970",
+      "time": "2026-10-19T18:59:53Z",
+      "limits": [
+        "37/37 and 61/61; time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "VB1-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "official Italian names of competitions and countries need API display names (inventory UI-12); slugs read as words meanwhile"
+    },
+    {
+      "id": "VB1-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "Dashboard, navigation and technical views per the inventory belong to V-B2; compact rows and mobile tables to V-B4"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-UI-NO-RAW-TEXT-01",
+    "MP-OWNER-VISUAL-BASELINE-D1-D7-01",
+    "MP-OWNER-QA-VISUAL-EXECUTION-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T184245Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and independent review D2 on the head, Gate B, protected merge, post-merge verification; then V-B2",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains e71b1ab7eec2ab4fd7c8441c34b78fe00d806970"
+  ]
+}

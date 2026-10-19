@@ -165,6 +165,23 @@ test('raw values are caught in text, labels and declared API prose are not (PR #
   for (const fine of ['undefined states', 'nullable', 'N/D', 'Annullata', 'nessuno', '0']) assert.equal(RAW_VALUE.test(fine), false, fine);
 });
 
+test('technical text is caught in user views, plain Italian is not (MP-OWNER-UI-NO-RAW-TEXT-01)', async () => {
+  const {technicalText} = await import('../tools/qa/browser-qa.mjs');
+  // The examples the owner named, and the other technical texts of the inventory (docs/qa/ui-text-inventory.md).
+  for (const leak of ['Le partite di un giorno nei dati salvati, in ordine di orario.', 'Orari come forniti dal fornitore.', 'ora del fornitore',
+    'Fase: Storico · dataset: spain/laliga/2024-2025', 'spain/laliga/2024-2025', 'FINAL', 'HISTORICAL', 'PROVIDER_TZ_UNDOCUMENTED', 'HTTP_503',
+    'Impossibile caricare i dati (UNAVAILABLE).', 'Fonte: /api/v1/fpt/matches', 'generato: 19/10/2026', 'versione codice: abc', 'Partite del 2024-08-01',
+    '2026-10-19T18:00:00Z', 'Filtri applicati dal server: with_odds', 'fav_min must be a number', 'Dataset attivi', 'Ultimo snapshot', 'Ultimo backfill',
+    'EVEN', 'KEPT', 'HTTP 503', '[object Object]']) {
+    assert.ok(technicalText(leak), leak);
+  }
+  for (const fine of ['Finale', 'Senza risultato', 'Casa', 'Spain · Laliga · 2024/25', 'giovedì 1 agosto 2024', '01/08/2024', '15:00', 'Over 2,5',
+    'Favorito Casa 1,300', 'xG 1,900 – 1,600', 'N/D', 'Nessuna partita corrisponde ai filtri.', 'Valore non valido in: Quota favorito da.',
+    'Data non valida: scegli un giorno dal calendario.', 'MatchPilot · consultazione in sola lettura, nessuna operazione di trading.']) {
+    assert.equal(technicalText(fine), false, fine);
+  }
+});
+
 test('the runner refuses a non-empty output directory (PR #164 NB-5)', async t => {
   const {runBrowserQa} = await import('../tools/qa/browser-qa.mjs');
   const out = mkdtempSync(join(tmpdir(), 'mp-qa-out-'));

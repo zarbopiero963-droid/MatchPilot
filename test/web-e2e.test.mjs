@@ -10,6 +10,7 @@ import {join, resolve} from 'node:path';
 import test from 'node:test';
 import {hashPassword} from '../src/auth/owner-auth.mjs';
 import {seedEredivisie} from './helpers/fpt-seed.mjs';
+import {outcomeShownFor, seasonShown, words} from '../tools/qa/journeys.mjs';
 
 const ROOT_URL = process.env.FUTPYTHON_TEST_DATABASE_URL || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
 const BROWSERS = [process.env.MATCHPILOT_E2E_CHROME, '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'];
@@ -178,6 +179,7 @@ test('loading, error, retry and partial states are explicit', {timeout: 120000},
         await page.route('**/api/v1/providers', async route => { await held; await route.continue(); });
         await page.goto(`${server.base}/#/providers`);
         await page.waitForSelector('.state.loading[role="status"]');
+        assert.equal(await page.textContent('.state.loading'), 'Caricamento in corso…');
         release();
         await page.waitForSelector('[data-testid="data-health"]');
         await page.unroute('**/api/v1/providers');
@@ -190,7 +192,9 @@ test('loading, error, retry and partial states are explicit', {timeout: 120000},
         await page.goto(`${server.base}/#/`);
         await page.click('nav a[data-view="providers"]');
         await page.waitForSelector('.state.error[role="alert"]');
-        assert.match(await page.textContent('.state.error'), /UNAVAILABLE/);
+        // The reason stays on the error (code and tooltip); the page says it in plain words.
+        assert.equal(await page.getAttribute('.state.error', 'data-code'), 'UNAVAILABLE');
+        assert.match(await page.textContent('.state.error'), /non sono disponibili/);
         fail = false;
         await page.click('.state.error button');
         await page.waitForSelector('[data-testid="data-health"]');
@@ -348,11 +352,13 @@ test('R-06b: dashboard, Daily Board and search render the stored matches exactly
             const card = cards.nth(i);
             assert.equal(await card.getAttribute('data-match'), row.internal_match_id, 'API order is kept');
             assert.equal(await card.locator('[data-field="home"]').textContent(), row.home_name);
-            assert.equal(await card.locator('[data-field="competition"]').textContent(), `${row.country_slug} · ${row.league_slug} · ${row.season}`);
+            assert.equal(await card.locator('[data-field="competition"]').textContent(), `${words(row.country_slug)} · ${words(row.league_slug)} · ${seasonShown(row.season)}`);
             assert.equal(await card.locator('[data-field="kickoff"]').textContent(), shown(row.kickoff_local_time));
-            assert.equal(await card.locator('[data-field="odds_1x2"]').textContent(), `${shown(row.odd_home)} · ${shown(row.odd_draw)} · ${shown(row.odd_away)}`);
-            assert.equal(await card.locator('[data-field="score"]').textContent(), `${row.home_score}–${row.away_score}`);
-            assert.equal(await card.locator('[data-field="xg"]').textContent(), `${shown(row.xg_home)} · ${shown(row.xg_away)}`);
+            for (const name of ['odd_home', 'odd_draw', 'odd_away']) assert.equal(await card.locator(`[data-field="${name}"] b`).textContent(), shown(row[name]));
+            assert.equal(await card.locator('[data-field="score"]').textContent(), outcomeShownFor(row));
+            assert.equal(await card.locator('[data-field="xg"] b').textContent(), `${shown(row.xg_home)} – ${shown(row.xg_away)}`);
+            assert.equal(await card.locator('[data-field="favorite"]').textContent(),
+              row.favorite_side ? `Favorito ${{HOME: 'Casa', AWAY: 'Ospite', EVEN: 'Pari'}[row.favorite_side]} ${shown(row.favorite_odd)}` : 'Favorito N/D');
           }
           assert.ok(dayRows.some(row => row.kickoff_local_time === null), 'the seed has a match without kickoff on every day');
           await noHorizontalScroll(page);
@@ -391,7 +397,7 @@ test('R-06b: dashboard, Daily Board and search render the stored matches exactly
           const teamIds = await page.locator('[data-testid="search-results"] tr').evaluateAll(rows => rows.map(row => row.dataset.match));
           assert.deepEqual(teamIds, expected.map(row => row.internal_match_id));
           assert.equal(await page.locator('[data-testid="search-results"] [data-field="odds_1x2"]:has-text("N/D")').count(), 0);
-          assert.match(await page.textContent('[data-testid="filters-applied"]'), /with_odds/);
+          assert.match(await page.getAttribute('[data-testid="search-outcome"]', 'data-filters'), /\bwith_odds\b/);
           assert.equal(await page.inputValue('input[name="team"]'), 'Ajax', 'the form keeps the filters');
 
           // Unknown team, invalid filter (server validation), no match.
@@ -402,7 +408,7 @@ test('R-06b: dashboard, Daily Board and search render the stored matches exactly
           assert.deepEqual(problems, [], 'no console errors, page errors or CSP violations');
           await page.goto(`${server.base}/#/search?run=1&fav_min=abc`);
           await page.waitForSelector('[data-testid="search-invalid"]');
-          assert.match(await page.textContent('[data-testid="search-invalid"]'), /fav_min/);
+          assert.match(await page.textContent('[data-testid="search-invalid"]'), /Quota favorito da/);
           // The browser itself logs the refused request; nothing else may appear.
           assert.deepEqual(problems, ['console: Failed to load resource: the server responded with a status of 400 (Bad Request)']);
           await page.goto(`${server.base}/#/search?run=1&min_goals=30`);

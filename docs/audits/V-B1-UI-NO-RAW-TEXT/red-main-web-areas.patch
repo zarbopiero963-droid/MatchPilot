@@ -1,0 +1,25 @@
+diff --git a/src/web/app.js b/src/web/app.js
+index af0c54d..2e34996 100644
+--- a/src/web/app.js
++++ b/src/web/app.js
+@@ -479,6 +479,8 @@ async function render() {
+   revealOutcome = false;
+   const [what, view] = VIEWS[name] || [null, null];
+   const host = document.getElementById('view');
++  const area = {board: 'user', search: 'user', providers: 'technical', endpoints: 'technical'}[name] ?? (VIEWS[name] ? null : 'user');
++  if (area) host.dataset.area = area; else delete host.dataset.area;
+   for (const link of document.querySelectorAll('nav a[data-view]')) {
+     if (link.dataset.view === name) link.setAttribute('aria-current', 'page');
+     else link.removeAttribute('aria-current');
+diff --git a/src/web/index.html b/src/web/index.html
+index baf5cd6..612d0ad 100644
+--- a/src/web/index.html
++++ b/src/web/index.html
+@@ -23,6 +23,6 @@
+ <main id="view" tabindex="-1" aria-live="polite">
+   <noscript><p class="state error">Questa pagina richiede JavaScript.</p></noscript>
+ </main>
+-<footer class="foot">Sito in sola lettura. I dati arrivano dall'API v1 di MatchPilot; nessun calcolo avviene nel browser.</footer>
++<footer class="foot">MatchPilot · consultazione in sola lettura, nessuna operazione di trading.</footer>
+ </body>
+ </html>

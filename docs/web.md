@@ -15,12 +15,12 @@ Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). 
 
     A route that fails turns only its own tile into N/D with the error code: the dashboard is then partial, not blank. Each league's last match date opens the Daily Board on that day.
   - **Daily Board** (`#/board?date=YYYY-MM-DD`, R-06b, MP-WEB-002). The matches of a day from `/api/v1/fpt/matches`, in the API's kickoff order across competitions. Each card shows:
-    - competition and season;
-    - kickoff and time-zone status;
-    - teams, score and result status;
-    - 1X2, Over 2.5 and BTTS odds;
-    - favourite and xG;
-    - phase and dataset.
+    - kickoff, competition and season;
+    - teams, and the score, or the state of a match without a final result ("Non iniziata", "Senza risultato");
+    - 1X2, Over 2.5 and BTTS odds in labelled boxes;
+    - favourite and xG.
+
+    The time-zone status, result status, phase and dataset key stay on the card as `data-*` attributes, not as text (MP-WEB-015).
 
     "Carica altre partite" follows `next_cursor`. A day with no stored match is an explicit empty state, and an invalid date is refused before any request.
   - **Ricerca** (`#/search?…`, R-06b, MP-WEB-007). Combined filters on `/api/v1/fpt/search`:
@@ -29,21 +29,32 @@ Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). 
     - date range, result, favourite odds and total goals;
     - data quality: `with_odds` (complete 1X2 odds) and `with_xg`.
 
-    The server validates every filter, and a refusal is shown with its message. "Altri risultati" follows `next_cursor`; a failed page keeps the rows already shown and offers a retry.
-  - Fornitori dati (data health and FutPythonTrader certification), API (the v1 registry and legacy routes). Copertura links to the existing `/coverage` page.
+    The server validates every filter; a refusal names the field in Italian, and the server's message stays in the tooltip. "Altri risultati" follows `next_cursor`; a failed page keeps the rows already shown and offers a retry.
+  - Fornitori dati (data health and FutPythonTrader certification), API (the v1 registry and legacy routes): **technical views**. Copertura links to the existing `/coverage` page.
 - **Not yet shown:** Match Center, historical replay and PIT backtest (R-07, R-09…R-14).
 - **Data used for tests:** one league season ingested through the real FutPythonTrader path (`test/helpers/fpt-seed.mjs`). No production data is read. Against the real archive these views are TESTED, not certified (MP-OWNER-ARCHIVE-FIRST-01).
 
 ## Rules
 
+- **No technical text in user views** (MP-OWNER-UI-NO-RAW-TEXT-01, MP-WEB-015). Every view declares its area on `main`:
+  - `data-area="user"`: Daily Board, Ricerca, the not-found page;
+  - `data-area="technical"`: Fornitori dati, API.
+
+  The Dashboard declares none until V-B2. A user view shows none of these: API codes, parameter names, identifiers, dataset keys, routes, raw ISO dates, provenance lines, diagnostic messages, or explanatory text under titles. What it does not print stays in `data-*` attributes and tooltips, and in the technical views.
+  - The Browser QA gate fails a user view, or the page footer, that shows such text (`technicalText` in `tools/qa/browser-qa.mjs`), and a user view with lead text (`.lead`). The patterns are a safety net: each text of the inventory names the test that checks it.
+  - Every menu view declares its area, except the Dashboard until V-B2 (journey `general-navigation`).
+  - The inventory of every text of the site, its class and the PR that handles it is [docs/qa/ui-text-inventory.md](qa/ui-text-inventory.md).
+
 - **Missing values** (`null`, absent or an empty string) are shown as **N/D**, never as `0` (MP-WEB-005).
 - **Numbers are shown exactly as the API sends them.** Every digit is kept, the integer part is grouped by thousands with a dot and the decimal point becomes a comma, for JSON numbers and for exact decimal text alike (odds arrive as `"1.450"` and read `1,450`). Nothing is rounded in the browser.
-- **Dates** are calendar dates (`YYYY-MM-DD`) from the API, independent of the server time zone.
+- **Dates** are calendar dates (`YYYY-MM-DD`) from the API, independent of the server time zone. User views show them in Italian (`giovedì 1 agosto 2024`, `01/08/2024`), without shifting the day.
+- **Instants** (ISO timestamps with a zone) are shown in Europe/Rome with the offset, and the exact UTC is in the tooltip (D-7). A kickoff time whose zone the provider does not document is shown as written, with a plain tooltip.
+- **Codes** from the API (result state, favourite side, phase, coverage and route status) are shown in Italian; the code stays in `data-code` and the tooltip.
 - **Explicit states** (MP-WEB-010):
   - loading (`role=status`);
   - empty;
   - partial: a section is missing from the payload, a dashboard tile's route failed, or a next page failed (rows already shown stay);
-  - error: the error code from the v1 envelope plus a "Riprova" button.
+  - error: the title «Dati non disponibili», a plain message and a "Riprova" button; the error code from the v1 envelope stays in `data-code` and the tooltip.
 
   A view never stays blank and never shows stale success: a later navigation always wins over an earlier view still loading.
 - **No HTML injection:** API text is inserted with `textContent` only.
