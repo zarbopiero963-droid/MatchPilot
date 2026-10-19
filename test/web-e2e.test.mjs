@@ -279,6 +279,10 @@ test('with owner login enforced the shell requires a session and returns to the 
       await withPage(browser, MOBILE, async (page, problems) => {
         await page.goto(`${server.base}/`);
         await page.waitForURL(/\/login\?next=%2F$/);
+        // The login page in the identity of the site (V-B3): the logo reads as one word and the form fits a phone.
+        assert.equal(await page.evaluate(() => document.querySelector('h1').innerText), 'MATCHPILOT');
+        assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('button[type="submit"]')).backgroundColor), 'rgb(255, 181, 71)');
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'the login form fits the phone');
         await page.fill('input[name="username"]', 'owner');
         await page.fill('input[name="password"]', PASSWORD);
         await page.click('button[type="submit"]');

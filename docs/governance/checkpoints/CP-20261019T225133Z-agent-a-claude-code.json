@@ -1,0 +1,132 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "c5894d1816f087cb957dbb3859e4f10b4f43a7f2",
+  "tree_sha": "f6a02c6adbd28f3b2ff66589584ac36462fa43d1",
+  "supersedes": "CP-20261019T223527Z-agent-a-claude-code",
+  "pr": 172,
+  "id": "CP-20261019T225133Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T22:51:33Z",
+  "activity": "V-B3 after review D2 (APPROVED on 0f31265 with non-blocking notes): login logo, login width, identity tests; ready for the check of the delta",
+  "task": "V-B3",
+  "issue": 3,
+  "requirements": [
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "src/web/app.css (tokens, @font-face, header, states), index.html (logo, font preload), static.mjs (font files, font-src 'self')",
+    "src/web/fonts/ (4 WOFF2 subsets, 3 OFL licenses, README with sources and checksums)",
+    "src/auth/http.mjs (login palette and logo), src/coverage-page.mjs (palette)",
+    "tools/qa/journeys.mjs (identity step; 1px tolerance for the outcome top)",
+    "docs/web.md, docs/qa/ui-text-inventory.md",
+    "docs/audits/V-B3-IDENTITY + evidence/audits@73e4a9cc067c26ee0a493757f2f0e5e5de8e1577",
+    "review notes: login logo as one word and box-sizing (src/auth/http.mjs), faces forced to load and focus ring checked (journeys), login identity in web-e2e; evidence/audits@cca3a6080e0fae3fb67a3dd276470713c4250b7b (V-B3-IDENTITY-R2)"
+  ],
+  "tests": [
+    {
+      "command": "node tools/qa/browser-qa.mjs --journeys general-navigation,search (shell files of main 2ebe1a0)",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "34c0cfeaa29b9abf622ae60dae8239443cbde61d",
+      "time": "2026-10-19T22:33:34Z",
+      "limits": [
+        "intended RED on an uncommitted tree: general-navigation fails on both viewports; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs + verify-report on the committed change",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "34c0cfeaa29b9abf622ae60dae8239443cbde61d",
+      "time": "2026-10-19T22:33:13Z",
+      "limits": [
+        "10/10, clean tree, verifier ok; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "CI=1 node --test web-e2e, mockup-alignment, browser-qa-gate, explore, requirements-inventory, governance-*, fpt-coverage-page, owner-auth*; npm run check; governance:check/evidence",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "e9713d25c3dae3de6bd9450be859126f6eaef828",
+      "time": "2026-10-19T22:35:27Z",
+      "limits": [
+        "113/113, run on the tree of 34c0cfe; time is an upper bound"
+      ]
+    },
+    {
+      "command": "without the login fix the web-e2e login test fails; with the focus ring removed the identity step fails",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "c5894d1816f087cb957dbb3859e4f10b4f43a7f2",
+      "time": "2026-10-19T22:51:33Z",
+      "limits": [
+        "intended mutations on an uncommitted tree; time is an upper bound"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs + verify-report on the review fix",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "c5894d1816f087cb957dbb3859e4f10b4f43a7f2",
+      "time": "2026-10-19T22:50:35Z",
+      "limits": [
+        "10/10, clean tree, verifier ok; archived as V-B3-IDENTITY-R2; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "CI run 39336075533 on 0f31265 (all jobs, CI gate PASS)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "0f31265191adfe05cee4e30643693b64efadffb7",
+      "time": "2026-10-19T22:51:33Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39336075533,
+    "conclusion": "SUCCESS",
+    "head_sha": "0f31265191adfe05cee4e30643693b64efadffb7"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/172#issuecomment-6279037673",
+    "reviewed_sha": "0f31265191adfe05cee4e30643693b64efadffb7"
+  },
+  "findings": [
+    {
+      "id": "R1-NB-1,2,4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "login logo one word, login form fits a phone, registry carries PR 172"
+    },
+    {
+      "id": "R1-NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "every face forced to load, focus ring checked; the preload (performance only) and the palette of /coverage stay untested"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-UI-ROADMAP-01",
+    "MP-OWNER-VISUAL-BASELINE-D1-D7-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T223527Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "independent check of the delta on the new head, CI, Gate B, protected merge, post-merge verification; then V-B4",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains c5894d1816f087cb957dbb3859e4f10b4f43a7f2"
+  ]
+}

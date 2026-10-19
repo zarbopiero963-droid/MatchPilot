@@ -61,8 +61,9 @@ Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). 
 
   A view never stays blank and never shows stale success: a later navigation always wins over an earlier view still loading.
 - **No HTML injection:** API text is inserted with `textContent` only.
+- **Identity** (V-B3, D-1): the tokens of the approved mockup (charcoal surfaces, amber accent `#FFB547`), its logo, and its typefaces hosted with the site: Manrope for text, Barlow Condensed for titles, JetBrains Mono for numbers. The fonts are Latin subsets in WOFF2 under the SIL Open Font License 1.1, with their licenses and sources in `src/web/fonts/README.md`; no font is requested from another origin. The login page and `/coverage` use the same palette with system fonts.
 - **Security headers** on every shell file:
-  - CSP: `default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
+  - CSP: `default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
   - `X-Frame-Options: DENY`;
   - `Referrer-Policy: same-origin`;
   - `Permissions-Policy`;
