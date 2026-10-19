@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 42,
+  "revision": 45,
   "tasks": [
     {
       "id": "R-01",
@@ -51,19 +51,19 @@
     },
     {
       "id": "R-04",
-      "title": "Owner/admin auth baseline",
+      "title": "Owner/admin auth baseline (part a: production migration guard, PR #157)",
       "issue": 23,
       "pr": 157,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T084500Z-agent-a-claude-code",
-      "pr_open": true
+      "latest_checkpoint": "CP-20261019T085000Z-agent-a-claude-code",
+      "pr_open": false
     },
     {
       "id": "R-08",
@@ -111,6 +111,38 @@
       },
       "lease": null,
       "latest_checkpoint": "CP-20261019T074500Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "R-04-MIG",
+      "title": "Migration hardening MIG-GAP-01/02 (before R-04b)",
+      "issue": 23,
+      "pr": 158,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261019T100500Z-agent-a-claude-code",
+      "pr_open": true
+    },
+    {
+      "id": "R-04b",
+      "title": "Owner login per D12 (sessions, rate limit, audit; production-off flag)",
+      "issue": 23,
+      "pr": null,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
+      "state": "PLANNED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": null,
       "pr_open": false
     }
   ]

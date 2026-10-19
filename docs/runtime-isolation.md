@@ -52,27 +52,40 @@ Read-only evidence gathered from Render and git before merging PR #157 (owner re
 
 **Residual risk:** `matchpilot-test` still has `autoDeployTrigger: commit`. If the owner resumes it, the next merge deploys `main` automatically. With this PR, such a deploy can no longer apply an unapproved migration. Separating merge and deploy entirely means setting the trigger to `off` (deploy by hand) or `checksPass`. That is an owner action in the Render dashboard, and the agent does not change it.
 
-## Known gaps (tracked)
+## Migration hardening (MIG-GAP-01 and MIG-GAP-02, resolved)
 
-**MIG-GAP-01: the local-database check can be overridden by URL parameters (found by PR #157 review, NB-6).**
-- **Problem:** `isLocalDatabaseUrl` reads the URL host, but `pg` lets the `host` query parameter override it. For example, `postgres://u:p@localhost/db?host=remote` is accepted as local and connects to the remote host. The installed `pg` 8.16.3 client ignores `hostaddr`, but it is rejected defensively. This predates PR #157, and it needs a deliberately crafted URL.
-- **Requirement:** the check must use the host and address that `pg` actually connects to: the URL host, `host`/`hostaddr` parameters, and `PGHOST`/`PGHOSTADDR` when the URL has none. Offline/test mode accepts only loopback hosts or a Unix socket path on the local machine. Anything ambiguous is refused.
-- **Planned tests:** in offline/test mode,
-  - `?host=` and `?hostaddr=` with remote values are rejected;
-  - multi-host lists are rejected when any host is remote;
-  - `PGHOST` pointing remote is rejected;
-  - loopback forms (`localhost`, `127.0.0.1`, `[::1]`) are still accepted;
-  - a local Unix-socket `?host=` path is accepted, next to a remote `?host=` that is rejected;
-  - a percent-encoded socket path in the URL host is handled;
-  - the check is exercised through `migrate()`, not only `assertRuntimeSafety()`;
-  - production mode is unaffected.
+Both gaps found by the PR #157 reviews were fixed in a dedicated PR under the owner mandate of 2026-10-19. Tests: `test/migration-hardening.test.mjs`. They were written first and failed on the previous code (RED), including a real connection attempt to the overridden host and the concurrent-creation race on `schema_migrations`.
 
-**MIG-GAP-02: no lock against concurrent `migrate()` runs (PR #157 review NB-4, pre-existing).**
-- **Problem:** two processes starting together (overlapping deploys, a job next to the server) can both read the same pending set and apply a file twice. The second run fails on the `schema_migrations` primary key or on non-idempotent DDL.
-- **Requirement:** `migrate()` takes an advisory lock on a fixed key before reading `schema_migrations`. The wait is bounded (for example `lock_timeout` or a `pg_try_advisory_lock` retry with a deadline), so a hung holder cannot stall startup forever. The lock is taken and released on the same pooled client, in `finally`. Production keeps the approval rule.
-- **Planned tests:** on a throwaway PostgreSQL,
-  - two concurrent `migrate()` calls on one schema: each file is applied exactly once, and both calls return without error;
-  - the lock is released after a failing migration;
-  - a held lock makes a second `migrate()` fail with a clear error once the wait limit passes.
+**MIG-GAP-01: the local-database check judges the host `pg` really connects to.**
+- **Which host is checked:** `isLocalDatabaseUrl` asks `pg` for its resolved host, so it covers:
+  - the URL authority;
+  - a `?host=` override (the last value wins);
+  - percent-encoded and `socket:` Unix-socket paths.
+- **Accepted:** only exact loopback literals (`localhost`, `127.0.0.1`, `::1`) or an absolute socket directory.
+- **Refused:**
+  - host lists, trailing-dot names, other loopback addresses and `0.0.0.0`;
+  - a non-local `?hostaddr=`;
+  - a URL with no host of its own, which would leave the choice to `PGHOST`;
+  - a non-local `PGHOST` or `PGHOSTADDR`.
+- `migrate()` applies the check before opening any connection.
+- Production mode is unaffected.
 
-Both gaps are scheduled before the first PR that adds a migration (R-04b).
+**MIG-GAP-02: `migrate()` is mutually exclusive.**
+- **The lock:** `migrate()` takes a session advisory lock (class `MIGRATION_LOCK_CLASS`, key = hash of the current schema) before it even creates `schema_migrations`.
+- **Bounded wait:** the wait is limited by `MATCHPILOT_MIGRATION_LOCK_TIMEOUT_MS` (default 120 s) and fails closed with `MIGRATION_LOCK_TIMEOUT`. An invalid value fails with `BAD_MIGRATION_LOCK_TIMEOUT`.
+- **Release:** the lock is released in `finally`, under the schema and key fixed when it was taken, so a migration that changes `search_path` cannot leak it. The bookkeeping table is schema-qualified for the same reason. A connection whose unlock failed, or that ended in an unknown state, is closed instead of returned to the pool. A clean one is returned with the client check reset. The connection's error listener stays attached until the pool takes it back, so a connection lost during the release step does not crash the process, and an unlock failure is logged as `MIGRATION_UNLOCK_FAILED`.
+- **Connection lost mid-migration:** `migrate()` rejects with the driver error instead of crashing the process. The server rolls back the open file and frees the lock with the connection.
+- **No schema:** if no schema of the `search_path` exists, `migrate()` fails with `MIGRATION_NO_SCHEMA`.
+- **Crashed process:** the migrator sets `client_connection_check_interval` (PostgreSQL 14+). If the process dies during a long statement, the server notices within about a second, rolls back the open file and frees the lock. Without this setting, the transaction and lock would stay held until the statement ended. On older servers the setting is skipped and logged as `MIGRATION_CLIENT_CHECK_UNAVAILABLE`.
+- **Verified on a real PostgreSQL, with separate processes:**
+  - four concurrent migrators apply each file exactly once;
+  - concurrent production migrators apply only the approved file;
+  - a held lock times out without touching the schema;
+  - a failing file rolls back and frees the lock;
+  - a process killed mid-migration leaves no partial table, frees the lock, and a restart applies only the remaining file;
+  - a connection cut mid-migration rejects cleanly, with no crash, no partial table and the lock freed;
+  - a migration that changes `search_path` still releases the lock (checked in `pg_locks` before the process closes its pool);
+  - a connection lost just before the unlock or the final reset does not crash, holds no lock and keeps the committed file recorded once;
+  - a refused connection fails at once.
+
+**Accepted risk:** any absolute Unix-socket path counts as local. A socket is on this machine, but a proxy socket (for example a cloud SQL proxy) can forward to a remote database. That is the same trust as a loopback tunnel. Offline and test environments must not run such proxies (PR #158 review NB-2).

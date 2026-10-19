@@ -1,0 +1,123 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T085000Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T08:50:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Integration Agent"
+  },
+  "activity": "R-04 part a merged into main as 45efd503cb72b0486c05614c81b97c13f812964b (squash of PR #157 head) after the owner-requested deploy-effect verification; Render matchpilot-test still suspended and no deploy created (latest deploy 353dfc6)",
+  "task": "R-04",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 23,
+  "pr": 157,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "93a6e6396be1bb134c6a0aa30ee541ff04bd55a5",
+  "tree_sha": "6c752c6675fdcfad305745ddd0a1e4902f031760",
+  "requirements": [],
+  "changes": [
+    "squash merge 45efd503cb72b0486c05614c81b97c13f812964b into main"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI (classify, fast checks incl. governance gate, PostgreSQL 17 suite, CI gate)",
+      "result": "PASS",
+      "environment": "GitHub Actions ubuntu-latest",
+      "commit": "93a6e6396be1bb134c6a0aa30ee541ff04bd55a5",
+      "time": "2026-10-19T08:42:35Z",
+      "limits": [
+        "run 39224589596"
+      ]
+    },
+    {
+      "command": "Render read-only: get_service and list_deploys srv-davpi23ncjis73f9dkbg before and after the merge",
+      "result": "PASS",
+      "environment": "Render API via MCP, read-only",
+      "commit": "93a6e6396be1bb134c6a0aa30ee541ff04bd55a5",
+      "time": "2026-10-19T08:43:30Z",
+      "limits": [
+        "suspended by user; latest deploy still 353dfc6 after the merge"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39224589596,
+    "conclusion": "SUCCESS",
+    "head_sha": "93a6e6396be1bb134c6a0aa30ee541ff04bd55a5"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/157#issuecomment-6263245835",
+    "reviewed_sha": "93a6e6396be1bb134c6a0aa30ee541ff04bd55a5"
+  },
+  "findings": [
+    {
+      "id": "B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "guard failed open outside server startup: unknown mode applied everything; jobs and npm run migrate had no database-host check"
+    },
+    {
+      "id": "NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "merge redeploys matchpilot-test; production applied-migration state and runtime-mode env not observable from the agent; no migration added by this PR"
+    },
+    {
+      "id": "NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "approved names matching no pending file were silent"
+    },
+    {
+      "id": "NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "test schema created outside the cleanup block"
+    },
+    {
+      "id": "NB-5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "D12/D13 entries now note owner confirmation of wording pending"
+    },
+    {
+      "id": "R04-SCOPE",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "R-04b owner login (D12) follows behind a production-off flag; its sessions migration is held in production by this guard until the owner approves it"
+    },
+    {
+      "id": "MIG-GAP-01",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "isLocalDatabaseUrl ignores ?host=/?hostaddr= overrides honored by pg (review NB-6); fix and tests before R-04b"
+    },
+    {
+      "id": "MIG-GAP-02",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "no advisory lock against concurrent migrate() runs (review NB-4); fix and tests before R-04b"
+    },
+    {
+      "id": "DEPLOY-TRIGGER",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "matchpilot-test keeps autoDeployTrigger commit; owner may set off/checksPass in Render to separate merge and deploy"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-D13-MIGRATIONS-AUTODEPLOY-20261019",
+    "MP-OWNER-D12-OWNER-LOGIN-20261019",
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01"
+  ],
+  "dependencies": [
+    "CP-20261019T084500Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "None for R-04 part a. MIG-GAP-01/02 follow in their own PR (task R-04-MIG), then R-04b owner login.",
+  "resume_conditions": [],
+  "supersedes": "CP-20261019T084500Z-agent-a-claude-code"
+}
