@@ -113,6 +113,23 @@ export const JOURNEYS = [
         assert.equal(look.accent, 'rgb(255, 181, 71)', 'the amber accent #FFB547');
         assert.equal(look.logo, 'MATCHPILOT');
         assert.deepEqual(look.external, [], 'no resource from another origin');
+        // Every face is a valid file the browser can use, not only the ones this page happens to need (PR #172 review NB-3).
+        const faces = await page.evaluate(async () => {
+          const out = {};
+          for (const spec of ['400 15px Manrope', '700 34px "Barlow Condensed"', '800 23px "Barlow Condensed"', '600 14px "JetBrains Mono"']) {
+            out[spec] = (await document.fonts.load(spec)).length;
+          }
+          return out;
+        });
+        for (const [spec, count] of Object.entries(faces)) assert.equal(count, 1, `${spec} loads its own face`);
+        // The keyboard focus is the amber ring of the mockup (PR #172 review NB-3).
+        await page.evaluate(() => { document.activeElement?.blur(); });
+        await page.keyboard.press('Tab');
+        const ring = await page.evaluate(() => {
+          const s = getComputedStyle(document.activeElement);
+          return {tag: document.activeElement.tagName, style: s.outlineStyle, width: s.outlineWidth, color: s.outlineColor};
+        });
+        assert.deepEqual(ring, {tag: 'A', style: 'solid', width: '2px', color: 'rgb(255, 181, 71)'});
       });
       await step('ogni voce del menu è nota e ha la sua area', async () => {
         const views = await page.locator('nav a[data-view]').evaluateAll(links => links.map(link => link.dataset.view));
