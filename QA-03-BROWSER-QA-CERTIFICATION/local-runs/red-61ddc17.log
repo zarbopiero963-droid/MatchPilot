@@ -1,0 +1,11 @@
+FAIL general-navigation/desktop (1 steps) — invariants: raw value shown: "null"
+FAIL general-navigation/mobile (1 steps) — invariants: raw value shown: "null"
+FAIL dashboard/desktop (1 steps) — invariants: raw value shown: "null"
+FAIL dashboard/mobile (1 steps) — invariants: raw value shown: "null"
+FAIL daily-board/desktop (1 steps) — invariants: raw value shown: "null"
+FAIL daily-board/mobile (1 steps) — invariants: raw value shown: "null"
+FAIL search/desktop (1 steps) — invariants: raw value shown: "null"
+FAIL search/mobile (1 steps) — invariants: raw value shown: "null"
+FAIL providers-endpoints/desktop (1 steps) — The input did not match the regular expression /Ultimo backfill\s*N\/D/. Input:
+FAIL providers-endpoints/mobile (1 steps) — The input did not match the regular expression /Ultimo backfill\s*N\/D/. Input:
+{"verdict":"FAIL","counts":{"pass":0,"fail":10,"skip":0,"not_verified":0},"missing_required":["general-navigation/desktop","general-navigation/mobile","dashboard/desktop","dashboard/mobile","daily-board/desktop","daily-board/mobile","search/desktop","search/mobile","providers-endpoints/desktop","providers-endpoints/mobile"],"head_sha":"61ddc1759e131d74c403b77c1ceb09f9b82a64f5"}

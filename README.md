@@ -16,3 +16,4 @@ The index of the essential evidence, and the link to each package here, is `docs
 | Package | Audit | Date (UTC) | Files |
 |---|---|---|---|
 | [MP-OWNER-VISUAL-BASELINE-AUDIT-01](MP-OWNER-VISUAL-BASELINE-AUDIT-01/INDEX.md) | visual audit, mockup vs real site, `main` 3d8f5c9 | 2026-10-19 | 56 screenshots, 6 comparisons, report, capture script |
+| [QA-03-BROWSER-QA-CERTIFICATION](QA-03-BROWSER-QA-CERTIFICATION/INDEX.md) | Browser QA end-to-end certification (PR #166) and blind AI review evaluation | 2026-10-19 | 2 blinded bundles + reviews, answer key, local RED/GREEN runs |

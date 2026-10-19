@@ -1,0 +1,490 @@
+{
+  "schema": "mp-browser-qa-v1",
+  "head_sha": "61ddc1759e131d74c403b77c1ceb09f9b82a64f5",
+  "tested_commit": "61ddc1759e131d74c403b77c1ceb09f9b82a64f5",
+  "tested_tree": "a27add84d86d0d4043efa036a78cb30ee07af460",
+  "working_tree_clean": true,
+  "generated_at": "2026-10-19T14:56:17.212Z",
+  "environment": {
+    "node": "v22.22.0",
+    "browser": "chromium 141.0.7390.37",
+    "browser_path": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+    "os": "linux 6.18.44-fc-v139 x64",
+    "ci": true,
+    "ci_run_id": null
+  },
+  "software": {
+    "package": "matchpilot-trading-os",
+    "version": "0.1.0",
+    "code_version": "package-0.1.0"
+  },
+  "dataset": {
+    "fixture": "test/helpers/fpt-seed.mjs#seedQaArchive",
+    "ingestion": "real FutPythonTrader path (CSV → storeDataset → facts)",
+    "competitions": [
+      "fpt:competition:f568d2fff73c2e2f5246eb165426d4cb",
+      "fpt:competition:dec098a11eb9c411e998e8c1c8ec0f4c"
+    ],
+    "matches": 86,
+    "busy_day": "2024-08-01",
+    "fixture_sha256": "7163eb6f4bc9ad6657132ff5a49db28e87f9f783408fa72987e07164f6d04ea5",
+    "production_data": false
+  },
+  "required": {
+    "journeys": [
+      "general-navigation",
+      "dashboard",
+      "daily-board",
+      "search",
+      "providers-endpoints"
+    ],
+    "viewports": [
+      "desktop",
+      "mobile"
+    ]
+  },
+  "journeys": [
+    {
+      "id": "general-navigation",
+      "surface": "Interfaccia generale",
+      "title": "Navigazione, rotte, pagina sconosciuta, tastiera",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: raw value shown: \"null\"",
+      "duration_ms": 381,
+      "steps": [
+        {
+          "name": "apertura del sito",
+          "status": "FAIL",
+          "error": "invariants: raw value shown: \"null\"",
+          "screenshot": "screenshots/general-navigation-desktop-01-apertura-del-sito-failure.png"
+        }
+      ],
+      "trace": "traces/general-navigation-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "general-navigation",
+      "surface": "Interfaccia generale",
+      "title": "Navigazione, rotte, pagina sconosciuta, tastiera",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: raw value shown: \"null\"",
+      "duration_ms": 315,
+      "steps": [
+        {
+          "name": "apertura del sito",
+          "status": "FAIL",
+          "error": "invariants: raw value shown: \"null\"",
+          "screenshot": "screenshots/general-navigation-mobile-01-apertura-del-sito-failure.png"
+        }
+      ],
+      "trace": "traces/general-navigation-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "dashboard",
+      "surface": "Dashboard",
+      "title": "Riquadri, copertura per campionato, N/D, indisponibilità di una route",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: raw value shown: \"null\"",
+      "duration_ms": 495,
+      "steps": [
+        {
+          "name": "caricamento e valori uguali all’API",
+          "status": "FAIL",
+          "error": "invariants: raw value shown: \"null\"",
+          "screenshot": "screenshots/dashboard-desktop-01-caricamento-e-valori-uguali-all-api-failure.png"
+        }
+      ],
+      "trace": "traces/dashboard-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "dashboard",
+      "surface": "Dashboard",
+      "title": "Riquadri, copertura per campionato, N/D, indisponibilità di una route",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: raw value shown: \"null\"",
+      "duration_ms": 455,
+      "steps": [
+        {
+          "name": "caricamento e valori uguali all’API",
+          "status": "FAIL",
+          "error": "invariants: raw value shown: \"null\"",
+          "screenshot": "screenshots/dashboard-mobile-01-caricamento-e-valori-uguali-all-api-failure.png"
+        }
+      ],
+      "trace": "traces/dashboard-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "daily-board",
+      "surface": "Daily Board",
+      "title": "Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: raw value shown: \"null\"",
+      "duration_ms": 683,
+      "steps": [
+        {
+          "name": "apertura dalla copertura della Dashboard",
+          "status": "FAIL",
+          "error": "invariants: raw value shown: \"null\"",
+          "screenshot": "screenshots/daily-board-desktop-01-apertura-dalla-copertura-della-dashboard-failure.png"
+        }
+      ],
+      "trace": "traces/daily-board-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "daily-board",
+      "surface": "Daily Board",
+      "title": "Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: raw value shown: \"null\"",
+      "duration_ms": 698,
+      "steps": [
+        {
+          "name": "apertura dalla copertura della Dashboard",
+          "status": "FAIL",
+          "error": "invariants: raw value shown: \"null\"",
+          "screenshot": "screenshots/daily-board-mobile-01-apertura-dalla-copertura-della-dashboard-failure.png"
+        }
+      ],
+      "trace": "traces/daily-board-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "search",
+      "surface": "Ricerca",
+      "title": "Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: raw value shown: \"null\"",
+      "duration_ms": 1159,
+      "steps": [
+        {
+          "name": "tutte le partite, pagina dopo pagina, fino alla fine",
+          "status": "FAIL",
+          "error": "invariants: raw value shown: \"null\"",
+          "screenshot": "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png"
+        }
+      ],
+      "trace": "traces/search-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "search",
+      "surface": "Ricerca",
+      "title": "Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: raw value shown: \"null\"",
+      "duration_ms": 1013,
+      "steps": [
+        {
+          "name": "tutte le partite, pagina dopo pagina, fino alla fine",
+          "status": "FAIL",
+          "error": "invariants: raw value shown: \"null\"",
+          "screenshot": "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png"
+        }
+      ],
+      "trace": "traces/search-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "providers-endpoints",
+      "surface": "Interfaccia generale",
+      "title": "Fornitori dati e registro API",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "The input did not match the regular expression /Ultimo backfill\\s*N\\/D/. Input:\n\n'Certificazione FutPythonTraderCatalogoTotale2Paesi2Campionati2Datasetavailable2unavailable 4040error real0deprecated0unknown0undefined states0duplicate catalog keys0Snapshot2Versioni storiche86Partite uniche86Campi di schema13Ultimo backfillnullControlli fase 1nessunophase2catalog total2classified total0unclassified2duplicate catalog keys0labelsAVAILABLE0UNAVAILABLE 4040ERROR REAL0DEPRECATED0REMOVED0issuesavailable without snapshot2available incomplete2samplesavailablenullinitial 404nullregression 404nullerrornullremovednulldeprecatednullGate superatonophase3match key collisions0provider match id collisions0provider match id shared same identity0duplicate payload hashes0orphan versions0orphan snapshots0snapshot row gaps0missing home0missing away0missing date0date parse failures0team splits0teams14teams with provider id0Gate superatosìphase4raw unique fields13registry unique fields13missing from registry0extra in registry0missing normalized0missing type history0transforms0versions without lineage0suppressed aliases0Gate superatonophase5Gate superatonophase6registry rows2missing available seasons0gap rows0status countsAVAILABLE2expected null2historical complete0unavailable marked complete0evidencepitt0nullt12025-06-01T00:00:00.000Zdatasetargentina/liga-profesional/2026contractfpt-schema-4total t00total t186argentina t00later datasetnulltotal t0 repeat0later dataset t0nulllater dataset t1nullwrong contract t0nullcadencea hole is recorded only when the unique modal step between observed seasons is 1 year; tournament cadences are not filledmissing definitionactive catalog classification AVAILABLE without an ingest_complete dataset snapshotexpected match countnull: the provider catalog does not carry a fixture totalcomputed at2026-10-19T14:56:10.170ZGate superatonophase8StatonullGate superatono'\n",
+      "duration_ms": 435,
+      "steps": [
+        {
+          "name": "fornitori dati",
+          "status": "FAIL",
+          "error": "The input did not match the regular expression /Ultimo backfill\\s*N\\/D/. Input:\n\n'Certificazione FutPythonTraderCatalogoTotale2Paesi2Campionati2Datasetavailable2unavailable 4040error real0deprecated0unknown0undefined states0duplicate catalog keys0Snapshot2Versioni storiche86Partite uniche86Campi di schema13Ultimo backfillnullControlli fase 1nessunophase2catalog total2classified total0unclassified2duplicate catalog keys0labelsAVAILABLE0UNAVAILABLE 4040ERROR REAL0DEPRECATED0REMOVED0issuesavailable without snapshot2available incomplete2samplesavailablenullinitial 404nullregression 404nullerrornullremovednulldeprecatednullGate superatonophase3match key collisions0provider match id collisions0provider match id shared same identity0duplicate payload hashes0orphan versions0orphan snapshots0snapshot row gaps0missing home0missing away0missing date0date parse failures0team splits0teams14teams with provider id0Gate superatosìphase4raw unique fields13registry unique fields13missing from registry0extra in registry0missing normalized0missing type history0transforms0versions without lineage0suppressed aliases0Gate superatonophase5Gate superatonophase6registry rows2missing available seasons0gap rows0status countsAVAILABLE2expected null2historical complete0unavailable marked complete0evidencepitt0nullt12025-06-01T00:00:00.000Zdatasetargentina/liga-profesional/2026contractfpt-schema-4total t00total t186argentina t00later datasetnulltotal t0 repeat0later dataset t0nulllater dataset t1nullwrong contract t0nullcadencea hole is recorded only when the unique modal step between observed seasons is 1 year; tournament cadences are not filledmissing definitionactive catalog classification AVAILABLE without an ingest_complete dataset snapshotexpected match countnull: the provider catalog does not carry a fixture totalcomputed at2026-10-19T14:56:10.170ZGate superatonophase8StatonullGate superatono'\n",
+          "screenshot": "screenshots/providers-endpoints-desktop-01-fornitori-dati-failure.png"
+        }
+      ],
+      "trace": "traces/providers-endpoints-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "providers-endpoints",
+      "surface": "Interfaccia generale",
+      "title": "Fornitori dati e registro API",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "The input did not match the regular expression /Ultimo backfill\\s*N\\/D/. Input:\n\n'Certificazione FutPythonTraderCatalogoTotale2Paesi2Campionati2Datasetavailable2unavailable 4040error real0deprecated0unknown0undefined states0duplicate catalog keys0Snapshot2Versioni storiche86Partite uniche86Campi di schema13Ultimo backfillnullControlli fase 1nessunophase2catalog total2classified total0unclassified2duplicate catalog keys0labelsAVAILABLE0UNAVAILABLE 4040ERROR REAL0DEPRECATED0REMOVED0issuesavailable without snapshot2available incomplete2samplesavailablenullinitial 404nullregression 404nullerrornullremovednulldeprecatednullGate superatonophase3match key collisions0provider match id collisions0provider match id shared same identity0duplicate payload hashes0orphan versions0orphan snapshots0snapshot row gaps0missing home0missing away0missing date0date parse failures0team splits0teams14teams with provider id0Gate superatosìphase4raw unique fields13registry unique fields13missing from registry0extra in registry0missing normalized0missing type history0transforms0versions without lineage0suppressed aliases0Gate superatonophase5Gate superatonophase6registry rows2missing available seasons0gap rows0status countsAVAILABLE2expected null2historical complete0unavailable marked complete0evidencepitt0nullt12025-06-01T00:00:00.000Zdatasetargentina/liga-profesional/2026contractfpt-schema-4total t00total t186argentina t00later datasetnulltotal t0 repeat0later dataset t0nulllater dataset t1nullwrong contract t0nullcadencea hole is recorded only when the unique modal step between observed seasons is 1 year; tournament cadences are not filledmissing definitionactive catalog classification AVAILABLE without an ingest_complete dataset snapshotexpected match countnull: the provider catalog does not carry a fixture totalcomputed at2026-10-19T14:56:10.170ZGate superatonophase8StatonullGate superatono'\n",
+      "duration_ms": 413,
+      "steps": [
+        {
+          "name": "fornitori dati",
+          "status": "FAIL",
+          "error": "The input did not match the regular expression /Ultimo backfill\\s*N\\/D/. Input:\n\n'Certificazione FutPythonTraderCatalogoTotale2Paesi2Campionati2Datasetavailable2unavailable 4040error real0deprecated0unknown0undefined states0duplicate catalog keys0Snapshot2Versioni storiche86Partite uniche86Campi di schema13Ultimo backfillnullControlli fase 1nessunophase2catalog total2classified total0unclassified2duplicate catalog keys0labelsAVAILABLE0UNAVAILABLE 4040ERROR REAL0DEPRECATED0REMOVED0issuesavailable without snapshot2available incomplete2samplesavailablenullinitial 404nullregression 404nullerrornullremovednulldeprecatednullGate superatonophase3match key collisions0provider match id collisions0provider match id shared same identity0duplicate payload hashes0orphan versions0orphan snapshots0snapshot row gaps0missing home0missing away0missing date0date parse failures0team splits0teams14teams with provider id0Gate superatosìphase4raw unique fields13registry unique fields13missing from registry0extra in registry0missing normalized0missing type history0transforms0versions without lineage0suppressed aliases0Gate superatonophase5Gate superatonophase6registry rows2missing available seasons0gap rows0status countsAVAILABLE2expected null2historical complete0unavailable marked complete0evidencepitt0nullt12025-06-01T00:00:00.000Zdatasetargentina/liga-profesional/2026contractfpt-schema-4total t00total t186argentina t00later datasetnulltotal t0 repeat0later dataset t0nulllater dataset t1nullwrong contract t0nullcadencea hole is recorded only when the unique modal step between observed seasons is 1 year; tournament cadences are not filledmissing definitionactive catalog classification AVAILABLE without an ingest_complete dataset snapshotexpected match countnull: the provider catalog does not carry a fixture totalcomputed at2026-10-19T14:56:10.170ZGate superatonophase8StatonullGate superatono'\n",
+          "screenshot": "screenshots/providers-endpoints-mobile-01-fornitori-dati-failure.png"
+        }
+      ],
+      "trace": "traces/providers-endpoints-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    }
+  ],
+  "counts": {
+    "pass": 0,
+    "fail": 10,
+    "skip": 0,
+    "not_verified": 0
+  },
+  "missing_required": [
+    "general-navigation/desktop",
+    "general-navigation/mobile",
+    "dashboard/desktop",
+    "dashboard/mobile",
+    "daily-board/desktop",
+    "daily-board/mobile",
+    "search/desktop",
+    "search/mobile",
+    "providers-endpoints/desktop",
+    "providers-endpoints/mobile"
+  ],
+  "findings": [
+    {
+      "id": "QA-general-navigation-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "general-navigation",
+      "viewport": "desktop",
+      "reason": "invariants: raw value shown: \"null\"",
+      "evidence": [
+        "traces/general-navigation-desktop.zip",
+        "screenshots/general-navigation-desktop-01-apertura-del-sito-failure.png"
+      ]
+    },
+    {
+      "id": "QA-general-navigation-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "general-navigation",
+      "viewport": "mobile",
+      "reason": "invariants: raw value shown: \"null\"",
+      "evidence": [
+        "traces/general-navigation-mobile.zip",
+        "screenshots/general-navigation-mobile-01-apertura-del-sito-failure.png"
+      ]
+    },
+    {
+      "id": "QA-dashboard-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "dashboard",
+      "viewport": "desktop",
+      "reason": "invariants: raw value shown: \"null\"",
+      "evidence": [
+        "traces/dashboard-desktop.zip",
+        "screenshots/dashboard-desktop-01-caricamento-e-valori-uguali-all-api-failure.png"
+      ]
+    },
+    {
+      "id": "QA-dashboard-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "dashboard",
+      "viewport": "mobile",
+      "reason": "invariants: raw value shown: \"null\"",
+      "evidence": [
+        "traces/dashboard-mobile.zip",
+        "screenshots/dashboard-mobile-01-caricamento-e-valori-uguali-all-api-failure.png"
+      ]
+    },
+    {
+      "id": "QA-daily-board-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "daily-board",
+      "viewport": "desktop",
+      "reason": "invariants: raw value shown: \"null\"",
+      "evidence": [
+        "traces/daily-board-desktop.zip",
+        "screenshots/daily-board-desktop-01-apertura-dalla-copertura-della-dashboard-failure.png"
+      ]
+    },
+    {
+      "id": "QA-daily-board-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "daily-board",
+      "viewport": "mobile",
+      "reason": "invariants: raw value shown: \"null\"",
+      "evidence": [
+        "traces/daily-board-mobile.zip",
+        "screenshots/daily-board-mobile-01-apertura-dalla-copertura-della-dashboard-failure.png"
+      ]
+    },
+    {
+      "id": "QA-search-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "search",
+      "viewport": "desktop",
+      "reason": "invariants: raw value shown: \"null\"",
+      "evidence": [
+        "traces/search-desktop.zip",
+        "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png"
+      ]
+    },
+    {
+      "id": "QA-search-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "search",
+      "viewport": "mobile",
+      "reason": "invariants: raw value shown: \"null\"",
+      "evidence": [
+        "traces/search-mobile.zip",
+        "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png"
+      ]
+    },
+    {
+      "id": "QA-providers-endpoints-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "providers-endpoints",
+      "viewport": "desktop",
+      "reason": "The input did not match the regular expression /Ultimo backfill\\s*N\\/D/. Input:\n\n'Certificazione FutPythonTraderCatalogoTotale2Paesi2Campionati2Datasetavailable2unavailable 4040error real0deprecated0unknown0undefined states0duplicate catalog keys0Snapshot2Versioni storiche86Partite uniche86Campi di schema13Ultimo backfillnullControlli fase 1nessunophase2catalog total2classified total0unclassified2duplicate catalog keys0labelsAVAILABLE0UNAVAILABLE 4040ERROR REAL0DEPRECATED0REMOVED0issuesavailable without snapshot2available incomplete2samplesavailablenullinitial 404nullregression 404nullerrornullremovednulldeprecatednullGate superatonophase3match key collisions0provider match id collisions0provider match id shared same identity0duplicate payload hashes0orphan versions0orphan snapshots0snapshot row gaps0missing home0missing away0missing date0date parse failures0team splits0teams14teams with provider id0Gate superatosìphase4raw unique fields13registry unique fields13missing from registry0extra in registry0missing normalized0missing type history0transforms0versions without lineage0suppressed aliases0Gate superatonophase5Gate superatonophase6registry rows2missing available seasons0gap rows0status countsAVAILABLE2expected null2historical complete0unavailable marked complete0evidencepitt0nullt12025-06-01T00:00:00.000Zdatasetargentina/liga-profesional/2026contractfpt-schema-4total t00total t186argentina t00later datasetnulltotal t0 repeat0later dataset t0nulllater dataset t1nullwrong contract t0nullcadencea hole is recorded only when the unique modal step between observed seasons is 1 year; tournament cadences are not filledmissing definitionactive catalog classification AVAILABLE without an ingest_complete dataset snapshotexpected match countnull: the provider catalog does not carry a fixture totalcomputed at2026-10-19T14:56:10.170ZGate superatonophase8StatonullGate superatono'\n",
+      "evidence": [
+        "traces/providers-endpoints-desktop.zip",
+        "screenshots/providers-endpoints-desktop-01-fornitori-dati-failure.png"
+      ]
+    },
+    {
+      "id": "QA-providers-endpoints-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "providers-endpoints",
+      "viewport": "mobile",
+      "reason": "The input did not match the regular expression /Ultimo backfill\\s*N\\/D/. Input:\n\n'Certificazione FutPythonTraderCatalogoTotale2Paesi2Campionati2Datasetavailable2unavailable 4040error real0deprecated0unknown0undefined states0duplicate catalog keys0Snapshot2Versioni storiche86Partite uniche86Campi di schema13Ultimo backfillnullControlli fase 1nessunophase2catalog total2classified total0unclassified2duplicate catalog keys0labelsAVAILABLE0UNAVAILABLE 4040ERROR REAL0DEPRECATED0REMOVED0issuesavailable without snapshot2available incomplete2samplesavailablenullinitial 404nullregression 404nullerrornullremovednulldeprecatednullGate superatonophase3match key collisions0provider match id collisions0provider match id shared same identity0duplicate payload hashes0orphan versions0orphan snapshots0snapshot row gaps0missing home0missing away0missing date0date parse failures0team splits0teams14teams with provider id0Gate superatosìphase4raw unique fields13registry unique fields13missing from registry0extra in registry0missing normalized0missing type history0transforms0versions without lineage0suppressed aliases0Gate superatonophase5Gate superatonophase6registry rows2missing available seasons0gap rows0status countsAVAILABLE2expected null2historical complete0unavailable marked complete0evidencepitt0nullt12025-06-01T00:00:00.000Zdatasetargentina/liga-profesional/2026contractfpt-schema-4total t00total t186argentina t00later datasetnulltotal t0 repeat0later dataset t0nulllater dataset t1nullwrong contract t0nullcadencea hole is recorded only when the unique modal step between observed seasons is 1 year; tournament cadences are not filledmissing definitionactive catalog classification AVAILABLE without an ingest_complete dataset snapshotexpected match countnull: the provider catalog does not carry a fixture totalcomputed at2026-10-19T14:56:10.170ZGate superatonophase8StatonullGate superatono'\n",
+      "evidence": [
+        "traces/providers-endpoints-mobile.zip",
+        "screenshots/providers-endpoints-mobile-01-fornitori-dati-failure.png"
+      ]
+    }
+  ],
+  "exploratory": {
+    "status": "NOT_VERIFIED",
+    "reason": "level B (exploratory AI agent) is not part of this run"
+  },
+  "injected_defect": false,
+  "limitations": [
+    "QA archive is a seeded fixture through the real ingestion path, not the real archive (#40) nor production data",
+    "accessibility checks are basic structural checks, not a full WCAG audit"
+  ],
+  "verdict": "FAIL",
+  "files": {
+    "screenshots/daily-board-desktop-01-apertura-dalla-copertura-della-dashboard-failure.png": "d2e55190d049f8d1850c2cdff56107827ee15881a09f18d97e507bc1d5a237a6",
+    "screenshots/daily-board-mobile-01-apertura-dalla-copertura-della-dashboard-failure.png": "f607660c2a05b6ea4363466a418acc3752220e6db3a330a549144713ee7a50ae",
+    "screenshots/dashboard-desktop-01-caricamento-e-valori-uguali-all-api-failure.png": "2e8dbd46c9a942eb8e75940610c8b7b3d9834ff187f48d0acbf28fd771520850",
+    "screenshots/dashboard-mobile-01-caricamento-e-valori-uguali-all-api-failure.png": "0f70ae8bb93b06595b0162241c1bfda9cd7102a28ab22cdd69d4ae82e92d10c6",
+    "screenshots/general-navigation-desktop-01-apertura-del-sito-failure.png": "f9b9b608a11f8c04b0c6ed2489a1da053913523a8b21719ddc7bbb3bc78047e3",
+    "screenshots/general-navigation-mobile-01-apertura-del-sito-failure.png": "b590003896335dc7b7f1e6486d1474a9a69b9636fdf2773005f2ec0aa4e2a698",
+    "screenshots/providers-endpoints-desktop-01-fornitori-dati-failure.png": "76a6720332d48e7134773885d6e30e5ae649a19f261420e09c174634cfdb8b33",
+    "screenshots/providers-endpoints-mobile-01-fornitori-dati-failure.png": "425188a17d0edf56c26ba912da31a28026c8279794dff6b2de7cf3f62cde89ab",
+    "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png": "199f722fdcfb1c986cf80be0506465e80e9bb99a9dcf2599f7fed6a5f2541cee",
+    "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png": "49a348468070ec38eaa67ec75f80e4924056a72b876ff76ffd4eda3bcbe61efb",
+    "traces/daily-board-desktop.zip": "ef41edb44539b0a2e79400d47806ced273b255c7097b5af73f0b4de0b3ec13d4",
+    "traces/daily-board-mobile.zip": "4f7156beec4212658e769f661af5397947dc6984f489c23c20a474381ff480c5",
+    "traces/dashboard-desktop.zip": "3dfca0470c87efc2ba0730f3b7ecc7127794dfed42e87b84449be94da291cc1d",
+    "traces/dashboard-mobile.zip": "5c5fffe4d8cee3c5477e212a1008cbe69a0ba09610647edaeb4a9f9bbb249f02",
+    "traces/general-navigation-desktop.zip": "1a0cbec05c5072a845c40d210a224d4f83ee56bddc7908de13b16495f1586c31",
+    "traces/general-navigation-mobile.zip": "c01661fe052f971f7a1cf48349830f849d296baf8b503c5c31309f1391964cb4",
+    "traces/providers-endpoints-desktop.zip": "7253dfa3d3c80a519fafe8524db53dd3e0589ae834333e21b1a9c51238e112e5",
+    "traces/providers-endpoints-mobile.zip": "a03f5e03f45beab2d6f9118794f9d7d30587a1969f42579e3aaae74401557d0e",
+    "traces/search-desktop.zip": "e99c3e08fade8562514cf8b09537b08d7a9cf6145455c4bafaa4d6a9de274784",
+    "traces/search-mobile.zip": "2acf2cea3420e30227223bbd7ab12c75b23923c60811da5e93aea433017ffe38"
+  }
+}

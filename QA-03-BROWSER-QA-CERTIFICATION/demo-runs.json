@@ -1,0 +1,10 @@
+{
+  "schema": "mp-qa03-demo-v1",
+  "pr": 166,
+  "steps": [
+    {"commit": "eaab7b054e624de96f8d8716fa303a2f0291a797", "ci_run": 39273399334, "result": "cancelled by the next push; CI gate failure (fail closed)", "ci_gate_check_run": 118132122555},
+    {"commit": "61ddc1759e131d74c403b77c1ceb09f9b82a64f5", "kind": "CONTROLLED DEFECT", "ci_run": 39273440194, "browser_qa_job": 118132238498, "browser_qa": "FAIL 0/10", "artifact": {"name": "browser-qa-61ddc1759e131d74c403b77c1ceb09f9b82a64f5", "id": 12197460041, "sha256_zip": "c7f9141797463770738de72466b19185175f197700d9eb624350a1f04c264055", "expires": "2026-11-02"}, "postgresql_suite": "failure", "ci_gate_check_run": 118132874185, "ci_gate": "failure", "pr_mergeable_state": "blocked", "local_reproduction": "local-runs/red-61ddc17 (runner exit 1, 10/10 FAIL, verifier refuses)", "merge_gate": "allowed false"},
+    {"commit": "e761a294569643cac529123d512db6d725fdc98a", "kind": "fix (revert)", "ci_run": 39273942757, "browser_qa": "PASS 10/10", "ci_gate_check_run": 118134198286, "ci_gate": "success", "pr_mergeable_state": "clean", "local_run": "local-runs/green-e761a29 (PASS 10/10, verifier ok)"}
+  ],
+  "note": "written at packaging from the GitHub API results recorded in the session; CI artifacts expire after 14 days, the local runs here are the durable copy"
+}

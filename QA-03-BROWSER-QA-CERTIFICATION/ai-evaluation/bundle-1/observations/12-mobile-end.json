@@ -1,0 +1,9 @@
+{
+  "route": "/#/providers",
+  "viewport": "mobile",
+  "label": "end",
+  "url": "/#/board?date=2026-10-18",
+  "screenshot": "observations/12-mobile-end.png",
+  "aria": "- main:\n  - heading \"Daily Board\" [level=1]\n  - paragraph: Le partite di un giorno nei dati salvati, in ordine di orario, con campionato, quote, xG e stato dei dati. Orari come forniti dal fornitore.\n  - link \"← Giorno prima\":\n    - /url: \"#/board?date=2026-10-17\"\n  - text: Giorno\n  - textbox \"Giorno\": 2026-10-18\n  - button \"Mostra\"\n  - link \"Giorno dopo →\":\n    - /url: \"#/board?date=2026-10-19\"\n  - link \"Oggi\":\n    - /url: \"#/board?date=2026-10-19\"\n  - status:\n    - text: Nessuna partita il 2026-10-18 nei dati salvati. La Dashboard indica per ogni campionato l’ultimo giorno con dati.\n    - link \"Apri la Dashboard\":\n      - /url: \"#/\"\n  - paragraph: \"Fonte: FutPythonTrader · generato: 2026-10-19T14:54:17.011Z · versione codice: package-0.1.0\"",
+  "text": "Daily Board\n\nLe partite di un giorno nei dati salvati, in ordine di orario, con campionato, quote, xG e stato dei dati. Orari come forniti dal fornitore.\n\n← Giorno prima\nGiorno \nMostra\nGiorno dopo →\nOggi\n\nNessuna partita il 2026-10-18 nei dati salvati. La Dashboard indica per ogni campionato l’ultimo giorno con dati. Apri la Dashboard\n\nFonte: FutPythonTrader · generato: 2026-10-19T14:54:17.011Z · versione codice: package-0.1.0"
+}

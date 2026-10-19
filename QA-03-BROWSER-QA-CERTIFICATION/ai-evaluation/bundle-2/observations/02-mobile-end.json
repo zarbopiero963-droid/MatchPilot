@@ -1,0 +1,9 @@
+{
+  "route": "/#/",
+  "viewport": "mobile",
+  "label": "end",
+  "url": "/#/search",
+  "screenshot": "observations/02-mobile-end.png",
+  "aria": "- main:\n  - heading \"Ricerca partite\" [level=1]\n  - paragraph: Filtri combinati sulle partite storiche salvate. Risultati in ordine di data, dal più recente, con paginazione stabile.\n  - text: Squadra\n  - searchbox \"Squadra\"\n  - text: Sede\n  - combobox \"Sede\":\n    - option \"Casa o trasferta\" [selected]\n    - option \"Casa\"\n    - option \"Trasferta\"\n  - text: Campionato\n  - combobox \"Campionato\":\n    - option \"Tutte\" [selected]\n    - option \"netherlands · eredivisie\"\n    - option \"spain · laliga\"\n  - text: Dal\n  - textbox \"Dal\"\n  - text: Prima del\n  - textbox \"Prima del\"\n  - text: Risultato\n  - combobox \"Risultato\":\n    - option \"Qualsiasi\" [selected]\n    - option \"Finale\"\n    - option \"Senza risultato\"\n    - option \"Non iniziata\"\n  - text: Quota favorito da\n  - spinbutton \"Quota favorito da\"\n  - text: a\n  - spinbutton \"a\"\n  - text: Gol totali da\n  - spinbutton \"Gol totali da\"\n  - text: a\n  - spinbutton \"a\"\n  - group \"Qualità dei dati\":\n    - text: Qualità dei dati\n    - checkbox \"solo con quote 1X2 complete\"\n    - text: solo con quote 1X2 complete\n    - checkbox \"solo con xG\"\n    - text: solo con xG\n  - button \"Cerca\"\n  - link \"Azzera\":\n    - /url: \"#/search\"\n  - paragraph: Imposta i filtri e premi Cerca.",
+  "text": "Ricerca partite\n\nFiltri combinati sulle partite storiche salvate. Risultati in ordine di data, dal più recente, con paginazione stabile.\n\nSquadra\nSede\nCasa o trasferta\nCasa\nTrasferta\nCampionato\nTutte\nnetherlands · eredivisie\nspain · laliga\nDal\nPrima del\nRisultato\nQualsiasi\nFinale\nSenza risultato\nNon iniziata\nQuota favorito da\na\nGol totali da\na\nQualità dei dati\nsolo con quote 1X2 complete\nsolo con xG\nCerca Azzera\n\nImposta i filtri e premi Cerca."
+}

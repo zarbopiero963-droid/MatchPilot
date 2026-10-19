@@ -1,0 +1,397 @@
+{
+  "schema": "mp-browser-explore-v1",
+  "head_sha": "82ad736feb92978151340ad6362d9c4dac20df4d",
+  "tested_commit": "82ad736feb92978151340ad6362d9c4dac20df4d",
+  "working_tree_clean": true,
+  "generated_at": "2026-10-19T14:54:46.188Z",
+  "browser": "chromium 141.0.7390.37",
+  "seed": 1,
+  "actions_per_route": 30,
+  "viewports": [
+    "desktop",
+    "mobile"
+  ],
+  "routes": [
+    "/#/",
+    "/#/board?date=2024-08-01",
+    "/#/search?run=1",
+    "/#/board",
+    "/#/search",
+    "/#/providers",
+    "/#/endpoints"
+  ],
+  "restricted": false,
+  "trails": [
+    {
+      "route": "/#/",
+      "viewport": "desktop",
+      "actions": 30,
+      "sha256": "1a418f8fb1848c5b808695f75454b9aefe90106cef0cb7fb96cb6b633eaf275f"
+    },
+    {
+      "route": "/#/",
+      "viewport": "mobile",
+      "actions": 30,
+      "sha256": "33a0887eba226da80d8391b37a1db9217dfc569d5f5fd356b912386286e07fd9"
+    },
+    {
+      "route": "/#/board?date=2024-08-01",
+      "viewport": "desktop",
+      "actions": 30,
+      "sha256": "fbfeb41f2f1faa3e2fe55566ac9b9e5ede0aa38b9f0e3956f33e46e9a9a7d0ed"
+    },
+    {
+      "route": "/#/board?date=2024-08-01",
+      "viewport": "mobile",
+      "actions": 30,
+      "sha256": "d2487fd4b73cc482cecf490e457072ce23e0f4409970da48c92d2988db49d565"
+    },
+    {
+      "route": "/#/search?run=1",
+      "viewport": "desktop",
+      "actions": 30,
+      "sha256": "f1efcdef388e53642c314dc2036606c9371e48eabd745156564106293a97c144"
+    },
+    {
+      "route": "/#/search?run=1",
+      "viewport": "mobile",
+      "actions": 30,
+      "sha256": "2309137c00f8a86df8080383264f7ddeb3747cc12d57109f05428709e06e5302"
+    },
+    {
+      "route": "/#/board",
+      "viewport": "desktop",
+      "actions": 30,
+      "sha256": "93dea933c58d9abad19d3b38e4b9f5ef0015a2fdead892f241a3042a4fc22cb7"
+    },
+    {
+      "route": "/#/board",
+      "viewport": "mobile",
+      "actions": 30,
+      "sha256": "056004b8921bccd249aad4e82b5487725d666b8ad6356fa7c7d9645d4c12c7e7"
+    },
+    {
+      "route": "/#/search",
+      "viewport": "desktop",
+      "actions": 30,
+      "sha256": "0a449ac64eaa918b2e467400efcee19e52144c0e0b50df895df8f222fa16ffd9"
+    },
+    {
+      "route": "/#/search",
+      "viewport": "mobile",
+      "actions": 30,
+      "sha256": "0f91a4e75c02e515693db43857abbab9ca6732d8d1232dad7aa4792a908f46a4"
+    },
+    {
+      "route": "/#/providers",
+      "viewport": "desktop",
+      "actions": 30,
+      "sha256": "77dddc856e0dd1f7f45bd8416990b3b22371da9f3fa50ff544426a99ef2a5b13"
+    },
+    {
+      "route": "/#/providers",
+      "viewport": "mobile",
+      "actions": 30,
+      "sha256": "f793828ff7cd601db57a9ba3c694aa0dd56823e6d97e1d905f9eb75f05c107ce"
+    },
+    {
+      "route": "/#/endpoints",
+      "viewport": "desktop",
+      "actions": 30,
+      "sha256": "70517e21e09b3f02ecc1853209c15b4aec7c65e912b49eb96d513640be587181"
+    },
+    {
+      "route": "/#/endpoints",
+      "viewport": "mobile",
+      "actions": 30,
+      "sha256": "754bc6ec7317d7d6493efc0c58218644942f230899ff09ce676d2d2699f08699"
+    }
+  ],
+  "totals": {
+    "actions": 420,
+    "action_errors": 0,
+    "findings": 0,
+    "reproduced": 0
+  },
+  "findings": [],
+  "observations": [
+    {
+      "route": "/#/",
+      "viewport": "desktop",
+      "label": "open",
+      "file": "observations/01-desktop-open.json",
+      "screenshot": "observations/01-desktop-open.png"
+    },
+    {
+      "route": "/#/",
+      "viewport": "desktop",
+      "label": "end",
+      "file": "observations/01-desktop-end.json",
+      "screenshot": "observations/01-desktop-end.png"
+    },
+    {
+      "route": "/#/",
+      "viewport": "mobile",
+      "label": "open",
+      "file": "observations/02-mobile-open.json",
+      "screenshot": "observations/02-mobile-open.png"
+    },
+    {
+      "route": "/#/",
+      "viewport": "mobile",
+      "label": "end",
+      "file": "observations/02-mobile-end.json",
+      "screenshot": "observations/02-mobile-end.png"
+    },
+    {
+      "route": "/#/board?date=2024-08-01",
+      "viewport": "desktop",
+      "label": "open",
+      "file": "observations/03-desktop-open.json",
+      "screenshot": "observations/03-desktop-open.png"
+    },
+    {
+      "route": "/#/board?date=2024-08-01",
+      "viewport": "desktop",
+      "label": "end",
+      "file": "observations/03-desktop-end.json",
+      "screenshot": "observations/03-desktop-end.png"
+    },
+    {
+      "route": "/#/board?date=2024-08-01",
+      "viewport": "mobile",
+      "label": "open",
+      "file": "observations/04-mobile-open.json",
+      "screenshot": "observations/04-mobile-open.png"
+    },
+    {
+      "route": "/#/board?date=2024-08-01",
+      "viewport": "mobile",
+      "label": "end",
+      "file": "observations/04-mobile-end.json",
+      "screenshot": "observations/04-mobile-end.png"
+    },
+    {
+      "route": "/#/search?run=1",
+      "viewport": "desktop",
+      "label": "open",
+      "file": "observations/05-desktop-open.json",
+      "screenshot": "observations/05-desktop-open.png"
+    },
+    {
+      "route": "/#/search?run=1",
+      "viewport": "desktop",
+      "label": "end",
+      "file": "observations/05-desktop-end.json",
+      "screenshot": "observations/05-desktop-end.png"
+    },
+    {
+      "route": "/#/search?run=1",
+      "viewport": "mobile",
+      "label": "open",
+      "file": "observations/06-mobile-open.json",
+      "screenshot": "observations/06-mobile-open.png"
+    },
+    {
+      "route": "/#/search?run=1",
+      "viewport": "mobile",
+      "label": "end",
+      "file": "observations/06-mobile-end.json",
+      "screenshot": "observations/06-mobile-end.png"
+    },
+    {
+      "route": "/#/board",
+      "viewport": "desktop",
+      "label": "open",
+      "file": "observations/07-desktop-open.json",
+      "screenshot": "observations/07-desktop-open.png"
+    },
+    {
+      "route": "/#/board",
+      "viewport": "desktop",
+      "label": "end",
+      "file": "observations/07-desktop-end.json",
+      "screenshot": "observations/07-desktop-end.png"
+    },
+    {
+      "route": "/#/board",
+      "viewport": "mobile",
+      "label": "open",
+      "file": "observations/08-mobile-open.json",
+      "screenshot": "observations/08-mobile-open.png"
+    },
+    {
+      "route": "/#/board",
+      "viewport": "mobile",
+      "label": "end",
+      "file": "observations/08-mobile-end.json",
+      "screenshot": "observations/08-mobile-end.png"
+    },
+    {
+      "route": "/#/search",
+      "viewport": "desktop",
+      "label": "open",
+      "file": "observations/09-desktop-open.json",
+      "screenshot": "observations/09-desktop-open.png"
+    },
+    {
+      "route": "/#/search",
+      "viewport": "desktop",
+      "label": "end",
+      "file": "observations/09-desktop-end.json",
+      "screenshot": "observations/09-desktop-end.png"
+    },
+    {
+      "route": "/#/search",
+      "viewport": "mobile",
+      "label": "open",
+      "file": "observations/10-mobile-open.json",
+      "screenshot": "observations/10-mobile-open.png"
+    },
+    {
+      "route": "/#/search",
+      "viewport": "mobile",
+      "label": "end",
+      "file": "observations/10-mobile-end.json",
+      "screenshot": "observations/10-mobile-end.png"
+    },
+    {
+      "route": "/#/providers",
+      "viewport": "desktop",
+      "label": "open",
+      "file": "observations/11-desktop-open.json",
+      "screenshot": "observations/11-desktop-open.png"
+    },
+    {
+      "route": "/#/providers",
+      "viewport": "desktop",
+      "label": "end",
+      "file": "observations/11-desktop-end.json",
+      "screenshot": "observations/11-desktop-end.png"
+    },
+    {
+      "route": "/#/providers",
+      "viewport": "mobile",
+      "label": "open",
+      "file": "observations/12-mobile-open.json",
+      "screenshot": "observations/12-mobile-open.png"
+    },
+    {
+      "route": "/#/providers",
+      "viewport": "mobile",
+      "label": "end",
+      "file": "observations/12-mobile-end.json",
+      "screenshot": "observations/12-mobile-end.png"
+    },
+    {
+      "route": "/#/endpoints",
+      "viewport": "desktop",
+      "label": "open",
+      "file": "observations/13-desktop-open.json",
+      "screenshot": "observations/13-desktop-open.png"
+    },
+    {
+      "route": "/#/endpoints",
+      "viewport": "desktop",
+      "label": "end",
+      "file": "observations/13-desktop-end.json",
+      "screenshot": "observations/13-desktop-end.png"
+    },
+    {
+      "route": "/#/endpoints",
+      "viewport": "mobile",
+      "label": "open",
+      "file": "observations/14-mobile-open.json",
+      "screenshot": "observations/14-mobile-open.png"
+    },
+    {
+      "route": "/#/endpoints",
+      "viewport": "mobile",
+      "label": "end",
+      "file": "observations/14-mobile-end.json",
+      "screenshot": "observations/14-mobile-end.png"
+    }
+  ],
+  "injected_defect": false,
+  "ai_review": {
+    "status": "NOT_VERIFIED",
+    "reason": "the AI review of level B is a separate step on this bundle (docs/qa/exploratory.md)"
+  },
+  "limitations": [
+    "explores the hash routes of the site; /coverage and /login are out of scope",
+    "checks generic properties, not whether a value is right (that is the AI review)",
+    "QA archive fixture, not production data"
+  ],
+  "files": {
+    "observations/01-desktop-end.json": "13bb6b6dac0d26ef11f62240d5c95331c201b5fdb43f46b43f2bee8b32aa78f6",
+    "observations/01-desktop-end.png": "9425ace7a886aba83e5611f510f401890cf34297f9cb2cec85f58734e650099c",
+    "observations/01-desktop-open.json": "43a459538759dd83950897a10ccde0721a84ae9564221bc6f280974779358c77",
+    "observations/01-desktop-open.png": "752d77edabed19bb547865c42491cf17d6e8b4f7aedf64f09a11535fca2273b6",
+    "observations/02-mobile-end.json": "2d2dcbe078100e3b73a6c3520f4b3b55bce490055530ccb441fac576e70ef3d2",
+    "observations/02-mobile-end.png": "410d383fb7c4954722eb6dbdc92c4166ebb2cced151c20e5a20aad91f206535e",
+    "observations/02-mobile-open.json": "349fb4b71ed64a52b7221b1a5b4589263198349d8629f4802a4d50cc87946ab0",
+    "observations/02-mobile-open.png": "88957b232d2275b40535060f8ce74b44bd32b0b88f11bc6a47f6c42414fe8d2b",
+    "observations/03-desktop-end.json": "f5f6fa47e64b82f43f3279ae69d2e6ee17d4aed4a183dfd0beb64f35485e70a4",
+    "observations/03-desktop-end.png": "e7528412045c5963b9442b2c95fbf3f157e9822da760dea5fbee33f52c1dfe3a",
+    "observations/03-desktop-open.json": "1586ff92bb852ac74cac93f84f950d55d1bec45610e8ded30debbe981959e693",
+    "observations/03-desktop-open.png": "9742c59e484ad6643841ac35c22c6f977b48787dc61955e19183e4ba9ba83270",
+    "observations/04-mobile-end.json": "4b21e9cc95a49cf4477272e07bee5cb860f971d3daf64afbfcd99d459ad584f7",
+    "observations/04-mobile-end.png": "8c3005b6d0be56b5ffb467d253a99679b33de3331f5273849ce4a10d4fcdf25d",
+    "observations/04-mobile-open.json": "8a57cee61e2c91ea085d70e5700a993c98ac84c66f24180908bd6909fa925adb",
+    "observations/04-mobile-open.png": "8f8b6849b34df8bcebed599d123dbc4c71bf725c3de2b5c0c664a81d75622105",
+    "observations/05-desktop-end.json": "9aa18f3bc5ce3b4c06cbeffb29d47722b0795f731165e622555deeda31f7858e",
+    "observations/05-desktop-end.png": "ea0c3beae5dbd4d94b72ac5ba22b944097a38a71b4a99557c7059c9e0a057b13",
+    "observations/05-desktop-open.json": "6e580f2ed0bb8e506ee89b3d4983072030039cfa2b2d1080cd6fa219a44e17cb",
+    "observations/05-desktop-open.png": "a722572d037ae5c1c52990b6c0805ce691a8169c5645e27873fdba1359bd129e",
+    "observations/06-mobile-end.json": "d226785167ddc836f8496b0fe48d74af92bccc111f80c8b6cfc9e86ba52a4c0d",
+    "observations/06-mobile-end.png": "cfffab68ef2d96aec5ec38a3a8f8b4bf2017bd25b07c5f3a026d1154ea7fc71d",
+    "observations/06-mobile-open.json": "41d7cc5ac9501790fe9242407a61f13974274b1b1cb5a4bc6e7cc8735195bfff",
+    "observations/06-mobile-open.png": "26b4b4e3b0de8274438f7f36ec207099fa7dcfb09cfb3c2e5416e3d8fe82df98",
+    "observations/07-desktop-end.json": "a381c2eb9c935746a633ee015592080c782f12b7ec12d9774680e90ec797b089",
+    "observations/07-desktop-end.png": "d5be40d62177473eb31a3b955207273cde65698bcfce4711e1cf7e20cfdc2748",
+    "observations/07-desktop-open.json": "8dcdc982f770e55153e4f36dbea07e3c1ed4da0ac71b799a7c4ceebd8e07cf8e",
+    "observations/07-desktop-open.png": "d0e768af7dceb78742fc875bec7e62f46419aa8efa1677ede863a39993c6643a",
+    "observations/08-mobile-end.json": "9ffc9b6e7b63fc4e60a4f0b918347a61c3a20f8a284408b6e1565bb025cf1a5a",
+    "observations/08-mobile-end.png": "4db9c0659ad72ecdc331e0c50cc5525cff90e40dc0f67add7eeb3e3638ab63f1",
+    "observations/08-mobile-open.json": "9cc9f714e79e455c3912963e7c80eb599691ab93065c9658a8dce62c7685f173",
+    "observations/08-mobile-open.png": "8ec761a7bed26f14ed2e30144fe23c45a2e38be8e137d65a837d0c471714671d",
+    "observations/09-desktop-end.json": "21b0ce33ee23e029491f4624f627bb99f332205a95a26fad5ed754f6d9be4862",
+    "observations/09-desktop-end.png": "c90adce99e3d4eecb0913ff987fb28eb623da06687bebfb4ce4fbfbb5bb2e814",
+    "observations/09-desktop-open.json": "a2f31537a560a7e60c5f5e7dee3503680083f05ff5d6a736270ea992ff73f462",
+    "observations/09-desktop-open.png": "342fb1e62d7e425dc2fa6007dfd0815e8494ae5609131f32f316bd960bece07e",
+    "observations/10-mobile-end.json": "d29cd6e0c366467825fa18d79f6a4360c8bf681c2e0b92fb8f1af7104c8a4e9c",
+    "observations/10-mobile-end.png": "cffcb0fc33e2a5d4ecad8c3239ebc8e6072fb7554b8eef566501f25d9cb484ee",
+    "observations/10-mobile-open.json": "469946536d0f50e09236f4264763d9cf0a82173b605553adf0b4d2ea8dbd7025",
+    "observations/10-mobile-open.png": "410d383fb7c4954722eb6dbdc92c4166ebb2cced151c20e5a20aad91f206535e",
+    "observations/11-desktop-end.json": "920cc91b23c406c0b8d6c0a0577f4056e779f7ea0e7b982deb041ec3463777a8",
+    "observations/11-desktop-end.png": "d2e26fa622a1c2c4b626b80a4c3425dae99b32d69bd8b4e5804119a621684bd9",
+    "observations/11-desktop-open.json": "8e7119d69313bff2dfb2ad707cad2d7b5c86f62ae133a73352fe116821f1926a",
+    "observations/11-desktop-open.png": "c8c19362201a13a07442860ea80fe9fba4a4bfb004ffd9764bc5f46b70273e40",
+    "observations/12-mobile-end.json": "95192cbe5aa21dc136f142895c36d4e9a49ef34c2b79b9ec6ece1417f42167a2",
+    "observations/12-mobile-end.png": "ae4f5bfe4ce602a6119e1bcb6305110d3777724b1b2b973ea857616a3d08afba",
+    "observations/12-mobile-open.json": "aadaf3a6ebcbd864ade701a7ff9253516e5cdcf34eac8b78e8cd9cebb6fe32ca",
+    "observations/12-mobile-open.png": "fafd4e0fd776fea187cb21c365ee66dda706afce84327b8db2545321169f4a56",
+    "observations/13-desktop-end.json": "70f9fa4b6a00dda833c7c32857a508fea4ce4528f7f1dc8bf7504e849435cf90",
+    "observations/13-desktop-end.png": "9d2b168637a602bb561d8c03d88757940f67e2fd4e0dbc9b649711eb89316202",
+    "observations/13-desktop-open.json": "484302e86f319329d46d9cc1db2e5e4b531eac8aafa322549bdec58c82428850",
+    "observations/13-desktop-open.png": "dfc3987b7c3c21a07030199ae21eb55964e3c500782614368aa96c76d196b493",
+    "observations/14-mobile-end.json": "29c6b2b1d24fc72f5a0f5c31070e3641ef9b5538a6c78fe96d146cddfba62abd",
+    "observations/14-mobile-end.png": "a564c560f87a6b035c36be8cc62ec7ab44cd9b96ba30b4909ed95f5e0bb94060",
+    "observations/14-mobile-open.json": "487c89da8e2afd69190f54a5372f409804aaee08c0f56682a97fb5a8a7f7ecf2",
+    "observations/14-mobile-open.png": "7b4255f38612dfbd8be9b979429da43e652c794383b4c4d166b1d701e1038c40",
+    "traces/01-desktop.zip": "a1ce21c7a8669673eed1493e70c5b64afa6a3f80b8b83ca1a73e4598e7b30cbd",
+    "traces/02-mobile.zip": "486c8a6237ae6cad089bb942df1970b13b5c33d3350530613d3d77d7ca2fd151",
+    "traces/03-desktop.zip": "eadedb1631775050b21b78f65e064228b48b345dbe0639408fdae7f8af9dfd26",
+    "traces/04-mobile.zip": "abae03d887abf64046e6aeff99b1c4af7c5174c8c8c19806f1683af9c1538792",
+    "traces/05-desktop.zip": "ef24497a63094ed6ddbbe5ae69c6e8ba1da44beda7a3a78d00ab04de239a28cb",
+    "traces/06-mobile.zip": "45e0ae95c3df7607f96ec9198acc777dbe79625f6e061812e71bc832e078078e",
+    "traces/07-desktop.zip": "db63816ea0e5e8a984981f442e3b79fca9275d3d46af67b13f556bdf2a39caca",
+    "traces/08-mobile.zip": "c06953e923bdc5e3fe58c7be9273db7c1bc9e19fe493d7480e1b15e725beb921",
+    "traces/09-desktop.zip": "54427beaba5d89e80fc60c65e2f10f7f81fe1c822d9fbd5cec80e2458cc7c5db",
+    "traces/10-mobile.zip": "8352e7775001db94b86f3cfa86eb28c4d191b395c784bc138cfde9f5a4a76293",
+    "traces/11-desktop.zip": "f1e2de8704d23fe0eb59e33ce220e5c11f6ca2d7c230f1cc4bca25e2f0899d6d",
+    "traces/12-mobile.zip": "1a1b54129b8b577a1958e3f3fd645e5f8ab9ee1ff6859d64ad4f1a0de1061b31",
+    "traces/13-desktop.zip": "a6de0086ee310e7421f0b58f81f2231bb17c4f026e93c4b3b732124cae2120d5",
+    "traces/14-mobile.zip": "0c142adc6da3517fba9057db130d0a1689c84bb1d19f4eca9c337e3586617efd"
+  }
+}
