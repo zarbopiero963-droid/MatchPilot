@@ -1,29 +1,46 @@
-:root{--bg:#07111f;--panel:#0e1d31;--line:#203753;--text:#e6eef8;--muted:#a9bad0;--accent:#8cc8ff;--bad:#ff8f8f;--warn:#ffd27a;--ok:#7fe0a8}
+/* Identity of the approved mockup (V-B3, D-1): charcoal surfaces, amber accent #FFB547, Barlow Condensed for titles,
+   Manrope for text, JetBrains Mono for numbers; the fonts are hosted with the site (src/web/fonts/README.md). */
+@font-face{font-family:"Manrope";src:url(/assets/fonts/manrope-latin-wght.woff2) format("woff2");font-weight:200 800;font-display:swap}
+@font-face{font-family:"Barlow Condensed";src:url(/assets/fonts/barlow-condensed-latin-700.woff2) format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:"Barlow Condensed";src:url(/assets/fonts/barlow-condensed-latin-800.woff2) format("woff2");font-weight:800;font-display:swap}
+@font-face{font-family:"JetBrains Mono";src:url(/assets/fonts/jetbrains-mono-latin-wght.woff2) format("woff2");font-weight:100 800;font-display:swap}
+:root{--bg:#0A0F17;--panel:#111823;--surface-2:#16202D;--surface-3:#1D2938;--hover:#1A2533;--line:#223042;--line-2:#2C3C51;
+  --text:#E9EFF6;--ink-2:#C3CEDB;--muted:#8494A8;--accent:#FFB547;--accent-ink:#1A1205;--accent-soft:rgba(255,181,71,.13);
+  --bad:#FF5F6D;--bad-bg:rgba(255,95,109,.14);--warn:#FF9A4D;--warn-bg:rgba(255,154,77,.14);--ok:#3BD69A;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;--f-body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;color-scheme:dark}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;line-height:1.5}
-a{color:var(--accent)}
-.top{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line)}
-.brand{font-weight:800;font-size:20px;color:var(--text);text-decoration:none}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--f-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+a:hover{color:#FFC978}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+/* Header: the logo of the mockup and the menu. */
+.top{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;padding:0 20px;min-height:60px;border-bottom:1px solid var(--line);background:rgba(10,15,23,.92)}
+.brand{display:inline-flex;align-items:center;gap:10px;color:var(--text);text-decoration:none}
+.brand b{font-family:var(--f-display);font-weight:800;font-size:23px;letter-spacing:.04em;line-height:1}
+.brand b span{color:var(--accent)}
 /* Main menu: Oggi, Ricerca, Dati (V-B2). On a phone it becomes a bottom bar with icons, as in the approved mockup. */
-.mainnav{display:flex;flex-wrap:wrap;gap:6px 18px}
-.mainnav a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;padding:4px 2px;border-bottom:2px solid transparent;font-weight:600}
+.mainnav{display:flex;flex-wrap:wrap;gap:2px;align-self:stretch}
+.mainnav a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;padding:0 13px;min-height:60px;border-bottom:2px solid transparent;font-weight:600;color:var(--muted)}
+.mainnav a:hover{color:var(--text)}
 .mainnav a[aria-current="page"]{color:var(--text);border-bottom-color:var(--accent)}
 .mainnav .ico{display:none}
 /* Sections of the technical area «Dati». */
 .tabs{display:flex;gap:4px 18px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:4px 0 20px}
-.tabs a{text-decoration:none;color:var(--muted);font-weight:600;padding:8px 2px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs a{text-decoration:none;color:var(--muted);font-weight:700;font-size:14px;padding:9px 2px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs a:hover{color:var(--text)}
 .tabs a[aria-current="page"]{color:var(--text);border-bottom-color:var(--accent)}
 .dayhead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;margin:8px 0 12px}
 .dayhead h2.day{margin:0}
 .updated{margin:0;color:var(--muted);font-size:13px}
 .updated-slot:empty{display:none}
 .state + .updated-slot{margin-top:10px}
-main{max-width:1100px;margin:0 auto;padding:24px 20px 40px;outline:none}
-h1{font-size:28px;margin:0 0 6px}
-h2{font-size:18px;margin:0 0 12px}
+main{max-width:1180px;margin:0 auto;padding:24px 20px 40px;outline:none}
+h1{font-family:var(--f-display);font-weight:700;font-size:34px;line-height:1.05;letter-spacing:.01em;margin:0 0 12px}
+h2{font-size:17px;font-weight:700;margin:0 0 12px}
 .lead{color:var(--muted);margin:0 0 24px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
 .card+.card{margin-top:0}
 section.card{margin-bottom:16px}
 dl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 16px;margin:0}
@@ -35,37 +52,51 @@ dd dl dd{margin-bottom:6px}
 .nd{color:var(--muted)}
 .ok{color:var(--ok)}
 .bad{color:var(--bad)}
-.state{padding:16px;border-radius:12px;border:1px solid var(--line);background:var(--panel)}
-.state.error{border-color:var(--bad)}
+/* States: loading, empty, partial and error, each recognisable at a glance. */
+.state{padding:14px 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel)}
+.state.loading{color:var(--muted)}
+.state.error{border-color:rgba(255,95,109,.55);background:var(--bad-bg)}
 .state.empty{color:var(--muted)}
+.state.partial{border-color:rgba(255,154,77,.55);background:var(--warn-bg)}
+.state p{margin:0 0 10px}
+.state p:last-child{margin-bottom:0}
 .meta{color:var(--muted);font-size:13px;margin-top:10px;overflow-wrap:anywhere}
 .tablewrap{overflow-x:auto;max-width:100%}
 table{border-collapse:collapse;width:100%;font-size:14px}
-th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+tbody tr:hover{background:var(--hover)}
 /* Paths and identifiers stay on one line; the table scrolls inside its wrapper instead of breaking them every few characters. */
 td code,th code{white-space:nowrap}
-button{background:#173652;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font:inherit;cursor:pointer}
-.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;background:#173652}
-.foot{max-width:1100px;margin:0 auto;padding:0 20px 32px;color:var(--muted);font-size:13px}
+code{font-family:var(--f-mono);font-size:.92em}
+/* Buttons: amber for the action of a form, quiet for the others. */
+button{background:var(--surface-2);color:var(--text);border:1px solid var(--line-2);border-radius:8px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}
+button:hover{background:var(--surface-3)}
+button[type="submit"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button[type="submit"]:hover{background:#FFC978}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;background:var(--surface-2)}
+.foot{max-width:1180px;margin:0 auto;padding:0 20px 32px;color:var(--muted);font-size:13px}
 h3{font-size:16px;margin:4px 0 8px}
-.state.partial{border-color:var(--warn)}
 .controls{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:0 0 20px}
-input,select{background:#0b1a2c;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;max-width:100%}
+input,select{background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;max-width:100%}
+input:hover,select:hover{border-color:var(--line-2)}
+input[type="checkbox"]{accent-color:var(--accent)}
 h2.day{margin:8px 0 4px}
 .paged{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px}
 /* Match card: time and competition, teams and score, odds as labelled boxes, favourite and xG (MP-WEB-015). */
 .match{display:grid;gap:10px}
+.match:hover{border-color:var(--line-2)}
 .match .match-head{display:flex;align-items:baseline;gap:10px;margin:0;color:var(--muted);font-size:13px;min-width:0}
-.match .kick{font-weight:700;color:var(--text);font-size:15px;font-variant-numeric:tabular-nums}
+.match .kick{font-family:var(--f-mono);font-weight:600;color:var(--text);font-size:14px}
 .match .comp{overflow-wrap:anywhere}
 .match .match-main{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .match h3{margin:0;font-size:16px;line-height:1.3;min-width:0;overflow-wrap:anywhere}
-.match .score{font-weight:800;font-size:18px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.match .score .code{font-size:13px;font-weight:600;color:var(--muted)}
+.match .score{font-family:var(--f-mono);font-weight:700;font-size:18px;white-space:nowrap}
+.match .score .code{font-family:var(--f-body);font-size:13px;font-weight:600;color:var(--muted)}
 .odds{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:6px}
-.odd{display:flex;justify-content:space-between;align-items:baseline;gap:6px;padding:5px 9px;border:1px solid var(--line);border-radius:8px;background:#0b1a2c;min-width:0}
+.odd{display:flex;justify-content:space-between;align-items:baseline;gap:6px;padding:5px 9px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);min-width:0}
 .odd span{color:var(--muted);font-size:12px;white-space:nowrap}
-.odd b{font-variant-numeric:tabular-nums;font-weight:700}
+.odd b{font-family:var(--f-mono);font-size:13.5px;font-weight:600}
 .match .match-foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;margin:0;color:var(--muted);font-size:13px}
 .match .match-foot b{color:var(--text);font-weight:600}
 dl.compact{grid-template-columns:auto minmax(0,1fr);gap:2px 12px;font-size:14px}
@@ -83,12 +114,13 @@ legend{color:var(--muted);font-size:14px}
 .tile dt:has(+ dd time),.tile dd:has(time),.tile dt:has(+ dd dl),.tile dd:has(dl){grid-column:1/-1}
 .tile dd:not(:has(dl)) time,.tile .meta time{white-space:nowrap}
 td[data-field="date"]{white-space:nowrap}
-@media (max-width:560px){h1{font-size:22px}main{padding:16px 14px 32px}dl,dd dl,.tile dl{grid-template-columns:minmax(0,1fr)}dd{margin-bottom:6px}
+@media (max-width:560px){h1{font-size:28px}main{padding:16px 14px 32px}dl,dd dl,.tile dl{grid-template-columns:minmax(0,1fr)}dd{margin-bottom:6px}
+  .top{min-height:52px}
   body{padding-bottom:72px}
   /* A control reached with the keyboard is scrolled clear of the bottom bar (PR #170 review NB-1). */
   html{scroll-padding-bottom:80px}
   .mainnav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;flex-wrap:nowrap;justify-content:space-around;gap:0;
-    background:rgba(7,17,31,.97);border-top:1px solid var(--line);padding:6px}
-  .mainnav a{flex-direction:column;gap:2px;font-size:11px;color:var(--muted);border-bottom:0;padding:4px 14px;min-width:64px}
+    background:rgba(10,15,23,.97);border-top:1px solid var(--line);padding:6px}
+  .mainnav a{flex-direction:column;gap:2px;font-size:11px;color:var(--muted);border-bottom:0;padding:4px 14px;min-width:64px;min-height:0}
   .mainnav a[aria-current="page"]{color:var(--accent)}
   .mainnav .ico{display:block}}

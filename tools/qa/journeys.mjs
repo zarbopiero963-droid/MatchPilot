@@ -50,7 +50,8 @@ async function outcomeShown(page, selector) {
     return {testid: el.dataset.testid, top: r.top, bottom: r.bottom, height: innerHeight};
   });
   if (selector) assert.equal(`[data-testid="${state.testid}"]`, selector);
-  assert.ok(state.top >= 0 && state.top < state.height - 20, `outcome on screen: top ${state.top}, viewport ${state.height}`);
+  // scrollIntoView aligns the outcome to the top edge; fractional font metrics may leave it a fraction of a pixel above (V-B3).
+  assert.ok(state.top >= -1 && state.top < state.height - 20, `outcome on screen: top ${state.top}, viewport ${state.height}`);
 }
 const ids = async (page, selector) => page.locator(selector).evaluateAll(nodes => nodes.map(node => node.dataset.match));
 // Clicks "more" until the list ends, waiting for each page to arrive.
@@ -88,6 +89,30 @@ export const JOURNEYS = [
           assert.notEqual(bar.position, 'fixed');
           assert.ok(bar.inHeader);
         }
+      });
+      await step('identità del mockup: font locali, ambra, logo', async () => {
+        // V-B3, D-1: the three typefaces come from this origin and are really used; the accent is the mockup's amber.
+        assert.match((await page.request.get(`${base}/`)).headers()['content-security-policy'] ?? '', /font-src 'self'/);
+        for (const name of ['manrope-latin-wght', 'barlow-condensed-latin-700', 'barlow-condensed-latin-800', 'jetbrains-mono-latin-wght']) {
+          const font = await page.request.get(`${base}/assets/fonts/${name}.woff2`);
+          assert.equal(font.status(), 200, name);
+          assert.equal(font.headers()['content-type'], 'font/woff2', name);
+        }
+        const look = await page.evaluate(async () => {
+          await document.fonts.ready;
+          const css = el => getComputedStyle(el);
+          const used = [...document.fonts].filter(face => face.status === 'loaded').map(face => `${face.family.replace(/"/g, '')} ${face.weight}`);
+          return {used, body: css(document.body).fontFamily, h1: css(document.querySelector('main h1')).fontFamily,
+            accent: css(document.querySelector('.mainnav a[aria-current="page"]')).borderBottomColor, logo: document.querySelector('.brand b')?.textContent,
+            external: performance.getEntriesByType('resource').filter(entry => new URL(entry.name).origin !== location.origin).map(entry => entry.name)};
+        });
+        assert.ok(look.used.some(face => face.startsWith('Manrope')), `Manrope loaded: ${look.used}`);
+        assert.ok(look.used.some(face => face.startsWith('Barlow Condensed')), `Barlow Condensed loaded: ${look.used}`);
+        assert.match(look.body, /^Manrope/);
+        assert.match(look.h1, /^"?Barlow Condensed/);
+        assert.equal(look.accent, 'rgb(255, 181, 71)', 'the amber accent #FFB547');
+        assert.equal(look.logo, 'MATCHPILOT');
+        assert.deepEqual(look.external, [], 'no resource from another origin');
       });
       await step('ogni voce del menu è nota e ha la sua area', async () => {
         const views = await page.locator('nav a[data-view]').evaluateAll(links => links.map(link => link.dataset.view));

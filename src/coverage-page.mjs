@@ -5,14 +5,15 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;'
 const pct = value => value == null ? 'N/D' : `${(Number(value) * 100).toFixed(1)}%`;
 const day = value => value ? new Date(value).toISOString().slice(0, 10) : '–';
 
-const STYLE = `body{margin:0;background:#07111f;color:#e6eef8;font-family:system-ui,-apple-system,sans-serif}
-main{max-width:1200px;margin:auto;padding:32px 16px}h1{font-size:30px;margin:0 0 8px}p{color:#a9bad0;line-height:1.5}
-a{color:#8cc8ff}table{width:100%;border-collapse:collapse;font-size:14px;margin-top:16px}
-th,td{padding:7px 8px;border-bottom:1px solid #203753;text-align:left;white-space:nowrap}th{color:#a9bad0;font-weight:600}
+// Palette of the approved mockup (V-B3, D-1), with system fonts: the page loads nothing else.
+const STYLE = `body{margin:0;background:#0A0F17;color:#E9EFF6;font-family:system-ui,-apple-system,sans-serif}
+main{max-width:1200px;margin:auto;padding:32px 16px}h1{font-size:30px;margin:0 0 8px}p{color:#8494A8;line-height:1.5}
+a{color:#FFB547}table{width:100%;border-collapse:collapse;font-size:14px;margin-top:16px}
+th,td{padding:7px 8px;border-bottom:1px solid #223042;text-align:left;white-space:nowrap}th{color:#8494A8;font-weight:600}
 td.num{text-align:right;font-variant-numeric:tabular-nums}.wrap{overflow-x:auto}
-form{display:flex;flex-wrap:wrap;gap:10px;align-items:end;background:#0e1d31;border:1px solid #203753;border-radius:12px;padding:12px}
-label{display:flex;flex-direction:column;font-size:12px;color:#a9bad0;gap:4px}input,select{background:#07111f;color:#e6eef8;border:1px solid #203753;border-radius:6px;padding:6px}
-button{background:#173652;color:#e6eef8;border:0;border-radius:6px;padding:8px 14px}.muted{color:#6f839c}.warn{color:#ffcf70}`;
+form{display:flex;flex-wrap:wrap;gap:10px;align-items:end;background:#111823;border:1px solid #223042;border-radius:12px;padding:12px}
+label{display:flex;flex-direction:column;font-size:12px;color:#8494A8;gap:4px}input,select{background:#16202D;color:#E9EFF6;border:1px solid #223042;border-radius:6px;padding:6px}
+button{background:#FFB547;color:#1A1205;font-weight:700;border:0;border-radius:6px;padding:8px 14px}.muted{color:#8494A8}.warn{color:#FF9A4D}`;
 
 function page(title, body) {
   return `<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">`
