@@ -1,0 +1,80 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "e6152217f103dbbe960907dd81a281088bd2d99b",
+  "tree_sha": "6d1640f01ff12f690db795d21470e42332f495b7",
+  "supersedes": "CP-20261019T221939Z-agent-a-claude-code",
+  "pr": 171,
+  "id": "CP-20261019T223133Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T22:31:33Z",
+  "activity": "V-B2b merged: PR #171 squash 2ebe1a0 on main; post-merge verification passed",
+  "task": "V-B2b",
+  "issue": 3,
+  "requirements": [
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "main 2ebe1a080bcbce3c5b2b3edce66bd31f4b542064 (squash of PR #171, head e615221 checked with expectedHeadSha)"
+  ],
+  "tests": [
+    {
+      "command": "CI run 39334170942 on e615221 (all jobs, CI gate PASS)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "e6152217f103dbbe960907dd81a281088bd2d99b",
+      "time": "2026-10-19T22:31:33Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    },
+    {
+      "command": "post-merge: fresh clone of main (tree equal to the PR head); governance:check, governance:evidence (archives read back); node tools/qa/browser-qa.mjs 10/10 + verify-report",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "2ebe1a080bcbce3c5b2b3edce66bd31f4b542064",
+      "time": "2026-10-19T22:26:44Z",
+      "limits": [
+        "time from report.json generated_at"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39334170942,
+    "conclusion": "SUCCESS",
+    "head_sha": "e6152217f103dbbe960907dd81a281088bd2d99b"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/171#issuecomment-6278706439",
+    "reviewed_sha": "e6152217f103dbbe960907dd81a281088bd2d99b"
+  },
+  "findings": [
+    {
+      "id": "R3-NB-1,2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "label meanings verified by test for two keys only (others read by the reviewer); the cache guard and the fallback wording untested; a null class in class_counts would show as an unlabelled key"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-UI-ROADMAP-01",
+    "MP-OWNER-UI-NO-RAW-TEXT-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T221939Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "V-B3 (identity of the mockup: tokens, amber accent, logo, local fonts with verified license)",
+  "resume_conditions": [
+    "main contains 2ebe1a080bcbce3c5b2b3edce66bd31f4b542064"
+  ]
+}
