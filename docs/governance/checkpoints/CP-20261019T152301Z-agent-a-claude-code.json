@@ -1,0 +1,106 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "claude/permanent-evidence-01",
+  "commit_sha": "092eabb8983014229d278c9f21f332446ae21d91",
+  "tree_sha": "24382db8756fb45fa243d09c079b18641ec9513a",
+  "supersedes": "CP-20261019T150652Z-agent-a-claude-code",
+  "pr": 167,
+  "id": "CP-20261019T152301Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T15:23:01Z",
+  "activity": "EVIDENCE-01: review D2 round 1 addressed (B-1, NB-1..NB-8); archive read back from git in CI (verify --archive)",
+  "task": "EVIDENCE-01",
+  "issue": 3,
+  "requirements": [],
+  "changes": [
+    "docs/audits/README.md",
+    "docs/audits/MP-OWNER-VISUAL-BASELINE-AUDIT-01/",
+    "tools/governance/evidence.mjs",
+    "test/governance-evidence.test.mjs",
+    "AGENTS.md §13",
+    "owner decision MP-OWNER-PERMANENT-EVIDENCE-01",
+    "branch evidence/audits 0c9e5d3e1920d29f2857fbc7e72eee83452d4476 (outside main)"
+  ],
+  "tests": [
+    {
+      "command": "fresh clone of evidence/audits; sha256sum -c MANIFEST.sha256; zip checksum; diff with session originals",
+      "result": "PASS",
+      "environment": "local container, GitHub over HTTPS",
+      "commit": "0c9e5d3e1920d29f2857fbc7e72eee83452d4476",
+      "time": "2026-10-19T15:04:33Z",
+      "limits": [
+        "read-back at 15:04:33Z (session transcript; NB-8: CP-20261019T150652Z recorded the upper bound 15:06:52Z); 65 manifest entries, 56 screenshots, 6 comparisons; ZIP 11959575 bytes also confirmed by the GitHub API"
+      ]
+    },
+    {
+      "command": "node --test test/governance-*.test.mjs test/requirements-inventory.test.mjs; npm run governance:evidence (--archive); governance:check; governance:validate; npm run check",
+      "result": "PASS",
+      "environment": "local container, Node 22",
+      "commit": "092eabb8983014229d278c9f21f332446ae21d91",
+      "time": "2026-10-19T15:23:01Z",
+      "limits": [
+        "56/56, including the archive read back from git and B-1 RED on the previous checker / GREEN on the fix; run on the tree committed as this commit"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39275158052,
+    "conclusion": "SUCCESS",
+    "head_sha": "d1938ead6fb3317d346c3188e1fb5cbf41147cb7"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "CHANGES REQUESTED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/167#issuecomment-6270712545"
+  },
+  "findings": [
+    {
+      "id": "EV-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "the audit had generated 6 side-by-side comparisons, 4 of them sent in the conversation; all 6 are archived and the 4 sent are marked"
+    },
+    {
+      "id": "EV-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "QA-03 (PR #166) evidence (certification bundles, AI evaluation) to be packaged under docs/audits when QA-03 resumes"
+    },
+    {
+      "id": "R1-B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "evidence.json not an object skipped every metadata check; refused now (RED/GREEN)"
+    },
+    {
+      "id": "R1-NB-2..8",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "archive read back from git, stray/linked entries, manifest duplicates, real dates, index table, registry PR, decision wording, real read-back time"
+    },
+    {
+      "id": "R1-NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "evidence/audits not protected by a ruleset: owner action (documented in docs/audits/README.md)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-VISUAL-BASELINE-D1-D7-01"
+  ],
+  "dependencies": [
+    "CP-20261019T150652Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and review D2 round 2 on the new head, merge gate, post-merge verification on main; then resume QA-03 (PR #166)",
+  "resume_conditions": [
+    "branch claude/permanent-evidence-01 contains the commit adding this checkpoint",
+    "branch evidence/audits contains 0c9e5d3e1920d29f2857fbc7e72eee83452d4476"
+  ]
+}
