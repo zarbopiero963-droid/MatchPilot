@@ -1,0 +1,11 @@
+PASS general-navigation/desktop (9 steps)
+PASS general-navigation/mobile (9 steps)
+PASS dashboard/desktop (4 steps)
+PASS dashboard/mobile (4 steps)
+FAIL daily-board/desktop (7 steps) — page.waitForSelector: Timeout 15000ms exceeded.
+FAIL daily-board/mobile (7 steps) — page.waitForSelector: Timeout 15000ms exceeded.
+PASS search/desktop (11 steps)
+PASS search/mobile (11 steps)
+FAIL providers-endpoints/desktop (1 steps) — the provider tree has its keys: 0
+FAIL providers-endpoints/mobile (1 steps) — the provider tree has its keys: 0
+{"verdict":"FAIL","counts":{"pass":6,"fail":4,"skip":0,"not_verified":0},"missing_required":["daily-board/desktop","daily-board/mobile","providers-endpoints/desktop","providers-endpoints/mobile"],"head_sha":"28ad1aeded6754eff80a8db8ae5894acc9b2581e"}
