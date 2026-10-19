@@ -1,0 +1,118 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T142500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T14:25:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-06a: independent review (comment 6265577747, CHANGES REQUESTED on 0a7497d) addressed: B-1, B-2, NB-1, NB-3",
+  "task": "R-06a",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 30,
+  "pr": 162,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "fe9832ccd90c6358e1a078d4d5a1484b9042b0bb",
+  "tree_sha": "b0c795965f04e2a9b1fa3f7c425df448c3934994",
+  "requirements": [
+    "MP-API-004",
+    "MP-WEB-007"
+  ],
+  "changes": [
+    "src/providers/futpython/query.mjs: index-friendly cursor predicate, cursor caps for provider ids/kickoffs",
+    "src/api/v1.mjs: per-parameter max length (cursor 1000)",
+    "test/fpt-pagination.test.mjs: real-world ids/kickoffs through v1, byte order, deep-page scan cost",
+    "README"
+  ],
+  "tests": [
+    {
+      "command": "new pagination tests against 0a7497d (RED)",
+      "result": "FAIL",
+      "environment": "local container, node 22, PostgreSQL 16",
+      "commit": "0a7497d7377b0431c30894e3c42ac21f1f67a9ce",
+      "time": "2026-10-19T14:10:00Z",
+      "limits": [
+        "expected RED: 400 on next_cursor with real-world ids/kickoffs; deep page discarded 30,000 rows"
+      ]
+    },
+    {
+      "command": "npm test against throwaway PostgreSQL 16 with Chromium",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1",
+      "commit": "fe9832ccd90c6358e1a078d4d5a1484b9042b0bb",
+      "time": "2026-10-19T14:20:00Z",
+      "limits": [
+        "292 tests, 291 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only)"
+      ]
+    },
+    {
+      "command": "npm run check; governance checks",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "fe9832ccd90c6358e1a078d4d5a1484b9042b0bb",
+      "time": "2026-10-19T14:20:00Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "CHANGES REQUESTED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/162#issuecomment-6265577747"
+  },
+  "findings": [
+    {
+      "id": "B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "cursor OR predicate not index-friendly: deep pages scanned every earlier row"
+    },
+    {
+      "id": "B-2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "decoder stricter than the encoder: real ids/kickoffs and long ids got 400"
+    },
+    {
+      "id": "NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "COLLATE C not exercised by tests"
+    },
+    {
+      "id": "NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "README auth line change not mentioned in PR body (now mentioned)"
+    },
+    {
+      "id": "NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "cursor bound to exact filter text (1.5 vs 1.50): refusal only, documented"
+    },
+    {
+      "id": "NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "first page 0.19 ms vs 0.06 ms after collation change: accepted"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-CONTINUE-20261019",
+    "MP-OWNER-AUTOMERGE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T135000Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI green and a new independent review on the PR #162 head; Render still suspended; merge-gate; then R-06b.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": "CP-20261019T135000Z-agent-a-claude-code"
+}
