@@ -41,11 +41,11 @@ Il validatore (`npm run governance:validate`) rifiuta:
 | Totale | 138 |
 | P0 / P1 | 104 / 34 |
 | PASS (tutti con evidenza, ciascuno limitato al proprio scope) | 36 |
-| FAIL | 43 |
+| FAIL | 40 |
 | BLOCKED | 7 |
-| NOT_VERIFIED | 52 |
+| NOT_VERIFIED | 55 |
 | P0 aperti | 75 |
-| Con mapping a codice / test / evidenza | 62 / 70 / 64 |
+| Con mapping a codice / test / evidenza | 65 / 75 / 69 |
 | Future register (fuori denominatore) | 22 |
 <!-- inventory:counts:end -->
 

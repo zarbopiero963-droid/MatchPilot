@@ -64,6 +64,8 @@ test('request helpers: cookies, next path, same-origin check, public paths', () 
   assert.equal(sameOriginRequest({host: 'app.example', origin: 'https://evil.example'}), false);
   assert.equal(sameOriginRequest({host: 'app.example', origin: 'null'}), false);
   assert.equal(sameOriginRequest({host: 'app.example', 'sec-fetch-site': 'cross-site'}), false);
+  assert.equal(sameOriginRequest({host: 'app.example', origin: 'null', 'sec-fetch-site': 'same-origin'}), true, 'browser-attested same-origin form with Origin: null');
+  assert.equal(sameOriginRequest({host: 'app.example', origin: 'null', 'sec-fetch-site': 'same-site'}), false);
   for (const path of ['/healthz', '/login', '/auth/login', '/auth/logout', '/auth/session']) assert.equal(isPublicPath(path), true, path);
   const config = {trustProxy: true};
   assert.equal(clientAddress({headers: {'x-forwarded-for': '6.6.6.6, 203.0.113.9'}, socket: {remoteAddress: '10.0.0.1'}}, config), '203.0.113.9', 'the proxy-appended entry, not a client-chosen one');

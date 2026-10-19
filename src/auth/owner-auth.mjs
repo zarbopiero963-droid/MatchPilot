@@ -131,7 +131,11 @@ export function safeNextPath(value) {
 // State-changing requests from a browser carry Origin: it must name this host. A missing Origin (curl, server
 // clients) is allowed; SameSite=Strict already keeps the cookie off cross-site requests.
 export function sameOriginRequest(headers) {
-  if (headers['sec-fetch-site'] && !['same-origin', 'none'].includes(headers['sec-fetch-site'])) return false;
+  const site = headers['sec-fetch-site'];
+  if (site && !['same-origin', 'none'].includes(site)) return false;
+  // Sec-Fetch-Site is set by the browser and cannot be forged by a page. A same-origin form may still carry
+  // `Origin: null` (privacy settings, referrer policies), which must not block the owner's own login (R-05 E2E).
+  if (site === 'same-origin') return true;
   const origin = headers.origin;
   if (origin === undefined) return true;
   try { return new URL(origin).host === String(headers.host || ''); } catch { return false; }
