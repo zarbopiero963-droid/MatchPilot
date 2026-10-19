@@ -21,10 +21,10 @@ import {JOURNEYS, REQUIRED_JOURNEYS, REQUIRED_VIEWPORTS, VIEWPORTS} from './jour
 
 export const REPORT_SCHEMA = 'mp-browser-qa-v1';
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const ROOT_URL = process.env.FUTPYTHON_TEST_DATABASE_URL || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
+export const ROOT_URL = process.env.FUTPYTHON_TEST_DATABASE_URL || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
 const BROWSERS = [process.env.MATCHPILOT_E2E_CHROME, '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'];
-const git = args => execFileSync('git', args, {cwd: root, encoding: 'utf8'}).trim();
-const sha256 = buffer => createHash('sha256').update(buffer).digest('hex');
+export const git = args => execFileSync('git', args, {cwd: root, encoding: 'utf8'}).trim();
+export const sha256 = buffer => createHash('sha256').update(buffer).digest('hex');
 
 // A JavaScript value that leaked to the page: null/undefined alone or before punctuation or the end of a text node
 // ("null", "null · 1,2", "Partite del undefined"), or NaN anywhere. A word followed by more words (the field label
@@ -33,7 +33,7 @@ const sha256 = buffer => createHash('sha256').update(buffer).digest('hex');
 export const RAW_VALUE = /(?:^|[\s(:·–])(?:null|undefined)(?=\s*(?:$|[·–),.;:]))|\bNaN\b/;
 
 // Generic checks after every step: what no page may ever show, whatever the journey.
-async function invariants(page, allowRawText = []) {
+export async function invariants(page, allowRawText = []) {
   return page.evaluate(([rawSource, allowSources]) => {
     const rawValue = new RegExp(rawSource);
     const allowed = allowSources.map(source => new RegExp(source));
@@ -82,11 +82,11 @@ async function invariants(page, allowRawText = []) {
   }, [RAW_VALUE.source, allowRawText.map(pattern => pattern.source)]);
 }
 
-function browserPath() {
+export function browserPath() {
   return BROWSERS.find(path => path && existsSync(path)) || null;
 }
 
-async function startServer(schema) {
+export async function startServer(schema) {
   const url = new URL(ROOT_URL);
   url.searchParams.set('options', `-c search_path=${schema}`);
   const child = spawn(process.execPath, ['src/server.mjs'], {
@@ -178,7 +178,7 @@ async function runJourney({browser, journey, viewportName, base, out, api, seed,
   };
 }
 
-function listFiles(dir) {
+export function listFiles(dir) {
   const out = [];
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
@@ -206,29 +206,7 @@ export async function runBrowserQa({out, journeys = JOURNEYS, viewports = REQUIR
   if (existsSync(out) && readdirSync(out).length) throw new Error(`--out ${out} is not empty`);
   mkdirSync(join(out, 'screenshots'), {recursive: true});
   mkdirSync(join(out, 'traces'), {recursive: true});
-  const executablePath = browserPath();
-  if (!executablePath) throw new Error('no Chromium/Chrome (set MATCHPILOT_E2E_CHROME)');
-  if (!['localhost', '127.0.0.1', '[::1]'].includes(new URL(ROOT_URL).hostname)) throw new Error('Browser QA runs on a local throwaway PostgreSQL only');
-  const pg = (await import('pg')).default;
-  const {chromium} = await import('playwright-core');
-  const {seedQaArchive} = await import('../../test/helpers/fpt-seed.mjs');
-  const admin = new pg.Client({connectionString: ROOT_URL, connectionTimeoutMillis: 5000});
-  await admin.connect();
-  const schema = `browser_qa_${process.pid}_${Date.now()}`;
-  let server, browser;
-  try {
-    await admin.query(`CREATE SCHEMA ${schema}`);
-    server = await startServer(schema);
-    const client = new pg.Client({connectionString: server.url.toString()});
-    await client.connect();
-    const seed = await seedQaArchive(client).finally(() => client.end());
-    const health = await (await fetch(`${server.base}/api/v1/health`)).json();
-    const api = async path => {
-      const response = await fetch(`${server.base}${path}`);
-      if (!response.ok) throw new Error(`API ${path}: ${response.status}`);
-      return response.json();
-    };
-    browser = await chromium.launch({executablePath, args: ['--no-sandbox']});
+  return withQaEnvironment(async ({browser, server, seed, api, health, executablePath}) => {
     const results = [];
     for (const journey of journeys) for (const viewport of viewports) {
       results.push(await runJourney({browser, journey, viewportName: viewport, base: server.base, out, api, seed, contextHook}));
@@ -269,6 +247,36 @@ export async function runBrowserQa({out, journeys = JOURNEYS, viewports = REQUIR
     };
     writeFileSync(join(out, 'report.json'), JSON.stringify(report, null, 2) + '\n');
     return report;
+  });
+}
+
+// The QA environment shared by the deterministic gate and the exploratory crawler: a throwaway PostgreSQL schema, the
+// real server on it, the QA archive through the real ingestion path and a real Chromium. Always cleaned up.
+export async function withQaEnvironment(fn) {
+  const executablePath = browserPath();
+  if (!executablePath) throw new Error('no Chromium/Chrome (set MATCHPILOT_E2E_CHROME)');
+  if (!['localhost', '127.0.0.1', '[::1]'].includes(new URL(ROOT_URL).hostname)) throw new Error('Browser QA runs on a local throwaway PostgreSQL only');
+  const pg = (await import('pg')).default;
+  const {chromium} = await import('playwright-core');
+  const {seedQaArchive} = await import('../../test/helpers/fpt-seed.mjs');
+  const admin = new pg.Client({connectionString: ROOT_URL, connectionTimeoutMillis: 5000});
+  await admin.connect();
+  const schema = `browser_qa_${process.pid}_${Date.now()}`;
+  let server, browser;
+  try {
+    await admin.query(`CREATE SCHEMA ${schema}`);
+    server = await startServer(schema);
+    const client = new pg.Client({connectionString: server.url.toString()});
+    await client.connect();
+    const seed = await seedQaArchive(client).finally(() => client.end());
+    const health = await (await fetch(`${server.base}/api/v1/health`)).json();
+    const api = async path => {
+      const response = await fetch(`${server.base}${path}`);
+      if (!response.ok) throw new Error(`API ${path}: ${response.status}`);
+      return response.json();
+    };
+    browser = await chromium.launch({executablePath, args: ['--no-sandbox']});
+    return await fn({browser, server, seed, api, health, executablePath});
   } finally {
     await browser?.close().catch(() => {});
     await server?.stop().catch(() => {});
