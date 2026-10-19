@@ -1,0 +1,160 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T111439Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T11:14:39Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-06a: PR #162 round-2 review APPROVED on 3730a04; NB-9 corrected with checkpoint errata and a future-date guard; new owner decisions recorded",
+  "task": "R-06a",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 30,
+  "pr": 162,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "d475e947ba8b025ad2461e4689319c00c65b6de9",
+  "tree_sha": "9ec73950c94633d9a5ea2ddf89759d679e2f32d0",
+  "requirements": [
+    "MP-API-004",
+    "MP-WEB-007"
+  ],
+  "changes": [
+    "docs/governance/checkpoint-errata.json: 19 checkpoints bounded by the author time of their first commit",
+    "tools/governance/checkpoints.mjs, cli.mjs: future-dated checkpoints and late test times refused; errata-aware chain order and STALE",
+    "test/governance-checkpoints.test.mjs: future guard, errata validation, chain resolution with errata",
+    "docs/governance/HANDOFF.md: real times rule and errata",
+    "docs/governance/owner-decisions.json: MP-ROADMAP-CONTINUE-ARCHIVE-FIRST-01, MP-OWNER-ARCHIVE-FIRST-01, MP-OWNER-EXCLUDE-REAL-EXECUTION-01"
+  ],
+  "tests": [
+    {
+      "command": "npm run governance:check with an empty errata register (RED)",
+      "result": "FAIL",
+      "environment": "local container, node 22",
+      "commit": "d475e947ba8b025ad2461e4689319c00c65b6de9",
+      "time": "2026-10-19T11:12:52Z",
+      "limits": [
+        "10 checkpoints dated after the clock (11:12:52Z); this run used the working tree before commit d475e94"
+      ]
+    },
+    {
+      "command": "node --test test/governance-checkpoints.test.mjs on the previous tools (RED)",
+      "result": "FAIL",
+      "environment": "local container, node 22",
+      "commit": "d475e947ba8b025ad2461e4689319c00c65b6de9",
+      "time": "2026-10-19T11:14:21Z",
+      "limits": [
+        "new exports missing; time is the commit time, the run finished before it"
+      ]
+    },
+    {
+      "command": "npm run check; npm test against throwaway PostgreSQL 16 with Chromium; governance:validate; governance:check",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1",
+      "commit": "d475e947ba8b025ad2461e4689319c00c65b6de9",
+      "time": "2026-10-19T11:14:21Z",
+      "limits": [
+        "294 tests, 293 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only); time is the commit time, the run finished before it"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/162#issuecomment-6265749475"
+  },
+  "findings": [
+    {
+      "id": "B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "cursor OR predicate not index-friendly: deep pages scanned every earlier row"
+    },
+    {
+      "id": "B-2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "decoder stricter than the encoder: real ids/kickoffs and long ids got 400"
+    },
+    {
+      "id": "NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "COLLATE C not exercised by tests"
+    },
+    {
+      "id": "NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "README auth line change not mentioned in PR body (now mentioned)"
+    },
+    {
+      "id": "NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "cursor bound to exact filter text (1.5 vs 1.50): refusal only, documented"
+    },
+    {
+      "id": "NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "first page 0.19 ms vs 0.06 ms after collation change: accepted"
+    },
+    {
+      "id": "CI-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "fixed test ports in the ephemeral range raced across parallel test files (EADDRINUSE)"
+    },
+    {
+      "id": "NB-5",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "server can still issue a cursor it then rejects (kickoff >100 chars, id >400, non-ASCII ids, years <1000): R-06b"
+    },
+    {
+      "id": "NB-6",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "forged cursor with NUL or invalid date gives 503 instead of 400 (no injection): R-06b"
+    },
+    {
+      "id": "NB-7",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "deep-page test should assert rows scanned, not only rows removed by filter: R-06b"
+    },
+    {
+      "id": "NB-8",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "web-e2e startServer does not assert a parsed port: R-06b"
+    },
+    {
+      "id": "NB-9",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "checkpoint times later than their commits: errata register with real bounds, validator rejects future dates"
+    }
+  ],
+  "owner_decisions": [
+    "MP-ROADMAP-CONTINUE-ARCHIVE-FIRST-01",
+    "MP-OWNER-ARCHIVE-FIRST-01",
+    "MP-OWNER-EXCLUDE-REAL-EXECUTION-01",
+    "MP-OWNER-CONTINUE-20261019",
+    "MP-OWNER-AUTOMERGE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T151000Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "Independent review of d475e94 and its checkpoint commit (round 2 approved 3730a04); CI green on the final head; Render still suspended; merge-gate; merge; then R-06b.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": "CP-20261019T151000Z-agent-a-claude-code"
+}
