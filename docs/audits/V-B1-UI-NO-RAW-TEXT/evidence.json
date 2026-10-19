@@ -1,0 +1,15 @@
+{
+  "schema": "mp-evidence-v1",
+  "audit_id": "V-B1-UI-NO-RAW-TEXT",
+  "commit_sha": "629be0dbb62fcb48394f7a5a75cfe72799598c01",
+  "date": "2026-10-19",
+  "environment": "Claude Code cloud container (Linux), PostgreSQL 16 throwaway schema with the QA archive, Chromium 141.0.7390.37, viewports 1280x800 and 390x844",
+  "outcome": "RED: Daily Board and Ricerca fail on desktop and mobile with technical text on src/web of main (all 10 journeys without the area patch). GREEN: 10/10 on 629be0d, verifier ok",
+  "archive": {
+    "branch": "evidence/audits",
+    "commit": "1129bab6e2ca0fc743922282ba7bb11362d362c4",
+    "path": "V-B1-UI-NO-RAW-TEXT",
+    "zip_sha256": "96b1ba21b9dd9ac7efd048e0296906cc5cfe23a02c4e0e763b4e3a327e4000b0",
+    "url": "https://github.com/zarbopiero963-droid/MatchPilot/tree/1129bab6e2ca0fc743922282ba7bb11362d362c4/V-B1-UI-NO-RAW-TEXT"
+  }
+}
