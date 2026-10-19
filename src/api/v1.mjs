@@ -6,6 +6,8 @@ import {QUERY_CATALOG, ROUTES as FPT_LEGACY_ROUTES, buildQuery, runQuery} from '
 export const API_VERSION = 'v1';
 export const MAX_QUERY_LENGTH = 2048;
 export const MAX_PARAM_LENGTH = 200;
+// R-04 (#23, D12): every v1 route needs an owner session when MATCHPILOT_AUTH=enforce; otherwise it is open.
+export const AUTH_NOTE = 'owner session when MATCHPILOT_AUTH=enforce (R-04, docs/auth.md)';
 
 const STATUS = {BAD_REQUEST: 400, UNKNOWN_PARAMETER: 400, NOT_FOUND: 404, METHOD_NOT_ALLOWED: 405, URI_TOO_LONG: 414, UNAVAILABLE: 503, INTERNAL: 500};
 
@@ -105,7 +107,7 @@ export function legacyInventory(endpoints) {
     '/api/futpython-certificate', '/api/futpython-certification', '/api/data-health', '/healthz', '/coverage'];
   // /healthz stays KEPT without a successor: it is the hosting platform's health-check path.
   const named = {'/api/futpython-certification': '/api/v1/providers', '/api/data-health': '/api/v1/providers', '/api/fpt/catalog': '/api/v1/endpoints'};
-  return legacy.map(route => ({route, successor: successor.get(route) ?? named[route] ?? null, status: successor.get(route) || named[route] ? 'DEPRECATED' : 'KEPT', auth: 'pending R-04 (MP-SEC-001)'}));
+  return legacy.map(route => ({route, successor: successor.get(route) ?? named[route] ?? null, status: successor.get(route) || named[route] ? 'DEPRECATED' : 'KEPT', auth: AUTH_NOTE}));
 }
 
 function describe(endpoints) {
@@ -113,7 +115,7 @@ function describe(endpoints) {
     api_version: API_VERSION,
     endpoints: endpoints.map(e => ({path: e.path, method: 'GET', source: e.source, summary: e.summary,
       params: Object.fromEntries(Object.entries(e.params).map(([name, {type, required, description}]) => [name, {type, required, description}])),
-      legacy: e.legacy ?? null, auth: 'pending R-04 (MP-SEC-001)'})),
+      legacy: e.legacy ?? null, auth: AUTH_NOTE})),
     legacy_routes: legacyInventory(endpoints),
     errors: Object.entries(STATUS).map(([code, status]) => ({code, status})),
   };

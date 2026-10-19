@@ -53,7 +53,7 @@ test('every legacy route is inventoried with a successor or an explicit KEPT sta
   for (const route of Object.keys(ROUTES)) assert.ok(inventory.some(item => item.route === route), route);
   for (const item of inventory) {
     assert.ok(item.successor === null ? item.status === 'KEPT' : item.status === 'DEPRECATED', item.route);
-    assert.equal(item.auth, 'pending R-04 (MP-SEC-001)');
+    assert.equal(item.auth, 'owner session when MATCHPILOT_AUTH=enforce (R-04, docs/auth.md)');
   }
 });
 

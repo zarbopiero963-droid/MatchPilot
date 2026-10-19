@@ -12,7 +12,8 @@ const PAGE_HEADERS = {
   'Content-Type': 'text/html; charset=utf-8',
   'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
   'X-Frame-Options': 'DENY',
-  'Referrer-Policy': 'no-referrer',
+  // same-origin, not no-referrer: with no-referrer browsers send `Origin: null` on the login form POST (R-05 E2E).
+  'Referrer-Policy': 'same-origin',
 };
 
 const escapeHtml = value => String(value).replace(/[&<>"']/g, ch => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[ch]));

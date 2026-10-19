@@ -7,7 +7,7 @@ L'inventario atomico machine-readable è fissato sulla baseline `353dfc6523d357a
 Dopo l'audit indipendente `MP-GATE-A-REVIEW-ROADMAP-01` (correzioni R-00) e la PR R-01, il denominatore **PROVISIONAL** è il seguente (blocco generato da `npm run governance:render`):
 <!-- inventory:summary:start -->
 - **Requisiti:** 138 (census PROVISIONAL), di cui 104 P0 e 34 P1.
-- **Verdetti:** 36 PASS (tutti con evidenza, ciascuno limitato al proprio scope), 43 FAIL, 7 BLOCKED, 52 NOT_VERIFIED.
+- **Verdetti:** 36 PASS (tutti con evidenza, ciascuno limitato al proprio scope), 40 FAIL, 7 BLOCKED, 55 NOT_VERIFIED.
 - **Gate:** 75 P0 aperti. Gate A del prodotto **NON PASS**.
 <!-- inventory:summary:end -->
 
@@ -94,6 +94,10 @@ GitHub Actions classifies each diff and routes it through documentation, targete
 ## Runtime isolation
 
 The backend defaults to `MATCHPILOT_RUNTIME_MODE=offline`: cron, watchdog, recovery, backfill, Telegram startup work and every FutPython/TotalCorner collector remain disabled. Offline/test modes reject remote database hosts. Production background work requires the explicit pair `MATCHPILOT_RUNTIME_MODE=production` and `MATCHPILOT_BACKGROUND_ENABLED=true`; provider-specific gates still apply. In production mode a pending migration is applied only when the owner lists its exact file name in `MATCHPILOT_APPROVED_MIGRATIONS` (owner decision D13). See [`docs/runtime-isolation.md`](docs/runtime-isolation.md).
+
+## Web shell (R-05)
+
+`/` serves a real, read-only website. It has three static files, a strict CSP and no inline code. Every value comes from the API v1, with N/D for missing values and explicit loading, empty, partial and error states. Browser end-to-end tests (`playwright-core`, Chromium/Chrome) run on the real server in CI. See [`docs/web.md`](docs/web.md).
 
 ## Owner login (R-04b)
 
