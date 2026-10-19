@@ -91,14 +91,14 @@ async function adminClient(t) {
   }
 }
 
-let nextPort = 36000 + (process.pid % 2000) * 2;
+// PORT=0: the OS picks a free port and the server logs it, so parallel test files never race for a fixed port.
+const boundPort = text => Number(/listening on (\d+) /.exec(text)?.[1]);
 async function startServer(schema, env) {
   const url = new URL(ROOT_URL);
   url.searchParams.set('options', `-c search_path=${schema}`);
-  const port = nextPort++;
   const child = spawn(process.execPath, ['src/server.mjs'], {
     cwd: resolve('.'),
-    env: {PATH: process.env.PATH, PORT: String(port), DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', ...env},
+    env: {PATH: process.env.PATH, PORT: '0', DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', ...env},
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = '';
@@ -107,6 +107,8 @@ async function startServer(schema, env) {
   const deadline = Date.now() + 30000;
   while (!/listening on/.test(output) && child.exitCode == null && Date.now() < deadline) await new Promise(done => setTimeout(done, 50));
   assert.equal(child.exitCode, null, output);
+  const port = boundPort(output);
+  assert.ok(port > 0, output);
   return {
     base: `http://127.0.0.1:${port}`,
     output: () => output,

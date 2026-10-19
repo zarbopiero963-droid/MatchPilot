@@ -45,14 +45,14 @@ async function setup(t) {
   }
 }
 
-let nextPort = 39500 + (process.pid % 400) * 2;
+// PORT=0: the OS picks a free port and the server logs it, so parallel test files never race for a fixed port.
+const boundPort = text => Number(/listening on (\d+) /.exec(text)?.[1]);
 async function startServer(schema, env = {}) {
   const url = new URL(ROOT_URL);
   url.searchParams.set('options', `-c search_path=${schema}`);
-  const port = nextPort++;
   const child = spawn(process.execPath, ['src/server.mjs'], {
     cwd: resolve('.'),
-    env: {PATH: process.env.PATH, PORT: String(port), DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', ...env},
+    env: {PATH: process.env.PATH, PORT: '0', DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', ...env},
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = '';
@@ -64,7 +64,7 @@ async function startServer(schema, env = {}) {
     if (child.exitCode == null) child.kill('SIGKILL');
     throw new Error(`server did not start: ${output}`);
   }
-  return {base: `http://127.0.0.1:${port}`, stop: () => new Promise(done => { child.on('close', done); child.kill('SIGTERM'); })};
+  return {base: `http://127.0.0.1:${boundPort(output)}`, stop: () => new Promise(done => { child.on('close', done); child.kill('SIGTERM'); })};
 }
 
 // A page that records console errors, page errors and CSP violations, and saves a screenshot when `check` throws.

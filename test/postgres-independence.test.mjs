@@ -31,13 +31,14 @@ function runNode(args, env) {
   });
 }
 
-async function waitForServer(child, output, port) {
+async function waitForServer(child, output) {
   const deadline = Date.now() + 30000;
-  while (!output.value.includes(`listening on ${port} (test)`) && child.exitCode == null && Date.now() < deadline) {
+  while (!/listening on \d+ \(test\)/.test(output.value) && child.exitCode == null && Date.now() < deadline) {
     await new Promise(resolve => setTimeout(resolve, 50));
   }
   assert.equal(child.exitCode, null, output.value);
   assert.match(output.value, /MATCHPILOT_BACKGROUND_SKIPPED.*runtime_isolated/);
+  return Number(/listening on (\d+) \(test\)/.exec(output.value)[1]);
 }
 
 test('PostgreSQL 17 independent migration, verified sample replay and API are deterministic', {timeout: 90000}, async t => {
@@ -138,11 +139,10 @@ test('PostgreSQL 17 independent migration, verified sample replay and API are de
     trap = http.createServer((req, res) => { providerHits++; res.writeHead(500); res.end(); });
     await new Promise(resolve => trap.listen(0, '127.0.0.1', resolve));
     const trapUrl = `http://127.0.0.1:${trap.address().port}`;
-    const port = 33000 + (process.pid % 10000);
     const output = {value: ''};
     child = spawn(process.execPath, ['src/server.mjs'], {cwd: process.cwd(), env: {
       ...isolatedEnv,
-      PORT: String(port),
+      PORT: '0',
       MATCHPILOT_BACKGROUND_ENABLED: 'true',
       FUTPYTHON_API_KEY: 'must-not-be-used',
       FUTPYTHON_BASE_URL: trapUrl,
@@ -151,7 +151,7 @@ test('PostgreSQL 17 independent migration, verified sample replay and API are de
     }, stdio: ['ignore', 'pipe', 'pipe']});
     child.stdout.on('data', chunk => { output.value += chunk; });
     child.stderr.on('data', chunk => { output.value += chunk; });
-    await waitForServer(child, output, port);
+    const port = await waitForServer(child, output);
 
     const health = await fetch(`http://127.0.0.1:${port}/healthz`);
     assert.equal(health.status, 200);

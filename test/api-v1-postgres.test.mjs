@@ -68,18 +68,17 @@ test('API v1 serves real database content with the v1 envelope, matching the leg
     trap = http.createServer((req, res) => { providerHits++; res.writeHead(500); res.end(); });
     await new Promise(resolve => trap.listen(0, '127.0.0.1', resolve));
     const trapUrl = `http://127.0.0.1:${trap.address().port}`;
-    const port = 34000 + (process.pid % 10000);
     const output = {value: ''};
     child = spawn(process.execPath, ['src/server.mjs'], {cwd: process.cwd(), env: {
-      ...env, PORT: String(port), MATCHPILOT_CODE_VERSION: 'api-v1-test',
+      ...env, PORT: '0', MATCHPILOT_CODE_VERSION: 'api-v1-test',
       FUTPYTHON_BASE_URL: trapUrl, TOTALCORNER_BASE_URL: trapUrl,
     }, stdio: ['ignore', 'pipe', 'pipe']});
     child.stdout.on('data', chunk => { output.value += chunk; });
     child.stderr.on('data', chunk => { output.value += chunk; });
     const deadline = Date.now() + 30000;
-    while (!output.value.includes(`listening on ${port}`) && child.exitCode == null && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50));
+    while (!/listening on \d+ /.test(output.value) && child.exitCode == null && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50));
     assert.equal(child.exitCode, null, output.value);
-    const base = `http://127.0.0.1:${port}`;
+    const base = `http://127.0.0.1:${/listening on (\d+) /.exec(output.value)?.[1]}`;
     const call = async path => { const res = await fetch(base + path); return {status: res.status, headers: res.headers, body: await res.json()}; };
 
     const live = await call('/api/v1/tc/live');
