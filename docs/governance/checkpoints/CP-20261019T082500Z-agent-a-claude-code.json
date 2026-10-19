@@ -1,0 +1,114 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T082500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T08:25:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-04a: first independent review (comment 6262619629, CHANGES REQUESTED on d000a21) addressed: B-1, NB-2, NB-3, NB-5",
+  "task": "R-04",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 23,
+  "pr": 157,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "68d67f9a45dc6e180febe96d445455b6e9f91fa5",
+  "tree_sha": "92dea848993331290d4a51d7d982e711c884f839",
+  "requirements": [],
+  "changes": [
+    "src/runtime-safety.mjs (runtime checks moved out of background.mjs)",
+    "src/migrate.mjs: migrate() enforces mode and database-host checks; logs unused approvals",
+    "test/migration-guard.test.mjs: fail-closed tests, schema cleanup",
+    "docs/runtime-isolation.md",
+    "owner-decisions.json: wording confirmation pending note"
+  ],
+  "tests": [
+    {
+      "command": "npm test against throwaway PostgreSQL 16",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1",
+      "commit": "68d67f9a45dc6e180febe96d445455b6e9f91fa5",
+      "time": "2026-10-19T08:22:00Z",
+      "limits": [
+        "257 tests, 256 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only)",
+        "new fail-closed test fails on d000a21 (mode 'prod' applied everything)"
+      ]
+    },
+    {
+      "command": "npm run check; governance:validate; governance:check; check-append-only",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "68d67f9a45dc6e180febe96d445455b6e9f91fa5",
+      "time": "2026-10-19T08:22:00Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "CHANGES REQUESTED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/157#issuecomment-6262619629"
+  },
+  "findings": [
+    {
+      "id": "B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "guard failed open outside server startup: unknown mode applied everything; jobs and npm run migrate had no database-host check"
+    },
+    {
+      "id": "NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "merge redeploys matchpilot-test; production applied-migration state and runtime-mode env not observable from the agent; no migration added by this PR"
+    },
+    {
+      "id": "NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "approved names matching no pending file were silent"
+    },
+    {
+      "id": "NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "test schema created outside the cleanup block"
+    },
+    {
+      "id": "NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "no lock against concurrent migrate() runs (pre-existing)"
+    },
+    {
+      "id": "NB-5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "D12/D13 entries now note owner confirmation of wording pending"
+    },
+    {
+      "id": "R04-SCOPE",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "R-04b owner login (D12) follows behind a production-off flag; its sessions migration is held in production by this guard until the owner approves it"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-D13-MIGRATIONS-AUTODEPLOY-20261019",
+    "MP-OWNER-D12-OWNER-LOGIN-20261019",
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01"
+  ],
+  "dependencies": [
+    "CP-20261019T075500Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI green and a new independent review on the PR #157 head; merge-gate; then R-04b owner login.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": "CP-20261019T075500Z-agent-a-claude-code"
+}
