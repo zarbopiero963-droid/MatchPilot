@@ -1,0 +1,15 @@
+{
+  "schema": "mp-evidence-v1",
+  "audit_id": "V-A-AUDIT-A1-A2-FIX",
+  "commit_sha": "44261973156ca8ebb627bbcbeca54e40a96a26a6",
+  "date": "2026-10-19",
+  "environment": "Claude Code cloud container (Linux), PostgreSQL 16 throwaway schema with the QA archive, Chromium 141.0.7390.37, viewports 1280x800 and 390x844",
+  "outcome": "RED: 6 journeys fail without the fixes (search outcome not focused or in view; squeezed provider values and API paths). GREEN: 10/10 on 4426197, verifier ok",
+  "archive": {
+    "branch": "evidence/audits",
+    "commit": "df133c4fe67a6f6bd15087996d12f52a6f8ea7fc",
+    "path": "V-A-AUDIT-A1-A2-FIX",
+    "zip_sha256": "ca75ef19505953cb376d639afd60fdd9e3702304e0b0ec9802d49738d385fdbf",
+    "url": "https://github.com/zarbopiero963-droid/MatchPilot/tree/df133c4fe67a6f6bd15087996d12f52a6f8ea7fc/V-A-AUDIT-A1-A2-FIX"
+  }
+}
