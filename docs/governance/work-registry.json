@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 63,
+  "revision": 64,
   "tasks": [
     {
       "id": "R-01",
@@ -264,13 +264,13 @@
       "pr": null,
       "branch": "claude/permanent-evidence-01",
       "kind": "implementation",
-      "state": "RUNNING",
+      "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": null,
+      "latest_checkpoint": "CP-20261019T150652Z-agent-a-claude-code",
       "pr_open": false
     }
   ]
