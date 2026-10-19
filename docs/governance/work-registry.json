@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 85,
+  "revision": 86,
   "tasks": [
     {
       "id": "R-01",
@@ -357,7 +357,7 @@
       "id": "V-B3",
       "title": "V-B3: identity of the approved mockup (D-1): tokens, amber accent #FFB547, logo, local fonts with verified license, hover/focus states; login and /coverage palette",
       "issue": 3,
-      "pr": null,
+      "pr": 172,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
       "state": "REVIEW",
@@ -366,8 +366,8 @@
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T223527Z-agent-a-claude-code",
-      "pr_open": false
+      "latest_checkpoint": "CP-20261019T225133Z-agent-a-claude-code",
+      "pr_open": true
     }
   ]
 }
