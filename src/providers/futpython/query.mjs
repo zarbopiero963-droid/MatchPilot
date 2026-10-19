@@ -1,5 +1,6 @@
 // Normalized query layer. Every answer comes from Neon tables already written by the mirror.
 // This module never imports the provider client and never calls FutPythonTrader.
+import { createHash } from 'node:crypto';
 import { normalizeTeamName } from './teams.mjs';
 import { classifyFptVersions } from '../../pit/readers.mjs';
 
@@ -88,11 +89,13 @@ export const QUERIES = {
       LIMIT $3`,
     params: ['competition_id', 'season_id', 'limit']
   },
+  // A missing kickoff sorts last ('~' follows every time text in byte order); the same key drives the keyset cursor
+// (R-06a). COLLATE "C" makes the order identical on every database collation.
   matchesOnDate: {
     sql: `SELECT ${FACT_COLUMNS}
       FROM fpt_match_facts
       WHERE match_date = $1::date
-      ORDER BY kickoff_local_time, internal_match_id
+      ORDER BY COALESCE(kickoff_local_time, '~') COLLATE "C", internal_match_id COLLATE "C"
       LIMIT $2`,
     params: ['date', 'limit']
   },
@@ -455,6 +458,51 @@ function timestampOf(value, name) {
   return new Date(s).toISOString();
 }
 
+// ---- Keyset pagination (R-06a, MP-WEB-007) ----
+// A cursor is base64url(JSON [version, query, match_date, kickoff key, internal_match_id, filter digest]). It is bound
+// to the query and to its filters (page size excluded), so it cannot be replayed against another result set. Pages
+// fetch one extra row: next_cursor is null exactly when no further row exists.
+const CURSOR_VERSION = 1;
+const CURSOR_QUERY = {searchMatches: 's', matchesOnDate: 'd'};
+// Ids and kickoffs are provider text: any value is accepted (it is only ever a bound parameter) within these caps.
+const MAX_CURSOR_LENGTH = 1000;
+const MAX_CURSOR_ID = 400;
+const MAX_CURSOR_KICKOFF = 100;
+const NULL_KICKOFF = '~';
+
+function filterDigest(name, input) {
+  const entries = Object.keys(input).filter(key => key !== 'cursor' && key !== 'limit' && input[key] != null && input[key] !== '')
+    .sort().map(key => [key, String(input[key])]);
+  return createHash('sha256').update(JSON.stringify([name, entries])).digest('hex').slice(0, 16);
+}
+
+// node-postgres returns a DATE as a Date at local midnight; the calendar date is read in local time.
+const calendarDate = value => (value instanceof Date
+  ? `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
+  : String(value).slice(0, 10));
+
+function encodeCursor(name, input, row) {
+  const parts = [CURSOR_VERSION, CURSOR_QUERY[name], calendarDate(row.match_date), row.kickoff_local_time ?? NULL_KICKOFF,
+    row.internal_match_id, filterDigest(name, input)];
+  return Buffer.from(JSON.stringify(parts), 'utf8').toString('base64url');
+}
+
+function decodeCursor(name, input) {
+  if (input.cursor == null || input.cursor === '') return null;
+  const invalid = () => new QueryInputError('cursor is invalid for this query or these filters');
+  const text = String(input.cursor);
+  if (text.length > MAX_CURSOR_LENGTH || !/^[A-Za-z0-9_-]+$/.test(text)) throw invalid();
+  let parts;
+  try { parts = JSON.parse(Buffer.from(text, 'base64url').toString('utf8')); } catch { throw invalid(); }
+  if (!Array.isArray(parts) || parts.length !== 6) throw invalid();
+  const [version, query, date, kickoff, id, digest] = parts;
+  if (version !== CURSOR_VERSION || query !== CURSOR_QUERY[name] || digest !== filterDigest(name, input)) throw invalid();
+  if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw invalid();
+  if (typeof kickoff !== 'string' || kickoff.length > MAX_CURSOR_KICKOFF) throw invalid();
+  if (typeof id !== 'string' || !id.startsWith('fpt:') || id.length > MAX_CURSOR_ID) throw invalid();
+  return {date, kickoff, id};
+}
+
 // Whitelisted filters for searchMatches. Every value is bound as a parameter; no input reaches the SQL text.
 export const SEARCH_FILTERS = {
   competition: {parse: v => idOf(v, 'competition_id'), sql: p => `internal_competition_id = ${p}`},
@@ -513,17 +561,27 @@ function buildSearch(name, input, {now}) {
   if (input.fav_min != null && input.fav_max != null && Number(input.fav_min) > Number(input.fav_max)) {
     throw new QueryInputError('fav_min must not exceed fav_max');
   }
-  const limit = bind(limitOf(input.limit, 50));
+  const after = decodeCursor(name, input);
+  if (after) {
+    // Order is match_date DESC, internal_match_id ASC: the next page starts strictly after the cursor's row. The
+    // leading `match_date <=` bound lets the date index skip every earlier page (PR #162 review B-1).
+    const date = bind(after.date);
+    where.push(`match_date <= ${date}::date AND (match_date < ${date}::date OR internal_match_id COLLATE "C" > ${bind(after.id)} COLLATE "C")`);
+    applied.push('cursor');
+  }
+  const pageSize = limitOf(input.limit, 50);
+  const limit = bind(pageSize + 1);
   return {
     name,
     sql: `SELECT ${FACT_COLUMNS}
       FROM fpt_match_facts
       WHERE ${where.join('\n        AND ')}
-      ORDER BY match_date DESC, internal_match_id
+      ORDER BY match_date DESC, internal_match_id COLLATE "C"
       LIMIT ${limit}`,
     values,
     filters_applied: applied,
-    cutoff_before: before
+    cutoff_before: before,
+    page: {size: pageSize, input}
   };
 }
 
@@ -588,8 +646,19 @@ export function buildQuery(name, input = {}, {now = new Date()} = {}) {
       return {name, sql: QUERIES.competitionSeason.sql, values: [
         idOf(input.competition, 'competition_id'), idOf(input.season, 'season_id'), limitOf(input.limit, 500)
       ]};
-    case 'matchesOnDate':
-      return {name, sql: QUERIES.matchesOnDate.sql, values: [isoDate(input.date, 'date'), limitOf(input.limit, 200)]};
+    case 'matchesOnDate': {
+      const date = isoDate(input.date, 'date');
+      const pageSize = limitOf(input.limit, 200);
+      const after = decodeCursor(name, input);
+      const page = {size: pageSize, input};
+      if (!after) return {name, sql: QUERIES.matchesOnDate.sql, values: [date, pageSize + 1], page};
+      return {name, page, values: [date, pageSize + 1, after.kickoff, after.id], sql: `SELECT ${FACT_COLUMNS}
+      FROM fpt_match_facts
+      WHERE match_date = $1::date
+        AND (COALESCE(kickoff_local_time, '~') COLLATE "C", internal_match_id COLLATE "C") > ($3 COLLATE "C", $4 COLLATE "C")
+      ORDER BY COALESCE(kickoff_local_time, '~') COLLATE "C", internal_match_id COLLATE "C"
+      LIMIT $2`};
+    }
     case 'matchDetail':
       return {name, sql: QUERIES.matchDetail.sql, values: [idOf(input.id, 'match_id')]};
     case 'competitions':
@@ -667,7 +736,8 @@ export const QUERY_CATALOG = [
   {name: 'favoriteOddsRange', route: '/api/fpt/odds-range', question: 'Partite con favorito quotato tra 1.50 e 1.90',
     params: {min: 'quota ≥ 1.01', max: 'quota', side: 'home|away|any', competition: 'opzionale', season: 'opzionale', before: 'YYYY-MM-DD', limit: '1–500'}},
   {name: 'searchMatches', route: '/api/fpt/search', question: 'Ricerca con filtri combinati (AND)',
-    params: {team: 'opzionale', venue: 'con team', ...Object.fromEntries(Object.keys(SEARCH_FILTERS).map(k => [k, 'opzionale'])), phase: 'HISTORICAL|PREMATCH', before: 'YYYY-MM-DD', limit: '1–500'}},
+    params: {team: 'opzionale', venue: 'con team', ...Object.fromEntries(Object.keys(SEARCH_FILTERS).map(k => [k, 'opzionale'])), phase: 'HISTORICAL|PREMATCH', before: 'YYYY-MM-DD', limit: '1–500',
+      cursor: 'next_cursor della pagina precedente (stessi filtri)'}},
   {name: 'xgBySeason', route: '/api/fpt/xg-by-season', question: 'xG per stagione di una squadra o di una competizione',
     params: {team: 'oppure competition', competition: 'oppure team', before: 'YYYY-MM-DD'}},
   {name: 'teamMatchesAsOf', route: '/api/fpt/team-matches-asof', question: 'Cosa sapeva MatchPilot di una squadra al timestamp T',
@@ -679,7 +749,8 @@ export const QUERY_CATALOG = [
   {name: 'teamSummary', route: '/api/fpt/team-summary', question: 'Bilancio V-N-P e gol di una squadra', params: {team: 'fpt:team:…', before: 'YYYY-MM-DD', season: 'opzionale'}},
   {name: 'headToHead', route: '/api/fpt/h2h', question: 'Scontri diretti', params: {team: 'fpt:team:…', opponent: 'fpt:team:…', before: 'YYYY-MM-DD'}},
   {name: 'competitionSeason', route: '/api/fpt/competition-season', question: 'Partite di una stagione', params: {competition: 'fpt:competition:…', season: 'fpt:season:…'}},
-  {name: 'matchesOnDate', route: '/api/fpt/matches', question: 'Partite di un giorno', params: {date: 'YYYY-MM-DD'}},
+  {name: 'matchesOnDate', route: '/api/fpt/matches', question: 'Partite di un giorno', params: {date: 'YYYY-MM-DD', limit: '1–500, default 200',
+    cursor: 'next_cursor della pagina precedente (stesso giorno)'}},
   {name: 'matchDetail', route: '/api/fpt/match', question: 'Dettaglio partita con payload e timing di ogni campo', params: {id: 'fpt:hash:… | fpt:id:…'}},
   {name: 'competitions', route: '/api/fpt/competitions', question: 'Elenco competizioni e stagioni', params: {}},
   {name: 'filters', route: '/api/fpt/filters', question: 'Registry dei campi filtrabili', params: {}},
@@ -714,6 +785,12 @@ export async function runQuery(client, name, input = {}, opts = {}) {
     rows = rows.map((row, i) => ({...row, pit: result.classified[i]}));
     pit = result.label;
   }
+  let nextCursor;
+  if (q.page) {
+    const more = rows.length > q.page.size;
+    rows = rows.slice(0, q.page.size);
+    nextCursor = more ? encodeCursor(name, q.page.input, rows[rows.length - 1]) : null;
+  }
   if (name === 'matchDetail' && rows[0]) {
     const registry = await client.query(QUERIES.filters.sql);
     rows = [{...rows[0], payload: presentPayload(rows[0].payload, registry.rows)}];
@@ -737,7 +814,8 @@ export async function runQuery(client, name, input = {}, opts = {}) {
       scope: q.scope || null,
       elapsed_ms: Date.now() - started
     },
-    ...(pit ? {pit} : {})
+    ...(pit ? {pit} : {}),
+    ...(nextCursor !== undefined ? {next_cursor: nextCursor} : {})
   };
 }
 

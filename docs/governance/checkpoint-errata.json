@@ -1,0 +1,122 @@
+{
+  "schema_version": "mp-checkpoint-errata-v1",
+  "reference": "PR #162 independent review NB-9 (issue comment 6265749475); owner mandate MP-ROADMAP-CONTINUE-ARCHIVE-FIRST-01 §3.5",
+  "finding": "These checkpoints record timestamp_utc, and test times inside them, that are later than the first commit that contained the file. The recorded times were not taken from a clock and are not real.",
+  "rule": "Checkpoint files are append-only and are not rewritten. For each entry the real time of the checkpoint and of every time inside it is unknown; it is only known to be no later than not_after_utc, the author time of basis_commit, the first commit that contained the file. Order among errata keeps the recorded order. The governance validator now rejects a checkpoint dated more than 10 minutes after its validation, and test times later than their checkpoint.",
+  "entries": [
+    {
+      "id": "CP-20261018T214500Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-18T21:45:00Z",
+      "not_after_utc": "2026-10-18T21:43:30Z",
+      "basis_commit": "8ca13550e2b7c0b0b4908b64a7e9b74ccd329f68"
+    },
+    {
+      "id": "CP-20261018T214600Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-18T21:46:00Z",
+      "not_after_utc": "2026-10-18T21:43:30Z",
+      "basis_commit": "8ca13550e2b7c0b0b4908b64a7e9b74ccd329f68"
+    },
+    {
+      "id": "CP-20261018T231000Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-18T23:10:00Z",
+      "not_after_utc": "2026-10-18T23:06:36Z",
+      "basis_commit": "bd1125fcac2c13c50c7190e1b4556646f10722dd"
+    },
+    {
+      "id": "CP-20261019T082500Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-19T08:25:00Z",
+      "not_after_utc": "2026-10-19T08:08:05Z",
+      "basis_commit": "5bf0c590c2bc9af6418e1850d2f298b871ba5414"
+    },
+    {
+      "id": "CP-20261019T084500Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-19T08:45:00Z",
+      "not_after_utc": "2026-10-19T08:38:26Z",
+      "basis_commit": "a33219cdbce56b037e2a1a21b7c07c8b72db356a"
+    },
+    {
+      "id": "CP-20261019T094000Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-19T09:40:00Z",
+      "not_after_utc": "2026-10-19T09:22:25Z",
+      "basis_commit": "b6b40bc706802099785f40b794970ec8445c0fa6"
+    },
+    {
+      "id": "CP-20261019T100500Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-19T10:05:00Z",
+      "not_after_utc": "2026-10-19T09:29:23Z",
+      "basis_commit": "36a5291c6a406ea6be950850b3eb06ffce28250d"
+    },
+    {
+      "id": "CP-20261019T104000Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-19T10:40:00Z",
+      "not_after_utc": "2026-10-19T10:07:20Z",
+      "basis_commit": "8226ba07d2403177b9d3345ac025bf979fa6a421"
+    },
+    {
+      "id": "CP-20261019T104500Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-19T10:45:00Z",
+      "not_after_utc": "2026-10-19T10:07:20Z",
+      "basis_commit": "8226ba07d2403177b9d3345ac025bf979fa6a421"
+    },
+    {
+      "id": "CP-20261019T113000Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-19T11:30:00Z",
+      "not_after_utc": "2026-10-19T10:14:30Z",
+      "basis_commit": "e23e7c48a2b12948f61777bd997a932764827c43"
+    },
+    {
+      "id": "CP-20261019T120000Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-19T12:00:00Z",
+      "not_after_utc": "2026-10-19T10:22:16Z",
+      "basis_commit": "59c71436ee86d5e70348eec9835e83b2288bfc79"
+    },
+    {
+      "id": "CP-20261019T120500Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-19T12:05:00Z",
+      "not_after_utc": "2026-10-19T10:22:16Z",
+      "basis_commit": "59c71436ee86d5e70348eec9835e83b2288bfc79"
+    },
+    {
+      "id": "CP-20261019T124000Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-19T12:40:00Z",
+      "not_after_utc": "2026-10-19T10:33:41Z",
+      "basis_commit": "d1ef042545460df0a6f10592222895a6f81fea3e"
+    },
+    {
+      "id": "CP-20261019T124500Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-19T12:45:00Z",
+      "not_after_utc": "2026-10-19T10:33:41Z",
+      "basis_commit": "d1ef042545460df0a6f10592222895a6f81fea3e"
+    },
+    {
+      "id": "CP-20261019T131500Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-19T13:15:00Z",
+      "not_after_utc": "2026-10-19T10:39:40Z",
+      "basis_commit": "f41bc2b020a9dc97a890e5d86bc987aa1568dfca"
+    },
+    {
+      "id": "CP-20261019T134500Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-19T13:45:00Z",
+      "not_after_utc": "2026-10-19T10:48:54Z",
+      "basis_commit": "0a7497d7377b0431c30894e3c42ac21f1f67a9ce"
+    },
+    {
+      "id": "CP-20261019T135000Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-19T13:50:00Z",
+      "not_after_utc": "2026-10-19T10:48:54Z",
+      "basis_commit": "0a7497d7377b0431c30894e3c42ac21f1f67a9ce"
+    },
+    {
+      "id": "CP-20261019T142500Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-19T14:25:00Z",
+      "not_after_utc": "2026-10-19T10:58:04Z",
+      "basis_commit": "f752abdb1a140b477d75f875f5ae778fd0fbde41"
+    },
+    {
+      "id": "CP-20261019T151000Z-agent-a-claude-code",
+      "recorded_timestamp_utc": "2026-10-19T15:10:00Z",
+      "not_after_utc": "2026-10-19T11:02:33Z",
+      "basis_commit": "3730a04c1eb109a6be047357d9ecdaebc56e3c05"
+    }
+  ]
+}

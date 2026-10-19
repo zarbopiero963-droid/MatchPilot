@@ -102,10 +102,9 @@ test('real backend starts in test mode with PostgreSQL and performs no hidden ba
   const trap = http.createServer((req, res) => { providerHits++; res.writeHead(500); res.end(); });
   await new Promise(resolve => trap.listen(0, '127.0.0.1', resolve));
   const trapUrl = `http://127.0.0.1:${trap.address().port}`;
-  const port = 32000 + (process.pid % 10000);
   const env = {
     ...process.env,
-    PORT: String(port),
+    PORT: '0',
     DATABASE_URL: dbUrl.toString(),
     MATCHPILOT_RUNTIME_MODE: 'test',
     MATCHPILOT_BACKGROUND_ENABLED: 'true',
@@ -123,12 +122,13 @@ test('real backend starts in test mode with PostgreSQL and performs no hidden ba
 
   try {
     const deadline = Date.now() + 30000;
-    while (!output.includes(`listening on ${port} (test)`) && child.exitCode == null && Date.now() < deadline) {
+    while (!/listening on \d+ \(test\)/.test(output) && child.exitCode == null && Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, 50));
     }
     assert.equal(child.exitCode, null, output);
     assert.match(output, /MATCHPILOT_BACKGROUND_SKIPPED.*runtime_isolated/);
-    assert.match(output, new RegExp(`listening on ${port} \\(test\\)`));
+    const port = Number(/listening on (\d+) \(test\)/.exec(output)?.[1]);
+    assert.ok(port > 0, output);
     const response = await fetch(`http://127.0.0.1:${port}/healthz`);
     assert.equal(response.status, 200);
     assert.equal((await response.json()).status, 'ok');

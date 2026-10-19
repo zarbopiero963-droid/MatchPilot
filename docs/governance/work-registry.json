@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 50,
+  "revision": 54,
   "tasks": [
     {
       "id": "R-01",
@@ -168,13 +168,29 @@
       "pr": 161,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261019T134500Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "R-06a",
+      "title": "Deterministic keyset pagination for match search and matches of a day (QUERY-CORE-02)",
+      "issue": 30,
+      "pr": 162,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
       "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T131500Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261019T111439Z-agent-a-claude-code",
       "pr_open": true
     }
   ]

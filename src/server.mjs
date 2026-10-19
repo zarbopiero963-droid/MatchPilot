@@ -184,7 +184,8 @@ function route(req, res, url) {
   res.end(JSON.stringify({error:'not_found'}));
 }
 
-app.listen(port,'0.0.0.0',()=>console.log(`MatchPilot Trading OS listening on ${port} (${runtime.mode})`));
+// PORT=0 binds a free port chosen by the OS; the log line names the port actually bound.
+const listener = app.listen(port,'0.0.0.0',()=>console.log(`MatchPilot Trading OS listening on ${listener.address().port} (${runtime.mode})`));
 
 async function shutdown() {
   stopBackgroundServices();
