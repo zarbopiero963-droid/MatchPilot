@@ -1,0 +1,11 @@
+FAIL general-navigation/desktop (1 steps) — page.waitForFunction: Timeout 15000ms exceeded.
+FAIL general-navigation/mobile (1 steps) — page.waitForFunction: Timeout 15000ms exceeded.
+FAIL dashboard/desktop (1 steps) — page.waitForSelector: Timeout 15000ms exceeded.
+FAIL dashboard/mobile (1 steps) — page.waitForSelector: Timeout 15000ms exceeded.
+FAIL daily-board/desktop (1 steps) — page.waitForSelector: Timeout 15000ms exceeded.
+FAIL daily-board/mobile (1 steps) — page.waitForSelector: Timeout 15000ms exceeded.
+FAIL search/desktop (6 steps) — page.waitForFunction: Timeout 15000ms exceeded.
+FAIL search/mobile (6 steps) — page.waitForFunction: Timeout 15000ms exceeded.
+PASS providers-endpoints/desktop (2 steps)
+PASS providers-endpoints/mobile (2 steps)
+{"verdict":"FAIL","counts":{"pass":2,"fail":8,"skip":0,"not_verified":0},"missing_required":["general-navigation/desktop","general-navigation/mobile","dashboard/desktop","dashboard/mobile","daily-board/desktop","daily-board/mobile","search/desktop","search/mobile"],"head_sha":"58f5ebdbb6584ae755099e63782d6fb7ba68f9cf"}
