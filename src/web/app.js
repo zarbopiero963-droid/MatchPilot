@@ -327,7 +327,11 @@ function searchForm(params, competitions) {
     const data = new FormData(event.target);
     const out = {};
     for (const [key, v] of data.entries()) if (String(v).trim() !== '') out[key] = String(v).trim();
-    location.hash = `#/search?${queryString({...out, run: '1'})}`;
+    // The outcome is shown below the form: after a submit it gets the focus and is scrolled into view (audit A-1).
+    revealOutcome = true;
+    const target = `#/search?${queryString({...out, run: '1'})}`;
+    if (location.hash === target) render();
+    else location.hash = target;
   }},
   el('div', {class: 'fields'},
     el('label', {}, 'Squadra ', input('team', {type: 'search', placeholder: 'es. Ajax', autocomplete: 'off'})),
@@ -374,9 +378,9 @@ async function searchView(params, mine) {
   const teamText = (params.get('team') || '').trim();
   if (!teamId && teamText) {
     const teams = (await getJson(`/api/v1/fpt/teams?${queryString({q: teamText})}`)).data?.rows ?? [];
-    if (teams.length === 0) return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'team-not-found'}, `Nessuna squadra chiamata "${teamText}" nei dati salvati.`)];
+    if (teams.length === 0) return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'team-not-found', 'data-outcome': ''}, `Nessuna squadra chiamata "${teamText}" nei dati salvati.`)];
     if (teams.length > 1) {
-      return [...head, el('div', {class: 'state partial', role: 'status', 'data-testid': 'team-choice'},
+      return [...head, el('div', {class: 'state partial', role: 'status', 'data-testid': 'team-choice', 'data-outcome': ''},
         el('p', {}, `Più squadre si chiamano "${teamText}": scegline una.`),
         el('ul', {}, teams.map(team => el('li', {}, el('a', {href: `#/search?${queryString({...Object.fromEntries(params), team_id: team.internal_team_id})}`},
           `${team.canonical_name} (${team.country_slug ?? ND})`)))))];
@@ -395,17 +399,18 @@ async function searchView(params, mine) {
     first = await getJson(`${path}?${queryString(api)}`);
   } catch (error) {
     if (error?.status === 400) {
-      return [...head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'search-invalid'}, `Filtri non validi: ${error.message}. Correggi i campi e riprova.`)];
+      return [...head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'search-invalid', 'data-outcome': ''}, `Filtri non validi: ${error.message}. Correggi i campi e riprova.`)];
     }
     throw error;
   }
   const rows = first.data?.rows ?? [];
-  if (rows.length === 0) return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'search-empty'}, 'Nessuna partita corrisponde ai filtri.'), metaLine(first)];
+  if (rows.length === 0) return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'search-empty', 'data-outcome': ''}, 'Nessuna partita corrisponde ai filtri.'), metaLine(first)];
   const [body, footer] = pagedList({first, path, params: api, render: resultsTable, more: 'Altri risultati', mine,
     list: el('tbody', {'data-testid': 'search-results'})});
   const table = el('table', {}, el('thead', {}, el('tr', {}, ['Data', 'Ora', 'Partita', 'Campionato', 'Risultato', '1 · X · 2', 'Over 2,5', 'xG']
     .map(text => el('th', {scope: 'col'}, text)))), body);
-  return [...head, venueIgnored ? el('p', {class: 'state partial', role: 'status', 'data-testid': 'venue-ignored'}, 'La sede vale solo con una squadra: è stata ignorata.') : null,
+  return [...head, el('h2', {'data-testid': 'search-outcome', 'data-outcome': ''}, 'Risultati'),
+    venueIgnored ? el('p', {class: 'state partial', role: 'status', 'data-testid': 'venue-ignored'}, 'La sede vale solo con una squadra: è stata ignorata.') : null,
     el('p', {class: 'meta', 'data-testid': 'filters-applied'}, 'Filtri applicati dal server: ', formatScalar((first.data?.provenance?.filters_applied ?? []).join(', '))),
     el('div', {class: 'tablewrap'}, table), footer, metaLine(first)];
 }
@@ -455,6 +460,19 @@ const VIEWS = {'': ['la dashboard', dashboardView], board: ['la Daily Board', bo
   providers: ['i fornitori dati', providersView], endpoints: ['gli endpoint', endpointsView]};
 
 let generation = 0;
+// Set by the search form: the next search render moves the focus to its outcome and scrolls it into view, so the result,
+// the empty state or the error is perceived on a phone too, where it starts below the form (audit A-1).
+let revealOutcome = false;
+function showOutcome(host) {
+  if (!revealOutcome) return;
+  revealOutcome = false;
+  const target = host.querySelector('[data-outcome]') || host.querySelector('.state');
+  if (!target) return;
+  if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+  target.focus({preventScroll: true});
+  target.scrollIntoView({block: 'start'});
+}
+
 async function render() {
   const name = location.hash.replace(/^#\/?/, '').split('?')[0];
   const [what, view] = VIEWS[name] || [null, null];
@@ -473,10 +491,14 @@ async function render() {
   try {
     const nodes = await view(hashParams(), mine);
     // Optional sections are null when absent: they are left out, never shown as text.
-    if (mine === generation) host.replaceChildren(...nodes.filter(node => node !== null && node !== undefined && node !== false));
+    if (mine === generation) {
+      host.replaceChildren(...nodes.filter(node => node !== null && node !== undefined && node !== false));
+      if (name === 'search') showOutcome(host);
+    }
   } catch (error) {
     if (mine !== generation || error?.code === 'UNAUTHENTICATED') return;
     host.replaceChildren(errorState(error instanceof ApiFailure ? error : new ApiFailure(0, 'CLIENT', 'errore nella pagina'), render));
+    if (name === 'search') showOutcome(host);
   }
 }
 

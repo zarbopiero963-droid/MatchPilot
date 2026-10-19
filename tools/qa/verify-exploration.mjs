@@ -211,6 +211,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   // --base is a ref or SHA, never an option; the fix is the range base...head (the PR head given with --head).
   const base = opt('base');
   if (base !== undefined && (!/^[\w][\w./-]*$/.test(base) || base.includes('..'))) { console.error(`invalid --base ${JSON.stringify(base)}`); process.exit(2); }
+  if (base !== undefined && !/^[0-9a-f]{40}$/.test(opt('head') || '')) { console.error('--base needs --head <full SHA>'); process.exit(2); }
   const changedFiles = base ? git(['diff', '--name-only', '--no-renames', `${base}...${opt('head')}`, '--']).split('\n').filter(Boolean) : null;
   const review = opt('review') ? verifyAiReview(dir, opt('review'), {expectedHead: opt('head'), changedFiles}) : null;
   console.log(JSON.stringify({ok: result.ok, errors: result.errors, totals: result.report?.totals ?? null,

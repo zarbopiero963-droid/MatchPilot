@@ -93,7 +93,7 @@ Neither defect reaches `main`: the PR is squash-merged from its final state, and
 - **Access:** only their bundle, `exploratory.md`, the owner decisions, AGENTS.md, the mockup and `src/`. Forbidden: other folders, `docs/audits`, this file, `tools/`, `test/` and git history.
 - **Coverage:** each viewed all 28 observations and all 28 screenshots, in crops for tall pages: 74 and 46 image views.
 - **Verification:** both reviews pass `verify-exploration.mjs --review`.
-- **Limit:** `src/` shows the intended behaviour (comma format, N/D, the Italian label), so a reviewer could compare the screenshots with the code. The procedure allows it: the reviewer judges against the product, as it would on a real PR.
+- **Limit:** in this evaluation `src/` held the correct code while the page showed the injected defects, so `src/` reveals the intended behaviour. The seeded reviewer read `src/web/app.js`, including the line seed S1 alters, before reviewing the screenshots (QA-03 review round 2, NB-1). On a real PR the code carries the defect, so reading it gives nothing away. Each of the four findings is also justified from the page alone, but this run does not prove detection without that hint. A future evaluation should seed the defect in the code reviewers can read, or withhold `src/`.
 - **Working-tree slip:** while the reviewers ran, the agent's working tree briefly carried an uncommitted test label ("Data providers" in the menu). The seeded reviewer saw it while reading `src/`. It is unrelated to the four seeds and not part of any finding scored below.
 
 | Seeded defect | Rule | Seeded bundle (rv-k3) | Clean bundle (rv-p8) |
