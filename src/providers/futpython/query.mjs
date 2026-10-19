@@ -464,7 +464,10 @@ function timestampOf(value, name) {
 // fetch one extra row: next_cursor is null exactly when no further row exists.
 const CURSOR_VERSION = 1;
 const CURSOR_QUERY = {searchMatches: 's', matchesOnDate: 'd'};
-const MAX_CURSOR_LENGTH = 200;
+// Ids and kickoffs are provider text: any value is accepted (it is only ever a bound parameter) within these caps.
+const MAX_CURSOR_LENGTH = 1000;
+const MAX_CURSOR_ID = 400;
+const MAX_CURSOR_KICKOFF = 100;
 const NULL_KICKOFF = '~';
 
 function filterDigest(name, input) {
@@ -494,8 +497,9 @@ function decodeCursor(name, input) {
   if (!Array.isArray(parts) || parts.length !== 6) throw invalid();
   const [version, query, date, kickoff, id, digest] = parts;
   if (version !== CURSOR_VERSION || query !== CURSOR_QUERY[name] || digest !== filterDigest(name, input)) throw invalid();
-  if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date) || typeof kickoff !== 'string' || kickoff.length > 20) throw invalid();
-  if (typeof id !== 'string' || !/^fpt:[a-z]+:[A-Za-z0-9:_-]{1,120}$/.test(id)) throw invalid();
+  if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw invalid();
+  if (typeof kickoff !== 'string' || kickoff.length > MAX_CURSOR_KICKOFF) throw invalid();
+  if (typeof id !== 'string' || !id.startsWith('fpt:') || id.length > MAX_CURSOR_ID) throw invalid();
   return {date, kickoff, id};
 }
 
@@ -559,8 +563,10 @@ function buildSearch(name, input, {now}) {
   }
   const after = decodeCursor(name, input);
   if (after) {
-    // Order is match_date DESC, internal_match_id ASC: the next page starts strictly after the cursor's row.
-    where.push(`(match_date < ${bind(after.date)}::date OR (match_date = ${bind(after.date)}::date AND internal_match_id COLLATE "C" > ${bind(after.id)} COLLATE "C"))`);
+    // Order is match_date DESC, internal_match_id ASC: the next page starts strictly after the cursor's row. The
+    // leading `match_date <=` bound lets the date index skip every earlier page (PR #162 review B-1).
+    const date = bind(after.date);
+    where.push(`match_date <= ${date}::date AND (match_date < ${date}::date OR internal_match_id COLLATE "C" > ${bind(after.id)} COLLATE "C")`);
     applied.push('cursor');
   }
   const pageSize = limitOf(input.limit, 50);

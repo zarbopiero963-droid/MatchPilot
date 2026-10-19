@@ -125,3 +125,63 @@ test('API v1 exposes cursor and next_cursor and answers 400 for a bad cursor', {
     assert.ok(day.body.data.next_cursor);
   });
 });
+
+test('real-world ids and kickoffs paginate through the API; order is byte order on every collation', {timeout: 120000}, async t => {
+  await withSeed(t, async (client, seed) => {
+    const {handleV1} = await import('../src/api/v1.mjs');
+    // Provider ids are fpt:id:<any CSV Id> and kickoffs are raw provider text (PR #162 review B-2, NB-1).
+    const odd = ['fpt:id:12345.0', 'fpt:id:AB 12', 'fpt:id:a1', 'fpt:id:B1', 'fpt:id:_x', `fpt:id:${'Z'.repeat(150)}`];
+    const day = seed.dates[1];
+    const ids = (await client.query("SELECT internal_match_id FROM fpt_match_facts ORDER BY internal_match_id COLLATE \"C\" LIMIT 6")).rows.map(row => row.internal_match_id);
+    for (let i = 0; i < ids.length; i++) {
+      await client.query(`UPDATE fpt_match_facts SET internal_match_id = $1, match_date = $2::date, kickoff_local_time = $3 WHERE internal_match_id = $4`,
+        [odd[i], day, i < 4 ? '15:00' : '15:00 (CET, posticipo)', ids[i]]);
+    }
+    const call = async path => handleV1({method: 'GET', url: new URL(path, 'http://localhost')}, {withClient: fn => fn(client), tc: {}, codeVersion: 'test'});
+    for (const base of [`/api/v1/fpt/search?competition=${encodeURIComponent(seed.competition)}&before=2100-01-01`, `/api/v1/fpt/matches?date=${day}`]) {
+      const all = (await call(`${base}&limit=500`)).body.data.rows.map(row => row.internal_match_id);
+      const seen = [];
+      let cursor = null;
+      for (let guard = 0; guard < 100; guard++) {
+        const page = await call(`${base}&limit=1${cursor ? `&cursor=${cursor}` : ''}`);
+        assert.equal(page.status, 200, JSON.stringify(page.body.error));
+        seen.push(...page.body.data.rows.map(row => row.internal_match_id));
+        cursor = page.body.data.next_cursor;
+        if (!cursor) break;
+      }
+      assert.deepEqual(seen, all, base);
+    }
+    // Within one date and kickoff, ids come in byte order, whatever the database collation.
+    const sameKick = (await call(`/api/v1/fpt/matches?date=${day}&limit=500`)).body.data.rows
+      .filter(row => row.kickoff_local_time === '15:00').map(row => row.internal_match_id);
+    assert.deepEqual(sameKick, [...sameKick].sort((a, b) => (Buffer.compare(Buffer.from(a), Buffer.from(b)))));
+    assert.ok(sameKick.includes('fpt:id:B1') && sameKick.includes('fpt:id:a1'));
+    assert.ok(sameKick.indexOf('fpt:id:B1') < sameKick.indexOf('fpt:id:a1'), 'uppercase before lowercase: byte order, not a linguistic collation');
+  });
+});
+
+test('a deep search page scans only its own rows (PR #162 review B-1)', {timeout: 180000}, async t => {
+  await withSeed(t, async (client, seed) => {
+    const {buildQuery, runQuery} = await import('../src/providers/futpython/query.mjs');
+    // 60,000 synthetic rows in the throwaway schema (the version foreign key is dropped there only).
+    await client.query('ALTER TABLE fpt_match_facts DROP CONSTRAINT IF EXISTS fpt_match_facts_version_id_fkey');
+    await client.query(`INSERT INTO fpt_match_facts(internal_match_id, match_key, version_id, snapshot_id, dataset_key, phase, acquired_at,
+        internal_competition_id, season_id, match_date, kickoff_local_time, kickoff_tz_status, result_status, source_provider,
+        parser_version, schema_version, transform_version, facts_version)
+      SELECT 'fpt:id:perf' || g, 'perf' || g, t.version_id, t.snapshot_id, t.dataset_key, t.phase, t.acquired_at,
+        t.internal_competition_id, t.season_id, DATE '2000-01-01' + (g / 20), '12:00', t.kickoff_tz_status, t.result_status, t.source_provider,
+        t.parser_version, t.schema_version, t.transform_version, t.facts_version
+      FROM generate_series(1, 60000) AS g, (SELECT * FROM fpt_match_facts LIMIT 1) AS t`);
+    await client.query('ANALYZE fpt_match_facts');
+    const input = {competition: seed.competition, before: '2100-01-01', limit: 50};
+    // Walk to a page roughly in the middle, using limit 500 pages and then a normal page.
+    let cursor;
+    for (let i = 0; i < 60; i++) cursor = (await runQuery(client, 'searchMatches', {...input, limit: 500, ...(cursor ? {cursor} : {})})).next_cursor;
+    const q = buildQuery('searchMatches', {...input, cursor});
+    const plan = (await client.query(`EXPLAIN (ANALYZE, FORMAT JSON) ${q.sql}`, q.values)).rows[0]['QUERY PLAN'][0];
+    let removed = 0;
+    const visit = node => { removed += node['Rows Removed by Filter'] || 0; (node.Plans || []).forEach(visit); };
+    visit(plan.Plan);
+    assert.ok(removed < 1000, `deep page discarded ${removed} rows`);
+  });
+});

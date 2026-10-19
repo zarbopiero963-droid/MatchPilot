@@ -70,7 +70,9 @@ Tutte le route `/api/v1/*` sono in sola lettura. Leggono soltanto il database di
 - **Paginazione deterministica (R-06a):** `/api/v1/fpt/search` e `/api/v1/fpt/matches` restituiscono `data.next_cursor`. Per la pagina successiva lo si passa come `cursor`, insieme agli stessi filtri; `limit` può cambiare.
   - **Copertura:** le pagine coprono esattamente il risultato non paginato, nello stesso ordine e senza buchi né duplicati, anche con più partite nello stesso giorno o senza orario.
   - **Ordine:** search è per data decrescente e poi id; le partite del giorno sono per orario (senza orario per ultime) e poi id. L'ordine non dipende dalla collation del database.
-  - **Validità del cursore:** vale solo per la query e i filtri che lo hanno prodotto. Un cursore alterato o riusato altrove dà `400 BAD_REQUEST`.
+  - **Validità del cursore:** vale solo per la query e i filtri che lo hanno prodotto, con il testo dei filtri esattamente uguale (`1.5` e `1.50` contano come filtri diversi). Un cursore alterato o riusato altrove dà `400 BAD_REQUEST`.
+  - **Lunghezza:** `cursor` accetta fino a 1000 caratteri, perché contiene l'id della partita del provider. Gli altri parametri restano entro 200.
+  - **Pagine profonde:** costano quanto la prima, perché l'indice sulla data salta le pagine precedenti.
   - **Fine dei risultati:** `next_cursor` è `null` quando non ci sono altre righe.
 - **Route legacy** (`/api/fpt/*`, `/api/tc/*`, …): restano disponibili con gli header `Deprecation: true` e `Link: <successore v1>`. `/healthz` resta KEPT, senza successore, perché è il percorso di health check della piattaforma di hosting.
 - **Autenticazione:** con `MATCHPILOT_AUTH=enforce` ogni route richiede la sessione owner (R-04, [`docs/auth.md`](docs/auth.md)); di default è disattivata.

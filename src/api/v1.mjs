@@ -21,7 +21,9 @@ export class ApiError extends Error {
 }
 
 // `check` (not published) validates and normalizes one value before any database access.
-const param = (description, required = false, check = undefined) => ({type: 'string', required, description, check});
+const param = (description, required = false, check = undefined, maxLength = MAX_PARAM_LENGTH) => ({type: 'string', required, description, check, maxLength});
+// A pagination cursor carries a provider match id, which can be long: it gets its own length limit.
+const MAX_CURSOR_LENGTH = 1000;
 
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
 const instant = name => value => {
@@ -54,7 +56,8 @@ const FPT_ENDPOINTS = QUERY_CATALOG.map(entry => ({
   legacy: entry.route,
   source: 'FutPythonTrader',
   summary: entry.question,
-  params: Object.fromEntries(Object.entries(entry.params).map(([name, description]) => [name, param(String(description), (FPT_REQUIRED[entry.name] ?? []).includes(name))])),
+  params: Object.fromEntries(Object.entries(entry.params).map(([name, description]) => [name,
+    param(String(description), (FPT_REQUIRED[entry.name] ?? []).includes(name), undefined, name === 'cursor' ? MAX_CURSOR_LENGTH : MAX_PARAM_LENGTH)])),
   // Format and ranges are enforced by the query layer; building the query first rejects bad input without a connection.
   precheck: input => buildQuery(entry.name, input),
   read: (client, input) => runQuery(client, entry.name, input),
@@ -127,7 +130,8 @@ function validateInput(endpoint, url) {
   for (const [name, value] of url.searchParams) {
     if (!Object.hasOwn(endpoint.params, name)) throw new ApiError('UNKNOWN_PARAMETER', `unknown parameter: ${name.slice(0, 40)}`, {allowed: Object.keys(endpoint.params)});
     if (Object.hasOwn(input, name)) throw new ApiError('BAD_REQUEST', `parameter repeated: ${name}`);
-    if (value.length > MAX_PARAM_LENGTH) throw new ApiError('BAD_REQUEST', `parameter ${name} longer than ${MAX_PARAM_LENGTH} characters`);
+    const maxLength = endpoint.params[name].maxLength ?? MAX_PARAM_LENGTH;
+    if (value.length > maxLength) throw new ApiError('BAD_REQUEST', `parameter ${name} longer than ${maxLength} characters`);
     input[name] = endpoint.params[name].check ? endpoint.params[name].check(value) : value;
   }
   for (const [name, spec] of Object.entries(endpoint.params)) {
