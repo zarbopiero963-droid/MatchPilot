@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 64,
+  "revision": 65,
   "tasks": [
     {
       "id": "R-01",
@@ -261,7 +261,7 @@
       "id": "EVIDENCE-01",
       "title": "Permanent audit evidence: docs/audits, evidence/audits archive, evidence checker (MP-OWNER-PERMANENT-EVIDENCE-01)",
       "issue": 3,
-      "pr": null,
+      "pr": 167,
       "branch": "claude/permanent-evidence-01",
       "kind": "implementation",
       "state": "REVIEW",
@@ -271,7 +271,7 @@
       },
       "lease": null,
       "latest_checkpoint": "CP-20261019T150652Z-agent-a-claude-code",
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }

@@ -1,11 +1,12 @@
 // Permanent audit evidence (MP-OWNER-PERMANENT-EVIDENCE-01): every package in docs/audits is complete, unmodified, small
 // and linked to its durable archive; the checker refuses each way of breaking that.
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
 import {cpSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {MAX_FILE_BYTES, pack, verifyAudits, verifyPackage} from '../tools/governance/evidence.mjs';
+import {MAX_FILE_BYTES, pack, verifyArchive, verifyAudits, verifyPackage} from '../tools/governance/evidence.mjs';
 
 const AUDITS = new URL('../docs/audits/', import.meta.url).pathname;
 const ID = 'MP-OWNER-VISUAL-BASELINE-AUDIT-01';
@@ -56,13 +57,74 @@ test('a package without its audit data, archive or index entry is refused', t =>
   };
   // pack rewrites the manifest, so these isolate the evidence.json rules.
   refused(verifyAudits(mutate(t, e => { e.commit_sha = 'abc'; })), /commit_sha is not a full SHA/);
-  refused(verifyAudits(mutate(t, e => { e.date = '19/10/2026'; })), /date is not YYYY-MM-DD/);
+  refused(verifyAudits(mutate(t, e => { e.date = '19/10/2026'; })), /date is not a real YYYY-MM-DD day/);
+  refused(verifyAudits(mutate(t, e => { e.date = '2026-02-31'; })), /date is not a real YYYY-MM-DD day/);
+  refused(verifyAudits(mutate(t, e => { e.archive.branch = 'main'; })), /archive branch must be evidence\/audits/);
+  refused(verifyAudits(mutate(t, e => { e.archive.path = '../x'; })), /archive path must be the audit folder/);
   refused(verifyAudits(mutate(t, e => { e.outcome = ' '; })), /outcome missing/);
   refused(verifyAudits(mutate(t, e => { e.environment = ''; })), /environment missing/);
   refused(verifyAudits(mutate(t, e => { e.audit_id = 'OTHER'; })), /does not match the folder/);
   refused(verifyAudits(mutate(t, e => { e.archive = null; })), /archive must name branch, commit, path and zip_sha256/);
   refused(verifyAudits(mutate(t, e => { e.archive.url = 'https://example.com/x'; })), /permalink/);
-  const root = copy(t);
+  let root = copy(t);
   writeFileSync(join(root, 'README.md'), '# empty index\n');
-  refused(verifyAudits(root), /not listed in README\.md/);
+  refused(verifyAudits(root), /not listed in the README\.md index table/);
+  // A mention outside the index table, e.g. in an HTML comment, does not list the package (PR #167 NB-5).
+  root = copy(t);
+  writeFileSync(join(root, 'README.md'), `# index\n<!-- [${ID}](${ID}/README.md) -->\n`);
+  refused(verifyAudits(root), /not listed in the README\.md index table/);
+});
+
+test('an evidence.json that is not an object never skips the checks (PR #167 B-1)', t => {
+  for (const body of ['null', 'false', '0', '""', '[]', '"text"']) {
+    const root = copy(t);
+    const dir = join(root, ID);
+    writeFileSync(join(dir, 'evidence.json'), body);
+    // Even with a manifest rewritten to match, the package is refused.
+    pack(dir, {});
+    writeFileSync(join(dir, 'evidence.json'), body);
+    refused(verifyAudits(root), /evidence\.json missing, not valid JSON or not an object/);
+  }
+});
+
+test('stray files, linked package folders, repeated manifest lines and a missing folder are refused (PR #167 NB-3, NB-4)', t => {
+  let root = copy(t);
+  writeFileSync(join(root, 'notes.txt'), 'x');
+  refused(verifyAudits(root), /notes\.txt: only README\.md and package folders/);
+  root = copy(t);
+  symlinkSync(join(root, ID), join(root, 'LINKED'));
+  refused(verifyAudits(root), /LINKED: only README\.md and package folders/);
+  root = copy(t);
+  const manifest = join(root, ID, 'MANIFEST.sha256');
+  writeFileSync(manifest, readFileSync(manifest, 'utf8') + readFileSync(manifest, 'utf8').split('\n')[0] + '\n');
+  refused(verifyAudits(root), /listed twice in the manifest/);
+  refused(verifyAudits(join(root, 'missing')), /is not a folder/);
+});
+
+// The durable archive is read back from git: the branch evidence/audits (fetched by CI with full history).
+const REPO = new URL('..', import.meta.url).pathname;
+const evidence = JSON.parse(readFileSync(join(AUDITS, ID, 'evidence.json'), 'utf8'));
+function archiveAvailable(t) {
+  try { execFileSync('git', ['cat-file', '-e', `${evidence.archive.commit}^{commit}`], {cwd: REPO, stdio: 'ignore'}); return true; } catch {
+    if (process.env.CI) throw new Error(`archive commit ${evidence.archive.commit} not fetched in CI`);
+    t.skip('archive branch not fetched locally (git fetch origin evidence/audits)');
+    return false;
+  }
+}
+
+test('every package is read back from its durable archive: commit on evidence/audits, files and ZIP match (PR #167 NB-2)', t => {
+  if (!archiveAvailable(t)) return;
+  assert.deepEqual(verifyAudits(AUDITS, {archiveGitDir: REPO}).errors, []);
+});
+
+test('a fake, foreign or altered archive is refused', t => {
+  if (!archiveAvailable(t)) return;
+  const fake = {...evidence, archive: {...evidence.archive, commit: 'f'.repeat(40)}};
+  assert.match(verifyArchive(REPO, fake).join(), /archive commit f+ not found/);
+  // A commit that exists but is not on the archive branch (main's history) and has no package.
+  const mainCommit = execFileSync('git', ['rev-list', '--max-parents=0', 'HEAD'], {cwd: REPO, encoding: 'utf8'}).trim().split('\n')[0];
+  const foreign = verifyArchive(REPO, {...evidence, archive: {...evidence.archive, commit: mainCommit}}).join();
+  assert.match(foreign, /is not on evidence\/audits/);
+  assert.match(foreign, /has no MP-OWNER-VISUAL-BASELINE-AUDIT-01\/MANIFEST\.sha256/);
+  assert.match(verifyArchive(REPO, {...evidence, archive: {...evidence.archive, zip_sha256: '0'.repeat(64)}}).join(), /ZIP differs/);
 });
