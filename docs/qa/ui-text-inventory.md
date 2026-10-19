@@ -12,7 +12,7 @@ Owner decision MP-OWNER-UI-NO-RAW-TEXT-01, requirement MP-WEB-015. This is the g
 - `data-area="user"`: the ordinary interface, where no T or R text may appear;
 - `data-area="technical"`: the dedicated technical views, where provenance and diagnostics belong.
 
-The Browser QA gate fails a user view, or the page footer, that shows technical text (`technicalText` in `tools/qa/browser-qa.mjs`, after every journey step, desktop and mobile). It also fails a user view with lead text (`.lead`, the explanatory paragraph under a title). The patterns are a safety net, not a proof: plain-language sentences that are merely superfluous are caught only by the `.lead` rule and by review, and the rows below name the test that checks each text.
+The Browser QA gate fails a user view, or the page footer, that shows technical text (`technicalText` in `tools/qa/browser-qa.mjs`, after every journey step, desktop and mobile). It also fails a user view with lead text (`.lead`, the explanatory paragraph under a title). The patterns are a safety net, not a proof: plain-language sentences that are merely superfluous are caught only by the `.lead` rule and by review. Each row names the test that checks its text, or says «not automated» when no test reads the text.
 
 **Done** means that the PR changed the text and that the test in the last column checks it.
 
@@ -97,16 +97,16 @@ Provenance, identifiers and diagnostics belong here (decision §3.7). They are l
 | UI-60 | «Salute dei dati e certificazione FutPythonTrader, letti da /api/v1/providers.»; provider keys without an Italian label shown as raw words | Fornitori dati | T (allowed) | stays technical; reached only from the «Dati» area; keys without a label get an Italian label | V-B2 | journey `providers-endpoints` |
 | UI-61 | endpoint paths, English API descriptions, «Route storiche» | API | T (allowed) | stays technical; reached only from the «Dati» area | V-B2 | journey `providers-endpoints` |
 | UI-62 | «Data Coverage → Competizioni», «Coverage quote minima (0–1)», «Provider», «404», «Overlap FPT/TC», placeholder «italy» | `/coverage` (server page) | T (allowed) | stays technical; reached only from the «Dati» area; style of the site | V-B2, V-B3 | `test/fpt-coverage-page.test.mjs` |
-| UI-63 | «MatchPilot · Accesso riservato all'owner. · Utente · Password · Accedi» | `/login` | U | kept (D-5) | — | `test/owner-auth*.test.mjs` |
-| UI-64 | «Credenziali non valide.», «Troppi tentativi…» and the other login messages | `/login` | U | kept (D-5); reviewed with the site style in V-B3 | V-B3 | `test/owner-auth*.test.mjs` |
-| UI-65 | «Accesso negato», «Accesso temporaneamente non disponibile» | plain-text refusals of the server | U | kept; styled page in V-B3 | V-B3 | `test/owner-auth*.test.mjs` |
+| UI-63 | «MatchPilot · Accesso riservato all'owner. · Utente · Password · Accedi» | `/login` | U | kept (D-5) | — | not automated (`test/owner-auth*.test.mjs` checks the statuses, not the text) |
+| UI-64 | «Credenziali non valide.», «Troppi tentativi…» and the other login messages | `/login` | U | kept (D-5); reviewed with the site style in V-B3 | V-B3 | not automated (statuses only) |
+| UI-65 | «Accesso negato», «Accesso temporaneamente non disponibile» | plain-text refusals of the server | U | kept; styled page in V-B3 | V-B3 | not automated (statuses only) |
 
 ## Controls, options and tooltips
 
 | ID | Current text | Where | Class | Action | PR | Verification |
 |---|---|---|---|---|---|---|
 | UI-70 | «Riprova» | every error state | U | kept | — | journey `daily-board`, step «errore dell'API»; `web-e2e` |
-| UI-71 | «Casa o trasferta», «Casa», «Trasferta», «Tutte», «Qualsiasi», «Finale», «Senza risultato», «Non iniziata» | Ricerca options | U | kept | — | journey `search` |
+| UI-71 | «Casa o trasferta», «Casa», «Trasferta», «Tutte», «Qualsiasi», «Finale», «Senza risultato», «Non iniziata» | Ricerca options | U | kept | — | not automated (the journeys select by value); the competition options are checked in UI-33 |
 | UI-72 | tooltips: «Valore non disponibile», «Apri la Daily Board di quel giorno», the kickoff note, odds names, «Ora italiana · UTC …», codes and server messages of errors | every view | U (T in error tooltips) | kept: a tooltip is where a reason stays accessible without being shown (decision §3.6–3.7); error tooltips carry the code for support | — | journeys (`title` of the kickoff) |
 
 ## Plan inside V-B
