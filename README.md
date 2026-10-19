@@ -24,3 +24,4 @@ The index of the essential evidence, and the link to each package here, is `docs
 | [V-B2a-HOME-NAV-DATI-R2](V-B2a-HOME-NAV-DATI-R2/INDEX.md) | V-B2a after review D2 round 1 (PR #170): GREEN Browser QA of 747e4e5 | 2026-10-19 | 1 Browser QA run with screenshots and traces |
 | [V-B2b-PROVIDER-LABELS](V-B2b-PROVIDER-LABELS/INDEX.md) | V-B2b: Italian labels of the provider tree, review notes of PR #170; before/RED/GREEN Browser QA | 2026-10-19 | 3 Browser QA runs with screenshots and traces, 5 crops |
 | [V-B2b-PROVIDER-LABELS-R2](V-B2b-PROVIDER-LABELS-R2/INDEX.md) | V-B2b after review D2 round 1 (PR #171): GREEN Browser QA of 4f3badb | 2026-10-19 | 1 Browser QA run with screenshots and traces |
+| [V-B2b-PROVIDER-LABELS-R3](V-B2b-PROVIDER-LABELS-R3/INDEX.md) | V-B2b after review D2 round 2 (PR #171): GREEN Browser QA of 2d009fb | 2026-10-19 | 1 Browser QA run with screenshots and traces |
