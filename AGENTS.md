@@ -82,9 +82,23 @@ Il contratto prodotto si modifica solo con decisione owner registrata.
 - nessun finding bloccante;
 - nessun conflitto owner irrisolto;
 - nessuna operazione esterna non autorizzata (deploy, costo, produzione, LIVE);
-- nessun riferimento di auto-chiusura nella PR.
+- nessun riferimento di auto-chiusura nella PR;
+- **Browser QA Gate PASS** se la modifica è web (MP-OWNER-BROWSER-QA-HARD-GATE-01, vedi sotto).
 
 La valutazione eseguibile è `node tools/governance/cli.mjs merge-gate <input.json>`.
+
+**Browser QA Gate (MP-OWNER-BROWSER-QA-HARD-GATE-01): WEB CHANGE + NO VERIFIED BROWSER QA = MERGE BLOCKED.**
+- **Cosa è una modifica web:** lo decide il classificatore della CI (`scripts/ci-classify.mjs`, output `web`), mai l'agente. Sono web il sito, le API lette dal browser, lo schema dei dati, le dipendenze e il gate stesso; un diff vuoto o illeggibile è web.
+- **Cosa serve per una modifica web:**
+  - il job CI `Browser QA` verde sull'head della PR: percorsi obbligatori in Chrome reale, desktop e mobile, su PostgreSQL usa e getta;
+  - l'evidenza verificata da `tools/qa/verify-report.mjs` (rapporto legato a head e commit testato, manifesto SHA-256, verdetto ricalcolato);
+  - l'artifact `browser-qa-<head>` conservato;
+  - nel `merge-gate`: `web_impact` dal classificatore e `browser_qa` con verdetto, verifica, head e run CI.
+- **Unit test, integrazione, build, CI verde senza prove browser o una review che legge solo il codice non bastano.** Un PASS non eseguito non vale.
+- **Dati mancanti** (MP-OWNER-PRODUCT-QUALITY-DATA-01): distinguere BUG, DATA MISSING, DATA QUALITY ISSUE, NOT VERIFIED, BLOCKED; un dato assente si mostra N/D, mai inventato né 0.
+- **Gravità dei finding:** P0 e P1 confermati e aperti bloccano; P2 e P3 si differiscono solo con motivo, impatto e attività successiva registrati.
+- **Livello esplorativo AI:** finché non è collaudato resta NOT VERIFIED e non sostituisce il gate deterministico.
+- Procedura e matrice: [`docs/qa/browser-qa.md`](docs/qa/browser-qa.md).
 
 **Requisiti della review indipendente:**
 - il revisore non ha prodotto la modifica;

@@ -29,6 +29,22 @@ const DEPENDENTS = new Map([
   ['shared', ['database', 'api', 'fpt', 'totalcorner', 'math', 'trading', 'money-management', 'replay', 'mcp', 'security']],
 ]);
 
+// Browser QA Gate (MP-OWNER-BROWSER-QA-HARD-GATE-01): files whose change can alter what the browser shows or the APIs
+// it reads, plus the gate itself. Any of them, an empty or unreadable diff, or a deleted file among them makes the
+// change a web change; the exemption of every other change is this rule, tested in test/ci-classify.test.mjs.
+const WEB_IMPACT = [
+  /^src\/web\//, /^src\/server\.mjs$/, /^src\/api\//, /^src\/auth\//, /^src\/coverage-page\.mjs$/,
+  /^src\/providers\//, /^src\/(db|migrate|runtime-safety)\.mjs$/, /^migrations\//,
+  /^package(-lock)?\.json$/, /^tools\/qa\//, /^scripts\/ci-classify\.mjs$/, /^\.github\/workflows\//,
+  /^test\/(web-e2e|browser-qa)/, /^test\/helpers\/fpt-seed\.mjs$/,
+];
+
+export function webImpact(inputFiles) {
+  const files = [...new Set(inputFiles.map(file => file.trim()).filter(Boolean))];
+  if (files.length === 0) return true;
+  return files.some(file => WEB_IMPACT.some(pattern => pattern.test(file)));
+}
+
 function isDocumentation(file) {
   return /^(README\.md|CLAUDE\.md|AGENTS\.md|docs\/(?!mockups\/).+|\.github\/pull_request_template\.md|\.github\/(?:ISSUE_TEMPLATE|PULL_REQUEST_TEMPLATE)\/.*)$/i.test(file);
 }
@@ -79,10 +95,10 @@ export function classifyFiles(inputFiles) {
   return { mode: 'full', categories: [...categories].sort() };
 }
 
-function changedFiles(baseSha, headSha) {
+function changedFiles(baseSha, headSha, {filter = 'ACMR'} = {}) {
   if (!SHA.test(baseSha ?? '') || !SHA.test(headSha ?? '')) return [];
   try {
-    return execFileSync('git', ['diff', '--name-only', '--diff-filter=ACMR', `${baseSha}...${headSha}`], {
+    return execFileSync('git', ['diff', '--name-only', ...(filter ? [`--diff-filter=${filter}`] : []), `${baseSha}...${headSha}`], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     }).split('\n').filter(Boolean);
@@ -91,12 +107,14 @@ function changedFiles(baseSha, headSha) {
   }
 }
 
-function emit(result) {
-  const lines = [`mode=${result.mode}`, `categories=${result.categories.join(',')}`];
+function emit(result, web) {
+  const lines = [`mode=${result.mode}`, `categories=${result.categories.join(',')}`, `web=${web}`];
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${lines.join('\n')}\n`);
   console.log(lines.join('\n'));
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  emit(classifyFiles(changedFiles(process.env.BASE_SHA, process.env.HEAD_SHA)));
+  // Deleted files count for the web impact: removing a page is a web change.
+  emit(classifyFiles(changedFiles(process.env.BASE_SHA, process.env.HEAD_SHA)),
+    webImpact(changedFiles(process.env.BASE_SHA, process.env.HEAD_SHA, {filter: null})));
 }

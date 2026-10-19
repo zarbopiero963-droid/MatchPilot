@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { classifyFiles } from '../scripts/ci-classify.mjs';
+import { classifyFiles, webImpact } from '../scripts/ci-classify.mjs';
 
 test('documentation-only changes use the documentation lane', () => {
   assert.deepEqual(classifyFiles(['README.md', 'docs/operations.md']), {
@@ -50,4 +50,23 @@ test('empty or invalid diff fails closed to full', () => {
 
 test('documentation mixed with source cannot downgrade the source lane', () => {
   assert.equal(classifyFiles(['docs/operations.md', 'src/providers/futpython/store.mjs']).mode, 'full');
+});
+
+test('web impact: site, browser-read APIs, data schema, dependencies and the gate itself require Browser QA', () => {
+  for (const file of ['src/web/app.js', 'src/web/index.html', 'src/server.mjs', 'src/api/v1.mjs', 'src/auth/http.mjs', 'src/coverage-page.mjs',
+    'src/providers/futpython/query.mjs', 'src/providers/totalcorner/live.mjs', 'src/db.mjs', 'migrations/030-x.sql', 'package.json', 'package-lock.json',
+    'tools/qa/journeys.mjs', 'scripts/ci-classify.mjs', '.github/workflows/ci.yml', 'test/web-e2e.test.mjs', 'test/browser-qa-gate.test.mjs',
+    'test/helpers/fpt-seed.mjs']) {
+    assert.equal(webImpact([file]), true, file);
+  }
+  assert.equal(webImpact(['README.md', 'src/web/app.css']), true, 'docs mixed with a web file stay a web change');
+});
+
+test('web impact exemption is automatic, verifiable and fails closed', () => {
+  for (const files of [['README.md'], ['docs/web.md'], ['docs/governance/checkpoints/CP-x.json'], ['docs/mockups/matchpilot-trading-os.html'],
+    ['src/math/core.mjs'], ['src/jobs/futpython-sync.mjs'], ['tools/governance/cli.mjs'], ['test/math-core.test.mjs']]) {
+    assert.equal(webImpact(files), false, files.join(','));
+  }
+  assert.equal(webImpact([]), true, 'an empty or unreadable diff is a web change');
+  assert.equal(webImpact(['', '  ']), true);
 });

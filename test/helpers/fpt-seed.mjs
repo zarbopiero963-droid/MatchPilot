@@ -13,13 +13,13 @@ const HEADERS = ['Date', 'Time', 'Home', 'Away', 'Home_Score', 'Away_Score', 'Od
   'Over_FT_2_5', 'BTTS_Yes', 'xG_Home_FT', 'xG_Away_FT'];
 const TIMES = ['15:00', '20:45', ''];
 
-export function seedRows(year = 2024) {
+export function seedRows(year = 2024, {teams = SEED_TEAMS, perDay = 3} = {}) {
   const rows = [];
   let n = 0;
-  for (const home of SEED_TEAMS) {
-    for (const away of SEED_TEAMS) {
+  for (const home of teams) {
+    for (const away of teams) {
       if (home === away) continue;
-      const date = new Date(Date.UTC(year, 7, 1) + Math.floor(n / 3) * 86400000).toISOString().slice(0, 10);
+      const date = new Date(Date.UTC(year, 7, 1) + Math.floor(n / perDay) * 86400000).toISOString().slice(0, 10);
       const hs = (home.length + n) % 4;
       const as = (away.length + n) % 3;
       const oddHome = (1.3 + (n % 9) * 0.15).toFixed(2);
@@ -37,16 +37,20 @@ export function seedRows(year = 2024) {
 const csv = rows => HEADERS.join(',') + '\n' + rows.map(r => HEADERS.map(h => r[h] ?? '').join(',')).join('\n') + '\n';
 
 // Seeds one season (30 matches over 10 dates starting <year>-08-01). Returns ids the tests need.
-export async function seedEredivisie(client, {year = 2024, acquiredAt = new Date(`${year + 1}-06-01T00:00:00Z`)} = {}) {
+export const seedEredivisie = (client, {year = 2024, acquiredAt} = {}) => seedLeague(client, {year, acquiredAt});
+
+// One league season through the same path; teams and matches per day are configurable (Browser QA archive).
+export async function seedLeague(client, {country = 'netherlands', league = 'eredivisie', teams = SEED_TEAMS, perDay = 3, year = 2024,
+  acquiredAt = new Date(`${year + 1}-06-01T00:00:00Z`)} = {}) {
   const season = `${year}-${year + 1}`;
-  const key = `netherlands/eredivisie/${season}`;
-  const rows = seedRows(year);
+  const key = `${country}/${league}/${season}`;
+  const rows = seedRows(year, {teams, perDay});
   const text = csv(rows);
   const parsed = parseCsv(text);
-  await client.query(`INSERT INTO fpt_catalog(dataset_key,country_slug,league_slug,season,route) VALUES($1,'netherlands','eredivisie',$2,$3)`,
-    [key, season, `/api/download/${key}`]);
+  await client.query(`INSERT INTO fpt_catalog(dataset_key,country_slug,league_slug,season,route) VALUES($1,$2,$3,$4,$5)`,
+    [key, country, league, season, `/api/download/${key}`]);
   await storeDataset(client, {datasetKey: key, sourceKind: 'dataset', providerPath: `/api/download/${key}`,
-    countrySlug: 'netherlands', leagueSlug: 'eredivisie', season, text, headers: parsed.headers, rows: parsed.rows, acquiredAt});
+    countrySlug: country, leagueSlug: league, season, text, headers: parsed.headers, rows: parsed.rows, acquiredAt});
   // A successful download is classified as the sync job does (phase 2), so the season registry lists it.
   await client.query('INSERT INTO fpt_dataset_state(dataset_key) VALUES ($1) ON CONFLICT (dataset_key) DO NOTHING', [key]);
   await persistOutcome(client, key, {kind: 'success', providerPath: `/api/download/${key}`});
@@ -54,7 +58,16 @@ export async function seedEredivisie(client, {year = 2024, acquiredAt = new Date
   await refreshNormalizedLayer(client);
   // The season registry (phase 6 of the real pipeline) feeds the competitions list.
   await rebuildSeasonRegistry(client);
-  const {rows: [ids]} = await client.query('SELECT min(internal_competition_id) AS competition, min(season_id) AS season FROM fpt_match_facts');
+  const {rows: [ids]} = await client.query('SELECT min(internal_competition_id) AS competition, min(season_id) AS season FROM fpt_match_facts WHERE dataset_key = $1', [key]);
   const dates = [...new Set(rows.map(row => row.Date))];
   return {competition: ids.competition, season: ids.season, dates, matches: rows.length, seasonLabel: season};
+}
+
+// The Browser QA archive (MP-OWNER-BROWSER-QA-HARD-GATE-01): two competitions sharing dates, one of them with 28 matches
+// on a day, so the Daily Board must page ("Carica altre partite") and mixes competitions in kickoff order.
+export const QA_LALIGA_TEAMS = ['Barcelona', 'Real Madrid', 'Atletico', 'Sevilla', 'Valencia', 'Betis', 'Villarreal', 'Getafe'];
+export async function seedQaArchive(client) {
+  const eredivisie = await seedLeague(client);
+  const laliga = await seedLeague(client, {country: 'spain', league: 'laliga', teams: QA_LALIGA_TEAMS, perDay: 28});
+  return {eredivisie, laliga, busyDay: laliga.dates[0], matches: eredivisie.matches + laliga.matches};
 }
