@@ -129,7 +129,7 @@ function regressionTestExists(repoDir, path) {
   return existsSync(full) && statSync(full).isFile();
 }
 
-// changedFiles: the files the fixing change touched (from --base); when given, a FIXED finding's regression test must be
+// changedFiles: the files the fixing change touched (from --base); a FIXED finding needs them, and its regression test must be
 // one of them, so it was written or changed with the fix and is not an unrelated existing test.
 export function verifyAiReview(dir, reviewPath, {expectedHead, repoDir = process.cwd(), changedFiles = null} = {}) {
   const errors = [];
@@ -182,7 +182,8 @@ export function verifyAiReview(dir, reviewPath, {expectedHead, repoDir = process
     if (!STATUSES.includes(finding.status)) errors.push(`${at} has invalid status ${finding.status}`);
     // A confirmed defect becomes a regression test (MP-OWNER-QA-VISUAL-EXECUTION-01): FIXED names one that exists.
     if (finding.status === 'FIXED' && !regressionTestExists(repoDir, finding.regression_test)) errors.push(`${at} FIXED without an existing regression test`);
-    else if (finding.status === 'FIXED' && changedFiles && !changedFiles.includes(finding.regression_test)) errors.push(`${at} FIXED with ${finding.regression_test}, not changed by the fix`);
+    else if (finding.status === 'FIXED' && !Array.isArray(changedFiles)) errors.push(`${at} FIXED needs the files changed by the fix (--base)`);
+    else if (finding.status === 'FIXED' && !changedFiles.includes(finding.regression_test)) errors.push(`${at} FIXED with ${finding.regression_test}, not changed by the fix`);
     // P2/P3 may be deferred only with reason, impact and follow-up (MP-OWNER-PRODUCT-QUALITY-DATA-01); P0/P1 never.
     if (finding.status === 'DEFERRED') {
       if (finding.classification === 'BUG' && !['P2', 'P3'].includes(finding.severity)) errors.push(`${at} a ${finding.severity} BUG cannot be deferred`);
@@ -207,7 +208,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const dir = args[0];
   if (!dir || dir.startsWith('--')) { console.error('usage: verify-exploration.mjs <dir> --head <sha> [--commit <sha>] [--review <file> [--base <ref>]]'); process.exit(2); }
   const result = verifyExploration(dir, {expectedHead: opt('head'), expectedCommit: opt('commit') ?? null, gitDir: process.cwd()});
-  const changedFiles = opt('base') ? git(['diff', '--name-only', '--no-renames', `${opt('base')}...HEAD`]).split('\n').filter(Boolean) : null;
+  // --base is a ref or SHA, never an option; the fix is the range base...head (the PR head given with --head).
+  const base = opt('base');
+  if (base !== undefined && (!/^[\w][\w./-]*$/.test(base) || base.includes('..'))) { console.error(`invalid --base ${JSON.stringify(base)}`); process.exit(2); }
+  const changedFiles = base ? git(['diff', '--name-only', '--no-renames', `${base}...${opt('head')}`, '--']).split('\n').filter(Boolean) : null;
   const review = opt('review') ? verifyAiReview(dir, opt('review'), {expectedHead: opt('head'), changedFiles}) : null;
   console.log(JSON.stringify({ok: result.ok, errors: result.errors, totals: result.report?.totals ?? null,
     ai_review: review ? {ok: review.ok, verdict: review.verdict, errors: review.errors} : {status: 'NOT_VERIFIED'}}, null, 2));

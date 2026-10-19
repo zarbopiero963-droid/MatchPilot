@@ -138,7 +138,7 @@ test('a complete AI review of the exact bundle is accepted, with a computed verd
   const blocking = verifyAiReview(dir, review(t, dir, r => { Object.assign(r.findings[0], {severity: 'P1', status: 'OPEN'}); r.verdict = 'BLOCKING'; }), {expectedHead: HEAD});
   assert.deepEqual(blocking.errors, []);
   assert.equal(blocking.verdict, 'BLOCKING');
-  const fixed = verifyAiReview(dir, review(t, dir, r => { Object.assign(r.findings[0], {severity: 'P0', status: 'FIXED', regression_test: 'test/explore.test.mjs'}); }), {expectedHead: HEAD});
+  const fixed = verifyAiReview(dir, review(t, dir, r => { Object.assign(r.findings[0], {severity: 'P0', status: 'FIXED', regression_test: 'test/explore.test.mjs'}); }), {expectedHead: HEAD, changedFiles: ['test/explore.test.mjs']});
   assert.deepEqual(fixed.errors, []);
   assert.equal(fixed.verdict, 'NO_BLOCKING');
 });
@@ -271,6 +271,8 @@ test('a bundle without desktop and mobile, a linked evidence file or a fix witho
   const fixed = r => { Object.assign(r.findings[0], {severity: 'P0', status: 'FIXED', regression_test: 'test/explore.test.mjs'}); };
   assert.deepEqual(verifyAiReview(dir, review(t, dir, fixed), {expectedHead: HEAD, changedFiles: ['src/web/app.js', 'test/explore.test.mjs']}).errors, []);
   refused(verifyAiReview(dir, review(t, dir, fixed), {expectedHead: HEAD, changedFiles: ['src/web/app.js']}), /not changed by the fix/);
+  // Without the files of the fix (no --base), FIXED is refused (PR #166 NB-2).
+  refused(verifyAiReview(dir, review(t, dir, fixed), {expectedHead: HEAD}), /FIXED needs the files changed by the fix/);
 });
 
 test('a problem caused just before the page leaves the site still reproduces (PR #165 R2-NB-1)', {timeout: 120000}, async t => {
