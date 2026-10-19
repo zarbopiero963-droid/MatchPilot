@@ -39,7 +39,35 @@ export function validateEvidence(entry, where = 'evidence') {
   return errors;
 }
 
-export function validateCheckpoint(cp, {decisionIds, requirementIds, taskIds} = {}) {
+// Checkpoint errata (PR #162 review NB-9): checkpoints are append-only, so a wrong recorded time is never rewritten.
+// An erratum bounds the real time from above with the author time of the first commit that contained the file.
+// The check below makes a checkpoint dated after its own validation fail, so new errata should not be needed.
+export const FUTURE_TOLERANCE_MS = 10 * 60e3;
+
+export function validateErrata(errata, checkpoints) {
+  const errors = [];
+  if (errata?.schema_version !== 'mp-checkpoint-errata-v1') return ['checkpoint errata schema_version must be mp-checkpoint-errata-v1'];
+  const byId = new Map(checkpoints.map(cp => [cp.id, cp]));
+  const seen = new Set();
+  for (const entry of errata.entries || []) {
+    const at = `erratum ${entry?.id}`;
+    const cp = byId.get(entry?.id);
+    if (!cp) { errors.push(`${at} names an unknown checkpoint`); continue; }
+    if (seen.has(entry.id)) errors.push(`${at} is duplicated`);
+    seen.add(entry.id);
+    if (entry.recorded_timestamp_utc !== cp.timestamp_utc) errors.push(`${at} recorded_timestamp_utc differs from the checkpoint`);
+    if (!validIso(entry.not_after_utc)) errors.push(`${at} not_after_utc must be ISO UTC`);
+    else if (Date.parse(entry.not_after_utc) >= Date.parse(cp.timestamp_utc)) errors.push(`${at} not_after_utc must be earlier than the recorded time`);
+    if (!SHA.test(entry.basis_commit || '')) errors.push(`${at} basis_commit must be a full SHA`);
+  }
+  return errors;
+}
+
+export const errataMap = errata => new Map((errata?.entries || []).map(entry => [entry.id, entry]));
+// The time a checkpoint can be trusted with: its recorded time, or the erratum bound when the recorded time is wrong.
+export const effectiveTime = (cp, errata = new Map()) => Date.parse(errata.get(cp.id)?.not_after_utc ?? cp.timestamp_utc);
+
+export function validateCheckpoint(cp, {decisionIds, requirementIds, taskIds, now, errata = new Map()} = {}) {
   const errors = [];
   const at = `checkpoint ${cp?.id}`;
   if (!cp || typeof cp !== 'object') return ['checkpoint must be an object'];
@@ -55,6 +83,7 @@ export function validateCheckpoint(cp, {decisionIds, requirementIds, taskIds} = 
   if (!match) errors.push(`${at} invalid id`);
   if (!validIso(cp.timestamp_utc)) errors.push(`${at} timestamp_utc must be ISO UTC`);
   else if (match && compactStamp(cp.timestamp_utc) !== match[1]) errors.push(`${at} id timestamp differs from timestamp_utc`);
+  else if (now && !errata.has(cp.id) && Date.parse(cp.timestamp_utc) > now.getTime() + FUTURE_TOLERANCE_MS) errors.push(`${at} timestamp_utc is in the future`);
   if (!cp.agent?.id || !ROLES.includes(cp.agent?.role)) errors.push(`${at} agent needs id and an admitted role`);
   for (const key of ['activity', 'task', 'repository', 'branch', 'next_action']) if (!String(cp[key] || '').trim()) errors.push(`${at} missing ${key}`);
   if (taskIds && !taskIds.has(cp.task)) errors.push(`${at} unknown task ${cp.task}`);
@@ -66,7 +95,10 @@ export function validateCheckpoint(cp, {decisionIds, requirementIds, taskIds} = 
   for (const key of ['requirements', 'changes', 'tests', 'findings', 'owner_decisions', 'dependencies', 'resume_conditions']) {
     if (!Array.isArray(cp[key])) errors.push(`${at} ${key} must be an array`);
   }
-  (cp.tests || []).forEach((entry, i) => errors.push(...validateEvidence(entry, `${at} tests[${i}]`)));
+  (cp.tests || []).forEach((entry, i) => {
+    errors.push(...validateEvidence(entry, `${at} tests[${i}]`));
+    if (validIso(entry?.time) && validIso(cp.timestamp_utc) && Date.parse(entry.time) > Date.parse(cp.timestamp_utc)) errors.push(`${at} tests[${i}] time is later than the checkpoint`);
+  });
   if (!CI_CONCLUSIONS.includes(cp.ci?.conclusion)) errors.push(`${at} invalid ci conclusion`);
   if (cp.ci?.run_id !== null && cp.ci?.run_id !== undefined && !Number.isInteger(cp.ci.run_id)) errors.push(`${at} ci.run_id must be a number or null`);
   for (const gate of ['gate_a', 'gate_b']) if (!GATE_RESULTS.includes(cp[gate])) errors.push(`${at} invalid ${gate}`);
@@ -88,7 +120,9 @@ export function validateCheckpoint(cp, {decisionIds, requirementIds, taskIds} = 
 }
 
 // Latest valid checkpoint of a task: the single head of the supersedes chain. Forks are conflicts.
-export function resolveLatest(checkpoints, task) {
+// Among checkpoints both under an erratum the recorded order is kept (their bounds can coincide); otherwise the
+// effective times are compared, so a correctly dated checkpoint can follow one recorded in the future.
+export function resolveLatest(checkpoints, task, {errata = new Map()} = {}) {
   const own = checkpoints.filter(cp => cp.task === task);
   if (!own.length) return {latest: null, conflicts: []};
   const byId = new Map(own.map(cp => [cp.id, cp]));
@@ -98,7 +132,9 @@ export function resolveLatest(checkpoints, task) {
     if (cp.supersedes === null) continue;
     const parent = byId.get(cp.supersedes);
     if (!parent) { conflicts.push(`${cp.id} supersedes unknown ${cp.supersedes}`); continue; }
-    if (Date.parse(cp.timestamp_utc) <= Date.parse(parent.timestamp_utc)) conflicts.push(`${cp.id} is not newer than ${parent.id}`);
+    const bothErrata = errata.has(cp.id) && errata.has(parent.id);
+    const newer = bothErrata ? Date.parse(cp.timestamp_utc) > Date.parse(parent.timestamp_utc) : effectiveTime(cp, errata) > effectiveTime(parent, errata);
+    if (!newer) conflicts.push(`${cp.id} is not newer than ${parent.id}`);
     children.set(parent.id, [...(children.get(parent.id) || []), cp.id]);
   }
   for (const [parent, kids] of children) if (kids.length > 1) conflicts.push(`fork after ${parent}: ${kids.join(', ')}`);
@@ -106,12 +142,12 @@ export function resolveLatest(checkpoints, task) {
   if (roots.length > 1) conflicts.push(`multiple roots for ${task}: ${roots.map(cp => cp.id).join(', ')}`);
   const heads = own.filter(cp => !children.has(cp.id));
   if (heads.length !== 1) conflicts.push(`expected one head for ${task}, found ${heads.length}`);
-  const latest = heads.sort((a, b) => Date.parse(b.timestamp_utc) - Date.parse(a.timestamp_utc))[0];
+  const latest = heads.sort((a, b) => effectiveTime(b, errata) - effectiveTime(a, errata))[0];
   return {latest, conflicts};
 }
 
 // Compare a checkpoint with the real repository state. `reality` comes from git/GitHub, never from the checkpoint.
-export function reconcile(cp, reality, {now = new Date(), staleAfterHours = 24} = {}) {
+export function reconcile(cp, reality, {now = new Date(), staleAfterHours = 24, errata = new Map()} = {}) {
   const divergences = [];
   if (reality.branchHead === null) divergences.push({code: 'BRANCH_MISSING', detail: `${cp.branch} not found`});
   else if (reality.branchHead !== cp.commit_sha) {
@@ -126,7 +162,7 @@ export function reconcile(cp, reality, {now = new Date(), staleAfterHours = 24} 
   if (reality.treeSha && reality.branchHead === cp.commit_sha && reality.treeSha !== cp.tree_sha) divergences.push({code: 'TREE_MISMATCH', detail: `tree ${reality.treeSha} != ${cp.tree_sha}`});
   if (reality.prState === 'merged' && !['MERGED', 'COMPLETED', 'CERTIFIED'].includes(cp.state)) divergences.push({code: 'PR_ALREADY_MERGED', detail: `PR #${cp.pr} is merged`});
   if (cp.state === 'MERGED' && reality.prState && reality.prState !== 'merged') divergences.push({code: 'MERGE_NOT_REAL', detail: `PR #${cp.pr} is ${reality.prState}`});
-  if (ACTIVE_STATES.has(cp.state) && now - Date.parse(cp.timestamp_utc) > staleAfterHours * 3600e3) divergences.push({code: 'STALE', detail: `${cp.state} older than ${staleAfterHours}h`});
+  if (ACTIVE_STATES.has(cp.state) && now - effectiveTime(cp, errata) > staleAfterHours * 3600e3) divergences.push({code: 'STALE', detail: `${cp.state} older than ${staleAfterHours}h`});
   return divergences;
 }
 

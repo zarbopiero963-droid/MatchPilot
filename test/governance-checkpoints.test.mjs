@@ -4,7 +4,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {commentMarker, loadCheckpoints, planComment, reconcile, resolveLatest, validateCheckpoint, validateEvidence, writeCheckpoint} from '../tools/governance/checkpoints.mjs';
+import {commentMarker, errataMap, loadCheckpoints, planComment, reconcile, resolveLatest, validateCheckpoint, validateErrata, validateEvidence, writeCheckpoint} from '../tools/governance/checkpoints.mjs';
 import {realityFor, rewrittenCheckpoints} from '../tools/governance/git.mjs';
 
 const SHA_A = 'a'.repeat(40);
@@ -103,6 +103,48 @@ test('the latest valid checkpoint is the single head of the supersedes chain', (
   const orphanRoot = makeCheckpoint({id: 'CP-20261018T230000Z-agent-x', timestamp_utc: '2026-10-18T23:00:00Z'});
   assert.ok(resolveLatest([a, orphanRoot], 'R-01').conflicts.some(e => e.includes('multiple roots')));
   assert.equal(resolveLatest([a], 'R-02').latest, null);
+});
+
+test('a checkpoint dated after its validation, or with test times after itself, is refused (PR #162 NB-9)', () => {
+  const cp = makeCheckpoint();
+  const now = new Date('2026-10-18T20:05:00Z');
+  assert.deepEqual(validateCheckpoint(cp, {now}), []);
+  assert.deepEqual(validateCheckpoint(cp, {now: new Date('2026-10-18T19:51:00Z')}), [], 'within the 10 minute clock tolerance');
+  assert.ok(validateCheckpoint(cp, {now: new Date('2026-10-18T19:49:00Z')}).some(e => e.includes('in the future')));
+  const late = makeCheckpoint({tests: [{...cp.tests[0], time: '2026-10-18T20:01:00Z'}]});
+  assert.ok(validateCheckpoint(late, {now}).some(e => e.includes('tests[0] time is later than the checkpoint')));
+  // An erratum accepts the recorded (wrong) time instead of rewriting an append-only file.
+  const errata = errataMap({entries: [{id: cp.id, not_after_utc: '2026-10-18T19:40:00Z'}]});
+  assert.deepEqual(validateCheckpoint(cp, {now: new Date('2026-10-18T19:45:00Z'), errata}), []);
+});
+
+test('errata bound a wrong checkpoint time with a real commit time and keep the chain resolvable', () => {
+  const a = makeCheckpoint();
+  const b = makeCheckpoint({id: 'CP-20261018T230000Z-agent-a', timestamp_utc: '2026-10-18T23:00:00Z', supersedes: a.id});
+  const good = {schema_version: 'mp-checkpoint-errata-v1', entries: [
+    {id: a.id, recorded_timestamp_utc: a.timestamp_utc, not_after_utc: '2026-10-18T19:00:00Z', basis_commit: SHA_A},
+    {id: b.id, recorded_timestamp_utc: b.timestamp_utc, not_after_utc: '2026-10-18T19:00:00Z', basis_commit: SHA_A},
+  ]};
+  assert.deepEqual(validateErrata(good, [a, b]), []);
+  const bad = entry => validateErrata({schema_version: 'mp-checkpoint-errata-v1', entries: [{...good.entries[0], ...entry}]}, [a, b]);
+  assert.ok(bad({id: 'CP-20261018T000000Z-x'}).some(e => e.includes('unknown checkpoint')));
+  assert.ok(bad({recorded_timestamp_utc: '2026-10-18T20:00:01Z'}).some(e => e.includes('differs')));
+  assert.ok(bad({not_after_utc: '2026-10-18T20:00:00Z'}).some(e => e.includes('earlier than the recorded time')));
+  assert.ok(bad({basis_commit: 'abc'}).some(e => e.includes('full SHA')));
+  assert.ok(validateErrata({schema_version: 'x', entries: []}, []).some(e => e.includes('schema_version')));
+  assert.ok(validateErrata({...good, entries: [...good.entries, good.entries[0]]}, [a, b]).some(e => e.includes('duplicated')));
+
+  const errata = errataMap(good);
+  // Both under an erratum with the same bound: the recorded order is kept.
+  assert.deepEqual(resolveLatest([a, b], 'R-01', {errata}).conflicts, []);
+  // A correctly dated successor of a future-dated checkpoint: without the erratum it looks older, with it the chain holds.
+  const real = makeCheckpoint({id: 'CP-20261018T193000Z-agent-a', timestamp_utc: '2026-10-18T19:30:00Z', supersedes: b.id});
+  assert.ok(resolveLatest([a, b, real], 'R-01').conflicts.some(e => e.includes('not newer')));
+  assert.deepEqual(resolveLatest([a, b, real], 'R-01', {errata}).conflicts, []);
+  assert.equal(resolveLatest([a, b, real], 'R-01', {errata}).latest.id, real.id);
+  // A successor dated before the bound is still refused.
+  const early = makeCheckpoint({id: 'CP-20261018T185000Z-agent-a', timestamp_utc: '2026-10-18T18:50:00Z', supersedes: b.id});
+  assert.ok(resolveLatest([a, b, early], 'R-01', {errata}).conflicts.some(e => e.includes('not newer')));
 });
 
 function gitRepo() {

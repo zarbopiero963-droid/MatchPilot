@@ -145,5 +145,13 @@ Il sistema è indipendente dal modello e dal fornitore. Usa soltanto file nel re
 - **Schema v2.** Una review APPROVED richiede `review.reviewed_sha` e un run CI richiede `ci.head_sha`: un'evidenza vale solo per il commit che ha coperto. Un checkpoint MERGED o CERTIFIED deve avere la review sul proprio `commit_sha`.
 - **Merge commit.** L'analisi append-only include anche ciò che i merge commit cambiano rispetto al primo genitore, oltre al diff cumulativo dalla base.
 - **Append-only in CI.** Una PR che modifica o elimina un checkpoint esistente viene rifiutata in CI (`check-append-only`). Le correzioni si fanno con un nuovo checkpoint che sostituisce il precedente tramite `supersedes`.
+- **Orari reali.** `timestamp_utc` e gli orari dei test si prendono dall'orologio (`date -u`), mai stimati. `governance:check` rifiuta:
+  - un checkpoint con data più di 10 minuti nel futuro;
+  - un test con orario successivo al suo checkpoint.
+- **Errata.** I checkpoint registrati con orari non reali restano invariati. Ognuno è elencato in [`checkpoint-errata.json`](checkpoint-errata.json) (finding NB-9 della PR #162), con:
+  - `not_after_utc`: il limite superiore reale, cioè l'orario autore del primo commit che contiene il file;
+  - `basis_commit`: quel commit.
+
+  Il loro orario reale resta ignoto. Per ordinare la catena e per lo stato `STALE` vale il limite.
 - **Slot di implementazione.** RUNNING e REVIEW occupano sempre l'unico slot. Ogni altro stato non finale (diverso da MERGED e COMPLETED) lo occupa finché la sua PR può essere aperta: solo `pr_open: false` esplicito lo libera, e `validate` rifiuta un'attività con `pr` ma senza `pr_open`. Il valore di `pr_open` è dichiarato dall'agente e non viene confrontato con GitHub in automatico: chi subentra lo verifica sulla PR.
 - Il lock su file protegge i processi nello stesso worktree. Fra worktree o macchine diversi la protezione è la compare-and-swap su `revision` più il rifiuto git dei push non fast-forward: chi perde la corsa ricarica e rivaluta.

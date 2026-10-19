@@ -8,7 +8,7 @@
 //   check-append-only         fail if BASE_SHA..HEAD_SHA modifies or deletes an existing checkpoint
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {loadCheckpoints, reconcile, resolveLatest, validateCheckpoint} from './checkpoints.mjs';
+import {errataMap, loadCheckpoints, reconcile, resolveLatest, validateCheckpoint, validateErrata} from './checkpoints.mjs';
 import {validateRegistry} from './registry.mjs';
 import {evaluateMergeGate, findClosingReferences} from './policy.mjs';
 import {commitMessages, realityFor, rewrittenCheckpoints} from './git.mjs';
@@ -18,6 +18,7 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 export const paths = {
   registry: `${root}docs/governance/work-registry.json`,
   checkpoints: `${root}docs/governance/checkpoints`,
+  errata: `${root}docs/governance/checkpoint-errata.json`,
 };
 export const CANONICAL_FILES = ['AGENTS.md', 'CLAUDE.md', 'README.md', '.github/pull_request_template.md', 'docs/governance/HANDOFF.md'];
 
@@ -29,18 +30,21 @@ export async function loadState() {
     inventory,
     registry: JSON.parse(readFileSync(paths.registry, 'utf8')),
     checkpoints: loadCheckpoints(paths.checkpoints),
+    errata: JSON.parse(readFileSync(paths.errata, 'utf8')),
   };
 }
 
-export function validateState({decisions, inventory, registry, checkpoints}) {
+export function validateState({decisions, inventory, registry, checkpoints, errata: errataFile}, {now = new Date()} = {}) {
   const decisionIds = new Set(decisions.decisions.map(item => item.id));
   const requirementIds = new Set(inventory.requirements.map(item => item.id));
   const taskIds = new Set(registry.tasks.map(task => task.id));
   const errors = [...validateDecisions(decisions)];
   errors.push(...validateRegistry(registry, {checkpointIds: new Set(checkpoints.map(cp => cp.id))}));
-  for (const cp of checkpoints) errors.push(...validateCheckpoint(cp, {decisionIds, requirementIds, taskIds}));
+  errors.push(...validateErrata(errataFile, checkpoints));
+  const errata = errataMap(errataFile);
+  for (const cp of checkpoints) errors.push(...validateCheckpoint(cp, {decisionIds, requirementIds, taskIds, now, errata}));
   for (const task of registry.tasks) {
-    const {latest, conflicts} = resolveLatest(checkpoints, task.id);
+    const {latest, conflicts} = resolveLatest(checkpoints, task.id, {errata});
     errors.push(...conflicts);
     if ((latest?.id ?? null) !== (task.latest_checkpoint ?? null)) errors.push(`${task.id} registry latest_checkpoint ${task.latest_checkpoint} != chain head ${latest?.id}`);
   }
@@ -49,9 +53,10 @@ export function validateState({decisions, inventory, registry, checkpoints}) {
 
 export function describe(state, {now = new Date(), cwd = root} = {}) {
   return state.registry.tasks.map(task => {
-    const {latest} = resolveLatest(state.checkpoints, task.id);
+    const errata = errataMap(state.errata);
+    const {latest} = resolveLatest(state.checkpoints, task.id, {errata});
     const finished = ['MERGED', 'COMPLETED'].includes(task.state);
-    const divergences = latest && !finished ? reconcile(latest, realityFor(cwd, latest), {now}) : [];
+    const divergences = latest && !finished ? reconcile(latest, realityFor(cwd, latest), {now, errata}) : [];
     return {task: task.id, title: task.title, issue: task.issue, pr: task.pr, kind: task.kind, state: task.state,
       assignee: task.assignee, lease: task.lease, latest_checkpoint: latest?.id ?? null,
       next_action: latest?.next_action ?? null, resume_conditions: latest?.resume_conditions ?? [], divergences};
