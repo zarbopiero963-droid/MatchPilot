@@ -14,6 +14,14 @@ export const shown = value => {
   return m ? `${m[1]}${m[2].replace(/\B(?=(\d{3})+(?!\d))/g, '.')}${m[3] === undefined ? '' : `,${m[3]}`}` : String(value);
 };
 
+// How a user view names archive slugs and seasons until the API carries display names (MP-WEB-015, inventory UI-12):
+// "spain" → "Spain", "premier-league" → "Premier League", "2024-2025" → "2024/25".
+export const words = slug => String(slug).trim().split(/[-_\s]+/).filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+export const seasonShown = season => /^\d{4}-\d{4}$/.test(season ?? '') ? `${season.slice(0, 4)}/${season.slice(7)}` : shown(season);
+const RESULT = {NO_RESULT: 'Senza risultato', NOT_STARTED: 'Non iniziata'};
+// A final result shows the score; a match without one shows its state in Italian; a missing score is N/D.
+export const outcomeShownFor = row => RESULT[row.result_status] ?? (row.home_score == null || row.away_score == null ? 'N/D' : `${row.home_score}–${row.away_score}`);
+
 // [view, menu label, page title]: the menu label is what the user reads before clicking (QA-03: it was not checked).
 const NAV = [['', 'Dashboard', 'Dashboard'], ['board', 'Daily Board', 'Daily Board'], ['search', 'Ricerca', 'Ricerca partite'], ['providers', 'Fornitori dati', 'Fornitori dati'], ['endpoints', 'API', 'API v1']];
 const unavailable = {api_version: 'v1', error: {code: 'UNAVAILABLE', message: 'data source unavailable'}};
@@ -134,8 +142,9 @@ export const JOURNEYS = [
       await step('selezione della data dal campo', async () => {
         await page.fill('input[name="date"]', day);
         await page.click('[data-testid="board-controls"] button[type="submit"]');
-        await page.waitForFunction(text => document.querySelector('[data-testid="board-day"]')?.textContent.endsWith(text), day);
+        await page.waitForFunction(text => document.querySelector('[data-testid="board-day"] time')?.getAttribute('datetime') === text, day);
         assert.equal(await page.locator('article.match').count(), 24);
+        assert.equal(await page.getAttribute('main', 'data-area'), 'user', 'the Daily Board is a user view: no technical text');
       });
       await step('paginazione fino alla fine, stesso ordine dell’API', async () => {
         await loadAll(page, 'article.match');
@@ -145,21 +154,42 @@ export const JOURNEYS = [
         const cards = page.locator('article.match');
         for (const [i, row] of all.entries()) {
           const card = cards.nth(i);
-          assert.equal(await card.locator('[data-field="competition"]').textContent(), `${row.country_slug} · ${row.league_slug} · ${row.season}`);
+          assert.equal(await card.locator('[data-field="competition"]').textContent(), `${words(row.country_slug)} · ${words(row.league_slug)} · ${seasonShown(row.season)}`);
           assert.equal(await card.locator('[data-field="kickoff"]').textContent(), shown(row.kickoff_local_time));
-          assert.equal(await card.locator('[data-field="odds_1x2"]').textContent(), `${shown(row.odd_home)} · ${shown(row.odd_draw)} · ${shown(row.odd_away)}`);
-          assert.equal(await card.locator('[data-field="xg"]').textContent(), `${shown(row.xg_home)} · ${shown(row.xg_away)}`);
-          // Codes in Italian, with the code kept (V-B1); the undocumented provider time is labelled, not converted (D-7).
-          const status = card.locator('[data-field="result_status"] [data-code]');
-          if (row.result_status) assert.equal(await status.getAttribute('data-code'), row.result_status);
-          assert.doesNotMatch(await card.textContent(), /\b(FINAL|NO_RESULT|NOT_STARTED|HOME|AWAY|EVEN|HISTORICAL|PREMATCH|PROVIDER_TZ_UNDOCUMENTED)\b/);
-          if (row.kickoff_tz_status === 'PROVIDER_TZ_UNDOCUMENTED') assert.equal(await card.locator('[data-field="kickoff_tz_status"]').textContent(), 'ora del fornitore');
+          for (const name of ['odd_home', 'odd_draw', 'odd_away', 'odd_over25', 'odd_btts_yes']) {
+            assert.equal(await card.locator(`[data-field="${name}"] b`).textContent(), shown(row[name]), name);
+          }
+          assert.equal(await card.locator('[data-field="xg"] b').textContent(), `${shown(row.xg_home)} – ${shown(row.xg_away)}`);
+          assert.equal(await card.locator('[data-field="score"]').textContent(), outcomeShownFor(row));
+          // Nothing of the API row is lost: what the card no longer prints stays on it, for checks and technical views.
+          assert.equal(await card.getAttribute('data-result'), row.result_status ?? '');
+          assert.equal(await card.getAttribute('data-phase'), row.phase ?? '');
+          assert.equal(await card.getAttribute('data-dataset'), row.dataset_key ?? '');
+          assert.equal(await card.locator('[data-field="kickoff"]').getAttribute('data-tz'), row.kickoff_tz_status ?? '');
+          // The provider time is shown as written, not converted (D-7); the tooltip says so in plain words.
+          if (row.kickoff_local_time) assert.match(await card.locator('[data-field="kickoff"]').getAttribute('title'), /fuso orario non è specificato/);
         }
-        // The generation time is an instant: shown in Europe/Rome with its offset, the exact UTC in datetime (D-7).
-        const generated = page.locator('p.meta time').last();
-        assert.match(await generated.textContent(), /^\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2} GMT\+[12] \(ora di Roma\)$/);
-        assert.match(await generated.getAttribute('datetime'), /^\d{4}-\d{2}-\d{2}T/);
+        // No provenance line in a user view (MP-WEB-015): source, generation time and code version live in the technical views.
+        assert.equal(await page.locator('main p.meta:not([data-testid="end"])').count(), 0);
         assert.ok(new Set(all.map(row => row.league_slug)).size === 2, 'both competitions on the day');
+      });
+      await step('partite senza risultato finale: lo stato al posto del punteggio', async () => {
+        // The QA archive holds final results only: the API answer is changed in the browser to show the other states.
+        await page.route('**/api/v1/fpt/matches?*', async route => {
+          const response = await route.fetch();
+          const body = await response.json();
+          Object.assign(body.data.rows[0], {result_status: 'NOT_STARTED', home_score: null, away_score: null});
+          Object.assign(body.data.rows[1], {result_status: 'NO_RESULT', home_score: null, away_score: null});
+          Object.assign(body.data.rows[2], {result_status: 'FINAL', home_score: null, away_score: null});
+          await route.fulfill({response, json: body});
+        });
+        await fresh(page, `${base}/#/board?date=${day}`);
+        await page.waitForSelector('article.match');
+        const scores = page.locator('article.match [data-field="score"]');
+        assert.deepEqual([await scores.nth(0).textContent(), await scores.nth(1).textContent(), await scores.nth(2).textContent()],
+          ['Non iniziata', 'Senza risultato', 'N/D']);
+        assert.equal(await page.getAttribute('article.match >> nth=1', 'data-result'), 'NO_RESULT');
+        await page.unroute('**/api/v1/fpt/matches?*');
       });
       await step('giorno prima: nessuna partita salvata', async () => {
         await page.click('[data-action="prev"]');
@@ -167,7 +197,7 @@ export const JOURNEYS = [
       });
       await step('giorno dopo: di nuovo il giorno affollato', async () => {
         await page.click('[data-action="next"]');
-        await page.waitForFunction(text => document.querySelector('[data-testid="board-day"]')?.textContent.endsWith(text), day);
+        await page.waitForFunction(text => document.querySelector('[data-testid="board-day"] time')?.getAttribute('datetime') === text, day);
         assert.equal(await page.locator('article.match').count(), 24);
       });
       await step('data non valida rifiutata senza richieste', async () => {
@@ -211,6 +241,15 @@ export const JOURNEYS = [
         await outcomeShown(page, '[data-testid="search-outcome"]');
         assert.deepEqual(await ids(page, '[data-testid="search-results"] tr'), expected.map(row => row.internal_match_id));
         assert.equal(await page.inputValue('input[name="team"]'), 'Ajax', 'the form keeps its values');
+        assert.equal(await page.getAttribute('main', 'data-area'), 'user', 'the search is a user view: no technical text');
+        assert.match(await page.getAttribute('[data-testid="search-outcome"]', 'data-filters'), /\bwith_odds\b/, 'the applied filters stay on the outcome');
+        const rows = page.locator('[data-testid="search-results"] tr');
+        for (const [i, row] of expected.slice(0, 25).entries()) {
+          const line = rows.nth(i);
+          assert.equal(await line.locator('[data-field="date"] time').getAttribute('datetime'), row.match_date);
+          assert.equal(await line.locator('[data-field="competition"]').textContent(), `${words(row.league_slug)} ${seasonShown(row.season)}`);
+          assert.equal(await line.locator('[data-field="score"]').textContent(), outcomeShownFor(row));
+        }
       });
       await step('campionato e intervallo di date', async () => {
         const expected = (await api(`/api/v1/fpt/search?competition=${encodeURIComponent(seed.laliga.competition)}&from=2024-08-02&before=2024-08-03&limit=500`)).data.rows;
@@ -235,7 +274,8 @@ export const JOURNEYS = [
       await step('errore di validazione dal server', async () => {
         await fresh(page, `${base}/#/search?run=1&fav_min=abc`);
         await page.waitForSelector('[data-testid="search-invalid"]');
-        assert.match(await page.textContent('[data-testid="search-invalid"]'), /fav_min/);
+        assert.match(await page.textContent('[data-testid="search-invalid"]'), /Quota favorito da/);
+        assert.equal(await page.getAttribute('[data-testid="search-invalid"]', 'data-fields'), 'fav_min');
       });
       await step('esito vuoto o di errore dal modulo: in vista e con il focus, anche ripetendo la stessa ricerca', async () => {
         await fresh(page, `${base}/#/search`);
@@ -275,7 +315,8 @@ export const JOURNEYS = [
         await fresh(page, `${base}/#/search?run=1&venue=home`);
         await page.waitForSelector('[data-testid="venue-ignored"]');
       });
-      await step('pagina successiva in errore: le righe restano, Riprova funziona', async () => {
+      // Two steps: the generic invariants (plain text too) run while the error of the later page is on screen.
+      await step('pagina successiva in errore: le righe restano', async () => {
         let fail = true;
         await page.route(/\/api\/v1\/fpt\/search\?.*cursor=/, route => {
           if (!fail) return route.continue();
@@ -287,6 +328,9 @@ export const JOURNEYS = [
         await page.click('[data-action="more"]');
         await page.waitForSelector('.paged-foot .state.error');
         assert.equal(await page.locator('[data-testid="search-results"] tr').count(), 25);
+        assert.equal(await page.getAttribute('.paged-foot .state.error', 'data-code'), 'UNAVAILABLE');
+      });
+      await step('Riprova carica la pagina successiva', async () => {
         await page.click('.paged-foot .state.error button');
         await page.waitForFunction(() => document.querySelectorAll('[data-testid="search-results"] tr').length > 25);
         await page.unroute(/\/api\/v1\/fpt\/search\?.*cursor=/);

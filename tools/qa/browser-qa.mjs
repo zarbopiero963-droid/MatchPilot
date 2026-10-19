@@ -32,17 +32,35 @@ export const sha256 = buffer => createHash('sha256').update(buffer).digest('hex'
 // allowRawText, never allowed globally (PR #164 NB-3).
 export const RAW_VALUE = /(?:^|[\s(:·–])(?:null|undefined)(?=\s*(?:$|[·–),.;:]))|\bNaN\b/;
 
+// Technical text that a user view never shows (MP-OWNER-UI-NO-RAW-TEXT-01, MP-WEB-015): API codes and parameter names
+// (FINAL, HTTP_503, PROVIDER_TZ_UNDOCUMENTED, fav_min), dataset keys (spain/laliga/2024-2025), API routes, raw ISO dates
+// and instants, and the implementation words of the inventory (docs/qa/ui-text-inventory.md). Codes are matched
+// case-sensitively, words not.
+// Checked in main when the view declares data-area="user", and in the page footer.
+export const TECHNICAL_CODE = /\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\b|\b[a-z][a-z0-9]*_[a-z0-9_]+\b|\b(?:FINAL|HISTORICAL|PREMATCH|HOME|AWAY|UNAVAILABLE|NETWORK)\b|\b[a-z][a-z0-9-]*\/[a-z][a-z0-9-]*\/\d{4}(?:-\d{4})?\b|\/api\/|\b\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?\b/;
+export const TECHNICAL_WORD = /\b(?:dataset|pipeline|endpoint|snapshot|backfill|payload|envelope|cursore?|schema|slug|provenance|debug|fornitore|provider|api v1|versione codice|generato|dati salvati|fuso del fornitore)\b|\bfonte:/i;
+export const technicalText = text => TECHNICAL_CODE.test(text) || TECHNICAL_WORD.test(text);
+
 // Generic checks after every step: what no page may ever show, whatever the journey.
 export async function invariants(page, allowRawText = []) {
-  return page.evaluate(([rawSource, allowSources]) => {
+  return page.evaluate(([rawSource, allowSources, codeSource, wordSource]) => {
     const rawValue = new RegExp(rawSource);
     const allowed = allowSources.map(source => new RegExp(source));
+    const technical = [new RegExp(codeSource), new RegExp(wordSource, 'i')];
     const problems = [];
     const main = document.querySelector('main');
     const walker = document.createTreeWalker(main ?? document.body, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
       const text = node.textContent.trim();
       if (rawValue.test(text) && !allowed.some(pattern => pattern.test(text))) problems.push(`raw value shown: "${text.slice(0, 60)}"`);
+    }
+    for (const scope of [main?.dataset.area === 'user' ? main : null, document.querySelector('footer')]) {
+      if (!scope) continue;
+      const texts = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+      for (let node = texts.nextNode(); node; node = texts.nextNode()) {
+        const text = node.textContent.trim();
+        if (text && technical.some(pattern => pattern.test(text))) problems.push(`technical text in a user view: "${text.slice(0, 60)}"`);
+      }
     }
     if (document.documentElement.scrollWidth > window.innerWidth) problems.push(`horizontal overflow ${document.documentElement.scrollWidth} > ${window.innerWidth}`);
     // Basic accessibility.
@@ -90,7 +108,7 @@ export async function invariants(page, allowRawText = []) {
       }
     }
     return [...new Set(problems)];
-  }, [RAW_VALUE.source, allowRawText.map(pattern => pattern.source)]);
+  }, [RAW_VALUE.source, allowRawText.map(pattern => pattern.source), TECHNICAL_CODE.source, TECHNICAL_WORD.source]);
 }
 
 export function browserPath() {

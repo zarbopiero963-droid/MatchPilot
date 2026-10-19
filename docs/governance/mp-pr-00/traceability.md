@@ -10,7 +10,7 @@ La fonte machine-readable è `requirements.json`. Questo documento rende leggibi
 | GOV | 23 | 19 | 17 | 0 | 0 | 6 |
 | FPT | 12 | 8 | 4 | 0 | 1 | 7 |
 | TC | 15 | 9 | 8 | 2 | 1 | 4 |
-| WEB | 14 | 10 | 0 | 5 | 0 | 9 |
+| WEB | 15 | 11 | 0 | 5 | 0 | 10 |
 | RPL | 12 | 9 | 0 | 8 | 2 | 2 |
 | STA | 13 | 9 | 0 | 11 | 1 | 1 |
 | QAC | 13 | 12 | 3 | 2 | 0 | 8 |
@@ -22,7 +22,7 @@ La fonte machine-readable è `requirements.json`. Questo documento rende leggibi
 | MKT | 3 | 3 | 0 | 3 | 0 | 0 |
 | MTH | 3 | 1 | 0 | 2 | 0 | 1 |
 | OPS | 1 | 0 | 0 | 1 | 0 | 0 |
-| **Totale** | **138** | **104** | **36** | **37** | **7** | **58** |
+| **Totale** | **139** | **105** | **36** | **37** | **7** | **59** |
 <!-- inventory:groups:end -->
 
 Ogni PASS ha evidenza e vale solo nel proprio scope (es. TC-007/TC-008 = runtime PR #145). Nessun PASS equivale a GLOBAL HARD CERTIFIED.
@@ -68,7 +68,7 @@ Ogni PASS ha evidenza e vale solo nel proprio scope (es. TC-007/TC-008 = runtime
 | R-03 | API v1 contract, error envelope, provenance, bounded queries, legacy route inventory | #98 #3 #30 | MCP-CORE-00 | 12 |
 | R-04 | Owner/admin auth baseline | #23 #32 | AUTH-CORE-01, AUTH-CORE-02 | 2 |
 | R-05 | Real web shell, browser E2E and security lanes | #3 #97 | — | 10 |
-| R-06 | Dashboard, Daily Board, search and filters | #3 #30 | QUERY-CORE-02 | 4 |
+| R-06 | Dashboard, Daily Board, search and filters | #3 #30 | QUERY-CORE-02 | 5 |
 | R-07 | Match Center, match analysis, data quality and charts | #3 #25 #30 | QUERY-CORE-01 | 8 |
 | R-08 | PIT policy, version pinning, cross-provider identity, timezone/DST | #12 #20 #31 | RECON-CORE-01 | 8 |
 | R-09 | Archive query layer and deterministic replay core | #24 | REPLAY-CORE-01 | 11 |
@@ -81,7 +81,7 @@ Ogni PASS ha evidenza e vale solo nel proprio scope (es. TC-007/TC-008 = runtime
 | R-16 | FPT 412 audit (read-only part) and FPT residual certification | #12 | — | 5 |
 | R-17 | Adversarial, recovery, performance, security, TC alerts and ops drills | #23 #31 #144 #20 | TC-CORE-07, RECON-CORE-02, RECON-CORE-04, RECON-CORE-05 | 14 |
 | R-18 | Integrated Gate A/B and IV&V for OFFLINE v1 | #3 #97 #98 | — | 6 |
-| continuous | Cross-cutting rule applied by every PR | — | — | 25 |
+| continuous | Cross-cutting rule applied by every PR | — | — | 26 |
 <!-- inventory:prs:end -->
 
 ## Reverse-mapping gaps
