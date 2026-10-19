@@ -1,0 +1,80 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "90db4e17709be690ec29077151765f6fe730e79d",
+  "tree_sha": "bed89ab482c93439b316c45a82b9b4b3a6f4ab98",
+  "supersedes": "CP-20261019T225133Z-agent-a-claude-code",
+  "pr": 172,
+  "id": "CP-20261019T225853Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T22:58:53Z",
+  "activity": "V-B3 merged: PR #172 squash f36cc46 on main; post-merge verification passed",
+  "task": "V-B3",
+  "issue": 3,
+  "requirements": [
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "main f36cc469a1127b3161175e20ccda28aea30bc7fb (squash of PR #172, head 90db4e1 checked with expectedHeadSha)"
+  ],
+  "tests": [
+    {
+      "command": "CI run 39337853471 on 90db4e1 (all jobs, CI gate PASS)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "90db4e17709be690ec29077151765f6fe730e79d",
+      "time": "2026-10-19T22:58:53Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    },
+    {
+      "command": "post-merge: fresh clone of main (tree equal to the PR head); governance:check, governance:validate, governance:evidence (archives read back); node tools/qa/browser-qa.mjs 10/10 + verify-report",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "f36cc469a1127b3161175e20ccda28aea30bc7fb",
+      "time": "2026-10-19T22:58:20Z",
+      "limits": [
+        "time from report.json generated_at"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39337853471,
+    "conclusion": "SUCCESS",
+    "head_sha": "90db4e17709be690ec29077151765f6fe730e79d"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/172#issuecomment-6279143400",
+    "reviewed_sha": "90db4e17709be690ec29077151765f6fe730e79d"
+  },
+  "findings": [
+    {
+      "id": "R2-NB-1,2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "document.fonts.load of Barlow Condensed 700 is satisfied by the 800 face, so a removed 700 @font-face rule goes unnoticed (a broken 700 file is caught); the preload stays untested (performance only)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-UI-ROADMAP-01",
+    "MP-OWNER-UI-NO-RAW-TEXT-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T225133Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "V-B4 (compact Daily Board, 1-X-2 odds layout, responsive tables, N/D and empty states; no browser calculation)",
+  "resume_conditions": [
+    "main contains f36cc469a1127b3161175e20ccda28aea30bc7fb"
+  ]
+}
