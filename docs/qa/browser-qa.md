@@ -4,6 +4,8 @@ Owner decisions: MP-OWNER-BROWSER-QA-HARD-GATE-01, MP-OWNER-QA-01-AUTHORIZATION,
 
 **WEB CHANGE + NO VERIFIED BROWSER QA = MERGE BLOCKED.**
 
+What is certified, and how, is in [certification.md](certification.md) (QA-03).
+
 ## What runs
 
 `node tools/qa/browser-qa.mjs --out <dir>` (`npm run qa:browser`):
@@ -67,7 +69,7 @@ The verdict is computed, never declared. `test/browser-qa-gate.test.mjs` proves 
 | Web impact classification | PARTIAL | PASS |
 | Merge blocked without evidence | MISSING | PASS (CI gate, merge-gate) |
 | Required check on `main` | NOT VERIFIED | VERIFIED by the owner (see below) |
-| Exploratory AI agent | ad hoc | NOT VERIFIED (crawler and review procedure in QA-02, [exploratory.md](exploratory.md); evaluation in QA-03) |
+| Exploratory AI agent | ad hoc | NOT VERIFIED as a whole; detection of four seeded classes CERTIFIED by a blind evaluation, not a gate ([certification.md](certification.md)) |
 
 ## Limits
 

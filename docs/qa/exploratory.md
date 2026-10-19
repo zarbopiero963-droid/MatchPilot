@@ -70,7 +70,7 @@ Who: a Claude agent in a Claude Code session the owner authorized. Never a paid 
 ## Limits
 
 - **Not a merge gate:** `Exploratory QA` is informational and not part of `CI gate`; level A stays the hard gate. A reproduced finding fails that job and must be triaged before the merge, but nothing enforces that triage yet: neither `CI gate` nor `merge-gate` takes the exploration as input. Wiring it in is evaluated in QA-03.
-- **The AI review is evidence about one bundle, not a certification of the agent.** Whether the AI exploratory agent is reliable is evaluated separately in QA-03; until then its status is NOT VERIFIED.
+- **The AI review is evidence about one bundle, not a certification of the agent.** The QA-03 blind evaluation ([certification.md](certification.md)) CERTIFIES only that a single-bundle review finds four seeded classes. Those classes are number format, missing data, language and a contradiction with the chosen value. The agent as a whole stays NOT VERIFIED.
 - **Scope:** the hash routes of the site; `/coverage` and `/login` are out of scope. Generic properties only: whether a value is right is the review's job and, for the API, the journeys'.
 - **Data:** the QA archive fixture, not production data.
 - **Cost:** none. Same runner, browser and PostgreSQL service as the gate; artifacts with 14-day retention.

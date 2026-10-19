@@ -31,9 +31,10 @@ One never stands in for the other: a green AI review does not replace the gate, 
 | 10 | Merge gate refuses a red Browser QA | **HARD CERTIFIED** | `node tools/governance/cli.mjs merge-gate` on the `61ddc17` facts: `allowed: false` ("browser QA is FAIL", "not verified", …) |
 | 11 | Refusal of an absent, altered, other-head or other-commit report, modified tree, hidden failure, test hook | CERTIFIED | `test/browser-qa-gate.test.mjs` (11 tests) in the PostgreSQL suite of every web change |
 | 12 | Same refusals for the exploration bundle and the AI review | CERTIFIED | `test/explore.test.mjs` |
-| 13 | Autonomous navigation and interaction (seeded crawler), findings reproduced in a fresh context | **HARD CERTIFIED** | `Exploratory QA` on PRs #165/#166 (420 actions, 7 routes, desktop and mobile); injected JS defect found and reproduced (`test/explore.test.mjs`) |
+| 13 | Autonomous navigation and interaction (seeded crawler) | **HARD CERTIFIED** | `Exploratory QA` on PRs #165/#166/#167 (420 actions, 7 routes, desktop and mobile), bundle verified in CI |
+| 13b | Crawler findings reproduced in a fresh context | CERTIFIED | injected JS defect found and replayed (`test/explore.test.mjs`); never exercised on a real PR, since no real defect has been found |
 | 14 | Crawler determinism | CERTIFIED | same seed → same trails (`test/explore.test.mjs`) |
-| 15 | AI exploratory agent (Claude, authorized session) | **CERTIFIED for the seeded classes below; not a merge gate** | blind evaluation below |
+| 15 | AI exploratory review detects the four seeded classes on a single bundle (Claude, authorized session) | CERTIFIED (blind run 2 below); the agent as a whole NOT VERIFIED; not a merge gate | blind evaluation below |
 | 16 | Exploratory triage enforced before merge | NOT VERIFIED | not wired into `CI gate` or `merge-gate` (see Limits) |
 
 ## Demonstration on PR #166 (19/10/2026, UTC)
@@ -57,44 +58,63 @@ The defect never reached `main`: the PR is squash-merged from its final state, a
    - one clean;
    - one with four semantic defects injected in the page.
 2. The crawler reports **0 findings on both**: these defects are outside its reach.
-3. The bundles were blinded: anonymous names (`bundle-1` seeded, `bundle-2` clean), and `injected_defect` cleared in the copies.
-4. A fresh Claude agent, told only to follow [exploratory.md](exploratory.md), reviewed both. It was not allowed to read the seeds, `tools/qa/`, `test/` or the git history.
-5. Both reviews pass `verify-exploration.mjs --review`.
+3. The bundles were blinded: anonymous names, and `injected_defect` cleared in the copies. Nothing else changed.
 
-Evidence (MP-OWNER-PERMANENT-EVIDENCE-01):
-- **Essential, on `main`:** [`docs/audits/QA-03-BROWSER-QA-CERTIFICATION/`](../audits/QA-03-BROWSER-QA-CERTIFICATION/README.md) holds both `exploration.json`, both AI reviews, the answer key and the record of the CI demonstration.
-- **Complete package, in `evidence/audits`:** the blinded bundles with every observation and screenshot, the unblinded originals, the seed script used, and the local RED/GREEN Browser QA runs, all read back and verified.
+**Run 1 — not valid as a blind test (PR #166 review B-2).**
+- One reviewer received both bundles. It compared them and found the seeded defects as the differences between the two.
+- Its prompt also listed the rule families the seeds were drawn from.
+- Its 4/4 is kept in the evidence but proves nothing about single-bundle detection.
 
-| Seeded defect | Rule | Bundle 1 (seeded) | Bundle 2 (clean) |
+**Run 2 — the evaluation that counts.**
+- **Reviewers:** two fresh Claude agents, one bundle each (`rv-k3` seeded, `rv-p8` clean; neither knew which).
+- **Prompt:** identical and neutral: follow [exploratory.md](exploratory.md) on this bundle. It names no defect.
+- **Access:** only their bundle, `exploratory.md`, the owner decisions, AGENTS.md, the mockup and `src/`. Forbidden: other folders, `docs/audits`, this file, `tools/`, `test/` and git history.
+- **Coverage:** each viewed all 28 observations and all 28 screenshots, in crops for tall pages: 74 and 46 image views.
+- **Verification:** both reviews pass `verify-exploration.mjs --review`.
+- **Limit:** `src/` shows the intended behaviour (comma format, N/D, the Italian label), so a reviewer could compare the screenshots with the code. The procedure allows it: the reviewer judges against the product, as it would on a real PR.
+- **Working-tree slip:** while the reviewers ran, the agent's working tree briefly carried an uncommitted test label ("Data providers" in the menu). The seeded reviewer saw it while reading `src/`. It is unrelated to the four seeds and not part of any finding scored below.
+
+| Seeded defect | Rule | Seeded bundle (rv-k3) | Clean bundle (rv-p8) |
 |---|---|---|---|
-| S1 odds with a decimal point | D-3 | found, AI-4 BUG P1 | not reported (correct) |
-| S2 missing data shown as 0 | MP-OWNER-PRODUCT-QUALITY-DATA-01 | found, AI-2 and AI-3 BUG P1 | not reported (correct) |
-| S3 English button label | Italian labels | found, AI-5 BUG P2 | not reported (correct) |
-| S4 board heading names the day before | chosen day | found, AI-1 BUG P1 | not reported (correct) |
+| S1 odds with a decimal point | D-3 | found, AI-4 BUG P2 | not reported (correct) |
+| S2 missing data shown as 0 | MP-OWNER-PRODUCT-QUALITY-DATA-01 | found, AI-1 BUG **P1** and AI-2 BUG P2 | not reported (correct) |
+| S3 English button label | Italian labels | found, AI-5 BUG P3 | not reported (correct) |
+| S4 board heading names the day before | chosen day | found, AI-3 BUG P2 | not reported (correct) |
 
-**Result:**
-- recall 4/4 on the seeded defects, with no seeded defect reported on the clean bundle;
-- computed verdicts BLOCKING (seeded) and NO_BLOCKING (clean).
+**Result of run 2:**
+- **Recall:** 4/4 on the seeded bundle, each reviewer seeing one bundle only.
+- **False positives:** none of the four classes reported on the clean bundle.
+- **Verdicts:** BLOCKING on the seeded bundle (S2 as P1), NO_BLOCKING on the clean one.
+- **Severity:** lower than in run 1. Only the missing-data rule was judged blocking, which shows the review's severity is not calibrated beyond that.
 
-**Real findings on the clean bundle**, the same in both reviews. They are not seeded and are now product backlog:
+**Real findings on the clean bundle** (run 2, and the same in run 1). They are not seeded and are now product backlog:
 - deep provider values wrapping a few characters per line on desktop: the audit's A-2, confirmed;
 - "generato" timestamps as raw UTC (D-7);
 - untranslated labels and raw codes (`PROVIDER_TZ_UNDOCUMENTED`, `FINAL`, `KEPT`, …);
 - mobile tables cut without a scroll cue;
 - same-day matches in search not in time order;
 - "Favorito N/D N/D" repeated;
-- "Successore N/D" for kept routes.
+- "Successore N/D" for kept routes;
+- the home page is the Dashboard, not Oggi / Daily Board (D-2);
+- data-health panels that contradict themselves ("Stato ok" next to listed issues).
 
 **Missed:** the audit's A-1 (the mobile search result is not perceivable after submitting). It depends on the interaction and the scroll position, not on what a page shows at rest, so static observations cannot reveal it. V-A covers it with a browser regression test.
 
 **Certification:**
-- **Certified:** the AI review is CERTIFIED as a detector of rule violations visible on the page (number format, missing-data representation, language, contradictions between the chosen value and the page).
-- **Not certified, not a gate:**
+- **Certified:** the AI review is CERTIFIED as a detector of these four classes of rule violation visible on a page at rest:
+  - number format;
+  - missing-data representation;
+  - language;
+  - a contradiction between the chosen value and the page.
+
+  Basis: one blind run, one bundle per reviewer.
+- **Not certified, and not a gate:**
   - interaction-only defects;
   - values that are wrong but plausible, since the bundle has no API values to compare with;
+  - severity calibration;
   - recall beyond these four classes.
 
-  The evaluation is one blind run with four seeds; it gives no statistical bound. Level A stays the only hard gate.
+  One run with four seeds gives no statistical bound. The exploratory AI agent as a whole stays NOT VERIFIED (AGENTS §4).
 
 ## Limits
 
