@@ -61,7 +61,9 @@ export function oddsList(field, values, {min = 2} = {}) {
 
 // ---- Result envelope ----
 
-const show = value => (value instanceof Decimal ? value.toString() : Array.isArray(value) ? value.map(show)
+// JSON-safe copy: Decimal and BigInt as decimal text, Date as ISO text, arrays and plain objects copied recursively.
+const show = value => (value instanceof Decimal ? value.toString() : typeof value === 'bigint' ? value.toString()
+  : value instanceof Date ? value.toISOString() : Array.isArray(value) ? value.map(show)
   : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([k, v]) => [k, show(v)])) : value);
 
 // formula: stable name; inputs: what the caller passed; normalized: the validated values used; result: unrounded

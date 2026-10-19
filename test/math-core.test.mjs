@@ -225,3 +225,22 @@ test('envelopes built from Decimal inputs serialize to JSON and can be chained (
   }
   assert.throws(() => Decimal.from('1.5', {mode: 'BOGUS'}), e => e.code === 'BAD_ROUNDING', 'an unknown mode is refused on input too');
 });
+
+test('every accepted input kind serializes; step rounding of negatives; error fields (third review B-1, NB-1, NB-2)', () => {
+  // Inputs are echoed as JSON-safe values: BigInt and Decimal as text, a safe integer stays a number.
+  for (const [odds, echoed] of [[3n, '3'], [3, 3], ['3', '3'], [Decimal.from('3'), '3']]) {
+    assert.equal(JSON.parse(JSON.stringify(impliedProbability({odds}))).inputs.odds, echoed, typeof odds);
+  }
+  assert.deepEqual(JSON.parse(JSON.stringify(overround({odds: [2n, '2.5']}))).inputs.odds, ['2', '2.5']);
+  assert.deepEqual(JSON.parse(JSON.stringify(normalizedProbabilities({odds: [2n, 4n]}))).result.probabilities.length, 2);
+  assert.equal(envelope('x', {inputs: {at: new Date('2026-10-19T00:00:00Z')}, normalized: {}, result: {}}).inputs.at, '2026-10-19T00:00:00.000Z');
+  const warnings = ['W'];
+  const env = envelope('x', {inputs: {}, normalized: {}, result: {}, warnings});
+  warnings.push('LATER');
+  assert.deepEqual(env.warnings, ['W'], 'warnings are copied');
+  assert.equal(Decimal.from('-10.37').roundToStep('0.05', ROUNDING.FLOOR).toString(), '-10.4');
+  assert.equal(Decimal.from('-10.37').roundToStep('0.05', ROUNDING.CEIL).toString(), '-10.35');
+  assert.equal(Decimal.from('-10.37').roundToStep('0.05', ROUNDING.DOWN).toString(), '-10.35');
+  assert.throws(() => roundMoney('1', {step: '0'}), e => e.field === 'step');
+  assert.throws(() => roundMoney('1', {mode: 'NEAREST'}), e => e.field === 'mode');
+});

@@ -28,7 +28,7 @@ Tests: `test/math-core.test.mjs`. Both modules are pure: no database, no network
 Every formula:
 1. validates its inputs and fails with `BAD_MATH_INPUT` naming the field;
 2. computes in Decimal;
-3. returns an envelope with these fields (holding copies of the inputs, with Decimal values as text, so later changes by the caller cannot alter it and it always serializes to JSON):
+3. returns an envelope with these fields (holding JSON-safe copies of the inputs, with Decimal and BigInt values as text and dates as ISO text, so later changes by the caller cannot alter it and it always serializes to JSON):
 
 | Field | Content |
 |---|---|
@@ -62,7 +62,7 @@ The warning always says which kind of probability a result is (raw implied or ma
 
 ## Verification
 
-- **Oracle:** an independent exact rational implementation (BigInt fractions) in the test file. It checks add, sub, mul and div on 2,000 seeded cases, plus every base formula. A second oracle rounds exact fractions with floor-based definitions of each mode. It checks parsing, `mul` and `div` in all five modes, with both signs, on 1,500 seeded cases. Tolerance: at most 1 to 4 units of 10⁻¹⁸, well inside the #94 tolerance of 1e-9 for non-monetary values.
+- **Oracle:** an independent exact rational implementation (BigInt fractions) in the test file. It checks add, sub, mul and div on 2,000 seeded cases, plus every base formula. A second oracle rounds exact fractions with floor-based definitions of each mode. It checks parsing, `mul` and `div` in all five modes, with both signs, on 1,500 seeded cases, plus 1,000 `mul` cases whose products need rounding. Tolerance: at most 1 to 4 units of 10⁻¹⁸, well inside the #94 tolerance of 1e-9 for non-monetary values.
 - **Property and metamorphic tests** (seeded, 500 books):
   - probabilities in `[0, 1]`;
   - normalized probabilities sum exactly to 1;
