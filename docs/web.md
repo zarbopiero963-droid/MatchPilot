@@ -14,7 +14,8 @@ Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). 
     - FutPythonTrader coverage per league (`/api/v1/fpt/coverage-competitions`), with first and last match date, coverage ratios and status.
 
     A route that fails turns only its own tile into N/D with the error code: the dashboard is then partial, not blank. Each league's last match date opens the Daily Board on that day.
-  - **Daily Board** (`#/board?date=YYYY-MM-DD`, R-06b, MP-WEB-002). The matches of a day from `/api/v1/fpt/matches`, grouped by competition in API order. Each card shows:
+  - **Daily Board** (`#/board?date=YYYY-MM-DD`, R-06b, MP-WEB-002). The matches of a day from `/api/v1/fpt/matches`, in the API's kickoff order across competitions. Each card shows:
+    - competition and season;
     - kickoff and time-zone status;
     - teams, score and result status;
     - 1X2, Over 2.5 and BTTS odds;

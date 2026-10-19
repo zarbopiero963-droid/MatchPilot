@@ -65,10 +65,11 @@ export function rewrittenCheckpoints(cwd, base, head) {
 }
 
 // Checkpoint history from git (PR #162 review NB-10, NB-11): for each checkpoint id, the first commit reachable from
-// HEAD that added its file, with that commit's author time; and a lookup of any commit object present locally.
+// HEAD that added its file, with that commit's committer time (an amend or a squash merge updates it, the author time
+// stays: PR #163 NB-5); and a lookup of any commit object present locally, with its author time (the errata bound).
 // Returns null when git history is unavailable.
 export function checkpointHistory(cwd, dir = 'docs/governance/checkpoints') {
-  const out = git(cwd, ['log', '--reverse', '--diff-filter=A', '--no-renames', '--name-only', '--format=%x00%H %aI', '--', dir]);
+  const out = git(cwd, ['log', '--reverse', '--diff-filter=A', '--no-renames', '--name-only', '--format=%x00%H %cI', '--', dir]);
   if (out === null) return null;
   const firstAdded = new Map();
   for (const block of out.split('\0').filter(text => text.trim())) {

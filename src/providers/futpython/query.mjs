@@ -387,7 +387,7 @@ export class QueryInputError extends Error {
 
 function isoDate(value, name) {
   const s = String(value ?? '').trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || Number.isNaN(Date.parse(`${s}T00:00:00Z`))) {
+  if (!realCalendarDate(s)) {
     throw new QueryInputError(`${name} must be YYYY-MM-DD`);
   }
   return s;
@@ -482,10 +482,11 @@ const calendarDate = value => (value instanceof Date
   : String(value).slice(0, 10));
 const DATE_OID = 1082;
 
-// A real calendar date: 2024-02-30 or 2024-13-45 are refused before PostgreSQL sees them (NB-6).
+// A real calendar date that PostgreSQL accepts: 2024-02-30, 2024-13-45 and year 0000 are refused before PostgreSQL sees
+// them (PR #162 NB-6, PR #163 NB-1).
 function realCalendarDate(text) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
-  if (!m) return false;
+  if (!m || Number(m[1]) < 1) return false;
   const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
   d.setUTCFullYear(Number(m[1]));
   return d.getUTCFullYear() === Number(m[1]) && d.getUTCMonth() === Number(m[2]) - 1 && d.getUTCDate() === Number(m[3]);
@@ -825,7 +826,8 @@ export async function runQuery(client, name, input = {}, opts = {}) {
   if (q.page) {
     const more = rows.length > q.page.size;
     rows = rows.slice(0, q.page.size);
-    nextCursor = more ? encodeCursor(name, q.page.input, rows[rows.length - 1]) : null;
+    // Only queries that accept a cursor hand one out (odds-range pages but has no cursor parameter: PR #163 NB-2).
+    if (CURSOR_QUERY[name]) nextCursor = more ? encodeCursor(name, q.page.input, rows[rows.length - 1]) : null;
   }
   if (name === 'matchDetail' && rows[0]) {
     const registry = await client.query(QUERIES.filters.sql);

@@ -153,5 +153,10 @@ Il sistema è indipendente dal modello e dal fornitore. Usa soltanto file nel re
   - `basis_commit`: quel commit.
 
   Il loro orario reale resta ignoto. Per ordinare la catena e per lo stato `STALE` vale il limite.
+- **Verifica su git** (`governance:check`):
+  - un erratum non può fissare un limite successivo al primo commit raggiungibile che contiene il checkpoint;
+  - un checkpoint senza erratum non può essere datato più di 10 minuti dopo quel commit (orario di commit, non d'autore).
+
+  Il controllo esatto di `basis_commit` (aggiunge il file a quell'orario d'autore) gira solo dove il commit è presente: i commit dei branch PR dopo uno squash non sono nel clone della CI, che applica comunque il limite.
 - **Slot di implementazione.** RUNNING e REVIEW occupano sempre l'unico slot. Ogni altro stato non finale (diverso da MERGED e COMPLETED) lo occupa finché la sua PR può essere aperta: solo `pr_open: false` esplicito lo libera, e `validate` rifiuta un'attività con `pr` ma senza `pr_open`. Il valore di `pr_open` è dichiarato dall'agente e non viene confrontato con GitHub in automatico: chi subentra lo verifica sulla PR.
 - Il lock su file protegge i processi nello stesso worktree. Fra worktree o macchine diversi la protezione è la compare-and-swap su `revision` più il rifiuto git dei push non fast-forward: chi perde la corsa ricarica e rivaluta.

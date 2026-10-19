@@ -228,11 +228,21 @@ test('every cursor the server issues is accepted back; forged cursors get 400, n
       [base, reforge(cursor, 2, '2024-13-45')], [base, reforge(cursor, 2, '2024-02-30')], [base, reforge(cursor, 2, '24-01-01')],
       [base, reforge(cursor, 4, 'fpt:id:a\u0000b')], [base, reforge(cursor, 3, '15:00')], [base, reforge(cursor, 4, 'other:1')],
       [dayBase, reforge(dayCursor, 3, '15\u000000')], [dayBase, reforge(dayCursor, 2, '2024-00-10')],
+      [base, reforge(cursor, 2, '0000-01-01')],
     ];
     for (const [path, bad] of forged) {
       const response = await call(`${path}&cursor=${bad}`);
       assert.equal(response.status, 400, `${bad}: ${response.status} ${JSON.stringify(response.body.error)}`);
     }
+    // Year 0000 does not exist for PostgreSQL: refused as input too, never a 5xx (PR #163 NB-1).
+    for (const path of ['/api/v1/fpt/matches?date=0000-01-01', '/api/v1/fpt/search?before=0000-01-01', '/api/v1/fpt/search?from=0000-01-01']) {
+      assert.equal((await call(path)).status, 400, path);
+    }
+    // odds-range pages but takes no cursor: it must not hand one out (PR #163 NB-2).
+    const odds = await call('/api/v1/fpt/odds-range?min=1.01&max=100&before=2100-01-01&limit=1');
+    assert.equal(odds.status, 200);
+    assert.equal(odds.body.data.rows.length, 1);
+    assert.equal('next_cursor' in odds.body.data, false);
   });
 });
 

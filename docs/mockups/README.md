@@ -5,7 +5,7 @@
 - File: [`matchpilot-trading-os.html`](matchpilot-trading-os.html), percorso stabile. Le versioni non cambiano nome: la storia è in git e in questo changelog.
 - Versione: **Mock UX v2026.10.19**
 - Ultimo aggiornamento: 2026-10-19
-- SHA-256: `9d6fe68817a837a48928897dbd349f0b74bd2c6a203797cdab08b5135a322103`
+- SHA-256: `4dd546f309ebcc8284b278b06195f8a50bacca42c8a74b6e1236de0c6c8eaf76`
 - Allineato a: roadmap #97 (revisione owner 06/10/2026)
 - Issue rappresentate: #12, #20, #23, #24, #25, #27, #28, #29, #30, #31, #32, #34, #40, #44, #45, #46, #87, #91, #94, #95, #96, #97, #98, #99, #100, #102
 
@@ -56,7 +56,7 @@ Il mock è un riferimento UX/prodotto **vivo**. Non è l'architettura e non cert
 
 ### v2026.10.19 — Daily Board, Dashboard e Ricerca reali (R-06b, #3, #30)
 
-- Nella pagina Oggi una nota indica cosa mostra la Daily Board del sito reale (`#/board`): partite salvate del giorno da `/api/v1/fpt/matches`, raggruppate per campionato, quote, xG e stato dei dati, N/D per i valori assenti, paginazione con cursore.
+- Nella pagina Oggi una nota indica cosa mostra la Daily Board del sito reale (`#/board`): partite salvate del giorno da `/api/v1/fpt/matches`, in ordine di orario con il campionato su ogni scheda, quote, xG e stato dei dati, N/D per i valori assenti, paginazione con cursore.
 - La stessa nota descrive la Ricerca reale (`#/search`) con i filtri di qualità dei dati (quote 1X2 complete, xG).
 - La Dashboard reale (`#/`) legge salute dei dati, certificazione, copertura per campionato e report TotalCorner dalle route v1.
 - Le parti DEMO del mock (segnali, live, bankroll, strategie) non cambiano.

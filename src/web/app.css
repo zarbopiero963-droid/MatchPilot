@@ -37,10 +37,9 @@ h3{font-size:16px;margin:4px 0 8px}
 .state.partial{border-color:var(--warn)}
 .controls{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:0 0 20px}
 input,select{background:#0b1a2c;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;max-width:100%}
-h2.group{margin:24px 0 10px;color:var(--muted);font-size:15px;text-transform:uppercase;letter-spacing:.04em}
 h2.day{margin:8px 0 4px}
 .paged{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px}
-.paged>h2.group{grid-column:1/-1}
+.match .comp{margin:0 0 8px;color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.03em}
 .match .match-head{display:flex;justify-content:space-between;gap:8px;margin:0;color:var(--muted)}
 .match .kick{font-weight:700;color:var(--text)}
 dl.compact{grid-template-columns:auto minmax(0,1fr);gap:2px 12px;font-size:14px}

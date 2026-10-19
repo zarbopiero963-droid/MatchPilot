@@ -169,7 +169,7 @@ async function dashboardView() {
     el('h1', {}, 'Dashboard'),
     el('p', {class: 'lead'}, 'Salute dei dati, copertura, freschezza e certificazione, letti dalle route dell’API v1. Nessun valore dimostrativo.'),
     failed ? el('p', {class: 'state partial', role: 'status', 'data-testid': 'dashboard-partial'},
-      `Risposta parziale: ${failed} riquadri su ${keys.length} non sono disponibili e mostrano N/D con il motivo.`) : null,
+      `Risposta parziale: ${failed} ${failed === 1 ? 'riquadro' : 'riquadri'} su ${keys.length} ${failed === 1 ? 'non è disponibile e mostra' : 'non sono disponibili e mostrano'} N/D con il motivo.`) : null,
     el('div', {class: 'grid'},
       tile('Servizio', 'tile-health', DASHBOARD.health, got.health, (data, body) => el('dl', {},
         field('Stato', formatScalar(data?.status), 'status'), field('Prodotto', formatScalar(data?.product), 'product'),
@@ -237,6 +237,7 @@ function matchCard(row) {
       el('span', {class: 'kick', 'data-field': 'kickoff'}, formatScalar(row.kickoff_local_time)),
       el('span', {class: 'pill', title: TZ_NOTE[row.kickoff_tz_status] ?? '', 'data-field': 'kickoff_tz_status'}, formatScalar(row.kickoff_tz_status))),
     el('h3', {}, el('span', {'data-field': 'home'}, formatScalar(row.home_name)), ' – ', el('span', {'data-field': 'away'}, formatScalar(row.away_name))),
+    el('p', {class: 'comp', 'data-field': 'competition'}, formatScalar(row.country_slug), ' · ', formatScalar(row.league_slug), ' · ', formatScalar(row.season)),
     el('dl', {class: 'compact'},
       field('Risultato', score(row), 'score'), field('Stato risultato', formatScalar(row.result_status), 'result_status'),
       field('Quote 1 · X · 2', el('span', {}, num(row.odd_home), ' · ', num(row.odd_draw), ' · ', num(row.odd_away)), 'odds_1x2'),
@@ -245,10 +246,6 @@ function matchCard(row) {
       field('xG casa · ospite', el('span', {}, num(row.xg_home), ' · ', num(row.xg_away)), 'xg')),
     el('p', {class: 'meta'}, 'Fase: ', formatScalar(row.phase), ' · dataset: ', formatScalar(row.dataset_key)));
 }
-
-const competitionKey = row => `${row.country_slug ?? ''}|${row.league_slug ?? ''}|${row.season ?? ''}`;
-const competitionTitle = row => el('h2', {class: 'group', 'data-group': competitionKey(row)},
-  formatScalar(row.country_slug), ' · ', formatScalar(row.league_slug), ' · ', formatScalar(row.season));
 
 // A list that keeps loading the next page with the API cursor. A failed page keeps what is shown and offers a retry.
 function pagedList({first, path, params, render, more: moreLabel, mine, list = el('div', {class: 'paged', 'data-testid': 'paged-list'})}) {
@@ -297,7 +294,7 @@ async function boardView(params, mine) {
   el('a', {href: validDate(date) ? `#/board?${queryString({date: shiftDay(date, 1)})}` : '#/board', 'data-action': 'next'}, 'Giorno dopo →'),
   el('a', {href: `#/board?${queryString({date: localToday()})}`}, 'Oggi'));
   const head = [el('h1', {}, 'Daily Board'),
-    el('p', {class: 'lead'}, 'Le partite di un giorno nei dati salvati, con quote, xG e stato dei dati. Orari come forniti dal fornitore.'), picker];
+    el('p', {class: 'lead'}, 'Le partite di un giorno nei dati salvati, in ordine di orario, con campionato, quote, xG e stato dei dati. Orari come forniti dal fornitore.'), picker];
   if (!validDate(date)) return [...head, el('p', {class: 'state error', role: 'alert'}, `Data non valida: "${date}". Usa il formato AAAA-MM-GG.`)];
   const path = '/api/v1/fpt/matches';
   const params2 = {date, limit: BOARD_PAGE};
@@ -307,13 +304,8 @@ async function boardView(params, mine) {
     return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'board-empty'}, `Nessuna partita il ${date} nei dati salvati. `,
       'La Dashboard indica per ogni campionato l’ultimo giorno con dati. ', el('a', {href: '#/'}, 'Apri la Dashboard')), metaLine(first)];
   }
-  let lastGroup = null;
-  const render = page => page.flatMap(row => {
-    const key = competitionKey(row);
-    const nodes = key === lastGroup ? [] : [competitionTitle(row)];
-    lastGroup = key;
-    return [...nodes, matchCard(row)];
-  });
+  // Kickoff order across competitions, as the API returns it; each card names its competition (PR #163 NB-3).
+  const render = page => page.map(matchCard);
   return [...head, el('h2', {class: 'day', 'data-testid': 'board-day'}, `Partite del ${date}`),
     ...pagedList({first, path, params: params2, render, more: 'Carica altre partite', mine}), metaLine(first)];
 }
@@ -394,6 +386,8 @@ async function searchView(params, mine) {
   const api = {limit: SEARCH_PAGE};
   for (const key of SEARCH_FIELDS) if (key !== 'team_id' && params.get(key)) api[key] = params.get(key);
   if (teamId) api.team = teamId;
+  // The venue only applies to a team: without one it is dropped, and the page says so (PR #163 NB-7).
+  const venueIgnored = !teamId && Boolean(api.venue);
   if (!teamId) delete api.venue;
   const path = '/api/v1/fpt/search';
   let first;
@@ -411,7 +405,8 @@ async function searchView(params, mine) {
     list: el('tbody', {'data-testid': 'search-results'})});
   const table = el('table', {}, el('thead', {}, el('tr', {}, ['Data', 'Ora', 'Partita', 'Campionato', 'Risultato', '1 · X · 2', 'Over 2,5', 'xG']
     .map(text => el('th', {scope: 'col'}, text)))), body);
-  return [...head, el('p', {class: 'meta', 'data-testid': 'filters-applied'}, 'Filtri applicati dal server: ', formatScalar((first.data?.provenance?.filters_applied ?? []).join(', '))),
+  return [...head, venueIgnored ? el('p', {class: 'state partial', role: 'status', 'data-testid': 'venue-ignored'}, 'La sede vale solo con una squadra: è stata ignorata.') : null,
+    el('p', {class: 'meta', 'data-testid': 'filters-applied'}, 'Filtri applicati dal server: ', formatScalar((first.data?.provenance?.filters_applied ?? []).join(', '))),
     el('div', {class: 'tablewrap'}, table), footer, metaLine(first)];
 }
 

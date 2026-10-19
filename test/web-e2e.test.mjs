@@ -343,12 +343,12 @@ test('R-06b: dashboard, Daily Board and search render the stored matches exactly
           assert.equal(await page.getAttribute('nav a[data-view="board"]', 'aria-current'), 'page');
           const cards = page.locator('article.match');
           assert.equal(await cards.count(), dayRows.length);
-          assert.equal(await page.locator('h2.group').count(), 1);
           for (let i = 0; i < dayRows.length; i++) {
             const row = dayRows[i];
             const card = cards.nth(i);
             assert.equal(await card.getAttribute('data-match'), row.internal_match_id, 'API order is kept');
             assert.equal(await card.locator('[data-field="home"]').textContent(), row.home_name);
+            assert.equal(await card.locator('[data-field="competition"]').textContent(), `${row.country_slug} · ${row.league_slug} · ${row.season}`);
             assert.equal(await card.locator('[data-field="kickoff"]').textContent(), shown(row.kickoff_local_time));
             assert.equal(await card.locator('[data-field="odds_1x2"]').textContent(), `${shown(row.odd_home)} · ${shown(row.odd_draw)} · ${shown(row.odd_away)}`);
             assert.equal(await card.locator('[data-field="score"]').textContent(), `${row.home_score}–${row.away_score}`);
@@ -395,6 +395,8 @@ test('R-06b: dashboard, Daily Board and search render the stored matches exactly
           assert.equal(await page.inputValue('input[name="team"]'), 'Ajax', 'the form keeps the filters');
 
           // Unknown team, invalid filter (server validation), no match.
+          await page.goto(`${server.base}/#/search?run=1&venue=home`);
+          await page.waitForSelector('[data-testid="venue-ignored"]');
           await page.goto(`${server.base}/#/search?run=1&team=Nessuno`);
           await page.waitForSelector('[data-testid="team-not-found"]');
           assert.deepEqual(problems, [], 'no console errors, page errors or CSP violations');
@@ -417,7 +419,7 @@ test('R-06b: dashboard, Daily Board and search render the stored matches exactly
         await page.waitForSelector('[data-testid="tile-tc-live"][data-state="error"]');
         assert.match(await page.textContent('[data-testid="tile-tc-live"]'), /N\/D[\s\S]*UNAVAILABLE/);
         assert.equal(await page.getAttribute('[data-testid="tile-certification"]', 'data-state'), 'ok');
-        assert.match(await page.textContent('[data-testid="dashboard-partial"]'), /1 riquadri su 6/);
+        assert.match(await page.textContent('[data-testid="dashboard-partial"]'), /1 riquadro su 6 non è disponibile/);
         await page.unroute('**/api/v1/tc/live');
 
         let failNext = true;

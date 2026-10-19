@@ -310,6 +310,13 @@ test('errata and checkpoint times are checked against the real git history (PR #
   // An erratum for a checkpoint no commit added, and a bound in the future, are refused.
   assert.ok(validateHistory([honest, future], {entries: [{...good, id: 'CP-20261018T210000Z-agent-a'}]}, history, {now}).some(e => e.includes('no commit has added')));
   assert.ok(validateHistory([], {entries: [{...good, not_after_utc: '2026-10-20T00:00:00Z'}]}, null, {now}).some(e => e.includes('in the future')));
+  // An amend keeps the author time but moves the committer time: an honest checkpoint added that way passes (PR #163 NB-5).
+  const amended = makeCheckpoint({id: 'CP-20261018T201000Z-agent-a', timestamp_utc: '2026-10-18T20:10:00Z'});
+  mkdirSync(join(repo.dir, dir), {recursive: true});
+  writeFileSync(join(repo.dir, `${dir}/${amended.id}.json`), '{}\n');
+  repo.git('add', '.');
+  execFileSync('git', ['commit', '-q', '-m', 'amended'], {cwd: repo.dir, env: {...process.env, GIT_AUTHOR_DATE: '2026-10-18T19:00:00Z', GIT_COMMITTER_DATE: '2026-10-18T20:12:00Z'}});
+  assert.deepEqual(validateHistory([honest, amended], {entries: []}, checkpointHistory(repo.dir), {now}), []);
   // Without git history only the clock check applies.
   assert.deepEqual(validateHistory([honest, future], {entries: [good]}, null, {now}), []);
 });
