@@ -1,0 +1,16 @@
+{
+  "schema": "mp-ai-eval-score-v1",
+  "written_at": "packaging (2026-10-19), from KEY2.txt, the seeds and the two reviews",
+  "assignment": {"rv-k3": "seeded bundle (= QA-03-BROWSER-QA-CERTIFICATION/ai-evaluation/bundle-1)", "rv-p8": "clean bundle (= .../bundle-2)"},
+  "seeded": {
+    "S1 odds with a decimal point (D-3)": {"rv-k3": "AI-4 BUG P2", "rv-p8": "not reported"},
+    "S2 missing data shown as 0": {"rv-k3": "AI-1 BUG P1, AI-2 BUG P2", "rv-p8": "not reported"},
+    "S3 English 'Load more matches'": {"rv-k3": "AI-5 BUG P3", "rv-p8": "not reported"},
+    "S4 board heading names the day before": {"rv-k3": "AI-3 BUG P2", "rv-p8": "not reported"}
+  },
+  "recall": "4/4 on the seeded bundle, one bundle per reviewer",
+  "seeded_classes_reported_on_clean": 0,
+  "verdicts": {"rv-k3": "BLOCKING", "rv-p8": "NO_BLOCKING"},
+  "coverage": {"rv-k3": "28/28 observations, 28/28 screenshots (74 image views)", "rv-p8": "28/28 observations, 28/28 screenshots (46 crops)"},
+  "limits": ["one run, four seeds, no statistical bound", "severity not calibrated (S1, S3, S4 below P1)", "src/ readable by procedure shows the intended behaviour", "the agent working tree briefly held an uncommitted menu label 'Data providers' while the reviewers read src/; unrelated to the seeds"]
+}

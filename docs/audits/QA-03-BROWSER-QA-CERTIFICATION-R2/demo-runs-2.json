@@ -1,0 +1,11 @@
+{
+  "schema": "mp-qa03-demo-v2",
+  "pr": 166,
+  "purpose": "isolated Browser QA -> CI gate -> merge block (review D2 B-1 on fcaf998)",
+  "steps": [
+    {"commit": "aba64fa481fc40531399611285cbc482431cd510", "kind": "green baseline (CI gate reports every check)", "ci_run": 39292006235, "ci_gate": "success: PASS classify, fast, ui, full, browser_qa"},
+    {"commit": "0137ec3daa66e0104113cd28af6dd149a1573da1", "kind": "CONTROLLED DEFECT 2: menu label 'Data providers' in src/web/index.html", "ci_run": 39292673549, "fast_checks": "success", "postgresql_suite": "success", "browser_qa": {"job": 118197184344, "result": "failure", "detail": "general-navigation desktop and mobile failed, 8/10 passed", "artifact": {"id": 12207071161, "name": "browser-qa-0137ec3daa66e0104113cd28af6dd149a1573da1", "digest": "sha256:795117c933bcf23023db95295a5c25dd3b6d012013dc0c689f545d9a5ccab2f9"}}, "exploratory_qa": "success (generic checks do not read labels)", "ci_gate": {"check_run": 118197808532, "result": "failure", "log": ["FAIL browser_qa: failure (expected success)", "PASS classify: success", "PASS fast: success", "PASS ui: skipped", "PASS full: success"]}, "pr_mergeable_state": "blocked (ready for review, not draft)", "local_reproduction": "isolated-demo/red-0137ec3: runner exit 1, 2/10 FAIL, verifier refuses; web E2E 4/4 pass"},
+    {"commit": "04016de994f548f37b77bbb9c3f18a1e3b6428ee", "kind": "fix (revert; tree identical to aba64fa)", "ci_run": 39293271271, "all_jobs": "success", "ci_gate": {"check_run": 118200190043, "result": "success", "log": ["PASS classify", "PASS fast", "PASS ui: skipped", "PASS full", "PASS browser_qa"]}, "artifact": {"id": 12207006161, "name": "browser-qa-04016de994f548f37b77bbb9c3f18a1e3b6428ee"}, "pr_mergeable_state": "clean", "local_run": "isolated-demo/green-04016de: PASS 10/10, verifier ok"}
+  ],
+  "gap_found": "isolated-demo/gap-discovery-untranslated-label-passed: before 373537d, the same untranslated label passed every Browser QA journey (10/10, run on 0a63d80 with an uncommitted change, so not valid evidence of a commit); fixed in 373537d (journey asserts menu labels)"
+}

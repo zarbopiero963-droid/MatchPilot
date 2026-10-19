@@ -25,7 +25,7 @@ One never stands in for the other: a green AI review does not replace the gate, 
 | 4 | Controlled injected defect detected by the gate | **HARD CERTIFIED** | PR #166, commit `61ddc17`: missing values rendered raw; Browser QA FAIL 0/10 ("raw value shown: null", providers "N/D" missing) |
 | 5 | Same defect reproduced outside CI | **HARD CERTIFIED** | local run on `61ddc17`: runner exit 1, 10/10 FAIL; verifier refuses the evidence |
 | 6 | Fix RED → GREEN, merge unblocked | **HARD CERTIFIED** | commit `e761a29` (revert, `src/` identical to before): Browser QA PASS 10/10 locally (verifier ok) and in CI run 39273942757, where every job and `CI gate` succeeded (check run 118134198286); PR `mergeable_state: "clean"` |
-| 7 | Browser QA failure → CI gate failure | **HARD CERTIFIED** | run 39273440194: `Browser QA` failure → `CI gate` failure (check run 118132874185) |
+| 7 | Browser QA failure → CI gate failure, on its own | **HARD CERTIFIED** | run 39292673549 on `0137ec3`: only `Browser QA` failed (Fast checks and PostgreSQL suite success); `CI gate` failure with the single line `FAIL browser_qa` (check run 118197808532); PR `blocked`. The gate script reports every check (`test/governance-ci-gate.test.mjs`) |
 | 8 | CI gate failure → merge blocked by GitHub | **HARD CERTIFIED** | PR #166 on head `61ddc17`, ready for review: `mergeable_state: "blocked"`; ruleset "MatchPilot main protection" (owner verified: PR required, required check `CI gate`, up-to-date branch, empty bypass list, force push blocked). No merge was attempted on the defective head, on purpose |
 | 9 | CI gate fails closed when a dependency job is cancelled | **HARD CERTIFIED** | run 39273399334 on `eaab7b0`, superseded by a push: jobs cancelled → `CI gate` failure |
 | 10 | Merge gate refuses a red Browser QA | **HARD CERTIFIED** | `node tools/governance/cli.mjs merge-gate` on the `61ddc17` facts: `allowed: false` ("browser QA is FAIL", "not verified", …) |
@@ -39,6 +39,9 @@ One never stands in for the other: a green AI review does not replace the gate, 
 
 ## Demonstration on PR #166 (19/10/2026, UTC)
 
+**Round 1** (`61ddc17`): the defect was caught by Browser QA and by the PostgreSQL suite together, so it did not isolate the Browser QA → CI gate link. That is review D2 B-1; round 2 below isolates it.
+
+
 1. `eaab7b0`: QA-03 tools; run superseded by the next push (matrix row 9).
 2. `61ddc17` (14:56:04): **CONTROLLED DEFECT**, `formatScalar` no longer renders N/D for a missing value.
    - CI run 39273440194: `Browser QA` failure, verifier `verdict: FAIL`, 0/10, artifact 12197460041; `PostgreSQL integration suite` failure (the web E2E test sees it too); `CI gate` failure.
@@ -47,7 +50,21 @@ One never stands in for the other: a green AI review does not replace the gate, 
    - `merge-gate` on those facts: `allowed: false`.
 3. `e761a29` (14:59:22): revert. Local Browser QA PASS 10/10, verifier ok (14:59:57). CI run 39273942757: every job green, `CI gate` success at 15:01:24; PR `mergeable_state: "clean"`.
 
-The defect never reached `main`: the PR is squash-merged from its final state, and `src/` at the head equals `main`.
+**Round 2** (isolated; evidence in [`QA-03-BROWSER-QA-CERTIFICATION-R2`](../audits/QA-03-BROWSER-QA-CERTIFICATION-R2/README.md)):
+1. **Gap found first.** An untranslated menu label passed every journey: the navigation journey checked only the page title. `373537d` adds the label check (RED with the defect, GREEN without).
+2. **`aba64fa`, green baseline** (run 39292006235). The new gate log prints `PASS` for every check.
+3. **`0137ec3` (17:16:12), CONTROLLED DEFECT 2:** the menu label becomes "Data providers".
+   - **CI** (run 39292673549):
+     - Fast checks: success.
+     - PostgreSQL suite: success.
+     - Browser QA: failure (general-navigation desktop and mobile; 8/10 passed; artifact 12207071161).
+     - Exploratory QA: success.
+     - `CI gate`: failure. Log: `FAIL browser_qa: failure (expected success)`, every other check `PASS`.
+     - PR: `mergeable_state: "blocked"`.
+   - **Local reproduction:** runner exit 1, the verifier refuses, web E2E 4/4 pass.
+4. **`04016de` (17:20:24), fix** (tree identical to `aba64fa`): run 39293271271 all green, `CI gate` success, PR `clean`. Local Browser QA PASS 10/10.
+
+Neither defect reaches `main`: the PR is squash-merged from its final state, and `src/` at the head equals `main`.
 
 ## AI exploratory agent: blind evaluation
 
@@ -59,6 +76,11 @@ The defect never reached `main`: the PR is squash-merged from its final state, a
    - one with four semantic defects injected in the page.
 2. The crawler reports **0 findings on both**: these defects are outside its reach.
 3. The bundles were blinded: anonymous names, and `injected_defect` cleared in the copies. Nothing else changed.
+
+**Evidence** (MP-OWNER-PERMANENT-EVIDENCE-01):
+- **Run 1:** [`docs/audits/QA-03-BROWSER-QA-CERTIFICATION/`](../audits/QA-03-BROWSER-QA-CERTIFICATION/README.md) holds the reviews, bundles, key and the round 1 demo. The full package (blinded bundles, unblinded originals, seed script, local runs) is in `evidence/audits` @ `50dc711`.
+- **Run 2 and the isolated demo:** [`docs/audits/QA-03-BROWSER-QA-CERTIFICATION-R2/`](../audits/QA-03-BROWSER-QA-CERTIFICATION-R2/README.md) holds the reviews, scoring and runs. The full package (crops, prompt, key, local runs) is in `evidence/audits` @ `d589a02`.
+- **Read-back:** both packages were read back from GitHub and verified.
 
 **Run 1 — not valid as a blind test (PR #166 review B-2).**
 - One reviewer received both bundles. It compared them and found the seeded defects as the differences between the two.

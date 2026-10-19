@@ -1,0 +1,15 @@
+{
+  "schema": "mp-evidence-v1",
+  "audit_id": "QA-03-BROWSER-QA-CERTIFICATION-R2",
+  "commit_sha": "04016de994f548f37b77bbb9c3f18a1e3b6428ee",
+  "date": "2026-10-19",
+  "environment": "Claude Code cloud container (Linux), PostgreSQL 16 throwaway schema with the QA archive, Chromium 141.0.7390.37, viewports 1280x800 and 390x844; CI: GitHub Actions, PostgreSQL 17, runner Google Chrome; blind run 2 on the archived bundles of 82ad736; demo on 0137ec3 (RED) and 04016de (GREEN)",
+  "outcome": "Isolated: Browser QA failing alone turned CI gate red (FAIL browser_qa only) and blocked the merge; fix green and mergeable. Blind run 2: 4/4 seeded defects found with one bundle per reviewer, none of the seeded classes on the clean bundle; agent as a whole NOT VERIFIED",
+  "archive": {
+    "branch": "evidence/audits",
+    "commit": "d589a0220b36640d84256e189bee390464dd81fc",
+    "path": "QA-03-BROWSER-QA-CERTIFICATION-R2",
+    "zip_sha256": "8212315df18aa420c1249fd692cbfff0e638f9a6e252db46eb6c884c431fe0a9",
+    "url": "https://github.com/zarbopiero963-droid/MatchPilot/tree/d589a0220b36640d84256e189bee390464dd81fc/QA-03-BROWSER-QA-CERTIFICATION-R2"
+  }
+}

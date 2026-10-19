@@ -1,5 +1,10 @@
 # QA-03-BROWSER-QA-CERTIFICATION: essential evidence
 
+> **Superseded in part by [QA-03-BROWSER-QA-CERTIFICATION-R2](../QA-03-BROWSER-QA-CERTIFICATION-R2/README.md).**
+> - The AI evaluation here (run 1) is not valid as a blind test: one reviewer saw both bundles, with a primed prompt.
+> - The `61ddc17` demonstration also failed the PostgreSQL suite, so it did not isolate Browser QA → CI gate.
+> - R2 corrects both, and carries the errata of the archived INDEX.
+
 **What it was:** the end-to-end certification of the Browser QA gate on PR #166, and the blind evaluation of the AI exploratory review. The matrix and the conclusions are in [`docs/qa/certification.md`](../../qa/certification.md).
 
 **What is here** (originals, except the two files written at packaging):
