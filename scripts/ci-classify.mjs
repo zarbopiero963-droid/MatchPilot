@@ -30,13 +30,14 @@ const DEPENDENTS = new Map([
 ]);
 
 // Browser QA Gate (MP-OWNER-BROWSER-QA-HARD-GATE-01): files whose change can alter what the browser shows or the APIs
-// it reads, plus the gate itself. Any of them, an empty or unreadable diff, or a deleted file among them makes the
-// change a web change; the exemption of every other change is this rule, tested in test/ci-classify.test.mjs.
+// it reads, plus the gate itself. Every application module counts (the server imports most of src/, directly or
+// through the query layer: PR #164 review B-1), and so do the schema, dependencies, the QA tools, the classifier, the
+// workflows and the browser tests. Any of them, an empty or unreadable diff, or a renamed or deleted path among them
+// (old and new paths both count: B-2) makes the change a web change; the exemption of every other change is this
+// rule, tested in test/ci-classify.test.mjs.
 const WEB_IMPACT = [
-  /^src\/web\//, /^src\/server\.mjs$/, /^src\/api\//, /^src\/auth\//, /^src\/coverage-page\.mjs$/,
-  /^src\/providers\//, /^src\/(db|migrate|runtime-safety)\.mjs$/, /^migrations\//,
-  /^package(-lock)?\.json$/, /^tools\/qa\//, /^scripts\/ci-classify\.mjs$/, /^\.github\/workflows\//,
-  /^test\/(web-e2e|browser-qa)/, /^test\/helpers\/fpt-seed\.mjs$/,
+  /^src\//, /^migrations\//, /^package(-lock)?\.json$/, /^\.npmrc$/, /^tools\/qa\//, /^scripts\/ci-classify\.mjs$/, /^\.github\/workflows\//,
+  /^test\/(web-e2e|browser-qa)/, /^test\/helpers\//,
 ];
 
 export function webImpact(inputFiles) {
@@ -95,10 +96,11 @@ export function classifyFiles(inputFiles) {
   return { mode: 'full', categories: [...categories].sort() };
 }
 
-function changedFiles(baseSha, headSha, {filter = 'ACMR'} = {}) {
+function changedFiles(baseSha, headSha) {
   if (!SHA.test(baseSha ?? '') || !SHA.test(headSha ?? '')) return [];
   try {
-    return execFileSync('git', ['diff', '--name-only', ...(filter ? [`--diff-filter=${filter}`] : []), `${baseSha}...${headSha}`], {
+    // --no-renames: a moved file is its deletion plus its addition, so the old path is classified too (PR #164 B-2).
+    return execFileSync('git', ['diff', '--name-only', '--no-renames', `${baseSha}...${headSha}`], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     }).split('\n').filter(Boolean);
@@ -114,7 +116,8 @@ function emit(result, web) {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  // Deleted files count for the web impact: removing a page is a web change.
-  emit(classifyFiles(changedFiles(process.env.BASE_SHA, process.env.HEAD_SHA)),
-    webImpact(changedFiles(process.env.BASE_SHA, process.env.HEAD_SHA, {filter: null})));
+  // Deleted and renamed-away paths count for both the lane and the web impact: removing or moving a source file
+  // must not downgrade the checks (PR #164 B-2).
+  const files = changedFiles(process.env.BASE_SHA, process.env.HEAD_SHA);
+  emit(classifyFiles(files), webImpact(files));
 }

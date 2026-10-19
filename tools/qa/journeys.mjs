@@ -16,6 +16,12 @@ export const shown = value => {
 
 const NAV = [['', 'Dashboard'], ['board', 'Daily Board'], ['search', 'Ricerca partite'], ['providers', 'Fornitori dati'], ['endpoints', 'API v1']];
 const unavailable = {api_version: 'v1', error: {code: 'UNAVAILABLE', message: 'data source unavailable'}};
+// A full page load: a hash-only change keeps the previous view on screen until the new one renders, so a check
+// could read stale results (PR #164 NB-6).
+async function fresh(page, url) {
+  await page.goto('about:blank');
+  await page.goto(url);
+}
 const ids = async (page, selector) => page.locator(selector).evaluateAll(nodes => nodes.map(node => node.dataset.match));
 // Clicks "more" until the list ends, waiting for each page to arrive.
 async function loadAll(page, rows) {
@@ -30,6 +36,7 @@ async function loadAll(page, rows) {
 export const JOURNEYS = [
   {
     id: 'general-navigation', surface: 'Interfaccia generale', title: 'Navigazione, rotte, pagina sconosciuta, tastiera',
+    allowRawText: [/^expected null$/, /^null: the provider catalog does not carry a fixture total$/],
     async run({page, base, step}) {
       await step('apertura del sito', async () => {
         const response = await page.goto(`${base}/`);
@@ -132,14 +139,21 @@ export const JOURNEYS = [
         await page.click('[data-action="prev"]');
         await page.waitForSelector('[data-testid="board-empty"]');
       });
-      await step('giorno dopo: di nuovo partite', async () => {
+      await step('giorno dopo: di nuovo il giorno affollato', async () => {
         await page.click('[data-action="next"]');
-        await page.waitForSelector('article.match');
+        await page.waitForFunction(text => document.querySelector('[data-testid="board-day"]')?.textContent.endsWith(text), day);
+        assert.equal(await page.locator('article.match').count(), 24);
       });
       await step('data non valida rifiutata senza richieste', async () => {
-        await page.goto(`${base}/#/board?date=2024-02-30`);
+        const requests = [];
+        const listen = request => { if (new URL(request.url()).pathname === '/api/v1/fpt/matches') requests.push(request.url()); };
+        page.on('request', listen);
+        await fresh(page, `${base}/#/board?date=2024-02-30`);
         await page.waitForSelector('.state.error[role="alert"]');
+        await page.waitForLoadState('networkidle');
+        page.off('request', listen);
         assert.match(await page.textContent('.state.error'), /Data non valida/);
+        assert.deepEqual(requests, [], 'no API request for an invalid date');
       });
     },
   },
@@ -160,7 +174,7 @@ export const JOURNEYS = [
       await step('squadra per nome, sede e qualità combinate', async () => {
         const ajax = (await api('/api/v1/fpt/teams?q=Ajax')).data.rows[0].internal_team_id;
         const expected = (await api(`/api/v1/fpt/search?team=${encodeURIComponent(ajax)}&venue=home&with_odds=true&limit=500`)).data.rows;
-        await page.goto(`${base}/#/search`);
+        await fresh(page, `${base}/#/search`);
         await page.waitForSelector('[data-testid="search-form"]');
         await page.fill('input[name="team"]', 'Ajax');
         await page.selectOption('select[name="venue"]', 'home');
@@ -173,7 +187,7 @@ export const JOURNEYS = [
       await step('campionato e intervallo di date', async () => {
         const expected = (await api(`/api/v1/fpt/search?competition=${encodeURIComponent(seed.laliga.competition)}&from=2024-08-02&before=2024-08-03&limit=500`)).data.rows;
         assert.ok(expected.length > 0);
-        await page.goto(`${base}/#/search`);
+        await fresh(page, `${base}/#/search`);
         await page.waitForSelector('[data-testid="search-form"] select[name="competition"]');
         await page.selectOption('select[name="competition"]', seed.laliga.competition);
         await page.fill('input[name="from"]', '2024-08-02');
@@ -185,22 +199,22 @@ export const JOURNEYS = [
       });
       await step('qualità: solo con xG', async () => {
         const expected = (await api('/api/v1/fpt/search?with_xg=true&result=FINAL&min_goals=4&limit=500')).data.rows;
-        await page.goto(`${base}/#/search?run=1&with_xg=true&result=FINAL&min_goals=4`);
+        await fresh(page, `${base}/#/search?run=1&with_xg=true&result=FINAL&min_goals=4`);
         await page.waitForSelector('[data-testid="search-results"] tr, [data-testid="search-empty"]');
         assert.equal(await page.locator('[data-testid="search-results"] tr').count(), Math.min(expected.length, 25));
         assert.equal(await page.isChecked('input[name="with_xg"]'), true);
       });
       await step('errore di validazione dal server', async () => {
-        await page.goto(`${base}/#/search?run=1&fav_min=abc`);
+        await fresh(page, `${base}/#/search?run=1&fav_min=abc`);
         await page.waitForSelector('[data-testid="search-invalid"]');
         assert.match(await page.textContent('[data-testid="search-invalid"]'), /fav_min/);
       });
       await step('squadra sconosciuta, nessun risultato, sede senza squadra', async () => {
-        await page.goto(`${base}/#/search?run=1&team=Nessuno`);
+        await fresh(page, `${base}/#/search?run=1&team=Nessuno`);
         await page.waitForSelector('[data-testid="team-not-found"]');
-        await page.goto(`${base}/#/search?run=1&min_goals=30`);
+        await fresh(page, `${base}/#/search?run=1&min_goals=30`);
         await page.waitForSelector('[data-testid="search-empty"]');
-        await page.goto(`${base}/#/search?run=1&venue=home`);
+        await fresh(page, `${base}/#/search?run=1&venue=home`);
         await page.waitForSelector('[data-testid="venue-ignored"]');
       });
       await step('pagina successiva in errore: le righe restano, Riprova funziona', async () => {
@@ -210,7 +224,7 @@ export const JOURNEYS = [
           fail = false;
           return route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)});
         });
-        await page.goto(`${base}/#/search?run=1`);
+        await fresh(page, `${base}/#/search?run=1`);
         await page.waitForSelector('[data-testid="search-results"] tr');
         await page.click('[data-action="more"]');
         await page.waitForSelector('.paged-foot .state.error');
@@ -223,6 +237,8 @@ export const JOURNEYS = [
   },
   {
     id: 'providers-endpoints', surface: 'Interfaccia generale', title: 'Fornitori dati e registro API',
+    // Certification prose from the API that legitimately ends with "null" (phase 6 evidence).
+    allowRawText: [/^expected null$/, /^null: the provider catalog does not carry a fixture total$/],
     async run({page, base, step, api}) {
       const endpoints = await api('/api/v1/endpoints');
       await step('fornitori dati', async () => {

@@ -2,7 +2,7 @@
 
 Owner decision MP-OWNER-QA-01-AUTHORIZATION, condition 1. R-07a (Match Center, pre-match analysis; #25, #30, QUERY-CORE-01) was paused on 19/10/2026 when MP-OWNER-BROWSER-QA-HARD-GATE-01 arrived. It resumes after the verified activation of the Browser QA Gate, and will be the first web PR to go through it.
 
-**State: work in progress. It has never been pushed, run or reviewed.** The patch [`R-07a-match-analysis.patch`](R-07a-match-analysis.patch) is the uncommitted work as it stood. It was taken from local commit `474f59d` on top of `main` `56fe579` and applies cleanly to that base with `git apply`.
+**State: work in progress. It has never been pushed, run or reviewed.** The work was saved as local commit `474f59d` on top of `main` `56fe579`, never pushed, and exported as the patch [`R-07a-match-analysis.patch`](R-07a-match-analysis.patch), which applies cleanly to that base with `git apply`.
 
 ## What the patch contains
 

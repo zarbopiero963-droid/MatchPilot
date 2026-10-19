@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 57,
+  "revision": 58,
   "tasks": [
     {
       "id": "R-01",
@@ -229,17 +229,17 @@
       "id": "QA-01",
       "title": "Browser QA Gate, deterministic level (MP-OWNER-BROWSER-QA-HARD-GATE-01)",
       "issue": 3,
-      "pr": null,
+      "pr": 164,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "RUNNING",
+      "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
       "latest_checkpoint": "CP-20261019T130622Z-agent-a-claude-code",
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }

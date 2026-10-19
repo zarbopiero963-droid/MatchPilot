@@ -26,21 +26,23 @@ const BROWSERS = [process.env.MATCHPILOT_E2E_CHROME, '/opt/pw-browsers/chromium-
 const git = args => execFileSync('git', args, {cwd: root, encoding: 'utf8'}).trim();
 const sha256 = buffer => createHash('sha256').update(buffer).digest('hex');
 
-// A JavaScript value that leaked to the page: a text node that is exactly null/undefined/NaN (what a missing value
-// rendered without formatScalar becomes), or NaN anywhere. API prose such as "expected null" or the label
-// "undefined states" is data and stays allowed.
-export const RAW_VALUE = /^(?:null|undefined|NaN)$|\bNaN\b/;
+// A JavaScript value that leaked to the page: null/undefined alone or before punctuation or the end of a text node
+// ("null", "null · 1,2", "Partite del undefined"), or NaN anywhere. A word followed by more words (the field label
+// "undefined states") is not a leak. API prose that legitimately ends with such a word is declared per journey in
+// allowRawText, never allowed globally (PR #164 NB-3).
+export const RAW_VALUE = /(?:^|[\s(:·–])(?:null|undefined)(?=\s*(?:$|[·–),.;:]))|\bNaN\b/;
 
 // Generic checks after every step: what no page may ever show, whatever the journey.
-async function invariants(page) {
-  return page.evaluate(rawSource => {
+async function invariants(page, allowRawText = []) {
+  return page.evaluate(([rawSource, allowSources]) => {
     const rawValue = new RegExp(rawSource);
+    const allowed = allowSources.map(source => new RegExp(source));
     const problems = [];
     const main = document.querySelector('main');
     const walker = document.createTreeWalker(main ?? document.body, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
       const text = node.textContent.trim();
-      if (rawValue.test(text)) problems.push(`raw value shown: "${text.slice(0, 60)}"`);
+      if (rawValue.test(text) && !allowed.some(pattern => pattern.test(text))) problems.push(`raw value shown: "${text.slice(0, 60)}"`);
     }
     if (document.documentElement.scrollWidth > window.innerWidth) problems.push(`horizontal overflow ${document.documentElement.scrollWidth} > ${window.innerWidth}`);
     // Basic accessibility.
@@ -77,7 +79,7 @@ async function invariants(page) {
       }
     }
     return [...new Set(problems)];
-  }, RAW_VALUE.source);
+  }, [RAW_VALUE.source, allowRawText.map(pattern => pattern.source)]);
 }
 
 function browserPath() {
@@ -99,7 +101,14 @@ async function startServer(schema) {
   while (!/listening on \d+ /.test(output) && child.exitCode == null && Date.now() < deadline) await new Promise(done => setTimeout(done, 50));
   const port = Number(/listening on (\d+) /.exec(output)?.[1]);
   if (!(port > 0)) { child.kill('SIGKILL'); throw new Error(`server did not start: ${output.slice(-500)}`); }
-  return {base: `http://127.0.0.1:${port}`, url, stop: () => new Promise(done => { child.on('close', done); child.kill('SIGTERM'); })};
+  // Stopping never hangs: an already exited server resolves at once, a stuck one is killed after 5 s (PR #164 NB-4).
+  const stop = () => new Promise(done => {
+    if (child.exitCode !== null || child.signalCode !== null) return done();
+    const timer = setTimeout(() => child.kill('SIGKILL'), 5000);
+    child.on('close', () => { clearTimeout(timer); done(); });
+    child.kill('SIGTERM');
+  });
+  return {base: `http://127.0.0.1:${port}`, url, stop};
 }
 
 const allowedHttp = (journey, url, status) => (journey.allowHttp ?? []).some(rule => new URL(url).pathname === rule.path && rule.status === status);
@@ -138,7 +147,7 @@ async function runJourney({browser, journey, viewportName, base, out, api, seed,
     const slug = name.normalize('NFD').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase().slice(0, 40);
     try {
       await fn();
-      const problems = await invariants(page);
+      const problems = await invariants(page, journey.allowRawText);
       if (problems.length) throw new Error(`invariants: ${problems.join('; ')}`);
       steps.push({name, status: 'PASS', screenshot: await shot(slug)});
     } catch (error) {
@@ -193,6 +202,8 @@ export async function runBrowserQa({out, journeys = JOURNEYS, viewports = REQUIR
   const testedCommit = git(['rev-parse', 'HEAD']);
   const dirty = git(['status', '--porcelain', '--untracked-files=no']) !== '';
   out = resolve(out);
+  // A fresh directory only: files of an earlier run must never enter this run's manifest (PR #164 NB-5).
+  if (existsSync(out) && readdirSync(out).length) throw new Error(`--out ${out} is not empty`);
   mkdirSync(join(out, 'screenshots'), {recursive: true});
   mkdirSync(join(out, 'traces'), {recursive: true});
   const executablePath = browserPath();

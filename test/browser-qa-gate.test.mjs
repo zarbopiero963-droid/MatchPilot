@@ -125,3 +125,40 @@ test('the runner fails a real page that leaks a raw value, with evidence (delibe
   assert.equal(verdict.ok, false, 'the gate refuses it');
   assert.ok(JSON.parse(readFileSync(join(out, 'report.json'), 'utf8')).files[journey.trace]);
 });
+
+test('inherited keys, files outside the manifest and a wrong missing_required are refused (PR #164 NB-1, NB-2)', t => {
+  // Forged evidence naming inherited object keys instead of real files.
+  refused(check(evidence(t, (r, dir) => {
+    rmSync(join(dir, r.journeys[0].trace));
+    delete r.files[r.journeys[0].trace];
+    r.journeys[0].trace = 'toString';
+  })), /trace not in the evidence/);
+  refused(check(evidence(t, r => { r.files = JSON.parse('{"__proto__": {"x": "y"}}'); })), /no evidence files listed|not in the manifest/);
+  refused(check(evidence(t, (r, dir) => { writeFileSync(join(dir, 'screenshots/planted.png'), 'x'); })), /not in the manifest: screenshots\/planted\.png/);
+  refused(check(evidence(t, r => { r.missing_required = ['dashboard/desktop']; })), /missing_required/);
+});
+
+test('the tested commit must contain the PR head (PR #164 NB-2)', async t => {
+  const {execFileSync} = await import('node:child_process');
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
+  const parent = execFileSync('git', ['rev-parse', 'HEAD~1'], {encoding: 'utf8'}).trim();
+  const dir = evidence(t, r => { r.head_sha = head; r.tested_commit = parent; });
+  // The parent does not contain the head: refused even though the report agrees with itself.
+  refused(verifyReport(dir, {expectedHead: head, expectedCommit: parent, gitDir: process.cwd()}), /does not contain the PR head/);
+  const ok = verifyReport(evidence(t, r => { r.head_sha = parent; r.tested_commit = head; }), {expectedHead: parent, expectedCommit: head, gitDir: process.cwd()});
+  assert.deepEqual(ok.errors, []);
+});
+
+test('raw values are caught in text, labels and declared API prose are not (PR #164 NB-3)', async () => {
+  const {RAW_VALUE} = await import('../tools/qa/browser-qa.mjs');
+  for (const leak of ['null', 'undefined', 'null · 1,2', 'Partite del undefined', 'Stato: null', 'x (undefined)', 'NaN', '1,2 NaN']) assert.ok(RAW_VALUE.test(leak), leak);
+  for (const fine of ['undefined states', 'nullable', 'N/D', 'Annullata', 'nessuno', '0']) assert.equal(RAW_VALUE.test(fine), false, fine);
+});
+
+test('the runner refuses a non-empty output directory (PR #164 NB-5)', async t => {
+  const {runBrowserQa} = await import('../tools/qa/browser-qa.mjs');
+  const out = mkdtempSync(join(tmpdir(), 'mp-qa-out-'));
+  t.after(() => rmSync(out, {recursive: true, force: true}));
+  writeFileSync(join(out, 'old.png'), 'x');
+  await assert.rejects(runBrowserQa({out, headSha: HEAD}), /not empty/);
+});

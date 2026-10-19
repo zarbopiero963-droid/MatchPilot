@@ -14,8 +14,9 @@
 //
 // Usage: node tools/qa/verify-report.mjs <dir> --head <sha> [--commit <sha>]
 import {createHash} from 'node:crypto';
-import {existsSync, readFileSync} from 'node:fs';
-import {join, resolve} from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {existsSync, readFileSync, readdirSync, statSync} from 'node:fs';
+import {join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {findSecrets} from '../governance/secrets.mjs';
 import {REQUIRED_JOURNEYS, REQUIRED_VIEWPORTS} from './journeys.mjs';
@@ -24,7 +25,18 @@ const SHA = /^[0-9a-f]{40}$/;
 const STATUSES = ['PASS', 'FAIL', 'SKIP', 'NOT_VERIFIED'];
 const sha256 = buffer => createHash('sha256').update(buffer).digest('hex');
 
-export function verifyReport(dir, {expectedHead, expectedCommit = null, required = REQUIRED_JOURNEYS, viewports = REQUIRED_VIEWPORTS, now = new Date()} = {}) {
+const listFiles = dir => readdirSync(dir).flatMap(name => {
+  const path = join(dir, name);
+  return statSync(path).isDirectory() ? listFiles(path) : [path];
+});
+
+// The tested commit must contain the PR head (in a pull_request run it is the merge of the head into the base).
+function containsHead(cwd, head, commit) {
+  try { execFileSync('git', ['merge-base', '--is-ancestor', head, commit], {cwd, stdio: 'ignore'}); return true; }
+  catch { return false; }
+}
+
+export function verifyReport(dir, {expectedHead, expectedCommit = null, required = REQUIRED_JOURNEYS, viewports = REQUIRED_VIEWPORTS, now = new Date(), gitDir = null} = {}) {
   const errors = [];
   const fail = message => { errors.push(message); return {ok: false, errors, report: null}; };
   if (!SHA.test(expectedHead || '')) return fail('expected head SHA missing or not a full SHA');
@@ -37,14 +49,21 @@ export function verifyReport(dir, {expectedHead, expectedCommit = null, required
   if (report.head_sha !== expectedHead) errors.push(`report is for ${report.head_sha}, not the PR head ${expectedHead}`);
   if (!SHA.test(report.tested_commit || '')) errors.push('tested_commit is not a full SHA');
   if (expectedCommit && report.tested_commit !== expectedCommit) errors.push(`report tested ${report.tested_commit}, not the checked-out commit ${expectedCommit}`);
+  if (gitDir && expectedCommit && !containsHead(gitDir, expectedHead, expectedCommit)) errors.push(`the tested commit ${expectedCommit} does not contain the PR head ${expectedHead}`);
   if (report.working_tree_clean !== true) errors.push('the run was made on a modified working tree');
   if (Number.isNaN(Date.parse(report.generated_at)) || Date.parse(report.generated_at) > now.getTime() + 10 * 60e3) errors.push('generated_at missing or in the future');
   if (report.dataset?.production_data !== false) errors.push('dataset must declare production_data: false');
   if (report.injected_defect !== false) errors.push('the run used a test hook (injected defect): not valid evidence');
 
   // Evidence files: present and unchanged.
-  const files = report.files && typeof report.files === 'object' ? report.files : {};
+  // A plain map: inherited keys such as __proto__ or toString are never evidence (PR #164 NB-1).
+  const files = Object.assign(Object.create(null), report.files && typeof report.files === 'object' ? report.files : {});
+  const listed = path => Object.hasOwn(files, path) && typeof files[path] === 'string';
   if (!Object.keys(files).length) errors.push('no evidence files listed');
+  // Nothing on disk outside the manifest: a leftover or planted file is not silently accepted (NB-2).
+  for (const path of listFiles(dir).map(full => relative(dir, full).split('\\').join('/'))) {
+    if (path !== 'report.json' && !listed(path)) errors.push(`file not in the manifest: ${path}`);
+  }
   for (const [path, digest] of Object.entries(files)) {
     if (path.includes('..') || path.startsWith('/')) { errors.push(`unsafe evidence path ${path}`); continue; }
     const full = join(dir, path);
@@ -62,8 +81,8 @@ export function verifyReport(dir, {expectedHead, expectedCommit = null, required
     seen.add(at);
     if (!STATUSES.includes(journey.status)) { errors.push(`${at} has invalid status ${journey.status}`); continue; }
     if (['SKIP', 'NOT_VERIFIED'].includes(journey.status) && !String(journey.reason || '').trim()) errors.push(`${at} ${journey.status} without a reason`);
-    if (!files[journey.trace]) errors.push(`${at} trace not in the evidence`);
-    for (const step of journey.steps ?? []) if (step.screenshot && !files[step.screenshot]) errors.push(`${at} screenshot ${step.screenshot} not in the evidence`);
+    if (!listed(journey.trace)) errors.push(`${at} trace not in the evidence`);
+    for (const step of journey.steps ?? []) if (step.screenshot && !listed(step.screenshot)) errors.push(`${at} screenshot ${step.screenshot} not in the evidence`);
     if (journey.status === 'PASS') {
       const steps = Array.isArray(journey.steps) ? journey.steps : [];
       if (!steps.length) errors.push(`${at} PASS without executed steps`);
@@ -84,6 +103,7 @@ export function verifyReport(dir, {expectedHead, expectedCommit = null, required
     else if (journey.status !== 'PASS') missing.push(`${id}/${viewport}`);
   }
   if (missing.length) errors.push(`required journeys not passed: ${missing.join(', ')}`);
+  if (JSON.stringify(report.missing_required) !== JSON.stringify(missing)) errors.push(`missing_required ${JSON.stringify(report.missing_required)} does not match the journeys`);
   const counts = {pass: 0, fail: 0, skip: 0, not_verified: 0};
   for (const journey of journeys) if (STATUSES.includes(journey.status)) counts[journey.status.toLowerCase()]++;
   if (JSON.stringify(counts) !== JSON.stringify(report.counts)) errors.push(`counts ${JSON.stringify(report.counts)} do not match the journeys ${JSON.stringify(counts)}`);
@@ -99,7 +119,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const opt = name => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : undefined; };
   const dir = args.find(arg => !arg.startsWith('--') && args[args.indexOf(arg) - 1]?.startsWith('--') !== true);
   if (!dir) { console.error('usage: verify-report.mjs <dir> --head <sha> [--commit <sha>]'); process.exit(2); }
-  const result = verifyReport(dir, {expectedHead: opt('head'), expectedCommit: opt('commit') ?? null});
+  const result = verifyReport(dir, {expectedHead: opt('head'), expectedCommit: opt('commit') ?? null, gitDir: process.cwd()});
   console.log(JSON.stringify({ok: result.ok, verdict: result.report?.verdict ?? null, head_sha: result.report?.head_sha ?? null, counts: result.report?.counts ?? null, errors: result.errors}, null, 2));
   process.exit(result.ok ? 0 : 1);
 }

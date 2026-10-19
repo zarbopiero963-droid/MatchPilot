@@ -33,20 +33,20 @@ A journey fails on any JavaScript error, failed request or HTTP error ≥ 400 th
 ## Evidence and verification
 
 `node tools/qa/verify-report.mjs <dir> --head <PR head> --commit <checked-out commit>` (`npm run qa:verify`) accepts the evidence only when:
-- `head_sha` is the PR head and `tested_commit` the checked-out commit, on a clean working tree, with no test hook (injected defect);
-- every listed file exists with its SHA-256, and every screenshot and trace cited is listed;
+- `head_sha` is the PR head and `tested_commit` the checked-out commit, and the tested commit contains the head (in a pull request run it is the merge of the head into the base); clean working tree; no test hook (injected defect);
+- every listed file exists with its SHA-256, every screenshot and trace cited is listed (inherited object keys never count), and no file on disk is missing from the manifest;
 - every required journey ran on every required viewport, once, and passed with executed steps, a trace, a duration and no unexpected error;
 - SKIP and NOT_VERIFIED carry a reason and never replace a required journey;
-- counts and verdict equal what the journeys imply;
+- counts, `missing_required` and verdict equal what the journeys imply;
 - the report is not dated in the future and has no secret-like value.
 
 The verdict is computed, never declared. `test/browser-qa-gate.test.mjs` proves each refusal (missing report, other head, other commit, modified tree, changed or missing file, PASS without steps, hidden failure, wrong counts, duplicate, unexplained skip, missing journey, secret) and that the runner fails a real page with a deliberately injected defect, with screenshot and trace.
 
 ## Where it is enforced
 
-- **Classification:** `scripts/ci-classify.mjs` outputs `web`. Web: `src/web/`, `src/server.mjs`, `src/api/`, `src/auth/`, `src/coverage-page.mjs`, `src/providers/`, `src/db.mjs`, `src/migrate.mjs`, `src/runtime-safety.mjs`, `migrations/`, `package*.json`, `tools/qa/`, the classifier, the workflows, the browser tests and the QA fixture. Deleted files count; an empty or unreadable diff is web. Everything else is exempt by this rule only (`test/ci-classify.test.mjs`).
+- **Classification:** `scripts/ci-classify.mjs` outputs `web`. Web: every file under `src/` (the server imports most modules directly or through the query layer), `migrations/`, `package*.json`, `.npmrc`, `tools/qa/`, the classifier, the workflows, the browser tests and `test/helpers/`. The diff is read without rename detection, so a moved file counts at its old and its new path; deleted files count; an empty or unreadable diff is web. Everything else (documentation, governance records and tools, mock, other tests) is exempt by this rule only (`test/ci-classify.test.mjs`).
 - **CI:** job `Browser QA` runs for web changes on PostgreSQL 17 with the runner's Chrome, verifies the evidence against the PR head and uploads it as the artifact `browser-qa-<head>` (14 days). `CI gate` fails when the change is web and `Browser QA` did not succeed, or when it is not web and the job ran anyway.
-- **Merge gate:** `node tools/governance/cli.mjs merge-gate` needs `web_impact` (from the classifier) and, for a web change, `browser_qa: {verdict: PASS, verified: true, head_sha: <head>, ci_run_id}`.
+- **Merge gate:** `node tools/governance/cli.mjs merge-gate` needs `web_impact` (from the classifier) and, for a web change, `browser_qa: {verdict: PASS, verified: true, head_sha: <head>, ci_run_id}`. Like every merge-gate input, these are facts the agent copies from GitHub (the classifier output, the green `Browser QA` job and its artifact on the head); the command does not query GitHub itself, and the independent reviewer re-checks them. The enforcement that does not depend on the agent is `CI gate`.
 
 ## Phase A audit (19/10/2026, before QA-01)
 
@@ -72,6 +72,7 @@ The verdict is computed, never declared. `test/browser-qa-gate.test.mjs` proves 
 ## Limits
 
 - **Required checks:** `main` is protected, but which checks GitHub requires cannot be read with the tools available to the agent. `docs/ci-zero-cost.md` asks for `CI gate`. Until the owner confirms it in the repository settings, "the gate cannot be bypassed" is **NOT VERIFIED** and the gate is not HARD CERTIFIED.
+- **Trust model:** the evidence is produced and verified inside the CI job on the PR head; the verifier proves it is complete, unmodified and bound to that head, not that the runner code is honest. A change to the runner or the journeys is itself a web change, reviewed like any other.
 - **Exploratory level (B):** not part of QA-01; reported as `NOT_VERIFIED` in every report. Planned in QA-02.
 - **Data:** the QA archive is a fixture through the real ingestion path, not the real archive (#40) nor production data.
 - **Accessibility:** structural checks only, not a full WCAG audit.
