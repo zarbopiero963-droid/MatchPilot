@@ -98,9 +98,16 @@ async function perform(page, action) {
   return element.click();
 }
 
+// Requests in flight per watched page: a hash route of the single-page app changes without a page load, so the load
+// state says nothing about whether the view finished fetching; settle() waits on these instead.
+const inflight = new WeakMap();
+
 // Watches one page; problems() returns what happened since the last call, already classified.
 function watch(page) {
   let pending = [];
+  inflight.set(page, 0);
+  page.on('request', () => inflight.set(page, inflight.get(page) + 1));
+  for (const done of ['requestfinished', 'requestfailed']) page.on(done, () => inflight.set(page, Math.max(0, inflight.get(page) - 1)));
   page.on('pageerror', error => pending.push({kind: 'js-error', message: error.message}));
   page.on('console', message => {
     if (message.type() !== 'error') return;
@@ -118,8 +125,18 @@ function watch(page) {
   return () => { const out = pending; pending = []; return out; };
 }
 
+// Settled: the load finished and no request was in flight for 300 ms (5 s at most), then one more frame so the view
+// rendered what it received and late errors (a timer, a rejected promise) reached the listeners.
 async function settle(page) {
-  await page.waitForLoadState('networkidle', {timeout: 5000}).catch(() => {});
+  await page.waitForLoadState('load', {timeout: 5000}).catch(() => {});
+  const deadline = Date.now() + 5000;
+  let quietSince = Date.now();
+  while (Date.now() < deadline) {
+    await page.waitForTimeout(50);
+    if (inflight.get(page) > 0) quietSince = Date.now();
+    else if (Date.now() - quietSince >= 300) break;
+  }
+  await page.evaluate(() => new Promise(done => requestAnimationFrame(() => setTimeout(done, 0)))).catch(() => {});
 }
 
 const onSite = (page, base) => page.url().startsWith(base);
@@ -159,7 +176,7 @@ async function replay(browser, viewport, base, steps, key, contextHook) {
   }
 }
 
-export async function runExploration({out, seed = 1, actions = 30, viewports = Object.keys(VIEWPORTS), headSha = process.env.QA_HEAD_SHA, contextHook = null} = {}) {
+export async function runExploration({out, seed = 1, actions = 30, viewports = Object.keys(VIEWPORTS), headSha = process.env.QA_HEAD_SHA, contextHook = null, onlyRoutes = null} = {}) {
   out = resolve(out);
   if (existsSync(out) && readdirSync(out).length) throw new Error(`--out ${out} is not empty`);
   for (const dir of ['screenshots', 'observations', 'traces']) mkdirSync(join(out, dir), {recursive: true});
@@ -172,7 +189,7 @@ export async function runExploration({out, seed = 1, actions = 30, viewports = O
     {
       const page = await browser.newPage();
       await page.goto(`${base}/`);
-      await settle(page);
+      await page.waitForLoadState('networkidle', {timeout: 5000}).catch(() => {});
       for (const href of await page.locator('nav a[href^="#/"]').evaluateAll(nodes => nodes.map(node => node.getAttribute('href')))) routes.add(`/${href}`);
       await page.close();
     }
@@ -182,7 +199,10 @@ export async function runExploration({out, seed = 1, actions = 30, viewports = O
     let total = 0;
     let actionErrors = 0;
     let routeIndex = 0;
+    const trails = [];
     for (const route of routes) {
+      // Tests may restrict the routes; the route index (and so the per-route seed) stays the one of the full run.
+      if (onlyRoutes && !onlyRoutes.includes(route)) { routeIndex += viewports.length; continue; }
       for (const viewport of viewports) {
         const tag = `${String(++routeIndex).padStart(2, '0')}-${viewport}`;
         const random = prng(seed * 1000 + routeIndex);
@@ -193,6 +213,8 @@ export async function runExploration({out, seed = 1, actions = 30, viewports = O
         page.setDefaultTimeout(10000);
         const drain = watch(page);
         let steps = [{type: 'goto', url: route}];
+        // Every action of the route in order: its SHA-256 shows that the same seed on the same site replays exactly.
+        const trail = [];
         await page.goto(`${base}${route}`);
         await settle(page);
         // Observation for the AI review: what a user sees when the route opens.
@@ -210,6 +232,7 @@ export async function runExploration({out, seed = 1, actions = 30, viewports = O
         for (let i = 0; i < actions; i++) {
           const action = chooseAction(random, await candidates(page), dates);
           steps.push(action);
+          trail.push(action);
           total++;
           // A control that vanished or changed between discovery and action is not a site defect: counted, not reported.
           await perform(page, action).catch(() => { actionErrors++; });
@@ -235,6 +258,7 @@ export async function runExploration({out, seed = 1, actions = 30, viewports = O
           }
         }
         await observe('end');
+        trails.push({route, viewport, actions: trail.length, sha256: sha256(Buffer.from(JSON.stringify(trail)))});
         await context.tracing.stop({path: join(out, `traces/${tag}.zip`)});
         await context.close();
       }
@@ -246,6 +270,7 @@ export async function runExploration({out, seed = 1, actions = 30, viewports = O
     const report = {
       schema: EXPLORE_SCHEMA, head_sha: headSha || testedCommit, tested_commit: testedCommit, generated_at: new Date().toISOString(),
       browser: `${browser.browserType().name()} ${browser.version()}`, seed, actions_per_route: actions, viewports, routes: [...routes],
+      trails,
       totals: {actions: total, action_errors: actionErrors, findings: findings.length, reproduced: findings.filter(finding => finding.reproduced).length},
       findings, observations, injected_defect: Boolean(contextHook),
       ai_review: {status: 'NOT_VERIFIED', reason: 'the AI review of level B is a separate step on this bundle (docs/qa/exploratory.md)'},

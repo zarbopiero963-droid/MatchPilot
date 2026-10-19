@@ -1,0 +1,122 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "3584ae1098ee1a492c33747cf40cbd452832fe84",
+  "tree_sha": "5eb7a6f6caddf9455557e7f9bd9747ad049ee03f",
+  "supersedes": "CP-20261019T131756Z-agent-a-claude-code",
+  "pr": 164,
+  "id": "CP-20261019T132747Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T13:27:47Z",
+  "activity": "QA-01 merged: PR #164 squash 3d8f5c9 on main; Browser QA Gate active in CI; required check CI gate owner verified",
+  "task": "QA-01",
+  "issue": 3,
+  "requirements": [
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "main 3d8f5c96c73e3eace0436bf83edccfa74d9a183a (squash of PR #164, head 3584ae1 checked with expectedHeadSha)"
+  ],
+  "tests": [
+    {
+      "command": "CI run 39258973392 on 63b5161: PostgreSQL integration suite",
+      "result": "FAIL",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "63b51617820c5f6e23be1422b0986a97eab0e009",
+      "time": "2026-10-19T13:19:07Z",
+      "limits": [
+        "test used HEAD~1 in a depth-1 checkout; fixed in 3584ae1. CI gate went red with it (check run 118082000077), showing that a failing dependency job fails CI gate"
+      ]
+    },
+    {
+      "command": "CI runs 39259228606 and 39259909311 on 3584ae1 (Fast checks, PostgreSQL integration suite, Browser QA, CI gate)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17, runner Google Chrome",
+      "commit": "3584ae1098ee1a492c33747cf40cbd452832fe84",
+      "time": "2026-10-19T13:26:11Z",
+      "limits": [
+        "Browser QA 10/10 journeys, verifier ok including head ancestry; artifact browser-qa-3584ae1… id 12188339334 (run 39259909311), sha256:d86580d79c9295dea8557b12579b3c2da2a7af0599538a56701648d7357ebb2b, expires 2026-11-02"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39259909311,
+    "conclusion": "SUCCESS",
+    "head_sha": "3584ae1098ee1a492c33747cf40cbd452832fe84"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/164#issuecomment-6268281772",
+    "reviewed_sha": "3584ae1098ee1a492c33747cf40cbd452832fe84"
+  },
+  "findings": [
+    {
+      "id": "QA01-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "raw-value invariant flagged legitimate labels and API prose (test defect); narrowed to leaked text nodes"
+    },
+    {
+      "id": "QA01-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "providers page: deeply nested evidence values wrap one character per line on desktop (P3 visual, pre-existing)"
+    },
+    {
+      "id": "B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "modules imported by the server classified non-web (Browser QA skipped)"
+    },
+    {
+      "id": "B-2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "a moved web file was seen only at its new path"
+    },
+    {
+      "id": "NB-1..NB-8",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "verifier keys/manifest/missing_required/ancestry, raw values, stop timeout, output dir, journey waits, trust model docs, registry and note"
+    },
+    {
+      "id": "QA01-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "required check: owner verified on 2026-10-19 the ruleset 'MatchPilot main protection' (active on main; PR required; required status check 'CI gate' from GitHub Actions; up-to-date branches; empty bypass list; force push blocked)"
+    },
+    {
+      "id": "QA01-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "technical proof that a failing Browser QA job turns CI gate red on a real PR: QA-03 (workflow logic and a red CI gate from a failing dependency job already observed)"
+    },
+    {
+      "id": "R2-NB-1..4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "raw-value separators, reused evidence file within the trust model, ancestry skipped without --commit, checkpoint completeness: QA-02/QA-03"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01",
+    "MP-OWNER-QA-01-AUTHORIZATION",
+    "MP-OWNER-PRODUCT-QUALITY-DATA-01",
+    "MP-OWNER-AUTOMERGE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T131756Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "QA-02 (exploratory level B) and QA-03 (end-to-end certification, including a deliberate Browser QA failure on a PR blocking CI gate); then R-07a.",
+  "resume_conditions": [
+    "main contains 3d8f5c96c73e3eace0436bf83edccfa74d9a183a"
+  ]
+}
