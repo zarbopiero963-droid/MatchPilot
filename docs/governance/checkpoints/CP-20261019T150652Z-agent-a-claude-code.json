@@ -1,0 +1,87 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "claude/permanent-evidence-01",
+  "commit_sha": "a2e4b5a9f1bb6db3c6e0e4e58781a3362fd83310",
+  "tree_sha": "d66287973f79840f1278e5852a883576fb027ce7",
+  "supersedes": null,
+  "pr": null,
+  "id": "CP-20261019T150652Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T15:06:52Z",
+  "activity": "EVIDENCE-01: audit evidence recovered (56 screenshots, 6 comparisons, report), archived in evidence/audits @ 0c9e5d3 and read back; essential evidence and checker for docs/audits; opening the PR",
+  "task": "EVIDENCE-01",
+  "issue": 3,
+  "requirements": [],
+  "changes": [
+    "docs/audits/README.md",
+    "docs/audits/MP-OWNER-VISUAL-BASELINE-AUDIT-01/",
+    "tools/governance/evidence.mjs",
+    "test/governance-evidence.test.mjs",
+    "AGENTS.md §13",
+    "owner decision MP-OWNER-PERMANENT-EVIDENCE-01",
+    "branch evidence/audits 0c9e5d3e1920d29f2857fbc7e72eee83452d4476 (outside main)"
+  ],
+  "tests": [
+    {
+      "command": "fresh clone of evidence/audits; sha256sum -c MANIFEST.sha256; zip checksum; diff with session originals",
+      "result": "PASS",
+      "environment": "local container, GitHub over HTTPS",
+      "commit": "0c9e5d3e1920d29f2857fbc7e72eee83452d4476",
+      "time": "2026-10-19T15:06:52Z",
+      "limits": [
+        "time is an upper bound of the read-back run; 65 manifest entries, 56 screenshots, 6 comparisons; ZIP 11959575 bytes also confirmed by the GitHub API"
+      ]
+    },
+    {
+      "command": "node --test test/governance-*.test.mjs test/requirements-inventory.test.mjs; npm run governance:evidence; governance:check; governance:validate; npm run check",
+      "result": "PASS",
+      "environment": "local container, Node 22",
+      "commit": "a2e4b5a9f1bb6db3c6e0e4e58781a3362fd83310",
+      "time": "2026-10-19T15:06:52Z",
+      "limits": [
+        "52/52; run on the tree committed as this commit"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "EV-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "the audit had generated 6 side-by-side comparisons, 4 of them sent in the conversation; all 6 are archived and the 4 sent are marked"
+    },
+    {
+      "id": "EV-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "QA-03 (PR #166) evidence (certification bundles, AI evaluation) to be packaged under docs/audits when QA-03 resumes"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-VISUAL-BASELINE-D1-D7-01"
+  ],
+  "dependencies": [
+    "CP-20261019T144747Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI, independent review D2, merge gate; then resume QA-03 (PR #166)",
+  "resume_conditions": [
+    "branch claude/permanent-evidence-01 contains a2e4b5a9f1bb6db3c6e0e4e58781a3362fd83310",
+    "branch evidence/audits contains 0c9e5d3e1920d29f2857fbc7e72eee83452d4476"
+  ]
+}
