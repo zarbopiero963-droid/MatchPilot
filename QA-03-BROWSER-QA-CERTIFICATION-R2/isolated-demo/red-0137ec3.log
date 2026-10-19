@@ -1,0 +1,11 @@
+FAIL general-navigation/desktop (5 steps) — Expected values to be strictly equal:
+FAIL general-navigation/mobile (5 steps) — Expected values to be strictly equal:
+PASS dashboard/desktop (3 steps)
+PASS dashboard/mobile (3 steps)
+PASS daily-board/desktop (7 steps)
+PASS daily-board/mobile (7 steps)
+PASS search/desktop (7 steps)
+PASS search/mobile (7 steps)
+PASS providers-endpoints/desktop (2 steps)
+PASS providers-endpoints/mobile (2 steps)
+{"verdict":"FAIL","counts":{"pass":8,"fail":2,"skip":0,"not_verified":0},"missing_required":["general-navigation/desktop","general-navigation/mobile"],"head_sha":"0137ec3daa66e0104113cd28af6dd149a1573da1"}

@@ -1,0 +1,14 @@
+Written at packaging from the session: the prompt given, identically, to the two blind reviewers (only the bundle
+folder name differed: rv-k3 / rv-p8). It names no defect and no defect class beyond the procedure itself.
+
+You are the AI exploratory reviewer of MatchPilot (an Italian sports-trading web app), acting in an authorized
+Claude Code session. Perform the "AI review procedure" described in docs/qa/exploratory.md on ONE crawler bundle:
+<scratchpad>/<rv-k3|rv-p8>/bundle
+STRICT ACCESS RULES: you may read ONLY that bundle directory; docs/qa/exploratory.md; docs/governance/owner-decisions.json;
+AGENTS.md; docs/mockups/; src/. Do NOT read anything else: not other scratchpad folders, not docs/audits, not
+docs/qa/certification.md or any other docs/qa file, not tools/, not test/, not other branches, no git log/diff/show,
+no GitHub. Do not modify any repository file.
+Procedure: read exploration.json, then EVERY observation (each observations/*.json and each observations/*.png, cropping
+tall images), desktop and mobile; judge as a demanding Italian user and product reviewer against the product rules;
+write ai-review.json (schema mp-browser-ai-review-v1, reviewer claude-code-session); validate with
+tools/qa/verify-exploration.mjs --review until ai_review is ok.

@@ -1,0 +1,612 @@
+{
+  "schema": "mp-browser-qa-v1",
+  "head_sha": "0a63d804d51c3081c92ebb5439afa0a2c9a7b8cb",
+  "tested_commit": "0a63d804d51c3081c92ebb5439afa0a2c9a7b8cb",
+  "tested_tree": "0090494a70b5cc48d2917f03e7cc3564029378ab",
+  "working_tree_clean": false,
+  "generated_at": "2026-10-19T17:06:29.567Z",
+  "environment": {
+    "node": "v22.22.0",
+    "browser": "chromium 141.0.7390.37",
+    "browser_path": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+    "os": "linux 6.18.44-fc-v139 x64",
+    "ci": true,
+    "ci_run_id": null
+  },
+  "software": {
+    "package": "matchpilot-trading-os",
+    "version": "0.1.0",
+    "code_version": "package-0.1.0"
+  },
+  "dataset": {
+    "fixture": "test/helpers/fpt-seed.mjs#seedQaArchive",
+    "ingestion": "real FutPythonTrader path (CSV → storeDataset → facts)",
+    "competitions": [
+      "fpt:competition:f568d2fff73c2e2f5246eb165426d4cb",
+      "fpt:competition:dec098a11eb9c411e998e8c1c8ec0f4c"
+    ],
+    "matches": 86,
+    "busy_day": "2024-08-01",
+    "fixture_sha256": "7163eb6f4bc9ad6657132ff5a49db28e87f9f783408fa72987e07164f6d04ea5",
+    "production_data": false
+  },
+  "required": {
+    "journeys": [
+      "general-navigation",
+      "dashboard",
+      "daily-board",
+      "search",
+      "providers-endpoints"
+    ],
+    "viewports": [
+      "desktop",
+      "mobile"
+    ]
+  },
+  "journeys": [
+    {
+      "id": "general-navigation",
+      "surface": "Interfaccia generale",
+      "title": "Navigazione, rotte, pagina sconosciuta, tastiera",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 2591,
+      "steps": [
+        {
+          "name": "apertura del sito",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-desktop-01-apertura-del-sito.png"
+        },
+        {
+          "name": "menu: Dashboard",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-desktop-02-menu-dashboard.png"
+        },
+        {
+          "name": "menu: Daily Board",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-desktop-03-menu-daily-board.png"
+        },
+        {
+          "name": "menu: Ricerca partite",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-desktop-04-menu-ricerca-partite.png"
+        },
+        {
+          "name": "menu: Fornitori dati",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-desktop-05-menu-fornitori-dati.png"
+        },
+        {
+          "name": "menu: API v1",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-desktop-06-menu-api-v1.png"
+        },
+        {
+          "name": "rotta sconosciuta",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-desktop-07-rotta-sconosciuta.png"
+        },
+        {
+          "name": "tastiera: il primo Tab raggiunge un link del sito",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-desktop-08-tastiera-il-primo-tab-raggiunge-un-link-.png"
+        }
+      ],
+      "trace": "traces/general-navigation-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "general-navigation",
+      "surface": "Interfaccia generale",
+      "title": "Navigazione, rotte, pagina sconosciuta, tastiera",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 2284,
+      "steps": [
+        {
+          "name": "apertura del sito",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-01-apertura-del-sito.png"
+        },
+        {
+          "name": "menu: Dashboard",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-02-menu-dashboard.png"
+        },
+        {
+          "name": "menu: Daily Board",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-03-menu-daily-board.png"
+        },
+        {
+          "name": "menu: Ricerca partite",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-04-menu-ricerca-partite.png"
+        },
+        {
+          "name": "menu: Fornitori dati",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-05-menu-fornitori-dati.png"
+        },
+        {
+          "name": "menu: API v1",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-06-menu-api-v1.png"
+        },
+        {
+          "name": "rotta sconosciuta",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-07-rotta-sconosciuta.png"
+        },
+        {
+          "name": "tastiera: il primo Tab raggiunge un link del sito",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-08-tastiera-il-primo-tab-raggiunge-un-link-.png"
+        }
+      ],
+      "trace": "traces/general-navigation-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "dashboard",
+      "surface": "Dashboard",
+      "title": "Riquadri, copertura per campionato, N/D, indisponibilità di una route",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 780,
+      "steps": [
+        {
+          "name": "caricamento e valori uguali all’API",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-desktop-01-caricamento-e-valori-uguali-all-api.png"
+        },
+        {
+          "name": "dati assenti mostrati come N/D, mai 0",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-desktop-02-dati-assenti-mostrati-come-n-d-mai-0.png"
+        },
+        {
+          "name": "una route indisponibile: solo il suo riquadro è N/D con il motivo",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-desktop-03-una-route-indisponibile-solo-il-suo-riqu.png"
+        }
+      ],
+      "trace": "traces/dashboard-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "dashboard",
+      "surface": "Dashboard",
+      "title": "Riquadri, copertura per campionato, N/D, indisponibilità di una route",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 740,
+      "steps": [
+        {
+          "name": "caricamento e valori uguali all’API",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-mobile-01-caricamento-e-valori-uguali-all-api.png"
+        },
+        {
+          "name": "dati assenti mostrati come N/D, mai 0",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-mobile-02-dati-assenti-mostrati-come-n-d-mai-0.png"
+        },
+        {
+          "name": "una route indisponibile: solo il suo riquadro è N/D con il motivo",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-mobile-03-una-route-indisponibile-solo-il-suo-riqu.png"
+        }
+      ],
+      "trace": "traces/dashboard-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "daily-board",
+      "surface": "Daily Board",
+      "title": "Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 4792,
+      "steps": [
+        {
+          "name": "apertura dalla copertura della Dashboard",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-01-apertura-dalla-copertura-della-dashboard.png"
+        },
+        {
+          "name": "selezione della data dal campo",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-02-selezione-della-data-dal-campo.png"
+        },
+        {
+          "name": "paginazione fino alla fine, stesso ordine dell’API",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-03-paginazione-fino-alla-fine-stesso-ordine.png"
+        },
+        {
+          "name": "schede: valori, campionato e N/D come nell’API",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-04-schede-valori-campionato-e-n-d-come-nell.png"
+        },
+        {
+          "name": "giorno prima: nessuna partita salvata",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-05-giorno-prima-nessuna-partita-salvata.png"
+        },
+        {
+          "name": "giorno dopo: di nuovo il giorno affollato",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-06-giorno-dopo-di-nuovo-il-giorno-affollato.png"
+        },
+        {
+          "name": "data non valida rifiutata senza richieste",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-07-data-non-valida-rifiutata-senza-richiest.png"
+        }
+      ],
+      "trace": "traces/daily-board-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "daily-board",
+      "surface": "Daily Board",
+      "title": "Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 4380,
+      "steps": [
+        {
+          "name": "apertura dalla copertura della Dashboard",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-mobile-01-apertura-dalla-copertura-della-dashboard.png"
+        },
+        {
+          "name": "selezione della data dal campo",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-mobile-02-selezione-della-data-dal-campo.png"
+        },
+        {
+          "name": "paginazione fino alla fine, stesso ordine dell’API",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-mobile-03-paginazione-fino-alla-fine-stesso-ordine.png"
+        },
+        {
+          "name": "schede: valori, campionato e N/D come nell’API",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-mobile-04-schede-valori-campionato-e-n-d-come-nell.png"
+        },
+        {
+          "name": "giorno prima: nessuna partita salvata",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-mobile-05-giorno-prima-nessuna-partita-salvata.png"
+        },
+        {
+          "name": "giorno dopo: di nuovo il giorno affollato",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-mobile-06-giorno-dopo-di-nuovo-il-giorno-affollato.png"
+        },
+        {
+          "name": "data non valida rifiutata senza richieste",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-mobile-07-data-non-valida-rifiutata-senza-richiest.png"
+        }
+      ],
+      "trace": "traces/daily-board-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "search",
+      "surface": "Ricerca",
+      "title": "Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 4161,
+      "steps": [
+        {
+          "name": "tutte le partite, pagina dopo pagina, fino alla fine",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino.png"
+        },
+        {
+          "name": "squadra per nome, sede e qualità combinate",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-02-squadra-per-nome-sede-e-qualita-combinat.png"
+        },
+        {
+          "name": "campionato e intervallo di date",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-03-campionato-e-intervallo-di-date.png"
+        },
+        {
+          "name": "qualità: solo con xG",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-04-qualita-solo-con-xg.png"
+        },
+        {
+          "name": "errore di validazione dal server",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-05-errore-di-validazione-dal-server.png"
+        },
+        {
+          "name": "squadra sconosciuta, nessun risultato, sede senza squadra",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-06-squadra-sconosciuta-nessun-risultato-sed.png"
+        },
+        {
+          "name": "pagina successiva in errore: le righe restano, Riprova funziona",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-07-pagina-successiva-in-errore-le-righe-res.png"
+        }
+      ],
+      "trace": "traces/search-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "search",
+      "surface": "Ricerca",
+      "title": "Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 3711,
+      "steps": [
+        {
+          "name": "tutte le partite, pagina dopo pagina, fino alla fine",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino.png"
+        },
+        {
+          "name": "squadra per nome, sede e qualità combinate",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-02-squadra-per-nome-sede-e-qualita-combinat.png"
+        },
+        {
+          "name": "campionato e intervallo di date",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-03-campionato-e-intervallo-di-date.png"
+        },
+        {
+          "name": "qualità: solo con xG",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-04-qualita-solo-con-xg.png"
+        },
+        {
+          "name": "errore di validazione dal server",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-05-errore-di-validazione-dal-server.png"
+        },
+        {
+          "name": "squadra sconosciuta, nessun risultato, sede senza squadra",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-06-squadra-sconosciuta-nessun-risultato-sed.png"
+        },
+        {
+          "name": "pagina successiva in errore: le righe restano, Riprova funziona",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-07-pagina-successiva-in-errore-le-righe-res.png"
+        }
+      ],
+      "trace": "traces/search-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "providers-endpoints",
+      "surface": "Interfaccia generale",
+      "title": "Fornitori dati e registro API",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 899,
+      "steps": [
+        {
+          "name": "fornitori dati",
+          "status": "PASS",
+          "screenshot": "screenshots/providers-endpoints-desktop-01-fornitori-dati.png"
+        },
+        {
+          "name": "registro API: stesse righe dell’API",
+          "status": "PASS",
+          "screenshot": "screenshots/providers-endpoints-desktop-02-registro-api-stesse-righe-dell-api.png"
+        }
+      ],
+      "trace": "traces/providers-endpoints-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "providers-endpoints",
+      "surface": "Interfaccia generale",
+      "title": "Fornitori dati e registro API",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 601,
+      "steps": [
+        {
+          "name": "fornitori dati",
+          "status": "PASS",
+          "screenshot": "screenshots/providers-endpoints-mobile-01-fornitori-dati.png"
+        },
+        {
+          "name": "registro API: stesse righe dell’API",
+          "status": "PASS",
+          "screenshot": "screenshots/providers-endpoints-mobile-02-registro-api-stesse-righe-dell-api.png"
+        }
+      ],
+      "trace": "traces/providers-endpoints-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    }
+  ],
+  "counts": {
+    "pass": 10,
+    "fail": 0,
+    "skip": 0,
+    "not_verified": 0
+  },
+  "missing_required": [],
+  "findings": [],
+  "exploratory": {
+    "status": "NOT_VERIFIED",
+    "reason": "level B (exploratory AI agent) is not part of this run"
+  },
+  "injected_defect": false,
+  "limitations": [
+    "QA archive is a seeded fixture through the real ingestion path, not the real archive (#40) nor production data",
+    "accessibility checks are basic structural checks, not a full WCAG audit"
+  ],
+  "verdict": "PASS",
+  "files": {
+    "screenshots/daily-board-desktop-01-apertura-dalla-copertura-della-dashboard.png": "669ec4feb5c8ac26bf260c62288ac238d87916a5102e9488a7c0d4f17e0b18bc",
+    "screenshots/daily-board-desktop-02-selezione-della-data-dal-campo.png": "0f8b673609fdcef0f99b51434e11310a75ba1c00ea117254676ca59207a652a3",
+    "screenshots/daily-board-desktop-03-paginazione-fino-alla-fine-stesso-ordine.png": "c9680201a0bf70302c4bf6811be34231c51ae75797c06a94951e1fa680fd16fe",
+    "screenshots/daily-board-desktop-04-schede-valori-campionato-e-n-d-come-nell.png": "c9680201a0bf70302c4bf6811be34231c51ae75797c06a94951e1fa680fd16fe",
+    "screenshots/daily-board-desktop-05-giorno-prima-nessuna-partita-salvata.png": "ad52e36ad9957b55465167c4f8e6e57421acb9d452c2c5f8ee2bddd5c95db55e",
+    "screenshots/daily-board-desktop-06-giorno-dopo-di-nuovo-il-giorno-affollato.png": "f37c118aafa6dac4788cb872d4d7d5b0a59e5f7518e2eb4071a50ec0a7e8939c",
+    "screenshots/daily-board-desktop-07-data-non-valida-rifiutata-senza-richiest.png": "788a02bbd03c85c35879c009137cd954d15bc0e455fe45ee94c372d428f5b3bd",
+    "screenshots/daily-board-mobile-01-apertura-dalla-copertura-della-dashboard.png": "54989255f53863b06041d2b26636c85939ecb9bca53dccf3f73deb670261a0f6",
+    "screenshots/daily-board-mobile-02-selezione-della-data-dal-campo.png": "ef88907c1824e4b143fb50897e81b4c85c78fbdb2b6f3a90e91c5ba2c93c7d2c",
+    "screenshots/daily-board-mobile-03-paginazione-fino-alla-fine-stesso-ordine.png": "6a435e1e387f51021b0ccb13717fadf10a82252f45cc88601b8f66d9fc7cc670",
+    "screenshots/daily-board-mobile-04-schede-valori-campionato-e-n-d-come-nell.png": "6a435e1e387f51021b0ccb13717fadf10a82252f45cc88601b8f66d9fc7cc670",
+    "screenshots/daily-board-mobile-05-giorno-prima-nessuna-partita-salvata.png": "0cc81f2a8048a91ab64d81052e2b5f85fc0613dafcbc22d61fa638f7263b6022",
+    "screenshots/daily-board-mobile-06-giorno-dopo-di-nuovo-il-giorno-affollato.png": "258d15feaccfe3b4b1051df93a58b6b807ac2b3ee3573b0e3ce835e1ac813b2e",
+    "screenshots/daily-board-mobile-07-data-non-valida-rifiutata-senza-richiest.png": "49a91ce1c7d407798c927770162b2f808b6eb89d0b4923bcc5eebc5fcf076273",
+    "screenshots/dashboard-desktop-01-caricamento-e-valori-uguali-all-api.png": "7d7dc8148187c47d7154a8a38784c4e0cbf01926c63be4f5846fb626124c370a",
+    "screenshots/dashboard-desktop-02-dati-assenti-mostrati-come-n-d-mai-0.png": "7d7dc8148187c47d7154a8a38784c4e0cbf01926c63be4f5846fb626124c370a",
+    "screenshots/dashboard-desktop-03-una-route-indisponibile-solo-il-suo-riqu.png": "e0bc754ced684827e0a36572a01eec70522bba7ddf988993a5fa6150fe011a26",
+    "screenshots/dashboard-mobile-01-caricamento-e-valori-uguali-all-api.png": "6a754a3a167b9315fb25b2194e8c034c8be605ece1b2802c97d3dfce893718c4",
+    "screenshots/dashboard-mobile-02-dati-assenti-mostrati-come-n-d-mai-0.png": "6a754a3a167b9315fb25b2194e8c034c8be605ece1b2802c97d3dfce893718c4",
+    "screenshots/dashboard-mobile-03-una-route-indisponibile-solo-il-suo-riqu.png": "8e14aad9f3ca25c2354a3b8ee51d9a174e4b36dc5fc9592e1312ca33cfb161c3",
+    "screenshots/general-navigation-desktop-01-apertura-del-sito.png": "fe3a323699bc3403221d39ee14f0b3eaf188e87cba72d38503cd4bf45b771a92",
+    "screenshots/general-navigation-desktop-02-menu-dashboard.png": "642b98ffacd86d791f1ec3283a8c65f7e0ae0b18655cbbdd2cdc8fd81c4cde0e",
+    "screenshots/general-navigation-desktop-03-menu-daily-board.png": "3b2c8453e19bc32fedd4425e463b8e0d19ab4638495b0544e85264f4e6f6f284",
+    "screenshots/general-navigation-desktop-04-menu-ricerca-partite.png": "90889e4729ba728a7c426b648390a83a598e6f0a662f4808d3c00a4ff984bc0b",
+    "screenshots/general-navigation-desktop-05-menu-fornitori-dati.png": "00b6e08aea21627d16a2d63bfe4c8e880ccea4b4a1458de7078d4506b9ea1762",
+    "screenshots/general-navigation-desktop-06-menu-api-v1.png": "a9de908f68839708588197bbea743fa96620ccf045948c0babff1c513afe82eb",
+    "screenshots/general-navigation-desktop-07-rotta-sconosciuta.png": "e0bd6584f9c476abf20c4136a864f441b285fb33bc449318979bb3766c33d4d5",
+    "screenshots/general-navigation-desktop-08-tastiera-il-primo-tab-raggiunge-un-link-.png": "073b213374dbbce7109d9ea1aa21d7ac5296a2bc963d6f378cb5076e54e0716e",
+    "screenshots/general-navigation-mobile-01-apertura-del-sito.png": "38a193f3429d7e610d04aef0441014aaba8937a163cbb1b6affb9649a110d17d",
+    "screenshots/general-navigation-mobile-02-menu-dashboard.png": "829c3e9e5b0789dcd9317a4544964551b0d7f6bc9b37c3fd39ad2cff300aea0c",
+    "screenshots/general-navigation-mobile-03-menu-daily-board.png": "17dafcfa53041976aa070dc04f8a75ac090bfc4d07ccf1ba2546e12585286a42",
+    "screenshots/general-navigation-mobile-04-menu-ricerca-partite.png": "1e4bf2ed331575b66c41e0b9bf361f6251325f31bf4677614440f2d2420aafa9",
+    "screenshots/general-navigation-mobile-05-menu-fornitori-dati.png": "6edade022adc5baa41499a42a250c0c36b2bb78dcd9c91f98388b9b5f0951f02",
+    "screenshots/general-navigation-mobile-06-menu-api-v1.png": "fa0b13af4fcfcee51016b3fda75ce35225dce6d0f44ee08a3f1e9e8bde428ef7",
+    "screenshots/general-navigation-mobile-07-rotta-sconosciuta.png": "0b6efbb9cc1ec071479253f2c4ac52b486ad13d8cd358fad639c015908fb7b31",
+    "screenshots/general-navigation-mobile-08-tastiera-il-primo-tab-raggiunge-un-link-.png": "9bbb6fc82700f6a6d1e100db16c3ef5d9b765a9bf6ade5193cf3c4b3885426bf",
+    "screenshots/providers-endpoints-desktop-01-fornitori-dati.png": "c8994e8e2f4ff5b3fa240352784045c8f9fc12a7d24f99aaec6af71b9452ec0e",
+    "screenshots/providers-endpoints-desktop-02-registro-api-stesse-righe-dell-api.png": "06fa5efacd0c3c8fdef5e35fd744e249d31642f5466ca9b1af5ab8b052fd0bba",
+    "screenshots/providers-endpoints-mobile-01-fornitori-dati.png": "909aa03f04fe14cf463ae0fbc6bef9b57bc003f17fd38e19e4db570896fce347",
+    "screenshots/providers-endpoints-mobile-02-registro-api-stesse-righe-dell-api.png": "29828a24a36cb19f2f962a954fc4f9f62a12ac6ed9e38da7fc077296b7dcdd4c",
+    "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino.png": "d1d2bc7cf911f5fbadf6e83ea5df471eac482dc77a05c2fb6a7516bec45c8342",
+    "screenshots/search-desktop-02-squadra-per-nome-sede-e-qualita-combinat.png": "d6a3a38634eb2c88df38ac6a9c8850856984a469a7ba40dc1c47bb36ef42f992",
+    "screenshots/search-desktop-03-campionato-e-intervallo-di-date.png": "e3d6decb22adf8585a9f77e7aa7956d374758d118143600600d9fd1b57a90a5c",
+    "screenshots/search-desktop-04-qualita-solo-con-xg.png": "ca599c01f37c0484dfbfe7d0b52567b1eb4f70fa465468b3438d5ebc429cc55e",
+    "screenshots/search-desktop-05-errore-di-validazione-dal-server.png": "c8fa81fcf00a61a6fc3e603c6fc59c32ca14ac2bf7b544722fe967a25f04b375",
+    "screenshots/search-desktop-06-squadra-sconosciuta-nessun-risultato-sed.png": "53ba95beeef20c7b4892b8e149e4b462f0d4c34d0d56225cdbf244a6cc0cda9c",
+    "screenshots/search-desktop-07-pagina-successiva-in-errore-le-righe-res.png": "2dfc1c1356e95eef795dde882797a0250d44cb129c707d3329d8f4419452ce47",
+    "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino.png": "c3dcd72c617c845ca6b998b84eefb99e0cd1a72a73f0edf22be08f6b8f14bc0a",
+    "screenshots/search-mobile-02-squadra-per-nome-sede-e-qualita-combinat.png": "437a49c0c13fff873967cb04cf762a961e99b524e78381608a7b32a18b3226c3",
+    "screenshots/search-mobile-03-campionato-e-intervallo-di-date.png": "65e9b954411f1763eeb0715d9ea2bed25758a5ab2638206452ae410e582c9404",
+    "screenshots/search-mobile-04-qualita-solo-con-xg.png": "546926f932ed2c76df8c75e8b4c543c4dd783205dc27b859d8c6f3273a06e7ce",
+    "screenshots/search-mobile-05-errore-di-validazione-dal-server.png": "e4ba3a48fe0c505f6f82dbd3790cd115cb38b35df41b706b759c2834b7581d95",
+    "screenshots/search-mobile-06-squadra-sconosciuta-nessun-risultato-sed.png": "59b16c38b8ed6f629e89df598c74892b2e3bb05e8ef9fe74217387c1bf51be89",
+    "screenshots/search-mobile-07-pagina-successiva-in-errore-le-righe-res.png": "322ab70814e664107e70616e7a14c3912509a625080eb61805a2ffc657035433",
+    "traces/daily-board-desktop.zip": "4564162175f433dccc857c250d4600e0a9f7b248ac64f40b5278e63f465b8338",
+    "traces/daily-board-mobile.zip": "63ee51ebcb42ebae87ed401edfbe6e5a64dfb0dd7c3f0da46af3c56aee23e227",
+    "traces/dashboard-desktop.zip": "4dce31ee70c8001b7248fc81cb5aa3ef9cc81431354eaf28aee13b3901052d34",
+    "traces/dashboard-mobile.zip": "ed5c1c151e755646245070c1a2c4fce5d7289d5c884a1893d80faa5ec51064f3",
+    "traces/general-navigation-desktop.zip": "88aa5d7238a54f2492d373b5f52605e477408b71fa6d55a25e10e29b576b5466",
+    "traces/general-navigation-mobile.zip": "8a1d2493e5537dec8e3d79c35663f1de0c727ae0b35aca88565f78e6ab50b125",
+    "traces/providers-endpoints-desktop.zip": "aa630fe9ccd52b6580a62ef321cbbb38a128327bfa1a35d7d052d7efb26aa97d",
+    "traces/providers-endpoints-mobile.zip": "440263fd695d6f119459d043324d305ffadbac37473a4837dd59a578c84b8eaa",
+    "traces/search-desktop.zip": "9bb93ef43078c2bc3e0e5cd8742547c72e631c20a4ccd3b3a5a6894ad5fd7bef",
+    "traces/search-mobile.zip": "1c31fbc491c5cde655ac2f03ee481abd5ed4baed07976d1380f13e757e0ee32b"
+  }
+}
