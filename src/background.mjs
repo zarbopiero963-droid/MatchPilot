@@ -10,31 +10,9 @@ import { maybeStartTcMapping } from './jobs/totalcorner-mapping.mjs';
 import { maybeStartTcPrematch, stopTcPrematch } from './jobs/totalcorner-prematch.mjs';
 import { redactSecrets } from './providers/totalcorner/client.mjs';
 
-const MODES = new Set(['offline', 'test', 'production']);
-
-export function runtimeMode(env = process.env) {
-  const mode = String(env.MATCHPILOT_RUNTIME_MODE || 'offline').trim().toLowerCase();
-  if (!MODES.has(mode)) throw new Error(`Invalid MATCHPILOT_RUNTIME_MODE: ${mode}`);
-  return mode;
-}
-
-export function isLocalDatabaseUrl(value) {
-  if (!value) return false;
-  try {
-    const host = new URL(value).hostname.toLowerCase();
-    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
-  } catch {
-    return false;
-  }
-}
-
-export function assertRuntimeSafety(env = process.env) {
-  const mode = runtimeMode(env);
-  if (mode !== 'production' && env.DATABASE_URL && !isLocalDatabaseUrl(env.DATABASE_URL)) {
-    throw new Error(`${mode} mode rejects non-local DATABASE_URL`);
-  }
-  return {mode, backgroundEnabled: mode === 'production' && env.MATCHPILOT_BACKGROUND_ENABLED === 'true'};
-}
+// Re-exported for existing callers; the checks live in a dependency-free module so migrate() can use them too.
+import { runtimeMode, isLocalDatabaseUrl, assertRuntimeSafety } from './runtime-safety.mjs';
+export { runtimeMode, isLocalDatabaseUrl, assertRuntimeSafety };
 
 const DEFAULT_SERVICES = {
   startFutpythonCron,

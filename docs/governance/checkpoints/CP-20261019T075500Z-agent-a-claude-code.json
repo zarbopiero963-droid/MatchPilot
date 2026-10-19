@@ -1,0 +1,77 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T075500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T07:55:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-04a: production migration guard per owner decision D13; D12/D13 recorded in the canonical register",
+  "task": "R-04",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 23,
+  "pr": 157,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "ce7729c043f7aa73c29f4202d3afc5949dbcca53",
+  "tree_sha": "5a0c9eeb7feea2f9c088b0f754042659c73d4b99",
+  "requirements": [],
+  "changes": [
+    "src/migrate.mjs: production mode applies only migrations listed in MATCHPILOT_APPROVED_MIGRATIONS, in order",
+    "test/migration-guard.test.mjs",
+    "docs/runtime-isolation.md, README",
+    "owner-decisions.json: D12, D13"
+  ],
+  "tests": [
+    {
+      "command": "npm test against throwaway PostgreSQL 16",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1",
+      "commit": "ce7729c043f7aa73c29f4202d3afc5949dbcca53",
+      "time": "2026-10-19T07:50:00Z",
+      "limits": [
+        "256 tests, 255 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only)"
+      ]
+    },
+    {
+      "command": "npm run check; governance:validate; governance:check",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "ce7729c043f7aa73c29f4202d3afc5949dbcca53",
+      "time": "2026-10-19T07:50:00Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "R04-SCOPE",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "R-04b owner login (D12) follows behind a production-off flag; its sessions migration is held in production by this guard until the owner approves it"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-D13-MIGRATIONS-AUTODEPLOY-20261019",
+    "MP-OWNER-D12-OWNER-LOGIN-20261019",
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01"
+  ],
+  "dependencies": [
+    "CP-20261018T214600Z-agent-a-claude-code",
+    "CP-20261019T074500Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI green and independent review on the PR #157 head; D13 check (no pending production migration) and merge-gate; then R-04b owner login.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": "CP-20261018T214600Z-agent-a-claude-code"
+}

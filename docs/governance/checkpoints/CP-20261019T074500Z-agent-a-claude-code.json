@@ -1,0 +1,86 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T074500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T07:45:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Integration Agent"
+  },
+  "activity": "R-12 part 1 merged into main as 4ab36de2fbfe03d231a4bb85998e8f0dfe0efef8 (squash of PR #156 head) after the owner's 8 merge conditions of 2026-10-19 were verified; record carried by the next PR per HANDOFF.md",
+  "task": "R-12",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 94,
+  "pr": 156,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "634c3422717770a66b9f292dd3ba511ae2b5f5dc",
+  "tree_sha": "f7573d16b8583b34af668e31a976c9d2c33388cc",
+  "requirements": [
+    "MP-MTH-001"
+  ],
+  "changes": [
+    "squash merge 4ab36de2fbfe03d231a4bb85998e8f0dfe0efef8 into main",
+    "D13 check before merge: no migrations, no server import of src/math, render.yaml unchanged; an autoDeploy redeploy restarts identical runtime code"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI (classify, fast checks incl. governance gate, PostgreSQL 17 suite, CI gate)",
+      "result": "PASS",
+      "environment": "GitHub Actions ubuntu-latest",
+      "commit": "634c3422717770a66b9f292dd3ba511ae2b5f5dc",
+      "time": "2026-10-19T07:35:29Z",
+      "limits": [
+        "run 39216863208"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39216863208,
+    "conclusion": "SUCCESS",
+    "head_sha": "634c3422717770a66b9f292dd3ba511ae2b5f5dc"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/156#issuecomment-6262105688",
+    "reviewed_sha": "634c3422717770a66b9f292dd3ba511ae2b5f5dc"
+  },
+  "findings": [
+    {
+      "id": "NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "envelope copies only plain objects, arrays, Decimal, BigInt and Date; other edge types pass through"
+    },
+    {
+      "id": "NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "unsafe-integer JS numbers are refused with the BINARY_FLOAT wording"
+    },
+    {
+      "id": "NB-ODDS-CAP",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "odds cap 1,000,000 is an agent proposal awaiting owner confirmation"
+    },
+    {
+      "id": "R12-SCOPE",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "money/commission formulas MATH-CORE-02..06, Poisson MATH-CORE-07 and API MATH-CORE-08 follow; commission-aware results depend on #95"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01",
+    "MP-OWNER-AUTOMERGE-01",
+    "MP-OWNER-D13-MIGRATIONS-AUTODEPLOY-20261019"
+  ],
+  "dependencies": [
+    "CP-20261019T073122Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "None for R-12 part 1. MATH-CORE-02 follows after R-04; carry NB-2, NB-3 and the odds cap.",
+  "resume_conditions": [],
+  "supersedes": "CP-20261019T073122Z-agent-a-claude-code"
+}
