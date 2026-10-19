@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 73,
+  "revision": 74,
   "tasks": [
     {
       "id": "R-01",
@@ -307,19 +307,19 @@
     },
     {
       "id": "V-B1",
-      "title": "Visual conformity V-B1: Italian labels for API codes, instants in Europe/Rome (D-7), readable provider-time note",
+      "title": "Visual conformity V-B1 under MP-OWNER-UI-NO-RAW-TEXT-01: no technical text in user views (Daily Board, Ricerca, shared states), UI text inventory, Browser QA invariant",
       "issue": 3,
-      "pr": null,
+      "pr": 169,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "RUNNING",
+      "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": null,
-      "pr_open": false
+      "latest_checkpoint": "CP-20261019T185953Z-agent-a-claude-code",
+      "pr_open": true
     }
   ]
 }
