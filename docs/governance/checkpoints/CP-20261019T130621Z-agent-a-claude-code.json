@@ -1,0 +1,50 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "081745a7156a31174f365d8b9432d0af7c36cac1",
+  "tree_sha": "44237d08a4f883e51ee1a628b7df020d7088ebf0",
+  "supersedes": null,
+  "pr": null,
+  "id": "CP-20261019T130621Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T13:06:21Z",
+  "activity": "R-07a paused before QA-01: uncommitted local work preserved as docs/governance/wip/R-07a-match-analysis.patch (local commit 474f59d on main 56fe579), never pushed, run or reviewed",
+  "task": "R-07a",
+  "issue": 25,
+  "requirements": [
+    "MP-WEB-003",
+    "MP-WEB-014",
+    "MP-WEB-006"
+  ],
+  "changes": [
+    "docs/governance/wip/R-07a-match-analysis.patch",
+    "docs/governance/wip/R-07a-match-analysis.md"
+  ],
+  "tests": [],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN"
+  },
+  "gate_a": "NOT_VERIFIED",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-OWNER-QA-01-AUTHORIZATION",
+    "MP-ROADMAP-CONTINUE-ARCHIVE-FIRST-01"
+  ],
+  "dependencies": [],
+  "state": "HANDOFF READY",
+  "next_action": "Resume after the verified activation of the Browser QA Gate: apply the patch, Gate A, run tests, add the Match Center page and its QA journey.",
+  "resume_conditions": [
+    "QA-01 merged and its Browser QA job verified on main",
+    "docs/governance/wip/R-07a-match-analysis.patch applies to main"
+  ]
+}

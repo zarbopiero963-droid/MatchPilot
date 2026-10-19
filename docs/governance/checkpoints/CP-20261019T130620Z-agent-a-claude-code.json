@@ -1,0 +1,123 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T130620Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T13:06:20Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-06b merged: PR #163 squash 56fe579 on main",
+  "task": "R-06b",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 30,
+  "pr": 163,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "13760fe47f78b670909cc0093d03c40cf7990e87",
+  "tree_sha": "bda1b86a47182630354ebcd36dd4ad89870a146a",
+  "requirements": [
+    "MP-WEB-002",
+    "MP-WEB-007",
+    "MP-WEB-013",
+    "MP-WEB-005",
+    "MP-WEB-010",
+    "MP-WEB-011"
+  ],
+  "changes": [
+    "main 56fe57975f5a8f1d09f159b11bc69efdcbb48985 (squash of PR #163, head 13760fe checked with expectedHeadSha)"
+  ],
+  "tests": [
+    {
+      "command": "CI runs 39249514972 and 39249870398 on 13760fe",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "13760fe47f78b670909cc0093d03c40cf7990e87",
+      "time": "2026-10-19T12:11:02Z",
+      "limits": [
+        "UI checks job skipped by design (full mode)"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39249870398,
+    "conclusion": "SUCCESS",
+    "head_sha": "13760fe47f78b670909cc0093d03c40cf7990e87"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/163#issuecomment-6266845300",
+    "reviewed_sha": "13760fe47f78b670909cc0093d03c40cf7990e87"
+  },
+  "findings": [
+    {
+      "id": "R06B-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "match_date left the API as an instant: shifted by a day on a server away from UTC"
+    },
+    {
+      "id": "R06B-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "optional null sections rendered as the text null (found on screenshots)"
+    },
+    {
+      "id": "NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "year 0000 in a forged cursor or a date input gave 503"
+    },
+    {
+      "id": "NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "odds-range handed out a cursor it then refused"
+    },
+    {
+      "id": "NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "Daily Board headings repeated per competition change in kickoff order"
+    },
+    {
+      "id": "NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "exact basis_commit check cannot run in CI after squash; the bound check does (documented in HANDOFF)"
+    },
+    {
+      "id": "NB-5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "history check used author time; now committer time"
+    },
+    {
+      "id": "NB-6",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "coverage tile capped at 500 competitions without a truncation notice: next web PR"
+    },
+    {
+      "id": "NB-7",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "plural, venue without team, registry pr null"
+    }
+  ],
+  "owner_decisions": [
+    "MP-ROADMAP-CONTINUE-ARCHIVE-FIRST-01",
+    "MP-OWNER-ARCHIVE-FIRST-01",
+    "MP-OWNER-CONTINUE-20261019",
+    "MP-OWNER-AUTOMERGE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T120634Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "QA-01 Browser QA Gate (MP-OWNER-BROWSER-QA-HARD-GATE-01), then QA-02, QA-03, R-07a.",
+  "resume_conditions": [
+    "main contains 56fe57975f5a8f1d09f159b11bc69efdcbb48985"
+  ],
+  "supersedes": "CP-20261019T120634Z-agent-a-claude-code"
+}
