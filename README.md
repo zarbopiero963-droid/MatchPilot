@@ -26,3 +26,4 @@ The index of the essential evidence, and the link to each package here, is `docs
 | [V-B2b-PROVIDER-LABELS-R2](V-B2b-PROVIDER-LABELS-R2/INDEX.md) | V-B2b after review D2 round 1 (PR #171): GREEN Browser QA of 4f3badb | 2026-10-19 | 1 Browser QA run with screenshots and traces |
 | [V-B2b-PROVIDER-LABELS-R3](V-B2b-PROVIDER-LABELS-R3/INDEX.md) | V-B2b after review D2 round 2 (PR #171): GREEN Browser QA of 2d009fb | 2026-10-19 | 1 Browser QA run with screenshots and traces |
 | [V-B3-IDENTITY](V-B3-IDENTITY/INDEX.md) | V-B3: identity of the approved mockup (tokens, amber accent, logo, local fonts); before/RED/GREEN Browser QA | 2026-10-19 | 3 Browser QA runs with screenshots and traces, 10 crops |
+| [V-B3-IDENTITY-R2](V-B3-IDENTITY-R2/INDEX.md) | V-B3 after review D2 (PR #172): GREEN Browser QA of c5894d1 | 2026-10-19 | 1 Browser QA run with screenshots and traces |
