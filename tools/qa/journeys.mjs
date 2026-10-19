@@ -66,7 +66,7 @@ async function loadAll(page, rows) {
 export const JOURNEYS = [
   {
     id: 'general-navigation', surface: 'Interfaccia generale', title: 'Navigazione, rotte, pagina sconosciuta, tastiera',
-    allowRawText: [/^expected null$/, /^null: the provider catalog does not carry a fixture total$/],
+    allowRawText: [/^null: the provider catalog does not carry a fixture total$/],
     async run({page, base, step}) {
       await step('apertura del sito', async () => {
         const response = await page.goto(`${base}/`);
@@ -168,6 +168,19 @@ export const JOURNEYS = [
         assert.equal(await page.textContent('[data-testid="tile-certification"] [data-field="latest_backfill"]'), 'N/D');
         assert.equal(await page.textContent('[data-testid="tile-tc-live"] [data-field="latest"]'), 'N/D');
       });
+      await step('ultima sincronizzazione: stato e fine, mai l’oggetto grezzo', async () => {
+        // The QA archive has no sync run: the answer of /api/v1/providers is changed in the browser (PR #170 review M10).
+        await page.route('**/api/v1/providers', async route => {
+          const response = await route.fetch();
+          const body = await response.json();
+          body.data.data_health.lastRun = {run_id: 'qa', kind: 'incremental', status: 'complete', started_at: '2026-10-19T18:10:00Z', finished_at: '2026-10-19T18:15:00Z'};
+          await route.fulfill({response, json: body});
+        });
+        await page.reload();
+        await page.waitForSelector('[data-testid="tile-data-health"] [data-field="lastRun"] time');
+        assert.equal(await page.textContent('[data-testid="tile-data-health"] [data-field="lastRun"]'), 'Completa · 19/10/2026, 20:15 GMT+2');
+        await page.unroute('**/api/v1/providers');
+      });
       await step('una route indisponibile: solo il suo riquadro è N/D con il motivo', async () => {
         await page.route('**/api/v1/tc/live', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
         await page.reload();
@@ -182,7 +195,7 @@ export const JOURNEYS = [
   },
   {
     id: 'daily-board', surface: 'Daily Board', title: 'Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida',
-    allowHttp: [{path: '/api/v1/fpt/matches', status: 503}],
+    allowHttp: [{path: '/api/v1/fpt/matches', status: 503}, {path: '/api/v1/providers', status: 503}],
     async run({page, base, step, api, seed}) {
       const day = seed.busyDay;
       const all = (await api(`/api/v1/fpt/matches?date=${day}&limit=500`)).data.rows;
@@ -285,6 +298,26 @@ export const JOURNEYS = [
         await page.waitForSelector('[data-testid="updated"]');
         await page.unroute('**/api/v1/providers');
       });
+      await step('un errore della route di aggiornamento non resta in memoria', async () => {
+        // The first answer fails; the next day viewed asks again and shows the line (PR #170 review R2-NB-1).
+        let calls = 0;
+        await page.route('**/api/v1/providers', async route => {
+          calls += 1;
+          if (calls === 1) return route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)});
+          const response = await route.fetch();
+          const body = await response.json();
+          body.data.data_health.lastRun = {run_id: 'qa', kind: 'incremental', status: 'complete', started_at: '2026-10-19T18:10:00Z', finished_at: '2026-10-19T18:15:00Z'};
+          await route.fulfill({response, json: body});
+        });
+        await fresh(page, `${base}/#/?date=${day}`);
+        await page.waitForSelector('[data-testid="board-day"]');
+        await page.waitForLoadState('networkidle');
+        assert.equal(await page.locator('[data-testid="updated"]').count(), 0, 'no line after the failure');
+        await page.click('[data-action="next"]');
+        await page.waitForSelector('[data-testid="updated"]');
+        assert.equal(calls, 2);
+        await page.unroute('**/api/v1/providers');
+      });
       await step('la pagina non aspetta la route diagnostica dell’aggiornamento', async () => {
         // /api/v1/providers held until the matches are on screen: the board must not wait for it (PR #170 review B-1).
         let release;
@@ -317,6 +350,9 @@ export const JOURNEYS = [
         await page.waitForSelector('[data-testid="board-day"]');
         await page.click('[data-action="prev"]');
         await page.waitForSelector('[data-testid="board-empty"]');
+        const link = page.locator('[data-testid="board-empty"] a');
+        assert.equal(await link.textContent(), 'Dati');
+        assert.equal(await link.getAttribute('href'), '#/data');
       });
       await step('giorno dopo: di nuovo il giorno affollato', async () => {
         await page.click('[data-action="next"]');
@@ -495,13 +531,20 @@ export const JOURNEYS = [
   {
     id: 'providers-endpoints', surface: 'Interfaccia generale', title: 'Fornitori dati e registro API',
     // Certification prose from the API that legitimately ends with "null" (phase 6 evidence).
-    allowRawText: [/^expected null$/, /^null: the provider catalog does not carry a fixture total$/],
+    allowRawText: [/^null: the provider catalog does not carry a fixture total$/],
     async run({page, base, step, api}) {
       const endpoints = await api('/api/v1/endpoints');
       await step('fornitori dati', async () => {
         await page.goto(`${base}/#/providers`);
         await page.waitForSelector('[data-testid="data-health"]');
         assert.match(await page.textContent('[data-testid="fpt-certification"]'), /Ultimo backfill\s*N\/D/);
+        // Every key of the provider tree reads in Italian (V-B2b, UI-60): the raw key stays in data-key and the tooltip.
+        const keys = await page.locator('main dt[data-key]').evaluateAll(nodes => nodes.map(node => [node.dataset.key, node.textContent, node.classList.contains('unlabelled')]));
+        assert.ok(keys.length > 50, `the provider tree has its keys: ${keys.length}`);
+        assert.deepEqual(keys.filter(([, , unlabelled]) => unlabelled).map(([key]) => key), [], 'keys without an Italian label');
+        assert.ok(keys.every(([key, text]) => text !== key), 'no key is shown as it is');
+        assert.equal(await page.textContent('main dt[data-key="phase2"]'), 'Fase 2 · classificazione');
+        assert.equal(await page.textContent('main dt[data-key="UNAVAILABLE_404"]'), 'Non pubblicati (404)');
       });
       await step('registro API: stesse righe dell’API', async () => {
         await page.goto(`${base}/#/endpoints`);

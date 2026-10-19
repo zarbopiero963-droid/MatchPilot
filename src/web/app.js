@@ -50,13 +50,53 @@ async function getJson(path) {
 
 // ---- Value rendering ----
 
+// Italian labels of the keys the API returns in the data health and the FutPythonTrader certification (Fornitori, a
+// technical view: the values stay technical, the names read in Italian; V-B2b, inventory UI-60). A key without a label is
+// shown as words and marked, and the Browser QA gate fails a labelled view that shows one (journey providers-endpoints).
 const LABELS = {
+  // data health and sync runs
   status: 'Stato', product: 'Prodotto', lastRun: 'Ultima sincronizzazione', activeDatasets: 'Dataset attivi', schemaFields: 'Campi di schema',
-  datasetsWithErrors: 'Dataset con errori', alerts: 'Avvisi', catalog: 'Catalogo', datasets: 'Dataset', snapshots: 'Snapshot',
-  historical_versions: 'Versioni storiche', unique_matches: 'Partite uniche', schema_fields: 'Campi di schema', latest_backfill: 'Ultimo backfill',
-  phase1_checks: 'Controlli fase 1', gate: 'Gate superato', total: 'Totale', countries: 'Paesi', leagues: 'Campionati',
+  datasetsWithErrors: 'Dataset con errori', alerts: 'Avvisi', severity: 'Gravità', code: 'Codice', title: 'Titolo', message: 'Messaggio',
+  last_seen_at: 'Ultima occorrenza', occurrences: 'Occorrenze', run_id: 'Identificativo', kind: 'Tipo', started_at: 'Inizio', finished_at: 'Fine',
+  catalog_entries: 'Voci di catalogo', datasets_attempted: 'Dataset tentati', datasets_changed: 'Dataset cambiati', resumed_skips: 'Ripresi e saltati',
+  available_count: 'Disponibili', error_real_count: 'Errori reali', rows_seen: 'Righe lette', rows_inserted: 'Righe inserite', fields_seen: 'Campi letti',
+  catalog_snapshot_id: 'Istantanea del catalogo', check_code: 'Controllo', checked_at: 'Controllato il', details: 'Dettagli',
+  // certification summary
+  catalog: 'Catalogo', datasets: 'Dataset', snapshots: 'Snapshot', historical_versions: 'Versioni storiche', unique_matches: 'Partite uniche',
+  schema_fields: 'Campi di schema', latest_backfill: 'Ultimo backfill', phase1_checks: 'Controlli fase 1', gate: 'Gate superato', total: 'Totale',
+  countries: 'Paesi', leagues: 'Campionati', available: 'Disponibili', unavailable_404: 'Non pubblicati (404)', error_real: 'Errori reali',
+  error: 'Errore', deprecated: 'Sostituiti', removed: 'Rimossi', unknown: 'Sconosciuti', undefined_states: 'Stati non definiti',
+  duplicate_catalog_keys: 'Chiavi di catalogo duplicate', computed_at: 'Calcolato il',
+  phase2: 'Fase 2 · classificazione', phase3: 'Fase 3 · integrità', phase4: 'Fase 4 · registro dei campi', phase5: 'Fase 5 · copertura',
+  phase6: 'Fase 6 · stagioni', phase8: 'Fase 8 · sorveglianza',
+  // phase 2
+  catalog_total: 'Voci di catalogo', classified_total: 'Classificate', unclassified: 'Non classificate', labels: 'Classificazioni',
+  AVAILABLE: 'Disponibili', UNAVAILABLE_404: 'Non pubblicati (404)', ERROR_REAL: 'Errori reali', DEPRECATED: 'Sostituiti', REMOVED: 'Rimossi',
+  issues: 'Anomalie', available_without_snapshot: 'Disponibili senza snapshot', available_incomplete: 'Disponibili incompleti', samples: 'Esempi',
+  initial_404: 'Non pubblicati dall’inizio (404)', regression_404: 'Tornati non pubblicati (404)',
+  // phase 3
+  match_key_collisions: 'Collisioni della chiave partita', provider_match_id_collisions: 'Collisioni dell’id partita della fonte',
+  provider_match_id_shared_same_identity: 'Id partita condivisi dalla stessa partita', duplicate_payload_hashes: 'Contenuti duplicati',
+  orphan_versions: 'Versioni orfane', orphan_snapshots: 'Snapshot orfani', snapshot_row_gaps: 'Righe mancanti negli snapshot',
+  missing_home: 'Squadra di casa mancante', missing_away: 'Squadra ospite mancante', missing_date: 'Data mancante',
+  date_parse_failures: 'Date non leggibili', team_splits: 'Squadre divise', teams: 'Squadre', teams_with_provider_id: 'Squadre con id della fonte',
+  // phase 4
+  raw_unique_fields: 'Campi distinti nei dati grezzi', registry_unique_fields: 'Campi distinti nel registro', missing_from_registry: 'Assenti dal registro',
+  extra_in_registry: 'In più nel registro', missing_normalized: 'Non normalizzati', missing_type_history: 'Senza storia del tipo', transforms: 'Trasformazioni',
+  versions_without_lineage: 'Versioni senza provenienza', suppressed_aliases: 'Alias soppressi',
+  // phase 5
+  dataset_rows: 'Righe per dataset', global_fields: 'Campi globali', league_rows: 'Righe per campionato', missing_global: 'Globali mancanti',
+  normalized_names: 'Nomi normalizzati', normalized_rows: 'Righe normalizzate', period_rows: 'Righe per periodo', registry_fields: 'Campi del registro',
+  season_rows: 'Righe per stagione', team_rows: 'Righe per squadra',
+  // phase 6
+  registry_rows: 'Stagioni nel registro', missing_available_seasons: 'Stagioni disponibili mancanti', gap_rows: 'Buchi', status_counts: 'Stagioni per stato',
+  expected_null: 'Senza numero atteso di partite', historical_complete: 'Storico completo', unavailable_marked_complete: 'Non disponibili segnate complete',
+  evidence: 'Prove', pit: 'Verifica nel tempo', t0: 'Istante T0', t1: 'Istante T1', dataset: 'Dataset', contract: 'Contratto', total_t0: 'Totale a T0',
+  total_t1: 'Totale a T1', argentina_t0: 'Argentina a T0', later_dataset: 'Dataset successivo', total_t0_repeat: 'Totale a T0, ripetuto',
+  later_dataset_t0: 'Dataset successivo a T0', later_dataset_t1: 'Dataset successivo a T1', wrong_contract_t0: 'Contratto errato a T0',
+  cadence: 'Cadenza', missing_definition: 'Definizione di mancante', expected_match_count: 'Numero atteso di partite',
 };
-const label = key => LABELS[key] || key.replace(/_/g, ' ');
+const keyWords = key => key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
 
 // Numbers are shown exactly as the API sent them (MP-WEB-011): every digit is kept, the integer part is grouped by
 // thousands with a dot and the decimal point becomes a comma, for JSON numbers and for exact decimal text alike
@@ -122,7 +162,9 @@ function renderValue(value) {
   if (value && typeof value === 'object') {
     const entries = Object.entries(value);
     if (entries.length === 0) return el('span', {class: 'empty'}, 'nessuno');
-    return el('dl', {}, entries.flatMap(([key, item]) => [el('dt', {}, label(key)), el('dd', {}, renderValue(item))]));
+    return el('dl', {}, entries.flatMap(([key, item]) => [
+      Object.hasOwn(LABELS, key) ? el('dt', {title: key, 'data-key': key}, LABELS[key]) : el('dt', {title: key, 'data-key': key, class: 'unlabelled'}, keyWords(key)),
+      el('dd', {}, renderValue(item))]));
   }
   return code(value);
 }
@@ -345,10 +387,15 @@ const dayHref = date => `#/?${queryString({date})}`;
 // When the archive was last synchronised: the end of the last FutPythonTrader sync run, shown only when that run
 // completed (fully or in part) and carries a real time. Nothing is shown otherwise: no time is ever made up (UI-25).
 // /api/v1/providers is a heavy diagnostic route: the board never waits for it (the line is filled in when it answers,
-// if the page is still the same) and one answer serves every day viewed for five minutes (PR #170 review B-1).
+// if the page is still the same) and one good answer serves every day viewed for five minutes (PR #170 review B-1).
 let freshness = null;
 function providersOnce() {
-  if (!freshness || Date.now() - freshness.at > 5 * 60 * 1000) freshness = {at: Date.now(), body: getJson('/api/v1/providers').catch(() => null)};
+  if (!freshness || Date.now() - freshness.at > 5 * 60 * 1000) {
+    // A failed answer is not kept: the next day viewed asks again (PR #170 review R2-NB-1).
+    const entry = {at: Date.now()};
+    entry.body = getJson('/api/v1/providers').catch(() => { if (freshness === entry) freshness = null; return null; });
+    freshness = entry;
+  }
   return freshness.body;
 }
 function updatedSlot(mine) {

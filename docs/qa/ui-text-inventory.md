@@ -94,7 +94,7 @@ Provenance, identifiers and diagnostics belong here (decision §3.7). They are l
 
 | ID | Current text | Where | Class | Action | PR | Verification |
 |---|---|---|---|---|---|---|
-| UI-60 | «Salute dei dati e certificazione FutPythonTrader, letti da /api/v1/providers.»; provider keys without an Italian label shown as raw words | Fornitori dati | T (allowed) | lead removed and tabs of «Dati» (V-B2a); Italian labels for the keys of the provider tree (V-B2b) | V-B2a, V-B2b | journey `providers-endpoints`; labels: V-B2b |
+| UI-60 | «Salute dei dati e certificazione FutPythonTrader, letti da /api/v1/providers.»; provider keys without an Italian label shown as raw words («phase2», «unavailable 404», «AVAILABLE») | Fornitori dati | T (allowed) | lead removed and tabs of «Dati» (V-B2a); every key of the provider tree in Italian («Fase 2 · classificazione», «Non pubblicati (404)»), the raw key in `data-key` and the tooltip; a key without a label reads as words and is marked (V-B2b) | V-B2a, V-B2b | journey `providers-endpoints`, step «fornitori dati»: no unlabelled key on the QA archive, no key shown as it is, two labels checked; keys that only a real database returns are labelled from the server queries but not exercised |
 | UI-61 | endpoint paths, English API descriptions, «Route storiche» | API | T (allowed) | stays technical; lead removed; reached from the tabs of «Dati» | V-B2a | journey `general-navigation` (tabs), `providers-endpoints` |
 | UI-62 | «Data Coverage → Competizioni», «Coverage quote minima (0–1)», «Provider», «404», «Overlap FPT/TC», placeholder «italy» | `/coverage` (server page) | T (allowed) | stays technical; reached from the tabs of «Dati» (V-B2a); style of the site (V-B3) | V-B2a, V-B3 | `test/fpt-coverage-page.test.mjs` |
 | UI-63 | «MatchPilot · Accesso riservato all'owner. · Utente · Password · Accedi» | `/login` | U | kept (D-5) | — | not automated (`test/owner-auth*.test.mjs` checks the statuses, not the text) |
@@ -115,7 +115,7 @@ Provenance, identifiers and diagnostics belong here (decision §3.7). They are l
 |---|---|
 | **V-B1** | Rule (owner decision, MP-WEB-015, `docs/web.md`), this inventory, the technical-text invariant in the Browser QA gate, Daily Board, Ricerca, shared states, footer, Italian codes and dates (D-7). |
 | **V-B2a** | Home page «Oggi» = Daily Board (D-2); menu «Oggi · Ricerca · Dati» with the technical area «Dati» (Stato dei dati, Fornitori, API, Copertura as tabs); phone bottom bar; UI-06, UI-09, UI-25, UI-50…UI-58, UI-61, UI-62 (access). Every view declares its area; the invariant also covers the header. |
-| **V-B2b** | Italian labels for the keys of the provider tree (UI-60), technical view. |
+| **V-B2b** | Italian labels for the keys of the provider tree (UI-60), technical view; review notes of PR #170: a failed update answer is not kept (R2-NB-1), the last sync run never breaks inside a number (R2-NB-3), the empty-day link and the last sync run row are checked. |
 | **V-B3** | Identity of the mockup (D-1): tokens, amber accent, logo, local fonts with verified license; login and refusal pages in the site style (UI-64, UI-65). |
 | **V-B4** | Compact Daily Board rows and day strip of the mockup; mobile results (UI-44); grouping by competition only with API support (D-4). |
 | follow-up | Display names of competitions and countries (UI-12): an API change, proposed separately only if strictly necessary. |

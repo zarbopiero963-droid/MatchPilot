@@ -25,7 +25,7 @@ Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). 
 
     "Carica altre partite" follows `next_cursor`. A day with no stored match is an explicit empty state, and an invalid date is refused before any request.
 
-    «Dati aggiornati: …» shows when the archive was last synchronised: the end of the last FutPythonTrader sync run (`/api/v1/providers`, `data_health.lastRun`), only when that run completed («in parte» when partial) and has a real time. Otherwise nothing is shown: when the last run is running or failed the line disappears even if an earlier run completed, because the API returns only the last run. The matches never wait for this route, which is a heavy diagnostic one: the line is filled in when it answers, and one answer serves every day viewed for five minutes.
+    «Dati aggiornati: …» shows when the archive was last synchronised: the end of the last FutPythonTrader sync run (`/api/v1/providers`, `data_health.lastRun`), only when that run completed («in parte» when partial) and has a real time. Otherwise nothing is shown: when the last run is running or failed the line disappears even if an earlier run completed, because the API returns only the last run. The matches never wait for this route, which is a heavy diagnostic one: the line is filled in when it answers, and one good answer serves every day viewed for five minutes; a failed answer is not kept.
   - **Ricerca** (`#/search?…`, R-06b, MP-WEB-007). Combined filters on `/api/v1/fpt/search`:
     - team by name (resolved by `/api/v1/fpt/teams`; several teams with the same name are offered as a choice) and venue;
     - competition (from `/api/v1/fpt/competitions`);
@@ -33,7 +33,7 @@ Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). 
     - data quality: `with_odds` (complete 1X2 odds) and `with_xg`.
 
     The server validates every filter; a refusal names the field in Italian, and the server's message stays in the tooltip. "Altri risultati" follows `next_cursor`; a failed page keeps the rows already shown and offers a retry.
-  - Fornitori dati (data health and FutPythonTrader certification), API (the v1 registry and legacy routes): **technical views** in «Dati». Copertura links to the existing `/coverage` page.
+  - Fornitori dati (data health and FutPythonTrader certification), API (the v1 registry and legacy routes): **technical views** in «Dati». Every key of the provider tree reads in Italian; the raw key stays in `data-key` and the tooltip, and a key without a label reads as words and is marked (V-B2b). Copertura links to the existing `/coverage` page.
 - **Not yet shown:** Match Center, historical replay and PIT backtest (R-07, R-09…R-14).
 - **Data used for tests:** one league season ingested through the real FutPythonTrader path (`test/helpers/fpt-seed.mjs`). No production data is read. Against the real archive these views are TESTED, not certified (MP-OWNER-ARCHIVE-FIRST-01).
 
