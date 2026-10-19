@@ -25,10 +25,10 @@ The Browser QA gate fails a user view, or the page footer, that shows technical 
 | UI-03 | «Impossibile caricare i dati (UNAVAILABLE). Dettaglio: data source unavailable.», and no title on the page | error state, every view | T | title «Dati non disponibili», message «I dati non sono disponibili in questo momento.» (network: «Connessione non disponibile…»), «Riprova»; code in `data-code`, code and message in the tooltip | V-B1 | journey `daily-board`, step «errore dell'API» (user view, invariants); `web-e2e` error state |
 | UI-04 | «Impossibile caricare altri risultati (UNAVAILABLE — …). I risultati già mostrati restano validi.» | failed next page, Daily Board and Ricerca | T | «Non è stato possibile caricare altri risultati. Quelli già mostrati restano validi.», code in `data-code` | V-B1 | journey `search`, step «pagina successiva in errore» (invariant while the error is on screen) |
 | UI-05 | «Fonte: futpythontrader · generato: 2026-10-19T… · versione codice: …» | provenance line under Daily Board and Ricerca | T | removed from user views; stays in the technical views, with the instant in Europe/Rome and UTC in the tooltip (D-7) | V-B1 | journey `daily-board`: no `p.meta` in `main`; invariant |
-| UI-06 | menu «Dashboard · Daily Board · Ricerca · Fornitori dati · API · Copertura» | header | V | menu «Oggi · Ricerca · Dati» as in the mockup: Oggi is the home page (D-2), «Dati» holds Stato dei dati, Fornitori, API and Copertura as tabs; on a phone a bottom bar with icons | V-B2a | journey `general-navigation`: menu labels, titles, areas, the tabs of Dati, the old `#/board` address |
+| UI-06 | menu «Dashboard · Daily Board · Ricerca · Fornitori dati · API · Copertura» | header | V | menu «Oggi · Ricerca · Dati» as in the mockup: Oggi is the home page (D-2), «Dati» holds Stato dei dati, Fornitori, API and Copertura as tabs; on a phone a bottom bar with icons | V-B2a | journey `general-navigation`: menu labels, titles, areas, the tabs of Dati, the old `#/board` address, the bar fixed at the bottom on a phone with room left for it; journey `search`: a focused field stays above the bar |
 | UI-07 | «MatchPilot — Sports Trading OS» | page title | U | kept | — | — |
 | UI-08 | «Questa pagina richiede JavaScript.» | `noscript` | U | kept | — | — |
-| UI-09 | «Pagina non trovata» · «Questa sezione non esiste. Torna alla dashboard» | unknown route | U | «Torna a Oggi»; user area | V-B1 (area), V-B2a (link) | journey `general-navigation`, step «rotta sconosciuta» |
+| UI-09 | «Pagina non trovata» · «Questa sezione non esiste. Torna alla dashboard» | unknown route | U | «Torna a Oggi»; user area | V-B1 (area), V-B2a (link) | journey `general-navigation`, step «rotta sconosciuta»: link text «Torna a Oggi» |
 
 ## Daily Board (`#/board`, user view)
 
@@ -49,7 +49,7 @@ The Browser QA gate fails a user view, or the page footer, that shows technical 
 | UI-22 | «← Giorno prima · Giorno · Mostra · Giorno dopo → · Oggi» | controls | U, V | kept; day strip of the mockup | V-B4 | journey `daily-board` |
 | UI-23 | «Carica altre partite» · «Fine dei risultati.» | list footer | U | kept | — | journey `daily-board` |
 | UI-24 | a result state the site does not know (a future API value) | card, results | V | today: the score or N/D, the state kept in `data-result`; a new state gets an Italian label in the PR that adds it to the API | follow-up | review of the API change |
-| UI-25 | no non-technical sign of when the data were updated (the provenance line is gone) | Oggi | V | «Dati aggiornati: 19/10/2026, 20:15 GMT+2» («in parte» for a partial run) from the end of the last FutPythonTrader sync run, only when that run completed and has a real time; nothing otherwise | V-B2a | journey `daily-board`, step «aggiornamento dei dati» (complete, partial, failed, running; the sync run answer changed in the browser: the QA archive has none); absent on the QA archive |
+| UI-25 | no non-technical sign of when the data were updated (the provenance line is gone) | Oggi | V | «Dati aggiornati: 19/10/2026, 20:15 GMT+2» («in parte» for a partial run) from the end of the last FutPythonTrader sync run, only when that run completed and has a real time; nothing otherwise | V-B2a | journey `daily-board`, steps «aggiornamento dei dati» (complete, partial, failed, running, missing or malformed time, empty day) and «la pagina non aspetta la route diagnostica» (the route held until the matches are on screen); the sync run answer changed in the browser (the QA archive has none); absent on the QA archive |
 
 ## Ricerca (`#/search`, user view)
 
@@ -78,15 +78,15 @@ Until V-B2 the Dashboard was the home page, though it is almost entirely data he
 
 | ID | Current text (main 3521a07) | Where | Class | Action | PR | Verification |
 |---|---|---|---|---|---|---|
-| UI-50 | «Salute dei dati, copertura, freschezza e certificazione, letti dalle route dell'API v1. Nessun valore dimostrativo.» | under the title | R, T | removed; the view is «Stato dei dati» in «Dati» | V-B2a | journey `general-navigation`: title and area |
+| UI-50 | «Salute dei dati, copertura, freschezza e certificazione, letti dalle route dell'API v1. Nessun valore dimostrativo.» | under the title | R, T | removed; the view is «Stato dei dati» in «Dati» | V-B2a | invariant: no `.lead` in any view (journey `dashboard` runs it on `#/data`) |
 | UI-51 | «Fonte: /api/v1/health · generato: …» | every tile | T (allowed) | kept in the technical area | V-B2a | journey `dashboard` (technical area) |
 | UI-52 | «Versione API», «Versione codice» | tile Servizio | T (allowed) | kept in the technical area | V-B2a | `web-e2e` |
-| UI-53 | «Dataset attivi», «Dataset con errori», «Avvisi», «Ultimo controllo» (an object: it would read «[object Object]» on a real database) | tile Salute dei dati | T, V | technical area; state in Italian («Regolare», «Attenzione», «Critico»); «Ultima sincronizzazione» shows the state and end of the last sync run | V-B2a | `web-e2e` (N/D on an empty database); not automated with a run object |
+| UI-53 | «Dataset attivi», «Dataset con errori», «Avvisi», «Ultimo controllo» (an object: it would read «[object Object]» on a real database) | tile Salute dei dati | T, V | technical area; state in Italian («Regolare», «Attenzione», «Critico»); «Ultima sincronizzazione» shows the state and end of the last sync run | V-B2a | journey `dashboard`: «Regolare» and `data-code` equal the API; `web-e2e` (N/D on an empty database, Fornitori view); not automated with a run object |
 | UI-54 | «Gate fase 2…8», «Snapshot», «Ultimo backfill», «Versioni storiche» | tile Certificazione FutPythonTrader | T (allowed) | kept in the technical area | V-B2a | journey `dashboard` |
 | UI-55 | «TotalCorner storico / prematch / live raccolto», «Con snapshot», «Ultimo polling» | TotalCorner tiles | T (allowed) | kept in the technical area | V-B2a | journey `dashboard` |
 | UI-56 | «Dato non disponibile. Motivo: UNAVAILABLE — data source unavailable» | a failed tile | T | «Dato non disponibile in questo momento.», code in `data-code`, reason in the tooltip | V-B2a | journey `dashboard` and `web-e2e`: text and `data-code` |
-| UI-57 | «spain · laliga», «0.97», «HARD_VERIFIED», «Copertura: rapporto 0–1 calcolato dal server sui fatti salvati.» | coverage table | T, V | competition names as words (UI-12); states in Italian; ratios as the API sends them, with the note, in the technical area | V-B2a | journey `dashboard` |
-| UI-58 | «Risposta parziale: 1 riquadro su 6 non è disponibile e mostra N/D con il motivo.» | partial view | T | «1 riquadro su 6 non è disponibile: il motivo è nel riquadro.» | V-B2a | journey `dashboard` and `web-e2e` |
+| UI-57 | «spain · laliga», «0.97», «HARD_VERIFIED», «Copertura: rapporto 0–1 calcolato dal server sui fatti salvati.» | coverage table | T, V | competition names as words (UI-12); states in Italian; ratios as the API sends them, with the note, in the technical area | V-B2a | journey `dashboard`: every competition cell equals the API names as words |
+| UI-58 | «Risposta parziale: 1 riquadro su 6 non è disponibile e mostra N/D con il motivo.» | partial view | T | «1 riquadro su 6 non è disponibile: il motivo è nel riquadro.» | V-B2a | journey `dashboard`: exact text |
 
 ## Technical views (`data-area="technical"`)
 

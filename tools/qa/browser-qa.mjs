@@ -36,8 +36,8 @@ export const RAW_VALUE = /(?:^|[\s(:·–])(?:null|undefined)(?=\s*(?:$|[·–),
 // (FINAL, HTTP_503, PROVIDER_TZ_UNDOCUMENTED, fav_min), dataset keys (spain/laliga/2024-2025), API routes, raw ISO dates
 // and instants, and the implementation words of the inventory (docs/qa/ui-text-inventory.md). Codes are matched
 // case-sensitively, words not.
-// Checked in main when the view declares data-area="user", and in the page header and footer. A user view also has no lead text
-// (the explanatory paragraph style under a title): the rule bans superfluous explanations, not only technical words.
+// Checked in main when the view declares data-area="user", and in the page header and footer. No view has lead text (the
+// explanatory paragraph style under a title): the rule bans superfluous explanations, not only technical words.
 export const TECHNICAL_CODE = /\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\b|\b[a-z][a-z0-9]*_[a-z0-9_]+\b|\b(?:FINAL|HISTORICAL|PREMATCH|HOME|AWAY|EVEN|KEPT|DEPRECATED|UNAVAILABLE|NETWORK)\b|\bHTTP \d{3}\b|\[object \w+\]|\b[a-z][a-z0-9-]*\/[a-z][a-z0-9-]*\/\d{4}(?:-\d{4})?\b|\/api\/|\b\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?\b/;
 export const TECHNICAL_WORD = /\b(?:dataset|pipeline|endpoint|snapshot|backfill|payload|envelope|cursore?|schema|slug|provenance|debug|fornitore|provider|api v1|versione codice|generato|dati salvati|fuso del fornitore)\b|\bfonte:/i;
 export const technicalText = text => TECHNICAL_CODE.test(text) || TECHNICAL_WORD.test(text);
@@ -55,7 +55,8 @@ export async function invariants(page, allowRawText = []) {
       const text = node.textContent.trim();
       if (rawValue.test(text) && !allowed.some(pattern => pattern.test(text))) problems.push(`raw value shown: "${text.slice(0, 60)}"`);
     }
-    if (main?.dataset.area === 'user') for (const lead of main.querySelectorAll('.lead')) problems.push(`explanatory text in a user view: "${lead.textContent.trim().slice(0, 60)}"`);
+    // Lead text is banned from every view, technical ones included (V-B2a: none is left).
+    for (const lead of main?.querySelectorAll('.lead') ?? []) problems.push(`explanatory text under a title: "${lead.textContent.trim().slice(0, 60)}"`);
     for (const scope of [main?.dataset.area === 'user' ? main : null, document.querySelector('header'), document.querySelector('footer')]) {
       if (!scope) continue;
       const texts = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);

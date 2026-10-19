@@ -25,7 +25,7 @@ Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). 
 
     "Carica altre partite" follows `next_cursor`. A day with no stored match is an explicit empty state, and an invalid date is refused before any request.
 
-    «Dati aggiornati: …» shows when the archive was last synchronised: the end of the last FutPythonTrader sync run (`/api/v1/providers`, `data_health.lastRun`), only when that run completed («in parte» when partial) and has a real time. Otherwise nothing is shown, and the page never waits on it.
+    «Dati aggiornati: …» shows when the archive was last synchronised: the end of the last FutPythonTrader sync run (`/api/v1/providers`, `data_health.lastRun`), only when that run completed («in parte» when partial) and has a real time. Otherwise nothing is shown: when the last run is running or failed the line disappears even if an earlier run completed, because the API returns only the last run. The matches never wait for this route, which is a heavy diagnostic one: the line is filled in when it answers, and one answer serves every day viewed for five minutes.
   - **Ricerca** (`#/search?…`, R-06b, MP-WEB-007). Combined filters on `/api/v1/fpt/search`:
     - team by name (resolved by `/api/v1/fpt/teams`; several teams with the same name are offered as a choice) and venue;
     - competition (from `/api/v1/fpt/competitions`);
@@ -44,7 +44,7 @@ Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). 
   - `data-area="technical"`: Stato dei dati, Fornitori dati, API.
 
   A user view shows none of these: API codes, parameter names, identifiers, dataset keys, routes, raw ISO dates, provenance lines, diagnostic messages, or explanatory text under titles. What it does not print stays in `data-*` attributes and tooltips, and in the technical views.
-  - The Browser QA gate fails a user view, or the page header or footer, that shows such text (`technicalText` in `tools/qa/browser-qa.mjs`), and a user view with lead text (`.lead`). The patterns are a safety net: each text of the inventory names the test that checks it.
+  - The Browser QA gate fails a user view, or the page header or footer, that shows such text (`technicalText` in `tools/qa/browser-qa.mjs`), and any view with lead text (`.lead`). The patterns are a safety net: each text of the inventory names the test that checks it.
   - Every view declares its area, checked for every menu item and every tab of «Dati» (journey `general-navigation`).
   - The inventory of every text of the site, its class and the PR that handles it is [docs/qa/ui-text-inventory.md](qa/ui-text-inventory.md).
 

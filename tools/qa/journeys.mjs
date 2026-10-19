@@ -73,6 +73,21 @@ export const JOURNEYS = [
         assert.equal(response.status(), 200);
         assert.match(response.headers()['content-security-policy'] ?? '', /script-src 'self'/);
         await titled(page, 'Oggi');
+        // On a phone the menu is a bar fixed at the bottom, and the page leaves room for it; on a desktop it is in the header.
+        const bar = await page.evaluate(() => {
+          const nav = document.querySelector('.mainnav');
+          const r = nav.getBoundingClientRect();
+          return {phone: innerWidth <= 560, position: getComputedStyle(nav).position, bottom: Math.round(r.bottom), height: r.height, viewport: innerHeight,
+            room: parseFloat(getComputedStyle(document.body).paddingBottom), inHeader: Boolean(nav.closest('header'))};
+        });
+        if (bar.phone) {
+          assert.equal(bar.position, 'fixed');
+          assert.equal(bar.bottom, bar.viewport, 'the bar sits at the bottom of the screen');
+          assert.ok(bar.room >= bar.height, `the page leaves room for the bar: ${bar.room} < ${bar.height}`);
+        } else {
+          assert.notEqual(bar.position, 'fixed');
+          assert.ok(bar.inHeader);
+        }
       });
       await step('ogni voce del menu è nota e ha la sua area', async () => {
         const views = await page.locator('nav a[data-view]').evaluateAll(links => links.map(link => link.dataset.view));
@@ -112,6 +127,7 @@ export const JOURNEYS = [
         await page.goto(`${base}/#/non-esiste`);
         await page.waitForSelector('text=Pagina non trovata');
         assert.equal(await page.getAttribute('main', 'data-area'), 'user');
+        assert.equal(await page.textContent('main a[href="#/"]'), 'Torna a Oggi', 'UI-09');
         await page.click('main a[href="#/"]');
         await titled(page, 'Oggi');
       });
@@ -141,7 +157,12 @@ export const JOURNEYS = [
           const line = page.locator(`[data-testid="tile-coverage"] tr[data-competition="${row.internal_competition_id}"]`);
           assert.equal(await line.locator('[data-field="matches"]').textContent(), shown(row.matches));
           assert.equal(await line.locator('[data-field="last_match_date"]').textContent(), row.last_match_date);
+          assert.equal(await line.locator('[data-field="competition"]').textContent(), `${words(row.country_slug)} · ${words(row.league_slug)}`, 'UI-57');
         }
+        // UI-53: the data-health state in Italian, the code kept.
+        const state = page.locator('[data-testid="tile-data-health"] [data-field="status"]');
+        assert.equal(await state.textContent(), {ok: 'Regolare', warning: 'Attenzione', critical: 'Critico'}[providers.data.data_health.status]);
+        assert.equal(await state.locator('[data-code]').getAttribute('data-code'), providers.data.data_health.status);
       });
       await step('dati assenti mostrati come N/D, mai 0', async () => {
         assert.equal(await page.textContent('[data-testid="tile-certification"] [data-field="latest_backfill"]'), 'N/D');
@@ -154,7 +175,7 @@ export const JOURNEYS = [
         assert.match(await page.textContent('[data-testid="tile-tc-live"]'), /N\/D[\s\S]*non disponibile/);
         assert.equal(await page.getAttribute('[data-testid="tile-tc-live"] .state.partial', 'data-code'), 'UNAVAILABLE');
         assert.equal(await page.getAttribute('[data-testid="tile-coverage"]', 'data-state'), 'ok');
-        assert.match(await page.textContent('[data-testid="dashboard-partial"]'), /1 riquadro su 6/);
+        assert.equal(await page.textContent('[data-testid="dashboard-partial"]'), '1 riquadro su 6 non è disponibile: il motivo è nel riquadro.', 'UI-58');
         await page.unroute('**/api/v1/tc/live');
       });
     },
@@ -245,15 +266,41 @@ export const JOURNEYS = [
           body.data.data_health.lastRun = run;
           await route.fulfill({response, json: body});
         });
-        for (const [status, text] of [['complete', 'Dati aggiornati: '], ['partial', 'Dati aggiornati in parte: '], ['failed', null], ['running', null]]) {
-          run = {run_id: 'qa', kind: 'incremental', status, started_at: '2026-10-19T18:10:00Z', finished_at: status === 'running' ? null : '2026-10-19T18:15:00Z'};
+        const cases = [['complete', '2026-10-19T18:15:00Z', 'Dati aggiornati: '], ['partial', '2026-10-19T18:15:00Z', 'Dati aggiornati in parte: '],
+          ['failed', '2026-10-19T18:15:00Z', null], ['running', null, null], ['complete', null, null], ['complete', '19/10/2026', null]];
+        for (const [status, finished, text] of cases) {
+          run = {run_id: 'qa', kind: 'incremental', status, started_at: '2026-10-19T18:10:00Z', finished_at: finished};
           await fresh(page, `${base}/#/?date=${day}`);
           await page.waitForSelector('[data-testid="board-day"]');
+          await page.waitForLoadState('networkidle');
           const line = page.locator('[data-testid="updated"]');
-          if (!text) { assert.equal(await line.count(), 0, status); continue; }
+          if (!text) { assert.equal(await line.count(), 0, `${status} ${finished}`); continue; }
           assert.equal(await line.textContent(), `${text}19/10/2026, 20:15 GMT+2`);
           assert.equal(await line.locator('time').getAttribute('datetime'), '2026-10-19T18:15:00Z');
         }
+        // The empty day shows it too.
+        run = {run_id: 'qa', kind: 'incremental', status: 'complete', started_at: '2026-10-19T18:10:00Z', finished_at: '2026-10-19T18:15:00Z'};
+        await fresh(page, `${base}/#/?date=2024-01-01`);
+        await page.waitForSelector('[data-testid="board-empty"]');
+        await page.waitForSelector('[data-testid="updated"]');
+        await page.unroute('**/api/v1/providers');
+      });
+      await step('la pagina non aspetta la route diagnostica dell’aggiornamento', async () => {
+        // /api/v1/providers held until the matches are on screen: the board must not wait for it (PR #170 review B-1).
+        let release;
+        const held = new Promise(done => { release = done; });
+        await page.route('**/api/v1/providers', async route => {
+          await held;
+          const response = await route.fetch();
+          const body = await response.json();
+          body.data.data_health.lastRun = {run_id: 'qa', kind: 'incremental', status: 'complete', started_at: '2026-10-19T18:10:00Z', finished_at: '2026-10-19T18:15:00Z'};
+          await route.fulfill({response, json: body}).catch(() => {});
+        });
+        await fresh(page, `${base}/#/?date=${day}`);
+        await page.waitForSelector('article.match', {timeout: 10000});
+        assert.equal(await page.locator('[data-testid="updated"]').count(), 0, 'not yet');
+        release();
+        await page.waitForSelector('[data-testid="updated"]');
         await page.unroute('**/api/v1/providers');
       });
       await step('errore dell’API: messaggio semplice, codice conservato, Riprova', async () => {
@@ -401,6 +448,19 @@ export const JOURNEYS = [
         assert.deepEqual(await page.locator('[data-testid="team-choice"] li').allTextContents(),
           [`${ajax.canonical_name} (${words(ajax.country_slug)})`, `${ajax.canonical_name} (South Africa)`]);
         await page.unroute('**/api/v1/fpt/teams?*');
+      });
+      await step('tastiera: il campo con il fuoco resta sopra la barra del telefono', async () => {
+        await fresh(page, `${base}/#/search`);
+        await page.waitForSelector('[data-testid="search-form"]');
+        await page.focus('input[name="min_goals"]');
+        await page.keyboard.press('Tab');
+        const clear = await page.evaluate(() => {
+          const field = document.activeElement.getBoundingClientRect();
+          const nav = document.querySelector('.mainnav');
+          if (getComputedStyle(nav).position !== 'fixed') return {ok: true};
+          return {ok: field.bottom <= nav.getBoundingClientRect().top, field: field.bottom, bar: nav.getBoundingClientRect().top, name: document.activeElement.name};
+        });
+        assert.ok(clear.ok, `focused ${clear.name} at ${clear.field} under the bar at ${clear.bar}`);
       });
       await step('squadra sconosciuta, nessun risultato, sede senza squadra', async () => {
         await fresh(page, `${base}/#/search?run=1&team=Nessuno`);

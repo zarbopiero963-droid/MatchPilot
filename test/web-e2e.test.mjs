@@ -129,7 +129,9 @@ test('the web shell renders real API v1 data on desktop and mobile, with N/D for
           assert.equal(await page.getAttribute('nav a[data-view=""]', 'aria-current'), 'page');
           await page.click('nav a[data-view="data"]');
           await page.waitForSelector('[data-testid="tile-health"]');
-          assert.equal(await page.textContent('[data-testid="tile-health"] [data-field="status"]'), health.data.status);
+          // The service state in Italian, the code kept (PR #170 review NB-3).
+          assert.equal(await page.getAttribute('[data-testid="tile-health"] [data-field="status"] [data-code]', 'data-code'), health.data.status);
+          assert.equal(await page.textContent('[data-testid="tile-health"] [data-field="status"]'), {ok: 'Regolare', warning: 'Attenzione', critical: 'Critico'}[health.data.status]);
           assert.equal(await page.textContent('[data-testid="tile-health"] [data-field="api_version"]'), health.api_version);
           assert.equal(await page.getAttribute('nav a[data-view="data"]', 'aria-current'), 'page');
           await noHorizontalScroll(page);

@@ -223,7 +223,7 @@ async function dashboardView() {
       `${failed} ${failed === 1 ? 'riquadro' : 'riquadri'} su ${keys.length} ${failed === 1 ? 'non è disponibile' : 'non sono disponibili'}: il motivo è nel riquadro.`) : null,
     el('div', {class: 'grid'},
       tile('Servizio', 'tile-health', DASHBOARD.health, got.health, (data, body) => el('dl', {},
-        field('Stato', formatScalar(data?.status), 'status'), field('Prodotto', formatScalar(data?.product), 'product'),
+        field('Stato', data?.status ? lowerCode(data.status) : formatScalar(null), 'status'), field('Prodotto', formatScalar(data?.product), 'product'),
         field('Versione API', formatScalar(body.api_version), 'api_version'), field('Versione codice', formatScalar(body.meta?.code_version), 'code_version'))),
       tile('Salute dei dati', 'tile-data-health', DASHBOARD.providers, got.providers, data => {
         const health = data?.data_health;
@@ -260,7 +260,7 @@ async function dashboardView() {
         el('thead', {}, el('tr', {}, ['Campionato', 'Stagioni', 'Partite', 'Prima partita', 'Ultima partita', 'Copertura quote', 'Copertura xG', 'Stato']
           .map(text => el('th', {scope: 'col'}, text)))),
         el('tbody', {}, rows.map(row => el('tr', {'data-competition': row.internal_competition_id ?? ''},
-          el('td', {}, nameOf(row.country_slug), ' · ', nameOf(row.league_slug)),
+          el('td', {'data-field': 'competition'}, nameOf(row.country_slug), ' · ', nameOf(row.league_slug)),
           el('td', {}, formatScalar(row.first_season), ' → ', formatScalar(row.last_season)),
           el('td', {'data-field': 'matches'}, num(row.matches)),
           el('td', {}, formatScalar(row.first_match_date)),
@@ -344,6 +344,18 @@ const dayHref = date => `#/?${queryString({date})}`;
 
 // When the archive was last synchronised: the end of the last FutPythonTrader sync run, shown only when that run
 // completed (fully or in part) and carries a real time. Nothing is shown otherwise: no time is ever made up (UI-25).
+// /api/v1/providers is a heavy diagnostic route: the board never waits for it (the line is filled in when it answers,
+// if the page is still the same) and one answer serves every day viewed for five minutes (PR #170 review B-1).
+let freshness = null;
+function providersOnce() {
+  if (!freshness || Date.now() - freshness.at > 5 * 60 * 1000) freshness = {at: Date.now(), body: getJson('/api/v1/providers').catch(() => null)};
+  return freshness.body;
+}
+function updatedSlot(mine) {
+  const slot = el('div', {class: 'updated-slot', 'data-testid': 'updated-slot'});
+  providersOnce().then(body => { if (mine === generation) slot.replaceChildren(...[updatedLine(body)].filter(Boolean)); });
+  return slot;
+}
 function updatedLine(providers) {
   const run = providers?.data?.data_health?.lastRun;
   if (!run || typeof run !== 'object' || !['complete', 'partial'].includes(run.status) || !INSTANT.test(run.finished_at ?? '')) return null;
@@ -366,10 +378,8 @@ async function boardView(params, mine) {
   if (!validDate(date)) return [...head, el('p', {class: 'state error', role: 'alert', 'data-date': date}, 'Data non valida: scegli un giorno dal calendario.')];
   const path = '/api/v1/fpt/matches';
   const params2 = {date, limit: BOARD_PAGE};
-  // The update time is optional: if its route fails, the page shows the matches without it.
-  const providers = getJson('/api/v1/providers').catch(() => null);
   const first = await getJson(`${path}?${queryString(params2)}`);
-  const updated = updatedLine(await providers);
+  const updated = updatedSlot(mine);
   const rows = first.data?.rows ?? [];
   if (rows.length === 0) {
     return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'board-empty'}, `Nessuna partita ${dayText(date, LONG_DAY)}. `,
