@@ -1,0 +1,15 @@
+{
+  "schema": "mp-evidence-v1",
+  "audit_id": "V-B2a-HOME-NAV-DATI",
+  "commit_sha": "58f5ebdbb6584ae755099e63782d6fb7ba68f9cf",
+  "date": "2026-10-19",
+  "environment": "Claude Code cloud container (Linux), PostgreSQL 16 throwaway schema with the QA archive, Chromium 141.0.7390.37, viewports 1280x800 and 390x844",
+  "outcome": "RED: 8 of 10 journeys fail on src/web of main (no home Oggi, no area Dati). GREEN: 10/10 on 58f5ebd, verifier ok",
+  "archive": {
+    "branch": "evidence/audits",
+    "commit": "4ee5907b445207ce746ae4acf567c586ab3a8b38",
+    "path": "V-B2a-HOME-NAV-DATI",
+    "zip_sha256": "97985f74cd185e321f79f0cd3e3a8e331945b408885201d89430a069cf026322",
+    "url": "https://github.com/zarbopiero963-droid/MatchPilot/tree/4ee5907b445207ce746ae4acf567c586ab3a8b38/V-B2a-HOME-NAV-DATI"
+  }
+}

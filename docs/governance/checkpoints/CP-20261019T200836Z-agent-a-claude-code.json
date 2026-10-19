@@ -1,0 +1,94 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "0d7ec6185b38bbad0e99a8025c3ce1c46b31203b",
+  "tree_sha": "a89d6a3b62dbc3850c341b946ddd8e943d587455",
+  "supersedes": "CP-20261019T192623Z-agent-a-claude-code",
+  "pr": 169,
+  "id": "CP-20261019T200836Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T20:08:36Z",
+  "activity": "V-B1 merged: PR #169 squash 1a0d1b3 on main; post-merge verification passed",
+  "task": "V-B1",
+  "issue": 3,
+  "requirements": [
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "main 1a0d1b36a9bc1432b310479721ad35d6db80e78e (squash of PR #169, head 0d7ec61 checked with expectedHeadSha)"
+  ],
+  "tests": [
+    {
+      "command": "CI run 39311083054 on 0d7ec61 (all jobs, CI gate PASS)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "0d7ec6185b38bbad0e99a8025c3ce1c46b31203b",
+      "time": "2026-10-19T19:31:09Z",
+      "limits": []
+    },
+    {
+      "command": "CI run 39312026318 on main 1a0d1b3 (push)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "1a0d1b36a9bc1432b310479721ad35d6db80e78e",
+      "time": "2026-10-19T20:08:36Z",
+      "limits": [
+        "time is an upper bound (status read before this checkpoint)"
+      ]
+    },
+    {
+      "command": "post-merge: fresh clone of main (tree equal to the PR head); governance:check, governance:evidence (archive read back); node tools/qa/browser-qa.mjs 10/10 + verify-report",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "1a0d1b36a9bc1432b310479721ad35d6db80e78e",
+      "time": "2026-10-19T19:35:01Z",
+      "limits": [
+        "time from report.json generated_at"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39311083054,
+    "conclusion": "SUCCESS",
+    "head_sha": "0d7ec6185b38bbad0e99a8025c3ce1c46b31203b"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/169#issuecomment-6275487878",
+    "reviewed_sha": "0d7ec6185b38bbad0e99a8025c3ce1c46b31203b"
+  },
+  "findings": [
+    {
+      "id": "R3-NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "wording of CP-20261019T192623Z: R1-NB-11 'every menu view declares its area' held except the Dashboard (fixed by V-B2a); R1-NB-2 false positives of the patterns on team names stay TRACKED"
+    },
+    {
+      "id": "VB1-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "official Italian names of competitions and countries need API display names (UI-12)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-UI-NO-RAW-TEXT-01",
+    "MP-OWNER-AUTONOMOUS-UI-ROADMAP-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T192623Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "V-B2a (home Oggi, technical area Dati, phone navigation, Stato dei dati cleanup, update indicator)",
+  "resume_conditions": [
+    "main contains 1a0d1b36a9bc1432b310479721ad35d6db80e78e"
+  ]
+}

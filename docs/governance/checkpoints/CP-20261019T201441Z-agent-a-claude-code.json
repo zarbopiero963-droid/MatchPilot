@@ -1,0 +1,95 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "468277a74c61d18a72f4f5a3e551cdc95bcd1c8e",
+  "tree_sha": "77b1c5eaeb2d7c240aa8fe3ca3c869f7790df35d",
+  "supersedes": null,
+  "pr": null,
+  "id": "CP-20261019T201441Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T20:14:41Z",
+  "activity": "V-B2a: home Oggi, menu Oggi · Ricerca · Dati, technical area Dati with tabs, phone bottom bar, Stato dei dati cleanup, real update indicator; ready for review",
+  "task": "V-B2a",
+  "issue": 3,
+  "requirements": [
+    "MP-WEB-015",
+    "MP-WEB-013",
+    "MP-WEB-002"
+  ],
+  "changes": [
+    "src/web/index.html, app.js, app.css (menu, routes, Dati tabs, Stato dei dati, update line, bottom bar)",
+    "tools/qa/journeys.mjs (menu, tabs, areas, #/board alias, update states), tools/qa/browser-qa.mjs (header in the invariant, fixed bar excluded from overlaps)",
+    "test/web-e2e.test.mjs",
+    "docs/web.md, docs/qa/ui-text-inventory.md, requirements MP-WEB-013/015 evidence, owner decision MP-OWNER-AUTONOMOUS-UI-ROADMAP-01",
+    "docs/audits/V-B2a-HOME-NAV-DATI + evidence/audits@4ee5907b445207ce746ae4acf567c586ab3a8b38"
+  ],
+  "tests": [
+    {
+      "command": "node tools/qa/browser-qa.mjs (new tests, src/web of main 1a0d1b3)",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "58f5ebdbb6584ae755099e63782d6fb7ba68f9cf",
+      "time": "2026-10-19T20:12:46Z",
+      "limits": [
+        "intended RED on an uncommitted tree: 8 of 10 journeys fail; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs + verify-report on the committed change",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "58f5ebdbb6584ae755099e63782d6fb7ba68f9cf",
+      "time": "2026-10-19T20:10:30Z",
+      "limits": [
+        "10/10, clean tree, verifier ok; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "CI=1 node --test web-e2e, mockup-alignment, browser-qa-gate, explore, requirements-inventory, governance-*; npm run check; governance:check/validate/evidence",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "468277a74c61d18a72f4f5a3e551cdc95bcd1c8e",
+      "time": "2026-10-19T20:14:41Z",
+      "limits": [
+        "98/98, run on the tree of 58f5ebd; time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "VB2a-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "Italian labels for the provider tree keys (UI-60) belong to V-B2b; the last sync run in Stato dei dati is not exercised with a run object in a test"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-UI-ROADMAP-01",
+    "MP-OWNER-UI-NO-RAW-TEXT-01",
+    "MP-OWNER-VISUAL-BASELINE-D1-D7-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T200836Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "open the PR, independent review D2 on the head, CI, Gate B, protected merge, post-merge verification; then V-B2b",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains 468277a74c61d18a72f4f5a3e551cdc95bcd1c8e"
+  ]
+}

@@ -6,15 +6,16 @@ Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). 
 
 - **A real, read-only website served at `/`.** `index.html`, `app.js` and `app.css` are static files.
 - **Data:** every value on screen comes from the MatchPilot API v1, and the browser computes nothing (MP-WEB-011). The only date arithmetic is calendar navigation (previous/next day), which derives no data value.
+- **Menu** (V-B2, D-2): **Oggi** (`#/`, the home page), **Ricerca** (`#/search`) and **Dati** (`#/data`), as in the approved mockup. On a phone the menu is a bottom bar with icons. «Dati» is the technical area: its tabs open Panoramica (`#/data`), Fornitori (`#/providers`), API (`#/endpoints`) and Copertura (`/coverage`). The former address of the Daily Board, `#/board`, still opens Oggi.
 - **Sections:**
-  - **Dashboard** (`#/`, R-06b, MP-WEB-013). One tile per route:
+  - **Stato dei dati**, formerly the Dashboard (`#/data`, R-06b, MP-WEB-013, technical view). One tile per route:
     - service (`/api/v1/health`);
     - data health and FutPythonTrader certification (`/api/v1/providers`);
     - TotalCorner historical, prematch and captured live (`/api/v1/tc/historical`, `/api/v1/tc/prematch`, `/api/v1/tc/live`);
     - FutPythonTrader coverage per league (`/api/v1/fpt/coverage-competitions`), with first and last match date, coverage ratios and status.
 
-    A route that fails turns only its own tile into N/D with the error code: the dashboard is then partial, not blank. Each league's last match date opens the Daily Board on that day.
-  - **Daily Board** (`#/board?date=YYYY-MM-DD`, R-06b, MP-WEB-002). The matches of a day from `/api/v1/fpt/matches`, in the API's kickoff order across competitions. Each card shows:
+    A route that fails turns only its own tile into N/D, with the error code in `data-code` and the tooltip: the view is then partial, not blank. The last sync run of the data health shows its state and end time. Each league's last match date opens Oggi on that day.
+  - **Oggi**, the Daily Board (`#/?date=YYYY-MM-DD`, R-06b, MP-WEB-002, home page). The title is «Oggi» for today and «Partite del giorno» for another day. The matches of a day from `/api/v1/fpt/matches`, in the API's kickoff order across competitions. Each card shows:
     - kickoff, competition and season;
     - teams, and the score, or the state of a match without a final result ("Non iniziata", "Senza risultato");
     - 1X2, Over 2.5 and BTTS odds in labelled boxes;
@@ -23,6 +24,8 @@ Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). 
     The time-zone status, result status, phase and dataset key stay on the card as `data-*` attributes, not as text (MP-WEB-015).
 
     "Carica altre partite" follows `next_cursor`. A day with no stored match is an explicit empty state, and an invalid date is refused before any request.
+
+    «Dati aggiornati: …» shows when the archive was last synchronised: the end of the last FutPythonTrader sync run (`/api/v1/providers`, `data_health.lastRun`), only when that run completed («in parte» when partial) and has a real time. Otherwise nothing is shown: when the last run is running or failed the line disappears even if an earlier run completed, because the API returns only the last run. The matches never wait for this route, which is a heavy diagnostic one: the line is filled in when it answers, and one answer serves every day viewed for five minutes.
   - **Ricerca** (`#/search?…`, R-06b, MP-WEB-007). Combined filters on `/api/v1/fpt/search`:
     - team by name (resolved by `/api/v1/fpt/teams`; several teams with the same name are offered as a choice) and venue;
     - competition (from `/api/v1/fpt/competitions`);
@@ -30,19 +33,19 @@ Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). 
     - data quality: `with_odds` (complete 1X2 odds) and `with_xg`.
 
     The server validates every filter; a refusal names the field in Italian, and the server's message stays in the tooltip. "Altri risultati" follows `next_cursor`; a failed page keeps the rows already shown and offers a retry.
-  - Fornitori dati (data health and FutPythonTrader certification), API (the v1 registry and legacy routes): **technical views**. Copertura links to the existing `/coverage` page.
+  - Fornitori dati (data health and FutPythonTrader certification), API (the v1 registry and legacy routes): **technical views** in «Dati». Copertura links to the existing `/coverage` page.
 - **Not yet shown:** Match Center, historical replay and PIT backtest (R-07, R-09…R-14).
 - **Data used for tests:** one league season ingested through the real FutPythonTrader path (`test/helpers/fpt-seed.mjs`). No production data is read. Against the real archive these views are TESTED, not certified (MP-OWNER-ARCHIVE-FIRST-01).
 
 ## Rules
 
 - **No technical text in user views** (MP-OWNER-UI-NO-RAW-TEXT-01, MP-WEB-015). Every view declares its area on `main`:
-  - `data-area="user"`: Daily Board, Ricerca, the not-found page;
-  - `data-area="technical"`: Fornitori dati, API.
+  - `data-area="user"`: Oggi, Ricerca, the not-found page;
+  - `data-area="technical"`: Stato dei dati, Fornitori dati, API.
 
-  The Dashboard declares none until V-B2. A user view shows none of these: API codes, parameter names, identifiers, dataset keys, routes, raw ISO dates, provenance lines, diagnostic messages, or explanatory text under titles. What it does not print stays in `data-*` attributes and tooltips, and in the technical views.
-  - The Browser QA gate fails a user view, or the page footer, that shows such text (`technicalText` in `tools/qa/browser-qa.mjs`), and a user view with lead text (`.lead`). The patterns are a safety net: each text of the inventory names the test that checks it.
-  - Every menu view declares its area, except the Dashboard until V-B2 (journey `general-navigation`).
+  A user view shows none of these: API codes, parameter names, identifiers, dataset keys, routes, raw ISO dates, provenance lines, diagnostic messages, or explanatory text under titles. What it does not print stays in `data-*` attributes and tooltips, and in the technical views.
+  - The Browser QA gate fails a user view, or the page header or footer, that shows such text (`technicalText` in `tools/qa/browser-qa.mjs`), and any view with lead text (`.lead`). The patterns are a safety net: each text of the inventory names the test that checks it.
+  - Every view declares its area, checked for every menu item and every tab of «Dati» (journey `general-navigation`).
   - The inventory of every text of the site, its class and the PR that handles it is [docs/qa/ui-text-inventory.md](qa/ui-text-inventory.md).
 
 - **Missing values** (`null`, absent or an empty string) are shown as **N/D**, never as `0` (MP-WEB-005).

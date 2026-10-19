@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 76,
+  "revision": 79,
   "tasks": [
     {
       "id": "R-01",
@@ -312,13 +312,29 @@
       "pr": 169,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261019T200836Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "V-B2a",
+      "title": "V-B2a: home Oggi (Daily Board), technical area Dati with tabs, phone bottom navigation, Stato dei dati cleanup, real update indicator (MP-OWNER-AUTONOMOUS-UI-ROADMAP-01)",
+      "issue": 3,
+      "pr": 170,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
       "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T192623Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261019T205544Z-agent-a-claude-code",
       "pr_open": true
     }
   ]

@@ -51,7 +51,7 @@ async function getJson(path) {
 // ---- Value rendering ----
 
 const LABELS = {
-  status: 'Stato', product: 'Prodotto', lastRun: 'Ultimo controllo', activeDatasets: 'Dataset attivi', schemaFields: 'Campi di schema',
+  status: 'Stato', product: 'Prodotto', lastRun: 'Ultima sincronizzazione', activeDatasets: 'Dataset attivi', schemaFields: 'Campi di schema',
   datasetsWithErrors: 'Dataset con errori', alerts: 'Avvisi', catalog: 'Catalogo', datasets: 'Dataset', snapshots: 'Snapshot',
   historical_versions: 'Versioni storiche', unique_matches: 'Partite uniche', schema_fields: 'Campi di schema', latest_backfill: 'Ultimo backfill',
   phase1_checks: 'Controlli fase 1', gate: 'Gate superato', total: 'Totale', countries: 'Paesi', leagues: 'Campionati',
@@ -95,6 +95,14 @@ const CODES = {
   HISTORICAL: 'Storico', PREMATCH: 'Pre-partita', AVAILABLE: 'Disponibile', UNAVAILABLE: 'Non disponibile', ONBOARDING: 'In attivazione',
   NO_DATA: 'Nessun dato', ACTIVE: 'Attivo', HARD_VERIFIED: 'Verificato', DEPRECATED: 'Sostituita', KEPT: 'Mantenuta',
 };
+// Lower-case states of the data health (ok, warning, critical) and of a sync run (complete, partial, failed, running);
+// mapped only where those fields are shown, so a provider value that happens to read "ok" is never relabelled.
+const LOWER_CODES = {ok: 'Regolare', warning: 'Attenzione', critical: 'Critico', complete: 'Completa', partial: 'Parziale', failed: 'Non riuscita', running: 'In corso'};
+const lowerCode = value => Object.hasOwn(LOWER_CODES, value) ? el('span', {class: 'code', title: value, 'data-code': value}, LOWER_CODES[value]) : formatScalar(value);
+// The last FutPythonTrader sync run is an object (status and times): its state and end are shown, never "[object Object]".
+const lastRunText = run => run && typeof run === 'object'
+  ? el('span', {}, lowerCode(run.status), ' · ', formatScalar(run.finished_at ?? run.started_at)) : formatScalar(null);
+
 function code(value) {
   if (typeof value !== 'string' || !Object.hasOwn(CODES, value)) return formatScalar(value);
   return el('span', {class: 'code', title: value, 'data-code': value}, CODES[value]);
@@ -167,7 +175,14 @@ function localToday() {
 const field = (text, node, name) => [el('dt', {}, text), el('dd', name ? {'data-field': name} : {}, node)];
 const reasonText = error => `${error?.code ?? 'CLIENT'}${error?.message ? ` — ${error.message}` : ''}`;
 
-// ---- Dashboard (MP-WEB-013) ----
+// ---- Dati: the technical area (MP-OWNER-UI-NO-RAW-TEXT-01 §3.7, V-B2) ----
+
+// The technical views share one section of the menu, «Dati», and a strip of tabs, as in the approved mockup.
+const DATA_TABS = [['data', 'Panoramica', '#/data'], ['providers', 'Fornitori', '#/providers'], ['endpoints', 'API', '#/endpoints'], [null, 'Copertura', '/coverage']];
+const dataTabs = current => el('nav', {class: 'tabs', 'aria-label': 'Sezioni dei dati', 'data-testid': 'data-tabs'},
+  DATA_TABS.map(([view, text, href]) => el('a', {href, 'aria-current': view === current ? 'page' : null}, text)));
+
+// ---- Stato dei dati, formerly the Dashboard (MP-WEB-013) ----
 
 // Every tile reads one API route; a route that fails turns only its own tile into N/D with the reason (partial).
 const DASHBOARD = {
@@ -185,7 +200,7 @@ function tile(title, testid, route, settled, body) {
   if (settled.status === 'rejected') {
     return el('section', {class: 'card tile', 'data-testid': testid, 'data-state': 'error'}, head,
       el('p', {class: 'nd', 'data-field': 'value'}, ND),
-      el('p', {class: 'state partial', role: 'status'}, `Dato non disponibile. Motivo: ${reasonText(settled.reason)}`), source());
+      el('p', {class: 'state partial', role: 'status', 'data-code': settled.reason?.code ?? '', title: reasonText(settled.reason)}, 'Dato non disponibile in questo momento.'), source());
   }
   const content = body(settled.value.data, settled.value);
   return el('section', {class: 'card tile', 'data-testid': testid, 'data-state': 'ok'}, head, content, source(settled.value));
@@ -203,19 +218,18 @@ async function dashboardView() {
   const failed = results.filter(result => result.status === 'rejected').length;
   const gate = value => value === undefined ? null : value;
   return [
-    el('h1', {}, 'Dashboard'),
-    el('p', {class: 'lead'}, 'Salute dei dati, copertura, freschezza e certificazione, letti dalle route dell’API v1. Nessun valore dimostrativo.'),
+    el('h1', {}, 'Stato dei dati'), dataTabs('data'),
     failed ? el('p', {class: 'state partial', role: 'status', 'data-testid': 'dashboard-partial'},
-      `Risposta parziale: ${failed} ${failed === 1 ? 'riquadro' : 'riquadri'} su ${keys.length} ${failed === 1 ? 'non è disponibile e mostra' : 'non sono disponibili e mostrano'} N/D con il motivo.`) : null,
+      `${failed} ${failed === 1 ? 'riquadro' : 'riquadri'} su ${keys.length} ${failed === 1 ? 'non è disponibile' : 'non sono disponibili'}: il motivo è nel riquadro.`) : null,
     el('div', {class: 'grid'},
       tile('Servizio', 'tile-health', DASHBOARD.health, got.health, (data, body) => el('dl', {},
-        field('Stato', formatScalar(data?.status), 'status'), field('Prodotto', formatScalar(data?.product), 'product'),
+        field('Stato', data?.status ? lowerCode(data.status) : formatScalar(null), 'status'), field('Prodotto', formatScalar(data?.product), 'product'),
         field('Versione API', formatScalar(body.api_version), 'api_version'), field('Versione codice', formatScalar(body.meta?.code_version), 'code_version'))),
       tile('Salute dei dati', 'tile-data-health', DASHBOARD.providers, got.providers, data => {
         const health = data?.data_health;
         if (health === null || health === undefined) return missingSection('la salute dei dati');
         return el('dl', {},
-          field('Stato', formatScalar(health.status), 'status'), field('Ultimo controllo', formatScalar(health.lastRun), 'lastRun'),
+          field('Stato', health.status ? lowerCode(health.status) : formatScalar(null), 'status'), field('Ultima sincronizzazione', lastRunText(health.lastRun), 'lastRun'),
           field('Dataset attivi', num(health.activeDatasets), 'activeDatasets'), field('Dataset con errori', num(health.datasetsWithErrors), 'datasetsWithErrors'),
           field('Avvisi', renderValue(health.alerts), 'alerts'));
       }),
@@ -246,12 +260,12 @@ async function dashboardView() {
         el('thead', {}, el('tr', {}, ['Campionato', 'Stagioni', 'Partite', 'Prima partita', 'Ultima partita', 'Copertura quote', 'Copertura xG', 'Stato']
           .map(text => el('th', {scope: 'col'}, text)))),
         el('tbody', {}, rows.map(row => el('tr', {'data-competition': row.internal_competition_id ?? ''},
-          el('td', {}, formatScalar(row.country_slug), ' · ', formatScalar(row.league_slug)),
+          el('td', {'data-field': 'competition'}, nameOf(row.country_slug), ' · ', nameOf(row.league_slug)),
           el('td', {}, formatScalar(row.first_season), ' → ', formatScalar(row.last_season)),
           el('td', {'data-field': 'matches'}, num(row.matches)),
           el('td', {}, formatScalar(row.first_match_date)),
           el('td', {'data-field': 'last_match_date'}, row.last_match_date
-            ? el('a', {href: `#/board?${queryString({date: row.last_match_date})}`, title: 'Apri la Daily Board di quel giorno'}, row.last_match_date)
+            ? el('a', {href: `#/?${queryString({date: row.last_match_date})}`, title: 'Apri le partite di quel giorno'}, row.last_match_date)
             : formatScalar(null)),
           el('td', {}, num(row.odds_coverage)), el('td', {}, num(row.xg_coverage)), el('td', {}, code(row.coverage_status)))))),
         el('p', {class: 'meta'}, 'Copertura: rapporto 0–1 calcolato dal server sui fatti salvati.'));
@@ -323,35 +337,57 @@ function pagedList({first, path, params, render, more: moreLabel, mine, list = e
   return [list, footer];
 }
 
-// ---- Daily Board (MP-WEB-002) ----
+// ---- Oggi: the Daily Board, home page (MP-WEB-002, D-2) ----
 
 const BOARD_PAGE = 24;
+const dayHref = date => `#/?${queryString({date})}`;
+
+// When the archive was last synchronised: the end of the last FutPythonTrader sync run, shown only when that run
+// completed (fully or in part) and carries a real time. Nothing is shown otherwise: no time is ever made up (UI-25).
+// /api/v1/providers is a heavy diagnostic route: the board never waits for it (the line is filled in when it answers,
+// if the page is still the same) and one answer serves every day viewed for five minutes (PR #170 review B-1).
+let freshness = null;
+function providersOnce() {
+  if (!freshness || Date.now() - freshness.at > 5 * 60 * 1000) freshness = {at: Date.now(), body: getJson('/api/v1/providers').catch(() => null)};
+  return freshness.body;
+}
+function updatedSlot(mine) {
+  const slot = el('div', {class: 'updated-slot', 'data-testid': 'updated-slot'});
+  providersOnce().then(body => { if (mine === generation) slot.replaceChildren(...[updatedLine(body)].filter(Boolean)); });
+  return slot;
+}
+function updatedLine(providers) {
+  const run = providers?.data?.data_health?.lastRun;
+  if (!run || typeof run !== 'object' || !['complete', 'partial'].includes(run.status) || !INSTANT.test(run.finished_at ?? '')) return null;
+  return el('p', {class: 'updated', 'data-testid': 'updated', 'data-status': run.status},
+    run.status === 'complete' ? 'Dati aggiornati: ' : 'Dati aggiornati in parte: ', instant(run.finished_at));
+}
 
 async function boardView(params, mine) {
   const date = params.get('date') || localToday();
   const picker = el('form', {class: 'controls', 'data-testid': 'board-controls', onsubmit: event => {
     event.preventDefault();
-    const value = new FormData(event.target).get('date');
-    location.hash = `#/board?${queryString({date: value})}`;
+    location.hash = dayHref(new FormData(event.target).get('date'));
   }},
-  el('a', {href: validDate(date) ? `#/board?${queryString({date: shiftDay(date, -1)})}` : '#/board', 'data-action': 'prev'}, '← Giorno prima'),
+  el('a', {href: validDate(date) ? dayHref(shiftDay(date, -1)) : '#/', 'data-action': 'prev'}, '← Giorno prima'),
   el('label', {}, 'Giorno ', el('input', {type: 'date', name: 'date', value: validDate(date) ? date : '', required: true})),
   el('button', {type: 'submit'}, 'Mostra'),
-  el('a', {href: validDate(date) ? `#/board?${queryString({date: shiftDay(date, 1)})}` : '#/board', 'data-action': 'next'}, 'Giorno dopo →'),
-  el('a', {href: `#/board?${queryString({date: localToday()})}`}, 'Oggi'));
-  const head = [el('h1', {}, 'Daily Board'), picker];
+  el('a', {href: validDate(date) ? dayHref(shiftDay(date, 1)) : '#/', 'data-action': 'next'}, 'Giorno dopo →'),
+  el('a', {href: dayHref(localToday()), 'data-action': 'today'}, 'Oggi'));
+  const head = [el('h1', {}, date === localToday() ? 'Oggi' : 'Partite del giorno'), picker];
   if (!validDate(date)) return [...head, el('p', {class: 'state error', role: 'alert', 'data-date': date}, 'Data non valida: scegli un giorno dal calendario.')];
   const path = '/api/v1/fpt/matches';
   const params2 = {date, limit: BOARD_PAGE};
   const first = await getJson(`${path}?${queryString(params2)}`);
+  const updated = updatedSlot(mine);
   const rows = first.data?.rows ?? [];
   if (rows.length === 0) {
     return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'board-empty'}, `Nessuna partita ${dayText(date, LONG_DAY)}. `,
-      'La copertura di ogni campionato è nella ', el('a', {href: '#/'}, 'Dashboard'), '.')];
+      'Fino a quale giorno arrivano i dati di ogni campionato lo trovi in ', el('a', {href: '#/data'}, 'Dati'), '.'), updated];
   }
   // Kickoff order across competitions, as the API returns it; each card names its competition (PR #163 NB-3).
   const render = page => page.map(matchCard);
-  return [...head, el('h2', {class: 'day', 'data-testid': 'board-day'}, calendarDay(date, LONG_DAY)),
+  return [...head, el('div', {class: 'dayhead'}, el('h2', {class: 'day', 'data-testid': 'board-day'}, calendarDay(date, LONG_DAY)), updated),
     ...pagedList({first, path, params: params2, render, more: 'Carica altre partite', mine})];
 }
 
@@ -398,7 +434,7 @@ function searchForm(params, competitions) {
 
 function resultsTable(rows) {
   return rows.map(row => el('tr', {'data-match': row.internal_match_id ?? ''},
-    el('td', {'data-field': 'date'}, row.match_date ? el('a', {href: `#/board?${queryString({date: row.match_date})}`, title: 'Apri la Daily Board di quel giorno'}, calendarDay(row.match_date)) : formatScalar(null)),
+    el('td', {'data-field': 'date'}, row.match_date ? el('a', {href: dayHref(row.match_date), title: 'Apri le partite di quel giorno'}, calendarDay(row.match_date)) : formatScalar(null)),
     el('td', {'data-field': 'kickoff', title: row.kickoff_local_time ? KICKOFF_NOTE : null}, formatScalar(row.kickoff_local_time)),
     el('td', {'data-field': 'teams'}, formatScalar(row.home_name), ' – ', formatScalar(row.away_name)),
     el('td', {'data-field': 'competition'}, nameOf(row.league_slug), ' ', seasonOf(row.season)),
@@ -474,8 +510,7 @@ async function providersView() {
       : renderValue(value));
   const missing = [data.data_health, data.futpython_certification].filter(value => value === null || value === undefined).length;
   return [
-    el('h1', {}, 'Fornitori dati'),
-    el('p', {class: 'lead'}, 'Salute dei dati e certificazione FutPythonTrader, letti da /api/v1/providers.'),
+    el('h1', {}, 'Fornitori dati'), dataTabs('providers'),
     missing === 1 ? el('p', {class: 'state partial', role: 'status'}, 'Risposta parziale: una sezione non è disponibile.') : null,
     section('Stato dei dati', data.data_health, 'data-health'),
     section('Certificazione FutPythonTrader', data.futpython_certification, 'fpt-certification'),
@@ -491,8 +526,7 @@ async function endpointsView() {
     el('thead', {}, el('tr', {}, head.map(text => el('th', {scope: 'col'}, text)))),
     el('tbody', {}, rows)));
   return [
-    el('h1', {}, 'API v1'),
-    el('p', {class: 'lead'}, 'Registro degli endpoint in sola lettura, letto da /api/v1/endpoints.'),
+    el('h1', {}, 'API v1'), dataTabs('endpoints'),
     el('section', {class: 'card', 'data-testid': 'endpoints'}, el('h2', {}, `Endpoint (${endpoints.length})`),
       endpoints.length === 0 ? el('p', {class: 'state empty'}, 'Nessun endpoint pubblicato.') :
         table(['Percorso', 'Fonte', 'Descrizione', 'Parametri'], endpoints.map(endpoint => el('tr', {'data-path': endpoint.path},
@@ -508,9 +542,12 @@ async function endpointsView() {
 }
 
 // [what is loading, view, area]: a 'user' view shows no technical text (MP-WEB-015, checked by the Browser QA gate); a
-// 'technical' view is where provenance and diagnostics belong. The Dashboard is reviewed in V-B2 (ui-text-inventory).
-const VIEWS = {'': ['la dashboard', dashboardView, null], board: ['la Daily Board', boardView, 'user'], search: ['la ricerca', searchView, 'user'],
-  providers: ['i fornitori dati', providersView, 'technical'], endpoints: ['gli endpoint', endpointsView, 'technical']};
+// 'technical' view is where provenance and diagnostics belong. Every view declares one (V-B2). #/board, the former
+// address of the Daily Board, still opens it, and the menu item of each view is its section (NAV_OF).
+const VIEWS = {'': ['la pagina', boardView, 'user'], board: ['la pagina', boardView, 'user'], search: ['la ricerca', searchView, 'user'],
+  data: ['lo stato dei dati', dashboardView, 'technical'], providers: ['i fornitori dati', providersView, 'technical'],
+  endpoints: ['gli endpoint', endpointsView, 'technical']};
+const NAV_OF = {board: '', providers: 'data', endpoints: 'data'};
 
 let generation = 0;
 // Set by the search form: the next search render moves the focus to its outcome and scrolls it into view, so the result,
@@ -534,14 +571,15 @@ async function render() {
   const host = document.getElementById('view');
   if (area) host.dataset.area = area;
   else delete host.dataset.area;
+  const section = Object.hasOwn(NAV_OF, name) ? NAV_OF[name] : name;
   for (const link of document.querySelectorAll('nav a[data-view]')) {
-    if (link.dataset.view === name) link.setAttribute('aria-current', 'page');
+    if (link.dataset.view === section) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   }
   // Every navigation starts a new generation, so an earlier view still loading can never replace this one.
   const mine = ++generation;
   if (!view) {
-    host.replaceChildren(el('h1', {}, 'Pagina non trovata'), el('p', {class: 'state empty'}, 'Questa sezione non esiste. ', el('a', {href: '#/'}, 'Torna alla dashboard')));
+    host.replaceChildren(el('h1', {}, 'Pagina non trovata'), el('p', {class: 'state empty'}, 'Questa sezione non esiste. ', el('a', {href: '#/'}, 'Torna a Oggi')));
     return;
   }
   host.replaceChildren(loading(what));

@@ -1,0 +1,544 @@
+{
+  "schema": "mp-browser-qa-v1",
+  "head_sha": "58f5ebdbb6584ae755099e63782d6fb7ba68f9cf",
+  "tested_commit": "58f5ebdbb6584ae755099e63782d6fb7ba68f9cf",
+  "tested_tree": "896ad29dc743af7fe1a288fd3154c4f8e0e802fa",
+  "working_tree_clean": false,
+  "generated_at": "2026-10-19T20:12:46.240Z",
+  "environment": {
+    "node": "v22.22.0",
+    "browser": "chromium 141.0.7390.37",
+    "browser_path": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+    "os": "linux 6.18.44-fc-v139 x64",
+    "ci": true,
+    "ci_run_id": null
+  },
+  "software": {
+    "package": "matchpilot-trading-os",
+    "version": "0.1.0",
+    "code_version": "package-0.1.0"
+  },
+  "dataset": {
+    "fixture": "test/helpers/fpt-seed.mjs#seedQaArchive",
+    "ingestion": "real FutPythonTrader path (CSV → storeDataset → facts)",
+    "competitions": [
+      "fpt:competition:f568d2fff73c2e2f5246eb165426d4cb",
+      "fpt:competition:dec098a11eb9c411e998e8c1c8ec0f4c"
+    ],
+    "matches": 86,
+    "busy_day": "2024-08-01",
+    "fixture_sha256": "7163eb6f4bc9ad6657132ff5a49db28e87f9f783408fa72987e07164f6d04ea5",
+    "production_data": false
+  },
+  "required": {
+    "journeys": [
+      "general-navigation",
+      "dashboard",
+      "daily-board",
+      "search",
+      "providers-endpoints"
+    ],
+    "viewports": [
+      "desktop",
+      "mobile"
+    ]
+  },
+  "journeys": [
+    {
+      "id": "general-navigation",
+      "surface": "Interfaccia generale",
+      "title": "Navigazione, rotte, pagina sconosciuta, tastiera",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "page.waitForFunction: Timeout 15000ms exceeded.",
+      "duration_ms": 15324,
+      "steps": [
+        {
+          "name": "apertura del sito",
+          "status": "FAIL",
+          "error": "page.waitForFunction: Timeout 15000ms exceeded.",
+          "screenshot": "screenshots/general-navigation-desktop-01-apertura-del-sito-failure.png"
+        }
+      ],
+      "trace": "traces/general-navigation-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "general-navigation",
+      "surface": "Interfaccia generale",
+      "title": "Navigazione, rotte, pagina sconosciuta, tastiera",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "page.waitForFunction: Timeout 15000ms exceeded.",
+      "duration_ms": 15253,
+      "steps": [
+        {
+          "name": "apertura del sito",
+          "status": "FAIL",
+          "error": "page.waitForFunction: Timeout 15000ms exceeded.",
+          "screenshot": "screenshots/general-navigation-mobile-01-apertura-del-sito-failure.png"
+        }
+      ],
+      "trace": "traces/general-navigation-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "dashboard",
+      "surface": "Dashboard",
+      "title": "Riquadri, copertura per campionato, N/D, indisponibilità di una route",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "page.waitForSelector: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=\"tile-coverage\"] tbody tr') to be visible\n",
+      "duration_ms": 15165,
+      "steps": [
+        {
+          "name": "caricamento e valori uguali all’API",
+          "status": "FAIL",
+          "error": "page.waitForSelector: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=\"tile-coverage\"] tbody tr') to be visible\n",
+          "screenshot": "screenshots/dashboard-desktop-01-caricamento-e-valori-uguali-all-api-failure.png"
+        }
+      ],
+      "trace": "traces/dashboard-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "dashboard",
+      "surface": "Dashboard",
+      "title": "Riquadri, copertura per campionato, N/D, indisponibilità di una route",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "page.waitForSelector: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=\"tile-coverage\"] tbody tr') to be visible\n",
+      "duration_ms": 15141,
+      "steps": [
+        {
+          "name": "caricamento e valori uguali all’API",
+          "status": "FAIL",
+          "error": "page.waitForSelector: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=\"tile-coverage\"] tbody tr') to be visible\n",
+          "screenshot": "screenshots/dashboard-mobile-01-caricamento-e-valori-uguali-all-api-failure.png"
+        }
+      ],
+      "trace": "traces/dashboard-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "daily-board",
+      "surface": "Daily Board",
+      "title": "Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "page.waitForSelector: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=\"tile-coverage\"] tbody tr') to be visible\n",
+      "duration_ms": 15158,
+      "steps": [
+        {
+          "name": "apertura dalla copertura in Dati",
+          "status": "FAIL",
+          "error": "page.waitForSelector: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=\"tile-coverage\"] tbody tr') to be visible\n",
+          "screenshot": "screenshots/daily-board-desktop-01-apertura-dalla-copertura-in-dati-failure.png"
+        }
+      ],
+      "trace": "traces/daily-board-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "daily-board",
+      "surface": "Daily Board",
+      "title": "Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "page.waitForSelector: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=\"tile-coverage\"] tbody tr') to be visible\n",
+      "duration_ms": 15144,
+      "steps": [
+        {
+          "name": "apertura dalla copertura in Dati",
+          "status": "FAIL",
+          "error": "page.waitForSelector: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=\"tile-coverage\"] tbody tr') to be visible\n",
+          "screenshot": "screenshots/daily-board-mobile-01-apertura-dalla-copertura-in-dati-failure.png"
+        }
+      ],
+      "trace": "traces/daily-board-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "search",
+      "surface": "Ricerca",
+      "title": "Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "page.waitForFunction: Timeout 15000ms exceeded.",
+      "duration_ms": 18550,
+      "steps": [
+        {
+          "name": "tutte le partite, pagina dopo pagina, fino alla fine",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino.png"
+        },
+        {
+          "name": "squadra per nome, sede e qualità combinate",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-02-squadra-per-nome-sede-e-qualita-combinat.png"
+        },
+        {
+          "name": "campionato e intervallo di date",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-03-campionato-e-intervallo-di-date.png"
+        },
+        {
+          "name": "qualità: solo con xG",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-04-qualita-solo-con-xg.png"
+        },
+        {
+          "name": "errore di validazione dal server",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-05-errore-di-validazione-dal-server.png"
+        },
+        {
+          "name": "esito vuoto o di errore dal modulo: in vista e con il focus, anche ripetendo la stessa ricerca",
+          "status": "FAIL",
+          "error": "page.waitForFunction: Timeout 15000ms exceeded.",
+          "screenshot": "screenshots/search-desktop-06-esito-vuoto-o-di-errore-dal-modulo-in-vi-failure.png"
+        }
+      ],
+      "trace": "traces/search-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "search",
+      "surface": "Ricerca",
+      "title": "Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "page.waitForFunction: Timeout 15000ms exceeded.",
+      "duration_ms": 18304,
+      "steps": [
+        {
+          "name": "tutte le partite, pagina dopo pagina, fino alla fine",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino.png"
+        },
+        {
+          "name": "squadra per nome, sede e qualità combinate",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-02-squadra-per-nome-sede-e-qualita-combinat.png"
+        },
+        {
+          "name": "campionato e intervallo di date",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-03-campionato-e-intervallo-di-date.png"
+        },
+        {
+          "name": "qualità: solo con xG",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-04-qualita-solo-con-xg.png"
+        },
+        {
+          "name": "errore di validazione dal server",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-05-errore-di-validazione-dal-server.png"
+        },
+        {
+          "name": "esito vuoto o di errore dal modulo: in vista e con il focus, anche ripetendo la stessa ricerca",
+          "status": "FAIL",
+          "error": "page.waitForFunction: Timeout 15000ms exceeded.",
+          "screenshot": "screenshots/search-mobile-06-esito-vuoto-o-di-errore-dal-modulo-in-vi-failure.png"
+        }
+      ],
+      "trace": "traces/search-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "providers-endpoints",
+      "surface": "Interfaccia generale",
+      "title": "Fornitori dati e registro API",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 847,
+      "steps": [
+        {
+          "name": "fornitori dati",
+          "status": "PASS",
+          "screenshot": "screenshots/providers-endpoints-desktop-01-fornitori-dati.png"
+        },
+        {
+          "name": "registro API: stesse righe dell’API",
+          "status": "PASS",
+          "screenshot": "screenshots/providers-endpoints-desktop-02-registro-api-stesse-righe-dell-api.png"
+        }
+      ],
+      "trace": "traces/providers-endpoints-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "providers-endpoints",
+      "surface": "Interfaccia generale",
+      "title": "Fornitori dati e registro API",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 580,
+      "steps": [
+        {
+          "name": "fornitori dati",
+          "status": "PASS",
+          "screenshot": "screenshots/providers-endpoints-mobile-01-fornitori-dati.png"
+        },
+        {
+          "name": "registro API: stesse righe dell’API",
+          "status": "PASS",
+          "screenshot": "screenshots/providers-endpoints-mobile-02-registro-api-stesse-righe-dell-api.png"
+        }
+      ],
+      "trace": "traces/providers-endpoints-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    }
+  ],
+  "counts": {
+    "pass": 2,
+    "fail": 8,
+    "skip": 0,
+    "not_verified": 0
+  },
+  "missing_required": [
+    "general-navigation/desktop",
+    "general-navigation/mobile",
+    "dashboard/desktop",
+    "dashboard/mobile",
+    "daily-board/desktop",
+    "daily-board/mobile",
+    "search/desktop",
+    "search/mobile"
+  ],
+  "findings": [
+    {
+      "id": "QA-general-navigation-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "general-navigation",
+      "viewport": "desktop",
+      "reason": "page.waitForFunction: Timeout 15000ms exceeded.",
+      "evidence": [
+        "traces/general-navigation-desktop.zip",
+        "screenshots/general-navigation-desktop-01-apertura-del-sito-failure.png"
+      ]
+    },
+    {
+      "id": "QA-general-navigation-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "general-navigation",
+      "viewport": "mobile",
+      "reason": "page.waitForFunction: Timeout 15000ms exceeded.",
+      "evidence": [
+        "traces/general-navigation-mobile.zip",
+        "screenshots/general-navigation-mobile-01-apertura-del-sito-failure.png"
+      ]
+    },
+    {
+      "id": "QA-dashboard-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "dashboard",
+      "viewport": "desktop",
+      "reason": "page.waitForSelector: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=\"tile-coverage\"] tbody tr') to be visible\n",
+      "evidence": [
+        "traces/dashboard-desktop.zip",
+        "screenshots/dashboard-desktop-01-caricamento-e-valori-uguali-all-api-failure.png"
+      ]
+    },
+    {
+      "id": "QA-dashboard-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "dashboard",
+      "viewport": "mobile",
+      "reason": "page.waitForSelector: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=\"tile-coverage\"] tbody tr') to be visible\n",
+      "evidence": [
+        "traces/dashboard-mobile.zip",
+        "screenshots/dashboard-mobile-01-caricamento-e-valori-uguali-all-api-failure.png"
+      ]
+    },
+    {
+      "id": "QA-daily-board-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "daily-board",
+      "viewport": "desktop",
+      "reason": "page.waitForSelector: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=\"tile-coverage\"] tbody tr') to be visible\n",
+      "evidence": [
+        "traces/daily-board-desktop.zip",
+        "screenshots/daily-board-desktop-01-apertura-dalla-copertura-in-dati-failure.png"
+      ]
+    },
+    {
+      "id": "QA-daily-board-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "daily-board",
+      "viewport": "mobile",
+      "reason": "page.waitForSelector: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=\"tile-coverage\"] tbody tr') to be visible\n",
+      "evidence": [
+        "traces/daily-board-mobile.zip",
+        "screenshots/daily-board-mobile-01-apertura-dalla-copertura-in-dati-failure.png"
+      ]
+    },
+    {
+      "id": "QA-search-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "search",
+      "viewport": "desktop",
+      "reason": "page.waitForFunction: Timeout 15000ms exceeded.",
+      "evidence": [
+        "traces/search-desktop.zip",
+        "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino.png",
+        "screenshots/search-desktop-02-squadra-per-nome-sede-e-qualita-combinat.png",
+        "screenshots/search-desktop-03-campionato-e-intervallo-di-date.png",
+        "screenshots/search-desktop-04-qualita-solo-con-xg.png",
+        "screenshots/search-desktop-05-errore-di-validazione-dal-server.png",
+        "screenshots/search-desktop-06-esito-vuoto-o-di-errore-dal-modulo-in-vi-failure.png"
+      ]
+    },
+    {
+      "id": "QA-search-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "search",
+      "viewport": "mobile",
+      "reason": "page.waitForFunction: Timeout 15000ms exceeded.",
+      "evidence": [
+        "traces/search-mobile.zip",
+        "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino.png",
+        "screenshots/search-mobile-02-squadra-per-nome-sede-e-qualita-combinat.png",
+        "screenshots/search-mobile-03-campionato-e-intervallo-di-date.png",
+        "screenshots/search-mobile-04-qualita-solo-con-xg.png",
+        "screenshots/search-mobile-05-errore-di-validazione-dal-server.png",
+        "screenshots/search-mobile-06-esito-vuoto-o-di-errore-dal-modulo-in-vi-failure.png"
+      ]
+    }
+  ],
+  "exploratory": {
+    "status": "NOT_VERIFIED",
+    "reason": "level B (exploratory AI agent) is not part of this run"
+  },
+  "injected_defect": false,
+  "limitations": [
+    "QA archive is a seeded fixture through the real ingestion path, not the real archive (#40) nor production data",
+    "accessibility checks are basic structural checks, not a full WCAG audit"
+  ],
+  "verdict": "FAIL",
+  "files": {
+    "screenshots/daily-board-desktop-01-apertura-dalla-copertura-in-dati-failure.png": "df89519524d8dab0734b85ffa88a90b07213f2dafaca3b40f7859c85410a6f92",
+    "screenshots/daily-board-mobile-01-apertura-dalla-copertura-in-dati-failure.png": "5d56cdeeff154009de914c82cabab228e64d7de0a83319330a88d47c5e53d6a7",
+    "screenshots/dashboard-desktop-01-caricamento-e-valori-uguali-all-api-failure.png": "df89519524d8dab0734b85ffa88a90b07213f2dafaca3b40f7859c85410a6f92",
+    "screenshots/dashboard-mobile-01-caricamento-e-valori-uguali-all-api-failure.png": "5d56cdeeff154009de914c82cabab228e64d7de0a83319330a88d47c5e53d6a7",
+    "screenshots/general-navigation-desktop-01-apertura-del-sito-failure.png": "a586ffff40efb968b4434b3e50cde04af271330b86a6c5d6492ecd958c84365a",
+    "screenshots/general-navigation-mobile-01-apertura-del-sito-failure.png": "00df1aa690d15cd25ceda560c9a64aebeabb62ad12462f20023228a4ddf865be",
+    "screenshots/providers-endpoints-desktop-01-fornitori-dati.png": "be5ad487d517be5f2a6f65bb6d4455779c44e75faba341d7d23a71bd7d3e0b70",
+    "screenshots/providers-endpoints-desktop-02-registro-api-stesse-righe-dell-api.png": "211f2e5dc7914aad961b64ec79baaa92974d6ad0f65976fd0b4493efe77315c9",
+    "screenshots/providers-endpoints-mobile-01-fornitori-dati.png": "2673042cea518a27cb29b0a0a151bb96a2dfc3f9870344bd21a8f8332d1793f1",
+    "screenshots/providers-endpoints-mobile-02-registro-api-stesse-righe-dell-api.png": "be1e356160b0501f9d547715dc0af6075bd50f02b61636c635a9efd7d5a7d914",
+    "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino.png": "974f5189abf0bbc1f89582dd1e61c7aa5f71b6b9a226eb58503a928d3b784914",
+    "screenshots/search-desktop-02-squadra-per-nome-sede-e-qualita-combinat.png": "f06bf72339d0268dd8f2f0a8a18ab3e21a19a44f57a4b8f153976141261265e2",
+    "screenshots/search-desktop-03-campionato-e-intervallo-di-date.png": "5b6fafefb811d752323227faac4489e718366efecd041d52a0b72c5c395ad876",
+    "screenshots/search-desktop-04-qualita-solo-con-xg.png": "3e962dc6ecbdb6a225f98b68fe2381f1f3137af488d10595f074931f6dc43476",
+    "screenshots/search-desktop-05-errore-di-validazione-dal-server.png": "b2e383d579f703469b80ca698f78962a3d1c44c85de5dd822e84c19d65b78d61",
+    "screenshots/search-desktop-06-esito-vuoto-o-di-errore-dal-modulo-in-vi-failure.png": "a5918f16526dbfb52c6cf98bb31fb54b0ba27fda4d10d2d176c5ad373d5d3b0d",
+    "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino.png": "87139807ebbbaf71c190489d32625ede237ea709711fc6c35f20e461d6b2e6c2",
+    "screenshots/search-mobile-02-squadra-per-nome-sede-e-qualita-combinat.png": "5a6dec8057f2b55872f255edc815aa1c835dd6ac10b4e39315513d58d6aaecdf",
+    "screenshots/search-mobile-03-campionato-e-intervallo-di-date.png": "cf775267e043aa63e59183a1208d76833ec1762b9231b9af0f406e203b38f3dc",
+    "screenshots/search-mobile-04-qualita-solo-con-xg.png": "678012fa13eaca29ae8879bb501cd7f237d7d2ddf56439b57e6513bd9a90b923",
+    "screenshots/search-mobile-05-errore-di-validazione-dal-server.png": "82d4f981e41d4ec0bc26462354ec33fbf8fa2ce14499063d95970eff62b47b33",
+    "screenshots/search-mobile-06-esito-vuoto-o-di-errore-dal-modulo-in-vi-failure.png": "850fd2afe08ef97d9cc848807c09b64f4fa69ae72b2808c73b7909576efc12d6",
+    "traces/daily-board-desktop.zip": "897cbba6c799327ad531f45215ba85a43fdcb50425c1404edd595da521542527",
+    "traces/daily-board-mobile.zip": "eae112fb455bbbce1358bbcb1c8d681bcbc690c52c48fea11a99d21c2294a2af",
+    "traces/dashboard-desktop.zip": "7fdc5a3511990b86f99f6b00ef35b2eb3768df0822fc335f07349e664ad381e2",
+    "traces/dashboard-mobile.zip": "32472a19c2320480a7ccc84cb83f137cdb2e55b4d0a730f2f501b6df79245d72",
+    "traces/general-navigation-desktop.zip": "0e53ea40b4796869f37a123969d7c1728ecbeaff8706a0e93a83d272d6868fad",
+    "traces/general-navigation-mobile.zip": "14762bf80a1866f91e06e06bc46c168b86bc5fd16cf88f7372f86223ec826fbd",
+    "traces/providers-endpoints-desktop.zip": "88dc2e1e87086d4b4fb2973a75c10e7354944d22550a0f9a609e7ab76c380471",
+    "traces/providers-endpoints-mobile.zip": "4bcc00d180e9e81337285f4a23f2d02bf0511ae228d101e6db50cd58cfd47d6d",
+    "traces/search-desktop.zip": "3d5d49503d2327f26c03b4e60027218fa1fae46d0c829b2d7da59c6ccb1086dc",
+    "traces/search-mobile.zip": "2c585ca990309d32e4fc36374a4f2f178da8424d4129704d1ff9f018acc25908"
+  }
+}
