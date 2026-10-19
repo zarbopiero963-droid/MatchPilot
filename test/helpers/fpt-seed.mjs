@@ -3,6 +3,8 @@
 // exercised across same-date boundaries and NULL kickoffs. Used by API and browser tests (R-06).
 import {parseCsv} from '../../src/lib/csv.mjs';
 import {refreshNormalizedLayer} from '../../src/providers/futpython/query.mjs';
+import {persistOutcome} from '../../src/providers/futpython/classification.mjs';
+import {rebuildSeasonRegistry} from '../../src/providers/futpython/seasons.mjs';
 import {storeDataset} from '../../src/providers/futpython/store.mjs';
 import {buildTeamEntities, loadTeamSpellings, replaceTeamEntities} from '../../src/providers/futpython/teams.mjs';
 
@@ -45,8 +47,13 @@ export async function seedEredivisie(client, {year = 2024, acquiredAt = new Date
     [key, season, `/api/download/${key}`]);
   await storeDataset(client, {datasetKey: key, sourceKind: 'dataset', providerPath: `/api/download/${key}`,
     countrySlug: 'netherlands', leagueSlug: 'eredivisie', season, text, headers: parsed.headers, rows: parsed.rows, acquiredAt});
+  // A successful download is classified as the sync job does (phase 2), so the season registry lists it.
+  await client.query('INSERT INTO fpt_dataset_state(dataset_key) VALUES ($1) ON CONFLICT (dataset_key) DO NOTHING', [key]);
+  await persistOutcome(client, key, {kind: 'success', providerPath: `/api/download/${key}`});
   await replaceTeamEntities(client, buildTeamEntities(await loadTeamSpellings(client)));
   await refreshNormalizedLayer(client);
+  // The season registry (phase 6 of the real pipeline) feeds the competitions list.
+  await rebuildSeasonRegistry(client);
   const {rows: [ids]} = await client.query('SELECT min(internal_competition_id) AS competition, min(season_id) AS season FROM fpt_match_facts');
   const dates = [...new Set(rows.map(row => row.Date))];
   return {competition: ids.competition, season: ids.season, dates, matches: rows.length, seasonLabel: season};

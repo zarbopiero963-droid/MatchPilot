@@ -1,0 +1,150 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T115642Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T11:56:42Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-06a merged: PR #162 squash 2cf3d4b on main",
+  "task": "R-06a",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 30,
+  "pr": 162,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "80f0488a03e5b68db626046c9f55d94de39bb58a",
+  "tree_sha": "4caaa3803e4796934ebb74083190d8f7d0d313f0",
+  "requirements": [
+    "MP-API-004",
+    "MP-WEB-007"
+  ],
+  "changes": [
+    "main 2cf3d4bca8c50d6c454ff03d0e71718be917a3a3 (squash of PR #162, head 80f0488 checked with expectedHeadSha)"
+  ],
+  "tests": [
+    {
+      "command": "CI runs 39243252219 and 39243616011 on 80f0488",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "80f0488a03e5b68db626046c9f55d94de39bb58a",
+      "time": "2026-10-19T11:18:55Z",
+      "limits": [
+        "UI checks job skipped by the classifier"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39243616011,
+    "conclusion": "SUCCESS",
+    "head_sha": "80f0488a03e5b68db626046c9f55d94de39bb58a"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/162#issuecomment-6265945707",
+    "reviewed_sha": "80f0488a03e5b68db626046c9f55d94de39bb58a"
+  },
+  "findings": [
+    {
+      "id": "B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "cursor OR predicate not index-friendly: deep pages scanned every earlier row"
+    },
+    {
+      "id": "B-2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "decoder stricter than the encoder: real ids/kickoffs and long ids got 400"
+    },
+    {
+      "id": "NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "COLLATE C not exercised by tests"
+    },
+    {
+      "id": "NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "README auth line change not mentioned in PR body (now mentioned)"
+    },
+    {
+      "id": "NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "cursor bound to exact filter text (1.5 vs 1.50): refusal only, documented"
+    },
+    {
+      "id": "NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "first page 0.19 ms vs 0.06 ms after collation change: accepted"
+    },
+    {
+      "id": "CI-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "fixed test ports in the ephemeral range raced across parallel test files (EADDRINUSE)"
+    },
+    {
+      "id": "NB-5",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "server can still issue a cursor it then rejects (kickoff >100 chars, id >400, non-ASCII ids, years <1000): R-06b (carried to R-06b)"
+    },
+    {
+      "id": "NB-6",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "forged cursor with NUL or invalid date gives 503 instead of 400 (no injection): R-06b (carried to R-06b)"
+    },
+    {
+      "id": "NB-7",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "deep-page test should assert rows scanned, not only rows removed by filter: R-06b (carried to R-06b)"
+    },
+    {
+      "id": "NB-8",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "web-e2e startServer does not assert a parsed port: R-06b (carried to R-06b)"
+    },
+    {
+      "id": "NB-9",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "checkpoint times later than their commits: errata register with real bounds, validator rejects future dates"
+    },
+    {
+      "id": "NB-10",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "errata basis_commit not checked against git: R-06b"
+    },
+    {
+      "id": "NB-11",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "future-date check relative to validation time, not commit time: R-06b"
+    }
+  ],
+  "owner_decisions": [
+    "MP-ROADMAP-CONTINUE-ARCHIVE-FIRST-01",
+    "MP-OWNER-ARCHIVE-FIRST-01",
+    "MP-OWNER-EXCLUDE-REAL-EXECUTION-01",
+    "MP-OWNER-CONTINUE-20261019",
+    "MP-OWNER-AUTOMERGE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T111439Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "R-06b (dashboard, Daily Board, search; NB-5..NB-8, NB-10, NB-11).",
+  "resume_conditions": [
+    "main contains 2cf3d4bca8c50d6c454ff03d0e71718be917a3a3"
+  ],
+  "supersedes": "CP-20261019T111439Z-agent-a-claude-code"
+}

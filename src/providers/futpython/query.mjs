@@ -387,7 +387,7 @@ export class QueryInputError extends Error {
 
 function isoDate(value, name) {
   const s = String(value ?? '').trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || Number.isNaN(Date.parse(`${s}T00:00:00Z`))) {
+  if (!realCalendarDate(s)) {
     throw new QueryInputError(`${name} must be YYYY-MM-DD`);
   }
   return s;
@@ -464,11 +464,11 @@ function timestampOf(value, name) {
 // fetch one extra row: next_cursor is null exactly when no further row exists.
 const CURSOR_VERSION = 1;
 const CURSOR_QUERY = {searchMatches: 's', matchesOnDate: 'd'};
-// Ids and kickoffs are provider text: any value is accepted (it is only ever a bound parameter) within these caps.
-const MAX_CURSOR_LENGTH = 1000;
-const MAX_CURSOR_ID = 400;
-const MAX_CURSOR_KICKOFF = 100;
+// Ids and kickoffs are provider text of any length: the only cap is on the whole cursor, and the encoder enforces the
+// same cap as the decoder, so the server never hands out a cursor it would then refuse (PR #162 review NB-5).
+export const MAX_CURSOR_LENGTH = 1000;
 const NULL_KICKOFF = '~';
+const SEARCH_KICKOFF = '~';
 
 function filterDigest(name, input) {
   const entries = Object.keys(input).filter(key => key !== 'cursor' && key !== 'limit' && input[key] != null && input[key] !== '')
@@ -478,13 +478,30 @@ function filterDigest(name, input) {
 
 // node-postgres returns a DATE as a Date at local midnight; the calendar date is read in local time.
 const calendarDate = value => (value instanceof Date
-  ? `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
+  ? `${String(value.getFullYear()).padStart(4, '0')}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
   : String(value).slice(0, 10));
+const DATE_OID = 1082;
+
+// A real calendar date that PostgreSQL accepts: 2024-02-30, 2024-13-45 and year 0000 are refused before PostgreSQL sees
+// them (PR #162 NB-6, PR #163 NB-1).
+function realCalendarDate(text) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+  if (!m || Number(m[1]) < 1) return false;
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  d.setUTCFullYear(Number(m[1]));
+  return d.getUTCFullYear() === Number(m[1]) && d.getUTCMonth() === Number(m[2]) - 1 && d.getUTCDate() === Number(m[3]);
+}
+
+export class CursorOverflowError extends Error {}
 
 function encodeCursor(name, input, row) {
-  const parts = [CURSOR_VERSION, CURSOR_QUERY[name], calendarDate(row.match_date), row.kickoff_local_time ?? NULL_KICKOFF,
-    row.internal_match_id, filterDigest(name, input)];
-  return Buffer.from(JSON.stringify(parts), 'utf8').toString('base64url');
+  // Search orders by date and id only: its cursor does not carry the kickoff (NB-5).
+  const kickoff = name === 'searchMatches' ? SEARCH_KICKOFF : row.kickoff_local_time ?? NULL_KICKOFF;
+  const parts = [CURSOR_VERSION, CURSOR_QUERY[name], calendarDate(row.match_date), kickoff, row.internal_match_id, filterDigest(name, input)];
+  const cursor = Buffer.from(JSON.stringify(parts), 'utf8').toString('base64url');
+  // Fail loudly instead of emitting a cursor the decoder would refuse and silently ending pagination.
+  if (cursor.length > MAX_CURSOR_LENGTH) throw new CursorOverflowError(`cursor for ${row.internal_match_id} exceeds ${MAX_CURSOR_LENGTH} characters`);
+  return cursor;
 }
 
 function decodeCursor(name, input) {
@@ -497,9 +514,11 @@ function decodeCursor(name, input) {
   if (!Array.isArray(parts) || parts.length !== 6) throw invalid();
   const [version, query, date, kickoff, id, digest] = parts;
   if (version !== CURSOR_VERSION || query !== CURSOR_QUERY[name] || digest !== filterDigest(name, input)) throw invalid();
-  if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw invalid();
-  if (typeof kickoff !== 'string' || kickoff.length > MAX_CURSOR_KICKOFF) throw invalid();
-  if (typeof id !== 'string' || !id.startsWith('fpt:') || id.length > MAX_CURSOR_ID) throw invalid();
+  if (typeof date !== 'string' || !realCalendarDate(date)) throw invalid();
+  // PostgreSQL text cannot hold NUL, so a cursor carrying one was not issued by this server.
+  if (typeof kickoff !== 'string' || kickoff.includes('\u0000')) throw invalid();
+  if (name === 'searchMatches' && kickoff !== SEARCH_KICKOFF) throw invalid();
+  if (typeof id !== 'string' || !id.startsWith('fpt:') || id.includes('\u0000')) throw invalid();
   return {date, kickoff, id};
 }
 
@@ -530,8 +549,17 @@ export const SEARCH_FILTERS = {
     const n = Number(v);
     if (!Number.isFinite(n) || n < 0 || n > 20) throw new QueryInputError('min_xg_total must be between 0 and 20');
     return n;
-  }, sql: p => `xg_home + xg_away >= ${p}`}
+  }, sql: p => `xg_home + xg_away >= ${p}`},
+  // Data-quality dimensions (MP-WEB-007): only matches whose stored facts carry these values. A missing or placeholder
+  // price is stored as NULL (never 0), so presence is a plain NOT NULL test with no bound value.
+  with_odds: {parse: v => flagOf(v, 'with_odds'), bindless: true, sql: () => 'odd_home IS NOT NULL AND odd_draw IS NOT NULL AND odd_away IS NOT NULL'},
+  with_xg: {parse: v => flagOf(v, 'with_xg'), bindless: true, sql: () => 'xg_home IS NOT NULL AND xg_away IS NOT NULL'}
 };
+
+function flagOf(value, name) {
+  if (String(value).trim() !== 'true') throw new QueryInputError(`${name} must be true when present`);
+  return true;
+}
 
 function buildSearch(name, input, {now}) {
   const values = [];
@@ -555,7 +583,8 @@ function buildSearch(name, input, {now}) {
   }
   for (const [key, filter] of Object.entries(SEARCH_FILTERS)) {
     if (input[key] == null || input[key] === '') continue;
-    where.push(filter.sql(bind(filter.parse(input[key]))));
+    const value = filter.parse(input[key]);
+    where.push(filter.bindless ? filter.sql() : filter.sql(bind(value)));
     applied.push(key);
   }
   if (input.fav_min != null && input.fav_max != null && Number(input.fav_min) > Number(input.fav_max)) {
@@ -776,7 +805,15 @@ export async function runQuery(client, name, input = {}, opts = {}) {
   const q = buildQuery(name, input, opts);
   const started = Date.now();
   const result = q.sql ? await client.query(q.sql, q.values) : {rows: QUERY_CATALOG};
-  let rows = result.rows;
+  // DATE columns leave as calendar dates (YYYY-MM-DD), never as an instant that depends on the server time zone.
+  const dateColumns = (result.fields || []).filter(field => field.dataTypeID === DATE_OID).map(field => field.name);
+  let rows = dateColumns.length
+    ? result.rows.map(row => {
+      const out = {...row};
+      for (const column of dateColumns) if (out[column] instanceof Date) out[column] = calendarDate(out[column]);
+      return out;
+    })
+    : result.rows;
   let pit = null;
   if (name === 'teamMatchesAsOf') {
     // R-08: each returned version carries its five timestamps and PIT status; the answer carries its PIT label.
@@ -789,7 +826,8 @@ export async function runQuery(client, name, input = {}, opts = {}) {
   if (q.page) {
     const more = rows.length > q.page.size;
     rows = rows.slice(0, q.page.size);
-    nextCursor = more ? encodeCursor(name, q.page.input, rows[rows.length - 1]) : null;
+    // Only queries that accept a cursor hand one out (odds-range pages but has no cursor parameter: PR #163 NB-2).
+    if (CURSOR_QUERY[name]) nextCursor = more ? encodeCursor(name, q.page.input, rows[rows.length - 1]) : null;
   }
   if (name === 'matchDetail' && rows[0]) {
     const registry = await client.query(QUERIES.filters.sql);

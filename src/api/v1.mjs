@@ -1,7 +1,7 @@
 // R-03 (#98): versioned read-only API v1. One registry describes every endpoint (path, parameters,
 // source, provenance), every response uses the same envelope and every error a stable code.
 // The API reads only MatchPilot's database: no provider call, no LIVE, no write.
-import {QUERY_CATALOG, ROUTES as FPT_LEGACY_ROUTES, buildQuery, runQuery} from '../providers/futpython/query.mjs';
+import {MAX_CURSOR_LENGTH, QUERY_CATALOG, ROUTES as FPT_LEGACY_ROUTES, buildQuery, runQuery} from '../providers/futpython/query.mjs';
 
 export const API_VERSION = 'v1';
 export const MAX_QUERY_LENGTH = 2048;
@@ -22,8 +22,7 @@ export class ApiError extends Error {
 
 // `check` (not published) validates and normalizes one value before any database access.
 const param = (description, required = false, check = undefined, maxLength = MAX_PARAM_LENGTH) => ({type: 'string', required, description, check, maxLength});
-// A pagination cursor carries a provider match id, which can be long: it gets its own length limit.
-const MAX_CURSOR_LENGTH = 1000;
+// A pagination cursor carries a provider match id, which can be long: it gets the query layer's own length limit.
 
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
 const instant = name => value => {

@@ -374,7 +374,7 @@ test('normalized layer, team links, raw sweep and query answers on a real Postgr
       const domesticAjax = search.rows.find(r => r.country_slug === 'netherlands').internal_team_id;
       assert.equal(search.provenance.upstream_calls, 0);
       const before = await query.runQuery(client, 'teamMatches', {team: domesticAjax, before: '2024-09-01'});
-      assert.deepEqual(before.rows.map(r => r.match_date.toISOString().slice(0, 10)), ['2024-08-10'], 'the cut-off day itself is excluded');
+      assert.deepEqual(before.rows.map(r => r.match_date), ['2024-08-10'], 'the cut-off day itself is excluded');
       const summary = await query.runQuery(client, 'teamSummary', {team: domesticAjax, before: '2100-01-01'});
       assert.deepEqual({p: summary.rows[0].played, w: summary.rows[0].won, d: summary.rows[0].drawn, gf: summary.rows[0].goals_for, ga: summary.rows[0].goals_against},
         {p: 2, w: 1, d: 1, gf: 2, ga: 1});

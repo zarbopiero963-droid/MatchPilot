@@ -1,22 +1,48 @@
-# Web shell (R-05)
+# Web site (R-05, R-06b)
 
-Issue #3 and roadmap #97, R-05. Code: [`src/web/`](../src/web/). Tests: `test/web-e2e.test.mjs`.
+Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). Tests: `test/web-e2e.test.mjs`.
 
 ## What it is
 
 - **A real, read-only website served at `/`.** `index.html`, `app.js` and `app.css` are static files.
-- **Data:** every value on screen comes from the MatchPilot API v1. The browser calls `/api/v1/health`, `/api/v1/providers` and `/api/v1/endpoints` and computes nothing (MP-WEB-011).
-- **Sections:** Stato (service health), Fornitori dati (data health and FutPythonTrader certification) and API (the v1 registry and legacy routes). Copertura links to the existing `/coverage` page.
-- **Not yet shown:** Daily Board, Match Center, historical replay and PIT backtest are visible as "in costruzione" and show no data until their backend is certified (R-06, R-07, R-09…R-14).
+- **Data:** every value on screen comes from the MatchPilot API v1, and the browser computes nothing (MP-WEB-011). The only date arithmetic is calendar navigation (previous/next day), which derives no data value.
+- **Sections:**
+  - **Dashboard** (`#/`, R-06b, MP-WEB-013). One tile per route:
+    - service (`/api/v1/health`);
+    - data health and FutPythonTrader certification (`/api/v1/providers`);
+    - TotalCorner historical, prematch and captured live (`/api/v1/tc/historical`, `/api/v1/tc/prematch`, `/api/v1/tc/live`);
+    - FutPythonTrader coverage per league (`/api/v1/fpt/coverage-competitions`), with first and last match date, coverage ratios and status.
+
+    A route that fails turns only its own tile into N/D with the error code: the dashboard is then partial, not blank. Each league's last match date opens the Daily Board on that day.
+  - **Daily Board** (`#/board?date=YYYY-MM-DD`, R-06b, MP-WEB-002). The matches of a day from `/api/v1/fpt/matches`, in the API's kickoff order across competitions. Each card shows:
+    - competition and season;
+    - kickoff and time-zone status;
+    - teams, score and result status;
+    - 1X2, Over 2.5 and BTTS odds;
+    - favourite and xG;
+    - phase and dataset.
+
+    "Carica altre partite" follows `next_cursor`. A day with no stored match is an explicit empty state, and an invalid date is refused before any request.
+  - **Ricerca** (`#/search?…`, R-06b, MP-WEB-007). Combined filters on `/api/v1/fpt/search`:
+    - team by name (resolved by `/api/v1/fpt/teams`; several teams with the same name are offered as a choice) and venue;
+    - competition (from `/api/v1/fpt/competitions`);
+    - date range, result, favourite odds and total goals;
+    - data quality: `with_odds` (complete 1X2 odds) and `with_xg`.
+
+    The server validates every filter, and a refusal is shown with its message. "Altri risultati" follows `next_cursor`; a failed page keeps the rows already shown and offers a retry.
+  - Fornitori dati (data health and FutPythonTrader certification), API (the v1 registry and legacy routes). Copertura links to the existing `/coverage` page.
+- **Not yet shown:** Match Center, historical replay and PIT backtest (R-07, R-09…R-14).
+- **Data used for tests:** one league season ingested through the real FutPythonTrader path (`test/helpers/fpt-seed.mjs`). No production data is read. Against the real archive these views are TESTED, not certified (MP-OWNER-ARCHIVE-FIRST-01).
 
 ## Rules
 
 - **Missing values** (`null`, absent or an empty string) are shown as **N/D**, never as `0` (MP-WEB-005).
-- **Numbers are shown exactly as the API sends them.** Integers get Italian digit grouping; other numbers keep every digit, with a decimal comma. Nothing is rounded in the browser.
+- **Numbers are shown exactly as the API sends them.** Every digit is kept, the integer part is grouped by thousands with a dot and the decimal point becomes a comma, for JSON numbers and for exact decimal text alike (odds arrive as `"1.450"` and read `1,450`). Nothing is rounded in the browser.
+- **Dates** are calendar dates (`YYYY-MM-DD`) from the API, independent of the server time zone.
 - **Explicit states** (MP-WEB-010):
   - loading (`role=status`);
   - empty;
-  - partial: a section is missing from the payload;
+  - partial: a section is missing from the payload, a dashboard tile's route failed, or a next page failed (rows already shown stay);
   - error: the error code from the v1 envelope plus a "Riprova" button.
 
   A view never stays blank and never shows stale success: a later navigation always wins over an earlier view still loading.
@@ -36,7 +62,7 @@ Issue #3 and roadmap #97, R-05. Code: [`src/web/`](../src/web/). Tests: `test/we
 
 ## Browser end-to-end tests
 
-`test/web-e2e.test.mjs` starts the real server on a throwaway PostgreSQL schema. It drives Chromium or Chrome with `playwright-core`, an exact-pinned dev dependency that only the tests import. The running `matchpilot-test` service builds with `npm install --omit=dev`, so it is not installed there. `render.yaml` still declares plain `npm install`; even then the server never loads it.
+`test/web-e2e.test.mjs` starts the real server on a throwaway PostgreSQL schema. It drives Chromium or Chrome with `playwright-core`, an exact-pinned dev dependency that only the tests import. The `matchpilot-test` service (suspended since 2026-10-09) builds with `npm install --omit=dev`, so it would not be installed there. `render.yaml` still declares plain `npm install`; even then the server never loads it.
 
 The browser is found through `MATCHPILOT_E2E_CHROME` or known local paths. CI uses the runner's preinstalled Chrome, so no browser is downloaded. Without a browser the test is skipped locally and fails in CI.
 
@@ -48,7 +74,9 @@ The tests check:
 - the unknown route;
 - no console errors, page errors or CSP violations;
 - no horizontal overflow at both viewports;
-- the login → shell flow with auth enforced.
+- the login → shell flow with auth enforced;
+- R-06b: dashboard tiles, Daily Board cards and search rows equal the API (same order, same digits, N/D for missing values), the coverage link to the Daily Board, pagination to the end, team/venue/quality filters, unknown team, server-refused filter, empty results, a partial dashboard and a failed next page with retry;
+- no raw `null`, `undefined` or `NaN` text on any page.
 
 On failure, a screenshot is saved and its path is printed.
 

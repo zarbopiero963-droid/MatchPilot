@@ -1,0 +1,94 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T115643Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T11:56:43Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-06b: dashboard, Daily Board and search on API v1; cursor and date fixes (NB-5..NB-8); errata checked against git (NB-10, NB-11)",
+  "task": "R-06b",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 30,
+  "pr": null,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "a1d8fb0a09a2a9bc6007a9da9f24689ccbb78768",
+  "tree_sha": "691a3b9d9b850c633f7241eb841682e2e4126b18",
+  "requirements": [
+    "MP-WEB-002",
+    "MP-WEB-007",
+    "MP-WEB-013",
+    "MP-WEB-005",
+    "MP-WEB-010",
+    "MP-WEB-011"
+  ],
+  "changes": [
+    "src/web/app.js, index.html, app.css: dashboard, Daily Board, search, uniform number format, no raw null",
+    "src/providers/futpython/query.mjs: cursor encoder/decoder agree, forged cursors 400, calendar dates, with_odds/with_xg filters",
+    "src/api/v1.mjs: cursor length from the query layer",
+    "tools/governance: errata and checkpoint times checked against git history",
+    "tests: fpt-pagination (NB-5..NB-7, dates, quality filters), web-e2e (R-06b views), governance-checkpoints (history)",
+    "docs/web.md, README, mock and changelog, requirements evidence"
+  ],
+  "tests": [
+    {
+      "command": "new tests of test/fpt-pagination.test.mjs with query.mjs and v1.mjs as on main 2cf3d4b (RED)",
+      "result": "FAIL",
+      "environment": "local container, node 22, PostgreSQL 16",
+      "commit": "2cf3d4bca8c50d6c454ff03d0e71718be917a3a3",
+      "time": "2026-10-19T11:47:49Z",
+      "limits": [
+        "3 of 9 failed: issued cursors refused, overflow not loud, dates shifted by time zone; time is the author time of b20daaa, the run finished before it"
+      ]
+    },
+    {
+      "command": "npm test against throwaway PostgreSQL 16 with Chromium",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1, Chromium 1194",
+      "commit": "a1d8fb0a09a2a9bc6007a9da9f24689ccbb78768",
+      "time": "2026-10-19T11:56:17Z",
+      "limits": [
+        "300 tests, 299 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only); time is the commit time, the run finished before it"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "R06B-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "match_date left the API as an instant: shifted by a day on a server away from UTC"
+    },
+    {
+      "id": "R06B-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "optional null sections rendered as the text null (found on screenshots)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-ROADMAP-CONTINUE-ARCHIVE-FIRST-01",
+    "MP-OWNER-ARCHIVE-FIRST-01",
+    "MP-OWNER-CONTINUE-20261019",
+    "MP-OWNER-AUTOMERGE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T115642Z-agent-a-claude-code"
+  ],
+  "state": "RUNNING",
+  "next_action": "Open the PR, CI, independent review on the final head, Render check, merge gate.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": null
+}
