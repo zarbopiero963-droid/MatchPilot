@@ -9,6 +9,7 @@
 // Off unless MATCHPILOT_AUTH=enforce: enabling it in production is an owner action (D12), and in production its
 // migration is applied only when the owner approves it (D13).
 import {createHash, createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual} from 'node:crypto';
+import {isIP} from 'node:net';
 import {promisify} from 'node:util';
 
 const scrypt = promisify(scryptCallback);
@@ -79,16 +80,25 @@ export function authConfig(env = process.env) {
     idleMinutes: positiveInteger(env.MATCHPILOT_SESSION_IDLE_MINUTES, 60),
     secureCookie: production || env.MATCHPILOT_COOKIE_SECURE === 'true',
     trustProxy: env.MATCHPILOT_TRUST_PROXY === 'true',
+    failureSpike: positiveInteger(env.MATCHPILOT_AUTH_FAILURE_SPIKE, 50),
+    auditKey: env.MATCHPILOT_AUTH_AUDIT_KEY || '',
   };
   config.decoyHash = decoyFor(config.passwordHash);
   if (rawMode === 'off') return config;
-  const fail = reason => ({...config, state: 'misconfigured', reason, passwordHash: '', decoyHash: ''});
+  const fail = reason => ({...config, state: 'misconfigured', reason, passwordHash: '', decoyHash: '', auditKey: ''});
   if (env.MATCHPILOT_OWNER_PASSWORD !== undefined) return fail('MATCHPILOT_OWNER_PASSWORD is refused: store only a hash (npm run auth:hash-password)');
   if (!config.username) return fail('MATCHPILOT_OWNER_USERNAME is missing');
   const parsed = parsePasswordHash(config.passwordHash);
   if (!parsed) return fail('MATCHPILOT_OWNER_PASSWORD_HASH is missing or not a valid scrypt hash');
   if (production && parsed.N < MIN_PRODUCTION_N) return fail('MATCHPILOT_OWNER_PASSWORD_HASH cost is too low for production (N < 2^14)');
   if (config.ttlMinutes === null || config.idleMinutes === null) return fail('session lifetimes must be positive integers (minutes)');
+  if (config.failureSpike === null) return fail('MATCHPILOT_AUTH_FAILURE_SPIKE must be a positive integer');
+  // Behind a proxy (Render) every visitor would otherwise share one rate-limit bucket, which would let anyone lock
+  // the owner out; production must say explicitly whether the proxy is trusted (PR #159 round-2 review NB-2).
+  const trust = env.MATCHPILOT_TRUST_PROXY;
+  if (trust !== undefined && trust !== 'true' && trust !== 'false') return fail('MATCHPILOT_TRUST_PROXY must be true or false');
+  if (production && trust === undefined) return fail('MATCHPILOT_TRUST_PROXY must be set explicitly in production (true behind Render)');
+  if (config.auditKey && config.auditKey.length < 32) return fail('MATCHPILOT_AUTH_AUDIT_KEY must have at least 32 characters');
   return config;
 }
 
@@ -138,6 +148,30 @@ export const authorize = (session, permission) => Boolean(session)
 const sha256 = value => createHash('sha256').update(String(value)).digest('hex');
 const constantTimeEqualText = (a, b) => timingSafeEqual(Buffer.from(sha256(a), 'hex'), Buffer.from(sha256(b), 'hex'));
 
+// Rate-limit bucket of a client address (PR #159 round-2 review NB-1): IPv4 per address, IPv4-mapped IPv6 as its IPv4
+// address, IPv6 per /64 (one subscriber usually owns a whole /64). Anything else is used as is.
+function expandIPv6(address) {
+  let text = address;
+  const v4 = /(\d+\.\d+\.\d+\.\d+)$/.exec(text);
+  if (v4) {
+    const [a, b, c, d] = v4[1].split('.').map(Number);
+    text = text.slice(0, -v4[1].length) + `${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`;
+  }
+  const [head, tail] = text.split('::');
+  const left = head ? head.split(':') : [];
+  const right = tail === undefined ? [] : (tail ? tail.split(':') : []);
+  const groups = tail === undefined ? left : [...left, ...Array(8 - left.length - right.length).fill('0'), ...right];
+  return groups.map(group => parseInt(group, 16).toString(16));
+}
+
+export function clientBucket(address) {
+  let value = String(address || '').trim().toLowerCase().replace(/^\[|\]$/g, '').replace(/%.*$/, '');
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(value);
+  if (mapped) value = mapped[1];
+  if (isIP(value) === 6) return `${expandIPv6(value).slice(0, 4).join(':')}::/64`;
+  return value;
+}
+
 // Behind a trusted proxy the address it appended (the last X-Forwarded-For entry) is used; earlier entries are
 // client-controlled and ignored, so a client cannot pick its own rate-limit bucket.
 export function clientAddress(req, config) {
@@ -165,11 +199,13 @@ function cookieHeader(config, value, maxAgeSeconds) {
   return `${cookieName(config)}=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAgeSeconds}${config.secureCookie ? '; Secure' : ''}`;
 }
 
-// Audit identifiers are HMACs keyed with the owner password hash (server-only): stable for rate limiting, but a
-// password typed into the username field cannot be brute-forced from the audit table.
-const tag = (config, kind, value) => createHmac('sha256', `${kind}:${config.passwordHash}`).update(String(value)).digest('hex');
+// Audit identifiers are HMACs keyed with server-only material: stable for rate limiting, but a password typed into
+// the username field cannot be brute-forced from the audit table. The key is MATCHPILOT_AUTH_AUDIT_KEY when set;
+// otherwise the owner password hash, so changing the password then starts new rate-limit counts and makes older
+// rows unlinkable to newer ones (PR #159 round-2 review NB-4).
+const tag = (config, kind, value) => createHmac('sha256', `${kind}:${config.auditKey || config.passwordHash}`).update(String(value)).digest('hex');
 const usernameTag = (config, username) => tag(config, 'username', String(username).toLowerCase());
-const clientTag = (config, clientId) => tag(config, 'client', clientId);
+const clientTag = (config, clientId) => tag(config, 'client', clientBucket(clientId));
 
 async function audit(client, config, event, {principalId = null, username = null, clientId = null, detail = {}} = {}) {
   await client.query(
@@ -199,6 +235,7 @@ async function reserveAttempt(client, config, {username, clientId}) {
          FROM auth_audit WHERE client_hash = $1 AND at > now() - make_interval(mins => $2)`,
       [clientHash, RATE_WINDOW_MINUTES]);
     let reservation = null;
+    let globalFailures = null;
     if (counts.failures >= MAX_FAILURES_PER_CLIENT) {
       if (counts.refusals === 0) await audit(client, config, 'login_rate_limited', {username, clientId});
     } else {
@@ -206,9 +243,12 @@ async function reserveAttempt(client, config, {username, clientId}) {
         "INSERT INTO auth_audit(event, username_hash, client_hash) VALUES ('login_failure', $1, $2) RETURNING id",
         [usernameTag(config, username), clientHash]);
       reservation = rows[0].id;
+      const {rows: [all]} = await client.query(
+        "SELECT count(*)::int AS n FROM auth_audit WHERE event = 'login_failure' AND at > now() - make_interval(mins => $1)", [RATE_WINDOW_MINUTES]);
+      globalFailures = all.n;
     }
     await client.query('COMMIT');
-    return reservation;
+    return {reservation, globalFailures};
   } catch (error) {
     await client.query('ROLLBACK').catch(() => {});
     throw error;
@@ -223,14 +263,14 @@ async function prune(client) {
 
 // `withClient` is called separately for the reservation and the session, so no connection waits on scrypt.
 export async function login(withClient, config, {username, password, clientId, presentedToken}) {
-  const reservation = await withClient(async client => {
+  const {reservation, globalFailures} = await withClient(async client => {
     await prune(client);
     return reserveAttempt(client, config, {username, clientId});
   });
   if (reservation === null) return {status: 'rate_limited', retryAfterSeconds: RATE_WINDOW_MINUTES * 60};
   const usernameOk = constantTimeEqualText(String(username ?? ''), config.username);
   const passwordOk = await verifyPassword(password, usernameOk ? config.passwordHash : config.decoyHash);
-  if (!(usernameOk && passwordOk)) return {status: 'invalid'};
+  if (!(usernameOk && passwordOk)) return {status: 'invalid', globalFailures};
   return withClient(async client => {
     await client.query('BEGIN');
     try {
@@ -286,10 +326,20 @@ export async function logout(client, config, {token, clientId}) {
   return cookieHeader(config, '', 0);
 }
 
-// Recorded at most once per client and window, like rate-limit refusals (NB-2).
+// Recorded at most once per client and window, like rate-limit refusals (NB-2), under the same per-client lock so
+// concurrent requests cannot each add a row (PR #159 round-2 review NB-3).
 export async function recordOriginRejected(client, config, {clientId, path}) {
-  const {rowCount} = await client.query(
-    "SELECT 1 FROM auth_audit WHERE event = 'origin_rejected' AND client_hash = $1 AND at > now() - make_interval(mins => $2) LIMIT 1",
-    [clientTag(config, clientId), RATE_WINDOW_MINUTES]);
-  if (!rowCount) await audit(client, config, 'origin_rejected', {clientId, detail: {path: String(path).slice(0, 200)}});
+  const clientHash = clientTag(config, clientId);
+  await client.query('BEGIN');
+  try {
+    await client.query('SELECT pg_advisory_xact_lock($1::int4, hashtext($2))', [AUTH_LOCK_CLASS, clientHash]);
+    const {rowCount} = await client.query(
+      "SELECT 1 FROM auth_audit WHERE event = 'origin_rejected' AND client_hash = $1 AND at > now() - make_interval(mins => $2) LIMIT 1",
+      [clientHash, RATE_WINDOW_MINUTES]);
+    if (!rowCount) await audit(client, config, 'origin_rejected', {clientId, detail: {path: String(path).slice(0, 200)}});
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw error;
+  }
 }

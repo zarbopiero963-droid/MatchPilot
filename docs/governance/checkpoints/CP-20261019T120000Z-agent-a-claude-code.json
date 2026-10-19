@@ -1,0 +1,150 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T120000Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T12:00:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Integration Agent"
+  },
+  "activity": "R-04b merged into main as b929e4abc567ebeb8e277b05d269ee5c1069ca93 (squash of PR #159 head); Render matchpilot-test suspended before and after, no deploy (latest 353dfc6)",
+  "task": "R-04b",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 23,
+  "pr": 159,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "e23e7c48a2b12948f61777bd997a932764827c43",
+  "tree_sha": "97a600acab01f9bc6e776293b9e1cdcc5416c672",
+  "requirements": [
+    "MP-SEC-001",
+    "MP-SEC-007"
+  ],
+  "changes": [
+    "squash merge b929e4abc567ebeb8e277b05d269ee5c1069ca93 into main"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI (classify, fast checks incl. governance gate, PostgreSQL 17 suite, CI gate)",
+      "result": "PASS",
+      "environment": "GitHub Actions ubuntu-latest",
+      "commit": "e23e7c48a2b12948f61777bd997a932764827c43",
+      "time": "2026-10-19T10:15:30Z",
+      "limits": [
+        "run 39236038221"
+      ]
+    },
+    {
+      "command": "Render read-only: get_service and list_deploys srv-davpi23ncjis73f9dkbg before and after the merge",
+      "result": "PASS",
+      "environment": "Render API via MCP, read-only",
+      "commit": "e23e7c48a2b12948f61777bd997a932764827c43",
+      "time": "2026-10-19T11:50:00Z",
+      "limits": [
+        "suspended by user; latest deploy still 353dfc6"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39236038221,
+    "conclusion": "SUCCESS",
+    "head_sha": "e23e7c48a2b12948f61777bd997a932764827c43"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/159#issuecomment-6264938978",
+    "reviewed_sha": "e23e7c48a2b12948f61777bd997a932764827c43"
+  },
+  "findings": [
+    {
+      "id": "R04B-PROD",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "production activation is an owner action: hash, env vars, migration 029 approval (D13), MATCHPILOT_AUTH=enforce; Render stays suspended"
+    },
+    {
+      "id": "NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "per-username limit allowed owner lockout"
+    },
+    {
+      "id": "NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "unbounded audit growth from unauthenticated requests"
+    },
+    {
+      "id": "NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "non-ASCII next produced an invalid Location header"
+    },
+    {
+      "id": "NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "decoy hash cost differed from the owner hash"
+    },
+    {
+      "id": "NB-5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "raw // request target crashed the server (pre-existing)"
+    },
+    {
+      "id": "NB-6",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "non-atomic rate limit; connection held during scrypt"
+    },
+    {
+      "id": "NB-7",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "docs/auth.md cookie default and lockout text inaccurate"
+    },
+    {
+      "id": "NB-8",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "missing tests for variants, proxy spoofing, per-username, sliding, Secure cookie"
+    },
+    {
+      "id": "R2-NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "IPv6 per-address buckets; no global failure alert (fixed in R-04c before activation)"
+    },
+    {
+      "id": "R2-NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "MATCHPILOT_TRUST_PROXY default false behind Render (R-04c)"
+    },
+    {
+      "id": "R2-NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "origin_rejected throttle not under the client lock (R-04c)"
+    },
+    {
+      "id": "R2-NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "audit HMAC key is the password hash (R-04c)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-D12-OWNER-LOGIN-20261019",
+    "MP-OWNER-D13-MIGRATIONS-AUTODEPLOY-20261019",
+    "MP-OWNER-CONTINUE-20261019"
+  ],
+  "dependencies": [
+    "CP-20261019T113000Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "None for R-04b. R-04c (activation hardening) follows, then the next independent roadmap item.",
+  "resume_conditions": [],
+  "supersedes": "CP-20261019T113000Z-agent-a-claude-code"
+}

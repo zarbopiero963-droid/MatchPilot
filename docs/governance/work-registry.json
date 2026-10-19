@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 47,
+  "revision": 48,
   "tasks": [
     {
       "id": "R-01",
@@ -136,13 +136,29 @@
       "pr": 159,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261019T120000Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "R-04c",
+      "title": "Owner-login activation hardening (IPv6 buckets, explicit proxy trust, spike alert, audit key)",
+      "issue": 23,
+      "pr": 160,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
       "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T113000Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261019T120500Z-agent-a-claude-code",
       "pr_open": true
     }
   ]
