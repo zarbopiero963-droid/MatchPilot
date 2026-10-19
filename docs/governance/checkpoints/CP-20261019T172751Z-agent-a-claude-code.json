@@ -1,0 +1,147 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "67e157038cf9cf2548faec4836232c433376b7da",
+  "tree_sha": "8fb5d4069eb839a2acfe11fb7bb2ced8f258b817",
+  "supersedes": "CP-20261019T165601Z-agent-a-claude-code",
+  "pr": 166,
+  "id": "CP-20261019T172751Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T17:27:51Z",
+  "activity": "QA-03 round 2 after review D2 (CHANGES REQUESTED on fcaf998): isolated Browser QA -> CI gate demonstration, truly blind AI evaluation run 2, CI gate reports every check, review NB fixed; ready for re-review",
+  "task": "QA-03",
+  "issue": 3,
+  "requirements": [
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "docs/qa/certification.md (matrix; deterministic vs AI certification)",
+    "docs/audits/QA-03-BROWSER-QA-CERTIFICATION + evidence/audits@50dc711cd3747195cc64ee9c2ac05c3f8430937c",
+    "tools/qa/ai-eval-seeds.mjs",
+    "R2-NB-1/2/3/5 of QA-02 closed (replay off-site, viewports, --base, links)"
+  ],
+  "tests": [
+    {
+      "command": "PR #166 CI run 39292006235 on aba64fa (green baseline, gate prints PASS per check)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "aba64fa481fc40531399611285cbc482431cd510",
+      "time": "2026-10-19T17:15:56Z",
+      "limits": []
+    },
+    {
+      "command": "PR #166 CI run 39292673549 on 0137ec3 (controlled defect 2)",
+      "result": "FAIL",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "0137ec3daa66e0104113cd28af6dd149a1573da1",
+      "time": "2026-10-19T17:18:06Z",
+      "limits": [
+        "intended RED, isolated: Fast checks and PostgreSQL success, Browser QA failure, CI gate failure with FAIL browser_qa only (118197808532), PR blocked; local reproduction runner exit 1"
+      ]
+    },
+    {
+      "command": "PR #166 CI run 39293271271 on 04016de (fix)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "04016de994f548f37b77bbb9c3f18a1e3b6428ee",
+      "time": "2026-10-19T17:24:32Z",
+      "limits": [
+        "all jobs green, CI gate 118200190043 success, PR clean; local Browser QA PASS 10/10"
+      ]
+    },
+    {
+      "command": "blind AI evaluation run 2: two fresh reviewers, one bundle each, neutral prompt; verify-exploration --review",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "82ad736feb92978151340ad6362d9c4dac20df4d",
+      "time": "2026-10-19T17:09:04Z",
+      "limits": [
+        "4/4 seeded defects on the seeded bundle, none of the seeded classes on the clean one; one run, no statistical bound; severity not calibrated"
+      ]
+    },
+    {
+      "command": "evidence/audits read-back @ d589a02 (3 packages, 3 ZIPs); MATCHPILOT_EVIDENCE_ARCHIVE=1 governance and explore tests; governance:evidence; governance:check; npm run check",
+      "result": "PASS",
+      "environment": "local container, Node 22, PostgreSQL 16",
+      "commit": "67e157038cf9cf2548faec4836232c433376b7da",
+      "time": "2026-10-19T17:27:51Z",
+      "limits": [
+        "61/61 tests on the tree committed as this commit"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "CHANGES REQUESTED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/166#issuecomment-6272690493"
+  },
+  "findings": [
+    {
+      "id": "QA03-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "real product findings of the AI review on the clean bundle for V-A/V-B: A-2 providers wrapping (confirmed), raw UTC 'generato' timestamps (D-7), untranslated labels and raw codes, clipped mobile tables, same-day search not in time order, 'Favorito N/D N/D', 'Successore N/D'"
+    },
+    {
+      "id": "QA03-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "A-1 (mobile search result not perceivable) not seen by static observations: V-A covers it with a browser regression test"
+    },
+    {
+      "id": "QA03-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "exploratory triage not enforced by CI gate or merge-gate (owner decision needed to make it a gate)"
+    },
+    {
+      "id": "R1-B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "row 7 not isolated (PostgreSQL suite also failed on 61ddc17): isolated demo 0137ec3/04016de; gate reports every check"
+    },
+    {
+      "id": "R1-B-2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "AI evaluation run 1 not blind (one reviewer, both bundles, primed prompt): run 2 with one bundle per reviewer and a neutral prompt"
+    },
+    {
+      "id": "R1-NB-1..5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "--base validated and diffed against --head; FIXED requires --base; row 13 split; archived INDEX errata in R2; AI status consistent across docs"
+    },
+    {
+      "id": "QA03-4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "gap: menu labels were not checked by any Browser QA journey; fixed in 373537d (RED/GREEN)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01",
+    "MP-OWNER-QA-VISUAL-EXECUTION-01",
+    "MP-OWNER-CI-GATE-REQUIRED-CHECK-CONFIRMED",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-RESUME-AFTER-EVIDENCE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T165601Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI on the head, independent review D2 round 2, Gate B, protected merge, post-merge verification; then V-A",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains 67e157038cf9cf2548faec4836232c433376b7da",
+    "branch evidence/audits contains d589a0220b36640d84256e189bee390464dd81fc"
+  ]
+}

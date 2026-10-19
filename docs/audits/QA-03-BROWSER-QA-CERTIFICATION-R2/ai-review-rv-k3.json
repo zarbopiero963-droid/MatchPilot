@@ -1,0 +1,298 @@
+{
+  "schema": "mp-browser-ai-review-v1",
+  "head_sha": "82ad736feb92978151340ad6362d9c4dac20df4d",
+  "exploration_sha256": "d0101abb3b9f03cd136669b68787fa25a77c29917b909ffd22f3e94b90f79772",
+  "reviewer": {
+    "kind": "claude-code-session",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "reviewed_at": "2026-10-19T17:08:58Z",
+  "observations_reviewed": [
+    "observations/01-desktop-end.json",
+    "observations/01-desktop-open.json",
+    "observations/02-mobile-end.json",
+    "observations/02-mobile-open.json",
+    "observations/03-desktop-end.json",
+    "observations/03-desktop-open.json",
+    "observations/04-mobile-end.json",
+    "observations/04-mobile-open.json",
+    "observations/05-desktop-end.json",
+    "observations/05-desktop-open.json",
+    "observations/06-mobile-end.json",
+    "observations/06-mobile-open.json",
+    "observations/07-desktop-end.json",
+    "observations/07-desktop-open.json",
+    "observations/08-mobile-end.json",
+    "observations/08-mobile-open.json",
+    "observations/09-desktop-end.json",
+    "observations/09-desktop-open.json",
+    "observations/10-mobile-end.json",
+    "observations/10-mobile-open.json",
+    "observations/11-desktop-end.json",
+    "observations/11-desktop-open.json",
+    "observations/12-mobile-end.json",
+    "observations/12-mobile-open.json",
+    "observations/13-desktop-end.json",
+    "observations/13-desktop-open.json",
+    "observations/14-mobile-end.json",
+    "observations/14-mobile-open.json"
+  ],
+  "observations_not_reviewed": {},
+  "findings": [
+    {
+      "id": "AI-1",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P1",
+      "status": "OPEN",
+      "summary": "Daily Board (/#/board?date=2024-08-01, ?date=2024-08-09) and Ricerca (/#/search?run=1), desktop and mobile: a missing value is rendered as the digit '0' (styled with the N/D warning colour) instead of 'N/D'. Missing home odds show as '0 · 3.400 · 4.900' and the favourite as '0 0' (Barcelona – Real Madrid, Ajax – PSV, Sevilla – Real Madrid, Twente – Feyenoord, Feyenoord – PSV); a missing kickoff shows as '0' (Utrecht – PSV, Ajax – AZ, Real Madrid – Atletico, Barcelona – Sevilla, many search rows), and those cards sort after 20:45 on a board that says 'in ordine di orario'. A trader sees a quote of 0 and a favourite '0': a substantially wrong value that breaks the product rule 'N/D non è 0' (AGENTS §2, §9, §14; MP-OWNER-PRODUCT-QUALITY-DATA-01) and the mockup ('N/D per ogni valore assente').",
+      "evidence": [
+        "observations/03-desktop-open.png",
+        "observations/03-desktop-open.json",
+        "observations/04-mobile-open.png",
+        "observations/04-mobile-open.json",
+        "observations/01-desktop-end.png",
+        "observations/01-desktop-end.json",
+        "observations/05-desktop-open.png",
+        "observations/05-desktop-open.json",
+        "observations/06-mobile-open.png",
+        "observations/06-mobile-open.json"
+      ],
+      "reason": "Owner rule: missing data is shown as missing, never silently replaced by zero; an odd of 0 and favourite '0 0' are misleading trading values."
+    },
+    {
+      "id": "AI-2",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P2",
+      "status": "DEFERRED",
+      "reason": "Same root cause as AI-1 (null rendered as 0), on diagnostic fields: limited defect, the yellow colour hints at a missing value and the API holds the real value.",
+      "impact": "Data freshness and the route registry are misread (a null timestamp looks like a value); no trading value is affected.",
+      "follow_up": "Fix together with AI-1 (one formatter); add a unit/journey assertion that null renders as N/D on Dashboard, Fornitori dati and API views.",
+      "summary": "Dashboard (/#/), Fornitori dati (/#/providers) and API (/#/endpoints), desktop and mobile: the same null-to-'0' rendering on diagnostic fields. 'Ultimo controllo 0', 'Ultimo backfill 0', TotalCorner 'Prima partita 0' / 'Ultima partita 0' / 'Ultimo snapshot 0' / 'Ultimo polling 0', providers 'samples' entries, 'pit t0 0', 'later dataset 0', 'phase8 Stato 0', and 'Successore 0' for the KEPT routes /api/futpython-certificate, /healthz and /coverage. A freshness timestamp shown as 0 and a successor '0' are misleading, although these are not trading values.",
+      "evidence": [
+        "observations/01-desktop-open.png",
+        "observations/01-desktop-open.json",
+        "observations/02-mobile-open.png",
+        "observations/02-mobile-open.json",
+        "observations/13-desktop-end.png",
+        "observations/05-desktop-end.png",
+        "observations/05-desktop-end.json",
+        "observations/11-desktop-open.png",
+        "observations/04-mobile-end.png",
+        "observations/12-mobile-open.png",
+        "observations/14-mobile-end.png",
+        "observations/03-desktop-end.png",
+        "observations/13-desktop-open.png",
+        "observations/13-desktop-open.json",
+        "observations/14-mobile-open.png"
+      ]
+    },
+    {
+      "id": "AI-3",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P2",
+      "status": "DEFERRED",
+      "reason": "Contradictory heading on the main view; the listed matches, the picker and the navigation are for the correct day, so the user can work around it.",
+      "impact": "A user reading the heading believes the board shows the previous day; screenshots and notes taken from it carry the wrong date.",
+      "follow_up": "Regression test (journey step) asserting the board heading equals the requested date on desktop and mobile; fix before V-B.",
+      "summary": "Daily Board, desktop and mobile: the day heading is one day before the requested day. /#/board?date=2024-08-01 shows 'Partite del 2024-07-31' while the picker shows 2024-08-01, the arrows link 07-31/08-02 and the cards are the 2024-08-01 matches; /#/board?date=2024-08-09 shows 'Partite del 2024-08-08' with the 2024-08-09 matches (Twente – Utrecht, Utrecht – Ajax, Utrecht – PSV, dated 2024-08-09 in Ricerca). A calendar date is reinterpreted, against D-7 (calendar dates never reinterpreted). The empty state ('Nessuna partita il 2026-10-19') shows the right date.",
+      "evidence": [
+        "observations/03-desktop-open.png",
+        "observations/03-desktop-open.json",
+        "observations/04-mobile-open.png",
+        "observations/04-mobile-open.json",
+        "observations/01-desktop-end.png",
+        "observations/01-desktop-end.json",
+        "observations/05-desktop-open.json"
+      ]
+    },
+    {
+      "id": "AI-4",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P2",
+      "status": "DEFERRED",
+      "reason": "Formatting defect against D-3 with real ambiguity (the point is the Italian thousands separator); the digits are exact, so a careful user can still read them.",
+      "impact": "Odds and xG can be misread by an order of magnitude; inconsistent with the approved mockup.",
+      "follow_up": "V-B: render API decimal text with the Italian comma (exact digits, no rounding) on board, search and dashboard, with a unit test on the formatter and a journey assertion.",
+      "summary": "Daily Board, Ricerca and Dashboard, desktop and mobile: odds, xG and coverage ratios are shown with a decimal point and padded zeros ('2.200 · 3.400 · 4.000', 'HOME 1.300', 'xG 1.900 · 0.900', 'Copertura quote 0.9000'). D-3 requires the Italian decimal comma. For an Italian user '2.200' reads as two thousand two hundred, and the same card mixes 'Over 2,5' (comma) with '1.900' (point). The mockup uses the comma.",
+      "evidence": [
+        "observations/03-desktop-open.png",
+        "observations/04-mobile-open.png",
+        "observations/05-desktop-open.png",
+        "observations/06-mobile-open.png",
+        "observations/01-desktop-open.png",
+        "observations/02-mobile-open.png"
+      ]
+    },
+    {
+      "id": "AI-5",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P3",
+      "status": "DEFERRED",
+      "reason": "Visual/label defect; the button works.",
+      "impact": "Label not in Italian on the main view.",
+      "follow_up": "V-A/V-B: restore 'Carica altre partite' and assert the label in the board journey.",
+      "summary": "Daily Board pagination button reads 'Load more matches' (English) on /#/board?date=2024-08-01, desktop and mobile. The rest of the UI and the mockup use Italian ('Carica altre partite'; Ricerca uses 'Altri risultati').",
+      "evidence": [
+        "observations/03-desktop-open.png",
+        "observations/03-desktop-open.json",
+        "observations/04-mobile-open.png",
+        "observations/04-mobile-open.json"
+      ]
+    },
+    {
+      "id": "AI-6",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P3",
+      "status": "DEFERRED",
+      "reason": "Metadata timestamps only; values are exact and in UTC.",
+      "impact": "Not readable at a glance for an Italian user; non-conformant with D-7.",
+      "follow_up": "V-B: format meta timestamps in Europe/Rome with zone, keep UTC in a title/tooltip.",
+      "summary": "All views, desktop and mobile: timestamps are raw ISO UTC strings ('generato: 2026-10-19T14:51:23.310Z', providers 'computed at 2026-10-19T14:51:21.825Z', 'pit t1 2025-06-01T00:00:00.000Z') instead of Europe/Rome time with the zone indicated and exact UTC accessible (D-7).",
+      "evidence": [
+        "observations/01-desktop-open.png",
+        "observations/03-desktop-open.png",
+        "observations/05-desktop-end.png",
+        "observations/04-mobile-end.png",
+        "observations/07-desktop-open.png",
+        "observations/08-mobile-open.png"
+      ]
+    },
+    {
+      "id": "AI-7",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P3",
+      "status": "DEFERRED",
+      "reason": "Language/labelling defect; meaning is recoverable for a technical user.",
+      "impact": "The site is not fully in Italian; raw enums look like debug output.",
+      "follow_up": "V-B: Italian labels for enums (Orario del fornitore, Finale, Storico, Casa...), translated provider keys and registry descriptions.",
+      "summary": "Untranslated raw codes and English text shown to the user: the 'PROVIDER_TZ_UNDOCUMENTED' pill on every match card, 'FINAL', 'Fase: HISTORICAL', favourite 'HOME', coverage 'AVAILABLE', routes 'DEPRECATED'/'KEPT', the Fornitori dati tree keys (phase2, catalog total, samples, issues, missing definition, cadence text...) and English descriptions in the API registry ('Process health and API version...'). Desktop and mobile.",
+      "evidence": [
+        "observations/01-desktop-end.png",
+        "observations/03-desktop-open.png",
+        "observations/04-mobile-open.png",
+        "observations/05-desktop-end.png",
+        "observations/11-desktop-open.png",
+        "observations/12-mobile-open.png",
+        "observations/13-desktop-open.png",
+        "observations/14-mobile-open.png",
+        "observations/01-desktop-open.json"
+      ]
+    },
+    {
+      "id": "AI-8",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P3",
+      "status": "DEFERRED",
+      "reason": "Known P3 from the mockup audit, already scheduled; values are readable on mobile and in the text.",
+      "impact": "Unreadable layout of diagnostic values on desktop.",
+      "follow_up": "V-A (deep nested provider values wrapping), with desktop and mobile regression tests.",
+      "summary": "Fornitori dati (/#/providers) desktop: deep nested values in the phase6 evidence/pit block wrap two to four characters per line ('202 5- 06- 01T...', 'arge ntina /liga - profe sion al/20 26', 'fpt- sche ma- 4') in a very narrow last column while the left half of the card is empty. This is the known V-A audit bug and is still present.",
+      "evidence": [
+        "observations/05-desktop-end.png",
+        "observations/05-desktop-end.json",
+        "observations/11-desktop-open.png",
+        "observations/11-desktop-open.json"
+      ]
+    },
+    {
+      "id": "AI-9",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P3",
+      "status": "DEFERRED",
+      "reason": "Layout defect with a workaround (horizontal scroll inside the table wrapper); related to the V-A 'mobile search result not perceivable' bug.",
+      "impact": "On a phone the odds and results of a search are not visible without an undiscoverable sideways scroll.",
+      "follow_up": "V-A: card or stacked layout for search results and registry tables under 560px, with a mobile regression test.",
+      "summary": "Mobile tables are cut off. Ricerca (/#/search?run=1, mobile) shows only Data/Ora/Partita/Campionato with very tall rows, and Risultato, 1·X·2, Over 2,5 and xG are off-screen to the right. API (/#/endpoints, mobile) hides Parametri, clips Successore ('/api/v1/fpt/team-match…') and breaks paths into 3-4 character fragments. The Dashboard coverage table hides 'Ultima partita' and coverage columns.",
+      "evidence": [
+        "observations/06-mobile-open.png",
+        "observations/06-mobile-open.json",
+        "observations/14-mobile-open.png",
+        "observations/02-mobile-open.png"
+      ]
+    },
+    {
+      "id": "AI-10",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P3",
+      "status": "DEFERRED",
+      "reason": "Ordering inside a day and a technical label; the date order is correct.",
+      "impact": "Results of the same day look shuffled (D-4 chronological order); confusing filter feedback.",
+      "follow_up": "Define and test a stable secondary order (kickoff, then id) in /api/v1/fpt/search; show applied filters with Italian labels.",
+      "summary": "Ricerca (/#/search?run=1), desktop and mobile: within one day the results are in no consistent order, although the lead says 'in ordine di data, dal più recente'. 2024-08-10: 20:45, 15:00, 0. 2024-08-09: 15:00, 20:45, 0. 2024-08-08: 20:45, 0, 15:00. The status line 'Filtri applicati dal server: before' also exposes an internal parameter the user never set.",
+      "evidence": [
+        "observations/05-desktop-open.png",
+        "observations/05-desktop-open.json",
+        "observations/06-mobile-open.json"
+      ]
+    },
+    {
+      "id": "AI-11",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P3",
+      "status": "DEFERRED",
+      "reason": "Conformity to the approved mockup is the planned V-B work; no data is wrong.",
+      "impact": "First screen is a diagnostics page; look differs from the approved mockup.",
+      "follow_up": "V-B graphic conformity (D-1, D-2) with QA-V visual baselines.",
+      "summary": "Home route /#/ opens the Dashboard (data health), not Oggi / Daily Board as D-2 requires. The visual identity (no logo, blue accent instead of the amber accent, system font) does not match the approved mockup (D-1, #103). Desktop and mobile.",
+      "evidence": [
+        "observations/01-desktop-open.png",
+        "observations/02-mobile-open.png",
+        "observations/13-desktop-end.png"
+      ]
+    },
+    {
+      "id": "AI-12",
+      "source": "ai",
+      "classification": "NOT_VERIFIED",
+      "status": "OPEN",
+      "summary": "Date pickers show US format (Giorno '08/09/2024', '10/19/2026'; Dal / Prima del 'mm/dd/yyyy') on board and search, desktop and mobile; for an Italian reader '08/09/2024' means 8 September.",
+      "evidence": [
+        "observations/01-desktop-end.png",
+        "observations/03-desktop-open.png",
+        "observations/07-desktop-open.png",
+        "observations/02-mobile-end.png",
+        "observations/05-desktop-open.png"
+      ],
+      "reason": "Native input type=date follows the browser locale, and the crawler's Chromium locale is not recorded in the bundle; whether an it-IT browser shows dd/mm/yyyy cannot be verified from this evidence."
+    },
+    {
+      "id": "AI-13",
+      "source": "ai",
+      "classification": "NOT_A_DEFECT",
+      "status": "OPEN",
+      "summary": "The QA archive fixture is synthetic: the same team plays several matches on one day at the same hour (on 2024-08-01 Real Madrid appears in more than five 15:00 or 20:45 matches), every match has Over 2,5 1.900, BTTS 1.800 and draw 3.400, and eredivisie runs on consecutive days 2024-08-01..10.",
+      "evidence": [
+        "observations/03-desktop-open.png",
+        "observations/03-desktop-open.json",
+        "observations/04-mobile-open.json",
+        "observations/05-desktop-open.json"
+      ],
+      "reason": "exploratory.md Limits: the data is the QA archive fixture, not production data; these patterns come from the fixture generator, not from the software."
+    },
+    {
+      "id": "AI-14",
+      "source": "ai",
+      "classification": "DATA_MISSING",
+      "status": "OPEN",
+      "summary": "Dashboard (/#/): TotalCorner storico, prematch and live tiles report 0 matches, competitions and snapshots, desktop and mobile.",
+      "evidence": [
+        "observations/01-desktop-open.png",
+        "observations/01-desktop-open.json",
+        "observations/02-mobile-open.png"
+      ],
+      "reason": "The QA archive contains no TotalCorner data, so zero counts are correct here; the null dates shown as '0' in those tiles are covered by AI-2."
+    }
+  ],
+  "verdict": "BLOCKING"
+}

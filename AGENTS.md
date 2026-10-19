@@ -97,7 +97,7 @@ La valutazione eseguibile è `node tools/governance/cli.mjs merge-gate <input.js
 - **Unit test, integrazione, build, CI verde senza prove browser o una review che legge solo il codice non bastano.** Un PASS non eseguito non vale.
 - **Dati mancanti** (MP-OWNER-PRODUCT-QUALITY-DATA-01): distinguere BUG, DATA MISSING, DATA QUALITY ISSUE, NOT VERIFIED, BLOCKED; un dato assente si mostra N/D, mai inventato né 0.
 - **Gravità dei finding:** P0 e P1 confermati e aperti bloccano; P2 e P3 si differiscono solo con motivo, impatto e attività successiva registrati.
-- **Livello esplorativo AI:** finché non è collaudato resta NOT VERIFIED e non sostituisce il gate deterministico.
+- **Livello esplorativo AI:** nel complesso resta NOT VERIFIED e non sostituisce il gate deterministico. La valutazione alla cieca di QA-03 certifica solo il rilevamento di quattro classi seminate su un singolo bundle. Matrice: [`docs/qa/certification.md`](docs/qa/certification.md).
   - Il crawler deterministico (`tools/qa/explore.mjs`, job informativo `Exploratory QA`) non è da solo un agente AI esplorativo.
   - La review AI del suo bundle si fa solo in una sessione Claude autorizzata, mai con API AI a pagamento in CI, e va verificata con `tools/qa/verify-exploration.mjs --review` (MP-OWNER-QA-VISUAL-EXECUTION-01).
   - Un finding riprodotto dal crawler va classificato prima del merge; ogni difetto confermato diventa un test di regressione.

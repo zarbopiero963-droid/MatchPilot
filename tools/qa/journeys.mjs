@@ -14,7 +14,8 @@ export const shown = value => {
   return m ? `${m[1]}${m[2].replace(/\B(?=(\d{3})+(?!\d))/g, '.')}${m[3] === undefined ? '' : `,${m[3]}`}` : String(value);
 };
 
-const NAV = [['', 'Dashboard'], ['board', 'Daily Board'], ['search', 'Ricerca partite'], ['providers', 'Fornitori dati'], ['endpoints', 'API v1']];
+// [view, menu label, page title]: the menu label is what the user reads before clicking (QA-03: it was not checked).
+const NAV = [['', 'Dashboard', 'Dashboard'], ['board', 'Daily Board', 'Daily Board'], ['search', 'Ricerca', 'Ricerca partite'], ['providers', 'Fornitori dati', 'Fornitori dati'], ['endpoints', 'API', 'API v1']];
 const unavailable = {api_version: 'v1', error: {code: 'UNAVAILABLE', message: 'data source unavailable'}};
 // A full page load: a hash-only change keeps the previous view on screen until the new one renders, so a check
 // could read stale results (PR #164 NB-6).
@@ -44,8 +45,9 @@ export const JOURNEYS = [
         assert.match(response.headers()['content-security-policy'] ?? '', /script-src 'self'/);
         await page.waitForSelector('[data-testid="tile-health"]');
       });
-      for (const [view, title] of NAV) {
+      for (const [view, label, title] of NAV) {
         await step(`menu: ${title}`, async () => {
+          assert.equal((await page.textContent(`nav a[data-view="${view}"]`)).trim(), label);
           await page.click(`nav a[data-view="${view}"]`);
           await page.waitForLoadState('networkidle');
           await page.waitForFunction(text => document.querySelector('main h1')?.textContent === text && !document.querySelector('.state.loading'), title);

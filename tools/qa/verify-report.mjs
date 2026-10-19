@@ -15,8 +15,8 @@
 // Usage: node tools/qa/verify-report.mjs <dir> --head <sha> [--commit <sha>]
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
-import {existsSync, readFileSync, readdirSync, statSync} from 'node:fs';
-import {join, relative, resolve} from 'node:path';
+import {existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync} from 'node:fs';
+import {join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {findSecrets} from '../governance/secrets.mjs';
 import {REQUIRED_JOURNEYS, REQUIRED_VIEWPORTS} from './journeys.mjs';
@@ -50,6 +50,8 @@ export function checkManifest(dir, manifest, reportName) {
   for (const [path, digest] of Object.entries(files)) {
     if (path.includes('..') || path.startsWith('/')) { errors.push(`unsafe evidence path ${path}`); continue; }
     const full = join(dir, path);
+    // Evidence is a regular file inside the bundle: no symbolic link, at any level, may point elsewhere.
+    if (existsSync(full) && (lstatSync(full).isSymbolicLink() || !realpathSync(full).startsWith(realpathSync(dir) + sep))) { errors.push(`evidence is a link or outside the bundle: ${path}`); continue; }
     if (!existsSync(full) || !statSync(full).isFile()) errors.push(`evidence missing: ${path}`);
     else if (sha256(readFileSync(full)) !== digest) errors.push(`evidence changed after the run: ${path}`);
   }
