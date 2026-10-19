@@ -55,12 +55,16 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - name: Classifier regression tests
         run: node --test test/ci-classify.test.mjs
-      - name: Governance gate (inventory, owner decisions, checkpoints, registry)
+      - name: Governance gate (inventory, owner decisions, checkpoints, registry, audit evidence)
+        env:
+          # The full-history checkout above includes the evidence/audits archive: its read-back is required here.
+          MATCHPILOT_EVIDENCE_ARCHIVE: '1'
         run: |
           npm run governance:validate
           npm run governance:check
           node tools/governance/render-inventory.mjs --check
           node --test test/requirements-inventory.test.mjs test/governance-*.test.mjs
+          npm run governance:evidence
       - name: Reject auto-closing issue references
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}

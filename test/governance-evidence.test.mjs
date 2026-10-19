@@ -101,13 +101,18 @@ test('stray files, linked package folders, repeated manifest lines and a missing
   refused(verifyAudits(join(root, 'missing')), /is not a folder/);
 });
 
-// The durable archive is read back from git: the branch evidence/audits (fetched by CI with full history).
+// The durable archive is read back from git: the branch evidence/audits. The Fast checks job fetches the full history
+// and sets MATCHPILOT_EVIDENCE_ARCHIVE=1, so there the archive must be readable; jobs with a shallow checkout skip.
 const REPO = new URL('..', import.meta.url).pathname;
 const evidence = JSON.parse(readFileSync(join(AUDITS, ID, 'evidence.json'), 'utf8'));
+const essential = verifyPackage(join(AUDITS, ID)).manifest;
 function archiveAvailable(t) {
-  try { execFileSync('git', ['cat-file', '-e', `${evidence.archive.commit}^{commit}`], {cwd: REPO, stdio: 'ignore'}); return true; } catch {
-    if (process.env.CI) throw new Error(`archive commit ${evidence.archive.commit} not fetched in CI`);
-    t.skip('archive branch not fetched locally (git fetch origin evidence/audits)');
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', evidence.archive.commit, 'refs/remotes/origin/evidence/audits'], {cwd: REPO, stdio: 'ignore'});
+    return true;
+  } catch {
+    if (process.env.MATCHPILOT_EVIDENCE_ARCHIVE === '1') throw new Error(`archive commit ${evidence.archive.commit} not on origin/evidence/audits in this checkout`);
+    t.skip('archive branch not fetched here (git fetch origin evidence/audits); required where MATCHPILOT_EVIDENCE_ARCHIVE=1');
     return false;
   }
 }
@@ -124,7 +129,22 @@ test('a fake, foreign or altered archive is refused', t => {
   // A commit that exists but is not on the archive branch (main's history) and has no package.
   const mainCommit = execFileSync('git', ['rev-list', '--max-parents=0', 'HEAD'], {cwd: REPO, encoding: 'utf8'}).trim().split('\n')[0];
   const foreign = verifyArchive(REPO, {...evidence, archive: {...evidence.archive, commit: mainCommit}}).join();
-  assert.match(foreign, /is not on evidence\/audits/);
+  assert.match(foreign, /is not on origin\/evidence\/audits/);
   assert.match(foreign, /has no MP-OWNER-VISUAL-BASELINE-AUDIT-01\/MANIFEST\.sha256/);
   assert.match(verifyArchive(REPO, {...evidence, archive: {...evidence.archive, zip_sha256: '0'.repeat(64)}}).join(), /ZIP differs/);
+  // The essential files must be the archived ones (PR #167 round 2 NB-2): a replaced report is refused.
+  const replaced = new Map(essential);
+  replaced.set('audit-report.md', '0'.repeat(64));
+  replaced.set('comparisons/invented.png', '1'.repeat(64));
+  const result = verifyArchive(REPO, evidence, replaced).join();
+  assert.match(result, /essential audit-report\.md differs from the archive/);
+  assert.match(result, /essential comparisons\/invented\.png is not in the archive/);
+  assert.deepEqual(verifyArchive(REPO, evidence, essential), []);
+});
+
+test('a commit only on a local evidence/audits branch is not a read-back (PR #167 round 2 NB-1)', t => {
+  if (!archiveAvailable(t)) return;
+  // HEAD of this checkout exists locally but is not on origin/evidence/audits.
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: REPO, encoding: 'utf8'}).trim();
+  assert.match(verifyArchive(REPO, {...evidence, archive: {...evidence.archive, commit: head}}).join(), /is not on origin\/evidence\/audits/);
 });

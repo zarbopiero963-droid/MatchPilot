@@ -117,25 +117,32 @@ export function verifyPackage(dir, {requireArchive = true, sizeLimits = true} = 
   }
   for (const rel of listed.keys()) errors.push(`${name}: ${rel} listed in the manifest but missing`);
   if (sizeLimits && total > MAX_PACKAGE_BYTES) errors.push(`${name}: package is ${total} bytes, over ${MAX_PACKAGE_BYTES}`);
-  return {ok: errors.length === 0, errors, evidence};
+  return {ok: errors.length === 0, errors, evidence, manifest: readManifest(readFileSync(manifestPath, 'utf8'), name, [])};
 }
 
 // Reads a package's archive from git, the durable copy: the commit is on the archive branch, and every file its
 // manifest lists, and the ZIP, has the recorded SHA-256. gitDir: a clone that fetched the archive branch.
-export function verifyArchive(gitDir, evidence) {
+// essential: the files of the essential package on main (path → SHA-256); each one, metadata apart, must be in the
+// archive with the same SHA-256, so the essential evidence cannot be replaced by something the archive does not hold.
+export function verifyArchive(gitDir, evidence, essential = new Map()) {
   const errors = [];
   const {archive, audit_id: id} = evidence;
   const git = args => execFileSync('git', args, {cwd: gitDir, encoding: 'buffer', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore']});
   const blob = path => git(['cat-file', 'blob', `${archive.commit}:${path}`]);
   try { git(['cat-file', '-e', `${archive.commit}^{commit}`]); } catch { return [`${id}: archive commit ${archive.commit} not found (fetch ${ARCHIVE_BRANCH})`]; }
-  const onBranch = [`refs/remotes/origin/${ARCHIVE_BRANCH}`, `refs/heads/${ARCHIVE_BRANCH}`].some(ref => {
-    try { git(['merge-base', '--is-ancestor', archive.commit, ref]); return true; } catch { return false; }
-  });
-  if (!onBranch) errors.push(`${id}: archive commit ${archive.commit} is not on ${ARCHIVE_BRANCH}`);
+  // Only the fetched remote branch counts: a local branch could hold a commit that was never pushed.
+  let onBranch = false;
+  try { git(['merge-base', '--is-ancestor', archive.commit, `refs/remotes/origin/${ARCHIVE_BRANCH}`]); onBranch = true; } catch { /* reported */ }
+  if (!onBranch) errors.push(`${id}: archive commit ${archive.commit} is not on origin/${ARCHIVE_BRANCH} (fetch it)`);
   let manifest;
   try { manifest = blob(`${archive.path}/MANIFEST.sha256`).toString('utf8'); } catch { return [...errors, `${id}: archive has no ${archive.path}/MANIFEST.sha256`]; }
   const listed = readManifest(manifest, `${id} (archive)`, errors);
-  if (!listed.size) errors.push(`${id}: archive manifest is empty`);
+  if (!listed.has('INDEX.md')) errors.push(`${id}: archive manifest does not list INDEX.md`);
+  for (const [path, digest] of essential) {
+    if (['README.md', 'evidence.json'].includes(path)) continue;
+    if (!listed.has(path)) errors.push(`${id}: essential ${path} is not in the archive`);
+    else if (listed.get(path) !== digest) errors.push(`${id}: essential ${path} differs from the archive`);
+  }
   for (const [path, digest] of listed) {
     try {
       if (sha256(blob(`${archive.path}/${path}`)) !== digest) errors.push(`${id}: archive ${path} differs from its manifest`);
@@ -164,7 +171,7 @@ export function verifyAudits(root, {archiveGitDir = null} = {}) {
     const result = verifyPackage(join(root, name));
     errors.push(...result.errors);
     if (!rows.has(name)) errors.push(`${name}: not listed in the README.md index table`);
-    if (archiveGitDir && result.evidence?.archive && result.errors.length === 0) errors.push(...verifyArchive(archiveGitDir, result.evidence));
+    if (archiveGitDir && result.evidence?.archive && result.errors.length === 0) errors.push(...verifyArchive(archiveGitDir, result.evidence, result.manifest));
   }
   for (const name of rows) if (!packages.includes(name)) errors.push(`${name}: listed in README.md but no package folder`);
   return {ok: errors.length === 0, errors, packages};
