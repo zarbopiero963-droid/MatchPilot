@@ -1,0 +1,166 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "747e4e5c02086c281f6815fa7317b5b9d06db85e",
+  "tree_sha": "7967c2e4e6050b6d7a4423cd905978f9f162c414",
+  "supersedes": "CP-20261019T201441Z-agent-a-claude-code",
+  "pr": 170,
+  "id": "CP-20261019T205544Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T20:55:44Z",
+  "activity": "V-B2a after review D2 round 1 (CHANGES REQUESTED on 1933ff9): B-1 Oggi never waits for /api/v1/providers, B-2 inventory verifications made real, NB fixes; ready for re-review",
+  "task": "V-B2a",
+  "issue": 3,
+  "requirements": [
+    "MP-WEB-015",
+    "MP-WEB-013",
+    "MP-WEB-002"
+  ],
+  "changes": [
+    "src/web/index.html, app.js, app.css (menu, routes, Dati tabs, Stato dei dati, update line, bottom bar)",
+    "tools/qa/journeys.mjs (menu, tabs, areas, #/board alias, update states), tools/qa/browser-qa.mjs (header in the invariant, fixed bar excluded from overlaps)",
+    "test/web-e2e.test.mjs",
+    "docs/web.md, docs/qa/ui-text-inventory.md, requirements MP-WEB-013/015 evidence, owner decision MP-OWNER-AUTONOMOUS-UI-ROADMAP-01",
+    "docs/audits/V-B2a-HOME-NAV-DATI + evidence/audits@4ee5907b445207ce746ae4acf567c586ab3a8b38",
+    "review round 1 fixes: non-blocking update line with a five-minute reuse, scroll padding above the phone bar, lead text banned from every view, new journey assertions (UI-09, 50, 53, 57, 58, bar, focus, update cases), service state in Italian, tile labels, docs"
+  ],
+  "tests": [
+    {
+      "command": "node tools/qa/browser-qa.mjs (new tests, src/web of main 1a0d1b3)",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "58f5ebdbb6584ae755099e63782d6fb7ba68f9cf",
+      "time": "2026-10-19T20:12:46Z",
+      "limits": [
+        "intended RED on an uncommitted tree: 8 of 10 journeys fail; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs + verify-report on the committed change",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "58f5ebdbb6584ae755099e63782d6fb7ba68f9cf",
+      "time": "2026-10-19T20:10:30Z",
+      "limits": [
+        "10/10, clean tree, verifier ok; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "CI=1 node --test web-e2e, mockup-alignment, browser-qa-gate, explore, requirements-inventory, governance-*; npm run check; governance:check/validate/evidence",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "468277a74c61d18a72f4f5a3e551cdc95bcd1c8e",
+      "time": "2026-10-19T20:14:41Z",
+      "limits": [
+        "98/98, run on the tree of 58f5ebd; time is an upper bound"
+      ]
+    },
+    {
+      "command": "removing the scroll padding, and awaiting /api/v1/providers before the matches, each fail the new journey steps",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "747e4e5c02086c281f6815fa7317b5b9d06db85e",
+      "time": "2026-10-19T20:55:44Z",
+      "limits": [
+        "intended mutations on an uncommitted tree; time is an upper bound"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs + verify-report on the round-1 fix",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "747e4e5c02086c281f6815fa7317b5b9d06db85e",
+      "time": "2026-10-19T20:55:18Z",
+      "limits": [
+        "10/10, clean tree, verifier ok; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "CI run 39317804427 on 1933ff9 (all jobs, CI gate PASS)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "1933ff98fb1251276bed3a9343160df58a011881",
+      "time": "2026-10-19T20:19:10Z",
+      "limits": []
+    },
+    {
+      "command": "CI=1 node --test web-e2e, mockup-alignment, browser-qa-gate, explore, requirements-inventory, governance-*; npm run check",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "747e4e5c02086c281f6815fa7317b5b9d06db85e",
+      "time": "2026-10-19T20:55:44Z",
+      "limits": [
+        "98/98; time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39317804427,
+    "conclusion": "SUCCESS",
+    "head_sha": "1933ff98fb1251276bed3a9343160df58a011881"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "CHANGES REQUESTED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/170#issuecomment-6277036606",
+    "reviewed_sha": "1933ff98fb1251276bed3a9343160df58a011881"
+  },
+  "findings": [
+    {
+      "id": "VB2a-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "Italian labels for the provider tree keys (UI-60) belong to V-B2b; the last sync run in Stato dei dati is not exercised with a run object in a test"
+    },
+    {
+      "id": "R1-B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "the board no longer awaits /api/v1/providers; journey step holds the route until the matches are shown; docs corrected"
+    },
+    {
+      "id": "R1-B-2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "inventory UI-09, UI-50, UI-53, UI-57, UI-58 verified by assertions; lead text banned from every view"
+    },
+    {
+      "id": "R1-NB-1,2,3,4,6,8,9",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "focus above the phone bar; untested branches covered (missing time, empty day, fixed bar and room); service state and tile labels; registry and checkpoint carry PR 170; docs on when the line disappears; inert safe-area padding removed"
+    },
+    {
+      "id": "R1-NB-2-M09,M10",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the header scope of the invariant has no injected-defect test; the last sync run row with a real run object stays untested (the QA archive has none)"
+    },
+    {
+      "id": "R1-NB-5,7",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "INSTANT accepts impossible calendar dates (pre-existing, the server never emits them); full-page screenshots draw the fixed bar mid-page: QA-V baselines use viewport screenshots"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-UI-ROADMAP-01",
+    "MP-OWNER-UI-NO-RAW-TEXT-01",
+    "MP-OWNER-VISUAL-BASELINE-D1-D7-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T201441Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "review D2 round 2 on the new head, CI, Gate B, protected merge, post-merge verification; then V-B2b",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains 747e4e5c02086c281f6815fa7317b5b9d06db85e"
+  ]
+}

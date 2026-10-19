@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 78,
+  "revision": 79,
   "tasks": [
     {
       "id": "R-01",
@@ -325,7 +325,7 @@
       "id": "V-B2a",
       "title": "V-B2a: home Oggi (Daily Board), technical area Dati with tabs, phone bottom navigation, Stato dei dati cleanup, real update indicator (MP-OWNER-AUTONOMOUS-UI-ROADMAP-01)",
       "issue": 3,
-      "pr": null,
+      "pr": 170,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
       "state": "REVIEW",
@@ -334,8 +334,8 @@
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T201441Z-agent-a-claude-code",
-      "pr_open": false
+      "latest_checkpoint": "CP-20261019T205544Z-agent-a-claude-code",
+      "pr_open": true
     }
   ]
 }
