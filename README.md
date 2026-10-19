@@ -21,3 +21,4 @@ The index of the essential evidence, and the link to each package here, is `docs
 | [V-A-AUDIT-A1-A2-FIX](V-A-AUDIT-A1-A2-FIX/INDEX.md) | V-A: audit A-1 and A-2 fixed (RED/GREEN Browser QA), verbatim QA-03 run-2 prompts | 2026-10-19 | 2 Browser QA runs with screenshots and traces, 2 prompts |
 | [V-B1-UI-NO-RAW-TEXT](V-B1-UI-NO-RAW-TEXT/INDEX.md) | V-B1: no technical text in user views (MP-OWNER-UI-NO-RAW-TEXT-01), before/RED/GREEN Browser QA | 2026-10-19 | 4 Browser QA runs with screenshots and traces, 12 before/after crops |
 | [V-B2a-HOME-NAV-DATI](V-B2a-HOME-NAV-DATI/INDEX.md) | V-B2a: home Oggi, menu Oggi · Ricerca · Dati, technical area with tabs, phone bottom bar; before/RED/GREEN Browser QA | 2026-10-19 | 3 Browser QA runs with screenshots and traces, 10 crops |
+| [V-B2a-HOME-NAV-DATI-R2](V-B2a-HOME-NAV-DATI-R2/INDEX.md) | V-B2a after review D2 round 1 (PR #170): GREEN Browser QA of 747e4e5 | 2026-10-19 | 1 Browser QA run with screenshots and traces |
