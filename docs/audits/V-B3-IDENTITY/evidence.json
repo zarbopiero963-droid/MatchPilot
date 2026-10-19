@@ -1,0 +1,15 @@
+{
+  "schema": "mp-evidence-v1",
+  "audit_id": "V-B3-IDENTITY",
+  "commit_sha": "34c0cfeaa29b9abf622ae60dae8239443cbde61d",
+  "date": "2026-10-19",
+  "environment": "Claude Code cloud container (Linux), PostgreSQL 16 throwaway schema with the QA archive, Chromium 141.0.7390.37, viewports 1280x800 and 390x844",
+  "outcome": "RED: general-navigation fails with the shell files of main (no font-src, no local font). GREEN: 10/10 on 34c0cfe, verifier ok",
+  "archive": {
+    "branch": "evidence/audits",
+    "commit": "73e4a9cc067c26ee0a493757f2f0e5e5de8e1577",
+    "path": "V-B3-IDENTITY",
+    "zip_sha256": "cfd73d21da2f7c36859bd5e5c311fd205b66b306106cb79b58eae7acb5007f57",
+    "url": "https://github.com/zarbopiero963-droid/MatchPilot/tree/73e4a9cc067c26ee0a493757f2f0e5e5de8e1577/V-B3-IDENTITY"
+  }
+}

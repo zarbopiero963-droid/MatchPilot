@@ -1,0 +1,350 @@
+{
+  "schema": "mp-browser-qa-v1",
+  "head_sha": "34c0cfeaa29b9abf622ae60dae8239443cbde61d",
+  "tested_commit": "34c0cfeaa29b9abf622ae60dae8239443cbde61d",
+  "tested_tree": "c430ef2ebfb1365e265f26297b788eaf0f732f76",
+  "working_tree_clean": false,
+  "generated_at": "2026-10-19T22:33:34.864Z",
+  "environment": {
+    "node": "v22.22.0",
+    "browser": "chromium 141.0.7390.37",
+    "browser_path": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+    "os": "linux 6.18.44-fc-v139 x64",
+    "ci": true,
+    "ci_run_id": null
+  },
+  "software": {
+    "package": "matchpilot-trading-os",
+    "version": "0.1.0",
+    "code_version": "package-0.1.0"
+  },
+  "dataset": {
+    "fixture": "test/helpers/fpt-seed.mjs#seedQaArchive",
+    "ingestion": "real FutPythonTrader path (CSV → storeDataset → facts)",
+    "competitions": [
+      "fpt:competition:f568d2fff73c2e2f5246eb165426d4cb",
+      "fpt:competition:dec098a11eb9c411e998e8c1c8ec0f4c"
+    ],
+    "matches": 86,
+    "busy_day": "2024-08-01",
+    "fixture_sha256": "7163eb6f4bc9ad6657132ff5a49db28e87f9f783408fa72987e07164f6d04ea5",
+    "production_data": false
+  },
+  "required": {
+    "journeys": [
+      "general-navigation",
+      "dashboard",
+      "daily-board",
+      "search",
+      "providers-endpoints"
+    ],
+    "viewports": [
+      "desktop",
+      "mobile"
+    ]
+  },
+  "journeys": [
+    {
+      "id": "general-navigation",
+      "surface": "Interfaccia generale",
+      "title": "Navigazione, rotte, pagina sconosciuta, tastiera",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "The input did not match the regular expression /font-src 'self'/. Input:\n\n\"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'\"\n",
+      "duration_ms": 350,
+      "steps": [
+        {
+          "name": "apertura del sito",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-desktop-01-apertura-del-sito.png"
+        },
+        {
+          "name": "identità del mockup: font locali, ambra, logo",
+          "status": "FAIL",
+          "error": "The input did not match the regular expression /font-src 'self'/. Input:\n\n\"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'\"\n",
+          "screenshot": "screenshots/general-navigation-desktop-02-identita-del-mockup-font-locali-ambra-lo-failure.png"
+        }
+      ],
+      "trace": "traces/general-navigation-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "general-navigation",
+      "surface": "Interfaccia generale",
+      "title": "Navigazione, rotte, pagina sconosciuta, tastiera",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "The input did not match the regular expression /font-src 'self'/. Input:\n\n\"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'\"\n",
+      "duration_ms": 236,
+      "steps": [
+        {
+          "name": "apertura del sito",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-01-apertura-del-sito.png"
+        },
+        {
+          "name": "identità del mockup: font locali, ambra, logo",
+          "status": "FAIL",
+          "error": "The input did not match the regular expression /font-src 'self'/. Input:\n\n\"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'\"\n",
+          "screenshot": "screenshots/general-navigation-mobile-02-identita-del-mockup-font-locali-ambra-lo-failure.png"
+        }
+      ],
+      "trace": "traces/general-navigation-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "search",
+      "surface": "Ricerca",
+      "title": "Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 7878,
+      "steps": [
+        {
+          "name": "tutte le partite, pagina dopo pagina, fino alla fine",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino.png"
+        },
+        {
+          "name": "squadra per nome, sede e qualità combinate",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-02-squadra-per-nome-sede-e-qualita-combinat.png"
+        },
+        {
+          "name": "campionato e intervallo di date",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-03-campionato-e-intervallo-di-date.png"
+        },
+        {
+          "name": "qualità: solo con xG",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-04-qualita-solo-con-xg.png"
+        },
+        {
+          "name": "errore di validazione dal server",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-05-errore-di-validazione-dal-server.png"
+        },
+        {
+          "name": "esito vuoto o di errore dal modulo: in vista e con il focus, anche ripetendo la stessa ricerca",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-06-esito-vuoto-o-di-errore-dal-modulo-in-vi.png"
+        },
+        {
+          "name": "più squadre con lo stesso nome: scelta leggibile",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-07-piu-squadre-con-lo-stesso-nome-scelta-le.png"
+        },
+        {
+          "name": "tastiera: il campo con il fuoco resta sopra la barra del telefono",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-08-tastiera-il-campo-con-il-fuoco-resta-sop.png"
+        },
+        {
+          "name": "squadra sconosciuta, nessun risultato, sede senza squadra",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-09-squadra-sconosciuta-nessun-risultato-sed.png"
+        },
+        {
+          "name": "pagina successiva in errore: le righe restano",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-10-pagina-successiva-in-errore-le-righe-res.png"
+        },
+        {
+          "name": "Riprova carica la pagina successiva",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-11-riprova-carica-la-pagina-successiva.png"
+        }
+      ],
+      "trace": "traces/search-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "search",
+      "surface": "Ricerca",
+      "title": "Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 7343,
+      "steps": [
+        {
+          "name": "tutte le partite, pagina dopo pagina, fino alla fine",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino.png"
+        },
+        {
+          "name": "squadra per nome, sede e qualità combinate",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-02-squadra-per-nome-sede-e-qualita-combinat.png"
+        },
+        {
+          "name": "campionato e intervallo di date",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-03-campionato-e-intervallo-di-date.png"
+        },
+        {
+          "name": "qualità: solo con xG",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-04-qualita-solo-con-xg.png"
+        },
+        {
+          "name": "errore di validazione dal server",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-05-errore-di-validazione-dal-server.png"
+        },
+        {
+          "name": "esito vuoto o di errore dal modulo: in vista e con il focus, anche ripetendo la stessa ricerca",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-06-esito-vuoto-o-di-errore-dal-modulo-in-vi.png"
+        },
+        {
+          "name": "più squadre con lo stesso nome: scelta leggibile",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-07-piu-squadre-con-lo-stesso-nome-scelta-le.png"
+        },
+        {
+          "name": "tastiera: il campo con il fuoco resta sopra la barra del telefono",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-08-tastiera-il-campo-con-il-fuoco-resta-sop.png"
+        },
+        {
+          "name": "squadra sconosciuta, nessun risultato, sede senza squadra",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-09-squadra-sconosciuta-nessun-risultato-sed.png"
+        },
+        {
+          "name": "pagina successiva in errore: le righe restano",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-10-pagina-successiva-in-errore-le-righe-res.png"
+        },
+        {
+          "name": "Riprova carica la pagina successiva",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-11-riprova-carica-la-pagina-successiva.png"
+        }
+      ],
+      "trace": "traces/search-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    }
+  ],
+  "counts": {
+    "pass": 2,
+    "fail": 2,
+    "skip": 0,
+    "not_verified": 0
+  },
+  "missing_required": [
+    "general-navigation/desktop",
+    "general-navigation/mobile",
+    "dashboard/desktop",
+    "dashboard/mobile",
+    "daily-board/desktop",
+    "daily-board/mobile",
+    "providers-endpoints/desktop",
+    "providers-endpoints/mobile"
+  ],
+  "findings": [
+    {
+      "id": "QA-general-navigation-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "general-navigation",
+      "viewport": "desktop",
+      "reason": "The input did not match the regular expression /font-src 'self'/. Input:\n\n\"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'\"\n",
+      "evidence": [
+        "traces/general-navigation-desktop.zip",
+        "screenshots/general-navigation-desktop-01-apertura-del-sito.png",
+        "screenshots/general-navigation-desktop-02-identita-del-mockup-font-locali-ambra-lo-failure.png"
+      ]
+    },
+    {
+      "id": "QA-general-navigation-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "general-navigation",
+      "viewport": "mobile",
+      "reason": "The input did not match the regular expression /font-src 'self'/. Input:\n\n\"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'\"\n",
+      "evidence": [
+        "traces/general-navigation-mobile.zip",
+        "screenshots/general-navigation-mobile-01-apertura-del-sito.png",
+        "screenshots/general-navigation-mobile-02-identita-del-mockup-font-locali-ambra-lo-failure.png"
+      ]
+    }
+  ],
+  "exploratory": {
+    "status": "NOT_VERIFIED",
+    "reason": "level B (exploratory AI agent) is not part of this run"
+  },
+  "injected_defect": false,
+  "limitations": [
+    "QA archive is a seeded fixture through the real ingestion path, not the real archive (#40) nor production data",
+    "accessibility checks are basic structural checks, not a full WCAG audit"
+  ],
+  "verdict": "FAIL",
+  "files": {
+    "screenshots/general-navigation-desktop-01-apertura-del-sito.png": "21913bb22272bccdf4138d32c61886645fd544b4f25fb697015b016617931a76",
+    "screenshots/general-navigation-desktop-02-identita-del-mockup-font-locali-ambra-lo-failure.png": "21913bb22272bccdf4138d32c61886645fd544b4f25fb697015b016617931a76",
+    "screenshots/general-navigation-mobile-01-apertura-del-sito.png": "56645b5d83fe0d7ed430e9f9d360ff0d54d2534e65b52d461532eb7eae711c4e",
+    "screenshots/general-navigation-mobile-02-identita-del-mockup-font-locali-ambra-lo-failure.png": "56645b5d83fe0d7ed430e9f9d360ff0d54d2534e65b52d461532eb7eae711c4e",
+    "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino.png": "01dc0f6ab2faed6b95c252472aa23d6c8838409dd2746af15422b9bc15bb1bbf",
+    "screenshots/search-desktop-02-squadra-per-nome-sede-e-qualita-combinat.png": "dd622200227ca6d10fa8297a3e793bc17dcadccb27c1f567e3d7ac12eab9797a",
+    "screenshots/search-desktop-03-campionato-e-intervallo-di-date.png": "71319d49340ee0272fcd8f0803c1bd55dabd576adfb9dae75efd6fbd59f71b1c",
+    "screenshots/search-desktop-04-qualita-solo-con-xg.png": "5d569f23d00a1cff8d2fcb96ba77ea4174de6794e7622ad1c14d01bec1d7a224",
+    "screenshots/search-desktop-05-errore-di-validazione-dal-server.png": "261aad770666a0135be131cc1435d4665956788fdd31c505d98cae756f639ba0",
+    "screenshots/search-desktop-06-esito-vuoto-o-di-errore-dal-modulo-in-vi.png": "b5e8044718315e7f9baf31032d6f99160439298a6fe829875bded01e186f13c8",
+    "screenshots/search-desktop-07-piu-squadre-con-lo-stesso-nome-scelta-le.png": "a648b12e0fe93eb72616e3e65cefc1f98fe700be1409edbd53dd4b6f4e85f668",
+    "screenshots/search-desktop-08-tastiera-il-campo-con-il-fuoco-resta-sop.png": "4b4c6b801ad4e64157847f29a84b545c7d8876a8015a97a974586c8dcae6ed23",
+    "screenshots/search-desktop-09-squadra-sconosciuta-nessun-risultato-sed.png": "310f66f65d5a3ac9566dc6c35ebaf58232a77871af88b354e2e5f4c47fbc5abd",
+    "screenshots/search-desktop-10-pagina-successiva-in-errore-le-righe-res.png": "5461d092897192fb249d9f7c61d51f364701398f9f1a881762c8ed4d86ca508b",
+    "screenshots/search-desktop-11-riprova-carica-la-pagina-successiva.png": "f45e4fe1ce5dabecae3f5e389baa72c4ad74e53c70dc0c87405cd1e1966e4fe2",
+    "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino.png": "e5a97a76752a45473596ada1f60357239f83dd41295d3b7cecf3c72460d3aca2",
+    "screenshots/search-mobile-02-squadra-per-nome-sede-e-qualita-combinat.png": "5c93882f43e2fe0c79a6f88e3e2f4925c46001794731d9cbeb9b13ff589d8642",
+    "screenshots/search-mobile-03-campionato-e-intervallo-di-date.png": "46c8220f7c66b6fe362861df70b6bfe2ec2fc51f043b941d5463fbf85009c005",
+    "screenshots/search-mobile-04-qualita-solo-con-xg.png": "7c2149835206c83148ad72da964b0a7a5b55e7e3966ac3ec7dd11f1d72cb518d",
+    "screenshots/search-mobile-05-errore-di-validazione-dal-server.png": "ae3e2310e4063c548c095dd909bad7ac13b8a98bb5bcf9fff2a4b8a72d5fbafb",
+    "screenshots/search-mobile-06-esito-vuoto-o-di-errore-dal-modulo-in-vi.png": "398ea07d139e06c27b6a16161e4e2585ba4925e7d5f1f1caabdb6873d6de7d48",
+    "screenshots/search-mobile-07-piu-squadre-con-lo-stesso-nome-scelta-le.png": "45f1d27e024336c6c247d440811d2b05211343579253286655d525eabc3cafe8",
+    "screenshots/search-mobile-08-tastiera-il-campo-con-il-fuoco-resta-sop.png": "05c5cf19c6b0875bd2e6617474726284535d9571a6a547c3d31884e87c90e173",
+    "screenshots/search-mobile-09-squadra-sconosciuta-nessun-risultato-sed.png": "81763288777bd08fd1dcf0d291099f770353f2d9e6f3a669a359ea52ea6b5e59",
+    "screenshots/search-mobile-10-pagina-successiva-in-errore-le-righe-res.png": "9ed63874fae6ec96349d45f88388dbc2f2a4da23aabf19059e55b35870d1396f",
+    "screenshots/search-mobile-11-riprova-carica-la-pagina-successiva.png": "cec58f0ec4daaeca041541f8c0b4a448e96ced70c9e95b1e67d90f8977277edc",
+    "traces/general-navigation-desktop.zip": "16f996a8b67fb0662c7e7840242bb30dc444edd49a4bef5312144f6bd47aa3c4",
+    "traces/general-navigation-mobile.zip": "59d3a31eea662426b9ff229af17ae875313aa1ef075b442655ed108e1fa35b9f",
+    "traces/search-desktop.zip": "3697a761242f34afa0a1ece5f82ac779fd35d7472d3e7661ae71880d8f0f5145",
+    "traces/search-mobile.zip": "06c59749d25f2ece6829a644bbe0d9bb0fa2f08163f00eddf27f952c8d59798e"
+  }
+}
