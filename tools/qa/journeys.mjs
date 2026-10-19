@@ -26,7 +26,10 @@ async function fresh(page, url) {
 // After a search submitted from the form, its outcome (results, empty, error) has the focus and is on screen: on a phone
 // it starts below the form and would otherwise go unnoticed (audit A-1).
 async function outcomeShown(page, selector) {
-  await page.waitForFunction(() => document.activeElement?.hasAttribute('data-outcome'));
+  await page.waitForFunction(() => document.activeElement?.hasAttribute('data-outcome'), null, {timeout: 10000}).catch(async () => {
+    const focus = await page.evaluate(() => `${document.activeElement?.tagName} ${document.activeElement?.dataset?.testid ?? ''}`.trim());
+    throw new Error(`the search outcome${selector ? ` ${selector}` : ''} did not get the focus (focus on ${focus})`);
+  });
   const state = await page.evaluate(() => {
     const el = document.activeElement;
     const r = el.getBoundingClientRect();
@@ -241,6 +244,19 @@ export const JOURNEYS = [
         await page.click('[data-testid="search-form"] button[type="submit"]');
         await page.waitForSelector('[data-testid="search-empty"]');
         await outcomeShown(page, '[data-testid="search-empty"]');
+        // A search abandoned before its answer must not move the focus later (PR #168 review NB-1).
+        await page.route('**/api/v1/fpt/search?*', async route => { await new Promise(done => setTimeout(done, 1500)); await route.continue().catch(() => {}); });
+        await page.click('[data-testid="search-form"] button[type="submit"]');
+        await page.click('nav a[data-view="board"]');
+        await page.waitForFunction(() => document.querySelector('main h1')?.textContent === 'Daily Board');
+        await page.waitForTimeout(1800);
+        await page.unroute('**/api/v1/fpt/search?*');
+        await page.evaluate(() => scrollTo(0, 0));
+        await page.click('nav a[data-view="search"]');
+        await page.waitForSelector('[data-testid="search-form"]');
+        await page.waitForTimeout(300);
+        assert.equal(await page.evaluate(() => document.querySelector('main').contains(document.activeElement)), false, 'no focus jump into the page without a submit');
+        assert.equal(await page.evaluate(() => scrollY), 0, 'no scroll without a submit');
       });
       await step('squadra sconosciuta, nessun risultato, sede senza squadra', async () => {
         await fresh(page, `${base}/#/search?run=1&team=Nessuno`);

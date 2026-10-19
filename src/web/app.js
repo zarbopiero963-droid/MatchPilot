@@ -464,8 +464,6 @@ let generation = 0;
 // the empty state or the error is perceived on a phone too, where it starts below the form (audit A-1).
 let revealOutcome = false;
 function showOutcome(host) {
-  if (!revealOutcome) return;
-  revealOutcome = false;
   const target = host.querySelector('[data-outcome]') || host.querySelector('.state');
   if (!target) return;
   if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
@@ -475,6 +473,10 @@ function showOutcome(host) {
 
 async function render() {
   const name = location.hash.replace(/^#\/?/, '').split('?')[0];
+  // The submit flag belongs to this render only: any navigation consumes it, so a search abandoned before its answer
+  // never moves the focus later, when the page is opened again without a submit (PR #168 review NB-1).
+  const reveal = revealOutcome && name === 'search';
+  revealOutcome = false;
   const [what, view] = VIEWS[name] || [null, null];
   const host = document.getElementById('view');
   for (const link of document.querySelectorAll('nav a[data-view]')) {
@@ -493,12 +495,12 @@ async function render() {
     // Optional sections are null when absent: they are left out, never shown as text.
     if (mine === generation) {
       host.replaceChildren(...nodes.filter(node => node !== null && node !== undefined && node !== false));
-      if (name === 'search') showOutcome(host);
+      if (reveal) showOutcome(host);
     }
   } catch (error) {
     if (mine !== generation || error?.code === 'UNAUTHENTICATED') return;
     host.replaceChildren(errorState(error instanceof ApiFailure ? error : new ApiFailure(0, 'CLIENT', 'errore nella pagina'), render));
-    if (name === 'search') showOutcome(host);
+    if (reveal) showOutcome(host);
   }
 }
 
