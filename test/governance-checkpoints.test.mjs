@@ -4,8 +4,8 @@ import {execFileSync} from 'node:child_process';
 import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {commentMarker, errataMap, loadCheckpoints, planComment, reconcile, resolveLatest, validateCheckpoint, validateErrata, validateEvidence, writeCheckpoint} from '../tools/governance/checkpoints.mjs';
-import {realityFor, rewrittenCheckpoints} from '../tools/governance/git.mjs';
+import {commentMarker, errataMap, loadCheckpoints, planComment, reconcile, resolveLatest, validateCheckpoint, validateErrata, validateEvidence, validateHistory, writeCheckpoint} from '../tools/governance/checkpoints.mjs';
+import {checkpointHistory, realityFor, rewrittenCheckpoints} from '../tools/governance/git.mjs';
 
 const SHA_A = 'a'.repeat(40);
 const SHA_T = 'b'.repeat(40);
@@ -270,4 +270,46 @@ test('a checkpoint added on a side branch and rewritten in the merge is detected
 test('a new v1 checkpoint cannot dodge v2 by backdating (#152 review N-3)', () => {
   const backdated = makeCheckpoint({schema_version: 'mp-checkpoint-v1', id: 'CP-20261018T190000Z-agent-x', timestamp_utc: '2026-10-18T19:00:00Z'});
   assert.ok(validateCheckpoint(backdated, context).some(e => e.includes('schema_version')));
+});
+
+test('errata and checkpoint times are checked against the real git history (PR #162 NB-10, NB-11)', t => {
+  const repo = gitRepo();
+  t.after(repo.cleanup);
+  // Commit a checkpoint file at a chosen author time.
+  const at = (time, file, message) => {
+    mkdirSync(join(repo.dir, file, '..'), {recursive: true});
+    writeFileSync(join(repo.dir, file), '{}\n');
+    repo.git('add', '.');
+    execFileSync('git', ['commit', '-q', '-m', message], {cwd: repo.dir, env: {...process.env, GIT_AUTHOR_DATE: time, GIT_COMMITTER_DATE: time}});
+    return repo.git('rev-parse', 'HEAD');
+  };
+  const dir = 'docs/governance/checkpoints';
+  const honest = makeCheckpoint({id: 'CP-20261018T200000Z-agent-a', timestamp_utc: '2026-10-18T20:00:00Z'});
+  const future = makeCheckpoint({id: 'CP-20261018T230000Z-agent-a', timestamp_utc: '2026-10-18T23:00:00Z'});
+  const honestSha = at('2026-10-18T20:05:00Z', `${dir}/${honest.id}.json`, 'honest');
+  const futureSha = at('2026-10-18T20:30:00Z', `${dir}/${future.id}.json`, 'future');
+  const history = checkpointHistory(repo.dir);
+  assert.equal(history.firstAdded.get(future.id).sha, futureSha);
+  const now = new Date('2026-10-19T12:00:00Z');
+
+  // NB-11: dated 2.5 hours after the commit that added it; re-validating later does not hide it.
+  assert.ok(validateHistory([honest, future], {entries: []}, history, {now}).some(e => e.includes(`${future.id} timestamp_utc is later than ${futureSha}`)));
+  assert.deepEqual(validateHistory([honest], {entries: []}, history, {now}), []);
+
+  // A true erratum: bound = author time of the commit that added the file.
+  const good = {id: future.id, recorded_timestamp_utc: future.timestamp_utc, not_after_utc: '2026-10-18T20:30:00Z', basis_commit: futureSha};
+  assert.deepEqual(validateHistory([honest, future], {entries: [good]}, history, {now}), []);
+  // NB-10: a made-up basis commit (absent) with a bound later than the real commit is refused.
+  const fake = {...good, not_after_utc: '2026-10-18T22:00:00Z', basis_commit: 'f'.repeat(40)};
+  assert.ok(validateHistory([honest, future], {entries: [fake]}, history, {now}).some(e => e.includes('later than')));
+  // A present basis commit that does not add the checkpoint, or whose time differs, is refused.
+  assert.ok(validateHistory([honest, future], {entries: [{...good, basis_commit: honestSha, not_after_utc: '2026-10-18T20:05:00Z'}]}, history, {now})
+    .some(e => e.includes('does not add the checkpoint')));
+  assert.ok(validateHistory([honest, future], {entries: [{...good, not_after_utc: '2026-10-18T20:29:00Z'}]}, history, {now})
+    .some(e => e.includes('differs from the author time')));
+  // An erratum for a checkpoint no commit added, and a bound in the future, are refused.
+  assert.ok(validateHistory([honest, future], {entries: [{...good, id: 'CP-20261018T210000Z-agent-a'}]}, history, {now}).some(e => e.includes('no commit has added')));
+  assert.ok(validateHistory([], {entries: [{...good, not_after_utc: '2026-10-20T00:00:00Z'}]}, null, {now}).some(e => e.includes('in the future')));
+  // Without git history only the clock check applies.
+  assert.deepEqual(validateHistory([honest, future], {entries: [good]}, null, {now}), []);
 });

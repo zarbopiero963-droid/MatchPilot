@@ -64,6 +64,30 @@ export function rewrittenCheckpoints(cwd, base, head) {
   return rewritten;
 }
 
+// Checkpoint history from git (PR #162 review NB-10, NB-11): for each checkpoint id, the first commit reachable from
+// HEAD that added its file, with that commit's author time; and a lookup of any commit object present locally.
+// Returns null when git history is unavailable.
+export function checkpointHistory(cwd, dir = 'docs/governance/checkpoints') {
+  const out = git(cwd, ['log', '--reverse', '--diff-filter=A', '--no-renames', '--name-only', '--format=%x00%H %aI', '--', dir]);
+  if (out === null) return null;
+  const firstAdded = new Map();
+  for (const block of out.split('\0').filter(text => text.trim())) {
+    const [head, ...files] = block.split('\n').filter(Boolean);
+    const [sha, time] = head.split(' ');
+    for (const file of files) {
+      const id = file.split('/').pop().replace(/\.json$/, '');
+      if (!firstAdded.has(id)) firstAdded.set(id, {sha, time});
+    }
+  }
+  const commit = sha => {
+    const time = git(cwd, ['show', '-s', '--format=%aI', `${sha}^{commit}`]);
+    if (time === null) return null;
+    const adds = git(cwd, ['diff-tree', '--no-commit-id', '--name-only', '-r', '--diff-filter=A', '--no-renames', sha]) ?? '';
+    return {time, adds: new Set(adds.split('\n').filter(Boolean).map(file => file.split('/').pop().replace(/\.json$/, '')))};
+  };
+  return {firstAdded, commit};
+}
+
 // Reality for one checkpoint: branch head, ancestry, tree and files changed after the checkpoint.
 export function realityFor(cwd, cp) {
   const branchHead = resolveBranchHead(cwd, cp.branch);

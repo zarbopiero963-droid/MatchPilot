@@ -63,6 +63,42 @@ export function validateErrata(errata, checkpoints) {
   return errors;
 }
 
+// Checks that need the real history (NB-10, NB-11). `history` comes from git (checkpointHistory) or is null when the
+// history is unavailable; the clock check on errata applies either way.
+// - An erratum bound can only move a time earlier than a commit that really contained the checkpoint, never later,
+//   and when its basis commit is present it must add the checkpoint at exactly that author time.
+// - Any other checkpoint may not be dated after the commit that added it (beyond the clock tolerance), whenever the
+//   validation runs.
+export function validateHistory(checkpoints, errata, history, {now = new Date()} = {}) {
+  const errors = [];
+  const listed = new Set();
+  for (const entry of errata?.entries || []) {
+    listed.add(entry.id);
+    const at = `erratum ${entry.id}`;
+    const bound = Date.parse(entry.not_after_utc);
+    if (bound > now.getTime()) errors.push(`${at} not_after_utc is in the future`);
+    if (!history) continue;
+    const added = history.firstAdded.get(entry.id);
+    if (!added) errors.push(`${at} names a checkpoint no commit has added`);
+    else if (bound > Date.parse(added.time)) errors.push(`${at} not_after_utc is later than ${added.sha}, which already contained the checkpoint`);
+    const basis = SHA.test(entry.basis_commit || '') ? history.commit(entry.basis_commit) : null;
+    if (basis) {
+      if (!basis.adds.has(entry.id)) errors.push(`${at} basis_commit does not add the checkpoint`);
+      if (Date.parse(basis.time) !== bound) errors.push(`${at} not_after_utc differs from the author time of basis_commit`);
+    }
+  }
+  if (history) {
+    for (const cp of checkpoints) {
+      if (listed.has(cp.id)) continue;
+      const added = history.firstAdded.get(cp.id);
+      if (added && Date.parse(cp.timestamp_utc) > Date.parse(added.time) + FUTURE_TOLERANCE_MS) {
+        errors.push(`checkpoint ${cp.id} timestamp_utc is later than ${added.sha}, the commit that added it`);
+      }
+    }
+  }
+  return errors;
+}
+
 export const errataMap = errata => new Map((errata?.entries || []).map(entry => [entry.id, entry]));
 // The time a checkpoint can be trusted with: its recorded time, or the erratum bound when the recorded time is wrong.
 export const effectiveTime = (cp, errata = new Map()) => Date.parse(errata.get(cp.id)?.not_after_utc ?? cp.timestamp_utc);
