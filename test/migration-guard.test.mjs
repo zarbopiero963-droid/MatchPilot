@@ -23,6 +23,27 @@ test('production holds pending migrations unless each exact file is approved, in
   assert.deepEqual(planMigrations([], migrationPolicy({MATCHPILOT_RUNTIME_MODE: 'production'})), {apply: [], held: []});
 });
 
+test('the guard fails closed: unknown modes and non-local databases outside production are refused', async () => {
+  for (const mode of ['prodution', 'prod', 'live']) {
+    assert.throws(() => migrationPolicy({MATCHPILOT_RUNTIME_MODE: mode}), /Invalid MATCHPILOT_RUNTIME_MODE/);
+  }
+  const remote = 'postgres://user:pass@ep-example.neon.tech/db';
+  for (const env of [{}, {MATCHPILOT_RUNTIME_MODE: 'offline'}, {MATCHPILOT_RUNTIME_MODE: 'test'}]) {
+    assert.throws(() => migrationPolicy({...env, DATABASE_URL: remote}), /rejects non-local DATABASE_URL/);
+  }
+  assert.equal(migrationPolicy({MATCHPILOT_RUNTIME_MODE: 'production', DATABASE_URL: remote}).production, true);
+  // migrate() checks the URL the pool really uses, before touching any database.
+  const saved = process.env.DATABASE_URL;
+  process.env.DATABASE_URL = remote;
+  try {
+    const {migrate} = await import('../src/migrate.mjs');
+    await assert.rejects(migrate({env: {}, log: () => {}}), /rejects non-local DATABASE_URL/);
+    await assert.rejects(migrate({env: {MATCHPILOT_RUNTIME_MODE: 'prod'}, log: () => {}}), /Invalid MATCHPILOT_RUNTIME_MODE/);
+  } finally {
+    if (saved === undefined) delete process.env.DATABASE_URL; else process.env.DATABASE_URL = saved;
+  }
+});
+
 test('migrate() in production mode applies only approved files on a real database', {timeout: 90000}, async t => {
   const pg = (await import('pg')).default;
   const rootUrl = process.env.FUTPYTHON_TEST_DATABASE_URL || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
@@ -35,15 +56,16 @@ test('migrate() in production mode applies only approved files on a real databas
     if (process.env.CI) throw cause;
     return t.skip('throwaway postgres unavailable');
   }
-  const schema = `migration_guard_${process.pid}`;
-  await admin.query(`CREATE SCHEMA ${schema}`);
-  base.searchParams.set('options', `-c search_path=${schema}`);
-  process.env.DATABASE_URL = base.toString();
-  const db = await import('../src/db.mjs');
-  const {migrate} = await import('../src/migrate.mjs');
-  const logs = [];
-  const log = line => logs.push(line);
+  const schema = `migration_guard_${process.pid}_${Date.now()}`;
+  let db;
   try {
+    await admin.query(`CREATE SCHEMA ${schema}`);
+    base.searchParams.set('options', `-c search_path=${schema}`);
+    process.env.DATABASE_URL = base.toString();
+    db = await import('../src/db.mjs');
+    const {migrate} = await import('../src/migrate.mjs');
+    const logs = [];
+    const log = line => logs.push(line);
     const production = {MATCHPILOT_RUNTIME_MODE: 'production'};
     const held = await migrate({env: production, log});
     assert.equal(held.applied.length, 0);
@@ -52,7 +74,8 @@ test('migrate() in production mode applies only approved files on a real databas
     const tables = async () => (await admin.query(`SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema=$1`, [schema])).rows[0].n;
     assert.equal(await tables(), 1, 'only schema_migrations exists: no production migration ran');
 
-    const one = await migrate({env: {...production, MATCHPILOT_APPROVED_MIGRATIONS: '001-futpython-mirror.sql'}, log});
+    const one = await migrate({env: {...production, MATCHPILOT_APPROVED_MIGRATIONS: '001-futpython-mirror.sql, 999-typo.sql'}, log});
+    assert.ok(logs.includes('MIGRATION_APPROVALS_NOT_PENDING {"unused":["999-typo.sql"]}'), 'a mistyped approval is reported');
     assert.deepEqual(one.applied, ['001-futpython-mirror.sql']);
     const recorded = (await admin.query(`SELECT filename FROM ${schema}.schema_migrations`)).rows.map(r => r.filename);
     assert.deepEqual(recorded, ['001-futpython-mirror.sql']);
@@ -63,7 +86,7 @@ test('migrate() in production mode applies only approved files on a real databas
     const again = await migrate({env: production, log});
     assert.deepEqual(again, {applied: [], held: []}, 'with nothing pending, production startup behaves as before');
   } finally {
-    await db.closePool?.().catch?.(() => {});
+    await db?.closePool?.().catch?.(() => {});
     try { await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`); }
     finally { await admin.end(); }
   }

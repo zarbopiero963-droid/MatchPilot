@@ -1,14 +1,16 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { withClient, closePool } from './db.mjs';
+import { assertRuntimeSafety } from './runtime-safety.mjs';
 
 // Owner decision D13 (MP-OWNER-D13-MIGRATIONS-AUTODEPLOY-20261019): a migration never reaches the production database
 // by itself. render.yaml deploys every merge and the server migrates at startup, so in production mode a pending
 // migration is applied only when the owner lists its exact file name in MATCHPILOT_APPROVED_MIGRATIONS (comma
 // separated), after backup, compatibility check and recovery plan. Offline and test modes migrate their isolated local
-// databases as before (they refuse non-local DATABASE_URLs, see src/background.mjs).
+// databases as before. The guard fails closed: an unknown mode is refused, and offline/test refuse a non-local database
+// (src/runtime-safety.mjs), so a job or `npm run migrate` against production cannot bypass it.
 export function migrationPolicy(env = process.env) {
-  const production = String(env.MATCHPILOT_RUNTIME_MODE || 'offline').trim().toLowerCase() === 'production';
+  const production = assertRuntimeSafety(env).mode === 'production';
   const approved = new Set(String(env.MATCHPILOT_APPROVED_MIGRATIONS || '').split(',').map(name => name.trim()).filter(Boolean));
   return {production, approved};
 }
@@ -22,6 +24,8 @@ export function planMigrations(pending, policy) {
 }
 
 export async function migrate({env = process.env, log = console.log, dir = resolve('migrations')} = {}) {
+  // The pool always connects to process.env.DATABASE_URL, so that is the URL the host check must see.
+  const policy = migrationPolicy({...env, DATABASE_URL: process.env.DATABASE_URL});
   const files = (await readdir(dir)).filter(f => f.endsWith('.sql')).sort();
   return withClient(async client => {
     await client.query(`CREATE TABLE IF NOT EXISTS schema_migrations(
@@ -29,8 +33,11 @@ export async function migrate({env = process.env, log = console.log, dir = resol
       applied_at timestamptz NOT NULL DEFAULT now()
     )`);
     const done = new Set((await client.query('SELECT filename FROM schema_migrations')).rows.map(row => row.filename));
-    const {apply, held} = planMigrations(files.filter(file => !done.has(file)), migrationPolicy(env));
+    const pending = files.filter(file => !done.has(file));
+    const {apply, held} = planMigrations(pending, policy);
     if (held.length) log('MIGRATIONS_PENDING_NOT_APPROVED ' + JSON.stringify({held}));
+    const unused = policy.production ? [...policy.approved].filter(name => !pending.includes(name)) : [];
+    if (unused.length) log('MIGRATION_APPROVALS_NOT_PENDING ' + JSON.stringify({unused}));
     for (const file of apply) {
       const sql = await readFile(resolve(dir,file),'utf8');
       await client.query('BEGIN');
