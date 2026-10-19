@@ -298,7 +298,7 @@ test('auth stays off by default; misconfigured enforcement fails closed; a held 
       const approved = files.filter(file => file !== authFile && file < authFile);
       const hash = await hashPassword(PASSWORD); // production refuses low-cost hashes
       const server = await startServer(schema, {
-        MATCHPILOT_RUNTIME_MODE: 'production', MATCHPILOT_APPROVED_MIGRATIONS: approved.join(','),
+        MATCHPILOT_RUNTIME_MODE: 'production', MATCHPILOT_APPROVED_MIGRATIONS: approved.join(','), MATCHPILOT_TRUST_PROXY: 'false',
         MATCHPILOT_AUTH: 'enforce', MATCHPILOT_OWNER_USERNAME: 'owner', MATCHPILOT_OWNER_PASSWORD_HASH: hash,
       });
       try {
@@ -386,7 +386,7 @@ test('production with the auth migration approved: login works and the cookie is
       const files = (await readdir(resolve('migrations'))).filter(file => file.endsWith('.sql')).sort();
       const hash = await hashPassword(PASSWORD);
       const server = await startServer(schema, {
-        MATCHPILOT_RUNTIME_MODE: 'production', MATCHPILOT_APPROVED_MIGRATIONS: files.join(','),
+        MATCHPILOT_RUNTIME_MODE: 'production', MATCHPILOT_APPROVED_MIGRATIONS: files.join(','), MATCHPILOT_TRUST_PROXY: 'false',
         MATCHPILOT_AUTH: 'enforce', MATCHPILOT_OWNER_USERNAME: 'owner', MATCHPILOT_OWNER_PASSWORD_HASH: hash,
       });
       try {

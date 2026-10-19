@@ -4,7 +4,7 @@
 // answer 503: the gate fails closed and never opens the site.
 import {
   authorize, authSchemaReady, clientAddress, cookieName, currentSession, describeConfig, isPublicPath, login, logout,
-  parseCookies, recordOriginRejected, safeNextPath, sameOriginRequest,
+  parseCookies, RATE_WINDOW_MINUTES, recordOriginRejected, safeNextPath, sameOriginRequest,
 } from './owner-auth.mjs';
 
 const MAX_BODY_BYTES = 4096;
@@ -66,6 +66,14 @@ export function createAuthGate({config, withClient, log = console.log}) {
   log('AUTH_ENFORCED ' + JSON.stringify(describeConfig(config)));
   if (config.state !== 'ready') log('AUTH_MISCONFIGURED ' + JSON.stringify({reason: config.reason}));
   let schemaReady = false;
+  // Distributed failures above the threshold raise one alert per window; nobody is locked out (round-2 NB-1).
+  let lastSpikeAlert = 0;
+  const spikeAlert = globalFailures => {
+    if (globalFailures === null || globalFailures === undefined || globalFailures < config.failureSpike) return;
+    if (Date.now() - lastSpikeAlert < RATE_WINDOW_MINUTES * 60e3) return;
+    lastSpikeAlert = Date.now();
+    log('AUTH_FAILURE_SPIKE ' + JSON.stringify({failures: globalFailures, window_minutes: RATE_WINDOW_MINUTES, threshold: config.failureSpike}));
+  };
   let schemaWarned = false;
   const tokenOf = req => parseCookies(req.headers.cookie)[cookieName(config)] || null;
 
@@ -126,6 +134,7 @@ export function createAuthGate({config, withClient, log = console.log}) {
         else send(res, 429, {error: 'rate_limited'}, headers);
       } else {
         log('AUTH_LOGIN_FAILURE {}');
+        spikeAlert(result.globalFailures);
         if (body.form) send(res, 401, loginPage({next, message: 'Credenziali non valide.'}), PAGE_HEADERS);
         else send(res, 401, {error: 'invalid_credentials'});
       }
