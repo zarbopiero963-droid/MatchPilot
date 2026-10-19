@@ -1,0 +1,498 @@
+{
+  "schema": "mp-browser-qa-v1",
+  "head_sha": "629be0dbb62fcb48394f7a5a75cfe72799598c01",
+  "tested_commit": "629be0dbb62fcb48394f7a5a75cfe72799598c01",
+  "tested_tree": "7d945395d8d6282518d6e9d29ac747d13a670067",
+  "working_tree_clean": false,
+  "generated_at": "2026-10-19T18:56:08.867Z",
+  "environment": {
+    "node": "v22.22.0",
+    "browser": "chromium 141.0.7390.37",
+    "browser_path": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+    "os": "linux 6.18.44-fc-v139 x64",
+    "ci": true,
+    "ci_run_id": null
+  },
+  "software": {
+    "package": "matchpilot-trading-os",
+    "version": "0.1.0",
+    "code_version": "package-0.1.0"
+  },
+  "dataset": {
+    "fixture": "test/helpers/fpt-seed.mjs#seedQaArchive",
+    "ingestion": "real FutPythonTrader path (CSV → storeDataset → facts)",
+    "competitions": [
+      "fpt:competition:f568d2fff73c2e2f5246eb165426d4cb",
+      "fpt:competition:dec098a11eb9c411e998e8c1c8ec0f4c"
+    ],
+    "matches": 86,
+    "busy_day": "2024-08-01",
+    "fixture_sha256": "7163eb6f4bc9ad6657132ff5a49db28e87f9f783408fa72987e07164f6d04ea5",
+    "production_data": false
+  },
+  "required": {
+    "journeys": [
+      "general-navigation",
+      "dashboard",
+      "daily-board",
+      "search",
+      "providers-endpoints"
+    ],
+    "viewports": [
+      "desktop",
+      "mobile"
+    ]
+  },
+  "journeys": [
+    {
+      "id": "general-navigation",
+      "surface": "Interfaccia generale",
+      "title": "Navigazione, rotte, pagina sconosciuta, tastiera",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: technical text in a user view: \"Le partite di un giorno nei dati salvati, in ordine di orari\"; technical text in a user view: \"Nessuna partita il 2026-10-19 nei dati salvati.\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:00.274Z\"; technical text in a user view: \"· versione codice:\"",
+      "duration_ms": 1355,
+      "steps": [
+        {
+          "name": "apertura del sito",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-desktop-01-apertura-del-sito.png"
+        },
+        {
+          "name": "menu: Dashboard",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-desktop-02-menu-dashboard.png"
+        },
+        {
+          "name": "menu: Daily Board",
+          "status": "FAIL",
+          "error": "invariants: technical text in a user view: \"Le partite di un giorno nei dati salvati, in ordine di orari\"; technical text in a user view: \"Nessuna partita il 2026-10-19 nei dati salvati.\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:00.274Z\"; technical text in a user view: \"· versione codice:\"",
+          "screenshot": "screenshots/general-navigation-desktop-03-menu-daily-board-failure.png"
+        }
+      ],
+      "trace": "traces/general-navigation-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "general-navigation",
+      "surface": "Interfaccia generale",
+      "title": "Navigazione, rotte, pagina sconosciuta, tastiera",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: technical text in a user view: \"Le partite di un giorno nei dati salvati, in ordine di orari\"; technical text in a user view: \"Nessuna partita il 2026-10-19 nei dati salvati.\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:01.602Z\"; technical text in a user view: \"· versione codice:\"",
+      "duration_ms": 1218,
+      "steps": [
+        {
+          "name": "apertura del sito",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-01-apertura-del-sito.png"
+        },
+        {
+          "name": "menu: Dashboard",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-02-menu-dashboard.png"
+        },
+        {
+          "name": "menu: Daily Board",
+          "status": "FAIL",
+          "error": "invariants: technical text in a user view: \"Le partite di un giorno nei dati salvati, in ordine di orari\"; technical text in a user view: \"Nessuna partita il 2026-10-19 nei dati salvati.\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:01.602Z\"; technical text in a user view: \"· versione codice:\"",
+          "screenshot": "screenshots/general-navigation-mobile-03-menu-daily-board-failure.png"
+        }
+      ],
+      "trace": "traces/general-navigation-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "dashboard",
+      "surface": "Dashboard",
+      "title": "Riquadri, copertura per campionato, N/D, indisponibilità di una route",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 820,
+      "steps": [
+        {
+          "name": "caricamento e valori uguali all’API",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-desktop-01-caricamento-e-valori-uguali-all-api.png"
+        },
+        {
+          "name": "dati assenti mostrati come N/D, mai 0",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-desktop-02-dati-assenti-mostrati-come-n-d-mai-0.png"
+        },
+        {
+          "name": "una route indisponibile: solo il suo riquadro è N/D con il motivo",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-desktop-03-una-route-indisponibile-solo-il-suo-riqu.png"
+        }
+      ],
+      "trace": "traces/dashboard-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "dashboard",
+      "surface": "Dashboard",
+      "title": "Riquadri, copertura per campionato, N/D, indisponibilità di una route",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 818,
+      "steps": [
+        {
+          "name": "caricamento e valori uguali all’API",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-mobile-01-caricamento-e-valori-uguali-all-api.png"
+        },
+        {
+          "name": "dati assenti mostrati come N/D, mai 0",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-mobile-02-dati-assenti-mostrati-come-n-d-mai-0.png"
+        },
+        {
+          "name": "una route indisponibile: solo il suo riquadro è N/D con il motivo",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-mobile-03-una-route-indisponibile-solo-il-suo-riqu.png"
+        }
+      ],
+      "trace": "traces/dashboard-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "daily-board",
+      "surface": "Daily Board",
+      "title": "Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: technical text in a user view: \"Le partite di un giorno nei dati salvati, in ordine di orari\"; technical text in a user view: \"Partite del 2024-08-02\"; technical text in a user view: \"PROVIDER_TZ_UNDOCUMENTED\"; technical text in a user view: \"FINAL\"; technical text in a user view: \"HOME\"; technical text in a user view: \"HISTORICAL\"; technical text in a user view: \"· dataset:\"; technical text in a user view: \"spain/laliga/2024-2025\"; technical text in a user view: \"netherlands/eredivisie/2024-2025\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:03.843Z\"; technical text in a user view: \"· versione codice:\"",
+      "duration_ms": 764,
+      "steps": [
+        {
+          "name": "apertura dalla copertura della Dashboard",
+          "status": "FAIL",
+          "error": "invariants: technical text in a user view: \"Le partite di un giorno nei dati salvati, in ordine di orari\"; technical text in a user view: \"Partite del 2024-08-02\"; technical text in a user view: \"PROVIDER_TZ_UNDOCUMENTED\"; technical text in a user view: \"FINAL\"; technical text in a user view: \"HOME\"; technical text in a user view: \"HISTORICAL\"; technical text in a user view: \"· dataset:\"; technical text in a user view: \"spain/laliga/2024-2025\"; technical text in a user view: \"netherlands/eredivisie/2024-2025\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:03.843Z\"; technical text in a user view: \"· versione codice:\"",
+          "screenshot": "screenshots/daily-board-desktop-01-apertura-dalla-copertura-della-dashboard-failure.png"
+        }
+      ],
+      "trace": "traces/daily-board-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "daily-board",
+      "surface": "Daily Board",
+      "title": "Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: technical text in a user view: \"Le partite di un giorno nei dati salvati, in ordine di orari\"; technical text in a user view: \"Partite del 2024-08-02\"; technical text in a user view: \"PROVIDER_TZ_UNDOCUMENTED\"; technical text in a user view: \"FINAL\"; technical text in a user view: \"HOME\"; technical text in a user view: \"HISTORICAL\"; technical text in a user view: \"· dataset:\"; technical text in a user view: \"spain/laliga/2024-2025\"; technical text in a user view: \"netherlands/eredivisie/2024-2025\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:04.669Z\"; technical text in a user view: \"· versione codice:\"",
+      "duration_ms": 729,
+      "steps": [
+        {
+          "name": "apertura dalla copertura della Dashboard",
+          "status": "FAIL",
+          "error": "invariants: technical text in a user view: \"Le partite di un giorno nei dati salvati, in ordine di orari\"; technical text in a user view: \"Partite del 2024-08-02\"; technical text in a user view: \"PROVIDER_TZ_UNDOCUMENTED\"; technical text in a user view: \"FINAL\"; technical text in a user view: \"HOME\"; technical text in a user view: \"HISTORICAL\"; technical text in a user view: \"· dataset:\"; technical text in a user view: \"spain/laliga/2024-2025\"; technical text in a user view: \"netherlands/eredivisie/2024-2025\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:04.669Z\"; technical text in a user view: \"· versione codice:\"",
+          "screenshot": "screenshots/daily-board-mobile-01-apertura-dalla-copertura-della-dashboard-failure.png"
+        }
+      ],
+      "trace": "traces/daily-board-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "search",
+      "surface": "Ricerca",
+      "title": "Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: technical text in a user view: \"2024-08-10\"; technical text in a user view: \"2024-08-09\"; technical text in a user view: \"2024-08-08\"; technical text in a user view: \"2024-08-07\"; technical text in a user view: \"2024-08-06\"; technical text in a user view: \"2024-08-05\"; technical text in a user view: \"2024-08-04\"; technical text in a user view: \"2024-08-03\"; technical text in a user view: \"2024-08-02\"; technical text in a user view: \"2024-08-01\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:05.439Z\"; technical text in a user view: \"· versione codice:\"",
+      "duration_ms": 1011,
+      "steps": [
+        {
+          "name": "tutte le partite, pagina dopo pagina, fino alla fine",
+          "status": "FAIL",
+          "error": "invariants: technical text in a user view: \"2024-08-10\"; technical text in a user view: \"2024-08-09\"; technical text in a user view: \"2024-08-08\"; technical text in a user view: \"2024-08-07\"; technical text in a user view: \"2024-08-06\"; technical text in a user view: \"2024-08-05\"; technical text in a user view: \"2024-08-04\"; technical text in a user view: \"2024-08-03\"; technical text in a user view: \"2024-08-02\"; technical text in a user view: \"2024-08-01\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:05.439Z\"; technical text in a user view: \"· versione codice:\"",
+          "screenshot": "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png"
+        }
+      ],
+      "trace": "traces/search-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "search",
+      "surface": "Ricerca",
+      "title": "Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: technical text in a user view: \"2024-08-10\"; technical text in a user view: \"2024-08-09\"; technical text in a user view: \"2024-08-08\"; technical text in a user view: \"2024-08-07\"; technical text in a user view: \"2024-08-06\"; technical text in a user view: \"2024-08-05\"; technical text in a user view: \"2024-08-04\"; technical text in a user view: \"2024-08-03\"; technical text in a user view: \"2024-08-02\"; technical text in a user view: \"2024-08-01\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:06.531Z\"; technical text in a user view: \"· versione codice:\"",
+      "duration_ms": 995,
+      "steps": [
+        {
+          "name": "tutte le partite, pagina dopo pagina, fino alla fine",
+          "status": "FAIL",
+          "error": "invariants: technical text in a user view: \"2024-08-10\"; technical text in a user view: \"2024-08-09\"; technical text in a user view: \"2024-08-08\"; technical text in a user view: \"2024-08-07\"; technical text in a user view: \"2024-08-06\"; technical text in a user view: \"2024-08-05\"; technical text in a user view: \"2024-08-04\"; technical text in a user view: \"2024-08-03\"; technical text in a user view: \"2024-08-02\"; technical text in a user view: \"2024-08-01\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:06.531Z\"; technical text in a user view: \"· versione codice:\"",
+          "screenshot": "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png"
+        }
+      ],
+      "trace": "traces/search-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "providers-endpoints",
+      "surface": "Interfaccia generale",
+      "title": "Fornitori dati e registro API",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 817,
+      "steps": [
+        {
+          "name": "fornitori dati",
+          "status": "PASS",
+          "screenshot": "screenshots/providers-endpoints-desktop-01-fornitori-dati.png"
+        },
+        {
+          "name": "registro API: stesse righe dell’API",
+          "status": "PASS",
+          "screenshot": "screenshots/providers-endpoints-desktop-02-registro-api-stesse-righe-dell-api.png"
+        }
+      ],
+      "trace": "traces/providers-endpoints-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "providers-endpoints",
+      "surface": "Interfaccia generale",
+      "title": "Fornitori dati e registro API",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 542,
+      "steps": [
+        {
+          "name": "fornitori dati",
+          "status": "PASS",
+          "screenshot": "screenshots/providers-endpoints-mobile-01-fornitori-dati.png"
+        },
+        {
+          "name": "registro API: stesse righe dell’API",
+          "status": "PASS",
+          "screenshot": "screenshots/providers-endpoints-mobile-02-registro-api-stesse-righe-dell-api.png"
+        }
+      ],
+      "trace": "traces/providers-endpoints-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    }
+  ],
+  "counts": {
+    "pass": 4,
+    "fail": 6,
+    "skip": 0,
+    "not_verified": 0
+  },
+  "missing_required": [
+    "general-navigation/desktop",
+    "general-navigation/mobile",
+    "daily-board/desktop",
+    "daily-board/mobile",
+    "search/desktop",
+    "search/mobile"
+  ],
+  "findings": [
+    {
+      "id": "QA-general-navigation-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "general-navigation",
+      "viewport": "desktop",
+      "reason": "invariants: technical text in a user view: \"Le partite di un giorno nei dati salvati, in ordine di orari\"; technical text in a user view: \"Nessuna partita il 2026-10-19 nei dati salvati.\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:00.274Z\"; technical text in a user view: \"· versione codice:\"",
+      "evidence": [
+        "traces/general-navigation-desktop.zip",
+        "screenshots/general-navigation-desktop-01-apertura-del-sito.png",
+        "screenshots/general-navigation-desktop-02-menu-dashboard.png",
+        "screenshots/general-navigation-desktop-03-menu-daily-board-failure.png"
+      ]
+    },
+    {
+      "id": "QA-general-navigation-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "general-navigation",
+      "viewport": "mobile",
+      "reason": "invariants: technical text in a user view: \"Le partite di un giorno nei dati salvati, in ordine di orari\"; technical text in a user view: \"Nessuna partita il 2026-10-19 nei dati salvati.\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:01.602Z\"; technical text in a user view: \"· versione codice:\"",
+      "evidence": [
+        "traces/general-navigation-mobile.zip",
+        "screenshots/general-navigation-mobile-01-apertura-del-sito.png",
+        "screenshots/general-navigation-mobile-02-menu-dashboard.png",
+        "screenshots/general-navigation-mobile-03-menu-daily-board-failure.png"
+      ]
+    },
+    {
+      "id": "QA-daily-board-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "daily-board",
+      "viewport": "desktop",
+      "reason": "invariants: technical text in a user view: \"Le partite di un giorno nei dati salvati, in ordine di orari\"; technical text in a user view: \"Partite del 2024-08-02\"; technical text in a user view: \"PROVIDER_TZ_UNDOCUMENTED\"; technical text in a user view: \"FINAL\"; technical text in a user view: \"HOME\"; technical text in a user view: \"HISTORICAL\"; technical text in a user view: \"· dataset:\"; technical text in a user view: \"spain/laliga/2024-2025\"; technical text in a user view: \"netherlands/eredivisie/2024-2025\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:03.843Z\"; technical text in a user view: \"· versione codice:\"",
+      "evidence": [
+        "traces/daily-board-desktop.zip",
+        "screenshots/daily-board-desktop-01-apertura-dalla-copertura-della-dashboard-failure.png"
+      ]
+    },
+    {
+      "id": "QA-daily-board-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "daily-board",
+      "viewport": "mobile",
+      "reason": "invariants: technical text in a user view: \"Le partite di un giorno nei dati salvati, in ordine di orari\"; technical text in a user view: \"Partite del 2024-08-02\"; technical text in a user view: \"PROVIDER_TZ_UNDOCUMENTED\"; technical text in a user view: \"FINAL\"; technical text in a user view: \"HOME\"; technical text in a user view: \"HISTORICAL\"; technical text in a user view: \"· dataset:\"; technical text in a user view: \"spain/laliga/2024-2025\"; technical text in a user view: \"netherlands/eredivisie/2024-2025\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:04.669Z\"; technical text in a user view: \"· versione codice:\"",
+      "evidence": [
+        "traces/daily-board-mobile.zip",
+        "screenshots/daily-board-mobile-01-apertura-dalla-copertura-della-dashboard-failure.png"
+      ]
+    },
+    {
+      "id": "QA-search-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "search",
+      "viewport": "desktop",
+      "reason": "invariants: technical text in a user view: \"2024-08-10\"; technical text in a user view: \"2024-08-09\"; technical text in a user view: \"2024-08-08\"; technical text in a user view: \"2024-08-07\"; technical text in a user view: \"2024-08-06\"; technical text in a user view: \"2024-08-05\"; technical text in a user view: \"2024-08-04\"; technical text in a user view: \"2024-08-03\"; technical text in a user view: \"2024-08-02\"; technical text in a user view: \"2024-08-01\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:05.439Z\"; technical text in a user view: \"· versione codice:\"",
+      "evidence": [
+        "traces/search-desktop.zip",
+        "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png"
+      ]
+    },
+    {
+      "id": "QA-search-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "search",
+      "viewport": "mobile",
+      "reason": "invariants: technical text in a user view: \"2024-08-10\"; technical text in a user view: \"2024-08-09\"; technical text in a user view: \"2024-08-08\"; technical text in a user view: \"2024-08-07\"; technical text in a user view: \"2024-08-06\"; technical text in a user view: \"2024-08-05\"; technical text in a user view: \"2024-08-04\"; technical text in a user view: \"2024-08-03\"; technical text in a user view: \"2024-08-02\"; technical text in a user view: \"2024-08-01\"; technical text in a user view: \"Fonte:\"; technical text in a user view: \"· generato:\"; technical text in a user view: \"2026-10-19T18:56:06.531Z\"; technical text in a user view: \"· versione codice:\"",
+      "evidence": [
+        "traces/search-mobile.zip",
+        "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png"
+      ]
+    }
+  ],
+  "exploratory": {
+    "status": "NOT_VERIFIED",
+    "reason": "level B (exploratory AI agent) is not part of this run"
+  },
+  "injected_defect": false,
+  "limitations": [
+    "QA archive is a seeded fixture through the real ingestion path, not the real archive (#40) nor production data",
+    "accessibility checks are basic structural checks, not a full WCAG audit"
+  ],
+  "verdict": "FAIL",
+  "files": {
+    "screenshots/daily-board-desktop-01-apertura-dalla-copertura-della-dashboard-failure.png": "a627c8d0aee32c22f0ea3f9d77f75e9ca4b6d8d9f5f71f50e9962f470c6ce030",
+    "screenshots/daily-board-mobile-01-apertura-dalla-copertura-della-dashboard-failure.png": "6cde25197e85374ab29c52c4da650c04ca71d056c6dcbcabb232aef131df39f0",
+    "screenshots/dashboard-desktop-01-caricamento-e-valori-uguali-all-api.png": "d4ae3ebd4114b7cc7d1cdf12d03aedf11b8bdcd1f17f8880fd51bd4cfc577e5e",
+    "screenshots/dashboard-desktop-02-dati-assenti-mostrati-come-n-d-mai-0.png": "d4ae3ebd4114b7cc7d1cdf12d03aedf11b8bdcd1f17f8880fd51bd4cfc577e5e",
+    "screenshots/dashboard-desktop-03-una-route-indisponibile-solo-il-suo-riqu.png": "404dab6b9e000bd7ef89f2e5837502ffe3206fd557cbf4daa6bba397e21149f2",
+    "screenshots/dashboard-mobile-01-caricamento-e-valori-uguali-all-api.png": "9c93622ff8e3113483997aaa712db6e96512dc377987c60883b6c48cc2dbde25",
+    "screenshots/dashboard-mobile-02-dati-assenti-mostrati-come-n-d-mai-0.png": "9c93622ff8e3113483997aaa712db6e96512dc377987c60883b6c48cc2dbde25",
+    "screenshots/dashboard-mobile-03-una-route-indisponibile-solo-il-suo-riqu.png": "ee7d4f55279e6914a82875b9a84dda67641a5b60996c232a490b045c02552cc2",
+    "screenshots/general-navigation-desktop-01-apertura-del-sito.png": "b9647bcd8da4d9fe1d20f64f3193bf13fe1e45bb9f4f2f383156104c731a85b7",
+    "screenshots/general-navigation-desktop-02-menu-dashboard.png": "0c0780907dd5b712a6b884966bc5c64c3b28ec6ceed1066b113e4cf3c4d87305",
+    "screenshots/general-navigation-desktop-03-menu-daily-board-failure.png": "726070ea1ed123bb8e65af51b8b6f2892507c799f9160400d71eeda2cc3adf1e",
+    "screenshots/general-navigation-mobile-01-apertura-del-sito.png": "97fc2e14e9a1b31abbd72ba4d1f8972185a6897478940592b6745e18f8463e38",
+    "screenshots/general-navigation-mobile-02-menu-dashboard.png": "5e2559b041e138260fcb805fdd7a5d871fd829a2deda482f31e22d9c08390338",
+    "screenshots/general-navigation-mobile-03-menu-daily-board-failure.png": "e0227d7eb7baaa7e302cfdd4c58e0b2ccee1e73bbf1ab8b51306e32ab2e25472",
+    "screenshots/providers-endpoints-desktop-01-fornitori-dati.png": "474dffbb05a61bac8f6b99c406c86298725a158015f9ebe0cc23f007e51d67d7",
+    "screenshots/providers-endpoints-desktop-02-registro-api-stesse-righe-dell-api.png": "705056eca96d0bee6cc145ab7da19fcc2fd48dfba79c08ff2937a2ecfe746180",
+    "screenshots/providers-endpoints-mobile-01-fornitori-dati.png": "1a9f4ae5b40acfb401ec444e718bfe2307ae5cc1a4de8395e8f0db379ffe55ac",
+    "screenshots/providers-endpoints-mobile-02-registro-api-stesse-righe-dell-api.png": "cebf4e7f1775f90e7ffb98dcdee06fed7ce46e9c40bf561f20b11ad7fbc54472",
+    "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png": "dee622154816222a61d80d494a068786376cc982642a1a336c480ef8363558d0",
+    "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png": "d5be80ad8d02e1260508d729945aa05c2a7a56bf04186126f017dddd7ffcd02d",
+    "traces/daily-board-desktop.zip": "12b910a01010c1032ca50b01cfa92a0360370717eb2e9fa212aa6ef192b4e6ed",
+    "traces/daily-board-mobile.zip": "8c71671cc1faa821d8a7be58eccac35c0ab7c155db97ef3cffe99b343c5b8835",
+    "traces/dashboard-desktop.zip": "ad089dcd0e1c4d02a40c60fb0416c734bd298a680c43ec8e792f5dcbc34fe1d5",
+    "traces/dashboard-mobile.zip": "baa03dc27d13b6fc5ae3d466f82822d88d3b795205c8bbb1ab732bb94f87dd85",
+    "traces/general-navigation-desktop.zip": "aefff2c53c1569445202e4044414c3dbdcb98c854ee9072b60b2431bc9e62043",
+    "traces/general-navigation-mobile.zip": "12a86220ab07f7a65b0e7bf4d4c80d644fa0f346ffe16ea3890087b2fa7b2ed6",
+    "traces/providers-endpoints-desktop.zip": "49a562d13fc82b0fc7988215cd5f00e20a9e662be57fa434b1becdb0c95774d7",
+    "traces/providers-endpoints-mobile.zip": "f8a2b5262d65242cc7a69cb9858fe680ec8d9d1224634e362de11f463958ba5d",
+    "traces/search-desktop.zip": "ea8112e62c35cbe38e3640e69e942868ddb014a61195ab263cac5783fe8f241d",
+    "traces/search-mobile.zip": "f68aa160e3c370a200f35401bbca3bbf9029953cf918e7a8f52b61a7b9e7d0e2"
+  }
+}

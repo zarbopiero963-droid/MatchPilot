@@ -1,0 +1,11 @@
+FAIL general-navigation/desktop (1 steps) — invariants: technical text in a user view: "Sito in sola lettura. I dati arrivano dall'API v1 di MatchPi"
+FAIL general-navigation/mobile (1 steps) — invariants: technical text in a user view: "Sito in sola lettura. I dati arrivano dall'API v1 di MatchPi"
+FAIL dashboard/desktop (1 steps) — invariants: technical text in a user view: "Sito in sola lettura. I dati arrivano dall'API v1 di MatchPi"
+FAIL dashboard/mobile (1 steps) — invariants: technical text in a user view: "Sito in sola lettura. I dati arrivano dall'API v1 di MatchPi"
+FAIL daily-board/desktop (1 steps) — invariants: technical text in a user view: "Sito in sola lettura. I dati arrivano dall'API v1 di MatchPi"
+FAIL daily-board/mobile (1 steps) — invariants: technical text in a user view: "Sito in sola lettura. I dati arrivano dall'API v1 di MatchPi"
+FAIL search/desktop (1 steps) — invariants: technical text in a user view: "Sito in sola lettura. I dati arrivano dall'API v1 di MatchPi"
+FAIL search/mobile (1 steps) — invariants: technical text in a user view: "Sito in sola lettura. I dati arrivano dall'API v1 di MatchPi"
+FAIL providers-endpoints/desktop (1 steps) — invariants: technical text in a user view: "Sito in sola lettura. I dati arrivano dall'API v1 di MatchPi"
+FAIL providers-endpoints/mobile (1 steps) — invariants: technical text in a user view: "Sito in sola lettura. I dati arrivano dall'API v1 di MatchPi"
+{"verdict":"FAIL","counts":{"pass":0,"fail":10,"skip":0,"not_verified":0},"missing_required":["general-navigation/desktop","general-navigation/mobile","dashboard/desktop","dashboard/mobile","daily-board/desktop","daily-board/mobile","search/desktop","search/mobile","providers-endpoints/desktop","providers-endpoints/mobile"],"head_sha":"629be0dbb62fcb48394f7a5a75cfe72799598c01"}
