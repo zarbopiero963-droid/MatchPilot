@@ -46,11 +46,15 @@ export function migrationLockTimeout(env = process.env) {
   return Number(raw);
 }
 
+// Schema and key are fixed once, so a migration that changes search_path can neither make the unlock miss its lock
+// nor move the bookkeeping table (PR #158 review NB-1).
 async function acquireLock(client, timeoutMs) {
+  const {rows: [scope]} = await client.query('SELECT current_schema() AS schema, hashtext(current_schema()) AS key');
+  if (scope.schema === null) throw new MigrationError('MIGRATION_NO_SCHEMA', 'no schema of the search_path exists');
   const deadline = Date.now() + timeoutMs;
   for (;;) {
-    const {rows} = await client.query('SELECT pg_try_advisory_lock($1::int4, hashtext(current_schema())) AS ok', [MIGRATION_LOCK_CLASS]);
-    if (rows[0].ok) return;
+    const {rows} = await client.query('SELECT pg_try_advisory_lock($1::int4, $2::int4) AS ok', [MIGRATION_LOCK_CLASS, scope.key]);
+    if (rows[0].ok) return scope;
     if (Date.now() >= deadline) throw new MigrationError('MIGRATION_LOCK_TIMEOUT', `another migrate() held the migration lock for more than ${timeoutMs} ms`);
     await new Promise(done => setTimeout(done, Math.min(LOCK_RETRY_MS, Math.max(1, deadline - Date.now()))));
   }
@@ -63,21 +67,27 @@ export async function migrate({env = process.env, log = console.log, dir = resol
   const lockTimeoutMs = migrationLockTimeout(env);
   const files = (await readdir(dir)).filter(f => f.endsWith('.sql')).sort();
   const client = await getPool().connect();
-  let locked = false;
+  // While a client is checked out the pool does not listen for its errors: without this listener a connection cut
+  // mid-migration would crash the process instead of failing the query (PR #158 review B-1).
+  const onError = error => {
+    console.error('PG_CLIENT_ERROR', String(error?.message || error).replace(/postgres(?:ql)?:\/\/\S+/gi, 'postgres://[REDACTED]'));
+  };
+  client.on('error', onError);
+  let scope = null;
   let broken = null;
   try {
-    await acquireLock(client, lockTimeoutMs);
-    locked = true;
+    scope = await acquireLock(client, lockTimeoutMs);
+    const table = `${client.escapeIdentifier(scope.schema)}.schema_migrations`;
     // If this process dies during a long statement, PostgreSQL would otherwise notice only when the statement ends,
     // keeping the transaction open and the lock held. PostgreSQL 14+ checks the client every second instead.
     await client.query("SELECT set_config('client_connection_check_interval', '1000', false)").catch(error => {
       log('MIGRATION_CLIENT_CHECK_UNAVAILABLE ' + JSON.stringify({reason: String(error?.message || error)}));
     });
-    await client.query(`CREATE TABLE IF NOT EXISTS schema_migrations(
+    await client.query(`CREATE TABLE IF NOT EXISTS ${table}(
       filename text PRIMARY KEY,
       applied_at timestamptz NOT NULL DEFAULT now()
     )`);
-    const done = new Set((await client.query('SELECT filename FROM schema_migrations')).rows.map(row => row.filename));
+    const done = new Set((await client.query(`SELECT filename FROM ${table}`)).rows.map(row => row.filename));
     const pending = files.filter(file => !done.has(file));
     const {apply, held} = planMigrations(pending, policy);
     if (held.length) log('MIGRATIONS_PENDING_NOT_APPROVED ' + JSON.stringify({held}));
@@ -88,7 +98,7 @@ export async function migrate({env = process.env, log = console.log, dir = resol
       await client.query('BEGIN');
       try {
         await client.query(sql);
-        await client.query('INSERT INTO schema_migrations(filename) VALUES($1)',[file]);
+        await client.query(`INSERT INTO ${table}(filename) VALUES($1)`,[file]);
         await client.query('COMMIT');
         log('MIGRATION_APPLIED '+file);
       } catch (e) {
@@ -101,12 +111,19 @@ export async function migrate({env = process.env, log = console.log, dir = resol
     broken = error;
     throw error;
   } finally {
-    if (locked) {
-      try { await client.query('SELECT pg_advisory_unlock($1::int4, hashtext(current_schema()))', [MIGRATION_LOCK_CLASS]); }
-      catch (unlockError) { broken = unlockError; }
+    if (scope !== null) {
+      try {
+        const {rows} = await client.query('SELECT pg_advisory_unlock($1::int4, $2::int4) AS ok', [MIGRATION_LOCK_CLASS, scope.key]);
+        if (!rows[0].ok) broken = new MigrationError('MIGRATION_UNLOCK_FAILED', 'migration lock was not held at release');
+      } catch (unlockError) { broken = unlockError; }
     }
-    // A connection left in an unknown state (failed unlock, aborted transaction) is closed, which also frees its lock.
-    client.release(broken && locked ? true : undefined);
+    client.removeListener('error', onError);
+    // A connection that held the lock and ended in an unknown state (failed unlock, aborted transaction) is closed,
+    // which frees its lock and its session settings. A clean one is returned with the 1 s client check reset.
+    if (scope !== null && !broken) {
+      await client.query('RESET client_connection_check_interval').catch(error => { broken = error; });
+    }
+    client.release(broken && scope !== null ? true : undefined);
   }
 }
 

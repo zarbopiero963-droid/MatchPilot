@@ -73,7 +73,9 @@ Both gaps found by the PR #157 reviews were fixed in a dedicated PR under the ow
 **MIG-GAP-02: `migrate()` is mutually exclusive.**
 - **The lock:** `migrate()` takes a session advisory lock (class `MIGRATION_LOCK_CLASS`, key = hash of the current schema) before it even creates `schema_migrations`.
 - **Bounded wait:** the wait is limited by `MATCHPILOT_MIGRATION_LOCK_TIMEOUT_MS` (default 120 s) and fails closed with `MIGRATION_LOCK_TIMEOUT`. An invalid value fails with `BAD_MIGRATION_LOCK_TIMEOUT`.
-- **Release:** the lock is released in `finally`. A connection whose unlock failed is closed instead of returned to the pool.
+- **Release:** the lock is released in `finally`, under the schema and key fixed when it was taken, so a migration that changes `search_path` cannot leak it. The bookkeeping table is schema-qualified for the same reason. A connection whose unlock failed, or that ended in an unknown state, is closed instead of returned to the pool. A clean one is returned with the client check reset.
+- **Connection lost mid-migration:** `migrate()` rejects with the driver error instead of crashing the process. The server rolls back the open file and frees the lock with the connection.
+- **No schema:** if no schema of the `search_path` exists, `migrate()` fails with `MIGRATION_NO_SCHEMA`.
 - **Crashed process:** the migrator sets `client_connection_check_interval` (PostgreSQL 14+). If the process dies during a long statement, the server notices within about a second, rolls back the open file and frees the lock. Without this setting, the transaction and lock would stay held until the statement ended. On older servers the setting is skipped and logged as `MIGRATION_CLIENT_CHECK_UNAVAILABLE`.
 - **Verified on a real PostgreSQL, with separate processes:**
   - four concurrent migrators apply each file exactly once;
@@ -81,4 +83,8 @@ Both gaps found by the PR #157 reviews were fixed in a dedicated PR under the ow
   - a held lock times out without touching the schema;
   - a failing file rolls back and frees the lock;
   - a process killed mid-migration leaves no partial table, frees the lock, and a restart applies only the remaining file;
+  - a connection cut mid-migration rejects cleanly, with no crash, no partial table and the lock freed;
+  - a migration that changes `search_path` still releases the lock;
   - a refused connection fails at once.
+
+**Accepted risk:** any absolute Unix-socket path counts as local. A socket is on this machine, but a proxy socket (for example a cloud SQL proxy) can forward to a remote database. That is the same trust as a loopback tunnel. Offline and test environments must not run such proxies (PR #158 review NB-2).

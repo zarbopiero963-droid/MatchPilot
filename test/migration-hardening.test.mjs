@@ -125,8 +125,8 @@ function runMigrateProcess(schema, env, {dir} = {}) {
     child.stdout.on('data', chunk => { out += chunk; });
     child.stderr.on('data', chunk => { err += chunk; });
     child.on('error', fail);
-    child.on('close', code => {
-      try { done({code, ...JSON.parse(out || '{}'), stderr: err}); }
+    child.on('close', (code, signal) => {
+      try { done({...JSON.parse(out || '{}'), exitCode: code, signal, stderr: err}); }
       catch { fail(new Error(`child output not JSON (exit ${code}): ${out} ${err}`)); }
     });
   });
@@ -293,4 +293,60 @@ test('MIG-GAP-02: a connection error fails migrate() without hanging or applying
   });
   assert.equal(out.code, 3);
   assert.match(out.text, /^failed:/);
+});
+
+test('MIG-GAP-02: a connection cut mid-migration fails migrate() cleanly, with no crash and no partial change', {timeout: 120000}, async t => {
+  const admin = await adminClient(t);
+  if (!admin) return;
+  const dir = await mkdtemp(join(tmpdir(), 'mp-migrations-'));
+  try {
+    await writeFile(join(dir, '001-ok.sql'), 'CREATE TABLE cut_probe_ok(id int);');
+    await writeFile(join(dir, '002-slow.sql'), 'CREATE TABLE cut_probe_slow(id int); SELECT pg_sleep(30);');
+    await withSchema(admin, 'cut', async schema => {
+      const {MIGRATION_LOCK_CLASS} = await import('../src/migrate.mjs');
+      const running = runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test'}, {dir});
+      let pid = null;
+      const deadline = Date.now() + 30000;
+      while (!pid && Date.now() < deadline) {
+        pid = (await admin.query(`SELECT pid FROM pg_stat_activity WHERE query LIKE '%pg_sleep(30)%' AND pid <> pg_backend_pid()`)).rows[0]?.pid;
+        if (!pid) await new Promise(done => setTimeout(done, 100));
+      }
+      assert.ok(pid, 'migration 002 started');
+      await admin.query('SELECT pg_terminate_backend($1)', [pid]);
+      const run = await running;
+      assert.equal(run.exitCode, 0, `process must not crash: ${JSON.stringify(run)}`);
+      assert.equal(run.ok, false, 'migrate() rejects');
+      const free = (await admin.query('SELECT pg_try_advisory_lock($1::int4, hashtext($2)) AS ok', [MIGRATION_LOCK_CLASS, schema])).rows[0].ok;
+      assert.equal(free, true, 'lock freed with the connection');
+      await admin.query('SELECT pg_advisory_unlock($1::int4, hashtext($2))', [MIGRATION_LOCK_CLASS, schema]);
+      const tables = (await admin.query('SELECT table_name FROM information_schema.tables WHERE table_schema=$1 ORDER BY 1', [schema])).rows.map(row => row.table_name);
+      assert.deepEqual(tables, ['cut_probe_ok', 'schema_migrations'], 'the cut file rolled back');
+    });
+  } finally {
+    await rm(dir, {recursive: true, force: true});
+    await admin.end();
+  }
+});
+
+test('MIG-GAP-02: the lock is released even when a migration changes search_path; a missing schema fails clearly', {timeout: 120000}, async t => {
+  const admin = await adminClient(t);
+  if (!admin) return;
+  const dir = await mkdtemp(join(tmpdir(), 'mp-migrations-'));
+  try {
+    await writeFile(join(dir, '001-path.sql'), "CREATE TABLE path_probe(id int); SELECT set_config('search_path', 'pg_catalog', false);");
+    await withSchema(admin, 'path', async schema => {
+      const {MIGRATION_LOCK_CLASS} = await import('../src/migrate.mjs');
+      const run = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test'}, {dir});
+      assert.equal(run.ok, true, run.message);
+      const free = (await admin.query('SELECT pg_try_advisory_lock($1::int4, hashtext($2)) AS ok', [MIGRATION_LOCK_CLASS, schema])).rows[0].ok;
+      assert.equal(free, true, 'lock released under the key it was taken with');
+      await admin.query('SELECT pg_advisory_unlock($1::int4, hashtext($2))', [MIGRATION_LOCK_CLASS, schema]);
+    });
+    const missing = await runMigrateProcess(`missing_${process.pid}_${Date.now()}`, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_LOCK_TIMEOUT_MS: '500'}, {dir});
+    assert.equal(missing.ok, false);
+    assert.equal(missing.code, 'MIGRATION_NO_SCHEMA');
+  } finally {
+    await rm(dir, {recursive: true, force: true});
+    await admin.end();
+  }
 });
