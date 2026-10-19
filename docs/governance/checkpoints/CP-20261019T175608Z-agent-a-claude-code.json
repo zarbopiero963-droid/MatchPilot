@@ -1,0 +1,102 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "a301dd3a1389f77e8a3c16b18131693f30bae6dc",
+  "tree_sha": "8347dd2ed7b26cc2956a477a09444e72a50b112c",
+  "supersedes": "CP-20261019T172751Z-agent-a-claude-code",
+  "pr": 166,
+  "id": "CP-20261019T175608Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T17:56:08Z",
+  "activity": "QA-03 merged: PR #166 squash 208a126 on main; post-merge verification passed",
+  "task": "QA-03",
+  "issue": 3,
+  "requirements": [
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "main 208a126603b0b394289f4807407d9a37497470e4 (squash of PR #166, head a301dd3 checked with expectedHeadSha)"
+  ],
+  "tests": [
+    {
+      "command": "CI run 39294350501 on a301dd3 (all jobs, CI gate PASS per check)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "a301dd3a1389f77e8a3c16b18131693f30bae6dc",
+      "time": "2026-10-19T17:32:25Z",
+      "limits": [
+        "Exploratory QA success; PR clean"
+      ]
+    },
+    {
+      "command": "CI run 39295030938 on main 208a126 (push)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "208a126603b0b394289f4807407d9a37497470e4",
+      "time": "2026-10-19T17:48:30Z",
+      "limits": [
+        "time is an upper bound (status read after the check-in)"
+      ]
+    },
+    {
+      "command": "post-merge: fresh clone of main; certification.md row 7 isolated; 3 docs/audits packages; CI gate script and test; journeys menu-label check; governance:evidence ok; governance tests 50/50; governance:check PASS; src/ unchanged",
+      "result": "PASS",
+      "environment": "local container, Node 22",
+      "commit": "208a126603b0b394289f4807407d9a37497470e4",
+      "time": "2026-10-19T17:36:00Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39294350501,
+    "conclusion": "SUCCESS",
+    "head_sha": "a301dd3a1389f77e8a3c16b18131693f30bae6dc"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/166#issuecomment-6273228227",
+    "reviewed_sha": "a301dd3a1389f77e8a3c16b18131693f30bae6dc"
+  },
+  "findings": [
+    {
+      "id": "R1-B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "isolated Browser QA -> CI gate demo (0137ec3/04016de)"
+    },
+    {
+      "id": "R1-B-2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "truly blind AI evaluation run 2"
+    },
+    {
+      "id": "R2-NB-1..3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "carried into V-A: certification limit on src/ corrected, verbatim prompts archived, --base documented and needs --head"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01",
+    "MP-OWNER-QA-VISUAL-EXECUTION-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-RESUME-AFTER-EVIDENCE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T172751Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "V-A (audit A-1, A-2)",
+  "resume_conditions": [
+    "main contains 208a126603b0b394289f4807407d9a37497470e4"
+  ]
+}

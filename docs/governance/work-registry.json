@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 69,
+  "revision": 70,
   "tasks": [
     {
       "id": "R-01",
@@ -280,14 +280,30 @@
       "pr": 166,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T172751Z-agent-a-claude-code",
-      "pr_open": true
+      "latest_checkpoint": "CP-20261019T175608Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "V-A",
+      "title": "Visual audit bugs A-1 (mobile search outcome) and A-2 (squeezed provider values) with browser regression tests",
+      "issue": 3,
+      "pr": null,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
+      "state": "RUNNING",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": null,
+      "pr_open": false
     }
   ]
 }
