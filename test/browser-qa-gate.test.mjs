@@ -139,13 +139,23 @@ test('inherited keys, files outside the manifest and a wrong missing_required ar
 });
 
 test('the tested commit must contain the PR head (PR #164 NB-2)', async t => {
+  // A repository of its own with two commits: CI checkouts are shallow, so the test does not rely on this one's history.
   const {execFileSync} = await import('node:child_process');
-  const head = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
-  const parent = execFileSync('git', ['rev-parse', 'HEAD~1'], {encoding: 'utf8'}).trim();
-  const dir = evidence(t, r => { r.head_sha = head; r.tested_commit = parent; });
+  const repo = mkdtempSync(join(tmpdir(), 'mp-qa-git-'));
+  t.after(() => rmSync(repo, {recursive: true, force: true}));
+  const git = (...args) => execFileSync('git', args, {cwd: repo, encoding: 'utf8'}).trim();
+  git('init', '-q');
+  git('config', 'user.email', 'test@example.invalid');
+  git('config', 'user.name', 'test');
+  git('config', 'commit.gpgsign', 'false');
+  git('commit', '-q', '--allow-empty', '-m', 'one');
+  const parent = git('rev-parse', 'HEAD');
+  git('commit', '-q', '--allow-empty', '-m', 'two');
+  const head = git('rev-parse', 'HEAD');
   // The parent does not contain the head: refused even though the report agrees with itself.
-  refused(verifyReport(dir, {expectedHead: head, expectedCommit: parent, gitDir: process.cwd()}), /does not contain the PR head/);
-  const ok = verifyReport(evidence(t, r => { r.head_sha = parent; r.tested_commit = head; }), {expectedHead: parent, expectedCommit: head, gitDir: process.cwd()});
+  const dir = evidence(t, r => { r.head_sha = head; r.tested_commit = parent; });
+  refused(verifyReport(dir, {expectedHead: head, expectedCommit: parent, gitDir: repo}), /does not contain the PR head/);
+  const ok = verifyReport(evidence(t, r => { r.head_sha = parent; r.tested_commit = head; }), {expectedHead: parent, expectedCommit: head, gitDir: repo});
   assert.deepEqual(ok.errors, []);
 });
 
