@@ -1,0 +1,105 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T090500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T09:05:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-04-MIG: MIG-GAP-01 (real pg host check) and MIG-GAP-02 (cross-process migration lock) implemented RED -> GREEN; PR #158 opened",
+  "task": "R-04-MIG",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 23,
+  "pr": 158,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "3478239e516bcf4f4c4d6ad06639b4cb7e60f79b",
+  "tree_sha": "1cf3e65003a9116dd774239d99043ce358d70ee9",
+  "requirements": [],
+  "changes": [
+    "src/runtime-safety.mjs: isLocalDatabaseUrl judges the host pg resolves; PGHOST/PGHOSTADDR/hostaddr refused when non-local",
+    "src/migrate.mjs: per-schema advisory lock with bounded wait, release in finally, client_connection_check_interval",
+    "test/migration-hardening.test.mjs (11 tests)",
+    "docs/runtime-isolation.md"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/migration-hardening.test.mjs against 45efd50 code (RED)",
+      "result": "FAIL",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1",
+      "commit": "45efd503cb72b0486c05614c81b97c13f812964b",
+      "time": "2026-10-19T08:55:00Z",
+      "limits": [
+        "expected RED: 10 of 11 fail, incl. duplicate key pg_type_typname_nsp_index between concurrent processes and ECONNREFUSED 192.0.2.1 via ?host="
+      ]
+    },
+    {
+      "command": "npm test against throwaway PostgreSQL 16",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1",
+      "commit": "3478239e516bcf4f4c4d6ad06639b4cb7e60f79b",
+      "time": "2026-10-19T09:02:00Z",
+      "limits": [
+        "268 tests, 267 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only)",
+        "migration-hardening 11/11 on 5 consecutive runs"
+      ]
+    },
+    {
+      "command": "npm run check",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "3478239e516bcf4f4c4d6ad06639b4cb7e60f79b",
+      "time": "2026-10-19T09:02:00Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "MIG-GAP-01",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "?host= override bypassed the local-database check"
+    },
+    {
+      "id": "MIG-GAP-02",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "no lock against concurrent migrate() runs; real creation race reproduced"
+    },
+    {
+      "id": "MIG-CRASH-HOLD",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "a killed migrator kept its transaction and lock until the running statement ended; client_connection_check_interval added (PostgreSQL 14+, logged when unavailable)"
+    },
+    {
+      "id": "DEPLOY-TRIGGER",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "matchpilot-test keeps autoDeployTrigger commit; owner decision MP-OWNER-CONTINUE-20261019: stays suspended, verify and disable auto-deploy before any reactivation"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-D13-MIGRATIONS-AUTODEPLOY-20261019",
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01",
+    "MP-OWNER-AUTOMERGE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T085000Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI green and independent review on the PR #158 head; Render still suspended; merge-gate; then R-04b owner login.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": null
+}
