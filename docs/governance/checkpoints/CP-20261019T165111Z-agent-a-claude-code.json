@@ -1,0 +1,113 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "claude/permanent-evidence-01",
+  "commit_sha": "368aacdbfc5369099170ce4dc1224936a06df650",
+  "tree_sha": "4bb4e9370e95107b7929e800a7670aa7c52bc975",
+  "supersedes": "CP-20261019T152301Z-agent-a-claude-code",
+  "pr": 167,
+  "id": "CP-20261019T165111Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T16:51:11Z",
+  "activity": "EVIDENCE-01 merged: PR #167 squash d28cf5b on main; post-merge verification on main passed",
+  "task": "EVIDENCE-01",
+  "issue": 3,
+  "requirements": [],
+  "changes": [
+    "main d28cf5b2b678e6995ce5a9821d5f4185e649a532 (squash of PR #167, head 368aacd checked with expectedHeadSha)"
+  ],
+  "tests": [
+    {
+      "command": "CI run 39279759760 attempt 2 on 368aacd (Fast checks, PostgreSQL integration suite, Browser QA, Exploratory QA, CI gate)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "368aacdbfc5369099170ce4dc1224936a06df650",
+      "time": "2026-10-19T16:11:32Z",
+      "limits": [
+        "attempt 1 cancelled by the GitHub Actions incident (Classify cancelled before any test; CI gate failure); one re-run without commits",
+        "Fast checks job 118162131325: origin/evidence/audits fetched, MATCHPILOT_EVIDENCE_ARCHIVE=1, archive tests ok 29-31 not skipped, 57/57, governance:evidence ok true",
+        "PostgreSQL job 118162131132: 328 pass, 0 fail, 3 archive tests skipped (shallow checkout)",
+        "CI gate 118162886368 success with CLASSIFY/FAST/FULL/BROWSER_QA success"
+      ]
+    },
+    {
+      "command": "CI run 39287128887 on main d28cf5b (push)",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "d28cf5b2b678e6995ce5a9821d5f4185e649a532",
+      "time": "2026-10-19T16:50:28Z",
+      "limits": [
+        "time is an upper bound (status read at 16:50:28Z)"
+      ]
+    },
+    {
+      "command": "post-merge: fresh clone of main; docs/audits package (report, 6 comparisons, manifest 9 entries OK, evidence.json); decision and AGENTS §13 present; npm run governance:evidence ok; MATCHPILOT_EVIDENCE_ARCHIVE=1 node --test test/governance-evidence.test.mjs 8/8; governance:check PASS",
+      "result": "PASS",
+      "environment": "local container, Node 22",
+      "commit": "d28cf5b2b678e6995ce5a9821d5f4185e649a532",
+      "time": "2026-10-19T16:45:00Z",
+      "limits": [
+        "time is an upper bound of the post-merge run"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39279759760,
+    "conclusion": "SUCCESS",
+    "head_sha": "368aacdbfc5369099170ce4dc1224936a06df650"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/167#issuecomment-6271522883",
+    "reviewed_sha": "368aacdbfc5369099170ce4dc1224936a06df650"
+  },
+  "findings": [
+    {
+      "id": "R1-B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "evidence.json not an object skipped the checks"
+    },
+    {
+      "id": "R2-B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "archive tests failed in shallow CI jobs; required only where MATCHPILOT_EVIDENCE_ARCHIVE=1 (Fast checks)"
+    },
+    {
+      "id": "R1-NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "evidence/audits protected by owner ruleset 25414280 (active, exact ref, deletion + non_fast_forward, no bypass), verified via the GitHub API"
+    },
+    {
+      "id": "R1/R2-NB",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "archive read back from git (origin only), essential files equal to the archive, stray/linked entries, manifest duplicates, real dates, index table, registry, decision wording, real read-back time"
+    },
+    {
+      "id": "R3-NOTE",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "package README.md is narrative and not compared with the archive; protected by review"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-RESUME-AFTER-EVIDENCE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T152301Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "resume QA-03 (PR #166) from its saved state",
+  "resume_conditions": [
+    "main contains d28cf5b2b678e6995ce5a9821d5f4185e649a532"
+  ]
+}

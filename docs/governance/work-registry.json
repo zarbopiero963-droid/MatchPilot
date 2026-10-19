@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 63,
+  "revision": 67,
   "tasks": [
     {
       "id": "R-01",
@@ -258,10 +258,26 @@
       "pr_open": false
     },
     {
+      "id": "EVIDENCE-01",
+      "title": "Permanent audit evidence: docs/audits, evidence/audits archive, evidence checker (MP-OWNER-PERMANENT-EVIDENCE-01)",
+      "issue": 3,
+      "pr": 167,
+      "branch": "claude/permanent-evidence-01",
+      "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261019T165111Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
       "id": "QA-03",
       "title": "Browser QA end-to-end certification and AI exploratory agent evaluation (MP-OWNER-QA-VISUAL-EXECUTION-01)",
       "issue": 3,
-      "pr": null,
+      "pr": 166,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
       "state": "RUNNING",
@@ -271,7 +287,7 @@
       },
       "lease": null,
       "latest_checkpoint": null,
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }

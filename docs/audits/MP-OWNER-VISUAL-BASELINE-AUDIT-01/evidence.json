@@ -1,0 +1,15 @@
+{
+  "schema": "mp-evidence-v1",
+  "audit_id": "MP-OWNER-VISUAL-BASELINE-AUDIT-01",
+  "commit_sha": "3d8f5c96c73e3eace0436bf83edccfa74d9a183a",
+  "date": "2026-10-19",
+  "environment": "Claude Code cloud container (Linux); Chromium 141.0.7390.37 via playwright-core 1.56.1; viewports 1280x800 and 390x844; site at main 3d8f5c9 in test mode on a throwaway PostgreSQL 16 schema with the QA archive; mockup docs/mockups/matchpilot-trading-os.html at 3d8f5c9 (approved baseline #103 = 5b39f33)",
+  "outcome": "Report with categories A/B/C/D: 2 P3 bugs (A-1 mobile search result not perceivable, A-2 provider values wrapping), mockup drift after #103, owner decisions D-1..D-7 requested (ratified as MP-OWNER-VISUAL-BASELINE-D1-D7-01)",
+  "archive": {
+    "branch": "evidence/audits",
+    "commit": "0c9e5d3e1920d29f2857fbc7e72eee83452d4476",
+    "path": "MP-OWNER-VISUAL-BASELINE-AUDIT-01",
+    "zip_sha256": "9478d8547719025c35b299bb6227b3ebeab4dcee3182fbe019f8ecfa9a9f48d6",
+    "url": "https://github.com/zarbopiero963-droid/MatchPilot/tree/0c9e5d3e1920d29f2857fbc7e72eee83452d4476/MP-OWNER-VISUAL-BASELINE-AUDIT-01"
+  }
+}
