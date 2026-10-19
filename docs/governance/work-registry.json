@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 39,
+  "revision": 40,
   "tasks": [
     {
       "id": "R-01",
@@ -53,17 +53,17 @@
       "id": "R-04",
       "title": "Owner/admin auth baseline",
       "issue": 23,
-      "pr": null,
+      "pr": 157,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "BLOCKED",
+      "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261018T214600Z-agent-a-claude-code",
-      "pr_open": false
+      "latest_checkpoint": "CP-20261019T075500Z-agent-a-claude-code",
+      "pr_open": true
     },
     {
       "id": "R-08",
@@ -104,14 +104,14 @@
       "pr": 156,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T073122Z-agent-a-claude-code",
-      "pr_open": true
+      "latest_checkpoint": "CP-20261019T074500Z-agent-a-claude-code",
+      "pr_open": false
     }
   ]
 }
