@@ -42,8 +42,8 @@ function bundle(t, mutate = () => {}) {
   const findings = [{id: 'EX-1', kind: 'js-error', message: 'boom', key: 'js-error: boom', route: '/#/', viewport: 'desktop',
     steps: [{type: 'goto', url: '/#/'}, {type: 'button', query: 'main button', index: 0, text: 'x'}], screenshot: 'screenshots/01-desktop-finding-1.png',
     classification: 'UNTRIAGED', severity: 'UNTRIAGED', reproduced: true}];
-  const report = {schema: 'mp-browser-explore-v1', head_sha: HEAD, tested_commit: COMMIT, generated_at: new Date().toISOString(), seed: 1,
-    trails, totals: {actions: 10, action_errors: 0, findings: 1, reproduced: 1}, findings, observations, injected_defect: false,
+  const report = {schema: 'mp-browser-explore-v1', head_sha: HEAD, tested_commit: COMMIT, working_tree_clean: true, restricted: false, generated_at: new Date().toISOString(),
+    seed: 1, actions_per_route: 5, viewports: ['desktop', 'mobile'], routes: ['/#/'], trails, totals: {actions: 10, action_errors: 0, findings: 1, reproduced: 1}, findings, observations, injected_defect: false,
     ai_review: {status: 'NOT_VERIFIED'}, files};
   mutate(report, dir);
   writeFileSync(join(dir, 'exploration.json'), JSON.stringify(report));
@@ -55,10 +55,11 @@ const check = (dir, opts = {}) => verifyExploration(dir, {expectedHead: HEAD, ex
 function review(t, dir, mutate = () => {}) {
   const exploration = JSON.parse(readFileSync(join(dir, 'exploration.json'), 'utf8'));
   const body = {schema: 'mp-browser-ai-review-v1', head_sha: exploration.head_sha, exploration_sha256: sha256(readFileSync(join(dir, 'exploration.json'))),
-    reviewer: {kind: 'claude-code-session', session: 'authorized owner session'}, reviewed_at: new Date().toISOString(),
+    reviewer: {kind: 'claude-code-session', session: 'https://claude.ai/code/session_test'}, reviewed_at: new Date().toISOString(),
     observations_reviewed: exploration.observations.map(item => item.file), observations_not_reviewed: {},
     findings: exploration.findings.filter(item => item.reproduced).map((item, index) => ({id: `AI-${index + 1}`, source: 'crawler', ref: item.id,
-      classification: 'BUG', severity: 'P3', status: 'OPEN', summary: 'reproduced error on the dashboard', evidence: [item.screenshot]})),
+      classification: 'BUG', severity: 'P3', status: 'DEFERRED', reason: 'cosmetic', impact: 'none on data', follow_up: 'V-A',
+      summary: 'reproduced error on the dashboard', evidence: [item.screenshot]})),
     verdict: 'NO_BLOCKING'};
   mutate(body);
   const path = join(temp(t, 'mp-ai-review-'), 'ai-review.json');
@@ -85,6 +86,7 @@ test('crawler bundles that are missing, foreign, altered or incomplete are refus
   refused(check(bundle(t, r => { r.tested_commit = 'd'.repeat(40); })), /not the checked-out commit/);
   refused(check(bundle(t, r => { r.schema = 'mp-browser-explore-v0'; })), /unexpected schema/);
   refused(check(bundle(t, r => { r.injected_defect = true; })), /injected defect/);
+  refused(check(bundle(t, r => { r.restricted = true; })), /restricted to some routes/);
   refused(check(bundle(t, r => { r.generated_at = '2999-01-01T00:00:00Z'; })), /future/);
   refused(check(bundle(t, (r, dir) => { writeFileSync(join(dir, 'traces/01-mobile.zip'), 'edited'); })), /changed after the run/);
   refused(check(bundle(t, (r, dir) => { writeFileSync(join(dir, 'screenshots/planted.png'), 'x'); })), /not in the manifest/);
@@ -93,12 +95,39 @@ test('crawler bundles that are missing, foreign, altered or incomplete are refus
   refused(check(bundle(t, r => { r.findings[0].screenshot = 'toString'; })), /screenshot not in the evidence/);
   refused(check(bundle(t, r => { delete r.findings[0].reproduced; r.totals.reproduced = 0; })), /reproduction not attempted/);
   refused(check(bundle(t, r => { r.findings.push({...r.findings[0]}); r.totals.findings = 2; r.totals.reproduced = 2; })), /reported twice/);
-  refused(check(bundle(t, r => { r.trails = []; })), /no exploration trails/);
+  refused(check(bundle(t, r => { r.trails = []; })), /has 0 trails/);
   refused(check(bundle(t, r => { r.trails[0].sha256 = 'x'; })), /without a SHA-256/);
   refused(check(bundle(t, r => { r.observations = r.observations.filter(item => item.label !== 'end'); })), /observation end missing/);
   refused(check(bundle(t, r => { r.totals.actions = 99; })), /totals\.actions/);
   refused(check(bundle(t, r => { r.totals.reproduced = 0; })), /totals do not match/);
   refused(check(bundle(t, r => { r.note = 'gh' + 'p_' + 'Z'.repeat(36); })), /secret-like/);
+  refused(check(bundle(t, r => { r.working_tree_clean = false; })), /modified working tree/);
+  // Coverage (PR #165 NB-2): a declared route or viewport without its trail, or a run with fewer actions, is refused.
+  refused(check(bundle(t, r => { r.trails = r.trails.filter(trail => trail.viewport !== 'mobile'); r.totals.actions = 5; })), /\/#\/\/mobile has 0 trails/);
+  refused(check(bundle(t, r => { r.routes.push('/#/search'); })), /\/#\/search\/desktop has 0 trails/);
+  refused(check(bundle(t, r => { r.trails[0].actions = 0; r.totals.actions = 5; })), /ran 0 actions, not 5/);
+  refused(check(bundle(t, r => { r.actions_per_route = 'abc'; })), /actions_per_route/);
+});
+
+test('malformed bundles and reviews are refused with an error, never a crash (PR #165 NB-1)', t => {
+  const write = (dir, name, value) => { writeFileSync(join(dir, name), typeof value === 'string' ? value : JSON.stringify(value)); return dir; };
+  refused(check(write(temp(t, 'mp-explore-null-'), 'exploration.json', 'null')), /not a JSON object/);
+  refused(check(write(temp(t, 'mp-explore-list-'), 'exploration.json', [])), /not a JSON object/);
+  refused(check(bundle(t, r => { r.findings = [null]; })), /malformed entries|totals/);
+  refused(check(bundle(t, r => { r.trails.push(null); })), /malformed entries/);
+  refused(check(bundle(t, r => { r.observations = {}; })), /must be lists/);
+  refused(check(bundle(t, r => { r.findings[0].steps = [null]; })), /no replayable sequence/);
+  refused(check(bundle(t, (r, dir) => { mkdirSync(join(dir, 'screenshots/dir.png')); r.files['screenshots/dir.png'] = 'x'; })), /evidence missing: screenshots\/dir\.png/);
+  const dir = bundle(t);
+  const opts = {expectedHead: HEAD};
+  for (const body of ['null', '[]', '"x"']) {
+    const path = join(temp(t, 'mp-ai-review-'), 'ai-review.json');
+    writeFileSync(path, body);
+    refused(verifyAiReview(dir, path, opts), /not a JSON object/);
+  }
+  refused(verifyAiReview(dir, review(t, dir, r => { r.findings = [null]; }), opts), /malformed review findings/);
+  refused(verifyAiReview(dir, review(t, dir, r => { r.findings = {}; }), opts), /findings must be a list/);
+  refused(verifyAiReview(dir, review(t, dir, r => { r.observations_reviewed = null; r.observations_not_reviewed = 'x'; }), opts), /neither reviewed nor excused/);
 });
 
 test('a complete AI review of the exact bundle is accepted, with a computed verdict', t => {
@@ -106,10 +135,10 @@ test('a complete AI review of the exact bundle is accepted, with a computed verd
   const result = verifyAiReview(dir, review(t, dir), {expectedHead: HEAD});
   assert.deepEqual(result.errors, []);
   assert.equal(result.verdict, 'NO_BLOCKING');
-  const blocking = verifyAiReview(dir, review(t, dir, r => { r.findings[0].severity = 'P1'; r.verdict = 'BLOCKING'; }), {expectedHead: HEAD});
+  const blocking = verifyAiReview(dir, review(t, dir, r => { Object.assign(r.findings[0], {severity: 'P1', status: 'OPEN'}); r.verdict = 'BLOCKING'; }), {expectedHead: HEAD});
   assert.deepEqual(blocking.errors, []);
   assert.equal(blocking.verdict, 'BLOCKING');
-  const fixed = verifyAiReview(dir, review(t, dir, r => { Object.assign(r.findings[0], {severity: 'P0', status: 'FIXED', regression_test: 'test/x.test.mjs'}); }), {expectedHead: HEAD});
+  const fixed = verifyAiReview(dir, review(t, dir, r => { Object.assign(r.findings[0], {severity: 'P0', status: 'FIXED', regression_test: 'test/explore.test.mjs'}); }), {expectedHead: HEAD});
   assert.deepEqual(fixed.errors, []);
   assert.equal(fixed.verdict, 'NO_BLOCKING');
 });
@@ -123,19 +152,37 @@ test('AI reviews that are missing, foreign, incomplete or with a declared verdic
   refused(verifyAiReview(dir, review(t, dir, r => { r.exploration_sha256 = 'f'.repeat(64); }), opts), /not about this exploration bundle/);
   refused(verifyAiReview(dir, review(t, dir), {expectedHead: 'c'.repeat(40)}), /not about this head/);
   refused(verifyAiReview(dir, review(t, dir, r => { r.reviewer = {}; }), opts), /reviewer not identified/);
+  refused(verifyAiReview(dir, review(t, dir, r => { r.reviewer.kind = 'openai-api-in-ci'; }), opts), /reviewer not identified/);
+  refused(verifyAiReview(dir, review(t, dir, r => { r.reviewer.session = ''; }), opts), /reviewer not identified/);
   refused(verifyAiReview(dir, review(t, dir, r => { r.observations_reviewed.pop(); }), opts), /neither reviewed nor excused/);
-  const excused = verifyAiReview(dir, review(t, dir, r => { r.observations_not_reviewed[r.observations_reviewed.pop()] = 'image unreadable'; }), opts);
+  // Excuses are bounded: one of eight is fine; all excused is not a review (PR #165 B-1).
+  const excused = verifyAiReview(dir, review(t, dir, r => { r.observations_not_reviewed[r.observations_reviewed.shift()] = 'image unreadable'; }), opts);
   assert.deepEqual(excused.errors, []);
+  refused(verifyAiReview(dir, review(t, dir, r => { for (const file of r.observations_reviewed.splice(0)) r.observations_not_reviewed[file] = 'skipped'; }), opts), /observations excused|no observation reviewed/);
+  refused(verifyAiReview(dir, review(t, dir, r => {
+    for (const file of r.observations_reviewed.filter(file => file.includes('mobile'))) r.observations_not_reviewed[file] = 'skipped';
+    r.observations_reviewed = r.observations_reviewed.filter(file => !file.includes('mobile'));
+  }), opts), /no observation reviewed for \/#\/\/mobile|observations excused/);
   refused(verifyAiReview(dir, review(t, dir, r => { r.observations_reviewed.push('observations/invented.json'); }), opts), /not in the bundle/);
   refused(verifyAiReview(dir, review(t, dir, r => { r.findings = []; }), opts), /EX-1 not triaged/);
   refused(verifyAiReview(dir, review(t, dir, r => { r.findings[0].classification = 'FINE'; }), opts), /invalid classification/);
   refused(verifyAiReview(dir, review(t, dir, r => { delete r.findings[0].severity; }), opts), /BUG without severity/);
   refused(verifyAiReview(dir, review(t, dir, r => { Object.assign(r.findings[0], {classification: 'NOT_A_DEFECT', reason: ''}); }), opts), /NOT_A_DEFECT without a reason/);
-  refused(verifyAiReview(dir, review(t, dir, r => { r.findings[0].status = 'FIXED'; }), opts), /FIXED without a regression test/);
+  refused(verifyAiReview(dir, review(t, dir, r => { r.findings[0].status = 'FIXED'; }), opts), /FIXED without an existing regression test/);
+  for (const path of ['test/invented.test.mjs', '../outside.test.mjs', 'README.md', 'test'])
+    refused(verifyAiReview(dir, review(t, dir, r => { Object.assign(r.findings[0], {severity: 'P0', status: 'FIXED', regression_test: path}); }), opts), /FIXED without an existing regression test/);
+  for (const classification of ['NOT_VERIFIED', 'BLOCKED', 'DATA_MISSING', 'DATA_QUALITY_ISSUE'])
+    refused(verifyAiReview(dir, review(t, dir, r => { Object.assign(r.findings[0], {classification, reason: ''}); }), opts), new RegExp(`${classification} without a reason`));
+  refused(verifyAiReview(dir, review(t, dir, r => { r.findings[0].status = 'IGNORED'; }), opts), /invalid status/);
+  refused(verifyAiReview(dir, review(t, dir, r => { r.findings[0].status = 'OPEN'; }), opts), /open P3 BUG/);
+  refused(verifyAiReview(dir, review(t, dir, r => { r.findings[0].follow_up = ''; }), opts), /DEFERRED without reason, impact and follow_up/);
+  refused(verifyAiReview(dir, review(t, dir, r => { r.findings[0].severity = 'P1'; r.verdict = 'BLOCKING'; }), opts), /P1 BUG cannot be deferred/);
+  refused(verifyAiReview(dir, review(t, dir, r => { r.findings.push({...r.findings[0]}); }), opts), /id missing or repeated/);
+  refused(verifyAiReview(dir, review(t, dir, r => { r.findings.push({...r.findings[0], id: 'AI-9', ref: 'EX-404'}); }), opts), /EX-404, not a crawler finding/);
   refused(verifyAiReview(dir, review(t, dir, r => { r.findings[0].summary = ' '; }), opts), /without a summary/);
   refused(verifyAiReview(dir, review(t, dir, r => { r.findings[0].evidence = ['screenshots/invented.png']; }), opts), /not in the bundle/);
   refused(verifyAiReview(dir, review(t, dir, r => { r.findings[0].source = 'guess'; }), opts), /unknown source/);
-  refused(verifyAiReview(dir, review(t, dir, r => { r.findings[0].severity = 'P0'; }), opts), /declared verdict NO_BLOCKING but the findings give BLOCKING/);
+  refused(verifyAiReview(dir, review(t, dir, r => { Object.assign(r.findings[0], {severity: 'P0', status: 'OPEN'}); }), opts), /declared verdict NO_BLOCKING but the findings give BLOCKING/);
   refused(verifyAiReview(dir, review(t, dir, r => { r.reviewer.token = 'gh' + 'p_' + 'Z'.repeat(36); }), opts), /secret-like/);
   // The bundle changed after the review: the review no longer names it.
   const path = review(t, dir);
@@ -169,8 +216,14 @@ test('the same seed on the same site replays the same exploration, and its bundl
   const other = await explore(t, {...options, seed: 5});
   assert.notEqual(other.report.trails[0].sha256, first.report.trails[0].sha256, 'another seed explores differently');
   const {report, out} = first;
+  // A restricted test run is refused as evidence, and so is a run on a modified tree (a local run while developing);
+  // nothing else may be wrong with the real bundle.
   const verified = verifyExploration(out, {expectedHead: report.head_sha, expectedCommit: report.tested_commit});
-  assert.deepEqual(verified.errors, []);
+  assert.equal(report.restricted, true);
+  assert.deepEqual(report.routes, ['/#/']);
+  const expected = ['the run was restricted to some routes (test run): not valid evidence'];
+  if (!report.working_tree_clean) expected.unshift('the run was made on a modified working tree');
+  assert.deepEqual(verified.errors, expected);
   for (const item of report.observations) assert.ok(existsSync(join(out, item.screenshot)) && existsSync(join(out, item.file)));
   // An altered copy of the real bundle is refused.
   const altered = temp(t, 'mp-explore-altered-');

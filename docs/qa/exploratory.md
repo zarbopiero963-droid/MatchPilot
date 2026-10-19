@@ -18,13 +18,13 @@ The crawler alone is **not** an exploratory AI agent and is never declared one.
 2. discovers the routes (the menu, plus the Daily Board on the busy day and a search with results);
 3. on every route and viewport performs N actions chosen by a seeded PRNG among the visible controls: links, buttons, selects, checkboxes, text, date and number fields (with edge values: empty, long, markup, quotes, emoji, out-of-range dates and numbers), back and reload;
 4. after every action waits until no request has been in flight for 300 ms (a hash route changes without a page load) and checks: JavaScript errors, console errors (except the browser's line for a refused 4xx input), HTTP 5xx, failed requests, a view stuck loading, a blank view, and the gate's page invariants (raw values, overflow, basic accessibility, clipped text, overlapping controls);
-5. replays every finding's action sequence in a fresh browser context and marks it `reproduced` only when the same problem appears again;
+5. replays every finding's action sequence at once in a fresh browser context and marks it `reproduced` only when the same problem appears again; a problem that does not reproduce may be reported again on later occurrences (at most 3), so a first unlucky occurrence never hides a reproducible one; what an action caused before leaving the site (an error, a failed request) is reported too;
 6. records observations for the AI review: screenshot, accessibility snapshot and visible text of every route and viewport, when it opens and after the actions;
-7. writes `exploration.json` (schema `mp-browser-explore-v1`) with the trails (SHA-256 of each route's action sequence), totals, findings with their steps, observations and the SHA-256 of every file. Exit 1 when a reproduced finding exists.
+7. writes `exploration.json` (schema `mp-browser-explore-v1`) with the explored routes and viewports, the actions per route, the trails (SHA-256 of each route's action sequence), totals, findings with their steps, observations, whether the working tree was clean, and the SHA-256 of every file. Exit 1 when a reproduced finding exists. A run restricted to some routes (tests) is marked `restricted` and is never evidence.
 
 Determinism: the same seed on the same site gives the same trails (`test/explore.test.mjs`). A different seed explores differently. A route the explorer leaves (history before the first page) restarts without a check.
 
-`node tools/qa/verify-exploration.mjs <dir> --head <PR head> --commit <checked-out commit>` accepts the bundle only when it is for that head and commit, unmodified and complete (manifest rules shared with the gate verifier), with no test hook, every finding replayable with a screenshot and a reproduction result, every trail hashed with its observations, and totals that match.
+`node tools/qa/verify-exploration.mjs <dir> --head <PR head> --commit <checked-out commit>` accepts the bundle only when it is for that head and commit, on a clean tree, unmodified and complete (manifest rules shared with the gate verifier), with no test hook and no route restriction, every declared route run on every declared viewport once with the declared number of actions, every finding replayable with a screenshot and a reproduction result, every trail hashed with its observations, and totals that match. A malformed file is an error, never a crash.
 
 ## AI review procedure
 
@@ -46,19 +46,30 @@ Who: a Claude agent in a Claude Code session the owner authorized. Never a paid 
   "observations_reviewed": ["observations/01-desktop-open.json", "..."],
   "observations_not_reviewed": {"observations/…json": "reason"},
   "findings": [
-    {"id": "AI-1", "source": "ai", "classification": "BUG", "severity": "P3", "status": "OPEN",
-     "summary": "…", "evidence": ["observations/05-mobile-end.png"], "regression_test": null}
+    {"id": "AI-1", "source": "ai", "classification": "BUG", "severity": "P3", "status": "DEFERRED",
+     "summary": "…", "evidence": ["observations/05-mobile-end.png"],
+     "reason": "…", "impact": "…", "follow_up": "V-A"},
+    {"id": "AI-2", "source": "crawler", "ref": "EX-1", "classification": "BUG", "severity": "P1", "status": "FIXED",
+     "summary": "…", "evidence": ["screenshots/03-desktop-finding-1.png"], "regression_test": "test/web-e2e.test.mjs"}
   ],
   "verdict": "NO_BLOCKING"
 }
 ```
 
-6. Verify it: `node tools/qa/verify-exploration.mjs <dir> --head <head> --review ai-review.json`. The review is refused when it names another bundle or head, skips an observation without a reason, leaves a reproduced crawler finding untriaged, uses a classification outside BUG, DATA_MISSING, DATA_QUALITY_ISSUE, NOT_VERIFIED, BLOCKED, NOT_A_DEFECT (the last with a reason), gives a BUG no severity P0–P3, marks a finding FIXED without naming its regression test, cites evidence outside the bundle, carries a secret-like value, or declares a verdict different from the computed one (BLOCKING when an open P0/P1 BUG exists).
+6. Verify it: `node tools/qa/verify-exploration.mjs <dir> --head <head> --review ai-review.json` (from the repository root). The review is refused when:
+   - it names another bundle or head, or its reviewer is not `claude-code-session` with the session link;
+   - it skips an observation without a reason, excuses more than 25% of them, or reviews none for some route and viewport;
+   - it leaves a reproduced crawler finding untriaged, refers to a crawler finding that does not exist, or repeats an id;
+   - a classification is outside BUG, DATA_MISSING, DATA_QUALITY_ISSUE, NOT_VERIFIED, BLOCKED, NOT_A_DEFECT, or is not a BUG and has no reason;
+   - a BUG has no severity P0–P3, or a status is not OPEN, FIXED or DEFERRED;
+   - FIXED does not name an existing regression test (`test/*.test.mjs` or `tools/qa/journeys.mjs`);
+   - DEFERRED is used for a P0/P1, or lacks reason, impact and follow_up; an open P2/P3 BUG is neither fixed nor deferred;
+   - evidence is cited outside the bundle, a secret-like value appears, or the declared verdict differs from the computed one (BLOCKING when an open P0/P1 BUG exists).
 7. Publish the outcome in the PR (or the issue) with the verifier's output. Every confirmed BUG becomes a regression test (a journey step or a unit test), RED before the fix and GREEN after; open P0/P1 block the merge; P2/P3 may be deferred with reason, impact and follow-up.
 
 ## Limits
 
-- **Not a merge gate:** `Exploratory QA` is informational and not part of `CI gate`; level A stays the hard gate. A reproduced finding fails that job and must be triaged before the merge.
+- **Not a merge gate:** `Exploratory QA` is informational and not part of `CI gate`; level A stays the hard gate. A reproduced finding fails that job and must be triaged before the merge, but nothing enforces that triage yet: neither `CI gate` nor `merge-gate` takes the exploration as input. Wiring it in is evaluated in QA-03.
 - **The AI review is evidence about one bundle, not a certification of the agent.** Whether the AI exploratory agent is reliable is evaluated separately in QA-03; until then its status is NOT VERIFIED.
 - **Scope:** the hash routes of the site; `/coverage` and `/login` are out of scope. Generic properties only: whether a value is right is the review's job and, for the API, the journeys'.
 - **Data:** the QA archive fixture, not production data.

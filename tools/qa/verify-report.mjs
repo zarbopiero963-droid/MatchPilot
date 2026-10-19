@@ -50,7 +50,7 @@ export function checkManifest(dir, manifest, reportName) {
   for (const [path, digest] of Object.entries(files)) {
     if (path.includes('..') || path.startsWith('/')) { errors.push(`unsafe evidence path ${path}`); continue; }
     const full = join(dir, path);
-    if (!existsSync(full)) errors.push(`evidence missing: ${path}`);
+    if (!existsSync(full) || !statSync(full).isFile()) errors.push(`evidence missing: ${path}`);
     else if (sha256(readFileSync(full)) !== digest) errors.push(`evidence changed after the run: ${path}`);
   }
   return {errors, listed};

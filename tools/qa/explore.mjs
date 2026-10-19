@@ -154,6 +154,7 @@ async function check(page, drain) {
   return problems;
 }
 
+const MAX_ATTEMPTS = 3;
 const keyOf = problem => `${problem.kind}: ${problem.message.replace(/\d+/g, 'N').slice(0, 160)}`;
 
 // Runs an action sequence in a fresh context and reports whether the same problem appears again.
@@ -177,10 +178,12 @@ async function replay(browser, viewport, base, steps, key, contextHook) {
 }
 
 export async function runExploration({out, seed = 1, actions = 30, viewports = Object.keys(VIEWPORTS), headSha = process.env.QA_HEAD_SHA, contextHook = null, onlyRoutes = null} = {}) {
+  if (!Number.isInteger(seed) || !Number.isInteger(actions) || actions < 1) throw new Error('seed must be an integer and actions a positive integer');
   out = resolve(out);
   if (existsSync(out) && readdirSync(out).length) throw new Error(`--out ${out} is not empty`);
   for (const dir of ['screenshots', 'observations', 'traces']) mkdirSync(join(out, dir), {recursive: true});
   const testedCommit = git(['rev-parse', 'HEAD']);
+  const dirty = git(['status', '--porcelain', '--untracked-files=no']) !== '';
   return withQaEnvironment(async ({browser, server, seed: archive}) => {
     const base = server.base;
     const dates = [archive.busyDay, ...archive.eredivisie.dates.slice(0, 2)];
@@ -195,7 +198,10 @@ export async function runExploration({out, seed = 1, actions = 30, viewports = O
     }
     const findings = [];
     const observations = [];
-    const seen = new Set();
+    // Per problem key: reproduced once (no more reports) or attempts so far. A first occurrence that does not reproduce
+    // does not hide a later one that would (up to MAX_ATTEMPTS occurrences per key).
+    const reproducedKeys = new Set();
+    const attempts = new Map();
     let total = 0;
     let actionErrors = 0;
     let routeIndex = 0;
@@ -228,6 +234,21 @@ export async function runExploration({out, seed = 1, actions = 30, viewports = O
           writeFileSync(join(out, file), JSON.stringify(record, null, 2) + '\n');
           observations.push({route, viewport, label, file, screenshot: shot});
         };
+        // Reports each new problem with its sequence and replays it at once in a fresh context.
+        const report = async problems => {
+          for (const problem of problems) {
+            const key = keyOf(problem);
+            if (reproducedKeys.has(key) || (attempts.get(key) ?? 0) >= MAX_ATTEMPTS) continue;
+            attempts.set(key, (attempts.get(key) ?? 0) + 1);
+            const shot = `screenshots/${tag}-finding-${findings.length + 1}.png`;
+            await page.screenshot({path: join(out, shot), fullPage: true}).catch(() => {});
+            const sequence = steps.map(step => step.type === 'goto' ? {type: 'goto', url: step.url} : step);
+            const reproduced = await replay(browser, viewport, base, sequence, key, contextHook);
+            if (reproduced) reproducedKeys.add(key);
+            findings.push({id: `EX-${findings.length + 1}`, kind: problem.kind, message: problem.message, key, route, viewport,
+              steps: sequence, screenshot: shot, reproduced, classification: 'UNTRIAGED', severity: 'UNTRIAGED'});
+          }
+        };
         await observe('open');
         for (let i = 0; i < actions; i++) {
           const action = chooseAction(random, await candidates(page), dates);
@@ -237,25 +258,17 @@ export async function runExploration({out, seed = 1, actions = 30, viewports = O
           // A control that vanished or changed between discovery and action is not a site defect: counted, not reported.
           await perform(page, action).catch(() => { actionErrors++; });
           await settle(page);
-          // Leaving the site (history before the first page, an external page) restarts the route without a check:
-          // what is outside the site is not the site's defect, and sequences stay short and replayable.
+          // Leaving the site (history before the first page, an external page) restarts the route: what the action
+          // caused before leaving (an error, a failed request) is still reported; the page left behind is not checked.
           if (!onSite(page, base) || (await page.locator('main').count()) === 0) {
+            await report(drain());
             await page.goto(`${base}${route}`);
             await settle(page);
             drain();
             steps = [{type: 'goto', url: route}];
             continue;
           }
-          for (const problem of await check(page, drain)) {
-            const key = keyOf(problem);
-            if (seen.has(key)) continue;
-            seen.add(key);
-            const shot = `screenshots/${tag}-finding-${findings.length + 1}.png`;
-            await page.screenshot({path: join(out, shot), fullPage: true}).catch(() => {});
-            findings.push({id: `EX-${findings.length + 1}`, kind: problem.kind, message: problem.message, key, route, viewport,
-              steps: steps.map(step => step.type === 'goto' ? {type: 'goto', url: step.url} : step), screenshot: shot,
-              classification: 'UNTRIAGED', severity: 'UNTRIAGED'});
-          }
+          await report(await check(page, drain));
         }
         await observe('end');
         trails.push({route, viewport, actions: trail.length, sha256: sha256(Buffer.from(JSON.stringify(trail)))});
@@ -263,13 +276,13 @@ export async function runExploration({out, seed = 1, actions = 30, viewports = O
         await context.close();
       }
     }
-    // Deterministic reproduction of every finding in a fresh context.
-    for (const finding of findings) finding.reproduced = await replay(browser, finding.viewport, base, finding.steps, finding.key, contextHook);
     const files = Object.fromEntries(listFiles(out).filter(path => !path.endsWith('exploration.json'))
       .map(path => [relative(out, path).split('\\').join('/'), sha256(readFileSync(path))]));
     const report = {
-      schema: EXPLORE_SCHEMA, head_sha: headSha || testedCommit, tested_commit: testedCommit, generated_at: new Date().toISOString(),
-      browser: `${browser.browserType().name()} ${browser.version()}`, seed, actions_per_route: actions, viewports, routes: [...routes],
+      schema: EXPLORE_SCHEMA, head_sha: headSha || testedCommit, tested_commit: testedCommit, working_tree_clean: !dirty, generated_at: new Date().toISOString(),
+      browser: `${browser.browserType().name()} ${browser.version()}`, seed, actions_per_route: actions, viewports,
+      // The explored routes; a run restricted to some of them (tests) says so and is never valid evidence.
+      routes: [...routes].filter(route => !onlyRoutes || onlyRoutes.includes(route)), restricted: Boolean(onlyRoutes),
       trails,
       totals: {actions: total, action_errors: actionErrors, findings: findings.length, reproduced: findings.filter(finding => finding.reproduced).length},
       findings, observations, injected_defect: Boolean(contextHook),
