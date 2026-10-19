@@ -114,15 +114,22 @@ export async function migrate({env = process.env, log = console.log, dir = resol
     if (scope !== null) {
       try {
         const {rows} = await client.query('SELECT pg_advisory_unlock($1::int4, $2::int4) AS ok', [MIGRATION_LOCK_CLASS, scope.key]);
-        if (!rows[0].ok) broken = new MigrationError('MIGRATION_UNLOCK_FAILED', 'migration lock was not held at release');
-      } catch (unlockError) { broken = unlockError; }
+        if (!rows[0].ok) {
+          broken = new MigrationError('MIGRATION_UNLOCK_FAILED', 'migration lock was not held at release');
+          log('MIGRATION_UNLOCK_FAILED ' + JSON.stringify({schema: scope.schema}));
+        }
+      } catch (unlockError) {
+        broken = unlockError;
+        log('MIGRATION_UNLOCK_FAILED ' + JSON.stringify({schema: scope.schema, reason: String(unlockError?.message || unlockError)}));
+      }
     }
-    client.removeListener('error', onError);
     // A connection that held the lock and ended in an unknown state (failed unlock, aborted transaction) is closed,
     // which frees its lock and its session settings. A clean one is returned with the 1 s client check reset.
     if (scope !== null && !broken) {
       await client.query('RESET client_connection_check_interval').catch(error => { broken = error; });
     }
+    // The listener stays until release(), where the pool takes error handling back (PR #158 review B-2).
+    client.removeListener('error', onError);
     client.release(broken && scope !== null ? true : undefined);
   }
 }

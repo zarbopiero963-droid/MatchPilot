@@ -105,16 +105,42 @@ function schemaUrl(schema) {
 }
 
 // Runs migrate() in a separate Node process, as two overlapping deploys or a job next to the server would.
-function runMigrateProcess(schema, env, {dir} = {}) {
+// `fault` injects a deterministic failure into the migrator's own queries (test only):
+//   {cutBefore: '<sql prefix>'} destroys the socket just before that statement is sent;
+//   {unlockAllBefore: '<sql prefix>'} drops the session's advisory locks just before that statement.
+// After migrate() settles, and before the pool is closed, the child reports how many migration locks are still
+// held in the database (`locksHeld`), so a lock left on a pooled connection is visible.
+function runMigrateProcess(schema, env, {dir, fault} = {}) {
   const script = `
-    const {migrate} = await import(${JSON.stringify(new URL('../src/migrate.mjs', import.meta.url).href)});
+    import pg from 'pg';
+    const fault = ${JSON.stringify(fault || null)};
+    if (fault) {
+      const original = pg.Client.prototype.query;
+      pg.Client.prototype.query = function (text, ...rest) {
+        const sql = typeof text === 'string' ? text : text?.text || '';
+        if (fault.cutBefore && sql.startsWith(fault.cutBefore)) this.connection.stream.destroy();
+        if (fault.unlockAllBefore && sql.startsWith(fault.unlockAllBefore)) {
+          return original.call(this, 'SELECT pg_advisory_unlock_all()').then(() => original.call(this, text, ...rest));
+        }
+        return original.call(this, text, ...rest);
+      };
+    }
+    const {migrate, MIGRATION_LOCK_CLASS} = await import(${JSON.stringify(new URL('../src/migrate.mjs', import.meta.url).href)});
     const {closePool} = await import(${JSON.stringify(new URL('../src/db.mjs', import.meta.url).href)});
+    const logs = [];
+    let report;
     try {
-      const result = await migrate({log: () => {}${dir ? `, dir: ${JSON.stringify(dir)}` : ''}});
-      process.stdout.write(JSON.stringify({ok: true, result}));
+      const result = await migrate({log: line => logs.push(line)${dir ? `, dir: ${JSON.stringify(dir)}` : ''}});
+      report = {ok: true, result};
     } catch (error) {
-      process.stdout.write(JSON.stringify({ok: false, code: error.code || null, message: String(error.message)}));
-    } finally { await closePool(); }`;
+      report = {ok: false, code: error.code || null, message: String(error.message)};
+    }
+    const probe = new pg.Client({connectionString: process.env.DATABASE_URL});
+    await probe.connect();
+    report.locksHeld = (await probe.query("SELECT count(*)::int AS n FROM pg_locks WHERE locktype = 'advisory' AND classid = $1::int4::oid AND objid = hashtext(current_schema())::oid AND objsubid = 2 AND granted", [MIGRATION_LOCK_CLASS])).rows[0].n;
+    await probe.end();
+    await closePool();
+    process.stdout.write(JSON.stringify({...report, logs}));`;
   return new Promise((done, fail) => {
     const child = spawn(process.execPath, ['--input-type=module', '-e', script], {
       env: {PATH: process.env.PATH, DATABASE_URL: schemaUrl(schema), MATCHPILOT_LOG_LEVEL: 'silent', ...env},
@@ -127,7 +153,7 @@ function runMigrateProcess(schema, env, {dir} = {}) {
     child.on('error', fail);
     child.on('close', (code, signal) => {
       try { done({...JSON.parse(out || '{}'), exitCode: code, signal, stderr: err}); }
-      catch { fail(new Error(`child output not JSON (exit ${code}): ${out} ${err}`)); }
+      catch { done({ok: false, exitCode: code, signal, stderr: err, unparsed: out}); }
     });
   });
 }
@@ -316,9 +342,7 @@ test('MIG-GAP-02: a connection cut mid-migration fails migrate() cleanly, with n
       const run = await running;
       assert.equal(run.exitCode, 0, `process must not crash: ${JSON.stringify(run)}`);
       assert.equal(run.ok, false, 'migrate() rejects');
-      const free = (await admin.query('SELECT pg_try_advisory_lock($1::int4, hashtext($2)) AS ok', [MIGRATION_LOCK_CLASS, schema])).rows[0].ok;
-      assert.equal(free, true, 'lock freed with the connection');
-      await admin.query('SELECT pg_advisory_unlock($1::int4, hashtext($2))', [MIGRATION_LOCK_CLASS, schema]);
+      assert.equal(run.locksHeld, 0, 'lock freed with the connection, before the pool is closed');
       const tables = (await admin.query('SELECT table_name FROM information_schema.tables WHERE table_schema=$1 ORDER BY 1', [schema])).rows.map(row => row.table_name);
       assert.deepEqual(tables, ['cut_probe_ok', 'schema_migrations'], 'the cut file rolled back');
     });
@@ -338,13 +362,38 @@ test('MIG-GAP-02: the lock is released even when a migration changes search_path
       const {MIGRATION_LOCK_CLASS} = await import('../src/migrate.mjs');
       const run = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test'}, {dir});
       assert.equal(run.ok, true, run.message);
-      const free = (await admin.query('SELECT pg_try_advisory_lock($1::int4, hashtext($2)) AS ok', [MIGRATION_LOCK_CLASS, schema])).rows[0].ok;
-      assert.equal(free, true, 'lock released under the key it was taken with');
-      await admin.query('SELECT pg_advisory_unlock($1::int4, hashtext($2))', [MIGRATION_LOCK_CLASS, schema]);
+      assert.equal(run.locksHeld, 0, 'lock released under the key it was taken with, before the pool is closed');
     });
     const missing = await runMigrateProcess(`missing_${process.pid}_${Date.now()}`, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_LOCK_TIMEOUT_MS: '500'}, {dir});
     assert.equal(missing.ok, false);
     assert.equal(missing.code, 'MIGRATION_NO_SCHEMA');
+  } finally {
+    await rm(dir, {recursive: true, force: true});
+    await admin.end();
+  }
+});
+
+test('MIG-GAP-02: a connection lost during the release step does not crash; an unlock failure is reported', {timeout: 120000}, async t => {
+  const admin = await adminClient(t);
+  if (!admin) return;
+  const dir = await mkdtemp(join(tmpdir(), 'mp-migrations-'));
+  try {
+    await writeFile(join(dir, '001-ok.sql'), 'CREATE TABLE release_probe(id int);');
+    await withSchema(admin, 'release', async schema => {
+      for (const statement of ['RESET client_connection_check_interval', 'SELECT pg_advisory_unlock']) {
+        const run = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test'}, {dir, fault: {cutBefore: statement}});
+        assert.equal(run.exitCode, 0, `${statement}: process must not crash: ${run.stderr}`);
+        assert.equal(run.locksHeld, 0, `${statement}: the lost connection holds no lock`);
+      }
+      const rows = (await admin.query(`SELECT filename FROM ${schema}.schema_migrations`)).rows.map(row => row.filename);
+      assert.deepEqual(rows, ['001-ok.sql'], 'the committed file stays recorded exactly once');
+    });
+    await withSchema(admin, 'unlock_report', async schema => {
+      const run = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test'}, {dir, fault: {unlockAllBefore: 'SELECT pg_advisory_unlock'}});
+      assert.equal(run.exitCode, 0, run.stderr);
+      assert.ok(run.logs.some(line => line.startsWith('MIGRATION_UNLOCK_FAILED ')), JSON.stringify(run.logs));
+      assert.equal(run.locksHeld, 0);
+    });
   } finally {
     await rm(dir, {recursive: true, force: true});
     await admin.end();
