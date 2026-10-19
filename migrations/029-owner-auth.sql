@@ -28,4 +28,6 @@ CREATE TABLE IF NOT EXISTS auth_audit(
   client_hash text CHECK (client_hash IS NULL OR client_hash ~ '^[0-9a-f]{64}$'),       -- HMAC-SHA-256 (server key) of the client address
   detail jsonb NOT NULL DEFAULT '{}'
 );
-CREATE INDEX IF NOT EXISTS auth_audit_failures ON auth_audit(at) WHERE event = 'login_failure';
+CREATE INDEX IF NOT EXISTS auth_audit_client_window ON auth_audit(client_hash, at);
+CREATE INDEX IF NOT EXISTS auth_audit_at ON auth_audit(at);
+CREATE INDEX IF NOT EXISTS auth_sessions_expires ON auth_sessions(expires_at);

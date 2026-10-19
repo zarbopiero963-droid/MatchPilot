@@ -2,6 +2,7 @@
 // real server on a throwaway PostgreSQL schema.
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
+import http from 'node:http';
 import {createHash} from 'node:crypto';
 import {readdir} from 'node:fs/promises';
 import {resolve} from 'node:path';
@@ -25,6 +26,8 @@ test('passwords are stored as salted scrypt hashes and verified in constant time
   for (const bad of ['', 'plain-text', 'scrypt$1$8$1$AA==$AA==', 'scrypt$16384$8$1$$', 'bcrypt$x', `scrypt$${2 ** 25}$8$1$AAAA$AAAA`]) {
     assert.equal(await verifyPassword(PASSWORD, bad), false, bad);
   }
+  const lowCost = authConfig({MATCHPILOT_AUTH: 'enforce', MATCHPILOT_OWNER_USERNAME: 'owner', MATCHPILOT_OWNER_PASSWORD_HASH: hash});
+  assert.deepEqual(lowCost.decoyHash.split('$').slice(1, 4), hash.split('$').slice(1, 4), 'decoy uses the owner hash cost (no username timing oracle)');
   const defaultHash = await hashPassword('x');
   assert.equal(defaultHash.split('$')[1], '32768', 'default cost N=2^15');
 });
@@ -55,7 +58,7 @@ test('request helpers: cookies, next path, same-origin check, public paths', () 
   assert.deepEqual(parseCookies('a=1; mp_session=abc%3D; b'), {a: '1', mp_session: 'abc='});
   assert.deepEqual(parseCookies(undefined), {});
   for (const ok of ['/', '/coverage?x=1', '/api/v1/health']) assert.equal(safeNextPath(ok), ok);
-  for (const bad of ['//evil.example', 'https://evil.example', '/\\evil', 'javascript:alert(1)', '', undefined, '/login']) assert.equal(safeNextPath(bad), '/');
+  for (const bad of ['//evil.example', 'https://evil.example', '/\\evil', 'javascript:alert(1)', '', undefined, '/login', '/a\x7f', '/caf\u00e9', '/a b']) assert.equal(safeNextPath(bad), '/');
   assert.equal(sameOriginRequest({host: 'app.example', origin: 'https://app.example'}), true);
   assert.equal(sameOriginRequest({host: 'app.example'}), true, 'non-browser clients send no Origin');
   assert.equal(sameOriginRequest({host: 'app.example', origin: 'https://evil.example'}), false);
@@ -306,6 +309,94 @@ test('auth stays off by default; misconfigured enforcement fails closed; a held 
         assert.match(server.output(), /AUTH_SCHEMA_MISSING/);
         const tables = (await admin.query("SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema=$1 AND table_name LIKE 'auth_%'", [schema])).rows[0].n;
         assert.equal(tables, 0, 'the held auth migration was not applied');
+      } finally { await server.stop(); }
+    });
+  } finally { await admin.end(); }
+});
+
+const rawGet = (base, path) => new Promise((done, fail) => {
+  const {hostname, port} = new URL(base);
+  const req = http.request({hostname, port, path, method: 'GET'}, res => { res.resume(); res.on('end', () => done(res.statusCode)); });
+  req.on('error', fail);
+  req.end();
+});
+
+test('hardening: path variants, raw //, proxy header spoofing, no owner lockout, atomic limit, bounded audit, idle sliding', {timeout: 180000}, async t => {
+  const admin = await adminClient(t);
+  if (!admin) return;
+  const hash = await hashPassword(PASSWORD, FAST);
+  try {
+    await withSchema(admin, 'hard', async schema => {
+      const server = await startServer(schema, {MATCHPILOT_AUTH: 'enforce', MATCHPILOT_OWNER_USERNAME: 'owner', MATCHPILOT_OWNER_PASSWORD_HASH: hash, MATCHPILOT_TRUST_PROXY: 'true'});
+      try {
+        const {base} = server;
+        const from = address => ({'x-forwarded-for': `203.0.113.66, ${address}`});
+        // No protected content without a session, whatever the path spelling or method.
+        for (const path of ['/healthz/', '/HEALTHZ', '/login/', '/auth/session/', '/api/v1/health/', '/%2e%2e/api/v1/health', '/login/..%2fapi/v1/health', '/api/v1/../v1/health']) {
+          const status = (await fetch(`${base}${path}`, {redirect: 'manual'})).status;
+          assert.ok([303, 401, 404, 405].includes(status), `${path}: ${status}`);
+        }
+        assert.equal((await fetch(`${base}/api/v1/health`, {method: 'HEAD'})).status, 401);
+        assert.equal((await fetch(`${base}/`, {method: 'OPTIONS', redirect: 'manual'})).status, 303);
+        // A raw "//" target is answered 400 and does not crash the process.
+        assert.equal(await rawGet(base, '//'), 400);
+        assert.equal((await fetch(`${base}/healthz`)).status, 200, 'server still alive');
+
+        // Behind a trusted proxy only the proxy-appended address counts: varying the leftmost entry does not help.
+        for (let i = 0; i < 10; i++) {
+          assert.equal((await login(base, {username: 'owner', password: 'wrong'}, {'x-forwarded-for': `10.9.9.${i}, 198.51.100.7`})).status, 401);
+        }
+        assert.equal((await login(base, {username: 'owner', password: PASSWORD}, from('198.51.100.7'))).status, 429);
+        // No per-username lockout: the owner still logs in from another address (PR #159 review NB-1).
+        assert.equal((await login(base, {username: 'owner', password: PASSWORD}, from('198.51.100.8'))).status, 200);
+
+        // Concurrent attempts cannot overshoot the limit (NB-6) and refusals add one audit row per window (NB-2).
+        const statuses = await Promise.all(Array.from({length: 30}, () => login(base, {username: 'owner', password: 'wrong'}, from('198.51.100.9')).then(r => r.status)));
+        assert.equal(statuses.filter(code => code === 401).length, 10);
+        assert.equal(statuses.filter(code => code === 429).length, 20);
+        for (let i = 0; i < 20; i++) await fetch(`${base}/auth/logout`, {method: 'POST', headers: {...from('198.51.100.9'), origin: 'https://evil.example'}});
+        const perEvent = Object.fromEntries((await admin.query(
+          `SELECT event, count(*)::int AS n FROM ${schema}.auth_audit WHERE client_hash = (SELECT client_hash FROM ${schema}.auth_audit WHERE event = 'login_rate_limited' ORDER BY id DESC LIMIT 1) GROUP BY event`)).rows.map(row => [row.event, row.n]));
+        assert.deepEqual(perEvent, {login_failure: 10, login_rate_limited: 1, origin_rejected: 1});
+
+        // Idle expiry slides (at most once a minute) and never past the absolute expiry.
+        const fresh = sessionCookie(await login(base, {username: 'owner', password: PASSWORD}, from('198.51.100.10')));
+        await admin.query(`UPDATE ${schema}.auth_sessions SET last_seen_at = now() - interval '2 minutes', idle_expires_at = now() + interval '30 seconds' WHERE token_hash=$1`, [sha256(fresh.value)]);
+        assert.equal((await fetch(`${base}/auth/session`, {headers: {cookie: `${fresh.name}=${fresh.value}`}})).status, 200);
+        const slid = (await admin.query(`SELECT idle_expires_at > now() + interval '55 minutes' AS slid, idle_expires_at <= expires_at AS capped FROM ${schema}.auth_sessions WHERE token_hash=$1`, [sha256(fresh.value)])).rows[0];
+        assert.deepEqual(slid, {slid: true, capped: true});
+
+        // A next path that cannot go in a Location header falls back to "/" (NB-3).
+        const form = await fetch(`${base}/auth/login`, {
+          method: 'POST', redirect: 'manual', headers: {'content-type': 'application/x-www-form-urlencoded', ...from('198.51.100.11')},
+          body: new URLSearchParams({username: 'owner', password: PASSWORD, next: '/caf\u00e9\x7f'}),
+        });
+        assert.equal(form.status, 303);
+        assert.equal(form.headers.get('location'), '/');
+      } finally { await server.stop(); }
+    });
+  } finally { await admin.end(); }
+});
+
+test('production with the auth migration approved: login works and the cookie is __Host- and Secure', {timeout: 120000}, async t => {
+  const admin = await adminClient(t);
+  if (!admin) return;
+  try {
+    await withSchema(admin, 'prod_ok', async schema => {
+      const files = (await readdir(resolve('migrations'))).filter(file => file.endsWith('.sql')).sort();
+      const hash = await hashPassword(PASSWORD);
+      const server = await startServer(schema, {
+        MATCHPILOT_RUNTIME_MODE: 'production', MATCHPILOT_APPROVED_MIGRATIONS: files.join(','),
+        MATCHPILOT_AUTH: 'enforce', MATCHPILOT_OWNER_USERNAME: 'owner', MATCHPILOT_OWNER_PASSWORD_HASH: hash,
+      });
+      try {
+        const ok = await login(server.base, {username: 'owner', password: PASSWORD});
+        assert.equal(ok.status, 200);
+        const cookie = sessionCookie(ok);
+        assert.equal(cookie.name, '__Host-mp_session');
+        assert.match(cookie.header, /; Secure/);
+        assert.match(cookie.header, /Path=\//);
+        assert.doesNotMatch(cookie.header, /Domain=/i);
       } finally { await server.stop(); }
     });
   } finally { await admin.end(); }

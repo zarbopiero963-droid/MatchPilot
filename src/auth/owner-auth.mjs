@@ -3,8 +3,8 @@
 //   hard-coded or stored in plain text, and nobody can register.
 // - Server-side sessions in PostgreSQL (migration 029): only a SHA-256 of the random token is stored, with absolute
 //   and idle expiry, rotation at login, logout and server-side revocation.
-// - Repeated failed logins are rate-limited per client and per username; every login, failure, refusal and logout
-//   is audited without secrets.
+// - Repeated failed logins are rate-limited per client; every login, failure, refusal and logout is audited
+//   without secrets.
 // - Sessions carry a principal and roles, so further users and roles can be added later without changing the model.
 // Off unless MATCHPILOT_AUTH=enforce: enabling it in production is an owner action (D12), and in production its
 // migration is applied only when the owner approves it (D13).
@@ -50,8 +50,13 @@ export async function verifyPassword(password, stored) {
   return timingSafeEqual(key, parsed.key);
 }
 
-// A fixed decoy keeps a failed login with an unknown username as slow as one with the right username.
-const DECOY_HASH = `scrypt$${DEFAULT_N}$8$1$${Buffer.alloc(16, 7).toString('base64')}$${Buffer.alloc(KEY_LENGTH).toString('base64')}`;
+// A decoy with the owner hash's own cost parameters keeps a failed login with an unknown username exactly as slow
+// as one with the right username (PR #159 review NB-4).
+const decoyFor = passwordHash => {
+  const parsed = parsePasswordHash(passwordHash);
+  const [N, r, p] = parsed ? [parsed.N, parsed.r, parsed.p] : [DEFAULT_N, 8, 1];
+  return `scrypt$${N}$${r}$${p}$${randomBytes(16).toString('base64')}$${Buffer.alloc(KEY_LENGTH).toString('base64')}`;
+};
 
 // ---- Configuration ----
 
@@ -75,8 +80,9 @@ export function authConfig(env = process.env) {
     secureCookie: production || env.MATCHPILOT_COOKIE_SECURE === 'true',
     trustProxy: env.MATCHPILOT_TRUST_PROXY === 'true',
   };
+  config.decoyHash = decoyFor(config.passwordHash);
   if (rawMode === 'off') return config;
-  const fail = reason => ({...config, state: 'misconfigured', reason, passwordHash: ''});
+  const fail = reason => ({...config, state: 'misconfigured', reason, passwordHash: '', decoyHash: ''});
   if (env.MATCHPILOT_OWNER_PASSWORD !== undefined) return fail('MATCHPILOT_OWNER_PASSWORD is refused: store only a hash (npm run auth:hash-password)');
   if (!config.username) return fail('MATCHPILOT_OWNER_USERNAME is missing');
   const parsed = parsePasswordHash(config.passwordHash);
@@ -106,7 +112,8 @@ export function parseCookies(header) {
 // Only same-site absolute paths; never back to the login page.
 export function safeNextPath(value) {
   const path = String(value || '');
-  if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\') || /[\0-\x1f]/.test(path)) return '/';
+  // Printable ASCII only: anything else could not be sent in a Location header (PR #159 review NB-3).
+  if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\') || !/^[\x21-\x7e]+$/.test(path)) return '/';
   if (path === '/login' || path.startsWith('/login?')) return '/';
   return path;
 }
@@ -143,9 +150,14 @@ export function clientAddress(req, config) {
 
 // ---- Sessions, rate limit and audit (PostgreSQL) ----
 
+// Failed logins are limited per client address only. A per-username limit would let anyone lock the owner out
+// from a few addresses (PR #159 review NB-1); a distributed guess against one username is instead slowed by scrypt
+// and the per-client limit, and every attempt is audited.
 export const RATE_WINDOW_MINUTES = 15;
 export const MAX_FAILURES_PER_CLIENT = 10;
-export const MAX_FAILURES_PER_USERNAME = 30;
+export const AUDIT_RETENTION_DAYS = 90;
+export const SESSION_RETENTION_DAYS = 30;
+const AUTH_LOCK_CLASS = 0x4d504155; // "MPAU": serializes attempts of one client
 
 export const cookieName = config => (config.secureCookie ? '__Host-mp_session' : 'mp_session');
 
@@ -172,40 +184,78 @@ export async function authSchemaReady(client) {
   return rows[0].ready;
 }
 
-export async function rateLimited(client, config, {username, clientId}) {
-  const {rows} = await client.query(
-    `SELECT count(*) FILTER (WHERE client_hash = $1)::int AS by_client, count(*) FILTER (WHERE username_hash = $2)::int AS by_username
-       FROM auth_audit WHERE event = 'login_failure' AND at > now() - make_interval(mins => $3)`,
-    [clientTag(config, clientId), usernameTag(config, username), RATE_WINDOW_MINUTES]);
-  return rows[0].by_client >= MAX_FAILURES_PER_CLIENT || rows[0].by_username >= MAX_FAILURES_PER_USERNAME;
+// Atomic reservation (PR #159 review NB-6): under a per-client transaction lock, count the client's failures in the
+// window and, below the limit, record this attempt as a failure before the password is checked. Concurrent attempts
+// cannot overshoot the limit, and no database connection is held while scrypt runs. Refusals are recorded at most
+// once per client and window, so a flood cannot grow the audit table without bound (NB-2).
+async function reserveAttempt(client, config, {username, clientId}) {
+  const clientHash = clientTag(config, clientId);
+  await client.query('BEGIN');
+  try {
+    await client.query('SELECT pg_advisory_xact_lock($1::int4, hashtext($2))', [AUTH_LOCK_CLASS, clientHash]);
+    const {rows: [counts]} = await client.query(
+      `SELECT count(*) FILTER (WHERE event = 'login_failure')::int AS failures,
+              count(*) FILTER (WHERE event = 'login_rate_limited')::int AS refusals
+         FROM auth_audit WHERE client_hash = $1 AND at > now() - make_interval(mins => $2)`,
+      [clientHash, RATE_WINDOW_MINUTES]);
+    let reservation = null;
+    if (counts.failures >= MAX_FAILURES_PER_CLIENT) {
+      if (counts.refusals === 0) await audit(client, config, 'login_rate_limited', {username, clientId});
+    } else {
+      const {rows} = await client.query(
+        "INSERT INTO auth_audit(event, username_hash, client_hash) VALUES ('login_failure', $1, $2) RETURNING id",
+        [usernameTag(config, username), clientHash]);
+      reservation = rows[0].id;
+    }
+    await client.query('COMMIT');
+    return reservation;
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw error;
+  }
 }
 
-export async function login(client, config, {username, password, clientId, presentedToken}) {
-  if (await rateLimited(client, config, {username, clientId})) {
-    await audit(client, config, 'login_rate_limited', {username, clientId});
-    return {status: 'rate_limited', retryAfterSeconds: RATE_WINDOW_MINUTES * 60};
-  }
+// Expired sessions and old audit rows are pruned on every attempt (indexed, so cheap).
+async function prune(client) {
+  await client.query('DELETE FROM auth_audit WHERE at < now() - make_interval(days => $1)', [AUDIT_RETENTION_DAYS]);
+  await client.query('DELETE FROM auth_sessions WHERE expires_at < now() - make_interval(days => $1)', [SESSION_RETENTION_DAYS]);
+}
+
+// `withClient` is called separately for the reservation and the session, so no connection waits on scrypt.
+export async function login(withClient, config, {username, password, clientId, presentedToken}) {
+  const reservation = await withClient(async client => {
+    await prune(client);
+    return reserveAttempt(client, config, {username, clientId});
+  });
+  if (reservation === null) return {status: 'rate_limited', retryAfterSeconds: RATE_WINDOW_MINUTES * 60};
   const usernameOk = constantTimeEqualText(String(username ?? ''), config.username);
-  const passwordOk = await verifyPassword(password, usernameOk ? config.passwordHash : DECOY_HASH);
-  if (!(usernameOk && passwordOk)) {
-    await audit(client, config, 'login_failure', {username, clientId});
-    return {status: 'invalid'};
-  }
-  // Rotation: a session presented at login is revoked and never reused (no fixation).
-  if (presentedToken) {
-    await client.query("UPDATE auth_sessions SET revoked_at = now(), revoke_reason = 'rotated' WHERE token_hash = $1 AND revoked_at IS NULL", [sha256(presentedToken)]);
-  }
-  const token = randomBytes(32).toString('base64url');
-  const principalId = 'owner';
-  const roles = ['owner'];
-  const {rows} = await client.query(
-    `INSERT INTO auth_sessions(token_hash, principal_id, roles, expires_at, idle_expires_at)
-     VALUES ($1, $2, $3, now() + make_interval(mins => $4), now() + make_interval(mins => $5))
-     RETURNING expires_at`,
-    [sha256(token), principalId, roles, config.ttlMinutes, Math.min(config.idleMinutes, config.ttlMinutes)]);
-  await audit(client, config, 'login_success', {principalId, clientId});
-  return {status: 'ok', token, principalId, roles, expiresAt: rows[0].expires_at,
-    cookie: cookieHeader(config, token, config.ttlMinutes * 60)};
+  const passwordOk = await verifyPassword(password, usernameOk ? config.passwordHash : config.decoyHash);
+  if (!(usernameOk && passwordOk)) return {status: 'invalid'};
+  return withClient(async client => {
+    await client.query('BEGIN');
+    try {
+      // The reserved failure becomes the success record.
+      await client.query("UPDATE auth_audit SET event = 'login_success', principal_id = 'owner', username_hash = NULL WHERE id = $1", [reservation]);
+      // Rotation: a session presented at login is revoked and never reused (no fixation).
+      if (presentedToken) {
+        await client.query("UPDATE auth_sessions SET revoked_at = now(), revoke_reason = 'rotated' WHERE token_hash = $1 AND revoked_at IS NULL", [sha256(presentedToken)]);
+      }
+      const token = randomBytes(32).toString('base64url');
+      const principalId = 'owner';
+      const roles = ['owner'];
+      const {rows} = await client.query(
+        `INSERT INTO auth_sessions(token_hash, principal_id, roles, expires_at, idle_expires_at)
+         VALUES ($1, $2, $3, now() + make_interval(mins => $4), now() + make_interval(mins => $5))
+         RETURNING expires_at`,
+        [sha256(token), principalId, roles, config.ttlMinutes, Math.min(config.idleMinutes, config.ttlMinutes)]);
+      await client.query('COMMIT');
+      return {status: 'ok', token, principalId, roles, expiresAt: rows[0].expires_at,
+        cookie: cookieHeader(config, token, config.ttlMinutes * 60)};
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw error;
+    }
+  });
 }
 
 // Valid, unrevoked, unexpired session for the presented token, with its idle expiry extended (at most once a minute).
@@ -236,4 +286,10 @@ export async function logout(client, config, {token, clientId}) {
   return cookieHeader(config, '', 0);
 }
 
-export const recordOriginRejected = (client, config, {clientId, path}) => audit(client, config, 'origin_rejected', {clientId, detail: {path}});
+// Recorded at most once per client and window, like rate-limit refusals (NB-2).
+export async function recordOriginRejected(client, config, {clientId, path}) {
+  const {rowCount} = await client.query(
+    "SELECT 1 FROM auth_audit WHERE event = 'origin_rejected' AND client_hash = $1 AND at > now() - make_interval(mins => $2) LIMIT 1",
+    [clientTag(config, clientId), RATE_WINDOW_MINUTES]);
+  if (!rowCount) await audit(client, config, 'origin_rejected', {clientId, detail: {path: String(path).slice(0, 200)}});
+}

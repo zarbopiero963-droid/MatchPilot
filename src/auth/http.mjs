@@ -112,9 +112,9 @@ export function createAuthGate({config, withClient, log = console.log}) {
       try { body = await readForm(req); }
       catch (error) { send(res, error.status || 400, {error: 'bad_request'}); return true; }
       const {username = '', password = '', next} = body.fields;
-      const result = await withClient(client => login(client, config, {
+      const result = await login(withClient, config, {
         username: String(username).slice(0, 200), password: String(password).slice(0, 1024), clientId, presentedToken: tokenOf(req),
-      }));
+      });
       if (result.status === 'ok') {
         log('AUTH_LOGIN_SUCCESS ' + JSON.stringify({principal: result.principalId}));
         if (body.form) send(res, 303, '', {Location: safeNextPath(next), 'Set-Cookie': result.cookie});

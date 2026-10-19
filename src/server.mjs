@@ -45,7 +45,14 @@ const app = http.createServer((req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
 
-  const url = new URL(req.url || '/', 'http://localhost');
+  // A request target such as `//` is not a valid relative URL: answer 400 instead of crashing the process
+  // (PR #159 review NB-5).
+  let url;
+  try { url = new URL(req.url || '/', 'http://localhost'); }
+  catch {
+    res.writeHead(400, {'Content-Type': 'application/json'});
+    return res.end(JSON.stringify({error: 'bad_request'}));
+  }
   if (!authGate) return route(req, res, url);
   authGate(req, res, url).then(handled => { if (!handled) route(req, res, url); }).catch(error => {
     // Fail closed: an auth error never lets the request through.

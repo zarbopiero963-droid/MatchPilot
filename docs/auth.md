@@ -22,7 +22,7 @@ The `matchpilot-test` service stays suspended (MP-OWNER-CONTINUE-20261019). Befo
 | `MATCHPILOT_OWNER_PASSWORD_HASH` | — | `scrypt$N$r$p$salt$key`. Production requires N ≥ 2^14. |
 | `MATCHPILOT_SESSION_TTL_MINUTES` | 720 | Absolute session lifetime. |
 | `MATCHPILOT_SESSION_IDLE_MINUTES` | 60 | Idle timeout, extended at most once a minute and never past the absolute lifetime. |
-| `MATCHPILOT_COOKIE_SECURE` | `true` in production | Sets the `Secure` attribute and the `__Host-` cookie name. |
+| `MATCHPILOT_COOKIE_SECURE` | `false` | Sets the `Secure` attribute and the `__Host-` cookie name outside production. In production both are always on. |
 | `MATCHPILOT_TRUST_PROXY` | `false` | Uses the proxy-appended (last) `X-Forwarded-For` entry as the client address. |
 
 A plain-text `MATCHPILOT_OWNER_PASSWORD` is refused.
@@ -42,9 +42,9 @@ A plain-text `MATCHPILOT_OWNER_PASSWORD` is refused.
   - `/api/v1/*` answers 401 with error code `UNAUTHENTICATED`;
   - other `/api/*` routes answer 401 JSON.
 - **Login.** `POST /auth/login` accepts JSON or an HTML form.
-  - Credentials are checked with constant-time comparisons. An unknown username costs the same scrypt work as a known one.
+  - Credentials are checked with constant-time comparisons. An unknown username is checked against a decoy hash with the owner hash's own cost, so both take the same time.
   - Wrong credentials give a generic 401 (`invalid_credentials`).
-  - The HTML login page works without JavaScript and has a strict CSP with `frame-ancestors 'none'`. Its `next` parameter accepts only same-site paths.
+  - The HTML login page works without JavaScript and has a strict CSP with `frame-ancestors 'none'`. Its `next` parameter accepts only same-site paths in printable ASCII.
 - **Sessions.**
   - The token is 32 random bytes; only its SHA-256 is stored.
   - Each session has an absolute expiry and an idle expiry.
@@ -52,14 +52,15 @@ A plain-text `MATCHPILOT_OWNER_PASSWORD` is refused.
   - A session presented at login is revoked (rotation), so a cookie planted before login is never adopted.
 - **Logout.** `POST /auth/logout` revokes the session server-side and clears the cookie.
 - **CSRF.** Login and logout are POST only. A browser `Origin`, or `Sec-Fetch-Site`, that is not this host is refused with 403 and audited as `origin_rejected`.
-- **Rate limiting.** Failed logins within 15 minutes are counted:
-  - from one client: limited after 10 failures;
-  - for one username: limited after 30, which keeps an attacker from locking the owner out cheaply.
-
-  Over the limit, the answer is 429 with `Retry-After`, and the password is not even checked.
+- **Rate limiting.** At most 10 failed logins per client address in 15 minutes. Over the limit, the answer is 429 with `Retry-After`, and the password is not even checked.
+  - **Atomic:** each attempt is reserved under a per-client database lock before the password is checked, so concurrent attempts cannot exceed the limit. No database connection is held while scrypt runs.
+  - **No per-username lockout:** an attacker using a few addresses cannot lock the owner out. A distributed guess against the owner username is slowed by scrypt and the per-client limit, and every attempt is audited.
+  - **Address:** behind a proxy (`MATCHPILOT_TRUST_PROXY=true`), only the address the proxy appended counts; earlier `X-Forwarded-For` entries are ignored.
 - **Audit.** `auth_audit` records `login_success`, `login_failure`, `login_rate_limited`, `logout` and `origin_rejected`.
   - Usernames and client addresses are stored only as HMACs keyed with server-only material.
   - Passwords, tokens and hashes are never stored or logged.
+  - Refusals (`login_rate_limited`, `origin_rejected`) are recorded at most once per client and window, so a flood adds only a few rows per address.
+  - Audit rows older than 90 days, and sessions expired for more than 30 days, are pruned at each login attempt.
 
 ## Future users and roles
 
