@@ -4,7 +4,7 @@
   "commit_sha": "28ad1aeded6754eff80a8db8ae5894acc9b2581e",
   "date": "2026-10-19",
   "environment": "Claude Code cloud container (Linux), PostgreSQL 16 throwaway schema with the QA archive, Chromium 141.0.7390.37, viewports 1280x800 and 390x844",
-  "outcome": "RED: 4 of 10 journeys fail on src/web of main (provider keys without labels; failed update answer cached). GREEN: 10/10 on 28ad1ae, verifier ok",
+  "outcome": "RED: 4 of 10 journeys fail on src/web of main (provider keys not marked; failed update answer cached). GREEN: 10/10 on 28ad1ae, verifier ok",
   "archive": {
     "branch": "evidence/audits",
     "commit": "fa6405d9e7486fc65d4811350039c68ba58324a6",

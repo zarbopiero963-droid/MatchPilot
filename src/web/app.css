@@ -77,11 +77,11 @@ fieldset{border:1px solid var(--line);border-radius:10px;margin:0 0 12px;padding
 legend{color:var(--muted);font-size:14px}
 .tile dl{font-size:14px;grid-template-columns:fit-content(55%) minmax(0,1fr)}
 .tile dt{overflow-wrap:normal}
-/* A date and time never break inside a number (PR #170 review R2-NB-3): the last sync run takes the full width of its
-   tile, label above value, and its time stays on one line. */
+/* A date and time never break inside a number nor leave their tile (PR #170 review R2-NB-3, PR #171 review B-1): a value
+   that holds a date, or a nested list, takes the full width of its tile, label above value; the date then stays on one line. */
 .tile dd{overflow-wrap:break-word}
-.tile dt:has(+ dd[data-field="lastRun"]),.tile dd[data-field="lastRun"]{grid-column:1/-1}
-.tile time{white-space:nowrap}
+.tile dt:has(+ dd time),.tile dd:has(time),.tile dt:has(+ dd dl),.tile dd:has(dl){grid-column:1/-1}
+.tile dd:not(:has(dl)) time,.tile .meta time{white-space:nowrap}
 td[data-field="date"]{white-space:nowrap}
 @media (max-width:560px){h1{font-size:22px}main{padding:16px 14px 32px}dl,dd dl,.tile dl{grid-template-columns:minmax(0,1fr)}dd{margin-bottom:6px}
   body{padding-bottom:72px}

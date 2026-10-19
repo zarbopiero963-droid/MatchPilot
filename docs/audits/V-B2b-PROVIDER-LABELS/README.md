@@ -10,7 +10,7 @@ V-B2b under MP-OWNER-AUTONOMOUS-UI-ROADMAP-01 and MP-WEB-015 (inventory UI-60).
   - the last sync run takes the full width of its tile, so its date never breaks inside a number (R2-NB-3);
   - the link of the empty day and the last sync run row are now checked.
 - **RED → GREEN:**
-  - RED, `red-main-web/`: 4 of 10 journeys fail on `src/web` of `main`. Providers fails because its keys have no labels. The daily board fails because a failed update answer is kept and the line never comes back. The tree was uncommitted, so this is a demonstration, not gate evidence.
+  - RED, `red-main-web/`: 4 of 10 journeys fail on `src/web` of `main`. Providers fails because `main` marks no key (no `data-key`, so the journey finds none to check). The daily board fails because a failed update answer is kept and the line never comes back. The tree was uncommitted, so this is a demonstration, not gate evidence.
   - GREEN, `green-28ad1ae/`: 10/10, clean tree, verifier ok.
 - **Before/after,** `comparisons/`: Fornitori on desktop and mobile, plus the last sync run tile after the change. «Before» is the Browser QA of the post-merge verification of PR #170 on `main` cd83d02.
 
