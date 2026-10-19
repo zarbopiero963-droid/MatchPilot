@@ -1,0 +1,84 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "d706c15ec97fa9cccaf57e06da31c8ffcb2fd07d",
+  "tree_sha": "75dedf4e74f573eaeda2bcdcd5c25626651739f3",
+  "supersedes": "CP-20261019T180935Z-agent-a-claude-code",
+  "pr": 168,
+  "id": "CP-20261019T184245Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T18:42:45Z",
+  "activity": "V-A merged: PR #168 squash 3521a07 on main; post-merge verification passed",
+  "task": "V-A",
+  "issue": 3,
+  "requirements": [],
+  "changes": [
+    "main 3521a07ae03c188da6492bdeb7a8c8bf50ba78d7 (squash of PR #168, head d706c15 checked with expectedHeadSha)"
+  ],
+  "tests": [
+    {
+      "command": "CI run 39300210466 on d706c15 (all jobs, CI gate PASS per check)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "d706c15ec97fa9cccaf57e06da31c8ffcb2fd07d",
+      "time": "2026-10-19T18:14:32Z",
+      "limits": []
+    },
+    {
+      "command": "CI run 39301036525 on main 3521a07 (push)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "3521a07ae03c188da6492bdeb7a8c8bf50ba78d7",
+      "time": "2026-10-19T18:19:37Z",
+      "limits": []
+    },
+    {
+      "command": "post-merge: fresh clone of main; node tools/qa/browser-qa.mjs (10/10) and verify-report",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "3521a07ae03c188da6492bdeb7a8c8bf50ba78d7",
+      "time": "2026-10-19T18:16:34Z",
+      "limits": [
+        "time from report.json generated_at"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39300210466,
+    "conclusion": "SUCCESS",
+    "head_sha": "d706c15ec97fa9cccaf57e06da31c8ffcb2fd07d"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/168#issuecomment-6274073490",
+    "reviewed_sha": "d706c15ec97fa9cccaf57e06da31c8ffcb2fd07d"
+  },
+  "findings": [
+    {
+      "id": "VA-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "AI-review findings for V-B: raw codes and English labels, D-7 timestamps (V-B1); mobile tables, search order, home D-2 (later V-B PRs)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-QA-VISUAL-EXECUTION-01",
+    "MP-OWNER-RESUME-AFTER-EVIDENCE-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T180935Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "V-B1 (Italian labels for API codes, instants in Europe/Rome)",
+  "resume_conditions": [
+    "main contains 3521a07ae03c188da6492bdeb7a8c8bf50ba78d7"
+  ]
+}

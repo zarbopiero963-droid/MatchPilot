@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 72,
+  "revision": 73,
   "tasks": [
     {
       "id": "R-01",
@@ -296,14 +296,30 @@
       "pr": 168,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T180935Z-agent-a-claude-code",
-      "pr_open": true
+      "latest_checkpoint": "CP-20261019T184245Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "V-B1",
+      "title": "Visual conformity V-B1: Italian labels for API codes, instants in Europe/Rome (D-7), readable provider-time note",
+      "issue": 3,
+      "pr": null,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
+      "state": "RUNNING",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": null,
+      "pr_open": false
     }
   ]
 }
