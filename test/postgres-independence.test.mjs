@@ -110,9 +110,9 @@ test('PostgreSQL 17 independent migration, verified sample replay and API are de
     await db.connect();
     try {
       const migrations = await db.query('SELECT filename FROM schema_migrations ORDER BY filename');
-      assert.equal(migrations.rowCount, 28);
+      assert.equal(migrations.rowCount, 29);
       assert.equal(migrations.rows[0].filename, '001-futpython-mirror.sql');
-      assert.equal(migrations.rows.at(-1).filename, '028-tc-live-v2-terminal.sql');
+      assert.equal(migrations.rows.at(-1).filename, '029-owner-auth.sql');
 
       const run = await db.query(`INSERT INTO tc_collector_runs(version,status,started_at,finished_at,summary)
         VALUES('fixture-replay-v1','complete','2026-10-09T13:50:00Z','2026-10-09T14:40:00Z',$1) RETURNING run_id`,

@@ -462,7 +462,7 @@ table.mtx td, table.mtx th { text-align: center; padding: 5px 6px; font-family: 
   <div id="menuHost"></div>
 </header>
 <main class="page" id="view"></main>
-<footer class="footer"><div class="in"><span>MatchPilot Trading OS · statistiche FutPythonTrader · mercato e live TotalCorner</span><span id="mockVersion" data-issue="#97 versione del mock">Mock UX v2026.10.06 · Aligned with roadmap #97 · Includes #94 #95 #96 #98 #99 #100 #102 · PROTOTIPO: valori DEMO salvo le sezioni REAL di Stato dati. Il mock non certifica il backend.</span></div></footer>
+<footer class="footer"><div class="in"><span>MatchPilot Trading OS · statistiche FutPythonTrader · mercato e live TotalCorner</span><span id="mockVersion" data-issue="#97 versione del mock">Mock UX v2026.10.19 · Aligned with roadmap #97 · Includes #94 #95 #96 #98 #99 #100 #102 · PROTOTIPO: valori DEMO salvo le sezioni REAL di Stato dati. Il mock non certifica il backend.</span></div></footer>
 <nav class="bottomnav" id="bottomnav" aria-label="Sezioni"></nav>
 <div id="drawer"></div>
 <div id="toast" class="toast" hidden></div>
@@ -586,7 +586,7 @@ function renderNav() {
   $('#bottomnav').innerHTML = [['home', 'Oggi'], ['live', 'Live'], ['strategies', 'Strategie'], ['tools', 'Tools'], ['portfolio', 'Portafoglio'], ['data', 'Dati']].map(([k, l]) => `<button data-go="${k}" ${cur === k ? 'aria-current="page"' : ''}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>${l}</button>`).join('');
 }
 /* Striscia REAL / DEMO su ogni pagina (#97): il mock non certifica il backend. */
-const MOCK_VERSION = 'Mock UX v2026.10.06';
+const MOCK_VERSION = 'Mock UX v2026.10.19';
 function demoStrip(v) {
   const real = v === 'data';
   const txt = real ? 'Le sezioni marcate REAL arrivano dalle route pubbliche certificate MatchPilot (#12), lette il 06/10/2026 alle 08:01 UTC. Tutto il resto della pagina è DEMO.'
@@ -625,6 +625,17 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('#drawer').innerHTML = ''; $('#menuHost').innerHTML = ''; } });
 
+/* ---------- accesso owner (#23, R-04b) ---------- */
+function showLogin() {
+  if ($('#loginOv')) return;
+  const o = document.createElement('div');
+  o.id = 'loginOv';
+  o.setAttribute('data-issue', '#23 accesso owner');
+  o.style.cssText = 'position:fixed;inset:0;z-index:999;display:grid;place-items:center;background:rgba(7,17,31,.94)';
+  o.innerHTML = `<form class="card" style="width:min(380px,92vw)" autocomplete="on"><div class="hd"><h3>Accedi a MatchPilot</h3><span class="pill">PROTOTIPO</span></div><div class="bd stack" style="gap:12px"><div class="xs muted">Accesso riservato all'owner. Nel prodotto la sessione vive sul server (cookie HttpOnly e SameSite=Strict, scadenza, uscita), i tentativi falliti ripetuti vengono bloccati e ogni accesso finisce nell'audit (#23, docs/auth.md).</div><label class="f">Utente<input name="u" autocomplete="username" required></label><label class="f">Password<input name="p" type="password" autocomplete="current-password" required></label><button class="btn pri" type="submit">Accedi</button><div class="xs faint">Nessuna registrazione pubblica. Le credenziali dell'owner sono gestite dall'ambiente del server, mai nella pagina.</div></div></form>`;
+  o.querySelector('form').onsubmit = e => { e.preventDefault(); o.remove(); toast('Accesso effettuato (prototipo)'); };
+  document.body.appendChild(o);
+}
 /* ---------- menu header ---------- */
 $('#avBtn').onclick = () => {
   if ($('#menuHost .menu.av')) { $('#menuHost').innerHTML = ''; return; }
@@ -632,7 +643,7 @@ $('#avBtn').onclick = () => {
     <button data-go="settings" data-tab="account">Impostazioni</button><button data-go="settings" data-tab="exchange">Commissione exchange · ${ACC.commission}%</button><button data-go="money">Money Management</button><button data-go="settings" data-tab="users">Utenti e permessi</button><button data-go="trial">Fonti in prova</button><hr>
     <label><span>Mostra le issue sulle pagine</span><button class="switch" role="switch" id="devT" aria-checked="${state.dev}" aria-label="Mostra le issue"></button></label><button data-go="roadmap">Mappa integrazioni</button><hr><button id="logout">Esci</button></div>`;
   $('#devT').onclick = e => { e.stopPropagation(); state.dev = !state.dev; store.set('dev', state.dev); e.currentTarget.setAttribute('aria-checked', state.dev); document.body.classList.toggle('dev', state.dev); toast(state.dev ? 'Ogni sezione mostra la issue che la governa' : 'Tag delle issue nascosti'); };
-  $('#logout').onclick = () => { $('#menuHost').innerHTML = ''; toast('Sessione chiusa (prototipo)'); };
+  $('#logout').onclick = () => { $('#menuHost').innerHTML = ''; toast('Sessione chiusa (prototipo)'); showLogin(); };
 };
 $('#bellBtn').onclick = () => {
   if ($('#menuHost .menu.nt')) { $('#menuHost').innerHTML = ''; return; }

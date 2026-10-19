@@ -3,9 +3,9 @@
 ## File corrente
 
 - File: [`matchpilot-trading-os.html`](matchpilot-trading-os.html), percorso stabile. Le versioni non cambiano nome: la storia è in git e in questo changelog.
-- Versione: **Mock UX v2026.10.06**
-- Ultimo aggiornamento: 2026-10-06
-- SHA-256: `eec17bf1e67eb29f6c1f4efe72db2769d75d726659a661af89832c2d25508d98`
+- Versione: **Mock UX v2026.10.19**
+- Ultimo aggiornamento: 2026-10-19
+- SHA-256: `013f890fda5dfab7ddb5c4b227f08f9c44dde07172ce3fcf2b7a2fa52602a569`
 - Allineato a: roadmap #97 (revisione owner 06/10/2026)
 - Issue rappresentate: #12, #20, #23, #24, #25, #27, #28, #29, #30, #31, #32, #34, #40, #44, #45, #46, #87, #91, #94, #95, #96, #97, #98, #99, #100, #102
 
@@ -53,6 +53,11 @@ Il mock è un riferimento UX/prodotto **vivo**. Non è l'architettura e non cert
 - Il layout usa font Google; senza rete il menu desktop può tagliare l'ultima voce.
 
 ## Changelog
+
+### v2026.10.19 — accesso owner (R-04b, #23)
+
+- "Esci" nel menu account apre la schermata di accesso owner (PROTOTIPO): utente e password, nessuna registrazione pubblica, credenziali gestite dall'ambiente del server. Rispecchia la pagina `/login` reale di R-04b (`docs/auth.md`), attiva solo con `MATCHPILOT_AUTH=enforce`.
+- La schermata del mock non verifica credenziali: "Accedi" la chiude. La verifica, le sessioni, il limite ai tentativi e l'audit esistono solo sul server.
 
 ### v2026.10.06 — riallineamento a #97
 

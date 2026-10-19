@@ -15,6 +15,8 @@ import { tcLiveReport } from './jobs/totalcorner-live.mjs';
 import { assertRuntimeSafety, startBackgroundServices, stopBackgroundServices } from './background.mjs';
 import { readFileSync } from 'node:fs';
 import { createEndpoints, handleV1, legacyInventory } from './api/v1.mjs';
+import { authConfig } from './auth/owner-auth.mjs';
+import { createAuthGate } from './auth/http.mjs';
 
 const port = Number(process.env.PORT || 3000);
 
@@ -36,12 +38,24 @@ void startBackgroundServices().catch(error => {
   console.error('MATCHPILOT_BACKGROUND_ERROR', String(error?.message || error));
 });
 
+// R-04b (#23, D12): owner login, off unless MATCHPILOT_AUTH=enforce. An invalid MATCHPILOT_AUTH stops startup.
+const authGate = createAuthGate({config: authConfig(), withClient});
+
 const app = http.createServer((req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
 
   const url = new URL(req.url || '/', 'http://localhost');
+  if (!authGate) return route(req, res, url);
+  authGate(req, res, url).then(handled => { if (!handled) route(req, res, url); }).catch(error => {
+    // Fail closed: an auth error never lets the request through.
+    console.error('MATCHPILOT_AUTH_ERROR', String(error?.message || error).replace(/postgres(?:ql)?:\/\/\S+/gi, 'postgres://[REDACTED]'));
+    if (!res.headersSent) res.writeHead(503, {'Content-Type': 'application/json'});
+    res.end(JSON.stringify({error: 'unavailable'}));
+  });
+});
 
+function route(req, res, url) {
   if (url.pathname.startsWith('/api/v1/')) {
     handleV1({method: req.method, url}, {withClient, tc: TC_READERS, codeVersion: CODE_VERSION}).then(({status, body}) => {
       res.writeHead(status, {'Content-Type': 'application/json'});
@@ -163,7 +177,7 @@ const app = http.createServer((req, res) => {
 
   res.writeHead(404, {'Content-Type':'application/json'});
   res.end(JSON.stringify({error:'not_found'}));
-});
+}
 
 app.listen(port,'0.0.0.0',()=>console.log(`MatchPilot Trading OS listening on ${port} (${runtime.mode})`));
 

@@ -10,7 +10,8 @@ import { maybeStartTcMapping } from './jobs/totalcorner-mapping.mjs';
 import { maybeStartTcPrematch, stopTcPrematch } from './jobs/totalcorner-prematch.mjs';
 import { redactSecrets } from './providers/totalcorner/client.mjs';
 
-// Re-exported for existing callers; the checks live in a dependency-free module so migrate() can use them too.
+// Re-exported for existing callers; the checks live in src/runtime-safety.mjs, which imports no application module,
+// so migrate() can use them too.
 import { runtimeMode, isLocalDatabaseUrl, assertRuntimeSafety } from './runtime-safety.mjs';
 export { runtimeMode, isLocalDatabaseUrl, assertRuntimeSafety };
 
