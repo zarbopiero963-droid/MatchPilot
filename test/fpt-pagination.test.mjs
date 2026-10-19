@@ -271,3 +271,21 @@ test('dates are calendar dates, whatever the server time zone', {timeout: 120000
     }
   });
 });
+
+test('data-quality filters: only matches whose facts carry the values; anything but true is refused (MP-WEB-007)', {timeout: 120000}, async t => {
+  assert.throws(() => buildQuery('searchMatches', {with_odds: 'false'}), QueryInputError);
+  assert.throws(() => buildQuery('searchMatches', {with_xg: '1'}), QueryInputError);
+  await withSeed(t, async (client, seed) => {
+    const {runQuery} = await import('../src/providers/futpython/query.mjs');
+    const base = {competition: seed.competition, before: '2100-01-01', limit: 500};
+    const all = (await runQuery(client, 'searchMatches', base)).rows;
+    const withOdds = (await runQuery(client, 'searchMatches', {...base, with_odds: 'true'})).rows;
+    assert.deepEqual(withOdds.map(row => row.internal_match_id),
+      all.filter(row => row.odd_home !== null && row.odd_draw !== null && row.odd_away !== null).map(row => row.internal_match_id));
+    assert.ok(withOdds.length < all.length, 'the seed has matches with a placeholder price stored as NULL');
+    await client.query('UPDATE fpt_match_facts SET xg_home = NULL WHERE internal_match_id = $1', [all[0].internal_match_id]);
+    const withXg = (await runQuery(client, 'searchMatches', {...base, with_xg: 'true'})).rows;
+    assert.equal(withXg.length, all.length - 1);
+    assert.ok(!withXg.some(row => row.internal_match_id === all[0].internal_match_id));
+  });
+});

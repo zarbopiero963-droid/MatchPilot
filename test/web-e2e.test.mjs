@@ -9,6 +9,7 @@ import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import test from 'node:test';
 import {hashPassword} from '../src/auth/owner-auth.mjs';
+import {seedEredivisie} from './helpers/fpt-seed.mjs';
 
 const ROOT_URL = process.env.FUTPYTHON_TEST_DATABASE_URL || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
 const BROWSERS = [process.env.MATCHPILOT_E2E_CHROME, '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'];
@@ -64,7 +65,9 @@ async function startServer(schema, env = {}) {
     if (child.exitCode == null) child.kill('SIGKILL');
     throw new Error(`server did not start: ${output}`);
   }
-  return {base: `http://127.0.0.1:${boundPort(output)}`, stop: () => new Promise(done => { child.on('close', done); child.kill('SIGTERM'); })};
+  const port = boundPort(output);
+  assert.ok(port > 0, `no port in the server log: ${output}`);
+  return {base: `http://127.0.0.1:${port}`, stop: () => new Promise(done => { child.on('close', done); child.kill('SIGTERM'); })};
 }
 
 // A page that records console errors, page errors and CSP violations, and saves a screenshot when `check` throws.
@@ -90,7 +93,14 @@ async function withPage(browser, viewport, check) {
 const DESKTOP = {width: 1280, height: 800};
 const MOBILE = {width: 390, height: 844};
 
+// No raw null/undefined ever reaches the page as text.
+async function noRawNulls(page) {
+  const text = await page.textContent('main');
+  assert.doesNotMatch(text, /\b(null|undefined|NaN)\b/, 'raw null/undefined/NaN shown');
+}
+
 async function noHorizontalScroll(page) {
+  await noRawNulls(page);
   const {scroll, width} = await page.evaluate(() => ({scroll: document.documentElement.scrollWidth, width: window.innerWidth}));
   assert.ok(scroll <= width, `horizontal overflow: ${scroll} > ${width}`);
 }
@@ -113,9 +123,9 @@ test('the web shell renders real API v1 data on desktop and mobile, with N/D for
           const response = await page.goto(`${server.base}/`);
           assert.equal(response.status(), 200);
           assert.match(response.headers()['content-security-policy'], /script-src 'self'/);
-          await page.waitForSelector('[data-testid="health"]');
-          assert.equal(await page.textContent('[data-field="status"]'), health.data.status);
-          assert.equal(await page.textContent('[data-field="api_version"]'), health.api_version);
+          await page.waitForSelector('[data-testid="tile-health"]');
+          assert.equal(await page.textContent('[data-testid="tile-health"] [data-field="status"]'), health.data.status);
+          assert.equal(await page.textContent('[data-testid="tile-health"] [data-field="api_version"]'), health.api_version);
           assert.equal(await page.getAttribute('nav a[data-view=""]', 'aria-current'), 'page');
           await noHorizontalScroll(page);
 
@@ -220,14 +230,18 @@ test('loading, error, retry and partial states are explicit', {timeout: 120000},
         let releaseSlow;
         const slow = new Promise(done => { releaseSlow = done; });
         await page.route('**/api/v1/providers', async route => { await slow; await route.continue(); });
-        await page.goto(`${server.base}/#/`);
-        await page.waitForSelector('[data-testid="health"]');
+        // The dashboard reads /api/v1/providers too, so start from a view that does not.
+        await page.goto(`${server.base}/#/endpoints`);
+        await page.waitForSelector('[data-testid="endpoints"]');
         await page.click('nav a[data-view="providers"]');
         await page.waitForSelector('.state.loading');
         await page.evaluate(() => { location.hash = '#/nope'; });
         await page.waitForSelector('text=Pagina non trovata');
+        // Release the slow response and wait until it has been fully delivered and handled (no fixed sleep: R-05 R2-NB-2).
+        const delivered = page.waitForResponse(response => response.url().endsWith('/api/v1/providers'));
         releaseSlow();
-        await page.waitForTimeout(500);
+        await (await delivered).finished();
+        await page.evaluate(() => new Promise(done => setTimeout(() => setTimeout(done, 0), 0)));
         assert.equal(await page.textContent('h1'), 'Pagina non trovata');
       });
     } finally { await server.stop(); }
@@ -254,7 +268,7 @@ test('with owner login enforced the shell requires a session and returns to the 
         await page.fill('input[name="username"]', 'owner');
         await page.fill('input[name="password"]', PASSWORD);
         await page.click('button[type="submit"]');
-        await page.waitForSelector('[data-testid="health"]');
+        await page.waitForSelector('[data-testid="tile-health"]');
         assert.equal(new URL(page.url()).pathname, '/');
         await page.click('nav a[data-view="endpoints"]');
         await page.waitForSelector('[data-testid="endpoints"] tbody tr');
@@ -264,6 +278,162 @@ test('with owner login enforced the shell requires a session and returns to the 
         await admin.query(`UPDATE ${schema}.auth_sessions SET revoked_at = now(), revoke_reason = 'revoked'`);
         await page.click('nav a[data-view="providers"]');
         await page.waitForURL(/\/login\?next=%2F%23%2Fproviders$/);
+      });
+    } finally { await server.stop(); }
+  } finally {
+    await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
+    await admin.end();
+    await browser.close();
+  }
+});
+
+// R-06b: the same formatting rule the page uses, applied to API text in the test (exact digits, comma decimals).
+const shown = value => {
+  if (value === null || value === undefined || value === '') return 'N/D';
+  const m = /^(-?)(\d+)(?:\.(\d+))?$/.exec(String(value));
+  return m ? `${m[1]}${m[2].replace(/\B(?=(\d{3})+(?!\d))/g, '.')}${m[3] === undefined ? '' : `,${m[3]}`}` : String(value);
+};
+
+async function seeded(admin, schema, server) {
+  const pg = (await import('pg')).default;
+  const url = new URL(ROOT_URL);
+  url.searchParams.set('options', `-c search_path=${schema}`);
+  const client = new pg.Client({connectionString: url.toString()});
+  await client.connect();
+  try { return await seedEredivisie(client); } finally { await client.end(); }
+}
+
+test('R-06b: dashboard, Daily Board and search render the stored matches exactly as the API returns them', {timeout: 240000}, async t => {
+  const env = await setup(t);
+  if (!env) return;
+  const {admin, browser} = env;
+  const schema = `web_e2e_board_${process.pid}_${Date.now()}`;
+  try {
+    await admin.query(`CREATE SCHEMA ${schema}`);
+    const server = await startServer(schema);
+    try {
+      const seed = await seeded(admin, schema, server);
+      const api = async path => (await fetch(`${server.base}${path}`)).json();
+      const providers = await api('/api/v1/providers');
+      const coverage = await api('/api/v1/fpt/coverage-competitions');
+      assert.equal(coverage.data.rows.length, 1);
+      const league = coverage.data.rows[0];
+      const day = league.last_match_date;
+      const dayRows = (await api(`/api/v1/fpt/matches?date=${day}&limit=500`)).data.rows;
+      assert.equal(dayRows.length, 3);
+      const allSearch = (await api(`/api/v1/fpt/search?before=2100-01-01&limit=500`)).data.rows;
+      assert.equal(allSearch.length, seed.matches);
+
+      for (const viewport of [DESKTOP, MOBILE]) {
+        await withPage(browser, viewport, async (page, problems) => {
+          // Dashboard: every tile reads its route; values equal the API.
+          await page.goto(`${server.base}/`);
+          await page.waitForSelector('[data-testid="tile-coverage"] tbody tr');
+          assert.equal(await page.textContent('[data-testid="tile-certification"] [data-field="unique_matches"]'), shown(providers.data.futpython_certification.unique_matches));
+          assert.equal(await page.textContent('[data-testid="tile-certification"] [data-field="latest_backfill"]'), 'N/D');
+          assert.equal(await page.textContent('[data-testid="tile-coverage"] [data-field="matches"]'), shown(league.matches));
+          assert.match(await page.textContent('[data-testid="tile-coverage"] tbody tr'), new RegExp(shown(league.odds_coverage)));
+          assert.equal(await page.textContent('[data-testid="tile-tc-live"] [data-field="latest"]'), 'N/D', 'no live snapshot: N/D, not 0');
+          assert.equal(await page.locator('[data-testid="dashboard-partial"]').count(), 0);
+          await noHorizontalScroll(page);
+
+          // The league's last day with data opens the Daily Board on that day.
+          await page.click('[data-testid="tile-coverage"] [data-field="last_match_date"] a');
+          await page.waitForSelector('[data-testid="board-day"]');
+          assert.equal(await page.getAttribute('nav a[data-view="board"]', 'aria-current'), 'page');
+          const cards = page.locator('article.match');
+          assert.equal(await cards.count(), dayRows.length);
+          assert.equal(await page.locator('h2.group').count(), 1);
+          for (let i = 0; i < dayRows.length; i++) {
+            const row = dayRows[i];
+            const card = cards.nth(i);
+            assert.equal(await card.getAttribute('data-match'), row.internal_match_id, 'API order is kept');
+            assert.equal(await card.locator('[data-field="home"]').textContent(), row.home_name);
+            assert.equal(await card.locator('[data-field="kickoff"]').textContent(), shown(row.kickoff_local_time));
+            assert.equal(await card.locator('[data-field="odds_1x2"]').textContent(), `${shown(row.odd_home)} · ${shown(row.odd_draw)} · ${shown(row.odd_away)}`);
+            assert.equal(await card.locator('[data-field="score"]').textContent(), `${row.home_score}–${row.away_score}`);
+            assert.equal(await card.locator('[data-field="xg"]').textContent(), `${shown(row.xg_home)} · ${shown(row.xg_away)}`);
+          }
+          assert.ok(dayRows.some(row => row.kickoff_local_time === null), 'the seed has a match without kickoff on every day');
+          await noHorizontalScroll(page);
+
+          // A day without stored matches is an explicit empty state; an invalid date is refused before any request.
+          await page.click('[data-action="next"]');
+          await page.waitForSelector('[data-testid="board-empty"]');
+          await page.goto(`${server.base}/#/board?date=2024-13-01`);
+          await page.waitForSelector('.state.error[role="alert"]');
+          assert.match(await page.textContent('.state.error'), /Data non valida/);
+
+          // Search: all matches, two pages, same order as the API, then the end.
+          await page.goto(`${server.base}/#/search`);
+          await page.waitForSelector('[data-testid="search-form"]');
+          await page.click('[data-testid="search-form"] button[type="submit"]');
+          await page.waitForSelector('[data-testid="search-results"] tr');
+          assert.equal(await page.locator('[data-testid="search-results"] tr').count(), 25);
+          await page.click('[data-action="more"]');
+          await page.waitForSelector('[data-testid="end"]');
+          const ids = await page.locator('[data-testid="search-results"] tr').evaluateAll(rows => rows.map(row => row.dataset.match));
+          assert.deepEqual(ids, allSearch.map(row => row.internal_match_id));
+          await noHorizontalScroll(page);
+
+          // A team by name, at home, with complete 1X2 odds: the same rows as the API with the same filters.
+          const ajax = (await api('/api/v1/fpt/teams?q=Ajax')).data.rows[0].internal_team_id;
+          const expected = (await api(`/api/v1/fpt/search?team=${encodeURIComponent(ajax)}&venue=home&with_odds=true&before=2100-01-01&limit=500`)).data.rows;
+          assert.ok(expected.length > 0 && expected.every(row => row.home_team_id === ajax && row.odd_home !== null));
+          await page.goto(`${server.base}/#/search`);
+          await page.waitForSelector('[data-testid="search-form"]');
+          await page.fill('input[name="team"]', 'Ajax');
+          await page.selectOption('select[name="venue"]', 'home');
+          await page.check('input[name="with_odds"]');
+          await page.fill('input[name="before"]', '2100-01-01');
+          await page.click('[data-testid="search-form"] button[type="submit"]');
+          await page.waitForSelector('[data-testid="search-results"] tr');
+          const teamIds = await page.locator('[data-testid="search-results"] tr').evaluateAll(rows => rows.map(row => row.dataset.match));
+          assert.deepEqual(teamIds, expected.map(row => row.internal_match_id));
+          assert.equal(await page.locator('[data-testid="search-results"] [data-field="odds_1x2"]:has-text("N/D")').count(), 0);
+          assert.match(await page.textContent('[data-testid="filters-applied"]'), /with_odds/);
+          assert.equal(await page.inputValue('input[name="team"]'), 'Ajax', 'the form keeps the filters');
+
+          // Unknown team, invalid filter (server validation), no match.
+          await page.goto(`${server.base}/#/search?run=1&team=Nessuno`);
+          await page.waitForSelector('[data-testid="team-not-found"]');
+          assert.deepEqual(problems, [], 'no console errors, page errors or CSP violations');
+          await page.goto(`${server.base}/#/search?run=1&fav_min=abc`);
+          await page.waitForSelector('[data-testid="search-invalid"]');
+          assert.match(await page.textContent('[data-testid="search-invalid"]'), /fav_min/);
+          // The browser itself logs the refused request; nothing else may appear.
+          assert.deepEqual(problems, ['console: Failed to load resource: the server responded with a status of 400 (Bad Request)']);
+          await page.goto(`${server.base}/#/search?run=1&min_goals=30`);
+          await page.waitForSelector('[data-testid="search-empty"]');
+          assert.equal(problems.length, 1);
+        });
+      }
+
+      // Partial dashboard and a failed next page: what is shown stays, the failure is explicit, retry works.
+      await withPage(browser, DESKTOP, async page => {
+        await page.route('**/api/v1/tc/live', route => route.fulfill({status: 503, contentType: 'application/json',
+          body: JSON.stringify({api_version: 'v1', error: {code: 'UNAVAILABLE', message: 'data source unavailable'}})}));
+        await page.goto(`${server.base}/`);
+        await page.waitForSelector('[data-testid="tile-tc-live"][data-state="error"]');
+        assert.match(await page.textContent('[data-testid="tile-tc-live"]'), /N\/D[\s\S]*UNAVAILABLE/);
+        assert.equal(await page.getAttribute('[data-testid="tile-certification"]', 'data-state'), 'ok');
+        assert.match(await page.textContent('[data-testid="dashboard-partial"]'), /1 riquadri su 6/);
+        await page.unroute('**/api/v1/tc/live');
+
+        let failNext = true;
+        await page.route(/\/api\/v1\/fpt\/search\?.*cursor=/, route => {
+          if (!failNext) return route.continue();
+          failNext = false;
+          return route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify({api_version: 'v1', error: {code: 'UNAVAILABLE', message: 'data source unavailable'}})});
+        });
+        await page.goto(`${server.base}/#/search?run=1`);
+        await page.waitForSelector('[data-testid="search-results"] tr');
+        await page.click('[data-action="more"]');
+        await page.waitForSelector('.paged-foot .state.error');
+        assert.equal(await page.locator('[data-testid="search-results"] tr').count(), 25, 'the first page stays');
+        await page.click('.paged-foot .state.error button');
+        await page.waitForSelector('[data-testid="end"]');
+        assert.equal(await page.locator('[data-testid="search-results"] tr').count(), seed.matches);
       });
     } finally { await server.stop(); }
   } finally {

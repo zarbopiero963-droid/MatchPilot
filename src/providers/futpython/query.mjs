@@ -548,8 +548,17 @@ export const SEARCH_FILTERS = {
     const n = Number(v);
     if (!Number.isFinite(n) || n < 0 || n > 20) throw new QueryInputError('min_xg_total must be between 0 and 20');
     return n;
-  }, sql: p => `xg_home + xg_away >= ${p}`}
+  }, sql: p => `xg_home + xg_away >= ${p}`},
+  // Data-quality dimensions (MP-WEB-007): only matches whose stored facts carry these values. A missing or placeholder
+  // price is stored as NULL (never 0), so presence is a plain NOT NULL test with no bound value.
+  with_odds: {parse: v => flagOf(v, 'with_odds'), bindless: true, sql: () => 'odd_home IS NOT NULL AND odd_draw IS NOT NULL AND odd_away IS NOT NULL'},
+  with_xg: {parse: v => flagOf(v, 'with_xg'), bindless: true, sql: () => 'xg_home IS NOT NULL AND xg_away IS NOT NULL'}
 };
+
+function flagOf(value, name) {
+  if (String(value).trim() !== 'true') throw new QueryInputError(`${name} must be true when present`);
+  return true;
+}
 
 function buildSearch(name, input, {now}) {
   const values = [];
@@ -573,7 +582,8 @@ function buildSearch(name, input, {now}) {
   }
   for (const [key, filter] of Object.entries(SEARCH_FILTERS)) {
     if (input[key] == null || input[key] === '') continue;
-    where.push(filter.sql(bind(filter.parse(input[key]))));
+    const value = filter.parse(input[key]);
+    where.push(filter.bindless ? filter.sql() : filter.sql(bind(value)));
     applied.push(key);
   }
   if (input.fav_min != null && input.fav_max != null && Number(input.fav_min) > Number(input.fav_max)) {

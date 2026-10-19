@@ -7,7 +7,7 @@ L'inventario atomico machine-readable è fissato sulla baseline `353dfc6523d357a
 Dopo l'audit indipendente `MP-GATE-A-REVIEW-ROADMAP-01` (correzioni R-00) e la PR R-01, il denominatore **PROVISIONAL** è il seguente (blocco generato da `npm run governance:render`):
 <!-- inventory:summary:start -->
 - **Requisiti:** 138 (census PROVISIONAL), di cui 104 P0 e 34 P1.
-- **Verdetti:** 36 PASS (tutti con evidenza, ciascuno limitato al proprio scope), 39 FAIL, 7 BLOCKED, 56 NOT_VERIFIED.
+- **Verdetti:** 36 PASS (tutti con evidenza, ciascuno limitato al proprio scope), 37 FAIL, 7 BLOCKED, 58 NOT_VERIFIED.
 - **Gate:** 75 P0 aperti. Gate A del prodotto **NON PASS**.
 <!-- inventory:summary:end -->
 
@@ -71,7 +71,8 @@ Tutte le route `/api/v1/*` sono in sola lettura. Leggono soltanto il database di
   - **Copertura:** le pagine coprono esattamente il risultato non paginato, nello stesso ordine e senza buchi né duplicati, anche con più partite nello stesso giorno o senza orario.
   - **Ordine:** search è per data decrescente e poi id; le partite del giorno sono per orario (senza orario per ultime) e poi id. L'ordine non dipende dalla collation del database.
   - **Validità del cursore:** vale solo per la query e i filtri che lo hanno prodotto, con il testo dei filtri esattamente uguale (`1.5` e `1.50` contano come filtri diversi). Un cursore alterato o riusato altrove dà `400 BAD_REQUEST`.
-  - **Lunghezza:** `cursor` accetta fino a 1000 caratteri, perché contiene l'id della partita del provider. Gli altri parametri restano entro 200.
+  - **Lunghezza:** `cursor` accetta fino a 1000 caratteri, perché contiene l'id della partita del provider. Gli altri parametri restano entro 200. Il server non emette mai un cursore che poi rifiuterebbe: se la chiave di una partita non entra in 1000 caratteri la richiesta fallisce con `500`, invece di chiudere le pagine in silenzio.
+  - **Date:** `match_date` e le altre colonne data escono come data di calendario `YYYY-MM-DD`, indipendente dal fuso del server.
   - **Pagine profonde:** costano quanto la prima, perché l'indice sulla data salta le pagine precedenti.
   - **Fine dei risultati:** `next_cursor` è `null` quando non ci sono altre righe.
 - **Route legacy** (`/api/fpt/*`, `/api/tc/*`, …): restano disponibili con gli header `Deprecation: true` e `Link: <successore v1>`. `/healthz` resta KEPT, senza successore, perché è il percorso di health check della piattaforma di hosting.
@@ -660,7 +661,7 @@ Nuove route di sola lettura (nessuna chiamata a FutPythonTrader):
 | `GET /api/fpt/away-matches?team=…` | ultime 20 trasferte |
 | `GET /api/fpt/team-matches?team=…&venue=home\|away\|both` | ultime N partite per campo |
 | `GET /api/fpt/odds-range?min=1.50&max=1.90&side=any` | favorito in un range di quota |
-| `GET /api/fpt/search?…` | filtri combinati in AND: `competition`, `season`, `team`+`venue`, `from`, `before`, `fav_min`, `fav_max`, `fav_side`, `home_odd_min/max`, `over25_min/max`, `result`, `min_goals`, `max_goals`, `min_xg_total`, `phase` |
+| `GET /api/fpt/search?…` | filtri combinati in AND: `competition`, `season`, `team`+`venue`, `from`, `before`, `fav_min`, `fav_max`, `fav_side`, `home_odd_min/max`, `over25_min/max`, `result`, `min_goals`, `max_goals`, `min_xg_total`, `with_odds=true` (quote 1X2 complete), `with_xg=true`, `phase` |
 | `GET /api/fpt/xg-by-season?team=…` o `?competition=…` | xG per stagione, con `matches_with_xg` come coverage |
 | `GET /api/fpt/team-matches-asof?team=…&as_of=…` | cosa sapeva MatchPilot al timestamp T (versione acquisita entro T) |
 | `GET /api/fpt/league-field-coverage?field=…` | coverage di un campo per lega e stagione |
