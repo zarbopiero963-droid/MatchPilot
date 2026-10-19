@@ -1,0 +1,156 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "4f3badbe654d7717d366acb257c83a4ebc85caa0",
+  "tree_sha": "ffbb9e6094b0fd1f303eda84f63f72e1103cd5e6",
+  "supersedes": "CP-20261019T215252Z-agent-a-claude-code",
+  "pr": 171,
+  "id": "CP-20261019T220932Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T22:09:32Z",
+  "activity": "V-B2b after review D2 round 1 (CHANGES REQUESTED on 0514250): B-1 no date leaves its tile, B-2 labels for every key a real database can return; ready for re-review",
+  "task": "V-B2b",
+  "issue": 3,
+  "requirements": [
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "src/web/app.js (labels of the provider tree with data-key, unlabelled marker, failed update answer not cached), app.css (last sync run row, tile values)",
+    "tools/qa/journeys.mjs (labels, failed answer not kept, empty-day link, last sync run row)",
+    "docs/web.md, docs/qa/ui-text-inventory.md, MP-WEB-015 evidence",
+    "docs/audits/V-B2b-PROVIDER-LABELS + evidence/audits@fa6405d9e7486fc65d4811350039c68ba58324a6",
+    "review round 1 fixes: date layout in tiles, labels of classification issues, samples, phase 1 checks, phase 5 audit, season states; journey steps with real instants and a complete provider tree; inventory and audit README corrected; evidence/audits@9ca2dad2227f2580c7e3fad61eccf8ffcc19bf9b (V-B2b-PROVIDER-LABELS-R2)"
+  ],
+  "tests": [
+    {
+      "command": "node tools/qa/browser-qa.mjs (new tests, src/web of main cd83d02)",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "28ad1aeded6754eff80a8db8ae5894acc9b2581e",
+      "time": "2026-10-19T21:50:46Z",
+      "limits": [
+        "intended RED on an uncommitted tree: 4 of 10 journeys fail; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs + verify-report on the committed change",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "28ad1aeded6754eff80a8db8ae5894acc9b2581e",
+      "time": "2026-10-19T21:49:19Z",
+      "limits": [
+        "10/10, clean tree, verifier ok; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "CI=1 node --test web-e2e, mockup-alignment, browser-qa-gate, explore, requirements-inventory, governance-*; npm run check; governance:check/validate/evidence",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "2b5ef976e45a5fac265f372d8ca4f1963a8f6ba6",
+      "time": "2026-10-19T21:52:52Z",
+      "limits": [
+        "98/98, run on the tree of 28ad1ae; time is an upper bound"
+      ]
+    },
+    {
+      "command": "the previous date rule fails the new dashboard step (a date leaves its tile); a removed label fails the new providers step",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "4f3badbe654d7717d366acb257c83a4ebc85caa0",
+      "time": "2026-10-19T22:09:32Z",
+      "limits": [
+        "intended mutations on an uncommitted tree; time is an upper bound"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs + verify-report on the round-1 fix",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "4f3badbe654d7717d366acb257c83a4ebc85caa0",
+      "time": "2026-10-19T22:08:32Z",
+      "limits": [
+        "10/10, clean tree, verifier ok; archived as V-B2b-PROVIDER-LABELS-R2; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "CI run 39330954168 on 0514250 (all jobs, CI gate PASS)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "0514250643c10fffaa1776fa427a8f738ad77cfa",
+      "time": "2026-10-19T21:57:02Z",
+      "limits": []
+    },
+    {
+      "command": "CI=1 node --test web-e2e, mockup-alignment, browser-qa-gate, explore, requirements-inventory, governance-*; npm run check; governance:evidence",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "4f3badbe654d7717d366acb257c83a4ebc85caa0",
+      "time": "2026-10-19T22:09:32Z",
+      "limits": [
+        "98/98; time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39330954168,
+    "conclusion": "SUCCESS",
+    "head_sha": "0514250643c10fffaa1776fa427a8f738ad77cfa"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "CHANGES REQUESTED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/171#issuecomment-6278393678",
+    "reviewed_sha": "0514250643c10fffaa1776fa427a8f738ad77cfa"
+  },
+  "findings": [
+    {
+      "id": "M09",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the header scope of the technical-text invariant has no injected-defect test"
+    },
+    {
+      "id": "R1-B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "dates take the full width of their tile and stay on one line; journey step with real instants checks each date is whole and inside its tile"
+    },
+    {
+      "id": "R1-B-2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "labels for every key the server code can return; journey step with the complete tree fails on an unlabelled key; claims corrected"
+    },
+    {
+      "id": "R1-NB-1,3,4,5,6,7",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "date layout tested; labels reviewed; nested values full width; RED reason corrected in the audit README; PR count wording; registry and checkpoint carry PR 171"
+    },
+    {
+      "id": "R1-NB-2,8",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the cache guard and the fallback wording are not covered by tests; no backoff on the update route during an outage"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-UI-ROADMAP-01",
+    "MP-OWNER-UI-NO-RAW-TEXT-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T215252Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "review D2 round 2 on the new head, CI, Gate B, protected merge, post-merge verification; then V-B3",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains 4f3badbe654d7717d366acb257c83a4ebc85caa0"
+  ]
+}
