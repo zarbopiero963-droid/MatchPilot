@@ -1,0 +1,139 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T120634Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T12:06:34Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-06b: PR #163 review (comment 6266761166, APPROVED on 6e572d1) NB-1, NB-2, NB-3, NB-5, NB-7 addressed",
+  "task": "R-06b",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 30,
+  "pr": 163,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "753e0a49b9339240e8cecad29f9a3b3adaf0d943",
+  "tree_sha": "f7b9cfaae32d3eae3eeb6153461f36c8d60e6320",
+  "requirements": [
+    "MP-WEB-002",
+    "MP-WEB-007",
+    "MP-WEB-013",
+    "MP-WEB-005",
+    "MP-WEB-010",
+    "MP-WEB-011"
+  ],
+  "changes": [
+    "src/web/app.js, index.html, app.css: dashboard, Daily Board, search, uniform number format, no raw null",
+    "src/providers/futpython/query.mjs: cursor encoder/decoder agree, forged cursors 400, calendar dates, with_odds/with_xg filters",
+    "src/api/v1.mjs: cursor length from the query layer",
+    "tools/governance: errata and checkpoint times checked against git history",
+    "tests: fpt-pagination (NB-5..NB-7, dates, quality filters), web-e2e (R-06b views), governance-checkpoints (history)",
+    "docs/web.md, README, mock and changelog, requirements evidence",
+    "NB fixes: year 0000 refused, odds-range no cursor, Daily Board competition per card, committer time in the history check, singular/venue notes, HANDOFF and mock wording"
+  ],
+  "tests": [
+    {
+      "command": "new NB tests with query.mjs and git.mjs as before the fix (RED)",
+      "result": "FAIL",
+      "environment": "local container, node 22, PostgreSQL 16",
+      "commit": "753e0a49b9339240e8cecad29f9a3b3adaf0d943",
+      "time": "2026-10-19T12:06:19Z",
+      "limits": [
+        "2 tests failed (cursor/date 400, amend history); run on the working tree before commit 753e0a4; time is its author time, the run finished before it"
+      ]
+    },
+    {
+      "command": "npm test against throwaway PostgreSQL 16 with Chromium",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1, Chromium 1194",
+      "commit": "753e0a49b9339240e8cecad29f9a3b3adaf0d943",
+      "time": "2026-10-19T12:06:19Z",
+      "limits": [
+        "300 tests, 299 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only); time is the commit time, the run finished before it"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39248411904,
+    "conclusion": "SUCCESS",
+    "head_sha": "6e572d1c84a3aebffea2e37c2c2d397a1a8ea050"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/163#issuecomment-6266761166",
+    "reviewed_sha": "6e572d1c84a3aebffea2e37c2c2d397a1a8ea050"
+  },
+  "findings": [
+    {
+      "id": "R06B-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "match_date left the API as an instant: shifted by a day on a server away from UTC"
+    },
+    {
+      "id": "R06B-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "optional null sections rendered as the text null (found on screenshots)"
+    },
+    {
+      "id": "NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "year 0000 in a forged cursor or a date input gave 503"
+    },
+    {
+      "id": "NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "odds-range handed out a cursor it then refused"
+    },
+    {
+      "id": "NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "Daily Board headings repeated per competition change in kickoff order"
+    },
+    {
+      "id": "NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "exact basis_commit check cannot run in CI after squash; the bound check does (documented in HANDOFF)"
+    },
+    {
+      "id": "NB-5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "history check used author time; now committer time"
+    },
+    {
+      "id": "NB-6",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "coverage tile capped at 500 competitions without a truncation notice: next web PR"
+    },
+    {
+      "id": "NB-7",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "plural, venue without team, registry pr null"
+    }
+  ],
+  "owner_decisions": [
+    "MP-ROADMAP-CONTINUE-ARCHIVE-FIRST-01",
+    "MP-OWNER-ARCHIVE-FIRST-01",
+    "MP-OWNER-CONTINUE-20261019",
+    "MP-OWNER-AUTOMERGE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T115643Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "Independent review of the delta 6e572d1..head; CI green on the final head; Render still suspended; merge-gate; merge; then R-07.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": "CP-20261019T115643Z-agent-a-claude-code"
+}

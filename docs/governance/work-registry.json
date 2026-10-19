@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 55,
+  "revision": 56,
   "tasks": [
     {
       "id": "R-01",
@@ -197,17 +197,17 @@
       "id": "R-06b",
       "title": "Dashboard, Daily Board and search on API v1 (MP-WEB-013, MP-WEB-002, MP-WEB-007)",
       "issue": 30,
-      "pr": null,
+      "pr": 163,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "RUNNING",
+      "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T115643Z-agent-a-claude-code",
-      "pr_open": false
+      "latest_checkpoint": "CP-20261019T120634Z-agent-a-claude-code",
+      "pr_open": true
     }
   ]
 }
