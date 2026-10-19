@@ -1,0 +1,93 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T124500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T12:45:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-05: real read-only web shell over API v1, browser E2E lane (playwright-core + runner Chrome), security headers; E2E found and fixed an R-04 login defect (Origin: null); PR #161 opened",
+  "task": "R-05",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 3,
+  "pr": 161,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "eeed674d8a144341b2a5aef5296011fabc347460",
+  "tree_sha": "a6f60b49432566a4ad7ae4465b834055462d047c",
+  "requirements": [
+    "MP-WEB-001",
+    "MP-WEB-005",
+    "MP-WEB-009",
+    "MP-WEB-010",
+    "MP-WEB-011",
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "src/web/ (index.html, app.js, app.css, static.mjs), src/server.mjs",
+    "test/web-e2e.test.mjs; .github/workflows/ci.yml MATCHPILOT_E2E_CHROME; playwright-core 1.56.1 dev dependency",
+    "src/auth: Referrer-Policy same-origin, Sec-Fetch-Site same-origin accepted (login Origin: null defect)",
+    "src/api/v1.mjs auth note",
+    "docs/web.md, README, requirements evidence"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/web-e2e.test.mjs (first implementation, RED)",
+      "result": "FAIL",
+      "environment": "local container, node 22, PostgreSQL 16, Chromium 1194",
+      "commit": "eeed674d8a144341b2a5aef5296011fabc347460",
+      "time": "2026-10-19T12:20:00Z",
+      "limits": [
+        "expected RED found real defects: favicon 404 console error; owner form login refused 403 (Origin: null under no-referrer)"
+      ]
+    },
+    {
+      "command": "npm test against throwaway PostgreSQL 16 with Chromium",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1, Chromium 1194",
+      "commit": "eeed674d8a144341b2a5aef5296011fabc347460",
+      "time": "2026-10-19T12:35:00Z",
+      "limits": [
+        "285 tests, 284 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only)"
+      ]
+    },
+    {
+      "command": "npm run check; npm audit (prod and dev); governance checks",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "eeed674d8a144341b2a5aef5296011fabc347460",
+      "time": "2026-10-19T12:35:00Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "R05-LOGIN-ORIGIN-NULL",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "R-04 login page no-referrer policy made browsers send Origin: null; the owner's own form login was refused (found by the R-05 E2E)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-CONTINUE-20261019",
+    "MP-OWNER-AUTOMERGE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T124000Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI green (incl. E2E on runner Chrome) and independent review on the PR #161 head; Render still suspended; merge-gate; then R-06 dashboard / Daily Board.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": null
+}

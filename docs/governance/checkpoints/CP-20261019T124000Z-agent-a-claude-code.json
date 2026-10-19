@@ -1,0 +1,124 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T124000Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T12:40:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Integration Agent"
+  },
+  "activity": "R-04c merged into main as ab0e5fe6c7cafe67acb7adbbe2cca560acd2c711 (squash of PR #160 head); Render matchpilot-test suspended before and after, no deploy (latest 353dfc6)",
+  "task": "R-04c",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 23,
+  "pr": 160,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "59c71436ee86d5e70348eec9835e83b2288bfc79",
+  "tree_sha": "90c29f09410f2ddd402c88c66cdd29e80bc13bac",
+  "requirements": [
+    "MP-SEC-007"
+  ],
+  "changes": [
+    "squash merge ab0e5fe6c7cafe67acb7adbbe2cca560acd2c711 into main"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI (classify, fast checks incl. governance gate, PostgreSQL 17 suite, CI gate)",
+      "result": "PASS",
+      "environment": "GitHub Actions ubuntu-latest",
+      "commit": "59c71436ee86d5e70348eec9835e83b2288bfc79",
+      "time": "2026-10-19T10:23:44Z",
+      "limits": [
+        "run 39236983898"
+      ]
+    },
+    {
+      "command": "Render read-only: get_service and list_deploys srv-davpi23ncjis73f9dkbg before and after the merge",
+      "result": "PASS",
+      "environment": "Render API via MCP, read-only",
+      "commit": "59c71436ee86d5e70348eec9835e83b2288bfc79",
+      "time": "2026-10-19T12:35:00Z",
+      "limits": [
+        "suspended by user; latest deploy still 353dfc6"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39236983898,
+    "conclusion": "SUCCESS",
+    "head_sha": "59c71436ee86d5e70348eec9835e83b2288bfc79"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/160#issuecomment-6265078859",
+    "reviewed_sha": "59c71436ee86d5e70348eec9835e83b2288bfc79"
+  },
+  "findings": [
+    {
+      "id": "R2-NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "IPv6 /64 buckets and spike alert"
+    },
+    {
+      "id": "R2-NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "explicit MATCHPILOT_TRUST_PROXY in production"
+    },
+    {
+      "id": "R2-NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "origin_rejected throttle under lock"
+    },
+    {
+      "id": "R2-NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "optional dedicated audit key"
+    },
+    {
+      "id": "R04-PROD-ACTIVATION",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "production activation remains an owner action (hash, env vars incl. MATCHPILOT_TRUST_PROXY=true, migration 029 approval, MATCHPILOT_AUTH=enforce); Render stays suspended"
+    },
+    {
+      "id": "R04C-NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "clientBucket: IPv4-embedded IPv6 forms, IPv4 with port/leading zeros, 6to4 not normalised (not exploitable today)"
+    },
+    {
+      "id": "R04C-NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "global failure count uncapped"
+    },
+    {
+      "id": "R04C-NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "weak audit-key assertion; no test for invalid spike threshold"
+    },
+    {
+      "id": "R04C-NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "residual risks (/48 holder, owner's /64 neighbour, TRUST_PROXY=false behind Render) undocumented"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-D12-OWNER-LOGIN-20261019",
+    "MP-OWNER-CONTINUE-20261019"
+  ],
+  "dependencies": [
+    "CP-20261019T120500Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "None for R-04c. R04C-NB-1..4 must be fixed before production activation of auth. Next: R-05 web shell.",
+  "resume_conditions": [],
+  "supersedes": "CP-20261019T120500Z-agent-a-claude-code"
+}
