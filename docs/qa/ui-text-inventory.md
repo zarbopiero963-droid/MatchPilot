@@ -12,7 +12,7 @@ Owner decision MP-OWNER-UI-NO-RAW-TEXT-01, requirement MP-WEB-015. This is the g
 - `data-area="user"`: the ordinary interface, where no T or R text may appear;
 - `data-area="technical"`: the dedicated technical views, where provenance and diagnostics belong.
 
-The Browser QA gate fails a user view, or the page footer, that shows technical text (`technicalText` in `tools/qa/browser-qa.mjs`, after every journey step, desktop and mobile).
+The Browser QA gate fails a user view, or the page footer, that shows technical text (`technicalText` in `tools/qa/browser-qa.mjs`, after every journey step, desktop and mobile). It also fails a user view with lead text (`.lead`, the explanatory paragraph under a title). The patterns are a safety net, not a proof: plain-language sentences that are merely superfluous are caught only by the `.lead` rule and by review, and the rows below name the test that checks each text.
 
 **Done** means that the PR changed the text and that the test in the last column checks it.
 
@@ -22,7 +22,7 @@ The Browser QA gate fails a user view, or the page footer, that shows technical 
 |---|---|---|---|---|---|---|
 | UI-01 | «Sito in sola lettura. I dati arrivano dall'API v1 di MatchPilot; nessun calcolo avviene nel browser.» | footer, every page | T | «MatchPilot · consultazione in sola lettura, nessuna operazione di trading.» | V-B1 | invariant on the footer, every step |
 | UI-02 | «Caricamento la dashboard…», «Caricamento la Daily Board…» | loading state, every view | R | «Caricamento in corso…», what is loading in `data-what` | V-B1 | `web-e2e` loading state |
-| UI-03 | «Impossibile caricare i dati (UNAVAILABLE). Dettaglio: data source unavailable.» | error state, every view | T | «I dati non sono disponibili in questo momento.» (network: «Connessione non disponibile…»); code in `data-code`, code and message in the tooltip | V-B1 | `web-e2e` error state (`data-code`, plain text) |
+| UI-03 | «Impossibile caricare i dati (UNAVAILABLE). Dettaglio: data source unavailable.», and no title on the page | error state, every view | T | title «Dati non disponibili», message «I dati non sono disponibili in questo momento.» (network: «Connessione non disponibile…»), «Riprova»; code in `data-code`, code and message in the tooltip | V-B1 | journey `daily-board`, step «errore dell'API» (user view, invariants); `web-e2e` error state |
 | UI-04 | «Impossibile caricare altri risultati (UNAVAILABLE — …). I risultati già mostrati restano validi.» | failed next page, Daily Board and Ricerca | T | «Non è stato possibile caricare altri risultati. Quelli già mostrati restano validi.», code in `data-code` | V-B1 | journey `search`, step «pagina successiva in errore» (invariant while the error is on screen) |
 | UI-05 | «Fonte: futpythontrader · generato: 2026-10-19T… · versione codice: …» | provenance line under Daily Board and Ricerca | T | removed from user views; stays in the technical views, with the instant in Europe/Rome and UTC in the tooltip (D-7) | V-B1 | journey `daily-board`: no `p.meta` in `main`; invariant |
 | UI-06 | menu «Dashboard · Daily Board · Ricerca · Fornitori dati · API · Copertura» | header | V | home «Oggi» = Daily Board (D-2); Fornitori dati, API, Copertura and the data-health Dashboard grouped in one technical area «Dati»; mobile navigation | V-B2 | journey `general-navigation` (menu labels), invariant extended to the header |
@@ -38,9 +38,9 @@ The Browser QA gate fails a user view, or the page footer, that shows technical 
 | UI-11 | «PROVIDER_TZ_UNDOCUMENTED» (the V-B1 draft: «ora del fornitore») | pill next to the kickoff | T | removed; the time stays as the provider wrote it (D-7), with the tooltip «Orario indicato dalla fonte dei dati: il fuso orario non è specificato.»; the status in `data-tz` | V-B1 | journey `daily-board`: `data-tz` equals the API, tooltip present; invariant |
 | UI-12 | «spain · laliga · 2024-2025» | competition on the card | T, V | slugs read as words, season as «2024/25» («Spain · Laliga · 2024/25»). Official names in Italian need display names from the API (competition registry #30): an API change, proposed separately, only if strictly necessary | V-B1 (words); follow-up | journey `daily-board` and `web-e2e`: competition text |
 | UI-13 | «Risultato 2–1» · «Stato risultato FINAL» | card | R, T | score alone when final; «Non iniziata» or «Senza risultato» in place of the score otherwise; a missing score is N/D; the state in `data-result` | V-B1 | journey `daily-board`, step «partite senza risultato finale» |
-| UI-14 | «Quote 1 · X · 2: 1,300 · 3,400 · 4,900» | card | V | three labelled boxes 1, X, 2 at exact precision (D-3) | V-B1 (V-B4: compact row of the mockup) | journey `daily-board`: every box equals the API |
-| UI-15 | «Over 2,5 1,900» · «Entrambe segnano 1,800» | card | V | boxes «Over 2,5» and «Gol», tooltips «Più di 2,5 gol», «Entrambe le squadre segnano» | V-B1 | journey `daily-board` |
-| UI-16 | «Favorito HOME 1,300» | card | T | «Favorito Casa 1,300»; side code in `data-code` | V-B1 | journey `daily-board`; invariant |
+| UI-14 | «Quote 1 · X · 2: 1,300 · 3,400 · 4,900» | card | V | three labelled boxes 1, X, 2 at exact precision (D-3) | V-B1 (V-B4: compact row of the mockup) | journey `daily-board`: label and value of every box equal the API |
+| UI-15 | «Over 2,5 1,900» · «Entrambe segnano 1,800» | card | V | boxes «Over 2,5» and «Gol», tooltips «Più di 2,5 gol», «Entrambe le squadre segnano» | V-B1 | journey `daily-board`: labels and values |
+| UI-16 | «Favorito HOME 1,300» | card | T | «Favorito Casa 1,300», «Favorito N/D» without a favourite; side code in `data-code` | V-B1 | journey `daily-board` and `web-e2e`: text, odd and `data-code` equal the API; invariant |
 | UI-17 | «xG casa · ospite 1,900 · 1,600» | card | V | «xG 1,900 – 1,600» | V-B1 | journey `daily-board` |
 | UI-18 | «Fase: HISTORICAL · dataset: spain/laliga/2024-2025» | card | T | removed; `data-phase` and `data-dataset` on the card | V-B1 | journey `daily-board`: attributes equal the API; invariant |
 | UI-19 | «Partite del 2024-08-01» | day heading | T | «giovedì 1 agosto 2024», the ISO day in `datetime` | V-B1 | journey `daily-board` (`time[datetime]`) |
@@ -48,18 +48,20 @@ The Browser QA gate fails a user view, or the page footer, that shows technical 
 | UI-21 | «Data non valida: "2024-02-30". Usa il formato AAAA-MM-GG.» | invalid date | T | «Data non valida: scegli un giorno dal calendario.» (found by the new invariant) | V-B1 | journey `daily-board`, step «data non valida» |
 | UI-22 | «← Giorno prima · Giorno · Mostra · Giorno dopo → · Oggi» | controls | U, V | kept; day strip of the mockup | V-B4 | journey `daily-board` |
 | UI-23 | «Carica altre partite» · «Fine dei risultati.» | list footer | U | kept | — | journey `daily-board` |
+| UI-24 | a result state the site does not know (a future API value) | card, results | V | today: the score or N/D, the state kept in `data-result`; a new state gets an Italian label in the PR that adds it to the API | follow-up | review of the API change |
+| UI-25 | no non-technical sign of when the data were updated (the provenance line is gone) | Daily Board, Ricerca | V | a discreet «Aggiornato …» from the API time, designed with the home page | V-B2 | journey `daily-board` |
 
 ## Ricerca (`#/search`, user view)
 
 | ID | Current text (main 3521a07) | Where | Class | Action | PR | Verification |
 |---|---|---|---|---|---|---|
-| UI-30 | «Filtri combinati sulle partite storiche salvate. Risultati in ordine di data, dal più recente, con paginazione stabile.» | under the title | R | removed | V-B1 | invariant |
+| UI-30 | «Filtri combinati sulle partite storiche salvate. Risultati in ordine di data, dal più recente, con paginazione stabile.» | under the title | R | removed | V-B1 | invariant: no `.lead` in a user view |
 | UI-31 | «Elenco dei campionati non disponibile: il filtro per campionato è disattivato.» | partial state | U | kept | — | — |
 | UI-32 | field labels, «Qualità dei dati», «solo con quote 1X2 complete», «solo con xG», «es. Ajax», «Cerca», «Azzera» | form | U | kept | — | journey `search` |
-| UI-33 | «spain · laliga» | competition options | T | «Spain · Laliga» (see UI-12) | V-B1 | invariant (option text) |
+| UI-33 | «spain · laliga» | competition options | T | «Spain · Laliga» (see UI-12) | V-B1 | journey `search`, step «campionato e intervallo di date»: every option equals the API names as words |
 | UI-34 | «Imposta i filtri e premi Cerca.» | before a search | U | kept | — | — |
 | UI-35 | «Nessuna squadra chiamata "Nessuno" nei dati salvati.» | team not found | T | «Nessuna squadra trovata con il nome «Nessuno».» | V-B1 | journey `search`; invariant |
-| UI-36 | «Ajax (netherlands)» | choice between teams with the same name | T | «Ajax (Netherlands)» | V-B1 | invariant |
+| UI-36 | «Ajax (netherlands)» | choice between teams with the same name | T | «Ajax (Netherlands)» | V-B1 | journey `search`, step «più squadre con lo stesso nome» (teams answer changed in the browser: the QA archive has no homonyms) |
 | UI-37 | «Filtri non validi: fav_min must be … . Correggi i campi e riprova.» | server validation | T | «Valore non valido in: Quota favorito da. Correggi il campo e riprova.»; parameter in `data-fields`, server message in the tooltip | V-B1 | journey `search` and `web-e2e`: field label and `data-fields` |
 | UI-38 | «Filtri applicati dal server: team, venue, with_odds» | above the results | T | removed; `data-filters` on the «Risultati» heading | V-B1 | journey `search` and `web-e2e`: `data-filters` |
 | UI-39 | «Data · Ora · Partita · Campionato · Risultato · 1 · X · 2 · Over 2,5 · xG» | table headers | U | kept | — | — |
@@ -96,14 +98,24 @@ Provenance, identifiers and diagnostics belong here (decision §3.7). They are l
 | UI-61 | endpoint paths, English API descriptions, «Route storiche» | API | T (allowed) | stays technical; reached only from the «Dati» area | V-B2 | journey `providers-endpoints` |
 | UI-62 | «Data Coverage → Competizioni», «Coverage quote minima (0–1)», «Provider», «404», «Overlap FPT/TC», placeholder «italy» | `/coverage` (server page) | T (allowed) | stays technical; reached only from the «Dati» area; style of the site | V-B2, V-B3 | `test/fpt-coverage-page.test.mjs` |
 | UI-63 | «MatchPilot · Accesso riservato all'owner. · Utente · Password · Accedi» | `/login` | U | kept (D-5) | — | `test/owner-auth*.test.mjs` |
+| UI-64 | «Credenziali non valide.», «Troppi tentativi…» and the other login messages | `/login` | U | kept (D-5); reviewed with the site style in V-B3 | V-B3 | `test/owner-auth*.test.mjs` |
+| UI-65 | «Accesso negato», «Accesso temporaneamente non disponibile» | plain-text refusals of the server | U | kept; styled page in V-B3 | V-B3 | `test/owner-auth*.test.mjs` |
+
+## Controls, options and tooltips
+
+| ID | Current text | Where | Class | Action | PR | Verification |
+|---|---|---|---|---|---|---|
+| UI-70 | «Riprova» | every error state | U | kept | — | journey `daily-board`, step «errore dell'API»; `web-e2e` |
+| UI-71 | «Casa o trasferta», «Casa», «Trasferta», «Tutte», «Qualsiasi», «Finale», «Senza risultato», «Non iniziata» | Ricerca options | U | kept | — | journey `search` |
+| UI-72 | tooltips: «Valore non disponibile», «Apri la Daily Board di quel giorno», the kickoff note, odds names, «Ora italiana · UTC …», codes and server messages of errors | every view | U (T in error tooltips) | kept: a tooltip is where a reason stays accessible without being shown (decision §3.6–3.7); error tooltips carry the code for support | — | journeys (`title` of the kickoff) |
 
 ## Plan inside V-B
 
 | PR | Content |
 |---|---|
 | **V-B1** | Rule (owner decision, MP-WEB-015, `docs/web.md`), this inventory, the technical-text invariant in the Browser QA gate, Daily Board, Ricerca, shared states, footer, Italian codes and dates (D-7). |
-| **V-B2** | Home page «Oggi» = Daily Board (D-2); navigation with the technical area «Dati» (Dashboard, Fornitori dati, API, Copertura); mobile navigation; UI-50…UI-62. Every view must declare its area: the gate fails a view without one. The invariant also covers the header. |
-| **V-B3** | Identity of the mockup (D-1): tokens, amber accent, logo, local fonts with verified license. |
+| **V-B2** | Home page «Oggi» = Daily Board (D-2); navigation with the technical area «Dati» (Dashboard, Fornitori dati, API, Copertura); mobile navigation; UI-25, UI-50…UI-62. The Dashboard declares its area (today every menu view but the Dashboard does, checked by `general-navigation`). The invariant also covers the header. |
+| **V-B3** | Identity of the mockup (D-1): tokens, amber accent, logo, local fonts with verified license; login and refusal pages in the site style (UI-64, UI-65). |
 | **V-B4** | Compact Daily Board rows and day strip of the mockup; mobile results (UI-44); grouping by competition only with API support (D-4). |
 | follow-up | Display names of competitions and countries (UI-12): an API change, proposed separately only if strictly necessary. |
 
