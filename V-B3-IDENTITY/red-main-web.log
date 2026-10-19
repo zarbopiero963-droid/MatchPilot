@@ -1,0 +1,5 @@
+FAIL general-navigation/desktop (2 steps) — The input did not match the regular expression /font-src 'self'/. Input:
+FAIL general-navigation/mobile (2 steps) — The input did not match the regular expression /font-src 'self'/. Input:
+PASS search/desktop (11 steps)
+PASS search/mobile (11 steps)
+{"verdict":"FAIL","counts":{"pass":2,"fail":2,"skip":0,"not_verified":0},"missing_required":["general-navigation/desktop","general-navigation/mobile","dashboard/desktop","dashboard/mobile","daily-board/desktop","daily-board/mobile","providers-endpoints/desktop","providers-endpoints/mobile"],"head_sha":"34c0cfeaa29b9abf622ae60dae8239443cbde61d"}
