@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 45,
+  "revision": 47,
   "tasks": [
     {
       "id": "R-01",
@@ -120,30 +120,30 @@
       "pr": 158,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261019T104000Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "R-04b",
+      "title": "Owner login per D12 (sessions, rate limit, audit; production-off flag)",
+      "issue": 23,
+      "pr": 159,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
       "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T100500Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261019T113000Z-agent-a-claude-code",
       "pr_open": true
-    },
-    {
-      "id": "R-04b",
-      "title": "Owner login per D12 (sessions, rate limit, audit; production-off flag)",
-      "issue": 23,
-      "pr": null,
-      "branch": "ccr-e45875c0-5r0fnf",
-      "kind": "implementation",
-      "state": "PLANNED",
-      "assignee": {
-        "agent": "agent-a-claude-code",
-        "role": "Development Agent"
-      },
-      "lease": null,
-      "latest_checkpoint": null,
-      "pr_open": false
     }
   ]
 }

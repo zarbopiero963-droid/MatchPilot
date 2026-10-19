@@ -1,0 +1,92 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T104500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T10:45:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-04b: owner login per D12 implemented (off by default, fail closed), tests first; PR #159 opened",
+  "task": "R-04b",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 23,
+  "pr": 159,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "18ecf666edd15b78c352456d544a237c5479efe6",
+  "tree_sha": "e9ec9fbb5f09a8c50e692b28a4c9068b75c85163",
+  "requirements": [
+    "MP-SEC-001",
+    "MP-SEC-007"
+  ],
+  "changes": [
+    "src/auth/owner-auth.mjs, src/auth/http.mjs, src/server.mjs",
+    "migrations/029-owner-auth.sql",
+    "tools/auth/hash-password.mjs",
+    "test/owner-auth.test.mjs (6 tests); test/postgres-independence.test.mjs expects 29 migrations",
+    "docs/auth.md, README, mock v2026.10.19 login screen",
+    "requirements MP-SEC-001/007 FAIL -> NOT_VERIFIED; register MP-OWNER-CONTINUE-20261019; NB-7 comment"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/owner-auth.test.mjs against main (RED)",
+      "result": "FAIL",
+      "environment": "local container, node 22",
+      "commit": "5cb5da14f85ff203e61e083f2c10f3d928761ec3",
+      "time": "2026-10-19T10:15:00Z",
+      "limits": [
+        "expected RED: module src/auth/owner-auth.mjs missing"
+      ]
+    },
+    {
+      "command": "npm test against throwaway PostgreSQL 16",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1",
+      "commit": "18ecf666edd15b78c352456d544a237c5479efe6",
+      "time": "2026-10-19T10:35:00Z",
+      "limits": [
+        "277 tests, 276 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only)",
+        "owner-auth end-to-end through the real server, incl. production mode with migration 029 held"
+      ]
+    },
+    {
+      "command": "npm run check; governance:validate; governance:check; mockup-alignment; headless mock check",
+      "result": "PASS",
+      "environment": "local container, node 22, chromium",
+      "commit": "18ecf666edd15b78c352456d544a237c5479efe6",
+      "time": "2026-10-19T10:35:00Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "R04B-PROD",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "production activation is an owner action: hash, env vars, migration 029 approval (D13), MATCHPILOT_AUTH=enforce; Render stays suspended"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-D12-OWNER-LOGIN-20261019",
+    "MP-OWNER-D13-MIGRATIONS-AUTODEPLOY-20261019",
+    "MP-OWNER-CONTINUE-20261019"
+  ],
+  "dependencies": [
+    "CP-20261019T104000Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI green and independent review on the PR #159 head; Render still suspended; merge-gate; then the next independent roadmap item.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": null
+}
