@@ -1,0 +1,81 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T135000Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T13:50:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-06a: deterministic keyset pagination (cursor/next_cursor) for match search and matches of a day; seed helper through the real ingestion path; PR #162 opened",
+  "task": "R-06a",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 30,
+  "pr": 162,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "6767c4e30d2dff15ca34b02a8e4ae7592154cd08",
+  "tree_sha": "c7becbaaab89ae4ff653a3d8cf04d10b76ef3b8f",
+  "requirements": [
+    "MP-API-004",
+    "MP-WEB-007"
+  ],
+  "changes": [
+    "src/providers/futpython/query.mjs: cursor encode/decode bound to query and filters, keyset WHERE, limit+1, COLLATE \"C\" order, matchesOnDate limit",
+    "test/fpt-pagination.test.mjs, test/helpers/fpt-seed.mjs",
+    "README API section; requirements evidence"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/fpt-pagination.test.mjs against main (RED)",
+      "result": "FAIL",
+      "environment": "local container, node 22, PostgreSQL 16",
+      "commit": "9a615a8292b0cdc8f7a323f08c3d3a915927d80e",
+      "time": "2026-10-19T13:25:00Z",
+      "limits": [
+        "expected RED: cursor ignored, next_cursor missing (4/4 fail)"
+      ]
+    },
+    {
+      "command": "npm test against throwaway PostgreSQL 16 with Chromium",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1 (C.UTF-8)",
+      "commit": "6767c4e30d2dff15ca34b02a8e4ae7592154cd08",
+      "time": "2026-10-19T13:40:00Z",
+      "limits": [
+        "290 tests, 289 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only)",
+        "CI runs en_US.utf8: order pinned with COLLATE \"C\""
+      ]
+    },
+    {
+      "command": "npm run check; governance checks",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "6767c4e30d2dff15ca34b02a8e4ae7592154cd08",
+      "time": "2026-10-19T13:40:00Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-OWNER-CONTINUE-20261019",
+    "MP-OWNER-AUTOMERGE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T134500Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI green and independent review on the PR #162 head; Render still suspended; merge-gate; then R-06b.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": null
+}

@@ -1,0 +1,147 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T134500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T13:45:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Integration Agent"
+  },
+  "activity": "R-05 merged into main as 9a615a8292b0cdc8f7a323f08c3d3a915927d80e (squash of PR #161 head); Render matchpilot-test suspended before and after, no deploy (latest 353dfc6)",
+  "task": "R-05",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 3,
+  "pr": 161,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "f41bc2b020a9dc97a890e5d86bc987aa1568dfca",
+  "tree_sha": "ac60aff4a310e43ed2add597b2e6dff3699bb66d",
+  "requirements": [
+    "MP-WEB-001",
+    "MP-WEB-005",
+    "MP-WEB-009",
+    "MP-WEB-010",
+    "MP-WEB-011",
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "squash merge 9a615a8292b0cdc8f7a323f08c3d3a915927d80e into main"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI (classify, fast checks incl. governance gate, PostgreSQL 17 suite with browser E2E on runner Chrome, CI gate)",
+      "result": "PASS",
+      "environment": "GitHub Actions ubuntu-latest",
+      "commit": "f41bc2b020a9dc97a890e5d86bc987aa1568dfca",
+      "time": "2026-10-19T10:40:50Z",
+      "limits": [
+        "run 39239047385; 285 tests, browser E2E executed (not skipped)"
+      ]
+    },
+    {
+      "command": "Render read-only: get_service and list_deploys srv-davpi23ncjis73f9dkbg before and after the merge",
+      "result": "PASS",
+      "environment": "Render API via MCP, read-only",
+      "commit": "f41bc2b020a9dc97a890e5d86bc987aa1568dfca",
+      "time": "2026-10-19T13:40:00Z",
+      "limits": [
+        "suspended by user; latest deploy still 353dfc6"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39239047385,
+    "conclusion": "SUCCESS",
+    "head_sha": "f41bc2b020a9dc97a890e5d86bc987aa1568dfca"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/161#issuecomment-6265373610",
+    "reviewed_sha": "f41bc2b020a9dc97a890e5d86bc987aa1568dfca"
+  },
+  "findings": [
+    {
+      "id": "R05-LOGIN-ORIGIN-NULL",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "R-04 login page no-referrer policy made browsers send Origin: null; the owner's own form login was refused (found by the R-05 E2E)"
+    },
+    {
+      "id": "B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "unknown route did not bump the generation; a slow earlier view overwrote it"
+    },
+    {
+      "id": "B-2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "toLocaleString rounded numbers to 3 decimals"
+    },
+    {
+      "id": "NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "empty strings shown blank instead of N/D"
+    },
+    {
+      "id": "NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "docs claimed --omit=dev from render.yaml"
+    },
+    {
+      "id": "NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "client-side 401 redirect untested; hash lost on first server redirect undocumented"
+    },
+    {
+      "id": "NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "certification assertion too weak"
+    },
+    {
+      "id": "NB-5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "harness: no start check, admin leak on browser launch failure"
+    },
+    {
+      "id": "NB-6",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "405 without security headers"
+    },
+    {
+      "id": "R2-NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "number display: grouping only for safe integers, exponent notation kept (carried into R-06b)"
+    },
+    {
+      "id": "R2-NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "fixed waitForTimeout in the stale-view test (R-06b)"
+    },
+    {
+      "id": "R2-NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "docs/web.md calls the suspended service 'running' (R-06b)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-CONTINUE-20261019",
+    "MP-OWNER-AUTOMERGE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T131500Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "None for R-05. R-06a (API pagination) then R-06b (dashboard, Daily Board, search UI) carrying R2-NB-1..3.",
+  "resume_conditions": [],
+  "supersedes": "CP-20261019T131500Z-agent-a-claude-code"
+}
