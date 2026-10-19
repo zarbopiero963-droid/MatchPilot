@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 79,
+  "revision": 83,
   "tasks": [
     {
       "id": "R-01",
@@ -328,13 +328,29 @@
       "pr": 170,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261019T214738Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "V-B2b",
+      "title": "V-B2b: Italian labels of the provider tree (UI-60) and review notes of PR #170 (failed update answer not cached, last sync run layout, checks)",
+      "issue": 3,
+      "pr": 171,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
       "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T205544Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261019T221939Z-agent-a-claude-code",
       "pr_open": true
     }
   ]

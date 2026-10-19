@@ -1,0 +1,94 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "f8c08203dc0412c59e082681624acdc38236731a",
+  "tree_sha": "4c503eaf5bd656ccdfb78fc26aab6d5b24265245",
+  "supersedes": "CP-20261019T205544Z-agent-a-claude-code",
+  "pr": 170,
+  "id": "CP-20261019T214738Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T21:47:38Z",
+  "activity": "V-B2a merged: PR #170 squash cd83d02 on main; post-merge verification passed",
+  "task": "V-B2a",
+  "issue": 3,
+  "requirements": [
+    "MP-WEB-015",
+    "MP-WEB-013",
+    "MP-WEB-002"
+  ],
+  "changes": [
+    "main cd83d02a9b162845ed0d7b15f8f9079160e67364 (squash of PR #170, head f8c0820 checked with expectedHeadSha)"
+  ],
+  "tests": [
+    {
+      "command": "CI run 39325980206 on f8c0820 (all jobs, CI gate PASS)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "f8c08203dc0412c59e082681624acdc38236731a",
+      "time": "2026-10-19T21:18:21Z",
+      "limits": [
+        "also run 39323397875 on the same head"
+      ]
+    },
+    {
+      "command": "post-merge: fresh clone of main (tree equal to the PR head); governance:check, governance:evidence (archives read back); node tools/qa/browser-qa.mjs 10/10 + verify-report",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "cd83d02a9b162845ed0d7b15f8f9079160e67364",
+      "time": "2026-10-19T21:40:55Z",
+      "limits": [
+        "time from report.json generated_at"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39325980206,
+    "conclusion": "SUCCESS",
+    "head_sha": "f8c08203dc0412c59e082681624acdc38236731a"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/170#issuecomment-6277458442",
+    "reviewed_sha": "f8c08203dc0412c59e082681624acdc38236731a"
+  },
+  "findings": [
+    {
+      "id": "R2-NB-1,2,3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "failed update answer cached, untested branches (board with providers in error, empty-day link), date broken inside a number in the narrow tile: carried into V-B2b"
+    },
+    {
+      "id": "R2-NB-5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "GREEN of 747e4e5 archived as V-B2a-HOME-NAV-DATI-R2 (evidence/audits@a74c28d1136437bb831017c2228d108df1a60f21, read back)"
+    },
+    {
+      "id": "M09",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the header scope of the technical-text invariant has no injected-defect test"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-UI-ROADMAP-01",
+    "MP-OWNER-UI-NO-RAW-TEXT-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T205544Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "V-B2b (Italian labels of the provider tree, review notes of PR #170)",
+  "resume_conditions": [
+    "main contains cd83d02a9b162845ed0d7b15f8f9079160e67364"
+  ]
+}

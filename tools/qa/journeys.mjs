@@ -66,7 +66,7 @@ async function loadAll(page, rows) {
 export const JOURNEYS = [
   {
     id: 'general-navigation', surface: 'Interfaccia generale', title: 'Navigazione, rotte, pagina sconosciuta, tastiera',
-    allowRawText: [/^expected null$/, /^null: the provider catalog does not carry a fixture total$/],
+    allowRawText: [/^null: the provider catalog does not carry a fixture total$/],
     async run({page, base, step}) {
       await step('apertura del sito', async () => {
         const response = await page.goto(`${base}/`);
@@ -168,6 +168,56 @@ export const JOURNEYS = [
         assert.equal(await page.textContent('[data-testid="tile-certification"] [data-field="latest_backfill"]'), 'N/D');
         assert.equal(await page.textContent('[data-testid="tile-tc-live"] [data-field="latest"]'), 'N/D');
       });
+      await step('ultima sincronizzazione: stato e fine, mai l’oggetto grezzo', async () => {
+        // The QA archive has no sync run: the answer of /api/v1/providers is changed in the browser (PR #170 review M10).
+        await page.route('**/api/v1/providers', async route => {
+          const response = await route.fetch();
+          const body = await response.json();
+          body.data.data_health.lastRun = {run_id: 'qa', kind: 'incremental', status: 'complete', started_at: '2026-10-19T18:10:00Z', finished_at: '2026-10-19T18:15:00Z'};
+          // No date in the alert: only the nested-list rule can give it the full width.
+          body.data.data_health.alerts = [{severity: 'warning', code: 'X', title: 'Esempio', message: 'Esempio', last_seen_at: null, occurrences: 1}];
+          await route.fulfill({response, json: body});
+        });
+        // Real instants in every tile that can hold one (PR #171 review B-1): the TotalCorner archive is empty in QA.
+        const at = '2027-01-01T00:59:00Z';
+        await page.route('**/api/v1/tc/live', async route => {
+          const response = await route.fetch();
+          const body = await response.json();
+          body.data.snapshots = {...body.data.snapshots, latest: at};
+          body.data.cursors = {...body.data.cursors, last_polled_at: at};
+          await route.fulfill({response, json: body});
+        });
+        await page.route('**/api/v1/tc/historical', async route => {
+          const response = await route.fetch();
+          const body = await response.json();
+          body.data.matches = {...body.data.matches, earliest: at, latest: at};
+          await route.fulfill({response, json: body});
+        });
+        await page.reload();
+        await page.waitForSelector('[data-testid="tile-data-health"] [data-field="lastRun"] time');
+        await page.waitForSelector('[data-testid="tile-tc-live"] [data-field="latest"] time');
+        assert.equal(await page.textContent('[data-testid="tile-data-health"] [data-field="lastRun"]'), 'Completa · 19/10/2026, 20:15 GMT+2');
+        // Every date stays whole on one line and inside its tile.
+        const dates = await page.locator('.tile time').evaluateAll(nodes => nodes.map(node => {
+          const tile = node.closest('.tile').getBoundingClientRect();
+          const r = node.getBoundingClientRect();
+          return {text: node.textContent, lines: node.getClientRects().length, inside: r.left >= tile.left - 1 && r.right <= tile.right + 1};
+        }));
+        assert.ok(dates.length >= 5, `dates in the tiles: ${dates.length}`);
+        // A nested list (the alerts) takes the full width of its tile, never a squeezed column (PR #171 review NB-c).
+        const nested = await page.locator('[data-testid="tile-data-health"] [data-field="alerts"]').evaluate(node => {
+          const tile = node.closest('.tile').getBoundingClientRect();
+          return node.getBoundingClientRect().width / tile.width;
+        });
+        assert.ok(nested > 0.8, `the alerts take ${Math.round(nested * 100)}% of their tile`);
+        for (const date of dates) {
+          assert.equal(date.lines, 1, `${date.text} breaks across lines`);
+          assert.ok(date.inside, `${date.text} leaves its tile`);
+        }
+        await page.unroute('**/api/v1/providers');
+        await page.unroute('**/api/v1/tc/live');
+        await page.unroute('**/api/v1/tc/historical');
+      });
       await step('una route indisponibile: solo il suo riquadro è N/D con il motivo', async () => {
         await page.route('**/api/v1/tc/live', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
         await page.reload();
@@ -182,7 +232,7 @@ export const JOURNEYS = [
   },
   {
     id: 'daily-board', surface: 'Daily Board', title: 'Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida',
-    allowHttp: [{path: '/api/v1/fpt/matches', status: 503}],
+    allowHttp: [{path: '/api/v1/fpt/matches', status: 503}, {path: '/api/v1/providers', status: 503}],
     async run({page, base, step, api, seed}) {
       const day = seed.busyDay;
       const all = (await api(`/api/v1/fpt/matches?date=${day}&limit=500`)).data.rows;
@@ -285,6 +335,26 @@ export const JOURNEYS = [
         await page.waitForSelector('[data-testid="updated"]');
         await page.unroute('**/api/v1/providers');
       });
+      await step('un errore della route di aggiornamento non resta in memoria', async () => {
+        // The first answer fails; the next day viewed asks again and shows the line (PR #170 review R2-NB-1).
+        let calls = 0;
+        await page.route('**/api/v1/providers', async route => {
+          calls += 1;
+          if (calls === 1) return route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)});
+          const response = await route.fetch();
+          const body = await response.json();
+          body.data.data_health.lastRun = {run_id: 'qa', kind: 'incremental', status: 'complete', started_at: '2026-10-19T18:10:00Z', finished_at: '2026-10-19T18:15:00Z'};
+          await route.fulfill({response, json: body});
+        });
+        await fresh(page, `${base}/#/?date=${day}`);
+        await page.waitForSelector('[data-testid="board-day"]');
+        await page.waitForLoadState('networkidle');
+        assert.equal(await page.locator('[data-testid="updated"]').count(), 0, 'no line after the failure');
+        await page.click('[data-action="next"]');
+        await page.waitForSelector('[data-testid="updated"]');
+        assert.equal(calls, 2);
+        await page.unroute('**/api/v1/providers');
+      });
       await step('la pagina non aspetta la route diagnostica dell’aggiornamento', async () => {
         // /api/v1/providers held until the matches are on screen: the board must not wait for it (PR #170 review B-1).
         let release;
@@ -317,6 +387,9 @@ export const JOURNEYS = [
         await page.waitForSelector('[data-testid="board-day"]');
         await page.click('[data-action="prev"]');
         await page.waitForSelector('[data-testid="board-empty"]');
+        const link = page.locator('[data-testid="board-empty"] a');
+        assert.equal(await link.textContent(), 'Dati');
+        assert.equal(await link.getAttribute('href'), '#/data');
       });
       await step('giorno dopo: di nuovo il giorno affollato', async () => {
         await page.click('[data-action="next"]');
@@ -495,13 +568,75 @@ export const JOURNEYS = [
   {
     id: 'providers-endpoints', surface: 'Interfaccia generale', title: 'Fornitori dati e registro API',
     // Certification prose from the API that legitimately ends with "null" (phase 6 evidence).
-    allowRawText: [/^expected null$/, /^null: the provider catalog does not carry a fixture total$/],
+    allowRawText: [/^null: the provider catalog does not carry a fixture total$/],
     async run({page, base, step, api}) {
       const endpoints = await api('/api/v1/endpoints');
       await step('fornitori dati', async () => {
         await page.goto(`${base}/#/providers`);
         await page.waitForSelector('[data-testid="data-health"]');
         assert.match(await page.textContent('[data-testid="fpt-certification"]'), /Ultimo backfill\s*N\/D/);
+        // Every key of the provider tree reads in Italian (V-B2b, UI-60): the raw key stays in data-key and the tooltip.
+        const keys = await page.locator('main dt[data-key]').evaluateAll(nodes => nodes.map(node => [node.dataset.key, node.textContent, node.classList.contains('unlabelled')]));
+        assert.ok(keys.length > 50, `the provider tree has its keys: ${keys.length}`);
+        assert.deepEqual(keys.filter(([, , unlabelled]) => unlabelled).map(([key]) => key), [], 'keys without an Italian label');
+        assert.ok(keys.every(([key, text]) => text !== key), 'no key is shown as it is');
+        assert.equal(await page.textContent('main dt[data-key="phase2"]'), 'Fase 2 · classificazione');
+        assert.equal(await page.textContent('main dt[data-key="UNAVAILABLE_404"]'), 'Non pubblicati (404)');
+      });
+      await step('fornitori dati: le chiavi di un database reale', async () => {
+        // The QA archive does not reach every branch of the server: the answer is completed in the browser with the keys the
+        // server code can return (classification issues and samples, phase 1 checks, phase 5 audit, season states, sync runs,
+        // alerts), so a key added there without a label fails here (PR #171 review B-2).
+        const run = {run_id: 'qa', kind: 'backfill', status: 'complete', started_at: '2026-10-19T18:10:00Z', finished_at: '2026-10-19T18:15:00Z',
+          catalog_entries: 1, datasets_attempted: 1, datasets_changed: 1, resumed_skips: 0, available_count: 1, unavailable_404: 0, error_real_count: 0,
+          rows_seen: 1, rows_inserted: 1, fields_seen: 1, catalog_snapshot_id: 1};
+        const sample = {dataset_key: 'x', classification: 'AVAILABLE', classification_reason: 'x', http_disposition: null, active: true, last_http_status: 200,
+          has_snapshot: true, first_seen_at: run.started_at, last_seen_at: run.started_at, last_synced_at: run.started_at, first_success_at: run.started_at,
+          last_success_at: run.started_at, last_error_at: null};
+        const ISSUES = ['unclassified', 'missing_first_seen', 'missing_last_seen', 'missing_last_synced_at', 'missing_reason', 'missing_provider_path',
+          'available_inactive', 'available_without_snapshot', 'available_incomplete', 'missing_first_success_at', 'missing_last_success_at',
+          'available_http_status', 'available_http_disposition', 'not_initial_404', 'initial_404_has_snapshot', 'initial_404_http_status',
+          'initial_404_inactive', 'missing_last_error_at', 'regression_fields_disagree', 'regression_without_snapshot', 'regression_http_status',
+          'removed_still_active', 'removed_reason', 'deprecated_marked_initial_404'];
+        const STATES = ['DISCOVERED', 'CANDIDATE', 'AVAILABLE', 'PARTIAL', 'COMPLETE', 'UNAVAILABLE_404', 'ERROR_REAL', 'DEPRECATED', 'REMOVED'];
+        await page.route('**/api/v1/providers', async route => {
+          const response = await route.fetch();
+          const body = await response.json();
+          const health = body.data.data_health;
+          const cert = body.data.futpython_certification;
+          health.lastRun = run;
+          health.alerts = [{severity: 'warning', code: 'X', title: 'x', message: 'x', last_seen_at: run.started_at, occurrences: 1}];
+          cert.latest_backfill = run;
+          // The four shapes of check details written by src/jobs/futpython-certify-phase1.mjs.
+          cert.phase1_checks = [
+            {check_code: 'DEDUP_x', status: 'pass', checked_at: run.started_at,
+              details: {dataset_key: 'x', rows: 1, changed: false, before: {snapshots: 1, versions: 1}, after: {snapshots: 1, versions: 1}, error: null}},
+            {check_code: 'UNAVAILABLE_404_SAMPLE', status: 'pass', checked_at: run.started_at, details: {dataset_key: 'x', observed: 404}},
+            {check_code: 'UNAVAILABLE_404_SAMPLE', status: 'blocked', checked_at: run.started_at, details: {reason: 'x'}},
+            {check_code: 'AVAILABLE_DATASET_SAMPLE', status: 'pass', checked_at: run.started_at, details: {dataset_key: 'x', last_row_count: 1}},
+            {check_code: 'MULTI_SEASON_SAMPLE', status: 'pass', checked_at: run.started_at,
+              details: {country_slug: 'x', league_slug: 'x', seasons: 2, available_seasons: 2}}];
+          cert.phase2.issues = Object.fromEntries(ISSUES.map(code => [code, 1]));
+          cert.phase2.samples = {available: sample, initial_404: sample, regression_404: sample, error: sample, removed: sample, deprecated: sample};
+          cert.phase5 = {dataset_rows: 1, league_rows: 1, season_rows: 1, period_rows: 1, team_rows: 1, normalized_rows: 1, global_fields: 1, registry_fields: 1,
+            missing_global: 0, normalized_names: 1, unclassified: 0, payload_mismatches: 0, rollup_mismatches: 0, class_mismatches: 0,
+            historical_team_unresolved: 0, today_country_unresolved: 0, class_counts: {dense: 1, sparse: 1, 'always-empty': 1},
+            tag_counts: {'league-specific': 1, 'season-specific': 1, 'newly-introduced': 1, 'deprecated-field': 1},
+            // The audit evidence written by src/providers/futpython/coverage.mjs.
+            evidence: {team_census: false, team_sample_mismatches: 0, sample_teams: ['x'], sample_fields: ['x'], sample_limit: 'x', overlap_versions: 0,
+              diff_sample: [{dimension: 'league', dimension_key: 'x', field_name: 'x', stored_rows: 1, recalc_rows: 1, stored_nonempty: 1, recalc_nonempty: 1}],
+              empty_tokens: ['']},
+            computed_at: run.started_at, gate: false};
+          cert.phase6.status_counts = Object.fromEntries(STATES.map(state => [state, 1]));
+          cert.phase6.evidence.pit.t0_matches_snapshot = true;
+          cert.phase8 = {status: 'pass', gate: false};
+          await route.fulfill({response, json: body});
+        });
+        await fresh(page, `${base}/#/providers`);
+        await page.waitForSelector('[data-testid="fpt-certification"] dt[data-key="tag_counts"]');
+        const keys = await page.locator('main dt[data-key]').evaluateAll(nodes => nodes.map(node => [node.dataset.key, node.classList.contains('unlabelled')]));
+        assert.deepEqual(keys.filter(([, unlabelled]) => unlabelled).map(([key]) => key), [], 'keys of a real database without an Italian label');
+        await page.unroute('**/api/v1/providers');
       });
       await step('registro API: stesse righe dell’API', async () => {
         await page.goto(`${base}/#/endpoints`);

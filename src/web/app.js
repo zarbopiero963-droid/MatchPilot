@@ -50,13 +50,82 @@ async function getJson(path) {
 
 // ---- Value rendering ----
 
+// Italian labels of the keys the API returns in the data health and the FutPythonTrader certification (Fornitori, a
+// technical view: the values stay technical, the names read in Italian; V-B2b, inventory UI-60). A key without a label is
+// shown as words and marked, and the Browser QA gate fails a labelled view that shows one (journey providers-endpoints).
 const LABELS = {
+  // data health and sync runs
   status: 'Stato', product: 'Prodotto', lastRun: 'Ultima sincronizzazione', activeDatasets: 'Dataset attivi', schemaFields: 'Campi di schema',
-  datasetsWithErrors: 'Dataset con errori', alerts: 'Avvisi', catalog: 'Catalogo', datasets: 'Dataset', snapshots: 'Snapshot',
-  historical_versions: 'Versioni storiche', unique_matches: 'Partite uniche', schema_fields: 'Campi di schema', latest_backfill: 'Ultimo backfill',
-  phase1_checks: 'Controlli fase 1', gate: 'Gate superato', total: 'Totale', countries: 'Paesi', leagues: 'Campionati',
+  datasetsWithErrors: 'Dataset con errori', alerts: 'Avvisi', severity: 'Gravità', code: 'Codice', title: 'Titolo', message: 'Messaggio',
+  last_seen_at: 'Visto l’ultima volta', occurrences: 'Occorrenze', run_id: 'Identificativo', kind: 'Tipo', started_at: 'Inizio', finished_at: 'Fine',
+  catalog_entries: 'Voci di catalogo', datasets_attempted: 'Dataset tentati', datasets_changed: 'Dataset cambiati', resumed_skips: 'Saltati alla ripresa',
+  available_count: 'Disponibili', error_real_count: 'Errori reali', rows_seen: 'Righe lette', rows_inserted: 'Righe inserite', fields_seen: 'Campi letti',
+  catalog_snapshot_id: 'Snapshot del catalogo', check_code: 'Controllo', checked_at: 'Controllato il', details: 'Dettagli',
+  // certification summary
+  catalog: 'Catalogo', datasets: 'Dataset', snapshots: 'Snapshot', historical_versions: 'Versioni storiche', unique_matches: 'Partite uniche',
+  schema_fields: 'Campi di schema', latest_backfill: 'Ultimo backfill', phase1_checks: 'Controlli fase 1', gate: 'Gate superato', total: 'Totale',
+  countries: 'Paesi', leagues: 'Campionati', available: 'Disponibili', unavailable_404: 'Non pubblicati (404)', error_real: 'Errori reali',
+  error: 'Errore', deprecated: 'Dismessi', removed: 'Rimossi', unknown: 'Sconosciuti', undefined_states: 'Stati non definiti',
+  duplicate_catalog_keys: 'Chiavi di catalogo duplicate', computed_at: 'Calcolato il',
+  phase2: 'Fase 2 · classificazione', phase3: 'Fase 3 · integrità', phase4: 'Fase 4 · registro dei campi', phase5: 'Fase 5 · copertura',
+  phase6: 'Fase 6 · stagioni', phase8: 'Fase 8 · sorveglianza',
+  // phase 2
+  catalog_total: 'Voci di catalogo', classified_total: 'Classificate', unclassified: 'Non classificate', labels: 'Classificazioni',
+  AVAILABLE: 'Disponibili', UNAVAILABLE_404: 'Non pubblicati (404)', ERROR_REAL: 'Errori reali', DEPRECATED: 'Dismessi', REMOVED: 'Rimossi',
+  DISCOVERED: 'Scoperte', CANDIDATE: 'Candidate', PARTIAL: 'Parziali', COMPLETE: 'Complete',
+  issues: 'Anomalie', available_without_snapshot: 'Disponibili senza snapshot', available_incomplete: 'Disponibili incompleti', samples: 'Esempi',
+  initial_404: 'Non pubblicati dall’inizio (404)', regression_404: 'Tornati non pubblicati (404)',
+  // phase 2: the anomaly codes of a dataset (src/providers/futpython/classification.mjs) and the fields of a sample
+  missing_first_seen: 'Senza prima comparsa', missing_last_seen: 'Senza ultima comparsa', missing_last_synced_at: 'Senza ultima sincronizzazione',
+  missing_reason: 'Senza motivo della classificazione', missing_provider_path: 'Senza percorso della fonte', available_inactive: 'Disponibili ma inattivi',
+  missing_first_success_at: 'Senza primo scaricamento riuscito', missing_last_success_at: 'Senza ultimo scaricamento riuscito',
+  available_http_status: 'Disponibili con stato HTTP diverso da 200', available_http_disposition: 'Disponibili con esito HTTP registrato',
+  not_initial_404: '404 iniziali con campi discordanti', initial_404_has_snapshot: '404 iniziali con snapshot',
+  initial_404_http_status: '404 iniziali con stato HTTP diverso', initial_404_inactive: '404 iniziali inattivi', missing_last_error_at: 'Senza ultimo errore',
+  regression_fields_disagree: '404 di ritorno con campi discordanti', regression_without_snapshot: '404 di ritorno senza snapshot',
+  regression_http_status: '404 di ritorno con stato HTTP diverso', removed_still_active: 'Rimossi ancora attivi', removed_reason: 'Rimossi con motivo errato',
+  deprecated_marked_initial_404: 'Dismessi segnati come 404 iniziali',
+  dataset_key: 'Dataset', classification: 'Classificazione', classification_reason: 'Motivo della classificazione', http_disposition: 'Esito HTTP',
+  active: 'Attivo', last_http_status: 'Ultimo stato HTTP', has_snapshot: 'Con snapshot', first_seen_at: 'Visto la prima volta',
+  last_synced_at: 'Ultima sincronizzazione', first_success_at: 'Primo scaricamento riuscito', last_success_at: 'Ultimo scaricamento riuscito',
+  last_error_at: 'Ultimo errore',
+  // phase 1: the deduplication checks (src/jobs/futpython-certify-phase1.mjs)
+  rows: 'Righe', changed: 'Cambiato', before: 'Prima', after: 'Dopo', versions: 'Versioni', observed: 'Esito osservato', reason: 'Motivo',
+  last_row_count: 'Righe dell’ultimo scaricamento', country_slug: 'Paese', league_slug: 'Campionato', seasons: 'Stagioni',
+  available_seasons: 'Stagioni disponibili',
+  // phase 3
+  match_key_collisions: 'Collisioni della chiave partita', provider_match_id_collisions: 'Collisioni dell’id partita della fonte',
+  provider_match_id_shared_same_identity: 'Id partita condivisi dalla stessa partita', duplicate_payload_hashes: 'Contenuti duplicati',
+  orphan_versions: 'Versioni orfane', orphan_snapshots: 'Snapshot orfani', snapshot_row_gaps: 'Righe mancanti negli snapshot',
+  missing_home: 'Squadra di casa mancante', missing_away: 'Squadra ospite mancante', missing_date: 'Data mancante',
+  date_parse_failures: 'Date non leggibili', team_splits: 'Squadre divise', teams: 'Squadre', teams_with_provider_id: 'Squadre con id della fonte',
+  // phase 4
+  raw_unique_fields: 'Campi distinti nei dati grezzi', registry_unique_fields: 'Campi distinti nel registro', missing_from_registry: 'Assenti dal registro',
+  extra_in_registry: 'In più nel registro', missing_normalized: 'Non normalizzati', missing_type_history: 'Senza storia del tipo', transforms: 'Trasformazioni',
+  versions_without_lineage: 'Versioni senza provenienza', suppressed_aliases: 'Alias soppressi',
+  // phase 5
+  dataset_rows: 'Righe per dataset', global_fields: 'Campi globali', league_rows: 'Righe per campionato', missing_global: 'Globali mancanti',
+  normalized_names: 'Nomi normalizzati', normalized_rows: 'Righe normalizzate', period_rows: 'Righe per periodo', registry_fields: 'Campi del registro',
+  season_rows: 'Righe per stagione', team_rows: 'Righe per squadra', payload_mismatches: 'Contenuti discordanti',
+  rollup_mismatches: 'Aggregati discordanti', class_mismatches: 'Classi discordanti', historical_team_unresolved: 'Squadre storiche non risolte',
+  today_country_unresolved: 'Paesi di oggi non risolti', class_counts: 'Campi per classe', dense: 'Densi', sparse: 'Radi', 'always-empty': 'Sempre vuoti',
+  tag_counts: 'Campi per caratteristica', 'league-specific': 'Solo in alcuni campionati', 'season-specific': 'Solo in alcune stagioni',
+  'newly-introduced': 'Introdotti di recente', 'deprecated-field': 'Non più forniti', sample_teams: 'Squadre di esempio', sample_fields: 'Campi di esempio',
+  team_census: 'Censimento completo delle squadre', team_sample_mismatches: 'Discordanze nelle squadre di esempio', sample_limit: 'Limite del campione',
+  overlap_versions: 'Versioni con campi sovrapposti', diff_sample: 'Esempio di differenze', empty_tokens: 'Valori considerati vuoti',
+  dimension: 'Dimensione', dimension_key: 'Chiave della dimensione', field_name: 'Campo', stored_rows: 'Righe salvate', recalc_rows: 'Righe ricalcolate',
+  stored_nonempty: 'Valori salvati non vuoti', recalc_nonempty: 'Valori ricalcolati non vuoti',
+  // phase 6
+  registry_rows: 'Stagioni nel registro', missing_available_seasons: 'Stagioni disponibili mancanti', gap_rows: 'Buchi', status_counts: 'Stagioni per stato',
+  expected_null: 'Senza numero atteso di partite', historical_complete: 'Storico completo', unavailable_marked_complete: 'Non disponibili segnate complete',
+  evidence: 'Prove', pit: 'Dati noti a un istante (PIT)', t0: 'Istante T0', t1: 'Istante T1', dataset: 'Dataset', contract: 'Contratto',
+  t0_matches_snapshot: 'T0 coincide con lo snapshot', total_t0: 'Partite note a T0', total_t1: 'Partite note a T1',
+  argentina_t0: 'Partite del dataset argentino note a T0', later_dataset: 'Dataset successivo', total_t0_repeat: 'Partite note a T0, seconda lettura',
+  later_dataset_t0: 'Partite del dataset successivo note a T0', later_dataset_t1: 'Partite del dataset successivo note a T1',
+  wrong_contract_t0: 'Partite note a T0 con un altro contratto',
+  cadence: 'Cadenza', missing_definition: 'Definizione di mancante', expected_match_count: 'Numero atteso di partite',
 };
-const label = key => LABELS[key] || key.replace(/_/g, ' ');
+const keyWords = key => key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
 
 // Numbers are shown exactly as the API sent them (MP-WEB-011): every digit is kept, the integer part is grouped by
 // thousands with a dot and the decimal point becomes a comma, for JSON numbers and for exact decimal text alike
@@ -122,7 +191,9 @@ function renderValue(value) {
   if (value && typeof value === 'object') {
     const entries = Object.entries(value);
     if (entries.length === 0) return el('span', {class: 'empty'}, 'nessuno');
-    return el('dl', {}, entries.flatMap(([key, item]) => [el('dt', {}, label(key)), el('dd', {}, renderValue(item))]));
+    return el('dl', {}, entries.flatMap(([key, item]) => [
+      Object.hasOwn(LABELS, key) ? el('dt', {title: key, 'data-key': key}, LABELS[key]) : el('dt', {title: key, 'data-key': key, class: 'unlabelled'}, keyWords(key)),
+      el('dd', {}, renderValue(item))]));
   }
   return code(value);
 }
@@ -345,10 +416,15 @@ const dayHref = date => `#/?${queryString({date})}`;
 // When the archive was last synchronised: the end of the last FutPythonTrader sync run, shown only when that run
 // completed (fully or in part) and carries a real time. Nothing is shown otherwise: no time is ever made up (UI-25).
 // /api/v1/providers is a heavy diagnostic route: the board never waits for it (the line is filled in when it answers,
-// if the page is still the same) and one answer serves every day viewed for five minutes (PR #170 review B-1).
+// if the page is still the same) and one good answer serves every day viewed for five minutes (PR #170 review B-1).
 let freshness = null;
 function providersOnce() {
-  if (!freshness || Date.now() - freshness.at > 5 * 60 * 1000) freshness = {at: Date.now(), body: getJson('/api/v1/providers').catch(() => null)};
+  if (!freshness || Date.now() - freshness.at > 5 * 60 * 1000) {
+    // A failed answer is not kept: the next day viewed asks again (PR #170 review R2-NB-1).
+    const entry = {at: Date.now()};
+    entry.body = getJson('/api/v1/providers').catch(() => { if (freshness === entry) freshness = null; return null; });
+    freshness = entry;
+  }
   return freshness.body;
 }
 function updatedSlot(mine) {

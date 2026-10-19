@@ -1,0 +1,97 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "2b5ef976e45a5fac265f372d8ca4f1963a8f6ba6",
+  "tree_sha": "74884075a3ba1b689912b736b34132559ad3a935",
+  "supersedes": null,
+  "pr": null,
+  "id": "CP-20261019T215252Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T21:52:52Z",
+  "activity": "V-B2b: Italian labels of the provider tree, review notes of PR #170; ready for review",
+  "task": "V-B2b",
+  "issue": 3,
+  "requirements": [
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "src/web/app.js (labels of the provider tree with data-key, unlabelled marker, failed update answer not cached), app.css (last sync run row, tile values)",
+    "tools/qa/journeys.mjs (labels, failed answer not kept, empty-day link, last sync run row)",
+    "docs/web.md, docs/qa/ui-text-inventory.md, MP-WEB-015 evidence",
+    "docs/audits/V-B2b-PROVIDER-LABELS + evidence/audits@fa6405d9e7486fc65d4811350039c68ba58324a6"
+  ],
+  "tests": [
+    {
+      "command": "node tools/qa/browser-qa.mjs (new tests, src/web of main cd83d02)",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "28ad1aeded6754eff80a8db8ae5894acc9b2581e",
+      "time": "2026-10-19T21:50:46Z",
+      "limits": [
+        "intended RED on an uncommitted tree: 4 of 10 journeys fail; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs + verify-report on the committed change",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "28ad1aeded6754eff80a8db8ae5894acc9b2581e",
+      "time": "2026-10-19T21:49:19Z",
+      "limits": [
+        "10/10, clean tree, verifier ok; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "CI=1 node --test web-e2e, mockup-alignment, browser-qa-gate, explore, requirements-inventory, governance-*; npm run check; governance:check/validate/evidence",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "2b5ef976e45a5fac265f372d8ca4f1963a8f6ba6",
+      "time": "2026-10-19T21:52:52Z",
+      "limits": [
+        "98/98, run on the tree of 28ad1ae; time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "VB2b-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "keys that only a real database returns (sync run columns, alerts, phase 5 counts, phase 1 checks) are labelled from the server queries but not exercised by the QA archive"
+    },
+    {
+      "id": "M09",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the header scope of the technical-text invariant has no injected-defect test"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-UI-ROADMAP-01",
+    "MP-OWNER-UI-NO-RAW-TEXT-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T214738Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "open the PR, independent review D2 on the head, CI, Gate B, protected merge, post-merge verification; then V-B3",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains 2b5ef976e45a5fac265f372d8ca4f1963a8f6ba6"
+  ]
+}
