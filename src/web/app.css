@@ -18,7 +18,9 @@ section.card{margin-bottom:16px}
 dl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 16px;margin:0}
 dt{color:var(--muted);overflow-wrap:anywhere}
 dd{margin:0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
-dd dl{grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding-left:8px;border-left:2px solid var(--line)}
+/* Nested values stack (label above value): halving the width at every level squeezed deep values to a few characters per line (audit A-2). */
+dd dl{grid-template-columns:minmax(0,1fr);gap:2px;padding-left:8px;border-left:2px solid var(--line)}
+dd dl dd{margin-bottom:6px}
 .nd{color:var(--warn)}
 .ok{color:var(--ok)}
 .bad{color:var(--bad)}
@@ -29,7 +31,8 @@ dd dl{grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding-left:8px;border-
 .tablewrap{overflow-x:auto;max-width:100%}
 table{border-collapse:collapse;width:100%;font-size:14px}
 th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
-td code,th code{overflow-wrap:anywhere}
+/* Paths and identifiers stay on one line; the table scrolls inside its wrapper instead of breaking them every few characters. */
+td code,th code{white-space:nowrap}
 button{background:#173652;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font:inherit;cursor:pointer}
 .pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;background:#173652}
 .foot{max-width:1100px;margin:0 auto;padding:0 20px 32px;color:var(--muted);font-size:13px}

@@ -1,0 +1,10 @@
+2b0fa7fc73deb6031646c0a9e990dfdc15103191cf3dba27963acb07c08266a6  README.md
+1489d4255d04774e2e389c12706b296462f6ab4045e256d4e97906faf9e7de64  evidence.json
+4946cc19e3cf8c0814c2d190ab42e795a7b796a14099c0f6eafcd150cdd1b196  green-4426197/report.json
+a9e813e7e27ffee59ea30d5979a5394225c1428cad04aebbba698766da73d001  green-4426197/screenshots/providers-endpoints-desktop-01-fornitori-dati.png
+eb179ef14186ec6d3cdd6d0b8eea56aa4824c0a5dd68ef2673a57ccfad57ace8  green-4426197/screenshots/search-mobile-06-esito-vuoto-o-di-errore-dal-modulo-in-vi.png
+0c5f61754f3a23ce75793948c2da3ff13b20e305d4e6b60d3b8dec87b9ac0265  qa03-r2-prompts/rv-k3-prompt.txt
+efaf00558b33d1dabb3906518e37000bad9f2a727996ed88389f5063f0f953e4  qa03-r2-prompts/rv-p8-prompt.txt
+8ec44fa7fba2bf874d4e03446fb29bc0ee101e262fd34bae395451dbe24ebe0d  red-without-src-web-fix/report.json
+32b0769dff0a27afc0577b9fd18893a92ba55e9c8c80b41185e862b76dbca90f  red-without-src-web-fix/screenshots/providers-endpoints-desktop-01-fornitori-dati-failure.png
+c4866c2c8953b73321b8865c35811cf33468a8a7e04ff95b1084ccd6291094f2  red-without-src-web-fix/screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png

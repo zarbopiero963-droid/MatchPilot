@@ -62,6 +62,17 @@ export async function invariants(page, allowRawText = []) {
       if (last && level > last + 1) problems.push(`heading jumps from h${last} to h${level}`);
       last = level;
     }
+    // Layout: squeezed text (V-A, audit A-2): a text of 12+ characters broken almost at every character, because its
+    // box is too narrow, is unreadable even when nothing overflows. Fewer than 6 characters per rendered line fails.
+    const squeezed = document.createTreeWalker(main ?? document.body, NodeFilter.SHOW_TEXT);
+    for (let node = squeezed.nextNode(); node; node = squeezed.nextNode()) {
+      const text = node.textContent.trim();
+      if (text.length < 12 || !node.parentElement || !visible(node.parentElement)) continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const lines = new Set([...range.getClientRects()].filter(r => r.width > 0).map(r => Math.round(r.top))).size;
+      if (lines > 1 && text.length / lines < 6) problems.push(`squeezed text (${text.length} characters on ${lines} lines): "${text.slice(0, 40)}"`);
+    }
     // Layout: clipped text and overlapping controls.
     for (const el of main?.querySelectorAll('*') ?? []) {
       const s = getComputedStyle(el);

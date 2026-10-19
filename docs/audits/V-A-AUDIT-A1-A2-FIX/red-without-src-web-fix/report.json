@@ -1,0 +1,600 @@
+{
+  "schema": "mp-browser-qa-v1",
+  "head_sha": "208a126603b0b394289f4807407d9a37497470e4",
+  "tested_commit": "208a126603b0b394289f4807407d9a37497470e4",
+  "tested_tree": "8347dd2ed7b26cc2956a477a09444e72a50b112c",
+  "working_tree_clean": false,
+  "generated_at": "2026-10-19T17:51:46.638Z",
+  "environment": {
+    "node": "v22.22.0",
+    "browser": "chromium 141.0.7390.37",
+    "browser_path": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+    "os": "linux 6.18.44-fc-v139 x64",
+    "ci": true,
+    "ci_run_id": null
+  },
+  "software": {
+    "package": "matchpilot-trading-os",
+    "version": "0.1.0",
+    "code_version": "package-0.1.0"
+  },
+  "dataset": {
+    "fixture": "test/helpers/fpt-seed.mjs#seedQaArchive",
+    "ingestion": "real FutPythonTrader path (CSV → storeDataset → facts)",
+    "competitions": [
+      "fpt:competition:f568d2fff73c2e2f5246eb165426d4cb",
+      "fpt:competition:dec098a11eb9c411e998e8c1c8ec0f4c"
+    ],
+    "matches": 86,
+    "busy_day": "2024-08-01",
+    "fixture_sha256": "7163eb6f4bc9ad6657132ff5a49db28e87f9f783408fa72987e07164f6d04ea5",
+    "production_data": false
+  },
+  "required": {
+    "journeys": [
+      "general-navigation",
+      "dashboard",
+      "daily-board",
+      "search",
+      "providers-endpoints"
+    ],
+    "viewports": [
+      "desktop",
+      "mobile"
+    ]
+  },
+  "journeys": [
+    {
+      "id": "general-navigation",
+      "surface": "Interfaccia generale",
+      "title": "Navigazione, rotte, pagina sconosciuta, tastiera",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: squeezed text (24 characters on 8 lines): \"2025-06-01T00:00:00.000Z\"; squeezed text (31 characters on 8 lines): \"argentina/liga-profesional/2026\"; squeezed text (12 characters on 4 lines): \"fpt-schema-4\"; squeezed text (12 characters on 3 lines): \"argentina t0\"; squeezed text (13 characters on 3 lines): \"later dataset\"; squeezed text (15 characters on 4 lines): \"total t0 repeat\"; squeezed text (16 characters on 4 lines): \"later dataset t0\"; squeezed text (16 characters on 4 lines): \"later dataset t1\"; squeezed text (17 characters on 5 lines): \"wrong contract t0\"",
+      "duration_ms": 1919,
+      "steps": [
+        {
+          "name": "apertura del sito",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-desktop-01-apertura-del-sito.png"
+        },
+        {
+          "name": "menu: Dashboard",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-desktop-02-menu-dashboard.png"
+        },
+        {
+          "name": "menu: Daily Board",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-desktop-03-menu-daily-board.png"
+        },
+        {
+          "name": "menu: Ricerca partite",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-desktop-04-menu-ricerca-partite.png"
+        },
+        {
+          "name": "menu: Fornitori dati",
+          "status": "FAIL",
+          "error": "invariants: squeezed text (24 characters on 8 lines): \"2025-06-01T00:00:00.000Z\"; squeezed text (31 characters on 8 lines): \"argentina/liga-profesional/2026\"; squeezed text (12 characters on 4 lines): \"fpt-schema-4\"; squeezed text (12 characters on 3 lines): \"argentina t0\"; squeezed text (13 characters on 3 lines): \"later dataset\"; squeezed text (15 characters on 4 lines): \"total t0 repeat\"; squeezed text (16 characters on 4 lines): \"later dataset t0\"; squeezed text (16 characters on 4 lines): \"later dataset t1\"; squeezed text (17 characters on 5 lines): \"wrong contract t0\"",
+          "screenshot": "screenshots/general-navigation-desktop-05-menu-fornitori-dati-failure.png"
+        }
+      ],
+      "trace": "traces/general-navigation-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "general-navigation",
+      "surface": "Interfaccia generale",
+      "title": "Navigazione, rotte, pagina sconosciuta, tastiera",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: squeezed text (17 characters on 3 lines): \"/api/v1/endpoints\"; squeezed text (17 characters on 3 lines): \"/api/v1/providers\"; squeezed text (17 characters on 3 lines): \"/api/v1/fpt/teams\"; squeezed text (22 characters on 4 lines): \"/api/v1/fpt/odds-range\"; squeezed text (29 characters on 5 lines): \"/api/v1/fpt/team-matches-asof\"; squeezed text (33 characters on 6 lines): \"/api/v1/fpt/league-field-coverage\"; squeezed text (33 characters on 6 lines): \"/api/v1/fpt/leagues-with-coverage\"; squeezed text (15 characters on 3 lines): \"/api/v1/fpt/h2h\"; squeezed text (17 characters on 3 lines): \"/api/v1/fpt/match\"; squeezed text (22 characters on 4 lines): \"/api/v1/fpt/onboarding\"; squeezed text (26 characters on 5 lines): \"/api/v1/tc/schema-registry\"; squeezed text (15 characters on 3 lines): \"/api/v1/tc/live\"; squeezed text (14 characters on 4 lines): \"/api/fpt/teams\"; squeezed text (21 characters on 6 lines): \"/api/fpt/team-matches\"; squeezed text (21 characters on 6 lines): \"/api/fpt/team-summary\"; squeezed text (12 characters on 3 lines): \"/api/fpt/h2h\"; squeezed text (27 characters on 8 lines): \"/api/fpt/competition-season\"; squeezed text (16 characters on 4 lines): \"/api/fpt/matches\"; squeezed text (14 characters on 4 lines): \"/api/fpt/match\"; squeezed text (21 characters on 6 lines): \"/api/fpt/competitions\"; squeezed text (16 characters on 4 lines): \"/api/fpt/filters\"; squeezed text (19 characters on 5 lines): \"/api/fpt/onboarding\"; squeezed text (23 characters on 6 lines): \"/api/fpt/reconciliation\"; squeezed text (30 characters on 8 lines): \"/api/fpt/coverage-competitions\"; squeezed text (25 characters on 7 lines): \"/api/fpt/coverage-seasons\"; squeezed text (21 characters on 6 lines): \"/api/fpt/away-matches\"; squeezed text (19 characters on 6 lines): \"/api/fpt/odds-range\"; squeezed text (15 characters on 4 lines): \"/api/fpt/search\"; squeezed text (21 characters on 6 lines): \"/api/fpt/xg-by-season\"; squeezed text (26 characters on 7 lines): \"/api/fpt/team",
+      "duration_ms": 1921,
+      "steps": [
+        {
+          "name": "apertura del sito",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-01-apertura-del-sito.png"
+        },
+        {
+          "name": "menu: Dashboard",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-02-menu-dashboard.png"
+        },
+        {
+          "name": "menu: Daily Board",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-03-menu-daily-board.png"
+        },
+        {
+          "name": "menu: Ricerca partite",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-04-menu-ricerca-partite.png"
+        },
+        {
+          "name": "menu: Fornitori dati",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-05-menu-fornitori-dati.png"
+        },
+        {
+          "name": "menu: API v1",
+          "status": "FAIL",
+          "error": "invariants: squeezed text (17 characters on 3 lines): \"/api/v1/endpoints\"; squeezed text (17 characters on 3 lines): \"/api/v1/providers\"; squeezed text (17 characters on 3 lines): \"/api/v1/fpt/teams\"; squeezed text (22 characters on 4 lines): \"/api/v1/fpt/odds-range\"; squeezed text (29 characters on 5 lines): \"/api/v1/fpt/team-matches-asof\"; squeezed text (33 characters on 6 lines): \"/api/v1/fpt/league-field-coverage\"; squeezed text (33 characters on 6 lines): \"/api/v1/fpt/leagues-with-coverage\"; squeezed text (15 characters on 3 lines): \"/api/v1/fpt/h2h\"; squeezed text (17 characters on 3 lines): \"/api/v1/fpt/match\"; squeezed text (22 characters on 4 lines): \"/api/v1/fpt/onboarding\"; squeezed text (26 characters on 5 lines): \"/api/v1/tc/schema-registry\"; squeezed text (15 characters on 3 lines): \"/api/v1/tc/live\"; squeezed text (14 characters on 4 lines): \"/api/fpt/teams\"; squeezed text (21 characters on 6 lines): \"/api/fpt/team-matches\"; squeezed text (21 characters on 6 lines): \"/api/fpt/team-summary\"; squeezed text (12 characters on 3 lines): \"/api/fpt/h2h\"; squeezed text (27 characters on 8 lines): \"/api/fpt/competition-season\"; squeezed text (16 characters on 4 lines): \"/api/fpt/matches\"; squeezed text (14 characters on 4 lines): \"/api/fpt/match\"; squeezed text (21 characters on 6 lines): \"/api/fpt/competitions\"; squeezed text (16 characters on 4 lines): \"/api/fpt/filters\"; squeezed text (19 characters on 5 lines): \"/api/fpt/onboarding\"; squeezed text (23 characters on 6 lines): \"/api/fpt/reconciliation\"; squeezed text (30 characters on 8 lines): \"/api/fpt/coverage-competitions\"; squeezed text (25 characters on 7 lines): \"/api/fpt/coverage-seasons\"; squeezed text (21 characters on 6 lines): \"/api/fpt/away-matches\"; squeezed text (19 characters on 6 lines): \"/api/fpt/odds-range\"; squeezed text (15 characters on 4 lines): \"/api/fpt/search\"; squeezed text (21 characters on 6 lines): \"/api/fpt/xg-by-season\"; squeezed text (26 characters on 7 lines): \"/api/fpt/team",
+          "screenshot": "screenshots/general-navigation-mobile-06-menu-api-v1-failure.png"
+        }
+      ],
+      "trace": "traces/general-navigation-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "dashboard",
+      "surface": "Dashboard",
+      "title": "Riquadri, copertura per campionato, N/D, indisponibilità di una route",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 785,
+      "steps": [
+        {
+          "name": "caricamento e valori uguali all’API",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-desktop-01-caricamento-e-valori-uguali-all-api.png"
+        },
+        {
+          "name": "dati assenti mostrati come N/D, mai 0",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-desktop-02-dati-assenti-mostrati-come-n-d-mai-0.png"
+        },
+        {
+          "name": "una route indisponibile: solo il suo riquadro è N/D con il motivo",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-desktop-03-una-route-indisponibile-solo-il-suo-riqu.png"
+        }
+      ],
+      "trace": "traces/dashboard-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "dashboard",
+      "surface": "Dashboard",
+      "title": "Riquadri, copertura per campionato, N/D, indisponibilità di una route",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 827,
+      "steps": [
+        {
+          "name": "caricamento e valori uguali all’API",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-mobile-01-caricamento-e-valori-uguali-all-api.png"
+        },
+        {
+          "name": "dati assenti mostrati come N/D, mai 0",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-mobile-02-dati-assenti-mostrati-come-n-d-mai-0.png"
+        },
+        {
+          "name": "una route indisponibile: solo il suo riquadro è N/D con il motivo",
+          "status": "PASS",
+          "screenshot": "screenshots/dashboard-mobile-03-una-route-indisponibile-solo-il-suo-riqu.png"
+        }
+      ],
+      "trace": "traces/dashboard-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "daily-board",
+      "surface": "Daily Board",
+      "title": "Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 4489,
+      "steps": [
+        {
+          "name": "apertura dalla copertura della Dashboard",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-01-apertura-dalla-copertura-della-dashboard.png"
+        },
+        {
+          "name": "selezione della data dal campo",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-02-selezione-della-data-dal-campo.png"
+        },
+        {
+          "name": "paginazione fino alla fine, stesso ordine dell’API",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-03-paginazione-fino-alla-fine-stesso-ordine.png"
+        },
+        {
+          "name": "schede: valori, campionato e N/D come nell’API",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-04-schede-valori-campionato-e-n-d-come-nell.png"
+        },
+        {
+          "name": "giorno prima: nessuna partita salvata",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-05-giorno-prima-nessuna-partita-salvata.png"
+        },
+        {
+          "name": "giorno dopo: di nuovo il giorno affollato",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-06-giorno-dopo-di-nuovo-il-giorno-affollato.png"
+        },
+        {
+          "name": "data non valida rifiutata senza richieste",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-07-data-non-valida-rifiutata-senza-richiest.png"
+        }
+      ],
+      "trace": "traces/daily-board-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "daily-board",
+      "surface": "Daily Board",
+      "title": "Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "PASS",
+      "reason": null,
+      "duration_ms": 4336,
+      "steps": [
+        {
+          "name": "apertura dalla copertura della Dashboard",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-mobile-01-apertura-dalla-copertura-della-dashboard.png"
+        },
+        {
+          "name": "selezione della data dal campo",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-mobile-02-selezione-della-data-dal-campo.png"
+        },
+        {
+          "name": "paginazione fino alla fine, stesso ordine dell’API",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-mobile-03-paginazione-fino-alla-fine-stesso-ordine.png"
+        },
+        {
+          "name": "schede: valori, campionato e N/D come nell’API",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-mobile-04-schede-valori-campionato-e-n-d-come-nell.png"
+        },
+        {
+          "name": "giorno prima: nessuna partita salvata",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-mobile-05-giorno-prima-nessuna-partita-salvata.png"
+        },
+        {
+          "name": "giorno dopo: di nuovo il giorno affollato",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-mobile-06-giorno-dopo-di-nuovo-il-giorno-affollato.png"
+        },
+        {
+          "name": "data non valida rifiutata senza richieste",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-mobile-07-data-non-valida-rifiutata-senza-richiest.png"
+        }
+      ],
+      "trace": "traces/daily-board-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "search",
+      "surface": "Ricerca",
+      "title": "Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "page.waitForFunction: Timeout 15000ms exceeded.",
+      "duration_ms": 15469,
+      "steps": [
+        {
+          "name": "tutte le partite, pagina dopo pagina, fino alla fine",
+          "status": "FAIL",
+          "error": "page.waitForFunction: Timeout 15000ms exceeded.",
+          "screenshot": "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png"
+        }
+      ],
+      "trace": "traces/search-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "search",
+      "surface": "Ricerca",
+      "title": "Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "page.waitForFunction: Timeout 15000ms exceeded.",
+      "duration_ms": 15397,
+      "steps": [
+        {
+          "name": "tutte le partite, pagina dopo pagina, fino alla fine",
+          "status": "FAIL",
+          "error": "page.waitForFunction: Timeout 15000ms exceeded.",
+          "screenshot": "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png"
+        }
+      ],
+      "trace": "traces/search-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "providers-endpoints",
+      "surface": "Interfaccia generale",
+      "title": "Fornitori dati e registro API",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: squeezed text (24 characters on 8 lines): \"2025-06-01T00:00:00.000Z\"; squeezed text (31 characters on 8 lines): \"argentina/liga-profesional/2026\"; squeezed text (12 characters on 4 lines): \"fpt-schema-4\"; squeezed text (12 characters on 3 lines): \"argentina t0\"; squeezed text (13 characters on 3 lines): \"later dataset\"; squeezed text (15 characters on 4 lines): \"total t0 repeat\"; squeezed text (16 characters on 4 lines): \"later dataset t0\"; squeezed text (16 characters on 4 lines): \"later dataset t1\"; squeezed text (17 characters on 5 lines): \"wrong contract t0\"",
+      "duration_ms": 474,
+      "steps": [
+        {
+          "name": "fornitori dati",
+          "status": "FAIL",
+          "error": "invariants: squeezed text (24 characters on 8 lines): \"2025-06-01T00:00:00.000Z\"; squeezed text (31 characters on 8 lines): \"argentina/liga-profesional/2026\"; squeezed text (12 characters on 4 lines): \"fpt-schema-4\"; squeezed text (12 characters on 3 lines): \"argentina t0\"; squeezed text (13 characters on 3 lines): \"later dataset\"; squeezed text (15 characters on 4 lines): \"total t0 repeat\"; squeezed text (16 characters on 4 lines): \"later dataset t0\"; squeezed text (16 characters on 4 lines): \"later dataset t1\"; squeezed text (17 characters on 5 lines): \"wrong contract t0\"",
+          "screenshot": "screenshots/providers-endpoints-desktop-01-fornitori-dati-failure.png"
+        }
+      ],
+      "trace": "traces/providers-endpoints-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "providers-endpoints",
+      "surface": "Interfaccia generale",
+      "title": "Fornitori dati e registro API",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "invariants: squeezed text (17 characters on 3 lines): \"/api/v1/endpoints\"; squeezed text (17 characters on 3 lines): \"/api/v1/providers\"; squeezed text (17 characters on 3 lines): \"/api/v1/fpt/teams\"; squeezed text (22 characters on 4 lines): \"/api/v1/fpt/odds-range\"; squeezed text (29 characters on 5 lines): \"/api/v1/fpt/team-matches-asof\"; squeezed text (33 characters on 6 lines): \"/api/v1/fpt/league-field-coverage\"; squeezed text (33 characters on 6 lines): \"/api/v1/fpt/leagues-with-coverage\"; squeezed text (15 characters on 3 lines): \"/api/v1/fpt/h2h\"; squeezed text (17 characters on 3 lines): \"/api/v1/fpt/match\"; squeezed text (22 characters on 4 lines): \"/api/v1/fpt/onboarding\"; squeezed text (26 characters on 5 lines): \"/api/v1/tc/schema-registry\"; squeezed text (15 characters on 3 lines): \"/api/v1/tc/live\"; squeezed text (14 characters on 4 lines): \"/api/fpt/teams\"; squeezed text (21 characters on 6 lines): \"/api/fpt/team-matches\"; squeezed text (21 characters on 6 lines): \"/api/fpt/team-summary\"; squeezed text (12 characters on 3 lines): \"/api/fpt/h2h\"; squeezed text (27 characters on 8 lines): \"/api/fpt/competition-season\"; squeezed text (16 characters on 4 lines): \"/api/fpt/matches\"; squeezed text (14 characters on 4 lines): \"/api/fpt/match\"; squeezed text (21 characters on 6 lines): \"/api/fpt/competitions\"; squeezed text (16 characters on 4 lines): \"/api/fpt/filters\"; squeezed text (19 characters on 5 lines): \"/api/fpt/onboarding\"; squeezed text (23 characters on 6 lines): \"/api/fpt/reconciliation\"; squeezed text (30 characters on 8 lines): \"/api/fpt/coverage-competitions\"; squeezed text (25 characters on 7 lines): \"/api/fpt/coverage-seasons\"; squeezed text (21 characters on 6 lines): \"/api/fpt/away-matches\"; squeezed text (19 characters on 6 lines): \"/api/fpt/odds-range\"; squeezed text (15 characters on 4 lines): \"/api/fpt/search\"; squeezed text (21 characters on 6 lines): \"/api/fpt/xg-by-season\"; squeezed text (26 characters on 7 lines): \"/api/fpt/team",
+      "duration_ms": 654,
+      "steps": [
+        {
+          "name": "fornitori dati",
+          "status": "PASS",
+          "screenshot": "screenshots/providers-endpoints-mobile-01-fornitori-dati.png"
+        },
+        {
+          "name": "registro API: stesse righe dell’API",
+          "status": "FAIL",
+          "error": "invariants: squeezed text (17 characters on 3 lines): \"/api/v1/endpoints\"; squeezed text (17 characters on 3 lines): \"/api/v1/providers\"; squeezed text (17 characters on 3 lines): \"/api/v1/fpt/teams\"; squeezed text (22 characters on 4 lines): \"/api/v1/fpt/odds-range\"; squeezed text (29 characters on 5 lines): \"/api/v1/fpt/team-matches-asof\"; squeezed text (33 characters on 6 lines): \"/api/v1/fpt/league-field-coverage\"; squeezed text (33 characters on 6 lines): \"/api/v1/fpt/leagues-with-coverage\"; squeezed text (15 characters on 3 lines): \"/api/v1/fpt/h2h\"; squeezed text (17 characters on 3 lines): \"/api/v1/fpt/match\"; squeezed text (22 characters on 4 lines): \"/api/v1/fpt/onboarding\"; squeezed text (26 characters on 5 lines): \"/api/v1/tc/schema-registry\"; squeezed text (15 characters on 3 lines): \"/api/v1/tc/live\"; squeezed text (14 characters on 4 lines): \"/api/fpt/teams\"; squeezed text (21 characters on 6 lines): \"/api/fpt/team-matches\"; squeezed text (21 characters on 6 lines): \"/api/fpt/team-summary\"; squeezed text (12 characters on 3 lines): \"/api/fpt/h2h\"; squeezed text (27 characters on 8 lines): \"/api/fpt/competition-season\"; squeezed text (16 characters on 4 lines): \"/api/fpt/matches\"; squeezed text (14 characters on 4 lines): \"/api/fpt/match\"; squeezed text (21 characters on 6 lines): \"/api/fpt/competitions\"; squeezed text (16 characters on 4 lines): \"/api/fpt/filters\"; squeezed text (19 characters on 5 lines): \"/api/fpt/onboarding\"; squeezed text (23 characters on 6 lines): \"/api/fpt/reconciliation\"; squeezed text (30 characters on 8 lines): \"/api/fpt/coverage-competitions\"; squeezed text (25 characters on 7 lines): \"/api/fpt/coverage-seasons\"; squeezed text (21 characters on 6 lines): \"/api/fpt/away-matches\"; squeezed text (19 characters on 6 lines): \"/api/fpt/odds-range\"; squeezed text (15 characters on 4 lines): \"/api/fpt/search\"; squeezed text (21 characters on 6 lines): \"/api/fpt/xg-by-season\"; squeezed text (26 characters on 7 lines): \"/api/fpt/team",
+          "screenshot": "screenshots/providers-endpoints-mobile-02-registro-api-stesse-righe-dell-api-failure.png"
+        }
+      ],
+      "trace": "traces/providers-endpoints-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    }
+  ],
+  "counts": {
+    "pass": 4,
+    "fail": 6,
+    "skip": 0,
+    "not_verified": 0
+  },
+  "missing_required": [
+    "general-navigation/desktop",
+    "general-navigation/mobile",
+    "search/desktop",
+    "search/mobile",
+    "providers-endpoints/desktop",
+    "providers-endpoints/mobile"
+  ],
+  "findings": [
+    {
+      "id": "QA-general-navigation-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "general-navigation",
+      "viewport": "desktop",
+      "reason": "invariants: squeezed text (24 characters on 8 lines): \"2025-06-01T00:00:00.000Z\"; squeezed text (31 characters on 8 lines): \"argentina/liga-profesional/2026\"; squeezed text (12 characters on 4 lines): \"fpt-schema-4\"; squeezed text (12 characters on 3 lines): \"argentina t0\"; squeezed text (13 characters on 3 lines): \"later dataset\"; squeezed text (15 characters on 4 lines): \"total t0 repeat\"; squeezed text (16 characters on 4 lines): \"later dataset t0\"; squeezed text (16 characters on 4 lines): \"later dataset t1\"; squeezed text (17 characters on 5 lines): \"wrong contract t0\"",
+      "evidence": [
+        "traces/general-navigation-desktop.zip",
+        "screenshots/general-navigation-desktop-01-apertura-del-sito.png",
+        "screenshots/general-navigation-desktop-02-menu-dashboard.png",
+        "screenshots/general-navigation-desktop-03-menu-daily-board.png",
+        "screenshots/general-navigation-desktop-04-menu-ricerca-partite.png",
+        "screenshots/general-navigation-desktop-05-menu-fornitori-dati-failure.png"
+      ]
+    },
+    {
+      "id": "QA-general-navigation-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "general-navigation",
+      "viewport": "mobile",
+      "reason": "invariants: squeezed text (17 characters on 3 lines): \"/api/v1/endpoints\"; squeezed text (17 characters on 3 lines): \"/api/v1/providers\"; squeezed text (17 characters on 3 lines): \"/api/v1/fpt/teams\"; squeezed text (22 characters on 4 lines): \"/api/v1/fpt/odds-range\"; squeezed text (29 characters on 5 lines): \"/api/v1/fpt/team-matches-asof\"; squeezed text (33 characters on 6 lines): \"/api/v1/fpt/league-field-coverage\"; squeezed text (33 characters on 6 lines): \"/api/v1/fpt/leagues-with-coverage\"; squeezed text (15 characters on 3 lines): \"/api/v1/fpt/h2h\"; squeezed text (17 characters on 3 lines): \"/api/v1/fpt/match\"; squeezed text (22 characters on 4 lines): \"/api/v1/fpt/onboarding\"; squeezed text (26 characters on 5 lines): \"/api/v1/tc/schema-registry\"; squeezed text (15 characters on 3 lines): \"/api/v1/tc/live\"; squeezed text (14 characters on 4 lines): \"/api/fpt/teams\"; squeezed text (21 characters on 6 lines): \"/api/fpt/team-matches\"; squeezed text (21 characters on 6 lines): \"/api/fpt/team-summary\"; squeezed text (12 characters on 3 lines): \"/api/fpt/h2h\"; squeezed text (27 characters on 8 lines): \"/api/fpt/competition-season\"; squeezed text (16 characters on 4 lines): \"/api/fpt/matches\"; squeezed text (14 characters on 4 lines): \"/api/fpt/match\"; squeezed text (21 characters on 6 lines): \"/api/fpt/competitions\"; squeezed text (16 characters on 4 lines): \"/api/fpt/filters\"; squeezed text (19 characters on 5 lines): \"/api/fpt/onboarding\"; squeezed text (23 characters on 6 lines): \"/api/fpt/reconciliation\"; squeezed text (30 characters on 8 lines): \"/api/fpt/coverage-competitions\"; squeezed text (25 characters on 7 lines): \"/api/fpt/coverage-seasons\"; squeezed text (21 characters on 6 lines): \"/api/fpt/away-matches\"; squeezed text (19 characters on 6 lines): \"/api/fpt/odds-range\"; squeezed text (15 characters on 4 lines): \"/api/fpt/search\"; squeezed text (21 characters on 6 lines): \"/api/fpt/xg-by-season\"; squeezed text (26 characters on 7 lines): \"/api/fpt/team",
+      "evidence": [
+        "traces/general-navigation-mobile.zip",
+        "screenshots/general-navigation-mobile-01-apertura-del-sito.png",
+        "screenshots/general-navigation-mobile-02-menu-dashboard.png",
+        "screenshots/general-navigation-mobile-03-menu-daily-board.png",
+        "screenshots/general-navigation-mobile-04-menu-ricerca-partite.png",
+        "screenshots/general-navigation-mobile-05-menu-fornitori-dati.png",
+        "screenshots/general-navigation-mobile-06-menu-api-v1-failure.png"
+      ]
+    },
+    {
+      "id": "QA-search-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "search",
+      "viewport": "desktop",
+      "reason": "page.waitForFunction: Timeout 15000ms exceeded.",
+      "evidence": [
+        "traces/search-desktop.zip",
+        "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png"
+      ]
+    },
+    {
+      "id": "QA-search-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "search",
+      "viewport": "mobile",
+      "reason": "page.waitForFunction: Timeout 15000ms exceeded.",
+      "evidence": [
+        "traces/search-mobile.zip",
+        "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png"
+      ]
+    },
+    {
+      "id": "QA-providers-endpoints-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "providers-endpoints",
+      "viewport": "desktop",
+      "reason": "invariants: squeezed text (24 characters on 8 lines): \"2025-06-01T00:00:00.000Z\"; squeezed text (31 characters on 8 lines): \"argentina/liga-profesional/2026\"; squeezed text (12 characters on 4 lines): \"fpt-schema-4\"; squeezed text (12 characters on 3 lines): \"argentina t0\"; squeezed text (13 characters on 3 lines): \"later dataset\"; squeezed text (15 characters on 4 lines): \"total t0 repeat\"; squeezed text (16 characters on 4 lines): \"later dataset t0\"; squeezed text (16 characters on 4 lines): \"later dataset t1\"; squeezed text (17 characters on 5 lines): \"wrong contract t0\"",
+      "evidence": [
+        "traces/providers-endpoints-desktop.zip",
+        "screenshots/providers-endpoints-desktop-01-fornitori-dati-failure.png"
+      ]
+    },
+    {
+      "id": "QA-providers-endpoints-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "providers-endpoints",
+      "viewport": "mobile",
+      "reason": "invariants: squeezed text (17 characters on 3 lines): \"/api/v1/endpoints\"; squeezed text (17 characters on 3 lines): \"/api/v1/providers\"; squeezed text (17 characters on 3 lines): \"/api/v1/fpt/teams\"; squeezed text (22 characters on 4 lines): \"/api/v1/fpt/odds-range\"; squeezed text (29 characters on 5 lines): \"/api/v1/fpt/team-matches-asof\"; squeezed text (33 characters on 6 lines): \"/api/v1/fpt/league-field-coverage\"; squeezed text (33 characters on 6 lines): \"/api/v1/fpt/leagues-with-coverage\"; squeezed text (15 characters on 3 lines): \"/api/v1/fpt/h2h\"; squeezed text (17 characters on 3 lines): \"/api/v1/fpt/match\"; squeezed text (22 characters on 4 lines): \"/api/v1/fpt/onboarding\"; squeezed text (26 characters on 5 lines): \"/api/v1/tc/schema-registry\"; squeezed text (15 characters on 3 lines): \"/api/v1/tc/live\"; squeezed text (14 characters on 4 lines): \"/api/fpt/teams\"; squeezed text (21 characters on 6 lines): \"/api/fpt/team-matches\"; squeezed text (21 characters on 6 lines): \"/api/fpt/team-summary\"; squeezed text (12 characters on 3 lines): \"/api/fpt/h2h\"; squeezed text (27 characters on 8 lines): \"/api/fpt/competition-season\"; squeezed text (16 characters on 4 lines): \"/api/fpt/matches\"; squeezed text (14 characters on 4 lines): \"/api/fpt/match\"; squeezed text (21 characters on 6 lines): \"/api/fpt/competitions\"; squeezed text (16 characters on 4 lines): \"/api/fpt/filters\"; squeezed text (19 characters on 5 lines): \"/api/fpt/onboarding\"; squeezed text (23 characters on 6 lines): \"/api/fpt/reconciliation\"; squeezed text (30 characters on 8 lines): \"/api/fpt/coverage-competitions\"; squeezed text (25 characters on 7 lines): \"/api/fpt/coverage-seasons\"; squeezed text (21 characters on 6 lines): \"/api/fpt/away-matches\"; squeezed text (19 characters on 6 lines): \"/api/fpt/odds-range\"; squeezed text (15 characters on 4 lines): \"/api/fpt/search\"; squeezed text (21 characters on 6 lines): \"/api/fpt/xg-by-season\"; squeezed text (26 characters on 7 lines): \"/api/fpt/team",
+      "evidence": [
+        "traces/providers-endpoints-mobile.zip",
+        "screenshots/providers-endpoints-mobile-01-fornitori-dati.png",
+        "screenshots/providers-endpoints-mobile-02-registro-api-stesse-righe-dell-api-failure.png"
+      ]
+    }
+  ],
+  "exploratory": {
+    "status": "NOT_VERIFIED",
+    "reason": "level B (exploratory AI agent) is not part of this run"
+  },
+  "injected_defect": false,
+  "limitations": [
+    "QA archive is a seeded fixture through the real ingestion path, not the real archive (#40) nor production data",
+    "accessibility checks are basic structural checks, not a full WCAG audit"
+  ],
+  "verdict": "FAIL",
+  "files": {
+    "screenshots/daily-board-desktop-01-apertura-dalla-copertura-della-dashboard.png": "06bc85a5378535b862e2fb34f0a17614064ae5be9b07bf70ea9057578b01b876",
+    "screenshots/daily-board-desktop-02-selezione-della-data-dal-campo.png": "16d013ef967764cc6227b0f964572751e2d63552af43cb06d1519409110bc552",
+    "screenshots/daily-board-desktop-03-paginazione-fino-alla-fine-stesso-ordine.png": "5d269d93f0d9bca24231d7a660adb790ea58d68bc75bf94ee6b7b41113164489",
+    "screenshots/daily-board-desktop-04-schede-valori-campionato-e-n-d-come-nell.png": "5d269d93f0d9bca24231d7a660adb790ea58d68bc75bf94ee6b7b41113164489",
+    "screenshots/daily-board-desktop-05-giorno-prima-nessuna-partita-salvata.png": "b815384074894b14392a0099df23df81c3a3ea432e45ff608d1d58919ad5ecb7",
+    "screenshots/daily-board-desktop-06-giorno-dopo-di-nuovo-il-giorno-affollato.png": "6e1564fe4fd67a48fbbe00214f2d03ab25106ee9ad9f946598f36828f7f9b937",
+    "screenshots/daily-board-desktop-07-data-non-valida-rifiutata-senza-richiest.png": "1f191b6588b56ed429f45519ad2a9b0ac2cf94e01cfbd7cb49376f7c84e67271",
+    "screenshots/daily-board-mobile-01-apertura-dalla-copertura-della-dashboard.png": "a0813854fba1b954bcdffc88c7d0438e25f8eb54e4b9b114dfbb9231dd4c420a",
+    "screenshots/daily-board-mobile-02-selezione-della-data-dal-campo.png": "d8b91cddb8a9ef876324be82d7d1d6338b31c73f974ab36457efc7c1c41074bd",
+    "screenshots/daily-board-mobile-03-paginazione-fino-alla-fine-stesso-ordine.png": "160b6555d37958f7f5bdae8e7e39ae1330da21f783cec55882ba1c24cd22a219",
+    "screenshots/daily-board-mobile-04-schede-valori-campionato-e-n-d-come-nell.png": "160b6555d37958f7f5bdae8e7e39ae1330da21f783cec55882ba1c24cd22a219",
+    "screenshots/daily-board-mobile-05-giorno-prima-nessuna-partita-salvata.png": "c6c4bdb4798f64aca704be3d0628714ae52ab5e2fc1af69080c2c3444437e82d",
+    "screenshots/daily-board-mobile-06-giorno-dopo-di-nuovo-il-giorno-affollato.png": "ac0088b184f3201eeb3ab27eef2b526f5c722247702b052625adaa25b4c544ed",
+    "screenshots/daily-board-mobile-07-data-non-valida-rifiutata-senza-richiest.png": "e76b012a78dcc2ddb04d89d05f26dbbdfd5ab16068d217bb512b28b1482eb467",
+    "screenshots/dashboard-desktop-01-caricamento-e-valori-uguali-all-api.png": "5ec1b3443b92901cd79d0c14dfe6b0be37929262e748ee9055ef35110e4eec03",
+    "screenshots/dashboard-desktop-02-dati-assenti-mostrati-come-n-d-mai-0.png": "5ec1b3443b92901cd79d0c14dfe6b0be37929262e748ee9055ef35110e4eec03",
+    "screenshots/dashboard-desktop-03-una-route-indisponibile-solo-il-suo-riqu.png": "2e2ffecf9f4a2e42cb917e6f911e98946dcaa198478db65c8982a51becdf0d30",
+    "screenshots/dashboard-mobile-01-caricamento-e-valori-uguali-all-api.png": "a4d23b3432ea9f6470179dbe3c2ab6724d7c432267ad326abb665e4d1876f77d",
+    "screenshots/dashboard-mobile-02-dati-assenti-mostrati-come-n-d-mai-0.png": "a4d23b3432ea9f6470179dbe3c2ab6724d7c432267ad326abb665e4d1876f77d",
+    "screenshots/dashboard-mobile-03-una-route-indisponibile-solo-il-suo-riqu.png": "2dcd4a11dc9ebcfb583f3ee5ab5210fee2d67ce506710eac17568dadc3ede1ae",
+    "screenshots/general-navigation-desktop-01-apertura-del-sito.png": "045ca6911b2e127443eaab8e2c0ae365d72017150d84a4ac30eda862d758b166",
+    "screenshots/general-navigation-desktop-02-menu-dashboard.png": "7cbf129ab072ee774fd28c847ba7eb5a40b02928a0d97b0394ee832cfefff37e",
+    "screenshots/general-navigation-desktop-03-menu-daily-board.png": "8fa673d943fbc457b91873778de62e61be2b4b90d733a563710716dd7b7caa47",
+    "screenshots/general-navigation-desktop-04-menu-ricerca-partite.png": "342fb1e62d7e425dc2fa6007dfd0815e8494ae5609131f32f316bd960bece07e",
+    "screenshots/general-navigation-desktop-05-menu-fornitori-dati-failure.png": "7cc664e193d8ae7ec57973353f701c5854810dcb575947bed88fb0e50d5aaf56",
+    "screenshots/general-navigation-mobile-01-apertura-del-sito.png": "f1a4353784265fd705e349bf9dcb40ca65672ea7b235409dbc633f952b8bf1df",
+    "screenshots/general-navigation-mobile-02-menu-dashboard.png": "151155552a7d6737a91b31bf98ca73c00338d1ac9778929b5658c67160dda877",
+    "screenshots/general-navigation-mobile-03-menu-daily-board.png": "ec1c6ee0613e827a9bce5352eb9c61aaa6ba7b50379d180e8751ce5389a5566c",
+    "screenshots/general-navigation-mobile-04-menu-ricerca-partite.png": "410d383fb7c4954722eb6dbdc92c4166ebb2cced151c20e5a20aad91f206535e",
+    "screenshots/general-navigation-mobile-05-menu-fornitori-dati.png": "8430689f62724ffe1961a1be058cd69d7c1d08ff3daa2810ff6e4adf562330a5",
+    "screenshots/general-navigation-mobile-06-menu-api-v1-failure.png": "c61fb1ee84fa3f09824fe03be98cced76ca30f71be16058019ea83845c33e308",
+    "screenshots/providers-endpoints-desktop-01-fornitori-dati-failure.png": "32b0769dff0a27afc0577b9fd18893a92ba55e9c8c80b41185e862b76dbca90f",
+    "screenshots/providers-endpoints-mobile-01-fornitori-dati.png": "5e29bc790b940f81affe57a5b9dfd8e9b53fbaefc7de55e1ffa6542d41aca5f9",
+    "screenshots/providers-endpoints-mobile-02-registro-api-stesse-righe-dell-api-failure.png": "8552a648fb29ac8c67c2b85a81f94a92d1745a3fbce8ebc2dd88a7bbb8738fac",
+    "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png": "0542fa14bc263239da3640586c155c66ec48d41aabe8bde09bdd6d6028eb5d85",
+    "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino-failure.png": "c4866c2c8953b73321b8865c35811cf33468a8a7e04ff95b1084ccd6291094f2",
+    "traces/daily-board-desktop.zip": "75f55e7dfb392d7d4af6fa9efdd4124b6d4240db2da4ce35ed385b7474e912fe",
+    "traces/daily-board-mobile.zip": "a004d11a25b282eb34c06db03bf2712370c34206c1f78bbb22b632a662cd47b6",
+    "traces/dashboard-desktop.zip": "4b79f18826cca90a6d404a10f6834760d67e3662ad4ae25130116d5b110bae25",
+    "traces/dashboard-mobile.zip": "4dd5a2757430321ecd6ce53c8f1e9029620e6a78ff39a180f87b3bf2511218fb",
+    "traces/general-navigation-desktop.zip": "c524f1a5f67227bcf27ba4597f036c601ba47c339b5e221c0aeea9625d7ab597",
+    "traces/general-navigation-mobile.zip": "dd40f588234641cd40bda989f2b0598244734ebd1fa10006c003295febf1c68c",
+    "traces/providers-endpoints-desktop.zip": "3ff7fb2f1e79f6bae4530996b0a510489f86932e0b716c4975400499fa64187b",
+    "traces/providers-endpoints-mobile.zip": "ea70e4a80f87e15b8a77a7e7a33cd4797ad0e9e62b3a9ea46081adfcf946f3b5",
+    "traces/search-desktop.zip": "4b3558113cee46283e350a08fe7f69350e30ad9885a4a98678928f1c6da3f820",
+    "traces/search-mobile.zip": "b15ed384094b38cdc9e6b69c2d97e1fbe1c6ed1585129863946fa5154b0368d4"
+  }
+}

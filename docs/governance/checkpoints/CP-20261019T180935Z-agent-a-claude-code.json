@@ -1,0 +1,135 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "767db851db9b457a73849abdd010d9c41ffa8593",
+  "tree_sha": "0708478ddf492509730e1228d78a8ec44a0ebba8",
+  "supersedes": "CP-20261019T175651Z-agent-a-claude-code",
+  "pr": 168,
+  "id": "CP-20261019T180935Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T18:09:35Z",
+  "activity": "V-A after review D2 (APPROVED with NB on 826ecb5): stale reveal flag fixed with RED/GREEN step, clearer test failure; ready for re-review",
+  "task": "V-A",
+  "issue": 3,
+  "requirements": [],
+  "changes": [
+    "src/web/app.js (search outcome focus/scroll, Risultati heading, same-search resubmit)",
+    "src/web/app.css (nested lists stack, table code nowrap)",
+    "tools/qa/journeys.mjs (outcome assertions, new step)",
+    "tools/qa/browser-qa.mjs (squeezed-text invariant)",
+    "docs/audits/V-A-AUDIT-A1-A2-FIX + evidence/audits@df133c4fe67a6f6bd15087996d12f52a6f8ea7fc",
+    "QA-03 round-2 NB-1..3"
+  ],
+  "tests": [
+    {
+      "command": "node tools/qa/browser-qa.mjs (new tests, src/web changes stashed)",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "208a126603b0b394289f4807407d9a37497470e4",
+      "time": "2026-10-19T17:51:46Z",
+      "limits": [
+        "intended RED on an uncommitted tree: 6 journeys fail (search outcome; squeezed text)"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs + verify-report on the committed fix",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "44261973156ca8ebb627bbcbeca54e40a96a26a6",
+      "time": "2026-10-19T17:54:30Z",
+      "limits": [
+        "10/10, clean tree, verifier ok; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs (abandoned-search step, app.js fix stashed)",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "826ecb591ae9827426b615f9b5a3c9c6529b6f2e",
+      "time": "2026-10-19T18:09:01Z",
+      "limits": [
+        "intended RED on an uncommitted tree: search desktop and mobile fail 'no focus jump into the page without a submit'; time is an upper bound"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs with the fix",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "767db851db9b457a73849abdd010d9c41ffa8593",
+      "time": "2026-10-19T18:09:01Z",
+      "limits": [
+        "10/10 on the tree committed as this commit"
+      ]
+    },
+    {
+      "command": "CI=1 MATCHPILOT_EVIDENCE_ARCHIVE=1 node --test web-e2e, mockup-alignment, browser-qa-gate, governance-*; npm run check",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "767db851db9b457a73849abdd010d9c41ffa8593",
+      "time": "2026-10-19T18:09:35Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": 39298467916,
+    "conclusion": "SUCCESS",
+    "head_sha": "826ecb591ae9827426b615f9b5a3c9c6529b6f2e"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/168#issuecomment-6273853991",
+    "reviewed_sha": "826ecb591ae9827426b615f9b5a3c9c6529b6f2e"
+  },
+  "findings": [
+    {
+      "id": "VA-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "the squeezed-text invariant also found the mobile API table paths (same cause as A-2, AI-review AI-11): fixed in this PR"
+    },
+    {
+      "id": "VA-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "other AI-review findings (raw codes and English labels, D-7 timestamps, mobile tables without scroll cue, search order within a day, home page D-2) belong to V-B"
+    },
+    {
+      "id": "R1-NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "stale reveal flag after an abandoned search moved focus later: consumed per render (RED/GREEN)"
+    },
+    {
+      "id": "R1-NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "outcomeShown failure message names expected outcome and actual focus"
+    },
+    {
+      "id": "R1-NOTE",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "archived V-A INDEX time window 17:51–18:00 is loose (archive committed 17:54:53); archived packages are not rewritten"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-QA-VISUAL-EXECUTION-01",
+    "MP-OWNER-RESUME-AFTER-EVIDENCE-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T175651Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and review D2 round 2 on the new head, Gate B, protected merge, post-merge verification; then V-B",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains 767db851db9b457a73849abdd010d9c41ffa8593"
+  ]
+}

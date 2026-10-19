@@ -62,7 +62,7 @@ Who: a Claude agent in a Claude Code session the owner authorized. Never a paid 
    - it leaves a reproduced crawler finding untriaged, refers to a crawler finding that does not exist, or repeats an id;
    - a classification is outside BUG, DATA_MISSING, DATA_QUALITY_ISSUE, NOT_VERIFIED, BLOCKED, NOT_A_DEFECT, or is not a BUG and has no reason;
    - a BUG has no severity P0–P3, or a status is not OPEN, FIXED or DEFERRED;
-   - FIXED does not name an existing regression test (`test/*.test.mjs` or `tools/qa/journeys.mjs`);
+   - FIXED does not name an existing regression test (`test/*.test.mjs` or `tools/qa/journeys.mjs`), or the run has no `--base <ref>` (the base of the fix); the test must be among the files changed between `--base` and `--head`;
    - DEFERRED is used for a P0/P1, or lacks reason, impact and follow_up; an open P2/P3 BUG is neither fixed nor deferred;
    - evidence is cited outside the bundle, a secret-like value appears, or the declared verdict differs from the computed one (BLOCKING when an open P0/P1 BUG exists).
 7. Publish the outcome in the PR (or the issue) with the verifier's output. Every confirmed BUG becomes a regression test (a journey step or a unit test), RED before the fix and GREEN after; open P0/P1 block the merge; P2/P3 may be deferred with reason, impact and follow-up.

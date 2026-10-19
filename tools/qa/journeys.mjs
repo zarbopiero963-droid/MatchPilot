@@ -23,6 +23,21 @@ async function fresh(page, url) {
   await page.goto('about:blank');
   await page.goto(url);
 }
+// After a search submitted from the form, its outcome (results, empty, error) has the focus and is on screen: on a phone
+// it starts below the form and would otherwise go unnoticed (audit A-1).
+async function outcomeShown(page, selector) {
+  await page.waitForFunction(() => document.activeElement?.hasAttribute('data-outcome'), null, {timeout: 10000}).catch(async () => {
+    const focus = await page.evaluate(() => `${document.activeElement?.tagName} ${document.activeElement?.dataset?.testid ?? ''}`.trim());
+    throw new Error(`the search outcome${selector ? ` ${selector}` : ''} did not get the focus (focus on ${focus})`);
+  });
+  const state = await page.evaluate(() => {
+    const el = document.activeElement;
+    const r = el.getBoundingClientRect();
+    return {testid: el.dataset.testid, top: r.top, bottom: r.bottom, height: innerHeight};
+  });
+  if (selector) assert.equal(`[data-testid="${state.testid}"]`, selector);
+  assert.ok(state.top >= 0 && state.top < state.height - 20, `outcome on screen: top ${state.top}, viewport ${state.height}`);
+}
 const ids = async (page, selector) => page.locator(selector).evaluateAll(nodes => nodes.map(node => node.dataset.match));
 // Clicks "more" until the list ends, waiting for each page to arrive.
 async function loadAll(page, rows) {
@@ -169,6 +184,7 @@ export const JOURNEYS = [
         await page.waitForSelector('[data-testid="search-form"]');
         await page.click('[data-testid="search-form"] button[type="submit"]');
         await page.waitForSelector('[data-testid="search-results"] tr');
+        await outcomeShown(page, '[data-testid="search-outcome"]');
         await loadAll(page, '[data-testid="search-results"] tr');
         assert.deepEqual(await ids(page, '[data-testid="search-results"] tr'), expected.map(row => row.internal_match_id));
         assert.equal(expected.length, seed.matches);
@@ -183,6 +199,7 @@ export const JOURNEYS = [
         await page.check('input[name="with_odds"]');
         await page.click('[data-testid="search-form"] button[type="submit"]');
         await page.waitForSelector('[data-testid="search-results"] tr');
+        await outcomeShown(page, '[data-testid="search-outcome"]');
         assert.deepEqual(await ids(page, '[data-testid="search-results"] tr'), expected.map(row => row.internal_match_id));
         assert.equal(await page.inputValue('input[name="team"]'), 'Ajax', 'the form keeps its values');
       });
@@ -210,6 +227,36 @@ export const JOURNEYS = [
         await fresh(page, `${base}/#/search?run=1&fav_min=abc`);
         await page.waitForSelector('[data-testid="search-invalid"]');
         assert.match(await page.textContent('[data-testid="search-invalid"]'), /fav_min/);
+      });
+      await step('esito vuoto o di errore dal modulo: in vista e con il focus, anche ripetendo la stessa ricerca', async () => {
+        await fresh(page, `${base}/#/search`);
+        await page.waitForSelector('[data-testid="search-form"]');
+        await page.fill('input[name="team"]', 'Nessuno');
+        await page.click('[data-testid="search-form"] button[type="submit"]');
+        await page.waitForSelector('[data-testid="team-not-found"]');
+        await outcomeShown(page, '[data-testid="team-not-found"]');
+        // The same search again: the address does not change, the outcome is shown again.
+        await page.evaluate(() => { document.activeElement.blur(); scrollTo(0, 0); });
+        await page.click('[data-testid="search-form"] button[type="submit"]');
+        await outcomeShown(page, '[data-testid="team-not-found"]');
+        await page.fill('input[name="team"]', '');
+        await page.fill('input[name="min_goals"]', '30');
+        await page.click('[data-testid="search-form"] button[type="submit"]');
+        await page.waitForSelector('[data-testid="search-empty"]');
+        await outcomeShown(page, '[data-testid="search-empty"]');
+        // A search abandoned before its answer must not move the focus later (PR #168 review NB-1).
+        await page.route('**/api/v1/fpt/search?*', async route => { await new Promise(done => setTimeout(done, 1500)); await route.continue().catch(() => {}); });
+        await page.click('[data-testid="search-form"] button[type="submit"]');
+        await page.click('nav a[data-view="board"]');
+        await page.waitForFunction(() => document.querySelector('main h1')?.textContent === 'Daily Board');
+        await page.waitForTimeout(1800);
+        await page.unroute('**/api/v1/fpt/search?*');
+        await page.evaluate(() => scrollTo(0, 0));
+        await page.click('nav a[data-view="search"]');
+        await page.waitForSelector('[data-testid="search-form"]');
+        await page.waitForTimeout(300);
+        assert.equal(await page.evaluate(() => document.querySelector('main').contains(document.activeElement)), false, 'no focus jump into the page without a submit');
+        assert.equal(await page.evaluate(() => scrollY), 0, 'no scroll without a submit');
       });
       await step('squadra sconosciuta, nessun risultato, sede senza squadra', async () => {
         await fresh(page, `${base}/#/search?run=1&team=Nessuno`);
