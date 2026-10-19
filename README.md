@@ -7,7 +7,7 @@ L'inventario atomico machine-readable è fissato sulla baseline `353dfc6523d357a
 Dopo l'audit indipendente `MP-GATE-A-REVIEW-ROADMAP-01` (correzioni R-00) e la PR R-01, il denominatore **PROVISIONAL** è il seguente (blocco generato da `npm run governance:render`):
 <!-- inventory:summary:start -->
 - **Requisiti:** 138 (census PROVISIONAL), di cui 104 P0 e 34 P1.
-- **Verdetti:** 36 PASS (tutti con evidenza, ciascuno limitato al proprio scope), 46 FAIL, 7 BLOCKED, 49 NOT_VERIFIED.
+- **Verdetti:** 36 PASS (tutti con evidenza, ciascuno limitato al proprio scope), 45 FAIL, 7 BLOCKED, 50 NOT_VERIFIED.
 - **Gate:** 75 P0 aperti. Gate A del prodotto **NON PASS**.
 <!-- inventory:summary:end -->
 
@@ -69,6 +69,15 @@ Tutte le route `/api/v1/*` sono in sola lettura. Leggono soltanto il database di
   - `/api/v1/tc/{discovery,schema-registry,mapping,prematch,prematch/match,historical,live}`.
 - **Route legacy** (`/api/fpt/*`, `/api/tc/*`, …): restano disponibili con gli header `Deprecation: true` e `Link: <successore v1>`. `/healthz` resta KEPT, senza successore, perché è il percorso di health check della piattaforma di hosting.
 - **Limite:** l'autenticazione server-side di tutte le route è **R-04** (MP-SEC-001). Fino ad allora i requisiti API restano NOT_VERIFIED nell'inventario.
+
+## Math Core (R-12, `mp-math-core-1`)
+
+Il Math Core dei Trading Tools (#94) calcola in decimale a precisione fissa (BigInt, 18 decimali). Le quote sono solo decimali. Rifiuta i numeri JS con decimali e usa modalità di arrotondamento esplicite.
+
+- **Contratto:** ogni formula valida gli input e restituisce un envelope versionato con input, input normalizzati, risultato non arrotondato e valori arrotondati.
+- **Prima parte (MATH-CORE-01):** probabilità implicita, overround, probabilità normalizzate, quote fair.
+- **Verifica:** un oracle indipendente su frazioni esatte e test di proprietà.
+- **Documentazione:** [`docs/math-core.md`](docs/math-core.md).
 
 ## Politica point-in-time (R-08, `mp-pit-v1`)
 

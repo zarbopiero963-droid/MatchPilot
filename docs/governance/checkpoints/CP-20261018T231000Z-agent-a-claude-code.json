@@ -1,0 +1,97 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261018T231000Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-18T23:10:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Integration Agent"
+  },
+  "activity": "R-08b merged into main as be53472db0b35042fc4b9cb78602c00047ac2af2 (squash of PR #155 head); record carried by the next PR per HANDOFF.md",
+  "task": "R-08b",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 12,
+  "pr": 155,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "53162f5587a814c84676dcc23a97ab63ffb855c0",
+  "tree_sha": "5da3a7e0dc8d7a440c559646e9bc4837b72bafbb",
+  "requirements": [
+    "MP-FPT-005",
+    "MP-PIT-002"
+  ],
+  "changes": [
+    "squash merge be53472db0b35042fc4b9cb78602c00047ac2af2 into main"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI (classify, fast checks incl. governance gate, PostgreSQL 17 suite, CI gate)",
+      "result": "PASS",
+      "environment": "GitHub Actions ubuntu-latest",
+      "commit": "53162f5587a814c84676dcc23a97ab63ffb855c0",
+      "time": "2026-10-18T23:01:39Z",
+      "limits": [
+        "run 39174669671"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39174669671,
+    "conclusion": "SUCCESS",
+    "head_sha": "53162f5587a814c84676dcc23a97ab63ffb855c0"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/155#issuecomment-6256290520",
+    "reviewed_sha": "53162f5587a814c84676dcc23a97ab63ffb855c0"
+  },
+  "findings": [
+    {
+      "id": "NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "repair commits a caller transaction opened without writes (same pattern as store.mjs)"
+    },
+    {
+      "id": "NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "repair uses the ingest lineage: answers at earlier T become NON_PIT (conservative); document for audit:futpython:p3"
+    },
+    {
+      "id": "NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "repair is one transaction over all snapshots"
+    },
+    {
+      "id": "NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "MP-FPT-005 evidence says complete run; change-check cost wording underestimates the plan"
+    },
+    {
+      "id": "NB-5",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "fpt_known_matches (phase 6 PIT evidence) still dates versions by acquired_at; relevant for R-09"
+    },
+    {
+      "id": "R08B-LIMITS",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "team identity and dataset activation not versioned"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-DECISIONS-D1-D9-20261018.D4",
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01"
+  ],
+  "dependencies": [
+    "CP-20261018T230006Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "None for R-08b. Carry NB-1..NB-5 into the next FPT-touching PR.",
+  "resume_conditions": [],
+  "supersedes": "CP-20261018T230006Z-agent-a-claude-code"
+}

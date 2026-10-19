@@ -1,0 +1,101 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T073122Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T07:31:22Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-12 part 1: third independent review (comment 6262052076, CHANGES REQUESTED on 4467ae5) addressed: B-1, NB-1..NB-3",
+  "task": "R-12",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 94,
+  "pr": 156,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "1436f9559598139a2232f19d764585fdd92edb8f",
+  "tree_sha": "df73662a6017075575b8ce9f57fd3f4643db9286",
+  "requirements": [
+    "MP-MTH-001"
+  ],
+  "changes": [
+    "src/math/decimal.mjs",
+    "src/math/core.mjs",
+    "test/math-core.test.mjs",
+    "docs/math-core.md, README; MP-MTH-001 FAIL -> NOT_VERIFIED"
+  ],
+  "tests": [
+    {
+      "command": "npm test against throwaway PostgreSQL 16",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1",
+      "commit": "1436f9559598139a2232f19d764585fdd92edb8f",
+      "time": "2026-10-19T07:31:22Z",
+      "limits": [
+        "253 tests, 252 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only)",
+        "new test fails on the previous core.mjs"
+      ]
+    },
+    {
+      "command": "npm run check; governance:validate; governance:check; render-inventory --check",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "1436f9559598139a2232f19d764585fdd92edb8f",
+      "time": "2026-10-19T07:31:22Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "CHANGES REQUESTED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/156#issuecomment-6262052076"
+  },
+  "findings": [
+    {
+      "id": "B-1-3",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "envelope with BigInt inputs did not serialize to JSON"
+    },
+    {
+      "id": "B-1-2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "envelope with Decimal inputs did not serialize to JSON"
+    },
+    {
+      "id": "NB-ODDS-CAP",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "odds cap 1,000,000 is an agent proposal, not in #94"
+    },
+    {
+      "id": "B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "FLOOR/CEIL wrong for negative inputs with more than 18 decimals"
+    },
+    {
+      "id": "R12-SCOPE",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "money/commission formulas MATH-CORE-02..06, Poisson MATH-CORE-07 and API MATH-CORE-08 follow; commission-aware results depend on #95"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-EXECUTION-01"
+  ],
+  "dependencies": [
+    "CP-20261018T232129Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "Obtain CI green and a new independent review on the PR #156 head; auto-merge under merge-gate; then MATH-CORE-02 unless the owner decides on #23 / #97.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": "CP-20261018T232129Z-agent-a-claude-code"
+}
