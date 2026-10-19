@@ -39,6 +39,16 @@ export function evaluateMergeGate(input) {
   if (!Number.isInteger(input.blocking_findings) || input.blocking_findings > 0) reasons.push('blocking findings are open or unknown');
   if (!Number.isInteger(input.owner_conflicts) || input.owner_conflicts > 0) reasons.push('owner conflicts are open or unknown');
   if (!Array.isArray(input.external_operations) || input.external_operations.length) reasons.push('merge would involve deploy, cost, production or LIVE operations');
+  // Browser QA Gate (MP-OWNER-BROWSER-QA-HARD-GATE-01): WEB CHANGE + NO VERIFIED BROWSER QA = MERGE BLOCKED. The web
+  // impact comes from the CI classifier (never from the agent), and the evidence must be the verified CI run on this head.
+  if (typeof input.web_impact !== 'boolean') reasons.push('web impact is unknown (take it from the CI classifier)');
+  if (input.web_impact === true) {
+    const qa = input.browser_qa || {};
+    if (qa.verdict !== 'PASS') reasons.push(`browser QA is ${qa.verdict ?? 'missing'}`);
+    if (qa.verified !== true) reasons.push('browser QA evidence was not verified by tools/qa/verify-report.mjs');
+    if (!input.head_sha || qa.head_sha !== input.head_sha) reasons.push('browser QA does not cover the current head');
+    if (!Number.isInteger(qa.ci_run_id)) reasons.push('browser QA has no CI run with its artifact');
+  }
   const closing = findClosingReferences([input.title, input.body, ...(input.commit_messages || [])].join('\n'));
   if (closing.length) reasons.push(`auto-closing references present: ${closing.join(', ')}`);
   return {allowed: reasons.length === 0, action: reasons.length ? 'block' : 'merge', reasons};

@@ -21,6 +21,7 @@ jobs:
     outputs:
       mode: ${{ steps.classify.outputs.mode }}
       categories: ${{ steps.classify.outputs.categories }}
+      web: ${{ steps.classify.outputs.web }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -121,10 +122,60 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm test
 
+  # Browser QA Gate (MP-OWNER-BROWSER-QA-HARD-GATE-01): every web change runs the required journeys in a real Chrome on
+  # a throwaway PostgreSQL, verifies the evidence against the PR head and keeps it as an artifact. Zero new services.
+  browser_qa:
+    name: Browser QA
+    needs: classify
+    if: needs.classify.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: matchpilot
+          POSTGRES_PASSWORD: matchpilot_local_test
+          POSTGRES_DB: matchpilot_fpt
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U matchpilot -d matchpilot_fpt"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      FUTPYTHON_TEST_DATABASE_URL: postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt
+      MATCHPILOT_E2E_CHROME: /usr/bin/google-chrome
+      QA_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # The verifier checks that the tested merge commit contains the PR head.
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Run the required browser journeys
+        run: node tools/qa/browser-qa.mjs --out qa-evidence
+      - name: Verify the evidence against the PR head
+        if: always()
+        run: node tools/qa/verify-report.mjs qa-evidence --head "$QA_HEAD_SHA" --commit "$(git rev-parse HEAD)"
+      - name: Keep the evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: browser-qa-${{ env.QA_HEAD_SHA }}
+          path: qa-evidence
+          retention-days: 14
+          if-no-files-found: error
+
   gate:
     name: CI gate
     if: always()
-    needs: [classify, fast, ui, full]
+    needs: [classify, fast, ui, full, browser_qa]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -133,6 +184,8 @@ jobs:
       FAST_RESULT: ${{ needs.fast.result }}
       UI_RESULT: ${{ needs.ui.result }}
       FULL_RESULT: ${{ needs.full.result }}
+      WEB: ${{ needs.classify.outputs.web }}
+      BROWSER_QA_RESULT: ${{ needs.browser_qa.result }}
     steps:
       - name: Enforce selected checks
         shell: bash
@@ -155,6 +208,15 @@ jobs:
               ;;
             *)
               echo "Unsafe classifier mode: $MODE" >&2
+              exit 1
+              ;;
+          esac
+          # WEB CHANGE + NO VERIFIED BROWSER QA = MERGE BLOCKED.
+          case "$WEB" in
+            true) test "$BROWSER_QA_RESULT" = success ;;
+            false) test "$BROWSER_QA_RESULT" = skipped ;;
+            *)
+              echo "Unsafe web classification: $WEB" >&2
               exit 1
               ;;
           esac

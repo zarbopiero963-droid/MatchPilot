@@ -15,7 +15,7 @@ const head = 'f'.repeat(40);
 const ready = () => ({
   pr_state: 'open', scope_authorized: true, gate_a: 'PASS', gate_b: 'PASS', mandatory_tests: 'PASS', ci: 'SUCCESS', branch_protection: true,
   review: {verdict: 'APPROVED', independent: true, reference: 'https://github.com/o/r/pull/1#issuecomment-1', reviewed_sha: head},
-  head_sha: head, blocking_findings: 0, owner_conflicts: 0, external_operations: [],
+  head_sha: head, blocking_findings: 0, owner_conflicts: 0, external_operations: [], web_impact: false,
   title: 'R-01: governance', body: 'Refs #150', commit_messages: ['Governance: checkpoints\n\nRefs #150'],
 });
 
@@ -55,4 +55,23 @@ test('regression: the recorded PR #149 merge input satisfies the gate', () => {
     commit_messages: ['Governance: add MP-PR-00 atomic requirements inventory', 'Governance: apply MP-PR-00 independent audit corrections (R-00)\n\nRefs #3 #97 #104 #149'],
   };
   assert.equal(evaluateMergeGate(pr149).allowed, true);
+});
+
+test('a web change merges only with verified Browser QA evidence on the current head (MP-OWNER-BROWSER-QA-HARD-GATE-01)', () => {
+  const qa = {verdict: 'PASS', verified: true, head_sha: head, ci_run_id: 123};
+  assert.deepEqual(evaluateMergeGate({...ready(), web_impact: true, browser_qa: qa}).reasons, []);
+  const blocked = (input, pattern) => {
+    const verdict = evaluateMergeGate({...ready(), ...input});
+    assert.equal(verdict.allowed, false);
+    assert.ok(verdict.reasons.some(reason => pattern.test(reason)), JSON.stringify(verdict.reasons));
+  };
+  blocked({web_impact: undefined}, /web impact is unknown/);
+  blocked({web_impact: 'no'}, /web impact is unknown/);
+  blocked({web_impact: true}, /browser QA is missing/);
+  blocked({web_impact: true, browser_qa: {...qa, verdict: 'FAIL'}}, /browser QA is FAIL/);
+  blocked({web_impact: true, browser_qa: {...qa, verified: false}}, /not verified/);
+  blocked({web_impact: true, browser_qa: {...qa, head_sha: 'e'.repeat(40)}}, /current head/);
+  blocked({web_impact: true, browser_qa: {...qa, ci_run_id: null}}, /no CI run/);
+  // A non-web change needs no browser evidence.
+  assert.equal(evaluateMergeGate({...ready(), web_impact: false}).allowed, true);
 });

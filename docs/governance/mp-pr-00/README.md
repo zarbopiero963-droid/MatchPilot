@@ -45,7 +45,7 @@ Il validatore (`npm run governance:validate`) rifiuta:
 | BLOCKED | 7 |
 | NOT_VERIFIED | 58 |
 | P0 aperti | 75 |
-| Con mapping a codice / test / evidenza | 68 / 77 / 72 |
+| Con mapping a codice / test / evidenza | 69 / 77 / 72 |
 | Future register (fuori denominatore) | 22 |
 <!-- inventory:counts:end -->
 

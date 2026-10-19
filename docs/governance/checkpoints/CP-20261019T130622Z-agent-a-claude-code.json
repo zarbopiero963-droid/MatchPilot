@@ -1,0 +1,105 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "081745a7156a31174f365d8b9432d0af7c36cac1",
+  "tree_sha": "44237d08a4f883e51ee1a628b7df020d7088ebf0",
+  "supersedes": null,
+  "pr": null,
+  "id": "CP-20261019T130622Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T13:06:22Z",
+  "activity": "QA-01: Browser QA Gate implemented (runner, journeys, verifier, CI job and gate, merge-gate, tests, docs)",
+  "task": "QA-01",
+  "issue": 3,
+  "requirements": [
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "tools/qa/browser-qa.mjs, journeys.mjs, verify-report.mjs",
+    "scripts/ci-classify.mjs web impact; .github/workflows/ci.yml Browser QA job and CI gate",
+    "tools/governance/policy.mjs browser_qa in merge-gate",
+    "test/browser-qa-gate.test.mjs, ci-classify and governance-policy tests; test/helpers/fpt-seed.mjs QA archive",
+    "AGENTS.md §4, docs/qa/browser-qa.md, owner decisions, MP-QAC-004"
+  ],
+  "tests": [
+    {
+      "command": "node tools/qa/browser-qa.mjs (first run, before narrowing the raw-value check)",
+      "result": "FAIL",
+      "environment": "local container, node 22, PostgreSQL 16, Chromium 1194",
+      "commit": "56fe57975f5a8f1d09f159b11bc69efdcbb48985",
+      "time": "2026-10-19T13:05:24Z",
+      "limits": [
+        "working tree with uncommitted QA-01 code on main 56fe579; 4 journeys failed on the legitimate label 'undefined states' and API prose 'expected null' (test defect, fixed); time is the author time of the QA-01 commit, the runs finished before it"
+      ]
+    },
+    {
+      "command": "CI=1 npm test against throwaway PostgreSQL 16 with Chromium",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1, Chromium 1194",
+      "commit": "081745a7156a31174f365d8b9432d0af7c36cac1",
+      "time": "2026-10-19T13:05:24Z",
+      "limits": [
+        "310 tests, 309 pass, 1 fail: postgres-independence requires PostgreSQL 17 (CI only); run on the working tree just before the commit"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs --out <dir> && node tools/qa/verify-report.mjs <dir> --head HEAD --commit HEAD",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16, Chromium 1194",
+      "commit": "081745a7156a31174f365d8b9432d0af7c36cac1",
+      "time": "2026-10-19T13:06:22Z",
+      "limits": [
+        "10/10 journeys (5 journeys × desktop, mobile), clean tree, verifier ok; time is this checkpoint's time, the run finished before it"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "QA01-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "raw-value invariant flagged legitimate labels and API prose (test defect); narrowed to leaked text nodes"
+    },
+    {
+      "id": "QA01-2",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "required checks on main not readable by the agent: non-bypassability NOT VERIFIED until the owner confirms CI gate is required"
+    },
+    {
+      "id": "QA01-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "providers page: deeply nested evidence values wrap one character per line on desktop (P3 visual, pre-existing)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01",
+    "MP-OWNER-QA-01-AUTHORIZATION",
+    "MP-OWNER-PRODUCT-QUALITY-DATA-01",
+    "MP-OWNER-AUTOMERGE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T130620Z-agent-a-claude-code",
+    "CP-20261019T130621Z-agent-a-claude-code"
+  ],
+  "state": "RUNNING",
+  "next_action": "Open the PR, CI with the new Browser QA job, independent review on the final head, Render check, merge gate.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ]
+}
