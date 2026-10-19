@@ -149,7 +149,16 @@ export const JOURNEYS = [
           assert.equal(await card.locator('[data-field="kickoff"]').textContent(), shown(row.kickoff_local_time));
           assert.equal(await card.locator('[data-field="odds_1x2"]').textContent(), `${shown(row.odd_home)} · ${shown(row.odd_draw)} · ${shown(row.odd_away)}`);
           assert.equal(await card.locator('[data-field="xg"]').textContent(), `${shown(row.xg_home)} · ${shown(row.xg_away)}`);
+          // Codes in Italian, with the code kept (V-B1); the undocumented provider time is labelled, not converted (D-7).
+          const status = card.locator('[data-field="result_status"] [data-code]');
+          if (row.result_status) assert.equal(await status.getAttribute('data-code'), row.result_status);
+          assert.doesNotMatch(await card.textContent(), /\b(FINAL|NO_RESULT|NOT_STARTED|HOME|AWAY|EVEN|HISTORICAL|PREMATCH|PROVIDER_TZ_UNDOCUMENTED)\b/);
+          if (row.kickoff_tz_status === 'PROVIDER_TZ_UNDOCUMENTED') assert.equal(await card.locator('[data-field="kickoff_tz_status"]').textContent(), 'ora del fornitore');
         }
+        // The generation time is an instant: shown in Europe/Rome with its offset, the exact UTC in datetime (D-7).
+        const generated = page.locator('p.meta time').last();
+        assert.match(await generated.textContent(), /^\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2} GMT\+[12] \(ora di Roma\)$/);
+        assert.match(await generated.getAttribute('datetime'), /^\d{4}-\d{2}-\d{2}T/);
         assert.ok(new Set(all.map(row => row.league_slug)).size === 2, 'both competitions on the day');
       });
       await step('giorno prima: nessuna partita salvata', async () => {

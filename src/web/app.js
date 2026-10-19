@@ -66,13 +66,36 @@ function formatDecimalText(text) {
 }
 const formatNumber = value => formatDecimalText(String(value));
 
+// An instant (an ISO timestamp with a time zone) is shown in Europe/Rome with its offset (D-7, DST included); the exact
+// UTC value stays in the datetime attribute and the tooltip. Calendar dates (YYYY-MM-DD) are never touched.
+const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+const ROME = new Intl.DateTimeFormat('it-IT', {timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric',
+  hour: '2-digit', minute: '2-digit', timeZoneName: 'shortOffset'});
+function instant(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return document.createTextNode(value);
+  return el('time', {datetime: value, title: `UTC: ${date.toISOString()}`}, `${ROME.format(date)} (ora di Roma)`);
+}
+
 export function formatScalar(value) {
   const missing = value === null || value === undefined || (typeof value === 'number' && !Number.isFinite(value))
     || (typeof value === 'string' && value.trim() === '');
   if (missing) return el('span', {class: 'nd', title: 'Valore non disponibile'}, ND);
   if (typeof value === 'boolean') return el('span', {class: value ? 'ok' : 'bad'}, value ? 'sì' : 'no');
   if (typeof value === 'number') return document.createTextNode(formatNumber(value));
+  if (INSTANT.test(value)) return instant(value);
   return document.createTextNode(String(value));
+}
+
+// Enumerated states from the API, shown in Italian; the code itself stays in data-code and the tooltip.
+const CODES = {
+  FINAL: 'Finale', NO_RESULT: 'Senza risultato', NOT_STARTED: 'Non iniziata', HOME: 'Casa', AWAY: 'Ospite', EVEN: 'Pari',
+  HISTORICAL: 'Storico', PREMATCH: 'Pre-partita', AVAILABLE: 'Disponibile', UNAVAILABLE: 'Non disponibile', ONBOARDING: 'In attivazione',
+  NO_DATA: 'Nessun dato', ACTIVE: 'Attivo', HARD_VERIFIED: 'Verificato', DEPRECATED: 'Sostituita', KEPT: 'Mantenuta',
+};
+function code(value) {
+  if (typeof value !== 'string' || !Object.hasOwn(CODES, value)) return formatScalar(value);
+  return el('span', {class: 'code', title: value, 'data-code': value}, CODES[value]);
 }
 
 // A value the API documents as numeric (odds, xG, ratios, counts): exact decimal text gets the same format as a number.
@@ -91,11 +114,11 @@ function renderValue(value) {
     if (entries.length === 0) return el('span', {class: 'empty'}, 'nessuno');
     return el('dl', {}, entries.flatMap(([key, item]) => [el('dt', {}, label(key)), el('dd', {}, renderValue(item))]));
   }
-  return formatScalar(value);
+  return code(value);
 }
 
 const metaLine = body => el('p', {class: 'meta'},
-  'Fonte: ', body.meta?.source ?? ND, ' · generato: ', body.meta?.generated_at ?? ND, ' · versione codice: ', body.meta?.code_version ?? ND);
+  'Fonte: ', body.meta?.source ?? ND, ' · generato: ', formatScalar(body.meta?.generated_at), ' · versione codice: ', body.meta?.code_version ?? ND);
 
 const loading = what => el('p', {class: 'state loading', role: 'status'}, `Caricamento ${what}…`);
 
@@ -144,7 +167,7 @@ const DASHBOARD = {
 
 function tile(title, testid, route, settled, body) {
   const head = el('h2', {}, title);
-  const source = body => el('p', {class: 'meta'}, 'Fonte: ', el('code', {}, route), body ? ` · generato: ${body.meta?.generated_at ?? ND}` : '');
+  const source = body => el('p', {class: 'meta'}, 'Fonte: ', el('code', {}, route), body ? [' · generato: ', formatScalar(body.meta?.generated_at)] : '');
   if (settled.status === 'rejected') {
     return el('section', {class: 'card tile', 'data-testid': testid, 'data-state': 'error'}, head,
       el('p', {class: 'nd', 'data-field': 'value'}, ND),
@@ -216,7 +239,7 @@ async function dashboardView() {
           el('td', {'data-field': 'last_match_date'}, row.last_match_date
             ? el('a', {href: `#/board?${queryString({date: row.last_match_date})}`, title: 'Apri la Daily Board di quel giorno'}, row.last_match_date)
             : formatScalar(null)),
-          el('td', {}, num(row.odds_coverage)), el('td', {}, num(row.xg_coverage)), el('td', {}, formatScalar(row.coverage_status)))))),
+          el('td', {}, num(row.odds_coverage)), el('td', {}, num(row.xg_coverage)), el('td', {}, code(row.coverage_status)))))),
         el('p', {class: 'meta'}, 'Copertura: rapporto 0–1 calcolato dal server sui fatti salvati.'));
     }),
   ];
@@ -224,7 +247,8 @@ async function dashboardView() {
 
 // ---- Match cards (Daily Board, search) ----
 
-const TZ_NOTE = {PROVIDER_TZ_UNDOCUMENTED: 'Orario locale del fornitore: il fuso orario non è documentato.'};
+// The provider's kickoff time has no documented time zone: it is shown as the provider wrote it, never converted (D-7).
+const TZ_NOTE = {PROVIDER_TZ_UNDOCUMENTED: ['ora del fornitore', 'Orario locale del fornitore: il fuso orario non è documentato, quindi l’orario non viene convertito.']};
 
 function score(row) {
   if (row.home_score === null || row.home_score === undefined || row.away_score === null || row.away_score === undefined) return formatScalar(null);
@@ -235,16 +259,17 @@ function matchCard(row) {
   return el('article', {class: 'card match', 'data-match': row.internal_match_id ?? ''},
     el('p', {class: 'match-head'},
       el('span', {class: 'kick', 'data-field': 'kickoff'}, formatScalar(row.kickoff_local_time)),
-      el('span', {class: 'pill', title: TZ_NOTE[row.kickoff_tz_status] ?? '', 'data-field': 'kickoff_tz_status'}, formatScalar(row.kickoff_tz_status))),
+      el('span', {class: 'pill', title: TZ_NOTE[row.kickoff_tz_status]?.[1] ?? row.kickoff_tz_status ?? '', 'data-field': 'kickoff_tz_status', 'data-code': row.kickoff_tz_status ?? ''},
+        TZ_NOTE[row.kickoff_tz_status]?.[0] ?? formatScalar(row.kickoff_tz_status))),
     el('h3', {}, el('span', {'data-field': 'home'}, formatScalar(row.home_name)), ' – ', el('span', {'data-field': 'away'}, formatScalar(row.away_name))),
     el('p', {class: 'comp', 'data-field': 'competition'}, formatScalar(row.country_slug), ' · ', formatScalar(row.league_slug), ' · ', formatScalar(row.season)),
     el('dl', {class: 'compact'},
-      field('Risultato', score(row), 'score'), field('Stato risultato', formatScalar(row.result_status), 'result_status'),
+      field('Risultato', score(row), 'score'), field('Stato risultato', code(row.result_status), 'result_status'),
       field('Quote 1 · X · 2', el('span', {}, num(row.odd_home), ' · ', num(row.odd_draw), ' · ', num(row.odd_away)), 'odds_1x2'),
       field('Over 2,5', num(row.odd_over25), 'odd_over25'), field('Entrambe segnano', num(row.odd_btts_yes), 'odd_btts_yes'),
-      field('Favorito', el('span', {}, formatScalar(row.favorite_side), ' ', num(row.favorite_odd)), 'favorite'),
+      field('Favorito', row.favorite_side ? el('span', {}, code(row.favorite_side), ' ', num(row.favorite_odd)) : formatScalar(null), 'favorite'),
       field('xG casa · ospite', el('span', {}, num(row.xg_home), ' · ', num(row.xg_away)), 'xg')),
-    el('p', {class: 'meta'}, 'Fase: ', formatScalar(row.phase), ' · dataset: ', formatScalar(row.dataset_key)));
+    el('p', {class: 'meta'}, 'Fase: ', code(row.phase), ' · dataset: ', formatScalar(row.dataset_key)));
 }
 
 // A list that keeps loading the next page with the API cursor. A failed page keeps what is shown and offers a retry.
@@ -451,7 +476,8 @@ async function endpointsView() {
     el('section', {class: 'card'}, el('h2', {}, `Route storiche (${legacy.length})`),
       legacy.length === 0 ? el('p', {class: 'state empty'}, 'Nessuna route storica.') :
         table(['Route', 'Stato', 'Successore'], legacy.map(route => el('tr', {},
-          el('td', {}, el('code', {}, route.route ?? ND)), el('td', {}, formatScalar(route.status)), el('td', {}, formatScalar(route.successor)))))),
+          el('td', {}, el('code', {}, route.route ?? ND)), el('td', {}, code(route.status)),
+          el('td', {}, route.successor ?? (route.status === 'KEPT' ? el('span', {class: 'empty', title: 'La route resta: non ha un successore'}, 'nessuno') : formatScalar(null))))))),
     metaLine(body),
   ];
 }
