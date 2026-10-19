@@ -359,27 +359,31 @@ const outcome = row => row.result_status && row.result_status !== 'FINAL' && Obj
 
 const odd = (text, value, name, title) => el('div', {class: 'odd', 'data-field': name, title}, el('span', {}, text), el('b', {}, num(value)));
 
-function matchCard(row) {
-  return el('article', {class: 'card match', 'data-match': row.internal_match_id ?? '', 'data-result': row.result_status ?? '',
+// A compact row of the approved mockup (V-B4): kickoff, teams one above the other with the competition, score, then the
+// markets: 1 X 2, Over 2,5 and Gol, favourite and xG. Every value of the former card is kept; on a phone the markets
+// go under the teams instead of being hidden as in the mockup, so no data is lost.
+function matchRow(row) {
+  return el('article', {class: 'match', 'data-match': row.internal_match_id ?? '', 'data-result': row.result_status ?? '',
     'data-phase': row.phase ?? '', 'data-dataset': row.dataset_key ?? ''},
-    el('p', {class: 'match-head'},
-      el('span', {class: 'kick', 'data-field': 'kickoff', 'data-tz': row.kickoff_tz_status ?? '', title: row.kickoff_local_time ? KICKOFF_NOTE : null},
-        formatScalar(row.kickoff_local_time)),
-      el('span', {class: 'comp', 'data-field': 'competition'}, nameOf(row.country_slug), ' · ', nameOf(row.league_slug), ' · ', seasonOf(row.season))),
-    el('div', {class: 'match-main'},
-      el('h3', {}, el('span', {'data-field': 'home'}, formatScalar(row.home_name)), ' – ', el('span', {'data-field': 'away'}, formatScalar(row.away_name))),
-      el('span', {class: 'score', 'data-field': 'score'}, outcome(row))),
-    el('div', {class: 'odds', 'data-field': 'odds_1x2', role: 'group', 'aria-label': 'Quote 1 X 2'},
-      odd('1', row.odd_home, 'odd_home', 'Vittoria casa'), odd('X', row.odd_draw, 'odd_draw', 'Pareggio'), odd('2', row.odd_away, 'odd_away', 'Vittoria ospite')),
-    el('div', {class: 'odds'},
-      odd('Over 2,5', row.odd_over25, 'odd_over25', 'Più di 2,5 gol'), odd('Gol', row.odd_btts_yes, 'odd_btts_yes', 'Entrambe le squadre segnano')),
-    el('p', {class: 'match-foot'},
-      el('span', {'data-field': 'favorite'}, 'Favorito ', row.favorite_side ? el('b', {}, code(row.favorite_side), ' ', num(row.favorite_odd)) : formatScalar(null)),
-      el('span', {'data-field': 'xg'}, 'xG ', el('b', {}, num(row.xg_home), ' – ', num(row.xg_away)))));
+    el('p', {class: 'kick', 'data-field': 'kickoff', 'data-tz': row.kickoff_tz_status ?? '', title: row.kickoff_local_time ? KICKOFF_NOTE : null},
+      formatScalar(row.kickoff_local_time)),
+    el('div', {class: 'teams'},
+      el('h3', {}, el('span', {'data-field': 'home'}, formatScalar(row.home_name)), el('span', {class: 'sep'}, ' – '),
+        el('span', {'data-field': 'away'}, formatScalar(row.away_name))),
+      el('p', {class: 'comp', 'data-field': 'competition'}, nameOf(row.country_slug), ' · ', nameOf(row.league_slug), ' · ', seasonOf(row.season))),
+    el('p', {class: 'score', 'data-field': 'score'}, outcome(row)),
+    el('div', {class: 'markets'},
+      el('div', {class: 'odds', 'data-field': 'odds_1x2', role: 'group', 'aria-label': 'Quote 1 X 2'},
+        odd('1', row.odd_home, 'odd_home', 'Vittoria casa'), odd('X', row.odd_draw, 'odd_draw', 'Pareggio'), odd('2', row.odd_away, 'odd_away', 'Vittoria ospite')),
+      el('div', {class: 'odds two', role: 'group', 'aria-label': 'Quote gol'},
+        odd('Over 2,5', row.odd_over25, 'odd_over25', 'Più di 2,5 gol'), odd('Gol', row.odd_btts_yes, 'odd_btts_yes', 'Entrambe le squadre segnano')),
+      el('p', {class: 'facts'},
+        el('span', {'data-field': 'favorite'}, 'Favorito ', row.favorite_side ? el('b', {}, code(row.favorite_side), ' ', num(row.favorite_odd)) : formatScalar(null)),
+        el('span', {'data-field': 'xg'}, 'xG ', el('b', {}, num(row.xg_home), ' – ', num(row.xg_away))))));
 }
 
 // A list that keeps loading the next page with the API cursor. A failed page keeps what is shown and offers a retry.
-function pagedList({first, path, params, render, more: moreLabel, mine, list = el('div', {class: 'paged', 'data-testid': 'paged-list'})}) {
+function pagedList({first, path, params, render, more: moreLabel, mine, list}) {
   const footer = el('div', {class: 'paged-foot'});
   let cursor = first.data?.next_cursor ?? null;
   const append = rows => { for (const node of render(rows)) list.append(node); };
@@ -439,6 +443,20 @@ function updatedLine(providers) {
     run.status === 'complete' ? 'Dati aggiornati: ' : 'Dati aggiornati in parte: ', instant(run.finished_at));
 }
 
+// The day strip of the approved mockup: the chosen day with the three before and after it. Calendar navigation only:
+// it opens another day and derives no data value (MP-WEB-011).
+const STRIP_WEEKDAY = new Intl.DateTimeFormat('it-IT', {timeZone: 'UTC', weekday: 'short'});
+const STRIP_NUMBER = new Intl.DateTimeFormat('it-IT', {timeZone: 'UTC', day: 'numeric'});
+function dayStrip(date) {
+  const today = localToday();
+  return el('nav', {class: 'dates', 'aria-label': 'Giorni vicini', 'data-testid': 'day-strip'}, [-3, -2, -1, 0, 1, 2, 3].map(shift => {
+    const day = shiftDay(date, shift);
+    const at = new Date(`${day}T00:00:00Z`);
+    return el('a', {href: dayHref(day), 'data-date': day, 'aria-current': shift === 0 ? 'date' : null, 'aria-label': dayText(day, LONG_DAY)},
+      el('small', {}, day === today ? 'Oggi' : STRIP_WEEKDAY.format(at)), el('b', {}, STRIP_NUMBER.format(at)));
+  }));
+}
+
 async function boardView(params, mine) {
   const date = params.get('date') || localToday();
   const picker = el('form', {class: 'controls', 'data-testid': 'board-controls', onsubmit: event => {
@@ -450,7 +468,7 @@ async function boardView(params, mine) {
   el('button', {type: 'submit'}, 'Mostra'),
   el('a', {href: validDate(date) ? dayHref(shiftDay(date, 1)) : '#/', 'data-action': 'next'}, 'Giorno dopo →'),
   el('a', {href: dayHref(localToday()), 'data-action': 'today'}, 'Oggi'));
-  const head = [el('h1', {}, date === localToday() ? 'Oggi' : 'Partite del giorno'), picker];
+  const head = [el('h1', {}, date === localToday() ? 'Oggi' : 'Partite del giorno'), validDate(date) ? dayStrip(date) : null, picker];
   if (!validDate(date)) return [...head, el('p', {class: 'state error', role: 'alert', 'data-date': date}, 'Data non valida: scegli un giorno dal calendario.')];
   const path = '/api/v1/fpt/matches';
   const params2 = {date, limit: BOARD_PAGE};
@@ -462,9 +480,10 @@ async function boardView(params, mine) {
       'Fino a quale giorno arrivano i dati di ogni campionato lo trovi in ', el('a', {href: '#/data'}, 'Dati'), '.'), updated];
   }
   // Kickoff order across competitions, as the API returns it; each card names its competition (PR #163 NB-3).
-  const render = page => page.map(matchCard);
+  const render = page => page.map(matchRow);
   return [...head, el('div', {class: 'dayhead'}, el('h2', {class: 'day', 'data-testid': 'board-day'}, calendarDay(date, LONG_DAY)), updated),
-    ...pagedList({first, path, params: params2, render, more: 'Carica altre partite', mine})];
+    ...pagedList({first, path, params: params2, render, more: 'Carica altre partite', mine,
+      list: el('div', {class: 'card board', 'data-testid': 'paged-list'})})];
 }
 
 // ---- Search and filters (MP-WEB-007) ----
@@ -508,8 +527,17 @@ function searchForm(params, competitions) {
   el('button', {type: 'submit'}, 'Cerca'), ' ', el('a', {href: '#/search'}, 'Azzera'));
 }
 
+// On a phone each result reads as a small card: the column title is repeated before each value (data-label, UI-44).
+const RESULT_COLUMNS = ['Data', 'Ora', 'Partita', 'Campionato', 'Risultato', '1 · X · 2', 'Over 2,5', 'xG'];
 function resultsTable(rows) {
-  return rows.map(row => el('tr', {'data-match': row.internal_match_id ?? ''},
+  return rows.map(row => {
+    const line = el('tr', {'data-match': row.internal_match_id ?? ''}, ...resultCells(row));
+    [...line.children].forEach((cell, index) => cell.setAttribute('data-label', RESULT_COLUMNS[index]));
+    return line;
+  });
+}
+function resultCells(row) {
+  return [
     el('td', {'data-field': 'date'}, row.match_date ? el('a', {href: dayHref(row.match_date), title: 'Apri le partite di quel giorno'}, calendarDay(row.match_date)) : formatScalar(null)),
     el('td', {'data-field': 'kickoff', title: row.kickoff_local_time ? KICKOFF_NOTE : null}, formatScalar(row.kickoff_local_time)),
     el('td', {'data-field': 'teams'}, formatScalar(row.home_name), ' – ', formatScalar(row.away_name)),
@@ -517,7 +545,7 @@ function resultsTable(rows) {
     el('td', {'data-field': 'score'}, outcome(row)),
     el('td', {'data-field': 'odds_1x2'}, num(row.odd_home), ' · ', num(row.odd_draw), ' · ', num(row.odd_away)),
     el('td', {}, num(row.odd_over25)),
-    el('td', {'data-field': 'xg'}, num(row.xg_home), ' · ', num(row.xg_away))));
+    el('td', {'data-field': 'xg'}, num(row.xg_home), ' · ', num(row.xg_away))];
 }
 
 async function searchView(params, mine) {
@@ -569,8 +597,7 @@ async function searchView(params, mine) {
   if (rows.length === 0) return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'search-empty', 'data-outcome': ''}, 'Nessuna partita corrisponde ai filtri.')];
   const [body, footer] = pagedList({first, path, params: api, render: resultsTable, more: 'Altri risultati', mine,
     list: el('tbody', {'data-testid': 'search-results'})});
-  const table = el('table', {}, el('thead', {}, el('tr', {}, ['Data', 'Ora', 'Partita', 'Campionato', 'Risultato', '1 · X · 2', 'Over 2,5', 'xG']
-    .map(text => el('th', {scope: 'col'}, text)))), body);
+  const table = el('table', {class: 'results'}, el('thead', {}, el('tr', {}, RESULT_COLUMNS.map(text => el('th', {scope: 'col'}, text)))), body);
   // The filters the server applied stay on the outcome (data-filters) for checks and the technical views.
   return [...head, el('h2', {'data-testid': 'search-outcome', 'data-outcome': '', 'data-filters': (first.data?.provenance?.filters_applied ?? []).join(' ')}, 'Risultati'),
     venueIgnored ? el('p', {class: 'state partial', role: 'status', 'data-testid': 'venue-ignored'}, 'La sede vale solo con una squadra: è stata ignorata.') : null,

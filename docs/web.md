@@ -15,11 +15,13 @@ Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). 
     - FutPythonTrader coverage per league (`/api/v1/fpt/coverage-competitions`), with first and last match date, coverage ratios and status.
 
     A route that fails turns only its own tile into N/D, with the error code in `data-code` and the tooltip: the view is then partial, not blank. The last sync run of the data health shows its state and end time. Each league's last match date opens Oggi on that day.
-  - **Oggi**, the Daily Board (`#/?date=YYYY-MM-DD`, R-06b, MP-WEB-002, home page). The title is «Oggi» for today and «Partite del giorno» for another day. The matches of a day from `/api/v1/fpt/matches`, in the API's kickoff order across competitions. Each card shows:
+  - **Oggi**, the Daily Board (`#/?date=YYYY-MM-DD`, R-06b, MP-WEB-002, home page). The title is «Oggi» for today and «Partite del giorno» for another day. Above the day, the day strip of the mockup: the chosen day and the three before and after it. The matches of a day from `/api/v1/fpt/matches`, in the API's kickoff order across competitions, one compact row each as in the mockup (V-B4); they are not grouped by competition because the API has no grouping (D-4). Each row shows:
     - kickoff, competition and season;
     - teams, and the score, or the state of a match without a final result ("Non iniziata", "Senza risultato");
     - 1X2, Over 2.5 and BTTS odds in labelled boxes;
     - favourite and xG.
+
+    On a desktop the markets sit on the row next to the teams; on a phone they go under the teams, never hidden.
 
     The time-zone status, result status, phase and dataset key stay on the card as `data-*` attributes, not as text (MP-WEB-015).
 
@@ -32,7 +34,7 @@ Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). 
     - date range, result, favourite odds and total goals;
     - data quality: `with_odds` (complete 1X2 odds) and `with_xg`.
 
-    The server validates every filter; a refusal names the field in Italian, and the server's message stays in the tooltip. "Altri risultati" follows `next_cursor`; a failed page keeps the rows already shown and offers a retry.
+    The server validates every filter; a refusal names the field in Italian, and the server's message stays in the tooltip. "Altri risultati" follows `next_cursor`; a failed page keeps the rows already shown and offers a retry. On a phone each result reads as a small card, every value after its column title.
   - Fornitori dati (data health and FutPythonTrader certification), API (the v1 registry and legacy routes): **technical views** in «Dati». Every key of the provider tree reads in Italian; the raw key stays in `data-key` and the tooltip, and a key without a label reads as words and is marked (V-B2b). Copertura links to the existing `/coverage` page.
 - **Not yet shown:** Match Center, historical replay and PIT backtest (R-07, R-09…R-14).
 - **Data used for tests:** one league season ingested through the real FutPythonTrader path (`test/helpers/fpt-seed.mjs`). No production data is read. Against the real archive these views are TESTED, not certified (MP-OWNER-ARCHIVE-FIRST-01).
