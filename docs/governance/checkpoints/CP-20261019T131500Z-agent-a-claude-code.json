@@ -1,0 +1,140 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "id": "CP-20261019T131500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T13:15:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "activity": "R-05: independent review (comment 6265279811, CHANGES REQUESTED on d1ef042) addressed: B-1, B-2, NB-1..NB-6",
+  "task": "R-05",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 3,
+  "pr": 161,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "f1bef4d3663d2c364dc52fc601fabffc93345d5b",
+  "tree_sha": "a27c4198c0ecaafbe48891057436ca85c386bf76",
+  "requirements": [
+    "MP-WEB-001",
+    "MP-WEB-005",
+    "MP-WEB-009",
+    "MP-WEB-010",
+    "MP-WEB-011",
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "src/web/app.js: generation per navigation, exact number display, empty string N/D",
+    "src/web/static.mjs: 405 security headers",
+    "test/web-e2e.test.mjs: exact values, stale view, client 401 redirect, harness robustness",
+    "docs/web.md, README"
+  ],
+  "tests": [
+    {
+      "command": "web-e2e states test against d1ef042 (RED)",
+      "result": "FAIL",
+      "environment": "local container, node 22, PostgreSQL 16, Chromium 1194",
+      "commit": "d1ef042545460df0a6f10592222895a6f81fea3e",
+      "time": "2026-10-19T13:05:00Z",
+      "limits": [
+        "expected RED: rounding to 3 decimals, empty string blank, stale view overwrote the unknown route"
+      ]
+    },
+    {
+      "command": "npm test against throwaway PostgreSQL 16 with Chromium",
+      "result": "PASS",
+      "environment": "local container, node 22, PostgreSQL 16 on 127.0.0.1, Chromium 1194",
+      "commit": "f1bef4d3663d2c364dc52fc601fabffc93345d5b",
+      "time": "2026-10-19T13:10:00Z",
+      "limits": [
+        "285 tests, 284 pass, 1 skipped (postgres-independence needs PostgreSQL 17, CI only)"
+      ]
+    },
+    {
+      "command": "npm run check; governance checks",
+      "result": "PASS",
+      "environment": "local container, node 22",
+      "commit": "f1bef4d3663d2c364dc52fc601fabffc93345d5b",
+      "time": "2026-10-19T13:10:00Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "CHANGES REQUESTED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/161#issuecomment-6265279811"
+  },
+  "findings": [
+    {
+      "id": "R05-LOGIN-ORIGIN-NULL",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "R-04 login page no-referrer policy made browsers send Origin: null; the owner's own form login was refused (found by the R-05 E2E)"
+    },
+    {
+      "id": "B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "unknown route did not bump the generation; a slow earlier view overwrote it"
+    },
+    {
+      "id": "B-2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "toLocaleString rounded numbers to 3 decimals"
+    },
+    {
+      "id": "NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "empty strings shown blank instead of N/D"
+    },
+    {
+      "id": "NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "docs claimed --omit=dev from render.yaml"
+    },
+    {
+      "id": "NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "client-side 401 redirect untested; hash lost on first server redirect undocumented"
+    },
+    {
+      "id": "NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "certification assertion too weak"
+    },
+    {
+      "id": "NB-5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "harness: no start check, admin leak on browser launch failure"
+    },
+    {
+      "id": "NB-6",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "405 without security headers"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-CONTINUE-20261019",
+    "MP-OWNER-AUTOMERGE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T124500Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI green and a new independent review on the PR #161 head; Render still suspended; merge-gate; then R-06.",
+  "resume_conditions": [
+    "branch head reconciles with commit_sha"
+  ],
+  "supersedes": "CP-20261019T124500Z-agent-a-claude-code"
+}
