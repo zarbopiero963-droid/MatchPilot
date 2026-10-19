@@ -174,6 +174,8 @@ export const JOURNEYS = [
           const response = await route.fetch();
           const body = await response.json();
           body.data.data_health.lastRun = {run_id: 'qa', kind: 'incremental', status: 'complete', started_at: '2026-10-19T18:10:00Z', finished_at: '2026-10-19T18:15:00Z'};
+          // No date in the alert: only the nested-list rule can give it the full width.
+          body.data.data_health.alerts = [{severity: 'warning', code: 'X', title: 'Esempio', message: 'Esempio', last_seen_at: null, occurrences: 1}];
           await route.fulfill({response, json: body});
         });
         // Real instants in every tile that can hold one (PR #171 review B-1): the TotalCorner archive is empty in QA.
@@ -202,6 +204,12 @@ export const JOURNEYS = [
           return {text: node.textContent, lines: node.getClientRects().length, inside: r.left >= tile.left - 1 && r.right <= tile.right + 1};
         }));
         assert.ok(dates.length >= 5, `dates in the tiles: ${dates.length}`);
+        // A nested list (the alerts) takes the full width of its tile, never a squeezed column (PR #171 review NB-c).
+        const nested = await page.locator('[data-testid="tile-data-health"] [data-field="alerts"]').evaluate(node => {
+          const tile = node.closest('.tile').getBoundingClientRect();
+          return node.getBoundingClientRect().width / tile.width;
+        });
+        assert.ok(nested > 0.8, `the alerts take ${Math.round(nested * 100)}% of their tile`);
         for (const date of dates) {
           assert.equal(date.lines, 1, `${date.text} breaks across lines`);
           assert.ok(date.inside, `${date.text} leaves its tile`);
@@ -599,15 +607,26 @@ export const JOURNEYS = [
           health.lastRun = run;
           health.alerts = [{severity: 'warning', code: 'X', title: 'x', message: 'x', last_seen_at: run.started_at, occurrences: 1}];
           cert.latest_backfill = run;
-          cert.phase1_checks = [{check_code: 'DEDUP_x', status: 'pass', checked_at: run.started_at,
-            details: {dataset_key: 'x', rows: 1, changed: false, before: {snapshots: 1, versions: 1}, after: {snapshots: 1, versions: 1}, error: null}}];
+          // The four shapes of check details written by src/jobs/futpython-certify-phase1.mjs.
+          cert.phase1_checks = [
+            {check_code: 'DEDUP_x', status: 'pass', checked_at: run.started_at,
+              details: {dataset_key: 'x', rows: 1, changed: false, before: {snapshots: 1, versions: 1}, after: {snapshots: 1, versions: 1}, error: null}},
+            {check_code: 'UNAVAILABLE_404_SAMPLE', status: 'pass', checked_at: run.started_at, details: {dataset_key: 'x', observed: 404}},
+            {check_code: 'UNAVAILABLE_404_SAMPLE', status: 'blocked', checked_at: run.started_at, details: {reason: 'x'}},
+            {check_code: 'AVAILABLE_DATASET_SAMPLE', status: 'pass', checked_at: run.started_at, details: {dataset_key: 'x', last_row_count: 1}},
+            {check_code: 'MULTI_SEASON_SAMPLE', status: 'pass', checked_at: run.started_at,
+              details: {country_slug: 'x', league_slug: 'x', seasons: 2, available_seasons: 2}}];
           cert.phase2.issues = Object.fromEntries(ISSUES.map(code => [code, 1]));
           cert.phase2.samples = {available: sample, initial_404: sample, regression_404: sample, error: sample, removed: sample, deprecated: sample};
           cert.phase5 = {dataset_rows: 1, league_rows: 1, season_rows: 1, period_rows: 1, team_rows: 1, normalized_rows: 1, global_fields: 1, registry_fields: 1,
             missing_global: 0, normalized_names: 1, unclassified: 0, payload_mismatches: 0, rollup_mismatches: 0, class_mismatches: 0,
             historical_team_unresolved: 0, today_country_unresolved: 0, class_counts: {dense: 1, sparse: 1, 'always-empty': 1},
             tag_counts: {'league-specific': 1, 'season-specific': 1, 'newly-introduced': 1, 'deprecated-field': 1},
-            evidence: {sample_teams: ['x'], sample_fields: ['x']}, computed_at: run.started_at, gate: false};
+            // The audit evidence written by src/providers/futpython/coverage.mjs.
+            evidence: {team_census: false, team_sample_mismatches: 0, sample_teams: ['x'], sample_fields: ['x'], sample_limit: 'x', overlap_versions: 0,
+              diff_sample: [{dimension: 'league', dimension_key: 'x', field_name: 'x', stored_rows: 1, recalc_rows: 1, stored_nonempty: 1, recalc_nonempty: 1}],
+              empty_tokens: ['']},
+            computed_at: run.started_at, gate: false};
           cert.phase6.status_counts = Object.fromEntries(STATES.map(state => [state, 1]));
           cert.phase6.evidence.pit.t0_matches_snapshot = true;
           cert.phase8 = {status: 'pass', gate: false};
