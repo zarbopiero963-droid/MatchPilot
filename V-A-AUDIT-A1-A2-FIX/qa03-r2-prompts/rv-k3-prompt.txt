@@ -1,0 +1,15 @@
+You are the AI exploratory reviewer of MatchPilot (an Italian sports-trading web app), acting in an authorized Claude Code session. Perform the "AI review procedure" described in /home/user/MatchPilot/docs/qa/exploratory.md on ONE crawler bundle:
+
+  /tmp/claude-0/-home-user-MatchPilot/9501c668-6355-52e9-bcad-bf70034a666f/scratchpad/rv-k3/bundle
+
+STRICT ACCESS RULES (part of the evaluation; violating them invalidates it):
+- You may read ONLY: that bundle directory; /home/user/MatchPilot/docs/qa/exploratory.md; /home/user/MatchPilot/docs/governance/owner-decisions.json; /home/user/MatchPilot/AGENTS.md; /home/user/MatchPilot/docs/mockups/; /home/user/MatchPilot/src/.
+- Do NOT read anything else: not other scratchpad folders, not docs/audits, not docs/qa/certification.md or any other docs/qa file, not tools/, not test/, not other branches, no git log/diff/show, no GitHub.
+- Do not modify any repository file.
+
+Procedure:
+1. Read exploration.json, then EVERY observation of the bundle: each observations/*.json (accessibility snapshot, visible text, url) AND each observations/*.png screenshot (use the Read tool on the image; for very tall images you may crop with python3 PIL into pieces under /tmp/claude-0/-home-user-MatchPilot/9501c668-6355-52e9-bcad-bf70034a666f/scratchpad/rv-k3/work/). Review desktop and mobile. Judge as a demanding Italian user and product reviewer against the product rules (owner decisions, AGENTS.md).
+2. Write the review to /tmp/claude-0/-home-user-MatchPilot/9501c668-6355-52e9-bcad-bf70034a666f/scratchpad/rv-k3/ai-review.json following the mp-browser-ai-review-v1 schema in docs/qa/exploratory.md: head_sha = the bundle's head_sha; exploration_sha256 = sha256 of the bundle's exploration.json (sha256sum); reviewer {"kind":"claude-code-session","session":"https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"}; reviewed_at from `date -u +%FT%TZ`; observations_reviewed = every observation .json you reviewed (list them all); findings with id, source "ai", classification, severity P0–P3 for BUG, status OPEN for P0/P1 or DEFERRED with reason/impact/follow_up for P2/P3 (non-BUG findings: give a reason and status OPEN), a specific summary (what, where, route/viewport), evidence (observation files). verdict computed: BLOCKING if any open P0/P1 BUG else NO_BLOCKING.
+3. Validate: cd /home/user/MatchPilot && node tools/qa/verify-exploration.mjs <bundle> --head <bundle head_sha> --review <your ai-review.json>. Ignore errors about the bundle itself; the "ai_review" part must be ok:true. Fix the review file until it is.
+
+Report back: the findings list (id, classification, severity, one-line summary), the verdict, how many observations and screenshots you actually viewed, and the verifier ai_review output.

@@ -1,0 +1,11 @@
+PASS general-navigation/desktop (8 steps)
+PASS general-navigation/mobile (8 steps)
+PASS dashboard/desktop (3 steps)
+PASS dashboard/mobile (3 steps)
+PASS daily-board/desktop (7 steps)
+PASS daily-board/mobile (7 steps)
+PASS search/desktop (8 steps)
+PASS search/mobile (8 steps)
+PASS providers-endpoints/desktop (2 steps)
+PASS providers-endpoints/mobile (2 steps)
+{"verdict":"PASS","counts":{"pass":10,"fail":0,"skip":0,"not_verified":0},"missing_required":[],"head_sha":"44261973156ca8ebb627bbcbeca54e40a96a26a6"}
