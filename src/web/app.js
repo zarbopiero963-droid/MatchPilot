@@ -69,7 +69,7 @@ const formatNumber = value => formatDecimalText(String(value));
 export function formatScalar(value) {
   const missing = value === null || value === undefined || (typeof value === 'number' && !Number.isFinite(value))
     || (typeof value === 'string' && value.trim() === '');
-  if (missing && false) return el('span', {class: 'nd', title: 'Valore non disponibile'}, ND); // QA-03 CONTROLLED DEFECT
+  if (missing) return el('span', {class: 'nd', title: 'Valore non disponibile'}, ND);
   if (typeof value === 'boolean') return el('span', {class: value ? 'ok' : 'bad'}, value ? 'sì' : 'no');
   if (typeof value === 'number') return document.createTextNode(formatNumber(value));
   return document.createTextNode(String(value));
