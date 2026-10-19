@@ -31,9 +31,29 @@ const listFiles = dir => readdirSync(dir).flatMap(name => {
 });
 
 // The tested commit must contain the PR head (in a pull_request run it is the merge of the head into the base).
-function containsHead(cwd, head, commit) {
+export function containsHead(cwd, head, commit) {
   try { execFileSync('git', ['merge-base', '--is-ancestor', head, commit], {cwd, stdio: 'ignore'}); return true; }
   catch { return false; }
+}
+
+// The evidence manifest: every listed file exists with its SHA-256, no inherited key counts as a file (PR #164 NB-1),
+// no path escapes the directory, and nothing on disk is missing from the manifest except the report itself (NB-2).
+// Shared by the gate verifier and the exploration verifier.
+export function checkManifest(dir, manifest, reportName) {
+  const errors = [];
+  const files = Object.assign(Object.create(null), manifest && typeof manifest === 'object' ? manifest : {});
+  const listed = path => Object.hasOwn(files, path) && typeof files[path] === 'string';
+  if (!Object.keys(files).length) errors.push('no evidence files listed');
+  for (const path of listFiles(dir).map(full => relative(dir, full).split('\\').join('/'))) {
+    if (path !== reportName && !listed(path)) errors.push(`file not in the manifest: ${path}`);
+  }
+  for (const [path, digest] of Object.entries(files)) {
+    if (path.includes('..') || path.startsWith('/')) { errors.push(`unsafe evidence path ${path}`); continue; }
+    const full = join(dir, path);
+    if (!existsSync(full) || !statSync(full).isFile()) errors.push(`evidence missing: ${path}`);
+    else if (sha256(readFileSync(full)) !== digest) errors.push(`evidence changed after the run: ${path}`);
+  }
+  return {errors, listed};
 }
 
 export function verifyReport(dir, {expectedHead, expectedCommit = null, required = REQUIRED_JOURNEYS, viewports = REQUIRED_VIEWPORTS, now = new Date(), gitDir = null} = {}) {
@@ -56,20 +76,9 @@ export function verifyReport(dir, {expectedHead, expectedCommit = null, required
   if (report.injected_defect !== false) errors.push('the run used a test hook (injected defect): not valid evidence');
 
   // Evidence files: present and unchanged.
-  // A plain map: inherited keys such as __proto__ or toString are never evidence (PR #164 NB-1).
-  const files = Object.assign(Object.create(null), report.files && typeof report.files === 'object' ? report.files : {});
-  const listed = path => Object.hasOwn(files, path) && typeof files[path] === 'string';
-  if (!Object.keys(files).length) errors.push('no evidence files listed');
-  // Nothing on disk outside the manifest: a leftover or planted file is not silently accepted (NB-2).
-  for (const path of listFiles(dir).map(full => relative(dir, full).split('\\').join('/'))) {
-    if (path !== 'report.json' && !listed(path)) errors.push(`file not in the manifest: ${path}`);
-  }
-  for (const [path, digest] of Object.entries(files)) {
-    if (path.includes('..') || path.startsWith('/')) { errors.push(`unsafe evidence path ${path}`); continue; }
-    const full = join(dir, path);
-    if (!existsSync(full)) errors.push(`evidence missing: ${path}`);
-    else if (sha256(readFileSync(full)) !== digest) errors.push(`evidence changed after the run: ${path}`);
-  }
+  const manifest = checkManifest(dir, report.files, 'report.json');
+  errors.push(...manifest.errors);
+  const {listed} = manifest;
 
   // Journeys.
   const journeys = Array.isArray(report.journeys) ? report.journeys : [];

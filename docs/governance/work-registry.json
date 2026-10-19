@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 59,
+  "revision": 62,
   "tasks": [
     {
       "id": "R-01",
@@ -232,13 +232,29 @@
       "pr": 164,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261019T132747Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "QA-02",
+      "title": "Exploratory Browser QA, level B: seeded crawler and verified AI review procedure (MP-OWNER-QA-VISUAL-EXECUTION-01)",
+      "issue": 3,
+      "pr": 165,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
       "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T131756Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261019T141117Z-agent-a-claude-code",
       "pr_open": true
     }
   ]

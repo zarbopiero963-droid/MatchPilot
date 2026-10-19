@@ -1,0 +1,101 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "4af883602eaf8f94520ca680e6cc4397610e8f99",
+  "tree_sha": "6adc9b37f72ee6032439bd1fc99c08cee5626145",
+  "supersedes": null,
+  "pr": null,
+  "id": "CP-20261019T141117Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T14:11:17Z",
+  "activity": "QA-02 implemented: seeded exploratory crawler, bundle and AI review verifiers, informational CI job, AI review procedure; opening the PR",
+  "task": "QA-02",
+  "issue": 3,
+  "requirements": [
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "tools/qa/explore.mjs",
+    "tools/qa/verify-exploration.mjs",
+    "tools/qa/verify-report.mjs (shared manifest and ancestry helpers)",
+    "test/explore.test.mjs",
+    "CI job Exploratory QA",
+    "docs/qa/exploratory.md",
+    "AGENTS.md §4",
+    "owner decisions MP-OWNER-CI-GATE-REQUIRED-CHECK-CONFIRMED, MP-OWNER-VISUAL-BASELINE-D1-D7-01, MP-OWNER-QA-VISUAL-EXECUTION-01"
+  ],
+  "tests": [
+    {
+      "command": "CI=1 node --test test/explore.test.mjs",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 1194",
+      "commit": "4af883602eaf8f94520ca680e6cc4397610e8f99",
+      "time": "2026-10-19T14:09:57Z",
+      "limits": [
+        "7/7; the time is an upper bound of a run made on the uncommitted tree later committed as this commit; time is an upper bound (clock read after the run)"
+      ]
+    },
+    {
+      "command": "node tools/qa/explore.mjs --seed 1 --actions 40 + verify-exploration.mjs",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 1194",
+      "commit": "4af883602eaf8f94520ca680e6cc4397610e8f99",
+      "time": "2026-10-19T14:09:57Z",
+      "limits": [
+        "560 actions, 7 routes, desktop and mobile, 0 findings; bundle verified ok; run on the uncommitted tree later committed as this commit; head_sha in the bundle was the WIP commit; time is an upper bound (clock read after the run)"
+      ]
+    },
+    {
+      "command": "CI=1 npm test",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 1194",
+      "commit": "4af883602eaf8f94520ca680e6cc4397610e8f99",
+      "time": "2026-10-19T14:10:48Z",
+      "limits": [
+        "321/322 pass; the only failure is test/postgres-independence.test.mjs which requires PostgreSQL 17 (local is 16): environment limit, covered by the CI PostgreSQL 17 job"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "QA02-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "crawler checked hash-route views before render (load state does not change on a hash route): false '0 h1' and lost late JS errors; settle now waits for no request in flight; caught by the injected-defect test (RED: not reproduced; GREEN: reproduced)"
+    },
+    {
+      "id": "QA02-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "AI exploratory agent evaluation and a real AI review of a CI bundle: QA-03"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01",
+    "MP-OWNER-QA-VISUAL-EXECUTION-01",
+    "MP-OWNER-PRODUCT-QUALITY-DATA-01",
+    "MP-OWNER-CI-GATE-REQUIRED-CHECK-CONFIRMED"
+  ],
+  "dependencies": [
+    "CP-20261019T132747Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI on the PR head, independent review D2, merge gate; then QA-03",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains 4af883602eaf8f94520ca680e6cc4397610e8f99"
+  ]
+}

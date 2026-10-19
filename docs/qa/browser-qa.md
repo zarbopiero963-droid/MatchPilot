@@ -66,14 +66,14 @@ The verdict is computed, never declared. `test/browser-qa-gate.test.mjs` proves 
 | Verifiable report bound to the head | MISSING | PASS |
 | Web impact classification | PARTIAL | PASS |
 | Merge blocked without evidence | MISSING | PASS (CI gate, merge-gate) |
-| Required check on `main` | NOT VERIFIED | NOT VERIFIED (see below) |
-| Exploratory AI agent | ad hoc | NOT VERIFIED (QA-02) |
+| Required check on `main` | NOT VERIFIED | VERIFIED by the owner (see below) |
+| Exploratory AI agent | ad hoc | NOT VERIFIED (crawler and review procedure in QA-02, [exploratory.md](exploratory.md); evaluation in QA-03) |
 
 ## Limits
 
-- **Required checks:** `main` is protected, but which checks GitHub requires cannot be read with the tools available to the agent. `docs/ci-zero-cost.md` asks for `CI gate`. Until the owner confirms it in the repository settings, "the gate cannot be bypassed" is **NOT VERIFIED** and the gate is not HARD CERTIFIED.
+- **Required checks:** which checks GitHub requires cannot be read with the tools available to the agent. The owner verified the ruleset "MatchPilot main protection" (MP-OWNER-CI-GATE-REQUIRED-CHECK-CONFIRMED): pull request required, required check `CI gate`, branches up to date, empty bypass list, force push blocked. The end-to-end demonstration that a failing Browser QA blocks a real PR is part of QA-03; HARD CERTIFIED is declared only there, for what it demonstrates.
 - **Trust model:** the evidence is produced and verified inside the CI job on the PR head; the verifier proves it is complete, unmodified and bound to that head, not that the runner code is honest. A change to the runner or the journeys is itself a web change, reviewed like any other.
-- **Exploratory level (B):** not part of QA-01; reported as `NOT_VERIFIED` in every report. Planned in QA-02.
+- **Exploratory level (B):** not part of the gate; reported as `NOT_VERIFIED` in every gate report. Crawler and AI review procedure in [exploratory.md](exploratory.md).
 - **Data:** the QA archive is a fixture through the real ingestion path, not the real archive (#40) nor production data.
 - **Accessibility:** structural checks only, not a full WCAG audit.
 - **Cost:** none. No new dependency, service or browser download; artifacts stay within GitHub's included storage with 14-day retention.
