@@ -4,6 +4,17 @@ Owner decisions: MP-OWNER-BROWSER-QA-HARD-GATE-01, MP-OWNER-QA-VISUAL-EXECUTION-
 
 **Rule:** a capability is HARD CERTIFIED only when it was demonstrated end to end on a real PR or a real run, with evidence that can be checked again. Otherwise it is CERTIFIED (proved by automated tests in CI on every web change), or NOT VERIFIED.
 
+## Two separate certifications
+
+| | Deterministic Browser QA (level A, rows 1–14) | AI exploratory review (level B, rows 15–16) |
+|---|---|---|
+| What it is | scripted journeys, page invariants, seeded crawler; same input, same result | a Claude agent in an authorized session reading a crawler bundle against the product rules |
+| Where it runs | CI on every web change | authorized sessions only, never CI, never a paid API |
+| Merge effect | **blocking**: `Browser QA` → `CI gate` (required check) | **none**: informational; not a gate |
+| Certification | **HARD CERTIFIED** for the demonstrated capabilities (gate, CI gate linkage, merge block, RED→GREEN, evidence) | **CERTIFIED** only for the four seeded classes of the blind evaluation; agent reliability beyond them NOT VERIFIED |
+
+One never stands in for the other: a green AI review does not replace the gate, and a green gate says nothing about what only the review can see.
+
 ## Matrix
 
 | # | Capability | Status | Evidence |
@@ -50,7 +61,9 @@ The defect never reached `main`: the PR is squash-merged from its final state, a
 4. A fresh Claude agent, told only to follow [exploratory.md](exploratory.md), reviewed both. It was not allowed to read the seeds, `tools/qa/`, `test/` or the git history.
 5. Both reviews pass `verify-exploration.mjs --review`.
 
-Evidence in [`docs/qa/evidence/qa-03/`](evidence/qa-03/): both `exploration.json` and both `ai-review.json`. The screenshots stayed out of the repository for size; their SHA-256 values are in the manifests.
+Evidence (MP-OWNER-PERMANENT-EVIDENCE-01):
+- **Essential, on `main`:** [`docs/audits/QA-03-BROWSER-QA-CERTIFICATION/`](../audits/QA-03-BROWSER-QA-CERTIFICATION/README.md) holds both `exploration.json`, both AI reviews, the answer key and the record of the CI demonstration.
+- **Complete package, in `evidence/audits`:** the blinded bundles with every observation and screenshot, the unblinded originals, the seed script used, and the local RED/GREEN Browser QA runs, all read back and verified.
 
 | Seeded defect | Rule | Bundle 1 (seeded) | Bundle 2 (clean) |
 |---|---|---|---|

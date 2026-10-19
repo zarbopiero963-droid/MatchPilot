@@ -1,0 +1,55 @@
+{
+  "schema": "mp-ai-eval-key-v1",
+  "written_at": "packaging (2026-10-19), from KEY.txt and tools/qa/ai-eval-seeds.mjs; KEY.txt is the original",
+  "bundles": {
+    "bundle-1": {
+      "source": "aieval/B",
+      "seeded": true
+    },
+    "bundle-2": {
+      "source": "aieval/A",
+      "seeded": false
+    }
+  },
+  "blinding": "copies of A and B with injected_defect set to false in exploration.json; every other file byte-identical (see unblinded-*-exploration.json)",
+  "seeded_defects": [
+    {
+      "id": "S1",
+      "rule": "D-3: odds and decimals with the Italian comma",
+      "from": "if (typeof value === 'string' && /^-?\\d+(\\.\\d+)?$/.test(value)) return document.createTextNode(formatDecimalText(value));",
+      "to": "if (typeof value === 'string' && /^-?\\d+(\\.\\d+)?$/.test(value)) return document.createTextNode(value);"
+    },
+    {
+      "id": "S2",
+      "rule": "MP-OWNER-PRODUCT-QUALITY-DATA-01: missing data is N/D, never 0",
+      "from": "if (missing) return el('span', {class: 'nd', title: 'Valore non disponibile'}, ND);",
+      "to": "if (missing) return el('span', {class: 'nd', title: 'Valore non disponibile'}, '0');"
+    },
+    {
+      "id": "S3",
+      "rule": "Italian labels",
+      "from": "more: 'Carica altre partite'",
+      "to": "more: 'Load more matches'"
+    },
+    {
+      "id": "S4",
+      "rule": "the Daily Board heading names the chosen day",
+      "from": "`Partite del ${date}`",
+      "to": "`Partite del ${new Date(Date.parse(date) - 864e5).toISOString().slice(0, 10)}`"
+    }
+  ],
+  "result": {
+    "bundle-1": {
+      "S1": "found AI-4 BUG P1",
+      "S2": "found AI-2 and AI-3 BUG P1",
+      "S3": "found AI-5 BUG P2",
+      "S4": "found AI-1 BUG P1",
+      "verdict": "BLOCKING"
+    },
+    "bundle-2": {
+      "seeded_defects_reported": 0,
+      "verdict": "NO_BLOCKING"
+    },
+    "recall": "4/4"
+  }
+}

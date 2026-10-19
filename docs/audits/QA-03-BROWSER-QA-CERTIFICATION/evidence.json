@@ -1,0 +1,15 @@
+{
+  "schema": "mp-evidence-v1",
+  "audit_id": "QA-03-BROWSER-QA-CERTIFICATION",
+  "commit_sha": "e761a294569643cac529123d512db6d725fdc98a",
+  "date": "2026-10-19",
+  "environment": "Claude Code cloud container (Linux), PostgreSQL 16 throwaway schema with the QA archive, Chromium 141.0.7390.37 via playwright-core 1.56.1, viewports 1280x800 and 390x844; CI: GitHub Actions, PostgreSQL 17, runner Google Chrome; AI evaluation bundles on 82ad736, demonstration on 61ddc17 (RED) and e761a29 (GREEN)",
+  "outcome": "Gate: controlled defect detected (Browser QA 0/10), CI gate red and merge blocked, fix green and mergeable. AI exploratory review: 4/4 seeded semantic defects found on the blinded seeded bundle, none reported on the clean bundle; crawler 0 findings on both",
+  "archive": {
+    "branch": "evidence/audits",
+    "commit": "50dc711cd3747195cc64ee9c2ac05c3f8430937c",
+    "path": "QA-03-BROWSER-QA-CERTIFICATION",
+    "zip_sha256": "879f5a7c17a3c01ed32392b99342397285ae2325030e1fac12ed19a5f77ac718",
+    "url": "https://github.com/zarbopiero963-droid/MatchPilot/tree/50dc711cd3747195cc64ee9c2ac05c3f8430937c/QA-03-BROWSER-QA-CERTIFICATION"
+  }
+}

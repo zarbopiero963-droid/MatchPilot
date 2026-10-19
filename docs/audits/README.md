@@ -37,3 +37,4 @@ Packages are also referenced by commit permalink, and the CI check fails if an a
 | Package | Audit | Commit analysed | Date | Complete package |
 |---|---|---|---|---|
 | [MP-OWNER-VISUAL-BASELINE-AUDIT-01](MP-OWNER-VISUAL-BASELINE-AUDIT-01/README.md) | visual audit, approved mockup vs real site | `3d8f5c9` | 2026-10-19 | [`evidence/audits` @ `0c9e5d3`](https://github.com/zarbopiero963-droid/MatchPilot/tree/0c9e5d3e1920d29f2857fbc7e72eee83452d4476/MP-OWNER-VISUAL-BASELINE-AUDIT-01): 56 screenshots, 6 comparisons, ZIP `9478d854…` |
+| [QA-03-BROWSER-QA-CERTIFICATION](QA-03-BROWSER-QA-CERTIFICATION/README.md) | Browser QA end-to-end certification (PR #166) and blind AI review evaluation | `e761a29` | 2026-10-19 | [`evidence/audits` @ `50dc711`](https://github.com/zarbopiero963-droid/MatchPilot/tree/50dc711cd3747195cc64ee9c2ac05c3f8430937c/QA-03-BROWSER-QA-CERTIFICATION): blinded bundles, reviews, key, local RED/GREEN runs, ZIP `879f5a7c…` |
