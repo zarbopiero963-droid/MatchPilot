@@ -25,9 +25,11 @@ export const outcomeShownFor = row => RESULT[row.result_status] ?? (row.home_sco
 const SIDE = {HOME: 'Casa', AWAY: 'Ospite', EVEN: 'Pari'};
 
 // [view, menu label, page title, area]: the menu label is what the user reads before clicking (QA-03: it was not checked);
-// the area decides whether the no-technical-text rule applies (MP-WEB-015). The Dashboard declares none until V-B2.
-const NAV = [['', 'Dashboard', 'Dashboard', null], ['board', 'Daily Board', 'Daily Board', 'user'], ['search', 'Ricerca', 'Ricerca partite', 'user'],
-  ['providers', 'Fornitori dati', 'Fornitori dati', 'technical'], ['endpoints', 'API', 'API v1', 'technical']];
+// the area decides whether the no-technical-text rule applies (MP-WEB-015). Every view declares one (V-B2): the home page
+// Oggi (D-2) and the search are user views; «Dati» holds the technical views, reached through its tabs (DATA_TABS).
+const NAV = [['', 'Oggi', 'Oggi', 'user'], ['search', 'Ricerca', 'Ricerca partite', 'user'], ['data', 'Dati', 'Stato dei dati', 'technical']];
+const DATA_TABS = [['#/data', 'Panoramica', 'Stato dei dati'], ['#/providers', 'Fornitori', 'Fornitori dati'], ['#/endpoints', 'API', 'API v1']];
+const titled = (page, text) => page.waitForFunction(title => document.querySelector('main h1')?.textContent === title && !document.querySelector('.state.loading'), text);
 const unavailable = {api_version: 'v1', error: {code: 'UNAVAILABLE', message: 'data source unavailable'}};
 // A full page load: a hash-only change keeps the previous view on screen until the new one renders, so a check
 // could read stale results (PR #164 NB-6).
@@ -70,7 +72,7 @@ export const JOURNEYS = [
         const response = await page.goto(`${base}/`);
         assert.equal(response.status(), 200);
         assert.match(response.headers()['content-security-policy'] ?? '', /script-src 'self'/);
-        await page.waitForSelector('[data-testid="tile-health"]');
+        await titled(page, 'Oggi');
       });
       await step('ogni voce del menu è nota e ha la sua area', async () => {
         const views = await page.locator('nav a[data-view]').evaluateAll(links => links.map(link => link.dataset.view));
@@ -86,12 +88,32 @@ export const JOURNEYS = [
           assert.equal(await page.getAttribute('main', 'data-area'), area);
         });
       }
+      await step('Dati: le schede aprono le viste tecniche', async () => {
+        await fresh(page, `${base}/#/data`);
+        await titled(page, 'Stato dei dati');
+        for (const [href, label, title] of DATA_TABS) {
+          const tab = page.locator(`[data-testid="data-tabs"] a[href="${href}"]`);
+          assert.equal((await tab.textContent()).trim(), label);
+          await tab.click();
+          await titled(page, title);
+          assert.equal(await page.getAttribute(`[data-testid="data-tabs"] a[href="${href}"]`, 'aria-current'), 'page');
+          assert.equal(await page.getAttribute('nav a[data-view="data"]', 'aria-current'), 'page', `${title} is a section of Dati`);
+          assert.equal(await page.getAttribute('main', 'data-area'), 'technical');
+        }
+        assert.equal(await page.getAttribute('[data-testid="data-tabs"] a:last-child', 'href'), '/coverage');
+      });
+      await step('indirizzo precedente della Daily Board: apre Oggi', async () => {
+        await fresh(page, `${base}/#/board`);
+        await titled(page, 'Oggi');
+        assert.equal(await page.getAttribute('nav a[data-view=""]', 'aria-current'), 'page');
+        assert.equal(await page.getAttribute('main', 'data-area'), 'user');
+      });
       await step('rotta sconosciuta', async () => {
         await page.goto(`${base}/#/non-esiste`);
         await page.waitForSelector('text=Pagina non trovata');
         assert.equal(await page.getAttribute('main', 'data-area'), 'user');
         await page.click('main a[href="#/"]');
-        await page.waitForSelector('[data-testid="tile-health"]');
+        await titled(page, 'Oggi');
       });
       await step('tastiera: il primo Tab raggiunge un link del sito', async () => {
         await page.keyboard.press('Tab');
@@ -107,7 +129,7 @@ export const JOURNEYS = [
       const providers = await api('/api/v1/providers');
       const coverage = (await api('/api/v1/fpt/coverage-competitions')).data.rows;
       await step('caricamento e valori uguali all’API', async () => {
-        await page.goto(`${base}/`);
+        await page.goto(`${base}/#/data`);
         await page.waitForSelector('[data-testid="tile-coverage"] tbody tr');
         for (const testid of ['tile-health', 'tile-data-health', 'tile-certification', 'tile-tc-historical', 'tile-tc-prematch', 'tile-tc-live', 'tile-coverage']) {
           assert.equal(await page.getAttribute(`[data-testid="${testid}"]`, 'data-state'), 'ok', testid);
@@ -129,7 +151,8 @@ export const JOURNEYS = [
         await page.route('**/api/v1/tc/live', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
         await page.reload();
         await page.waitForSelector('[data-testid="tile-tc-live"][data-state="error"]');
-        assert.match(await page.textContent('[data-testid="tile-tc-live"]'), /N\/D[\s\S]*UNAVAILABLE/);
+        assert.match(await page.textContent('[data-testid="tile-tc-live"]'), /N\/D[\s\S]*non disponibile/);
+        assert.equal(await page.getAttribute('[data-testid="tile-tc-live"] .state.partial', 'data-code'), 'UNAVAILABLE');
         assert.equal(await page.getAttribute('[data-testid="tile-coverage"]', 'data-state'), 'ok');
         assert.match(await page.textContent('[data-testid="dashboard-partial"]'), /1 riquadro su 6/);
         await page.unroute('**/api/v1/tc/live');
@@ -143,8 +166,8 @@ export const JOURNEYS = [
       const day = seed.busyDay;
       const all = (await api(`/api/v1/fpt/matches?date=${day}&limit=500`)).data.rows;
       assert.ok(all.length > 24, 'the busy day needs more than one page');
-      await step('apertura dalla copertura della Dashboard', async () => {
-        await page.goto(`${base}/`);
+      await step('apertura dalla copertura in Dati', async () => {
+        await page.goto(`${base}/#/data`);
         await page.waitForSelector('[data-testid="tile-coverage"] tbody tr');
         const laliga = page.locator(`[data-testid="tile-coverage"] tr[data-competition="${seed.laliga.competition}"] [data-field="last_match_date"] a`);
         await laliga.click();
@@ -156,6 +179,10 @@ export const JOURNEYS = [
         await page.waitForFunction(text => document.querySelector('[data-testid="board-day"] time')?.getAttribute('datetime') === text, day);
         assert.equal(await page.locator('article.match').count(), 24);
         assert.equal(await page.getAttribute('main', 'data-area'), 'user', 'the Daily Board is a user view: no technical text');
+        assert.equal(await page.textContent('main h1'), 'Partite del giorno', 'a day other than today');
+        assert.equal(await page.getAttribute('nav a[data-view=""]', 'aria-current'), 'page');
+        // The QA archive has no sync run: no update time is shown, none is made up (UI-25).
+        assert.equal(await page.locator('[data-testid="updated"]').count(), 0);
       });
       await step('paginazione fino alla fine, stesso ordine dell’API', async () => {
         await loadAll(page, 'article.match');
@@ -208,6 +235,26 @@ export const JOURNEYS = [
           ['Non iniziata', 'Senza risultato', 'N/D']);
         assert.equal(await page.getAttribute('article.match >> nth=1', 'data-result'), 'NO_RESULT');
         await page.unroute('**/api/v1/fpt/matches?*');
+      });
+      await step('aggiornamento dei dati: solo con una sincronizzazione reale conclusa', async () => {
+        // The QA archive has no sync run: the answer of /api/v1/providers is changed in the browser, one state at a time.
+        let run = null;
+        await page.route('**/api/v1/providers', async route => {
+          const response = await route.fetch();
+          const body = await response.json();
+          body.data.data_health.lastRun = run;
+          await route.fulfill({response, json: body});
+        });
+        for (const [status, text] of [['complete', 'Dati aggiornati: '], ['partial', 'Dati aggiornati in parte: '], ['failed', null], ['running', null]]) {
+          run = {run_id: 'qa', kind: 'incremental', status, started_at: '2026-10-19T18:10:00Z', finished_at: status === 'running' ? null : '2026-10-19T18:15:00Z'};
+          await fresh(page, `${base}/#/?date=${day}`);
+          await page.waitForSelector('[data-testid="board-day"]');
+          const line = page.locator('[data-testid="updated"]');
+          if (!text) { assert.equal(await line.count(), 0, status); continue; }
+          assert.equal(await line.textContent(), `${text}19/10/2026, 20:15 GMT+2`);
+          assert.equal(await line.locator('time').getAttribute('datetime'), '2026-10-19T18:15:00Z');
+        }
+        await page.unroute('**/api/v1/providers');
       });
       await step('errore dell’API: messaggio semplice, codice conservato, Riprova', async () => {
         await page.route('**/api/v1/fpt/matches?*', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
@@ -328,8 +375,8 @@ export const JOURNEYS = [
         // A search abandoned before its answer must not move the focus later (PR #168 review NB-1).
         await page.route('**/api/v1/fpt/search?*', async route => { await new Promise(done => setTimeout(done, 1500)); await route.continue().catch(() => {}); });
         await page.click('[data-testid="search-form"] button[type="submit"]');
-        await page.click('nav a[data-view="board"]');
-        await page.waitForFunction(() => document.querySelector('main h1')?.textContent === 'Daily Board');
+        await page.click('nav a[data-view=""]');
+        await page.waitForFunction(() => document.querySelector('main h1')?.textContent === 'Oggi');
         await page.waitForTimeout(1800);
         await page.unroute('**/api/v1/fpt/search?*');
         await page.evaluate(() => scrollTo(0, 0));

@@ -124,19 +124,23 @@ test('the web shell renders real API v1 data on desktop and mobile, with N/D for
           const response = await page.goto(`${server.base}/`);
           assert.equal(response.status(), 200);
           assert.match(response.headers()['content-security-policy'], /script-src 'self'/);
+          // The home page is Oggi (D-2); the data health lives in the technical area «Dati».
+          await page.waitForFunction(() => document.querySelector('main h1')?.textContent === 'Oggi' && !document.querySelector('.state.loading'));
+          assert.equal(await page.getAttribute('nav a[data-view=""]', 'aria-current'), 'page');
+          await page.click('nav a[data-view="data"]');
           await page.waitForSelector('[data-testid="tile-health"]');
           assert.equal(await page.textContent('[data-testid="tile-health"] [data-field="status"]'), health.data.status);
           assert.equal(await page.textContent('[data-testid="tile-health"] [data-field="api_version"]'), health.api_version);
-          assert.equal(await page.getAttribute('nav a[data-view=""]', 'aria-current'), 'page');
+          assert.equal(await page.getAttribute('nav a[data-view="data"]', 'aria-current'), 'page');
           await noHorizontalScroll(page);
 
-          await page.click('nav a[data-view="providers"]');
+          await page.click('[data-testid="data-tabs"] a[href="#/providers"]');
           await page.waitForSelector('[data-testid="data-health"]');
           const healthText = await page.textContent('[data-testid="data-health"]');
           assert.match(healthText, new RegExp(`Stato\\s*${providers.data.data_health.status}`));
           // lastRun is null on an empty database: it must read N/D, never 0.
           assert.equal(providers.data.data_health.lastRun, null);
-          assert.match(healthText, /Ultimo controllo\s*N\/D/);
+          assert.match(healthText, /Ultima sincronizzazione\s*N\/D/);
           // latest_backfill is null on an empty database: its own row reads N/D, and a number reads the API value.
           assert.equal(providers.data.futpython_certification.latest_backfill, null);
           const certText = await page.textContent('[data-testid="fpt-certification"]');
@@ -144,8 +148,9 @@ test('the web shell renders real API v1 data on desktop and mobile, with N/D for
           assert.match(certText, new RegExp(`Snapshot\\s*${providers.data.futpython_certification.snapshots}`));
           await noHorizontalScroll(page);
 
-          await page.click('nav a[data-view="endpoints"]');
+          await page.click('[data-testid="data-tabs"] a[href="#/endpoints"]');
           await page.waitForSelector('[data-testid="endpoints"] tbody tr');
+          assert.equal(await page.getAttribute('nav a[data-view="data"]', 'aria-current'), 'page', 'the API registry is a section of Dati');
           assert.equal(await page.locator('[data-testid="endpoints"] tbody tr').count(), endpoints.data.endpoints.length);
           assert.equal(await page.locator('tr[data-path="/api/v1/health"]').count(), 1);
           await noHorizontalScroll(page);
@@ -189,8 +194,9 @@ test('loading, error, retry and partial states are explicit', {timeout: 120000},
         await page.route('**/api/v1/providers', route => fail
           ? route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify({api_version: 'v1', error: {code: 'UNAVAILABLE', message: 'data source unavailable'}})})
           : route.continue());
-        await page.goto(`${server.base}/#/`);
-        await page.click('nav a[data-view="providers"]');
+        await page.goto(`${server.base}/#/endpoints`);
+        await page.waitForSelector('[data-testid="data-tabs"]');
+        await page.click('[data-testid="data-tabs"] a[href="#/providers"]');
         await page.waitForSelector('.state.error[role="alert"]');
         // The reason stays on the error (code and tooltip); the page says it in plain words.
         assert.equal(await page.getAttribute('.state.error', 'data-code'), 'UNAVAILABLE');
@@ -207,8 +213,9 @@ test('loading, error, retry and partial states are explicit', {timeout: 120000},
           body.data.futpython_certification = null;
           await route.fulfill({response, body: JSON.stringify(body)});
         });
-        await page.goto(`${server.base}/#/`);
-        await page.click('nav a[data-view="providers"]');
+        await page.goto(`${server.base}/#/endpoints`);
+        await page.waitForSelector('[data-testid="data-tabs"]');
+        await page.click('[data-testid="data-tabs"] a[href="#/providers"]');
         await page.waitForSelector('.state.partial');
         assert.match(await page.textContent('[data-testid="fpt-certification"]'), /Dati non disponibili/);
         await page.unroute('**/api/v1/providers');
@@ -220,8 +227,9 @@ test('loading, error, retry and partial states are explicit', {timeout: 120000},
           Object.assign(body.data.data_health, {status: '', activeDatasets: 1234567, schemaFields: 0.123456789, datasetsWithErrors: 0});
           await route.fulfill({response, body: JSON.stringify(body)});
         });
-        await page.goto(`${server.base}/#/`);
-        await page.click('nav a[data-view="providers"]');
+        await page.goto(`${server.base}/#/endpoints`);
+        await page.waitForSelector('[data-testid="data-tabs"]');
+        await page.click('[data-testid="data-tabs"] a[href="#/providers"]');
         await page.waitForSelector('[data-testid="data-health"]');
         const shown = await page.textContent('[data-testid="data-health"]');
         assert.match(shown, /Stato\s*N\/D/);
@@ -237,7 +245,7 @@ test('loading, error, retry and partial states are explicit', {timeout: 120000},
         // The dashboard reads /api/v1/providers too, so start from a view that does not.
         await page.goto(`${server.base}/#/endpoints`);
         await page.waitForSelector('[data-testid="endpoints"]');
-        await page.click('nav a[data-view="providers"]');
+        await page.click('[data-testid="data-tabs"] a[href="#/providers"]');
         await page.waitForSelector('.state.loading');
         await page.evaluate(() => { location.hash = '#/nope'; });
         await page.waitForSelector('text=Pagina non trovata');
@@ -272,15 +280,16 @@ test('with owner login enforced the shell requires a session and returns to the 
         await page.fill('input[name="username"]', 'owner');
         await page.fill('input[name="password"]', PASSWORD);
         await page.click('button[type="submit"]');
-        await page.waitForSelector('[data-testid="tile-health"]');
+        await page.waitForFunction(() => document.querySelector('main h1')?.textContent === 'Oggi' && !document.querySelector('.state.loading'));
         assert.equal(new URL(page.url()).pathname, '/');
-        await page.click('nav a[data-view="endpoints"]');
+        await page.click('nav a[data-view="data"]');
+        await page.click('[data-testid="data-tabs"] a[href="#/endpoints"]');
         await page.waitForSelector('[data-testid="endpoints"] tbody tr');
         await noHorizontalScroll(page);
         assert.deepEqual(problems, []);
         // The session ends while the page is open: the next API call leads to /login, keeping the view in `next`.
         await admin.query(`UPDATE ${schema}.auth_sessions SET revoked_at = now(), revoke_reason = 'revoked'`);
-        await page.click('nav a[data-view="providers"]');
+        await page.click('[data-testid="data-tabs"] a[href="#/providers"]');
         await page.waitForURL(/\/login\?next=%2F%23%2Fproviders$/);
       });
     } finally { await server.stop(); }
@@ -330,8 +339,8 @@ test('R-06b: dashboard, Daily Board and search render the stored matches exactly
 
       for (const viewport of [DESKTOP, MOBILE]) {
         await withPage(browser, viewport, async (page, problems) => {
-          // Dashboard: every tile reads its route; values equal the API.
-          await page.goto(`${server.base}/`);
+          // Stato dei dati (the former Dashboard, in «Dati»): every tile reads its route; values equal the API.
+          await page.goto(`${server.base}/#/data`);
           await page.waitForSelector('[data-testid="tile-coverage"] tbody tr');
           assert.equal(await page.textContent('[data-testid="tile-certification"] [data-field="unique_matches"]'), shown(providers.data.futpython_certification.unique_matches));
           assert.equal(await page.textContent('[data-testid="tile-certification"] [data-field="latest_backfill"]'), 'N/D');
@@ -344,7 +353,7 @@ test('R-06b: dashboard, Daily Board and search render the stored matches exactly
           // The league's last day with data opens the Daily Board on that day.
           await page.click('[data-testid="tile-coverage"] [data-field="last_match_date"] a');
           await page.waitForSelector('[data-testid="board-day"]');
-          assert.equal(await page.getAttribute('nav a[data-view="board"]', 'aria-current'), 'page');
+          assert.equal(await page.getAttribute('nav a[data-view=""]', 'aria-current'), 'page');
           const cards = page.locator('article.match');
           assert.equal(await cards.count(), dayRows.length);
           for (let i = 0; i < dayRows.length; i++) {
@@ -421,9 +430,10 @@ test('R-06b: dashboard, Daily Board and search render the stored matches exactly
       await withPage(browser, DESKTOP, async page => {
         await page.route('**/api/v1/tc/live', route => route.fulfill({status: 503, contentType: 'application/json',
           body: JSON.stringify({api_version: 'v1', error: {code: 'UNAVAILABLE', message: 'data source unavailable'}})}));
-        await page.goto(`${server.base}/`);
+        await page.goto(`${server.base}/#/data`);
         await page.waitForSelector('[data-testid="tile-tc-live"][data-state="error"]');
-        assert.match(await page.textContent('[data-testid="tile-tc-live"]'), /N\/D[\s\S]*UNAVAILABLE/);
+        assert.match(await page.textContent('[data-testid="tile-tc-live"]'), /N\/D[\s\S]*non disponibile/);
+        assert.equal(await page.getAttribute('[data-testid="tile-tc-live"] .state.partial', 'data-code'), 'UNAVAILABLE');
         assert.equal(await page.getAttribute('[data-testid="tile-certification"]', 'data-state'), 'ok');
         assert.match(await page.textContent('[data-testid="dashboard-partial"]'), /1 riquadro su 6 non è disponibile/);
         await page.unroute('**/api/v1/tc/live');
