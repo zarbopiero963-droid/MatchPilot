@@ -97,7 +97,7 @@ The backend defaults to `MATCHPILOT_RUNTIME_MODE=offline`: cron, watchdog, recov
 
 ## Web shell (R-05)
 
-`/` serves a real, read-only website. It has three static files, a strict CSP and no inline code. Every value comes from the API v1, with N/D for missing values and explicit loading, empty, partial and error states. Browser end-to-end tests (`playwright-core`, Chromium/Chrome) run on the real server in CI. See [`docs/web.md`](docs/web.md).
+`/` serves a real, read-only website. It has three static files, a strict CSP and no inline code. Every value comes from the API v1, unrounded, with N/D for missing values and explicit loading, empty, partial and error states. Browser end-to-end tests (`playwright-core`, Chromium/Chrome) run on the real server in CI. See [`docs/web.md`](docs/web.md).
 
 ## Owner login (R-04b)
 

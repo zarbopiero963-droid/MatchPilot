@@ -1,7 +1,7 @@
 // R-05 (#3, #97): read-only web shell. Every value shown comes from the MatchPilot API v1; the browser computes
 // nothing (MP-WEB-011). Missing values are shown as N/D, never as zero (MP-WEB-005). Every view has explicit loading,
-// empty, partial and error states (MP-WEB-010). Text is inserted with textContent only: API data is never parsed as
-// HTML.
+// empty, partial and error states (MP-WEB-010), and a later navigation always wins over an earlier view still
+// loading. Text is inserted with textContent only: API data is never parsed as HTML.
 
 const ND = 'N/D';
 
@@ -56,10 +56,19 @@ const LABELS = {
 };
 const label = key => LABELS[key] || key.replace(/_/g, ' ');
 
+// Numbers are shown exactly as the API sent them (MP-WEB-011): integers get Italian digit grouping, other numbers keep
+// every digit and only swap the decimal point for a comma. Nothing is rounded in the browser.
+function formatNumber(value) {
+  if (Number.isSafeInteger(value)) return value.toLocaleString('it-IT', {maximumFractionDigits: 0});
+  return String(value).replace('.', ',');
+}
+
 export function formatScalar(value) {
-  if (value === null || value === undefined || (typeof value === 'number' && !Number.isFinite(value))) return el('span', {class: 'nd', title: 'Valore non disponibile'}, ND);
+  const missing = value === null || value === undefined || (typeof value === 'number' && !Number.isFinite(value))
+    || (typeof value === 'string' && value.trim() === '');
+  if (missing) return el('span', {class: 'nd', title: 'Valore non disponibile'}, ND);
   if (typeof value === 'boolean') return el('span', {class: value ? 'ok' : 'bad'}, value ? 'sì' : 'no');
-  if (typeof value === 'number') return document.createTextNode(value.toLocaleString('it-IT'));
+  if (typeof value === 'number') return document.createTextNode(formatNumber(value));
   return document.createTextNode(String(value));
 }
 
@@ -160,11 +169,12 @@ async function render() {
     if (link.dataset.view === name) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   }
+  // Every navigation starts a new generation, so an earlier view still loading can never replace this one.
+  const mine = ++generation;
   if (!view) {
     host.replaceChildren(el('h1', {}, 'Pagina non trovata'), el('p', {class: 'state empty'}, 'Questa sezione non esiste. ', el('a', {href: '#/'}, 'Torna allo stato')));
     return;
   }
-  const mine = ++generation;
   host.replaceChildren(loading(what));
   try {
     const nodes = await view();

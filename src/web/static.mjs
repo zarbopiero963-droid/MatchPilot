@@ -23,7 +23,7 @@ export function serveWeb(req, res, url) {
   const asset = ASSETS.get(url.pathname);
   if (!asset) return false;
   if (req.method !== 'GET' && req.method !== 'HEAD') {
-    res.writeHead(405, {'Content-Type': 'text/plain; charset=utf-8', Allow: 'GET, HEAD'});
+    res.writeHead(405, {'Content-Type': 'text/plain; charset=utf-8', Allow: 'GET, HEAD', ...WEB_SECURITY_HEADERS});
     res.end('Solo GET');
     return true;
   }

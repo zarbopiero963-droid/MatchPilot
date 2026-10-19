@@ -35,9 +35,14 @@ async function setup(t) {
     t.skip('throwaway postgres unavailable');
     return null;
   }
-  const {chromium} = await import('playwright-core');
-  const browser = await chromium.launch({executablePath, args: ['--no-sandbox']});
-  return {admin, browser};
+  try {
+    const {chromium} = await import('playwright-core');
+    const browser = await chromium.launch({executablePath, args: ['--no-sandbox']});
+    return {admin, browser};
+  } catch (error) {
+    await admin.end().catch(() => {});
+    throw error;
+  }
 }
 
 let nextPort = 39500 + (process.pid % 400) * 2;
@@ -55,7 +60,10 @@ async function startServer(schema, env = {}) {
   child.stderr.on('data', chunk => { output += chunk; });
   const deadline = Date.now() + 30000;
   while (!/listening on/.test(output) && child.exitCode == null && Date.now() < deadline) await new Promise(done => setTimeout(done, 50));
-  assert.equal(child.exitCode, null, output);
+  if (!/listening on/.test(output)) {
+    if (child.exitCode == null) child.kill('SIGKILL');
+    throw new Error(`server did not start: ${output}`);
+  }
   return {base: `http://127.0.0.1:${port}`, stop: () => new Promise(done => { child.on('close', done); child.kill('SIGTERM'); })};
 }
 
@@ -118,7 +126,11 @@ test('the web shell renders real API v1 data on desktop and mobile, with N/D for
           // lastRun is null on an empty database: it must read N/D, never 0.
           assert.equal(providers.data.data_health.lastRun, null);
           assert.match(healthText, /Ultimo controllo\s*N\/D/);
-          assert.ok(await page.locator('[data-testid="fpt-certification"] .nd').count() > 0, 'null certification values shown as N/D');
+          // latest_backfill is null on an empty database: its own row reads N/D, and a number reads the API value.
+          assert.equal(providers.data.futpython_certification.latest_backfill, null);
+          const certText = await page.textContent('[data-testid="fpt-certification"]');
+          assert.match(certText, /Ultimo backfill\s*N\/D/);
+          assert.match(certText, new RegExp(`Snapshot\\s*${providers.data.futpython_certification.snapshots}`));
           await noHorizontalScroll(page);
 
           await page.click('nav a[data-view="endpoints"]');
@@ -185,6 +197,38 @@ test('loading, error, retry and partial states are explicit', {timeout: 120000},
         await page.click('nav a[data-view="providers"]');
         await page.waitForSelector('.state.partial');
         assert.match(await page.textContent('[data-testid="fpt-certification"]'), /Dati non disponibili/);
+        await page.unroute('**/api/v1/providers');
+
+        // Values are shown exactly as the API sends them (no rounding); empty strings read N/D (review B-2, NB-1).
+        await page.route('**/api/v1/providers', async route => {
+          const response = await route.fetch();
+          const body = await response.json();
+          Object.assign(body.data.data_health, {status: '', activeDatasets: 1234567, schemaFields: 0.123456789, datasetsWithErrors: 0});
+          await route.fulfill({response, body: JSON.stringify(body)});
+        });
+        await page.goto(`${server.base}/#/`);
+        await page.click('nav a[data-view="providers"]');
+        await page.waitForSelector('[data-testid="data-health"]');
+        const shown = await page.textContent('[data-testid="data-health"]');
+        assert.match(shown, /Stato\s*N\/D/);
+        assert.match(shown, /Dataset attivi\s*1\.234\.567/);
+        assert.match(shown, /Campi di schema\s*0,123456789/);
+        assert.match(shown, /Dataset con errori\s*0(?![,.\d])/, 'a real zero stays 0');
+        await page.unroute('**/api/v1/providers');
+
+        // A slow earlier view never overwrites a later route (review B-1).
+        let releaseSlow;
+        const slow = new Promise(done => { releaseSlow = done; });
+        await page.route('**/api/v1/providers', async route => { await slow; await route.continue(); });
+        await page.goto(`${server.base}/#/`);
+        await page.waitForSelector('[data-testid="health"]');
+        await page.click('nav a[data-view="providers"]');
+        await page.waitForSelector('.state.loading');
+        await page.evaluate(() => { location.hash = '#/nope'; });
+        await page.waitForSelector('text=Pagina non trovata');
+        releaseSlow();
+        await page.waitForTimeout(500);
+        assert.equal(await page.textContent('h1'), 'Pagina non trovata');
       });
     } finally { await server.stop(); }
   } finally {
@@ -216,6 +260,10 @@ test('with owner login enforced the shell requires a session and returns to the 
         await page.waitForSelector('[data-testid="endpoints"] tbody tr');
         await noHorizontalScroll(page);
         assert.deepEqual(problems, []);
+        // The session ends while the page is open: the next API call leads to /login, keeping the view in `next`.
+        await admin.query(`UPDATE ${schema}.auth_sessions SET revoked_at = now(), revoke_reason = 'revoked'`);
+        await page.click('nav a[data-view="providers"]');
+        await page.waitForURL(/\/login\?next=%2F%23%2Fproviders$/);
       });
     } finally { await server.stop(); }
   } finally {

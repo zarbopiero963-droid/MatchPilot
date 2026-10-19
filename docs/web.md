@@ -11,14 +11,15 @@ Issue #3 and roadmap #97, R-05. Code: [`src/web/`](../src/web/). Tests: `test/we
 
 ## Rules
 
-- **Missing values** (`null` or absent) are shown as **N/D**, never as `0` (MP-WEB-005).
+- **Missing values** (`null`, absent or an empty string) are shown as **N/D**, never as `0` (MP-WEB-005).
+- **Numbers are shown exactly as the API sends them.** Integers get Italian digit grouping; other numbers keep every digit, with a decimal comma. Nothing is rounded in the browser.
 - **Explicit states** (MP-WEB-010):
   - loading (`role=status`);
   - empty;
   - partial: a section is missing from the payload;
   - error: the error code from the v1 envelope plus a "Riprova" button.
 
-  A view never stays blank and never shows stale success.
+  A view never stays blank and never shows stale success: a later navigation always wins over an earlier view still loading.
 - **No HTML injection:** API text is inserted with `textContent` only.
 - **Security headers** on every shell file:
   - CSP: `default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
@@ -29,11 +30,13 @@ Issue #3 and roadmap #97, R-05. Code: [`src/web/`](../src/web/). Tests: `test/we
 
   There is no inline code and no external resource.
 - **With owner login enforced** (R-04, `docs/auth.md`), the shell is protected like every other route. Opening it without a session leads to `/login`, and a successful login returns to the page.
+  - If the session ends while the page is open, the next API call leads to `/login` with the current view in `next`, including the `#/…` part.
+  - On first opening, the browser never sends the `#/…` part to the server, so that redirect returns to `/`.
 - **Layout:** works on desktop (1280×800) and mobile (390×844) viewports, with no horizontal scroll (MP-WEB-009).
 
 ## Browser end-to-end tests
 
-`test/web-e2e.test.mjs` starts the real server on a throwaway PostgreSQL schema. It drives Chromium or Chrome with `playwright-core`, a pinned dev dependency that is not installed on Render.
+`test/web-e2e.test.mjs` starts the real server on a throwaway PostgreSQL schema. It drives Chromium or Chrome with `playwright-core`, an exact-pinned dev dependency that only the tests import. The running `matchpilot-test` service builds with `npm install --omit=dev`, so it is not installed there. `render.yaml` still declares plain `npm install`; even then the server never loads it.
 
 The browser is found through `MATCHPILOT_E2E_CHROME` or known local paths. CI uses the runner's preinstalled Chrome, so no browser is downloaded. Without a browser the test is skipped locally and fails in CI.
 
