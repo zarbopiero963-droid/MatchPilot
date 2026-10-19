@@ -158,7 +158,7 @@ const MAX_ATTEMPTS = 3;
 const keyOf = problem => `${problem.kind}: ${problem.message.replace(/\d+/g, 'N').slice(0, 160)}`;
 
 // Runs an action sequence in a fresh context and reports whether the same problem appears again.
-async function replay(browser, viewport, base, steps, key, contextHook) {
+export async function replay(browser, viewport, base, steps, key, contextHook) {
   const context = await browser.newContext({viewport: VIEWPORTS[viewport]});
   if (contextHook) await contextHook(context);
   const page = await context.newPage();
@@ -168,7 +168,8 @@ async function replay(browser, viewport, base, steps, key, contextHook) {
     for (const step of steps) {
       await perform(page, {...step, url: step.url && new URL(step.url, base).toString()}).catch(() => {});
       await settle(page);
-      if (!onSite(page, base)) return false;
+      // Off the site the page is not checked, but what the step caused before leaving still counts.
+      if (!onSite(page, base)) return drain().some(problem => keyOf(problem) === key);
       if ((await check(page, drain)).some(problem => keyOf(problem) === key)) return true;
     }
     return false;

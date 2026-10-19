@@ -3,7 +3,7 @@
 // altered or foreign evidence.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -221,7 +221,8 @@ test('the same seed on the same site replays the same exploration, and its bundl
   const verified = verifyExploration(out, {expectedHead: report.head_sha, expectedCommit: report.tested_commit});
   assert.equal(report.restricted, true);
   assert.deepEqual(report.routes, ['/#/']);
-  const expected = ['the run was restricted to some routes (test run): not valid evidence'];
+  // (A desktop-only test run also lacks the required mobile viewport.)
+  const expected = ['the run was restricted to some routes (test run): not valid evidence', 'required viewport mobile not explored'];
   if (!report.working_tree_clean) expected.unshift('the run was made on a modified working tree');
   assert.deepEqual(verified.errors, expected);
   for (const item of report.observations) assert.ok(existsSync(join(out, item.screenshot)) && existsSync(join(out, item.file)));
@@ -251,4 +252,45 @@ test('the crawler finds and reproduces a defect no scripted journey covers (deli
   assert.ok(report.totals.reproduced >= 1);
   assert.equal(report.injected_defect, true);
   refused(verifyExploration(out, {expectedHead: report.head_sha}), /injected defect/);
+});
+
+test('a bundle without desktop and mobile, a linked evidence file or a fix without its test is refused (PR #165 R2-NB-2, NB-3, NB-5)', t => {
+  refused(check(bundle(t, r => { r.viewports = ['desktop']; r.trails = r.trails.filter(trail => trail.viewport === 'desktop'); r.totals.actions = 5; })), /required viewport mobile not explored/);
+  refused(check(bundle(t, r => { r.viewports.push('bogus'); })), /unknown viewport bogus/);
+  // Evidence must be a regular file inside the bundle: a link to a file elsewhere, or a linked folder, is refused.
+  const outside = temp(t, 'mp-explore-outside-');
+  writeFileSync(join(outside, 'shot.png'), 'png finding');
+  refused(check(bundle(t, (r, dir) => { rmSync(join(dir, r.findings[0].screenshot)); symlinkSync(join(outside, 'shot.png'), join(dir, r.findings[0].screenshot)); })), /link or outside the bundle/);
+  refused(check(bundle(t, (r, dir) => {
+    cpSync(join(dir, 'screenshots'), join(outside, 'screenshots'), {recursive: true});
+    rmSync(join(dir, 'screenshots'), {recursive: true});
+    symlinkSync(join(outside, 'screenshots'), join(dir, 'screenshots'));
+  })), /link or outside the bundle|not in the manifest: screenshots/);
+  // With the files the fix changed, FIXED must name one of them.
+  const dir = bundle(t);
+  const fixed = r => { Object.assign(r.findings[0], {severity: 'P0', status: 'FIXED', regression_test: 'test/explore.test.mjs'}); };
+  assert.deepEqual(verifyAiReview(dir, review(t, dir, fixed), {expectedHead: HEAD, changedFiles: ['src/web/app.js', 'test/explore.test.mjs']}).errors, []);
+  refused(verifyAiReview(dir, review(t, dir, fixed), {expectedHead: HEAD, changedFiles: ['src/web/app.js']}), /not changed by the fix/);
+});
+
+test('a problem caused just before the page leaves the site still reproduces (PR #165 R2-NB-1)', {timeout: 120000}, async t => {
+  const {replay} = await import('../tools/qa/explore.mjs');
+  const {withQaEnvironment} = await import('../tools/qa/browser-qa.mjs');
+  // The defect: a menu click throws and the page then leaves the site.
+  const contextHook = context => context.addInitScript(() => {
+    document.addEventListener('click', event => {
+      if (!event.target.closest('nav a')) return;
+      setTimeout(() => { throw new Error('injected leave error'); }, 0);
+      setTimeout(() => location.assign('about:blank'), 100);
+    }, true);
+  });
+  let reproduced;
+  try {
+    reproduced = await withQaEnvironment(({browser, server}) =>
+      replay(browser, 'desktop', server.base, [{type: 'goto', url: '/#/'}, {type: 'link', query: 'nav a[href^="#/"]', index: 0}], 'js-error: injected leave error', contextHook));
+  } catch (error) {
+    if (!process.env.CI && /no Chromium|ECONNREFUSED|FUTPYTHON_TEST_DATABASE_URL/.test(String(error?.message))) return t.skip(String(error.message));
+    throw error;
+  }
+  assert.equal(reproduced, true);
 });

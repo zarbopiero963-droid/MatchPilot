@@ -13,7 +13,7 @@
 // Env:   FUTPYTHON_TEST_DATABASE_URL (local throwaway PostgreSQL only), MATCHPILOT_E2E_CHROME, QA_HEAD_SHA (PR head)
 import {execFileSync, spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync} from 'node:fs';
+import {existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync} from 'node:fs';
 import {arch, platform, release} from 'node:os';
 import {join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -182,7 +182,9 @@ export function listFiles(dir) {
   const out = [];
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
-    if (statSync(path).isDirectory()) out.push(...listFiles(path));
+    // A symbolic link is listed as itself, never followed: the manifest check refuses it.
+    const stat = lstatSync(path);
+    if (stat.isDirectory()) out.push(...listFiles(path));
     else out.push(path);
   }
   return out;
