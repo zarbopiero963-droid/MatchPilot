@@ -294,3 +294,10 @@ test('a problem caused just before the page leaves the site still reproduces (PR
   }
   assert.equal(reproduced, true);
 });
+
+test('the seeded defects of the AI review evaluation still apply to the page, once each (QA-03)', async () => {
+  const {SEEDED_DEFECTS} = await import('../tools/qa/ai-eval-seeds.mjs');
+  const source = readFileSync(new URL('../src/web/app.js', import.meta.url), 'utf8');
+  assert.deepEqual(SEEDED_DEFECTS.map(defect => defect.id), ['S1', 'S2', 'S3', 'S4']);
+  for (const defect of SEEDED_DEFECTS) assert.equal(source.split(defect.from).length - 1, 1, `${defect.id} matches src/web/app.js once`);
+});

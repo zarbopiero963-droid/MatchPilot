@@ -1,0 +1,237 @@
+{
+  "schema": "mp-browser-ai-review-v1",
+  "head_sha": "82ad736feb92978151340ad6362d9c4dac20df4d",
+  "exploration_sha256": "4b07537f0d3e726c5fa4276d6510d8584c09808314fb1bc3b8e6a9deaa478e7d",
+  "reviewer": {
+    "kind": "claude-code-session",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "reviewed_at": "2026-10-19T15:00:10Z",
+  "observations_reviewed": [
+    "observations/01-desktop-open.json",
+    "observations/01-desktop-end.json",
+    "observations/02-mobile-open.json",
+    "observations/02-mobile-end.json",
+    "observations/03-desktop-open.json",
+    "observations/03-desktop-end.json",
+    "observations/04-mobile-open.json",
+    "observations/04-mobile-end.json",
+    "observations/05-desktop-open.json",
+    "observations/05-desktop-end.json",
+    "observations/06-mobile-open.json",
+    "observations/06-mobile-end.json",
+    "observations/07-desktop-open.json",
+    "observations/07-desktop-end.json",
+    "observations/08-mobile-open.json",
+    "observations/08-mobile-end.json",
+    "observations/09-desktop-open.json",
+    "observations/09-desktop-end.json",
+    "observations/10-mobile-open.json",
+    "observations/10-mobile-end.json",
+    "observations/11-desktop-open.json",
+    "observations/11-desktop-end.json",
+    "observations/12-mobile-open.json",
+    "observations/12-mobile-end.json",
+    "observations/13-desktop-open.json",
+    "observations/13-desktop-end.json",
+    "observations/14-mobile-open.json",
+    "observations/14-mobile-end.json"
+  ],
+  "observations_not_reviewed": {},
+  "findings": [
+    {
+      "id": "AI-1",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P2",
+      "summary": "D-7: every 'Fonte: ... generato:' footer (Dashboard, Daily Board, Ricerca, Fornitori dati, API, desktop and mobile) and the Fornitori dati fields 'computed at' and 't1' show raw ISO UTC strings such as '2026-10-19T14:51:23.310Z' instead of Europe/Rome time with the zone indicated (UTC only as accessible detail); on mobile and in narrow cards the string also breaks mid-token ('2026-10-' / '19T14:51:38.330Z').",
+      "evidence": [
+        "observations/01-desktop-open.png",
+        "observations/02-mobile-open.png",
+        "observations/05-desktop-end.png",
+        "observations/04-mobile-end.json"
+      ],
+      "status": "DEFERRED",
+      "reason": "presentation of technical generation timestamps, not of match data",
+      "impact": "an Italian user must convert UTC mentally; violates owner rule D-7 on every page",
+      "follow_up": "V-A/V-B: format server timestamps in Europe/Rome with zone label and UTC in title/tooltip"
+    },
+    {
+      "id": "AI-2",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P3",
+      "summary": "Daily Board (/#/board?date=2024-08-01, ?date=2024-08-09; desktop and mobile): every kick-off time carries the raw enum badge 'PROVIDER_TZ_UNDOCUMENTED' instead of an Italian explanation (e.g. 'fuso orario del fornitore non documentato'); times therefore show no zone, as D-7 requires the zone to be indicated.",
+      "evidence": [
+        "observations/03-desktop-open.png",
+        "observations/04-mobile-open.png",
+        "observations/01-desktop-end.png"
+      ],
+      "status": "DEFERRED",
+      "reason": "honest disclosure of an unknown provider timezone is correct; only the wording is a raw code",
+      "impact": "users see an internal code next to every time and cannot tell which zone the time is in",
+      "follow_up": "V-A: translate timezone-status codes into Italian labels with a tooltip"
+    },
+    {
+      "id": "AI-3",
+      "source": "ai",
+      "classification": "DATA_MISSING",
+      "status": "OPEN",
+      "summary": "Kick-off times on Daily Board and Ricerca cannot be converted to Europe/Rome (D-7) because the provider timezone is undocumented at the source (badge PROVIDER_TZ_UNDOCUMENTED on every card).",
+      "evidence": [
+        "observations/03-desktop-open.json",
+        "observations/05-desktop-open.json"
+      ],
+      "reason": "the source does not document its timezone; the page discloses it instead of inventing a conversion, as MP-OWNER-PRODUCT-QUALITY-DATA-01 requires"
+    },
+    {
+      "id": "AI-4",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P3",
+      "summary": "Labels and values not in Italian: Daily Board shows 'Stato risultato FINAL', 'Fase: HISTORICAL', 'Favorito HOME ...'; Dashboard coverage table 'Stato AVAILABLE'; API page 'DEPRECATED'/'KEPT' and English descriptions ('Process health and API version (no database access)', 'TotalCorner discovery report'...); Fornitori dati exposes raw keys and English prose ('phase2', 'catalog total', 'unavailable 404', 'error real', 'expected null', 'cadence: a hole is recorded only when...', 'null: the provider catalog does not carry a fixture total'); Ricerca shows the raw parameter name 'Filtri applicati dal server: before' although the user set no filter.",
+      "evidence": [
+        "observations/03-desktop-open.png",
+        "observations/01-desktop-open.png",
+        "observations/03-desktop-end.png",
+        "observations/05-desktop-end.png",
+        "observations/05-desktop-open.png"
+      ],
+      "status": "DEFERRED",
+      "reason": "wording only; values themselves are present",
+      "impact": "an Italian user meets English codes and internal keys on every page, the providers page is effectively unreadable for a non-developer",
+      "follow_up": "V-B: Italian label map for API enums and providers keys; human wording for applied server filters"
+    },
+    {
+      "id": "AI-5",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P2",
+      "summary": "Fornitori dati, desktop 1280 px (/#/providers): the nested definition lists squeeze the deepest level (phase6 > evidence > pit) into a ~60 px column, so text wraps 3-4 characters per line: 't1' value '202 / 5- / 06- / 01T / 00:0 / 0:00. / 000 / Z', dataset 'arge / ntina / /liga / - / profe / sion / al/20 / 26', labels 'wron / g / contr / act / t0', 'later / data / set / t0'; the left 60% of the card stays empty. The same section is readable on mobile.",
+      "evidence": [
+        "observations/05-desktop-end.png",
+        "observations/11-desktop-open.png"
+      ],
+      "status": "DEFERRED",
+      "reason": "affects a diagnostic page, not trading data",
+      "impact": "certification evidence is unreadable on desktop, the main viewport for this page",
+      "follow_up": "V-B: flatten or reflow nested dl blocks (full-width grid per level, no fixed label column)"
+    },
+    {
+      "id": "AI-6",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P3",
+      "summary": "API v1 page on mobile 390 px (/#/endpoints): the 'Percorso'/'Route' column wraps paths 3-4 characters per line ('/api / /tc/ / map / ping', '/api / /fut / pyth / on- / cert / ific / ate'), the 'Parametri' column of the endpoint table is not visible (the /api/v1/fpt/search row keeps a large blank area), and 'Successore' values are clipped at the right edge ('/api/v1/tc/prematch/ma', '/api/v1/fpt/team-matche'). On desktop paths also break mid-word ('/api/v1/endpoi nts').",
+      "evidence": [
+        "observations/14-mobile-open.png",
+        "observations/13-desktop-open.png",
+        "observations/03-desktop-end.png"
+      ],
+      "status": "DEFERRED",
+      "reason": "technical reference page",
+      "impact": "paths are hard to read and the parameters are not reachable at phone width",
+      "follow_up": "V-B: allow the table to scroll with a visible affordance or stack rows as cards on mobile; break paths at '/'"
+    },
+    {
+      "id": "AI-7",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P2",
+      "summary": "Ricerca on mobile 390 px (/#/search?run=1): the results table is wider than the viewport; only Data, Ora, Partita and Campionato are visible, the Risultato column is cut to its first character and 1·X·2, Over 2,5 and xG are off-screen with no visible scroll affordance, while every row is ~120 px tall with empty space. Same pattern on the mobile Dashboard coverage table (Ultima partita cut to '202 / 08-', Copertura quote/xG and Stato invisible).",
+      "evidence": [
+        "observations/06-mobile-open.png",
+        "observations/02-mobile-open.png"
+      ],
+      "status": "DEFERRED",
+      "reason": "content is probably reachable by horizontal scroll inside the table container (the crawler reported no page overflow), but nothing signals it",
+      "impact": "on a phone the odds - the main information of a search - are not visible",
+      "follow_up": "V-B: card layout or sticky first column with scroll hint for result tables under 600 px"
+    },
+    {
+      "id": "AI-8",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P2",
+      "summary": "Ricerca (/#/search?run=1, desktop and mobile) promises 'Risultati in ordine di data, dal più recente' but within the same date the order is inconsistent: 2024-08-10 shows 20:45, 15:00, then a match without time; 2024-08-09 shows 15:00, 20:45, then no time; 2024-08-07 15:00 before 20:45; 2024-08-06 and 2024-08-05 start with the match without time, then 15:00, 20:45. Matches without kick-off are placed first or last at random.",
+      "evidence": [
+        "observations/05-desktop-open.json",
+        "observations/05-desktop-open.png",
+        "observations/06-mobile-open.json"
+      ],
+      "status": "DEFERRED",
+      "reason": "date order is right; only the intra-day order is unstable",
+      "impact": "a user scanning the most recent matches reads them out of chronological order (D-4)",
+      "follow_up": "API/web: order by date desc, kick-off desc, missing kick-off last, then id; add a journey asserting the order"
+    },
+    {
+      "id": "AI-9",
+      "source": "ai",
+      "classification": "NOT_VERIFIED",
+      "status": "OPEN",
+      "summary": "Odds and xG are always shown with exactly three decimals (e.g. 1,300, 3,400, 0,300) on Daily Board and Ricerca. D-3 requires exact API precision (trailing zeros may be removed); whether the API value is 1.3 padded to three decimals or carries three decimals cannot be seen from the bundle.",
+      "evidence": [
+        "observations/03-desktop-open.json",
+        "observations/05-desktop-open.json"
+      ],
+      "reason": "the bundle contains only the rendered page, not the API payload"
+    },
+    {
+      "id": "AI-10",
+      "source": "ai",
+      "classification": "NOT_VERIFIED",
+      "status": "OPEN",
+      "summary": "Date fields (Daily Board 'Giorno', Ricerca 'Dal'/'Prima del') render as mm/dd/yyyy ('08/01/2024', '10/19/2026'), which an Italian reads as 8 January / impossible date, next to the heading in ISO 'Partite del 2024-08-01'.",
+      "evidence": [
+        "observations/03-desktop-open.png",
+        "observations/05-desktop-open.png",
+        "observations/06-mobile-end.png"
+      ],
+      "reason": "native date inputs follow the browser locale; the crawler's Chromium appears to run in en-US, so the format an Italian browser shows is not observable here"
+    },
+    {
+      "id": "AI-11",
+      "source": "ai",
+      "classification": "DATA_MISSING",
+      "status": "OPEN",
+      "summary": "Dashboard TotalCorner cards (storico, prematch, live raccolto) show Partite 0, Campionati 0, Stagioni 0, Snapshot 0 on /#/ desktop and mobile.",
+      "evidence": [
+        "observations/01-desktop-open.png",
+        "observations/02-mobile-open.png"
+      ],
+      "reason": "the QA archive fixture contains no TotalCorner data; counts of zero are true counts, and the related dates are shown as N/D"
+    },
+    {
+      "id": "AI-12",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P3",
+      "summary": "Daily Board 2024-08-01 (desktop and mobile): when the home odd is missing the card shows 'Favorito N/D N/D' (side and odd both N/D, duplicated) for Barcelona-Real Madrid, Ajax-PSV and Sevilla-Real Madrid; a single 'N/D' (favorite not determinable) would be clearer.",
+      "evidence": [
+        "observations/03-desktop-open.png",
+        "observations/04-mobile-open.png"
+      ],
+      "status": "DEFERRED",
+      "reason": "missing data is correctly shown as N/D; only the duplication is cosmetic",
+      "impact": "small visual noise on the main board",
+      "follow_up": "V-A: collapse favorite to one N/D when side is unknown"
+    },
+    {
+      "id": "AI-13",
+      "source": "ai",
+      "classification": "BUG",
+      "severity": "P3",
+      "summary": "API page (/#/endpoints, desktop and mobile): 'Successore' is 'N/D' for KEPT routes (/api/futpython-certificate, /healthz, /coverage). A kept route has no successor by design, so 'N/D' (data not available) is misleading; the page uses '—' for 'no parameters' elsewhere.",
+      "evidence": [
+        "observations/03-desktop-end.png",
+        "observations/13-desktop-open.json",
+        "observations/14-mobile-open.png"
+      ],
+      "status": "DEFERRED",
+      "reason": "technical page, semantics only",
+      "impact": "suggests missing data where there is none",
+      "follow_up": "V-B: show '—' (nessuno) for routes without successor"
+    }
+  ],
+  "verdict": "NO_BLOCKING"
+}
