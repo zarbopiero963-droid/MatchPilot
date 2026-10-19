@@ -1,0 +1,133 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "1363766893262fcbf0ec10ae533fa843fc2c06db",
+  "tree_sha": "c4dd27712fa93fd182989b30e0e88c3f010f1757",
+  "supersedes": "CP-20261019T141117Z-agent-a-claude-code",
+  "pr": 165,
+  "id": "CP-20261019T144747Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T14:47:47Z",
+  "activity": "QA-02 merged: PR #165 squash 64df52b on main; exploratory crawler, bundle and AI review verifiers, informational Exploratory QA job",
+  "task": "QA-02",
+  "issue": 3,
+  "requirements": [
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "main 64df52bd0893ec431bb876dd4e0c5a89d6b37099 (squash of PR #165, head 1363766 checked with expectedHeadSha)"
+  ],
+  "tests": [
+    {
+      "command": "CI run 39266791581 on dc69309 (all jobs)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17, runner Google Chrome",
+      "commit": "dc693098c2d1ba1bd519b71a04e94aba200e72a5",
+      "time": "2026-10-19T14:15:46Z",
+      "limits": [
+        "Exploratory QA 420 actions, 7 routes, 0 findings, bundle verified; artifact 12193763047"
+      ]
+    },
+    {
+      "command": "CI run 39269006966 on 1363766 (Fast checks, PostgreSQL integration suite, Browser QA, Exploratory QA, CI gate)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17, runner Google Chrome",
+      "commit": "1363766893262fcbf0ec10ae533fa843fc2c06db",
+      "time": "2026-10-19T14:30:28Z",
+      "limits": [
+        "bundle verified with working_tree_clean and unrestricted run"
+      ]
+    },
+    {
+      "command": "CI=1 node --test test/explore.test.mjs test/browser-qa-gate.test.mjs",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 1194",
+      "commit": "1363766893262fcbf0ec10ae533fa843fc2c06db",
+      "time": "2026-10-19T14:26:31Z",
+      "limits": [
+        "8/8 and 11/11; time is an upper bound (clock read after the runs), uncommitted tree later committed as this commit"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39269006966,
+    "conclusion": "SUCCESS",
+    "head_sha": "1363766893262fcbf0ec10ae533fa843fc2c06db"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/165#issuecomment-6269735833",
+    "reviewed_sha": "1363766893262fcbf0ec10ae533fa843fc2c06db"
+  },
+  "findings": [
+    {
+      "id": "QA02-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "crawler checked hash-route views before render; settle waits for no request in flight (RED/GREEN via injected-defect test)"
+    },
+    {
+      "id": "R1-B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "AI review verifier accepted vacuous or defect-erasing reviews; fixed in 1363766"
+    },
+    {
+      "id": "R1-NB-1..8",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "malformed input crashes, coverage, dedup, off-site problems, review ids/refs, working tree, registry; NB-8 (triage not enforced) documented as limit"
+    },
+    {
+      "id": "R2-NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "problems from an action that leaves the site are reported but can never be reproduced (replay stops off-site first): QA-03"
+    },
+    {
+      "id": "R2-NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "verifier does not require the desktop and mobile viewports (only the declared ones): QA-03"
+    },
+    {
+      "id": "R2-NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "FIXED accepts any existing test file, not one tied to the defect (e.g. changed in the PR diff): QA-03"
+    },
+    {
+      "id": "R2-NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "cycle checkpoint: this MERGED checkpoint, published in the next PR as in QA-01"
+    },
+    {
+      "id": "R2-NB-5",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "evidence manifest follows symbolic links (pre-existing, QA-01): QA-03"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01",
+    "MP-OWNER-QA-VISUAL-EXECUTION-01",
+    "MP-OWNER-PRODUCT-QUALITY-DATA-01",
+    "MP-OWNER-CI-GATE-REQUIRED-CHECK-CONFIRMED",
+    "MP-OWNER-AUTOMERGE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T141117Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "QA-03 end-to-end certification (including R2-NB-1..3, 5); then V-A, V-B, QA-V, R-07a",
+  "resume_conditions": [
+    "main contains 64df52bd0893ec431bb876dd4e0c5a89d6b37099"
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 62,
+  "revision": 63,
   "tasks": [
     {
       "id": "R-01",
@@ -248,14 +248,30 @@
       "pr": 165,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T141117Z-agent-a-claude-code",
-      "pr_open": true
+      "latest_checkpoint": "CP-20261019T144747Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "EVIDENCE-01",
+      "title": "Permanent audit evidence: docs/audits, evidence/audits archive, evidence checker (MP-OWNER-PERMANENT-EVIDENCE-01)",
+      "issue": 3,
+      "pr": null,
+      "branch": "claude/permanent-evidence-01",
+      "kind": "implementation",
+      "state": "RUNNING",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": null,
+      "pr_open": false
     }
   ]
 }

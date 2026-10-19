@@ -350,6 +350,13 @@ L'audit dei 412 `UNAVAILABLE_404` è autorizzato solo nella parte read-only (D7)
 - snapshot, hash o ledger persistiti;
 - commenti GitHub con ID.
 
+**Conservazione permanente (MP-OWNER-PERMANENT-EVIDENCE-01):**
+- Le evidenze importanti di audit, certificazioni, Browser QA e review non restano solo in cartelle temporanee o artifact CI.
+- Le evidenze essenziali (rapporto, confronti chiave) vanno in `docs/audits/<audit-id>/` con una PR governata; il pacchetto completo va nel branch `evidence/audits`, fuori dalla cronologia di `main`.
+- Ogni pacchetto ha `evidence.json` (ID audit, commit SHA, data, ambiente, esito, archivio) e `MANIFEST.sha256`; solo file originali, un originale perso si dichiara LOST.
+- Un rapporto è archiviato solo dopo la rilettura dalla destinazione durevole; `npm run governance:evidence` verifica i pacchetti in CI.
+- Regole e indice: [`docs/audits/README.md`](docs/audits/README.md).
+
 **Fonti non accettabili:**
 - supposizioni;
 - screenshot vecchi;
