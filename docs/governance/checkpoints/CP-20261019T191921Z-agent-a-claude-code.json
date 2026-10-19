@@ -1,0 +1,172 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "33e27394d5f87eb0081a2331006a26a57df956d1",
+  "tree_sha": "d53f1a6ea9b0c6572e069a64cd4ac138a5f80f14",
+  "supersedes": "CP-20261019T185953Z-agent-a-claude-code",
+  "pr": 169,
+  "id": "CP-20261019T191921Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-19T19:19:21Z",
+  "activity": "V-B1 after review D2 round 1 (CHANGES_REQUESTED on e298594): B-1 favourite and odds labels asserted, B-2 inventory verifications made real (lead rule, options, team choice), NB fixes; ready for re-review",
+  "task": "V-B1",
+  "issue": 3,
+  "requirements": [
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "src/web/app.js, app.css, index.html (user views without technical text, match card, Italian dates and codes, plain error states)",
+    "tools/qa/browser-qa.mjs (technicalText invariant), tools/qa/journeys.mjs (data kept in attributes, non-final states, areas), tools/qa/ai-eval-seeds.mjs (S4 seed)",
+    "test/web-e2e.test.mjs, test/browser-qa-gate.test.mjs",
+    "docs/governance/owner-decisions.json (MP-OWNER-UI-NO-RAW-TEXT-01), requirements MP-WEB-015, docs/web.md, docs/qa/ui-text-inventory.md",
+    "docs/audits/V-B1-UI-NO-RAW-TEXT + evidence/audits@1129bab6e2ca0fc743922282ba7bb11362d362c4",
+    "review D2 round 1 fixes: journeys (favourite, labels, options, team choice, API error, areas per menu view), lead-text rule, error page title, inventory UI-03/14/15/16/24/25/30/33/36/64/65/70-72"
+  ],
+  "tests": [
+    {
+      "command": "node tools/qa/browser-qa.mjs (new tests, src/web of main 3521a07)",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "629be0dbb62fcb48394f7a5a75cfe72799598c01",
+      "time": "2026-10-19T18:55:47Z",
+      "limits": [
+        "intended RED on an uncommitted tree: 10/10 fail on the footer; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs (new tests, src/web of main + view areas and new footer only)",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "629be0dbb62fcb48394f7a5a75cfe72799598c01",
+      "time": "2026-10-19T18:56:08Z",
+      "limits": [
+        "intended RED on an uncommitted tree: daily-board, search and general-navigation fail with technical text on desktop and mobile"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs + verify-report on the committed change",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "629be0dbb62fcb48394f7a5a75cfe72799598c01",
+      "time": "2026-10-19T18:55:35Z",
+      "limits": [
+        "10/10, clean tree, verifier ok; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "CI=1 node --test web-e2e, mockup-alignment, browser-qa-gate, explore, requirements-inventory, governance-*; npm run check; governance:check/validate/evidence; check-append-only",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "e71b1ab7eec2ab4fd7c8441c34b78fe00d806970",
+      "time": "2026-10-19T18:59:53Z",
+      "limits": [
+        "37/37 and 61/61; time is an upper bound"
+      ]
+    },
+    {
+      "command": "review mutations M5, M7, M12, M13, M15, M16, M17 replayed against 0df1396 (desktop journeys)",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "0df13961a14ec49321981bc00a70511cccb3d064",
+      "time": "2026-10-19T19:19:21Z",
+      "limits": [
+        "each mutation now makes the gate FAIL; time is an upper bound"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs + verify-report on the round-2 head",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "33e27394d5f87eb0081a2331006a26a57df956d1",
+      "time": "2026-10-19T19:19:01Z",
+      "limits": [
+        "10/10, clean tree, verifier ok; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "CI=1 node --test web-e2e, mockup-alignment, browser-qa-gate, explore, requirements-inventory, governance-*; npm run check; governance:check",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "33e27394d5f87eb0081a2331006a26a57df956d1",
+      "time": "2026-10-19T19:19:21Z",
+      "limits": [
+        "98/98; time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39307304788,
+    "conclusion": "SUCCESS",
+    "head_sha": "e298594deb5434d68c5138d424fc1ee4a30ef78e"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "CHANGES REQUESTED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/169#issuecomment-6275162370",
+    "reviewed_sha": "e298594deb5434d68c5138d424fc1ee4a30ef78e"
+  },
+  "findings": [
+    {
+      "id": "VB1-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "official Italian names of competitions and countries need API display names (inventory UI-12); slugs read as words meanwhile"
+    },
+    {
+      "id": "VB1-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "Dashboard, navigation and technical views per the inventory belong to V-B2; compact rows and mobile tables to V-B4"
+    },
+    {
+      "id": "R1-B-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "favourite (side, odd, data-code) and odds box labels asserted per card; mutations M15-M17 now fail"
+    },
+    {
+      "id": "R1-B-2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "inventory verifications real: lead-text rule (M5), competition options (M12), team-choice step (M13); docs narrowed"
+    },
+    {
+      "id": "R1-NB-1,5,7,9,11",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "API error in a user view exercised (and the error page now has a title), reason text never undefined, loading text asserted, __proto__ route, every menu view declares its area"
+    },
+    {
+      "id": "R1-NB-2,3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "more codes caught (EVEN, KEPT, DEPRECATED, HTTP nnn, [object …]); 400 fields matched as tokens, team_id counts as team"
+    },
+    {
+      "id": "R1-NB-4,6,8,10",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "unknown result state (UI-24), inventory rows added (UI-64, UI-65, UI-70..72), update time sign (UI-25, V-B2), mobile table and names (UI-44, UI-12)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-UI-NO-RAW-TEXT-01",
+    "MP-OWNER-VISUAL-BASELINE-D1-D7-01",
+    "MP-OWNER-QA-VISUAL-EXECUTION-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T185953Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "review D2 round 2 on the new head, CI, Gate B, protected merge, post-merge verification; then V-B2",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains 33e27394d5f87eb0081a2331006a26a57df956d1"
+  ]
+}
