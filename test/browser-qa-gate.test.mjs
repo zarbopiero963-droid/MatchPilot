@@ -171,7 +171,8 @@ test('technical text is caught in user views, plain Italian is not (MP-OWNER-UI-
   for (const leak of ['Le partite di un giorno nei dati salvati, in ordine di orario.', 'Orari come forniti dal fornitore.', 'ora del fornitore',
     'Fase: Storico · dataset: spain/laliga/2024-2025', 'spain/laliga/2024-2025', 'FINAL', 'HISTORICAL', 'PROVIDER_TZ_UNDOCUMENTED', 'HTTP_503',
     'Impossibile caricare i dati (UNAVAILABLE).', 'Fonte: /api/v1/fpt/matches', 'generato: 19/10/2026', 'versione codice: abc', 'Partite del 2024-08-01',
-    '2026-10-19T18:00:00Z', 'Filtri applicati dal server: with_odds', 'fav_min must be a number', 'Dataset attivi', 'Ultimo snapshot', 'Ultimo backfill']) {
+    '2026-10-19T18:00:00Z', 'Filtri applicati dal server: with_odds', 'fav_min must be a number', 'Dataset attivi', 'Ultimo snapshot', 'Ultimo backfill',
+    'EVEN', 'KEPT', 'HTTP 503', '[object Object]']) {
     assert.ok(technicalText(leak), leak);
   }
   for (const fine of ['Finale', 'Senza risultato', 'Casa', 'Spain · Laliga · 2024/25', 'giovedì 1 agosto 2024', '01/08/2024', '15:00', 'Over 2,5',

@@ -165,7 +165,7 @@ function localToday() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 const field = (text, node, name) => [el('dt', {}, text), el('dd', name ? {'data-field': name} : {}, node)];
-const reasonText = error => `${error.code}${error.message ? ` — ${error.message}` : ''}`;
+const reasonText = error => `${error?.code ?? 'CLIENT'}${error?.message ? ` — ${error.message}` : ''}`;
 
 // ---- Dashboard (MP-WEB-013) ----
 
@@ -446,7 +446,8 @@ async function searchView(params, mine) {
   } catch (error) {
     if (error?.status === 400) {
       // The server names the parameter in its message: the page names the field the user filled in.
-      const fields = Object.keys(FIELD_LABELS).filter(name => new RegExp(`\\b${name}\\b`).test(error.message ?? ''));
+      // A parameter name is a token of its own in the message ("fav_min must be…", "invalid team"); team_id counts as team.
+      const fields = Object.keys(FIELD_LABELS).filter(name => new RegExp(`(?<![a-z_])${name}(?:_id)?(?![a-z_])`).test(error.message ?? ''));
       return [...head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'search-invalid', 'data-outcome': '', 'data-fields': fields.join(' '), title: reasonText(error)},
         fields.length ? `Valore non valido in: ${fields.map(name => FIELD_LABELS[name]).join(', ')}. Correggi il campo e riprova.` : 'Filtri non validi. Correggi i campi e riprova.')];
     }
@@ -529,7 +530,7 @@ async function render() {
   // never moves the focus later, when the page is opened again without a submit (PR #168 review NB-1).
   const reveal = revealOutcome && name === 'search';
   revealOutcome = false;
-  const [what, view, area] = VIEWS[name] || [null, null, 'user'];
+  const [what, view, area] = Object.hasOwn(VIEWS, name) ? VIEWS[name] : [null, null, 'user'];
   const host = document.getElementById('view');
   if (area) host.dataset.area = area;
   else delete host.dataset.area;
@@ -553,7 +554,9 @@ async function render() {
     }
   } catch (error) {
     if (mine !== generation || error?.code === 'UNAUTHENTICATED') return;
-    host.replaceChildren(errorState(error instanceof ApiFailure ? error : new ApiFailure(0, 'CLIENT', 'errore nella pagina'), render));
+    // The page keeps a title when its data fail, so it never reads as a blank or broken screen.
+    host.replaceChildren(el('h1', {}, 'Dati non disponibili'),
+      errorState(error instanceof ApiFailure ? error : new ApiFailure(0, 'CLIENT', 'errore nella pagina'), render));
     if (reveal) showOutcome(host);
   }
 }

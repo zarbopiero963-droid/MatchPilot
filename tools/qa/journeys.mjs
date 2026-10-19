@@ -22,8 +22,12 @@ const RESULT = {NO_RESULT: 'Senza risultato', NOT_STARTED: 'Non iniziata'};
 // A final result shows the score; a match without one shows its state in Italian; a missing score is N/D.
 export const outcomeShownFor = row => RESULT[row.result_status] ?? (row.home_score == null || row.away_score == null ? 'N/D' : `${row.home_score}–${row.away_score}`);
 
-// [view, menu label, page title]: the menu label is what the user reads before clicking (QA-03: it was not checked).
-const NAV = [['', 'Dashboard', 'Dashboard'], ['board', 'Daily Board', 'Daily Board'], ['search', 'Ricerca', 'Ricerca partite'], ['providers', 'Fornitori dati', 'Fornitori dati'], ['endpoints', 'API', 'API v1']];
+const SIDE = {HOME: 'Casa', AWAY: 'Ospite', EVEN: 'Pari'};
+
+// [view, menu label, page title, area]: the menu label is what the user reads before clicking (QA-03: it was not checked);
+// the area decides whether the no-technical-text rule applies (MP-WEB-015). The Dashboard declares none until V-B2.
+const NAV = [['', 'Dashboard', 'Dashboard', null], ['board', 'Daily Board', 'Daily Board', 'user'], ['search', 'Ricerca', 'Ricerca partite', 'user'],
+  ['providers', 'Fornitori dati', 'Fornitori dati', 'technical'], ['endpoints', 'API', 'API v1', 'technical']];
 const unavailable = {api_version: 'v1', error: {code: 'UNAVAILABLE', message: 'data source unavailable'}};
 // A full page load: a hash-only change keeps the previous view on screen until the new one renders, so a check
 // could read stale results (PR #164 NB-6).
@@ -68,18 +72,24 @@ export const JOURNEYS = [
         assert.match(response.headers()['content-security-policy'] ?? '', /script-src 'self'/);
         await page.waitForSelector('[data-testid="tile-health"]');
       });
-      for (const [view, label, title] of NAV) {
+      await step('ogni voce del menu è nota e ha la sua area', async () => {
+        const views = await page.locator('nav a[data-view]').evaluateAll(links => links.map(link => link.dataset.view));
+        assert.deepEqual(views, NAV.map(([view]) => view), 'a new view must be listed here with its area');
+      });
+      for (const [view, label, title, area] of NAV) {
         await step(`menu: ${title}`, async () => {
           assert.equal((await page.textContent(`nav a[data-view="${view}"]`)).trim(), label);
           await page.click(`nav a[data-view="${view}"]`);
           await page.waitForLoadState('networkidle');
           await page.waitForFunction(text => document.querySelector('main h1')?.textContent === text && !document.querySelector('.state.loading'), title);
           assert.equal(await page.getAttribute(`nav a[data-view="${view}"]`, 'aria-current'), 'page');
+          assert.equal(await page.getAttribute('main', 'data-area'), area);
         });
       }
       await step('rotta sconosciuta', async () => {
         await page.goto(`${base}/#/non-esiste`);
         await page.waitForSelector('text=Pagina non trovata');
+        assert.equal(await page.getAttribute('main', 'data-area'), 'user');
         await page.click('main a[href="#/"]');
         await page.waitForSelector('[data-testid="tile-health"]');
       });
@@ -128,6 +138,7 @@ export const JOURNEYS = [
   },
   {
     id: 'daily-board', surface: 'Daily Board', title: 'Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida',
+    allowHttp: [{path: '/api/v1/fpt/matches', status: 503}],
     async run({page, base, step, api, seed}) {
       const day = seed.busyDay;
       const all = (await api(`/api/v1/fpt/matches?date=${day}&limit=500`)).data.rows;
@@ -159,6 +170,12 @@ export const JOURNEYS = [
           for (const name of ['odd_home', 'odd_draw', 'odd_away', 'odd_over25', 'odd_btts_yes']) {
             assert.equal(await card.locator(`[data-field="${name}"] b`).textContent(), shown(row[name]), name);
           }
+          for (const [name, text] of [['odd_home', '1'], ['odd_draw', 'X'], ['odd_away', '2'], ['odd_over25', 'Over 2,5'], ['odd_btts_yes', 'Gol']]) {
+            assert.equal(await card.locator(`[data-field="${name}"] > span`).textContent(), text, `label of ${name}`);
+          }
+          const favorite = card.locator('[data-field="favorite"]');
+          assert.equal(await favorite.textContent(), row.favorite_side ? `Favorito ${SIDE[row.favorite_side]} ${shown(row.favorite_odd)}` : 'Favorito N/D');
+          if (row.favorite_side) assert.equal(await favorite.locator('[data-code]').getAttribute('data-code'), row.favorite_side);
           assert.equal(await card.locator('[data-field="xg"] b').textContent(), `${shown(row.xg_home)} – ${shown(row.xg_away)}`);
           assert.equal(await card.locator('[data-field="score"]').textContent(), outcomeShownFor(row));
           // Nothing of the API row is lost: what the card no longer prints stays on it, for checks and technical views.
@@ -171,6 +188,7 @@ export const JOURNEYS = [
         }
         // No provenance line in a user view (MP-WEB-015): source, generation time and code version live in the technical views.
         assert.equal(await page.locator('main p.meta:not([data-testid="end"])').count(), 0);
+        assert.ok(all.some(row => row.favorite_side) && all.some(row => !row.favorite_side), 'the busy day has matches with and without a favourite');
         assert.ok(new Set(all.map(row => row.league_slug)).size === 2, 'both competitions on the day');
       });
       await step('partite senza risultato finale: lo stato al posto del punteggio', async () => {
@@ -191,7 +209,18 @@ export const JOURNEYS = [
         assert.equal(await page.getAttribute('article.match >> nth=1', 'data-result'), 'NO_RESULT');
         await page.unroute('**/api/v1/fpt/matches?*');
       });
+      await step('errore dell’API: messaggio semplice, codice conservato, Riprova', async () => {
+        await page.route('**/api/v1/fpt/matches?*', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
+        await fresh(page, `${base}/#/board?date=${day}`);
+        await page.waitForSelector('.state.error[role="alert"]');
+        assert.equal(await page.getAttribute('.state.error', 'data-code'), 'UNAVAILABLE');
+        assert.equal((await page.textContent('.state.error p')).trim(), 'I dati non sono disponibili in questo momento.');
+        assert.equal(await page.textContent('.state.error button'), 'Riprova');
+        await page.unroute('**/api/v1/fpt/matches?*');
+      });
       await step('giorno prima: nessuna partita salvata', async () => {
+        await fresh(page, `${base}/#/board?date=${day}`);
+        await page.waitForSelector('[data-testid="board-day"]');
         await page.click('[data-action="prev"]');
         await page.waitForSelector('[data-testid="board-empty"]');
       });
@@ -256,6 +285,9 @@ export const JOURNEYS = [
         assert.ok(expected.length > 0);
         await fresh(page, `${base}/#/search`);
         await page.waitForSelector('[data-testid="search-form"] select[name="competition"]');
+        const competitions = (await api('/api/v1/fpt/competitions')).data.rows;
+        assert.deepEqual(await page.locator('select[name="competition"] option').allTextContents(),
+          ['Tutte', ...competitions.map(c => `${words(c.country_slug)} · ${words(c.league_slug)}`)], 'competition names read as words, not slugs');
         await page.selectOption('select[name="competition"]', seed.laliga.competition);
         await page.fill('input[name="from"]', '2024-08-02');
         await page.fill('input[name="before"]', '2024-08-03');
@@ -306,6 +338,22 @@ export const JOURNEYS = [
         await page.waitForTimeout(300);
         assert.equal(await page.evaluate(() => document.querySelector('main').contains(document.activeElement)), false, 'no focus jump into the page without a submit');
         assert.equal(await page.evaluate(() => scrollY), 0, 'no scroll without a submit');
+      });
+      await step('più squadre con lo stesso nome: scelta leggibile', async () => {
+        // The QA archive has no homonyms: the answer of the teams route is changed in the browser to show the choice.
+        const ajax = (await api('/api/v1/fpt/teams?q=Ajax')).data.rows[0];
+        const twin = {...ajax, internal_team_id: `${ajax.internal_team_id}-twin`, country_slug: 'south-africa'};
+        await page.route('**/api/v1/fpt/teams?*', async route => {
+          const response = await route.fetch();
+          const body = await response.json();
+          body.data.rows = [ajax, twin];
+          await route.fulfill({response, json: body});
+        });
+        await fresh(page, `${base}/#/search?run=1&team=Ajax`);
+        await page.waitForSelector('[data-testid="team-choice"]');
+        assert.deepEqual(await page.locator('[data-testid="team-choice"] li').allTextContents(),
+          [`${ajax.canonical_name} (${words(ajax.country_slug)})`, `${ajax.canonical_name} (South Africa)`]);
+        await page.unroute('**/api/v1/fpt/teams?*');
       });
       await step('squadra sconosciuta, nessun risultato, sede senza squadra', async () => {
         await fresh(page, `${base}/#/search?run=1&team=Nessuno`);

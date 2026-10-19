@@ -179,6 +179,7 @@ test('loading, error, retry and partial states are explicit', {timeout: 120000},
         await page.route('**/api/v1/providers', async route => { await held; await route.continue(); });
         await page.goto(`${server.base}/#/providers`);
         await page.waitForSelector('.state.loading[role="status"]');
+        assert.equal(await page.textContent('.state.loading'), 'Caricamento in corso…');
         release();
         await page.waitForSelector('[data-testid="data-health"]');
         await page.unroute('**/api/v1/providers');
@@ -356,6 +357,8 @@ test('R-06b: dashboard, Daily Board and search render the stored matches exactly
             for (const name of ['odd_home', 'odd_draw', 'odd_away']) assert.equal(await card.locator(`[data-field="${name}"] b`).textContent(), shown(row[name]));
             assert.equal(await card.locator('[data-field="score"]').textContent(), outcomeShownFor(row));
             assert.equal(await card.locator('[data-field="xg"] b').textContent(), `${shown(row.xg_home)} – ${shown(row.xg_away)}`);
+            assert.equal(await card.locator('[data-field="favorite"]').textContent(),
+              row.favorite_side ? `Favorito ${{HOME: 'Casa', AWAY: 'Ospite', EVEN: 'Pari'}[row.favorite_side]} ${shown(row.favorite_odd)}` : 'Favorito N/D');
           }
           assert.ok(dayRows.some(row => row.kickoff_local_time === null), 'the seed has a match without kickoff on every day');
           await noHorizontalScroll(page);
