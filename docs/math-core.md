@@ -73,6 +73,7 @@ The warning always says which kind of probability a result is (raw implied or ma
 
 ## Limits
 
-- **Formulas not yet implemented:** the money and commission formulas (Kelly, EV, liability, hedge, dutching, …) are MATH-CORE-02..06, and Poisson is MATH-CORE-07. Commission-aware net results also depend on the persistent commission settings of #95.
+- **Formulas not yet implemented:** the money and commission formulas (Kelly, EV, liability, hedge, dutching, …) are MATH-CORE-02..06, and Poisson is MATH-CORE-07.
+- **Settlement P/L:** `src/math/money.mjs` (`settleMarket`, HIST-01a) settles BACK/LAY/VOID bets with commission on market net winnings and is checked against an independent exact-fraction oracle (`test/hist-backtest.test.mjs`, [`docs/hist-backtest.md`](hist-backtest.md)). Commission-aware net results also depend on the persistent commission settings of #95.
 - **No API yet:** the tool surface is MATH-CORE-08.
 - **MP-MTH-001 stays NOT_VERIFIED:** it requires every formula used by statistics or backtest to have oracle vectors, and those formulas don't exist yet.

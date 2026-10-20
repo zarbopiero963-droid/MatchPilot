@@ -40,9 +40,9 @@ Owner decision: MP-OWNER-CONTINUOUS-EXECUTION-02 §4. For every feature of the p
 | Indicator Library | MP-FPT-009 (feature slices) | pre-match indicators computed point-in-time | — | none | — | FAIL | NOT VERIFIED |
 | Trading Decision Engine (#28) | none registered | indicators, strategies, market rules, money management | — | none | — | FAIL | NOT VERIFIED |
 | Money Management (#96) | none registered | bankroll, stake models, limits | — | none | — | FAIL | NOT VERIFIED |
-| Backtest | MP-STA-002…012, MP-MKT-001…003 | authentic point-in-time inputs, outcome labels, market rules, commission | none (#40 not materialized) | none | — | FAIL | BLOCKED (R-02; MP-STA-003) |
+| Backtest | MP-STA-001, MP-STA-011, MP-MKT-001…003, MP-RPL-003 | authentic point-in-time inputs, outcome labels, market rules, commission | synthetic fixtures; #40 pre-match observations all acquired after kickoff (reported by Grok, not yet verified here) | `test/hist-backtest.test.mjs`, `tools/hist/backtest.mjs` | `docs/hist-backtest.md` | PARTIAL COVERAGE | BLOCKED (no authentic pre-kickoff data; R-02; MP-STA-003) |
 | Paper Trading | none registered | live or replayed prices, orders, settlement | — | none | — | FAIL | NOT VERIFIED |
-| Settlement and ledger (#99, #100) | MP-MKT-001 | versioned market rules, outcomes, ledger entries | — | none | — | FAIL | NOT VERIFIED |
+| Settlement and ledger (#99, #100) | MP-MKT-001, MP-MTH-003 | versioned market rules, outcomes, ledger entries | synthetic fixtures and seeded vectors | `test/hist-backtest.test.mjs` | `docs/hist-backtest.md` | PARTIAL COVERAGE | NOT VERIFIED |
 | Trading Copilot (#102) | none registered | the engine, explanations, no paid AI in CI | — | none | — | FAIL | NOT VERIFIED |
 | API v1 (#98) | MP-API-001…006 | versioned routes, error envelope, provenance, bounded queries, registry | QA archive and seeded database | `test/api-v1-contract.test.mjs`, `test/api-v1-postgres.test.mjs` | R-03 (PR #153), R-06a (PR #162) | DETERMINISTIC TEST PASS | NOT VERIFIED |
 | MCP | MP-API-005 (machine-readable registry only) | MCP server exposing the read-only tools | — | none | — | FAIL | NOT VERIFIED |
@@ -52,6 +52,8 @@ Owner decision: MP-OWNER-CONTINUOUS-EXECUTION-02 §4. For every feature of the p
 | Archive #40 | MP-ARC-001…005 | the 13 parts, their SHA-256, DuckDB portability, counts, PIT | manifest and pins only | `test/archive-verify.test.mjs`, `tools/archive/verify-archive.mjs` | `docs/governance/archive/40/`, checkpoint `CP-20261018T211916Z` | PARTIAL COVERAGE | BLOCKED (R-02) |
 
 Why the Match Center is only a partial coverage: R-07a is the first batch of the analysis of #30 (form, venue, sample, goals, xG, odds coverage, head to head); the other analytical cards, charts and the finished-match page are not built.
+
+Why the Backtest is only a partial coverage: HIST-01a is the offline engine (PIT admission, the test-oracle strategy `mp-ref-fav-back-1`, 1X2 settlement, reproducible report) on synthetic fixtures; walk-forward, out-of-sample, other markets and the real-data run are not built. Settlement covers BACK/LAY P/L with commission; the ledger, exposure and positions of #99/#100 are not built.
 
 Why «Visual conformity and states» is only a partial coverage: the baselines and journeys catch regressions against the views as approved, not conformity to the mockup itself. The required check on `main` is not verified (MP-QAC-004), and the login texts are not automated (inventory UI-63…UI-65).
 
