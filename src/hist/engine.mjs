@@ -30,6 +30,8 @@ export class EngineError extends Error {
 
 const byte = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const key = (provider, eventId) => `${provider}\u0000${eventId}`;
+// Counters keyed by reason: prototype-free, so a reason such as __proto__ is counted like any other.
+const counter = () => Object.create(null);
 const count = (map, name) => { map[name] = (map[name] ?? 0) + 1; };
 const sorted = map => Object.fromEntries(Object.keys(map).sort().map(name => [name, map[name]]));
 const cents = value => value.roundToStep(MONEY_STEP, ROUNDING.HALF_EVEN);
@@ -90,6 +92,7 @@ const LIMITS = [
   'Offline engine test: no liquidity, matching, slippage or execution is modelled.',
   'Decisions use only observations acquired by the decision time (captured knowledge, mp-pit-v1).',
   'Settlement uses only outcomes of the same provider as the odds; cross-provider mappings are not used.',
+  'Metrics cover settled bets only; unsettled bets (missing outcome, outcome acquired before kickoff) are counted in counts.unsettled_by_reason and excluded, which can bias the metrics.',
   'No claim of profitability or reliability (MP-STA-012); real-data verdict: NOT VERIFIED.',
 ];
 
@@ -101,7 +104,7 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
 
   // ---- Admission ----
   const events = new Map(input.events.map(event => [key(event.provider, event.event_id), event]));
-  const excluded = {};
+  const excluded = counter();
   const usable = new Map();
   let admitted = 0, usableCount = 0;
   for (const observation of input.observations) {
@@ -123,7 +126,7 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
   const ordered = input.events.map(event => ({event, decisionTime: decisionTimeOf(event.kickoff_utc, config.lead_minutes)}))
     .sort((a, b) => byte(a.decisionTime ?? '~', b.decisionTime ?? '~') || byte(a.event.provider, b.event.provider) || byte(a.event.event_id, b.event.event_id));
   const decisions = {BACK: 0, NO_TRADE: 0};
-  const noTrade = {};
+  const noTrade = counter();
   const bets = [];
   for (const {event, decisionTime} of ordered) {
     if (!decisionTime) { decisions.NO_TRADE++; count(noTrade, 'KICKOFF_UNKNOWN'); continue; }
@@ -138,19 +141,22 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
     }
     const odds = Object.fromEntries(SELECTIONS_1X2.filter(selection => latest[selection]).map(selection => [selection,
       {odds: latest[selection].odds, observation_id: latest[selection].observation_id, acquired_at: latest[selection].acquired_at}]));
+    // Each field of the decision is read once, so a getter cannot pass the check with one value and bet with another.
     const decision = strategy(decisionView(event, decisionTime, odds));
-    if (decision?.action === 'NO_TRADE' && typeof decision.reason === 'string' && decision.reason) {
+    const action = decision?.action;
+    const reason = decision?.reason;
+    const selection = decision?.selection;
+    if (action === 'NO_TRADE' && typeof reason === 'string' && reason) {
       decisions.NO_TRADE++;
-      count(noTrade, decision.reason);
+      count(noTrade, reason);
       continue;
     }
-    if (decision?.action !== 'BACK' || !Object.hasOwn(odds, decision.selection)) {
+    if (action !== 'BACK' || typeof selection !== 'string' || !Object.hasOwn(odds, selection)) {
       throw new EngineError('BAD_STRATEGY_DECISION', `strategy ${config.strategy} returned an invalid decision for ${event.event_id}`);
     }
     decisions.BACK++;
-    bets.push({provider: event.provider, event_id: event.event_id, decision_time: decisionTime, side: 'BACK', selection: decision.selection,
-      odds: odds[decision.selection].odds, observation_id: odds[decision.selection].observation_id,
-      acquired_at: odds[decision.selection].acquired_at, stake: config.stake});
+    bets.push({provider: event.provider, event_id: event.event_id, decision_time: decisionTime, side: 'BACK', selection,
+      odds: odds[selection].odds, observation_id: odds[selection].observation_id, acquired_at: odds[selection].acquired_at, stake: config.stake});
   }
 
   const report = {
@@ -178,7 +184,7 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
 
   // ---- Settlement phase: decisions are fixed; outcomes are read only now ----
   const outcomes = new Map(input.outcomes.map(outcome => [key(outcome.provider, outcome.event_id), outcome]));
-  const unsettled = {};
+  const unsettled = counter();
   const settledBets = bets.map(bet => {
     const event = events.get(key(bet.provider, bet.event_id));
     const {result, reason} = resolveOutcome(outcomes.get(key(bet.provider, bet.event_id)), event);
@@ -190,7 +196,8 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
   const settled = settledBets.filter(bet => bet.settlement);
   const base = {...report, bets: settledBets, counts: {...report.counts, settled: settled.length, unsettled_by_reason: sorted(unsettled)}};
   if (bets.length > 0 && settled.length === 0) return seal({...base, status: STATUS.INSUFFICIENT_OUTCOMES, metrics: null});
-  return seal({...base, status: STATUS.OK, metrics: metricsOf(settled)});
+  // No bet at all (every event NO_TRADE): a valid outcome (MP-STA-011), with no metric rather than a row of zeros.
+  return seal({...base, status: STATUS.OK, metrics: settled.length ? metricsOf(settled) : null});
 }
 
 // Totals of the settled bets in decision order: P/L, ROI on the stake at risk, maximum drawdown of the cumulative net.

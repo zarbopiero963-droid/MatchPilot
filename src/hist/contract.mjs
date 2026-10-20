@@ -20,6 +20,10 @@ export class HistInputError extends Error {
 }
 
 const ID = /^[\w.:\-/]{1,200}$/;
+// Odds as plain decimal text: no sign, no surrounding space, no leading zero.
+const ODDS = /^(0|[1-9]\d{0,6})(\.\d{1,6})?$/;
+// Upper bound on each list, so a malformed or hostile file fails fast instead of exhausting memory.
+export const MAX_ITEMS = 2_000_000;
 // An instant in UTC, to the second or millisecond: no offset other than Z, so no time zone is ever assumed.
 const UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
 
@@ -70,7 +74,10 @@ export function validateInput(input) {
   keys('dataset', input.dataset, ['id', 'kind', 'description']);
   const dataset = {id: id('dataset.id', input.dataset.id), kind: oneOf('dataset.kind', input.dataset.kind, DATASET_KINDS),
     description: text('dataset.description', input.dataset.description)};
-  for (const list of ['events', 'observations', 'outcomes']) if (!Array.isArray(input[list])) throw new HistInputError(list, 'must be an array');
+  for (const list of ['events', 'observations', 'outcomes']) {
+    if (!Array.isArray(input[list])) throw new HistInputError(list, 'must be an array');
+    if (input[list].length > MAX_ITEMS) throw new HistInputError(list, `has more than ${MAX_ITEMS} items`);
+  }
 
   const events = new Map();
   input.events.forEach((event, i) => {
@@ -94,6 +101,7 @@ export function validateInput(input) {
       selection: oneOf(`${field}.selection`, observation.selection, SELECTIONS_1X2), odds: null,
       provider_time: instant(`${field}.provider_time`, observation.provider_time, {nullable: true}),
       acquired_at: instant(`${field}.acquired_at`, observation.acquired_at, {nullable: true})};
+    if (typeof observation.odds !== 'string' || !ODDS.test(observation.odds)) throw new HistInputError(`${field}.odds`, 'must be decimal text such as 2.10');
     try { normalized.odds = decimalOdds(`${field}.odds`, observation.odds).toString(); }
     catch (error) {
       if (error instanceof MathInputError) throw new HistInputError(`${field}.odds`, error.message.replace(/^[^:]*: /, ''));

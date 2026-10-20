@@ -33,7 +33,8 @@ One JSON document. It is provider-independent: an archive extract, captured Tota
 **Validation:**
 - unknown or missing fields, duplicate ids, references to unknown events and a second outcome for the same event are refused with `BAD_HIST_INPUT` and the field;
 - non-UTC times are refused, as are impossible dates;
-- odds must satisfy `1 < O ≤ 1,000,000` and be decimal text, not JS numbers.
+- odds must satisfy `1 < O ≤ 1,000,000` and be plain decimal text such as `2.10`: no JS numbers, sign, surrounding space or leading zero;
+- each list holds at most 2,000,000 items.
 
 Every list is sorted by its ids, so the same data in any order has the same hash.
 
@@ -75,7 +76,7 @@ Outcomes are read only after every decision is fixed. Rule `mp-outcome-1x2-1`:
 - **FINAL:** gives HOME, DRAW or AWAY from the scores;
 - **VOID:** voids the bet, and the stake is returned;
 - **Same provider only:** the outcome must belong to the same provider and event as the odds. Cross-provider mappings are not used;
-- **Acquired after kickoff:** an outcome acquired before kickoff is not used (`OUTCOME_ACQUIRED_BEFORE_KICKOFF`);
+- **Acquired after kickoff:** an outcome acquired before kickoff is not used (`OUTCOME_ACQUIRED_BEFORE_KICKOFF`). This applies to VOID too, which is conservative: a postponement announced before the match leaves the bet unsettled;
 - **Missing outcome:** the bet stays unsettled (`OUTCOME_MISSING`, N/D).
 
 **P/L.** `settleMarket` computes it in Decimal:
@@ -89,7 +90,7 @@ Outcomes are read only after every decision is fixed. Rule `mp-outcome-1x2-1`:
 |---|---|---|
 | `INSUFFICIENT_PIT_DATA` | no admitted observation of the configured bookmaker | none: no bet, P/L, ROI or drawdown |
 | `INSUFFICIENT_OUTCOMES` | bets decided, none settled | bets listed without settlement; `metrics: null` |
-| `OK` | at least one bet settled | metrics on the settled bets |
+| `OK` | admissible data, and every bet decided was settled or there was no bet | metrics on the settled bets; `metrics: null` when no bet was made (every event NO_TRADE) |
 
 **Metrics (`OK` only):**
 - counts of bets won, lost and void;
@@ -97,7 +98,9 @@ Outcomes are read only after every decision is fixed. Rule `mp-outcome-1x2-1`:
 - ROI = net ÷ stake at risk;
 - maximum drawdown of the cumulative net in decision order.
 
-They are given exact, then rounded to the cent (ROI to 4 places), HALF_EVEN.
+They are given exact, then rounded to the cent (ROI to 4 places), HALF_EVEN. Unsettled bets are excluded from the metrics and counted in `counts.unsettled_by_reason`; the report's limits say this can bias the metrics.
+
+`OK` is also the status of a run on `REAL` data. Until a real-data certification exists, only `real_data_verdict: NOT VERIFIED` and the notice tell it apart. Whether such a run should get its own status is an owner decision, due before HIST-01b.
 
 **Other fields of every report:**
 - `scope` (`FIXTURE` or `REAL`), `real_data_verdict: NOT VERIFIED` and a notice;
@@ -127,11 +130,12 @@ node tools/hist/backtest.mjs --input <input.json> --config <config.json> --out <
 | Golden fixture | decisions, exclusions, settlement and metrics, exact |
 | Anti-lookahead | provider time earlier than an acquisition after the decision; missing acquisition; provider time after the decision; inclusive decision boundary |
 | Archive #40 profile | every observation acquired 80 minutes to 4 hours after kickoff gives `INSUFFICIENT_PIT_DATA` with no monetary field |
-| Outcomes invisible | a strategy reading an outcome or a score fails; the view cannot be changed; a strategy cannot invent a selection |
+| Outcomes invisible | a strategy reading an outcome or a score fails; the view cannot be changed; a strategy cannot invent a selection or change it between check and bet; any no-trade reason is counted |
 | Anti-contamination | prices acquired after the decision, or at kickoff, change no decision; changed outcomes change only the settlement |
 | Determinism | 20 shuffled inputs and the CLI with `--repeat 3` give the same bytes |
 | Settlement oracle | 1,500 seeded markets (BACK, LAY, VOID, commission 0–6.5 %) against an independent exact-fraction oracle, plus the engine's metrics with commission |
-| Refused inputs | 14 malformed inputs and 6 malformed configurations |
+| No bet | admissible data with every event NO_TRADE gives `OK` with `metrics: null` |
+| Refused inputs | 21 malformed inputs (7 odds formats among them) and 6 malformed configurations |
 | Isolation from R1 | `src/hist` imports only the Math Core, the PIT policy and its own modules: no `src/analysis`, no FutPythonTrader path, no SQL, no environment, no network |
 
 **RED evidence (mutations):** each mutation was applied, the tests were run, and the code was restored.

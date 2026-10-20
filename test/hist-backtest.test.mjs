@@ -157,6 +157,13 @@ test('outcomes are invisible to the decision phase; a strategy cannot read them 
   assert.throws(() => runBacktest(golden(), {...CONFIG, strategy: 'tamper'}, {strategies: {tamper}}), TypeError);
   const invent = () => ({action: 'BACK', selection: 'OVER'});
   assert.throws(() => runBacktest(golden(), {...CONFIG, strategy: 'invent'}, {strategies: {invent}}), {code: 'BAD_STRATEGY_DECISION'});
+  // A getter that answers HOME to the check and AWAY to the bet is read once (PR #178 review NB-3).
+  const shifty = view => { let reads = 0; return {action: 'BACK', get selection() { return reads++ === 0 ? 'HOME' : 'AWAY'; }}; };
+  const shiftyReport = runBacktest(golden(), {...CONFIG, strategy: 'shifty'}, {strategies: {shifty}});
+  assert.ok(shiftyReport.bets.every(bet => bet.selection === 'HOME'));
+  // Any reason is counted, __proto__ included (PR #178 review NB-4).
+  const proto = () => ({action: 'NO_TRADE', reason: '__proto__'});
+  assert.equal(runBacktest(golden(), {...CONFIG, strategy: 'proto'}, {strategies: {proto}}).counts.no_trade_by_reason.__proto__, 6);
   // What the strategy sees: exactly the view fields, admitted prices of the configured bookmaker only.
   const seen = [];
   const spy = view => { seen.push(JSON.parse(JSON.stringify(view))); return {action: 'NO_TRADE', reason: 'SPY'}; };
@@ -209,6 +216,17 @@ test('determinism: any input order and repeated runs give the same report bytes;
   const bad = spawnSync(process.execPath, ['tools/hist/backtest.mjs', '--input', join(dir, 'config.json'), '--config', join(dir, 'config.json'), '--out', join(dir, 'x.json')], {encoding: 'utf8'});
   assert.equal(bad.status, 2);
   assert.match(bad.stderr, /BAD_HIST_INPUT/);
+});
+
+test('admissible data but no bet: OK with no metrics, not a row of zeros (PR #178 review NB-1)', () => {
+  seq = 0;
+  const report = runBacktest(input({events: [ev('z', '2026-04-01T15:00:00Z')], observations: [ob('z', 'HOME', '2.00', '2026-04-01T14:00:00Z')],
+    outcomes: [out('z', 'FINAL', 1, 0, '2026-04-01T17:00:00Z')]}), CONFIG);
+  assert.equal(report.status, STATUS.OK);
+  assert.deepEqual(report.counts.decisions, {BACK: 0, NO_TRADE: 1});
+  assert.deepEqual(report.counts.no_trade_by_reason, {INCOMPLETE_1X2: 1});
+  assert.equal(report.metrics, null);
+  assert.deepEqual(report.bets, []);
 });
 
 test('INSUFFICIENT_OUTCOMES, same-provider settlement and outcomes known before kickoff', () => {
@@ -269,6 +287,7 @@ test('invalid inputs and configurations are refused with the field named', () =>
     [{...g, events: [...g.events, g.events[0]]}, 'events[7].event_id'],
     [{...g, observations: [{...g.observations[0], odds: '1.00'}, ...g.observations.slice(1)]}, 'observations[0].odds'],
     [{...g, observations: [{...g.observations[0], odds: 1.5}, ...g.observations.slice(1)]}, 'observations[0].odds'],
+    ...[' 2.00', '2.00 ', '+2', '02.00', '2,00', '2e1', '2.'].map(odds => [{...g, observations: [{...g.observations[0], odds}, ...g.observations.slice(1)]}, 'observations[0].odds']),
     [{...g, observations: [{...g.observations[0], selection: 'OVER'}, ...g.observations.slice(1)]}, 'observations[0].selection'],
     [{...g, observations: [{...g.observations[0], event_id: 'nope'}, ...g.observations.slice(1)]}, 'observations[0].event_id'],
     [{...g, observations: [...g.observations, g.observations[0]]}, `observations[${g.observations.length}].observation_id`],
