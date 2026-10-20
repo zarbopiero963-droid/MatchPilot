@@ -69,23 +69,62 @@ Il contratto prodotto si modifica solo con decisione owner registrata.
 4. definire i test (automatici, matematici dove c'è matematica, hard);
 5. rispondere a "Questa modifica richiede un aggiornamento del mock MatchPilot? SÌ / NO", con il motivo se NO.
 
-## 4. Review indipendente e auto-merge (MP-OWNER-AUTOMERGE-01, D2)
+## 4. Merge autonomo per classe di modifica (MP-OWNER-AUTOMERGE-01/-02/-03, D2)
 
-**L'agente esegue il merge senza chiedere l'approvazione owner** solo quando valgono tutte le condizioni:
-- scope autorizzato;
-- Gate A locale PASS;
-- Gate B locale PASS;
-- test obbligatori PASS;
-- GitHub Actions verdi;
-- branch protection soddisfatta;
-- **review indipendente APPROVED** sul head corrente;
-- nessun finding bloccante;
-- nessun conflitto owner irrisolto;
-- nessuna operazione esterna non autorizzata (deploy, costo, produzione, LIVE);
-- nessun riferimento di auto-chiusura nella PR;
-- **Browser QA Gate PASS** se la modifica è web (MP-OWNER-BROWSER-QA-HARD-GATE-01, vedi sotto).
+**Classe della PR.** La decide `tools/governance/merge-class.mjs`, eseguito **dalla copia del commit base** (`main`), mai da quella della PR, su tutti i file cambiati rispetto al merge-base e sui loro import:
 
-La valutazione eseguibile è `node tools/governance/cli.mjs merge-gate <input.json>`.
+```
+T=$(mktemp -d) && git show origin/main:tools/governance/merge-class.mjs > "$T/merge-class.mjs" \
+  && node "$T/merge-class.mjs" --repo . --base origin/main --head <head>
+```
+
+- **AUTO-MERGE ELIGIBLE** (exit 0): solo aree ordinarie.
+  - frontend e CSS (`src/web/**`), test nuovi o di moduli ordinari, documentazione non normativa;
+  - checkpoint, registro e inventario dei requisiti, `README.md`, strumenti di benchmark (`tools/perf/**`);
+  - nessun modulo owner-only che li importi, direttamente o indirettamente.
+- **OWNER-GO REQUIRED** (exit 4): serve il GO esplicito dell'owner sul commit di testa. Riguarda:
+  - database, schema, migrazioni, operazioni distruttive;
+  - credenziali, autenticazione, autorizzazioni, sicurezza, avvio del server;
+  - GitHub Actions, runner, deploy, infrastruttura, backup, gate QA e baseline;
+  - collector, Telegram, provider esterni, nuove integrazioni, dipendenze;
+  - certificazione, PIT, backtest, settlement, integrità storica, calcoli critici, API certificate;
+  - costi e decisioni di prodotto (mockup approvato);
+  - `AGENTS.md`, `CLAUDE.md`, decisioni owner, matrice di certificabilità, la policy stessa (`tools/governance/**`, `test/governance-*`).
+- **Casi che richiedono sempre il GO owner:**
+  - un percorso sconosciuto, un diff illeggibile, un errore del classificatore;
+  - una PR mista;
+  - una rinomina da un'area owner-only;
+  - un test esistente di un modulo owner-only modificato o cancellato.
+
+  Dividere una modifica critica in più PR per eludere la policy è vietato.
+
+**Il merge autonomo di una PR ELIGIBLE richiede tutte le condizioni:**
+- Gate A e Gate B PASS sul commit di testa;
+- CI obbligatoria e test pertinenti verdi;
+- **revisione tecnica di un agente in una sessione separata** da quella di sviluppo, documentata sulla PR con verdetto e SHA;
+- nessun finding critico o bloccante aperto;
+- nessun conflitto owner e nessun riferimento di auto-chiusura;
+- Browser QA Gate PASS se la modifica è web;
+- nessun bypass delle protezioni GitHub;
+- merge squash con lo SHA atteso.
+
+La revisione separata **non** è una «review indipendente APPROVED» GitHub e non va presentata come tale (MP-OWNER-AUTOMERGE-02).
+
+**Deploy dopo il merge.** L'unica operazione esterna ammessa è il deploy automatico di `main` sulla VPS (MP-OWNER-VPS-DEPLOY-01). Vale solo se:
+- il percorso GitHub → VPS è certificato da una decisione owner registrata (runner reale, migrazioni già applicate, nessuna scrittura imprevista, backup non interferiti, health check e smoke test, rollback provato);
+- l'ultimo deploy di `main` è riuscito sullo SHA base.
+
+Dopo ogni merge si verifica il deploy sullo SHA mergiato. **Un deploy fallito o non verificato ferma tutti i merge successivi** fino a un deploy verde o a un GO owner. Render, Neon, collector, LIVE e costi restano sempre vietati senza GO.
+
+**Valutazione eseguibile:** `node tools/governance/cli.mjs merge-gate <input.json>`. L'input contiene:
+- `merge_class` prodotta dal classificatore base;
+- `owner_go` con riferimento e SHA, per le PR OWNER-GO;
+- `review.separate_session` oppure `review.independent`;
+- `external_operations`, `deploy_path_certified`, `last_main_deploy`, `base_sha`.
+
+Tutto ciò che è ignoto blocca.
+
+**Attivazione.** La policy vale per le PR successive alla certificazione del percorso GitHub → VPS. Non ha effetto retroattivo: la PR #178 resta soggetta alle condizioni owner già fissate.
 
 **Browser QA Gate (MP-OWNER-BROWSER-QA-HARD-GATE-01): WEB CHANGE + NO VERIFIED BROWSER QA = MERGE BLOCKED.**
 - **Cosa è una modifica web:** lo decide il classificatore della CI (`scripts/ci-classify.mjs`, output `web`), mai l'agente. Sono web il sito, le API lette dal browser, lo schema dei dati, le dipendenze e il gate stesso; un diff vuoto o illeggibile è web.

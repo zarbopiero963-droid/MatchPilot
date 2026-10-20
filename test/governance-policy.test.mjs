@@ -15,7 +15,7 @@ const head = 'f'.repeat(40);
 const ready = () => ({
   pr_state: 'open', scope_authorized: true, gate_a: 'PASS', gate_b: 'PASS', mandatory_tests: 'PASS', ci: 'SUCCESS', branch_protection: true,
   review: {verdict: 'APPROVED', independent: true, reference: 'https://github.com/o/r/pull/1#issuecomment-1', reviewed_sha: head},
-  head_sha: head, blocking_findings: 0, owner_conflicts: 0, external_operations: [], web_impact: false,
+  head_sha: head, blocking_findings: 0, owner_conflicts: 0, external_operations: [], web_impact: false, merge_class: 'AUTO-MERGE ELIGIBLE',
   title: 'R-01: governance', body: 'Refs #150', commit_messages: ['Governance: checkpoints\n\nRefs #150'],
 });
 
@@ -36,6 +36,7 @@ test('the review must be independent, recorded and cover the current head', () =
   const base = ready();
   assert.match(evaluateMergeGate({...base, review: {...base.review, verdict: 'CHANGES REQUESTED'}}).reasons[0], /CHANGES REQUESTED/);
   assert.match(evaluateMergeGate({...base, review: {...base.review, independent: false}}).reasons[0], /not independent/);
+  assert.equal(evaluateMergeGate({...base, review: {...base.review, independent: false, separate_session: true}}).allowed, true, 'a separate-session review counts (MP-OWNER-AUTOMERGE-02)');
   assert.match(evaluateMergeGate({...base, review: {...base.review, reference: null}}).reasons[0], /not recorded/);
   assert.match(evaluateMergeGate({...base, review: {...base.review, reviewed_sha: 'e'.repeat(40)}}).reasons[0], /current head/);
   assert.match(evaluateMergeGate({...base, review: undefined}).reasons[0], /missing/);
@@ -52,6 +53,8 @@ test('regression: the recorded PR #149 merge input satisfies the gate', () => {
     ...ready(), head_sha: '3c3bf20bf8628688b2ce1f35d4467335b84a6167', title: 'MP-PR-00: establish Gate A atomic requirements inventory',
     body: 'Refs #3 #97 #104 #12 #20 #40 #144',
     review: {verdict: 'APPROVED', independent: true, reference: 'https://github.com/zarbopiero963-droid/MatchPilot/pull/149#issuecomment-6254321043', reviewed_sha: '3c3bf20bf8628688b2ce1f35d4467335b84a6167'},
+    // Recorded before GOV-01; the base classifier output is now part of every input.
+    merge_class: 'AUTO-MERGE ELIGIBLE',
     commit_messages: ['Governance: add MP-PR-00 atomic requirements inventory', 'Governance: apply MP-PR-00 independent audit corrections (R-00)\n\nRefs #3 #97 #104 #149'],
   };
   assert.equal(evaluateMergeGate(pr149).allowed, true);
@@ -74,4 +77,30 @@ test('a web change merges only with verified Browser QA evidence on the current 
   blocked({web_impact: true, browser_qa: {...qa, ci_run_id: null}}, /no CI run/);
   // A non-web change needs no browser evidence.
   assert.equal(evaluateMergeGate({...ready(), web_impact: false}).allowed, true);
+});
+
+test('GOV-01: the merge class from the base classifier decides; an owner-only PR needs the owner GO on this head', () => {
+  assert.match(evaluateMergeGate({...ready(), merge_class: undefined}).reasons.join(), /merge class unknown/);
+  assert.match(evaluateMergeGate({...ready(), merge_class: 'ELIGIBLE?'}).reasons.join(), /merge class unknown/);
+  const owner = {...ready(), merge_class: 'OWNER-GO REQUIRED'};
+  assert.match(evaluateMergeGate(owner).reasons.join(), /owner GO required/);
+  assert.match(evaluateMergeGate({...owner, owner_go: {reference: 'https://github.com/o/r/pull/1#issuecomment-2', sha: 'e'.repeat(40)}}).reasons.join(), /owner GO required/);
+  assert.equal(evaluateMergeGate({...owner, owner_go: {reference: 'https://github.com/o/r/pull/1#issuecomment-2', sha: head}}).allowed, true);
+});
+
+test('GOV-01: only the certified VPS deploy of main may follow a merge, and a failed deploy stops further merges', () => {
+  const base = 'b'.repeat(40);
+  const deploy = {...ready(), base_sha: base, external_operations: ['vps_deploy_main'], deploy_path_certified: true, last_main_deploy: {sha: base, conclusion: 'success'}};
+  assert.equal(evaluateMergeGate(deploy).allowed, true);
+  const cases = [
+    [{deploy_path_certified: false}, /not certified/],
+    [{deploy_path_certified: undefined}, /not certified/],
+    [{last_main_deploy: {sha: base, conclusion: 'failure'}}, /merges are stopped/],
+    [{last_main_deploy: {sha: 'c'.repeat(40), conclusion: 'success'}}, /merges are stopped/],
+    [{last_main_deploy: undefined}, /merges are stopped/],
+    [{external_operations: ['vps_deploy_main', 'render_deploy']}, /deploy, cost, production or LIVE/],
+    [{external_operations: ['neon_write']}, /deploy, cost, production or LIVE/],
+    [{external_operations: undefined}, /external operations are unknown/],
+  ];
+  for (const [change, expected] of cases) assert.match(evaluateMergeGate({...deploy, ...change}).reasons.join('\n'), expected, JSON.stringify(change));
 });

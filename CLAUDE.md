@@ -11,13 +11,11 @@
 
 ## Promemoria vincolanti, dettagliati in AGENTS.md
 
-- **Auto-merge** (AGENTS §4) solo per PR certificate. Servono:
-  - Gate A/B locali;
-  - test e CI verdi;
-  - review indipendente APPROVED sul head;
-  - zero finding bloccanti.
+- **Merge autonomo per classe** (AGENTS §4). Si classifica la PR con `tools/governance/merge-class.mjs` **preso dal commit base**.
+  - AUTO-MERGE ELIGIBLE (UI, test, documentazione non normativa): merge autonomo con Gate A/B, CI verde, revisione di un agente in sessione separata (mai presentata come approvazione GitHub indipendente) e zero finding critici.
+  - OWNER-GO REQUIRED: database, sicurezza, workflow, deploy, infrastruttura, collector, certificazione/PIT/backtest/settlement, costi, `AGENTS.md`, `CLAUDE.md`, policy. Serve il GO owner.
 
-  L'auto-merge non autorizza deploy, costi, produzione né LIVE.
+  Nel dubbio vale OWNER-GO. Un deploy VPS fallito o non verificato ferma i merge.
 - **Issue** (AGENTS §5): **solo l'owner le chiude**. Si usa `Refs #N`; si pubblica `READY TO CLOSE — OWNER APPROVAL REQUIRED` solo a issue interamente certificata.
 - **Checkpoint e handoff** (AGENTS §6): ogni ciclo lascia un checkpoint in `docs/governance/checkpoints/`; quando si interrompe il lavoro si pubblica `HANDOFF READY`.
 - **Una PR di implementazione alla volta.** Ogni PR risponde: "Questa modifica richiede un aggiornamento del mock MatchPilot? SÌ / NO". Se SÌ si aggiornano `docs/mockups/matchpilot-trading-os.html` e `docs/mockups/README.md`.
