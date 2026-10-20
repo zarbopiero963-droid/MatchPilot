@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 95,
+  "revision": 96,
   "tasks": [
     {
       "id": "R-01",
@@ -216,7 +216,7 @@
       "pr": null,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "HANDOFF READY",
+      "state": "RUNNING",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
@@ -408,14 +408,14 @@
       "pr": 175,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261020T084208Z-agent-a-claude-code",
-      "pr_open": true
+      "latest_checkpoint": "CP-20261020T085422Z-agent-a-claude-code",
+      "pr_open": false
     }
   ]
 }

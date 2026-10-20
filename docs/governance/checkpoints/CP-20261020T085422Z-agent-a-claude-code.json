@@ -1,0 +1,89 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "92bc3ccf9d040ffcd6961e0100e257ec0115f875",
+  "tree_sha": "bc4db616199524635199452be5fb403231d505e0",
+  "supersedes": "CP-20261020T084208Z-agent-a-claude-code",
+  "pr": 175,
+  "id": "CP-20261020T085422Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-20T08:54:22Z",
+  "activity": "QA-V2 merged: PR #175 squash a1ab9fb on main; post-merge verification passed",
+  "task": "QA-V2",
+  "issue": 3,
+  "requirements": [
+    "MP-WEB-010",
+    "MP-QAC-004",
+    "MP-WEB-009",
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "main a1ab9fbe042ef3a7dcfd93d392846e7efddb3838 (squash of PR #175, head 92bc3cc checked with expectedHeadSha)"
+  ],
+  "tests": [
+    {
+      "command": "CI run 39395329146 on 92bc3cc (all jobs green)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17, runner Chrome 155",
+      "commit": "92bc3ccf9d040ffcd6961e0100e257ec0115f875",
+      "time": "2026-10-20T08:54:22Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    },
+    {
+      "command": "post-merge: fresh clone of main (tree equal to the PR head); governance check, validate, evidence; visual verify; browser-qa 10/10 + verify-report; visual 36/36",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "a1ab9fbe042ef3a7dcfd93d392846e7efddb3838",
+      "time": "2026-10-20T08:54:22Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39395329146,
+    "conclusion": "SUCCESS",
+    "head_sha": "92bc3ccf9d040ffcd6961e0100e257ec0115f875"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/175#issuecomment-6287169439",
+    "reviewed_sha": "92bc3ccf9d040ffcd6961e0100e257ec0115f875"
+  },
+  "findings": [
+    {
+      "id": "R2-NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the matrix test relied on forbidden words: allowed values, strict row parsing and an exact feature list follow in R-07a"
+    },
+    {
+      "id": "QAV2-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the loading state of Oggi shows no h1; frozen in the baseline, for a later web PR"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-CONTINUOUS-EXECUTION-02",
+    "MP-OWNER-FUNCTIONAL-DELIVERY-03",
+    "MP-OWNER-QA-VISUAL-EXECUTION-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01"
+  ],
+  "dependencies": [
+    "CP-20261020T084208Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "R-07a Match Center (pre-match, first batch) from the saved WIP",
+  "resume_conditions": [
+    "main contains a1ab9fbe042ef3a7dcfd93d392846e7efddb3838"
+  ]
+}
