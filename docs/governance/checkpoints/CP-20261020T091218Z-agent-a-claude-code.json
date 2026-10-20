@@ -1,0 +1,123 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "12d2ae8eafa930b9a4dd9db987fd24c5f14bab19",
+  "tree_sha": "837aba6683e2aad2caa86eb2fadc4cab6031c634",
+  "supersedes": "CP-20261019T130621Z-agent-a-claude-code",
+  "pr": 176,
+  "id": "CP-20261020T091218Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-20T09:12:18Z",
+  "activity": "R-07a: Match Center pre-match analysis (first batch of #30) resumed from the preserved WIP, page, journey, baselines; ready for review",
+  "task": "R-07a",
+  "issue": 25,
+  "requirements": [
+    "MP-WEB-003",
+    "MP-WEB-014",
+    "MP-FPT-009",
+    "MP-WEB-005",
+    "MP-WEB-011",
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "src/analysis/match-analysis.mjs, src/api/v1.mjs (/api/v1/fpt/match-analysis; percentages and form on the server)",
+    "src/web/app.js, src/web/app.css (#/match page, links from Oggi and search, xG column title)",
+    "tools/qa/journeys.mjs (match-center), tools/qa/visual.mjs (partita*), test/visual (9 new, 3 updated), test/match-analysis.test.mjs",
+    "test/governance-certifiability.test.mjs (allowed values), docs/governance/certifiability-matrix.md, requirements MP-WEB-003/014 NOT_VERIFIED, docs/web.md, docs/qa/*",
+    "docs/governance/wip removed (resumed)",
+    "docs/audits/R-07a-MATCH-CENTER + evidence/audits@17f78c8a8937e259ba6d112ead24940a6f588140"
+  ],
+  "tests": [
+    {
+      "command": "node tools/qa/browser-qa.mjs --journeys match-center on the web code of main a1ab9fb",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "a1ab9fbe042ef3a7dcfd93d392846e7efddb3838",
+      "time": "2026-10-20T09:12:18Z",
+      "limits": [
+        "intended RED on an uncommitted tree: no match can be opened; time is an upper bound"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs + verify-report (12/12)",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "46b5bc1a06f1f05e6370ec46fb072fdaf735fed2",
+      "time": "2026-10-20T09:12:18Z",
+      "limits": [
+        "clean tree; time is an upper bound"
+      ]
+    },
+    {
+      "command": "CI run 39397844183 on 46b5bc1 (all jobs green; visual 45/45, largest block delta 26.2)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17, runner Chrome 155",
+      "commit": "46b5bc1a06f1f05e6370ec46fb072fdaf735fed2",
+      "time": "2026-10-20T09:12:18Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    },
+    {
+      "command": "CI=1 node --test (full suite); npm run check; governance check, validate, render-inventory --check, evidence; visual verify and check-update",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16",
+      "commit": "46b5bc1a06f1f05e6370ec46fb072fdaf735fed2",
+      "time": "2026-10-20T09:12:18Z",
+      "limits": [
+        "350/352 before the inventory render: test/postgres-independence needs PostgreSQL 17 (CI), the inventory drift was fixed by rendering; time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39397844183,
+    "conclusion": "SUCCESS",
+    "head_sha": "46b5bc1a06f1f05e6370ec46fb072fdaf735fed2"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "R07A-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "first batch only: the other analytical cards of #30, charts (MP-WEB-008) and the finished-match page (MP-WEB-004) are not built"
+    },
+    {
+      "id": "R07A-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "PIT_NOT_VERIFIED: current fact versions with a date cutoff, acquisition time not checked (no version-as-of query yet)"
+    },
+    {
+      "id": "R07A-3",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "real-data verification blocked by R-02 (archive #40 not materializable in this environment)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-FUNCTIONAL-DELIVERY-03",
+    "MP-OWNER-CONTINUOUS-EXECUTION-02",
+    "MP-OWNER-UI-NO-RAW-TEXT-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01",
+    "MP-OWNER-ARCHIVE-FIRST-01"
+  ],
+  "dependencies": [
+    "CP-20261019T130621Z-agent-a-claude-code",
+    "CP-20261020T085422Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "independent review D2, Gate B, protected merge, post-merge verification; then Math Core and Indicator Library",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains 12d2ae8eafa930b9a4dd9db987fd24c5f14bab19"
+  ]
+}
