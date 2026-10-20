@@ -22,7 +22,7 @@ export const BASELINES = 'test/visual/baselines';
 export const MANIFEST = 'test/visual/manifest.json';
 export const LOG = 'docs/qa/visual-baselines.md';
 export const VISUAL_SCHEMA = 'mp-visual-v1';
-const git = args => execFileSync('git', args, {cwd: root, encoding: 'utf8'}).trim();
+const git = (args, cwd = root) => execFileSync('git', args, {cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}).trim();
 const sha256 = buffer => createHash('sha256').update(buffer).digest('hex');
 
 // The day the site believes it is: a fixed instant, so «Oggi», the day strip and every relative date never move.
@@ -169,47 +169,48 @@ export async function runVisual({out, scenes = SCENES, viewports = Object.keys(V
 
 // The only way to change the baselines: the captures of a finished run, a reason and an approval reference, all written
 // to the manifest and the log. It never runs as part of a check.
-export function promote({run, reason, approval, thresholds}) {
+export function promote({run, reason, approval, thresholds, dir = root}) {
   if (!reason?.trim() || !approval?.trim()) throw new Error('promote needs --reason and --approval');
   const report = JSON.parse(readFileSync(join(run, 'report.json'), 'utf8'));
   if (report.schema !== VISUAL_SCHEMA) throw new Error('not a visual run');
   if (!report.working_tree_clean) throw new Error('the run was made on a modified tree');
-  const previous = readManifest();
+  const previous = readManifest(dir);
   const files = {};
-  mkdirSync(join(root, BASELINES), {recursive: true});
-  for (const name of readdirSync(join(root, BASELINES))) if (!report.results.some(r => `${r.scene}-${r.viewport}.png` === name)) throw new Error(`${name} has no capture in the run`);
+  mkdirSync(join(dir, BASELINES), {recursive: true});
+  for (const name of readdirSync(join(dir, BASELINES))) if (!report.results.some(r => `${r.scene}-${r.viewport}.png` === name)) throw new Error(`${name} has no capture in the run`);
   for (const result of report.results) {
     const name = `${result.scene}-${result.viewport}.png`;
     const buffer = readFileSync(join(run, result.capture));
     if (sha256(buffer) !== result.capture_sha256) throw new Error(`${name}: capture differs from its report`);
-    writeFileSync(join(root, BASELINES, name), buffer);
+    writeFileSync(join(dir, BASELINES, name), buffer);
     files[name] = result.capture_sha256;
   }
   const manifest = {schema: VISUAL_SCHEMA, thresholds: thresholds ?? previous?.thresholds,
     generated: {commit: report.tested_commit, browser: report.browser, date: report.generated_at, fixed_time: report.fixed_time, reason, approval},
     files: Object.fromEntries(Object.entries(files).sort())};
-  writeFileSync(join(root, MANIFEST), JSON.stringify(manifest, null, 2) + '\n');
+  writeFileSync(join(dir, MANIFEST), JSON.stringify(manifest, null, 2) + '\n');
   const changed = Object.entries(manifest.files).filter(([name, hash]) => previous?.files?.[name] !== hash);
   const entry = [`\n## ${report.generated_at.slice(0, 10)} — ${reason}`, '', `- Approval: ${approval}`,
     `- Run: commit \`${report.tested_commit}\`, ${report.browser}`,
     `- Thresholds: pixel ${manifest.thresholds.pixel}, ratio ${manifest.thresholds.ratio}`, '- Baselines:',
     ...changed.map(([name, hash]) => `  - \`${name}\` \`${hash}\``), ''].join('\n');
-  writeFileSync(join(root, LOG), readFileSync(join(root, LOG), 'utf8') + entry);
+  writeFileSync(join(dir, LOG), readFileSync(join(dir, LOG), 'utf8') + entry);
   return {changed: changed.map(([name]) => name)};
 }
 
 // A pull request that changes a baseline, the manifest or a threshold must say so in the log: every changed baseline
 // with its new SHA-256 and an approval reference, in lines that this change adds.
-export function checkUpdate({base, head}) {
-  const changed = git(['diff', '--name-only', '--no-renames', `${base}...${head}`]).split('\n').filter(Boolean);
+export function checkUpdate({base, head, dir = root}) {
+  if (!base || !head) return {ok: false, touched: [], errors: ['BASE_SHA and HEAD_SHA are required']};
+  const changed = git(['diff', '--name-only', '--no-renames', `${base}...${head}`], dir).split('\n').filter(Boolean);
   const touched = changed.filter(path => path.startsWith('test/visual/'));
   if (touched.length === 0) return {ok: true, touched, errors: []};
   const errors = [];
   if (!changed.includes(LOG)) return {ok: false, touched, errors: [`${touched.length} baseline file(s) changed without an entry in ${LOG}`]};
-  const added = git(['diff', '--no-renames', '-U0', `${base}...${head}`, '--', LOG]).split('\n')
+  const added = git(['diff', '--no-renames', '-U0', `${base}...${head}`, '--', LOG], dir).split('\n')
     .filter(line => line.startsWith('+') && !line.startsWith('+++')).join('\n');
   if (!/^\+- Approval: \S/m.test(added)) errors.push(`the new entry of ${LOG} has no approval reference`);
-  const manifest = JSON.parse(git(['show', `${head}:${MANIFEST}`]));
+  const manifest = JSON.parse(git(['show', `${head}:${MANIFEST}`], dir));
   for (const path of touched.filter(path => path.startsWith(`${BASELINES}/`))) {
     const name = path.slice(BASELINES.length + 1);
     const hash = manifest.files?.[name];
@@ -217,7 +218,7 @@ export function checkUpdate({base, head}) {
   }
   let before = null;
   try {
-    before = JSON.parse(execFileSync('git', ['show', `${base}:${MANIFEST}`], {cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']}));
+    before = JSON.parse(git(['show', `${base}:${MANIFEST}`], dir));
   } catch { /* the base has no baselines yet */ }
   if (before && JSON.stringify(before.thresholds) !== JSON.stringify(manifest.thresholds) && !/^\+- Thresholds: /m.test(added)) {
     errors.push(`thresholds changed without a Thresholds line in ${LOG}`);
