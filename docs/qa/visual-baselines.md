@@ -86,3 +86,11 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `ricerca-risultati-desktop.png` `6d520e32545629c3b56db6eee78056ca31a73b2f5c1cf0ef0065ab0ac556e9e0`
   - `ricerca-risultati-mobile.png` `a84cbfa3a97c185f32ed59b6ca8a58f8b08e57fab2e1dd1c06afda07c801b853`
   - `ricerca-risultati-tablet.png` `c8e17d712d37c14570ff91094502ca5311278697ce3a7ce7bf928612c87b7743`
+
+## 2026-10-20 — Review D2 of PR #176 (NB-7): the head to head has no «Esito» column
+
+- Approval: PR #176, review D2 NB-7; MP-OWNER-FUNCTIONAL-DELIVERY-03
+- Run: commit `ce366c3c7c866ae1e5f836058a845ebcf61fc839`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `partita-confronto-tablet.png` `def533b87f18256fbe903ebc30f5f356f884950679f7acafe4e1f60f13038a0a`
