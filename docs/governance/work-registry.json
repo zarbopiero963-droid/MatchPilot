@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 92,
+  "revision": 93,
   "tasks": [
     {
       "id": "R-01",
@@ -392,14 +392,30 @@
       "pr": 174,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261020T071250Z-agent-a-claude-code",
-      "pr_open": true
+      "latest_checkpoint": "CP-20261020T074250Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "QA-V2",
+      "title": "QA-V2: loading, error and partial states in the visual baselines; certifiability matrix (MP-OWNER-CONTINUOUS-EXECUTION-02 P1)",
+      "issue": 3,
+      "pr": null,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
+      "state": "RUNNING",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": null,
+      "pr_open": false
     }
   ]
 }
