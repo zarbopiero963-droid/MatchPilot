@@ -1,0 +1,15 @@
+{
+  "schema": "mp-evidence-v1",
+  "audit_id": "QA-V2-STATES-MATRIX-R2",
+  "commit_sha": "2c5103b3d5fe8daae127deb64cf99dd173dd6220",
+  "date": "2026-10-20",
+  "environment": "local: Claude Code cloud container, PostgreSQL 16, Chromium 141; CI: GitHub Actions, PostgreSQL 17, runner Chrome 155",
+  "outcome": "Review D2 fixes B1, B2, N1: RED (6 changed views before promote) and GREEN (visual 36/36 local and CI, Browser QA 10/10)",
+  "archive": {
+    "branch": "evidence/audits",
+    "commit": "1a3dad9342efcf32b7141a55c92469b79cc5b45a",
+    "path": "QA-V2-STATES-MATRIX-R2",
+    "zip_sha256": "252bfe077568116a728d43ff79dbce2e1af8f43c92111fa05fdd4cf6b4612b4a",
+    "url": "https://github.com/zarbopiero963-droid/MatchPilot/tree/1a3dad9342efcf32b7141a55c92469b79cc5b45a/QA-V2-STATES-MATRIX-R2"
+  }
+}
