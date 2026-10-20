@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 99,
+  "revision": 100,
   "tasks": [
     {
       "id": "R-01",
@@ -424,14 +424,30 @@
       "pr": 177,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261020T105618Z-agent-a-claude-code",
-      "pr_open": true
+      "latest_checkpoint": "CP-20261020T121904Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "HIST-01a",
+      "title": "Offline deterministic backtest engine on synthetic fixtures: PIT admission, reference strategy, settlement, report (first slice of R-14 with the R-13 parts it needs)",
+      "issue": 34,
+      "pr": null,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
+      "state": "RUNNING",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": null,
+      "pr_open": false
     }
   ]
 }
