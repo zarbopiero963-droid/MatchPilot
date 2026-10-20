@@ -1,0 +1,108 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "91a7cc38a589328c74978dfdd5e392ef39c1c194",
+  "tree_sha": "b368c2a1e5ac6284418b47a8171599c23f84849f",
+  "supersedes": "CP-20261020T091218Z-agent-a-claude-code",
+  "pr": 176,
+  "id": "CP-20261020T095809Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-20T09:58:09Z",
+  "activity": "R-07a merged: PR #176 squash 61361b8 on main; post-merge verification passed",
+  "task": "R-07a",
+  "issue": 25,
+  "requirements": [
+    "MP-WEB-003",
+    "MP-WEB-014",
+    "MP-FPT-009",
+    "MP-WEB-005",
+    "MP-WEB-011",
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "main 61361b8b222e6749f2382387257347659430089a (squash of PR #176, head 91a7cc3 checked with expectedHeadSha)"
+  ],
+  "tests": [
+    {
+      "command": "CI run 39400501441 on 91a7cc3 (all jobs green; visual 45/45 on Chrome 155)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17, runner Chrome 155",
+      "commit": "91a7cc38a589328c74978dfdd5e392ef39c1c194",
+      "time": "2026-10-20T09:58:09Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    },
+    {
+      "command": "post-merge: fresh clone of main (tree equal to the PR head); governance check; visual verify; match-analysis and certifiability tests 6/6; browser-qa 12/12",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "61361b8b222e6749f2382387257347659430089a",
+      "time": "2026-10-20T09:58:09Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39400501441,
+    "conclusion": "SUCCESS",
+    "head_sha": "91a7cc38a589328c74978dfdd5e392ef39c1c194"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/176#issuecomment-6288301185",
+    "reviewed_sha": "91a7cc38a589328c74978dfdd5e392ef39c1c194"
+  },
+  "findings": [
+    {
+      "id": "R07A-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "first batch only: the other analytical cards of #30, charts (MP-WEB-008) and the finished-match page (MP-WEB-004) are not built"
+    },
+    {
+      "id": "R07A-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "PIT_NOT_VERIFIED: current fact versions with a date cutoff, acquisition time not checked"
+    },
+    {
+      "id": "R07A-3",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "real-data verification blocked by R-02 (archive #40 not materializable in this environment)"
+    },
+    {
+      "id": "R07A-NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "no static guard against arithmetic in the browser"
+    },
+    {
+      "id": "R07A-D1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "tests to add: head-to-head order and limit against an SQL oracle, HALF_EVEN tie on the *_rate values, season window with several seasons"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-FUNCTIONAL-DELIVERY-03",
+    "MP-OWNER-CONTINUOUS-EXECUTION-02",
+    "MP-OWNER-UI-NO-RAW-TEXT-01"
+  ],
+  "dependencies": [
+    "CP-20261020T091218Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "owner mandate MP-HIST-E2E-01: report A–F (state of the historical engine and backtest) before any code change; implementation only after owner approval of the PR",
+  "resume_conditions": [
+    "main contains 61361b8b222e6749f2382387257347659430089a"
+  ]
+}
