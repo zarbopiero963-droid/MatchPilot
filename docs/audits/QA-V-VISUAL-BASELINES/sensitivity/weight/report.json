@@ -1,0 +1,105 @@
+{
+  "schema": "mp-visual-v1",
+  "head_sha": "a32be03a6a98175e20e945ca96f17c94ebbf64ed",
+  "tested_commit": "a32be03a6a98175e20e945ca96f17c94ebbf64ed",
+  "working_tree_clean": false,
+  "generated_at": "2026-10-20T06:33:39.909Z",
+  "browser": "chromium 141.0.7390.37",
+  "fixed_time": "2026-10-20T10:00:00+02:00",
+  "fixed_meta": {
+    "generated_at": "2026-10-20T08:00:00.000Z",
+    "code_version": "0000000"
+  },
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800
+    },
+    "tablet": {
+      "width": 820,
+      "height": 1180
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844
+    }
+  },
+  "baselines": {
+    "ok": true,
+    "errors": [],
+    "generated": {
+      "commit": "3bf69f43378700ff2e568eb6728ec74e839f00d4",
+      "browser": "chromium 141.0.7390.37",
+      "date": "2026-10-20T06:28:35.721Z",
+      "fixed_time": "2026-10-20T10:00:00+02:00",
+      "reason": "First baselines of the approved views (QA-V)",
+      "approval": "PR QA-V, Refs #3; MP-OWNER-AUTONOMOUS-UI-ROADMAP-01"
+    }
+  },
+  "thresholds": {
+    "block": 8,
+    "pixel": 32,
+    "ratio": 0
+  },
+  "results": [
+    {
+      "scene": "oggi",
+      "title": "Oggi: giorno affollato",
+      "viewport": "desktop",
+      "capture": "captures/oggi-desktop.png",
+      "capture_sha256": "f7d4270ecdc378c3eee72dbd55123a96f1f76fa0aabbd9a59a6578006cc3de2e",
+      "baseline_sha256": "1d7aa8a2a8bdf48beb9054bd3f92021d26e6231a0ff6e6e50da732624a55a59b",
+      "differing_blocks": 1,
+      "share": 0.0000625,
+      "max_block_delta": 35.7,
+      "status": "FAIL",
+      "reason": "1 differing blocks (0.006%) over the threshold of 0.000%",
+      "diff": "diffs/oggi-desktop.png"
+    },
+    {
+      "scene": "oggi",
+      "title": "Oggi: giorno affollato",
+      "viewport": "mobile",
+      "capture": "captures/oggi-mobile.png",
+      "capture_sha256": "d1d8accb55c15e9ec35abbc454f3235ede387450aeb96337ba26cc82e1d1d76c",
+      "baseline_sha256": "ae103ca3c071c9a861f717e8ccc30e0686f560f9b4f5646d46c6996dfbb0396a",
+      "differing_blocks": 0,
+      "share": 0,
+      "max_block_delta": 21.7,
+      "status": "PASS",
+      "reason": null
+    },
+    {
+      "scene": "ricerca-risultati",
+      "title": "Ricerca: risultati",
+      "viewport": "desktop",
+      "capture": "captures/ricerca-risultati-desktop.png",
+      "capture_sha256": "dc57b1dc68f6df11b905570635cea2eeb7cd7260d69731fa01e353cf6b5e74ff",
+      "baseline_sha256": "dc57b1dc68f6df11b905570635cea2eeb7cd7260d69731fa01e353cf6b5e74ff",
+      "differing_blocks": 0,
+      "share": 0,
+      "max_block_delta": 0,
+      "status": "PASS",
+      "reason": null
+    },
+    {
+      "scene": "ricerca-risultati",
+      "title": "Ricerca: risultati",
+      "viewport": "mobile",
+      "capture": "captures/ricerca-risultati-mobile.png",
+      "capture_sha256": "b04f893524e1243e79b9b307c4cbb95696454e4bc745059f5643be6a53d317ae",
+      "baseline_sha256": "b04f893524e1243e79b9b307c4cbb95696454e4bc745059f5643be6a53d317ae",
+      "differing_blocks": 0,
+      "share": 0,
+      "max_block_delta": 0,
+      "status": "PASS",
+      "reason": null
+    }
+  ],
+  "counts": {
+    "pass": 3,
+    "fail": 1,
+    "not_verified": 0
+  },
+  "verdict": "FAIL"
+}

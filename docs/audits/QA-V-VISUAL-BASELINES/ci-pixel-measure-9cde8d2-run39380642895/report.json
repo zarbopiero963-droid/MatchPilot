@@ -1,0 +1,363 @@
+{
+  "schema": "mp-visual-v1",
+  "head_sha": "9cde8d2176793e0c98a415139a7ac28fd909d827",
+  "tested_commit": "9edd4929fde3d9e811c789b4e37952e271177fe9",
+  "working_tree_clean": true,
+  "generated_at": "2026-10-20T06:31:36.641Z",
+  "browser": "chromium 155.0.8059.39",
+  "fixed_time": "2026-10-20T10:00:00+02:00",
+  "fixed_meta": {
+    "generated_at": "2026-10-20T08:00:00.000Z",
+    "code_version": "0000000"
+  },
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800
+    },
+    "tablet": {
+      "width": 820,
+      "height": 1180
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844
+    }
+  },
+  "baselines": {
+    "ok": true,
+    "errors": [],
+    "generated": {
+      "commit": "3bf69f43378700ff2e568eb6728ec74e839f00d4",
+      "browser": "chromium 141.0.7390.37",
+      "date": "2026-10-20T06:28:35.721Z",
+      "fixed_time": "2026-10-20T10:00:00+02:00",
+      "reason": "First baselines of the approved views (QA-V)",
+      "approval": "PR QA-V, Refs #3; MP-OWNER-AUTONOMOUS-UI-ROADMAP-01"
+    }
+  },
+  "thresholds": {
+    "pixel": 24,
+    "ratio": 0.001
+  },
+  "results": [
+    {
+      "scene": "oggi",
+      "title": "Oggi: giorno affollato",
+      "viewport": "desktop",
+      "capture": "captures/oggi-desktop.png",
+      "capture_sha256": "eba423bdfb4f73f4a80e93bd3f45649615c62e36c4b02e70e8ee82e1df2310bb",
+      "baseline_sha256": "1d7aa8a2a8bdf48beb9054bd3f92021d26e6231a0ff6e6e50da732624a55a59b",
+      "differing_pixels": 32093,
+      "share": 0.0313408203125,
+      "status": "FAIL",
+      "reason": "32093 differing pixels (3.134%) over the threshold of 0.100%",
+      "diff": "diffs/oggi-desktop.png"
+    },
+    {
+      "scene": "oggi",
+      "title": "Oggi: giorno affollato",
+      "viewport": "tablet",
+      "capture": "captures/oggi-tablet.png",
+      "capture_sha256": "7f8f10ec60f80e23263acf125656427025d3b8a8950a06ee4a459db0a9d4a71c",
+      "baseline_sha256": "21455d25dc1e6b014d274a9efdfb477443865af9df5580b709b6e47d56176c66",
+      "differing_pixels": 33220,
+      "share": 0.03433236874741629,
+      "status": "FAIL",
+      "reason": "33220 differing pixels (3.433%) over the threshold of 0.100%",
+      "diff": "diffs/oggi-tablet.png"
+    },
+    {
+      "scene": "oggi",
+      "title": "Oggi: giorno affollato",
+      "viewport": "mobile",
+      "capture": "captures/oggi-mobile.png",
+      "capture_sha256": "5589858cfe6c031ce13dbe0b3da1b2b20b9f0c33125d97e383da0329b11b224f",
+      "baseline_sha256": "ae103ca3c071c9a861f717e8ccc30e0686f560f9b4f5646d46c6996dfbb0396a",
+      "differing_pixels": 18803,
+      "share": 0.05712419492040345,
+      "status": "FAIL",
+      "reason": "18803 differing pixels (5.712%) over the threshold of 0.100%",
+      "diff": "diffs/oggi-mobile.png"
+    },
+    {
+      "scene": "oggi-righe",
+      "title": "Oggi: righe più in basso",
+      "viewport": "desktop",
+      "capture": "captures/oggi-righe-desktop.png",
+      "capture_sha256": "dbaf0061eb98088ddda1aab661533611401f7de278255ba1357e9f41ac553562",
+      "baseline_sha256": "758fc384cc82dfc516fff8089f573e72aa6dc313d9ae382372f11d7084a9b697",
+      "differing_pixels": 36795,
+      "share": 0.0359326171875,
+      "status": "FAIL",
+      "reason": "36795 differing pixels (3.593%) over the threshold of 0.100%",
+      "diff": "diffs/oggi-righe-desktop.png"
+    },
+    {
+      "scene": "oggi-righe",
+      "title": "Oggi: righe più in basso",
+      "viewport": "tablet",
+      "capture": "captures/oggi-righe-tablet.png",
+      "capture_sha256": "3e057b076b24366cc6c9dae71e86733dc845f189509a4e5f6bb047b96c6a788a",
+      "baseline_sha256": "b6fb5f660d76c6a8e90d7ff46972b165b7b33ba29d4d9b9026a22597c0dece6c",
+      "differing_pixels": 34089,
+      "share": 0.03523046713517983,
+      "status": "FAIL",
+      "reason": "34089 differing pixels (3.523%) over the threshold of 0.100%",
+      "diff": "diffs/oggi-righe-tablet.png"
+    },
+    {
+      "scene": "oggi-righe",
+      "title": "Oggi: righe più in basso",
+      "viewport": "mobile",
+      "capture": "captures/oggi-righe-mobile.png",
+      "capture_sha256": "04cbf4f44ef6f1952474318bc8096d6e302831754af969791810bffc23eb08af",
+      "baseline_sha256": "a7e0e63c0d6644f960862fd33168115a5b04083b973230e42c9655229204689d",
+      "differing_pixels": 20144,
+      "share": 0.06119820148256167,
+      "status": "FAIL",
+      "reason": "20144 differing pixels (6.120%) over the threshold of 0.100%",
+      "diff": "diffs/oggi-righe-mobile.png"
+    },
+    {
+      "scene": "oggi-vuoto",
+      "title": "Oggi: giorno senza partite",
+      "viewport": "desktop",
+      "capture": "captures/oggi-vuoto-desktop.png",
+      "capture_sha256": "40620d2b7cab9f4751d4b35f4522fc98d4aeeefae96ab6c942683bd4496b6358",
+      "baseline_sha256": "634431023e6d362878ea8c6e05187000797eb17dbf5435d9bd5027b1715defd2",
+      "differing_pixels": 11811,
+      "share": 0.0115341796875,
+      "status": "FAIL",
+      "reason": "11811 differing pixels (1.153%) over the threshold of 0.100%",
+      "diff": "diffs/oggi-vuoto-desktop.png"
+    },
+    {
+      "scene": "oggi-vuoto",
+      "title": "Oggi: giorno senza partite",
+      "viewport": "tablet",
+      "capture": "captures/oggi-vuoto-tablet.png",
+      "capture_sha256": "8075ac0210cb18e3f16f94fe3486ed20216afe94c98457f75624b7c8b6911e98",
+      "baseline_sha256": "d8a33aefe67722bb1c785c7dadd7f39581c3b4edc8111821baf1ad2fc55ee1c9",
+      "differing_pixels": 11811,
+      "share": 0.012206490285241836,
+      "status": "FAIL",
+      "reason": "11811 differing pixels (1.221%) over the threshold of 0.100%",
+      "diff": "diffs/oggi-vuoto-tablet.png"
+    },
+    {
+      "scene": "oggi-vuoto",
+      "title": "Oggi: giorno senza partite",
+      "viewport": "mobile",
+      "capture": "captures/oggi-vuoto-mobile.png",
+      "capture_sha256": "adcb18b01d20c78f241f436d7710eb08f42e42272514d6fae14befa70ddbb65f",
+      "baseline_sha256": "9501f120331e896c48b2b27495edde2bb8913cbaf018ae3552ef1c7c2ae50de5",
+      "differing_pixels": 11144,
+      "share": 0.0338558755620367,
+      "status": "FAIL",
+      "reason": "11144 differing pixels (3.386%) over the threshold of 0.100%",
+      "diff": "diffs/oggi-vuoto-mobile.png"
+    },
+    {
+      "scene": "oggi-oggi",
+      "title": "Oggi: il giorno corrente",
+      "viewport": "desktop",
+      "capture": "captures/oggi-oggi-desktop.png",
+      "capture_sha256": "e2b6fa2ba1e3cd36f10f818e3202aafe1ad5744fef046dab04c26c0ce20882d5",
+      "baseline_sha256": "b24184d478ce12d59e63c013d8e7830c3eb451f8db2acc0105725327af014cbf",
+      "differing_pixels": 10918,
+      "share": 0.010662109375,
+      "status": "FAIL",
+      "reason": "10918 differing pixels (1.066%) over the threshold of 0.100%",
+      "diff": "diffs/oggi-oggi-desktop.png"
+    },
+    {
+      "scene": "oggi-oggi",
+      "title": "Oggi: il giorno corrente",
+      "viewport": "tablet",
+      "capture": "captures/oggi-oggi-tablet.png",
+      "capture_sha256": "179f0ff94c81349be85258f4a981652baac97dc946a3056d465cd705f652de58",
+      "baseline_sha256": "ef333c37ae81eb03ad6dd162ec491db154f90517bdaced2e4f482b6273cc66b2",
+      "differing_pixels": 10918,
+      "share": 0.01128358825961141,
+      "status": "FAIL",
+      "reason": "10918 differing pixels (1.128%) over the threshold of 0.100%",
+      "diff": "diffs/oggi-oggi-tablet.png"
+    },
+    {
+      "scene": "oggi-oggi",
+      "title": "Oggi: il giorno corrente",
+      "viewport": "mobile",
+      "capture": "captures/oggi-oggi-mobile.png",
+      "capture_sha256": "d7a2391240d8a58d79ac46236254044b9d5ffb91ef2e58615bbad3d50d859ba6",
+      "baseline_sha256": "cbf6d3eeeac47e1a0ed23dbfbb419e450fae3362aa97cdfd91ee6d9b6122651e",
+      "differing_pixels": 10331,
+      "share": 0.031385952120549274,
+      "status": "FAIL",
+      "reason": "10331 differing pixels (3.139%) over the threshold of 0.100%",
+      "diff": "diffs/oggi-oggi-mobile.png"
+    },
+    {
+      "scene": "ricerca",
+      "title": "Ricerca: modulo",
+      "viewport": "desktop",
+      "capture": "captures/ricerca-desktop.png",
+      "capture_sha256": "4a1b527fac3c2e04558393b99708543baf38e5f137b3765859ff04dec0c2dd2a",
+      "baseline_sha256": "9632f781e517efcd0cfa99b861c5d0bb38fbf9aa6e3fd3249462e0a4cdaa43ff",
+      "differing_pixels": 12855,
+      "share": 0.0125537109375,
+      "status": "FAIL",
+      "reason": "12855 differing pixels (1.255%) over the threshold of 0.100%",
+      "diff": "diffs/ricerca-desktop.png"
+    },
+    {
+      "scene": "ricerca",
+      "title": "Ricerca: modulo",
+      "viewport": "tablet",
+      "capture": "captures/ricerca-tablet.png",
+      "capture_sha256": "8a376cf67b77d204869400909e2da3d25a713d11921ecaa978df1ee3474f9ac9",
+      "baseline_sha256": "f8d683d4b3c19617ec8fcdad07e2c3681b95722daa502a57e057661837642303",
+      "differing_pixels": 12900,
+      "share": 0.01333195535345184,
+      "status": "FAIL",
+      "reason": "12900 differing pixels (1.333%) over the threshold of 0.100%",
+      "diff": "diffs/ricerca-tablet.png"
+    },
+    {
+      "scene": "ricerca",
+      "title": "Ricerca: modulo",
+      "viewport": "mobile",
+      "capture": "captures/ricerca-mobile.png",
+      "capture_sha256": "9dd53791364a978107da26c0aaac30905287df622462740c48cd4ff1f2623fd6",
+      "baseline_sha256": "d946369903c01fa0bd25db8a52f6b9820c287e005796b8914e23821aa6dbab3a",
+      "differing_pixels": 6831,
+      "share": 0.020752825373678455,
+      "status": "FAIL",
+      "reason": "6831 differing pixels (2.075%) over the threshold of 0.100%",
+      "diff": "diffs/ricerca-mobile.png"
+    },
+    {
+      "scene": "ricerca-risultati",
+      "title": "Ricerca: risultati",
+      "viewport": "desktop",
+      "capture": "captures/ricerca-risultati-desktop.png",
+      "capture_sha256": "82fcdab70986f2258df34718a1a011475b6ad2b56d6b6bf188a88a1a02e574ba",
+      "baseline_sha256": "dc57b1dc68f6df11b905570635cea2eeb7cd7260d69731fa01e353cf6b5e74ff",
+      "differing_pixels": 60282,
+      "share": 0.058869140625,
+      "status": "FAIL",
+      "reason": "60282 differing pixels (5.887%) over the threshold of 0.100%",
+      "diff": "diffs/ricerca-risultati-desktop.png"
+    },
+    {
+      "scene": "ricerca-risultati",
+      "title": "Ricerca: risultati",
+      "viewport": "tablet",
+      "capture": "captures/ricerca-risultati-tablet.png",
+      "capture_sha256": "03fd8e9144df674ddfb7bb48923ef593035c13017cdad9f4d5d6b1c32045a700",
+      "baseline_sha256": "80d4ed9062f8fdb2b0d086a638d7f71ce222613e208bbe9e79f2b76e3e9bd610",
+      "differing_pixels": 60330,
+      "share": 0.062350144687887556,
+      "status": "FAIL",
+      "reason": "60330 differing pixels (6.235%) over the threshold of 0.100%",
+      "diff": "diffs/ricerca-risultati-tablet.png"
+    },
+    {
+      "scene": "ricerca-risultati",
+      "title": "Ricerca: risultati",
+      "viewport": "mobile",
+      "capture": "captures/ricerca-risultati-mobile.png",
+      "capture_sha256": "3206031a2bc09dce90b5e70e15176f37885715deba0739f798e233d22602ff62",
+      "baseline_sha256": "b04f893524e1243e79b9b307c4cbb95696454e4bc745059f5643be6a53d317ae",
+      "differing_pixels": 13646,
+      "share": 0.04145704216794264,
+      "status": "FAIL",
+      "reason": "13646 differing pixels (4.146%) over the threshold of 0.100%",
+      "diff": "diffs/ricerca-risultati-mobile.png"
+    },
+    {
+      "scene": "dati",
+      "title": "Dati: panoramica",
+      "viewport": "desktop",
+      "capture": "captures/dati-desktop.png",
+      "capture_sha256": "78b66cd5e3b433ebb66266dafebfc2b6922ddc0bd8280fb8229627d43cb9dd89",
+      "baseline_sha256": "1b97350f6222e268b1f5e49a7e6ee985337aa41232c12e8b20e18d93f77b80fa",
+      "differing_pixels": 33327,
+      "share": 0.0325458984375,
+      "status": "FAIL",
+      "reason": "33327 differing pixels (3.255%) over the threshold of 0.100%",
+      "diff": "diffs/dati-desktop.png"
+    },
+    {
+      "scene": "dati",
+      "title": "Dati: panoramica",
+      "viewport": "tablet",
+      "capture": "captures/dati-tablet.png",
+      "capture_sha256": "f4f764428567815fb52e920d520a5cc46cfc96106fb52f1cfd6cb5cfd7966e1a",
+      "baseline_sha256": "ec4f11d52a5c4d90285e2f32319e0a107433fefc6ccaa04791633000006e4566",
+      "differing_pixels": 46335,
+      "share": 0.04788652335675899,
+      "status": "FAIL",
+      "reason": "46335 differing pixels (4.789%) over the threshold of 0.100%",
+      "diff": "diffs/dati-tablet.png"
+    },
+    {
+      "scene": "dati",
+      "title": "Dati: panoramica",
+      "viewport": "mobile",
+      "capture": "captures/dati-mobile.png",
+      "capture_sha256": "ab93684e4b609a621607921713201cf3ed4f1aeb909b8373b51ec4603bdd8bbe",
+      "baseline_sha256": "dfb4e452dbb4a84c7a5d42ebbafcb1833e87a7b7c3746cf553046807bc38220a",
+      "differing_pixels": 11036,
+      "share": 0.0335277676509904,
+      "status": "FAIL",
+      "reason": "11036 differing pixels (3.353%) over the threshold of 0.100%",
+      "diff": "diffs/dati-mobile.png"
+    },
+    {
+      "scene": "non-trovata",
+      "title": "Pagina non trovata",
+      "viewport": "desktop",
+      "capture": "captures/non-trovata-desktop.png",
+      "capture_sha256": "5737ea44feca103f836e7bdfd5915f9de7bd66b2492eedbc0d09d0b8960ae5e3",
+      "baseline_sha256": "aeb7997c1b8cbf1c40c4576300f1b063fc56dac5008942d25bc381cc6b41ecba",
+      "differing_pixels": 6140,
+      "share": 0.00599609375,
+      "status": "FAIL",
+      "reason": "6140 differing pixels (0.600%) over the threshold of 0.100%",
+      "diff": "diffs/non-trovata-desktop.png"
+    },
+    {
+      "scene": "non-trovata",
+      "title": "Pagina non trovata",
+      "viewport": "tablet",
+      "capture": "captures/non-trovata-tablet.png",
+      "capture_sha256": "f565832face5ca1b6dd36e22e91d07aac6d09312d80d6b719fd6ff53a3000c1d",
+      "baseline_sha256": "1a3809580ce8294d66bf2f08eb6d8f6d02dfe85de8c6cde0b3c73c2b0cffb3ac",
+      "differing_pixels": 6140,
+      "share": 0.006345597354278628,
+      "status": "FAIL",
+      "reason": "6140 differing pixels (0.635%) over the threshold of 0.100%",
+      "diff": "diffs/non-trovata-tablet.png"
+    },
+    {
+      "scene": "non-trovata",
+      "title": "Pagina non trovata",
+      "viewport": "mobile",
+      "capture": "captures/non-trovata-mobile.png",
+      "capture_sha256": "fa86fafccabc90166c3971e6b074580168e532f6509df47c81e686ae687c8af9",
+      "baseline_sha256": "406f8d73f3403c0f83e31ebeafce2b93a146fa95886037c823fa853cfe1bf4e4",
+      "differing_pixels": 5234,
+      "share": 0.015901081540891968,
+      "status": "FAIL",
+      "reason": "5234 differing pixels (1.590%) over the threshold of 0.100%",
+      "diff": "diffs/non-trovata-mobile.png"
+    }
+  ],
+  "counts": {
+    "pass": 0,
+    "fail": 24,
+    "not_verified": 0
+  },
+  "verdict": "FAIL"
+}
