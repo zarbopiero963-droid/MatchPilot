@@ -89,6 +89,7 @@ test('golden fixture: decisions on admitted prices only, exact settlement and me
   assert.equal(report.status, STATUS.OK);
   assert.deepEqual({...report.certification, notice: undefined}, {data_scope: 'FIXTURE', real_data_verdict: 'NOT_APPLICABLE', certified: false, notice: undefined});
   assert.match(report.certification.notice, /not a real return/);
+  assert.ok(report.limits.every(limit => !/NOT.VERIFIED|VERIFIED/.test(limit)), 'the limits never restate a data verdict (PR #178 review)');
   assert.deepEqual(report.counts.decisions, {BACK: 4, NO_TRADE: 3});
   assert.deepEqual(report.counts.no_trade_by_reason, {FAVOURITE_TIE: 1, INCOMPLETE_1X2: 1, KICKOFF_UNKNOWN: 1});
   assert.deepEqual(report.counts.excluded_by_reason, {ACQUIRED_AFTER_DECISION: 1, KICKOFF_UNKNOWN: 1});

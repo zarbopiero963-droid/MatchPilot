@@ -106,7 +106,7 @@ const LIMITS = [
   'Decisions use only observations acquired by the decision time (captured knowledge, mp-pit-v1).',
   'Settlement uses only outcomes of the same provider as the odds; cross-provider mappings are not used.',
   'Metrics cover settled bets only; unsettled bets (missing outcome, outcome acquired before kickoff) are counted in counts.unsettled_by_reason and excluded, which can bias the metrics.',
-  'No claim of profitability or reliability (MP-STA-012); real-data verdict: NOT VERIFIED.',
+  'No claim of profitability or reliability (MP-STA-012); the data verdict is in the certification block.',
 ];
 
 export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeVersion = null} = {}) {
