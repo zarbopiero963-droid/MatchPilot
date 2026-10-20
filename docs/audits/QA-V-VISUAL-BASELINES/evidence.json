@@ -1,0 +1,15 @@
+{
+  "schema": "mp-evidence-v1",
+  "audit_id": "QA-V-VISUAL-BASELINES",
+  "commit_sha": "9dac79d7fe3309b7784e04f6cf26b821391e7047",
+  "date": "2026-10-20",
+  "environment": "local: Claude Code cloud container (Linux), PostgreSQL 16, Chromium 141; CI: GitHub Actions ubuntu-latest, PostgreSQL 17, runner Chrome 155; QA archive, fixed clock, viewports 1280x800, 820x1180, 390x844",
+  "outcome": "Pixel by pixel CI and baseline browsers differ on every glyph edge; by 8x8 blocks the largest delta is 26; thresholds block 8, pixel 32, ratio 0: CI 24/24 PASS; sensitivity: layout, weight, missing content and size fail, subtle colour shifts pass. Local GREEN visual 24/24 and Browser QA 10/10",
+  "archive": {
+    "branch": "evidence/audits",
+    "commit": "a3638092f4178d6d253e5992e9fcd0ebc6c10765",
+    "path": "QA-V-VISUAL-BASELINES",
+    "zip_sha256": "773656c46e02bce033037664f4996063c88ea2272079efc9593b215e1232f5a1",
+    "url": "https://github.com/zarbopiero963-droid/MatchPilot/tree/a3638092f4178d6d253e5992e9fcd0ebc6c10765/QA-V-VISUAL-BASELINES"
+  }
+}

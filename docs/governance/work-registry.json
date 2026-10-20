@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 89,
+  "revision": 92,
   "tasks": [
     {
       "id": "R-01",
@@ -376,13 +376,29 @@
       "pr": 173,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261020T062125Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "QA-V",
+      "title": "QA-V: desktop and mobile visual baselines of the approved views, reproducible comparison, SHA-256 manifest, CI blocking only real regressions, baselines never updated automatically",
+      "issue": 3,
+      "pr": 174,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
       "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261020T054638Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261020T071250Z-agent-a-claude-code",
       "pr_open": true
     }
   ]

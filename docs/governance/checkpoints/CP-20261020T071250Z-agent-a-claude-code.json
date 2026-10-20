@@ -1,0 +1,184 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "dce4e302cd92e613b1d0832b5ec1b3d9481c92d4",
+  "tree_sha": "48f62cd238f07d74496ef46d59ae6f8c2f9cd35a",
+  "supersedes": "CP-20261020T064849Z-agent-a-claude-code",
+  "pr": 174,
+  "id": "CP-20261020T071250Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-20T07:12:50Z",
+  "activity": "QA-V: review D2 CHANGES REQUESTED on 99cec9a; F1 and N1, N2, N4-N8 addressed; baselines regenerated with the date field in Italian; ready for the delta check",
+  "task": "QA-V",
+  "issue": 3,
+  "requirements": [
+    "MP-QAC-004",
+    "MP-WEB-009",
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "tools/qa/visual.mjs (scenes, fixed clock and API metadata, block comparison, report, promote, check-update, verify), tools/qa/png.mjs (PNG codec and comparison, no new dependency)",
+    "test/visual/baselines (24 images), test/visual/manifest.json (SHA-256, thresholds block 8, pixel 32, ratio 0), docs/qa/visual-baselines.md (log)",
+    ".github/workflows/ci.yml (Fast checks: verify and check-update; Browser QA: comparison and artifact visual-qa-<head>), scripts/ci-classify.mjs (test/visual is web)",
+    "test/visual-gate.test.mjs, test/ci-classify.test.mjs; docs/qa/visual.md, docs/qa/browser-qa.md, AGENTS.md, docs/qa/ui-text-inventory.md, MP-QAC-004 evidence",
+    "docs/audits/QA-V-VISUAL-BASELINES + evidence/audits@a3638092f4178d6d253e5992e9fcd0ebc6c10765",
+    "review: tools/qa/visual.mjs (manifest equals scenes x viewports, Thresholds line checked, log append-only, refusal instead of crash, Italian browser environment), tools/qa/browser-qa.mjs (browserEnv option), test/visual-gate.test.mjs, docs/qa/visual.md, baselines regenerated (evidence/audits@c4c8e1bdac0755cbeebb3692e1a394fe1fe7fe58)"
+  ],
+  "tests": [
+    {
+      "command": "CI run 39380642895 on 9cde8d2: visual comparison pixel by pixel (Chrome 155 vs baselines of Chromium 141)",
+      "result": "FAIL",
+      "environment": "GitHub Actions, runner Chrome 155.0.8059.39",
+      "commit": "9cde8d2176793e0c98a415139a7ac28fd909d827",
+      "time": "2026-10-20T06:48:49Z",
+      "limits": [
+        "the measurement that led to the block comparison: 24/24 scenes over 0.1% of pixels from glyph-edge rendering; run cancelled by the next push after the artifact upload; time is an upper bound"
+      ]
+    },
+    {
+      "command": "node tools/qa/visual.mjs --scenes oggi,ricerca-risultati --viewports desktop,mobile with 7 CSS changes (block 8, pixel 32, ratio 0)",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "9cde8d2176793e0c98a415139a7ac28fd909d827",
+      "time": "2026-10-20T06:48:49Z",
+      "limits": [
+        "intended RED on uncommitted trees: pad2px, weight, noxg and h1 fail; accent, oddcolor and radius pass (documented limit); time is an upper bound"
+      ]
+    },
+    {
+      "command": "CI run 39381265101 on 8c761ba (all jobs green; visual 24/24 PASS, largest block delta 26.1)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17, runner Chrome 155.0.8059.84",
+      "commit": "8c761ba4b23e635be305f57e42273065e372c797",
+      "time": "2026-10-20T06:48:49Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    },
+    {
+      "command": "node tools/qa/visual.mjs (24/24) and node tools/qa/browser-qa.mjs + verify-report (10/10) on the committed head",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "9dac79d7fe3309b7784e04f6cf26b821391e7047",
+      "time": "2026-10-20T06:48:49Z",
+      "limits": [
+        "clean tree; time is an upper bound"
+      ]
+    },
+    {
+      "command": "CI=1 node --test (full suite); npm run check; governance:check, validate, evidence, render-inventory --check",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16",
+      "commit": "9dac79d7fe3309b7784e04f6cf26b821391e7047",
+      "time": "2026-10-20T06:48:49Z",
+      "limits": [
+        "345/346: test/postgres-independence.test.mjs needs PostgreSQL 17 (local server is 16), it runs in CI"
+      ]
+    },
+    {
+      "command": "node --test test/visual-gate.test.mjs of dce4e30 against the code of 99cec9a",
+      "result": "FAIL",
+      "environment": "local container",
+      "commit": "99cec9ac15b476b2515f9982baf84344e83d135d",
+      "time": "2026-10-20T07:12:50Z",
+      "limits": [
+        "intended RED of review F1, N1, N2, N8: 2 of 7 tests fail; time is an upper bound"
+      ]
+    },
+    {
+      "command": "CI run 39384100762 on dce4e30 (all jobs green; visual 24/24, largest block delta 26.1, Chrome 155.0.8059.39)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "dce4e302cd92e613b1d0832b5ec1b3d9481c92d4",
+      "time": "2026-10-20T07:12:50Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    },
+    {
+      "command": "node tools/qa/visual.mjs (24/24), browser-qa + verify-report (10/10), node --test visual-gate, ci-classify, browser-qa-gate, requirements-inventory, governance-*, web-e2e (95/95)",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "dce4e302cd92e613b1d0832b5ec1b3d9481c92d4",
+      "time": "2026-10-20T07:12:50Z",
+      "limits": [
+        "archived as QA-V-VISUAL-BASELINES-R2; time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39384100762,
+    "conclusion": "SUCCESS",
+    "head_sha": "dce4e302cd92e613b1d0832b5ec1b3d9481c92d4"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "CHANGES REQUESTED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/174#issuecomment-6285495248",
+    "reviewed_sha": "99cec9ac15b476b2515f9982baf84344e83d135d"
+  },
+  "findings": [
+    {
+      "id": "QAV-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "CI uses the runner's Chrome (no browser download, MP-OWNER-QA-01-AUTHORIZATION): a browser update can exceed the margin (26 of 32) and needs a promote with reason and approval"
+    },
+    {
+      "id": "QAV-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the tablet results table wraps odds and xG over two lines (ricerca-risultati-tablet); frozen as is in the baseline, a layout change for a later web PR"
+    },
+    {
+      "id": "QAV-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "changes that keep every 8x8 block mean within 32 pass (subtle colours, a changed character, the decimal separator); near-threshold changes are uncertain under the CI noise of 26; the journeys check values"
+    },
+    {
+      "id": "R1-F1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "a view removed from the code escaped the comparison: the manifest must now list exactly the scenes x viewports"
+    },
+    {
+      "id": "R1-N1,N2,N6,N7,N8",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "Thresholds line checked, log append-only, date field in Italian, tests added, refusal instead of crash"
+    },
+    {
+      "id": "R1-N4,N5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "documented limits corrected with measured examples"
+    },
+    {
+      "id": "R1-N3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "a threshold loosened inside the code is not seen by check-update; review covers it (documented)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-QA-VISUAL-EXECUTION-01",
+    "MP-OWNER-AUTONOMOUS-UI-ROADMAP-01",
+    "MP-OWNER-QA-01-AUTHORIZATION",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261020T064849Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "delta check of review D2 on the new head, CI, Gate B, protected merge, post-merge verification; then R-07a",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains dce4e302cd92e613b1d0832b5ec1b3d9481c92d4"
+  ]
+}

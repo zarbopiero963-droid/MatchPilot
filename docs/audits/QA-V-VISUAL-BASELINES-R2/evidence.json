@@ -1,0 +1,15 @@
+{
+  "schema": "mp-evidence-v1",
+  "audit_id": "QA-V-VISUAL-BASELINES-R2",
+  "commit_sha": "dce4e302cd92e613b1d0832b5ec1b3d9481c92d4",
+  "date": "2026-10-20",
+  "environment": "local: Claude Code cloud container, PostgreSQL 16, Chromium 141; CI: GitHub Actions, PostgreSQL 17, runner Chrome 155",
+  "outcome": "Review D2 fixes F1, N1, N2, N6, N7, N8 with RED (2 of 7 unit tests fail on 99cec9a) and GREEN: local visual 24/24 and Browser QA 10/10, CI visual 24/24 (largest block delta 26.1)",
+  "archive": {
+    "branch": "evidence/audits",
+    "commit": "c4c8e1bdac0755cbeebb3692e1a394fe1fe7fe58",
+    "path": "QA-V-VISUAL-BASELINES-R2",
+    "zip_sha256": "824d6e31d41619010751e4a67b6342a2e81e33a751f762b1ca9af582d2b35ab0",
+    "url": "https://github.com/zarbopiero963-droid/MatchPilot/tree/c4c8e1bdac0755cbeebb3692e1a394fe1fe7fe58/QA-V-VISUAL-BASELINES-R2"
+  }
+}

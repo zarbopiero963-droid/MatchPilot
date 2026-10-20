@@ -74,6 +74,13 @@ jobs:
         run: |
           npm run governance:scan-closing
           node tools/governance/cli.mjs check-append-only
+      - name: Visual baselines (QA-V) — manifest integrity and declared updates
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node tools/qa/visual.mjs verify
+          node tools/qa/visual.mjs check-update
       - name: Syntax checks
         if: needs.classify.outputs.mode != 'docs'
         run: npm run check
@@ -173,6 +180,19 @@ jobs:
         with:
           name: browser-qa-${{ env.QA_HEAD_SHA }}
           path: qa-evidence
+          retention-days: 14
+          if-no-files-found: error
+      # QA-V: every approved view compared with its versioned baseline; a difference over the thresholds of
+      # test/visual/manifest.json fails the job. Baselines are never rewritten here (docs/qa/visual.md).
+      - name: Compare the views with their visual baselines
+        if: always()
+        run: node tools/qa/visual.mjs --out qa-visual
+      - name: Keep the visual comparison
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: visual-qa-${{ env.QA_HEAD_SHA }}
+          path: qa-visual
           retention-days: 14
           if-no-files-found: error
 
