@@ -31,23 +31,37 @@ test('PNG codec: what it encodes decodes to the same pixels; a committed baselin
   assert.throws(() => decodePng(Buffer.from('not a png')), /not a PNG/);
 });
 
-test('comparison: identical passes, a change over the threshold fails with its share, a size change fails', () => {
-  const thresholds = {pixel: 24, ratio: 0.001};
+test('comparison, pixel by pixel (block 1): identical passes, a change over the threshold fails with its share, a size change fails', () => {
+  const thresholds = {block: 1, pixel: 24, ratio: 0.001};
   const base = flat(100, 100, [10, 15, 23]);
   assert.equal(comparePng(base, flat(100, 100, [10, 15, 23]), thresholds).match, true);
-  // A colour drift under the pixel threshold (antialiasing) is not a difference.
-  assert.equal(comparePng(base, flat(100, 100, [30, 35, 43]), thresholds).differing, 0);
+  assert.equal(comparePng(base, flat(100, 100, [30, 35, 43]), thresholds).differing, 0, 'a drift under the threshold is not a difference');
   // 10 changed pixels out of 10 000 = 0.1 %: at the threshold, still a match; 11 are over it.
   const changed = n => image(100, 100, (x, y) => (y * 100 + x < n ? [255, 181, 71] : [10, 15, 23]));
   assert.equal(comparePng(base, changed(10), thresholds).match, true);
   const over = comparePng(base, changed(11), thresholds);
   assert.equal(over.match, false);
   assert.equal(over.differing, 11);
-  assert.match(over.reason, /11 differing pixels/);
-  assert.deepEqual([...over.diff.data.subarray(0, 4)], [255, 0, 0, 255], 'a differing pixel is red in the diff');
+  assert.match(over.reason, /11 differing blocks/);
+  assert.deepEqual([...over.diff.data.subarray(0, 4)], [255, 0, 0, 255], 'a differing block is red in the diff');
   const resized = comparePng(base, flat(100, 99, [10, 15, 23]), thresholds);
   assert.equal(resized.match, false);
   assert.match(resized.reason, /size 100×99 instead of 100×100/);
+});
+
+test('comparison by blocks (the thresholds in use): glyph-edge noise passes, a shifted or missing element fails', () => {
+  const thresholds = {block: 8, pixel: 32, ratio: 0};
+  // Text drawn by two browser builds: the same strokes, edge pixels lighter or darker one by one. Each 8×8 mean barely moves.
+  const text = (x, y) => (x % 6 < 2 && y % 10 < 7 ? [233, 239, 246] : [10, 15, 23]);
+  const noisy = (x, y) => text(x, y).map(v => Math.max(0, Math.min(255, v + ((x + y) % 2 ? 60 : -60))));
+  const base = image(64, 64, text);
+  const same = comparePng(base, image(64, 64, noisy), thresholds);
+  assert.equal(same.match, true, `edge noise: largest block delta ${same.max}`);
+  assert.ok(comparePng(base, image(64, 64, noisy), {block: 1, pixel: 32, ratio: 0}).differing > 0, 'the same noise fails pixel by pixel');
+  // A 16×16 amber box moved by 4 pixels, then missing.
+  const box = dx => image(64, 64, (x, y) => (x >= 16 + dx && x < 32 + dx && y >= 16 && y < 32 ? [255, 181, 71] : [10, 15, 23]));
+  assert.equal(comparePng(box(0), box(4), thresholds).match, false, 'a moved element');
+  assert.equal(comparePng(box(0), flat(64, 64, [10, 15, 23]), thresholds).match, false, 'a missing element');
 });
 
 test('API metadata: only the time of the answer and the code version are fixed, the data are untouched', () => {
@@ -73,7 +87,7 @@ test('manifest: the committed baselines match it; a changed, missing or extra fi
   assert.match(verifyBaselines(dir).errors.join('\n'), /extra\.png: not in the manifest/);
   rmSync(join(dir, BASELINES, 'extra.png'));
   const manifest = readManifest(dir);
-  writeFileSync(join(dir, MANIFEST), JSON.stringify({...manifest, thresholds: {pixel: 24, ratio: 0.5}}));
+  writeFileSync(join(dir, MANIFEST), JSON.stringify({...manifest, thresholds: {block: 8, pixel: 32, ratio: 0.5}}));
   assert.match(verifyBaselines(dir).errors.join('\n'), /thresholds\.ratio/);
   const {[`oggi-desktop.png`]: _, ...rest} = manifest.files;
   writeFileSync(join(dir, MANIFEST), JSON.stringify({...manifest, files: rest}));
@@ -109,16 +123,16 @@ function visualRun(run, pictures, clean = true) {
 test('promote: needs a reason and an approval, refuses a run on a modified tree, writes manifest and log', t => {
   const {dir, run} = repository(t);
   visualRun(run, {'oggi-desktop': flat(3, 3, [1, 2, 3])});
-  assert.throws(() => promote({run, reason: '', approval: 'PR #1', thresholds: {pixel: 24, ratio: 0.001}, dir}), /needs --reason and --approval/);
-  assert.throws(() => promote({run, reason: 'x', approval: ' ', thresholds: {pixel: 24, ratio: 0.001}, dir}), /needs --reason and --approval/);
+  assert.throws(() => promote({run, reason: '', approval: 'PR #1', thresholds: {block: 8, pixel: 32, ratio: 0}, dir}), /needs --reason and --approval/);
+  assert.throws(() => promote({run, reason: 'x', approval: ' ', thresholds: {block: 8, pixel: 32, ratio: 0}, dir}), /needs --reason and --approval/);
   const dirty = join(dir, '.dirty');
   mkdirSync(join(dirty, 'captures'), {recursive: true});
   visualRun(dirty, {'oggi-desktop': flat(3, 3, [1, 2, 3])}, false);
   assert.throws(() => promote({run: dirty, reason: 'x', approval: 'PR #1', dir}), /modified tree/);
-  const {changed} = promote({run, reason: 'first', approval: 'PR #1', thresholds: {pixel: 24, ratio: 0.001}, dir});
+  const {changed} = promote({run, reason: 'first', approval: 'PR #1', thresholds: {block: 8, pixel: 32, ratio: 0}, dir});
   assert.deepEqual(changed, ['oggi-desktop.png']);
   const manifest = readManifest(dir);
-  assert.deepEqual(manifest.thresholds, {pixel: 24, ratio: 0.001});
+  assert.deepEqual(manifest.thresholds, {block: 8, pixel: 32, ratio: 0});
   assert.equal(manifest.generated.approval, 'PR #1');
   const log = readFileSync(join(dir, LOG), 'utf8');
   assert.match(log, /- Approval: PR #1/);
@@ -128,7 +142,7 @@ test('promote: needs a reason and an approval, refuses a run on a modified tree,
 test('check-update: a baseline change without its log entry, its SHA-256 or an approval is refused; a declared one passes', t => {
   const {dir, run} = repository(t);
   visualRun(run, {'oggi-desktop': flat(3, 3, [1, 2, 3])});
-  promote({run, reason: 'first', approval: 'PR #1', thresholds: {pixel: 24, ratio: 0.001}, dir});
+  promote({run, reason: 'first', approval: 'PR #1', thresholds: {block: 8, pixel: 32, ratio: 0}, dir});
   git(dir, 'add', BASELINES, MANIFEST, LOG);
   git(dir, 'commit', '-q', '-m', 'base');
   const base = git(dir, 'rev-parse', 'HEAD');
@@ -158,7 +172,7 @@ test('check-update: a baseline change without its log entry, its SHA-256 or an a
   const next = join(dir, '.next');
   mkdirSync(join(next, 'captures'), {recursive: true});
   visualRun(next, {'oggi-desktop': flat(3, 3, [200, 2, 3])});
-  promote({run: next, reason: 'new layout', approval: 'PR #2', thresholds: {pixel: 30, ratio: 0.002}, dir});
+  promote({run: next, reason: 'new layout', approval: 'PR #2', thresholds: {block: 8, pixel: 40, ratio: 0.001}, dir});
   git(dir, 'add', BASELINES, MANIFEST, LOG);
   git(dir, 'commit', '-q', '-m', 'declared update');
   assert.deepEqual(checkUpdate({base, head: git(dir, 'rev-parse', 'HEAD'), dir}).errors, []);

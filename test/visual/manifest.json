@@ -1,16 +1,17 @@
 {
   "schema": "mp-visual-v1",
   "thresholds": {
-    "pixel": 24,
-    "ratio": 0.001
+    "block": 8,
+    "pixel": 32,
+    "ratio": 0
   },
   "generated": {
     "commit": "3bf69f43378700ff2e568eb6728ec74e839f00d4",
     "browser": "chromium 141.0.7390.37",
     "date": "2026-10-20T06:28:35.721Z",
     "fixed_time": "2026-10-20T10:00:00+02:00",
-    "reason": "First baselines of the approved views (QA-V)",
-    "approval": "PR QA-V, Refs #3; MP-OWNER-AUTONOMOUS-UI-ROADMAP-01"
+    "reason": "First baselines of the approved views (QA-V); thresholds measured against the CI browser (run 39380642895: Chrome 155 vs Chromium 141, largest 8x8 block delta 26)",
+    "approval": "PR #174, Refs #3; MP-OWNER-AUTONOMOUS-UI-ROADMAP-01"
   },
   "files": {
     "dati-desktop.png": "1b97350f6222e268b1f5e49a7e6ee985337aa41232c12e8b20e18d93f77b80fa",

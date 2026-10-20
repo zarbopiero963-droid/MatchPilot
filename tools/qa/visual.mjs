@@ -69,7 +69,8 @@ export function verifyBaselines(dir = root) {
   const manifest = readManifest(dir);
   if (!manifest) return {ok: false, errors: [`${MANIFEST} is missing`], manifest: null};
   if (manifest.schema !== VISUAL_SCHEMA) errors.push(`manifest schema ${manifest.schema}`);
-  const {pixel, ratio} = manifest.thresholds ?? {};
+  const {block, pixel, ratio} = manifest.thresholds ?? {};
+  if (!(Number.isInteger(block) && block >= 1 && block <= 16)) errors.push('thresholds.block must be an integer between 1 and 16');
   if (!(Number.isInteger(pixel) && pixel >= 0 && pixel <= 64)) errors.push('thresholds.pixel must be an integer between 0 and 64');
   if (!(typeof ratio === 'number' && ratio >= 0 && ratio <= 0.01)) errors.push('thresholds.ratio must be between 0 and 0.01');
   const listed = Object.keys(manifest.files ?? {});
@@ -137,8 +138,9 @@ export async function runVisual({out, scenes = SCENES, viewports = Object.keys(V
         } else {
           result.baseline_sha256 = baselines.manifest.files[name];
           const compared = comparePng(decodePng(readFileSync(baseline)), decodePng(readFileSync(file)), thresholds);
-          result.differing_pixels = compared.differing;
+          result.differing_blocks = compared.differing;
           result.share = compared.share;
+          result.max_block_delta = compared.max;
           result.status = compared.match ? 'PASS' : 'FAIL';
           result.reason = compared.reason;
           if (compared.diff && compared.differing > 0) {
@@ -192,7 +194,7 @@ export function promote({run, reason, approval, thresholds, dir = root}) {
   const changed = Object.entries(manifest.files).filter(([name, hash]) => previous?.files?.[name] !== hash);
   const entry = [`\n## ${report.generated_at.slice(0, 10)} — ${reason}`, '', `- Approval: ${approval}`,
     `- Run: commit \`${report.tested_commit}\`, ${report.browser}`,
-    `- Thresholds: pixel ${manifest.thresholds.pixel}, ratio ${manifest.thresholds.ratio}`, '- Baselines:',
+    `- Thresholds: block ${manifest.thresholds.block}, pixel ${manifest.thresholds.pixel}, ratio ${manifest.thresholds.ratio}`, '- Baselines:',
     ...changed.map(([name, hash]) => `  - \`${name}\` \`${hash}\``), ''].join('\n');
   writeFileSync(join(dir, LOG), readFileSync(join(dir, LOG), 'utf8') + entry);
   return {changed: changed.map(([name]) => name)};
@@ -230,7 +232,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const args = process.argv.slice(2);
   const opt = name => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : undefined; };
   if (args[0] === 'promote') {
-    const thresholds = opt('pixel') ? {pixel: Number(opt('pixel')), ratio: Number(opt('ratio'))} : undefined;
+    const thresholds = opt('pixel') ? {block: Number(opt('block')), pixel: Number(opt('pixel')), ratio: Number(opt('ratio'))} : undefined;
     console.log(JSON.stringify(promote({run: resolve(args[1]), reason: opt('reason'), approval: opt('approval'), thresholds})));
     const verified = verifyBaselines();
     console.log(JSON.stringify({ok: verified.ok, errors: verified.errors}));
@@ -249,7 +251,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     const only = opt('scenes')?.split(',');
     const report = await runVisual({out, scenes: only ? SCENES.filter(scene => only.includes(scene.id)) : SCENES,
       viewports: opt('viewports')?.split(',') ?? Object.keys(VISUAL_VIEWPORTS)});
-    for (const result of report.results) console.log(`${result.status.padEnd(12)} ${result.scene}/${result.viewport}${result.share != null ? ` ${(result.share * 100).toFixed(3)}%` : ''}${result.reason ? ` — ${result.reason}` : ''}`);
+    for (const result of report.results) console.log(`${result.status.padEnd(12)} ${result.scene}/${result.viewport}${result.share != null ? ` ${(result.share * 100).toFixed(3)}% max ${result.max_block_delta}` : ''}${result.reason ? ` — ${result.reason}` : ''}`);
     console.log(JSON.stringify({verdict: report.verdict, counts: report.counts, baselines: report.baselines.ok, browser: report.browser}));
     process.exit(report.verdict === 'PASS' ? 0 : 1);
   }

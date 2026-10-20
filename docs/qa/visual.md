@@ -30,11 +30,31 @@ Owner decisions: MP-OWNER-QA-VISUAL-EXECUTION-01 (versioned visual baselines, SH
 
 ## Thresholds
 
-A pixel differs when one of its colour channels moves by more than `thresholds.pixel` (0–255). A scene fails when its differing pixels exceed `thresholds.ratio` of the image, or when its size changes. Both values are in `test/visual/manifest.json`:
-- the manifest check refuses a `pixel` above 64 and a `ratio` above 1%;
-- changing either value needs a log entry, like a baseline.
+The images are compared **block by block**. Each block of `block`×`block` pixels is reduced to its mean colour. A block differs when one of its mean channels moves by more than `pixel` (0–255). A scene fails when its differing blocks exceed `ratio` of the blocks, or when its size changes.
 
-The values, and why they are sufficient to absorb the rendering differences between the browser that made the baselines and the browser of CI without hiding a real regression, are recorded in the log ([visual-baselines.md](visual-baselines.md)).
+The values in `test/visual/manifest.json` are **block 8, pixel 32, ratio 0**: one block over the limit fails the scene.
+- The manifest check refuses a `block` above 16, a `pixel` above 64 and a `ratio` above 1%.
+- Changing any of them needs a log entry, like a baseline.
+
+**Why blocks.** CI uses the runner's preinstalled Chrome. The rule of the Browser QA gate is no browser download (MP-OWNER-QA-01-AUTHORIZATION), so CI is not pinned to the browser that made the baselines.
+- Measured on PR #174 (run 39380642895), Chrome 155 in CI against the Chromium 141 that made the baselines:
+  - pixel by pixel, 0.6–6.2% of the pixels differ in every scene, because every glyph edge is drawn slightly differently (antialiasing, hinting);
+  - in 8×8 blocks the largest mean difference over the 24 scenes is **26**.
+- Two runs with the same browser give byte-identical images: the noise comes from the browser build alone.
+
+**What it detects and what it does not.** Measured by changing the CSS on the busy day of Oggi and the search results, desktop and mobile:
+
+| Change | Largest block delta | Outcome |
+|---|---|---|
+| rows 1 px taller | 119 | fails |
+| team names in bold | 36 | fails (desktop) |
+| xG removed from the rows | 102 | fails |
+| title 2 px smaller | 136 | fails |
+| odds text colour `#C3CEDB` → `#E9EFF6` | 20 | **passes** |
+| accent `#FFB547` → `#F5A83A` | 13 | **passes** |
+| day strip corner radius 9 → 4 px | 17 | **passes** |
+
+So the gate stops layout, size, weight and missing or added content. It does not stop colour shifts below about 25 of 255, small radii or a single changed character; the journeys check every value. The thresholds and their measurements are also in the log ([visual-baselines.md](visual-baselines.md)).
 
 ## Protection against arbitrary updates
 
@@ -58,4 +78,5 @@ The values, and why they are sufficient to absorb the rendering differences betw
 
 - Each scene is the first screen of one address, or of one scrolled position. A defect below it is outside the baseline; the journeys still check it.
 - Browser QA runs the journeys on desktop and mobile only. Tablet is covered by QA-V alone.
-- A browser update in CI can move antialiasing beyond the thresholds. The job then fails with the diff images. A new baseline needs a `promote` with its reason and approval: never an automatic update.
+- A browser update in CI can move antialiasing beyond the thresholds: the margin measured today is 26 against 32. The job then fails with the diff images. A new baseline needs a `promote` with its reason and approval: never an automatic update.
+- Subtle colour changes pass (see the table above).

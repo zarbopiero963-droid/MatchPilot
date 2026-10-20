@@ -5,11 +5,11 @@ Every change to `test/visual/baselines/`, to `test/visual/manifest.json` or to i
 run the captures come from, the thresholds and every changed baseline with its new SHA-256. CI refuses a change to the
 baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules: [visual.md](visual.md).
 
-## 2026-10-20 — First baselines of the approved views (QA-V)
+## 2026-10-20 — First baselines of the approved views (QA-V); thresholds measured against the CI browser (run 39380642895: Chrome 155 vs Chromium 141, largest 8x8 block delta 26)
 
-- Approval: PR QA-V, Refs #3; MP-OWNER-AUTONOMOUS-UI-ROADMAP-01
+- Approval: PR #174, Refs #3; MP-OWNER-AUTONOMOUS-UI-ROADMAP-01
 - Run: commit `3bf69f43378700ff2e568eb6728ec74e839f00d4`, chromium 141.0.7390.37
-- Thresholds: pixel 24, ratio 0.001
+- Thresholds: block 8, pixel 32, ratio 0
 - Baselines:
   - `dati-desktop.png` `1b97350f6222e268b1f5e49a7e6ee985337aa41232c12e8b20e18d93f77b80fa`
   - `dati-mobile.png` `dfb4e452dbb4a84c7a5d42ebbafcb1833e87a7b7c3746cf553046807bc38220a`

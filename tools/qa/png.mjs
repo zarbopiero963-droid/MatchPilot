@@ -85,27 +85,43 @@ export function encodePng({width, height, data}) {
   return Buffer.concat([SIGNATURE, chunk('IHDR', header), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
 }
 
-// A pixel differs when one of its colour channels moves by more than `pixel` (0-255). The images match when the share
-// of differing pixels is at most `ratio`. The diff image shows the baseline dimmed and every differing pixel in red.
-export function comparePng(baseline, actual, {pixel, ratio}) {
+// The images are compared block by block: each block of `block`×`block` pixels is reduced to its mean colour, and a block
+// differs when one of its mean channels moves by more than `pixel` (0-255). The images match when the share of differing
+// blocks is at most `ratio`. Averaging absorbs how two browser builds draw the edges of the same glyphs (antialiasing,
+// hinting), which touches every text pixel a little; a moved, missing, resized or recoloured element moves the mean of
+// its blocks far more. The diff image shows the baseline dimmed and every differing block in red.
+export function comparePng(baseline, actual, {block = 1, pixel, ratio}) {
   if (baseline.width !== actual.width || baseline.height !== actual.height) {
-    return {match: false, reason: `size ${actual.width}×${actual.height} instead of ${baseline.width}×${baseline.height}`, differing: null, share: null, diff: null};
+    return {match: false, reason: `size ${actual.width}×${actual.height} instead of ${baseline.width}×${baseline.height}`, differing: null, share: null, max: null, diff: null};
   }
+  const {width, height} = baseline;
+  const columns = Math.ceil(width / block), rows = Math.ceil(height / block);
   const diff = Buffer.alloc(baseline.data.length);
-  let differing = 0;
-  for (let i = 0; i < baseline.data.length; i += 4) {
-    const delta = Math.max(Math.abs(baseline.data[i] - actual.data[i]), Math.abs(baseline.data[i + 1] - actual.data[i + 1]),
-      Math.abs(baseline.data[i + 2] - actual.data[i + 2]), Math.abs(baseline.data[i + 3] - actual.data[i + 3]));
+  for (let i = 0; i < diff.length; i += 4) {
+    const grey = Math.round((baseline.data[i] + baseline.data[i + 1] + baseline.data[i + 2]) / 3 * 0.35);
+    diff[i] = grey; diff[i + 1] = grey; diff[i + 2] = grey; diff[i + 3] = 255;
+  }
+  let differing = 0, max = 0;
+  for (let by = 0; by < rows; by++) for (let bx = 0; bx < columns; bx++) {
+    const sum = [0, 0, 0, 0, 0, 0, 0, 0];
+    let count = 0;
+    for (let y = by * block; y < Math.min(height, (by + 1) * block); y++) for (let x = bx * block; x < Math.min(width, (bx + 1) * block); x++) {
+      const i = (y * width + x) * 4;
+      for (let c = 0; c < 4; c++) { sum[c] += baseline.data[i + c]; sum[c + 4] += actual.data[i + c]; }
+      count++;
+    }
+    let delta = 0;
+    for (let c = 0; c < 4; c++) delta = Math.max(delta, Math.abs(sum[c] - sum[c + 4]) / count);
+    if (delta > max) max = delta;
     if (delta > pixel) {
       differing++;
-      diff[i] = 255; diff[i + 1] = 0; diff[i + 2] = 0;
-    } else {
-      const grey = Math.round((baseline.data[i] + baseline.data[i + 1] + baseline.data[i + 2]) / 3 * 0.35);
-      diff[i] = grey; diff[i + 1] = grey; diff[i + 2] = grey;
+      for (let y = by * block; y < Math.min(height, (by + 1) * block); y++) for (let x = bx * block; x < Math.min(width, (bx + 1) * block); x++) {
+        const i = (y * width + x) * 4;
+        diff[i] = 255; diff[i + 1] = 0; diff[i + 2] = 0;
+      }
     }
-    diff[i + 3] = 255;
   }
-  const share = differing / (baseline.width * baseline.height);
-  return {match: share <= ratio, reason: share <= ratio ? null : `${differing} differing pixels (${(share * 100).toFixed(3)}%) over the threshold of ${(ratio * 100).toFixed(3)}%`,
-    differing, share, diff: {width: baseline.width, height: baseline.height, data: diff}};
+  const share = differing / (columns * rows);
+  return {match: share <= ratio, reason: share <= ratio ? null : `${differing} differing blocks (${(share * 100).toFixed(3)}%) over the threshold of ${(ratio * 100).toFixed(3)}%`,
+    differing, share, max: Math.round(max * 10) / 10, diff: {width, height, data: diff}};
 }
