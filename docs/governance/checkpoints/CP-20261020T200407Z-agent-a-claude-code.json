@@ -1,0 +1,83 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "gov-01-merge-policy",
+  "commit_sha": "46c778ee849ffcaed93723650a95f751176de106",
+  "tree_sha": "170f4968616047a4b1c5a051889e07f2c00e6353",
+  "supersedes": null,
+  "pr": null,
+  "id": "CP-20261020T200407Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-20T20:04:07Z",
+  "activity": "GOV-01 prepared on an isolated branch, no PR: one implementation PR at a time while #178 is open; the governance change itself needs the owner approval",
+  "task": "GOV-01",
+  "issue": 97,
+  "requirements": [],
+  "changes": [
+    "tools/governance/merge-class.mjs (new): AUTO-MERGE ELIGIBLE / OWNER-GO REQUIRED from every changed file, import graph of base and head, fail closed",
+    "tools/governance/policy.mjs: merge_class, owner_go, separate_session review, vps_deploy_main only when the deploy path is certified and the last main deploy succeeded",
+    "test/governance-merge-class.test.mjs (new, 7 tests incl. a bypass attempt judged by the base copy), test/governance-policy.test.mjs (+2 tests)",
+    "AGENTS.md section 4 and CLAUDE.md: the policy; owner decisions MP-OWNER-AUTOMERGE-02 and -03"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/governance-*.test.mjs (63/63); npm run check; governance check, render-inventory --check, scan-closing",
+      "result": "PASS",
+      "environment": "local container, Node 22",
+      "limits": [
+        "no CI run yet: no PR; time is an upper bound"
+      ],
+      "commit": "46c778ee849ffcaed93723650a95f751176de106",
+      "time": "2026-10-20T20:04:07Z"
+    },
+    {
+      "command": "merge-class on real branches: PR #178 head and APP-01 both OWNER-GO REQUIRED (hist/governance files; providers integrity)",
+      "result": "PASS",
+      "environment": "local container",
+      "limits": [
+        "time is an upper bound"
+      ],
+      "commit": "46c778ee849ffcaed93723650a95f751176de106",
+      "time": "2026-10-20T20:04:07Z"
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN",
+    "head_sha": "46c778ee849ffcaed93723650a95f751176de106"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "GOV-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "owner-decisions.json and work-registry.json are also changed by PR #178: a small conflict to resolve when this branch is brought to main"
+    },
+    {
+      "id": "GOV-2",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "the policy activates only after the GitHub -> VPS deploy path is certified (runner job, migrations, writes, backups, health and smoke, rollback) and recorded as an owner decision"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTOMERGE-03",
+    "MP-OWNER-AUTOMERGE-02",
+    "MP-OWNER-VPS-DEPLOY-01"
+  ],
+  "dependencies": [],
+  "state": "BLOCKED",
+  "next_action": "owner approval of the governance change; PR only after #178 is closed and on owner authorization",
+  "resume_conditions": [
+    "branch gov-01-merge-policy contains 46c778ee849ffcaed93723650a95f751176de106"
+  ]
+}
