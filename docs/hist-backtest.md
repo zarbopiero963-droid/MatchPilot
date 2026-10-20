@@ -33,7 +33,7 @@ One JSON document. It is provider-independent: an archive extract, captured Tota
 **Validation:**
 - unknown or missing fields, duplicate ids, references to unknown events and a second outcome for the same event are refused with `BAD_HIST_INPUT` and the field;
 - non-UTC times are refused, as are impossible dates;
-- odds must satisfy `1 < O ≤ 1,000,000` and be plain decimal text such as `2.10`: no JS numbers, sign, surrounding space or leading zero;
+- odds must satisfy `1 < O ≤ 1,000,000` and be plain decimal text such as `2.10`, with at most 7 integer digits and 6 decimals: no JS numbers, sign, surrounding space or leading zero;
 - each list holds at most 2,000,000 items.
 
 Every list is sorted by its ids, so the same data in any order has the same hash.
@@ -90,7 +90,7 @@ Outcomes are read only after every decision is fixed. Rule `mp-outcome-1x2-1`:
 |---|---|---|
 | `INSUFFICIENT_PIT_DATA` | no admitted observation of the configured bookmaker | none: no bet, P/L, ROI or drawdown |
 | `INSUFFICIENT_OUTCOMES` | bets decided, none settled | bets listed without settlement; `metrics: null` |
-| `OK` | admissible data, and every bet decided was settled or there was no bet | metrics on the settled bets; `metrics: null` when no bet was made (every event NO_TRADE) |
+| `OK` | admissible data, and at least one bet settled or no bet at all | metrics on the settled bets; `metrics: null` when no bet was made (every event NO_TRADE) |
 
 **Metrics (`OK` only):**
 - counts of bets won, lost and void;

@@ -22,7 +22,7 @@ export class HistInputError extends Error {
 const ID = /^[\w.:\-/]{1,200}$/;
 // Odds as plain decimal text: no sign, no surrounding space, no leading zero.
 const ODDS = /^(0|[1-9]\d{0,6})(\.\d{1,6})?$/;
-// Upper bound on each list, so a malformed or hostile file fails fast instead of exhausting memory.
+// Upper bound on each list, checked after parsing: it bounds the work of the engine, not the memory used to parse a file.
 export const MAX_ITEMS = 2_000_000;
 // An instant in UTC, to the second or millisecond: no offset other than Z, so no time zone is ever assumed.
 const UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
