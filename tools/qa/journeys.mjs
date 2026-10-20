@@ -349,6 +349,7 @@ export const JOURNEYS = [
           if (row.favorite_side) assert.equal(await favorite.locator('[data-code]').getAttribute('data-code'), row.favorite_side);
           assert.equal(await card.locator('[data-field="xg"] b').textContent(), `${shown(row.xg_home)} – ${shown(row.xg_away)}`);
           assert.equal(await card.locator('[data-field="score"]').textContent(), outcomeShownFor(row));
+          assert.equal(await card.locator('h3').getAttribute('aria-label'), `${row.home_name || 'N/D'} – ${row.away_name || 'N/D'}`, 'the teams read as one pair');
           // Nothing of the API row is lost: what the card no longer prints stays on it, for checks and technical views.
           assert.equal(await card.getAttribute('data-result'), row.result_status ?? '');
           assert.equal(await card.getAttribute('data-phase'), row.phase ?? '');
@@ -545,12 +546,19 @@ export const JOURNEYS = [
         const layout = await page.evaluate(() => {
           const table = document.querySelector('table.results');
           const wrap = table.parentElement;
+          // The title is drawn before the value (::before) in its own space: the value starts after it (PR #173 review NB-1).
+          const drawn = [...table.tBodies[0].rows[0].cells].map(td => {
+            const before = getComputedStyle(td, '::before');
+            return {content: before.content, clear: parseFloat(getComputedStyle(td).paddingLeft) >= parseFloat(before.left) + parseFloat(before.width)};
+          });
           return {phone: innerWidth <= 560, titles: [...table.tHead.rows[0].cells].map(th => th.textContent), head: getComputedStyle(table.tHead).display,
-            labels: [...table.tBodies[0].rows].map(tr => [...tr.cells].map(td => td.dataset.label)), fits: wrap.scrollWidth <= wrap.clientWidth + 1};
+            labels: [...table.tBodies[0].rows].map(tr => [...tr.cells].map(td => td.dataset.label)), fits: wrap.scrollWidth <= wrap.clientWidth + 1, drawn};
         });
         assert.ok(layout.labels.every(labels => JSON.stringify(labels) === JSON.stringify(layout.titles)), 'every value carries its column title');
         if (layout.phone) {
           assert.equal(layout.head, 'none', 'the titles move next to each value');
+          assert.deepEqual(layout.drawn.map(cell => cell.content), layout.titles.map(title => JSON.stringify(title)), 'each title is drawn on the card');
+          assert.ok(layout.drawn.every(cell => cell.clear), 'each value starts after its title, no overlap');
           assert.ok(layout.fits, 'no sideways scroll of the results on a phone');
         } else assert.equal(layout.head, 'table-header-group');
       });

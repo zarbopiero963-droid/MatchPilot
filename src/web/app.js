@@ -368,7 +368,9 @@ function matchRow(row) {
     el('p', {class: 'kick', 'data-field': 'kickoff', 'data-tz': row.kickoff_tz_status ?? '', title: row.kickoff_local_time ? KICKOFF_NOTE : null},
       formatScalar(row.kickoff_local_time)),
     el('div', {class: 'teams'},
-      el('h3', {}, el('span', {'data-field': 'home'}, formatScalar(row.home_name)), el('span', {class: 'sep'}, ' – '),
+      // The dash between the teams is hidden on screen (one team per line): the heading keeps it for screen readers (PR #173 review NB-2).
+      el('h3', {'aria-label': `${row.home_name || ND} – ${row.away_name || ND}`},
+        el('span', {'data-field': 'home'}, formatScalar(row.home_name)), el('span', {class: 'sep'}, ' – '),
         el('span', {'data-field': 'away'}, formatScalar(row.away_name))),
       el('p', {class: 'comp', 'data-field': 'competition'}, nameOf(row.country_slug), ' · ', nameOf(row.league_slug), ' · ', seasonOf(row.season))),
     el('p', {class: 'score', 'data-field': 'score'}, outcome(row)),
