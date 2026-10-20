@@ -67,3 +67,22 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `ricerca-filtro-rifiutato-desktop.png` `7cb58945b9a448478b3e8b91ab066cf9755f8a8948961f55489c303eabc4e632`
   - `ricerca-filtro-rifiutato-mobile.png` `1faffe5f9c42431f07bc65d3fad40dd9e3bd3de59c8285505327b44cbdf40f22`
   - `ricerca-filtro-rifiutato-tablet.png` `70a813ed8e51a79a8a0dcf08d4704e190b5d55d9ccb4a29fb271449c87ded78c`
+
+## 2026-10-20 — Match Center scenes (R-07a); search results: teams open the Match Center and the xG column title keeps its case
+
+- Approval: PR R-07a, Refs #3 #25 #30; MP-OWNER-FUNCTIONAL-DELIVERY-03
+- Run: commit `9b3aeeabfb2e5806859db2243118d3a6bc753f4e`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `partita-confronto-desktop.png` `a1ab6094184ec88c2d1e98bd29fb81de84b881dbd010837a15444b24718fec05`
+  - `partita-confronto-mobile.png` `180a269234d43aea575114c0eaccc16fee7156018aa6e30f6da6f07743545cb3`
+  - `partita-confronto-tablet.png` `b17eb29571f05240c1a82106e26faa230818d05355e6ce9de29af4caeb0e266c`
+  - `partita-desktop.png` `248f8704351030fdd9bec9922a9648956e58369ae1f4613afa8b2759b0285e96`
+  - `partita-mobile.png` `0adf7c31cfe4bdd7b88afa44571294fc44103a7799dd8790ef7292268dcd963e`
+  - `partita-senza-storico-desktop.png` `1218141e1f5acb9366e9f9092c57a1e7ff7b175d15e8b0ab7686c752ed37d3d2`
+  - `partita-senza-storico-mobile.png` `3b493e7919cb0f7c890d20a173138116b4edf940ace34a43699eb211180f1937`
+  - `partita-senza-storico-tablet.png` `c3918d0c07db2e51f0af0d0c4af9441024a9c2a7e6d2b956b1853e3fca48f1e6`
+  - `partita-tablet.png` `8a489e6343ce990de9e565f993c5c84875056f92af5ab1b9ac4a80b089a45388`
+  - `ricerca-risultati-desktop.png` `6d520e32545629c3b56db6eee78056ca31a73b2f5c1cf0ef0065ab0ac556e9e0`
+  - `ricerca-risultati-mobile.png` `a84cbfa3a97c185f32ed59b6ca8a58f8b08e57fab2e1dd1c06afda07c801b853`
+  - `ricerca-risultati-tablet.png` `c8e17d712d37c14570ff91094502ca5311278697ce3a7ce7bf928612c87b7743`
