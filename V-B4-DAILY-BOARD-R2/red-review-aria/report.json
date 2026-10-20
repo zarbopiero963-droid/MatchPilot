@@ -1,0 +1,149 @@
+{
+  "schema": "mp-browser-qa-v1",
+  "head_sha": "112f1ae42fcdd4c79c635d83074cb981b456e771",
+  "tested_commit": "112f1ae42fcdd4c79c635d83074cb981b456e771",
+  "tested_tree": "8580058949fd7a8264b5e2181297ee0d8400b146",
+  "working_tree_clean": false,
+  "generated_at": "2026-10-20T05:43:36.324Z",
+  "environment": {
+    "node": "v22.22.0",
+    "browser": "chromium 141.0.7390.37",
+    "browser_path": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+    "os": "linux 6.18.44-fc-v139 x64",
+    "ci": true,
+    "ci_run_id": null
+  },
+  "software": {
+    "package": "matchpilot-trading-os",
+    "version": "0.1.0",
+    "code_version": "package-0.1.0"
+  },
+  "dataset": {
+    "fixture": "test/helpers/fpt-seed.mjs#seedQaArchive",
+    "ingestion": "real FutPythonTrader path (CSV → storeDataset → facts)",
+    "competitions": [
+      "fpt:competition:f568d2fff73c2e2f5246eb165426d4cb",
+      "fpt:competition:dec098a11eb9c411e998e8c1c8ec0f4c"
+    ],
+    "matches": 86,
+    "busy_day": "2024-08-01",
+    "fixture_sha256": "7163eb6f4bc9ad6657132ff5a49db28e87f9f783408fa72987e07164f6d04ea5",
+    "production_data": false
+  },
+  "required": {
+    "journeys": [
+      "general-navigation",
+      "dashboard",
+      "daily-board",
+      "search",
+      "providers-endpoints"
+    ],
+    "viewports": [
+      "desktop",
+      "mobile"
+    ]
+  },
+  "journeys": [
+    {
+      "id": "daily-board",
+      "surface": "Daily Board",
+      "title": "Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "the teams read as one pair\n+ actual - expected\n\n+ null\n- 'Atletico – Betis'\n",
+      "duration_ms": 1934,
+      "steps": [
+        {
+          "name": "apertura dalla copertura in Dati",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-01-apertura-dalla-copertura-in-dati.png"
+        },
+        {
+          "name": "striscia dei giorni del mockup: tre giorni prima e dopo, Oggi solo per oggi",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-02-striscia-dei-giorni-del-mockup-tre-giorn.png"
+        },
+        {
+          "name": "selezione della data dal campo",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-03-selezione-della-data-dal-campo.png"
+        },
+        {
+          "name": "paginazione fino alla fine, stesso ordine dell’API",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-04-paginazione-fino-alla-fine-stesso-ordine.png"
+        },
+        {
+          "name": "schede: valori, campionato e N/D come nell’API",
+          "status": "FAIL",
+          "error": "the teams read as one pair\n+ actual - expected\n\n+ null\n- 'Atletico – Betis'\n",
+          "screenshot": "screenshots/daily-board-desktop-05-schede-valori-campionato-e-n-d-come-nell-failure.png"
+        }
+      ],
+      "trace": "traces/daily-board-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    }
+  ],
+  "counts": {
+    "pass": 0,
+    "fail": 1,
+    "skip": 0,
+    "not_verified": 0
+  },
+  "missing_required": [
+    "general-navigation/desktop",
+    "general-navigation/mobile",
+    "dashboard/desktop",
+    "dashboard/mobile",
+    "daily-board/desktop",
+    "daily-board/mobile",
+    "search/desktop",
+    "search/mobile",
+    "providers-endpoints/desktop",
+    "providers-endpoints/mobile"
+  ],
+  "findings": [
+    {
+      "id": "QA-daily-board-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "daily-board",
+      "viewport": "desktop",
+      "reason": "the teams read as one pair\n+ actual - expected\n\n+ null\n- 'Atletico – Betis'\n",
+      "evidence": [
+        "traces/daily-board-desktop.zip",
+        "screenshots/daily-board-desktop-01-apertura-dalla-copertura-in-dati.png",
+        "screenshots/daily-board-desktop-02-striscia-dei-giorni-del-mockup-tre-giorn.png",
+        "screenshots/daily-board-desktop-03-selezione-della-data-dal-campo.png",
+        "screenshots/daily-board-desktop-04-paginazione-fino-alla-fine-stesso-ordine.png",
+        "screenshots/daily-board-desktop-05-schede-valori-campionato-e-n-d-come-nell-failure.png"
+      ]
+    }
+  ],
+  "exploratory": {
+    "status": "NOT_VERIFIED",
+    "reason": "level B (exploratory AI agent) is not part of this run"
+  },
+  "injected_defect": false,
+  "limitations": [
+    "QA archive is a seeded fixture through the real ingestion path, not the real archive (#40) nor production data",
+    "accessibility checks are basic structural checks, not a full WCAG audit"
+  ],
+  "verdict": "FAIL",
+  "files": {
+    "screenshots/daily-board-desktop-01-apertura-dalla-copertura-in-dati.png": "2255171a58828779b37cc027e7c050eec329954ccc509d6c93060c229accea42",
+    "screenshots/daily-board-desktop-02-striscia-dei-giorni-del-mockup-tre-giorn.png": "94e09237344a55c128c96b9104fd0aa5fa39834263f82759c2a65ed3602ca4bd",
+    "screenshots/daily-board-desktop-03-selezione-della-data-dal-campo.png": "41fd870edfa62dfab0f2ea2208d94fe9f7658a8996e6a7b95e18c14041548e9d",
+    "screenshots/daily-board-desktop-04-paginazione-fino-alla-fine-stesso-ordine.png": "f37372de9fa41f3c000335efbf58c1aaa5724d6cdbf1e0a2e209a016763360c7",
+    "screenshots/daily-board-desktop-05-schede-valori-campionato-e-n-d-come-nell-failure.png": "f37372de9fa41f3c000335efbf58c1aaa5724d6cdbf1e0a2e209a016763360c7",
+    "traces/daily-board-desktop.zip": "c40d1879913a405824780d4a08617a6034e62e3d58df54073c280e1fff0515ce"
+  }
+}

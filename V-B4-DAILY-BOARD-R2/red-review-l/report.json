@@ -1,0 +1,128 @@
+{
+  "schema": "mp-browser-qa-v1",
+  "head_sha": "112f1ae42fcdd4c79c635d83074cb981b456e771",
+  "tested_commit": "112f1ae42fcdd4c79c635d83074cb981b456e771",
+  "tested_tree": "8580058949fd7a8264b5e2181297ee0d8400b146",
+  "working_tree_clean": false,
+  "generated_at": "2026-10-20T05:42:41.387Z",
+  "environment": {
+    "node": "v22.22.0",
+    "browser": "chromium 141.0.7390.37",
+    "browser_path": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+    "os": "linux 6.18.44-fc-v139 x64",
+    "ci": true,
+    "ci_run_id": null
+  },
+  "software": {
+    "package": "matchpilot-trading-os",
+    "version": "0.1.0",
+    "code_version": "package-0.1.0"
+  },
+  "dataset": {
+    "fixture": "test/helpers/fpt-seed.mjs#seedQaArchive",
+    "ingestion": "real FutPythonTrader path (CSV → storeDataset → facts)",
+    "competitions": [
+      "fpt:competition:f568d2fff73c2e2f5246eb165426d4cb",
+      "fpt:competition:dec098a11eb9c411e998e8c1c8ec0f4c"
+    ],
+    "matches": 86,
+    "busy_day": "2024-08-01",
+    "fixture_sha256": "7163eb6f4bc9ad6657132ff5a49db28e87f9f783408fa72987e07164f6d04ea5",
+    "production_data": false
+  },
+  "required": {
+    "journeys": [
+      "general-navigation",
+      "dashboard",
+      "daily-board",
+      "search",
+      "providers-endpoints"
+    ],
+    "viewports": [
+      "desktop",
+      "mobile"
+    ]
+  },
+  "journeys": [
+    {
+      "id": "search",
+      "surface": "Ricerca",
+      "title": "Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "each value starts after its title, no overlap",
+      "duration_ms": 2010,
+      "steps": [
+        {
+          "name": "tutte le partite, pagina dopo pagina, fino alla fine",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino.png"
+        },
+        {
+          "name": "squadra per nome, sede e qualità combinate",
+          "status": "FAIL",
+          "error": "each value starts after its title, no overlap",
+          "screenshot": "screenshots/search-mobile-02-squadra-per-nome-sede-e-qualita-combinat-failure.png"
+        }
+      ],
+      "trace": "traces/search-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    }
+  ],
+  "counts": {
+    "pass": 0,
+    "fail": 1,
+    "skip": 0,
+    "not_verified": 0
+  },
+  "missing_required": [
+    "general-navigation/desktop",
+    "general-navigation/mobile",
+    "dashboard/desktop",
+    "dashboard/mobile",
+    "daily-board/desktop",
+    "daily-board/mobile",
+    "search/desktop",
+    "search/mobile",
+    "providers-endpoints/desktop",
+    "providers-endpoints/mobile"
+  ],
+  "findings": [
+    {
+      "id": "QA-search-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "search",
+      "viewport": "mobile",
+      "reason": "each value starts after its title, no overlap",
+      "evidence": [
+        "traces/search-mobile.zip",
+        "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino.png",
+        "screenshots/search-mobile-02-squadra-per-nome-sede-e-qualita-combinat-failure.png"
+      ]
+    }
+  ],
+  "exploratory": {
+    "status": "NOT_VERIFIED",
+    "reason": "level B (exploratory AI agent) is not part of this run"
+  },
+  "injected_defect": false,
+  "limitations": [
+    "QA archive is a seeded fixture through the real ingestion path, not the real archive (#40) nor production data",
+    "accessibility checks are basic structural checks, not a full WCAG audit"
+  ],
+  "verdict": "FAIL",
+  "files": {
+    "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino.png": "aa61a413b231d97df5a914055ac0e72a77854099ffd27e72c93ef3438674ee77",
+    "screenshots/search-mobile-02-squadra-per-nome-sede-e-qualita-combinat-failure.png": "8864e1e2913de807db49d084e4325bef3d1feb19cfbc6ef3f0d5e15595bf4270",
+    "traces/search-mobile.zip": "8346554eb3490c2b624e692576a836f5d321238bce2c472aab43b99863e78863"
+  }
+}
