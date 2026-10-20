@@ -26,6 +26,9 @@ export function evaluateMergeGate(input) {
   const reasons = [];
   if (input.pr_state === 'merged') return {allowed: false, action: 'noop', reasons: ['PR already merged']};
   if (input.pr_state !== 'open') reasons.push(`PR is ${input.pr_state ?? 'unknown'}`);
+  // A gate fed by hand is never certified: PR state, head, CI and the deploy of main must come from GitHub
+  // (tools/governance/merge-facts.mjs, `merge-gate --pr N`).
+  if (input.facts_source !== 'github') reasons.push('merge facts were not read from GitHub (run merge-gate --pr <number>)');
   for (const [key, message] of Object.entries(required)) {
     const value = input[key];
     if (!(value === true || value === 'PASS' || value === 'SUCCESS')) reasons.push(message);

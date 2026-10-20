@@ -116,11 +116,23 @@ La revisione separata **non** è una «review indipendente APPROVED» GitHub e n
 
 Dopo ogni merge si verifica il deploy sullo SHA mergiato. **Un deploy fallito o non verificato ferma tutti i merge successivi** fino a un deploy verde o a un GO owner. Render, Neon, collector, LIVE e costi restano sempre vietati senza GO.
 
-**Valutazione eseguibile:** `node tools/governance/cli.mjs merge-gate <input.json>`. L'input contiene:
-- `merge_class` prodotta dal classificatore base;
-- `owner_go` con riferimento e SHA, per le PR OWNER-GO;
-- `review.separate_session` oppure `review.independent`;
-- `external_operations`, `deploy_path_certified`, `last_main_deploy`, `base_sha`.
+**Valutazione eseguibile.** Si usa `node tools/governance/cli.mjs merge-gate <input.json> --pr <numero>`, preso dal commit base.
+
+I fatti sono **letti da GitHub** (`tools/governance/merge-facts.mjs`), mai dichiarati:
+- stato e head della PR;
+- check `CI gate` di GitHub Actions sull'head;
+- SHA di `main`;
+- run `deploy-vps` del push su `main` per quello SHA, completato e su runner `self-hosted` + `matchpilot-vps`.
+
+Un valore dichiarato diverso da GitHub, un fatto illeggibile, un deploy fallito, in corso o mancante bloccano. Un gate alimentato a mano non vale mai come certificato.
+
+La certificazione del percorso di deploy si legge nel registro decisioni del **commit base**: serve una decisione `MP-OWNER-DEPLOY-PATH-CERTIFIED-*` in stato `IN_FORCE`.
+
+L'input dichiarato contiene solo:
+- `merge_class` del classificatore base;
+- `owner_go` (riferimento e SHA) per le PR OWNER-GO;
+- la revisione (`separate_session` oppure `independent`), Gate A/B e finding;
+- le operazioni esterne.
 
 Tutto ciò che è ignoto blocca.
 

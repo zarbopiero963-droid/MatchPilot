@@ -15,7 +15,7 @@ const head = 'f'.repeat(40);
 const ready = () => ({
   pr_state: 'open', scope_authorized: true, gate_a: 'PASS', gate_b: 'PASS', mandatory_tests: 'PASS', ci: 'SUCCESS', branch_protection: true,
   review: {verdict: 'APPROVED', independent: true, reference: 'https://github.com/o/r/pull/1#issuecomment-1', reviewed_sha: head},
-  head_sha: head, blocking_findings: 0, owner_conflicts: 0, external_operations: [], web_impact: false, merge_class: 'AUTO-MERGE ELIGIBLE',
+  head_sha: head, blocking_findings: 0, owner_conflicts: 0, external_operations: [], web_impact: false, merge_class: 'AUTO-MERGE ELIGIBLE', facts_source: 'github',
   title: 'R-01: governance', body: 'Refs #150', commit_messages: ['Governance: checkpoints\n\nRefs #150'],
 });
 
@@ -53,8 +53,8 @@ test('regression: the recorded PR #149 merge input satisfies the gate', () => {
     ...ready(), head_sha: '3c3bf20bf8628688b2ce1f35d4467335b84a6167', title: 'MP-PR-00: establish Gate A atomic requirements inventory',
     body: 'Refs #3 #97 #104 #12 #20 #40 #144',
     review: {verdict: 'APPROVED', independent: true, reference: 'https://github.com/zarbopiero963-droid/MatchPilot/pull/149#issuecomment-6254321043', reviewed_sha: '3c3bf20bf8628688b2ce1f35d4467335b84a6167'},
-    // Recorded before GOV-01; the base classifier output is now part of every input.
-    merge_class: 'AUTO-MERGE ELIGIBLE',
+    // Recorded before GOV-01; the base classifier output and GitHub-read facts are now part of every input.
+    merge_class: 'AUTO-MERGE ELIGIBLE', facts_source: 'github',
     commit_messages: ['Governance: add MP-PR-00 atomic requirements inventory', 'Governance: apply MP-PR-00 independent audit corrections (R-00)\n\nRefs #3 #97 #104 #149'],
   };
   assert.equal(evaluateMergeGate(pr149).allowed, true);

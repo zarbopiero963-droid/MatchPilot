@@ -111,8 +111,22 @@ async function main([command, ...args]) {
     return 0;
   }
   if (command === 'merge-gate') {
-    const verdict = evaluateMergeGate(JSON.parse(readFileSync(args[0], 'utf8')));
-    console.log(JSON.stringify(verdict, null, 2));
+    // merge-gate <input.json> --pr <number> [--repo owner/name] [--base origin/main]: the declared part (review, gates,
+    // merge class from the base classifier) plus the facts read from GitHub, which override and are cross-checked.
+    const at = name => { const i = args.indexOf(`--${name}`); return i < 0 ? null : args[i + 1]; };
+    let input = JSON.parse(readFileSync(args[0], 'utf8'));
+    const extra = [];
+    if (at('pr')) {
+      const {readGithubFacts, deployPathCertified, mergeWithFacts} = await import('./merge-facts.mjs');
+      const facts = await readGithubFacts({repo: at('repo') ?? 'zarbopiero963-droid/MatchPilot', pr: at('pr')});
+      const merged = mergeWithFacts(input, facts, {deployCertified: deployPathCertified(root, at('base') ?? 'origin/main')});
+      input = merged.input;
+      extra.push(...merged.reasons);
+    }
+    const verdict = evaluateMergeGate(input);
+    if (extra.length) Object.assign(verdict, {allowed: false, action: verdict.action === 'noop' ? 'noop' : 'block', reasons: [...extra, ...verdict.reasons]});
+    console.log(JSON.stringify({...verdict, facts: {pr_state: input.pr_state, head_sha: input.head_sha, base_sha: input.base_sha, ci: input.ci,
+      last_main_deploy: input.last_main_deploy, deploy_path_certified: input.deploy_path_certified, facts_source: input.facts_source ?? 'declared'}}, null, 2));
     return verdict.allowed ? 0 : 3;
   }
   console.error('usage: cli.mjs validate | status [--json] | resume <task> | scan-closing [files...] | check-append-only | merge-gate <file.json>');
