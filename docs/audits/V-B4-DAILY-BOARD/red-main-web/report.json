@@ -1,0 +1,272 @@
+{
+  "schema": "mp-browser-qa-v1",
+  "head_sha": "e453497dce9b693808260ee19dadf833a62b0b22",
+  "tested_commit": "e453497dce9b693808260ee19dadf833a62b0b22",
+  "tested_tree": "87f78a4b0e9ddcc0359fbd8020fed0a6006fd8d3",
+  "working_tree_clean": false,
+  "generated_at": "2026-10-19T23:05:05.649Z",
+  "environment": {
+    "node": "v22.22.0",
+    "browser": "chromium 141.0.7390.37",
+    "browser_path": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+    "os": "linux 6.18.44-fc-v139 x64",
+    "ci": true,
+    "ci_run_id": null
+  },
+  "software": {
+    "package": "matchpilot-trading-os",
+    "version": "0.1.0",
+    "code_version": "package-0.1.0"
+  },
+  "dataset": {
+    "fixture": "test/helpers/fpt-seed.mjs#seedQaArchive",
+    "ingestion": "real FutPythonTrader path (CSV → storeDataset → facts)",
+    "competitions": [
+      "fpt:competition:f568d2fff73c2e2f5246eb165426d4cb",
+      "fpt:competition:dec098a11eb9c411e998e8c1c8ec0f4c"
+    ],
+    "matches": 86,
+    "busy_day": "2024-08-01",
+    "fixture_sha256": "7163eb6f4bc9ad6657132ff5a49db28e87f9f783408fa72987e07164f6d04ea5",
+    "production_data": false
+  },
+  "required": {
+    "journeys": [
+      "general-navigation",
+      "dashboard",
+      "daily-board",
+      "search",
+      "providers-endpoints"
+    ],
+    "viewports": [
+      "desktop",
+      "mobile"
+    ]
+  },
+  "journeys": [
+    {
+      "id": "daily-board",
+      "surface": "Daily Board",
+      "title": "Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "page.evaluate: TypeError: Cannot read properties of null (reading 'querySelectorAll')\n    at eval (eval at evaluate (:290:30), <anonymous>:4:27)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+      "duration_ms": 869,
+      "steps": [
+        {
+          "name": "apertura dalla copertura in Dati",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-desktop-01-apertura-dalla-copertura-in-dati.png"
+        },
+        {
+          "name": "striscia dei giorni del mockup: tre giorni prima e dopo, Oggi solo per oggi",
+          "status": "FAIL",
+          "error": "page.evaluate: TypeError: Cannot read properties of null (reading 'querySelectorAll')\n    at eval (eval at evaluate (:290:30), <anonymous>:4:27)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+          "screenshot": "screenshots/daily-board-desktop-02-striscia-dei-giorni-del-mockup-tre-giorn-failure.png"
+        }
+      ],
+      "trace": "traces/daily-board-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "daily-board",
+      "surface": "Daily Board",
+      "title": "Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "page.evaluate: TypeError: Cannot read properties of null (reading 'querySelectorAll')\n    at eval (eval at evaluate (:290:30), <anonymous>:4:27)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+      "duration_ms": 731,
+      "steps": [
+        {
+          "name": "apertura dalla copertura in Dati",
+          "status": "PASS",
+          "screenshot": "screenshots/daily-board-mobile-01-apertura-dalla-copertura-in-dati.png"
+        },
+        {
+          "name": "striscia dei giorni del mockup: tre giorni prima e dopo, Oggi solo per oggi",
+          "status": "FAIL",
+          "error": "page.evaluate: TypeError: Cannot read properties of null (reading 'querySelectorAll')\n    at eval (eval at evaluate (:290:30), <anonymous>:4:27)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+          "screenshot": "screenshots/daily-board-mobile-02-striscia-dei-giorni-del-mockup-tre-giorn-failure.png"
+        }
+      ],
+      "trace": "traces/daily-board-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "search",
+      "surface": "Ricerca",
+      "title": "Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "page.evaluate: TypeError: Cannot read properties of null (reading 'parentElement')\n    at eval (eval at evaluate (:290:30), <anonymous>:3:30)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+      "duration_ms": 1691,
+      "steps": [
+        {
+          "name": "tutte le partite, pagina dopo pagina, fino alla fine",
+          "status": "PASS",
+          "screenshot": "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino.png"
+        },
+        {
+          "name": "squadra per nome, sede e qualità combinate",
+          "status": "FAIL",
+          "error": "page.evaluate: TypeError: Cannot read properties of null (reading 'parentElement')\n    at eval (eval at evaluate (:290:30), <anonymous>:3:30)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+          "screenshot": "screenshots/search-desktop-02-squadra-per-nome-sede-e-qualita-combinat-failure.png"
+        }
+      ],
+      "trace": "traces/search-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "search",
+      "surface": "Ricerca",
+      "title": "Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "page.evaluate: TypeError: Cannot read properties of null (reading 'parentElement')\n    at eval (eval at evaluate (:290:30), <anonymous>:3:30)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+      "duration_ms": 1539,
+      "steps": [
+        {
+          "name": "tutte le partite, pagina dopo pagina, fino alla fine",
+          "status": "PASS",
+          "screenshot": "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino.png"
+        },
+        {
+          "name": "squadra per nome, sede e qualità combinate",
+          "status": "FAIL",
+          "error": "page.evaluate: TypeError: Cannot read properties of null (reading 'parentElement')\n    at eval (eval at evaluate (:290:30), <anonymous>:3:30)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+          "screenshot": "screenshots/search-mobile-02-squadra-per-nome-sede-e-qualita-combinat-failure.png"
+        }
+      ],
+      "trace": "traces/search-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    }
+  ],
+  "counts": {
+    "pass": 0,
+    "fail": 4,
+    "skip": 0,
+    "not_verified": 0
+  },
+  "missing_required": [
+    "general-navigation/desktop",
+    "general-navigation/mobile",
+    "dashboard/desktop",
+    "dashboard/mobile",
+    "daily-board/desktop",
+    "daily-board/mobile",
+    "search/desktop",
+    "search/mobile",
+    "providers-endpoints/desktop",
+    "providers-endpoints/mobile"
+  ],
+  "findings": [
+    {
+      "id": "QA-daily-board-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "daily-board",
+      "viewport": "desktop",
+      "reason": "page.evaluate: TypeError: Cannot read properties of null (reading 'querySelectorAll')\n    at eval (eval at evaluate (:290:30), <anonymous>:4:27)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+      "evidence": [
+        "traces/daily-board-desktop.zip",
+        "screenshots/daily-board-desktop-01-apertura-dalla-copertura-in-dati.png",
+        "screenshots/daily-board-desktop-02-striscia-dei-giorni-del-mockup-tre-giorn-failure.png"
+      ]
+    },
+    {
+      "id": "QA-daily-board-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "daily-board",
+      "viewport": "mobile",
+      "reason": "page.evaluate: TypeError: Cannot read properties of null (reading 'querySelectorAll')\n    at eval (eval at evaluate (:290:30), <anonymous>:4:27)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+      "evidence": [
+        "traces/daily-board-mobile.zip",
+        "screenshots/daily-board-mobile-01-apertura-dalla-copertura-in-dati.png",
+        "screenshots/daily-board-mobile-02-striscia-dei-giorni-del-mockup-tre-giorn-failure.png"
+      ]
+    },
+    {
+      "id": "QA-search-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "search",
+      "viewport": "desktop",
+      "reason": "page.evaluate: TypeError: Cannot read properties of null (reading 'parentElement')\n    at eval (eval at evaluate (:290:30), <anonymous>:3:30)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+      "evidence": [
+        "traces/search-desktop.zip",
+        "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino.png",
+        "screenshots/search-desktop-02-squadra-per-nome-sede-e-qualita-combinat-failure.png"
+      ]
+    },
+    {
+      "id": "QA-search-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "search",
+      "viewport": "mobile",
+      "reason": "page.evaluate: TypeError: Cannot read properties of null (reading 'parentElement')\n    at eval (eval at evaluate (:290:30), <anonymous>:3:30)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+      "evidence": [
+        "traces/search-mobile.zip",
+        "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino.png",
+        "screenshots/search-mobile-02-squadra-per-nome-sede-e-qualita-combinat-failure.png"
+      ]
+    }
+  ],
+  "exploratory": {
+    "status": "NOT_VERIFIED",
+    "reason": "level B (exploratory AI agent) is not part of this run"
+  },
+  "injected_defect": false,
+  "limitations": [
+    "QA archive is a seeded fixture through the real ingestion path, not the real archive (#40) nor production data",
+    "accessibility checks are basic structural checks, not a full WCAG audit"
+  ],
+  "verdict": "FAIL",
+  "files": {
+    "screenshots/daily-board-desktop-01-apertura-dalla-copertura-in-dati.png": "212d7225d8358f4d641b9e96d62666e171fcc3570f4f7a612db68a610fd81933",
+    "screenshots/daily-board-desktop-02-striscia-dei-giorni-del-mockup-tre-giorn-failure.png": "212d7225d8358f4d641b9e96d62666e171fcc3570f4f7a612db68a610fd81933",
+    "screenshots/daily-board-mobile-01-apertura-dalla-copertura-in-dati.png": "b18ebe43962642d22cb4b09f769a4ee61c1e2ae02a7901a709fd355ec90349fd",
+    "screenshots/daily-board-mobile-02-striscia-dei-giorni-del-mockup-tre-giorn-failure.png": "b18ebe43962642d22cb4b09f769a4ee61c1e2ae02a7901a709fd355ec90349fd",
+    "screenshots/search-desktop-01-tutte-le-partite-pagina-dopo-pagina-fino.png": "2d6facd52b216622bb7ccebb4be0983f9090ea5671cae9c4308b3fb8b8089904",
+    "screenshots/search-desktop-02-squadra-per-nome-sede-e-qualita-combinat-failure.png": "4f8927a90a9587e80c4e80efceeead7865759d6e07c9c650b04497e5e6190a0a",
+    "screenshots/search-mobile-01-tutte-le-partite-pagina-dopo-pagina-fino.png": "f9fea1ad456210d7449e0bea4490ab3fa43a99775a2f41fa05d864350a7cc7ae",
+    "screenshots/search-mobile-02-squadra-per-nome-sede-e-qualita-combinat-failure.png": "a2613487a77912181715d08537f4ff06352dbd8513bfe1c29dfb265220082dae",
+    "traces/daily-board-desktop.zip": "cfb3c1e755f73f03378921299975ecead4ed3bf81ff0696340d10ea8fcaa0589",
+    "traces/daily-board-mobile.zip": "350b675c152eabc568bf37938ff12237fce910ed15f9ee3e6d771cce920237c6",
+    "traces/search-desktop.zip": "75441b9b90f3bd9cff3de87c3efb27473d7cd0ba8fc9dd4ffb7491502df5639a",
+    "traces/search-mobile.zip": "2c0582189c9bfda5395ff6277110474fd6c5866533614d3712610393a0937304"
+  }
+}
