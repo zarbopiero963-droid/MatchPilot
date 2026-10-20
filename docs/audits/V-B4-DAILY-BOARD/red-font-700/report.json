@@ -1,0 +1,176 @@
+{
+  "schema": "mp-browser-qa-v1",
+  "head_sha": "e453497dce9b693808260ee19dadf833a62b0b22",
+  "tested_commit": "e453497dce9b693808260ee19dadf833a62b0b22",
+  "tested_tree": "87f78a4b0e9ddcc0359fbd8020fed0a6006fd8d3",
+  "working_tree_clean": false,
+  "generated_at": "2026-10-19T23:05:52.464Z",
+  "environment": {
+    "node": "v22.22.0",
+    "browser": "chromium 141.0.7390.37",
+    "browser_path": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+    "os": "linux 6.18.44-fc-v139 x64",
+    "ci": true,
+    "ci_run_id": null
+  },
+  "software": {
+    "package": "matchpilot-trading-os",
+    "version": "0.1.0",
+    "code_version": "package-0.1.0"
+  },
+  "dataset": {
+    "fixture": "test/helpers/fpt-seed.mjs#seedQaArchive",
+    "ingestion": "real FutPythonTrader path (CSV → storeDataset → facts)",
+    "competitions": [
+      "fpt:competition:f568d2fff73c2e2f5246eb165426d4cb",
+      "fpt:competition:dec098a11eb9c411e998e8c1c8ec0f4c"
+    ],
+    "matches": 86,
+    "busy_day": "2024-08-01",
+    "fixture_sha256": "7163eb6f4bc9ad6657132ff5a49db28e87f9f783408fa72987e07164f6d04ea5",
+    "production_data": false
+  },
+  "required": {
+    "journeys": [
+      "general-navigation",
+      "dashboard",
+      "daily-board",
+      "search",
+      "providers-endpoints"
+    ],
+    "viewports": [
+      "desktop",
+      "mobile"
+    ]
+  },
+  "journeys": [
+    {
+      "id": "general-navigation",
+      "surface": "Interfaccia generale",
+      "title": "Navigazione, rotte, pagina sconosciuta, tastiera",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "700 34px \"Barlow Condensed\" is served by its own face, not by weight 800",
+      "duration_ms": 439,
+      "steps": [
+        {
+          "name": "apertura del sito",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-desktop-01-apertura-del-sito.png"
+        },
+        {
+          "name": "identità del mockup: font locali, ambra, logo",
+          "status": "FAIL",
+          "error": "700 34px \"Barlow Condensed\" is served by its own face, not by weight 800",
+          "screenshot": "screenshots/general-navigation-desktop-02-identita-del-mockup-font-locali-ambra-lo-failure.png"
+        }
+      ],
+      "trace": "traces/general-navigation-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "general-navigation",
+      "surface": "Interfaccia generale",
+      "title": "Navigazione, rotte, pagina sconosciuta, tastiera",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "700 34px \"Barlow Condensed\" is served by its own face, not by weight 800",
+      "duration_ms": 361,
+      "steps": [
+        {
+          "name": "apertura del sito",
+          "status": "PASS",
+          "screenshot": "screenshots/general-navigation-mobile-01-apertura-del-sito.png"
+        },
+        {
+          "name": "identità del mockup: font locali, ambra, logo",
+          "status": "FAIL",
+          "error": "700 34px \"Barlow Condensed\" is served by its own face, not by weight 800",
+          "screenshot": "screenshots/general-navigation-mobile-02-identita-del-mockup-font-locali-ambra-lo-failure.png"
+        }
+      ],
+      "trace": "traces/general-navigation-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    }
+  ],
+  "counts": {
+    "pass": 0,
+    "fail": 2,
+    "skip": 0,
+    "not_verified": 0
+  },
+  "missing_required": [
+    "general-navigation/desktop",
+    "general-navigation/mobile",
+    "dashboard/desktop",
+    "dashboard/mobile",
+    "daily-board/desktop",
+    "daily-board/mobile",
+    "search/desktop",
+    "search/mobile",
+    "providers-endpoints/desktop",
+    "providers-endpoints/mobile"
+  ],
+  "findings": [
+    {
+      "id": "QA-general-navigation-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "general-navigation",
+      "viewport": "desktop",
+      "reason": "700 34px \"Barlow Condensed\" is served by its own face, not by weight 800",
+      "evidence": [
+        "traces/general-navigation-desktop.zip",
+        "screenshots/general-navigation-desktop-01-apertura-del-sito.png",
+        "screenshots/general-navigation-desktop-02-identita-del-mockup-font-locali-ambra-lo-failure.png"
+      ]
+    },
+    {
+      "id": "QA-general-navigation-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "general-navigation",
+      "viewport": "mobile",
+      "reason": "700 34px \"Barlow Condensed\" is served by its own face, not by weight 800",
+      "evidence": [
+        "traces/general-navigation-mobile.zip",
+        "screenshots/general-navigation-mobile-01-apertura-del-sito.png",
+        "screenshots/general-navigation-mobile-02-identita-del-mockup-font-locali-ambra-lo-failure.png"
+      ]
+    }
+  ],
+  "exploratory": {
+    "status": "NOT_VERIFIED",
+    "reason": "level B (exploratory AI agent) is not part of this run"
+  },
+  "injected_defect": false,
+  "limitations": [
+    "QA archive is a seeded fixture through the real ingestion path, not the real archive (#40) nor production data",
+    "accessibility checks are basic structural checks, not a full WCAG audit"
+  ],
+  "verdict": "FAIL",
+  "files": {
+    "screenshots/general-navigation-desktop-01-apertura-del-sito.png": "62afef7a9de401b1e75584a26884f2d2a1a3e1497e992c64f4d002494244a25e",
+    "screenshots/general-navigation-desktop-02-identita-del-mockup-font-locali-ambra-lo-failure.png": "62afef7a9de401b1e75584a26884f2d2a1a3e1497e992c64f4d002494244a25e",
+    "screenshots/general-navigation-mobile-01-apertura-del-sito.png": "31918ad3c7ff73bc910305803ef4e4c7903283af18413615c22a1353b7f4e872",
+    "screenshots/general-navigation-mobile-02-identita-del-mockup-font-locali-ambra-lo-failure.png": "31918ad3c7ff73bc910305803ef4e4c7903283af18413615c22a1353b7f4e872",
+    "traces/general-navigation-desktop.zip": "133e6013c77d1de5be2c7ed88f3b7b055a3d69f53fbd3aaae1c06461b2b1183c",
+    "traces/general-navigation-mobile.zip": "916e58fac9ee52d045abb55b6a545ea130e23ee1ef073b0f0e008ca2d8deb94e"
+  }
+}

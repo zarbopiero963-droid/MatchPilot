@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 86,
+  "revision": 89,
   "tasks": [
     {
       "id": "R-01",
@@ -360,13 +360,29 @@
       "pr": 172,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261019T225853Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "V-B4",
+      "title": "V-B4: compact Daily Board as in the approved mockup, 1-X-2 odds layout, responsive tables, N/D and empty states; no browser calculation",
+      "issue": 3,
+      "pr": 173,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
       "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T225133Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261020T054638Z-agent-a-claude-code",
       "pr_open": true
     }
   ]

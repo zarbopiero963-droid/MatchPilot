@@ -1,0 +1,15 @@
+{
+  "schema": "mp-evidence-v1",
+  "audit_id": "V-B4-DAILY-BOARD",
+  "commit_sha": "fe8eba23dff22ca8e6c6dca494084b87cd3a5afb",
+  "date": "2026-10-19",
+  "environment": "Claude Code cloud container (Linux), PostgreSQL 16 throwaway schema with the QA archive, Chromium 141.0.7390.37, viewports 1280x800 and 390x844",
+  "outcome": "RED: daily-board and search fail with the web code of main, daily-board desktop and search mobile fail with the CSS of main, general-navigation fails without the Barlow 700 rule. GREEN: 10/10 on fe8eba2, verifier ok",
+  "archive": {
+    "branch": "evidence/audits",
+    "commit": "a9feb5f2a5b70adb759b61714056ec2c3c31e661",
+    "path": "V-B4-DAILY-BOARD",
+    "zip_sha256": "7204d1753e5d7de2049e14d68739c4e36933d9323ca19ccf982843095664351a",
+    "url": "https://github.com/zarbopiero963-droid/MatchPilot/tree/a9feb5f2a5b70adb759b61714056ec2c3c31e661/V-B4-DAILY-BOARD"
+  }
+}

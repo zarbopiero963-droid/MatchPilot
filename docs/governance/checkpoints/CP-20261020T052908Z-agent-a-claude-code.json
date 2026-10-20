@@ -1,0 +1,118 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "384c1ac8af736d0ce00a406e22e56ac78faf07fa",
+  "tree_sha": "707d2e6b6f5a73ac525a837cf565d9625558a9fe",
+  "supersedes": null,
+  "pr": null,
+  "id": "CP-20261020T052908Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-20T05:29:08Z",
+  "activity": "V-B4: compact Daily Board rows and day strip of the approved mockup, search results as cards on a phone; ready for review",
+  "task": "V-B4",
+  "issue": 3,
+  "requirements": [
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "src/web/app.js (matchRow, dayStrip, data-label on the result cells), src/web/app.css (compact rows, day strip, results as cards on a phone)",
+    "tools/qa/journeys.mjs (steps for the day strip, the compact rows and the mobile results; each font weight served by its own face, PR #172 review R2-NB-1)",
+    "docs/web.md, docs/qa/ui-text-inventory.md (UI-14, UI-22, UI-44, V-B4 plan), docs/governance/mp-pr-00/requirements.json (MP-WEB-015 evidence)",
+    "docs/audits/V-B4-DAILY-BOARD + evidence/audits@a9feb5f2a5b70adb759b61714056ec2c3c31e661"
+  ],
+  "tests": [
+    {
+      "command": "node tools/qa/browser-qa.mjs --journeys daily-board,search (new journeys, web code of main)",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "e453497dce9b693808260ee19dadf833a62b0b22",
+      "time": "2026-10-19T23:05:05Z",
+      "limits": [
+        "intended RED on an uncommitted tree: daily-board and search fail on both viewports; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs --journeys daily-board,search (new app.js, app.css of main)",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "e453497dce9b693808260ee19dadf833a62b0b22",
+      "time": "2026-10-19T23:05:50Z",
+      "limits": [
+        "intended RED on an uncommitted tree: daily-board desktop and search mobile fail; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs --journeys general-navigation (Barlow Condensed 700 rule removed)",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "e453497dce9b693808260ee19dadf833a62b0b22",
+      "time": "2026-10-19T23:05:52Z",
+      "limits": [
+        "intended RED (mutation M9 of PR #172 review) on an uncommitted tree; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs + verify-report on the committed change",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "fe8eba23dff22ca8e6c6dca494084b87cd3a5afb",
+      "time": "2026-10-19T23:09:00Z",
+      "limits": [
+        "10/10, clean tree, verifier ok; time from report.json generated_at"
+      ]
+    },
+    {
+      "command": "CI=1 node --test (full suite); npm run check; governance:check, governance:evidence",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16",
+      "commit": "fe8eba23dff22ca8e6c6dca494084b87cd3a5afb",
+      "time": "2026-10-20T05:29:08Z",
+      "limits": [
+        "338/339: test/postgres-independence.test.mjs needs PostgreSQL 17 (local server is 16), it runs in CI; time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "VB4-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "no grouping by competition as in the mockup: the API has none (D-4); each row names its competition"
+    },
+    {
+      "id": "VB4-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "row compactness (at most 96px) is checked on the QA archive only: very long team names wrap and make a row taller, never cut"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-UI-ROADMAP-01",
+    "MP-OWNER-VISUAL-BASELINE-D1-D7-01",
+    "MP-OWNER-UI-NO-RAW-TEXT-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261019T225853Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "open the PR, independent review D2 on the head, CI, Gate B, protected merge, post-merge verification; then QA-V",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains 384c1ac8af736d0ce00a406e22e56ac78faf07fa"
+  ]
+}

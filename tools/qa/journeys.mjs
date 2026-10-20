@@ -20,6 +20,8 @@ export const words = slug => String(slug).trim().split(/[-_\s]+/).filter(Boolean
 export const seasonShown = season => /^\d{4}-\d{4}$/.test(season ?? '') ? `${season.slice(0, 4)}/${season.slice(7)}` : shown(season);
 const RESULT = {NO_RESULT: 'Senza risultato', NOT_STARTED: 'Non iniziata'};
 // A final result shows the score; a match without one shows its state in Italian; a missing score is N/D.
+// Calendar arithmetic of the checks, in UTC like the site's day navigation.
+const addDays = (text, days) => new Date(Date.parse(`${text}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
 export const outcomeShownFor = row => RESULT[row.result_status] ?? (row.home_score == null || row.away_score == null ? 'N/D' : `${row.home_score}–${row.away_score}`);
 
 const SIDE = {HOME: 'Casa', AWAY: 'Ospite', EVEN: 'Pari'};
@@ -114,14 +116,21 @@ export const JOURNEYS = [
         assert.equal(look.logo, 'MATCHPILOT');
         assert.deepEqual(look.external, [], 'no resource from another origin');
         // Every face is a valid file the browser can use, not only the ones this page happens to need (PR #172 review NB-3).
+        // The face that answers must be the one declared for that weight: without its rule, Barlow 700 would be served by
+        // the 800 face (PR #172 review R2-NB-1).
         const faces = await page.evaluate(async () => {
           const out = {};
           for (const spec of ['400 15px Manrope', '700 34px "Barlow Condensed"', '800 23px "Barlow Condensed"', '600 14px "JetBrains Mono"']) {
-            out[spec] = (await document.fonts.load(spec)).length;
+            out[spec] = (await document.fonts.load(spec)).map(face => face.weight);
           }
           return out;
         });
-        for (const [spec, count] of Object.entries(faces)) assert.equal(count, 1, `${spec} loads its own face`);
+        for (const [spec, weights] of Object.entries(faces)) {
+          assert.equal(weights.length, 1, `${spec} loads one face`);
+          const wanted = Number(spec.split(' ')[0]);
+          const [low, high = low] = weights[0].split(' ').map(Number);
+          assert.ok(low <= wanted && wanted <= high, `${spec} is served by its own face, not by weight ${weights[0]}`);
+        }
         // The keyboard focus is the amber ring of the mockup (PR #172 review NB-3).
         await page.evaluate(() => { document.activeElement?.blur(); });
         await page.keyboard.press('Tab');
@@ -286,6 +295,28 @@ export const JOURNEYS = [
         await laliga.click();
         await page.waitForSelector('[data-testid="board-day"]');
       });
+      await step('striscia dei giorni del mockup: tre giorni prima e dopo, Oggi solo per oggi', async () => {
+        // V-B4 (UI-22): calendar navigation only; the strip fits its row on every viewport.
+        const strip = async () => page.evaluate(() => {
+          const nav = document.querySelector('[data-testid="day-strip"]');
+          return {shown: document.querySelector('[data-testid="board-day"] time')?.getAttribute('datetime'),
+            days: [...nav.querySelectorAll('a')].map(a => ({date: a.dataset.date, href: a.getAttribute('href'), current: a.getAttribute('aria-current'),
+              label: a.getAttribute('aria-label'), small: a.querySelector('small').textContent})),
+            fits: nav.scrollWidth <= nav.clientWidth + 1};
+        });
+        const at = await strip();
+        assert.deepEqual(at.days.map(d => d.date), [-3, -2, -1, 0, 1, 2, 3].map(shift => addDays(at.shown, shift)));
+        assert.deepEqual(at.days.map(d => d.href), at.days.map(d => `#/?date=${d.date}`));
+        assert.deepEqual(at.days.map(d => d.current), [null, null, null, 'date', null, null, null]);
+        assert.ok(at.days.every(d => /^\p{L}+ \d{1,2} \p{L}+ \d{4}$/u.test(d.label)), `full day names: ${at.days.map(d => d.label)}`);
+        assert.ok(!at.days.some(d => d.small === 'Oggi'), 'a past day is not called Oggi');
+        assert.ok(at.fits, 'the strip fits its row');
+        await page.click(`[data-testid="day-strip"] a[data-date="${at.days[4].date}"]`);
+        await page.waitForFunction(text => document.querySelector('[data-testid="day-strip"] a[aria-current="date"]')?.dataset.date === text, at.days[4].date);
+        await page.goto(`${base}/#/`);
+        await page.waitForFunction(() => document.querySelector('[data-testid="day-strip"] a[aria-current="date"] small')?.textContent === 'Oggi');
+        assert.equal(await page.textContent('main h1'), 'Oggi');
+      });
       await step('selezione della data dal campo', async () => {
         await page.fill('input[name="date"]', day);
         await page.click('[data-testid="board-controls"] button[type="submit"]');
@@ -318,6 +349,7 @@ export const JOURNEYS = [
           if (row.favorite_side) assert.equal(await favorite.locator('[data-code]').getAttribute('data-code'), row.favorite_side);
           assert.equal(await card.locator('[data-field="xg"] b').textContent(), `${shown(row.xg_home)} – ${shown(row.xg_away)}`);
           assert.equal(await card.locator('[data-field="score"]').textContent(), outcomeShownFor(row));
+          assert.equal(await card.locator('h3').getAttribute('aria-label'), `${row.home_name || 'N/D'} – ${row.away_name || 'N/D'}`, 'the teams read as one pair');
           // Nothing of the API row is lost: what the card no longer prints stays on it, for checks and technical views.
           assert.equal(await card.getAttribute('data-result'), row.result_status ?? '');
           assert.equal(await card.getAttribute('data-phase'), row.phase ?? '');
@@ -330,6 +362,28 @@ export const JOURNEYS = [
         assert.equal(await page.locator('main p.meta:not([data-testid="end"])').count(), 0);
         assert.ok(all.some(row => row.favorite_side) && all.some(row => !row.favorite_side), 'the busy day has matches with and without a favourite');
         assert.ok(new Set(all.map(row => row.league_slug)).size === 2, 'both competitions on the day');
+      });
+      await step('righe compatte del mockup: mercati sulla riga, sotto le squadre sul telefono', async () => {
+        // V-B4 (UI-14): one compact row per match; on a phone the markets go under the teams, never hidden (no data lost).
+        const look = await page.evaluate(() => {
+          const box = node => node.getBoundingClientRect();
+          return {phone: innerWidth <= 560, board: document.querySelector('[data-testid="paged-list"]').classList.contains('board'),
+            rows: [...document.querySelectorAll('article.match')].map(row => {
+              const r = box(row), teams = box(row.querySelector('.teams')), odds = box(row.querySelector('[data-field="odds_1x2"]'));
+              const parts = ['.teams', '.score', '[data-field="odds_1x2"]', '[data-field="odd_over25"]', '[data-field="odd_btts_yes"]', '.facts'].map(s => box(row.querySelector(s)));
+              return {height: r.height, inside: parts.every(b => b.width > 0 && b.left >= r.left - 0.5 && b.right <= r.right + 0.5 && b.bottom <= r.bottom + 0.5),
+                sameLine: odds.top < teams.bottom && odds.bottom > teams.top, below: odds.top >= teams.bottom - 0.5};
+            })};
+        });
+        assert.ok(look.board, 'the rows sit in one list card');
+        for (const [i, row] of look.rows.entries()) {
+          assert.ok(row.inside, `row ${i}: every part shown inside its row`);
+          if (look.phone) assert.ok(row.below, `row ${i}: the markets under the teams on a phone`);
+          else {
+            assert.ok(row.sameLine, `row ${i}: teams and markets on one line`);
+            assert.ok(row.height <= 96, `row ${i}: compact (${row.height}px)`);
+          }
+        }
       });
       await step('partite senza risultato finale: lo stato al posto del punteggio', async () => {
         // The QA archive holds final results only: the API answer is changed in the browser to show the other states.
@@ -488,6 +542,25 @@ export const JOURNEYS = [
           assert.equal(await line.locator('[data-field="competition"]').textContent(), `${words(row.league_slug)} ${seasonShown(row.season)}`);
           assert.equal(await line.locator('[data-field="score"]').textContent(), outcomeShownFor(row));
         }
+        // UI-44: on a phone each result reads as a small card, every value after its column title; on a desktop, a table.
+        const layout = await page.evaluate(() => {
+          const table = document.querySelector('table.results');
+          const wrap = table.parentElement;
+          // The title is drawn before the value (::before) in its own space: the value starts after it (PR #173 review NB-1).
+          const drawn = [...table.tBodies[0].rows[0].cells].map(td => {
+            const before = getComputedStyle(td, '::before');
+            return {content: before.content, clear: parseFloat(getComputedStyle(td).paddingLeft) >= parseFloat(before.left) + parseFloat(before.width)};
+          });
+          return {phone: innerWidth <= 560, titles: [...table.tHead.rows[0].cells].map(th => th.textContent), head: getComputedStyle(table.tHead).display,
+            labels: [...table.tBodies[0].rows].map(tr => [...tr.cells].map(td => td.dataset.label)), fits: wrap.scrollWidth <= wrap.clientWidth + 1, drawn};
+        });
+        assert.ok(layout.labels.every(labels => JSON.stringify(labels) === JSON.stringify(layout.titles)), 'every value carries its column title');
+        if (layout.phone) {
+          assert.equal(layout.head, 'none', 'the titles move next to each value');
+          assert.deepEqual(layout.drawn.map(cell => cell.content), layout.titles.map(title => JSON.stringify(title)), 'each title is drawn on the card');
+          assert.ok(layout.drawn.every(cell => cell.clear), 'each value starts after its title, no overlap');
+          assert.ok(layout.fits, 'no sideways scroll of the results on a phone');
+        } else assert.equal(layout.head, 'table-header-group');
       });
       await step('campionato e intervallo di date', async () => {
         const expected = (await api(`/api/v1/fpt/search?competition=${encodeURIComponent(seed.laliga.competition)}&from=2024-08-02&before=2024-08-03&limit=500`)).data.rows;
