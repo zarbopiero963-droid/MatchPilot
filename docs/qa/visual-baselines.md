@@ -5,10 +5,10 @@ Every change to `test/visual/baselines/`, to `test/visual/manifest.json` or to i
 run the captures come from, the thresholds and every changed baseline with its new SHA-256. CI refuses a change to the
 baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules: [visual.md](visual.md).
 
-## 2026-10-20 — First baselines of the approved views (QA-V); thresholds measured against the CI browser (run 39380642895: Chrome 155 vs Chromium 141, largest 8x8 block delta 26)
+## 2026-10-20 — First baselines of the approved views (QA-V), native date field in Italian; thresholds measured against the CI browser (runs 39380642895 and 39381265101: Chrome 155 vs Chromium 141, largest 8x8 block delta 26.1)
 
 - Approval: PR #174, Refs #3; MP-OWNER-AUTONOMOUS-UI-ROADMAP-01
-- Run: commit `3bf69f43378700ff2e568eb6728ec74e839f00d4`, chromium 141.0.7390.37
+- Run: commit `5ca90e29077093aeb7c18ab67d118072c508a3ed`, chromium 141.0.7390.37
 - Thresholds: block 8, pixel 32, ratio 0
 - Baselines:
   - `dati-desktop.png` `1b97350f6222e268b1f5e49a7e6ee985337aa41232c12e8b20e18d93f77b80fa`
@@ -17,21 +17,21 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `non-trovata-desktop.png` `aeb7997c1b8cbf1c40c4576300f1b063fc56dac5008942d25bc381cc6b41ecba`
   - `non-trovata-mobile.png` `406f8d73f3403c0f83e31ebeafce2b93a146fa95886037c823fa853cfe1bf4e4`
   - `non-trovata-tablet.png` `1a3809580ce8294d66bf2f08eb6d8f6d02dfe85de8c6cde0b3c73c2b0cffb3ac`
-  - `oggi-desktop.png` `1d7aa8a2a8bdf48beb9054bd3f92021d26e6231a0ff6e6e50da732624a55a59b`
-  - `oggi-mobile.png` `ae103ca3c071c9a861f717e8ccc30e0686f560f9b4f5646d46c6996dfbb0396a`
-  - `oggi-oggi-desktop.png` `b24184d478ce12d59e63c013d8e7830c3eb451f8db2acc0105725327af014cbf`
-  - `oggi-oggi-mobile.png` `cbf6d3eeeac47e1a0ed23dbfbb419e450fae3362aa97cdfd91ee6d9b6122651e`
-  - `oggi-oggi-tablet.png` `ef333c37ae81eb03ad6dd162ec491db154f90517bdaced2e4f482b6273cc66b2`
+  - `oggi-desktop.png` `c90c2da06eae0cdac680636aea2cfa447de1ac147f4e9988c8f3e98837c35d19`
+  - `oggi-mobile.png` `efd8a7da326b0c3fd7a599c3535567d3bad8b2277f010cdda827355a9d9d466d`
+  - `oggi-oggi-desktop.png` `5b8ed698bf675cad98c7c6f1ef5db0662fe90e9fdbf6d91d8df1e64540bba79f`
+  - `oggi-oggi-mobile.png` `17ef312434cd7b35fb3884063b75b89ccb1c2e00402d8dd0690a708976a265c7`
+  - `oggi-oggi-tablet.png` `8b8388a5bed8af7c6f8614225542fdad0a654312463210da26e525f376496fbf`
   - `oggi-righe-desktop.png` `758fc384cc82dfc516fff8089f573e72aa6dc313d9ae382372f11d7084a9b697`
   - `oggi-righe-mobile.png` `a7e0e63c0d6644f960862fd33168115a5b04083b973230e42c9655229204689d`
   - `oggi-righe-tablet.png` `b6fb5f660d76c6a8e90d7ff46972b165b7b33ba29d4d9b9026a22597c0dece6c`
-  - `oggi-tablet.png` `21455d25dc1e6b014d274a9efdfb477443865af9df5580b709b6e47d56176c66`
-  - `oggi-vuoto-desktop.png` `634431023e6d362878ea8c6e05187000797eb17dbf5435d9bd5027b1715defd2`
-  - `oggi-vuoto-mobile.png` `9501f120331e896c48b2b27495edde2bb8913cbaf018ae3552ef1c7c2ae50de5`
-  - `oggi-vuoto-tablet.png` `d8a33aefe67722bb1c785c7dadd7f39581c3b4edc8111821baf1ad2fc55ee1c9`
-  - `ricerca-desktop.png` `9632f781e517efcd0cfa99b861c5d0bb38fbf9aa6e3fd3249462e0a4cdaa43ff`
-  - `ricerca-mobile.png` `d946369903c01fa0bd25db8a52f6b9820c287e005796b8914e23821aa6dbab3a`
+  - `oggi-tablet.png` `245314aadd473b0c923949ff61578b2eb3f08d417f8f845fe3d3ee5fa3250466`
+  - `oggi-vuoto-desktop.png` `11a3f7a2d56a1cb83d19384a65436767c48686b6b212d68be6b42ad73aaa2c64`
+  - `oggi-vuoto-mobile.png` `0272470b748642f00476748fa5e3a5665ea1f956188085a738bb07a608e5743b`
+  - `oggi-vuoto-tablet.png` `197ca5228f42da8908279f73f12fbce7fddcee0e35b8cb2f4ec6735b0ffd6732`
+  - `ricerca-desktop.png` `16b2b0184091b29387f7eee5096eae7823a3659978b2a8ddb4acd6c10b209989`
+  - `ricerca-mobile.png` `2c940c91005dbe3092874106002f35be7b836709e3165a4d2abdbc7e7bc94e6d`
   - `ricerca-risultati-desktop.png` `dc57b1dc68f6df11b905570635cea2eeb7cd7260d69731fa01e353cf6b5e74ff`
   - `ricerca-risultati-mobile.png` `b04f893524e1243e79b9b307c4cbb95696454e4bc745059f5643be6a53d317ae`
   - `ricerca-risultati-tablet.png` `80d4ed9062f8fdb2b0d086a638d7f71ce222613e208bbe9e79f2b76e3e9bd610`
-  - `ricerca-tablet.png` `f8d683d4b3c19617ec8fcdad07e2c3681b95722daa502a57e057661837642303`
+  - `ricerca-tablet.png` `afa15db63d1f412710c6fdbe3cf026913c9d94668927480bf303f297f971ef0d`
