@@ -61,7 +61,9 @@ Authorized configuration for tests: `mp-ref-fav-back-1`, stake `1`, commission `
 **The view the strategy sees:**
 - it is frozen and has exactly these fields: `provider`, `event_id`, `home`, `away`, `kickoff_utc`, `decision_time`, `odds`;
 - reading any other field, such as an outcome or a score, throws `VIEW_FIELD_NOT_AVAILABLE`;
-- the strategy returns `BACK` with a selection that has a price in the view, or `NO_TRADE` with a reason. Anything else fails with `BAD_STRATEGY_DECISION`. The engine takes the price from the view, so a strategy cannot choose one.
+- the strategy returns `BACK` with a selection that has a price in the view, or `NO_TRADE` with a reason. Anything else fails with `BAD_STRATEGY_DECISION`. The engine takes the price from the view, so a strategy cannot choose one;
+- the prices are collected in a prototype-free map: a value planted on `Object.prototype`, by a strategy or any other code, can neither fill a missing selection nor outrank a real price (PR #178 review, finding 1);
+- the view guards against look-ahead; it is not a sandbox. A strategy runs in the same process, so the configuration can select only the strategies registered in code (`STRATEGIES`).
 
 **`mp-ref-fav-back-1`:**
 - BACK the selection with the lowest admitted price among home, draw and away;
@@ -145,6 +147,10 @@ node tools/hist/backtest.mjs --input <input.json> --config <config.json> --out <
 | Settlement oracle | 1,500 seeded markets (BACK, LAY, VOID, commission 0–6.5 %) against an independent exact-fraction oracle, plus the engine's metrics with commission |
 | Status and certification | a REAL dataset with admissible data: `status: OK` with `real_data_verdict: NOT_VERIFIED` and `certified: false`; no run of any status is certified; no input field reaches the block |
 | No bet | admissible data with every event NO_TRADE gives `OK` with `metrics: null` |
+| Prototype pollution | prices planted on `Object.prototype` reach no view and no bet; a BACK on a planted selection fails with `BAD_STRATEGY_DECISION` |
+| Other bookmaker only | prices admitted only for another bookmaker give `INSUFFICIENT_PIT_DATA` with no bet or metric |
+| ROI rounding | exact ties `0.00135 → 0.0014` and `0.00125 → 0.0012` (HALF_EVEN, 4 places) |
+| Same-instant tie-break | two prices of one selection acquired at the same instant: the greater observation id wins, whatever the price |
 | Refused inputs | 21 malformed inputs (7 odds formats among them) and 6 malformed configurations |
 | Isolation from R1 | `src/hist` imports only the Math Core, the PIT policy and its own modules: no `src/analysis`, no FutPythonTrader path, no SQL, no environment, no network |
 
@@ -156,6 +162,15 @@ node tools/hist/backtest.mjs --input <input.json> --config <config.json> --out <
 | Outcome guard removed | 1 of 10 (outcomes invisible) |
 | Commission on losses | 1 of 10 (settlement oracle) |
 
+After the PR #178 review (comment 6300543152), on 16 tests:
+
+| Change | Tests failed |
+|---|---|
+| Price map with a prototype (`{}`), the code before the fix | 1 of 16 (prototype pollution) |
+| `INSUFFICIENT_PIT_DATA` on admitted instead of usable observations | 1 of 16 |
+| ROI rounded DOWN, or HALF_UP | 1 of 16 each |
+| Tie-break by observation id reversed | 1 of 16 |
+
 ## Limits
 
 - Fixtures only. The real-data verdict stays `NOT VERIFIED`, and the matrix row Backtest stays `BLOCKED` on real data until authentic pre-kickoff data exist.
@@ -163,3 +178,10 @@ node tools/hist/backtest.mjs --input <input.json> --config <config.json> --out <
 - 1X2 only, BACK only in the strategy. Asian lines, PUSH and the other markets of MP-MKT-001 are not built.
 - One bookmaker per run. No liquidity, matching, slippage or exchange execution.
 - No walk-forward or out-of-sample split (R-14, MP-STA-004…009).
+
+## Open owner decisions (behaviour unchanged)
+
+Both points concern real data (HIST-01b), and no registered decision settles them. HIST-01a keeps its documented behaviour until the owner decides.
+
+- **Stale prices acquired later.** The latest admitted price is chosen by acquisition time, then observation id, as documented above; the provider time does not order prices. A snapshot acquired later therefore supersedes another one even when the provider dates it much earlier. This is correct point-in-time, since both prices were held at the decision time. Whether real data need a staleness limit, or an ordering by provider time among admitted prices, is an owner decision before HIST-01b.
+- **Earliest acceptable outcome.** An outcome is used when acquired at or after kickoff. `MP-OWNER-HIST-01A-01` says outcomes "may be acquired after the match if final and correctly linked to the event", and specifies no minimum match duration or proof of finality beyond `status: FINAL`. A FINAL outcome acquired one minute after kickoff is therefore accepted. Whether real data need such a margin is an owner decision before HIST-01b.

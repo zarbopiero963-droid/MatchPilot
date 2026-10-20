@@ -253,6 +253,75 @@ test('admissible data but no bet: OK with no metrics, not a row of zeros (PR #17
   assert.deepEqual(report.bets, []);
 });
 
+test('a strategy cannot inject a price through Object.prototype (PR #178 review 6300543152, finding 1)', () => {
+  // On the first decision (e1) the strategy plants prices on Object.prototype: a DRAW that e3 does not have, and a
+  // HOME whose acquisition time would outrank every real HOME.
+  const fake = {odds: '50', observation_id: 'FAKE', acquired_at: '9999-12-31T23:59:59.999Z'};
+  const plant = () => { Object.prototype.DRAW = fake; Object.prototype.HOME = fake; };
+  const clean = () => { delete Object.prototype.DRAW; delete Object.prototype.HOME; };
+  let calls = 0;
+  const seen = [];
+  const spy = view => {
+    if (calls++ === 0) plant();
+    seen.push({event_id: view.event_id, odds: JSON.parse(JSON.stringify(view.odds))});
+    return {action: 'NO_TRADE', reason: 'SPY'};
+  };
+  try { runBacktest(golden(), {...CONFIG, strategy: 'spy'}, {strategies: {spy}}); } finally { clean(); }
+  assert.ok(seen.every(view => Object.values(view.odds).every(price => price.observation_id !== 'FAKE')), 'no planted price reaches a view');
+  assert.deepEqual(Object.keys(seen.find(view => view.event_id === 'e3').odds), ['HOME', 'AWAY']);
+  calls = 0;
+  const hostile = view => {
+    if (calls++ === 0) plant();
+    return view.event_id === 'e3' ? {action: 'BACK', selection: 'DRAW'} : {action: 'NO_TRADE', reason: 'X'};
+  };
+  try { assert.throws(() => runBacktest(golden(), {...CONFIG, strategy: 'hostile'}, {strategies: {hostile}}), {code: 'BAD_STRATEGY_DECISION'}); }
+  finally { clean(); }
+  // The legitimate run is unchanged once the prototype is clean.
+  assert.equal(runBacktest(golden(), CONFIG).bets[0].observation_id, 'o0004');
+});
+
+test('only another bookmaker admitted: INSUFFICIENT_PIT_DATA with no bet or metric (PR #178 review, mutation M6)', () => {
+  seq = 0;
+  const report = runBacktest(input({events: [ev('b', '2026-05-01T15:00:00Z')],
+    observations: ['HOME', 'DRAW', 'AWAY'].map((s, i) => ob('b', s, ['1.80', '3.50', '4.50'][i], '2026-05-01T14:00:00Z', {bookmaker: 'bk2'})),
+    outcomes: [out('b', 'FINAL', 1, 0, '2026-05-01T17:00:00Z')]}), CONFIG);
+  assert.equal(report.counts.admitted, 3);
+  assert.equal(report.counts.usable, 0);
+  assert.equal(report.status, STATUS.INSUFFICIENT_PIT_DATA);
+  assert.deepEqual(report.counts.decisions, {BACK: 0, NO_TRADE: 1});
+  assert.deepEqual(report.counts.no_trade_by_reason, {NO_ADMISSIBLE_ODDS: 1});
+  assert.deepEqual(report.bets, []);
+  assert.equal(report.metrics, null);
+});
+
+test('rounded ROI is HALF_EVEN to 4 places on exact ties (PR #178 review, mutation M10)', () => {
+  // One winning BACK at stake 1 and zero commission: ROI = odds − 1 exactly.
+  const roiOf = odds => {
+    seq = 0;
+    return runBacktest(input({events: [ev('r', '2026-06-01T15:00:00Z')],
+      observations: ['HOME', 'DRAW', 'AWAY'].map((s, i) => ob('r', s, [odds, '30', '40'][i], '2026-06-01T14:00:00Z')),
+      outcomes: [out('r', 'FINAL', 1, 0, '2026-06-01T17:00:00Z')]}), CONFIG).metrics;
+  };
+  // 0.00135 → 0.0014 (DOWN or FLOOR would give 0.0013); 0.00125 → 0.0012 (HALF_UP or CEIL would give 0.0013).
+  assert.deepEqual([roiOf('1.00135').roi, roiOf('1.00135').rounded.roi], ['0.00135', '0.0014']);
+  assert.deepEqual([roiOf('1.00125').roi, roiOf('1.00125').rounded.roi], ['0.00125', '0.0012']);
+});
+
+test('same selection acquired at the same instant: the greater observation id wins, whatever the price (PR #178 review, mutation M12)', () => {
+  const homeSeen = (priceA, priceB) => {
+    seq = 0;
+    const views = [];
+    const spy = view => { views.push(JSON.parse(JSON.stringify(view.odds.HOME))); return {action: 'NO_TRADE', reason: 'SPY'}; };
+    const at = '2026-07-01T14:00:00Z';
+    runBacktest(input({events: [ev('t', '2026-07-01T15:00:00Z')], observations: [
+      ob('t', 'HOME', priceB, at, {id: 'tb-b'}), ob('t', 'HOME', priceA, at, {id: 'tb-a'}),
+      ob('t', 'DRAW', '3.00', at), ob('t', 'AWAY', '4.00', at)]}), {...CONFIG, strategy: 'spy'}, {strategies: {spy}});
+    return views[0];
+  };
+  assert.deepEqual(homeSeen('1.50', '1.60'), {odds: '1.6', observation_id: 'tb-b', acquired_at: '2026-07-01T14:00:00.000Z'});
+  assert.deepEqual(homeSeen('1.60', '1.50'), {odds: '1.5', observation_id: 'tb-b', acquired_at: '2026-07-01T14:00:00.000Z'});
+});
+
 test('INSUFFICIENT_OUTCOMES, same-provider settlement and outcomes known before kickoff', () => {
   const none = golden();
   none.outcomes = [];

@@ -144,7 +144,8 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
   for (const {event, decisionTime} of ordered) {
     if (!decisionTime) { decisions.NO_TRADE++; count(noTrade, 'KICKOFF_UNKNOWN'); continue; }
     // The latest admitted price of each selection: by acquisition time, then observation id (byte order).
-    const latest = {};
+    // Prototype-free, so nothing planted on Object.prototype can stand in for a missing or older price.
+    const latest = Object.create(null);
     for (const observation of usable.get(key(event.provider, event.event_id)) ?? []) {
       const current = latest[observation.selection];
       if (!current || byte(current.acquired_at, observation.acquired_at) < 0
