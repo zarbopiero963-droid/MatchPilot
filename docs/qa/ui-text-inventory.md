@@ -69,7 +69,7 @@ The Browser QA gate fails a user view, or the page footer, that shows technical 
 | UI-41 | «laliga 2024-2025» | competition cell | T | «Laliga 2024/25» (see UI-12) | V-B1 | journey `search` |
 | UI-42 | «2–1» | result cell | U | as UI-13 | V-B1 | journey `search` |
 | UI-43 | «La sede vale solo con una squadra: è stata ignorata.» | venue without a team | U | kept | — | journey `search` |
-| UI-44 | wide results table on a phone, no cue that it scrolls | mobile | V | on a phone each result reads as a small card, every value after its column title (`data-label`); a table on a desktop (V-B4) | V-B4 | journey `search`, step «squadra per nome»: every cell carries its column title, titles hidden and no sideways scroll on a phone, table header on a desktop; QA-V baseline |
+| UI-44 | wide results table on a phone, no cue that it scrolls | mobile | V | on a phone each result reads as a small card, every value after its column title (`data-label`); a table on a desktop (V-B4) | V-B4 | journey `search`, step «squadra per nome»: every cell carries its column title, titles hidden and no sideways scroll on a phone, table header on a desktop; QA-V baselines `ricerca-risultati` on desktop, tablet and mobile |
 | UI-45 | «Altri risultati» · «Risultati» | list | U | kept | — | journey `search` |
 
 ## Stato dei dati (`#/data`, the former Dashboard; technical view since V-B2a)

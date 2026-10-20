@@ -50,6 +50,10 @@ The verdict is computed, never declared. `test/browser-qa-gate.test.mjs` proves 
 - **CI:** job `Browser QA` runs for web changes on PostgreSQL 17 with the runner's Chrome, verifies the evidence against the PR head and uploads it as the artifact `browser-qa-<head>` (14 days). `CI gate` fails when the change is web and `Browser QA` did not succeed, or when it is not web and the job ran anyway.
 - **Merge gate:** `node tools/governance/cli.mjs merge-gate` needs `web_impact` (from the classifier) and, for a web change, `browser_qa: {verdict: PASS, verified: true, head_sha: <head>, ci_run_id}`. Like every merge-gate input, these are facts the agent copies from GitHub (the classifier output, the green `Browser QA` job and its artifact on the head); the command does not query GitHub itself, and the independent reviewer re-checks them. The enforcement that does not depend on the agent is `CI gate`.
 
+## Visual baselines
+
+After the journeys, the same job compares 8 approved views on desktop, tablet and mobile with their versioned baselines (QA-V). A view over the thresholds fails the job, and the comparison is kept as the artifact `visual-qa-<head>`. Procedure, thresholds and limits: [visual.md](visual.md).
+
 ## Phase A audit (19/10/2026, before QA-01)
 
 | Capability | Before QA-01 | With QA-01 |
