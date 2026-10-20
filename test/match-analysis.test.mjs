@@ -40,6 +40,10 @@ test('window statistics are exact, from the team side, with N and per-family cov
   assert.equal(empty.n, 0);
   for (const key of ['goals_for_avg', 'over25_rate', 'xg_for_avg']) assert.equal(empty[key], null, `${key} is N/D with no match, never 0`);
   assert.equal(empty.percent.won, null, 'no percentage without a match');
+  // A tie at the rounding place goes to the even digit (HALF_EVEN): 1 win in 16 is 6.25 % → 6.2, not 6.3 (PR #176 review NB-3).
+  const sixteen = Array.from({length: 16}, (_, i) => row(`m${i}`, `2024-03-${String(i + 1).padStart(2, '0')}`, true, i === 0 ? 1 : 0, i === 0 ? 0 : 1));
+  assert.equal(windowStats(T, sixteen).percent.won, '6.2');
+  assert.equal(windowStats(T, sixteen).percent.lost, '93.8');
   assert.deepEqual(empty.form, []);
 });
 
@@ -124,7 +128,11 @@ test('analysis of a stored match agrees with an independent SQL oracle and never
     assert.deepEqual(after.teams, before.teams);
     assert.deepEqual(after.head_to_head, before.head_to_head);
 
-    assert.deepEqual(await matchAnalysis(client, {id: 'fpt:id:unknown'}), {match: null, reason: 'MATCH_NOT_FOUND'});
+    const unknown = await matchAnalysis(client, {id: 'fpt:id:unknown'});
+    assert.equal(unknown.match, null);
+    assert.equal(unknown.reason, 'MATCH_NOT_FOUND');
+    assert.equal(unknown.provenance.upstream_calls, 0, 'an unknown match still carries its provenance');
+    assert.equal(before.provenance.source_provider, 'futpythontrader', 'the provider comes from the stored match');
   });
 });
 

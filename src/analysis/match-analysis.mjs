@@ -130,7 +130,8 @@ async function teamAnalysis(client, team, cutoff, seasonId) {
 export async function matchAnalysis(client, input = {}) {
   const id = matchIdOf(input.id);
   const match = (await client.query(MATCH_SQL, [id])).rows[0];
-  if (!match) return {match: null, reason: 'MATCH_NOT_FOUND'};
+  // An unknown match still says where the answer comes from (PR #176 review NB-6).
+  if (!match) return {match: null, reason: 'MATCH_NOT_FOUND', provenance: {source: 'database', upstream_calls: 0, facts_version: FACTS_VERSION}};
   const cutoff = match.match_date;
   const teams = {};
   for (const [side, team] of [['home', match.home_team_id], ['away', match.away_team_id]]) {
@@ -153,6 +154,6 @@ export async function matchAnalysis(client, input = {}) {
       pit_reason: 'current fact versions with a date cutoff; acquisition time not checked',
       rounding: {policy: ROUNDING_POLICY_VERSION, mode: 'HALF_EVEN', average_places: AVERAGE_PLACES, rate_places: RATE_PLACES, percent_places: PERCENT_PLACES},
     },
-    provenance: {source: 'database', source_provider: 'futpythontrader', upstream_calls: 0, facts_version: FACTS_VERSION},
+    provenance: {source: 'database', source_provider: match.source_provider ?? null, upstream_calls: 0, facts_version: FACTS_VERSION},
   };
 }

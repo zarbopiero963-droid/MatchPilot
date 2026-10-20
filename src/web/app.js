@@ -516,9 +516,11 @@ function formChips(form, rows, label) {
   }));
 }
 
+// The «Esito» column is the team's result: the head to head has no single team, so it has no such column (PR #176 review NB-7).
 function sourceTable(team, stats, rows) {
   if (!stats || stats.n === 0) return el('p', {class: 'state empty', 'data-testid': 'no-history'}, 'Nessuna partita conclusa prima di questa data.');
-  const columns = ['Data', 'Partita', 'Esito', 'Risultato', 'xG', '1 · X · 2'];
+  const withResult = team !== 'h2h';
+  const columns = ['Data', 'Partita', ...(withResult ? ['Esito'] : []), 'Risultato', 'xG', '1 · X · 2'];
   const results = new Map((stats.form ?? []).map(item => [item.match_id, item.result]));
   const body = el('tbody', {'data-testid': `source-${team}`}, stats.source_match_ids.map(id => {
     const row = rows.get(id) ?? {internal_match_id: id};
@@ -526,10 +528,10 @@ function sourceTable(team, stats, rows) {
     const cells = [
       el('td', {'data-field': 'date'}, calendarDay(row.match_date)),
       el('td', {'data-field': 'teams'}, el('a', {href: matchHref(id)}, formatScalar(row.home_name), ' – ', formatScalar(row.away_name))),
-      el('td', {'data-field': 'result'}, result ? el('span', {class: `fm ${result}`, title: FORM_WORD[result], 'data-code': result}, FORM_LETTER[result]) : formatScalar(null)),
+      withResult ? el('td', {'data-field': 'result'}, result ? el('span', {class: `fm ${result}`, title: FORM_WORD[result], 'data-code': result}, FORM_LETTER[result]) : formatScalar(null)) : null,
       el('td', {'data-field': 'score'}, score(row)),
       el('td', {'data-field': 'xg'}, num(row.xg_home), ' · ', num(row.xg_away)),
-      el('td', {'data-field': 'odds_1x2'}, num(row.odd_home), ' · ', num(row.odd_draw), ' · ', num(row.odd_away))];
+      el('td', {'data-field': 'odds_1x2'}, num(row.odd_home), ' · ', num(row.odd_draw), ' · ', num(row.odd_away))].filter(Boolean);
     cells.forEach((cell, index) => cell.setAttribute('data-label', columns[index]));
     return el('tr', {'data-match': id}, cells);
   }));

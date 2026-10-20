@@ -703,10 +703,34 @@ export const JOURNEYS = [
           assert.equal(await table.getAttribute('data-venue'), venueOf(side));
           assert.equal(await table.getAttribute('data-window'), sample);
           if (stats.n === 0) assert.equal(await table.locator('[data-testid="no-history"]').count(), 1, `${side}: no earlier match, an explicit empty state`);
-          else assert.deepEqual(await ids(page, `[data-testid="source-${side}"] tr`), stats.source_match_ids, `${side}: the source rows are the API's`);
+          else {
+            assert.deepEqual(await ids(page, `[data-testid="source-${side}"] tr`), stats.source_match_ids, `${side}: the source rows are the API's`);
+            await checkRows(`[data-testid="source-${side}"]`, rowsOf(data, side), new Map(stats.form.map(item => [item.match_id, item.result])));
+          }
         }
       };
       const settled = () => page.waitForFunction(() => document.querySelector('[data-testid="match-hero"]') && !document.querySelector('.state.loading'));
+      const rowsOf = (data, side) => new Map(Object.values(data.teams[side].venues).flatMap(venue => venue.rows).map(row => [row.internal_match_id, row]));
+      const LETTER = {W: 'V', D: 'N', L: 'P'};
+      // Every cell of a source table equals the API row; the result chip is the team's result from the API's form (PR #176 review NB-1).
+      const checkRows = async (selector, rows, results) => {
+        const cells = await page.locator(`${selector} tr`).evaluateAll(lines => lines.map(line => ({id: line.dataset.match,
+          date: line.querySelector('[data-field="date"] time')?.getAttribute('datetime'), teams: line.querySelector('[data-field="teams"]').textContent,
+          href: line.querySelector('[data-field="teams"] a')?.getAttribute('href'), result: line.querySelector('[data-field="result"]')?.textContent ?? null,
+          score: line.querySelector('[data-field="score"]').textContent, xg: line.querySelector('[data-field="xg"]').textContent,
+          odds: line.querySelector('[data-field="odds_1x2"]').textContent})));
+        for (const cell of cells) {
+          const row = rows.get(cell.id);
+          assert.ok(row, `${cell.id} is a row of the API`);
+          assert.equal(cell.date, row.match_date);
+          assert.equal(cell.teams, `${row.home_name} – ${row.away_name}`);
+          assert.equal(cell.href, `#/match?id=${encodeURIComponent(cell.id)}`);
+          assert.equal(cell.result, results ? LETTER[results.get(cell.id)] : null, `${cell.id}: result`);
+          assert.equal(cell.score, outcomeShownFor({...row, result_status: 'FINAL'}));
+          assert.equal(cell.xg, `${shown(row.xg_home)} · ${shown(row.xg_away)}`);
+          assert.equal(cell.odds, `${shown(row.odd_home)} · ${shown(row.odd_draw)} · ${shown(row.odd_away)}`);
+        }
+      };
       // The last day of the QA archive: its teams have a history before it (the busy day is the first one, with none).
       const all = (await api('/api/v1/fpt/search?limit=500')).data.rows;
       const day = all.reduce((a, b) => (b.match_date > a.match_date ? b : a)).match_date;
@@ -729,6 +753,9 @@ export const JOURNEYS = [
           assert.equal(await page.textContent(`[data-testid="match-hero"] [data-field="${name}"] b`), shown(data.match[name]), name);
         }
         assert.equal(await page.textContent('[data-testid="match-hero"] [data-field="xg"] b'), `${shown(data.match.xg_home)} – ${shown(data.match.xg_away)}`);
+        assert.equal(await page.textContent('[data-testid="match-hero"] [data-field="kickoff"]'), shown(data.match.kickoff_local_time));
+        assert.equal(await page.textContent('[data-testid="match-hero"] [data-field="favorite"]'),
+          data.match.favorite_side ? `Favorito ${SIDE[data.match.favorite_side]} ${shown(data.match.favorite_odd)}` : 'Favorito N/D');
         // Provenance and the PIT status stay on the page for checks, not as text (MP-WEB-015).
         assert.equal(await page.getAttribute('[data-testid="match-hero"]', 'data-pit'), data.method.pit);
         assert.equal(await page.getAttribute('[data-testid="match-hero"]', 'data-version'), data.method.analysis_version);
@@ -743,8 +770,9 @@ export const JOURNEYS = [
         // The form chips of the board are the last five of each team, every venue, from the API.
         for (const side of ['home', 'away']) {
           const form = data.teams[side].venues.both.windows['5'].form;
-          assert.deepEqual(await page.locator(`.board [data-field="form"]`).nth(side === 'home' ? 0 : 1).locator('a').evaluateAll(nodes => nodes.map(node => node.dataset.code)),
-            form.map(item => item.result), `${side} form`);
+          const chips = await page.locator(`.board [data-field="form"]`).nth(side === 'home' ? 0 : 1).locator('a')
+            .evaluateAll(nodes => nodes.map(node => ({code: node.dataset.code, href: node.getAttribute('href')})));
+          assert.deepEqual(chips, form.map(item => ({code: item.result, href: `#/match?id=${encodeURIComponent(item.match_id)}`})), `${side} form and its links`);
         }
       });
       await step('filtri: stagione, tutte le partite, solo la squadra di casa', async () => {
@@ -773,7 +801,10 @@ export const JOURNEYS = [
         for (const row of data.head_to_head.rows) assert.ok(row.match_date < first.match_date);
       });
       await step('precedenti uguali all’API', async () => {
-        if (data.head_to_head.n) assert.deepEqual(await ids(page, '[data-testid="source-h2h"] tr'), data.head_to_head.rows.map(row => row.internal_match_id));
+        if (data.head_to_head.n) {
+          assert.deepEqual(await ids(page, '[data-testid="source-h2h"] tr'), data.head_to_head.rows.map(row => row.internal_match_id));
+          await checkRows('[data-testid="source-h2h"]', new Map(data.head_to_head.rows.map(row => [row.internal_match_id, row])), null);
+        }
         else assert.equal(await page.locator('[data-testid="head-to-head"] .state.empty').count(), 1);
       });
       await step('una partita della prima giornata: nessuna partita precedente, N/D', async () => {
