@@ -1,0 +1,90 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "app-01-row-gaps",
+  "commit_sha": "09ef225bd7fce76b54955f46be6f4dcec50d4550",
+  "tree_sha": "7d79f8e7ebadbb91aa148e6d579da2f3678c3321",
+  "supersedes": null,
+  "pr": null,
+  "id": "CP-20261020T200407Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-20T20:04:07Z",
+  "activity": "APP-01 implemented on an isolated branch, no PR (#178 open); classified OWNER-GO REQUIRED by the merge classifier (providers/integrity)",
+  "task": "APP-01",
+  "issue": 179,
+  "requirements": [],
+  "changes": [
+    "src/providers/futpython/integrity.mjs: PHASE3_SQL.rowGaps as one aggregation over the first snapshots' versions",
+    "test/fpt-row-gaps.test.mjs (new): oracle = previous query, 8 injected cases + 25 seeded combinations; plan check fpt_match_versions read once",
+    "tools/perf/fpt-certification-bench.mjs (new): synthetic benchmark, not part of npm test"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/fpt-row-gaps.test.mjs on main 3dd833f code",
+      "result": "FAIL",
+      "environment": "local container, PostgreSQL 16",
+      "commit": "3dd833f38bf8a7de3b51dfbebd3118e1602185ac",
+      "limits": [
+        "intended RED: plan test fails (loops 6); time is an upper bound"
+      ],
+      "time": "2026-10-20T20:04:07Z"
+    },
+    {
+      "command": "node --test test/fpt-row-gaps.test.mjs test/phase3-integrity.test.mjs test/fpt-reconciliation-sync.test.mjs (9/9); CI=1 node --test (355/356)",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16",
+      "limits": [
+        "test/postgres-independence needs PostgreSQL 17 (CI); SYNTHETIC data only; time is an upper bound"
+      ],
+      "commit": "09ef225bd7fce76b54955f46be6f4dcec50d4550",
+      "time": "2026-10-20T20:04:07Z"
+    },
+    {
+      "command": "node tools/perf/fpt-certification-bench.mjs --datasets 400 --runs 3: rowGaps 9741 ms -> 101 ms same result; endpoint 971/815/797 ms",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, SYNTHETIC 400 datasets, 152000 matches",
+      "limits": [
+        "real staging verification requested from Grok (read-only script in #179); time is an upper bound"
+      ],
+      "commit": "09ef225bd7fce76b54955f46be6f4dcec50d4550",
+      "time": "2026-10-20T20:04:07Z"
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN",
+    "head_sha": "09ef225bd7fce76b54955f46be6f4dcec50d4550"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "APP01-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "cause and gain certified on synthetic data only; real staging EXPLAIN ANALYZE pending from Grok"
+    },
+    {
+      "id": "APP01-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "touches the certification/integrity area: needs the owner GO (owner directive of 20/10 on file-based merge classes, registered with GOV-01)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-FUNCTIONAL-DELIVERY-03"
+  ],
+  "dependencies": [],
+  "state": "BLOCKED",
+  "next_action": "PR after #178 is closed and on owner authorization; Grok staging verification",
+  "resume_conditions": [
+    "branch app-01-row-gaps contains 09ef225bd7fce76b54955f46be6f4dcec50d4550"
+  ]
+}
