@@ -103,6 +103,7 @@ La valutazione eseguibile è `node tools/governance/cli.mjs merge-gate <input.js
   - Un finding riprodotto dal crawler va classificato prima del merge; ogni difetto confermato diventa un test di regressione.
   - Procedura: [`docs/qa/exploratory.md`](docs/qa/exploratory.md).
 - Procedura e matrice: [`docs/qa/browser-qa.md`](docs/qa/browser-qa.md).
+- **Matrice di certificabilità** (MP-OWNER-CONTINUOUS-EXECUTION-02): [`docs/governance/certifiability-matrix.md`](docs/governance/certifiability-matrix.md) associa a ogni funzionalità requisiti, input, dati realmente presenti, test, evidenze e due verdetti separati, deterministico e su dati reali. Un test su fixture non vale come test sull'archivio reale. La PR che produce l'evidenza aggiorna il verdetto.
 - **Baseline visive (QA-V):** ogni modifica web confronta 12 viste e stati approvati (desktop, tablet, mobile) con le baseline versionate di `test/visual/`, nel job `Browser QA`. Le baseline cambiano solo con `node tools/qa/visual.mjs promote` (motivo, approvazione e voce nel registro `docs/qa/visual-baselines.md`), mai in automatico né per far passare un test; la CI rifiuta una modifica non dichiarata. Procedura e soglie misurate: [`docs/qa/visual.md`](docs/qa/visual.md).
 
 **Requisiti della review indipendente:**
