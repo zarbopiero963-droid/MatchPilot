@@ -33,3 +33,4 @@ The index of the essential evidence, and the link to each package here, is `docs
 | [QA-V-VISUAL-BASELINES-R2](QA-V-VISUAL-BASELINES-R2/INDEX.md) | QA-V after review D2 (PR #174): local and CI GREEN of dce4e30 | 2026-10-20 | 2 local runs, 1 CI artifact |
 | [QA-V2-STATES-MATRIX](QA-V2-STATES-MATRIX/INDEX.md) | QA-V2: explicit states in the visual baselines, certifiability matrix; local and CI GREEN | 2026-10-20 | 2 local runs, 1 CI artifact |
 | [QA-V2-STATES-MATRIX-R2](QA-V2-STATES-MATRIX-R2/INDEX.md) | QA-V2 after review D2 (PR #175): RED and local and CI GREEN of 2c5103b | 2026-10-20 | 3 local runs, 1 CI artifact |
+| [R-07a-MATCH-CENTER](R-07a-MATCH-CENTER/INDEX.md) | R-07a: Match Center pre-match analysis; RED/GREEN Browser QA and visual, CI | 2026-10-20 | 4 local runs, 1 CI artifact |
