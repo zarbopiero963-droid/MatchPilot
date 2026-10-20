@@ -1,0 +1,89 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "410a738285e93b71f3ddb7c7ab963b1cbe12e467",
+  "tree_sha": "ee18486db4ffb3108bf2e9e229586f12207a60b0",
+  "supersedes": "CP-20261020T054638Z-agent-a-claude-code",
+  "pr": 173,
+  "id": "CP-20261020T062125Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-20T06:21:25Z",
+  "activity": "V-B4 merged: PR #173 squash 846cd77 on main; post-merge verification passed",
+  "task": "V-B4",
+  "issue": 3,
+  "requirements": [
+    "MP-WEB-015",
+    "MP-WEB-009",
+    "MP-WEB-002"
+  ],
+  "changes": [
+    "main 846cd7756403ff7b34a9dcc95f042dd0502153af (squash of PR #173, head 410a738 checked with expectedHeadSha)"
+  ],
+  "tests": [
+    {
+      "command": "CI run 39376743744 on 410a738 (all jobs, CI gate PASS)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17",
+      "commit": "410a738285e93b71f3ddb7c7ab963b1cbe12e467",
+      "time": "2026-10-20T06:21:25Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    },
+    {
+      "command": "post-merge: fresh clone of main (tree equal to the PR head); governance:check, governance:validate, governance:evidence (archives read back); node tools/qa/browser-qa.mjs 10/10 + verify-report",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "846cd7756403ff7b34a9dcc95f042dd0502153af",
+      "time": "2026-10-20T05:55:11Z",
+      "limits": [
+        "time from report.json generated_at"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39376743744,
+    "conclusion": "SUCCESS",
+    "head_sha": "410a738285e93b71f3ddb7c7ab963b1cbe12e467"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/173#issuecomment-6284378460",
+    "reviewed_sha": "410a738285e93b71f3ddb7c7ab963b1cbe12e467"
+  },
+  "findings": [
+    {
+      "id": "R1-NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "widths 561-980px not covered by the required viewports; the compact-row step applies the desktop rule there; for QA-V"
+    },
+    {
+      "id": "VB4-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "no grouping by competition as in the mockup: the API has none (D-4)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTONOMOUS-UI-ROADMAP-01",
+    "MP-OWNER-VISUAL-BASELINE-D1-D7-01",
+    "MP-OWNER-UI-NO-RAW-TEXT-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261020T054638Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "QA-V (desktop and mobile visual baselines, reproducible comparison, SHA-256 manifest, CI blocking only real regressions, baselines never updated automatically)",
+  "resume_conditions": [
+    "main contains 846cd7756403ff7b34a9dcc95f042dd0502153af"
+  ]
+}
