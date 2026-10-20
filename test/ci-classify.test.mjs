@@ -56,7 +56,7 @@ test('web impact: site, browser-read APIs, data schema, dependencies and the gat
   for (const file of ['src/web/app.js', 'src/web/index.html', 'src/server.mjs', 'src/api/v1.mjs', 'src/auth/http.mjs', 'src/coverage-page.mjs',
     'src/providers/futpython/query.mjs', 'src/providers/totalcorner/live.mjs', 'src/db.mjs', 'migrations/030-x.sql', 'package.json', 'package-lock.json',
     'tools/qa/journeys.mjs', 'scripts/ci-classify.mjs', '.github/workflows/ci.yml', 'test/web-e2e.test.mjs', 'test/browser-qa-gate.test.mjs',
-    'test/helpers/fpt-seed.mjs']) {
+    'test/helpers/fpt-seed.mjs', 'test/visual/manifest.json', 'test/visual/baselines/oggi-desktop.png']) {
     assert.equal(webImpact([file]), true, file);
   }
   assert.equal(webImpact(['README.md', 'src/web/app.css']), true, 'docs mixed with a web file stay a web change');

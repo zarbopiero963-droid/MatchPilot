@@ -37,7 +37,7 @@ const DEPENDENTS = new Map([
 // rule, tested in test/ci-classify.test.mjs.
 const WEB_IMPACT = [
   /^src\//, /^migrations\//, /^package(-lock)?\.json$/, /^\.npmrc$/, /^tools\/qa\//, /^scripts\/ci-classify\.mjs$/, /^\.github\/workflows\//,
-  /^test\/(web-e2e|browser-qa)/, /^test\/helpers\//,
+  /^test\/(web-e2e|browser-qa)/, /^test\/helpers\//, /^test\/visual\//,
 ];
 
 export function webImpact(inputFiles) {
