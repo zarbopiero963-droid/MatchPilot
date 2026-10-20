@@ -1,0 +1,15 @@
+{
+  "schema": "mp-evidence-v1",
+  "audit_id": "R-07a-MATCH-CENTER",
+  "commit_sha": "46b5bc1a06f1f05e6370ec46fb072fdaf735fed2",
+  "date": "2026-10-20",
+  "environment": "local: Claude Code cloud container, PostgreSQL 16, Chromium 141; CI: GitHub Actions, PostgreSQL 17, runner Chrome 155; QA archive",
+  "outcome": "Match Center journey RED on main, GREEN 12/12 Browser QA and 45/45 visual locally and in CI; real data not verified (R-02)",
+  "archive": {
+    "branch": "evidence/audits",
+    "commit": "17f78c8a8937e259ba6d112ead24940a6f588140",
+    "path": "R-07a-MATCH-CENTER",
+    "zip_sha256": "59f6c47ce1c3e05670a55ab7e39b72833cd0a7a1cac3a3af54821606b6e02ad8",
+    "url": "https://github.com/zarbopiero963-droid/MatchPilot/tree/17f78c8a8937e259ba6d112ead24940a6f588140/R-07a-MATCH-CENTER"
+  }
+}
