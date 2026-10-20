@@ -1,0 +1,94 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "443f593f4042163bb506a2fb0a2c38b0b013a75e",
+  "tree_sha": "259467e68fc09f4a794da389d4fd83a203b33f24",
+  "supersedes": null,
+  "pr": 177,
+  "id": "CP-20261020T105618Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-20T10:56:18Z",
+  "activity": "VPS-DEPLOY-01: owner-supplied deploy workflow for the private VPS runner; governance test that no pull-request workflow can use the runner; ready for review",
+  "task": "VPS-DEPLOY-01",
+  "issue": 97,
+  "requirements": [],
+  "changes": [
+    ".github/workflows/deploy-vps.yml (owner text, unchanged)",
+    "test/governance-workflows.test.mjs",
+    "AGENTS.md §12 (VPS runner rule)",
+    "docs/governance/owner-decisions.json (MP-OWNER-VPS-DEPLOY-01)"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/governance-workflows.test.mjs with a pull_request trigger added to deploy-vps.yml",
+      "result": "FAIL",
+      "environment": "local container, Node 22",
+      "commit": "443f593f4042163bb506a2fb0a2c38b0b013a75e",
+      "time": "2026-10-20T10:56:18Z",
+      "limits": [
+        "intended RED on an uncommitted change; time is an upper bound"
+      ]
+    },
+    {
+      "command": "node --test test/governance-workflows.test.mjs (2/2); npm run check; governance check, render-inventory --check, scan-closing",
+      "result": "PASS",
+      "environment": "local container, Node 22",
+      "commit": "443f593f4042163bb506a2fb0a2c38b0b013a75e",
+      "time": "2026-10-20T10:56:18Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    },
+    {
+      "command": "CI=1 node --test (full suite, 353/354)",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16",
+      "commit": "443f593f4042163bb506a2fb0a2c38b0b013a75e",
+      "time": "2026-10-20T10:56:18Z",
+      "limits": [
+        "test/postgres-independence needs PostgreSQL 17 (CI); a first run failed 59 database tests because the local PostgreSQL stopped, rerun after restart; time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN",
+    "head_sha": "443f593f4042163bb506a2fb0a2c38b0b013a75e"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "VPS-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "public repository: a fork pull request runs the workflows of its own head, so the test reports but cannot prevent a workflow that targets the VPS runner; the owner should require approval for fork pull request workflows from outside collaborators"
+    },
+    {
+      "id": "VPS-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the first real deploy from the runner is verified by the owner after the merge"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-VPS-DEPLOY-01",
+    "MP-OWNER-FUNCTIONAL-DELIVERY-03"
+  ],
+  "dependencies": [
+    "CP-20261020T095809Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "independent review D2, CI, Gate B, merge authorized by the owner; then HIST-01 after owner approval",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains 443f593f4042163bb506a2fb0a2c38b0b013a75e"
+  ]
+}
