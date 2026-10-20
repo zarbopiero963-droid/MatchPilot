@@ -29,8 +29,7 @@ const sha256 = buffer => createHash('sha256').update(buffer).digest('hex');
 export const FIXED_TIME = '2026-10-20T10:00:00+02:00';
 export const VISUAL_VIEWPORTS = {desktop: {width: 1280, height: 800}, tablet: {width: 820, height: 1180}, mobile: {width: 390, height: 844}};
 
-// Every scene opens one address of the site on the QA archive and waits until it is complete. Values that change from
-// one run to the next (server times, the code version) are covered by a flat mask, listed per scene.
+// Every scene opens one address of the site on the QA archive and waits until it is complete.
 export const SCENES = [
   {id: 'oggi', title: 'Oggi: giorno affollato', path: seed => `#/?date=${seed.busyDay}`, ready: 'article.match'},
   {id: 'oggi-righe', title: 'Oggi: righe più in basso', path: seed => `#/?date=${seed.busyDay}`, ready: 'article.match', scroll: 'article.match:nth-of-type(6)'},
@@ -39,10 +38,20 @@ export const SCENES = [
   {id: 'ricerca', title: 'Ricerca: modulo', path: () => '#/search', ready: '[data-testid="search-form"] select[name="competition"]'},
   {id: 'ricerca-risultati', title: 'Ricerca: risultati', path: seed => `#/search?run=1&competition=${encodeURIComponent(seed.laliga.competition)}&from=2024-08-02&before=2024-08-03`,
     ready: '[data-testid="search-results"] tr', scroll: '[data-testid="search-outcome"]'},
-  {id: 'dati', title: 'Dati: panoramica', path: () => '#/data', ready: '[data-testid="tile-coverage"] tbody tr', // The server's time of each answer and the code version change with every run and commit.
-    mask: ['.tile .meta time', '[data-field="code_version"]']},
+  {id: 'dati', title: 'Dati: panoramica', path: () => '#/data', ready: '[data-testid="tile-coverage"] tbody tr'},
   {id: 'non-trovata', title: 'Pagina non trovata', path: () => '#/inesistente', ready: 'main h1'},
 ];
+
+// Two values of every API answer change with each run and each commit: the server's time of the answer and the code
+// version. Only these two metadata fields are replaced, with fixed values; the data stay the API's (their width moves the
+// layout, so a mask would not be enough).
+export const FIXED_META = {generated_at: '2026-10-20T08:00:00.000Z', code_version: '0000000'};
+export function normalizeMeta(body) {
+  if (body && typeof body === 'object' && body.meta && typeof body.meta === 'object') {
+    for (const [key, value] of Object.entries(FIXED_META)) if (Object.hasOwn(body.meta, key)) body.meta[key] = value;
+  }
+  return body;
+}
 
 function shiftDay(text, days) {
   return new Date(Date.parse(`${text}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
@@ -85,14 +94,19 @@ async function capture({browser, server, seed, scene, viewport, path}) {
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.clock.setFixedTime(new Date(FIXED_TIME));
+    await page.route('**/api/v1/**', async route => {
+      const response = await route.fetch();
+      const type = response.headers()['content-type'] ?? '';
+      if (!type.includes('application/json')) return route.fulfill({response});
+      return route.fulfill({response, json: normalizeMeta(await response.json())});
+    });
     await page.goto(`${server.base}/${scene.path(seed)}`);
     await page.waitForSelector(scene.ready);
     await page.waitForLoadState('networkidle');
     await page.evaluate(async () => { document.activeElement?.blur(); await document.fonts.ready; });
     if (scene.scroll) await page.locator(scene.scroll).evaluate(node => node.scrollIntoView({block: 'start'}));
     else await page.evaluate(() => window.scrollTo(0, 0));
-    await page.screenshot({path, animations: 'disabled', caret: 'hide', mask: (scene.mask ?? []).map(selector => page.locator(selector)),
-      maskColor: '#FF00FF'});
+    await page.screenshot({path, animations: 'disabled', caret: 'hide'});
     if (errors.length) throw new Error(`${scene.id}/${viewport}: page errors ${errors.join('; ')}`);
   } finally {
     await context.close();
@@ -112,7 +126,7 @@ export async function runVisual({out, scenes = SCENES, viewports = Object.keys(V
     for (const scene of scenes) for (const viewport of viewports) {
       const name = `${scene.id}-${viewport}.png`;
       const file = join(out, 'captures', name);
-      const result = {scene: scene.id, title: scene.title, viewport, capture: `captures/${name}`, masked: scene.mask ?? []};
+      const result = {scene: scene.id, title: scene.title, viewport, capture: `captures/${name}`};
       try {
         await capture({browser, server, seed, scene, viewport, path: file});
         result.capture_sha256 = sha256(readFileSync(file));
@@ -143,7 +157,7 @@ export async function runVisual({out, scenes = SCENES, viewports = Object.keys(V
     const report = {
       schema: VISUAL_SCHEMA, head_sha: headSha || git(['rev-parse', 'HEAD']), tested_commit: git(['rev-parse', 'HEAD']),
       working_tree_clean: git(['status', '--porcelain', '--untracked-files=no']) === '', generated_at: new Date().toISOString(),
-      browser: `${browser.browserType().name()} ${browser.version()}`, fixed_time: FIXED_TIME, viewports: VISUAL_VIEWPORTS,
+      browser: `${browser.browserType().name()} ${browser.version()}`, fixed_time: FIXED_TIME, fixed_meta: FIXED_META, viewports: VISUAL_VIEWPORTS,
       baselines: {ok: baselines.ok, errors: baselines.errors, generated: baselines.manifest?.generated ?? null}, thresholds,
       results, counts,
       verdict: baselines.ok && counts.fail === 0 && counts.not_verified === 0 && results.length === scenes.length * viewports.length ? 'PASS' : 'FAIL',
@@ -202,7 +216,9 @@ export function checkUpdate({base, head}) {
     if (hash && !added.includes(`\`${name}\` \`${hash}\``)) errors.push(`${name}: its new SHA-256 is not in the new entry of ${LOG}`);
   }
   let before = null;
-  try { before = JSON.parse(git(['show', `${base}:${MANIFEST}`])); } catch { /* the base has no baselines yet */ }
+  try {
+    before = JSON.parse(execFileSync('git', ['show', `${base}:${MANIFEST}`], {cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']}));
+  } catch { /* the base has no baselines yet */ }
   if (before && JSON.stringify(before.thresholds) !== JSON.stringify(manifest.thresholds) && !/^\+- Thresholds: /m.test(added)) {
     errors.push(`thresholds changed without a Thresholds line in ${LOG}`);
   }
