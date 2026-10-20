@@ -1,0 +1,157 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "b777efd161e52c68d9ebca2de72c811d5a534070",
+  "tree_sha": "3a79af7acd8935cb2c88b72637e84e8838138a38",
+  "supersedes": "CP-20261020T081716Z-agent-a-claude-code",
+  "pr": 175,
+  "id": "CP-20261020T084208Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-20T08:42:08Z",
+  "activity": "QA-V2: review D2 CHANGES REQUESTED on 76b7435; B1, B2, N1-N5 addressed; ready for the delta check",
+  "task": "QA-V2",
+  "issue": 3,
+  "requirements": [
+    "MP-WEB-010",
+    "MP-QAC-004",
+    "MP-WEB-009",
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "tools/qa/visual.mjs (state scenes: one route held or answered with the API error envelope)",
+    "test/visual (12 new baselines, 24 unchanged), docs/qa/visual-baselines.md (entry by promote)",
+    "docs/governance/certifiability-matrix.md, test/governance-certifiability.test.mjs, AGENTS.md",
+    "docs/governance/owner-decisions.json (MP-OWNER-CONTINUOUS-EXECUTION-02, MP-OWNER-FUNCTIONAL-DELIVERY-03)",
+    "docs/audits/QA-V2-STATES-MATRIX + evidence/audits@a014d6d9c82099d04c451172b6e252078e17328e",
+    "review: tools/qa/visual.mjs (real refused filter, tile in view), test/governance-certifiability.test.mjs (every tampering refused), matrix (visual conformity PARTIAL COVERAGE), 6 baselines by promote; docs/audits/QA-V2-STATES-MATRIX-R2 + evidence/audits@1a3dad9342efcf32b7141a55c92469b79cc5b45a"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/visual-gate.test.mjs with the new scenes and the old manifest",
+      "result": "FAIL",
+      "environment": "local container",
+      "commit": "88eb59d9b1d78f1bdf933273a9d6375a3799d8ec",
+      "time": "2026-10-20T08:17:16Z",
+      "limits": [
+        "intended RED: the manifest must list every scene (review F1 of PR #174); time is an upper bound"
+      ]
+    },
+    {
+      "command": "node --test test/governance-certifiability.test.mjs on 4 tampered matrices",
+      "result": "FAIL",
+      "environment": "local container",
+      "commit": "6680fe9362a19304117d0750ac702899fb0041f7",
+      "time": "2026-10-20T08:17:16Z",
+      "limits": [
+        "intended RED on uncommitted edits: false real-data pass, unknown verdict, unknown requirement, block without cause; time is an upper bound"
+      ]
+    },
+    {
+      "command": "node tools/qa/visual.mjs (36/36), browser-qa + verify-report (10/10); npm run check; governance check, validate, evidence, render-inventory --check",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "6680fe9362a19304117d0750ac702899fb0041f7",
+      "time": "2026-10-20T08:17:16Z",
+      "limits": [
+        "clean tree; time is an upper bound"
+      ]
+    },
+    {
+      "command": "CI run 39388983169 on 6680fe9 (Fast checks, PostgreSQL integration, Browser QA with visual 36/36, CI gate)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17, runner Chrome 155.0.8059.84",
+      "commit": "6680fe9362a19304117d0750ac702899fb0041f7",
+      "time": "2026-10-20T08:17:16Z",
+      "limits": [
+        "largest block delta 26.1; time is an upper bound"
+      ]
+    },
+    {
+      "command": "old test/governance-certifiability.test.mjs on a matrix with REAL DATA PASS (on fixtures)",
+      "result": "FAIL",
+      "environment": "local container",
+      "commit": "76b7435b861479339991fb132620dcff56df838e",
+      "time": "2026-10-20T08:42:08Z",
+      "limits": [
+        "intended RED of review B2: the old test accepted the tampering (0 failures); time is an upper bound"
+      ]
+    },
+    {
+      "command": "node tools/qa/visual.mjs before promote on 3c75ac9",
+      "result": "FAIL",
+      "environment": "local container, Chromium 141",
+      "commit": "3c75ac9cf0002f90a717e24e742ad2e97dfd202a",
+      "time": "2026-10-20T08:42:08Z",
+      "limits": [
+        "intended RED: the 6 changed views fail; time is an upper bound"
+      ]
+    },
+    {
+      "command": "CI run 39394224581 on 2c5103b (all jobs; visual 36/36, largest block delta 26.1); local visual 36/36, Browser QA 10/10, tests 59/59",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17, Chrome 155; local container",
+      "commit": "2c5103b3d5fe8daae127deb64cf99dd173dd6220",
+      "time": "2026-10-20T08:42:08Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39394224581,
+    "conclusion": "SUCCESS",
+    "head_sha": "2c5103b3d5fe8daae127deb64cf99dd173dd6220"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "CHANGES REQUESTED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/175#issuecomment-6286880184",
+    "reviewed_sha": "76b7435b861479339991fb132620dcff56df838e"
+  },
+  "findings": [
+    {
+      "id": "QAV2-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the loading state of Oggi shows no h1 (title only after the answer); a small accessibility gap of the site, frozen as is in the baseline, for a later web PR"
+    },
+    {
+      "id": "R02-RECHECK",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "R-02 rechecked 2026-10-20: the Drive connector of the session has no checksum in its metadata and returns content as base64 into the agent context, unusable for 18-40 MB parts (MP-OWNER-FUNCTIONAL-DELIVERY-03 forbids it); unblock needs a channel that streams to the filesystem: the owner's download, or read-only Drive API credentials as an environment secret"
+    },
+    {
+      "id": "R1-B1,B2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "refused filter from the real server; matrix test refuses every tampering found"
+    },
+    {
+      "id": "R1-N1..N5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "tile in view, wait comment, visual conformity PARTIAL COVERAGE, wording, PR description"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-CONTINUOUS-EXECUTION-02",
+    "MP-OWNER-FUNCTIONAL-DELIVERY-03",
+    "MP-OWNER-QA-VISUAL-EXECUTION-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261020T081716Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "delta check of review D2, Gate B, protected merge, post-merge verification; then R-07a",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains b777efd161e52c68d9ebca2de72c811d5a534070"
+  ]
+}

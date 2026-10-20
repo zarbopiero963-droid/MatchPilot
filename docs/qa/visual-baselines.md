@@ -35,3 +35,35 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `ricerca-risultati-mobile.png` `b04f893524e1243e79b9b307c4cbb95696454e4bc745059f5643be6a53d317ae`
   - `ricerca-risultati-tablet.png` `80d4ed9062f8fdb2b0d086a638d7f71ce222613e208bbe9e79f2b76e3e9bd610`
   - `ricerca-tablet.png` `afa15db63d1f412710c6fdbe3cf026913c9d94668927480bf303f297f971ef0d`
+
+## 2026-10-20 — Explicit states added to the baselines (QA-V2, MP-OWNER-CONTINUOUS-EXECUTION-02 P1): loading, error, refused filter, partial dashboard
+
+- Approval: PR QA-V2, Refs #3; MP-OWNER-CONTINUOUS-EXECUTION-02
+- Run: commit `88eb59d9b1d78f1bdf933273a9d6375a3799d8ec`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `dati-parziale-desktop.png` `1c2d7892c6ff03781193ec9c0120a076f8235822565817d2b0e9ad714e7543d5`
+  - `dati-parziale-mobile.png` `ea1755f47b14f83091996b33e7f0c19ccbf10c46bf1ba26341dd567966ad1388`
+  - `dati-parziale-tablet.png` `2bb34d16f6e140d679ab401fc583c8379feea5bbb464088279c49b9db3c6812b`
+  - `oggi-caricamento-desktop.png` `d631df46a1fcd31c526dfd7523f0e7c2c731901f3f6c48fa03c0e343c70d8e9c`
+  - `oggi-caricamento-mobile.png` `49f38211cec1af1ce1ced8d4ce7205d1cd3cdae65d91996f67dd56b8b64aa764`
+  - `oggi-caricamento-tablet.png` `fccf1c02321857b7828a59e58f34b21ef627ee4efc4f9d4c2faca0fc2007588a`
+  - `oggi-errore-desktop.png` `b21c51aea31cb53230ab58ef6b97d8332f909964e51726c3db9244cf002672ae`
+  - `oggi-errore-mobile.png` `1e6ea054e71992fa9daaeade664f03c4e8df3d7745f767975e59c25bc79f5f6d`
+  - `oggi-errore-tablet.png` `ccce655bbd10600940f80573fd20ee46f857bf463d9be3d2b4b03d17fa7052b8`
+  - `ricerca-filtro-rifiutato-desktop.png` `1d9f5143f2f22f9b0361924956007fee6402761239f545210bcd640a36efcffa`
+  - `ricerca-filtro-rifiutato-mobile.png` `7414bae4f550394e317d5d09321af8ca3847d10d29f09eac7f19d1405a5a0d7d`
+  - `ricerca-filtro-rifiutato-tablet.png` `bc06d1177eade954e7010af8b85919d8da8a411c99db116b94ed55b33bd02ece`
+
+## 2026-10-20 — Review D2 of PR #175: the refused filter is the real server's answer (B1); the partial dashboard shows the unavailable tile (N1)
+
+- Approval: PR #175, review D2 B1 and N1; MP-OWNER-CONTINUOUS-EXECUTION-02
+- Run: commit `3c75ac9cf0002f90a717e24e742ad2e97dfd202a`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `dati-parziale-desktop.png` `94a669ecfd5dc7252eb1d2500808c24c4da3f3e869c617a64b62cf1ff4f4bf51`
+  - `dati-parziale-mobile.png` `578c17cf5620d977d12a87a367aace62f499d82619c6112de92b78541057fadc`
+  - `dati-parziale-tablet.png` `7c2d8b414b4cd3646fbcf9e710728d4958a270421a633ce54ab5323cc36555b5`
+  - `ricerca-filtro-rifiutato-desktop.png` `7cb58945b9a448478b3e8b91ab066cf9755f8a8948961f55489c303eabc4e632`
+  - `ricerca-filtro-rifiutato-mobile.png` `1faffe5f9c42431f07bc65d3fad40dd9e3bd3de59c8285505327b44cbdf40f22`
+  - `ricerca-filtro-rifiutato-tablet.png` `70a813ed8e51a79a8a0dcf08d4704e190b5d55d9ccb4a29fb271449c87ded78c`

@@ -1,0 +1,113 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "63ad4b6b13dfe06ec4790729298746e4d8b241dd",
+  "tree_sha": "0065b879e01ddfbf8296b60c28345b05eb8a7c84",
+  "supersedes": null,
+  "pr": 175,
+  "id": "CP-20261020T081716Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-20T08:17:16Z",
+  "activity": "QA-V2: explicit states in the visual baselines, certifiability matrix, owner decisions MP-OWNER-CONTINUOUS-EXECUTION-02 and MP-OWNER-FUNCTIONAL-DELIVERY-03; ready for review",
+  "task": "QA-V2",
+  "issue": 3,
+  "requirements": [
+    "MP-WEB-010",
+    "MP-QAC-004",
+    "MP-WEB-009",
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "tools/qa/visual.mjs (state scenes: one route held or answered with the API error envelope)",
+    "test/visual (12 new baselines, 24 unchanged), docs/qa/visual-baselines.md (entry by promote)",
+    "docs/governance/certifiability-matrix.md, test/governance-certifiability.test.mjs, AGENTS.md",
+    "docs/governance/owner-decisions.json (MP-OWNER-CONTINUOUS-EXECUTION-02, MP-OWNER-FUNCTIONAL-DELIVERY-03)",
+    "docs/audits/QA-V2-STATES-MATRIX + evidence/audits@a014d6d9c82099d04c451172b6e252078e17328e"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/visual-gate.test.mjs with the new scenes and the old manifest",
+      "result": "FAIL",
+      "environment": "local container",
+      "commit": "88eb59d9b1d78f1bdf933273a9d6375a3799d8ec",
+      "time": "2026-10-20T08:17:16Z",
+      "limits": [
+        "intended RED: the manifest must list every scene (review F1 of PR #174); time is an upper bound"
+      ]
+    },
+    {
+      "command": "node --test test/governance-certifiability.test.mjs on 4 tampered matrices",
+      "result": "FAIL",
+      "environment": "local container",
+      "commit": "6680fe9362a19304117d0750ac702899fb0041f7",
+      "time": "2026-10-20T08:17:16Z",
+      "limits": [
+        "intended RED on uncommitted edits: false real-data pass, unknown verdict, unknown requirement, block without cause; time is an upper bound"
+      ]
+    },
+    {
+      "command": "node tools/qa/visual.mjs (36/36), browser-qa + verify-report (10/10); npm run check; governance check, validate, evidence, render-inventory --check",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "6680fe9362a19304117d0750ac702899fb0041f7",
+      "time": "2026-10-20T08:17:16Z",
+      "limits": [
+        "clean tree; time is an upper bound"
+      ]
+    },
+    {
+      "command": "CI run 39388983169 on 6680fe9 (Fast checks, PostgreSQL integration, Browser QA with visual 36/36, CI gate)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17, runner Chrome 155.0.8059.84",
+      "commit": "6680fe9362a19304117d0750ac702899fb0041f7",
+      "time": "2026-10-20T08:17:16Z",
+      "limits": [
+        "largest block delta 26.1; time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39388983169,
+    "conclusion": "SUCCESS",
+    "head_sha": "6680fe9362a19304117d0750ac702899fb0041f7"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "QAV2-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the loading state of Oggi shows no h1 (title only after the answer); a small accessibility gap of the site, frozen as is in the baseline, for a later web PR"
+    },
+    {
+      "id": "R02-RECHECK",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "R-02 rechecked 2026-10-20: the Drive connector of the session has no checksum in its metadata and returns content as base64 into the agent context, unusable for 18-40 MB parts (MP-OWNER-FUNCTIONAL-DELIVERY-03 forbids it); unblock needs a channel that streams to the filesystem: the owner's download, or read-only Drive API credentials as an environment secret"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-CONTINUOUS-EXECUTION-02",
+    "MP-OWNER-FUNCTIONAL-DELIVERY-03",
+    "MP-OWNER-QA-VISUAL-EXECUTION-01",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261020T074250Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "independent review D2 on the head, Gate B, protected merge, post-merge verification; then R-07a Match Center from the saved WIP",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains 63ad4b6b13dfe06ec4790729298746e4d8b241dd"
+  ]
+}

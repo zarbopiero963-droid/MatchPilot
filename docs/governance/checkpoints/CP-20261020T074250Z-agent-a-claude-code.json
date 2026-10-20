@@ -1,0 +1,107 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "1abe7edad88a3eeda63d463a3cd8c7983aec4098",
+  "tree_sha": "5d4d5bcca2e62f7b5c777b77b259b9c9dd9a9c5b",
+  "supersedes": "CP-20261020T071250Z-agent-a-claude-code",
+  "pr": 174,
+  "id": "CP-20261020T074250Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-20T07:42:50Z",
+  "activity": "QA-V merged: PR #174 squash fbf8482 on main; post-merge verification passed",
+  "task": "QA-V",
+  "issue": 3,
+  "requirements": [
+    "MP-QAC-004",
+    "MP-WEB-009",
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "main fbf84828846e48caa0de0223f84c03a90956eee3 (squash of PR #174, head 1abe7ed checked with expectedHeadSha)"
+  ],
+  "tests": [
+    {
+      "command": "CI run 39385715954 on 1abe7ed (all jobs green, including Browser QA with the visual comparison)",
+      "result": "PASS",
+      "environment": "GitHub Actions, PostgreSQL 17, runner Chrome 155",
+      "commit": "1abe7edad88a3eeda63d463a3cd8c7983aec4098",
+      "time": "2026-10-20T07:42:50Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    },
+    {
+      "command": "post-merge: fresh clone of main (tree equal to the PR head); governance:check, validate, evidence (archives read back); visual.mjs verify; browser-qa 10/10 + verify-report; visual comparison 24/24",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16, Chromium 141",
+      "commit": "fbf84828846e48caa0de0223f84c03a90956eee3",
+      "time": "2026-10-20T07:42:50Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39385715954,
+    "conclusion": "SUCCESS",
+    "head_sha": "1abe7edad88a3eeda63d463a3cd8c7983aec4098"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/174#issuecomment-6285717731",
+    "reviewed_sha": "1abe7edad88a3eeda63d463a3cd8c7983aec4098"
+  },
+  "findings": [
+    {
+      "id": "QAV-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "changes that keep every 8x8 block mean within 32 pass (subtle colours, a changed character, the decimal separator); near-threshold changes are uncertain under the CI noise of 26; the journeys check values"
+    },
+    {
+      "id": "QAV-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "a runner Chrome update can exceed the margin (26 of 32) and needs a promote with reason and approval"
+    },
+    {
+      "id": "QAV-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the tablet results table wraps odds and xG over two lines; frozen as is"
+    },
+    {
+      "id": "R1-N3,R2-NB-2,R2-NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "thresholds loosened inside the code left to review; a log entry removing baselines need not name them; the append-only log check compares with the tip of main"
+    },
+    {
+      "id": "QAV-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "loading, error and partial states not yet in the visual baselines (MP-OWNER-CONTINUOUS-EXECUTION-02 P1): next PR"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-QA-VISUAL-EXECUTION-01",
+    "MP-OWNER-AUTONOMOUS-UI-ROADMAP-01",
+    "MP-OWNER-CONTINUOUS-EXECUTION-02",
+    "MP-OWNER-PERMANENT-EVIDENCE-01",
+    "MP-OWNER-BROWSER-QA-HARD-GATE-01"
+  ],
+  "dependencies": [
+    "CP-20261020T071250Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "QA-V2: loading, error and partial states in the visual baselines and the certifiability matrix (MP-OWNER-CONTINUOUS-EXECUTION-02 P1); then R-07a",
+  "resume_conditions": [
+    "main contains fbf84828846e48caa0de0223f84c03a90956eee3"
+  ]
+}

@@ -52,7 +52,7 @@ The verdict is computed, never declared. `test/browser-qa-gate.test.mjs` proves 
 
 ## Visual baselines
 
-After the journeys, the same job compares 8 approved views on desktop, tablet and mobile with their versioned baselines (QA-V). A view over the thresholds fails the job, and the comparison is kept as the artifact `visual-qa-<head>`. Procedure, thresholds and limits: [visual.md](visual.md).
+After the journeys, the same job compares 12 approved views and states on desktop, tablet and mobile with their versioned baselines (QA-V). A view over the thresholds fails the job, and the comparison is kept as the artifact `visual-qa-<head>`. Procedure, thresholds and limits: [visual.md](visual.md).
 
 ## Phase A audit (19/10/2026, before QA-01)
 

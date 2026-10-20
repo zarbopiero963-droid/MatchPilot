@@ -1,0 +1,15 @@
+{
+  "schema": "mp-evidence-v1",
+  "audit_id": "QA-V2-STATES-MATRIX",
+  "commit_sha": "6680fe9362a19304117d0750ac702899fb0041f7",
+  "date": "2026-10-20",
+  "environment": "local: Claude Code cloud container, PostgreSQL 16, Chromium 141; CI: GitHub Actions, PostgreSQL 17, runner Chrome 155",
+  "outcome": "Visual 36/36 local and in CI (largest block delta 26.1), Browser QA 10/10; matrix governance test kills 4 tampered matrices",
+  "archive": {
+    "branch": "evidence/audits",
+    "commit": "a014d6d9c82099d04c451172b6e252078e17328e",
+    "path": "QA-V2-STATES-MATRIX",
+    "zip_sha256": "e47be5a216bbb4ba716eb20b5d67523c5853d7839207eff3f2fb23a5e7181465",
+    "url": "https://github.com/zarbopiero963-droid/MatchPilot/tree/a014d6d9c82099d04c451172b6e252078e17328e/QA-V2-STATES-MATRIX"
+  }
+}
