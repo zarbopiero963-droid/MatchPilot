@@ -40,17 +40,18 @@ export const SCENES = [
     ready: '[data-testid="search-results"] tr', scroll: '[data-testid="search-outcome"]'},
   {id: 'dati', title: 'Dati: panoramica', path: () => '#/data', ready: '[data-testid="tile-coverage"] tbody tr'},
   {id: 'non-trovata', title: 'Pagina non trovata', path: () => '#/inesistente', ready: 'main h1'},
-  // Explicit states (MP-WEB-010, MP-OWNER-CONTINUOUS-EXECUTION-02 P1). The QA archive never fails, so the answer of one
-  // route is held or replaced by the error envelope of the API, as the journeys do; every other route stays real.
+  // Explicit states (MP-WEB-010, MP-OWNER-CONTINUOUS-EXECUTION-02 P1). The QA archive never fails, so for loading and
+  // unavailability the answer of one route is held or replaced by the API's error envelope (code UNAVAILABLE, as the
+  // journeys do); a refused filter is the real server's answer. Every other route stays real.
   {id: 'oggi-caricamento', title: 'Oggi: caricamento', path: seed => `#/?date=${seed.busyDay}`, ready: '.state.loading', idle: false,
     api: {'/api/v1/fpt/matches': 'hold'}},
   {id: 'oggi-errore', title: 'Oggi: dati non disponibili', path: seed => `#/?date=${seed.busyDay}`, ready: '.state.error',
     api: {'/api/v1/fpt/matches': 'unavailable'}},
-  {id: 'ricerca-filtro-rifiutato', title: 'Ricerca: filtro rifiutato dal server', path: () => '#/search?run=1&fav_min=1.01&fav_max=1.0001',
-    ready: '[data-testid="search-invalid"]', scroll: '[data-testid="search-invalid"]',
-    api: {'/api/v1/fpt/search': {status: 400, error: {code: 'INVALID_PARAMETER', message: 'fav_max must be greater than or equal to fav_min'}}}},
+  // The real server refuses this pair of filters (400, «fav_min must not exceed fav_max»): no answer is replaced (PR #175 review B1).
+  {id: 'ricerca-filtro-rifiutato', title: 'Ricerca: filtro rifiutato dal server', path: () => '#/search?run=1&fav_min=2&fav_max=1.5',
+    ready: '[data-testid="search-invalid"]', scroll: '[data-testid="search-invalid"]'},
   {id: 'dati-parziale', title: 'Dati: un riquadro non disponibile', path: () => '#/data', ready: '[data-testid="tile-tc-live"] .state.partial',
-    api: {'/api/v1/tc/live': 'unavailable'}},
+    scroll: '[data-testid="tile-tc-live"]', api: {'/api/v1/tc/live': 'unavailable'}},
 ];
 
 // The error envelope of the API v1, as the server sends it when a data source is down.
@@ -126,7 +127,8 @@ async function capture({browser, server, seed, scene, viewport, path}) {
     });
     await page.goto(`${server.base}/${scene.path(seed)}`);
     await page.waitForSelector(scene.ready);
-    // A scene holding a route never reaches network idle: it waits for the other answers to settle instead.
+    // A scene holding a route never reaches network idle. Its loading state is on screen once the ready selector is: the
+    // board makes no other request before the held answer, so the short wait only lets the fonts and layout settle.
     if (scene.idle === false) await page.waitForTimeout(500);
     else await page.waitForLoadState('networkidle');
     await page.evaluate(async () => { document.activeElement?.blur(); await document.fonts.ready; });

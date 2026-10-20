@@ -20,7 +20,7 @@ Owner decisions: MP-OWNER-QA-VISUAL-EXECUTION-01 (versioned visual baselines, SH
 | `non-trovata` | an unknown address | not-found page |
 | `oggi-caricamento` | Oggi, with the matches route held | loading state |
 | `oggi-errore` | Oggi, with the matches route answering 503 | error state: «Dati non disponibili», Riprova |
-| `ricerca-filtro-rifiutato` | the search, with the server refusing a filter (400) | refused filter, the field named in Italian |
+| `ricerca-filtro-rifiutato` | the search with «Quota favorito da» above «a»: the real server refuses it (400) | refused filter, the fields named in Italian |
 | `dati-parziale` | Dati, with the live TotalCorner route answering 503 | partial dashboard: one tile N/D, banner |
 
 ## What makes it reproducible
@@ -29,7 +29,7 @@ Owner decisions: MP-OWNER-QA-VISUAL-EXECUTION-01 (versioned visual baselines, SH
 - **Same clock and language:** the browser clock is fixed at 20 October 2026, 10:00 Europe/Rome, with locale it-IT, so «Oggi», the day strip and every date stay the same. The browser also runs with an Italian environment (`LANG`, `LANGUAGE`), so the native date field reads 01/08/2024 as an Italian user sees it (review N6); the page locale alone does not change it.
 - **Same fonts:** the fonts hosted with the site.
 - **No motion:** reduced motion, with animations and caret switched off for the screenshot.
-- **States on demand:** the QA archive never fails, so a state scene holds one route (loading) or answers it with the API's error envelope (503 or 400), as the journeys do; every other route of the scene stays real.
+- **States on demand:** the QA archive never fails, so a state scene holds one route (loading) or answers it with the API's error envelope (503, code UNAVAILABLE), as the journeys do. A refused filter is the real server's answer to a real pair of filters. Every other route of the scene stays real.
 - **Two API values fixed:** each answer's server time and the code version. Only these two `meta` fields are replaced with fixed values; every data value stays the API's. They change on every run and every commit, and their width moves the layout, so a mask would not be enough.
 - **Measured:** two runs on the same tree give byte-identical images.
 
