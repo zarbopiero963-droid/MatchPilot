@@ -50,9 +50,25 @@ export const SCENES = [
   // The real server refuses this pair of filters (400, «fav_min must not exceed fav_max»): no answer is replaced (PR #175 review B1).
   {id: 'ricerca-filtro-rifiutato', title: 'Ricerca: filtro rifiutato dal server', path: () => '#/search?run=1&fav_min=2&fav_max=1.5',
     ready: '[data-testid="search-invalid"]', scroll: '[data-testid="search-invalid"]'},
+  // Match Center (R-07a): a match of the last day of the QA archive, whose teams have a history, and one of the first day.
+  {id: 'partita', title: 'Match Center: analisi pre-partita', path: async (seed, api) => matchPath(await lastDayMatch(api)), ready: '[data-testid="compare"]'},
+  {id: 'partita-confronto', title: 'Match Center: confronto e partite considerate', path: async (seed, api) => matchPath(await lastDayMatch(api)),
+    ready: '[data-testid="compare"]', scroll: '[data-testid="cutoff"]'},
+  {id: 'partita-senza-storico', title: 'Match Center: nessuna partita precedente', path: async (seed, api) => matchPath(await firstDayMatch(api)),
+    ready: '[data-testid="compare"]', scroll: '[data-testid="cutoff"]'},
   {id: 'dati-parziale', title: 'Dati: un riquadro non disponibile', path: () => '#/data', ready: '[data-testid="tile-tc-live"] .state.partial',
     scroll: '[data-testid="tile-tc-live"]', api: {'/api/v1/tc/live': 'unavailable'}},
 ];
+
+// The matches the Match Center scenes open, chosen from the API of the QA archive: never a hard-coded id.
+const matchPath = row => `#/match?id=${encodeURIComponent(row.internal_match_id)}`;
+const archiveMatches = async api => (await api('/api/v1/fpt/search?limit=500')).data.rows;
+const byDateThenId = (a, b) => a.match_date.localeCompare(b.match_date) || a.internal_match_id.localeCompare(b.internal_match_id);
+async function lastDayMatch(api) {
+  const day = (await archiveMatches(api)).sort(byDateThenId).at(-1).match_date;
+  return (await api(`/api/v1/fpt/matches?date=${day}&limit=1`)).data.rows[0];
+}
+const firstDayMatch = async api => (await archiveMatches(api)).sort(byDateThenId)[0];
 
 // The error envelope of the API v1, as the server sends it when a data source is down.
 const UNAVAILABLE = {status: 503, error: {code: 'UNAVAILABLE', message: 'data source unavailable'}};
@@ -104,7 +120,7 @@ export function verifyBaselines(dir = root) {
   return {ok: errors.length === 0, errors, manifest};
 }
 
-async function capture({browser, server, seed, scene, viewport, path}) {
+async function capture({browser, server, seed, api, scene, viewport, path}) {
   const context = await browser.newContext({viewport: VISUAL_VIEWPORTS[viewport], deviceScaleFactor: 1, locale: 'it-IT',
     timezoneId: 'Europe/Rome', colorScheme: 'dark', reducedMotion: 'reduce'});
   try {
@@ -125,7 +141,7 @@ async function capture({browser, server, seed, scene, viewport, path}) {
       if (!type.includes('application/json')) return route.fulfill({response});
       return route.fulfill({response, json: normalizeMeta(await response.json())});
     });
-    await page.goto(`${server.base}/${scene.path(seed)}`);
+    await page.goto(`${server.base}/${await scene.path(seed, api)}`);
     await page.waitForSelector(scene.ready);
     // A scene holding a route never reaches network idle. Its loading state is on screen once the ready selector is: the
     // board makes no other request before the held answer, so the short wait only lets the fonts and layout settle.
@@ -151,14 +167,14 @@ export async function runVisual({out, scenes = SCENES, viewports = Object.keys(V
   const {withQaEnvironment} = await import('./browser-qa.mjs');
   // Chromium draws the native date field in the language of its interface, which follows the language of its process
   // environment, not the page locale nor --lang: Italian, as an Italian user sees it (PR #174 review N6).
-  return withQaEnvironment(async ({browser, server, seed}) => {
+  return withQaEnvironment(async ({browser, server, seed, api}) => {
     const results = [];
     for (const scene of scenes) for (const viewport of viewports) {
       const name = `${scene.id}-${viewport}.png`;
       const file = join(out, 'captures', name);
       const result = {scene: scene.id, title: scene.title, viewport, capture: `captures/${name}`};
       try {
-        await capture({browser, server, seed, scene, viewport, path: file});
+        await capture({browser, server, seed, api, scene, viewport, path: file});
         result.capture_sha256 = sha256(readFileSync(file));
         const baseline = join(root, BASELINES, name);
         if (!baselines.ok || !existsSync(baseline)) {

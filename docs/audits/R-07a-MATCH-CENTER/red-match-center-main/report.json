@@ -1,0 +1,165 @@
+{
+  "schema": "mp-browser-qa-v1",
+  "head_sha": "a1ab9fbe042ef3a7dcfd93d392846e7efddb3838",
+  "tested_commit": "a1ab9fbe042ef3a7dcfd93d392846e7efddb3838",
+  "tested_tree": "bc4db616199524635199452be5fb403231d505e0",
+  "working_tree_clean": false,
+  "generated_at": "2026-10-20T08:56:17.087Z",
+  "environment": {
+    "node": "v22.22.0",
+    "browser": "chromium 141.0.7390.37",
+    "browser_path": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+    "os": "linux 6.18.44-fc-v139 x64",
+    "ci": true,
+    "ci_run_id": null
+  },
+  "software": {
+    "package": "matchpilot-trading-os",
+    "version": "0.1.0",
+    "code_version": "package-0.1.0"
+  },
+  "dataset": {
+    "fixture": "test/helpers/fpt-seed.mjs#seedQaArchive",
+    "ingestion": "real FutPythonTrader path (CSV → storeDataset → facts)",
+    "competitions": [
+      "fpt:competition:f568d2fff73c2e2f5246eb165426d4cb",
+      "fpt:competition:dec098a11eb9c411e998e8c1c8ec0f4c"
+    ],
+    "matches": 86,
+    "busy_day": "2024-08-01",
+    "fixture_sha256": "7163eb6f4bc9ad6657132ff5a49db28e87f9f783408fa72987e07164f6d04ea5",
+    "production_data": false
+  },
+  "required": {
+    "journeys": [
+      "general-navigation",
+      "dashboard",
+      "daily-board",
+      "search",
+      "match-center",
+      "providers-endpoints"
+    ],
+    "viewports": [
+      "desktop",
+      "mobile"
+    ]
+  },
+  "journeys": [
+    {
+      "id": "match-center",
+      "surface": "Match Center",
+      "title": "Analisi pre-partita: apertura da Oggi e Ricerca, filtri, valori uguali all’API, N/D, precedenti, PIT",
+      "viewport": "desktop",
+      "viewport_size": {
+        "width": 1280,
+        "height": 800
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "page.click: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('article.match[data-match=\"fpt:hash:38b49fc23cd01f027c3543e677f4a384\"] [data-action=\"open-match\"]')\n",
+      "duration_ms": 15502,
+      "steps": [
+        {
+          "name": "apertura dalla Daily Board",
+          "status": "FAIL",
+          "error": "page.click: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('article.match[data-match=\"fpt:hash:38b49fc23cd01f027c3543e677f4a384\"] [data-action=\"open-match\"]')\n",
+          "screenshot": "screenshots/match-center-desktop-01-apertura-dalla-daily-board-failure.png"
+        }
+      ],
+      "trace": "traces/match-center-desktop.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    },
+    {
+      "id": "match-center",
+      "surface": "Match Center",
+      "title": "Analisi pre-partita: apertura da Oggi e Ricerca, filtri, valori uguali all’API, N/D, precedenti, PIT",
+      "viewport": "mobile",
+      "viewport_size": {
+        "width": 390,
+        "height": 844
+      },
+      "required": true,
+      "status": "FAIL",
+      "reason": "page.click: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('article.match[data-match=\"fpt:hash:38b49fc23cd01f027c3543e677f4a384\"] [data-action=\"open-match\"]')\n",
+      "duration_ms": 15307,
+      "steps": [
+        {
+          "name": "apertura dalla Daily Board",
+          "status": "FAIL",
+          "error": "page.click: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('article.match[data-match=\"fpt:hash:38b49fc23cd01f027c3543e677f4a384\"] [data-action=\"open-match\"]')\n",
+          "screenshot": "screenshots/match-center-mobile-01-apertura-dalla-daily-board-failure.png"
+        }
+      ],
+      "trace": "traces/match-center-mobile.zip",
+      "console_errors": [],
+      "page_errors": [],
+      "http_errors": [],
+      "request_failures": []
+    }
+  ],
+  "counts": {
+    "pass": 0,
+    "fail": 2,
+    "skip": 0,
+    "not_verified": 0
+  },
+  "missing_required": [
+    "general-navigation/desktop",
+    "general-navigation/mobile",
+    "dashboard/desktop",
+    "dashboard/mobile",
+    "daily-board/desktop",
+    "daily-board/mobile",
+    "search/desktop",
+    "search/mobile",
+    "match-center/desktop",
+    "match-center/mobile",
+    "providers-endpoints/desktop",
+    "providers-endpoints/mobile"
+  ],
+  "findings": [
+    {
+      "id": "QA-match-center-desktop",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "match-center",
+      "viewport": "desktop",
+      "reason": "page.click: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('article.match[data-match=\"fpt:hash:38b49fc23cd01f027c3543e677f4a384\"] [data-action=\"open-match\"]')\n",
+      "evidence": [
+        "traces/match-center-desktop.zip",
+        "screenshots/match-center-desktop-01-apertura-dalla-daily-board-failure.png"
+      ]
+    },
+    {
+      "id": "QA-match-center-mobile",
+      "classification": "BUG",
+      "severity": "UNTRIAGED",
+      "journey": "match-center",
+      "viewport": "mobile",
+      "reason": "page.click: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('article.match[data-match=\"fpt:hash:38b49fc23cd01f027c3543e677f4a384\"] [data-action=\"open-match\"]')\n",
+      "evidence": [
+        "traces/match-center-mobile.zip",
+        "screenshots/match-center-mobile-01-apertura-dalla-daily-board-failure.png"
+      ]
+    }
+  ],
+  "exploratory": {
+    "status": "NOT_VERIFIED",
+    "reason": "level B (exploratory AI agent) is not part of this run"
+  },
+  "injected_defect": false,
+  "limitations": [
+    "QA archive is a seeded fixture through the real ingestion path, not the real archive (#40) nor production data",
+    "accessibility checks are basic structural checks, not a full WCAG audit"
+  ],
+  "verdict": "FAIL",
+  "files": {
+    "screenshots/match-center-desktop-01-apertura-dalla-daily-board-failure.png": "51097b6daf3be3d2618e3477617ff0276cadad7bf03f87b20002bdcf2f30da25",
+    "screenshots/match-center-mobile-01-apertura-dalla-daily-board-failure.png": "7b9ee8045154d273cbc694b2a3d70e3ee3dd1ff6c2fc1a70c800893483b4e797",
+    "traces/match-center-desktop.zip": "c3d19d186c0433bc8f96546fe40c35092b80e20b484b3530e1c80f2f596c280d",
+    "traces/match-center-mobile.zip": "a84e7133094b19c306f29b36f808edac391286782987cb1bee0c60d230c1e845"
+  }
+}

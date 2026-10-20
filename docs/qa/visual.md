@@ -6,7 +6,7 @@ Owner decisions: MP-OWNER-QA-VISUAL-EXECUTION-01 (versioned visual baselines, SH
 
 `node tools/qa/visual.mjs --out <dir>` opens each **scene** of the site on three viewports and compares its first screen with the committed baseline:
 - viewports: desktop 1280×800, tablet 820×1180, mobile 390×844;
-- 12 scenes, so 36 baselines in `test/visual/baselines/`.
+- 15 scenes, so 45 baselines in `test/visual/baselines/`.
 
 | Scene | Address | What it fixes |
 |---|---|---|
@@ -21,6 +21,9 @@ Owner decisions: MP-OWNER-QA-VISUAL-EXECUTION-01 (versioned visual baselines, SH
 | `oggi-caricamento` | Oggi, with the matches route held | loading state |
 | `oggi-errore` | Oggi, with the matches route answering 503 | error state: «Dati non disponibili», Riprova |
 | `ricerca-filtro-rifiutato` | the search with «Quota favorito da» above «a»: the real server refuses it (400) | refused filter, the fields named in Italian |
+| `partita` | the Match Center of the first match of the last day of the QA archive | hero, form, odds, filters |
+| `partita-confronto` | the same match, scrolled to the comparison | comparison, source matches |
+| `partita-senza-storico` | a match of the first day, whose teams have no earlier match | empty states and N/D |
 | `dati-parziale` | Dati, with the live TotalCorner route answering 503 | partial dashboard: one tile N/D, banner |
 
 ## What makes it reproducible

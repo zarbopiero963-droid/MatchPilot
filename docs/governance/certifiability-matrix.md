@@ -29,9 +29,9 @@ Owner decision: MP-OWNER-CONTINUOUS-EXECUTION-02 §4. For every feature of the p
 |---|---|---|---|---|---|---|---|
 | Daily Board (Oggi) | MP-WEB-002, MP-WEB-005, MP-WEB-010, MP-WEB-015 | FPT matches of a day: kickoff, teams, competition, result, 1X2/Over/BTTS odds, favourite, xG; last sync run | QA archive; #40 not materialized | `test/web-e2e.test.mjs`, Browser QA `daily-board`, QA-V scenes `oggi*` | `docs/audits/V-B4-DAILY-BOARD`, `docs/audits/QA-V-VISUAL-BASELINES*` | DETERMINISTIC TEST PASS | NOT VERIFIED |
 | Ricerca | MP-WEB-007, MP-API-004 | FPT search with combined filters and keyset pagination; teams and competitions | QA archive | `test/web-e2e.test.mjs`, `test/api-v1-postgres.test.mjs`, Browser QA `search`, QA-V `ricerca*` | `docs/audits/V-B1-UI-NO-RAW-TEXT`, `docs/audits/QA-V-VISUAL-BASELINES*` | DETERMINISTIC TEST PASS | NOT VERIFIED |
-| Area Dati (Stato dei dati, Fornitori, API) | MP-WEB-013, MP-WEB-006, MP-API-005 | health, providers, coverage per league, TotalCorner historical/prematch/live summaries | QA archive; TotalCorner tables empty in the fixture | Browser QA `dashboard`, `providers-endpoints`, QA-V `dati*` | `docs/audits/V-B2a-HOME-NAV-DATI`, `docs/audits/V-B2b-PROVIDER-LABELS` | DETERMINISTIC TEST PASS | NOT VERIFIED |
-| Visual conformity and states | MP-WEB-009, MP-WEB-010, MP-WEB-015, MP-QAC-004 | the approved mockup (#103), the site on desktop, tablet and mobile | QA archive | Browser QA (10 journey × viewport runs), QA-V (12 scenes × 3 viewports) | `docs/audits/QA-V-VISUAL-BASELINES*`, `docs/qa/visual.md` | PARTIAL COVERAGE | NOT VERIFIED |
-| Match Center, pre-match (R-07a) | MP-WEB-003, MP-WEB-014, MP-FPT-009 | match header, team form, home/away, xG and other metrics, historical odds and markets per window, provenance and the sample size N | none used yet; the work in progress (`docs/governance/wip/R-07a-match-analysis.patch`) never ran | none yet | checkpoint `CP-20261019T130621Z` (HANDOFF READY) | FAIL | NOT VERIFIED |
+| Area Dati (Stato dei dati, Fornitori, API) | MP-WEB-013, MP-WEB-006, MP-API-005 | health, providers, coverage per league, TotalCorner historical/prematch/live summaries | QA archive; TotalCorner tables empty in the fixture | `tools/qa/journeys.mjs` (Browser QA `dashboard`, `providers-endpoints`), `tools/qa/visual.mjs` (QA-V `dati*`) | `docs/audits/V-B2a-HOME-NAV-DATI`, `docs/audits/V-B2b-PROVIDER-LABELS` | DETERMINISTIC TEST PASS | NOT VERIFIED |
+| Visual conformity and states | MP-WEB-009, MP-WEB-010, MP-WEB-015, MP-QAC-004 | the approved mockup (#103), the site on desktop, tablet and mobile | QA archive | `tools/qa/journeys.mjs` (Browser QA, every journey on desktop and mobile), `tools/qa/visual.mjs` (QA-V, 15 scenes × 3 viewports) | `docs/audits/QA-V-VISUAL-BASELINES*`, `docs/qa/visual.md` | PARTIAL COVERAGE | NOT VERIFIED |
+| Match Center, pre-match (R-07a) | MP-WEB-003, MP-WEB-014, MP-FPT-009 | match header, team form, home/away, xG and other metrics, historical odds and markets per window, provenance and the sample size N | QA archive | `test/match-analysis.test.mjs`, Browser QA `match-center`, QA-V `partita*` | `docs/audits/R-07a-MATCH-CENTER` | PARTIAL COVERAGE | NOT VERIFIED |
 | Match Center, finished match (#25) | MP-WEB-004 | final state, timeline, markets, replay link, post-mortem | — | none | — | FAIL | NOT VERIFIED |
 | Match Replay (#24) | MP-RPL-001…012, MP-WEB-012 | authentic captured snapshots and events in time order, as of each instant | none: live snapshots are in production (not read) and in #40 (not materialized) | none | — | FAIL | BLOCKED (R-02; MP-RPL-001) |
 | Live Trading Board (#29) | none registered | realtime TotalCorner snapshots from a certified H24 collector | none | none | — | FAIL | BLOCKED (MP-TC-012: no certified H24 collector) |
@@ -51,6 +51,8 @@ Owner decision: MP-OWNER-CONTINUOUS-EXECUTION-02 §4. For every feature of the p
 | TotalCorner collectors | MP-TC-001…015 | provider responses, mappings, prematch, live, FT | fixtures; live history in production (not read) | `test/tc-core-*.test.mjs` | TotalCorner certification (#20) | PARTIAL COVERAGE | BLOCKED (MP-TC-012: H24 not certified) |
 | Archive #40 | MP-ARC-001…005 | the 13 parts, their SHA-256, DuckDB portability, counts, PIT | manifest and pins only | `test/archive-verify.test.mjs`, `tools/archive/verify-archive.mjs` | `docs/governance/archive/40/`, checkpoint `CP-20261018T211916Z` | PARTIAL COVERAGE | BLOCKED (R-02) |
 
+Why the Match Center is only a partial coverage: R-07a is the first batch of the analysis of #30 (form, venue, sample, goals, xG, odds coverage, head to head); the other analytical cards, charts and the finished-match page are not built.
+
 Why «Visual conformity and states» is only a partial coverage: the baselines and journeys catch regressions against the views as approved, not conformity to the mockup itself. The required check on `main` is not verified (MP-QAC-004), and the login texts are not automated (inventory UI-63…UI-65).
 
 ## How a verdict changes
@@ -62,5 +64,6 @@ A verdict moves only with evidence, in the PR that produces it:
 The `REAL DATA PASS` verdict is never used for a fixture. `test/governance-certifiability.test.mjs` checks that:
 - every verdict is exactly one of the six above, with only a parenthesised cause after `BLOCKED`;
 - every requirement named exists in the inventory;
-- `REAL DATA PASS` appears only in the real-data column, never with data that are the QA archive, fixtures, synthetic vectors or none, and never without evidence;
-- `DETERMINISTIC TEST PASS` names executable tests.
+- `REAL DATA PASS` appears only in the real-data column, only when the data column names archive #40 or real provider data and none of the QA archive, fixtures, synthetic, mock or seeded data, and only with an existing `docs/audits/` package as evidence;
+- `DETERMINISTIC TEST PASS` and `PARTIAL COVERAGE` name at least one test file or tool that exists in the repository;
+- the table has exactly the features listed in the test, so a row cannot vanish or be skipped by its layout.

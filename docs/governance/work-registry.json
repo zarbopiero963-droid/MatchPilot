@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 95,
+  "revision": 97,
   "tasks": [
     {
       "id": "R-01",
@@ -211,19 +211,19 @@
     },
     {
       "id": "R-07a",
-      "title": "Match Center: pre-match analysis (MP-WEB-003, MP-WEB-014); paused for QA-01",
+      "title": "Match Center: pre-match analysis, first batch of #30 (MP-WEB-003, MP-WEB-014)",
       "issue": 25,
-      "pr": null,
+      "pr": 176,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "HANDOFF READY",
+      "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261019T130621Z-agent-a-claude-code",
-      "pr_open": false
+      "latest_checkpoint": "CP-20261020T091218Z-agent-a-claude-code",
+      "pr_open": true
     },
     {
       "id": "QA-01",
@@ -408,14 +408,14 @@
       "pr": 175,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261020T084208Z-agent-a-claude-code",
-      "pr_open": true
+      "latest_checkpoint": "CP-20261020T085422Z-agent-a-claude-code",
+      "pr_open": false
     }
   ]
 }
