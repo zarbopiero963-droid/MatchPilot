@@ -30,3 +30,4 @@ The index of the essential evidence, and the link to each package here, is `docs
 | [V-B4-DAILY-BOARD](V-B4-DAILY-BOARD/INDEX.md) | V-B4: compact Daily Board rows and day strip of the mockup, search results as cards on a phone; before/RED/GREEN Browser QA | 2026-10-19 | 5 Browser QA runs with screenshots and traces, 10 crops |
 | [V-B4-DAILY-BOARD-R2](V-B4-DAILY-BOARD-R2/INDEX.md) | V-B4 after review D2 (PR #173): RED of the review notes and GREEN Browser QA of c02db2f | 2026-10-20 | 4 Browser QA runs with screenshots and traces |
 | [QA-V-VISUAL-BASELINES](QA-V-VISUAL-BASELINES/INDEX.md) | QA-V: visual baselines, CI measurement, thresholds and sensitivity; local and CI GREEN | 2026-10-20 | 2 local runs, 2 CI artifacts, 8 sensitivity runs |
+| [QA-V-VISUAL-BASELINES-R2](QA-V-VISUAL-BASELINES-R2/INDEX.md) | QA-V after review D2 (PR #174): local and CI GREEN of dce4e30 | 2026-10-20 | 2 local runs, 1 CI artifact |
