@@ -1,0 +1,26 @@
+# .github/workflows/deploy-vps.yml — deploy di main sulla VPS privata (self-hosted runner)
+name: deploy-vps
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.repository == 'zarbopiero963-droid/MatchPilot' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, matchpilot-vps]
+    timeout-minutes: 30
+    steps:
+      # Nessun checkout: mp-deploy scarica da solo lo SHA e verifica che sia su main.
+      # exit 75 = lock occupato (timer di 5 min in corso) -> riprova.
+      - name: mp-deploy
+        run: |
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            sudo -n /usr/local/sbin/mp-deploy "${{ github.sha }}" && exit 0
+            rc=$?; [ "$rc" -eq 75 ] || exit "$rc"
+            echo "deploy in corso, attendo 60s"; sleep 60
+          done
+          exit 75
