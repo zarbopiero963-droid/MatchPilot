@@ -22,6 +22,7 @@ Required journeys (`tools/qa/journeys.mjs`):
 | `dashboard` | every tile from its route, values equal the API, coverage per league, N/D for missing data, one route unavailable → only its tile N/D with the reason |
 | `daily-board` | opening from the dashboard, date field, two competitions on one day, "Carica altre partite" to the end in API order, card values, previous/next day, empty day, invalid date |
 | `search` | all matches page by page, team + venue + data quality, competition + date range, xG filter, server validation error, unknown team, no result, venue without team, failed next page with retry |
+| `match-center` | opening from Oggi and search, every comparison figure, form, odds and source row equal to the API for each filter, PIT cutoff, empty history, invalid and unknown match |
 | `providers-endpoints` | data providers page, API registry equal to the API |
 
 After **every step** the runner also checks, on the page as rendered:
@@ -52,7 +53,7 @@ The verdict is computed, never declared. `test/browser-qa-gate.test.mjs` proves 
 
 ## Visual baselines
 
-After the journeys, the same job compares 12 approved views and states on desktop, tablet and mobile with their versioned baselines (QA-V). A view over the thresholds fails the job, and the comparison is kept as the artifact `visual-qa-<head>`. Procedure, thresholds and limits: [visual.md](visual.md).
+After the journeys, the same job compares 15 approved views and states on desktop, tablet and mobile with their versioned baselines (QA-V). A view over the thresholds fails the job, and the comparison is kept as the artifact `visual-qa-<head>`. Procedure, thresholds and limits: [visual.md](visual.md).
 
 ## Phase A audit (19/10/2026, before QA-01)
 

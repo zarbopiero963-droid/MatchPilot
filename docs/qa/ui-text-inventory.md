@@ -72,6 +72,24 @@ The Browser QA gate fails a user view, or the page footer, that shows technical 
 | UI-44 | wide results table on a phone, no cue that it scrolls | mobile | V | on a phone each result reads as a small card, every value after its column title (`data-label`); a table on a desktop (V-B4) | V-B4 | journey `search`, step «squadra per nome»: every cell carries its column title, titles hidden and no sideways scroll on a phone, table header on a desktop; QA-V baselines `ricerca-risultati` on desktop, tablet and mobile |
 | UI-45 | «Altri risultati» · «Risultati» | list | U | kept | — | journey `search` |
 
+## Match Center (`#/match?id=…`, user view, R-07a)
+
+New texts of the pre-match analysis; each is checked by the journey `match-center` on desktop and mobile, besides the invariants (no technical text, no lead text).
+
+| ID | Text | Where | Class | Action | PR | Verification |
+|---|---|---|---|---|---|---|
+| UI-80 | «Utrecht – Feyenoord» (the h1), competition, season and long date above it | hero | U | new; the title is the board of the mockup (home side, score or kickoff, away side) | R-07a | journey `match-center`: names, competition, `time[datetime]` equal the API |
+| UI-81 | form chips «V», «N», «P», tooltip «Vittoria: Utrecht 0–2 Ajax, 09/08/2024» | hero | U | new; the last five matches of each team, from the API's `form` | R-07a | journey `match-center`: chips equal the API |
+| UI-82 | quote boxes «1», «X», «2», «Over 2,5», «Under 2,5», «Gol»; «Favorito …», «xG della partita …» | hero | U | new; the values are the API's, N/D when absent | R-07a | journey `match-center`: every box equals the API |
+| UI-83 | «Entrambe · Casa · Ospite», «Ultime 5 · Ultime 10 · Ultime 20 · Stagione», «Casa / Trasferta · Tutte le partite · Solo in casa · Solo in trasferta» | filter bar | U | new; the filters of the mockup (#30), kept in the address | R-07a | journey `match-center`, step «filtri» |
+| UI-84 | «Statistiche delle partite concluse prima di sabato 10 agosto 2024; quelle dello stesso giorno sono escluse.» | under the filters | U | new; the point-in-time rule in plain words, the cutoff in `data-cutoff` | R-07a | journey `match-center`: `data-cutoff` equals the match day; no source row on or after it |
+| UI-85 | «Confronto»: «Partite», «Vittorie», «Pareggi», «Sconfitte», «Gol fatti a partita», «Gol subiti a partita», «Over 2,5», «Gol (entrambe segnano)», «Porta inviolata», «Senza segnare», «xG fatti a partita», «xG subiti a partita», «Partite con xG», «Partite con quote 1X2» | comparison card | U | new; every figure from the API (percentages computed by the server, MP-WEB-011); N/D without a match | R-07a | journey `match-center`: every cell equals the API for each filter |
+| UI-86 | «Partite considerate: Utrecht» and its table «Data · Partita · Esito · Risultato · xG · 1 · X · 2» | source cards | U | new; the drill-down to the source rows, each opening its own Match Center | R-07a | journey `match-center`: rows equal `source_match_ids` |
+| UI-87 | «Nessuna partita conclusa prima di questa data.» | source card without history | U | new; explicit empty state | R-07a | journey `match-center`, step «prima giornata» |
+| UI-88 | «Precedenti», «Nessun precedente prima di questa data.» | head to head | U | new | R-07a | journey `match-center`, step «precedenti» |
+| UI-89 | «Partita non valida: aprila dalla Daily Board o dalla Ricerca.», «Partita non trovata», «Questa partita non è nell'archivio. Torna a Oggi» | invalid or unknown id | U | new; no request for an invalid id; the API's reason in `data-code` | R-07a | journey `match-center`, step «partita non valida o non trovata» |
+| UI-90 | the PIT status, the analysis version, phase and dataset of the match | hero | T | not printed: `data-pit`, `data-version`, `data-phase`, `data-dataset` | R-07a | journey `match-center`: attributes equal the API |
+
 ## Stato dei dati (`#/data`, the former Dashboard; technical view since V-B2a)
 
 Until V-B2 the Dashboard was the home page, though it is almost entirely data health and certification: technical by nature. V-B2a made «Oggi» (the Daily Board) the home page (D-2) and moved this view into the technical area «Dati» as «Stato dei dati».

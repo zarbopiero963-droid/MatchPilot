@@ -36,7 +36,16 @@ Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). 
 
     The server validates every filter; a refusal names the field in Italian, and the server's message stays in the tooltip. "Altri risultati" follows `next_cursor`; a failed page keeps the rows already shown and offers a retry. On a phone each result reads as a small card, every value after its column title.
   - Fornitori dati (data health and FutPythonTrader certification), API (the v1 registry and legacy routes): **technical views** in «Dati». Every key of the provider tree reads in Italian; the raw key stays in `data-key` and the tooltip, and a key without a label reads as words and is marked (V-B2b). Copertura links to the existing `/coverage` page.
-- **Not yet shown:** Match Center, historical replay and PIT backtest (R-07, R-09…R-14).
+  - **Match Center** (`#/match?id=…`, R-07a, MP-WEB-003, MP-WEB-014, user view). The pre-match analysis of one stored match from `/api/v1/fpt/match-analysis`, opened from the teams of a Daily Board row, a search result or a source row:
+    - the hero of the mockup: competition, season and date; the teams with the form of their last five matches; the score or the state, and the kickoff; 1X2, Over/Under 2,5 and BTTS odds; favourite and the match's xG;
+    - the filters of the mockup, kept in the address: team (both, home, away), sample (last 5, 10, 20, season) and venue (each team where it plays this match, all matches, home only, away only);
+    - a comparison of the two teams: matches, win/draw/loss shares, goals for and against per match, Over 2,5, both teams scoring, clean sheets, failing to score, xG for and against per match, and how many matches have xG and complete 1X2 odds;
+    - the source matches of each team, each opening its own Match Center, and the head to head.
+
+    Every figure is computed by the server in exact decimals (percentages included), from the finished matches dated strictly before the match day: matches of the same day are excluded because the provider time zone is undocumented. The page says so in plain words and keeps the cutoff in `data-cutoff`. The PIT status (`PIT_NOT_VERIFIED`: current fact versions with a date cutoff, acquisition time not checked), the analysis version, phase and dataset stay in data attributes. A team without an earlier match shows an explicit empty state and N/D, never 0. An invalid id is refused before any request; an unknown one reads «Partita non trovata».
+
+    Not yet: the 20 analytical cards of #30 beyond this first batch, charts (MP-WEB-008), the finished-match page (MP-WEB-004) and the real archive (R-02).
+- **Not yet shown:** historical replay and PIT backtest (R-09…R-14).
 - **Data used for tests:** one league season ingested through the real FutPythonTrader path (`test/helpers/fpt-seed.mjs`). No production data is read. Against the real archive these views are TESTED, not certified (MP-OWNER-ARCHIVE-FIRST-01).
 
 ## Rules

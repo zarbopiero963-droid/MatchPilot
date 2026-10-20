@@ -369,9 +369,11 @@ function matchRow(row) {
       formatScalar(row.kickoff_local_time)),
     el('div', {class: 'teams'},
       // The dash between the teams is hidden on screen (one team per line): the heading keeps it for screen readers (PR #173 review NB-2).
+      // The teams open the Match Center of the match (R-07a).
       el('h3', {'aria-label': `${row.home_name || ND} – ${row.away_name || ND}`},
-        el('span', {'data-field': 'home'}, formatScalar(row.home_name)), el('span', {class: 'sep'}, ' – '),
-        el('span', {'data-field': 'away'}, formatScalar(row.away_name))),
+        el('a', {class: 'match-link', href: row.internal_match_id ? matchHref(row.internal_match_id) : null, 'data-action': 'open-match'},
+          el('span', {'data-field': 'home'}, formatScalar(row.home_name)), el('span', {class: 'sep'}, ' – '),
+          el('span', {'data-field': 'away'}, formatScalar(row.away_name)))),
       el('p', {class: 'comp', 'data-field': 'competition'}, nameOf(row.country_slug), ' · ', nameOf(row.league_slug), ' · ', seasonOf(row.season))),
     el('p', {class: 'score', 'data-field': 'score'}, outcome(row)),
     el('div', {class: 'markets'},
@@ -488,6 +490,143 @@ async function boardView(params, mine) {
       list: el('div', {class: 'card board', 'data-testid': 'paged-list'})})];
 }
 
+// ---- Match Center: pre-match analysis of one match (R-07a; MP-WEB-003, MP-WEB-014) ----
+// Every figure is the server's (/api/v1/fpt/match-analysis): counts, averages and percentages in exact decimals, from the
+// finished matches dated strictly before the match day. The page only chooses which of the API's windows to show.
+
+const matchHref = id => `#/match?${queryString({id})}`;
+const SCOPES = [['both', 'Entrambe'], ['home', 'Casa'], ['away', 'Ospite']];
+const WINDOWS = [['5', 'Ultime 5'], ['10', 'Ultime 10'], ['20', 'Ultime 20'], ['season', 'Stagione']];
+// «Casa / Trasferta» compares each team where it plays this match: the home team at home, the away team away.
+const VENUES = [['split', 'Casa / Trasferta'], ['both', 'Tutte le partite'], ['home', 'Solo in casa'], ['away', 'Solo in trasferta']];
+const FORM_LETTER = {W: 'V', D: 'N', L: 'P'};
+const FORM_WORD = {W: 'Vittoria', D: 'Pareggio', L: 'Sconfitta'};
+const choice = (value, options, fallback) => options.some(([key]) => key === value) ? value : fallback;
+const percent = value => value === null || value === undefined ? formatScalar(null) : el('span', {}, num(value), '%');
+
+// The rows the API sent, by match id, so a form chip or a source row can name its match.
+const rowsById = venues => new Map(Object.values(venues ?? {}).flatMap(venue => venue.rows ?? []).map(row => [row.internal_match_id, row]));
+
+function formChips(form, rows, label) {
+  if (!Array.isArray(form) || form.length === 0) return el('span', {class: 'nd', 'data-field': 'form'}, ND);
+  return el('span', {class: 'form', 'data-field': 'form', role: 'list', 'aria-label': label}, form.map(item => {
+    const row = rows.get(item.match_id);
+    const what = row ? `${FORM_WORD[item.result]}: ${row.home_name} ${row.home_score}–${row.away_score} ${row.away_name}, ${dayText(row.match_date)}` : FORM_WORD[item.result];
+    return el('a', {class: `fm ${item.result}`, role: 'listitem', href: matchHref(item.match_id), title: what, 'aria-label': what, 'data-code': item.result}, FORM_LETTER[item.result] ?? '?');
+  }));
+}
+
+function sourceTable(team, stats, rows) {
+  if (!stats || stats.n === 0) return el('p', {class: 'state empty', 'data-testid': 'no-history'}, 'Nessuna partita conclusa prima di questa data.');
+  const columns = ['Data', 'Partita', 'Esito', 'Risultato', 'xG', '1 · X · 2'];
+  const results = new Map((stats.form ?? []).map(item => [item.match_id, item.result]));
+  const body = el('tbody', {'data-testid': `source-${team}`}, stats.source_match_ids.map(id => {
+    const row = rows.get(id) ?? {internal_match_id: id};
+    const result = results.get(id);
+    const cells = [
+      el('td', {'data-field': 'date'}, calendarDay(row.match_date)),
+      el('td', {'data-field': 'teams'}, el('a', {href: matchHref(id)}, formatScalar(row.home_name), ' – ', formatScalar(row.away_name))),
+      el('td', {'data-field': 'result'}, result ? el('span', {class: `fm ${result}`, title: FORM_WORD[result], 'data-code': result}, FORM_LETTER[result]) : formatScalar(null)),
+      el('td', {'data-field': 'score'}, score(row)),
+      el('td', {'data-field': 'xg'}, num(row.xg_home), ' · ', num(row.xg_away)),
+      el('td', {'data-field': 'odds_1x2'}, num(row.odd_home), ' · ', num(row.odd_draw), ' · ', num(row.odd_away))];
+    cells.forEach((cell, index) => cell.setAttribute('data-label', columns[index]));
+    return el('tr', {'data-match': id}, cells);
+  }));
+  return el('div', {class: 'tablewrap'}, el('table', {class: 'results'}, el('thead', {}, el('tr', {}, columns.map(columnTitle))), body));
+}
+
+// One line of the comparison: the home team's value, the label, the away team's value; a hidden side is left empty.
+const STAT_ROWS = [
+  ['n', 'Partite', s => num(s.n)],
+  ['won', 'Vittorie', s => percent(s.percent?.won)],
+  ['drawn', 'Pareggi', s => percent(s.percent?.drawn)],
+  ['lost', 'Sconfitte', s => percent(s.percent?.lost)],
+  ['goals_for_avg', 'Gol fatti a partita', s => num(s.goals_for_avg)],
+  ['goals_against_avg', 'Gol subiti a partita', s => num(s.goals_against_avg)],
+  ['over25', 'Over 2,5', s => percent(s.percent?.over25)],
+  ['btts', 'Gol (entrambe segnano)', s => percent(s.percent?.btts)],
+  ['clean_sheet', 'Porta inviolata', s => percent(s.percent?.clean_sheet)],
+  ['failed_to_score', 'Senza segnare', s => percent(s.percent?.failed_to_score)],
+  ['xg_for_avg', 'xG fatti a partita', s => num(s.xg_for_avg)],
+  ['xg_against_avg', 'xG subiti a partita', s => num(s.xg_against_avg)],
+  ['xg_n', 'Partite con xG', s => num(s.coverage?.xg_n)],
+  ['odds_1x2_n', 'Partite con quote 1X2', s => num(s.coverage?.odds_1x2_n)],
+];
+
+function compareCard(home, away, names) {
+  const side = (stats, render) => stats ? render(stats) : '';
+  return el('section', {class: 'card compare', 'data-testid': 'compare'},
+    el('h2', {}, 'Confronto'),
+    el('div', {class: 'cmp-head'}, el('b', {'data-side': 'home'}, home ? names.home : ''), el('span', {}, ''), el('b', {'data-side': 'away'}, away ? names.away : '')),
+    STAT_ROWS.map(([key, label, render]) => el('div', {class: 'cmp', 'data-stat': key},
+      el('span', {class: 'n', 'data-side': 'home'}, side(home, render)), el('span', {class: 'l'}, label), el('span', {class: 'n r', 'data-side': 'away'}, side(away, render)))));
+}
+
+async function matchView(params) {
+  const id = (params.get('id') ?? '').trim();
+  if (!/^fpt:\S{1,396}$/.test(id)) {
+    return [el('h1', {}, 'Partita'), el('p', {class: 'state error', role: 'alert', 'data-testid': 'match-invalid'},
+      'Partita non valida: aprila dalla ', el('a', {href: '#/'}, 'Daily Board'), ' o dalla ', el('a', {href: '#/search'}, 'Ricerca'), '.')];
+  }
+  const scope = choice(params.get('team'), SCOPES, 'both');
+  const sample = choice(params.get('window'), WINDOWS, '10');
+  const venue = choice(params.get('venue'), VENUES, 'split');
+  const body = await getJson(`/api/v1/fpt/match-analysis?${queryString({id})}`);
+  const data = body.data ?? {};
+  const match = data.match;
+  if (!match) {
+    return [el('h1', {}, 'Partita non trovata'), el('p', {class: 'state empty', role: 'status', 'data-testid': 'match-not-found', 'data-code': data.reason ?? ''},
+      'Questa partita non è nell\'archivio. ', el('a', {href: '#/'}, 'Torna a Oggi'))];
+  }
+  const names = {home: match.home_name ?? ND, away: match.away_name ?? ND};
+  const teamVenue = side => venue === 'split' ? side : venue;
+  const stats = side => data.teams?.[side]?.venues?.[teamVenue(side)]?.windows?.[sample] ?? null;
+  const rows = side => rowsById(data.teams?.[side]?.venues);
+  const recent = side => data.teams?.[side]?.venues?.both?.windows?.['5'] ?? null;
+  const shown = side => scope === 'both' || scope === side;
+  const link = (key, value) => `#/match?${queryString({id, team: scope, window: sample, venue, [key]: value})}`;
+  const filter = (label, key, options, current) => el('nav', {class: 'seg', 'aria-label': label, 'data-filter': key},
+    options.map(([value, text]) => el('a', {href: link(key, value), 'aria-current': value === current ? 'true' : null, 'data-value': value}, text)));
+
+  const hero = el('section', {class: 'hero', 'data-testid': 'match-hero', 'data-match': match.internal_match_id, 'data-result': match.result_status ?? '',
+    'data-phase': match.phase ?? '', 'data-dataset': match.dataset_key ?? '', 'data-pit': data.method?.pit ?? '', 'data-version': data.method?.analysis_version ?? ''},
+    el('p', {class: 'meta'},
+      el('span', {'data-field': 'competition'}, nameOf(match.country_slug), ' · ', nameOf(match.league_slug), ' · ', seasonOf(match.season)),
+      el('span', {'data-field': 'date'}, calendarDay(match.match_date, LONG_DAY))),
+    // The board of the mockup is the page title: home side, score or kickoff, away side (one h1, read as «Casa – Ospite»).
+    el('h1', {class: 'board', 'aria-label': `${names.home} – ${names.away}`},
+      el('span', {class: 'side'}, el('b', {'data-field': 'home'}, formatScalar(match.home_name)),
+        formChips(recent('home')?.form, rows('home'), `Ultime partite di ${names.home}`)),
+      el('span', {class: 'mid'},
+        el('span', {class: 'bigscore', 'data-field': 'score'}, outcome(match)),
+        el('span', {class: 'kick', 'data-field': 'kickoff', 'data-tz': match.kickoff_tz_status ?? '', title: match.kickoff_local_time ? KICKOFF_NOTE : null},
+          formatScalar(match.kickoff_local_time))),
+      el('span', {class: 'side r'}, el('b', {'data-field': 'away'}, formatScalar(match.away_name)),
+        formChips(recent('away')?.form, rows('away'), `Ultime partite di ${names.away}`))),
+    el('div', {class: 'odds', 'data-field': 'odds_1x2', role: 'group', 'aria-label': 'Quote 1 X 2'},
+      odd('1', match.odd_home, 'odd_home', `Vittoria ${names.home}`), odd('X', match.odd_draw, 'odd_draw', 'Pareggio'), odd('2', match.odd_away, 'odd_away', `Vittoria ${names.away}`),
+      odd('Over 2,5', match.odd_over25, 'odd_over25', 'Più di 2,5 gol'), odd('Under 2,5', match.odd_under25, 'odd_under25', 'Meno di 2,5 gol'),
+      odd('Gol', match.odd_btts_yes, 'odd_btts_yes', 'Entrambe le squadre segnano')),
+    el('p', {class: 'facts'},
+      el('span', {'data-field': 'favorite'}, 'Favorito ', match.favorite_side ? el('b', {}, code(match.favorite_side), ' ', num(match.favorite_odd)) : formatScalar(null)),
+      el('span', {'data-field': 'xg'}, 'xG della partita ', el('b', {}, num(match.xg_home), ' – ', num(match.xg_away)))));
+
+  const filters = el('section', {class: 'card fbar', 'data-testid': 'match-filters'},
+    filter('Squadra', 'team', SCOPES, scope), filter('Campione', 'window', WINDOWS, sample), filter('Campo', 'venue', VENUES, venue));
+  const cutoff = el('p', {class: 'updated', 'data-testid': 'cutoff', 'data-cutoff': data.method?.cutoff_before ?? ''},
+    'Statistiche delle partite concluse prima di ', calendarDay(data.method?.cutoff_before ?? match.match_date, LONG_DAY), '; quelle dello stesso giorno sono escluse.');
+  const teamCards = ['home', 'away'].filter(shown).map(side => el('section', {class: 'card source', 'data-testid': `team-${side}`, 'data-team': data.teams?.[side]?.team_id ?? '',
+    'data-venue': teamVenue(side), 'data-window': sample},
+    el('h2', {}, `Partite considerate: ${names[side]}`), sourceTable(side, stats(side), rows(side))));
+  const h2h = data.head_to_head ?? {n: 0, rows: []};
+  const h2hRows = new Map(h2h.rows.map(row => [row.internal_match_id, row]));
+  const h2hCard = el('section', {class: 'card source', 'data-testid': 'head-to-head'}, el('h2', {}, 'Precedenti'),
+    h2h.n ? sourceTable('h2h', {n: h2h.n, source_match_ids: h2h.rows.map(row => row.internal_match_id)}, h2hRows)
+      : el('p', {class: 'state empty'}, 'Nessun precedente prima di questa data.'));
+  return [hero, filters, cutoff, compareCard(shown('home') ? stats('home') : null, shown('away') ? stats('away') : null, names), ...teamCards, h2hCard];
+}
+
 // ---- Search and filters (MP-WEB-007) ----
 
 const SEARCH_PAGE = 25;
@@ -529,6 +668,8 @@ function searchForm(params, competitions) {
   el('button', {type: 'submit'}, 'Cerca'), ' ', el('a', {href: '#/search'}, 'Azzera'));
 }
 
+// Column titles are set in capitals by the style; «xG» keeps its own case.
+const columnTitle = text => el('th', {scope: 'col', class: /xG/.test(text) ? 'keep-case' : null}, text);
 // On a phone each result reads as a small card: the column title is repeated before each value (data-label, UI-44).
 const RESULT_COLUMNS = ['Data', 'Ora', 'Partita', 'Campionato', 'Risultato', '1 · X · 2', 'Over 2,5', 'xG'];
 function resultsTable(rows) {
@@ -542,7 +683,9 @@ function resultCells(row) {
   return [
     el('td', {'data-field': 'date'}, row.match_date ? el('a', {href: dayHref(row.match_date), title: 'Apri le partite di quel giorno'}, calendarDay(row.match_date)) : formatScalar(null)),
     el('td', {'data-field': 'kickoff', title: row.kickoff_local_time ? KICKOFF_NOTE : null}, formatScalar(row.kickoff_local_time)),
-    el('td', {'data-field': 'teams'}, formatScalar(row.home_name), ' – ', formatScalar(row.away_name)),
+    el('td', {'data-field': 'teams'}, row.internal_match_id
+      ? el('a', {href: matchHref(row.internal_match_id), 'data-action': 'open-match'}, formatScalar(row.home_name), ' – ', formatScalar(row.away_name))
+      : [formatScalar(row.home_name), ' – ', formatScalar(row.away_name)]),
     el('td', {'data-field': 'competition'}, nameOf(row.league_slug), ' ', seasonOf(row.season)),
     el('td', {'data-field': 'score'}, outcome(row)),
     el('td', {'data-field': 'odds_1x2'}, num(row.odd_home), ' · ', num(row.odd_draw), ' · ', num(row.odd_away)),
@@ -599,7 +742,7 @@ async function searchView(params, mine) {
   if (rows.length === 0) return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'search-empty', 'data-outcome': ''}, 'Nessuna partita corrisponde ai filtri.')];
   const [body, footer] = pagedList({first, path, params: api, render: resultsTable, more: 'Altri risultati', mine,
     list: el('tbody', {'data-testid': 'search-results'})});
-  const table = el('table', {class: 'results'}, el('thead', {}, el('tr', {}, RESULT_COLUMNS.map(text => el('th', {scope: 'col'}, text)))), body);
+  const table = el('table', {class: 'results'}, el('thead', {}, el('tr', {}, RESULT_COLUMNS.map(columnTitle))), body);
   // The filters the server applied stay on the outcome (data-filters) for checks and the technical views.
   return [...head, el('h2', {'data-testid': 'search-outcome', 'data-outcome': '', 'data-filters': (first.data?.provenance?.filters_applied ?? []).join(' ')}, 'Risultati'),
     venueIgnored ? el('p', {class: 'state partial', role: 'status', 'data-testid': 'venue-ignored'}, 'La sede vale solo con una squadra: è stata ignorata.') : null,
@@ -650,9 +793,10 @@ async function endpointsView() {
 // 'technical' view is where provenance and diagnostics belong. Every view declares one (V-B2). #/board, the former
 // address of the Daily Board, still opens it, and the menu item of each view is its section (NAV_OF).
 const VIEWS = {'': ['la pagina', boardView, 'user'], board: ['la pagina', boardView, 'user'], search: ['la ricerca', searchView, 'user'],
+  match: ['la partita', matchView, 'user'],
   data: ['lo stato dei dati', dashboardView, 'technical'], providers: ['i fornitori dati', providersView, 'technical'],
   endpoints: ['gli endpoint', endpointsView, 'technical']};
-const NAV_OF = {board: '', providers: 'data', endpoints: 'data'};
+const NAV_OF = {board: '', providers: 'data', endpoints: 'data', match: null};
 
 let generation = 0;
 // Set by the search form: the next search render moves the focus to its outcome and scrolls it into view, so the result,

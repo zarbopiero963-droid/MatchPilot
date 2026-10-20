@@ -681,6 +681,138 @@ export const JOURNEYS = [
     },
   },
   {
+    id: 'match-center', surface: 'Match Center', title: 'Analisi pre-partita: apertura da Oggi e Ricerca, filtri, valori uguali all’API, N/D, precedenti, PIT',
+    async run({page, base, step, api, seed}) {
+      const analysis = async id => (await api(`/api/v1/fpt/match-analysis?id=${encodeURIComponent(id)}`)).data;
+      const pct = value => value == null ? 'N/D' : `${shown(value)}%`;
+      // What the comparison shows for one team and one statistic, from the API (the page does no arithmetic).
+      const STATS = {n: s => shown(s.n), won: s => pct(s.percent.won), drawn: s => pct(s.percent.drawn), lost: s => pct(s.percent.lost),
+        goals_for_avg: s => shown(s.goals_for_avg), goals_against_avg: s => shown(s.goals_against_avg), over25: s => pct(s.percent.over25),
+        btts: s => pct(s.percent.btts), clean_sheet: s => pct(s.percent.clean_sheet), failed_to_score: s => pct(s.percent.failed_to_score),
+        xg_for_avg: s => shown(s.xg_for_avg), xg_against_avg: s => shown(s.xg_against_avg), xg_n: s => shown(s.coverage.xg_n),
+        odds_1x2_n: s => shown(s.coverage.odds_1x2_n)};
+      const checkStats = async (data, venueOf, sample, sides = ['home', 'away']) => {
+        for (const side of ['home', 'away']) {
+          const stats = data.teams[side].venues[venueOf(side)].windows[sample];
+          for (const [key, render] of Object.entries(STATS)) {
+            const cell = await page.textContent(`[data-stat="${key}"] .n[data-side="${side}"]`);
+            assert.equal(cell, sides.includes(side) ? render(stats) : '', `${side} ${key} (${venueOf(side)}, ${sample})`);
+          }
+          if (!sides.includes(side)) { assert.equal(await page.locator(`[data-testid="team-${side}"]`).count(), 0); continue; }
+          const table = page.locator(`[data-testid="team-${side}"]`);
+          assert.equal(await table.getAttribute('data-venue'), venueOf(side));
+          assert.equal(await table.getAttribute('data-window'), sample);
+          if (stats.n === 0) assert.equal(await table.locator('[data-testid="no-history"]').count(), 1, `${side}: no earlier match, an explicit empty state`);
+          else assert.deepEqual(await ids(page, `[data-testid="source-${side}"] tr`), stats.source_match_ids, `${side}: the source rows are the API's`);
+        }
+      };
+      const settled = () => page.waitForFunction(() => document.querySelector('[data-testid="match-hero"]') && !document.querySelector('.state.loading'));
+      // The last day of the QA archive: its teams have a history before it (the busy day is the first one, with none).
+      const all = (await api('/api/v1/fpt/search?limit=500')).data.rows;
+      const day = all.reduce((a, b) => (b.match_date > a.match_date ? b : a)).match_date;
+      const first = (await api(`/api/v1/fpt/matches?date=${day}&limit=1`)).data.rows[0];
+      let data;
+      await step('apertura dalla Daily Board', async () => {
+        await page.goto(`${base}/#/?date=${day}`);
+        await page.waitForSelector('article.match');
+        await page.click(`article.match[data-match="${first.internal_match_id}"] [data-action="open-match"]`);
+        await settled();
+        data = await analysis(first.internal_match_id);
+        assert.equal(await page.getAttribute('main', 'data-area'), 'user', 'the Match Center is a user view: no technical text');
+        assert.equal(await page.getAttribute('main h1', 'aria-label'), `${first.home_name} – ${first.away_name}`);
+        assert.equal(await page.textContent('[data-testid="match-hero"] [data-field="home"]'), first.home_name);
+        assert.equal(await page.textContent('[data-testid="match-hero"] [data-field="away"]'), first.away_name);
+        assert.equal(await page.textContent('[data-testid="match-hero"] [data-field="competition"]'), `${words(first.country_slug)} · ${words(first.league_slug)} · ${seasonShown(first.season)}`);
+        assert.equal(await page.getAttribute('[data-testid="match-hero"] [data-field="date"] time', 'datetime'), first.match_date);
+        assert.equal(await page.textContent('[data-testid="match-hero"] [data-field="score"]'), outcomeShownFor(first));
+        for (const name of ['odd_home', 'odd_draw', 'odd_away', 'odd_over25', 'odd_under25', 'odd_btts_yes']) {
+          assert.equal(await page.textContent(`[data-testid="match-hero"] [data-field="${name}"] b`), shown(data.match[name]), name);
+        }
+        assert.equal(await page.textContent('[data-testid="match-hero"] [data-field="xg"] b'), `${shown(data.match.xg_home)} – ${shown(data.match.xg_away)}`);
+        // Provenance and the PIT status stay on the page for checks, not as text (MP-WEB-015).
+        assert.equal(await page.getAttribute('[data-testid="match-hero"]', 'data-pit'), data.method.pit);
+        assert.equal(await page.getAttribute('[data-testid="match-hero"]', 'data-version'), data.method.analysis_version);
+        assert.equal(await page.getAttribute('nav.mainnav a[aria-current="page"]', 'href').catch(() => null), null, 'no menu entry is current on a match');
+      });
+      await step('filtri predefiniti: casa/trasferta, ultime 10, valori uguali all’API', async () => {
+        assert.equal(await page.getAttribute('[data-filter="venue"] a[aria-current="true"]', 'data-value'), 'split');
+        assert.equal(await page.getAttribute('[data-filter="window"] a[aria-current="true"]', 'data-value'), '10');
+        assert.equal(await page.getAttribute('[data-filter="team"] a[aria-current="true"]', 'data-value'), 'both');
+        assert.equal(await page.getAttribute('[data-testid="cutoff"]', 'data-cutoff'), first.match_date, 'only matches before the match day');
+        await checkStats(data, side => side, '10');
+        // The form chips of the board are the last five of each team, every venue, from the API.
+        for (const side of ['home', 'away']) {
+          const form = data.teams[side].venues.both.windows['5'].form;
+          assert.deepEqual(await page.locator(`.board [data-field="form"]`).nth(side === 'home' ? 0 : 1).locator('a').evaluateAll(nodes => nodes.map(node => node.dataset.code)),
+            form.map(item => item.result), `${side} form`);
+        }
+      });
+      await step('filtri: stagione, tutte le partite, solo la squadra di casa', async () => {
+        await page.click('[data-filter="window"] a[data-value="season"]');
+        await page.waitForFunction(() => document.querySelector('[data-filter="window"] a[aria-current="true"]')?.dataset.value === 'season');
+        await settled();
+        await checkStats(data, side => side, 'season');
+        await page.click('[data-filter="venue"] a[data-value="both"]');
+        await page.waitForFunction(() => document.querySelector('[data-filter="venue"] a[aria-current="true"]')?.dataset.value === 'both');
+        await settled();
+        await checkStats(data, () => 'both', 'season');
+        await page.click('[data-filter="team"] a[data-value="home"]');
+        await page.waitForFunction(() => document.querySelector('[data-filter="team"] a[aria-current="true"]')?.dataset.value === 'home');
+        await settled();
+        await checkStats(data, () => 'both', 'season', ['home']);
+        assert.match(page.url(), /team=home/, 'the filters are in the address: the view can be shared and reopened');
+        await page.click('[data-filter="venue"] a[data-value="away"]');
+        await page.waitForFunction(() => document.querySelector('[data-filter="venue"] a[aria-current="true"]')?.dataset.value === 'away');
+        await settled();
+        await checkStats(data, () => 'away', 'season', ['home']);
+      });
+      await step('nessuna partita futura o dello stesso giorno nelle statistiche (PIT)', async () => {
+        const rows = new Map(Object.values(data.teams).flatMap(team => Object.values(team.venues).flatMap(venue => venue.rows)).map(row => [row.internal_match_id, row]));
+        assert.ok(rows.size > 0, 'the last day has earlier matches');
+        for (const row of rows.values()) assert.ok(row.match_date < first.match_date, `${row.internal_match_id} on ${row.match_date} is before ${first.match_date}`);
+        for (const row of data.head_to_head.rows) assert.ok(row.match_date < first.match_date);
+      });
+      await step('precedenti uguali all’API', async () => {
+        if (data.head_to_head.n) assert.deepEqual(await ids(page, '[data-testid="source-h2h"] tr'), data.head_to_head.rows.map(row => row.internal_match_id));
+        else assert.equal(await page.locator('[data-testid="head-to-head"] .state.empty').count(), 1);
+      });
+      await step('una partita della prima giornata: nessuna partita precedente, N/D', async () => {
+        const earliest = all.reduce((a, b) => (b.match_date < a.match_date ? b : a));
+        const empty = await analysis(earliest.internal_match_id);
+        assert.equal(empty.teams.home.venues.home.windows['10'].n, 0, 'the fixture really has no earlier match for this team');
+        await fresh(page, `${base}/#/match?id=${encodeURIComponent(earliest.internal_match_id)}`);
+        await settled();
+        await checkStats(empty, side => side, '10');
+        assert.equal(await page.textContent('[data-stat="goals_for_avg"] .n[data-side="home"]'), 'N/D', 'no match: N/D, never 0');
+      });
+      await step('apertura dalla Ricerca e da una riga sorgente', async () => {
+        await fresh(page, `${base}/#/search?run=1&competition=${encodeURIComponent(seed.laliga.competition)}`);
+        await page.waitForSelector('[data-testid="search-results"] tr');
+        const target = await page.getAttribute('[data-testid="search-results"] tr', 'data-match');
+        await page.click('[data-testid="search-results"] tr [data-action="open-match"]');
+        await page.waitForFunction(id => document.querySelector('[data-testid="match-hero"]')?.dataset.match === id, target);
+        const next = await page.getAttribute('[data-testid="source-home"] tr, [data-testid="source-away"] tr', 'data-match').catch(() => null);
+        if (next) {
+          await page.click(`tr[data-match="${next}"] [data-field="teams"] a`);
+          await page.waitForFunction(id => document.querySelector('[data-testid="match-hero"]')?.dataset.match === id, next);
+        }
+      });
+      await step('partita non valida o non trovata', async () => {
+        const requests = [];
+        const listen = request => { if (new URL(request.url()).pathname === '/api/v1/fpt/match-analysis') requests.push(request.url()); };
+        page.on('request', listen);
+        await fresh(page, `${base}/#/match?id=xyz`);
+        await page.waitForSelector('[data-testid="match-invalid"]');
+        await page.waitForLoadState('networkidle');
+        page.off('request', listen);
+        assert.deepEqual(requests, [], 'an invalid id is refused before any request');
+        await fresh(page, `${base}/#/match?id=${encodeURIComponent('fpt:hash:missing')}`);
+        await page.waitForSelector('[data-testid="match-not-found"]');
+        assert.equal(await page.getAttribute('[data-testid="match-not-found"]', 'data-code'), 'MATCH_NOT_FOUND');
+      });
+    },
+  },
+  {
     id: 'providers-endpoints', surface: 'Interfaccia generale', title: 'Fornitori dati e registro API',
     // Certification prose from the API that legitimately ends with "null" (phase 6 evidence).
     allowRawText: [/^null: the provider catalog does not carry a fixture total$/],
