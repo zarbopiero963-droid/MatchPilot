@@ -1,7 +1,9 @@
 // VPS-DEPLOY-01: the private VPS runner (labels self-hosted, matchpilot-vps) runs only the deploy of main. The repository
 // is public, so a workflow triggered by a pull request (or anything but a push to main) must never reach that runner:
-// every runs-on of such a workflow is a literal GitHub-hosted label, and a workflow that names the VPS runner is
-// triggered only by a push to main and gates each job on the repository and refs/heads/main.
+// every runs-on of such a workflow is a literal GitHub-hosted label and none of its jobs calls a reusable workflow; a
+// workflow that names the VPS runner is triggered only by a push to main and gates each job on exactly the repository and
+// refs/heads/main. A guard for changes made in this repository, not a security boundary: a fork pull request runs the
+// workflows of its own head, test included, so fork workflows need the owner's approval setting on GitHub.
 import assert from 'node:assert/strict';
 import {readFileSync, readdirSync} from 'node:fs';
 import test from 'node:test';
@@ -50,6 +52,10 @@ export function triggers(text) {
 
 // Every runs-on value of a workflow, as written.
 const runsOn = text => code(text).filter(line => /^\s*runs-on\s*:/.test(line)).map(line => line.replace(/^\s*runs-on\s*:\s*/, '').trim());
+// The only accepted gate of a job on the VPS runner: exactly this expression, so nothing can be OR-ed in front of it.
+const GATE = "github.repository == 'zarbopiero963-droid/MatchPilot' && github.ref == 'refs/heads/main'";
+// Jobs that call a reusable workflow (job-level uses:): its jobs run on this repository's runners, so it could name the VPS.
+const reusableCalls = text => code(text).filter(line => /^\s{4}uses\s*:/.test(line)).map(line => line.replace(/^\s*uses\s*:\s*/, '').trim());
 const jobIfs = text => code(text).filter(line => /^\s{4}if\s*:/.test(line)).map(line => line.replace(/^\s*if\s*:\s*/, ''));
 
 export function workflowProblems(name, text) {
@@ -61,10 +67,11 @@ export function workflowProblems(name, text) {
     const lines = code(text);
     const jobsAt = lines.findIndex(line => /^jobs\s*:/.test(line));
     const jobs = jobsAt < 0 ? 1 : lines.slice(jobsAt + 1).filter(line => /^\s{2}[\w-]+\s*:\s*$/.test(line)).length;
-    const gated = jobIfs(text).filter(cond => cond.includes("github.ref == 'refs/heads/main'") && cond.includes("github.repository == 'zarbopiero963-droid/MatchPilot'"));
+    const gated = jobIfs(text).filter(cond => cond.trim() === GATE);
     if (gated.length < jobs) problems.push(`${name}: a job is not gated on the repository and refs/heads/main`);
   } else if (!pushToMainOnly) {
     for (const value of runsOn(text)) if (!HOSTED.test(value)) problems.push(`${name}: runs-on ${value} is not a literal GitHub-hosted label`);
+    for (const target of reusableCalls(text)) problems.push(`${name}: a job calls the reusable workflow ${target}, whose runners this test cannot see`);
   }
   return problems;
 }
@@ -91,9 +98,11 @@ test('workflows: every way to reach the VPS runner from a pull request is refuse
     ['a tag filter beside the branch', deploy.replace('branches: [main]', 'branches: [main]\n    tags: [v*]'), /not only by a push to main/],
     ['an ungated job', deploy.replace(/    if: .*\n/, ''), /not gated/],
     ['a second job without a gate', `${deploy}  shell:\n    runs-on: [self-hosted, matchpilot-vps]\n    steps:\n      - run: id\n`, /not gated/],
+    ['a gate that anything can satisfy', deploy.replace("if: github.repository", "if: true || github.repository"), /not gated/],
     ['a gate without the ref', deploy.replace(" && github.ref == 'refs/heads/main'", ''), /not gated/],
     ['the VPS runner in CI', ci.replace('runs-on: ubuntu-latest', 'runs-on: [self-hosted, matchpilot-vps]'), /not only by a push to main/],
     ['a runner from an expression in CI', ci.replace('runs-on: ubuntu-latest', 'runs-on: ${{ inputs.runner }}'), /not a literal GitHub-hosted label/],
+    ['a reusable workflow called from CI', ci.replace('jobs:\n', 'jobs:\n  evil:\n    uses: attacker/x/.github/workflows/w.yml@main\n'), /calls the reusable workflow attacker/],
     ['a self-hosted runner without the label in CI', ci.replace('runs-on: ubuntu-latest', 'runs-on: self-hosted'), /not only by a push to main/],
   ];
   for (const [what, text, expected] of cases) {

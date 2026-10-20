@@ -343,8 +343,8 @@ L'audit dei 412 `UNAVAILABLE_404` è autorizzato solo nella parte read-only (D7)
 
 **VPS privata (runner `self-hosted`, `matchpilot-vps`):** la usa solo `.github/workflows/deploy-vps.yml`, attivato da un push su `main`.
 - Nessun workflow attivato da pull request, dispatch manuale o altri eventi usa quel runner. Il repository è pubblico, quindi una PR da fork non deve poterci arrivare.
-- Fuori dal deploy, `runs-on` è sempre un'etichetta GitHub-hosted letterale.
-- `test/governance-workflows.test.mjs` verifica entrambe le regole.
+- Nei workflow non limitati al push su `main`, `runs-on` è sempre un'etichetta GitHub-hosted letterale e nessun job chiama un workflow riutilizzabile (`uses:`).
+- `test/governance-workflows.test.mjs` verifica queste regole per le modifiche fatte nel repository. Non è un confine di sicurezza: una PR da fork esegue i workflow della propria head, test compreso. Per i fork serve l'impostazione GitHub che richiede l'approvazione dell'owner.
 - Ogni merge su `main` avvia questo deploy, autorizzato dall'owner il 20/10/2026. Gli altri divieti restano: deploy Render, deploy pubblico, Neon, collector, LIVE.
 
 ## 13. Evidenza
