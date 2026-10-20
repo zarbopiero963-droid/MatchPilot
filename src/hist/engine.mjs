@@ -18,7 +18,20 @@ import {STRATEGIES} from './strategies.mjs';
 export const ENGINE_VERSION = 'mp-hist-engine-1';
 export const REPORT_VERSION = 'mp-hist-report-1';
 export const OUTCOME_RULE_VERSION = 'mp-outcome-1x2-1';
+// `status` is the technical result of the run; it never says anything about the data. Whether the data are certified
+// is the separate `certification` block (owner decision on PR #178 NB-2): a technically OK run is not VERIFIED data.
 export const STATUS = Object.freeze({OK: 'OK', INSUFFICIENT_PIT_DATA: 'INSUFFICIENT_PIT_DATA', INSUFFICIENT_OUTCOMES: 'INSUFFICIENT_OUTCOMES'});
+export const REAL_DATA_VERDICT = Object.freeze({NOT_APPLICABLE: 'NOT_APPLICABLE', NOT_VERIFIED: 'NOT_VERIFIED'});
+
+// HIST-01a has no certification path: a fixture can never certify real data, and a real dataset stays NOT_VERIFIED
+// until a certification exists. No input or configuration can change this block.
+function certificationOf(kind) {
+  return kind === 'FIXTURE'
+    ? {data_scope: 'FIXTURE', real_data_verdict: REAL_DATA_VERDICT.NOT_APPLICABLE, certified: false,
+      notice: 'Synthetic fixture: the figures test the engine and are not a real return.'}
+    : {data_scope: 'REAL', real_data_verdict: REAL_DATA_VERDICT.NOT_VERIFIED, certified: false,
+      notice: 'Real data, not verified: a technically OK run is not a certification and makes no claim of return.'};
+}
 const ROI_PLACES = 4;
 
 export class EngineError extends Error {
@@ -161,11 +174,7 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
 
   const report = {
     report_version: REPORT_VERSION,
-    scope: input.dataset.kind,
-    real_data_verdict: 'NOT VERIFIED',
-    notice: input.dataset.kind === 'FIXTURE'
-      ? 'Synthetic fixture: the figures test the engine and are not a real return.'
-      : 'Real data, not verified by HIST-01a: no certification and no claim of return.',
+    certification: certificationOf(input.dataset.kind),
     dataset: {...input.dataset, input_sha256: inputSha256},
     code_version: codeVersion,
     config,

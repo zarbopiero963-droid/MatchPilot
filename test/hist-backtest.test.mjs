@@ -87,9 +87,8 @@ const cents = (next, lo, hi) => { const v = lo + Math.floor(next() * (hi - lo + 
 test('golden fixture: decisions on admitted prices only, exact settlement and metrics, labelled as a fixture', () => {
   const report = runBacktest(golden(), CONFIG, {codeVersion: 'test'});
   assert.equal(report.status, STATUS.OK);
-  assert.equal(report.scope, 'FIXTURE');
-  assert.equal(report.real_data_verdict, 'NOT VERIFIED');
-  assert.match(report.notice, /not a real return/);
+  assert.deepEqual({...report.certification, notice: undefined}, {data_scope: 'FIXTURE', real_data_verdict: 'NOT_APPLICABLE', certified: false, notice: undefined});
+  assert.match(report.certification.notice, /not a real return/);
   assert.deepEqual(report.counts.decisions, {BACK: 4, NO_TRADE: 3});
   assert.deepEqual(report.counts.no_trade_by_reason, {FAVOURITE_TIE: 1, INCOMPLETE_1X2: 1, KICKOFF_UNKNOWN: 1});
   assert.deepEqual(report.counts.excluded_by_reason, {ACQUIRED_AFTER_DECISION: 1, KICKOFF_UNKNOWN: 1});
@@ -213,9 +212,33 @@ test('determinism: any input order and repeated runs give the same report bytes;
   assert.equal(readFileSync(join(dir, 'report.json'), 'utf8'), reference + '\n');
   assert.equal(summary.report_sha256, JSON.parse(reference).report_sha256);
   assert.equal(summary.status, 'OK');
+  assert.equal(summary.certification.real_data_verdict, 'NOT_APPLICABLE');
   const bad = spawnSync(process.execPath, ['tools/hist/backtest.mjs', '--input', join(dir, 'config.json'), '--config', join(dir, 'config.json'), '--out', join(dir, 'x.json')], {encoding: 'utf8'});
   assert.equal(bad.status, 2);
   assert.match(bad.stderr, /BAD_HIST_INPUT/);
+});
+
+test('a technically OK run is not certified data: the run status and the certification verdict are separate (PR #178 NB-2)', () => {
+  const real = golden();
+  real.dataset = {...real.dataset, kind: 'REAL', description: 'synthetic values declared REAL to test the label only'};
+  const report = runBacktest(real, CONFIG);
+  assert.equal(report.status, STATUS.OK, 'the run itself succeeds');
+  assert.deepEqual({...report.certification, notice: undefined}, {data_scope: 'REAL', real_data_verdict: 'NOT_VERIFIED', certified: false, notice: undefined});
+  assert.match(report.certification.notice, /not a certification/);
+  assert.equal(report.metrics.pl_net, runBacktest(golden(), CONFIG).metrics.pl_net, 'the label changes nothing in the computation');
+  for (const name of ['scope', 'real_data_verdict', 'notice']) assert.ok(!Object.hasOwn(report, name), `${name} lives only in the certification block`);
+  // No run, whatever its status, data or configuration, is certified; and no input field reaches the block.
+  const empty = {...real, observations: []};
+  const none = {...real, outcomes: []};
+  for (const r of [report, runBacktest(golden(), CONFIG), runBacktest(empty, CONFIG), runBacktest(none, CONFIG), runBacktest(real, {...CONFIG, commission: '0.05'})]) {
+    assert.equal(r.certification.certified, false);
+    assert.notEqual(r.certification.real_data_verdict, 'VERIFIED');
+  }
+  assert.deepEqual([runBacktest(empty, CONFIG).status, runBacktest(none, CONFIG).status], [STATUS.INSUFFICIENT_PIT_DATA, STATUS.INSUFFICIENT_OUTCOMES]);
+  assert.throws(() => runBacktest({...real, dataset: {...real.dataset, certified: true}}, CONFIG), {code: 'BAD_HIST_INPUT'});
+  const engine = readFileSync(new URL('../src/hist/engine.mjs', import.meta.url), 'utf8');
+  assert.equal([...engine.matchAll(/certified:/g)].length, 2, 'certified is set only by the two literal false values');
+  assert.doesNotMatch(engine, /certified: (?!false)/);
 });
 
 test('admissible data but no bet: OK with no metrics, not a row of zeros (PR #178 review NB-1)', () => {

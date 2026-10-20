@@ -3,8 +3,8 @@
 Owner decision: `MP-OWNER-HIST-01A-01`. Issues: #34 (Strategy Lab, backtest), #99 (settlement), #94 (Math Core). Roadmap #97: first slice of R-14, with the parts of R-13 it needs (1X2 outcome rule, frozen configuration snapshot).
 
 **Scope.** HIST-01a is the engine only, tested on **synthetic fixtures**. It has no real-data result:
-- every report says `real_data_verdict: NOT VERIFIED`;
-- a fixture report also says its figures are not a real return.
+- every report has `certification.certified: false`;
+- a fixture report has `real_data_verdict: NOT_APPLICABLE` and says its figures are not a real return.
 
 The archive #40 integration (HIST-01b) waits for the Grok handoff. Grok reported that every #40 pre-match observation was acquired after kickoff, so the expected result there is `INSUFFICIENT_PIT_DATA`.
 
@@ -100,10 +100,19 @@ Outcomes are read only after every decision is fixed. Rule `mp-outcome-1x2-1`:
 
 They are given exact, then rounded to the cent (ROI to 4 places), HALF_EVEN. Unsettled bets are excluded from the metrics and counted in `counts.unsettled_by_reason`; the report's limits say this can bias the metrics.
 
-`OK` is also the status of a run on `REAL` data. Until a real-data certification exists, only `real_data_verdict: NOT VERIFIED` and the notice tell it apart. Whether such a run should get its own status is an owner decision, due before HIST-01b.
+**Run status and certification are separate** (owner decision on PR #178, NB-2). `status` is the technical result of the run and says nothing about the data: a technically `OK` run is not VERIFIED data. The certification is its own block:
+
+| `certification` field | FIXTURE dataset | REAL dataset |
+|---|---|---|
+| `data_scope` | `FIXTURE` | `REAL` |
+| `real_data_verdict` | `NOT_APPLICABLE` (a fixture cannot certify real data) | `NOT_VERIFIED` |
+| `certified` | `false` | `false` |
+| `notice` | the figures are not a real return | a technically OK run is not a certification |
+
+HIST-01a has no certification path: no input or configuration field reaches the block, and the engine sets `certified` only to the literal `false` (checked by a test).
 
 **Other fields of every report:**
-- `scope` (`FIXTURE` or `REAL`), `real_data_verdict: NOT VERIFIED` and a notice;
+- the `certification` block above;
 - the dataset with the SHA-256 of the normalized input;
 - the code version, all component versions and the frozen configuration;
 - counts per exclusion and no-trade reason;
@@ -134,6 +143,7 @@ node tools/hist/backtest.mjs --input <input.json> --config <config.json> --out <
 | Anti-contamination | prices acquired after the decision, or at kickoff, change no decision; changed outcomes change only the settlement |
 | Determinism | 20 shuffled inputs and the CLI with `--repeat 3` give the same bytes |
 | Settlement oracle | 1,500 seeded markets (BACK, LAY, VOID, commission 0–6.5 %) against an independent exact-fraction oracle, plus the engine's metrics with commission |
+| Status and certification | a REAL dataset with admissible data: `status: OK` with `real_data_verdict: NOT_VERIFIED` and `certified: false`; no run of any status is certified; no input field reaches the block |
 | No bet | admissible data with every event NO_TRADE gives `OK` with `metrics: null` |
 | Refused inputs | 21 malformed inputs (7 odds formats among them) and 6 malformed configurations |
 | Isolation from R1 | `src/hist` imports only the Math Core, the PIT policy and its own modules: no `src/analysis`, no FutPythonTrader path, no SQL, no environment, no network |

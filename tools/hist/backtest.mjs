@@ -36,7 +36,7 @@ try {
   }
   writeFileSync(options.out, texts[0]);
   const report = JSON.parse(texts[0]);
-  console.log(JSON.stringify({status: report.status, scope: report.scope, report_sha256: report.report_sha256, runs: options.repeat}));
+  console.log(JSON.stringify({status: report.status, certification: report.certification, report_sha256: report.report_sha256, runs: options.repeat}));
 } catch (error) {
   console.error(`HIST_BACKTEST_ERROR ${error.code ?? 'ERROR'} ${error.message}`);
   process.exit(2);
