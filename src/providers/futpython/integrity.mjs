@@ -117,13 +117,17 @@ export const PHASE3_SQL = {
     WHERE r.source_kind='dataset' AND r.row_count > 0
       AND NOT EXISTS (SELECT 1 FROM fpt_match_versions v WHERE v.snapshot_id=r.snapshot_id)`,
   // Only a dataset's first snapshot writes a version for every row; a later one writes the changed rows only
-  // (the certificate's raw sweep checks every snapshot row by row).
-  rowGaps: `SELECT count(*)::int AS n
-    FROM fpt_raw_snapshots r
-    WHERE r.source_kind='dataset'
-      AND NOT EXISTS (SELECT 1 FROM fpt_raw_snapshots e WHERE e.dataset_key = r.dataset_key AND e.source_kind='dataset'
-                        AND e.snapshot_id < r.snapshot_id)
-      AND r.row_count <> (SELECT count(*)::int FROM fpt_match_versions v WHERE v.snapshot_id=r.snapshot_id)`,
+  // (the certificate's raw sweep checks every snapshot row by row). One aggregation over the first snapshots' versions:
+  // a subquery per snapshot scanned fpt_match_versions once per snapshot, ~24 s on the real archive (#179 F3, APP-01).
+  rowGaps: `WITH first AS (
+      SELECT r.snapshot_id, r.row_count FROM fpt_raw_snapshots r
+      WHERE r.source_kind='dataset'
+        AND NOT EXISTS (SELECT 1 FROM fpt_raw_snapshots e WHERE e.dataset_key = r.dataset_key AND e.source_kind='dataset'
+                          AND e.snapshot_id < r.snapshot_id)
+    ), versions AS (
+      SELECT v.snapshot_id, count(*)::int AS c FROM fpt_match_versions v JOIN first f USING (snapshot_id) GROUP BY v.snapshot_id
+    )
+    SELECT count(*)::int AS n FROM first f LEFT JOIN versions v USING (snapshot_id) WHERE f.row_count <> COALESCE(v.c, 0)`,
   missingIdentity: `SELECT
       count(*) FILTER (WHERE home IS NULL OR btrim(home)='')::int AS home,
       count(*) FILTER (WHERE away IS NULL OR btrim(away)='')::int AS away,
