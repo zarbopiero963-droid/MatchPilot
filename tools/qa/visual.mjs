@@ -81,9 +81,11 @@ export function verifyBaselines(dir = root) {
     if (sha256(readFileSync(path)) !== manifest.files[name]) errors.push(`${name}: SHA-256 differs from the manifest`);
   }
   for (const name of onDisk) if (!Object.hasOwn(manifest.files ?? {}, name)) errors.push(`${name}: not in the manifest`);
-  for (const scene of SCENES) for (const viewport of Object.keys(VISUAL_VIEWPORTS)) {
-    if (!Object.hasOwn(manifest.files ?? {}, `${scene.id}-${viewport}.png`)) errors.push(`${scene.id}-${viewport}.png: no baseline`);
-  }
+  // The manifest and the scenes of the code list exactly the same views: removing a scene or a viewport from the code
+  // without changing the manifest (and so the log) is refused, as is a baseline no scene captures (PR #174 review F1).
+  const expected = SCENES.flatMap(scene => Object.keys(VISUAL_VIEWPORTS).map(viewport => `${scene.id}-${viewport}.png`));
+  for (const name of expected) if (!Object.hasOwn(manifest.files ?? {}, name)) errors.push(`${name}: no baseline`);
+  for (const name of listed) if (!expected.includes(name)) errors.push(`${name}: no scene of the code captures it`);
   return {ok: errors.length === 0, errors, manifest};
 }
 
@@ -122,6 +124,8 @@ export async function runVisual({out, scenes = SCENES, viewports = Object.keys(V
   const baselines = verifyBaselines();
   const thresholds = baselines.manifest?.thresholds ?? null;
   const {withQaEnvironment} = await import('./browser-qa.mjs');
+  // Chromium draws the native date field in the language of its interface, which follows the language of its process
+  // environment, not the page locale nor --lang: Italian, as an Italian user sees it (PR #174 review N6).
   return withQaEnvironment(async ({browser, server, seed}) => {
     const results = [];
     for (const scene of scenes) for (const viewport of viewports) {
@@ -166,7 +170,7 @@ export async function runVisual({out, scenes = SCENES, viewports = Object.keys(V
     };
     writeFileSync(join(out, 'report.json'), JSON.stringify(report, null, 2) + '\n');
     return report;
-  });
+  }, {browserEnv: {LANG: 'it_IT.UTF-8', LANGUAGE: 'it', LC_ALL: 'it_IT.UTF-8'}});
 }
 
 // The only way to change the baselines: the captures of a finished run, a reason and an approval reference, all written
@@ -204,11 +208,26 @@ export function promote({run, reason, approval, thresholds, dir = root}) {
 // with its new SHA-256 and an approval reference, in lines that this change adds.
 export function checkUpdate({base, head, dir = root}) {
   if (!base || !head) return {ok: false, touched: [], errors: ['BASE_SHA and HEAD_SHA are required']};
+  try {
+    return checkUpdateAt({base, head, dir});
+  } catch (error) {
+    // A missing manifest, an unknown base or any other git failure is a refusal, never a crash (PR #174 review N8).
+    return {ok: false, touched: [], errors: [`check failed: ${String(error?.message ?? error).split('\n')[0]}`]};
+  }
+}
+
+function checkUpdateAt({base, head, dir}) {
   const changed = git(['diff', '--name-only', '--no-renames', `${base}...${head}`], dir).split('\n').filter(Boolean);
   const touched = changed.filter(path => path.startsWith('test/visual/'));
-  if (touched.length === 0) return {ok: true, touched, errors: []};
   const errors = [];
-  if (!changed.includes(LOG)) return {ok: false, touched, errors: [`${touched.length} baseline file(s) changed without an entry in ${LOG}`]};
+  // The log only grows: an earlier entry is never rewritten, whatever else the change does (PR #174 review N2).
+  if (changed.includes(LOG)) {
+    let previous = null;
+    try { previous = git(['show', `${base}:${LOG}`], dir); } catch { /* the base has no log yet */ }
+    if (previous !== null && !git(['show', `${head}:${LOG}`], dir).startsWith(previous)) errors.push(`${LOG} may only grow: an earlier entry was changed`);
+  }
+  if (touched.length === 0) return {ok: errors.length === 0, touched, errors};
+  if (!changed.includes(LOG)) return {ok: false, touched, errors: [...errors, `${touched.length} baseline file(s) changed without an entry in ${LOG}`]};
   const added = git(['diff', '--no-renames', '-U0', `${base}...${head}`, '--', LOG], dir).split('\n')
     .filter(line => line.startsWith('+') && !line.startsWith('+++')).join('\n');
   if (!/^\+- Approval: \S/m.test(added)) errors.push(`the new entry of ${LOG} has no approval reference`);
@@ -222,7 +241,11 @@ export function checkUpdate({base, head, dir = root}) {
   try {
     before = JSON.parse(git(['show', `${base}:${MANIFEST}`], dir));
   } catch { /* the base has no baselines yet */ }
-  if (before && JSON.stringify(before.thresholds) !== JSON.stringify(manifest.thresholds) && !/^\+- Thresholds: /m.test(added)) {
+  // The Thresholds line of the new entry states the values of the manifest, not any values (PR #174 review N1).
+  const t = manifest.thresholds ?? {};
+  const stated = /^\+- Thresholds: (.*)$/m.exec(added)?.[1];
+  if (stated !== undefined && stated !== `block ${t.block}, pixel ${t.pixel}, ratio ${t.ratio}`) errors.push(`the Thresholds line of ${LOG} does not match the manifest`);
+  if (before && JSON.stringify(before.thresholds) !== JSON.stringify(manifest.thresholds) && stated === undefined) {
     errors.push(`thresholds changed without a Thresholds line in ${LOG}`);
   }
   return {ok: errors.length === 0, touched, errors};

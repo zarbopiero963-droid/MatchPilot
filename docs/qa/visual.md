@@ -22,7 +22,7 @@ Owner decisions: MP-OWNER-QA-VISUAL-EXECUTION-01 (versioned visual baselines, SH
 ## What makes it reproducible
 
 - **Same data on every run:** the QA archive through the real FutPythonTrader ingestion, the same one as Browser QA.
-- **Same clock:** the browser clock is fixed at 20 October 2026, 10:00 Europe/Rome, with locale it-IT, so «Oggi», the day strip and every date stay the same.
+- **Same clock and language:** the browser clock is fixed at 20 October 2026, 10:00 Europe/Rome, with locale it-IT, so «Oggi», the day strip and every date stay the same. The browser also runs with an Italian environment (`LANG`, `LANGUAGE`), so the native date field reads 01/08/2024 as an Italian user sees it (review N6); the page locale alone does not change it.
 - **Same fonts:** the fonts hosted with the site.
 - **No motion:** reduced motion, with animations and caret switched off for the screenshot.
 - **Two API values fixed:** each answer's server time and the code version. Only these two `meta` fields are replaced with fixed values; every data value stays the API's. They change on every run and every commit, and their width moves the layout, so a mask would not be enough.
@@ -54,16 +54,29 @@ The values in `test/visual/manifest.json` are **block 8, pixel 32, ratio 0**: on
 | accent `#FFB547` → `#F5A83A` | 13 | **passes** |
 | day strip corner radius 9 → 4 px | 17 | **passes** |
 
-So the gate stops layout, size, weight and missing or added content. It does not stop colour shifts below about 25 of 255, small radii or a single changed character; the journeys check every value. The thresholds and their measurements are also in the log ([visual-baselines.md](visual-baselines.md)).
+So the gate stops layout, size and missing or added content. It does **not** stop changes that keep the mean colour of each 8×8 block within 32 of the baseline. Measured examples (PR #174 review N4):
+- a uniform fill that changes by up to 32 per channel;
+- text recoloured by 30–40 per channel (`oddcolor`, block delta 20);
+- the accent shift and small radii;
+- a changed character («Favorito» → «Favorita», 4–7);
+- the decimal comma turned into a point on every number (15);
+- the native date field in US instead of Italian order (22.5).
+
+The journeys check every value and the decimal comma; QA-V does not replace them.
+
+The sensitivity above was measured with the browser of the baselines, where the noise is 0. In CI the glyph noise reaches 26, so a change whose largest block delta is close to 32, such as bold team names at 35.7, can go either way there (review N5). Only the changes far over the threshold (layout, missing content, sizes: 75–136) are certain to fail in CI too.
+
+The thresholds and their measurements are also in the log ([visual-baselines.md](visual-baselines.md)).
 
 ## Protection against arbitrary updates
 
-- **The manifest is the list of baselines.** Each file has its SHA-256. A changed, missing or unlisted file, or a missing scene, fails `node tools/qa/visual.mjs verify`.
+- **The manifest is the list of baselines.** Each file has its SHA-256. It must list exactly the scenes × viewports of the code. A changed, missing or unlisted file, a missing scene, or a baseline that no scene captures fails `node tools/qa/visual.mjs verify`. So removing a view from the code requires a manifest change, and with it a log entry (review F1).
 - **A comparison never writes a baseline.** Captures and diffs go to the run folder, and the CI artifact is `visual-qa-<head>`.
 - **`promote` is the only way to change a baseline:** `node tools/qa/visual.mjs promote <run> --reason <why> --approval <PR or issue> [--pixel N --ratio R]`.
   - It takes the captures of a finished run on a clean tree and checks them against their report.
   - It rewrites the manifest and appends an entry to the log: reason, approval, run, thresholds, and every changed baseline with its new SHA-256.
-- **CI refuses an undeclared change.** `node tools/qa/visual.mjs check-update` runs in Fast checks with the PR base and head. A change under `test/visual/` passes only if the same PR adds a log entry with an approval reference and the new SHA-256 of every changed baseline; a changed threshold needs a `Thresholds` line.
+- **CI refuses an undeclared change.** `node tools/qa/visual.mjs check-update` runs in Fast checks with the PR base and head. A change under `test/visual/` passes only if the same PR adds a log entry with an approval reference and the new SHA-256 of every changed baseline. A changed threshold needs a `Thresholds` line stating the manifest's values. The log only grows: rewriting an earlier entry is refused even when no baseline changes (review N1, N2).
+- **Not covered by a check:** a threshold or a comparison loosened inside the code (`tools/qa/png.mjs`, `tools/qa/visual.mjs`). The unit tests catch some of these changes; review covers the rest (review N3).
 
 ## Where it is enforced
 

@@ -89,6 +89,11 @@ test('manifest: the committed baselines match it; a changed, missing or extra fi
   const manifest = readManifest(dir);
   writeFileSync(join(dir, MANIFEST), JSON.stringify({...manifest, thresholds: {block: 8, pixel: 32, ratio: 0.5}}));
   assert.match(verifyBaselines(dir).errors.join('\n'), /thresholds\.ratio/);
+  // A view the code no longer captures, with its baseline still listed: removing a scene needs a manifest change (F1).
+  writeFileSync(join(dir, BASELINES, 'vecchia-desktop.png'), original);
+  writeFileSync(join(dir, MANIFEST), JSON.stringify({...manifest, files: {...manifest.files, 'vecchia-desktop.png': manifest.files['oggi-desktop.png']}}));
+  assert.match(verifyBaselines(dir).errors.join('\n'), /vecchia-desktop\.png: no scene of the code captures it/);
+  rmSync(join(dir, BASELINES, 'vecchia-desktop.png'));
   const {[`oggi-desktop.png`]: _, ...rest} = manifest.files;
   writeFileSync(join(dir, MANIFEST), JSON.stringify({...manifest, files: rest}));
   assert.match(verifyBaselines(dir).errors.join('\n'), /oggi-desktop\.png: not in the manifest[\s\S]*oggi-desktop\.png: no baseline/);
@@ -177,4 +182,35 @@ test('check-update: a baseline change without its log entry, its SHA-256 or an a
   git(dir, 'commit', '-q', '-m', 'declared update');
   assert.deepEqual(checkUpdate({base, head: git(dir, 'rev-parse', 'HEAD'), dir}).errors, []);
   assert.equal(checkUpdate({base: '', head: 'HEAD', dir}).ok, false, 'missing SHAs are refused, never skipped');
+
+  // A Thresholds line that does not state the manifest's values is refused (N1).
+  git(dir, 'checkout', '-q', '-b', 'false-line', base);
+  const manifestNow = readManifest(dir);
+  writeFileSync(join(dir, MANIFEST), JSON.stringify({...manifestNow, thresholds: {block: 8, pixel: 64, ratio: 0}}, null, 2));
+  writeFileSync(join(dir, LOG), readFileSync(join(dir, LOG), 'utf8') + '\n## looser\n\n- Approval: PR #3\n- Thresholds: block 8, pixel 32, ratio 0\n');
+  git(dir, 'commit', '-q', '-am', 'looser thresholds, false line');
+  assert.match(checkUpdate({base, head: git(dir, 'rev-parse', 'HEAD'), dir}).errors.join('\n'), /Thresholds line .* does not match the manifest/);
+
+  // Looser thresholds with an entry but no Thresholds line are refused (N7).
+  git(dir, 'checkout', '-q', '-b', 'no-line', base);
+  writeFileSync(join(dir, MANIFEST), JSON.stringify({...manifestNow, thresholds: {block: 8, pixel: 64, ratio: 0}}, null, 2));
+  writeFileSync(join(dir, LOG), readFileSync(join(dir, LOG), 'utf8') + '\n## looser\n\n- Approval: PR #3\n');
+  git(dir, 'commit', '-q', '-am', 'looser thresholds, no line');
+  assert.match(checkUpdate({base, head: git(dir, 'rev-parse', 'HEAD'), dir}).errors.join('\n'), /thresholds changed without a Thresholds line/);
+
+  // An earlier entry rewritten, even with no baseline touched, is refused: the log only grows (N2).
+  git(dir, 'checkout', '-q', '-b', 'rewrite', base);
+  writeFileSync(join(dir, LOG), readFileSync(join(dir, LOG), 'utf8').replace('- Approval: PR #1', '- Approval: none'));
+  git(dir, 'commit', '-q', '-am', 'rewrite the log');
+  assert.match(checkUpdate({base, head: git(dir, 'rev-parse', 'HEAD'), dir}).errors.join('\n'), /may only grow/);
+
+  // A deleted manifest or an unknown base is a refusal, not a crash (N8).
+  git(dir, 'checkout', '-q', '-b', 'no-manifest', base);
+  rmSync(join(dir, MANIFEST));
+  writeFileSync(join(dir, LOG), readFileSync(join(dir, LOG), 'utf8') + '\n## gone\n\n- Approval: PR #4\n');
+  git(dir, 'commit', '-q', '-am', 'drop the manifest');
+  const gone = checkUpdate({base, head: git(dir, 'rev-parse', 'HEAD'), dir});
+  assert.equal(gone.ok, false);
+  assert.match(gone.errors.join('\n'), /check failed/);
+  assert.equal(checkUpdate({base: '0'.repeat(40), head: git(dir, 'rev-parse', 'HEAD'), dir}).ok, false);
 });

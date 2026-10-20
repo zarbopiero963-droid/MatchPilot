@@ -289,7 +289,7 @@ export async function runBrowserQa({out, journeys = JOURNEYS, viewports = REQUIR
 
 // The QA environment shared by the deterministic gate and the exploratory crawler: a throwaway PostgreSQL schema, the
 // real server on it, the QA archive through the real ingestion path and a real Chromium. Always cleaned up.
-export async function withQaEnvironment(fn) {
+export async function withQaEnvironment(fn, {browserEnv = null} = {}) {
   const executablePath = browserPath();
   if (!executablePath) throw new Error('no Chromium/Chrome (set MATCHPILOT_E2E_CHROME)');
   if (!['localhost', '127.0.0.1', '[::1]'].includes(new URL(ROOT_URL).hostname)) throw new Error('Browser QA runs on a local throwaway PostgreSQL only');
@@ -312,7 +312,7 @@ export async function withQaEnvironment(fn) {
       if (!response.ok) throw new Error(`API ${path}: ${response.status}`);
       return response.json();
     };
-    browser = await chromium.launch({executablePath, args: ['--no-sandbox']});
+    browser = await chromium.launch({executablePath, args: ['--no-sandbox'], ...(browserEnv ? {env: {...process.env, ...browserEnv}} : {})});
     return await fn({browser, server, seed, api, health, executablePath});
   } finally {
     await browser?.close().catch(() => {});
