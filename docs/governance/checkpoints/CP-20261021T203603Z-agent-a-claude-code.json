@@ -1,0 +1,91 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261021T203603Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-21T20:36:03Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Integration Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "mandate": {
+    "id": "MP-GITHUB-RECON-IMPLEMENTATION-01",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-21), registered in docs/governance/owner-decisions.json"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "task": "GOV-01",
+  "activity": "recovery of GOV-01 into the main registry: prepared on branch gov-01-merge-policy, no PR, proposal not approved",
+  "issue": 97,
+  "pr": null,
+  "branch": "gov-01-merge-policy",
+  "commit_sha": "b841a0671344f308eb96ee743bd2d5ad13331c08",
+  "tree_sha": "4aa9c39b344d5c3dff4ec05939300a1d479c95fd",
+  "base_sha": "3dd833f38bf8a7de3b51dfbebd3118e1602185ac",
+  "changes": [
+    "no change to the branch"
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN"
+  },
+  "gate_a": "NOT_VERIFIED",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "GOV-F1",
+      "severity": "BLOCKING",
+      "status": "OPEN",
+      "summary": "the policy cites MP-OWNER-AUTOMERGE-02/03, which are not approved (registered as the OPEN proposal MP-OWNER-AUTOMERGE-02-03-PROPOSAL); its branch checkpoints cite them and reuse the id CP-20261020T200407Z-agent-a-claude-code of APP-01"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-AUTOMERGE-02-03-PROPOSAL",
+    "MP-GITHUB-RECON-IMPLEMENTATION-01"
+  ],
+  "dependencies": [
+    "branch checkpoints CP-20261020T200407Z and CP-20261020T201411Z on gov-01-merge-policy (not on main)"
+  ],
+  "progress": {
+    "done": [
+      "merge classifier and merge-gate with GitHub-read facts (on the branch)"
+    ],
+    "in_progress": [],
+    "not_started": [
+      "owner decision: resume (realign) or archive"
+    ]
+  },
+  "resources": [
+    "branch:gov-01-merge-policy"
+  ],
+  "stop_conditions": [
+    "no PR while the policy is not approved"
+  ],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": "ANY",
+    "responsibilities": []
+  },
+  "state": "BLOCKED",
+  "next_action": "owner decision: approve, amend or archive the AUTOMERGE-02/03 proposal",
+  "resume_conditions": [
+    "owner decision on MP-OWNER-AUTOMERGE-02-03-PROPOSAL"
+  ],
+  "supersedes": null,
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "authorizations": [],
+  "requirements": [],
+  "tests": []
+}

@@ -1,0 +1,128 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261021T203600Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-21T20:36:00Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Integration Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "mandate": {
+    "id": "MP-GITHUB-RECON-IMPLEMENTATION-01",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-21), registered in docs/governance/owner-decisions.json"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "task": "DEPLOY-APPROVAL-01",
+  "activity": "post-merge reconciliation of PR #180: merged under GO-2 (consumed); the approval gate it introduced is completed by #181",
+  "issue": 97,
+  "pr": 180,
+  "branch": "deploy-approval-01",
+  "commit_sha": "3b1604bf3854ada2b80cf4157e38d42dde21b68d",
+  "tree_sha": "47abee389609c2a870ce0383203496125ba41c40",
+  "base_sha": "3dd833f38bf8a7de3b51dfbebd3118e1602185ac",
+  "merge_sha": "e127c26eaa8bc87bacc26ba6b3390e6edb2fab95",
+  "requirements": [
+    "MP-GOV-021",
+    "MP-SEC-004"
+  ],
+  "changes": [
+    "squash merge of PR #180 as e127c26 (tree identical to 3b1604b); no code change in this checkpoint"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI run 39624510544 on the PR head: all required jobs success",
+      "result": "PASS",
+      "environment": "GitHub-hosted runners",
+      "commit": "3b1604bf3854ada2b80cf4157e38d42dde21b68d",
+      "time": "2026-10-21T16:32:21Z",
+      "limits": [
+        "time is an upper bound (merge time)"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39624510544,
+    "conclusion": "SUCCESS",
+    "head_sha": "3b1604bf3854ada2b80cf4157e38d42dde21b68d"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/180 (independent technical review comment 6320417547; no formal GitHub review, as GO-2 notes)",
+    "reviewed_sha": "3b1604bf3854ada2b80cf4157e38d42dde21b68d"
+  },
+  "findings": [
+    {
+      "id": "DAP-1",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "activation needs owner GOs; superseded in substance by #181 and its S3/S4 plan (tracked in VPS-MIGRATION-01)"
+    },
+    {
+      "id": "DAP-6",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "GO-2 noted that the agents token shows current_user_can_approve: true (#180 comment 6321218676); B13 credentials inventory still open"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-GO2-MERGE-PR180",
+    "MP-DEPLOY-APPROVAL-01",
+    "MP-DEPLOY-APPROVAL-02",
+    "MP-DEPLOY-GATE-FINAL-01",
+    "MP-GITHUB-RECON-IMPLEMENTATION-01"
+  ],
+  "authorizations": [
+    {
+      "id": "MP-OWNER-GO2-MERGE-PR180",
+      "source": "https://github.com/zarbopiero963-droid/MatchPilot/pull/180#issuecomment-6321069450",
+      "scope": {
+        "task": "DEPLOY-APPROVAL-01",
+        "action": "merge PR #180"
+      },
+      "status": "CONSUMED",
+      "consumed_by": "squash merge e127c26 (#180 comment 6321218676)"
+    }
+  ],
+  "external_commands": [
+    {
+      "target": "github",
+      "command": "merge_pull_request #180 squash with expectedHeadSha 3b1604b",
+      "effect": "main = e127c26 (2026-10-21T16:32:21Z)"
+    }
+  ],
+  "progress": {
+    "done": [
+      "PR #180 merged (e127c26)"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "branch:deploy-approval-01"
+  ],
+  "stop_conditions": [
+    "GO-2 is consumed and never extended"
+  ],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "state": "MERGED",
+  "next_action": "nothing on this task",
+  "supersedes": "CP-20261021T151747Z-agent-a-claude-code",
+  "worktree": {
+    "clean": true
+  },
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "resume_conditions": [],
+  "dependencies": []
+}

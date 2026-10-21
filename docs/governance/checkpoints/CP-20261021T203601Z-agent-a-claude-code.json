@@ -1,0 +1,131 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261021T203601Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-21T20:36:01Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Integration Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "mandate": {
+    "id": "MP-GITHUB-RECON-IMPLEMENTATION-01",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-21), registered in docs/governance/owner-decisions.json"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "task": "HIST-01a",
+  "activity": "registration of PR #178 on the main registry: open, code only on its branch, conflicts with main, review and CI to redo on a realigned head; branch not touched",
+  "issue": 34,
+  "pr": 178,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "57aab633735e2ecac3569e19666e3a73a0d956ed",
+  "tree_sha": "45d9eceb9fc2a188f86493e3e6a9acc0453c250e",
+  "base_sha": "3dd833f38bf8a7de3b51dfbebd3118e1602185ac",
+  "requirements": [
+    "MP-STA-001",
+    "MP-STA-011",
+    "MP-MKT-001",
+    "MP-MKT-002",
+    "MP-MKT-003",
+    "MP-MTH-003",
+    "MP-RPL-003",
+    "MP-PIT-002",
+    "MP-PIT-003"
+  ],
+  "changes": [
+    "no change to the branch; the checkpoints CP-20261020T121904Z, CP-20261020T122610Z and CP-20261020T131010Z are copied byte for byte from it, with the decisions MP-OWNER-HIST-01A-01/02"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI run 39498732424 on 57aab63: CI gate, Fast checks, PostgreSQL, Browser QA, Exploratory QA success; UI checks skipped",
+      "result": "PASS",
+      "environment": "GitHub-hosted runners",
+      "commit": "57aab633735e2ecac3569e19666e3a73a0d956ed",
+      "time": "2026-10-20T21:20:44Z",
+      "limits": [
+        "on the old base 3dd833f: not evidence for the realigned head"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39498732424,
+    "conclusion": "SUCCESS",
+    "head_sha": "57aab633735e2ecac3569e19666e3a73a0d956ed"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/178 (last APPROVED review covered 4011e76; review and CI must be redone on the realigned head)"
+  },
+  "findings": [
+    {
+      "id": "H-1",
+      "severity": "BLOCKING",
+      "status": "OPEN",
+      "summary": "PR #178 is dirty against main (base 3dd833f, main 1703054): realignment by merging main into its branch is required (owner-decisions.json, work-registry.json and requirements.json conflict); then CI and an independent review on the new head"
+    },
+    {
+      "id": "H-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the branch ccr-e45875c0-5r0fnf is shared by 27 PRs and is the mandated branch of an old session: realignment must not rewrite it (merge commit, no force-push)"
+    },
+    {
+      "id": "H-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the merge of #178 is not authorized; it needs a new owner mandate (MP-VPS-ONLY-OPERATIONS-2026-10-21: PR #178 untouched unless a new mandate)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-HIST-01A-01",
+    "MP-OWNER-HIST-01A-02",
+    "MP-VPS-ONLY-OPERATIONS-2026-10-21",
+    "MP-GITHUB-RECON-IMPLEMENTATION-01"
+  ],
+  "progress": {
+    "done": [
+      "engine, admission, strategy, settlement, report on synthetic fixtures (on the branch)",
+      "review rounds up to 57aab63"
+    ],
+    "in_progress": [],
+    "not_started": [
+      "realignment with main",
+      "CI and independent review on the realigned head",
+      "merge (needs an owner mandate)"
+    ]
+  },
+  "resources": [
+    "branch:ccr-e45875c0-5r0fnf",
+    "pr:178"
+  ],
+  "stop_conditions": [
+    "no write on the branch without a new owner mandate for #178",
+    "any divergence between this checkpoint and the branch head"
+  ],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "state": "BLOCKED",
+  "next_action": "owner mandate for #178; then merge main into the branch (no rebase, no force-push), regenerate generated files with the repo tooling, CI and a separate review on the new head",
+  "resume_conditions": [
+    "owner mandate for #178",
+    "branch head equals commit_sha or the difference is reconciled"
+  ],
+  "supersedes": "CP-20261020T131010Z-agent-a-claude-code",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "authorizations": [],
+  "dependencies": []
+}

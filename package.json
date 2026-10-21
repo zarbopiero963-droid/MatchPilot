@@ -9,6 +9,8 @@
     "governance:check": "node tools/governance/cli.mjs validate",
     "governance:status": "node tools/governance/cli.mjs status",
     "governance:resume": "node tools/governance/cli.mjs resume",
+    "governance:handoff-in": "node tools/governance/cli.mjs handoff-in",
+    "governance:authz-check": "node tools/governance/cli.mjs authz-check",
     "governance:scan-closing": "node tools/governance/cli.mjs scan-closing",
     "governance:evidence": "node tools/governance/evidence.mjs verify docs/audits --archive",
     "governance:render": "node tools/governance/render-inventory.mjs",

@@ -5,6 +5,13 @@ import {join} from 'node:path';
 import {findSecrets} from './secrets.mjs';
 
 export const SCHEMA_VERSION = 'mp-checkpoint-v2';
+// v3 (MP-GITHUB-RECON-IMPLEMENTATION-01) extends v2 with the handoff record: every v2 rule still applies, v2 stays valid.
+export const SCHEMA_V3 = 'mp-checkpoint-v3';
+export const HANDOFF_STATUSES = ['NONE', 'OUT', 'IN', 'PENDING_VERIFICATION'];
+export const AUTHORIZATION_STATUSES = ['VALID', 'CONSUMED', 'REVOKED', 'NOT_GRANTED'];
+// MP-OWNER-AGENTS-INTERCHANGEABLE-01: an authorization depends on mandate, task, resource and action, never on who the
+// agent is; any agent holding the lease may use it.
+export const AUTHORIZATION_SCOPE_KEYS = ['mandate', 'task', 'resource', 'action'];
 // v1 checkpoints written before v2 (#151 review R-2) stay valid as history; new ones must be v2.
 // Only these historical v1 checkpoints are accepted: a new checkpoint cannot dodge v2 by backdating (#152 review N-3).
 export const LEGACY_SCHEMA = {version: 'mp-checkpoint-v1', ids: new Set(['CP-20261018T201559Z-agent-a-claude-code', 'CP-20261018T202029Z-agent-b-claude-subagent', 'CP-20261018T202316Z-agent-a-claude-code', 'CP-20261018T202336Z-agent-a-claude-code', 'CP-20261018T203228Z-agent-a-claude-code'])};
@@ -108,7 +115,8 @@ export function validateCheckpoint(cp, {decisionIds, requirementIds, taskIds, no
   const at = `checkpoint ${cp?.id}`;
   if (!cp || typeof cp !== 'object') return ['checkpoint must be an object'];
   const legacy = cp.schema_version === LEGACY_SCHEMA.version && LEGACY_SCHEMA.ids.has(cp.id);
-  if (cp.schema_version !== SCHEMA_VERSION && !legacy) errors.push(`${at} schema_version must be ${SCHEMA_VERSION}`);
+  if (cp.schema_version !== SCHEMA_VERSION && cp.schema_version !== SCHEMA_V3 && !legacy) errors.push(`${at} schema_version must be ${SCHEMA_VERSION} or ${SCHEMA_V3}`);
+  if (cp.schema_version === SCHEMA_V3) errors.push(...validateV3(cp, at));
   if (!legacy) {
     // v2: a review and a CI run are only evidence for the exact commit they covered.
     if (cp.review?.verdict === 'APPROVED' && !SHA.test(cp.review?.reviewed_sha || '')) errors.push(`${at} APPROVED review needs review.reviewed_sha`);
@@ -153,6 +161,122 @@ export function validateCheckpoint(cp, {decisionIds, requirementIds, taskIds, no
   if (cp.supersedes !== null && !ID.test(cp.supersedes || '')) errors.push(`${at} supersedes must be a checkpoint id or null`);
   for (const secret of findSecrets(cp)) errors.push(`${at} contains a secret-like value at ${secret}`);
   return errors;
+}
+
+const text = value => typeof value === 'string' && value.trim() !== '';
+const stringArray = value => Array.isArray(value) && value.every(text);
+
+// v3 handoff record. The receiving agent needs nothing from the sender's conversation: mandate, session, base and tree,
+// worktree, progress, authorizations, external commands, artifacts, stop conditions, costs and VPS facts are all here.
+// No secret ever goes in a checkpoint (findSecrets runs on the whole object); credentials stay where they are.
+function validateV3(cp, at) {
+  const errors = [];
+  if (!text(cp.mandate?.id) || !text(cp.mandate?.source)) errors.push(`${at} v3 mandate needs id and source`);
+  if (!text(cp.agent?.session)) errors.push(`${at} v3 agent.session is required`);
+  if (!SHA.test(cp.base_sha || '')) errors.push(`${at} v3 base_sha must be a full SHA`);
+  if (typeof cp.worktree?.clean !== 'boolean') errors.push(`${at} v3 worktree.clean must be a boolean`);
+  for (const key of ['done', 'in_progress', 'not_started']) if (!stringArray(cp.progress?.[key])) errors.push(`${at} v3 progress.${key} must be an array of strings`);
+  if (!stringArray(cp.resources)) errors.push(`${at} v3 resources must be an array of strings`);
+  if (!Array.isArray(cp.stop_conditions) || !cp.stop_conditions.length || !stringArray(cp.stop_conditions)) errors.push(`${at} v3 stop_conditions must be a non-empty array of strings`);
+  if (!text(cp.costs?.incurred) || !text(cp.costs?.authorized)) errors.push(`${at} v3 costs needs incurred and authorized`);
+  if (cp.vps !== null && (typeof cp.vps !== 'object' || Array.isArray(cp.vps))) errors.push(`${at} v3 vps must be an object or null`);
+  if (!Array.isArray(cp.external_commands)) errors.push(`${at} v3 external_commands must be an array`);
+  (cp.external_commands || []).forEach((entry, i) => {
+    if (!text(entry?.target) || !text(entry?.command) || !text(entry?.effect)) errors.push(`${at} external_commands[${i}] needs target, command and effect`);
+  });
+  if (!Array.isArray(cp.artifacts)) errors.push(`${at} v3 artifacts must be an array`);
+  (cp.artifacts || []).forEach((entry, i) => {
+    if (!text(entry?.path) || !/^[0-9a-f]{64}$/.test(entry?.sha256 || '')) errors.push(`${at} artifacts[${i}] needs path and a SHA-256`);
+  });
+  if (!Array.isArray(cp.authorizations)) errors.push(`${at} v3 authorizations must be an array`);
+  (cp.authorizations || []).forEach((entry, i) => {
+    const where = `${at} authorizations[${i}]`;
+    if (!text(entry?.id) || !text(entry?.source)) errors.push(`${where} needs id and source`);
+    if (!AUTHORIZATION_STATUSES.includes(entry?.status)) errors.push(`${where} invalid status ${entry?.status}`);
+    if (entry?.status === 'CONSUMED' && !text(entry?.consumed_by)) errors.push(`${where} CONSUMED needs consumed_by`);
+    const scope = entry?.scope;
+    if (!scope || typeof scope !== 'object' || !Object.keys(scope).length) errors.push(`${where} needs a scope`);
+    else for (const key of Object.keys(scope)) {
+      if (!AUTHORIZATION_SCOPE_KEYS.includes(key)) errors.push(`${where} scope key ${key} is not admitted (authorizations depend on ${AUTHORIZATION_SCOPE_KEYS.join(', ')}, never on the agent)`);
+      else if (!text(scope[key])) errors.push(`${where} scope.${key} must be a string`);
+    }
+  });
+  const handoff = cp.handoff;
+  if (!HANDOFF_STATUSES.includes(handoff?.status)) errors.push(`${at} v3 handoff.status must be one of ${HANDOFF_STATUSES.join(', ')}`);
+  else {
+    if (!stringArray(handoff.responsibilities)) errors.push(`${at} v3 handoff.responsibilities must be an array of strings`);
+    if (cp.state === 'HANDOFF READY' && handoff.status !== 'OUT') errors.push(`${at} HANDOFF READY needs handoff.status OUT`);
+    if (handoff.status === 'OUT' && cp.state !== 'HANDOFF READY') errors.push(`${at} handoff OUT needs state HANDOFF READY`);
+    if (handoff.status === 'OUT' && !(handoff.responsibilities || []).length) errors.push(`${at} handoff OUT must list the responsibilities transferred`);
+    if (handoff.status === 'IN' && (!text(handoff.from) || !stringArray(handoff.verified) || !handoff.verified.length)) errors.push(`${at} handoff IN needs from and the list of what the receiver verified`);
+    if (handoff.status === 'PENDING_VERIFICATION' && ['CERTIFIED', 'MERGED', 'COMPLETED', 'HANDOFF READY'].includes(cp.state)) errors.push(`${at} PENDING_VERIFICATION cannot be ${cp.state}: unverified claims certify nothing`);
+    if (handoff.to !== undefined && handoff.to !== null && !text(handoff.to)) errors.push(`${at} handoff.to must be an agent id, ANY or null`);
+  }
+  if (cp.state === 'MERGED' && !SHA.test(cp.merge_sha || '')) errors.push(`${at} v3 MERGED needs merge_sha`);
+  return errors;
+}
+
+// Authorization ledger over all checkpoints: once an owner GO is CONSUMED or REVOKED it never becomes VALID again,
+// whatever a later checkpoint says (fail closed).
+export function authorizationLedger(checkpoints) {
+  const ledger = new Map();
+  for (const cp of checkpoints) for (const entry of cp.authorizations || []) {
+    if (!entry?.id) continue;
+    const item = ledger.get(entry.id) ?? {id: entry.id, status: null, scope: entry.scope ?? {}, sources: []};
+    item.sources.push(cp.id);
+    if (entry.status === 'CONSUMED' || entry.status === 'REVOKED') { if (item.status !== 'REVOKED') item.status = entry.status; if (entry.consumed_by) item.consumed_by = entry.consumed_by; }
+    // A GO recorded as not granted may be granted later; nothing brings back a consumed or revoked one.
+    else if (entry.status === 'VALID' && (item.status === null || item.status === 'NOT_GRANTED')) { item.status = 'VALID'; item.scope = entry.scope ?? {}; }
+    else if (entry.status === 'NOT_GRANTED' && item.status === null) item.status = 'NOT_GRANTED';
+    ledger.set(entry.id, item);
+  }
+  return ledger;
+}
+
+// May an authorization be used for this request? The request names mandate, task, resource and action; there is no
+// agent parameter on purpose. Unknown, consumed, revoked, not granted or out-of-scope: refused.
+export function checkAuthorization(checkpoints, id, request = {}) {
+  const item = authorizationLedger(checkpoints).get(id);
+  if (!item || item.status === null) return {ok: false, problems: [`AUTHZ_UNKNOWN: ${id} is not recorded in any checkpoint`]};
+  if (item.status !== 'VALID') return {ok: false, problems: [`AUTHZ_${item.status}: ${id}${item.consumed_by ? ` (consumed by ${item.consumed_by})` : ''}`]};
+  const problems = [];
+  for (const [key, value] of Object.entries(item.scope)) {
+    if (request[key] !== value) problems.push(`AUTHZ_SCOPE: ${id} is for ${key} ${value}, not ${request[key] ?? '(none)'}`);
+  }
+  return {ok: !problems.length, problems};
+}
+
+// HANDOFF IN: what an agent must establish before writing anything on a task, whoever it is. Any problem stops it
+// (fail closed): a stale or forked chain, a registry behind the chain, a branch that does not match, a lease or a
+// resource held by another writer, a handoff addressed to someone else or still pending verification.
+// `reality` comes from git (realityFor) plus the PR state read from GitHub; never from the checkpoint.
+// `verified` lists what the receiver checked itself (read-only, before any write); it goes into its handoff IN
+// checkpoint and is required to take over claims pending verification.
+export function handoffIn({checkpoints, registry, task: taskId, agentId, reality, now = new Date(), errata = new Map(), verified = []}) {
+  const problems = [];
+  try {
+    const task = registry.tasks.find(item => item.id === taskId);
+    if (!task) return {ok: false, problems: [`UNKNOWN_TASK: ${taskId}`], checkpoint: null};
+    const {latest, conflicts} = resolveLatest(checkpoints, taskId, {errata});
+    for (const conflict of conflicts) problems.push(`CHAIN_CONFLICT: ${conflict}`);
+    if (!latest) return {ok: false, problems: [...problems, `NO_CHECKPOINT: ${taskId}`], checkpoint: null};
+    if (task.latest_checkpoint !== latest.id) problems.push(`STALE_REGISTRY: registry says ${task.latest_checkpoint}, chain head is ${latest.id}`);
+    for (const divergence of reconcile(latest, reality, {now, errata})) problems.push(`${divergence.code}: ${divergence.detail}`);
+    const nowMs = now.getTime();
+    const activeLease = lease => Boolean(lease) && Date.parse(lease.expires_at) > nowMs;
+    if (activeLease(task.lease) && task.lease.holder !== agentId) problems.push(`DUAL_WRITER: ${taskId} is leased to ${task.lease.holder} until ${task.lease.expires_at}`);
+    const resources = new Set([...(task.resources || []), ...(latest.resources || [])]);
+    for (const other of registry.tasks) {
+      if (other.id === taskId || !activeLease(other.lease) || other.lease.holder === agentId) continue;
+      for (const resource of other.resources || []) if (resources.has(resource)) problems.push(`DUAL_WRITER_RESOURCE: ${resource} is written by ${other.id} (${other.lease.holder})`);
+    }
+    const handoff = latest.handoff;
+    if (handoff?.status === 'PENDING_VERIFICATION' && !(Array.isArray(verified) && verified.length)) problems.push(`HANDOFF_PENDING_VERIFICATION: ${latest.id} carries unverified claims; verify them and record a checkpoint before taking over`);
+    if (handoff?.to && handoff.to !== 'ANY' && handoff.to !== agentId) problems.push(`HANDOFF_ADDRESSED_ELSEWHERE: ${latest.id} is handed to ${handoff.to}`);
+    return {ok: !problems.length, problems, checkpoint: latest};
+  } catch (error) {
+    return {ok: false, problems: [...problems, `HANDOFF_IN_ERROR: ${String(error?.message ?? error).split('\n')[0]}`], checkpoint: null};
+  }
 }
 
 // Latest valid checkpoint of a task: the single head of the supersedes chain. Forks are conflicts.

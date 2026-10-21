@@ -42,13 +42,20 @@ npm run governance:resume -- R-01  # verifica di ripresa per un'attività (exit 
 
 Checkpoint machine-readable: `docs/governance/checkpoints/`. Registro attività: `docs/governance/work-registry.json`. Procedura di subentro e recovery: [`docs/governance/HANDOFF.md`](docs/governance/HANDOFF.md). Issue: #150, MP-MULTIAGENT-SYNC-CHECKPOINT-01.
 
+**Checkpoint e agenti (21/10/2026).**
+- I nuovi checkpoint usano lo schema `mp-checkpoint-v3`, con HANDOFF OUT/IN, ledger delle autorizzazioni e un solo scrittore per risorsa.
+- Gli agenti sono intercambiabili (`MP-OWNER-AGENTS-INTERCHANGEABLE-01`).
+- Collaudo reale Claude → Grok → Claude: **HANDOFF NOT VERIFIED**.
+
+Riconciliazione del 21/10: [`docs/governance/reconciliation-2026-10-21.md`](docs/governance/reconciliation-2026-10-21.md).
+
 **Gerarchia:** decisioni owner registrate → #3 master di prodotto → #97 roadmap operativa canonica → issue di dominio → requisiti Gate A → AGENTS → CLAUDE/README → docs → mock. #104 resta il catalogo storico delle 82 card.
 
 **Stato al 18/10/2026:**
 - **FPT (#12):** certificato storico del 05/10 nel proprio perimetro; audit 412 (solo parte read-only) e policy PIT D4 ancora da applicare.
 - **TotalCorner (#20):** componenti TC-CORE-01/02/03/03B/04 certificati per componente; normalizzazione residua offline; nessuna spesa autorizzata (D6). #20 resta OPEN.
 - **Archivio #40:** completato con riserve; resta OPEN fino alla verifica indipendente di portabilità e hash (D9).
-- **Infrastruttura:** Render e Neon sospesi dal 09/10; sviluppo offline (#144).
+- **Infrastruttura:** Render e Neon sospesi dal 09/10 (#144) ed esclusi dall'architettura operativa. Tutta l'operatività va sulla VPS (`MP-VPS-ONLY-OPERATIONS-2026-10-21`, #182); la sua attuazione richiede GO owner separati. `render.yaml` è solo storico, con `autoDeploy: false`.
 - **Prodotto:** Gate A NON PASS; nessuna componente è GLOBAL HARD CERTIFIED.
 
 Lo stato dettagliato del 07/10 resta consultabile nella cronologia di git e nelle issue #3/#97; non è più un'istruzione operativa.

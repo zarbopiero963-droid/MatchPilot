@@ -1,0 +1,100 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261021T203602Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-21T20:36:02Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Integration Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "mandate": {
+    "id": "MP-GITHUB-RECON-IMPLEMENTATION-01",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-21), registered in docs/governance/owner-decisions.json"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "task": "APP-01",
+  "activity": "recovery of APP-01 into the main registry: prepared on branch app-01-row-gaps, no PR; candidate for the VPS backend phase of #182",
+  "issue": 179,
+  "pr": null,
+  "branch": "app-01-row-gaps",
+  "commit_sha": "768bae9838af32f842021052692bc7e01fac57c3",
+  "tree_sha": "a0e9d1d9bc3be9bee1afb7685b537efc567f43fe",
+  "base_sha": "3dd833f38bf8a7de3b51dfbebd3118e1602185ac",
+  "changes": [
+    "no change to the branch"
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN"
+  },
+  "gate_a": "NOT_VERIFIED",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "APP-F1",
+      "severity": "BLOCKING",
+      "status": "OPEN",
+      "summary": "the branch carries checkpoint CP-20261020T200407Z-agent-a-claude-code (task APP-01) and the branch gov-01-merge-policy carries a different file with the same id (task GOV-01): neither may reach main as is; a realignment drops the branch copy in favour of this chain"
+    },
+    {
+      "id": "APP-F2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "base 3dd833f: realignment with main needed before any PR"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-FUNCTIONAL-DELIVERY-03",
+    "MP-VPS-ONLY-OPERATIONS-2026-10-21",
+    "MP-GITHUB-RECON-IMPLEMENTATION-01"
+  ],
+  "dependencies": [
+    "branch checkpoint CP-20261020T200407Z-agent-a-claude-code on app-01-row-gaps (not on main)"
+  ],
+  "progress": {
+    "done": [
+      "snapshot row-gap check as one aggregation (#179 F3), oracle and plan regression tests, synthetic benchmark (on the branch, 09ef225)"
+    ],
+    "in_progress": [],
+    "not_started": [
+      "realignment",
+      "PR (not authorized)"
+    ]
+  },
+  "resources": [
+    "branch:app-01-row-gaps"
+  ],
+  "stop_conditions": [
+    "no PR without an owner GO (MP-GITHUB-RECON-IMPLEMENTATION-01 forbids opening one now)"
+  ],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": "ANY",
+    "responsibilities": []
+  },
+  "state": "BLOCKED",
+  "next_action": "owner decision on the backend VPS phase (#182 P4); then realign the branch with main and open one PR",
+  "resume_conditions": [
+    "owner GO for the PR",
+    "one implementation slot free"
+  ],
+  "supersedes": null,
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "authorizations": [],
+  "requirements": [],
+  "tests": []
+}

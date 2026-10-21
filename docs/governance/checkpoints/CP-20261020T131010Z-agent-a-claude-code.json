@@ -1,0 +1,117 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "d064b575bce617784d7da3db0f82375af767bf89",
+  "tree_sha": "1a223c996a46e8cc41b1009189159c15bb1def5c",
+  "supersedes": "CP-20261020T122610Z-agent-a-claude-code",
+  "pr": 178,
+  "id": "CP-20261020T131010Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-20T13:10:10Z",
+  "activity": "HIST-01a: NB-2 owner decision implemented (run status separate from the real-data certification block); review D2 rounds approved; stopped before the merge",
+  "task": "HIST-01a",
+  "issue": 34,
+  "requirements": [
+    "MP-STA-001",
+    "MP-STA-011",
+    "MP-MKT-001",
+    "MP-MKT-002",
+    "MP-MKT-003",
+    "MP-MTH-003",
+    "MP-RPL-003",
+    "MP-PIT-002",
+    "MP-PIT-003"
+  ],
+  "changes": [
+    "src/hist/engine.mjs: certification block {data_scope, real_data_verdict NOT_APPLICABLE|NOT_VERIFIED, certified false, notice}; status stays the technical run status",
+    "test/hist-backtest.test.mjs: test 7 and limits check",
+    "tools/hist/backtest.mjs, docs/hist-backtest.md, owner decision MP-OWNER-HIST-01A-02"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/hist-backtest.test.mjs on the code of 4e63f69 with the new tests",
+      "result": "FAIL",
+      "environment": "local container, Node 22",
+      "commit": "4011e768905680233aca7888b6b899a33ee62b8c",
+      "time": "2026-10-20T13:10:10Z",
+      "limits": [
+        "intended RED: 3 of 12 failed (golden, determinism, NB-2); time is an upper bound"
+      ]
+    },
+    {
+      "command": "node --test test/hist-backtest.test.mjs (12/12); test/governance-*.test.mjs; npm run check; governance check, render-inventory --check, scan-closing",
+      "result": "PASS",
+      "environment": "local container, Node 22",
+      "commit": "d064b575bce617784d7da3db0f82375af767bf89",
+      "time": "2026-10-20T13:10:10Z",
+      "limits": [
+        "synthetic fixtures only; time is an upper bound"
+      ]
+    },
+    {
+      "command": "CI=1 node --test (365/366)",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16",
+      "commit": "4011e768905680233aca7888b6b899a33ee62b8c",
+      "time": "2026-10-20T13:10:10Z",
+      "limits": [
+        "test/postgres-independence needs PostgreSQL 17 (CI); time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "d064b575bce617784d7da3db0f82375af767bf89"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/178",
+    "reviewed_sha": "4011e768905680233aca7888b6b899a33ee62b8c"
+  },
+  "findings": [
+    {
+      "id": "HIST-1",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "real-data verification blocked: archive #40 pre-match observations reported all acquired after kickoff; HIST-01b waits for the Grok SQL and SHA evidence"
+    },
+    {
+      "id": "HIST-3",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "merge not authorized (MP-OWNER-HIST-01A-02): it needs the Grok check of the effective privileges of mp-deploy, npm ci and the tests, then an owner GO; auto-merge must not be enabled"
+    },
+    {
+      "id": "HIST-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "1X2 BACK only; Asian lines, PUSH, other markets, walk-forward and out-of-sample are not built"
+    },
+    {
+      "id": "R1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "matchAnalysis uses fact versions acquired after the match; HIST-01a isolated from it by a static test; fix in a later PR"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-HIST-01A-02",
+    "MP-OWNER-HIST-01A-01",
+    "MP-OWNER-VPS-DEPLOY-01"
+  ],
+  "dependencies": [
+    "CP-20261020T122610Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and review D2 on the final head, Gate B comment; stop before the merge until the Grok privilege check and an owner GO",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains d064b575bce617784d7da3db0f82375af767bf89"
+  ]
+}
