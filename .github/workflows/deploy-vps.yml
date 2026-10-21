@@ -4,7 +4,9 @@
 #      dell'owner, senza bypass degli admin e solo per main, e che lo SHA di questo run sia ancora la punta di main.
 #      Un environment assente o creato automaticamente senza protezioni ferma il deploy (fail closed).
 #   2. deploy (runner matchpilot-vps): parte solo dopo l'approvazione dell'owner su questo run, quindi su questo SHA;
-#      prima di mp-deploy ricontrolla che lo SHA approvato sia ancora la punta di main.
+#      prima di mp-deploy ripete lo stesso controllo, a ogni tentativo (anche un rerun del solo deploy), con il codice
+#      dello SHA approvato.
+#   Solo questo workflow può usare il runner VPS: test/governance-workflows.test.mjs lo verifica su tutti i workflow.
 # Procedura, bootstrap e rollback: docs/deploy-approval.md.
 name: deploy-vps
 on:
@@ -32,23 +34,36 @@ jobs:
       - name: Environment vps-production protetto e SHA ancora su main
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node scripts/deploy-gate.mjs
+        run: |
+          set -euo pipefail
+          node scripts/deploy-gate.mjs > "$RUNNER_TEMP/deploy-gate.json" || { cat "$RUNNER_TEMP/deploy-gate.json"; echo "DEPLOY_GATE_FAIL"; exit 1; }
+          cat "$RUNNER_TEMP/deploy-gate.json"
+          grep -q '"result": "PASS"' "$RUNNER_TEMP/deploy-gate.json" || { echo "DEPLOY_GATE_FAIL"; exit 1; }
   deploy:
     needs: gate
     if: github.repository == 'zarbopiero963-droid/MatchPilot' && github.ref == 'refs/heads/main'
     runs-on: [self-hosted, matchpilot-vps]
     environment: vps-production
     timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      deployments: read
     steps:
-      # Dopo l'approvazione: lo SHA approvato deve essere ancora la punta di main, altrimenti si approva il run più recente.
-      - name: SHA approvato ancora su main
+      # Dopo l'approvazione, a ogni tentativo (anche un rerun del solo deploy, che non riesegue il job gate): lo stesso
+      # controllo, scaricato dallo SHA approvato. Senza node o curl, senza lo script o senza PASS il deploy si ferma.
+      - name: Gate dopo l'approvazione
         env:
+          GH_TOKEN: ${{ github.token }}
           DEPLOY_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          command -v git >/dev/null || { echo "DEPLOY_GATE_NO_GIT"; exit 1; }
-          tip=$(GIT_TERMINAL_PROMPT=0 timeout 60 git ls-remote --exit-code https://github.com/zarbopiero963-droid/MatchPilot.git refs/heads/main | cut -f1) || { echo "DEPLOY_GATE_MAIN_UNREADABLE"; exit 1; }
-          [ "$tip" = "$DEPLOY_SHA" ] || { echo "DEPLOY_GATE_STALE_SHA: approvato $DEPLOY_SHA, main è $tip"; exit 1; }
+          for tool in node curl grep cat; do command -v "$tool" >/dev/null || { echo "DEPLOY_GATE_MISSING_TOOL: $tool"; exit 1; }; done
+          gate="$RUNNER_TEMP/deploy-gate-$DEPLOY_SHA.mjs"
+          curl --fail --silent --show-error --proto '=https' --max-time 60 -o "$gate" "https://raw.githubusercontent.com/zarbopiero963-droid/MatchPilot/$DEPLOY_SHA/scripts/deploy-gate.mjs" || { echo "DEPLOY_GATE_SCRIPT_UNREADABLE"; exit 1; }
+          node "$gate" > "$RUNNER_TEMP/deploy-gate.json" || { cat "$RUNNER_TEMP/deploy-gate.json"; echo "DEPLOY_GATE_FAIL"; exit 1; }
+          cat "$RUNNER_TEMP/deploy-gate.json"
+          grep -q '"result": "PASS"' "$RUNNER_TEMP/deploy-gate.json" || { echo "DEPLOY_GATE_FAIL"; exit 1; }
           echo "DEPLOY_GATE_SHA_OK $DEPLOY_SHA"
       # Nessun checkout: mp-deploy scarica da solo lo SHA e verifica che sia su main.
       # exit 75 = lock occupato (timer di 5 min in corso) -> riprova.

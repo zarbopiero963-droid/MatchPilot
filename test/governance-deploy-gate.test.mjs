@@ -41,8 +41,13 @@ const env = body => ({[ENV_PATH]: {status: 200, body}});
 
 test('a push to main with vps-production protected by the owner only, no admin bypass and only main passes', async () => {
   assert.deepEqual(await problems(), []);
-  // prevent_self_review must stay off: the owner both merges and approves (docs/deploy-approval.md).
-  assert.deepEqual(await problems(env(protectedEnvironment({protection_rules: [{type: 'required_reviewers', prevent_self_review: true, reviewers: [owner]}]}))), []);
+});
+
+test('prevent self-review on, or unreadable, is reported: the owner who merges could never approve (review NB-4)', async () => {
+  const rule = prevent => env(protectedEnvironment({protection_rules: [{type: 'required_reviewers', prevent_self_review: prevent, reviewers: [owner]}]}));
+  assert.match((await problems(rule(true))).join(), /GATE_SELF_REVIEW/);
+  assert.match((await problems(rule(undefined))).join(), /GATE_SELF_REVIEW/);
+  assert.deepEqual(await problems(rule(false)), []);
 });
 
 test('a missing environment, or one GitHub created from the workflow without protection, stops the deploy', async () => {
@@ -118,12 +123,14 @@ const cli = (base, extra = {}) => new Promise(resolve => {
   child.on('close', status => resolve({status, report: JSON.parse(stdout)}));
 });
 
+const ROUTES = {
+  [ENV_PATH]: {status: 200, body: protectedEnvironment()},
+  [`${ENV_PATH}/deployment-branch-policies?per_page=100`]: {status: 200, body: {branch_policies: [{name: 'main', type: 'branch'}]}},
+  [`repos/${REPOSITORY}/branches/main`]: {status: 200, body: {commit: {sha: SHA}}},
+};
+
 test('CLI: PASS exits 0; a missing environment, a bad token or no token exits 1 with the reason', async () => {
-  const routes = {
-    [ENV_PATH]: {status: 200, body: protectedEnvironment()},
-    [`${ENV_PATH}/deployment-branch-policies?per_page=100`]: {status: 200, body: {branch_policies: [{name: 'main', type: 'branch'}]}},
-    [`repos/${REPOSITORY}/branches/main`]: {status: 200, body: {commit: {sha: SHA}}},
-  };
+  const routes = ROUTES;
   await withFakeGithub(routes, async base => {
     const pass = await cli(base);
     assert.equal(pass.status, 0, JSON.stringify(pass.report));
@@ -142,43 +149,110 @@ test('CLI: PASS exits 0; a missing environment, a bad token or no token exits 1 
   });
 });
 
-// ---- the post-approval step of the deploy job, extracted from the workflow and run with a fake git ----
+test('the report lists what GitHub returned, never the token', async () => {
+  await withFakeGithub(ROUTES, async base => {
+    const pass = await cli(base);
+    assert.deepEqual(pass.report.observed, {environment: {can_admins_bypass: false,
+      required_reviewers: [{prevent_self_review: false, reviewers: ['User:zarbopiero963-droid']}],
+      deployment_branch_policy: {protected_branches: false, custom_branch_policies: true}, branch_policies: ['branch:main']}, main: SHA});
+    assert.doesNotMatch(JSON.stringify(pass.report), /t0ken/);
+  });
+});
+
+// Review NB-2: the entry check compared an encoded URL with a plain path, so from a path with spaces the script exited
+// 0 without checking anything. Run from such a path, and through a symlink, it must still check and fail closed.
+test('CLI: from a path with spaces or through a symlink the checks still run', async () => {
+  const dir = join(mkdtempSync(join(tmpdir(), 'deploy gate ')), 'a b');
+  execFileSync('mkdir', ['-p', dir]);
+  const copy = join(dir, 'deploy-gate.mjs');
+  writeFileSync(copy, readFileSync(new URL('../scripts/deploy-gate.mjs', import.meta.url)));
+  symlinkSync(copy, join(dir, 'linked gate.mjs'));
+  for (const script of [copy, join(dir, 'linked gate.mjs')]) {
+    const result = spawnSync(process.execPath, [script], {encoding: 'utf8', env: {PATH: process.env.PATH, GITHUB_SHA: SHA}});
+    assert.equal(result.status, 1, `${script}: ${result.stdout}${result.stderr}`);
+    assert.match(JSON.parse(result.stdout).problems.join(), /GATE_ERROR: GH_TOKEN is not set/);
+  }
+});
+
+// ---- the post-approval step of the deploy job, extracted from the workflow and run on a simulated VPS: the step's own
+// bash, a fake curl that serves this repository's gate script for the approved SHA only, the real node, a fake API ----
 const WORKFLOW = readFileSync(new URL('../.github/workflows/deploy-vps.yml', import.meta.url), 'utf8');
-function shaStep() {
+function stepScript(name) {
   const lines = WORKFLOW.split('\n');
-  const at = lines.findIndex(line => line.trim() === '- name: SHA approvato ancora su main');
+  const at = lines.findIndex(line => line.trim() === `- name: ${name}`);
   const runAt = lines.findIndex((line, i) => i > at && line.trim() === 'run: |');
   const body = [];
   for (const line of lines.slice(runAt + 1)) { if (!line.startsWith('          ')) break; body.push(line.slice(10)); }
   return body.join('\n');
 }
-function runShaStep({gitScript, deploySha = SHA}) {
-  const dir = mkdtempSync(join(tmpdir(), 'deploy-sha-'));
+const GATE_SOURCE = new URL('../scripts/deploy-gate.mjs', import.meta.url).pathname;
+function vps({curl = 'serve', tools = ['node', 'curl', 'grep', 'cat']} = {}) {
+  const dir = mkdtempSync(join(tmpdir(), 'deploy-vps-'));
   const bin = join(dir, 'bin');
-  execFileSync('mkdir', [bin]);
-  for (const tool of ['cut', 'timeout', 'env', 'cat']) symlinkSync(execFileSync('bash', ['-c', `command -v ${tool}`], {encoding: 'utf8'}).trim(), join(bin, tool));
-  if (gitScript) { writeFileSync(join(bin, 'git'), `#!/bin/bash\n${gitScript}\n`); chmodSync(join(bin, 'git'), 0o755); }
-  const result = spawnSync('/bin/bash', ['-e', '-c', shaStep()], {encoding: 'utf8', env: {PATH: bin, DEPLOY_SHA: deploySha}});
-  return {status: result.status, out: result.stdout + result.stderr};
+  execFileSync('mkdir', [bin, join(dir, 'tmp')]);
+  const real = tool => execFileSync('bash', ['-c', `command -v ${tool}`], {encoding: 'utf8'}).trim();
+  for (const tool of tools.filter(tool => tool !== 'curl')) symlinkSync(tool === 'node' ? process.execPath : real(tool), join(bin, tool));
+  if (tools.includes('curl')) {
+    const body = curl === 'serve'
+      ? `out=""; url=""; while [ $# -gt 0 ]; do case "$1" in -o) out="$2"; shift 2;; --proto|--max-time) shift 2;; -*) shift;; *) url="$1"; shift;; esac; done
+         [ "$url" = "https://raw.githubusercontent.com/zarbopiero963-droid/MatchPilot/$DEPLOY_SHA/scripts/deploy-gate.mjs" ] || { echo "curl: (22) 404" >&2; exit 22; }
+         /bin/cp "${GATE_SOURCE}" "$out"`
+      : curl;
+    writeFileSync(join(bin, 'curl'), `#!/bin/bash\n${body}\n`);
+    chmodSync(join(bin, 'curl'), 0o755);
+  }
+  return {bin, tmp: join(dir, 'tmp')};
+}
+async function postApproval({routes = ROUTES, deploySha = SHA, ...options} = {}) {
+  return withFakeGithub(routes, base => new Promise(resolve => {
+    const {bin, tmp} = vps(options);
+    const child = spawn('/bin/bash', ['-e', '-c', stepScript("Gate dopo l'approvazione")], {env: {PATH: bin, RUNNER_TEMP: tmp,
+      DEPLOY_SHA: deploySha, GH_TOKEN: 't0ken', GITHUB_API_URL: base, GITHUB_REPOSITORY: REPOSITORY, GITHUB_REF: 'refs/heads/main',
+      GITHUB_EVENT_NAME: 'push', GITHUB_SHA: deploySha}});
+    let out = '';
+    child.stdout.on('data', chunk => { out += chunk; });
+    child.stderr.on('data', chunk => { out += chunk; });
+    child.on('close', status => resolve({status, out}));
+  }));
 }
 
-test('after approval: the deploy goes on only when the approved SHA is still the tip of main', () => {
-  assert.match(shaStep(), /git ls-remote --exit-code https:\/\/github\.com\/zarbopiero963-droid\/MatchPilot\.git refs\/heads\/main/);
-  const same = runShaStep({gitScript: `echo "${SHA}\trefs/heads/main"`});
-  assert.equal(same.status, 0, same.out);
-  assert.match(same.out, /DEPLOY_GATE_SHA_OK a+/);
-  const newer = runShaStep({gitScript: `echo "${NEWER}\trefs/heads/main"`});
-  assert.equal(newer.status, 1);
-  assert.match(newer.out, /DEPLOY_GATE_STALE_SHA/);
-  const failing = runShaStep({gitScript: 'echo "fatal: unable to access" >&2; exit 128'});
-  assert.equal(failing.status, 1);
-  assert.match(failing.out, /DEPLOY_GATE_MAIN_UNREADABLE/);
-  const missingRef = runShaStep({gitScript: 'exit 2'});
-  assert.equal(missingRef.status, 1);
-  assert.match(missingRef.out, /DEPLOY_GATE_MAIN_UNREADABLE/);
-  const noGit = runShaStep({gitScript: null});
-  assert.equal(noGit.status, 1);
-  assert.match(noGit.out, /DEPLOY_GATE_NO_GIT/);
-  const emptySha = runShaStep({gitScript: `echo "${SHA}\trefs/heads/main"`, deploySha: ''});
-  assert.equal(emptySha.status, 1);
+test('after approval, at every attempt: the gate runs again on the VPS from the approved SHA before mp-deploy', async () => {
+  const ok = await postApproval();
+  assert.equal(ok.status, 0, ok.out);
+  assert.match(ok.out, /"result": "PASS"[\s\S]*DEPLOY_GATE_SHA_OK a+/);
+  // Re-run of the deploy job alone after the environment lost its protection (review NB-1): the step checks again.
+  const unprotected = await postApproval({routes: {...ROUTES, [ENV_PATH]: {status: 200, body: {name: ENVIRONMENT, can_admins_bypass: true, protection_rules: [], deployment_branch_policy: null}}}});
+  assert.equal(unprotected.status, 1);
+  assert.match(unprotected.out, /GATE_NO_REQUIRED_REVIEWERS[\s\S]*DEPLOY_GATE_FAIL/);
+  // An older run approved after a newer merge.
+  const stale = await postApproval({routes: {...ROUTES, [`repos/${REPOSITORY}/branches/main`]: {status: 200, body: {commit: {sha: NEWER}}}}});
+  assert.equal(stale.status, 1);
+  assert.match(stale.out, /GATE_SUPERSEDED[\s\S]*DEPLOY_GATE_FAIL/);
+  const missing = await postApproval({routes: {[`repos/${REPOSITORY}/branches/main`]: ROUTES[`repos/${REPOSITORY}/branches/main`]}});
+  assert.equal(missing.status, 1);
+  assert.match(missing.out, /GATE_ENVIRONMENT_MISSING/);
+});
+
+test('after approval: no node, no curl, an unreadable script or a script that does not say PASS stops the deploy', async () => {
+  for (const tool of ['node', 'curl', 'grep']) {
+    const result = await postApproval({tools: ['node', 'curl', 'grep', 'cat'].filter(item => item !== tool)});
+    assert.equal(result.status, 1, tool);
+    assert.match(result.out, new RegExp(`DEPLOY_GATE_MISSING_TOOL: ${tool}`));
+  }
+  const unreadable = await postApproval({curl: 'echo "curl: (6) Could not resolve host" >&2; exit 6'});
+  assert.equal(unreadable.status, 1);
+  assert.match(unreadable.out, /DEPLOY_GATE_SCRIPT_UNREADABLE/);
+  // A script that exits 0 without checking anything (the NB-2 failure mode) is not a PASS.
+  const silent = await postApproval({curl: 'while [ $# -gt 0 ]; do [ "$1" = -o ] && out="$2"; shift; done; echo "process.exitCode = 0;" > "$out"'});
+  assert.equal(silent.status, 1);
+  assert.match(silent.out, /DEPLOY_GATE_FAIL/);
+  const empty = await postApproval({deploySha: ''});
+  assert.equal(empty.status, 1);
+});
+
+test('the gate job step also requires an explicit PASS', () => {
+  const script = stepScript('Environment vps-production protetto e SHA ancora su main');
+  assert.match(script, /node scripts\/deploy-gate\.mjs > "\$RUNNER_TEMP\/deploy-gate\.json" \|\|/);
+  assert.match(script, /grep -q '"result": "PASS"' "\$RUNNER_TEMP\/deploy-gate\.json" \|\| \{ echo "DEPLOY_GATE_FAIL"; exit 1; \}/);
+  assert.match(script, /^set -euo pipefail/);
 });

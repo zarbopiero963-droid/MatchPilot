@@ -1,13 +1,19 @@
 // MP-DEPLOY-APPROVAL-01: the gate job of deploy-vps.yml, before the deploy job waits for the owner's approval. It reads
 // from GitHub (never from the workflow or the repository) that:
 //   - this run is a push to main of this repository;
-//   - the environment vps-production exists and requires the approval of exactly the owner (no team, no other user);
+//   - the environment vps-production exists and requires the approval of exactly the owner (no team, no other user),
+//     with prevent self-review off (the owner both merges and approves: with it on nobody could approve);
 //   - administrators cannot bypass that approval;
 //   - only the branch main can deploy to it (selected branches, a single branch policy "main");
 //   - the SHA of this run is still the tip of main (a newer merge has its own run to approve).
 // GitHub creates an environment named by a workflow when it does not exist, without any protection rule: that case, an
 // unreadable answer or any unexpected shape fails the gate, so the deploy job never starts (fail closed).
+// The workflow runs it twice: in the gate job before the approval, and on the VPS after it, at every attempt.
+// Its report lists the environment settings it read, as evidence of what GitHub returned.
 //   node scripts/deploy-gate.mjs   (GITHUB_REPOSITORY, GITHUB_SHA, GITHUB_REF, GITHUB_EVENT_NAME, GH_TOKEN)
+import {realpathSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
+
 export const REPOSITORY = 'zarbopiero963-droid/MatchPilot';
 export const ENVIRONMENT = 'vps-production';
 export const REVIEWERS = Object.freeze(['zarbopiero963-droid']);
@@ -35,6 +41,7 @@ export function gateProblems(facts) {
       if (entry?.type !== 'User' || !REVIEWERS.includes(login)) problems.push(`GATE_UNEXPECTED_REVIEWER: ${entry?.type} ${login ?? entry?.reviewer?.slug ?? '?'}`);
     }
     if (reviewers.length && !reviewers.some(entry => entry?.type === 'User' && REVIEWERS.includes(entry?.reviewer?.login))) problems.push('GATE_OWNER_NOT_REVIEWER');
+    if (reviewerRules.some(rule => rule.prevent_self_review !== false)) problems.push('GATE_SELF_REVIEW: prevent_self_review must be false, or the owner who merges cannot approve');
     if (environment.can_admins_bypass !== false) problems.push(`GATE_ADMIN_BYPASS: can_admins_bypass is ${environment.can_admins_bypass}`);
     const policy = environment.deployment_branch_policy;
     if (!policy || policy.custom_branch_policies !== true || policy.protected_branches !== false) problems.push(`GATE_BRANCH_POLICY: ${JSON.stringify(policy ?? null)}`);
@@ -68,6 +75,21 @@ export async function readFacts({repository, ref, event, sha, api}) {
   return facts;
 }
 
+// What the gate read, for the run log: never a token, only the settings that decide.
+export function observed(facts) {
+  const environment = facts.environment;
+  return {
+    environment: environment ? {
+      can_admins_bypass: environment.can_admins_bypass,
+      required_reviewers: (Array.isArray(environment.protection_rules) ? environment.protection_rules : []).filter(rule => rule?.type === 'required_reviewers')
+        .map(rule => ({prevent_self_review: rule.prevent_self_review, reviewers: (rule.reviewers ?? []).map(entry => `${entry?.type}:${entry?.reviewer?.login ?? entry?.reviewer?.slug ?? '?'}`)})),
+      deployment_branch_policy: environment.deployment_branch_policy ?? null,
+      branch_policies: (facts.branchPolicies ?? []).map(item => `${item?.type}:${item?.name}`),
+    } : null,
+    main: facts.mainSha,
+  };
+}
+
 export function githubApi({token, base = 'https://api.github.com'}) {
   return async path => {
     const response = await fetch(`${base}/${path}`, {headers: {
@@ -76,17 +98,20 @@ export function githubApi({token, base = 'https://api.github.com'}) {
   };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Entry point check on the resolved file URL: a path with spaces or a symlink must still run the checks.
+const entry = (() => { try { return pathToFileURL(realpathSync(process.argv[1])).href; } catch { return null; } })();
+if (entry === import.meta.url) {
   const env = process.env;
   let problems;
+  let facts = {};
   try {
     if (!env.GH_TOKEN) throw new Error('GH_TOKEN is not set');
-    const facts = await readFacts({repository: env.GITHUB_REPOSITORY, ref: env.GITHUB_REF, event: env.GITHUB_EVENT_NAME, sha: env.GITHUB_SHA,
+    facts = await readFacts({repository: env.GITHUB_REPOSITORY, ref: env.GITHUB_REF, event: env.GITHUB_EVENT_NAME, sha: env.GITHUB_SHA,
       api: githubApi({token: env.GH_TOKEN, base: env.GITHUB_API_URL || 'https://api.github.com'})});
     problems = gateProblems(facts);
   } catch (error) {
     problems = [`GATE_ERROR: ${String(error?.message ?? error).split('\n')[0]}`];
   }
-  console.log(JSON.stringify({gate: 'MP-DEPLOY-APPROVAL-01', environment: ENVIRONMENT, sha: env.GITHUB_SHA ?? null, result: problems.length ? 'FAIL' : 'PASS', problems}, null, 2));
+  console.log(JSON.stringify({gate: 'MP-DEPLOY-APPROVAL-01', environment: ENVIRONMENT, sha: env.GITHUB_SHA ?? null, result: problems.length ? 'FAIL' : 'PASS', problems, observed: observed(facts)}, null, 2));
   process.exitCode = problems.length ? 1 : 0;
 }
