@@ -1,0 +1,105 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "deploy-approval-01",
+  "commit_sha": "63f65c563bd68c3a841b0636a1605fb554620f0c",
+  "tree_sha": "add5adb62c7fed79a206573ea63dfbbd5155b7aa",
+  "supersedes": "CP-20261021T110626Z-agent-a-claude-code",
+  "pr": null,
+  "id": "CP-20261021T114858Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-21T11:48:58Z",
+  "activity": "MP-DEPLOY-GATE-FINAL-01: B-2, NB-5, NB-6, NB-7 fixed on the branch; structural YAML policy, hardened OIDC verifier, VPS package for Grok; separate review of this head pending; no PR while #178 is open",
+  "task": "DEPLOY-APPROVAL-01",
+  "issue": 97,
+  "requirements": [],
+  "changes": [
+    "scripts/workflow-policy.mjs (new): strict YAML 1.2 structural policy for every workflow; canonical deploy-vps.yml (B-2, NB-5)",
+    "test/governance-workflows.test.mjs: rewritten on the policy; review attacks RED->GREEN, 18 equivalent forms, 14 unreadable forms, 40 deploy changes, 4 CI changes",
+    "scripts/deploy-authz.mjs + test: malformed tokens refused, exact claims, crit/kid, 5-minute tokens, exclusive persistent consume under the deploy lock, CLI (NB-7)",
+    "docs/deploy-approval.md: evidence labels, RED/GREEN, mutation table, VPS package, phases A-E (NB-6); devDependency yaml 2.9.1; owner decision MP-DEPLOY-GATE-FINAL-01",
+    "history of the branch rebuilt so that CP-20261021T110626Z is added once (append-only); previous history kept on deploy-approval-01-history-2af874f"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/requirements-inventory.test.mjs test/governance-*.test.mjs test/ci-classify.test.mjs (104/104); check; governance validate/check; render-inventory --check; scan-closing; check-append-only; npm audit --omit=dev",
+      "result": "PASS",
+      "environment": "local container, Node 22",
+      "limits": [
+        "simulated GitHub API, VPS step and OIDC keys; no GitHub or VPS run",
+        "time is an upper bound"
+      ],
+      "commit": "63f65c563bd68c3a841b0636a1605fb554620f0c",
+      "time": "2026-10-21T11:48:58Z"
+    },
+    {
+      "command": "full suite node --test with local PostgreSQL 16 (381/382, 1 skip: PostgreSQL 17 required)",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16",
+      "limits": [
+        "postgres-independence needs PostgreSQL 17, covered by CI"
+      ],
+      "commit": "63f65c563bd68c3a841b0636a1605fb554620f0c",
+      "time": "2026-10-21T11:48:58Z"
+    },
+    {
+      "command": "RED on 2af874f for B-2 v1/v2/v3/v7 (fail 0) and on 9a7124a for B-1; GREEN here; NB-7 null header/payload threw on 2af874f, refused here; PyYAML cross-check; mutations 29/30 killed, 1 equivalent",
+      "result": "PASS",
+      "environment": "local container",
+      "limits": [
+        "time is an upper bound"
+      ],
+      "commit": "63f65c563bd68c3a841b0636a1605fb554620f0c",
+      "time": "2026-10-21T11:48:58Z"
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN",
+    "head_sha": "63f65c563bd68c3a841b0636a1605fb554620f0c"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "DAP-1",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "activation needs owner GOs and the GitHub/VPS phases B-D of docs/deploy-approval.md; GitHub approval behaviour, GITHUB_TOKEN read of the environment, OIDC on the self-hosted runner and the VPS runtime are NOT VERIFIED"
+    },
+    {
+      "id": "DAP-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "until phase B3 a re-run of a run older than the gate can still reach mp-deploy; only run 39412733270 (3dd833f) exists"
+    },
+    {
+      "id": "DAP-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "owner-decisions.json and work-registry.json are also changed by PR #178 and other branches: conflicts to resolve when brought to main"
+    }
+  ],
+  "owner_decisions": [
+    "MP-DEPLOY-GATE-FINAL-01",
+    "MP-DEPLOY-APPROVAL-02",
+    "MP-DEPLOY-APPROVAL-01",
+    "MP-OWNER-VPS-DEPLOY-01"
+  ],
+  "dependencies": [
+    "CP-20261021T110626Z-agent-a-claude-code"
+  ],
+  "state": "BLOCKED",
+  "next_action": "separate technical review of this head; owner GO to open the PR while #178 is open; then CI, Gate B, merge GO, phase C",
+  "resume_conditions": [
+    "review verdict on this head",
+    "owner decision on the PR order"
+  ]
+}

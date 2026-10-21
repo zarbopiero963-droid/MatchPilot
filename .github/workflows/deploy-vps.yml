@@ -1,4 +1,13 @@
 # .github/workflows/deploy-vps.yml — deploy di main sulla VPS privata (self-hosted runner)
+# MP-DEPLOY-APPROVAL-01: un merge su main non è un'autorizzazione al deploy.
+#   1. gate (GitHub-hosted, senza segreti): verifica che l'environment vps-production esista e richieda l'approvazione
+#      dell'owner, senza bypass degli admin e solo per main, e che lo SHA di questo run sia ancora la punta di main.
+#      Un environment assente o creato automaticamente senza protezioni ferma il deploy (fail closed).
+#   2. deploy (runner matchpilot-vps): parte solo dopo l'approvazione dell'owner su questo run, quindi su questo SHA;
+#      prima di mp-deploy ripete lo stesso controllo, a ogni tentativo (anche un rerun del solo deploy), con il codice
+#      dello SHA approvato.
+#   Solo questo workflow può usare il runner VPS: test/governance-workflows.test.mjs lo verifica su tutti i workflow.
+# Procedura, bootstrap e rollback: docs/deploy-approval.md.
 name: deploy-vps
 on:
   push:
@@ -9,17 +18,76 @@ concurrency:
   group: deploy-vps
   cancel-in-progress: false
 jobs:
+  gate:
+    name: Deploy gate
+    if: github.repository == 'zarbopiero963-droid/MatchPilot' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      deployments: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Environment vps-production protetto e SHA ancora su main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/deploy-gate.mjs > "$RUNNER_TEMP/deploy-gate.json" || { cat "$RUNNER_TEMP/deploy-gate.json"; echo "DEPLOY_GATE_FAIL"; exit 1; }
+          cat "$RUNNER_TEMP/deploy-gate.json"
+          grep -q '"result": "PASS"' "$RUNNER_TEMP/deploy-gate.json" || { echo "DEPLOY_GATE_FAIL"; exit 1; }
   deploy:
+    needs: gate
     if: github.repository == 'zarbopiero963-droid/MatchPilot' && github.ref == 'refs/heads/main'
     runs-on: [self-hosted, matchpilot-vps]
+    environment: vps-production
     timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      deployments: read
+      id-token: write
     steps:
+      # Dopo l'approvazione, a ogni tentativo (anche un rerun del solo deploy, che non riesegue il job gate): lo stesso
+      # controllo, scaricato dallo SHA approvato. Senza node o curl, senza lo script o senza PASS il deploy si ferma.
+      - name: Gate dopo l'approvazione
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          for tool in node curl grep cat; do command -v "$tool" >/dev/null || { echo "DEPLOY_GATE_MISSING_TOOL: $tool"; exit 1; }; done
+          gate="$RUNNER_TEMP/deploy-gate-$DEPLOY_SHA.mjs"
+          curl --fail --silent --show-error --proto '=https' --max-time 60 -o "$gate" "https://raw.githubusercontent.com/zarbopiero963-droid/MatchPilot/$DEPLOY_SHA/scripts/deploy-gate.mjs" || { echo "DEPLOY_GATE_SCRIPT_UNREADABLE"; exit 1; }
+          node "$gate" > "$RUNNER_TEMP/deploy-gate.json" || { cat "$RUNNER_TEMP/deploy-gate.json"; echo "DEPLOY_GATE_FAIL"; exit 1; }
+          cat "$RUNNER_TEMP/deploy-gate.json"
+          grep -q '"result": "PASS"' "$RUNNER_TEMP/deploy-gate.json" || { echo "DEPLOY_GATE_FAIL"; exit 1; }
+          echo "DEPLOY_GATE_SHA_OK $DEPLOY_SHA"
       # Nessun checkout: mp-deploy scarica da solo lo SHA e verifica che sia su main.
       # exit 75 = lock occupato (timer di 5 min in corso) -> riprova.
+      # A ogni tentativo un token OIDC nuovo (audience matchpilot-vps-deploy, valido pochi minuti), passato su stdin:
+      # mp-deploy v3 lo verifica e lo consuma una sola volta sotto il proprio lock (docs/deploy-approval.md, fase B).
+      # Senza token il deploy si ferma.
       - name: mp-deploy
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
         run: |
+          set -uo pipefail
+          # The request token goes to curl through a header file, never on a command line (visible in ps). The file is
+          # created exclusively (noclobber, mode 0600) in a private directory made for this step (mktemp -d: 0700,
+          # unique), removed on exit, error or signal; without a safe file the deploy stops. umask stays in the
+          # subshell: mp-deploy keeps its own.
+          dir=$(mktemp -d "$RUNNER_TEMP/oidc.XXXXXXXX") || { echo "DEPLOY_OIDC_UNAVAILABLE: no private directory"; exit 1; }
+          trap 'rm -rf "$dir"' EXIT
+          trap 'exit 1' INT TERM HUP
+          hdr="$dir/request-header"
+          (umask 077 && set -C && printf 'Authorization: bearer %s\n' "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" > "$hdr") || { echo "DEPLOY_OIDC_UNAVAILABLE: header file"; exit 1; }
           for i in 1 2 3 4 5 6 7 8 9 10; do
-            sudo -n /usr/local/sbin/mp-deploy "${{ github.sha }}" && exit 0
+            token=$(curl --fail --silent --show-error --proto '=https' --max-time 30 -H @"$hdr" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=matchpilot-vps-deploy" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{let v;try{v=JSON.parse(s).value}catch{}if(typeof v!=="string"||!v)process.exit(1);process.stdout.write(v)})') || { echo "DEPLOY_OIDC_UNAVAILABLE"; exit 1; }
+            printf '%s' "$token" | sudo -n /usr/local/sbin/mp-deploy "$DEPLOY_SHA" && exit 0
             rc=$?; [ "$rc" -eq 75 ] || exit "$rc"
             echo "deploy in corso, attendo 60s"; sleep 60
           done
