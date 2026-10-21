@@ -95,7 +95,7 @@
   "dependencies": [
     "CP-20261021T102638Z-agent-a-claude-code"
   ],
-  "state": "REVIEW",
+  "state": "BLOCKED",
   "next_action": "separate technical review of this head; then owner decisions: PR exception while #178 is open, phase B GO for Grok",
   "resume_conditions": [
     "review verdict on this head",
