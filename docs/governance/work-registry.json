@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 99,
+  "revision": 100,
   "tasks": [
     {
       "id": "R-01",
@@ -432,6 +432,22 @@
       "lease": null,
       "latest_checkpoint": "CP-20261020T105618Z-agent-a-claude-code",
       "pr_open": true
+    },
+    {
+      "id": "DEPLOY-APPROVAL-01",
+      "title": "Manual owner approval before every VPS deploy (MP-DEPLOY-APPROVAL-01)",
+      "issue": 97,
+      "pr": null,
+      "branch": "deploy-approval-01",
+      "kind": "implementation",
+      "state": "BLOCKED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261021T102638Z-agent-a-claude-code",
+      "pr_open": false
     }
   ]
 }
