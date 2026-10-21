@@ -10,15 +10,25 @@
 // own head, test included, and the VPS refuses a deploy without the proof of approval only after phase B
 // (docs/deploy-approval.md).
 import assert from 'node:assert/strict';
-import {readFileSync, readdirSync} from 'node:fs';
+import {cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, symlinkSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import test from 'node:test';
 import {parse} from 'yaml';
-import {CANONICAL_DEPLOY, DEPLOY_FILE, GATE_IF, parseWorkflow, workflowPolicyProblems} from '../scripts/workflow-policy.mjs';
+import {CANONICAL_DEPLOY, DEPLOY_FILE, GATE_IF, parseWorkflow, readWorkflowDirectory, workflowDirectoryProblems, workflowPolicyProblems} from '../scripts/workflow-policy.mjs';
 
 const DIR = new URL('../.github/workflows/', import.meta.url);
-const files = readdirSync(DIR).filter(file => /\.ya?ml$/.test(file)).sort();
+// The policy reads the directory itself (review B-3); the tests below add files to copies of it.
+const files = readWorkflowDirectory(DIR.pathname).entries.map(([file]) => file);
 const read = file => readFileSync(new URL(file, DIR), 'utf8');
 const entries = () => files.map(file => [file, read(file)]);
+// A copy of .github/workflows with extra entries, checked as the policy checks the real one.
+function directoryWith(extra) {
+  const dir = mkdtempSync(join(tmpdir(), 'workflows-'));
+  cpSync(DIR.pathname, dir, {recursive: true});
+  extra(dir);
+  return workflowDirectoryProblems(dir).join('\n');
+}
 const withFile = (name, text) => [...entries().filter(([file]) => file !== name), [name, text]];
 const problems = set => workflowPolicyProblems(set).join('\n');
 const deploy = read(DEPLOY_FILE);
@@ -26,6 +36,8 @@ const ci = read('ci.yml');
 
 test('workflows: the repository passes the structural policy, and deploy-vps.yml is the canonical workflow', () => {
   assert.ok(files.includes(DEPLOY_FILE) && files.includes('ci.yml'));
+  assert.deepEqual(workflowDirectoryProblems(DIR.pathname), []);
+  assert.deepEqual(readdirSync(DIR).sort(), files, 'every entry of the directory is a checked workflow');
   assert.deepEqual(workflowPolicyProblems(entries()), []);
   assert.deepEqual(parse(deploy, {version: '1.2'}), CANONICAL_DEPLOY);
   // Ordinary GitHub-hosted CI is not blocked.
@@ -88,6 +100,8 @@ test('YAML that cannot be read exactly is refused: duplicates, anchors, aliases,
     ['a merge key', `on: push\nbase: {runs-on: ubuntu-latest}\njobs:\n  x:\n    <<: {runs-on: ubuntu-latest}\n    steps:\n      - run: id\n`, /YAML_MERGE_KEY/],
     ['an explicit tag', `on: push\njobs:\n  x:\n    runs-on: !!str ubuntu-latest\n    steps:\n      - run: id\n`, /YAML_TAG/],
     ['a custom tag', `on: push\njobs:\n  x:\n    runs-on: !vps ubuntu-latest\n    steps:\n      - run: id\n`, /YAML_TAG/],
+    ['a tag on a mapping', `on: push\njobs: !!map\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: id}]\n`, /YAML_TAG: tag:yaml\.org,2002:map/],
+    ['an anchor on a sequence', `on: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: &s [{run: id}]\n`, /YAML_ANCHOR: &s/],
     ['two documents', `on: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: id}]\n---\njobs: {}\n`, /YAML_DOCUMENTS: 2/],
     ['a syntax error', `on: push\njobs:\n  x: [unclosed\n`, /YAML_ERROR/],
     ['a tab indentation', `on: push\njobs:\n\tx:\n\t\truns-on: ubuntu-latest\n`, /YAML_ERROR/],
@@ -114,7 +128,9 @@ test('deploy-vps.yml: skipping, reordering, removing or rewriting any part of th
     ['the PASS check of the post-approval gate removed', deploy.replace(`          grep -q '"result": "PASS"' "$RUNNER_TEMP/deploy-gate.json" || { echo "DEPLOY_GATE_FAIL"; exit 1; }\n          echo "DEPLOY_GATE_SHA_OK`, '          echo "DEPLOY_GATE_SHA_OK'), /the post-approval gate changed/],
     ['the gate script downloaded from main', deploy.replace('MatchPilot/$DEPLOY_SHA/scripts', 'MatchPilot/main/scripts'), /the post-approval gate changed/],
     ['DEPLOY_SHA changed', deploy.replace('DEPLOY_SHA: ${{ github.sha }}', 'DEPLOY_SHA: main'), /the post-approval gate changed/],
-    ['the mp-deploy call changed', deploy.replace('sudo -n /usr/local/sbin/mp-deploy "${{ github.sha }}"', 'sudo -n /usr/local/sbin/mp-deploy "$(cat /tmp/sha)"'), /the mp-deploy call changed/],
+    ['the mp-deploy call changed', deploy.replace('sudo -n /usr/local/sbin/mp-deploy "$DEPLOY_SHA"', 'sudo -n /usr/local/sbin/mp-deploy "$(cat /tmp/sha)"'), /the mp-deploy call changed/],
+    ['the OIDC token not sent', deploy.replace(`printf '%s' "$token" | sudo -n`, 'sudo -n'), /the mp-deploy call changed/],
+    ['another audience', deploy.replace('&audience=matchpilot-vps-deploy', '&audience=other'), /the mp-deploy call changed/],
     ['needs removed', deploy.replace('    needs: gate\n', ''), /does not need exactly the gate job/],
     ['needs widened', deploy.replace('    needs: gate\n', '    needs: [gate, other]\n'), /does not need exactly the gate job/],
     ['the deploy job condition made always()', deploy.replace(/(  deploy:\n    needs: gate\n    if: )/, '$1always() && '), /deploy: condition changed/],
@@ -122,7 +138,8 @@ test('deploy-vps.yml: skipping, reordering, removing or rewriting any part of th
     ['another environment', deploy.replace('environment: vps-production', 'environment: production'), /environment is not exactly vps-production/],
     ['an environment from an expression', deploy.replace('environment: vps-production', 'environment: ${{ inputs.env }}'), /environment is not exactly vps-production/],
     ['the environment as a mapping', deploy.replace('environment: vps-production', 'environment: {name: vps-production, url: "https://x"}'), /environment is not exactly vps-production/],
-    ['id-token permission added', deploy.replace(/(  deploy:[\s\S]*?permissions:\n)/, '$1      id-token: write\n'), /deploy: permissions changed/],
+    ['id-token permission removed', deploy.replace('      id-token: write\n', ''), /deploy: permissions changed/],
+    ['id-token on the gate job', deploy.replace('    permissions:\n      contents: read\n      actions: read\n      deployments: read\n    steps:\n      - uses:', '    permissions:\n      contents: read\n      actions: read\n      deployments: read\n      id-token: write\n    steps:\n      - uses:'), /gate: permissions changed/],
     ['a write permission on the deploy job', deploy.replace(/(  deploy:[\s\S]*?permissions:\n      contents: )read/, '$1write'), /deploy: permissions changed/],
     ['job-level env on deploy', deploy.replace('    timeout-minutes: 30\n', '    timeout-minutes: 30\n    env:\n      X: y\n'), /deploy: job-level env is not accepted/],
     ['a matrix on deploy', deploy.replace('    timeout-minutes: 30\n', '    timeout-minutes: 30\n    strategy:\n      matrix: {a: [1, 2]}\n'), /deploy: job-level strategy is not accepted/],
@@ -150,6 +167,44 @@ test('deploy-vps.yml: skipping, reordering, removing or rewriting any part of th
     if (text !== null) assert.notEqual(text, deploy, `${what}: the tampering applies`);
     const set = text === null ? entries().filter(([file]) => file !== DEPLOY_FILE) : withFile(DEPLOY_FILE, text);
     assert.match(problems(set), expected, what);
+  }
+});
+
+// ---- review 6316028694 (B-3): what is in the workflow directory but was not read; RED on 512ef32, GREEN here ----
+const SNEAK = `on:\n  push:\n    branches: [main]\njobs:\n  sneak:\n    runs-on: [self-hosted, matchpilot-vps]\n    steps:\n      - run: sudo -n /usr/local/sbin/mp-deploy x\n`;
+test('B-3: an upper-case extension, another name, a subdirectory, a symlink or a special entry in the workflow directory is refused', () => {
+  const cases = [
+    ['sneak.YML (the review attack)', dir => writeFileSync(join(dir, 'sneak.YML'), SNEAK), /sneak\.YML: not a lower-case \.yml\/\.yaml workflow name/],
+    ['sneak.Yaml', dir => writeFileSync(join(dir, 'sneak.Yaml'), SNEAK), /sneak\.Yaml: not a lower-case/],
+    ['Sneak.yml', dir => writeFileSync(join(dir, 'Sneak.yml'), SNEAK), /Sneak\.yml: not a lower-case/],
+    ['a dot file', dir => writeFileSync(join(dir, '.sneak.yml'), SNEAK), /\.sneak\.yml: not a lower-case/],
+    ['another extension', dir => writeFileSync(join(dir, 'sneak.yml.txt'), SNEAK), /sneak\.yml\.txt: not a lower-case/],
+    ['a subdirectory', dir => { mkdirSync(join(dir, 'sub')); writeFileSync(join(dir, 'sub', 'sneak.yml'), SNEAK); }, /sub: a subdirectory in the workflow directory is not accepted/],
+    ['a symlink to a VPS workflow outside', dir => { const outside = join(mkdtempSync(join(tmpdir(), 'outside-')), 'x.yml'); writeFileSync(outside, SNEAK); symlinkSync(outside, join(dir, 'linked.yml')); }, /linked\.yml: a symlink in the workflow directory is not accepted/],
+    ['a symlink to the deploy workflow', dir => symlinkSync(join(dir, DEPLOY_FILE), join(dir, 'again.yml')), /again\.yml: a symlink/],
+    ['a lower-case .yaml VPS workflow is read and refused', dir => writeFileSync(join(dir, 'sneak.yaml'), SNEAK), /sneak\.yaml: job sneak: runs-on/],
+  ];
+  for (const [what, extra, expected] of cases) assert.match(directoryWith(extra), expected, what);
+  assert.match(workflowDirectoryProblems(join(tmpdir(), 'no-such-workflows-dir')).join(), /workflow directory unreadable/);
+});
+
+test('NB-9/NB-10: keys differing only by case, events outside the allowed list and labels outside the hosted list are refused', () => {
+  const job = runsOn => `on: push\njobs:\n  x:\n    runs-on: ${runsOn}\n    steps:\n      - run: id\n`;
+  const cases = [
+    ['RUNS-ON beside runs-on', `on: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    RUNS-ON: [linux, x64]\n    steps:\n      - run: id\n`, /YAML_CASE_KEYS: runs-on and RUNS-ON/],
+    ['Jobs beside jobs', `on: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: id}]\nJobs:\n  y:\n    runs-on: ubuntu-latest\n`, /YAML_CASE_KEYS: jobs and Jobs/],
+    ['Workflow_Run', `on: Workflow_Run\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: id}]\n`, /event Workflow_Run is not in the allowed list/],
+    ['pull_request_target', `on: [pull_request_target]\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: id}]\n`, /event pull_request_target is not in the allowed list/],
+    ['an unknown event', `on: {deployment_status: {}}\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: id}]\n`, /event deployment_status is not in the allowed list/],
+    ['a custom label in the hosted form', job('ubuntu-vps'), /runs-on "ubuntu-vps" is not allowed/],
+    ['a custom windows label', job('windows-matchpilot'), /runs-on "windows-matchpilot" is not allowed/],
+    ['an anchor alone', `on: push\njobs:\n  x: &j\n    runs-on: ubuntu-latest\n    steps: [{run: id}]\n`, /YAML_ANCHOR: &j/],
+  ];
+  for (const [what, text, expected] of cases) assert.match(problems(withFile('x.yml', text)), expected, what);
+  // Ordinary hosted workflows stay accepted: the allowed events and labels.
+  for (const ok of [`on: [push, pull_request, schedule, workflow_dispatch, merge_group]\njobs:\n  x:\n    runs-on: macos-14\n    steps: [{run: id}]\n`,
+    `on:\n  schedule:\n    - cron: '0 3 * * *'\njobs:\n  x:\n    runs-on: ubuntu-24.04\n    steps: [{run: id}]\n`]) {
+    assert.deepEqual(workflowPolicyProblems([...entries(), ['ok.yml', ok]]), [], ok);
   }
 });
 

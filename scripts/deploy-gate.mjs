@@ -90,6 +90,11 @@ export function observed(facts) {
   };
 }
 
+// Review NB-11: an unexpected shape in the answer must not stop the report (the result is already FAIL for it).
+function safeObserved(facts) {
+  try { return observed(facts); } catch (error) { return {unreadable: String(error?.message ?? error).split('\n')[0]}; }
+}
+
 export function githubApi({token, base = 'https://api.github.com'}) {
   return async path => {
     const response = await fetch(`${base}/${path}`, {headers: {
@@ -112,6 +117,6 @@ if (entry === import.meta.url) {
   } catch (error) {
     problems = [`GATE_ERROR: ${String(error?.message ?? error).split('\n')[0]}`];
   }
-  console.log(JSON.stringify({gate: 'MP-DEPLOY-APPROVAL-01', environment: ENVIRONMENT, sha: env.GITHUB_SHA ?? null, result: problems.length ? 'FAIL' : 'PASS', problems, observed: observed(facts)}, null, 2));
+  console.log(JSON.stringify({gate: 'MP-DEPLOY-APPROVAL-01', environment: ENVIRONMENT, sha: env.GITHUB_SHA ?? null, result: problems.length ? 'FAIL' : 'PASS', problems, observed: safeObserved(facts)}, null, 2));
   process.exitCode = problems.length ? 1 : 0;
 }

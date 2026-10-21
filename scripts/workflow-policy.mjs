@@ -14,14 +14,25 @@
 //     `needs`, environment, permission, checkout, SHA or mp-deploy call, are all refused.
 // Changing the deploy workflow therefore needs this file changed in the same PR: both are owner-GO files.
 // A static check does not protect the VPS by itself: see docs/deploy-approval.md (VPS-side proof, phase B).
+import {lstatSync, readFileSync, readdirSync} from 'node:fs';
+import {join} from 'node:path';
 import {isScalar, parseAllDocuments, visit} from 'yaml';
 
 export const DEPLOY_FILE = 'deploy-vps.yml';
 export const DEPLOY_JOB = 'deploy';
 export const VPS_RUNS_ON = Object.freeze(['self-hosted', 'matchpilot-vps']);
-export const HOSTED = /^(ubuntu|windows|macos)-[0-9A-Za-z.-]+$/;
+// The GitHub-hosted labels a job may use, exactly (review NB-10: a pattern such as ubuntu-* would also match a custom
+// self-hosted label of that form). A new hosted image needs this list changed: an owner-GO file.
+export const HOSTED_LABELS = Object.freeze(['ubuntu-latest', 'ubuntu-24.04', 'ubuntu-22.04', 'ubuntu-24.04-arm', 'ubuntu-22.04-arm',
+  'windows-latest', 'windows-2025', 'windows-2022', 'macos-latest', 'macos-15', 'macos-14', 'macos-13']);
+// Workflow files GitHub runs are the .yml/.yaml files directly in .github/workflows; this check reads exactly those and
+// refuses anything else there (review B-3: a `sneak.YML` was not even read).
+export const WORKFLOW_NAME = /^[a-z0-9][a-z0-9._-]*\.ya?ml$/;
 export const PRIVATE = /self-hosted|matchpilot-vps|mp-deploy/i;
 export const INDIRECT_EVENTS = Object.freeze(['workflow_call', 'workflow_run', 'repository_dispatch']);
+// Events a workflow may use, exactly as written (review NB-9: an allow-list, so `Workflow_Run` or an unknown event is
+// refused rather than guessed). pull_request_target is not here: it runs fork code with this repository's rights.
+export const ALLOWED_EVENTS = Object.freeze(['push', 'pull_request', 'schedule', 'workflow_dispatch', 'merge_group']);
 export const GATE_IF = "github.repository == 'zarbopiero963-droid/MatchPilot' && github.ref == 'refs/heads/main'";
 
 // The only accepted deploy-vps.yml, as parsed.
@@ -80,7 +91,8 @@ export const CANONICAL_DEPLOY = Object.freeze({
       "permissions": {
         "contents": "read",
         "actions": "read",
-        "deployments": "read"
+        "deployments": "read",
+        "id-token": "write"
       },
       "steps": [
         {
@@ -93,7 +105,10 @@ export const CANONICAL_DEPLOY = Object.freeze({
         },
         {
           "name": "mp-deploy",
-          "run": "for i in 1 2 3 4 5 6 7 8 9 10; do\n  sudo -n /usr/local/sbin/mp-deploy \"${{ github.sha }}\" && exit 0\n  rc=$?; [ \"$rc\" -eq 75 ] || exit \"$rc\"\n  echo \"deploy in corso, attendo 60s\"; sleep 60\ndone\nexit 75\n"
+          "env": {
+            "DEPLOY_SHA": "${{ github.sha }}"
+          },
+          "run": "set -uo pipefail\nfor i in 1 2 3 4 5 6 7 8 9 10; do\n  token=$(curl --fail --silent --show-error --proto '=https' --max-time 30 -H \"Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN\" \"$ACTIONS_ID_TOKEN_REQUEST_URL&audience=matchpilot-vps-deploy\" | node -e 'let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>{let v;try{v=JSON.parse(s).value}catch{}if(typeof v!==\"string\"||!v)process.exit(1);process.stdout.write(v)})') || { echo \"DEPLOY_OIDC_UNAVAILABLE\"; exit 1; }\n  printf '%s' \"$token\" | sudo -n /usr/local/sbin/mp-deploy \"$DEPLOY_SHA\" && exit 0\n  rc=$?; [ \"$rc\" -eq 75 ] || exit \"$rc\"\n  echo \"deploy in corso, attendo 60s\"; sleep 60\ndone\nexit 75\n"
         }
       ]
     }
@@ -116,11 +131,24 @@ export function parseWorkflow(text) {
   for (const error of document.errors) problems.push(`YAML_ERROR: ${error.code} ${error.message.split('\n')[0]}`);
   for (const warning of document.warnings) problems.push(`YAML_WARNING: ${warning.code} ${warning.message.split('\n')[0]}`);
   // Explicit tags (`!!str`, `!custom`) are the only nodes that carry a tag after parsing: refused.
+  const nodeProblems = node => {
+    if (node.anchor) problems.push(`YAML_ANCHOR: &${node.anchor}`);
+    if (node.tag) problems.push(`YAML_TAG: ${node.tag}`);
+  };
   visit(document, {
     Alias() { problems.push('YAML_ALIAS: aliases are not accepted'); },
-    Node(_, node) {
-      if (node.anchor) problems.push(`YAML_ANCHOR: &${node.anchor}`);
-      if (node.tag) problems.push(`YAML_TAG: ${node.tag}`);
+    Node(_, node) { nodeProblems(node); },
+    // A Map visitor replaces Node for mappings in this API, so it repeats the node checks.
+    Map(_, map) {
+      nodeProblems(map);
+      // Keys that differ only by case (`RUNS-ON` beside `runs-on`): which one GitHub reads is not something to guess.
+      const seen = new Map();
+      for (const pair of map.items) {
+        if (!isScalar(pair.key) || typeof pair.key.value !== 'string') continue;
+        const folded = pair.key.value.toLowerCase();
+        if (seen.has(folded) && seen.get(folded) !== pair.key.value) problems.push(`YAML_CASE_KEYS: ${seen.get(folded)} and ${pair.key.value}`);
+        seen.set(folded, pair.key.value);
+      }
     },
     Pair(_, pair) {
       if (!isScalar(pair.key)) problems.push('YAML_COMPLEX_KEY: a key that is not a scalar');
@@ -200,7 +228,10 @@ export function workflowPolicyProblems(entries) {
     if (!plain(value)) { problems.push(`${name}: not a mapping`); continue; }
     const list = events(value.on);
     if (!list) problems.push(`${name}: unreadable trigger`);
-    else for (const event of INDIRECT_EVENTS) if (list.includes(event)) problems.push(`${name}: triggered by ${event}, an indirect way to start jobs`);
+    else for (const event of list) {
+      if (INDIRECT_EVENTS.includes(event)) problems.push(`${name}: triggered by ${event}, an indirect way to start jobs`);
+      else if (!ALLOWED_EVENTS.includes(event)) problems.push(`${name}: event ${event} is not in the allowed list (${ALLOWED_EVENTS.join(', ')})`);
+    }
     if (!plain(value.jobs) || Object.keys(value.jobs).length === 0) { problems.push(`${name}: no readable jobs`); continue; }
     for (const [job, body] of Object.entries(value.jobs)) {
       const where = `${name}: job ${job}`;
@@ -208,7 +239,7 @@ export function workflowPolicyProblems(entries) {
       if (body.uses !== undefined) problems.push(`${where}: calls the reusable workflow ${body.uses}`);
       const vpsJob = name === DEPLOY_FILE && job === DEPLOY_JOB;
       const runsOn = body['runs-on'];
-      if (vpsJob ? !same(runsOn, VPS_RUNS_ON) : !(typeof runsOn === 'string' && HOSTED.test(runsOn))) {
+      if (vpsJob ? !same(runsOn, VPS_RUNS_ON) : !(typeof runsOn === 'string' && HOSTED_LABELS.includes(runsOn))) {
         problems.push(`${where}: runs-on ${JSON.stringify(runsOn ?? null)} is not allowed (only ${DEPLOY_FILE} job ${DEPLOY_JOB} may use the VPS runner; every other job one literal GitHub-hosted label)`);
       }
     }
@@ -219,4 +250,30 @@ export function workflowPolicyProblems(entries) {
     } else problems.push(...deployProblems(value));
   }
   return problems;
+}
+
+// Reads .github/workflows itself (review B-3): every entry is looked at with lstat. A symlink, a subdirectory, a file
+// that is not regular or a name outside WORKFLOW_NAME (an upper-case extension, another extension, a dot file) is a
+// problem; the regular .yml/.yaml files are returned for workflowPolicyProblems.
+export function readWorkflowDirectory(dir) {
+  const problems = [];
+  const entries = [];
+  let names;
+  try { names = readdirSync(dir).sort(); } catch (error) { return {entries, problems: [`workflow directory unreadable: ${error.code ?? error.message}`]}; }
+  for (const name of names) {
+    let info;
+    try { info = lstatSync(join(dir, name)); } catch (error) { problems.push(`${name}: unreadable (${error.code ?? error.message})`); continue; }
+    if (info.isSymbolicLink()) problems.push(`${name}: a symlink in the workflow directory is not accepted`);
+    else if (info.isDirectory()) problems.push(`${name}: a subdirectory in the workflow directory is not accepted`);
+    else if (!info.isFile()) problems.push(`${name}: not a regular file`);
+    else if (!WORKFLOW_NAME.test(name)) problems.push(`${name}: not a lower-case .yml/.yaml workflow name`);
+    else entries.push([name, readFileSync(join(dir, name), 'utf8')]);
+  }
+  return {entries, problems};
+}
+
+// The whole check of a workflow directory: its entries, then every workflow.
+export function workflowDirectoryProblems(dir) {
+  const {entries, problems} = readWorkflowDirectory(dir);
+  return [...problems, ...workflowPolicyProblems(entries)];
 }

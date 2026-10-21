@@ -49,6 +49,7 @@ jobs:
       contents: read
       actions: read
       deployments: read
+      id-token: write
     steps:
       # Dopo l'approvazione, a ogni tentativo (anche un rerun del solo deploy, che non riesegue il job gate): lo stesso
       # controllo, scaricato dallo SHA approvato. Senza node o curl, senza lo script o senza PASS il deploy si ferma.
@@ -67,10 +68,17 @@ jobs:
           echo "DEPLOY_GATE_SHA_OK $DEPLOY_SHA"
       # Nessun checkout: mp-deploy scarica da solo lo SHA e verifica che sia su main.
       # exit 75 = lock occupato (timer di 5 min in corso) -> riprova.
+      # A ogni tentativo un token OIDC nuovo (audience matchpilot-vps-deploy, valido pochi minuti), passato su stdin:
+      # mp-deploy v3 lo verifica e lo consuma una sola volta sotto il proprio lock (docs/deploy-approval.md, fase B).
+      # Senza token il deploy si ferma.
       - name: mp-deploy
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
         run: |
+          set -uo pipefail
           for i in 1 2 3 4 5 6 7 8 9 10; do
-            sudo -n /usr/local/sbin/mp-deploy "${{ github.sha }}" && exit 0
+            token=$(curl --fail --silent --show-error --proto '=https' --max-time 30 -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=matchpilot-vps-deploy" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{let v;try{v=JSON.parse(s).value}catch{}if(typeof v!=="string"||!v)process.exit(1);process.stdout.write(v)})') || { echo "DEPLOY_OIDC_UNAVAILABLE"; exit 1; }
+            printf '%s' "$token" | sudo -n /usr/local/sbin/mp-deploy "$DEPLOY_SHA" && exit 0
             rc=$?; [ "$rc" -eq 75 ] || exit "$rc"
             echo "deploy in corso, attendo 60s"; sleep 60
           done

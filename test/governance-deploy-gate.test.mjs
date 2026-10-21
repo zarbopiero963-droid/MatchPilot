@@ -120,7 +120,8 @@ const cli = (base, extra = {}) => new Promise(resolve => {
     GITHUB_REPOSITORY: REPOSITORY, GITHUB_REF: 'refs/heads/main', GITHUB_EVENT_NAME: 'push', GITHUB_SHA: SHA, GH_TOKEN: 't0ken', ...extra}});
   let stdout = '';
   child.stdout.on('data', chunk => { stdout += chunk; });
-  child.on('close', status => resolve({status, report: JSON.parse(stdout)}));
+  // A run without a JSON report (a crash) resolves with report null: the assertions fail instead of the test hanging.
+  child.on('close', status => { let report = null; try { report = JSON.parse(stdout); } catch {} resolve({status, report}); });
 });
 
 const ROUTES = {
@@ -156,6 +157,22 @@ test('the report lists what GitHub returned, never the token', async () => {
       required_reviewers: [{prevent_self_review: false, reviewers: ['User:zarbopiero963-droid']}],
       deployment_branch_policy: {protected_branches: false, custom_branch_policies: true}, branch_policies: ['branch:main']}, main: SHA});
     assert.doesNotMatch(JSON.stringify(pass.report), /t0ken/);
+  });
+});
+
+test('NB-11: an answer of an unexpected shape still gives a full report, and FAIL', async () => {
+  const odd = {...ROUTES, [ENV_PATH]: {status: 200, body: protectedEnvironment({protection_rules: [{type: 'required_reviewers', prevent_self_review: false, reviewers: 'x'}]})}};
+  await withFakeGithub(odd, async base => {
+    const result = await cli(base);
+    assert.equal(result.status, 1);
+    assert.equal(result.report.result, 'FAIL');
+    assert.match(result.report.problems.join(), /GATE_NO_REQUIRED_REVIEWERS/);
+    assert.ok(result.report.observed, 'the report is written');
+  });
+  await withFakeGithub({...ROUTES, [`${ENV_PATH}/deployment-branch-policies?per_page=100`]: {status: 200, body: {branch_policies: {}}}}, async base => {
+    const result = await cli(base);
+    assert.equal(result.status, 1);
+    assert.equal(result.report.result, 'FAIL');
   });
 });
 
@@ -255,4 +272,45 @@ test('the gate job step also requires an explicit PASS', () => {
   assert.match(script, /node scripts\/deploy-gate\.mjs > "\$RUNNER_TEMP\/deploy-gate\.json" \|\|/);
   assert.match(script, /grep -q '"result": "PASS"' "\$RUNNER_TEMP\/deploy-gate\.json" \|\| \{ echo "DEPLOY_GATE_FAIL"; exit 1; \}/);
   assert.match(script, /^set -euo pipefail/);
+});
+
+// ---- the mp-deploy step on a simulated VPS: a fake OIDC endpoint (curl), a fake sudo/mp-deploy, the real node ----
+function mpDeployStep({oidc = 'ok', results = [0]} = {}) {
+  const dir = mkdtempSync(join(tmpdir(), 'deploy-step-'));
+  const bin = join(dir, 'bin');
+  execFileSync('mkdir', [bin]);
+  for (const tool of ['cat', 'sleep']) symlinkSync(execFileSync('bash', ['-c', `command -v ${tool}`], {encoding: 'utf8'}).trim(), join(bin, tool));
+  symlinkSync(process.execPath, join(bin, 'node'));
+  writeFileSync(join(bin, 'sleep'), '#!/bin/bash\nexit 0\n'); chmodSync(join(bin, 'sleep'), 0o755);
+  const log = join(dir, 'log');
+  writeFileSync(log, '');
+  // Each OIDC request returns a new token; the URL must carry the audience.
+  const curl = oidc === 'ok'
+    ? `n=$(( $(/bin/cat ${dir}/n 2>/dev/null || echo 0) + 1 )); echo $n > ${dir}/n; for a in "$@"; do case "$a" in *audience=matchpilot-vps-deploy) ok=1;; esac; done; [ "$ok" = 1 ] || exit 22; echo "{\\"value\\":\\"tok-$n\\"}"`
+    : oidc;
+  writeFileSync(join(bin, 'curl'), `#!/bin/bash\n${curl}\n`); chmodSync(join(bin, 'curl'), 0o755);
+  // sudo -n /usr/local/sbin/mp-deploy <sha>: records the argument and the token read on stdin, then exits as told.
+  writeFileSync(join(bin, 'sudo'), `#!/bin/bash\nk=$(( $(/bin/cat ${dir}/k 2>/dev/null || echo 0) + 1 )); echo $k > ${dir}/k\ntok=$(/bin/cat)\nprintf '%s token=%s\\n' "$*" "$tok" >> ${log}\nset -- ${results.join(' ')}\nshift $((k-1)); exit \${1:-0}\n`);
+  chmodSync(join(bin, 'sudo'), 0o755);
+  const result = spawnSync('/bin/bash', ['-e', '-c', stepScript('mp-deploy')], {encoding: 'utf8', env: {PATH: bin, DEPLOY_SHA: SHA,
+    ACTIONS_ID_TOKEN_REQUEST_URL: 'https://oidc.example/token?api-version=2.0', ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'request-token'}});
+  return {status: result.status, out: result.stdout + result.stderr, calls: readFileSync(log, 'utf8').trim().split('\n').filter(Boolean)};
+}
+
+test('mp-deploy step: each try sends a new OIDC token on stdin; without a token nothing is deployed', () => {
+  const once = mpDeployStep();
+  assert.equal(once.status, 0, once.out);
+  assert.deepEqual(once.calls, [`-n /usr/local/sbin/mp-deploy ${SHA} token=tok-1`]);
+  // Lock busy (75) twice, then deployed: three tries, three different tokens, same SHA.
+  const retried = mpDeployStep({results: [75, 75, 0]});
+  assert.equal(retried.status, 0, retried.out);
+  assert.deepEqual(retried.calls, [1, 2, 3].map(n => `-n /usr/local/sbin/mp-deploy ${SHA} token=tok-${n}`));
+  const refused = mpDeployStep({results: [3]});
+  assert.equal(refused.status, 3);
+  for (const [what, oidc] of [['endpoint down', 'exit 22'], ['no value', 'echo "{}"'], ['not JSON', 'echo nope'], ['empty value', 'echo "{\\"value\\":\\"\\"}"']]) {
+    const result = mpDeployStep({oidc});
+    assert.equal(result.status, 1, what);
+    assert.match(result.out, /DEPLOY_OIDC_UNAVAILABLE/, what);
+    assert.deepEqual(result.calls, [], `${what}: mp-deploy not called`);
+  }
 });

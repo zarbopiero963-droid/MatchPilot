@@ -50,6 +50,10 @@ test('NB-7: malformed tokens are refused, never thrown', () => {
     assert.equal(result.ok, false);
     assert.match(result.reasons.join(), /AUTHZ_MALFORMED_TOKEN/, String(bad).slice(0, 40));
   }
+  // A well-formed, correctly signed token over 16 KiB (review NB-12, mutation R14).
+  const huge = token({padding: 'x'.repeat(17000)});
+  assert.equal(huge.split('.').length, 3);
+  assert.match(check(huge).reasons.join(), /AUTHZ_MALFORMED_TOKEN/);
   for (const jwks of [null, {}, {keys: null}, {keys: [null, 1]}]) assert.match(check(token(), {jwks}).reasons.join(), /AUTHZ_UNKNOWN_KEY/);
   assert.match(check(token(), {now: 'x'}).reasons.join(), /AUTHZ_CLOCK/);
 });
@@ -144,13 +148,43 @@ test('anti-replay: consumption is exclusive and persistent; a busy lock records 
   assert.match(consume(join(dir, 'missing'), ['run:1:1']).reasons.join(), /AUTHZ_LEDGER: ENOENT/);
 });
 
+test('consume makes each record durable: the file and then the directory are fsynced, and a failed fsync refuses', async () => {
+  const fs = await import('node:fs');
+  const dir = mkdtempSync(join(tmpdir(), 'authz-fsync-'));
+  const calls = [];
+  const spy = {
+    openSync: (path, flags, mode) => { const fd = fs.openSync(path, flags, mode); calls.push(['open', path === dir ? 'dir' : 'file', flags, fd]); return fd; },
+    writeSync: (fd, data) => { calls.push(['write', fd]); return fs.writeSync(fd, data); },
+    fsyncSync: fd => { calls.push(['fsync', fd]); return fs.fsyncSync(fd); },
+    closeSync: fd => { calls.push(['close', fd]); return fs.closeSync(fd); },
+  };
+  assert.deepEqual(consume(dir, ['run:1:1', 'jti:a'], {fs: spy}), {ok: true, reasons: []});
+  const fds = calls.filter(([op]) => op === 'open').map(([, kind, flags, fd]) => [kind, flags, fd]);
+  assert.deepEqual(fds.map(([kind, flags]) => [kind, flags]), [['file', 'wx'], ['file', 'wx'], ['dir', 'r']]);
+  for (const [, , fd] of fds) {
+    const at = calls.findIndex(([op, x]) => op === 'fsync' && x === fd);
+    assert.ok(at > 0, `fd ${fd} fsynced`);
+    assert.ok(calls.findIndex(([op, x]) => op === 'close' && x === fd) > at, `fd ${fd} fsynced before close`);
+  }
+  // A failing fsync, of the record file or of the directory, refuses: the record is not known to be durable.
+  const failOn = target => {
+    let last = null;
+    return {...spy, openSync: (path, flags, mode) => { last = path === dir ? 'dir' : 'file'; return fs.openSync(path, flags, mode); },
+      fsyncSync: fd => { if (last === target) throw Object.assign(new Error('EIO'), {code: 'EIO'}); return fs.fsyncSync(fd); }};
+  };
+  assert.deepEqual(consume(dir, ['run:2:1'], {fs: failOn('file')}), {ok: false, reasons: ['AUTHZ_LEDGER: EIO']});
+  assert.deepEqual(consume(dir, ['run:3:1'], {fs: failOn('dir')}), {ok: false, reasons: ['AUTHZ_LEDGER: EIO']});
+  // The key whose record could not be made durable stays used.
+  assert.equal(ledgerHas(dir, 'run:2:1'), true);
+});
+
 // ---- the CLI, as mp-deploy v3 would call it: token on stdin ----
 const SCRIPT = new URL('../scripts/deploy-authz.mjs', import.meta.url).pathname;
 const cli = (mode, jwt, {dir, sha = SHA, jwksFile}) => new Promise(resolve => {
   const child = spawn(process.execPath, [SCRIPT, mode, '--sha', sha, '--jwks', jwksFile, '--ledger', dir]);
   let out = '';
   child.stdout.on('data', chunk => { out += chunk; });
-  child.on('close', status => resolve({status, report: JSON.parse(out)}));
+  child.on('close', status => { let report = null; try { report = JSON.parse(out); } catch {} resolve({status, report}); });
   child.stdin.end(jwt);
 });
 
@@ -175,6 +209,10 @@ test('CLI: verify has no side effect; consume records once, even when two proces
   const noJwks = await cli('verify', live({run_attempt: '9', jti: 'j9'}), {dir, jwksFile: join(dir, 'none.json')});
   assert.equal(noJwks.status, 1);
   assert.match(noJwks.report.reasons.join(), /AUTHZ_ERROR/);
+  // Review NB-12: a ledger path that does not exist is an error, not "never used".
+  const noLedger = await cli('verify', live({run_attempt: '8', jti: 'j8'}), {dir: join(dir, 'missing-ledger'), jwksFile});
+  assert.equal(noLedger.status, 1);
+  assert.match(noLedger.report.reasons.join(), /AUTHZ_ERROR: ENOENT|not a directory/);
   const badMode = await cli('deploy', live(), {dir, jwksFile});
   assert.equal(badMode.status, 1);
 });

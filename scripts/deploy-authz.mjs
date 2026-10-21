@@ -18,7 +18,7 @@
 // on the run's approvals from the GitHub API, approvalProblems) and that the environment was protected at that moment
 // (the gate job and the post-approval gate check it).
 import {createHash, createPublicKey, verify} from 'node:crypto';
-import {closeSync, fsyncSync, openSync, readFileSync, realpathSync, writeSync} from 'node:fs';
+import {closeSync, fsyncSync, openSync, readFileSync, realpathSync, statSync, writeSync} from 'node:fs';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 
@@ -121,17 +121,22 @@ export function ledgerHas(dir, key) {
 }
 // Consume under mp-deploy's deploy lock, just before deploying. All or nothing per key; the first key that exists
 // stops the consumption (the run attempt is recorded first, so a second token of the same attempt is refused).
-export function consume(dir, record, {now = Math.floor(Date.now() / 1000)} = {}) {
+// `fs` is injectable so that a test can see every open, write and fsync (review: fsync of the file and of the directory).
+const FS = {openSync, writeSync, fsyncSync, closeSync};
+export function consume(dir, record, {now = Math.floor(Date.now() / 1000), fs = FS} = {}) {
   if (!Array.isArray(record) || record.length === 0) return {ok: false, reasons: ['AUTHZ_NOTHING_TO_CONSUME']};
   for (const key of record) {
     let fd;
-    try { fd = openSync(entry(dir, key), 'wx', 0o600); }
+    try { fd = fs.openSync(entry(dir, key), 'wx', 0o600); }
     catch (error) { return {ok: false, reasons: [error.code === 'EEXIST' ? `AUTHZ_REPLAY: ${key} already used` : `AUTHZ_LEDGER: ${error.code ?? error.message}`]}; }
-    try { writeSync(fd, `${JSON.stringify({key, at: now})}\n`); fsyncSync(fd); } finally { closeSync(fd); }
+    // A record that cannot be made durable refuses the deploy (the key stays used: fail closed).
+    try { fs.writeSync(fd, `${JSON.stringify({key, at: now})}\n`); fs.fsyncSync(fd); }
+    catch (error) { return {ok: false, reasons: [`AUTHZ_LEDGER: ${error.code ?? error.message}`]}; }
+    finally { fs.closeSync(fd); }
   }
   let dirFd;
-  try { dirFd = openSync(dir, 'r'); fsyncSync(dirFd); } catch (error) { return {ok: false, reasons: [`AUTHZ_LEDGER: ${error.code ?? error.message}`]}; }
-  finally { if (dirFd !== undefined) closeSync(dirFd); }
+  try { dirFd = fs.openSync(dir, 'r'); fs.fsyncSync(dirFd); } catch (error) { return {ok: false, reasons: [`AUTHZ_LEDGER: ${error.code ?? error.message}`]}; }
+  finally { if (dirFd !== undefined) fs.closeSync(dirFd); }
   return {ok: true, reasons: []};
 }
 
@@ -156,6 +161,8 @@ if (entryUrl === import.meta.url) {
     if (mode !== 'verify' && mode !== 'consume') throw new Error('mode must be verify or consume');
     const ledger = arg('ledger');
     if (!ledger) throw new Error('--ledger is required');
+    // Review NB-12: a wrong ledger path must not read as "never used": the directory must exist.
+    if (!statSync(ledger).isDirectory()) throw new Error(`ledger ${ledger} is not a directory`);
     const jwks = JSON.parse(readFileSync(arg('jwks'), 'utf8'));
     const token = readFileSync(0, 'utf8').trim();
     const verified = verifyDeployToken({token, jwks, sha: arg('sha'), now: Math.floor(Date.now() / 1000), seen: key => ledgerHas(ledger, key)});
