@@ -192,38 +192,35 @@ test('CLI: from a path with spaces or through a symlink the checks still run', a
 });
 
 // ---- the post-approval step of the deploy job, extracted from the workflow and run on a simulated VPS: the step's own
-// bash, a fake curl that serves this repository's gate script for the approved SHA only, the real node, a fake API ----
+// bash, the gate script installed by root (here: a copy of this repository's in a temporary directory that stands for
+// /usr/local/libexec/mp-gate), the real node, a fake API ----
 const WORKFLOW = readFileSync(new URL('../.github/workflows/deploy-vps.yml', import.meta.url), 'utf8');
-function stepScript(name) {
+const INSTALLED = '/usr/local/libexec/mp-gate/';
+// The step's own bash; `installed` replaces the root-owned directory in the text only (the workflow itself is unchanged).
+function stepScript(name, installed = INSTALLED) {
   const lines = WORKFLOW.split('\n');
   const at = lines.findIndex(line => line.trim() === `- name: ${name}`);
   const runAt = lines.findIndex((line, i) => i > at && line.trim() === 'run: |');
   const body = [];
   for (const line of lines.slice(runAt + 1)) { if (!line.startsWith('          ')) break; body.push(line.slice(10)); }
-  return body.join('\n');
+  return body.join('\n').replaceAll(INSTALLED, installed);
 }
 const GATE_SOURCE = new URL('../scripts/deploy-gate.mjs', import.meta.url).pathname;
-function vps({curl = 'serve', tools = ['node', 'curl', 'grep', 'cat']} = {}) {
+function vps({gate = 'installed', tools = ['node', 'grep', 'cat']} = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'deploy-vps-'));
   const bin = join(dir, 'bin');
-  execFileSync('mkdir', [bin, join(dir, 'tmp')]);
+  const installed = join(dir, 'mp-gate');
+  execFileSync('mkdir', [bin, join(dir, 'tmp'), installed]);
   const real = tool => execFileSync('bash', ['-c', `command -v ${tool}`], {encoding: 'utf8'}).trim();
-  for (const tool of tools.filter(tool => tool !== 'curl')) symlinkSync(tool === 'node' ? process.execPath : real(tool), join(bin, tool));
-  if (tools.includes('curl')) {
-    const body = curl === 'serve'
-      ? `out=""; url=""; while [ $# -gt 0 ]; do case "$1" in -o) out="$2"; shift 2;; --proto|--max-time) shift 2;; -*) shift;; *) url="$1"; shift;; esac; done
-         [ "$url" = "https://raw.githubusercontent.com/zarbopiero963-droid/MatchPilot/$DEPLOY_SHA/scripts/deploy-gate.mjs" ] || { echo "curl: (22) 404" >&2; exit 22; }
-         /bin/cp "${GATE_SOURCE}" "$out"`
-      : curl;
-    writeFileSync(join(bin, 'curl'), `#!/bin/bash\n${body}\n`, {flag: 'wx'});
-    chmodSync(join(bin, 'curl'), 0o755);
-  }
-  return {bin, tmp: join(dir, 'tmp')};
+  for (const tool of tools) symlinkSync(tool === 'node' ? process.execPath : real(tool), join(bin, tool));
+  if (gate === 'installed') writeFileSync(join(installed, 'deploy-gate.mjs'), readFileSync(GATE_SOURCE), {flag: 'wx'});
+  else if (gate !== 'missing') writeFileSync(join(installed, 'deploy-gate.mjs'), gate, {flag: 'wx'});
+  return {bin, tmp: join(dir, 'tmp'), installed: `${installed}/`};
 }
 async function postApproval({routes = ROUTES, deploySha = SHA, ...options} = {}) {
   return withFakeGithub(routes, base => new Promise(resolve => {
-    const {bin, tmp} = vps(options);
-    const child = spawn('/bin/bash', ['-e', '-c', stepScript("Gate dopo l'approvazione")], {env: {PATH: bin, RUNNER_TEMP: tmp,
+    const {bin, tmp, installed} = vps(options);
+    const child = spawn('/bin/bash', ['-e', '-c', stepScript("Gate dopo l'approvazione", installed)], {env: {PATH: bin, RUNNER_TEMP: tmp,
       DEPLOY_SHA: deploySha, GH_TOKEN: 't0ken', GITHUB_API_URL: base, GITHUB_REPOSITORY: REPOSITORY, GITHUB_REF: 'refs/heads/main',
       GITHUB_EVENT_NAME: 'push', GITHUB_SHA: deploySha}});
     let out = '';
@@ -233,7 +230,7 @@ async function postApproval({routes = ROUTES, deploySha = SHA, ...options} = {})
   }));
 }
 
-test('after approval, at every attempt: the gate runs again on the VPS from the approved SHA before mp-deploy', async () => {
+test('after approval, at every attempt: the gate installed by root runs again on the VPS before mp-deploy', async () => {
   const ok = await postApproval();
   assert.equal(ok.status, 0, ok.out);
   assert.match(ok.out, /"result": "PASS"[\s\S]*DEPLOY_GATE_SHA_OK a+/);
@@ -250,21 +247,34 @@ test('after approval, at every attempt: the gate runs again on the VPS from the 
   assert.match(missing.out, /GATE_ENVIRONMENT_MISSING/);
 });
 
-test('after approval: no node, no curl, an unreadable script or a script that does not say PASS stops the deploy', async () => {
-  for (const tool of ['node', 'curl', 'grep']) {
-    const result = await postApproval({tools: ['node', 'curl', 'grep', 'cat'].filter(item => item !== tool)});
+test('after approval: no node, no installed gate or a gate that does not say PASS stops the deploy', async () => {
+  for (const tool of ['node', 'grep']) {
+    const result = await postApproval({tools: ['node', 'grep', 'cat'].filter(item => item !== tool)});
     assert.equal(result.status, 1, tool);
     assert.match(result.out, new RegExp(`DEPLOY_GATE_MISSING_TOOL: ${tool}`));
   }
-  const unreadable = await postApproval({curl: 'echo "curl: (6) Could not resolve host" >&2; exit 6'});
-  assert.equal(unreadable.status, 1);
-  assert.match(unreadable.out, /DEPLOY_GATE_SCRIPT_UNREADABLE/);
+  const missing = await postApproval({gate: 'missing'});
+  assert.equal(missing.status, 1);
+  assert.match(missing.out, /DEPLOY_GATE_NOT_INSTALLED/);
   // A script that exits 0 without checking anything (the NB-2 failure mode) is not a PASS.
-  const silent = await postApproval({curl: 'while [ $# -gt 0 ]; do [ "$1" = -o ] && out="$2"; shift; done; echo "process.exitCode = 0;" > "$out"'});
+  const silent = await postApproval({gate: 'process.exitCode = 0;\n'});
   assert.equal(silent.status, 1);
   assert.match(silent.out, /DEPLOY_GATE_FAIL/);
   const empty = await postApproval({deploySha: ''});
   assert.equal(empty.status, 1);
+});
+
+// PR #181 hardening (owner, point 4): the security code run on the VPS is the root-installed, pinned copy, never code
+// taken from the approved commit. RED on 5e79bfc: the steps downloaded scripts/deploy-gate.mjs from the commit.
+test('on the VPS the gate is the root-installed copy: nothing is downloaded from the approved commit', () => {
+  for (const name of ["Gate dopo l'approvazione", 'mp-deploy']) {
+    const script = stepScript(name);
+    assert.match(script, /^ *gate=\/usr\/local\/libexec\/mp-gate\/deploy-gate\.mjs$/m, name);
+    assert.doesNotMatch(script, /raw\.githubusercontent|scripts\/deploy-gate|\$RUNNER_TEMP\/deploy-gate-|\$DEPLOY_SHA\/|git (clone|fetch|checkout)/, name);
+  }
+  assert.match(stepScript("Gate dopo l'approvazione"), /\[ -f "\$gate" \] \|\| \{ echo "DEPLOY_GATE_NOT_INSTALLED"; exit 1; \}/);
+  const deployJob = WORKFLOW.slice(WORKFLOW.indexOf('\n  deploy:'));
+  assert.doesNotMatch(deployJob, /uses:|actions\/checkout/, 'the deploy job checks out nothing');
 });
 
 test('the gate job step also requires an explicit PASS', () => {
@@ -285,9 +295,10 @@ function mpDeployStepSetup({oidc = 'ok', results = [0], mktemp = 'real', preexis
   symlinkSync(process.execPath, join(bin, 'node'));
   writeFileSync(join(bin, 'sleep'), '#!/bin/bash\nexit 0\n', {flag: 'wx'}); chmodSync(join(bin, 'sleep'), 0o755);
   execFileSync('mkdir', [join(dir, 'tmp')]);
-  // The gate script the previous step downloaded from the approved SHA: here a stand-in that answers, call after call,
+  // The root-installed gate script: here a stand-in that answers, call after call,
   // PASS or a superseded SHA as told by `gate` (PASS once the list is used up), and counts its calls.
-  writeFileSync(join(dir, 'tmp', `deploy-gate-${SHA}.mjs`), `import {readFileSync, writeFileSync} from 'node:fs';
+  execFileSync('mkdir', [join(dir, 'mp-gate')]);
+  writeFileSync(join(dir, 'mp-gate', 'deploy-gate.mjs'), `import {readFileSync, writeFileSync} from 'node:fs';
 const file = ${JSON.stringify(join(dir, 'gate-calls'))};
 let n = 0; try { n = Number(readFileSync(file, 'utf8')); } catch {}
 writeFileSync(file, String(n + 1));
@@ -322,11 +333,11 @@ process.exitCode = problems.length ? 1 : 0;
   const report = () => ({calls: readFileSync(log, 'utf8').trim().split('\n').filter(Boolean), leftover: readdirSync(join(dir, 'tmp')).filter(name => !name.startsWith('deploy-gate')).sort(),
     gateCalls: (() => { try { return Number(readFileSync(join(dir, 'gate-calls'), 'utf8')); } catch { return 0; } })(),
     headers: (() => { try { return readFileSync(join(dir, 'headers'), 'utf8').trim().split('\n'); } catch { return []; } })()});
-  return {dir, env, report};
+  return {dir, env, report, installed: join(dir, 'mp-gate/')};
 }
 function mpDeployStep(options = {}) {
-  const {env, report} = mpDeployStepSetup(options);
-  const result = spawnSync('/bin/bash', ['-e', '-c', stepScript('mp-deploy')], {encoding: 'utf8', env});
+  const {env, report, installed} = mpDeployStepSetup(options);
+  const result = spawnSync('/bin/bash', ['-e', '-c', stepScript('mp-deploy', installed)], {encoding: 'utf8', env});
   return {status: result.status, out: result.stdout + result.stderr, ...report()};
 }
 
@@ -374,8 +385,8 @@ test('NB-21: the request header lives in a private directory, is never reused or
   assert.match(taken.out, /DEPLOY_OIDC_UNAVAILABLE: header file/);
   assert.deepEqual(taken.calls, []);
   // A signal while mp-deploy runs: the step ends and the private directory is removed.
-  const {dir, env, report} = mpDeployStepSetup({sudoDelay: 2});
-  const child = spawn('/bin/bash', ['-e', '-c', stepScript('mp-deploy')], {env});
+  const {dir, env, report, installed} = mpDeployStepSetup({sudoDelay: 2});
+  const child = spawn('/bin/bash', ['-e', '-c', stepScript('mp-deploy', installed)], {env});
   const deadline = Date.now() + 10000;
   while (!existsSync(join(dir, 'started')) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50));
   assert.equal(report().leftover.length, 1, 'the private directory exists while mp-deploy runs');

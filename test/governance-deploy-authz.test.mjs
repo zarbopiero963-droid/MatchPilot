@@ -260,6 +260,10 @@ test('the ref advertisement is read strictly: exactly one refs/heads/main, well-
     'data after the flush': `${advertisement()}0000`,
     'no service line': advertisement().slice(30),
     'HTML page': '<html>sign in</html>',
+    // Review NB-3: another service's advertisement, and a NUL (capabilities) on a ref line other than the first.
+    'git-receive-pack': advertisement().replace(pkt('# service=git-upload-pack\n'), pkt('# service=git-receive-pack\n')),
+    'NUL after the first line': advertisement(SHA, {lines: [`${SHA} HEAD\0caps\n`, `${SHA} refs/heads/main\0caps\n`]}),
+    'empty capability line only': advertisement(SHA, {lines: [`${SHA} HEAD\0caps\n`, '\n']}),
   };
   for (const [what, text] of Object.entries(bad)) assert.match(mainFromAdvertisement(text).problem ?? '', /TIP_REFS_MALFORMED/, what);
 });
@@ -310,6 +314,7 @@ test('the HTTP reads: 200 only, no redirect, bounded size; anything else throws 
     if (req.url === '/ok') { res.writeHead(200); res.end('fine'); }
     else if (req.url === '/redirect') { res.writeHead(302, {location: '/ok'}); res.end(); }
     else if (req.url === '/big') { res.writeHead(200); res.end(Buffer.alloc(HTTP_LIMIT + 1, 'x')); }
+    else if (req.url === '/no-content') { res.writeHead(204); res.end(); }
     else { res.writeHead(500); res.end('no'); }
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -319,15 +324,36 @@ test('the HTTP reads: 200 only, no redirect, bounded size; anything else throws 
     await assert.rejects(httpText(`${base}/redirect`));
     await assert.rejects(httpText(`${base}/big`), /too large/);
     await assert.rejects(httpText(`${base}/error`), /HTTP 500/);
+    // Review NB-3: 200 only, not any 2xx.
+    await assert.rejects(httpText(`${base}/no-content`), /HTTP 204/);
   } finally { server.close(); }
+  // A declared length over the limit is refused before the body is read (the body here would fail if read).
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(new ReadableStream({pull() { throw new Error('the body was read'); }}),
+    {status: 200, headers: {'content-length': String(HTTP_LIMIT + 1)}});
+  try { await assert.rejects(httpText('https://example.invalid/'), /answer too large/); }
+  finally { globalThis.fetch = realFetch; }
 });
 
 test('the run\'s approval is read from GitHub: the owner approving vps-production, or a refusal', async () => {
   const owner = [{state: 'approved', user: {login: 'zarbopiero963-droid'}, environments: [{name: 'vps-production'}]}];
-  assert.deepEqual(await runApprovalProblems('42', {fetchJson: async url => { assert.match(url, /\/actions\/runs\/42\/approvals$/); return owner; }}), []);
-  assert.deepEqual(await runApprovalProblems('42', {fetchJson: async () => []}), ['AUTHZ_NO_OWNER_APPROVAL']);
-  assert.match((await runApprovalProblems('42', {fetchJson: async () => { throw new Error('HTTP 403'); }})).join(), /AUTHZ_APPROVALS_UNREADABLE: HTTP 403/);
-  for (const id of ['', '0', '42; rm', null]) assert.match((await runApprovalProblems(id, {fetchJson: async () => owner})).join(), /AUTHZ_RUN_ID/);
+  const first = {runAttempt: '1'};
+  assert.deepEqual(await runApprovalProblems('42', {...first, fetchJson: async url => { assert.match(url, /\/actions\/runs\/42\/approvals$/); return owner; }}), []);
+  assert.deepEqual(await runApprovalProblems('42', {...first, fetchJson: async () => []}), ['AUTHZ_NO_OWNER_APPROVAL']);
+  assert.match((await runApprovalProblems('42', {...first, fetchJson: async () => { throw new Error('HTTP 403'); }})).join(), /AUTHZ_APPROVALS_UNREADABLE: HTTP 403/);
+  for (const id of ['', '0', '42; rm', null]) assert.match((await runApprovalProblems(id, {...first, fetchJson: async () => owner})).join(), /AUTHZ_RUN_ID/);
+});
+
+// PR #181 hardening (owner point 2, review NB-2): the review history of a run has no attempt and no time, so an
+// approval given to attempt 1 must not count for a re-run. RED on 5e79bfc: attempt 2 with attempt 1's approval passed.
+test('an approval is not carried over to a re-run: any attempt but the first is refused before reading GitHub', async () => {
+  const owner = [{state: 'approved', user: {login: 'zarbopiero963-droid'}, environments: [{name: 'vps-production'}]}];
+  let reads = 0;
+  const fetchJson = async () => { reads += 1; return owner; };
+  for (const runAttempt of ['2', '10', undefined, '', '01', 1]) {
+    assert.match((await runApprovalProblems('42', {runAttempt, fetchJson})).join(), /AUTHZ_RERUN_APPROVAL_UNBOUND/, String(runAttempt));
+  }
+  assert.equal(reads, 0);
 });
 
 test('CLI: main-tip and approved refuse a bad argument with exit 1; an unknown mode refuses', async () => {

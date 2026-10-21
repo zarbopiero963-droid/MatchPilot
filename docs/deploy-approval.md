@@ -133,7 +133,7 @@ In every case it still writes its structured report, listing the settings read, 
 
 **It runs twice:**
 - in the `gate` job, with an explicit `"result": "PASS"` required **[STATIC]**;
-- in the `deploy` job, after the approval and at every attempt. A re-run of the deploy job alone does not re-run `gate`. This second run downloads the script from the approved SHA and requires `PASS` before `mp-deploy` **[SIMULATION: the step's own bash, fake curl, real node, fake API]**.
+- in the `deploy` job, after the approval and at every attempt. A re-run of the deploy job alone does not re-run `gate`. This second run uses the copy installed and pinned by root on the VPS (`/usr/local/libexec/mp-gate/deploy-gate.mjs`, §8.2), never code from the approved commit, and requires `PASS` before `mp-deploy` **[SIMULATION: the step's own bash, real node, fake API]**. Until that copy is installed the step stops with `DEPLOY_GATE_NOT_INSTALLED`.
 
 The script runs its checks from a path with spaces or through a symlink **[SIMULATION]** (review NB-2).
 
@@ -357,7 +357,7 @@ PyYAML 6.0.1 gives the same jobs as `yaml` for the B-1/B-2 attack files. That is
 - 20 equivalent YAML forms;
 - 20 unreadable forms;
 - 8 key, event and label cases with 2 accepted ordinary workflows;
-- 44 changes to `deploy-vps.yml`;
+- 46 changes to `deploy-vps.yml`;
 - 4 changes to `ci.yml`.
 
 ### 5.2 Mutations
@@ -395,7 +395,7 @@ The full matrix, with ID, component, change, observed result, class and the test
 | 2 | YAML forms and encodings | strict UTF-8, one character policy by Unicode category, strict YAML 1.2 parser | [STATIC] 40 forms, 25 refused characters, B-4 and B-5 attacks + PyYAML, Ruby/libyaml | GitHub's own parser on NEL/LS/PS and a lone CR: NOT VERIFIED (refused anyway) |
 | 3 | paths to the VPS runner and `mp-deploy` | label allow-list, single exception, name scan; VPS guard; `mp-deploy` v3 | [STATIC]; guard [NOT VERIFIED] | B0, D7 |
 | 4 | triggers and reusable workflows | event allow-list, no job `uses` | [STATIC] | — |
-| 5 | canonical deploy workflow | exact structure + named invariants | [STATIC] 43 changes | — |
+| 5 | canonical deploy workflow | exact structure + named invariants | [STATIC] 46 changes | — |
 | 6 | full re-run, single-job re-run | environment on the job; post-approval gate | [STATIC]; [SIMULATION] | steps 9–10 |
 | 7 | runs before the gate | `mp-deploy` freeze, then OIDC enforcement | [SIMULATION] verifier | B1-old, D7 |
 | 8 | OIDC trust, replay, concurrency | verifier + ledger | [SIMULATION] incl. races, fsync | D6 |
@@ -444,8 +444,9 @@ Owner requirements:
 | Check | Read from | Refusal |
 |---|---|---|
 | repository, `push`, `refs/heads/main`, `GITHUB_WORKFLOW_REF` = `deploy-vps.yml@refs/heads/main`, job `deploy`, numeric run id/attempt, SHA, runner name | runner environment (GitHub does not let a workflow overwrite `GITHUB_*`) | `GUARD_REPOSITORY`, `GUARD_EVENT`, `GUARD_REF`, `GUARD_WORKFLOW`, `GUARD_JOB`, … (no GitHub read at all) |
-| the run: id, attempt, `push`, branch `main`, head SHA, path `.github/workflows/deploy-vps.yml`, repository | `GET /actions/runs/{id}` | `GUARD_RUN_MISMATCH` (also catches a run id pointing at another, approved run) |
-| this attempt has exactly one job `deploy`, assigned to this runner | `GET /actions/runs/{id}/attempts/{n}/jobs` | `GUARD_JOB_NOT_ASSIGNED_HERE` |
+| first attempt only: GitHub's review history of a run (`GET …/approvals`) carries no attempt and no time, so an approval cannot be tied to a re-run | runner environment | `GUARD_RERUN_APPROVAL_UNBOUND` (no GitHub read) |
+| the run: id, attempt, `push`, branch `main`, head SHA, path `.github/workflows/deploy-vps.yml`, repository, **in progress and without a conclusion** | `GET /actions/runs/{id}` | `GUARD_RUN_MISMATCH` (also catches a run id pointing at another, approved run) |
+| this attempt has exactly one job `deploy`, assigned to this runner, **`in_progress` and without a conclusion** (not completed, cancelled, queued or waiting) | `GET /actions/runs/{id}/attempts/{n}/jobs` | `GUARD_JOB_NOT_ASSIGNED_HERE`, `GUARD_JOB_NOT_ACTIVE` |
 | `deploy-vps.yml` at that SHA is byte for byte the pinned file: its git blob SHA equals `workflow_blob_sha` in the root-owned config | `GET /contents/.github/workflows/deploy-vps.yml?ref=<sha>` | `GUARD_WORKFLOW_NOT_PINNED` |
 | the owner approved `vps-production` for this run, and nothing of it still waits | `GET …/approvals`, `GET …/pending_deployments` | `GUARD_NO_OWNER_APPROVAL`, `GUARD_DEPLOYMENT_STILL_WAITING` |
 | the SHA is the tip of `main` for both sources (§8.4) | git ref advertisement and `GET /branches/main` | `TIP_STALE`, `TIP_UNVERIFIABLE`, `TIP_REFS_MALFORMED` |
@@ -453,20 +454,26 @@ Owner requirements:
 **Why the hash alone is not enough.**
 - **Hash pin:** stops a changed workflow, even one that was approved.
 - **Approval:** stops an unchanged workflow started without the owner's approval. Removing `environment` would need a changed file, but the approval check refuses even if a pin were wrong.
-- **Run, job and runner checks:** stop a job that points at another, approved run.
+- **Run, job and runner checks:** stop a job that points at another, approved run, or at a job of this run that is already over (review NB-1).
+- **First attempt only:** stops an approval given to an earlier attempt from counting for a re-run (review NB-2).
 - **Anti-stale:** stops an approval of an older run.
 - **The guard runs before every job on that runner,** whatever starts it: another workflow, a branch, a fork, `workflow_dispatch` or a re-run.
-- **The `deploy` job also runs the gate script from the approved SHA.** That is code of the commit the owner approved, the same commit `mp-deploy` then deploys.
+- **No security code from the commit runs on the VPS** (owner hardening point 4, review NB-5). The `deploy` job runs only:
+  - the inline bash of the pinned `deploy-vps.yml`;
+  - the gate script installed by root, `/usr/local/libexec/mp-gate/deploy-gate.mjs`, after the approval and before every retry;
+  - `sudo mp-deploy`, root-owned.
+
+  The job checks out nothing and downloads no script. The application code of the approved commit is fetched and built by `mp-deploy` itself (the release being deployed), not by the job.
 
 **Install (Grok, separate owner GO):**
-- copy `scripts/deploy-authz.mjs` and `scripts/runner-job-guard.mjs` at the merged SHA into one root-owned directory, for example `/usr/local/libexec/mp-gate/` (0755 root:root, files 0644). The guard imports `./deploy-authz.mjs`;
+- copy `scripts/deploy-authz.mjs`, `scripts/runner-job-guard.mjs` and `scripts/deploy-gate.mjs` at the merged SHA into `/usr/local/libexec/mp-gate/` (0755 root:root, files 0644, SHA-256 recorded in the infra repository). The guard imports `./deploy-authz.mjs`; the workflow runs `deploy-gate.mjs` from there;
 - write the config `/etc/mp-deploy/runner-guard.json`, root:root 0644: `{"workflow_blob_sha": "<git hash-object .github/workflows/deploy-vps.yml at the merged SHA>"}`. The value is the same as the `sha` the contents API returns;
 - extend the existing hook, referenced from `/opt/actions-runner/.env`, which is root:ghrunner 0640. Keep its current checks, then add `node /usr/local/libexec/mp-gate/runner-job-guard.mjs /etc/mp-deploy/runner-guard.json`, logging its JSON line to the journal (`logger -t mp-runner-guard`);
 - any later change to `deploy-vps.yml` needs a new pin by root, which needs an owner GO.
 
 ### 8.3 Anti-stale in the workflow (`deploy-vps.yml`, step `mp-deploy`)
 
-**Before every retry** after a busy lock (exit 75), the step runs again the gate script it downloaded from the approved SHA. A merge on `main` during the wait therefore stops the run with `GATE_SUPERSEDED` before another token is requested **[SIMULATION; RED on `e127c26`: the step retried with a new token]**. Exit codes other than 75, including `mp-deploy` v3.1's 79, are not retried.
+**Before every retry** after a busy lock (exit 75), the step runs again the root-installed gate script. A merge on `main` during the wait therefore stops the run with `GATE_SUPERSEDED` before another token is requested **[SIMULATION; RED on `e127c26`: the step retried with a new token]**. Exit codes other than 75, including `mp-deploy` v3.1's 79, are not retried.
 
 **A superseded run** writes on its own page, in the step summary: "Run obsoleto: non approvarlo", the SHA of this run, and the tip of `main` to approve instead. It approves nothing and never deploys another SHA.
 
@@ -478,7 +485,7 @@ New verifier commands:
   - `GET /branches/main`.
 
   Each read has a 10 s timeout, a 1 MiB limit, no redirect and must answer 200. The two sources must agree with each other and with `<sha>`.
-- `deploy-authz.mjs approved --run-id <id>` checks the owner's approval of that run.
+- `deploy-authz.mjs approved --run-id <id> --run-attempt <n>` checks the owner's approval of that run, for attempt 1 only (`AUTHZ_RERUN_APPROVAL_UNBOUND` otherwise).
 
 **Order in v3.1:**
 1. stdin;
@@ -487,7 +494,7 @@ New verifier commands:
 4. `verify` (77);
 5. lock (75, nothing consumed);
 6. `consume`;
-7. `approved --run-id <run_id of the token>` (77);
+7. `approved --run-id <run_id> --run-attempt <run_attempt>` of the token (77);
 8. `main-tip` (79);
 9. fetch and build **`<sha>` only, never a substitute**;
 10. `main-tip` again (79), just before the atomic switch of `current`;
@@ -525,6 +532,7 @@ Defenses:
 | tip and approval | strict ref advertisement (14 malformed forms); agree, stale, three merges; a source down or malformed, disagreement; HTTP 200 only, no redirect, size limit (local server); run approval read and refusals; CLI arguments | [SIMULATION] `test/governance-deploy-authz.test.mjs` |
 | workflow | retry after a busy lock with `main` moved: stopped before a second token; two busy locks with `main` unchanged: two checks, three tries; 79 not retried; the step summary of a superseded run | [SIMULATION] `test/governance-deploy-gate.test.mjs`, RED on `e127c26` |
 | canonical | `deploy-vps.yml` equals `CANONICAL_DEPLOY` (regenerated from the file) | [STATIC] `test/governance-workflows.test.mjs` |
+| hardening (owner, after review 6322314877) | job completed, cancelled, queued, waiting or with a conclusion, and run over, all refused (NB-1); re-runs refused by the guard and by `approved` before any read (NB-2); the VPS steps use only the root-installed gate, nothing downloaded or checked out (NB-5); 204, a declared oversize answer, `git-receive-pack`, a NUL on a later ref line, a job record of another attempt, a workflow path that is not a file (NB-3) | [SIMULATION]/[STATIC]; RED on `5e79bfc` for the guard, `approved` and the VPS steps |
 
 **Not verified until S3–S5 (owner GOs):**
 - the guard on the real runner, in particular that this attempt's `deploy` job already shows this runner's name when the hook runs. If GitHub reports it later, the guard refuses (fail closed) and the check is adjusted in a follow-up;
@@ -532,7 +540,29 @@ Defenses:
 - the real OIDC token;
 - `mp-deploy` v3.1.
 
-### 8.7 Owner actions
+### 8.7 Operational limits (review NB-4)
+
+**API rate limit.**
+- The guard and `mp-deploy` v3.1 read GitHub without a token: 60 requests per hour per IP address **[NOT VERIFIED: GitHub documentation]**.
+- The guard makes 6 REST reads per job (run, jobs, contents, approvals, pending deployments, branch) plus one read of the git ref advertisement on `github.com`. `mp-deploy` v3.1 makes 3 per deploy (approvals and the branch twice).
+- About 9 per deploy, so a few deploys an hour stay far below the limit. When the limit is exceeded, GitHub answers 403 and the deploy is refused (fail closed): wait for the next hour.
+- A shared outbound IP (other software on the VPS calling the API) counts against the same limit. Grok checks this in S3.
+
+**`GITHUB_*` and `RUNNER_NAME` in the hook.** The guard needs these from the runner's environment when the hook runs:
+- `GITHUB_REPOSITORY`, `GITHUB_EVENT_NAME`, `GITHUB_REF`, `GITHUB_WORKFLOW_REF`, `GITHUB_JOB`;
+- `GITHUB_RUN_ID`, `GITHUB_RUN_ATTEMPT`, `GITHUB_SHA`;
+- `RUNNER_NAME`.
+
+Two points are **[NOT VERIFIED]**: that all of them are present in the hook's environment, and that a workflow's `env:` cannot overwrite them there. Any missing one refuses the job. **S3 check:** a hook in log-only mode prints the names (not the values of anything secret) for one real run, before the guard is enforced.
+
+**Runner assignment.** The guard requires this attempt's `deploy` job to be `in_progress`, without a conclusion, with `runner_name` equal to this runner when the hook runs **[NOT VERIFIED]**. If GitHub sets these later, every deploy is refused (fail closed). S3/S4 then show it, and the check is adjusted with an owner GO, never relaxed silently.
+
+**Re-runs.**
+- A re-run is refused (`GUARD_RERUN_APPROVAL_UNBOUND`), because no GitHub record ties an approval to an attempt.
+- A deploy that failed is redeployed by a new run, that is a new commit on `main` approved by the owner.
+- Lifting this needs GitHub evidence, gathered in S4, that every attempt requires its own approval and that this can be read back. That is a concrete blocker for re-runs, not for first attempts.
+
+### 8.8 Owner actions
 
 - **None is needed to merge this PR.** Merging deploys nothing: FREEZE refuses any new SHA, and the run of the merge commit waits for an approval. Do not approve it.
 - **Before enforcement (S5)**, these need separate GOs:

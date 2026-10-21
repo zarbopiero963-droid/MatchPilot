@@ -136,6 +136,37 @@ test('the job must be this run\'s deploy job assigned to this runner; the run mu
   }
 });
 
+// PR #181 hardening (owner point 1, review NB-1): a job that is concluded, cancelled or not active, or a run that is
+// over, is not the job being started. RED on 5e79bfc: a completed job of the same run was ALLOWED.
+test('a concluded, cancelled, queued or waiting job, or a run that is over, is refused', async () => {
+  const deployJob = extra => [{name: JOB, run_attempt: 1, runner_name: 'matchpilot-vps', status: 'in_progress', ...extra}];
+  for (const extra of [{status: 'completed', conclusion: 'success'}, {status: 'completed', conclusion: 'cancelled'},
+    {status: 'queued'}, {status: 'waiting'}, {status: 'in_progress', conclusion: 'failure'}, {status: undefined}]) {
+    const result = await guard({jobs: deployJob(extra)});
+    assert.equal(result.result, 'REFUSE', JSON.stringify(extra));
+    assert.match(result.text, /GUARD_JOB_NOT_ACTIVE/);
+  }
+  for (const run of [{status: 'completed', conclusion: 'success'}, {status: 'completed', conclusion: 'cancelled'}, {status: 'queued'}, {conclusion: 'failure'}]) {
+    const result = await guard({run});
+    assert.equal(result.result, 'REFUSE', JSON.stringify(run));
+    assert.match(result.text, /GUARD_RUN_MISMATCH/);
+  }
+  // Review NB-3 (redundant checks, now tested): a job record of another attempt, a workflow path that is not a file.
+  assert.match((await guard({jobs: deployJob({run_attempt: 2})})).text, /GUARD_JOB_NOT_ASSIGNED_HERE/);
+  assert.match((await guard({overrides: {[`${GITHUB_API}/contents/${WORKFLOW_PATH}?ref=${C}`]: {type: 'dir', path: WORKFLOW_PATH, sha: PIN}}})).text, /GUARD_WORKFLOW_NOT_PINNED/);
+});
+
+// PR #181 hardening (owner point 2, review NB-2): GitHub's review history has no attempt and no time; an approval of
+// attempt 1 must not let a re-run start. RED on 5e79bfc: attempt 2 with attempt 1's approval was ALLOWED.
+test('a re-run is refused before any GitHub read: an approval cannot be tied to its attempt', async () => {
+  for (const attempt of ['2', '3', '17']) {
+    const result = await guard({run: {run_attempt: Number(attempt)}}, {GITHUB_RUN_ATTEMPT: attempt});
+    assert.equal(result.result, 'REFUSE');
+    assert.match(result.text, new RegExp(`GUARD_RERUN_APPROVAL_UNBOUND: attempt ${attempt}`));
+    assert.deepEqual(result.reads, []);
+  }
+});
+
 test('anti-stale: after merges A, B, C only C may start; an approval of A or B is refused', async () => {
   for (const sha of [A, B]) {
     const result = await guard({sha, tip: C}, {GITHUB_SHA: sha});

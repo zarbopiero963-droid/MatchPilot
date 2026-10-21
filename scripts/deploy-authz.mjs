@@ -171,7 +171,7 @@ export async function httpText(url, {accept = 'application/vnd.github+json'} = {
   if (declared > HTTP_LIMIT) throw new Error('answer too large');
   const body = Buffer.from(await response.arrayBuffer());
   if (body.length > HTTP_LIMIT) throw new Error('answer too large');
-  return body.toString('latin1');
+  return body.toString('utf8');
 }
 export const httpJson = async url => JSON.parse(await httpText(url));
 
@@ -236,9 +236,12 @@ export function tipProblems({tip, problems}, sha) {
 }
 
 // The owner's approval of this run, read from GitHub (public read): only the owner's account can approve, since the
-// agents' GitHub App has no Deployments permission (#179 6321726326). Refuses on any read error.
-export async function runApprovalProblems(runId, {fetchJson = httpJson} = {}) {
+// agents' GitHub App has no Deployments permission (#179 6321726326). Refuses on any read error. GitHub's review
+// history of a run has no attempt and no time, so an approval proves something only for the first attempt: a re-run
+// is refused (fail closed; PR #181, owner point 2).
+export async function runApprovalProblems(runId, {runAttempt, fetchJson = httpJson} = {}) {
   if (typeof runId !== 'string' || !DIGITS.test(runId)) return [`AUTHZ_RUN_ID: ${JSON.stringify(runId)}`];
+  if (runAttempt !== '1') return [`AUTHZ_RERUN_APPROVAL_UNBOUND: attempt ${JSON.stringify(runAttempt)}`];
   try { return approvalProblems(await fetchJson(`${GITHUB_API}/actions/runs/${runId}/approvals`)); }
   catch (error) { return [`AUTHZ_APPROVALS_UNREADABLE: ${String(error?.message ?? error).split('\n')[0]}`]; }
 }
@@ -247,7 +250,7 @@ export async function runApprovalProblems(runId, {fetchJson = httpJson} = {}) {
 //   node deploy-authz.mjs verify   --sha <sha> --jwks <file> --ledger <dir>   exit 0 = valid and unused
 //   node deploy-authz.mjs consume  --sha <sha> --jwks <file> --ledger <dir>   exit 0 = valid, unused, now recorded
 //   node deploy-authz.mjs main-tip --sha <sha>        exit 0 = <sha> is the tip of main for both sources (anti-stale)
-//   node deploy-authz.mjs approved --run-id <id>      exit 0 = the owner approved vps-production for that run
+//   node deploy-authz.mjs approved --run-id <id> --run-attempt <n>   exit 0 = attempt 1, approved by the owner
 // Any other outcome, including an exception, exits 1 with the reasons on stdout as JSON.
 const entryUrl = (() => { try { return pathToFileURL(realpathSync(process.argv[1])).href; } catch { return null; } })();
 if (entryUrl === import.meta.url) {
@@ -260,7 +263,7 @@ if (entryUrl === import.meta.url) {
       const reasons = tipProblems(tip, arg('sha'));
       result = {ok: reasons.length === 0, reasons, tip: tip.tip};
     } else if (mode === 'approved') {
-      const reasons = await runApprovalProblems(arg('run-id'));
+      const reasons = await runApprovalProblems(arg('run-id'), {runAttempt: arg('run-attempt')});
       result = {ok: reasons.length === 0, reasons};
     } else {
       if (mode !== 'verify' && mode !== 'consume') throw new Error('mode must be verify, consume, main-tip or approved');
