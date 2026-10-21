@@ -35,7 +35,7 @@ export function makeV3(overrides = {}) {
   return makeCheckpoint({
     schema_version: 'mp-checkpoint-v3',
     agent: {id: 'agent-a', role: 'Development Agent', session: 'session-a'},
-    mandate: {id: 'MANDATE-1', source: 'owner message in the session'},
+    mandate: {id: 'MP-OWNER-R01-AUTH-20261018', source: 'owner message in the session'},
     base_sha: SHA_B,
     worktree: {clean: true},
     progress: {done: ['schema'], in_progress: [], not_started: ['docs']},

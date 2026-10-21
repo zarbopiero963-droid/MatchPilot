@@ -53,6 +53,8 @@ export const CI_CONCLUSIONS = ['SUCCESS', 'FAILURE', 'PENDING', 'NOT_RUN'];
 export const ACTIVE_STATES = new Set(['RUNNING', 'REVIEW', 'BLOCKED']);
 
 const SHA = /^[0-9a-f]{40}$/;
+// Owner decision ids as written in mandates (MP-..., OWN-...), e.g. MP-PR183-HARDENING-01.
+const DECISION_ID = /\b(?:MP|OWN)-[A-Z0-9]+(?:-[A-Z0-9]+)*\b/g;
 const text = value => typeof value === 'string' && value.trim() !== '';
 const ID = /^CP-(\d{8}T\d{6}Z)-[a-z0-9][a-z0-9-]*$/;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
@@ -181,6 +183,13 @@ export function validateCheckpoint(cp, {decisionIds, requirementIds, taskIds, no
     if (!finding.id || !['BLOCKING', 'NON_BLOCKING'].includes(finding.severity) || !['OPEN', 'RESOLVED', 'TRACKED'].includes(finding.status)) errors.push(`${at} malformed finding ${finding.id}`);
   }
   if (decisionIds) for (const id of cp.owner_decisions || []) if (!decisionIds.has(id)) errors.push(`${at} unknown owner decision ${id}`);
+  // Review 6326994852 finding 1: a v3 mandate may only name decisions that the register really holds, in its id and in
+  // the text of its source.
+  if (decisionIds && cp.schema_version === SCHEMA_V3) {
+    for (const id of new Set([cp.mandate?.id, ...String(cp.mandate?.source ?? '').match(DECISION_ID) ?? []])) {
+      if (id && !decisionIds.has(id)) errors.push(`${at} mandate names ${id}, which is not in the owner-decision register`);
+    }
+  }
   if (requirementIds) for (const id of cp.requirements || []) if (!requirementIds.has(id)) errors.push(`${at} unknown requirement ${id}`);
   if (cp.state === 'HANDOFF READY' && !(cp.resume_conditions || []).length) errors.push(`${at} HANDOFF READY needs resume_conditions`);
   if (['CERTIFIED', 'MERGED', 'COMPLETED'].includes(cp.state)) {

@@ -98,6 +98,13 @@ Le dichiarazioni in attesa di verifica si sbloccano solo se tutte queste condizi
 
 Un MISMATCH, una verifica malformata o riferita a una dichiarazione inesistente, o dichiarazioni senza id e risorsa danno STOP. Le dichiarazioni senza id e risorsa vanno riscritte da un nuovo checkpoint.
 
+**Limiti dichiarati** (review 6326994852):
+- **Le verifiche non sono un'attestazione indipendente.** Le scrive l'agente che subentra, e `observer` coincide con l'agente indicato a `--agent`. Lo strumento non confronta `observed` con la realtà: garantisce una dichiarazione strutturata, legata a dichiarazione e risorsa, tracciabile nel checkpoint IN e controllabile da chi rivede, non una verifica automatica.
+- **PROCEED non è un'autorizzazione.** `handoff-in` dice soltanto che si può riprendere senza divergenze né doppi scrittori. Prima di scrivere, l'agente:
+  - rispetta le `stop_conditions` restituite (per esempio "no write on the branch without a new owner mandate" di HIST-01a);
+  - verifica il GO con `authz-check`.
+- **Lettura dello stato della PR.** Usa l'API pubblica di GitHub senza credenziali, con un limite di 60 richieste all'ora per IP. Oltre il limite, con l'API irraggiungibile o con un repository privato, `handoff-in` restituisce sempre `PR_STATE_UNVERIFIABLE` e si ferma, che è il comportamento voluto: si attende o si chiede all'owner.
+
 **Ledger delle autorizzazioni.** `authz-check` valida prima l'intero stato del repository (`governance:check`) e rifiuta se non è valido; poi ricostruisce lo stato di ogni GO da tutti i checkpoint:
 - un GO CONSUMED o REVOKED non torna mai VALID, anche se un checkpoint successivo lo dichiara;
 - un GO mai registrato, non concesso o fuori ambito viene rifiutato;
@@ -299,6 +306,7 @@ Le evidenze (id dei checkpoint, commit, commenti) vanno pubblicate su #150. Solo
 - **Schema v2.** Una review APPROVED richiede `review.reviewed_sha` e un run CI richiede `ci.head_sha`: un'evidenza vale solo per il commit che ha coperto. Un checkpoint MERGED o CERTIFIED deve avere la review sul proprio `commit_sha`.
 - **Merge commit.** L'analisi append-only include anche ciò che i merge commit cambiano rispetto al primo genitore, oltre al diff cumulativo dalla base.
 - **Append-only in CI.** Una PR che modifica o elimina un checkpoint esistente viene rifiutata in CI (`check-append-only`). Le correzioni si fanno con un nuovo checkpoint che sostituisce il precedente tramite `supersedes`.
+- **Mandato registrato.** Un checkpoint v3 può citare, nel `mandate.id` e nel testo di `mandate.source`, solo decisioni presenti in `owner-decisions.json`. Altrimenti `validate` lo rifiuta.
 - **Orari reali.** `timestamp_utc` e gli orari dei test si prendono dall'orologio (`date -u`), mai stimati. `governance:check` rifiuta:
   - un checkpoint con data più di 10 minuti nel futuro;
   - un test con orario successivo al suo checkpoint.

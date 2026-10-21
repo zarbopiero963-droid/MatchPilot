@@ -23,7 +23,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 function makeV3(overrides = {}) {
   return {
     schema_version: 'mp-checkpoint-v3', id: 'CP-20261018T200000Z-agent-a', timestamp_utc: '2026-10-18T20:00:00Z',
-    agent: {id: 'agent-a', role: 'Development Agent', session: 'session-a'}, mandate: {id: 'MANDATE-1', source: 'owner message'},
+    agent: {id: 'agent-a', role: 'Development Agent', session: 'session-a'}, mandate: {id: 'MP-OWNER-R01-AUTH-20261018', source: 'owner message'},
     activity: 'work', task: 'R-01', repository: 'zarbopiero963-droid/MatchPilot', issue: 150, pr: null, branch: 'feature',
     commit_sha: SHA_A, tree_sha: 'b'.repeat(40), base_sha: 'c'.repeat(40), worktree: {clean: true},
     requirements: ['MP-GOV-017'], changes: ['x'], tests: [], ci: {run_id: null, conclusion: 'NOT_RUN'}, gate_a: 'PASS', gate_b: 'NOT_VERIFIED',
@@ -249,4 +249,16 @@ test('authz-check validates the repository state before using any checkpoint', t
   assert.equal(after.status, 2);
   assert.match(after.stdout, /"REFUSED"/);
   assert.match(after.stdout, /VALIDATION: task id missing or duplicated/);
+});
+
+// Review 6326994852 finding 1: a checkpoint may not claim a mandate that the register does not hold.
+test('a v3 mandate may only name registered owner decisions, in its id and in its source text', () => {
+  const known = {...context, decisionIds: new Set(['MP-OWNER-R01-AUTH-20261018', 'MP-PR183-HARDENING-01'])};
+  const ok = makeV3({mandate: {id: 'MP-PR183-HARDENING-01', source: 'owner mandate MP-PR183-HARDENING-01, registered in owner-decisions.json'}});
+  assert.deepEqual(validateCheckpoint(ok, known), []);
+  const unknownId = makeV3({mandate: {id: 'MP-PR183-FINAL-HARDENING-01', source: 'owner mandate'}});
+  assert.ok(validateCheckpoint(unknownId, known).some(e => e.includes('mandate names MP-PR183-FINAL-HARDENING-01')));
+  const unknownInSource = makeV3({mandate: {id: 'MP-PR183-HARDENING-01', source: 'mandates MP-PR183-HARDENING-01 and MP-PR183-FINAL-HARDENING-01, registered in owner-decisions.json'}});
+  assert.ok(validateCheckpoint(unknownInSource, known).some(e => e.includes('mandate names MP-PR183-FINAL-HARDENING-01')));
+  assert.deepEqual(validateCheckpoint({...unknownId, schema_version: 'mp-checkpoint-v2', mandate: undefined}, known).filter(e => e.includes('mandate names')), [], 'v2 has no mandate block');
 });

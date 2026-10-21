@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 116,
+  "revision": 117,
   "tasks": [
     {
       "id": "R-01",
@@ -566,12 +566,16 @@
       "pr": 183,
       "branch": "claude/gov-recon-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "RUNNING",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "lease": null,
+      "lease": {
+        "holder": "agent-a-claude-code",
+        "acquired_at": "2026-10-21T21:38:17.988Z",
+        "expires_at": "2026-10-21T23:38:17.988Z"
+      },
       "latest_checkpoint": "CP-20261021T212352Z-agent-a-claude-code",
       "parallel_authorization": "MP-GITHUB-RECON-IMPLEMENTATION-01",
       "resources": [
