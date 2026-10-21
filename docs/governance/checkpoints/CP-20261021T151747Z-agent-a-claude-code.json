@@ -1,0 +1,121 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "deploy-approval-01",
+  "commit_sha": "e86d7155648b57d4975e8802f4e199ce6925a04c",
+  "tree_sha": "504a6e2a29c36753f27b182410c41672c5a3ab21",
+  "supersedes": "CP-20261021T145000Z-agent-a-claude-code",
+  "pr": 180,
+  "id": "CP-20261021T151747Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-21T15:17:47Z",
+  "activity": "PR #180: review B-5 closed (a lone CR refused by the workflow policy), on the owner request in session; separate review of this head pending",
+  "task": "DEPLOY-APPROVAL-01",
+  "issue": 97,
+  "requirements": [
+    "MP-GOV-021",
+    "MP-SEC-004"
+  ],
+  "changes": [
+    "scripts/workflow-policy.mjs: UNSAFE_CHARACTER also refuses a CR not followed by LF (CRLF stays accepted)",
+    "tests: B-5 attack (lone CR in deploy-vps.yml, in a comment and a block scalar of another file) with emulation, PyYAML and Ruby/libyaml cross-checks; CR in the refused characters, CRLF accepted",
+    "docs/deploy-approval.md: encoding policy, B-5 RED/GREEN row, mutation count 70 (E12), attack surface row 2"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/requirements-inventory.test.mjs test/governance-*.test.mjs test/ci-classify.test.mjs (112 pass, 3 skipped); check; governance:check; render-inventory --check; scan-closing: all exit 0",
+      "result": "PASS",
+      "environment": "local container, Node 22, root",
+      "limits": [
+        "3 archive tests skipped: evidence/audits branch not fetched",
+        "simulated GitHub API, VPS steps, OIDC keys; no GitHub or VPS run",
+        "time is an upper bound"
+      ],
+      "commit": "e86d7155648b57d4975e8802f4e199ce6925a04c",
+      "time": "2026-10-21T15:17:47Z"
+    },
+    {
+      "command": "the three gate test files as user nobody (41/41, 0 skipped, PyYAML and Ruby cross-checks run)",
+      "result": "PASS",
+      "environment": "local container, Node 22, non-root",
+      "limits": [
+        "time is an upper bound"
+      ],
+      "commit": "e86d7155648b57d4975e8802f4e199ce6925a04c",
+      "time": "2026-10-21T15:17:47Z"
+    },
+    {
+      "command": "RED on be8d4e4 for B-5 (the two new tests fail on the policy assertion, the parsers see the job evil); GREEN here; mutations E4-E9, E12 and a sample (P3, P16, A14, W7-W10) re-run: all killed, P3 equivalent",
+      "result": "PASS",
+      "environment": "local container",
+      "limits": [
+        "the full 69-mutation catalogue was run on e998815, not again here",
+        "time is an upper bound"
+      ],
+      "commit": "e86d7155648b57d4975e8802f4e199ce6925a04c",
+      "time": "2026-10-21T15:17:47Z"
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "e86d7155648b57d4975e8802f4e199ce6925a04c"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "DAP-1",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "activation needs owner GOs and the steps of docs/deploy-approval.md section 4; GitHub and VPS behaviours are NOT VERIFIED"
+    },
+    {
+      "id": "DAP-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "until mp-deploy v3 freeze (step 3) a re-run of run 39412733270 can reach mp-deploy (ALREADY_DEPLOYED)"
+    },
+    {
+      "id": "DAP-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "owner-decisions.json and work-registry.json are also changed by PR #178 and other branches: conflicts to resolve when brought to main"
+    },
+    {
+      "id": "DAP-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "container incident 21/10: a test written as root replaced the container's /usr/bin/sleep through a symlink (throwaway container only; repaired; tests now create fake tools with wx)"
+    },
+    {
+      "id": "DAP-5",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "review 6319315939 (NOT APPROVED on be8d4e4): B-5 fixed in e86d715; NB-22 (PR description) updated on GitHub; NB-23 accepted as informative; separate review of this head pending"
+    }
+  ],
+  "owner_decisions": [
+    "MP-DEPLOY-PR180-FINAL-FIX",
+    "MP-DEPLOY-UNBLOCK-FINAL",
+    "MP-DEPLOY-GATE-FINAL-01",
+    "MP-DEPLOY-APPROVAL-02",
+    "MP-DEPLOY-APPROVAL-01",
+    "MP-OWNER-VPS-DEPLOY-01"
+  ],
+  "dependencies": [
+    "CP-20261021T145000Z-agent-a-claude-code"
+  ],
+  "state": "BLOCKED",
+  "next_action": "CI on this head, separate review of this head (B-5 and NB-22); then owner GO for phase B (Grok) and the merge per docs/deploy-approval.md section 4",
+  "resume_conditions": [
+    "CI and separate review verdict on this head"
+  ]
+}
