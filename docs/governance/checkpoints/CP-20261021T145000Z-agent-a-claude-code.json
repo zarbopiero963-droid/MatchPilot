@@ -1,0 +1,125 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "deploy-approval-01",
+  "commit_sha": "e998815641216a44fb2081a34892114cec5f379b",
+  "tree_sha": "dd6a86c5c53b93f266630582db679df70fd59ee8",
+  "supersedes": "CP-20261021T132413Z-agent-a-claude-code",
+  "pr": 180,
+  "id": "CP-20261021T145000Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-21T14:50:00Z",
+  "activity": "PR #180: B-4, NB-19, NB-20, NB-21 closed in one cycle (MP-DEPLOY-PR180-FINAL-FIX); also the CI fix (non-root test run) and NB-13..NB-18 of 10f6f95; separate review of this head pending",
+  "task": "DEPLOY-APPROVAL-01",
+  "issue": 97,
+  "requirements": [
+    "MP-GOV-021",
+    "MP-SEC-004"
+  ],
+  "changes": [
+    "scripts/workflow-policy.mjs: UNSAFE_CHARACTER policy by Unicode category; BOM kept by the decoder and refused",
+    ".github/workflows/deploy-vps.yml: OIDC request header in a mktemp -d directory, noclobber, umask in a subshell, traps EXIT/INT/TERM/HUP",
+    "tests: B-4 attack (NEL, U+2028, U+2029, in deploy-vps.yml and another file) with emulation and PyYAML; 24 refused characters and ordinary text; NB-19 BOM/DEL; NB-21 collision, stale file, mktemp failure, SIGTERM",
+    "docs/deploy-approval.md: encoding policy, header file handling, RED/GREEN rows, mutation catalogue; owner decision MP-DEPLOY-PR180-FINAL-FIX"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/requirements-inventory.test.mjs test/governance-*.test.mjs test/ci-classify.test.mjs (113/113); check; governance validate/check; render-inventory --check; scan-closing; check-append-only; npm audit --omit=dev: all exit 0",
+      "result": "PASS",
+      "environment": "local container, Node 22, root",
+      "limits": [
+        "simulated GitHub API, VPS steps, OIDC keys; no GitHub or VPS run",
+        "3 archive tests run only with the evidence/audits branch present",
+        "time is an upper bound"
+      ],
+      "commit": "e998815641216a44fb2081a34892114cec5f379b",
+      "time": "2026-10-21T14:50:00Z"
+    },
+    {
+      "command": "the three gate test files as user nobody (39/39, 0 skipped, PyYAML cross-check run)",
+      "result": "PASS",
+      "environment": "local container, Node 22, non-root",
+      "limits": [
+        "time is an upper bound"
+      ],
+      "commit": "e998815641216a44fb2081a34892114cec5f379b",
+      "time": "2026-10-21T14:50:00Z"
+    },
+    {
+      "command": "full suite node --test with local PostgreSQL 16 (390/391, 1 skip: PostgreSQL 17 required)",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16",
+      "limits": [
+        "postgres-independence needs PostgreSQL 17, covered by CI"
+      ],
+      "commit": "e998815641216a44fb2081a34892114cec5f379b",
+      "time": "2026-10-21T14:50:00Z"
+    },
+    {
+      "command": "RED on 10f6f95 for B-4 (NEL job in deploy-vps.yml: tests 8/8, policy []); GREEN here; mutation catalogue 69: 68 killed, 1 equivalent (P3)",
+      "result": "PASS",
+      "environment": "local container",
+      "limits": [
+        "time is an upper bound"
+      ],
+      "commit": "e998815641216a44fb2081a34892114cec5f379b",
+      "time": "2026-10-21T14:50:00Z"
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "e998815641216a44fb2081a34892114cec5f379b"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "DAP-1",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "activation needs owner GOs and the steps of docs/deploy-approval.md section 4; GitHub and VPS behaviours are NOT VERIFIED"
+    },
+    {
+      "id": "DAP-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "until mp-deploy v3 freeze (step 3) a re-run of run 39412733270 can reach mp-deploy (ALREADY_DEPLOYED)"
+    },
+    {
+      "id": "DAP-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "owner-decisions.json and work-registry.json are also changed by PR #178 and other branches: conflicts to resolve when brought to main"
+    },
+    {
+      "id": "DAP-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "container incident 21/10: a test written as root replaced the container's /usr/bin/sleep through a symlink (throwaway container only; repaired; tests now create fake tools with wx)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-DEPLOY-PR180-FINAL-FIX",
+    "MP-DEPLOY-UNBLOCK-FINAL",
+    "MP-DEPLOY-GATE-FINAL-01",
+    "MP-DEPLOY-APPROVAL-02",
+    "MP-DEPLOY-APPROVAL-01",
+    "MP-OWNER-VPS-DEPLOY-01"
+  ],
+  "dependencies": [
+    "CP-20261021T132413Z-agent-a-claude-code"
+  ],
+  "state": "BLOCKED",
+  "next_action": "CI on this head, separate review of the final head, report A-N on #180 and #97; then owner GO for phase B (Grok) and the merge per docs/deploy-approval.md section 4",
+  "resume_conditions": [
+    "CI and review verdict on this head"
+  ]
+}
