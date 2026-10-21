@@ -162,8 +162,9 @@ export const TIP_SOURCES = Object.freeze({
 export const HTTP_TIMEOUT_MS = 10000;
 export const HTTP_LIMIT = 1 << 20;
 
-// One GET over HTTPS, no redirect, bounded in time and size; anything but a 200 throws.
-export async function httpText(url, {accept = 'application/vnd.github+json'} = {}) {
+// One GET over HTTPS, no redirect, bounded in time and size; anything but a 200 throws. JSON is decoded as UTF-8; the
+// git ref advertisement as latin1, one character per byte, because its pkt-line lengths count bytes (review NB-B).
+export async function httpText(url, {accept = 'application/vnd.github+json', encoding = 'utf8'} = {}) {
   const response = await fetch(url, {headers: {accept, 'user-agent': 'matchpilot-gate', 'x-github-api-version': '2022-11-28'},
     redirect: 'error', signal: AbortSignal.timeout(HTTP_TIMEOUT_MS)});
   if (response.status !== 200) throw new Error(`HTTP ${response.status}`);
@@ -171,12 +172,14 @@ export async function httpText(url, {accept = 'application/vnd.github+json'} = {
   if (declared > HTTP_LIMIT) throw new Error('answer too large');
   const body = Buffer.from(await response.arrayBuffer());
   if (body.length > HTTP_LIMIT) throw new Error('answer too large');
-  return body.toString('utf8');
+  return body.toString(encoding === 'latin1' ? 'latin1' : 'utf8');
 }
 export const httpJson = async url => JSON.parse(await httpText(url));
 
 // The SHA of refs/heads/main in a git-upload-pack ref advertisement (protocol v0), read strictly: the service line, a
 // flush, then pkt-lines "<sha> <ref>" (the first with capabilities after NUL), a final flush and nothing after it.
+// `text` holds one character per byte (latin1), so pkt-line lengths and string lengths agree. Ref names are printable
+// ASCII only: any other ref line, even of another branch, refuses (fail closed).
 export function mainFromAdvertisement(text) {
   if (typeof text !== 'string') return {problem: 'TIP_REFS_MALFORMED: not text'};
   const lines = [];
@@ -213,7 +216,7 @@ export async function readMainTip({fetchText = httpText} = {}) {
   let fromRefs = null;
   let fromApi = null;
   try {
-    const parsed = mainFromAdvertisement(await fetchText(TIP_SOURCES.refs, {accept: 'application/x-git-upload-pack-advertisement'}));
+    const parsed = mainFromAdvertisement(await fetchText(TIP_SOURCES.refs, {accept: 'application/x-git-upload-pack-advertisement', encoding: 'latin1'}));
     if (parsed.problem) problems.push(parsed.problem); else fromRefs = parsed.sha;
   } catch (error) { problems.push(`TIP_UNVERIFIABLE: refs ${String(error?.message ?? error).split('\n')[0]}`); }
   try {

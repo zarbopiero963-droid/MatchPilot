@@ -4,8 +4,10 @@
 #      dell'owner, senza bypass degli admin e solo per main, e che lo SHA di questo run sia ancora la punta di main.
 #      Un environment assente o creato automaticamente senza protezioni ferma il deploy (fail closed).
 #   2. deploy (runner matchpilot-vps): parte solo dopo l'approvazione dell'owner su questo run, quindi su questo SHA;
-#      prima di mp-deploy ripete lo stesso controllo, a ogni tentativo (anche un rerun del solo deploy), con la copia
-#      dello script installata e pinnata da root sulla VPS: sulla VPS non gira codice di controllo preso dal commit.
+#      prima di mp-deploy e prima di ogni nuovo tentativo dopo un lock occupato ripete lo stesso controllo con lo
+#      script locale installato e protetto da root sulla VPS, senza alcun download: sulla VPS non gira codice di
+#      controllo preso dal commit. Un rerun del run è rifiutato dall'hook del runner (nessuna approvazione è legata
+#      a un tentativo).
 #   Solo questo workflow può usare il runner VPS: test/governance-workflows.test.mjs lo verifica su tutti i workflow.
 #   Sulla VPS (MP-GATE-S1S2-FIX) l'hook di avvio job del runner, installato da root (scripts/runner-job-guard.mjs),
 #   ammette un job solo se è il job deploy di questo file con il contenuto pinnato, approvato dall'owner e sulla punta
@@ -54,10 +56,10 @@ jobs:
       deployments: read
       id-token: write
     steps:
-      # Dopo l'approvazione, a ogni tentativo (anche un rerun del solo deploy, che non riesegue il job gate): lo stesso
-      # controllo, con la copia installata da root in /usr/local/libexec/mp-gate (MP-GATE-S1S2-FIX: il codice di
-      # sicurezza eseguito sulla VPS non viene dal commit approvato). Senza node, senza lo script o senza PASS il
-      # deploy si ferma.
+      # Dopo l'approvazione: lo stesso controllo del job gate, con lo script locale installato e protetto da root in
+      # /usr/local/libexec/mp-gate, senza download (MP-GATE-S1S2-FIX: il codice di sicurezza eseguito sulla VPS non
+      # viene dal commit approvato). Senza node, senza lo script o senza PASS il deploy si ferma. Un rerun non arriva
+      # qui: l'hook del runner lo rifiuta.
       - name: Gate dopo l'approvazione
         env:
           GH_TOKEN: ${{ github.token }}

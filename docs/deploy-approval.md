@@ -4,7 +4,7 @@ A merge to `main` must not be an authorization to deploy. Before this change, ev
 
 With this change, the deploy job runs only after three things:
 - the owner approves that run on GitHub;
-- the gate checks GitHub's configuration again, at every attempt;
+- the gate checks GitHub's configuration again after the approval, from a root-installed copy on the VPS (a re-run is refused, §8.7);
 - `mp-deploy` v3 checks a fresh OIDC proof of that approved run (phase B).
 
 **Code ready is not protection active.** PR #180 is merged (`e127c26`), `vps-production` is configured by the owner and `mp-deploy` v3 runs on the VPS in freeze (Grok, #179 6320706638) **[NOT VERIFIED by Claude]**. Enforcement, the VPS side of §8 and #178 each need their own owner GO.
@@ -133,7 +133,7 @@ In every case it still writes its structured report, listing the settings read, 
 
 **It runs twice:**
 - in the `gate` job, with an explicit `"result": "PASS"` required **[STATIC]**;
-- in the `deploy` job, after the approval and at every attempt. A re-run of the deploy job alone does not re-run `gate`. This second run uses the copy installed and pinned by root on the VPS (`/usr/local/libexec/mp-gate/deploy-gate.mjs`, §8.2), never code from the approved commit, and requires `PASS` before `mp-deploy` **[SIMULATION: the step's own bash, real node, fake API]**. Until that copy is installed the step stops with `DEPLOY_GATE_NOT_INSTALLED`.
+- in the `deploy` job, after the approval, and again before every retry after a busy lock. A re-run of the run is refused by the runner's job-start guard (§8.2, §8.7), so no approval is reused. This second run uses the copy installed and pinned by root on the VPS (`/usr/local/libexec/mp-gate/deploy-gate.mjs`, §8.2), never code from the approved commit, and requires `PASS` before `mp-deploy` **[SIMULATION: the step's own bash, real node, fake API]**. Until that copy is installed the step stops with `DEPLOY_GATE_NOT_INSTALLED`.
 
 The script runs its checks from a path with spaces or through a symlink **[SIMULATION]** (review NB-2).
 
@@ -289,7 +289,7 @@ node deploy-authz.mjs consume --sha <sha> --jwks <file> --ledger <dir>
 
 | Step | What | Evidence | STOP if |
 |---|---|---|---|
-| B0 | read-only, as `ghrunner` and as root: `node` ≥ 20, `curl`, `grep`, `cat`; HTTPS to `raw.githubusercontent.com`, `api.github.com`, `token.actions.githubusercontent.com`; the runner's labels (none of the hosted allow-list); the guard's source (variables read: `GITHUB_WORKFLOW_REF`, event, ref, repository); the fork-workflow approval setting; hashes of `mp-deploy` and the guard | command output | anything missing, or the guard reading `GITHUB_WORKFLOW` |
+| B0 | read-only, as `ghrunner` and as root: `node` ≥ 20, `curl` (OIDC request only), `grep`, `cat`; HTTPS to `api.github.com`, `github.com` (git ref advertisement) and `token.actions.githubusercontent.com` (no script is downloaded from `raw.githubusercontent.com` any more: §8.2); the installed `/usr/local/libexec/mp-gate/*` (owner, mode, SHA-256 against the protected record, §8.2 "Integrity"); the runner's labels (none of the hosted allow-list); the guard's source (variables read: `GITHUB_WORKFLOW_REF`, event, ref, repository); the fork-workflow approval setting; hashes of `mp-deploy` and the guard | command output | anything missing, or the guard reading `GITHUB_WORKFLOW` |
 | B1 | install v3 + verifier + ledger in **freeze + report** | file hashes; `mp-deploy` of the current SHA → `ALREADY_DEPLOYED`; of any other SHA → refused (freeze) | any other behaviour |
 | B1-old | owner, deliberately: re-run run 39412733270 | `ALREADY_DEPLOYED`, no change (freeze: an older SHA would be refused) | any change on the VPS |
 | B3 | after phase D, switch to **enforce**, lift **freeze** | config hash; `deploy.log` | — |
@@ -310,8 +310,8 @@ node deploy-authz.mjs consume --sha <sha> --jwks <file> --ledger <dir>
 | 6 | re-run all jobs of that run | owner | `gate` PASS, report showing the settings; `deploy` *Waiting* | `GATE_API_ERROR … 403` (token cannot read the environment), missing fields, or `deploy` starting |
 | 7 | D1: wait 10 min | owner | still waiting | it starts |
 | 8 | D2: reject | owner | run fails; no new `deploy.log` line | anything on the VPS |
-| 9 | D3: re-run failed jobs | owner | `deploy` waits again | it starts without approval |
-| 10 | D4: reject, then re-run all jobs | owner | `gate` again, `deploy` waits | it starts without approval |
+| 9 | D3: re-run failed jobs | owner | `deploy` waits again; once approved, the job-start guard refuses it (`GUARD_RERUN_APPROVAL_UNBOUND`, §8.7) | it starts without approval, or the guard allows it |
+| 10 | D4: reject, then re-run all jobs | owner | `gate` again, `deploy` waits; once approved, refused by the guard as in step 9 | it starts without approval, or the guard allows it |
 | 11 | D5: approve | owner | post-approval gate PASS; token sent; `mp-deploy` v3 logs ACCEPT (report) and refuses the new SHA (freeze) | REFUSE in report, or a deploy |
 | 12 | B3: enforce on, freeze off; then D5 again (a new approval) | owner GO, Grok | ACCEPT, deploy of the gate commit (application unchanged from `3dd833f`); health | any failed check |
 | 13 | D6, D7 | Grok, owner | §3.5 | §3.5 |
@@ -396,7 +396,7 @@ The full matrix, with ID, component, change, observed result, class and the test
 | 3 | paths to the VPS runner and `mp-deploy` | label allow-list, single exception, name scan; VPS guard; `mp-deploy` v3 | [STATIC]; guard [NOT VERIFIED] | B0, D7 |
 | 4 | triggers and reusable workflows | event allow-list, no job `uses` | [STATIC] | — |
 | 5 | canonical deploy workflow | exact structure + named invariants | [STATIC] 46 changes | — |
-| 6 | full re-run, single-job re-run | environment on the job; post-approval gate | [STATIC]; [SIMULATION] | steps 9–10 |
+| 6 | full re-run, single-job re-run | environment on the job; job-start guard refuses any attempt but the first; post-approval gate | [STATIC]; [SIMULATION] | steps 9–10 |
 | 7 | runs before the gate | `mp-deploy` freeze, then OIDC enforcement | [SIMULATION] verifier | B1-old, D7 |
 | 8 | OIDC trust, replay, concurrency | verifier + ledger | [SIMULATION] incl. races, fsync | D6 |
 | 9 | environment configuration | gate script, twice | [SIMULATION] | steps 6, 11 |
@@ -470,6 +470,14 @@ Owner requirements:
 - write the config `/etc/mp-deploy/runner-guard.json`, root:root 0644: `{"workflow_blob_sha": "<git hash-object .github/workflows/deploy-vps.yml at the merged SHA>"}`. The value is the same as the `sha` the contents API returns;
 - extend the existing hook, referenced from `/opt/actions-runner/.env`, which is root:ghrunner 0640. Keep its current checks, then add `node /usr/local/libexec/mp-gate/runner-job-guard.mjs /etc/mp-deploy/runner-guard.json`, logging its JSON line to the journal (`logger -t mp-runner-guard`);
 - any later change to `deploy-vps.yml` needs a new pin by root, which needs an owner GO.
+
+**Integrity of the installed scripts (binding requirement for S3 and S4, owner mandate PR #181 FINAL DELTA CLOSURE, review NB-D).** The workflow only checks that `/usr/local/libexec/mp-gate/deploy-gate.mjs` exists (`[ -f ]`). Its integrity rests on root ownership and on a protected record. Before S3 is certified and at every S4 test run, Grok must verify, and report in #179, that:
+- the directory `/usr/local/libexec/mp-gate/` and each file in it (`deploy-gate.mjs`, `deploy-authz.mjs`, `runner-job-guard.mjs`) are owned by root:root, the directory 0755 and the files 0644, with no group or other write bit, no ACL and no symlink, and that no ancestor directory is writable by anyone but root;
+- the same holds for the config `/etc/mp-deploy/runner-guard.json` and the hook referenced from `/opt/actions-runner/.env`;
+- the SHA-256 of each file equals the value recorded at install in the root-owned infra repository on the VPS (`installed/SHA256SUMS.installed`, the protected source of verification). That value in turn equals the SHA-256 of the same file at the merged commit of `main`, recomputed from GitHub at install time;
+- `ghrunner` cannot write, rename or replace any of these paths (tested as `ghrunner`, as T11 in #179 6320706638).
+
+A mismatch stops S3 or S4 (fail closed). Making the hook itself check these hashes at every job is a possible later hardening, with its own owner GO. It is not in this PR.
 
 ### 8.3 Anti-stale in the workflow (`deploy-vps.yml`, step `mp-deploy`)
 

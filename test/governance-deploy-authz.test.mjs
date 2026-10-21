@@ -370,3 +370,44 @@ test('CLI: main-tip and approved refuse a bad argument with exit 1; an unknown m
   assert.equal(unknown.status, 1);
   assert.match(unknown.report.reasons.join(), /mode must be verify, consume, main-tip or approved/);
 });
+
+// Review NB-A (#181 6323455656): the CLI path mp-deploy v3.1 uses must pass --run-attempt through. A CLI that ignored it
+// would read GitHub and answer with another reason; here only the attempt check may answer, and without any read.
+test('CLI approved: --run-attempt is honoured; an attempt but the first, or none, is refused before any GitHub read', async () => {
+  const run = args => new Promise(resolve => {
+    const child = spawn(process.execPath, [SCRIPT, ...args], {env: {PATH: process.env.PATH}});
+    let out = '';
+    child.stdout.on('data', chunk => { out += chunk; });
+    child.on('close', status => { let report = null; try { report = JSON.parse(out); } catch {} resolve({status, report}); });
+  });
+  for (const args of [['--run-attempt', '2'], ['--run-attempt', '17'], ['--run-attempt', ''], []]) {
+    const result = await run(['approved', '--run-id', '42', ...args]);
+    assert.equal(result.status, 1, args.join(' '));
+    assert.deepEqual(result.report.reasons, [`AUTHZ_RERUN_APPROVAL_UNBOUND: attempt ${JSON.stringify(args[1] ?? null)}`], args.join(' '));
+  }
+});
+
+// Review NB-B: pkt-line lengths count bytes. A capability with a non-ASCII byte must not shift the parse; the ref
+// advertisement is read as bytes (latin1: one character per byte) end to end, from the HTTP read to the parser.
+test('the ref advertisement is parsed by bytes: a non-ASCII capability does not break the pkt-line lengths', async () => {
+  const bpkt = text => { const bytes = Buffer.from(text, 'utf8'); return Buffer.concat([Buffer.from((bytes.length + 4).toString(16).padStart(4, '0')), bytes]); };
+  const body = Buffer.concat([bpkt('# service=git-upload-pack\n'), Buffer.from('0000'), bpkt(`${SHA} HEAD\0multi_ack agent=gït/2.4\n`),
+    bpkt(`${OLD} refs/heads/feature\n`), bpkt(`${SHA} refs/heads/main\n`), Buffer.from('0000')]);
+  const server = createServer((req, res) => {
+    if (req.url === '/refs') { res.writeHead(200); res.end(body); }
+    else if (req.url === '/utf') { res.writeHead(200); res.end(Buffer.from('{"name":"città"}', 'utf8')); }
+    else { res.writeHead(200); res.end(branch(SHA)); }
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const tip = await readMainTip({fetchText: (url, options) => httpText(`${base}/${url === TIP_SOURCES.refs ? 'refs' : 'api'}`, options)});
+    assert.deepEqual(tip, {tip: SHA, problems: []});
+    // The JSON source stays UTF-8 (one character per code point).
+    assert.equal(await httpText(`${base}/api`), branch(SHA));
+    assert.equal((await httpText(`${base}/utf`)), '{"name":"città"}');
+  } finally { server.close(); }
+  // A non-ASCII ref name is still refused (fail closed): only printable ASCII is a ref here.
+  assert.match(mainFromAdvertisement(Buffer.concat([bpkt('# service=git-upload-pack\n'), Buffer.from('0000'), bpkt(`${SHA} HEAD\0caps\n`),
+    bpkt(`${SHA} refs/heads/mäin\n`), bpkt(`${SHA} refs/heads/main\n`), Buffer.from('0000')]).toString('latin1')).problem ?? '', /TIP_REFS_MALFORMED: bad ref line/);
+});
