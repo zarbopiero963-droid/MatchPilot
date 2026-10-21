@@ -1,0 +1,104 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "deploy-approval-01",
+  "commit_sha": "dbe670323f5a3ef4b9f6e609c8692fc62eb2eaa5",
+  "tree_sha": "a961a61feb408a1c02420f240c0cdd5a260a0c6f",
+  "supersedes": "CP-20261021T102638Z-agent-a-claude-code",
+  "pr": null,
+  "id": "CP-20261021T110626Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-21T11:06:26Z",
+  "activity": "MP-DEPLOY-APPROVAL-02: review B-1 and NB-1..NB-4 fixed on the branch, VPS-side OIDC proof designed (not wired); no PR while #178 is open",
+  "task": "DEPLOY-APPROVAL-01",
+  "issue": 97,
+  "requirements": [],
+  "changes": [
+    "test/governance-workflows.test.mjs: every workflow checked (B-1); 10 indirect paths and 13 tamperings refused",
+    ".github/workflows/deploy-vps.yml: the gate runs again on the VPS after the approval, at every attempt, from the approved SHA, with an explicit PASS (NB-1, NB-2)",
+    "scripts/deploy-gate.mjs: resolved entry check (NB-2), GATE_SELF_REVIEW (NB-4), observed settings in the report",
+    "scripts/deploy-authz.mjs + test/governance-deploy-authz.test.mjs (new): VPS-side OIDC proof, design only",
+    "docs/deploy-approval.md: tested/documented/NOT VERIFIED marks, phases A-E, STOP conditions, rollback; owner decision MP-DEPLOY-APPROVAL-02"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/requirements-inventory.test.mjs test/governance-*.test.mjs test/ci-classify.test.mjs (100/100); check; governance validate/check; render-inventory --check; scan-closing; check-append-only",
+      "result": "PASS",
+      "environment": "local container, Node 22",
+      "limits": [
+        "simulated GitHub API, VPS step and OIDC keys; no GitHub or VPS run",
+        "time is an upper bound"
+      ],
+      "commit": "dbe670323f5a3ef4b9f6e609c8692fc62eb2eaa5",
+      "time": "2026-10-21T11:06:26Z"
+    },
+    {
+      "command": "full suite node --test with local PostgreSQL 16 (377/378, 1 skip: PostgreSQL 17 required)",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16",
+      "limits": [
+        "postgres-independence needs PostgreSQL 17, covered by CI"
+      ],
+      "commit": "dbe670323f5a3ef4b9f6e609c8692fc62eb2eaa5",
+      "time": "2026-10-21T11:06:26Z"
+    },
+    {
+      "command": "RED: reviewer's sneak.yml with the 9a7124a tests (12/12 pass); 9a7124a gate script from a path with spaces (exit 0, no output); new tests on the 9a7124a workflow (5 fail). GREEN on this head. Mutations 16/16 killed",
+      "result": "PASS",
+      "environment": "local container",
+      "limits": [
+        "time is an upper bound"
+      ],
+      "commit": "dbe670323f5a3ef4b9f6e609c8692fc62eb2eaa5",
+      "time": "2026-10-21T11:06:26Z"
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN",
+    "head_sha": "dbe670323f5a3ef4b9f6e609c8692fc62eb2eaa5"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "DAP-1",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "activation needs owner GOs and the GitHub/VPS phases C-D of docs/deploy-approval.md; approval waiting, re-run approval, GITHUB_TOKEN read of the environment and node/curl for ghrunner are NOT VERIFIED"
+    },
+    {
+      "id": "DAP-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "until phase B3 (owner GO, Grok) a re-run of a run older than the gate can still reach mp-deploy; only run 39412733270 (3dd833f) exists"
+    },
+    {
+      "id": "DAP-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "owner-decisions.json and work-registry.json are also changed by PR #178 and other branches: conflicts to resolve when brought to main"
+    }
+  ],
+  "owner_decisions": [
+    "MP-DEPLOY-APPROVAL-02",
+    "MP-DEPLOY-APPROVAL-01",
+    "MP-OWNER-VPS-DEPLOY-01"
+  ],
+  "dependencies": [
+    "CP-20261021T102638Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "separate technical review of this head; then owner decisions: PR exception while #178 is open, phase B GO for Grok",
+  "resume_conditions": [
+    "review verdict on this head",
+    "owner decision on the PR order"
+  ]
+}
