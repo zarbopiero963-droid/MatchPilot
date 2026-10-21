@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 107,
+  "revision": 108,
   "tasks": [
     {
       "id": "R-01",
@@ -453,20 +453,21 @@
       "id": "DEPLOY-GATE-S1S2-01",
       "title": "No code on the VPS without the owner's approval; only the tip of main is deployable (MP-GATE-S1S2-FIX)",
       "issue": 179,
-      "pr": null,
+      "pr": 181,
       "branch": "deploy-gate-final-01",
       "kind": "implementation",
-      "state": "RUNNING",
+      "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": {
         "holder": "agent-a-claude-code",
-        "acquired_at": "2026-10-21T17:40:00.000Z",
-        "expires_at": "2026-10-22T05:40:00.000Z"
+        "acquired_at": "2026-10-21T17:00:00.000Z",
+        "expires_at": "2026-10-22T05:00:00.000Z"
       },
-      "latest_checkpoint": null
+      "latest_checkpoint": "CP-20261021T172031Z-agent-a-claude-code",
+      "pr_open": true
     }
   ]
 }
