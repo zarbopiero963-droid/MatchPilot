@@ -60,26 +60,51 @@ Estende v2 senza togliere nulla: ogni regola v2 vale anche per v3, e i checkpoin
 | `worktree` | `{clean}`: nessun lavoro solo locale |
 | `progress` | `{done, in_progress, not_started}` |
 | `resources` | le risorse su cui l'attività scrive: `branch:<nome>`, `pr:<n>`, `vps:<host>`, `db:<nome>`, `file:<path>` |
-| `authorizations` | `{id, source, scope, status}`. Lo `scope` ammette solo `mandate`, `task`, `resource` e `action`, mai l'agente. Lo `status` è VALID, CONSUMED (con `consumed_by`), REVOKED o NOT_GRANTED |
+| `authorizations` | `{id, source, scope, status}`. Lo `scope` ammette solo `mandate`, `task`, `resource` e `action`, mai l'agente. Deve contenere almeno `task` e `action` e non ammette valori jolly (`*`, `any`, `all`…). Lo `status` è VALID, CONSUMED (con `consumed_by`), REVOKED o NOT_GRANTED |
 | `external_commands` | `{target, command, effect}`: solo i comandi con effetti fuori dal repository (GitHub, VPS, database) |
 | `artifacts` | `{path, sha256}` |
 | `stop_conditions` | quando chi riprende deve fermarsi (almeno una) |
 | `costs` | `{incurred, authorized}` |
 | `vps` | fatti sulla VPS (release, versioni, hash), oppure `null` |
-| `handoff` | `{status, from, to, responsibilities}`. `status` è NONE, OUT, IN o PENDING_VERIFICATION; `to` è un agente oppure `ANY` |
+| `handoff` | `{status, from, to, responsibilities}`. `status` è NONE, OUT, IN o PENDING_VERIFICATION; `to` è un agente oppure `ANY`. Con PENDING_VERIFICATION, `claims` elenca le dichiarazioni come `{id, resource, statement}` |
 | `merge_sha` | obbligatorio in stato MERGED. `commit_sha` resta l'head revisionato |
 
 Regole v3:
 - `HANDOFF READY` ⇔ `handoff.status` OUT, con le responsabilità trasferite;
-- `IN` elenca in `handoff.verified` ciò che il ricevente ha verificato;
+- `IN` elenca in `handoff.verified` le verifiche strutturate del ricevente (vedi sotto); una frase generica non è una verifica;
 - `PENDING_VERIFICATION` registra dichiarazioni non verificate e non può stare in HANDOFF READY, CERTIFIED, MERGED o COMPLETED;
 - i test SKIPPED non sono PASS.
 
 **Nessun segreto nei checkpoint.** `validate` scandisce l'intero checkpoint, compresi `vps` e `external_commands`, e rifiuta qualunque valore simile a un segreto. Si trasferiscono attività, evidenze e responsabilità; credenziali e chiavi restano dove sono (VPS, account dell'owner).
 
-**Ledger delle autorizzazioni.** `authz-check` ricostruisce lo stato di ogni GO da tutti i checkpoint:
+**Verifica strutturata** (`MP-PR183-HARDENING-01`). Ogni verifica è un oggetto con questi campi:
+
+| Campo | Contenuto |
+|---|---|
+| `claim` | id della dichiarazione verificata, oppure `state` per lo stato del repository |
+| `resource` | la risorsa su cui si è verificato, uguale a quella della dichiarazione |
+| `method` | il comando o la lettura eseguita |
+| `observed` | ciò che si è osservato (per esempio uno SHA-256 o un conteggio) |
+| `observed_at` | quando |
+| `observer` | l'agente che ha verificato |
+| `result` | VERIFIED o MISMATCH |
+| `artifact_sha256` | facoltativo |
+
+Le dichiarazioni in attesa di verifica si sbloccano solo se tutte queste condizioni valgono:
+- ogni `claims[].id` ha una verifica VERIFIED;
+- la verifica è sulla stessa risorsa;
+- è fatta dall'agente che subentra;
+- ha meno di 24 ore e non è nel futuro.
+
+Un MISMATCH, una verifica malformata o riferita a una dichiarazione inesistente, o dichiarazioni senza id e risorsa danno STOP. Le dichiarazioni senza id e risorsa vanno riscritte da un nuovo checkpoint.
+
+**Ledger delle autorizzazioni.** `authz-check` valida prima l'intero stato del repository (`governance:check`) e rifiuta se non è valido; poi ricostruisce lo stato di ogni GO da tutti i checkpoint:
 - un GO CONSUMED o REVOKED non torna mai VALID, anche se un checkpoint successivo lo dichiara;
-- un GO mai registrato, non concesso o fuori ambito viene rifiutato.
+- un GO mai registrato, non concesso o fuori ambito viene rifiutato;
+- la richiesta deve nominare almeno `--task` e `--action`;
+- ogni chiave dello scope del GO deve coincidere;
+- una chiave che il GO non vincola non è autorizzata. Un GO senza risorsa non vale per nessuna risorsa (`AUTHZ_SCOPE_UNBOUNDED`);
+- un GO registrato VALID con due scope diversi è ambiguo e non è utilizzabile.
 
 ```
 npm run governance:authz-check -- <GO> --task <attività> --resource <risorsa> --action "<azione>"
@@ -101,18 +126,23 @@ Il comando non ha un parametro per l'agente.
 ## HANDOFF IN (chi subentra, qualunque agente)
 
 1. Legge AGENTS.md e le decisioni `IN_FORCE`, poi esegue `git fetch origin`.
-2. Esegue `npm run governance:handoff-in -- <task> --agent <id> --pr-state <stato letto da GitHub>`, che controlla:
+2. Esegue `npm run governance:handoff-in -- <task> --agent <id> [--evidence <verifiche.json>]`, che controlla:
    - catena dei checkpoint e registro (`STALE_REGISTRY` se il registro non punta alla testa della catena);
    - branch reale contro `commit_sha` e `tree_sha`;
-   - stato della PR;
+   - stato della PR, **letto da GitHub dal comando stesso** (API REST, con `curl`, senza credenziali). Uno stato dichiarato dall'agente non è accettato: `--pr-state` e `--verified` sono rifiutati. Il comando si ferma quando:
+     - la lettura manca o fallisce (`PR_STATE_REQUIRED` o `PR_STATE_UNVERIFIABLE`);
+     - la lettura ha più di 10 minuti (`PR_STATE_STALE`);
+     - la PR letta è un'altra (`PR_STATE_MISMATCH`);
+     - lo stato non corrisponde a `pr_open` del registro (`PR_OPEN_MISMATCH`);
+     - lo head della PR non è il branch letto in locale (`PR_HEAD_MISMATCH`);
    - lease attivo di un altro agente sull'attività (`DUAL_WRITER`) o su una risorsa condivisa (`DUAL_WRITER_RESOURCE`);
    - handoff indirizzato ad altri;
    - dichiarazioni in attesa di verifica.
 
    Esce con 2 a ogni problema (STOP) e con 0 solo se può procedere.
-3. Verifica in sola lettura le evidenze citate (test, CI, review, fatti sulla VPS). Con `PENDING_VERIFICATION` le elenca con `--verified "<voce>"`.
+3. Verifica in sola lettura le evidenze citate (test, CI, review, fatti sulla VPS). Con `PENDING_VERIFICATION` scrive le verifiche strutturate in un file JSON (un array) e lo passa con `--evidence`.
 4. Fa il claim (`reconciled: true` se il lease precedente è scaduto).
-5. Scrive un checkpoint v3 con `handoff.status: "IN"`, `from` e `verified`.
+5. Scrive un checkpoint v3 con `handoff.status: "IN"`, `from` e `verified`, cioè le stesse verifiche strutturate.
 6. Solo dopo esegue `next_action`.
 
 **L'handoff è completo solo quando chi subentra ha pubblicato il proprio checkpoint IN.**
@@ -129,6 +159,9 @@ Il comando non ha un parametro per l'agente.
 - **NO DUAL WRITER.** Una risorsa ha un solo scrittore alla volta, chiunque sia:
   - `validate` rifiuta due lease attivi di agenti diversi sulla stessa risorsa;
   - `claim` rifiuta con `CONFLICT_RESOURCE_LEASED`;
+  - il branch di un'attività di implementazione e la sua PR sono risorse anche se non dichiarati;
+  - `validate` rifiuta un checkpoint di un'attività aperta che scrive una risorsa non dichiarata nel registro;
+  - il registro è protetto dalla compare-and-swap su `revision` e dal file lock;
   - vale per branch, PR, registro e host VPS (una sola sessione operativa sulla VPS per volta).
 
   I branch sono per attività e non si riusano.

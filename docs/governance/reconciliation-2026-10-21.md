@@ -116,7 +116,7 @@ PR mergiate fuori dalla sequenza R-xx: #146–#148, #167, #177, #180 e #181 (`pr
 - F1, F2, B13, B8, NB-E, NB-F.
 
 **Istruzioni per l'agente che prende VPS-MIGRATION-01.** Vale per qualunque agente con accesso alla VPS: Grok, Claude o altri.
-1. `git fetch origin`, poi `npm run governance:handoff-in -- VPS-MIGRATION-01 --agent <id>`. L'esito atteso è STOP con `HANDOFF_PENDING_VERIFICATION`. Se `main` è avanzato dopo il checkpoint compare anche `UNRECONCILED_COMMITS`: si riconcilia leggendo il diff, come per STALE in [HANDOFF.md](HANDOFF.md).
+1. `git fetch origin`, poi `npm run governance:handoff-in -- VPS-MIGRATION-01 --agent <id>`. L'esito atteso è STOP con `HANDOFF_PENDING_VERIFICATION` ed `EVIDENCE_MISSING` per ogni dichiarazione `C1`…`C8` dell'ultimo checkpoint. Se `main` è avanzato dopo il checkpoint compare anche `UNRECONCILED_COMMITS`: si riconcilia leggendo il diff, come per STALE in [HANDOFF.md](HANDOFF.md).
 2. Claim del lease su VPS-MIGRATION-01, risorsa `vps:matchpilot`. **Una sola sessione sulla VPS.**
 3. Verifica **in sola lettura** di ogni dichiarazione elencata in `progress.done` e `vps` del checkpoint:
    - hash di `mp-deploy` e del verifier;
@@ -124,7 +124,11 @@ PR mergiate fuori dalla sequenza R-xx: #146–#148, #167, #177, #180 e #181 (`pr
    - porte e versioni PostgreSQL, conteggi delle righe dello staging;
    - ultimo backup e copia offsite;
    - commit del repository infra.
-4. Checkpoint v3 con `handoff.status: "IN"` e `verified`. Le discrepanze vanno nei `findings`, con lo stato BLOCKED.
+4. Scrive una verifica strutturata per ogni dichiarazione in un file JSON, con i campi `claim`, `resource`, `method`, `observed`, `observed_at`, `observer` e `result` (vedi [HANDOFF.md](HANDOFF.md)). Poi riesegue `handoff-in` con `--evidence <file>`:
+   - deve dare PROCEED;
+   - un MISMATCH dà STOP e va nei `findings`, con lo stato BLOCKED.
+
+   Poi scrive il checkpoint v3 con `handoff.status: "IN"` e le stesse verifiche in `verified`.
 5. Commento con marker su #179, poi **stop**.
 
 **Vincoli:**

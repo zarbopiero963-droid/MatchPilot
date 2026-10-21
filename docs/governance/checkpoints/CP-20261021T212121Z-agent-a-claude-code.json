@@ -1,0 +1,183 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261021T212121Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-21T21:21:21Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Integration Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "mandate": {
+    "id": "MP-PR183-HARDENING-01",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-21), registered in docs/governance/owner-decisions.json"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "task": "DEPLOY-GATE-S1S2-01",
+  "activity": "attribution corrected after review D2 6326290307 (finding 6): the review of PR #181 is a technical review comment of a separate session, not a formal GitHub approval; PR #181 remains merged and the deploy gate is NOT certified until S4",
+  "issue": 179,
+  "pr": 181,
+  "branch": "deploy-gate-final-01",
+  "commit_sha": "f5d6dfcb0df65f6b0bba667f296e88f407ff0537",
+  "tree_sha": "7ac8cc76a6d0b9992fdc1f8d3f729207c7ba85d3",
+  "base_sha": "e127c26eaa8bc87bacc26ba6b3390e6edb2fab95",
+  "merge_sha": "170305418bd4fbbdbf4f3b7a4ed0ac5fcdc407c4",
+  "requirements": [
+    "MP-GOV-021",
+    "MP-SEC-004"
+  ],
+  "changes": [
+    "review reference corrected; no other change"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI run 39657618950 on the PR head: CI gate, Fast checks, PostgreSQL integration suite, Browser QA, Exploratory QA, Classify changes success; UI checks skipped (no UI change)",
+      "result": "PASS",
+      "environment": "GitHub-hosted runners",
+      "commit": "f5d6dfcb0df65f6b0bba667f296e88f407ff0537",
+      "time": "2026-10-21T19:06:50Z",
+      "limits": [
+        "UI checks skipped by the classifier, not counted as PASS",
+        "runtime of the gate on the VPS NOT VERIFIED until S4"
+      ]
+    },
+    {
+      "command": "post-merge CI run 39665149622 on main 1703054: all jobs success, UI checks skipped",
+      "result": "PASS",
+      "environment": "GitHub-hosted runners",
+      "commit": "170305418bd4fbbdbf4f3b7a4ed0ac5fcdc407c4",
+      "time": "2026-10-21T20:00:00Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39657618950,
+    "conclusion": "SUCCESS",
+    "head_sha": "f5d6dfcb0df65f6b0bba667f296e88f407ff0537"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/181#issuecomment-6325053841: independent technical review D2 of a separate agent session, verdict APPROVATO on f5d6dfc; it states it is not a formal GitHub approval, and PR #181 has no formal GitHub review",
+    "reviewed_sha": "f5d6dfcb0df65f6b0bba667f296e88f407ff0537"
+  },
+  "findings": [
+    {
+      "id": "GS-1",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "the protection is not active on the VPS until S3 installs the guard, the gate and mp-deploy v3.1 (separate owner GO-S3, executed by whichever agent holds the lease on vps:matchpilot); the deploy gate is NOT certified until the S4 runtime evidence"
+    },
+    {
+      "id": "GS-6",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "S3/S4 integrity requirement (NB-D, NB-E, NB-F): installed files verified against the protected SHA-256 record; one verifier copy (69d88f58...), workflow pin blob 560959900fe9..."
+    },
+    {
+      "id": "GS-7",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "deploy-vps run 39665149747 (1703054) is pending behind the stale run 39635669968 (e127c26) in the concurrency group; rejecting the stale run is an owner action, not an agent one"
+    },
+    {
+      "id": "GS-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "B8: cancelling runs and deleting logs stay possible through the REST API"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-PR181-CONTROLLED-MERGE",
+    "MP-GATE-PR181-HARDENING",
+    "MP-GATE-S1S2-FIX",
+    "MP-VPS-ONLY-OPERATIONS-2026-10-21",
+    "MP-OWNER-AGENTS-INTERCHANGEABLE-01",
+    "MP-GITHUB-RECON-IMPLEMENTATION-01",
+    "MP-PR183-HARDENING-01"
+  ],
+  "authorizations": [
+    {
+      "id": "MP-OWNER-PR181-CONTROLLED-MERGE",
+      "source": "owner mandate in the session, registered in owner-decisions.json",
+      "scope": {
+        "task": "DEPLOY-GATE-S1S2-01",
+        "action": "merge PR #181"
+      },
+      "status": "CONSUMED",
+      "consumed_by": "squash merge 1703054 at 2026-10-21T19:50:39Z"
+    }
+  ],
+  "external_commands": [
+    {
+      "target": "github",
+      "command": "merge_pull_request #181 squash with expectedHeadSha f5d6dfc",
+      "effect": "main = 1703054 (2026-10-21T19:50:39Z)"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "scripts/deploy-authz.mjs@1703054",
+      "sha256": "69d88f58dd8c88ac8322cc737e03062b12379b1ca007a50c881176953e098a75"
+    },
+    {
+      "path": "scripts/runner-job-guard.mjs@1703054",
+      "sha256": "22566f20231808d5e107c7e30de34988f3cb49d0d85a8b16aa34fab9d1e35865"
+    },
+    {
+      "path": "scripts/deploy-gate.mjs@1703054",
+      "sha256": "1ce2dbf0667da76ef586e409809ff841e5c7a621ffa4be09e95641431eb75771"
+    },
+    {
+      "path": ".github/workflows/deploy-vps.yml@1703054 (git blob 560959900fe94ab3ce045bec466a4aa3361615b2)",
+      "sha256": "51599709ed1623810736d109f7b6de3904157163ee81d01b63f650b1ee4d8e67"
+    }
+  ],
+  "progress": {
+    "done": [
+      "PR #181 merged (1703054)",
+      "post-merge CI green",
+      "component identifiers published on #179"
+    ],
+    "in_progress": [],
+    "not_started": [
+      "S3 VPS alignment (GO-S3)",
+      "S4 runtime certification (GO-S4)",
+      "S5 enforce (separate GO)"
+    ]
+  },
+  "resources": [
+    "branch:deploy-gate-final-01"
+  ],
+  "stop_conditions": [
+    "any S3/S4 integrity mismatch stops S3 or S4 (fail closed)",
+    "no S3/S4 without its own owner GO"
+  ],
+  "vps": {
+    "source": "reports on #179 by the executing agent (declared, not verified here)",
+    "release": "3dd833f",
+    "freeze": "FREEZE=1 MODE=report (declared)",
+    "mp_deploy": "v3 07dbed21... (declared)",
+    "installed_verifier": "a4123e44... (obsolete, declared)"
+  },
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "state": "MERGED",
+  "next_action": "nothing on this task; S3 and S4 are tracked in VPS-MIGRATION-01 and need their own owner GOs",
+  "supersedes": "CP-20261021T203559Z-agent-a-claude-code",
+  "worktree": {
+    "clean": true
+  },
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "resume_conditions": [],
+  "dependencies": []
+}

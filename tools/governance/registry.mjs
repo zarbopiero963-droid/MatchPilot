@@ -1,7 +1,7 @@
 // Shared activity registry (#150): verifiable assignments, leases, one active implementation task, one writer per resource,
 // optimistic concurrency (revision compare-and-swap) and a local file lock for same-worktree writers.
 import {closeSync, existsSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync} from 'node:fs';
-import {STATES} from './checkpoints.mjs';
+import {STATES, taskResources} from './checkpoints.mjs';
 
 export const REGISTRY_SCHEMA = 'mp-work-registry-v1';
 // operations: work outside the repository (VPS, databases, services) under an owner GO; it never takes the PR slot,
@@ -30,14 +30,16 @@ export function parallelAuthorized(task, decisions) {
   return decision?.status === 'IN_FORCE' && Array.isArray(decision.parallel_tasks) && decision.parallel_tasks.includes(task.id);
 }
 
-// No dual writer (MP-OWNER-AGENTS-INTERCHANGEABLE-01): a resource (branch, registry, VPS host, database...) has at
-// most one writer, whoever the agent is. Two active leases of different holders on one resource are an error.
+// No dual writer (MP-OWNER-AGENTS-INTERCHANGEABLE-01): a resource (branch, PR, VPS host, database...) has at most one
+// writer, whoever the agent is. Two active leases of different holders on one resource are an error. The branch of an
+// implementation task and its PR are resources even when not declared (taskResources). The registry file itself is
+// protected by the revision compare-and-swap and the file lock, not by a lease.
 export function resourceConflicts(registry, now = new Date()) {
   const writers = new Map();
   const conflicts = [];
   for (const task of registry.tasks || []) {
     if (!leaseActive(task.lease, now)) continue;
-    for (const resource of task.resources || []) {
+    for (const resource of taskResources(task)) {
       const other = writers.get(resource);
       if (other && other.holder !== task.lease.holder) conflicts.push(`dual writer on ${resource}: ${other.task} (${other.holder}) and ${task.id} (${task.lease.holder})`);
       else writers.set(resource, {task: task.id, holder: task.lease.holder});
@@ -92,9 +94,10 @@ export function claim(registry, taskId, agent, now, {expectedRevision, ttlMinute
     const other = registry.tasks.find(item => item.id !== taskId && item.kind === 'implementation' && isLive(item) && !parallelAuthorized(item, decisions));
     if (other) throw new RegistryConflict('CONFLICT_PARALLEL_IMPLEMENTATION', `${other.id} is ${other.state}`);
   }
+  const wanted = taskResources(task);
   for (const other of registry.tasks) {
     if (other.id === taskId || !leaseActive(other.lease, now) || other.lease.holder === agent.id) continue;
-    const shared = (other.resources || []).filter(resource => (task.resources || []).includes(resource));
+    const shared = taskResources(other).filter(resource => wanted.includes(resource));
     if (shared.length) throw new RegistryConflict('CONFLICT_RESOURCE_LEASED', `${shared.join(', ')} written by ${other.id} (${other.lease.holder}) until ${other.lease.expires_at}`);
   }
   const lease = {holder: agent.id, acquired_at: now.toISOString(), expires_at: new Date(now.getTime() + ttlMinutes * 60e3).toISOString()};

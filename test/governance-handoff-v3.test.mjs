@@ -12,6 +12,8 @@ import {realityFor} from '../tools/governance/git.mjs';
 import {claim, release, validateRegistry} from '../tools/governance/registry.mjs';
 
 const SHA_A = 'a'.repeat(40);
+// A structured verification by the receiver (MP-PR183-HARDENING-01): never a bare sentence.
+const check = (claim, overrides = {}) => ({claim, resource: 'branch:feature', method: 'git rev-parse origin/feature', observed: SHA_A, observed_at: '2026-10-18T20:00:00Z', observer: 'agent-b', result: 'VERIFIED', ...overrides});
 const SHA_B = 'c'.repeat(40);
 
 // The v2 base of test/governance-checkpoints.test.mjs, copied so that importing it does not run its tests twice.
@@ -72,7 +74,13 @@ test('v3 handoff states are consistent and unverified claims certify nothing', (
   assert.ok(validateCheckpoint(makeV3({state: 'RUNNING', handoff: out}), context).some(e => e.includes('state HANDOFF READY')));
   assert.ok(validateCheckpoint(makeV3({state: 'HANDOFF READY', handoff: {...out, responsibilities: []}}), context).some(e => e.includes('responsibilities')));
   assert.ok(validateCheckpoint(makeV3({handoff: {status: 'IN', from: 'agent-a', to: 'agent-b', responsibilities: [], verified: []}}), context).some(e => e.includes('handoff IN')));
-  assert.deepEqual(validateCheckpoint(makeV3({handoff: {status: 'IN', from: 'agent-a', to: 'agent-b', responsibilities: [], verified: ['branch head equals commit_sha']}}), context), []);
+  assert.ok(validateCheckpoint(makeV3({handoff: {status: 'IN', from: 'agent-a', to: 'agent-b', responsibilities: [], verified: ['branch head equals commit_sha']}}), context).some(e => e.includes('must be an object')), 'a sentence is not a verification');
+  assert.deepEqual(validateCheckpoint(makeV3({handoff: {status: 'IN', from: 'agent-a', to: 'agent-b', responsibilities: [], verified: [check('state')]}}), context), []);
+  for (const key of ['claim', 'resource', 'method', 'observed', 'observer', 'observed_at', 'result']) {
+    const record = check('state');
+    delete record[key];
+    assert.ok(validateCheckpoint(makeV3({handoff: {status: 'IN', from: 'agent-a', to: 'agent-b', responsibilities: [], verified: [record]}}), context).length > 0, `verification without ${key} accepted`);
+  }
   const pending = {status: 'PENDING_VERIFICATION', from: 'agent-g', to: 'ANY', responsibilities: ['VPS claims']};
   assert.deepEqual(validateCheckpoint(makeV3({state: 'BLOCKED', handoff: pending}), context), []);
   assert.ok(validateCheckpoint(makeV3({state: 'HANDOFF READY', handoff: pending}), context).length > 0);
@@ -167,7 +175,7 @@ function relay(first, second, repo) {
   registry = claim(registry, 'R-01', {id: second, role: 'Development Agent'}, at(20), {reconciled: true});
   const taken = add(makeV3({id: cpId(at(21), second), timestamp_utc: stamp(at(21)), agent: {id: second, role: 'Development Agent', session: `s-${second}`},
     commit_sha: head(), tree_sha: tree(), supersedes: out1.id, state: 'RUNNING', next_action: 'step 2',
-    handoff: {status: 'IN', from: first, to: second, responsibilities: out1.handoff.responsibilities, verified: ['resume: zero divergences', 'tree equals checkpoint']}}));
+    handoff: {status: 'IN', from: first, to: second, responsibilities: out1.handoff.responsibilities, verified: [check('state', {observer: second, observed: head(), observed_at: stamp(at(21))})]}}));
   registry = {...registry, tasks: registry.tasks.map(item => ({...item, latest_checkpoint: taken.id}))};
 
   // While the second agent writes, the first is refused: no dual writer.
@@ -219,17 +227,20 @@ test('simulated handoff A -> B -> A on a real git repository works the same whic
   assert.deepEqual(runs[2], runs[0], 'any agent id behaves the same');
 });
 
-test('handoff IN refuses claims pending verification until the receiver lists what it verified, and a handoff addressed elsewhere', t => {
+test('handoff IN releases structured claims only with structured evidence, and refuses a handoff addressed elsewhere', t => {
   const repo = gitRepo();
   t.after(repo.cleanup);
   const sha = repo.commit('a.txt', 'a', 'a');
+  const claims = [{id: 'C1', resource: 'vps:host', statement: 'mp-deploy v3 is installed'}];
   const cp = makeV3({commit_sha: sha, tree_sha: repo.git('rev-parse', 'HEAD^{tree}'), state: 'BLOCKED',
-    handoff: {status: 'PENDING_VERIFICATION', from: 'agent-g', to: 'ANY', responsibilities: ['VPS claims']}});
+    handoff: {status: 'PENDING_VERIFICATION', from: 'agent-g', to: 'ANY', responsibilities: ['VPS claims'], claims}});
+  assert.deepEqual(validateCheckpoint(cp, context), []);
   const registry = registryFor({latest_checkpoint: cp.id});
   const now = new Date('2026-10-18T21:00:00Z');
-  const pending = handoffIn({checkpoints: [cp], registry, task: 'R-01', agentId: 'agent-z', reality: realityFor(repo.dir, cp), now});
-  assert.deepEqual(pending.problems.map(p => p.split(':')[0]), ['HANDOFF_PENDING_VERIFICATION']);
-  assert.equal(handoffIn({checkpoints: [cp], registry, task: 'R-01', agentId: 'agent-z', reality: realityFor(repo.dir, cp), now, verified: ['hash of mp-deploy read on the VPS']}).ok, true);
+  const run = evidence => handoffIn({checkpoints: [cp], registry, task: 'R-01', agentId: 'agent-z', reality: realityFor(repo.dir, cp), now, evidence});
+  assert.deepEqual(run([]).problems.map(p => p.split(':')[0]), ['HANDOFF_PENDING_VERIFICATION', 'EVIDENCE_MISSING']);
+  const good = {claim: 'C1', resource: 'vps:host', method: 'sha256sum /usr/local/sbin/mp-deploy', observed: '07dbed21', observed_at: '2026-10-18T20:50:00Z', observer: 'agent-z', result: 'VERIFIED'};
+  assert.equal(run([good]).ok, true);
   const addressed = {...cp, handoff: {...cp.handoff, status: 'NONE', to: 'agent-b'}};
   assert.deepEqual(handoffIn({checkpoints: [addressed], registry, task: 'R-01', agentId: 'agent-z', reality: realityFor(repo.dir, addressed), now}).problems.map(p => p.split(':')[0]), ['HANDOFF_ADDRESSED_ELSEWHERE']);
   assert.deepEqual(handoffIn({checkpoints: [], registry, task: 'R-01', agentId: 'agent-z', reality: {}, now}).problems.map(p => p.split(':')[0]), ['NO_CHECKPOINT']);

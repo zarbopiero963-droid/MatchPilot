@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 113,
+  "revision": 115,
   "tasks": [
     {
       "id": "R-01",
@@ -462,7 +462,7 @@
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261021T203559Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261021T212121Z-agent-a-claude-code",
       "pr_open": false
     },
     {
@@ -524,9 +524,11 @@
       "state": "BLOCKED",
       "assignee": null,
       "lease": null,
-      "latest_checkpoint": "CP-20261021T203604Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261021T212122Z-agent-a-claude-code",
       "resources": [
-        "vps:matchpilot"
+        "vps:matchpilot",
+        "db:pg18-staging",
+        "db:pg17"
       ]
     },
     {
@@ -564,12 +566,16 @@
       "pr": 183,
       "branch": "claude/gov-recon-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "RUNNING",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "lease": null,
+      "lease": {
+        "holder": "agent-a-claude-code",
+        "acquired_at": "2026-10-21T20:56:03.680Z",
+        "expires_at": "2026-10-21T22:56:03.680Z"
+      },
       "latest_checkpoint": "CP-20261021T204410Z-agent-a-claude-code",
       "parallel_authorization": "MP-GITHUB-RECON-IMPLEMENTATION-01",
       "resources": [
