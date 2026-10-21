@@ -1,0 +1,222 @@
+// MP-DEPLOY-GATE-FINAL-01: the structural policy for every GitHub Actions workflow of the repository (review B-2:
+// the earlier line and indentation rules were bypassed by valid YAML: 4-space jobs, quoted job names, flow mappings, a
+// reusable workflow called at another indentation). Each file is parsed as YAML 1.2 by the `yaml` package, strictly:
+// a parse error or warning, a duplicate key, more than one document, an anchor, an alias, a merge key or an explicit
+// tag makes the file a problem (fail closed: what this check cannot read exactly is refused). On the parsed structure:
+//   - no workflow is started by workflow_call, workflow_run or repository_dispatch, and no job calls a reusable
+//     workflow (job-level `uses`): the indirect ways to start jobs this check cannot see;
+//   - every job of every workflow runs on one literal GitHub-hosted label (a string such as ubuntu-latest: no list,
+//     group, expression or self-hosted label), except the job `deploy` of deploy-vps.yml, on [self-hosted, matchpilot-vps];
+//   - outside deploy-vps.yml, no key or value of any workflow, and no line of its text (comments included), names the
+//     VPS runner or mp-deploy;
+//   - deploy-vps.yml is exactly the canonical workflow below, and its invariants are also checked one by one so that a
+//     change is reported by name: a step that can be skipped (`if: false`), reordered, removed or rewritten, another
+//     `needs`, environment, permission, checkout, SHA or mp-deploy call, are all refused.
+// Changing the deploy workflow therefore needs this file changed in the same PR: both are owner-GO files.
+// A static check does not protect the VPS by itself: see docs/deploy-approval.md (VPS-side proof, phase B).
+import {isScalar, parseAllDocuments, visit} from 'yaml';
+
+export const DEPLOY_FILE = 'deploy-vps.yml';
+export const DEPLOY_JOB = 'deploy';
+export const VPS_RUNS_ON = Object.freeze(['self-hosted', 'matchpilot-vps']);
+export const HOSTED = /^(ubuntu|windows|macos)-[0-9A-Za-z.-]+$/;
+export const PRIVATE = /self-hosted|matchpilot-vps|mp-deploy/i;
+export const INDIRECT_EVENTS = Object.freeze(['workflow_call', 'workflow_run', 'repository_dispatch']);
+export const GATE_IF = "github.repository == 'zarbopiero963-droid/MatchPilot' && github.ref == 'refs/heads/main'";
+
+// The only accepted deploy-vps.yml, as parsed.
+export const CANONICAL_DEPLOY = Object.freeze({
+  "name": "deploy-vps",
+  "on": {
+    "push": {
+      "branches": [
+        "main"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "concurrency": {
+    "group": "deploy-vps",
+    "cancel-in-progress": false
+  },
+  "jobs": {
+    "gate": {
+      "name": "Deploy gate",
+      "if": "github.repository == 'zarbopiero963-droid/MatchPilot' && github.ref == 'refs/heads/main'",
+      "runs-on": "ubuntu-latest",
+      "timeout-minutes": 5,
+      "permissions": {
+        "contents": "read",
+        "actions": "read",
+        "deployments": "read"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "with": {
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Environment vps-production protetto e SHA ancora su main",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}"
+          },
+          "run": "set -euo pipefail\nnode scripts/deploy-gate.mjs > \"$RUNNER_TEMP/deploy-gate.json\" || { cat \"$RUNNER_TEMP/deploy-gate.json\"; echo \"DEPLOY_GATE_FAIL\"; exit 1; }\ncat \"$RUNNER_TEMP/deploy-gate.json\"\ngrep -q '\"result\": \"PASS\"' \"$RUNNER_TEMP/deploy-gate.json\" || { echo \"DEPLOY_GATE_FAIL\"; exit 1; }\n"
+        }
+      ]
+    },
+    "deploy": {
+      "needs": "gate",
+      "if": "github.repository == 'zarbopiero963-droid/MatchPilot' && github.ref == 'refs/heads/main'",
+      "runs-on": [
+        "self-hosted",
+        "matchpilot-vps"
+      ],
+      "environment": "vps-production",
+      "timeout-minutes": 30,
+      "permissions": {
+        "contents": "read",
+        "actions": "read",
+        "deployments": "read"
+      },
+      "steps": [
+        {
+          "name": "Gate dopo l'approvazione",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}",
+            "DEPLOY_SHA": "${{ github.sha }}"
+          },
+          "run": "set -euo pipefail\nfor tool in node curl grep cat; do command -v \"$tool\" >/dev/null || { echo \"DEPLOY_GATE_MISSING_TOOL: $tool\"; exit 1; }; done\ngate=\"$RUNNER_TEMP/deploy-gate-$DEPLOY_SHA.mjs\"\ncurl --fail --silent --show-error --proto '=https' --max-time 60 -o \"$gate\" \"https://raw.githubusercontent.com/zarbopiero963-droid/MatchPilot/$DEPLOY_SHA/scripts/deploy-gate.mjs\" || { echo \"DEPLOY_GATE_SCRIPT_UNREADABLE\"; exit 1; }\nnode \"$gate\" > \"$RUNNER_TEMP/deploy-gate.json\" || { cat \"$RUNNER_TEMP/deploy-gate.json\"; echo \"DEPLOY_GATE_FAIL\"; exit 1; }\ncat \"$RUNNER_TEMP/deploy-gate.json\"\ngrep -q '\"result\": \"PASS\"' \"$RUNNER_TEMP/deploy-gate.json\" || { echo \"DEPLOY_GATE_FAIL\"; exit 1; }\necho \"DEPLOY_GATE_SHA_OK $DEPLOY_SHA\"\n"
+        },
+        {
+          "name": "mp-deploy",
+          "run": "for i in 1 2 3 4 5 6 7 8 9 10; do\n  sudo -n /usr/local/sbin/mp-deploy \"${{ github.sha }}\" && exit 0\n  rc=$?; [ \"$rc\" -eq 75 ] || exit \"$rc\"\n  echo \"deploy in corso, attendo 60s\"; sleep 60\ndone\nexit 75\n"
+        }
+      ]
+    }
+  }
+});
+
+const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+
+// Parses one workflow file strictly. Returns {value, problems}.
+export function parseWorkflow(text) {
+  const problems = [];
+  let documents;
+  try {
+    documents = parseAllDocuments(String(text), {version: '1.2', uniqueKeys: true, strict: true, merge: false, prettyErrors: false});
+  } catch (error) {
+    return {value: null, problems: [`YAML_ERROR: ${String(error?.message ?? error).split('\n')[0]}`]};
+  }
+  if (!Array.isArray(documents) || documents.length !== 1) return {value: null, problems: [`YAML_DOCUMENTS: ${Array.isArray(documents) ? documents.length : 'unreadable'}`]};
+  const [document] = documents;
+  for (const error of document.errors) problems.push(`YAML_ERROR: ${error.code} ${error.message.split('\n')[0]}`);
+  for (const warning of document.warnings) problems.push(`YAML_WARNING: ${warning.code} ${warning.message.split('\n')[0]}`);
+  // Explicit tags (`!!str`, `!custom`) are the only nodes that carry a tag after parsing: refused.
+  visit(document, {
+    Alias() { problems.push('YAML_ALIAS: aliases are not accepted'); },
+    Node(_, node) {
+      if (node.anchor) problems.push(`YAML_ANCHOR: &${node.anchor}`);
+      if (node.tag) problems.push(`YAML_TAG: ${node.tag}`);
+    },
+    Pair(_, pair) {
+      if (!isScalar(pair.key)) problems.push('YAML_COMPLEX_KEY: a key that is not a scalar');
+      else if (pair.key.value === '<<') problems.push('YAML_MERGE_KEY: << is not accepted');
+      else if (typeof pair.key.value !== 'string') problems.push(`YAML_KEY_TYPE: ${JSON.stringify(pair.key.value)} is not a string key`);
+    },
+  });
+  if (problems.length) return {value: null, problems};
+  let value;
+  try { value = document.toJS({maxAliasCount: 0}); } catch (error) { return {value: null, problems: [`YAML_ERROR: ${String(error?.message ?? error).split('\n')[0]}`]}; }
+  return {value, problems};
+}
+
+// The events of `on` in its three forms; anything else is unreadable.
+export function events(on) {
+  if (typeof on === 'string') return [on];
+  if (Array.isArray(on) && on.every(item => typeof item === 'string')) return on;
+  if (plain(on)) return Object.keys(on);
+  return null;
+}
+
+// Every key and scalar value of a parsed structure, as strings.
+function scalars(value, out = []) {
+  if (Array.isArray(value)) for (const item of value) scalars(item, out);
+  else if (plain(value)) for (const [key, item] of Object.entries(value)) { out.push(key); scalars(item, out); }
+  else if (value !== null && value !== undefined) out.push(String(value));
+  return out;
+}
+
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+// The deploy workflow's invariants, one message each; then the exact canonical structure.
+export function deployProblems(workflow) {
+  const p = [];
+  const at = (what, ok) => { if (!ok) p.push(`${DEPLOY_FILE}: ${what}`); };
+  const c = CANONICAL_DEPLOY;
+  at('trigger is not exactly a push to main', same(workflow.on, c.on));
+  at('workflow permissions are not exactly contents: read', same(workflow.permissions, c.permissions));
+  at('workflow-level env or defaults are not accepted', workflow.env === undefined && workflow.defaults === undefined);
+  at('concurrency changed', same(workflow.concurrency, c.concurrency));
+  const jobs = plain(workflow.jobs) ? workflow.jobs : {};
+  at('jobs are not exactly gate and deploy', same(Object.keys(jobs), Object.keys(c.jobs)));
+  const gate = plain(jobs.gate) ? jobs.gate : {};
+  const deploy = plain(jobs.deploy) ? jobs.deploy : {};
+  at('gate: not on ubuntu-latest', gate['runs-on'] === 'ubuntu-latest');
+  at('gate: condition changed', gate.if === GATE_IF);
+  at('gate: names an environment', gate.environment === undefined);
+  at('gate: permissions changed', same(gate.permissions, c.jobs.gate.permissions));
+  at('gate: checkout changed (pinned SHA, no persisted credentials)', same(gate.steps?.[0], c.jobs.gate.steps[0]));
+  at('gate: the check step changed (scripts/deploy-gate.mjs with an explicit PASS)', same(gate.steps?.[1], c.jobs.gate.steps[1]));
+  at('gate: steps added or removed', Array.isArray(gate.steps) && gate.steps.length === c.jobs.gate.steps.length);
+  at('deploy: does not need exactly the gate job', deploy.needs === 'gate');
+  at('deploy: condition changed', deploy.if === GATE_IF);
+  at('deploy: not on [self-hosted, matchpilot-vps]', same(deploy['runs-on'], VPS_RUNS_ON));
+  at('deploy: environment is not exactly vps-production', deploy.environment === 'vps-production');
+  at('deploy: permissions changed', same(deploy.permissions, c.jobs.deploy.permissions));
+  for (const key of ['env', 'defaults', 'container', 'services', 'strategy', 'continue-on-error', 'outputs', 'uses']) at(`deploy: job-level ${key} is not accepted`, deploy[key] === undefined);
+  const steps = Array.isArray(deploy.steps) ? deploy.steps : [];
+  at('deploy: steps are not exactly the post-approval gate then mp-deploy', steps.length === 2 && steps[0]?.name === "Gate dopo l'approvazione" && steps[1]?.name === 'mp-deploy');
+  steps.forEach((step, i) => {
+    for (const key of ['if', 'continue-on-error', 'shell', 'working-directory', 'uses', 'timeout-minutes']) at(`deploy: step ${i + 1} has ${key}`, !plain(step) || step[key] === undefined);
+  });
+  at('deploy: the post-approval gate changed (env, download from the approved SHA, explicit PASS)', same(steps[0], c.jobs.deploy.steps[0]));
+  at('deploy: the mp-deploy call changed', same(steps[1], c.jobs.deploy.steps[1]));
+  at('differs from the canonical workflow', same(workflow, c));
+  return p;
+}
+
+// entries: [[file name, text]] of every file in .github/workflows (top level, .yml/.yaml: what GitHub runs).
+export function workflowPolicyProblems(entries) {
+  const problems = [];
+  if (!entries.some(([name]) => name === DEPLOY_FILE)) problems.push(`${DEPLOY_FILE} is missing`);
+  for (const [name, text] of entries) {
+    const {value, problems: parse} = parseWorkflow(text);
+    problems.push(...parse.map(problem => `${name}: ${problem}`));
+    if (!value) continue;
+    if (!plain(value)) { problems.push(`${name}: not a mapping`); continue; }
+    const list = events(value.on);
+    if (!list) problems.push(`${name}: unreadable trigger`);
+    else for (const event of INDIRECT_EVENTS) if (list.includes(event)) problems.push(`${name}: triggered by ${event}, an indirect way to start jobs`);
+    if (!plain(value.jobs) || Object.keys(value.jobs).length === 0) { problems.push(`${name}: no readable jobs`); continue; }
+    for (const [job, body] of Object.entries(value.jobs)) {
+      const where = `${name}: job ${job}`;
+      if (!plain(body)) { problems.push(`${where}: not a mapping`); continue; }
+      if (body.uses !== undefined) problems.push(`${where}: calls the reusable workflow ${body.uses}`);
+      const vpsJob = name === DEPLOY_FILE && job === DEPLOY_JOB;
+      const runsOn = body['runs-on'];
+      if (vpsJob ? !same(runsOn, VPS_RUNS_ON) : !(typeof runsOn === 'string' && HOSTED.test(runsOn))) {
+        problems.push(`${where}: runs-on ${JSON.stringify(runsOn ?? null)} is not allowed (only ${DEPLOY_FILE} job ${DEPLOY_JOB} may use the VPS runner; every other job one literal GitHub-hosted label)`);
+      }
+    }
+    if (name !== DEPLOY_FILE) {
+      const hit = scalars(value).find(item => PRIVATE.test(item));
+      if (hit) problems.push(`${name}: names the VPS runner or mp-deploy (${hit.slice(0, 80)})`);
+      else if (PRIVATE.test(String(text))) problems.push(`${name}: its text names the VPS runner or mp-deploy`);
+    } else problems.push(...deployProblems(value));
+  }
+  return problems;
+}
