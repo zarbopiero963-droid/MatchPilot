@@ -111,3 +111,68 @@ test('workflows: every way to reach the VPS runner from a pull request is refuse
     assert.match(workflowProblems(name, text).join('\n'), expected, what);
   }
 });
+
+// MP-DEPLOY-APPROVAL-01: a merge to main is not an authorization to deploy. Every job on the VPS runner deploys only to
+// the environment vps-production (whose required reviewer is the owner, checked by the gate job at run time), only
+// after the gate job, and checks that the approved SHA is still the tip of main before mp-deploy. The gate job runs on
+// a GitHub-hosted runner and cannot be skipped or made optional.
+const jobBlocks = text => {
+  const lines = code(text);
+  const at = lines.findIndex(line => /^jobs\s*:/.test(line));
+  const jobs = new Map();
+  let current = null;
+  for (const line of lines.slice(at + 1)) {
+    const head = /^\s{2}([\w-]+)\s*:\s*$/.exec(line);
+    if (head) { current = head[1]; jobs.set(current, []); } else if (current) jobs.get(current).push(line);
+  }
+  return jobs;
+};
+const field = (lines, key) => lines.filter(line => new RegExp(`^\\s{4}${key}\\s*:`).test(line)).map(line => line.replace(/^\s*[\w-]+\s*:\s*/, '').trim());
+
+export function deployApprovalProblems(text, environment) {
+  const problems = [];
+  const jobs = jobBlocks(text);
+  const gate = jobs.get('gate');
+  if (!gate) problems.push('no gate job');
+  else {
+    if (JSON.stringify(field(gate, 'runs-on')) !== '["ubuntu-latest"]') problems.push('the gate job does not run on ubuntu-latest');
+    if (!gate.some(line => line.trim() === 'run: node scripts/deploy-gate.mjs')) problems.push('the gate job does not run scripts/deploy-gate.mjs');
+    if (field(gate, 'environment').length) problems.push('the gate job names an environment');
+  }
+  if (/continue-on-error/.test(code(text).join('\n'))) problems.push('a job or step may fail without stopping the deploy');
+  for (const [name, lines] of jobs) {
+    if (!PRIVATE.test(lines.join('\n'))) continue;
+    if (JSON.stringify(field(lines, 'environment')) !== JSON.stringify([environment])) problems.push(`${name}: runs on the VPS without the environment ${environment}`);
+    if (JSON.stringify(field(lines, 'needs')) !== '["gate"]') problems.push(`${name}: runs on the VPS without needing the gate job`);
+    const steps = lines.filter(line => /^\s{6}- /.test(line));
+    if (steps[0]?.trim() !== '- name: SHA approvato ancora su main') problems.push(`${name}: the first step is not the SHA check`);
+    const check = lines.findIndex(line => line.includes('DEPLOY_GATE_STALE_SHA'));
+    const deploy = lines.findIndex(line => line.includes('/usr/local/sbin/mp-deploy'));
+    if (check < 0 || deploy < 0 || deploy < check) problems.push(`${name}: mp-deploy is not preceded by the SHA check`);
+  }
+  return problems;
+}
+
+test('deploy approval: the VPS job waits for vps-production and the gate, and checks the approved SHA first', async () => {
+  const {ENVIRONMENT} = await import('../scripts/deploy-gate.mjs');
+  const deploy = read('deploy-vps.yml');
+  assert.equal(ENVIRONMENT, 'vps-production');
+  assert.deepEqual(deployApprovalProblems(deploy, ENVIRONMENT), []);
+  const cases = [
+    ['the environment removed', deploy.replace('    environment: vps-production\n', ''), /without the environment/],
+    ['another environment', deploy.replace('environment: vps-production', 'environment: production'), /without the environment/],
+    ['an environment from an expression', deploy.replace('environment: vps-production', 'environment: ${{ inputs.env }}'), /without the environment/],
+    ['the gate dependency removed', deploy.replace('    needs: gate\n', ''), /without needing the gate job/],
+    ['the gate job removed', deploy.replace(/  gate:\n[\s\S]*?(?=  deploy:)/, ''), /no gate job/],
+    ['the gate made optional', deploy.replace('    timeout-minutes: 5\n', '    timeout-minutes: 5\n    continue-on-error: true\n'), /may fail without stopping/],
+    ['the gate check not run', deploy.replace('run: node scripts/deploy-gate.mjs', 'run: echo ok'), /does not run scripts\/deploy-gate\.mjs/],
+    ['the gate on the VPS runner', deploy.replace('    runs-on: ubuntu-latest\n    timeout-minutes: 5', '    runs-on: [self-hosted, matchpilot-vps]\n    timeout-minutes: 5'), /gate job does not run on ubuntu-latest/],
+    ['the SHA check removed', deploy.replace(/      - name: SHA approvato ancora su main\n[\s\S]*?(?=      # Nessun checkout)/, ''), /first step is not the SHA check|not preceded/],
+    ['mp-deploy before the SHA check', deploy.replace(/(      - name: SHA approvato ancora su main\n[\s\S]*?)(      # Nessun checkout[\s\S]*)$/, '$2$1'), /first step is not the SHA check|not preceded/],
+    ['a second VPS job without approval', `${deploy}  again:\n    if: ${GATE}\n    runs-on: [self-hosted, matchpilot-vps]\n    steps:\n      - run: sudo -n /usr/local/sbin/mp-deploy x\n`, /again: runs on the VPS without the environment/],
+  ];
+  for (const [what, text, expected] of cases) {
+    assert.notEqual(text, deploy, `${what}: the tampering applies`);
+    assert.match(deployApprovalProblems(text, ENVIRONMENT).join('\n'), expected, what);
+  }
+});
