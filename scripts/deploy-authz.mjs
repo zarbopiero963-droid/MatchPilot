@@ -149,9 +149,111 @@ export function approvalProblems(approvals) {
   return ok ? [] : ['AUTHZ_NO_OWNER_APPROVAL'];
 }
 
-// CLI for mp-deploy v3 (phase B): the token on stdin, never on the command line.
-//   node deploy-authz.mjs verify  --sha <sha> --jwks <file> --ledger <dir>   exit 0 = valid and unused
-//   node deploy-authz.mjs consume --sha <sha> --jwks <file> --ledger <dir>   exit 0 = valid, unused, now recorded
+// ---- MP-GATE-S1S2-FIX: anti-stale. Only the current tip of refs/heads/main may be deployed (owner requirement #97
+// 6321186934). The tip is read from two GitHub sources, which must agree with each other and with the SHA asked for:
+// the git smart-HTTP ref advertisement and the REST branch. Public reads, no token. Any doubt (network, timeout, an HTTP
+// status other than 200, a malformed or oversized answer, the two sources disagreeing, as briefly after a merge) refuses.
+// mp-deploy v3.1 runs it under its lock twice: after consume, and just before switching the release.
+export const GITHUB_API = `https://api.github.com/repos/${EXPECTED.repository}`;
+export const TIP_SOURCES = Object.freeze({
+  refs: `https://github.com/${EXPECTED.repository}.git/info/refs?service=git-upload-pack`,
+  api: `${GITHUB_API}/branches/main`,
+});
+export const HTTP_TIMEOUT_MS = 10000;
+export const HTTP_LIMIT = 1 << 20;
+
+// One GET over HTTPS, no redirect, bounded in time and size; anything but a 200 throws. JSON is decoded as UTF-8; the
+// git ref advertisement as latin1, one character per byte, because its pkt-line lengths count bytes (review NB-B).
+export async function httpText(url, {accept = 'application/vnd.github+json', encoding = 'utf8'} = {}) {
+  const response = await fetch(url, {headers: {accept, 'user-agent': 'matchpilot-gate', 'x-github-api-version': '2022-11-28'},
+    redirect: 'error', signal: AbortSignal.timeout(HTTP_TIMEOUT_MS)});
+  if (response.status !== 200) throw new Error(`HTTP ${response.status}`);
+  const declared = Number(response.headers.get('content-length') ?? 0);
+  if (declared > HTTP_LIMIT) throw new Error('answer too large');
+  const body = Buffer.from(await response.arrayBuffer());
+  if (body.length > HTTP_LIMIT) throw new Error('answer too large');
+  return body.toString(encoding === 'latin1' ? 'latin1' : 'utf8');
+}
+export const httpJson = async url => JSON.parse(await httpText(url));
+
+// The SHA of refs/heads/main in a git-upload-pack ref advertisement (protocol v0), read strictly: the service line, a
+// flush, then pkt-lines "<sha> <ref>" (the first with capabilities after NUL), a final flush and nothing after it.
+// `text` holds one character per byte (latin1), so pkt-line lengths and string lengths agree. Ref names are printable
+// ASCII only: any other ref line, even of another branch, refuses (fail closed).
+export function mainFromAdvertisement(text) {
+  if (typeof text !== 'string') return {problem: 'TIP_REFS_MALFORMED: not text'};
+  const lines = [];
+  let at = 0;
+  let flushes = 0;
+  while (at < text.length) {
+    const size = text.slice(at, at + 4);
+    if (!/^[0-9a-f]{4}$/.test(size)) return {problem: 'TIP_REFS_MALFORMED: bad pkt-line length'};
+    const length = parseInt(size, 16);
+    if (length === 0) { flushes += 1; at += 4; if (flushes === 2) break; continue; }
+    if (length < 5 || at + length > text.length) return {problem: 'TIP_REFS_MALFORMED: truncated pkt-line'};
+    lines.push({flush: flushes, line: text.slice(at + 4, at + length)});
+    at += length;
+  }
+  if (flushes !== 2 || at !== text.length) return {problem: 'TIP_REFS_MALFORMED: missing final flush or data after it'};
+  if (lines.length < 2 || lines[0].flush !== 0 || lines[0].line !== '# service=git-upload-pack\n' || lines.slice(1).some(item => item.flush !== 1)) {
+    return {problem: 'TIP_REFS_MALFORMED: not a git-upload-pack advertisement'};
+  }
+  const mains = [];
+  for (const [i, {line}] of lines.slice(1).entries()) {
+    if (!line.endsWith('\n')) return {problem: 'TIP_REFS_MALFORMED: bad ref line'};
+    const body = line.slice(0, -1);
+    const match = /^([0-9a-f]{40}) ([!-~]+)$/.exec(i === 0 ? body.split('\0')[0] : body);
+    if (!match) return {problem: 'TIP_REFS_MALFORMED: bad ref line'};
+    if (match[2] === 'refs/heads/main') mains.push(match[1]);
+  }
+  if (mains.length !== 1) return {problem: `TIP_REFS_MALFORMED: ${mains.length} lines for refs/heads/main`};
+  return {sha: mains[0]};
+}
+
+// {tip, problems}: tip is the SHA both sources agree on, or null.
+export async function readMainTip({fetchText = httpText} = {}) {
+  const problems = [];
+  let fromRefs = null;
+  let fromApi = null;
+  try {
+    const parsed = mainFromAdvertisement(await fetchText(TIP_SOURCES.refs, {accept: 'application/x-git-upload-pack-advertisement', encoding: 'latin1'}));
+    if (parsed.problem) problems.push(parsed.problem); else fromRefs = parsed.sha;
+  } catch (error) { problems.push(`TIP_UNVERIFIABLE: refs ${String(error?.message ?? error).split('\n')[0]}`); }
+  try {
+    const body = JSON.parse(await fetchText(TIP_SOURCES.api, {}));
+    const sha = plain(body) && body.name === 'main' && plain(body.commit) ? body.commit.sha : null;
+    if (typeof sha === 'string' && SHA.test(sha)) fromApi = sha; else problems.push('TIP_API_MALFORMED');
+  } catch (error) { problems.push(`TIP_UNVERIFIABLE: api ${String(error?.message ?? error).split('\n')[0]}`); }
+  if (fromRefs && fromApi && fromRefs !== fromApi) problems.push(`TIP_UNVERIFIABLE: sources disagree (refs ${fromRefs}, api ${fromApi})`);
+  return {tip: problems.length ? null : fromRefs, problems};
+}
+
+// The reasons not to deploy `sha` given what readMainTip found. It never offers another SHA to deploy instead.
+export function tipProblems({tip, problems}, sha) {
+  if (typeof sha !== 'string' || !SHA.test(sha)) return [`TIP_SHA_ARGUMENT: ${JSON.stringify(sha)}`];
+  if (!Array.isArray(problems)) return ['TIP_UNVERIFIABLE'];
+  if (problems.length) return problems;
+  if (typeof tip !== 'string' || !SHA.test(tip)) return ['TIP_UNVERIFIABLE'];
+  if (tip !== sha) return [`TIP_STALE: main is ${tip}, not ${sha}: approve the run of ${tip} instead`];
+  return [];
+}
+
+// The owner's approval of this run, read from GitHub (public read): only the owner's account can approve, since the
+// agents' GitHub App has no Deployments permission (#179 6321726326). Refuses on any read error. GitHub's review
+// history of a run has no attempt and no time, so an approval proves something only for the first attempt: a re-run
+// is refused (fail closed; PR #181, owner point 2).
+export async function runApprovalProblems(runId, {runAttempt, fetchJson = httpJson} = {}) {
+  if (typeof runId !== 'string' || !DIGITS.test(runId)) return [`AUTHZ_RUN_ID: ${JSON.stringify(runId)}`];
+  if (runAttempt !== '1') return [`AUTHZ_RERUN_APPROVAL_UNBOUND: attempt ${JSON.stringify(runAttempt)}`];
+  try { return approvalProblems(await fetchJson(`${GITHUB_API}/actions/runs/${runId}/approvals`)); }
+  catch (error) { return [`AUTHZ_APPROVALS_UNREADABLE: ${String(error?.message ?? error).split('\n')[0]}`]; }
+}
+
+// CLI for mp-deploy v3 (phase B) and v3.1 (MP-GATE-S1S2-FIX): the token on stdin, never on the command line.
+//   node deploy-authz.mjs verify   --sha <sha> --jwks <file> --ledger <dir>   exit 0 = valid and unused
+//   node deploy-authz.mjs consume  --sha <sha> --jwks <file> --ledger <dir>   exit 0 = valid, unused, now recorded
+//   node deploy-authz.mjs main-tip --sha <sha>        exit 0 = <sha> is the tip of main for both sources (anti-stale)
+//   node deploy-authz.mjs approved --run-id <id> --run-attempt <n>   exit 0 = attempt 1, approved by the owner
 // Any other outcome, including an exception, exits 1 with the reasons on stdout as JSON.
 const entryUrl = (() => { try { return pathToFileURL(realpathSync(process.argv[1])).href; } catch { return null; } })();
 if (entryUrl === import.meta.url) {
@@ -159,17 +261,26 @@ if (entryUrl === import.meta.url) {
   const mode = process.argv[2];
   let result;
   try {
-    if (mode !== 'verify' && mode !== 'consume') throw new Error('mode must be verify or consume');
-    const ledger = arg('ledger');
-    if (!ledger) throw new Error('--ledger is required');
-    // Review NB-12: a wrong ledger path must not read as "never used": the directory must exist.
-    if (!statSync(ledger).isDirectory()) throw new Error(`ledger ${ledger} is not a directory`);
-    const jwks = JSON.parse(readFileSync(arg('jwks'), 'utf8'));
-    const token = readFileSync(0, 'utf8').trim();
-    const verified = verifyDeployToken({token, jwks, sha: arg('sha'), now: Math.floor(Date.now() / 1000), seen: key => ledgerHas(ledger, key)});
-    result = {ok: verified.ok, reasons: verified.reasons};
-    if (verified.ok && mode === 'consume') result = consume(ledger, verified.record);
-    result.run = verified.claims ? {run_id: verified.claims.run_id, run_attempt: verified.claims.run_attempt, workflow_sha: verified.claims.workflow_sha} : null;
+    if (mode === 'main-tip') {
+      const tip = await readMainTip();
+      const reasons = tipProblems(tip, arg('sha'));
+      result = {ok: reasons.length === 0, reasons, tip: tip.tip};
+    } else if (mode === 'approved') {
+      const reasons = await runApprovalProblems(arg('run-id'), {runAttempt: arg('run-attempt')});
+      result = {ok: reasons.length === 0, reasons};
+    } else {
+      if (mode !== 'verify' && mode !== 'consume') throw new Error('mode must be verify, consume, main-tip or approved');
+      const ledger = arg('ledger');
+      if (!ledger) throw new Error('--ledger is required');
+      // Review NB-12: a wrong ledger path must not read as "never used": the directory must exist.
+      if (!statSync(ledger).isDirectory()) throw new Error(`ledger ${ledger} is not a directory`);
+      const jwks = JSON.parse(readFileSync(arg('jwks'), 'utf8'));
+      const token = readFileSync(0, 'utf8').trim();
+      const verified = verifyDeployToken({token, jwks, sha: arg('sha'), now: Math.floor(Date.now() / 1000), seen: key => ledgerHas(ledger, key)});
+      result = {ok: verified.ok, reasons: verified.reasons};
+      if (verified.ok && mode === 'consume') result = consume(ledger, verified.record);
+      result.run = verified.claims ? {run_id: verified.claims.run_id, run_attempt: verified.claims.run_attempt, workflow_sha: verified.claims.workflow_sha} : null;
+    }
   } catch (error) {
     result = {ok: false, reasons: [`AUTHZ_ERROR: ${String(error?.message ?? error).split('\n')[0]}`]};
   }

@@ -4,10 +4,12 @@ A merge to `main` must not be an authorization to deploy. Before this change, ev
 
 With this change, the deploy job runs only after three things:
 - the owner approves that run on GitHub;
-- the gate checks GitHub's configuration again, at every attempt;
+- the gate checks GitHub's configuration again after the approval, from a root-installed copy on the VPS (a re-run is refused, §8.7);
 - `mp-deploy` v3 checks a fresh OIDC proof of that approved run (phase B).
 
-**Code ready is not protection active.** Nothing here is merged, configured or installed. The merge, the environment, the VPS side and #178 each need their own owner GO.
+**Code ready is not protection active.** PR #180 is merged (`e127c26`), `vps-production` is configured by the owner and `mp-deploy` v3 runs on the VPS in freeze (Grok, #179 6320706638) **[NOT VERIFIED by Claude]**. Enforcement, the VPS side of §8 and #178 each need their own owner GO.
+
+**§8 (MP-GATE-S1S2-FIX)** closes review B4 (an agent-merged change to `deploy-vps.yml` could run code on the VPS without approval) and adds the anti-stale rule (only the tip of `main` may be deployed).
 
 **Owner decisions**
 - #97 comments 6313461364 (MP-DEPLOY-APPROVAL-01), 6314059221 (triage) and 6316562293 (PR exception);
@@ -131,7 +133,7 @@ In every case it still writes its structured report, listing the settings read, 
 
 **It runs twice:**
 - in the `gate` job, with an explicit `"result": "PASS"` required **[STATIC]**;
-- in the `deploy` job, after the approval and at every attempt. A re-run of the deploy job alone does not re-run `gate`. This second run downloads the script from the approved SHA and requires `PASS` before `mp-deploy` **[SIMULATION: the step's own bash, fake curl, real node, fake API]**.
+- in the `deploy` job, after the approval, and again before every retry after a busy lock. A re-run of the run is refused by the runner's job-start guard (§8.2, §8.7), so no approval is reused. This second run uses the copy installed and pinned by root on the VPS (`/usr/local/libexec/mp-gate/deploy-gate.mjs`, §8.2), never code from the approved commit, and requires `PASS` before `mp-deploy` **[SIMULATION: the step's own bash, real node, fake API]**. Until that copy is installed the step stops with `DEPLOY_GATE_NOT_INSTALLED`.
 
 The script runs its checks from a path with spaces or through a symlink **[SIMULATION]** (review NB-2).
 
@@ -287,7 +289,7 @@ node deploy-authz.mjs consume --sha <sha> --jwks <file> --ledger <dir>
 
 | Step | What | Evidence | STOP if |
 |---|---|---|---|
-| B0 | read-only, as `ghrunner` and as root: `node` ≥ 20, `curl`, `grep`, `cat`; HTTPS to `raw.githubusercontent.com`, `api.github.com`, `token.actions.githubusercontent.com`; the runner's labels (none of the hosted allow-list); the guard's source (variables read: `GITHUB_WORKFLOW_REF`, event, ref, repository); the fork-workflow approval setting; hashes of `mp-deploy` and the guard | command output | anything missing, or the guard reading `GITHUB_WORKFLOW` |
+| B0 | read-only, as `ghrunner` and as root: `node` ≥ 20, `curl` (OIDC request only), `grep`, `cat`; HTTPS to `api.github.com`, `github.com` (git ref advertisement) and `token.actions.githubusercontent.com` (no script is downloaded from `raw.githubusercontent.com` any more: §8.2); the installed `/usr/local/libexec/mp-gate/*` (owner, mode, SHA-256 against the protected record, §8.2 "Integrity"); the runner's labels (none of the hosted allow-list); the guard's source (variables read: `GITHUB_WORKFLOW_REF`, event, ref, repository); the fork-workflow approval setting; hashes of `mp-deploy` and the guard | command output | anything missing, or the guard reading `GITHUB_WORKFLOW` |
 | B1 | install v3 + verifier + ledger in **freeze + report** | file hashes; `mp-deploy` of the current SHA → `ALREADY_DEPLOYED`; of any other SHA → refused (freeze) | any other behaviour |
 | B1-old | owner, deliberately: re-run run 39412733270 | `ALREADY_DEPLOYED`, no change (freeze: an older SHA would be refused) | any change on the VPS |
 | B3 | after phase D, switch to **enforce**, lift **freeze** | config hash; `deploy.log` | — |
@@ -308,8 +310,8 @@ node deploy-authz.mjs consume --sha <sha> --jwks <file> --ledger <dir>
 | 6 | re-run all jobs of that run | owner | `gate` PASS, report showing the settings; `deploy` *Waiting* | `GATE_API_ERROR … 403` (token cannot read the environment), missing fields, or `deploy` starting |
 | 7 | D1: wait 10 min | owner | still waiting | it starts |
 | 8 | D2: reject | owner | run fails; no new `deploy.log` line | anything on the VPS |
-| 9 | D3: re-run failed jobs | owner | `deploy` waits again | it starts without approval |
-| 10 | D4: reject, then re-run all jobs | owner | `gate` again, `deploy` waits | it starts without approval |
+| 9 | D3: re-run failed jobs | owner | `deploy` waits again; once approved, the job-start guard refuses it (`GUARD_RERUN_APPROVAL_UNBOUND`, §8.7) | it starts without approval, or the guard allows it |
+| 10 | D4: reject, then re-run all jobs | owner | `gate` again, `deploy` waits; once approved, refused by the guard as in step 9 | it starts without approval, or the guard allows it |
 | 11 | D5: approve | owner | post-approval gate PASS; token sent; `mp-deploy` v3 logs ACCEPT (report) and refuses the new SHA (freeze) | REFUSE in report, or a deploy |
 | 12 | B3: enforce on, freeze off; then D5 again (a new approval) | owner GO, Grok | ACCEPT, deploy of the gate commit (application unchanged from `3dd833f`); health | any failed check |
 | 13 | D6, D7 | Grok, owner | §3.5 | §3.5 |
@@ -355,7 +357,7 @@ PyYAML 6.0.1 gives the same jobs as `yaml` for the B-1/B-2 attack files. That is
 - 20 equivalent YAML forms;
 - 20 unreadable forms;
 - 8 key, event and label cases with 2 accepted ordinary workflows;
-- 44 changes to `deploy-vps.yml`;
+- 46 changes to `deploy-vps.yml`;
 - 4 changes to `ci.yml`.
 
 ### 5.2 Mutations
@@ -393,8 +395,8 @@ The full matrix, with ID, component, change, observed result, class and the test
 | 2 | YAML forms and encodings | strict UTF-8, one character policy by Unicode category, strict YAML 1.2 parser | [STATIC] 40 forms, 25 refused characters, B-4 and B-5 attacks + PyYAML, Ruby/libyaml | GitHub's own parser on NEL/LS/PS and a lone CR: NOT VERIFIED (refused anyway) |
 | 3 | paths to the VPS runner and `mp-deploy` | label allow-list, single exception, name scan; VPS guard; `mp-deploy` v3 | [STATIC]; guard [NOT VERIFIED] | B0, D7 |
 | 4 | triggers and reusable workflows | event allow-list, no job `uses` | [STATIC] | — |
-| 5 | canonical deploy workflow | exact structure + named invariants | [STATIC] 43 changes | — |
-| 6 | full re-run, single-job re-run | environment on the job; post-approval gate | [STATIC]; [SIMULATION] | steps 9–10 |
+| 5 | canonical deploy workflow | exact structure + named invariants | [STATIC] 46 changes | — |
+| 6 | full re-run, single-job re-run | environment on the job; job-start guard refuses any attempt but the first; post-approval gate | [STATIC]; [SIMULATION] | steps 9–10 |
 | 7 | runs before the gate | `mp-deploy` freeze, then OIDC enforcement | [SIMULATION] verifier | B1-old, D7 |
 | 8 | OIDC trust, replay, concurrency | verifier + ledger | [SIMULATION] incl. races, fsync | D6 |
 | 9 | environment configuration | gate script, twice | [SIMULATION] | steps 6, 11 |
@@ -405,7 +407,173 @@ The full matrix, with ID, component, change, observed result, class and the test
 
 1. **Same GitHub identity.**
    - The agents act through the owner's account. They cannot approve deployments or touch environments **[GITHUB: 403]**.
-   - They can merge a PR, since the rulesets require only a PR and `CI gate`. Governance alone stops a PR that rewrites the workflow and the policy together, until enforcement.
+   - They can merge a PR, since the rulesets require only a PR and `CI gate`. A PR that rewrites the workflow and the policy together is stopped on the VPS by the job-start guard of §8, once installed.
 2. **Until step 3**, the exposure is unchanged from today: the old run 39412733270 can be re-run (`ALREADY_DEPLOYED`).
 3. **Concurrency of waiting runs** is **[NOT VERIFIED]**. Reject a stale run; the post-approval gate refuses a stale SHA anyway **[SIMULATION]**.
-4. **The retry window** between the post-approval gate and `mp-deploy` (up to about 10 min). Each try's token is bound to the approved SHA; whether `main` has moved meanwhile is checked only by `mp-deploy` **[NOT VERIFIED]**.
+4. **The retry window** between the post-approval gate and `mp-deploy` (up to about 10 min): closed by §8.3 (the gate runs again before every retry) **[SIMULATION]**, and under the lock by `mp-deploy` v3.1 (§8.4).
+
+## 8. MP-GATE-S1S2-FIX: no code on the VPS without the owner's approval, and only the tip of `main`
+
+Owner requirements:
+- anti-stale, #97 6321186934;
+- agent permissions, #179 6321275419;
+- S1 audit, #179 6321726326 (findings B4 and B8);
+- implementation GO in session (2026-10-21).
+
+### 8.1 What GitHub can and cannot separate
+
+- **One identity.** The owner and the agents act on GitHub as the same account, `zarbopiero963-droid`; the owner keeps this account as the only approver. The agents use the Claude GitHub App, which has these permissions **[GITHUB: owner's screen]**:
+  - Administration: read;
+  - Actions, Checks, Contents, Issues, Pull requests, Repository hooks and Workflows: read/write;
+  - **no Deployments**.
+- **Approving is the one owner-only act.** An approval call with the app's token was refused with `403 Resource not accessible by integration` **[GITHUB, 21/10]**. Approving a deployment is therefore the one act GitHub reserves to the owner's own sessions (browser or mobile).
+- **The installer cannot narrow the app.** GitHub's documentation describes the installer as granting the permissions the app requests. The installer's controls are repository access, suspension and removal. Removing only Workflows or Actions from the Claude app is **[NOT VERIFIED: not offered by GitHub's documentation]**.
+- **Branch rules cannot tell owner and agent apart.** A PR opened by an agent is authored by the owner's account, so the owner cannot approve it. A code-owner rule on `.github/workflows/**` would therefore block every such PR, including the owner's own changes, unless a bypass is used. The bypass belongs to the same account, so it does not tell the owner from the agents either.
+- **Push rulesets (file path restrictions)** are documented for private and internal repositories only.
+- **Conclusion.** No setting on GitHub's free plan separates the owner from the agents on merges. The barrier is put where the agents cannot reach: the VPS, keyed on the owner's approval.
+
+### 8.2 Job-start guard of the VPS runner (`scripts/runner-job-guard.mjs`, tested by `test/governance-runner-guard.test.mjs`)
+
+**Finding B4.**
+- A PR merged by an agent can change `deploy-vps.yml`, for example by dropping `environment` or adding a job, together with `workflow-policy.mjs` and its tests. `CI gate` stays green.
+- The push to `main` then starts a job on the VPS runner. The current guard allows `deploy-vps.yml` + `push` + `main` without looking at the file **[NOT VERIFIED: Grok's report]**.
+- That job would run code as `ghrunner` with no approval. It could not deploy (v3 freeze; in enforce, no token for `vps-production`), but it could execute code.
+
+**The guard** is the runner's `ACTIONS_RUNNER_HOOK_JOB_STARTED` script. GitHub runs it after a job is assigned and before any step; any exit code other than 0 fails the job before it runs **[NOT VERIFIED: GitHub documentation]**. It allows a job only when all of these hold. Facts are read from GitHub with public, unauthenticated reads; any read error refuses.
+
+| Check | Read from | Refusal |
+|---|---|---|
+| repository, `push`, `refs/heads/main`, `GITHUB_WORKFLOW_REF` = `deploy-vps.yml@refs/heads/main`, job `deploy`, numeric run id/attempt, SHA, runner name | runner environment (GitHub does not let a workflow overwrite `GITHUB_*`) | `GUARD_REPOSITORY`, `GUARD_EVENT`, `GUARD_REF`, `GUARD_WORKFLOW`, `GUARD_JOB`, … (no GitHub read at all) |
+| first attempt only: GitHub's review history of a run (`GET …/approvals`) carries no attempt and no time, so an approval cannot be tied to a re-run | runner environment | `GUARD_RERUN_APPROVAL_UNBOUND` (no GitHub read) |
+| the run: id, attempt, `push`, branch `main`, head SHA, path `.github/workflows/deploy-vps.yml`, repository, **in progress and without a conclusion** | `GET /actions/runs/{id}` | `GUARD_RUN_MISMATCH` (also catches a run id pointing at another, approved run) |
+| this attempt has exactly one job `deploy`, assigned to this runner, **`in_progress` and without a conclusion** (not completed, cancelled, queued or waiting) | `GET /actions/runs/{id}/attempts/{n}/jobs` | `GUARD_JOB_NOT_ASSIGNED_HERE`, `GUARD_JOB_NOT_ACTIVE` |
+| `deploy-vps.yml` at that SHA is byte for byte the pinned file: its git blob SHA equals `workflow_blob_sha` in the root-owned config | `GET /contents/.github/workflows/deploy-vps.yml?ref=<sha>` | `GUARD_WORKFLOW_NOT_PINNED` |
+| the owner approved `vps-production` for this run, and nothing of it still waits | `GET …/approvals`, `GET …/pending_deployments` | `GUARD_NO_OWNER_APPROVAL`, `GUARD_DEPLOYMENT_STILL_WAITING` |
+| the SHA is the tip of `main` for both sources (§8.4) | git ref advertisement and `GET /branches/main` | `TIP_STALE`, `TIP_UNVERIFIABLE`, `TIP_REFS_MALFORMED` |
+
+**Why the hash alone is not enough.**
+- **Hash pin:** stops a changed workflow, even one that was approved.
+- **Approval:** stops an unchanged workflow started without the owner's approval. Removing `environment` would need a changed file, but the approval check refuses even if a pin were wrong.
+- **Run, job and runner checks:** stop a job that points at another, approved run, or at a job of this run that is already over (review NB-1).
+- **First attempt only:** stops an approval given to an earlier attempt from counting for a re-run (review NB-2).
+- **Anti-stale:** stops an approval of an older run.
+- **The guard runs before every job on that runner,** whatever starts it: another workflow, a branch, a fork, `workflow_dispatch` or a re-run.
+- **No security code from the commit runs on the VPS** (owner hardening point 4, review NB-5). The `deploy` job runs only:
+  - the inline bash of the pinned `deploy-vps.yml`;
+  - the gate script installed by root, `/usr/local/libexec/mp-gate/deploy-gate.mjs`, after the approval and before every retry;
+  - `sudo mp-deploy`, root-owned.
+
+  The job checks out nothing and downloads no script. The application code of the approved commit is fetched and built by `mp-deploy` itself (the release being deployed), not by the job.
+
+**Install (Grok, separate owner GO):**
+- copy `scripts/deploy-authz.mjs`, `scripts/runner-job-guard.mjs` and `scripts/deploy-gate.mjs` at the merged SHA into `/usr/local/libexec/mp-gate/` (0755 root:root, files 0644, SHA-256 recorded in the infra repository). The guard imports `./deploy-authz.mjs`; the workflow runs `deploy-gate.mjs` from there;
+- write the config `/etc/mp-deploy/runner-guard.json`, root:root 0644: `{"workflow_blob_sha": "<git hash-object .github/workflows/deploy-vps.yml at the merged SHA>"}`. The value is the same as the `sha` the contents API returns;
+- extend the existing hook, referenced from `/opt/actions-runner/.env`, which is root:ghrunner 0640. Keep its current checks, then add `node /usr/local/libexec/mp-gate/runner-job-guard.mjs /etc/mp-deploy/runner-guard.json`, logging its JSON line to the journal (`logger -t mp-runner-guard`);
+- any later change to `deploy-vps.yml` needs a new pin by root, which needs an owner GO.
+
+**Integrity of the installed scripts (binding requirement for S3 and S4, owner mandate PR #181 FINAL DELTA CLOSURE, review NB-D).** The workflow only checks that `/usr/local/libexec/mp-gate/deploy-gate.mjs` exists (`[ -f ]`). Its integrity rests on root ownership and on a protected record. Before S3 is certified and at every S4 test run, Grok must verify, and report in #179, that:
+- the directory `/usr/local/libexec/mp-gate/` and each file in it (`deploy-gate.mjs`, `deploy-authz.mjs`, `runner-job-guard.mjs`) are owned by root:root, the directory 0755 and the files 0644, with no group or other write bit, no ACL and no symlink, and that no ancestor directory is writable by anyone but root;
+- the same holds for the config `/etc/mp-deploy/runner-guard.json` and the hook referenced from `/opt/actions-runner/.env`;
+- the SHA-256 of each file equals the value recorded at install in the root-owned infra repository on the VPS (`installed/SHA256SUMS.installed`, the protected source of verification). That value in turn equals the SHA-256 of the same file at the merged commit of `main`, recomputed from GitHub at install time;
+- `ghrunner` cannot write, rename or replace any of these paths (tested as `ghrunner`, as T11 in #179 6320706638).
+
+A mismatch stops S3 or S4 (fail closed). Making the hook itself check these hashes at every job is a possible later hardening, with its own owner GO. It is not in this PR.
+
+### 8.3 Anti-stale in the workflow (`deploy-vps.yml`, step `mp-deploy`)
+
+**Before every retry** after a busy lock (exit 75), the step runs again the root-installed gate script. A merge on `main` during the wait therefore stops the run with `GATE_SUPERSEDED` before another token is requested **[SIMULATION; RED on `e127c26`: the step retried with a new token]**. Exit codes other than 75, including `mp-deploy` v3.1's 79, are not retried.
+
+**A superseded run** writes on its own page, in the step summary: "Run obsoleto: non approvarlo", the SHA of this run, and the tip of `main` to approve instead. It approves nothing and never deploys another SHA.
+
+### 8.4 Anti-stale in `mp-deploy` v3.1 (Grok, separate owner GO)
+
+New verifier commands:
+- `deploy-authz.mjs main-tip --sha <sha>` reads the tip of `refs/heads/main` from two sources:
+  - the git smart-HTTP ref advertisement, read strictly: pkt-lines, exactly one `refs/heads/main`, nothing after the final flush;
+  - `GET /branches/main`.
+
+  Each read has a 10 s timeout, a 1 MiB limit, no redirect and must answer 200. The two sources must agree with each other and with `<sha>`.
+- `deploy-authz.mjs approved --run-id <id> --run-attempt <n>` checks the owner's approval of that run, for attempt 1 only (`AUTHZ_RERUN_APPROVAL_UNBOUND` otherwise).
+
+**Order in v3.1:**
+1. stdin;
+2. validate `<sha>`;
+3. freeze (78);
+4. `verify` (77);
+5. lock (75, nothing consumed);
+6. `consume`;
+7. `approved --run-id <run_id> --run-attempt <run_attempt>` of the token (77);
+8. `main-tip` (79);
+9. fetch and build **`<sha>` only, never a substitute**;
+10. `main-tip` again (79), just before the atomic switch of `current`;
+11. switch, restart, health.
+
+A refusal at steps 7–10 leaves `current` and `deployed` unchanged and the token consumed.
+
+**Guarantee.**
+- Under the lock, no switch happens without a successful second tip check.
+- An SHA superseded by a merge that GitHub shows before that check is refused, even with a valid token and the owner's approval.
+
+**Limits.**
+- The propagation delay of GitHub just after a merge: the two sources disagree, which counts as `TIP_UNVERIFIABLE`.
+- The milliseconds between the second check and the switch.
+- A merge after that check is deployed by its own run, once approved (forward-only).
+
+**Acceptance (S4/S5).** For every `DEPLOYED` line of `deploy.log`:
+- the SHA equals the tip both sources gave at the second check;
+- that check ended at most 5 s before the switch;
+- the run had the owner's approval.
+
+### 8.5 B8: cancelling runs and deleting run logs
+
+The app's Actions: write lets an agent cancel a run or delete its logs. That cannot approve or deploy anything (availability and evidence only), and GitHub does not let the installer remove that permission (§8.1).
+
+Defenses:
+- `.claude/settings.json` denies the GitHub MCP tool `actions_run_trigger` (re-run, cancel, delete logs, dispatch) in Claude Code sessions on this repository. This is a harness rule, not a GitHub barrier: a session could still use the REST API through its shell, and the file is part of the repository.
+- The authoritative evidence of every deploy is on the VPS, where the agents cannot write: `deploy.log`, the OIDC ledger and the guard's journal lines. GitHub's run logs are a copy.
+
+### 8.6 Tests (this PR)
+
+| Area | Cases | Evidence |
+|---|---|---|
+| guard | allowed job; changed workflow even approved; no environment; extra job; `ci.yml`, `pull_request`, `workflow_dispatch`, branch, fork on the VPS runner; approval by another user, rejected, for another environment, unreadable; still waiting; job on another runner, two `deploy` jobs; run id pointing at another run (SHA, attempt, path, event, branch, repository); merges A/B/C; API down, workflow unreadable, tip source down, sources disagreeing, malformed refs; bad config; CLI | [SIMULATION] `test/governance-runner-guard.test.mjs` |
+| tip and approval | strict ref advertisement (14 malformed forms); agree, stale, three merges; a source down or malformed, disagreement; HTTP 200 only, no redirect, size limit (local server); run approval read and refusals; CLI arguments | [SIMULATION] `test/governance-deploy-authz.test.mjs` |
+| workflow | retry after a busy lock with `main` moved: stopped before a second token; two busy locks with `main` unchanged: two checks, three tries; 79 not retried; the step summary of a superseded run | [SIMULATION] `test/governance-deploy-gate.test.mjs`, RED on `e127c26` |
+| canonical | `deploy-vps.yml` equals `CANONICAL_DEPLOY` (regenerated from the file) | [STATIC] `test/governance-workflows.test.mjs` |
+| hardening (owner, after review 6322314877) | job completed, cancelled, queued, waiting or with a conclusion, and run over, all refused (NB-1); re-runs refused by the guard and by `approved` before any read (NB-2); the VPS steps use only the root-installed gate, nothing downloaded or checked out (NB-5); 204, a declared oversize answer, `git-receive-pack`, a NUL on a later ref line, a job record of another attempt, a workflow path that is not a file (NB-3) | [SIMULATION]/[STATIC]; RED on `5e79bfc` for the guard, `approved` and the VPS steps |
+
+**Not verified until S3–S5 (owner GOs):**
+- the guard on the real runner, in particular that this attempt's `deploy` job already shows this runner's name when the hook runs. If GitHub reports it later, the guard refuses (fail closed) and the check is adjusted in a follow-up;
+- approvals bound to a run attempt;
+- the real OIDC token;
+- `mp-deploy` v3.1.
+
+### 8.7 Operational limits (review NB-4)
+
+**API rate limit.**
+- The guard and `mp-deploy` v3.1 read GitHub without a token: 60 requests per hour per IP address **[NOT VERIFIED: GitHub documentation]**.
+- The guard makes 6 REST reads per job (run, jobs, contents, approvals, pending deployments, branch) plus one read of the git ref advertisement on `github.com`. `mp-deploy` v3.1 makes 3 per deploy (approvals and the branch twice).
+- About 9 per deploy, so a few deploys an hour stay far below the limit. When the limit is exceeded, GitHub answers 403 and the deploy is refused (fail closed): wait for the next hour.
+- A shared outbound IP (other software on the VPS calling the API) counts against the same limit. Grok checks this in S3.
+
+**`GITHUB_*` and `RUNNER_NAME` in the hook.** The guard needs these from the runner's environment when the hook runs:
+- `GITHUB_REPOSITORY`, `GITHUB_EVENT_NAME`, `GITHUB_REF`, `GITHUB_WORKFLOW_REF`, `GITHUB_JOB`;
+- `GITHUB_RUN_ID`, `GITHUB_RUN_ATTEMPT`, `GITHUB_SHA`;
+- `RUNNER_NAME`.
+
+Two points are **[NOT VERIFIED]**: that all of them are present in the hook's environment, and that a workflow's `env:` cannot overwrite them there. Any missing one refuses the job. **S3 check:** a hook in log-only mode prints the names (not the values of anything secret) for one real run, before the guard is enforced.
+
+**Runner assignment.** The guard requires this attempt's `deploy` job to be `in_progress`, without a conclusion, with `runner_name` equal to this runner when the hook runs **[NOT VERIFIED]**. If GitHub sets these later, every deploy is refused (fail closed). S3/S4 then show it, and the check is adjusted with an owner GO, never relaxed silently.
+
+**Re-runs.**
+- A re-run is refused (`GUARD_RERUN_APPROVAL_UNBOUND`), because no GitHub record ties an approval to an attempt.
+- A deploy that failed is redeployed by a new run, that is a new commit on `main` approved by the owner.
+- Lifting this needs GitHub evidence, gathered in S4, that every attempt requires its own approval and that this can be read back. That is a concrete blocker for re-runs, not for first attempts.
+
+### 8.8 Owner actions
+
+- **None is needed to merge this PR.** Merging deploys nothing: FREEZE refuses any new SHA, and the run of the merge commit waits for an approval. Do not approve it.
+- **Before enforcement (S5)**, these need separate GOs:
+  - Grok installs the guard (§8.2) and `mp-deploy` v3.1 (§8.4), keeping freeze on;
+  - Grok runs the S4 tests: a run of a changed workflow refused by the guard; approvals of older runs refused; replay; old runs.
+- **Owner checks** (S1 inventory, #179 6321726326): no other GitHub App, OAuth app or personal access token with Deployments or full `repo` access exists in your account settings, and Grok reports the credentials it uses and any found on the VPS.

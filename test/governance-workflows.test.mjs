@@ -136,7 +136,10 @@ test('deploy-vps.yml: skipping, reordering, removing or rewriting any part of th
     ['the post-approval gate removed', deploy.replace(/      # Dopo l'approvazione[\s\S]*?(?=      # Nessun checkout)/, ''), /steps are not exactly the post-approval gate then mp-deploy/],
     ['the steps reordered', deploy.replace(/(      # Dopo l'approvazione[\s\S]*?)(      # Nessun checkout[\s\S]*)$/, '$2$1'), /steps are not exactly the post-approval gate then mp-deploy/],
     ['the PASS check of the post-approval gate removed', deploy.replace(`          grep -q '"result": "PASS"' "$RUNNER_TEMP/deploy-gate.json" || { echo "DEPLOY_GATE_FAIL"; exit 1; }\n          echo "DEPLOY_GATE_SHA_OK`, '          echo "DEPLOY_GATE_SHA_OK'), /the post-approval gate changed/],
-    ['the gate script downloaded from main', deploy.replace('MatchPilot/$DEPLOY_SHA/scripts', 'MatchPilot/main/scripts'), /the post-approval gate changed/],
+    // PR #181 hardening (owner point 4): the gate run on the VPS is the root-installed copy, never the commit's.
+    ['the post-approval gate taken from the commit', deploy.replace('          gate=/usr/local/libexec/mp-gate/deploy-gate.mjs\n          [ -f', '          gate="$RUNNER_TEMP/deploy-gate.mjs"; curl -o "$gate" "https://raw.githubusercontent.com/zarbopiero963-droid/MatchPilot/$DEPLOY_SHA/scripts/deploy-gate.mjs"\n          [ -f'), /the post-approval gate changed/],
+    ['the retry gate taken from the commit', deploy.replace('          gate=/usr/local/libexec/mp-gate/deploy-gate.mjs\n          for i in', '          gate="$RUNNER_TEMP/deploy-gate.mjs"\n          for i in'), /the mp-deploy call changed/],
+    ['no gate before a retry', deploy.replace('if [ "$i" -gt 1 ]; then', 'if false; then'), /the mp-deploy call changed/],
     ['DEPLOY_SHA changed', deploy.replace('DEPLOY_SHA: ${{ github.sha }}', 'DEPLOY_SHA: main'), /the post-approval gate changed/],
     ['the mp-deploy call changed', deploy.replace('sudo -n /usr/local/sbin/mp-deploy "$DEPLOY_SHA"', 'sudo -n /usr/local/sbin/mp-deploy "$(cat /tmp/sha)"'), /the mp-deploy call changed/],
     ['the OIDC token not sent', deploy.replace(`printf '%s' "$token" | sudo -n`, 'sudo -n'), /the mp-deploy call changed/],

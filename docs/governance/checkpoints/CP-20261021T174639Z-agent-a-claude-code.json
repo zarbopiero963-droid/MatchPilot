@@ -1,0 +1,130 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "deploy-gate-final-01",
+  "commit_sha": "63ed8e327019dbaf76abde8cab02d67c8edbbd22",
+  "tree_sha": "34661c81c4f6232886e84b69981844cf90dcb214",
+  "supersedes": "CP-20261021T172031Z-agent-a-claude-code",
+  "pr": 181,
+  "id": "CP-20261021T174639Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-21T17:46:39Z",
+  "activity": "PR #181 hardening after review 6322314877 (APPROVED): active jobs only, no approval carried to a re-run, root-installed gate on the VPS, parser tests, operational limits; review of the delta pending",
+  "task": "DEPLOY-GATE-S1S2-01",
+  "issue": 179,
+  "requirements": [
+    "MP-GOV-021",
+    "MP-SEC-004"
+  ],
+  "changes": [
+    "scripts/runner-job-guard.mjs: run in progress and this attempt's deploy job in_progress without a conclusion (NB-1); any attempt but the first refused before reading GitHub (NB-2)",
+    "scripts/deploy-authz.mjs: approved --run-attempt, attempt 1 only (NB-2); HTTP bodies decoded as UTF-8",
+    ".github/workflows/deploy-vps.yml, scripts/workflow-policy.mjs: the VPS steps run the root-installed /usr/local/libexec/mp-gate/deploy-gate.mjs, nothing from the commit (NB-5)",
+    "tests: NB-1, NB-2, NB-5 RED on 5e79bfc; NB-3 coverage (204, declared oversize, git-receive-pack, NUL on a later ref line, job of another attempt, non-file workflow path)",
+    "docs/deploy-approval.md section 8.7 operational limits (NB-4)"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/governance-*.test.mjs test/requirements-inventory.test.mjs test/ci-classify.test.mjs (136 pass, 0 skipped); check; governance:check; render-inventory --check; scan-closing: all exit 0",
+      "result": "PASS",
+      "environment": "local container, Node 22, root",
+      "limits": [
+        "simulated GitHub API, VPS steps and tip sources",
+        "time is an upper bound"
+      ],
+      "commit": "63ed8e327019dbaf76abde8cab02d67c8edbbd22",
+      "time": "2026-10-21T17:46:39Z"
+    },
+    {
+      "command": "the four gate test files as user nobody (62/62, 0 skipped)",
+      "result": "PASS",
+      "environment": "local container, Node 22, non-root",
+      "limits": [
+        "time is an upper bound"
+      ],
+      "commit": "63ed8e327019dbaf76abde8cab02d67c8edbbd22",
+      "time": "2026-10-21T17:46:39Z"
+    },
+    {
+      "command": "full suite with a throwaway PostgreSQL 16 (414 tests, 413 pass, 0 fail, 1 skipped: postgres-independence needs PostgreSQL 17)",
+      "result": "PASS",
+      "environment": "local container",
+      "limits": [
+        "the skipped test is not counted as PASS; CI runs it"
+      ],
+      "commit": "63ed8e327019dbaf76abde8cab02d67c8edbbd22",
+      "time": "2026-10-21T17:46:39Z"
+    },
+    {
+      "command": "RED on 5e79bfc: 9 new or changed tests fail (guard NB-1/NB-2, approved re-run, root-installed gate, workflow policy); 13 new mutations (H1-H7, N1-N6, including the review's 4 survivors) and the 23 earlier ones: all killed",
+      "result": "PASS",
+      "environment": "local container",
+      "limits": [
+        "mutations cover this repository only"
+      ],
+      "commit": "63ed8e327019dbaf76abde8cab02d67c8edbbd22",
+      "time": "2026-10-21T17:46:39Z"
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "63ed8e327019dbaf76abde8cab02d67c8edbbd22"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "GS-1",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "protection is not active until Grok installs the guard and mp-deploy v3.1 (separate owner GOs); the real runner, approvals per attempt and the OIDC token are NOT VERIFIED"
+    },
+    {
+      "id": "GS-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "B8: cancelling runs and deleting logs stay possible through the REST API; GitHub does not let the installer remove Actions write; the VPS keeps the authoritative evidence"
+    },
+    {
+      "id": "GS-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the guard requires this attempt's deploy job in_progress on this runner when the hook runs, and the GITHUB_* variables in the hook; NOT VERIFIED until S3/S4, fail closed meanwhile"
+    },
+    {
+      "id": "GS-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "re-runs are refused: GitHub's approvals carry no attempt or time; a failed deploy needs a new run; lifting it needs S4 evidence"
+    },
+    {
+      "id": "GS-5",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the VPS steps stop with DEPLOY_GATE_NOT_INSTALLED until Grok installs deploy-gate.mjs in /usr/local/libexec/mp-gate (S3, separate GO)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-GATE-S1S2-FIX",
+    "MP-DEPLOY-APPROVAL-01",
+    "MP-DEPLOY-APPROVAL-02",
+    "MP-DEPLOY-GATE-FINAL-01",
+    "MP-OWNER-VPS-DEPLOY-01"
+  ],
+  "dependencies": [
+    "CP-20261021T172031Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI on this head and a separate review of the delta 5e79bfc..HEAD; then report to the owner; merge only with an owner GO",
+  "resume_conditions": [
+    "CI and separate review verdict on this head"
+  ]
+}

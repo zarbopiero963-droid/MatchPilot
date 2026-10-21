@@ -8,7 +8,8 @@ import {mkdtempSync, readdirSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {EXPECTED, MAX_AGE_S, approvalProblems, consume, ledgerHas, verifyDeployToken} from '../scripts/deploy-authz.mjs';
+import {createServer} from 'node:http';
+import {EXPECTED, HTTP_LIMIT, MAX_AGE_S, TIP_SOURCES, approvalProblems, consume, httpText, ledgerHas, mainFromAdvertisement, readMainTip, runApprovalProblems, tipProblems, verifyDeployToken} from '../scripts/deploy-authz.mjs';
 
 const SHA = 'c'.repeat(40);
 const NOW = 1_800_000_000;
@@ -234,4 +235,179 @@ test('the approvals of the run must include the owner approving vps-production',
   assert.deepEqual(approvalProblems([null, {state: 'approved'}]), ['AUTHZ_NO_OWNER_APPROVAL']);
   assert.deepEqual(approvalProblems([]), ['AUTHZ_NO_OWNER_APPROVAL']);
   assert.deepEqual(approvalProblems(null), ['AUTHZ_APPROVALS_UNREADABLE']);
+});
+
+// ---- MP-GATE-S1S2-FIX: anti-stale (the tip of main from two sources) and the run's approval, for mp-deploy v3.1 ----
+const pkt = line => `${(line.length + 4).toString(16).padStart(4, '0')}${line}`;
+const OLD = 'a'.repeat(40);
+const advertisement = (main = SHA, {lines} = {}) => pkt('# service=git-upload-pack\n') + '0000'
+  + (lines ?? [`${main} HEAD\0multi_ack side-band-64k agent=git/github\n`, `${OLD} refs/heads/feature\n`, `${main} refs/heads/main\n`, `${OLD} refs/heads/main-old\n`]).map(pkt).join('') + '0000';
+
+test('the ref advertisement is read strictly: exactly one refs/heads/main, well-formed pkt-lines, nothing after the flush', () => {
+  assert.deepEqual(mainFromAdvertisement(advertisement()), {sha: SHA});
+  const bad = {
+    'not text': null,
+    'no main': advertisement(SHA, {lines: [`${SHA} HEAD\0caps\n`, `${OLD} refs/heads/feature\n`]}),
+    'two mains': advertisement(SHA, {lines: [`${SHA} HEAD\0caps\n`, `${SHA} refs/heads/main\n`, `${OLD} refs/heads/main\n`]}),
+    'main named in the capabilities only': advertisement(SHA, {lines: [`${SHA} HEAD\0symref=HEAD:refs/heads/main\n`]}),
+    'non-hex SHA': advertisement(SHA, {lines: [`${SHA} HEAD\0caps\n`, `${'g'.repeat(40)} refs/heads/main\n`]}),
+    'short SHA': advertisement(SHA, {lines: [`${SHA} HEAD\0caps\n`, `${SHA.slice(1)} refs/heads/main\n`]}),
+    'line without LF': advertisement(SHA, {lines: [`${SHA} HEAD\0caps\n`, `${SHA} refs/heads/main`]}),
+    'space in ref': advertisement(SHA, {lines: [`${SHA} HEAD\0caps\n`, `${SHA} refs/heads/main extra\n`]}),
+    'bad length': advertisement().replace(/^001e/, '001z'),
+    'truncated': advertisement().slice(0, -10),
+    'no final flush': advertisement().slice(0, -4),
+    'data after the flush': `${advertisement()}0000`,
+    'no service line': advertisement().slice(30),
+    'HTML page': '<html>sign in</html>',
+    // Review NB-3: another service's advertisement, and a NUL (capabilities) on a ref line other than the first.
+    'git-receive-pack': advertisement().replace(pkt('# service=git-upload-pack\n'), pkt('# service=git-receive-pack\n')),
+    'NUL after the first line': advertisement(SHA, {lines: [`${SHA} HEAD\0caps\n`, `${SHA} refs/heads/main\0caps\n`]}),
+    'empty capability line only': advertisement(SHA, {lines: [`${SHA} HEAD\0caps\n`, '\n']}),
+  };
+  for (const [what, text] of Object.entries(bad)) assert.match(mainFromAdvertisement(text).problem ?? '', /TIP_REFS_MALFORMED/, what);
+});
+
+const tipFrom = (refs, api) => readMainTip({fetchText: async url => {
+  const value = url === TIP_SOURCES.refs ? refs : url === TIP_SOURCES.api ? api : new Error(`unexpected ${url}`);
+  if (value instanceof Error) throw value;
+  return value;
+}});
+const branch = sha => JSON.stringify({name: 'main', commit: {sha}});
+
+test('anti-stale: only the SHA both sources give as the tip of main passes; never another SHA instead', async () => {
+  const both = await tipFrom(advertisement(SHA), branch(SHA));
+  assert.deepEqual(both, {tip: SHA, problems: []});
+  assert.deepEqual(tipProblems(both, SHA), []);
+  const stale = tipProblems(both, OLD);
+  assert.equal(stale.length, 1);
+  assert.match(stale[0], new RegExp(`^TIP_STALE: main is ${SHA}, not ${OLD}`));
+  assert.match(tipProblems(both, 'main').join(), /TIP_SHA_ARGUMENT/);
+  // Three merges A, B, C: only C passes.
+  for (const sha of ['1'.repeat(40), '2'.repeat(40)]) assert.match(tipProblems(both, sha).join(), /TIP_STALE/);
+});
+
+test('anti-stale fails closed: a source down, malformed, or the two sources disagreeing (just after a merge)', async () => {
+  const cases = [
+    [new Error('timeout'), branch(SHA), /TIP_UNVERIFIABLE: refs timeout/],
+    [advertisement(SHA), new Error('HTTP 503'), /TIP_UNVERIFIABLE: api HTTP 503/],
+    [advertisement(SHA), branch(OLD), /TIP_UNVERIFIABLE: sources disagree/],
+    [advertisement(OLD), branch(SHA), /TIP_UNVERIFIABLE: sources disagree/],
+    [advertisement(SHA), 'not json', /TIP_UNVERIFIABLE: api/],
+    [advertisement(SHA), JSON.stringify({name: 'feature', commit: {sha: SHA}}), /TIP_API_MALFORMED/],
+    [advertisement(SHA), JSON.stringify({name: 'main', commit: {sha: SHA.toUpperCase()}}), /TIP_API_MALFORMED/],
+    ['garbage', branch(SHA), /TIP_REFS_MALFORMED/],
+  ];
+  for (const [refs, api, pattern] of cases) {
+    const tip = await tipFrom(refs, api);
+    assert.equal(tip.tip, null);
+    const problems = tipProblems(tip, SHA);
+    assert.ok(problems.length > 0);
+    assert.match(problems.join(), pattern);
+  }
+  assert.deepEqual(tipProblems({tip: SHA}, SHA), ['TIP_UNVERIFIABLE']);
+  assert.deepEqual(tipProblems({tip: null, problems: []}, SHA), ['TIP_UNVERIFIABLE']);
+});
+
+test('the HTTP reads: 200 only, no redirect, bounded size; anything else throws (the callers refuse)', async () => {
+  const server = createServer((req, res) => {
+    if (req.url === '/ok') { res.writeHead(200); res.end('fine'); }
+    else if (req.url === '/redirect') { res.writeHead(302, {location: '/ok'}); res.end(); }
+    else if (req.url === '/big') { res.writeHead(200); res.end(Buffer.alloc(HTTP_LIMIT + 1, 'x')); }
+    else if (req.url === '/no-content') { res.writeHead(204); res.end(); }
+    else { res.writeHead(500); res.end('no'); }
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    assert.equal(await httpText(`${base}/ok`), 'fine');
+    await assert.rejects(httpText(`${base}/redirect`));
+    await assert.rejects(httpText(`${base}/big`), /too large/);
+    await assert.rejects(httpText(`${base}/error`), /HTTP 500/);
+    // Review NB-3: 200 only, not any 2xx.
+    await assert.rejects(httpText(`${base}/no-content`), /HTTP 204/);
+  } finally { server.close(); }
+  // A declared length over the limit is refused before the body is read (the body here would fail if read).
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(new ReadableStream({pull() { throw new Error('the body was read'); }}),
+    {status: 200, headers: {'content-length': String(HTTP_LIMIT + 1)}});
+  try { await assert.rejects(httpText('https://example.invalid/'), /answer too large/); }
+  finally { globalThis.fetch = realFetch; }
+});
+
+test('the run\'s approval is read from GitHub: the owner approving vps-production, or a refusal', async () => {
+  const owner = [{state: 'approved', user: {login: 'zarbopiero963-droid'}, environments: [{name: 'vps-production'}]}];
+  const first = {runAttempt: '1'};
+  assert.deepEqual(await runApprovalProblems('42', {...first, fetchJson: async url => { assert.match(url, /\/actions\/runs\/42\/approvals$/); return owner; }}), []);
+  assert.deepEqual(await runApprovalProblems('42', {...first, fetchJson: async () => []}), ['AUTHZ_NO_OWNER_APPROVAL']);
+  assert.match((await runApprovalProblems('42', {...first, fetchJson: async () => { throw new Error('HTTP 403'); }})).join(), /AUTHZ_APPROVALS_UNREADABLE: HTTP 403/);
+  for (const id of ['', '0', '42; rm', null]) assert.match((await runApprovalProblems(id, {...first, fetchJson: async () => owner})).join(), /AUTHZ_RUN_ID/);
+});
+
+// PR #181 hardening (owner point 2, review NB-2): the review history of a run has no attempt and no time, so an
+// approval given to attempt 1 must not count for a re-run. RED on 5e79bfc: attempt 2 with attempt 1's approval passed.
+test('an approval is not carried over to a re-run: any attempt but the first is refused before reading GitHub', async () => {
+  const owner = [{state: 'approved', user: {login: 'zarbopiero963-droid'}, environments: [{name: 'vps-production'}]}];
+  let reads = 0;
+  const fetchJson = async () => { reads += 1; return owner; };
+  for (const runAttempt of ['2', '10', undefined, '', '01', 1]) {
+    assert.match((await runApprovalProblems('42', {runAttempt, fetchJson})).join(), /AUTHZ_RERUN_APPROVAL_UNBOUND/, String(runAttempt));
+  }
+  assert.equal(reads, 0);
+});
+
+test('CLI: main-tip and approved refuse a bad argument with exit 1; an unknown mode refuses', async () => {
+  const run = args => new Promise(resolve => {
+    const child = spawn(process.execPath, [SCRIPT, ...args], {env: {PATH: process.env.PATH}});
+    let out = '';
+    child.stdout.on('data', chunk => { out += chunk; });
+    child.on('close', status => { let report = null; try { report = JSON.parse(out); } catch {} resolve({status, report}); });
+  });
+  const badRun = await run(['approved', '--run-id', 'x']);
+  assert.equal(badRun.status, 1);
+  assert.match(badRun.report.reasons.join(), /AUTHZ_RUN_ID/);
+  const unknown = await run(['deploy-anyway']);
+  assert.equal(unknown.status, 1);
+  assert.match(unknown.report.reasons.join(), /mode must be verify, consume, main-tip or approved/);
+});
+
+// Review NB-A (#181 6323455656): the CLI path mp-deploy v3.1 uses must pass --run-attempt through. A CLI that ignored it
+// would read GitHub and answer with another reason; here only the attempt check may answer, and without any read.
+test('CLI approved: --run-attempt is honoured; an attempt but the first, or none, is refused before any GitHub read', async () => {
+  const run = args => new Promise(resolve => {
+    const child = spawn(process.execPath, [SCRIPT, ...args], {env: {PATH: process.env.PATH}});
+    let out = '';
+    child.stdout.on('data', chunk => { out += chunk; });
+    child.on('close', status => { let report = null; try { report = JSON.parse(out); } catch {} resolve({status, report}); });
+  });
+  for (const args of [['--run-attempt', '2'], ['--run-attempt', '17'], ['--run-attempt', ''], []]) {
+    const result = await run(['approved', '--run-id', '42', ...args]);
+    assert.equal(result.status, 1, args.join(' '));
+    assert.deepEqual(result.report.reasons, [`AUTHZ_RERUN_APPROVAL_UNBOUND: attempt ${JSON.stringify(args[1] ?? null)}`], args.join(' '));
+  }
+});
+
+// Review NB-B: pkt-line lengths count bytes. A capability with a non-ASCII byte must not shift the parse; the ref
+// advertisement is read as bytes (latin1: one character per byte) end to end, from the HTTP read to the parser.
+test('the ref advertisement is parsed by bytes: a non-ASCII capability does not break the pkt-line lengths', async () => {
+  const bpkt = text => { const bytes = Buffer.from(text, 'utf8'); return Buffer.concat([Buffer.from((bytes.length + 4).toString(16).padStart(4, '0')), bytes]); };
+  const body = Buffer.concat([bpkt('# service=git-upload-pack\n'), Buffer.from('0000'), bpkt(`${SHA} HEAD\0multi_ack agent=gït/2.4\n`),
+    bpkt(`${OLD} refs/heads/feature\n`), bpkt(`${SHA} refs/heads/main\n`), Buffer.from('0000')]);
+  const server = createServer((req, res) => {
+    if (req.url === '/refs') { res.writeHead(200); res.end(body); }
+    else if (req.url === '/utf') { res.writeHead(200); res.end(Buffer.from('{"name":"città"}', 'utf8')); }
+    else { res.writeHead(200); res.end(branch(SHA)); }
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const tip = await readMainTip({fetchText: (url, options) => httpText(`${base}/${url === TIP_SOURCES.refs ? 'refs' : 'api'}`, options)});
+    assert.deepEqual(tip, {tip: SHA, problems: []});
+    // The JSON source stays UTF-8 (one character per code point).
+    assert.equal(await httpText(`${base}/api`), branch(SHA));
+    assert.equal((await httpText(`${base}/utf`)), '{"name":"città"}');
+  } finally { server.close(); }
+  // A non-ASCII ref name is still refused (fail closed): only printable ASCII is a ref here.
+  assert.match(mainFromAdvertisement(Buffer.concat([bpkt('# service=git-upload-pack\n'), Buffer.from('0000'), bpkt(`${SHA} HEAD\0caps\n`),
+    bpkt(`${SHA} refs/heads/mäin\n`), bpkt(`${SHA} refs/heads/main\n`), Buffer.from('0000')]).toString('latin1')).problem ?? '', /TIP_REFS_MALFORMED: bad ref line/);
 });
