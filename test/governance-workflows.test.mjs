@@ -10,12 +10,13 @@
 // own head, test included, and the VPS refuses a deploy without the proof of approval only after phase B
 // (docs/deploy-approval.md).
 import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
 import {cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {parse} from 'yaml';
-import {CANONICAL_DEPLOY, DEPLOY_FILE, GATE_IF, parseWorkflow, readWorkflowDirectory, workflowDirectoryProblems, workflowPolicyProblems} from '../scripts/workflow-policy.mjs';
+import {CANONICAL_DEPLOY, DEPLOY_FILE, GATE_IF, UNSAFE_CHARACTER, parseWorkflow, readWorkflowDirectory, workflowDirectoryProblems, workflowPolicyProblems} from '../scripts/workflow-policy.mjs';
 
 const DIR = new URL('../.github/workflows/', import.meta.url);
 // The policy reads the directory itself (review B-3); the tests below add files to copies of it.
@@ -219,6 +220,50 @@ test('NB-9/NB-10: keys differing only by case, events outside the allowed list a
     `on:\n  schedule:\n    - cron: '0 3 * * *'\njobs:\n  x:\n    runs-on: ubuntu-24.04\n    steps: [{run: id}]\n`]) {
     assert.deepEqual(workflowPolicyProblems([...entries(), ['ok.yml', ok]]), [], ok);
   }
+});
+
+// ---- review 6318631568 (B-4): a job hidden behind a character some YAML parsers read as a line break; RED on 10f6f95 ----
+const hiddenJob = sep => `# fine${sep}  evil:${sep}    runs-on: ["self\\x2dhosted", "matchpilot\\x2dvps"]${sep}    steps: [{run: "sudo -n /usr/local/sbin/mp\\x2ddeploy x"}]\n`;
+test('B-4: NEL, LINE and PARAGRAPH SEPARATOR cannot hide a VPS job in deploy-vps.yml or in another file', () => {
+  for (const [what, sep] of [['NEL U+0085', '\u0085'], ['LINE SEPARATOR U+2028', '\u2028'], ['PARAGRAPH SEPARATOR U+2029', '\u2029']]) {
+    const attacked = deploy + hiddenJob(sep);
+    // A true positive: a parser that breaks lines on that character sees a third job on the VPS runner without
+    // environment or gate (emulated here; PyYAML does it for NEL, see the next test). `yaml` 1.2 sees a comment.
+    const broken = parse(attacked.replaceAll(sep, '\n'), {version: '1.2'});
+    assert.deepEqual(Object.keys(broken.jobs), ['gate', 'deploy', 'evil'], what);
+    assert.deepEqual(broken.jobs.evil['runs-on'], ['self-hosted', 'matchpilot-vps'], what);
+    assert.equal(broken.jobs.evil.environment, undefined);
+    assert.deepEqual(Object.keys(parse(attacked, {version: '1.2'}).jobs), ['gate', 'deploy'], `${what}: invisible to yaml 1.2`);
+    const code = `U\\+${sep.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')}`;
+    assert.match(problems(withFile(DEPLOY_FILE, attacked)), new RegExp(`deploy-vps\\.yml: ENCODING: character ${code} is not accepted`), what);
+    assert.match(directoryWith(dir => writeFileSync(join(dir, DEPLOY_FILE), attacked)), new RegExp(`ENCODING: character ${code}`), `${what} on disk`);
+    assert.match(directoryWith(dir => writeFileSync(join(dir, 'other.yml'), `on: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: id}]\n${hiddenJob(sep)}`)), new RegExp(`other\\.yml: ENCODING: character ${code}`), `${what} in another file`);
+  }
+});
+
+test('B-4: an independent YAML 1.1 parser (PyYAML) reads the hidden NEL job, which the policy refuses', t => {
+  const probe = spawnSync('python3', ['-I', '-c', 'import yaml, sys, json; print(json.dumps(list(yaml.safe_load(sys.stdin.read())["jobs"])))'],
+    {input: deploy + hiddenJob('\u0085'), encoding: 'utf8'});
+  if (probe.status !== 0) { t.skip('python3 with PyYAML is not available here'); return; }
+  assert.deepEqual(JSON.parse(probe.stdout), ['gate', 'deploy', 'evil']);
+  assert.match(problems(withFile(DEPLOY_FILE, deploy + hiddenJob('\u0085'))), /ENCODING: character U\+0085/);
+});
+
+test('B-4/NB-19: one character policy by Unicode category; ordinary letters stay accepted', () => {
+  const refused = ['\u0000', '\u0008', '\u000b', '\u000c', '\u001b', '\u007f', '\u0080', '\u0085', '\u009f', '\u00a0', '\u00ad', '\u1680',
+    '\u2000', '\u200b', '\u200e', '\u202e', '\u2028', '\u2029', '\u2066', '\u3000', '\ufeff', '\ue000', '\ud800', '\u0378'];
+  for (const c of refused) {
+    assert.ok(UNSAFE_CHARACTER.test(c), `U+${c.charCodeAt(0).toString(16)} refused`);
+    assert.match(parseWorkflow(`on: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: "a${c}b"}]\n`).problems.join(), /ENCODING/, `U+${c.charCodeAt(0).toString(16)} in a value`);
+  }
+  for (const c of ['\t', '\n', '\r', ' ', 'a', 'è', 'ò', 'à', 'é', 'ü', 'ß', 'ç', '—', '€', '«', '»', '’', '✓', '中']) assert.ok(!UNSAFE_CHARACTER.test(c), `${c} accepted`);
+  assert.deepEqual(parseWorkflow(`name: Città è perché — ok\non: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: "echo perché"}]\n`).problems, []);
+  // NB-19: a byte-order mark at the start of a file on disk (it must not be dropped by the decoder), inside a file, DEL,
+  // and combinations.
+  assert.match(directoryWith(dir => writeFileSync(join(dir, 'bom.yml'), Buffer.concat([Buffer.from([0xEF, 0xBB, 0xBF]), Buffer.from('on: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: id}]\n')]))), /bom\.yml: ENCODING: character U\+FEFF/);
+  assert.match(directoryWith(dir => writeFileSync(join(dir, 'bom2.yml'), 'on: push\n# \ufeff\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: id}]\n')), /bom2\.yml: ENCODING: character U\+FEFF/);
+  assert.match(directoryWith(dir => writeFileSync(join(dir, 'del.yml'), 'on: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: "a\u007fb"}]\n')), /del\.yml: ENCODING: character U\+007F/);
+  assert.match(directoryWith(dir => writeFileSync(join(dir, 'mix.yml'), '\ufeffon: push\u0085jobs: {}\u007f\n')), /mix\.yml: ENCODING: character U\+FEFF/);
 });
 
 test('CI: the VPS runner, an expression, a reusable workflow or a self-hosted label in ci.yml is refused', () => {

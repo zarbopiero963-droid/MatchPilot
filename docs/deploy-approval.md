@@ -45,12 +45,20 @@ The review of this head is reported in #97.
 
 What GitHub itself would run among such entries is **[NOT VERIFIED]**: its documentation says only ".yml or .yaml" in that directory. The policy refuses them all, so the question does not matter for this check.
 
-**Encoding (review NB-14).** Each file is decoded as strict UTF-8. These are refused **[STATIC]**:
-- invalid sequences;
-- UTF-16/32 byte-order marks;
-- a UTF-8 byte-order mark, NUL, or any control character other than tab, LF and CR.
+**Encoding (reviews NB-14, B-4, NB-19).** Each file is decoded as strict UTF-8, keeping any byte-order mark so the character policy sees it. Then one character policy applies, defined by Unicode category (`UNSAFE_CHARACTER`). These are refused **[STATIC]**:
+- invalid UTF-8 and UTF-16/32 byte-order marks;
+- every control character except tab, LF and CR (category Cc): C0, DEL U+007F and C1 U+0080–U+009F, NEL U+0085 included;
+- format characters (Cf): byte-order mark anywhere, zero-width and bidirectional controls, soft hyphen;
+- line and paragraph separators U+2028 and U+2029 (Zl, Zp);
+- every space other than U+0020 (Zs), such as a no-break space;
+- private-use, surrogate and unassigned code points.
 
-How GitHub decodes UTF-16 is **[NOT VERIFIED]**; the policy refuses it either way.
+Ordinary text stays accepted **[STATIC]**: letters (accented ones included), CJK, the em dash, `€`, guillemets. `ci.yml` and `deploy-vps.yml` contain `—`, `è`, `ò`.
+
+Why this matters (review B-4): `yaml` 2.9.1 reads NEL, LS and PS as ordinary characters, while other parsers read them as line breaks. A line such as `# fine<NEL>  evil:<NEL>    runs-on: [...]` is a comment for `yaml` but a hidden job on the VPS runner for PyYAML 6.0.1 **[STATIC: test with PyYAML when available, and an emulation]**.
+- The policy refuses the character, so no parser difference can be used.
+- Whether GitHub's own parser reads these characters as line breaks is **[NOT VERIFIED]**.
+- How GitHub decodes UTF-16 is **[NOT VERIFIED]**; the policy refuses it either way.
 
 **Parsing.** Each workflow is parsed by `yaml` 2.9.1 (devDependency) as YAML 1.2, strictly **[STATIC]**. Under YAML 1.1, `on` would become `true`; PyYAML does that on the attack files (§5).
 
@@ -124,7 +132,13 @@ The script runs its checks from a path with spaces or through a symlink **[SIMUL
 
 ### 1.3 `mp-deploy` step: a fresh OIDC token on every try
 
-The request token (`ACTIONS_ID_TOKEN_REQUEST_TOKEN`) goes to curl through a header file, never on a command line visible in `ps` (review NB-16). The file is written mode 0600 in `$RUNNER_TEMP` and removed on exit **[SIMULATION]**.
+The request token (`ACTIONS_ID_TOKEN_REQUEST_TOKEN`) goes to curl through a header file, never on a command line visible in `ps` (review NB-16). How the file is handled (review NB-21) **[SIMULATION]**:
+- it lives in a private directory made for this step with `mktemp -d` (mode 0700, unique name, so no reuse or symlink at a predictable path);
+- it is created with `noclobber` under `umask 077`, so it is mode 0600 from the start and an existing file is never written through;
+- a stale, world-readable file at the old fixed path is neither used nor touched;
+- the directory is removed on success, on error and on SIGINT/SIGTERM/SIGHUP (tested with SIGTERM while `mp-deploy` runs);
+- if the directory or the file cannot be created safely, the step stops with `DEPLOY_OIDC_UNAVAILABLE` before any request or deploy;
+- `umask` is changed only in a subshell, so `mp-deploy` keeps its own.
 
 On every try of the exit-75 retry loop, the step does three things:
 1. requests a new OIDC token for the audience `matchpilot-vps-deploy`;
@@ -324,6 +338,9 @@ In each case the attack file was put in `.github/workflows/` of a copy, or the i
 | NB-11 | `reviewers: "x"` | 512ef32: exit 1, 0 bytes of report | exit 1, 286-byte report |
 | NB-12 | `verify` with a missing ledger | 512ef32: ACCEPT (review) | refused (`AUTHZ_ERROR`) |
 | CI on PR #180 | the `mp-deploy` step simulation as a non-root user | a6abe28: `EACCES` (a fake `sleep` written through a symlink to the real one) | passes; fake tools are created with `wx` |
+| B-4 | a job hidden behind NEL in `deploy-vps.yml` (the review's line), also with U+2028/U+2029 and in another file | 10f6f95: workflow tests 8/8 pass, policy `[]` | refused: `ENCODING: character U+0085 is not accepted` |
+| NB-19 | a leading UTF-8 BOM on disk; U+007F | 10f6f95: survived as review mutations M4, M13 | refused (E4, E7 killed) |
+| NB-21 | header file at a fixed path written over an existing file | 10f6f95: an existing file kept its mode | private `mktemp -d` directory, `noclobber`; a collision stops the step |
 
 PyYAML 6.0.1 gives the same jobs as `yaml` for the B-1/B-2 attack files. That is an independent parser cross-check.
 
@@ -337,24 +354,24 @@ PyYAML 6.0.1 gives the same jobs as `yaml` for the B-1/B-2 attack files. That is
 
 ### 5.2 Mutations
 
-Final run on this code; the list of replacements is published with the #97 report. Each mutation was applied to a copy, then the three gate test files were run with a 60 s timeout per test, and the file was restored.
+The complete catalogue was run on the final code of this branch. Each mutation was applied to a copy, then the three gate test files were run (60 s timeout per test), and the file was restored.
 
-**58 mutations: 57 killed, 1 equivalent.** Equivalent mutations are listed apart and not counted as killed.
+**69 mutations: 68 killed, 1 equivalent, 0 surviving.** The equivalent mutation is listed apart and not counted as killed.
 
-| Id | Mutation | Result |
+The full matrix, with ID, component, change, observed result, class and the tests that fail, is published in #97 together with the head it was run on (review NB-20).
+
+| Group | Ids | Result |
 |---|---|---|
-| P1, P2, P4–P16 | parse errors, duplicates, tags, merge keys, several documents, reusable, indirect events, any runs-on, names in values, other files, deploy file, step `if`, canonical equality, empty jobs, YAML 1.1 | 15/15 killed |
-| P17–P24, R5 | any name read, case-insensitive extension, symlinks, subdirectories, case-only keys, any event, hosted pattern, anchors/tags on mappings, anchors accepted | 9/9 killed |
-| A1–A13 | malformed tokens, signature, alg, claim coercion, age, replay in verify, non-exclusive consume, SHA binding, ambiguous kid, environment claim, crit, missing ledger, 16 KiB | 13/13 killed |
-| R8, R9, R9b | no `fsync` of the directory; no `fsync` of the file; file `fsync` error not handled | 3/3 killed (fs injected and observed) |
-| G1–G4 | self-review, entry check, absent admin bypass, unprotected report | 4/4 killed |
-| W1–W4 | one token reused across retries; missing token tolerated; token not piped; `pipefail` removed | 4/4 killed |
-| N1–N9 | encoding check off; UTF-16 check off; non-fatal decoding; `vps-production` not reserved; `ledgerHas` swallowing errors; `nbf` unchecked; warnings ignored; header file not removed; header file not 0600 | 9/9 killed (review NB-13…NB-16) |
-| **P3 (equivalent)** | aliases accepted | an alias needs an anchor, which is refused; without one it does not parse |
+| Workflow policy and directory | P1, P2, P4–P24, R5 | 24 killed |
+| Encoding and reserved names | E1–E11 | 11 killed |
+| OIDC verifier, ledger, CLI | A1–A16, R8, R9, R9b | 19 killed |
+| Gate script | G1–G4 | 4 killed |
+| `mp-deploy` step (token, header file) | W1–W10 | 10 killed |
+| **Equivalent** | P3 (aliases accepted) | an alias needs an anchor, which R5 and P24 keep refused; without one it is not valid YAML |
 
-Notes:
-- **W4** is killed only by the canonical check. In the simulation it is equivalent: with no token, `node` exits 1, so the step fails anyway.
-- **R11 and R16** (empty parts; both branch flags) are review 6316028694's own mutations, classified equivalent there. They were not re-run here.
+**Limits:**
+- the mutations cover the code in this repository, not GitHub or the VPS;
+- review 6318631568 ran its own 14 mutations. M4 and M13 survived there; they are E4 and E7 here, now killed.
 
 ### 5.3 Test counts
 
@@ -367,7 +384,7 @@ Notes:
 | # | Surface | Defense | Proof | Real check still needed |
 |---|---|---|---|---|
 | 1 | workflow directory entries | `readWorkflowDirectory` | [STATIC] B-3 tests | — |
-| 2 | YAML forms and encodings | strict UTF-8, strict YAML 1.2 parser, refusals | [STATIC] 40 forms + PyYAML | — |
+| 2 | YAML forms and encodings | strict UTF-8, one character policy by Unicode category, strict YAML 1.2 parser | [STATIC] 40 forms, 24 refused characters, B-4 attack + PyYAML | GitHub's own parser on NEL/LS/PS: NOT VERIFIED (refused anyway) |
 | 3 | paths to the VPS runner and `mp-deploy` | label allow-list, single exception, name scan; VPS guard; `mp-deploy` v3 | [STATIC]; guard [NOT VERIFIED] | B0, D7 |
 | 4 | triggers and reusable workflows | event allow-list, no job `uses` | [STATIC] | — |
 | 5 | canonical deploy workflow | exact structure + named invariants | [STATIC] 43 changes | — |

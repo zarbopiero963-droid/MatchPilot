@@ -3,7 +3,7 @@
 // the approval, that a re-run asks for it again) is verified at activation, per docs/deploy-approval.md.
 import assert from 'node:assert/strict';
 import {execFileSync, spawn, spawnSync} from 'node:child_process';
-import {chmodSync, mkdtempSync, readFileSync, readdirSync, symlinkSync, writeFileSync} from 'node:fs';
+import {chmodSync, existsSync, mkdtempSync, readFileSync, readdirSync, symlinkSync, writeFileSync} from 'node:fs';
 import {createServer} from 'node:http';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -275,31 +275,47 @@ test('the gate job step also requires an explicit PASS', () => {
 });
 
 // ---- the mp-deploy step on a simulated VPS: a fake OIDC endpoint (curl), a fake sudo/mp-deploy, the real node ----
-function mpDeployStep({oidc = 'ok', results = [0]} = {}) {
+function mpDeployStepSetup({oidc = 'ok', results = [0], mktemp = 'real', preexisting = false, sudoDelay = 0} = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'deploy-step-'));
   const bin = join(dir, 'bin');
   execFileSync('mkdir', [bin]);
   // Fake tools are created with 'wx' (never through an existing symlink: a write through one would replace the real
   // binary when the tests run as root, as happened to /usr/bin/sleep in a container on 21/10).
-  for (const tool of ['cat', 'stat', 'rm']) symlinkSync(execFileSync('bash', ['-c', `command -v ${tool}`], {encoding: 'utf8'}).trim(), join(bin, tool));
+  for (const tool of ['cat', 'stat', 'rm', ...(mktemp === 'real' ? ['mktemp'] : [])]) symlinkSync(execFileSync('bash', ['-c', `command -v ${tool}`], {encoding: 'utf8'}).trim(), join(bin, tool));
   symlinkSync(process.execPath, join(bin, 'node'));
   writeFileSync(join(bin, 'sleep'), '#!/bin/bash\nexit 0\n', {flag: 'wx'}); chmodSync(join(bin, 'sleep'), 0o755);
+  execFileSync('mkdir', [join(dir, 'tmp')]);
+  // A fake mktemp that fails, or that hands back a directory where the header file already exists (a collision).
+  if (mktemp === 'fail') { writeFileSync(join(bin, 'mktemp'), '#!/bin/bash\nexit 1\n', {flag: 'wx'}); chmodSync(join(bin, 'mktemp'), 0o755); }
+  if (mktemp === 'collision') {
+    execFileSync('mkdir', ['-m', '700', join(dir, 'tmp', 'oidc.taken')]);
+    writeFileSync(join(dir, 'tmp', 'oidc.taken', 'request-header'), 'Authorization: bearer attacker\n', {mode: 0o644});
+    writeFileSync(join(bin, 'mktemp'), `#!/bin/bash\necho ${join(dir, 'tmp', 'oidc.taken')}\n`, {flag: 'wx'}); chmodSync(join(bin, 'mktemp'), 0o755);
+  }
+  // A stale, world-readable header file at a predictable path must be neither used nor trusted.
+  if (preexisting) writeFileSync(join(dir, 'tmp', 'oidc-request-header'), 'Authorization: bearer stale\n', {mode: 0o644});
   const log = join(dir, 'log');
   writeFileSync(log, '');
   // Each OIDC request returns a new token; the URL must carry the audience.
   const curl = oidc === 'ok'
     // The request token must come from the 0600 header file, never from argv (review NB-16).
-    ? `n=$(( $(/bin/cat ${dir}/n 2>/dev/null || echo 0) + 1 )); echo $n > ${dir}/n; for a in "$@"; do case "$a" in *request-token*) echo argv >> ${dir}/leak; exit 22;; *audience=matchpilot-vps-deploy) ok=1;; @*) h="\${a#@}";; esac; done; [ "$ok" = 1 ] || exit 22; [ "$(/bin/cat "$h")" = "Authorization: bearer request-token" ] || exit 22; [ "$(stat -c %a "$h")" = 600 ] || exit 22; echo "{\\"value\\":\\"tok-$n\\"}"`
+    // The header file must be 0600 in a 0700 directory made for this step (review NB-21); its path is recorded.
+    ? `n=$(( $(/bin/cat ${dir}/n 2>/dev/null || echo 0) + 1 )); echo $n > ${dir}/n; for a in "$@"; do case "$a" in *request-token*) echo argv >> ${dir}/leak; exit 22;; *audience=matchpilot-vps-deploy) ok=1;; @*) h="\${a#@}";; esac; done; [ "$ok" = 1 ] || exit 22; [ "$(/bin/cat "$h")" = "Authorization: bearer request-token" ] || exit 22; [ "$(stat -c %a "$h")" = 600 ] || exit 22; [ "$(stat -c %a "\${h%/*}")" = 700 ] || exit 22; echo "$h" >> ${dir}/headers; echo "{\\"value\\":\\"tok-$n\\"}"`
     : oidc;
   writeFileSync(join(bin, 'curl'), `#!/bin/bash\n${curl}\n`, {flag: 'wx'}); chmodSync(join(bin, 'curl'), 0o755);
   // sudo -n /usr/local/sbin/mp-deploy <sha>: records the argument and the token read on stdin, then exits as told.
-  writeFileSync(join(bin, 'sudo'), `#!/bin/bash\nk=$(( $(/bin/cat ${dir}/k 2>/dev/null || echo 0) + 1 )); echo $k > ${dir}/k\ntok=$(/bin/cat)\nprintf '%s token=%s\\n' "$*" "$tok" >> ${log}\nset -- ${results.join(' ')}\nshift $((k-1)); exit \${1:-0}\n`, {flag: 'wx'});
+  writeFileSync(join(bin, 'sudo'), `#!/bin/bash\nk=$(( $(/bin/cat ${dir}/k 2>/dev/null || echo 0) + 1 )); echo $k > ${dir}/k\ntok=$(/bin/cat)\n${sudoDelay ? `: > ${dir}/started; /usr/bin/sleep ${sudoDelay}\n` : ''}printf '%s token=%s\\n' "$*" "$tok" >> ${log}\nset -- ${results.join(' ')}\nshift $((k-1)); exit \${1:-0}\n`, {flag: 'wx'});
   chmodSync(join(bin, 'sudo'), 0o755);
-  execFileSync('mkdir', [join(dir, 'tmp')]);
-  const result = spawnSync('/bin/bash', ['-e', '-c', stepScript('mp-deploy')], {encoding: 'utf8', env: {PATH: bin, DEPLOY_SHA: SHA, RUNNER_TEMP: join(dir, 'tmp'),
-    ACTIONS_ID_TOKEN_REQUEST_URL: 'https://oidc.example/token?api-version=2.0', ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'request-token'}});
-  return {status: result.status, out: result.stdout + result.stderr, calls: readFileSync(log, 'utf8').trim().split('\n').filter(Boolean),
-    leftover: readdirSync(join(dir, 'tmp'))};
+  const env = {PATH: bin, DEPLOY_SHA: SHA, RUNNER_TEMP: join(dir, 'tmp'),
+    ACTIONS_ID_TOKEN_REQUEST_URL: 'https://oidc.example/token?api-version=2.0', ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'request-token'};
+  const report = () => ({calls: readFileSync(log, 'utf8').trim().split('\n').filter(Boolean), leftover: readdirSync(join(dir, 'tmp')).sort(),
+    headers: (() => { try { return readFileSync(join(dir, 'headers'), 'utf8').trim().split('\n'); } catch { return []; } })()});
+  return {dir, env, report};
+}
+function mpDeployStep(options = {}) {
+  const {env, report} = mpDeployStepSetup(options);
+  const result = spawnSync('/bin/bash', ['-e', '-c', stepScript('mp-deploy')], {encoding: 'utf8', env});
+  return {status: result.status, out: result.stdout + result.stderr, ...report()};
 }
 
 test('mp-deploy step: each try sends a new OIDC token on stdin; without a token nothing is deployed', () => {
@@ -319,4 +335,40 @@ test('mp-deploy step: each try sends a new OIDC token on stdin; without a token 
     assert.match(result.out, /DEPLOY_OIDC_UNAVAILABLE/, what);
     assert.deepEqual(result.calls, [], `${what}: mp-deploy not called`);
   }
+});
+
+test('NB-21: the request header lives in a private directory, is never reused or clobbered, and is removed in every case', async () => {
+  const ok = mpDeployStep();
+  assert.equal(ok.status, 0, ok.out);
+  assert.equal(ok.headers.length, 1);
+  assert.match(ok.headers[0], /\/tmp\/oidc\.[A-Za-z0-9]{8}\/request-header$/, 'a unique directory for this step');
+  assert.deepEqual(ok.leftover, [], 'removed after success');
+  // A failure after the header was written (mp-deploy refuses), and an OIDC failure: removed too.
+  assert.deepEqual(mpDeployStep({results: [3]}).leftover, []);
+  assert.deepEqual(mpDeployStep({oidc: 'exit 22'}).leftover, []);
+  // A stale world-readable file at a predictable path is not used, and stays untouched.
+  const stale = mpDeployStep({preexisting: true});
+  assert.equal(stale.status, 0, stale.out);
+  assert.doesNotMatch(stale.headers[0], /tmp\/oidc-request-header$/);
+  assert.deepEqual(stale.leftover, ['oidc-request-header']);
+  // No private directory: stop before any request or deploy.
+  const noDir = mpDeployStep({mktemp: 'fail'});
+  assert.equal(noDir.status, 1);
+  assert.match(noDir.out, /DEPLOY_OIDC_UNAVAILABLE: no private directory/);
+  assert.deepEqual(noDir.calls, []);
+  // A collision (the header file already there, readable by others): noclobber refuses to write it, nothing is deployed.
+  const taken = mpDeployStep({mktemp: 'collision'});
+  assert.equal(taken.status, 1);
+  assert.match(taken.out, /DEPLOY_OIDC_UNAVAILABLE: header file/);
+  assert.deepEqual(taken.calls, []);
+  // A signal while mp-deploy runs: the step ends and the private directory is removed.
+  const {dir, env, report} = mpDeployStepSetup({sudoDelay: 2});
+  const child = spawn('/bin/bash', ['-e', '-c', stepScript('mp-deploy')], {env});
+  const deadline = Date.now() + 10000;
+  while (!existsSync(join(dir, 'started')) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50));
+  assert.equal(report().leftover.length, 1, 'the private directory exists while mp-deploy runs');
+  child.kill('SIGTERM');
+  const code = await new Promise(resolve => child.on('close', resolve));
+  assert.notEqual(code, 0);
+  assert.deepEqual(report().leftover, [], 'removed after SIGTERM');
 });

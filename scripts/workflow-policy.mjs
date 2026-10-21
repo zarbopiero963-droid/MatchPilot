@@ -28,6 +28,9 @@ export const HOSTED_LABELS = Object.freeze(['ubuntu-latest', 'ubuntu-24.04', 'ub
 // Workflow files GitHub runs are the .yml/.yaml files directly in .github/workflows; this check reads exactly those and
 // refuses anything else there (review B-3: a `sneak.YML` was not even read).
 export const WORKFLOW_NAME = /^[a-z0-9][a-z0-9._-]*\.ya?ml$/;
+// Characters a workflow may not contain (see parseWorkflow): controls but tab/LF/CR, format, line and paragraph
+// separators, spaces but U+0020, private use, surrogates, unassigned.
+export const UNSAFE_CHARACTER = /(?![\t\n\r])[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Co}\p{Cs}\p{Cn}]|(?! )\p{Zs}/u;
 // Reserved names (review NB-15: the environment too, so no other job can ask for its approval or its OIDC audience).
 export const PRIVATE = /self-hosted|matchpilot-vps|mp-deploy|vps-production/i;
 export const INDIRECT_EVENTS = Object.freeze(['workflow_call', 'workflow_run', 'repository_dispatch']);
@@ -109,7 +112,7 @@ export const CANONICAL_DEPLOY = Object.freeze({
           "env": {
             "DEPLOY_SHA": "${{ github.sha }}"
           },
-          "run": "set -uo pipefail\n# The request token goes to curl through a 0600 file, never on a command line (visible in ps).\nhdr=\"$RUNNER_TEMP/oidc-request-header\"\ntrap 'rm -f \"$hdr\"' EXIT\n(umask 077 && printf 'Authorization: bearer %s\\n' \"$ACTIONS_ID_TOKEN_REQUEST_TOKEN\" > \"$hdr\")\nfor i in 1 2 3 4 5 6 7 8 9 10; do\n  token=$(curl --fail --silent --show-error --proto '=https' --max-time 30 -H @\"$hdr\" \"$ACTIONS_ID_TOKEN_REQUEST_URL&audience=matchpilot-vps-deploy\" | node -e 'let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>{let v;try{v=JSON.parse(s).value}catch{}if(typeof v!==\"string\"||!v)process.exit(1);process.stdout.write(v)})') || { echo \"DEPLOY_OIDC_UNAVAILABLE\"; exit 1; }\n  printf '%s' \"$token\" | sudo -n /usr/local/sbin/mp-deploy \"$DEPLOY_SHA\" && exit 0\n  rc=$?; [ \"$rc\" -eq 75 ] || exit \"$rc\"\n  echo \"deploy in corso, attendo 60s\"; sleep 60\ndone\nexit 75\n"
+          "run": "set -uo pipefail\n# The request token goes to curl through a header file, never on a command line (visible in ps). The file is\n# created exclusively (noclobber, mode 0600) in a private directory made for this step (mktemp -d: 0700,\n# unique), removed on exit, error or signal; without a safe file the deploy stops. umask stays in the\n# subshell: mp-deploy keeps its own.\ndir=$(mktemp -d \"$RUNNER_TEMP/oidc.XXXXXXXX\") || { echo \"DEPLOY_OIDC_UNAVAILABLE: no private directory\"; exit 1; }\ntrap 'rm -rf \"$dir\"' EXIT\ntrap 'exit 1' INT TERM HUP\nhdr=\"$dir/request-header\"\n(umask 077 && set -C && printf 'Authorization: bearer %s\\n' \"$ACTIONS_ID_TOKEN_REQUEST_TOKEN\" > \"$hdr\") || { echo \"DEPLOY_OIDC_UNAVAILABLE: header file\"; exit 1; }\nfor i in 1 2 3 4 5 6 7 8 9 10; do\n  token=$(curl --fail --silent --show-error --proto '=https' --max-time 30 -H @\"$hdr\" \"$ACTIONS_ID_TOKEN_REQUEST_URL&audience=matchpilot-vps-deploy\" | node -e 'let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>{let v;try{v=JSON.parse(s).value}catch{}if(typeof v!==\"string\"||!v)process.exit(1);process.stdout.write(v)})') || { echo \"DEPLOY_OIDC_UNAVAILABLE\"; exit 1; }\n  printf '%s' \"$token\" | sudo -n /usr/local/sbin/mp-deploy \"$DEPLOY_SHA\" && exit 0\n  rc=$?; [ \"$rc\" -eq 75 ] || exit \"$rc\"\n  echo \"deploy in corso, attendo 60s\"; sleep 60\ndone\nexit 75\n"
         }
       ]
     }
@@ -121,10 +124,13 @@ const plain = value => value !== null && typeof value === 'object' && !Array.isA
 // Parses one workflow file strictly. Returns {value, problems}.
 export function parseWorkflow(text) {
   const problems = [];
-  // Review NB-14: a byte-order mark, NUL or a control character other than tab, LF and CR is refused, so what is
-  // parsed is plain UTF-8 text.
-  const control = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\uFEFF]/.exec(String(text));
-  if (control) return {value: null, problems: [`ENCODING: character U+${control[0].codePointAt(0).toString(16).toUpperCase().padStart(4, '0')} is not accepted`]};
+  // Reviews NB-14 and B-4: one character policy, by Unicode category, so that no parser can see a line break, a space
+  // or a structure that another parser does not. Refused: every control character except tab, LF and CR (C0, DEL and
+  // C1, NEL U+0085 included), format characters (byte-order mark, zero-width and bidirectional controls), line and
+  // paragraph separators (U+2028, U+2029), every space other than U+0020, private-use, surrogate and unassigned code
+  // points. Ordinary letters, accented ones included, and punctuation such as an em dash are accepted.
+  const refused = UNSAFE_CHARACTER.exec(String(text));
+  if (refused) return {value: null, problems: [`ENCODING: character U+${refused[0].codePointAt(0).toString(16).toUpperCase().padStart(4, '0')} is not accepted`]};
   let documents;
   try {
     documents = parseAllDocuments(String(text), {version: '1.2', uniqueKeys: true, strict: true, merge: false, prettyErrors: false});

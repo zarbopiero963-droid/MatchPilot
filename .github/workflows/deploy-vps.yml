@@ -76,10 +76,15 @@ jobs:
           DEPLOY_SHA: ${{ github.sha }}
         run: |
           set -uo pipefail
-          # The request token goes to curl through a 0600 file, never on a command line (visible in ps).
-          hdr="$RUNNER_TEMP/oidc-request-header"
-          trap 'rm -f "$hdr"' EXIT
-          (umask 077 && printf 'Authorization: bearer %s\n' "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" > "$hdr")
+          # The request token goes to curl through a header file, never on a command line (visible in ps). The file is
+          # created exclusively (noclobber, mode 0600) in a private directory made for this step (mktemp -d: 0700,
+          # unique), removed on exit, error or signal; without a safe file the deploy stops. umask stays in the
+          # subshell: mp-deploy keeps its own.
+          dir=$(mktemp -d "$RUNNER_TEMP/oidc.XXXXXXXX") || { echo "DEPLOY_OIDC_UNAVAILABLE: no private directory"; exit 1; }
+          trap 'rm -rf "$dir"' EXIT
+          trap 'exit 1' INT TERM HUP
+          hdr="$dir/request-header"
+          (umask 077 && set -C && printf 'Authorization: bearer %s\n' "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" > "$hdr") || { echo "DEPLOY_OIDC_UNAVAILABLE: header file"; exit 1; }
           for i in 1 2 3 4 5 6 7 8 9 10; do
             token=$(curl --fail --silent --show-error --proto '=https' --max-time 30 -H @"$hdr" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=matchpilot-vps-deploy" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{let v;try{v=JSON.parse(s).value}catch{}if(typeof v!=="string"||!v)process.exit(1);process.stdout.write(v)})') || { echo "DEPLOY_OIDC_UNAVAILABLE"; exit 1; }
             printf '%s' "$token" | sudo -n /usr/local/sbin/mp-deploy "$DEPLOY_SHA" && exit 0
