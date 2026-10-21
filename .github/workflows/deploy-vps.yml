@@ -7,6 +7,9 @@
 #      prima di mp-deploy ripete lo stesso controllo, a ogni tentativo (anche un rerun del solo deploy), con il codice
 #      dello SHA approvato.
 #   Solo questo workflow può usare il runner VPS: test/governance-workflows.test.mjs lo verifica su tutti i workflow.
+#   Sulla VPS (MP-GATE-S1S2-FIX) l'hook di avvio job del runner, installato da root (scripts/runner-job-guard.mjs),
+#   ammette un job solo se è il job deploy di questo file con il contenuto pinnato, approvato dall'owner e sulla punta
+#   di main: una modifica a questo file, anche mergiata, non esegue codice sulla VPS senza un nuovo pin.
 # Procedura, bootstrap e rollback: docs/deploy-approval.md.
 name: deploy-vps
 on:
@@ -71,8 +74,12 @@ jobs:
       # A ogni tentativo un token OIDC nuovo (audience matchpilot-vps-deploy, valido pochi minuti), passato su stdin:
       # mp-deploy v3 lo verifica e lo consuma una sola volta sotto il proprio lock (docs/deploy-approval.md, fase B).
       # Senza token il deploy si ferma.
+      # Anti-stale (MP-GATE-S1S2-FIX): prima di ogni nuovo tentativo il gate dello SHA approvato gira di nuovo, quindi un
+      # merge su main durante l'attesa del lock ferma il run (GATE_SUPERSEDED) prima di chiedere un altro token.
+      # mp-deploy v3.1 ricontrolla la punta di main sotto il proprio lock; un rifiuto diverso da 75 non si ritenta.
       - name: mp-deploy
         env:
+          GH_TOKEN: ${{ github.token }}
           DEPLOY_SHA: ${{ github.sha }}
         run: |
           set -uo pipefail
@@ -85,7 +92,12 @@ jobs:
           trap 'exit 1' INT TERM HUP
           hdr="$dir/request-header"
           (umask 077 && set -C && printf 'Authorization: bearer %s\n' "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" > "$hdr") || { echo "DEPLOY_OIDC_UNAVAILABLE: header file"; exit 1; }
+          gate="$RUNNER_TEMP/deploy-gate-$DEPLOY_SHA.mjs"
           for i in 1 2 3 4 5 6 7 8 9 10; do
+            if [ "$i" -gt 1 ]; then
+              node "$gate" > "$RUNNER_TEMP/deploy-gate.json" || { cat "$RUNNER_TEMP/deploy-gate.json"; echo "DEPLOY_GATE_FAIL"; exit 1; }
+              grep -q '"result": "PASS"' "$RUNNER_TEMP/deploy-gate.json" || { echo "DEPLOY_GATE_FAIL"; exit 1; }
+            fi
             token=$(curl --fail --silent --show-error --proto '=https' --max-time 30 -H @"$hdr" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=matchpilot-vps-deploy" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{let v;try{v=JSON.parse(s).value}catch{}if(typeof v!=="string"||!v)process.exit(1);process.stdout.write(v)})') || { echo "DEPLOY_OIDC_UNAVAILABLE"; exit 1; }
             printf '%s' "$token" | sudo -n /usr/local/sbin/mp-deploy "$DEPLOY_SHA" && exit 0
             rc=$?; [ "$rc" -eq 75 ] || exit "$rc"

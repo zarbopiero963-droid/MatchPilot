@@ -275,16 +275,27 @@ test('the gate job step also requires an explicit PASS', () => {
 });
 
 // ---- the mp-deploy step on a simulated VPS: a fake OIDC endpoint (curl), a fake sudo/mp-deploy, the real node ----
-function mpDeployStepSetup({oidc = 'ok', results = [0], mktemp = 'real', preexisting = false, sudoDelay = 0} = {}) {
+function mpDeployStepSetup({oidc = 'ok', results = [0], mktemp = 'real', preexisting = false, sudoDelay = 0, gate = []} = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'deploy-step-'));
   const bin = join(dir, 'bin');
   execFileSync('mkdir', [bin]);
   // Fake tools are created with 'wx' (never through an existing symlink: a write through one would replace the real
   // binary when the tests run as root, as happened to /usr/bin/sleep in a container on 21/10).
-  for (const tool of ['cat', 'stat', 'rm', ...(mktemp === 'real' ? ['mktemp'] : [])]) symlinkSync(execFileSync('bash', ['-c', `command -v ${tool}`], {encoding: 'utf8'}).trim(), join(bin, tool));
+  for (const tool of ['cat', 'stat', 'rm', 'grep', ...(mktemp === 'real' ? ['mktemp'] : [])]) symlinkSync(execFileSync('bash', ['-c', `command -v ${tool}`], {encoding: 'utf8'}).trim(), join(bin, tool));
   symlinkSync(process.execPath, join(bin, 'node'));
   writeFileSync(join(bin, 'sleep'), '#!/bin/bash\nexit 0\n', {flag: 'wx'}); chmodSync(join(bin, 'sleep'), 0o755);
   execFileSync('mkdir', [join(dir, 'tmp')]);
+  // The gate script the previous step downloaded from the approved SHA: here a stand-in that answers, call after call,
+  // PASS or a superseded SHA as told by `gate` (PASS once the list is used up), and counts its calls.
+  writeFileSync(join(dir, 'tmp', `deploy-gate-${SHA}.mjs`), `import {readFileSync, writeFileSync} from 'node:fs';
+const file = ${JSON.stringify(join(dir, 'gate-calls'))};
+let n = 0; try { n = Number(readFileSync(file, 'utf8')); } catch {}
+writeFileSync(file, String(n + 1));
+const answer = ${JSON.stringify(gate)}[n] ?? 'PASS';
+const problems = answer === 'PASS' ? [] : ['GATE_SUPERSEDED: main is ${NEWER}, this run is ${SHA}'];
+console.log(JSON.stringify({result: problems.length ? 'FAIL' : 'PASS', problems}, null, 2));
+process.exitCode = problems.length ? 1 : 0;
+`, {flag: 'wx'});
   // A fake mktemp that fails, or that hands back a directory where the header file already exists (a collision).
   if (mktemp === 'fail') { writeFileSync(join(bin, 'mktemp'), '#!/bin/bash\nexit 1\n', {flag: 'wx'}); chmodSync(join(bin, 'mktemp'), 0o755); }
   if (mktemp === 'collision') {
@@ -306,9 +317,10 @@ function mpDeployStepSetup({oidc = 'ok', results = [0], mktemp = 'real', preexis
   // sudo -n /usr/local/sbin/mp-deploy <sha>: records the argument and the token read on stdin, then exits as told.
   writeFileSync(join(bin, 'sudo'), `#!/bin/bash\nk=$(( $(/bin/cat ${dir}/k 2>/dev/null || echo 0) + 1 )); echo $k > ${dir}/k\ntok=$(/bin/cat)\n${sudoDelay ? `: > ${dir}/started; /usr/bin/sleep ${sudoDelay}\n` : ''}printf '%s token=%s\\n' "$*" "$tok" >> ${log}\nset -- ${results.join(' ')}\nshift $((k-1)); exit \${1:-0}\n`, {flag: 'wx'});
   chmodSync(join(bin, 'sudo'), 0o755);
-  const env = {PATH: bin, DEPLOY_SHA: SHA, RUNNER_TEMP: join(dir, 'tmp'),
+  const env = {PATH: bin, DEPLOY_SHA: SHA, RUNNER_TEMP: join(dir, 'tmp'), GH_TOKEN: 't0ken',
     ACTIONS_ID_TOKEN_REQUEST_URL: 'https://oidc.example/token?api-version=2.0', ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'request-token'};
-  const report = () => ({calls: readFileSync(log, 'utf8').trim().split('\n').filter(Boolean), leftover: readdirSync(join(dir, 'tmp')).sort(),
+  const report = () => ({calls: readFileSync(log, 'utf8').trim().split('\n').filter(Boolean), leftover: readdirSync(join(dir, 'tmp')).filter(name => !name.startsWith('deploy-gate')).sort(),
+    gateCalls: (() => { try { return Number(readFileSync(join(dir, 'gate-calls'), 'utf8')); } catch { return 0; } })(),
     headers: (() => { try { return readFileSync(join(dir, 'headers'), 'utf8').trim().split('\n'); } catch { return []; } })()});
   return {dir, env, report};
 }
@@ -371,4 +383,46 @@ test('NB-21: the request header lives in a private directory, is never reused or
   const code = await new Promise(resolve => child.on('close', resolve));
   assert.notEqual(code, 0);
   assert.deepEqual(report().leftover, [], 'removed after SIGTERM');
+});
+
+// MP-GATE-S1S2-FIX, anti-stale in the workflow: the lock was busy (75) and main moved meanwhile. Before the next try the
+// gate of the approved SHA runs again, so the run stops before asking for another token. Before this fix the step retried
+// with a new token for the superseded SHA (RED on e127c26: 2 calls to mp-deploy).
+test('anti-stale: before every retry the gate runs again; a merge while the lock was busy stops the run', () => {
+  const first = mpDeployStep({results: [0]});
+  assert.equal(first.status, 0, first.out);
+  assert.equal(first.gateCalls, 0, 'the first try follows the post-approval gate step: no second check');
+  const moved = mpDeployStep({results: [75, 0], gate: ['SUPERSEDED']});
+  assert.equal(moved.status, 1, moved.out);
+  assert.match(moved.out, /GATE_SUPERSEDED[\s\S]*DEPLOY_GATE_FAIL/);
+  assert.deepEqual(moved.calls, [`-n /usr/local/sbin/mp-deploy ${SHA} token=tok-1`], 'no second token, no second call');
+  assert.deepEqual(moved.leftover, [], 'the request header is removed');
+  // Still the tip after two busy locks: two checks, three tries.
+  const busy = mpDeployStep({results: [75, 75, 0]});
+  assert.equal(busy.status, 0, busy.out);
+  assert.equal(busy.gateCalls, 2);
+  assert.equal(busy.calls.length, 3);
+  // mp-deploy v3.1 refusing a stale SHA under its lock (79) is not retried.
+  const stale = mpDeployStep({results: [79, 0]});
+  assert.equal(stale.status, 79);
+  assert.equal(stale.calls.length, 1);
+  assert.equal(stale.gateCalls, 0);
+});
+
+test('anti-stale: a superseded run says on its page which run to approve instead; a current one writes nothing', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'summary-'));
+  await withFakeGithub({...ROUTES, [`repos/${REPOSITORY}/branches/main`]: {status: 200, body: {commit: {sha: NEWER}}}}, async base => {
+    const summary = join(dir, 'stale.md');
+    const result = await cli(base, {GITHUB_STEP_SUMMARY: summary});
+    assert.equal(result.status, 1);
+    const text = readFileSync(summary, 'utf8');
+    assert.match(text, /Run obsoleto: non approvarlo/);
+    assert.match(text, new RegExp(`distribuirebbe \`${SHA}\`, ma l'ultimo commit di main è \`${NEWER}\``));
+  });
+  await withFakeGithub(ROUTES, async base => {
+    const summary = join(dir, 'current.md');
+    const result = await cli(base, {GITHUB_STEP_SUMMARY: summary});
+    assert.equal(result.status, 0);
+    assert.equal(existsSync(summary), false);
+  });
 });

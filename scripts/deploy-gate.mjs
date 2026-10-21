@@ -11,7 +11,7 @@
 // The workflow runs it twice: in the gate job before the approval, and on the VPS after it, at every attempt.
 // Its report lists the environment settings it read, as evidence of what GitHub returned.
 //   node scripts/deploy-gate.mjs   (GITHUB_REPOSITORY, GITHUB_SHA, GITHUB_REF, GITHUB_EVENT_NAME, GH_TOKEN)
-import {realpathSync} from 'node:fs';
+import {appendFileSync, realpathSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 
 export const REPOSITORY = 'zarbopiero963-droid/MatchPilot';
@@ -116,6 +116,11 @@ if (entry === import.meta.url) {
     problems = gateProblems(facts);
   } catch (error) {
     problems = [`GATE_ERROR: ${String(error?.message ?? error).split('\n')[0]}`];
+  }
+  // Anti-stale (MP-GATE-S1S2-FIX): a run of a superseded SHA says on its page which run to approve instead. It
+  // approves nothing and never deploys another SHA.
+  if (problems.some(item => item.startsWith('GATE_SUPERSEDED')) && env.GITHUB_STEP_SUMMARY) {
+    try { appendFileSync(env.GITHUB_STEP_SUMMARY, `### Run obsoleto: non approvarlo\n\nQuesto run distribuirebbe \`${env.GITHUB_SHA}\`, ma l'ultimo commit di main è \`${facts.mainSha}\`. Il deploy di questo run è rifiutato; approva il run deploy-vps dell'ultimo commit di main.\n`); } catch {}
   }
   console.log(JSON.stringify({gate: 'MP-DEPLOY-APPROVAL-01', environment: ENVIRONMENT, sha: env.GITHUB_SHA ?? null, result: problems.length ? 'FAIL' : 'PASS', problems, observed: safeObserved(facts)}, null, 2));
   process.exitCode = problems.length ? 1 : 0;
