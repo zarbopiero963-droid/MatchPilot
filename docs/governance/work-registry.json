@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 112,
+  "revision": 113,
   "tasks": [
     {
       "id": "R-01",
@@ -561,25 +561,22 @@
       "id": "GOV-RECON-01",
       "title": "Governance reconciliation R1-R7, checkpoint v3 and agent-independent handoff (MP-GITHUB-RECON-IMPLEMENTATION-01)",
       "issue": 97,
-      "pr": null,
+      "pr": 183,
       "branch": "claude/gov-recon-01",
       "kind": "implementation",
-      "state": "RUNNING",
+      "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "lease": {
-        "holder": "agent-a-claude-code",
-        "acquired_at": "2026-10-21T20:36:23.176Z",
-        "expires_at": "2026-10-21T22:36:23.176Z"
-      },
-      "latest_checkpoint": null,
+      "lease": null,
+      "latest_checkpoint": "CP-20261021T204410Z-agent-a-claude-code",
       "parallel_authorization": "MP-GITHUB-RECON-IMPLEMENTATION-01",
       "resources": [
         "branch:claude/gov-recon-01",
         "file:docs/governance/work-registry.json"
-      ]
+      ],
+      "pr_open": true
     }
   ]
 }
