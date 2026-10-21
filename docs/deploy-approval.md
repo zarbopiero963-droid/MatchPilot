@@ -1,216 +1,380 @@
-# Deploy approval gate (MP-DEPLOY-APPROVAL-01/-02)
+# Deploy approval gate (MP-DEPLOY-APPROVAL-01/-02, MP-DEPLOY-GATE-FINAL-01)
 
-A merge to `main` is not an authorization to deploy. Before this change, every push to `main` started `deploy-vps.yml`, whose only job ran `mp-deploy` on the VPS runner at once. After it, the deploy job runs only once the owner approves that run on GitHub, and only after the gate has checked GitHub's configuration again, at every attempt.
+A merge to `main` must not be an authorization to deploy. Before this change, every push to `main` started `deploy-vps.yml`, whose only job ran `mp-deploy` on the VPS runner at once. With this change, the deploy job runs only after two things:
+- the owner approves that run on GitHub;
+- the gate has checked GitHub's configuration again, at every attempt.
 
-**Owner decisions**
-- GO for the preparation: #97 comments 6313461364 (MP-DEPLOY-APPROVAL-01) and 6314059221 (triage), plus mandate MP-DEPLOY-APPROVAL-02.
-- Merge, activation and every change on the VPS, runner or secrets each need a separate owner GO.
+Code ready is not protection active. Nothing here is merged, configured or installed. The merge, the environment, the VPS side and #178 each need their own owner GO.
 
-Each statement below is marked **[tested]** (a test in this repository), **[documented]** (GitHub documentation, quoted in #97) or **[NOT VERIFIED]** (to be observed in phases C–D, or on the VPS in phase B).
+**Owner decisions:**
+- #97 comments 6313461364 (MP-DEPLOY-APPROVAL-01) and 6314059221 (triage);
+- mandates MP-DEPLOY-APPROVAL-02 and MP-DEPLOY-GATE-FINAL-01.
+
+**Reviews (#97):**
+- 6313944252 (9a7124a, NOT APPROVED: B-1);
+- 6314826174 (2af874f, NOT APPROVED: B-2);
+- the review of this head is pending.
+
+**Evidence labels** (every statement below carries one):
+
+| Label | Meaning |
+|---|---|
+| **[STATIC]** | verified statically on the files of this repository, by a test |
+| **[SIMULATION]** | verified by a test with a fake GitHub API, fake curl/git, throwaway keys |
+| **[GITHUB]** | observed on github.com, with the reference given |
+| **[VPS]** | observed on the VPS by Claude; nothing is in this category, because Claude has no VPS access |
+| **[NOT VERIFIED]** | anything else, including GitHub documentation not yet observed here, and Grok's reports not re-checked |
 
 ## 1. GitHub side (this branch)
 
-`deploy-vps.yml` still runs only on a push to `main`. It has two jobs.
+### Workflow policy (`scripts/workflow-policy.mjs`, tested by `test/governance-workflows.test.mjs`)
 
-**`gate`**
-- Runs on a GitHub-hosted runner, with no secrets and a read-only token.
-- Executes `scripts/deploy-gate.mjs` and requires an explicit `"result": "PASS"` in its report: a script that exits 0 without checking cannot pass **[tested]**.
-- Reads from the GitHub API, not from the repository:
-  - the run is a push to `main` of this repository;
-  - `vps-production` exists;
-  - its only required reviewer is the owner, `zarbopiero963-droid`, with *prevent self-review* off;
-  - administrators cannot bypass it;
-  - only the branch `main` may deploy to it;
-  - the run's SHA is still the tip of `main`.
+**Parsing.** Every file in `.github/workflows/` with the extension `.yml` or `.yaml` is parsed by the `yaml` package (2.9.1, a devDependency, no runtime use) as YAML 1.2, strictly **[STATIC]**.
 
-  Each case is **[tested]** against a fake API.
-- Missing, different or unreadable answers fail it **[tested]**. This includes the unprotected environment GitHub creates when a workflow names one that does not exist **[documented]**.
-- Its report lists the settings it read (reviewers, `prevent_self_review`, `can_admins_bypass`, branch policy), never the token **[tested]**. The first real run is the evidence of what GitHub returns.
+YAML 1.2 matters here. Under YAML 1.1 the key `on` would become `true`; PyYAML shows exactly that on the attack files (§5).
 
-**`deploy`**
-- Runs on `[self-hosted, matchpilot-vps]`, with `needs: gate` and `environment: vps-production` **[tested, static]**.
-- GitHub holds it until a required reviewer approves that run **[documented; NOT VERIFIED on this repository]**.
-- Its first step runs the same gate script again, downloaded from the approved SHA (`raw.githubusercontent.com/…/<sha>/scripts/deploy-gate.mjs`), and requires `PASS` before `mp-deploy` **[tested, simulated VPS: fake curl, real node, fake API]**.
-- This also covers a re-run of the deploy job alone. Such a re-run does not re-run `gate` (review NB-1), but the step checks again: an environment that has lost its protection and a superseded SHA both stop it **[tested]**.
-- No `node`, `curl`, `grep` or `cat`, an unreadable script, or a missing `PASS` stop it **[tested]**.
-- Whether `node` and `curl` exist for the runner user `ghrunner` on the VPS is **[NOT VERIFIED]**. If they do not, the deploy stops before `mp-deploy`.
-- The `mp-deploy` step is unchanged: same command, same retry on exit 75 **[tested: byte-identical to main, review 6313944252]**.
+These are refusals, so the policy fails closed:
+- a parse error or warning;
+- a duplicate key;
+- more than one document;
+- an anchor, an alias, a merge key `<<` or an explicit tag;
+- a key that is not a string.
 
-**Every workflow is checked, not only `deploy-vps.yml`** (review B-1). The check is in `test/governance-workflows.test.mjs`, which the CI fast lane runs.
-- Only job `deploy` of `deploy-vps.yml` may use the VPS runner or name `mp-deploy`.
-- Every other `runs-on`, in every workflow, must be a literal GitHub-hosted label. That excludes expressions, runner groups and any self-hosted label.
-- No workflow may call a reusable workflow, or be started by `workflow_call`, `workflow_run` or `repository_dispatch`.
-- Nothing in the deploy path may be `continue-on-error`.
+GitHub Actions accepts YAML anchors. This repository's workflows do not use them, and the policy refuses them because they make the structure harder to check.
 
-**Proofs** (the B-1 RED→GREEN is shown in the table that follows):
-- The reviewer's second workflow `sneak.yml` is refused, and so are 9 other indirect paths and 13 ways to tamper with `deploy-vps.yml` **[tested]**.
+**Rules on the parsed structure, for every workflow** **[STATIC]**:
+- No `workflow_call`, `workflow_run` or `repository_dispatch` trigger, and no job-level `uses` (reusable workflow).
+- Every job runs on one literal GitHub-hosted label, a string such as `ubuntu-latest`. A list, a group, an expression or any self-hosted label is refused.
+- The only exception is job `deploy` of `deploy-vps.yml`, on exactly `[self-hosted, matchpilot-vps]`.
+- Outside `deploy-vps.yml`, no key or value names `self-hosted`, `matchpilot-vps` or `mp-deploy`, even when written with escapes. No line of text names them either, comments included.
+- Ordinary CI is not blocked: `ci.yml` passes unchanged, with its services and env **[STATIC]**.
 
-| Experiment, in a copy of the branch | 9a7124a | this head |
-|---|---|---|
-| `sneak.yml` added to `.github/workflows/`, workflow tests run | 12/12 pass (bypass not seen) | test fails: `sneak.yml: job sneak: runs-on [self-hosted, matchpilot-vps] is not allowed`, `names mp-deploy` |
-| `deploy-gate.mjs` run from a path with spaces | exit 0, no output (NB-2) | exit 1, `GATE_ERROR …` |
-| new tests against the 9a7124a workflow | — | 5 tests fail (no post-approval gate, no explicit PASS) |
+**Rules for `deploy-vps.yml`.** It must equal the canonical structure in `scripts/workflow-policy.mjs` exactly. In addition, each invariant is checked by name **[STATIC]**:
+- the trigger is a push to `main` only;
+- permissions and concurrency are unchanged;
+- there is no workflow-level `env` or `defaults`;
+- the jobs are exactly `gate` and `deploy`;
+- `gate` runs on `ubuntu-latest`, with the pinned checkout and no persisted credentials, and its check step requires an explicit `PASS`;
+- `deploy`:
+  - has `needs: gate`, the exact condition, `[self-hosted, matchpilot-vps]`, `environment: vps-production` and unchanged permissions;
+  - has no job-level `env`, `defaults`, `container`, `services`, `strategy`, `continue-on-error`, `outputs` or `uses`;
+  - has exactly two steps, the post-approval gate and then the unchanged `mp-deploy` call;
+  - has no step-level `if`, `continue-on-error`, `shell`, `working-directory`, `uses` or `timeout-minutes`.
 
-## 2. Required environment configuration (owner, phase C)
+The NB-5 bypass, `if: false` on the gate step, is therefore refused. So are its equivalents, a removed or reordered step, and a changed `needs`, environment, permission, checkout, SHA or `mp-deploy` call **[STATIC]**.
 
-Only the repository owner can configure environments in a personal-account repository **[documented]**. The agents' GitHub access gets HTTP 403 on the environments API **[observed 21/10]**.
+Changing the deploy workflow needs the canonical structure changed in the same PR. Both are owner-GO files.
+
+**What the policy cannot prove.** It is a CI check on the files of a commit. It cannot:
+- see secrets or network access that a GitHub-hosted job could use to reach the VPS. No such deploy credential is known, but that is **[NOT VERIFIED]** by Claude;
+- stop a PR that changes the policy and the workflow together; only governance does that;
+- protect runs created before the gate (§3).
+
+### `gate` job and post-approval gate (`scripts/deploy-gate.mjs`, tested by `test/governance-deploy-gate.test.mjs`)
+
+**What the gate script reads from the GitHub API** **[SIMULATION]**:
+- the run is a push to `main` of this repository;
+- `vps-production` exists;
+- its only required reviewer is the owner, `zarbopiero963-droid`, with prevent self-review off;
+- administrators cannot bypass it (`can_admins_bypass: false`);
+- only the branch `main` may deploy to it;
+- the run's SHA is still the tip of `main`.
+
+Every missing, different or unreadable answer fails it:
+- HTTP 401, 403, 404, 500;
+- a network error;
+- a malformed body;
+- an unprotected environment, which is what GitHub creates when a workflow names a missing one.
+
+Its report lists the settings it read, never the token **[SIMULATION]**.
+
+**Where it runs.**
+- In the `gate` job, before the approval. That job's step requires an explicit `"result": "PASS"` **[STATIC]**.
+- In the `deploy` job, after the approval and at every attempt. A re-run of the deploy job alone does not re-run `gate`, so this step checks again. It downloads the script from the approved SHA (`raw.githubusercontent.com/…/<sha>/…`) and requires `PASS` before `mp-deploy` **[SIMULATION]**:
+  - a simulated VPS runs the step's own bash, with a fake curl, the real node and a fake API;
+  - an environment that lost its protection, a superseded SHA, no `node`/`curl`/`grep`, an unreadable script, or a script that exits 0 without saying `PASS` all stop it.
+
+**Entry point (review NB-2).** The script runs its checks from a path with spaces or through a symlink **[SIMULATION]**. The 9a7124a version exited 0 with no output there.
+
+**What GitHub itself does: [NOT VERIFIED] on this repository.** GitHub's documentation describes all of these. They are observed only in phase C/D:
+- that the deploy job waits for the approval;
+- that a re-run asks for it again;
+- whether `GITHUB_TOKEN` (`actions: read`) can read the environment and its branch policies;
+- whether the answer contains `can_admins_bypass` and `prevent_self_review`.
+
+In each case a failure stops the deploy.
+
+### Observations on GitHub
+
+- **The agents' token cannot approve a deployment or read or configure environments** **[GITHUB]**:
+  - `POST /repos/…/actions/runs/39412733270/pending_deployments` → 403 (21/10, no deployment was pending);
+  - `GET /repos/…/environments` → 403 from the proxy.
+- **The agents' token can re-run a deploy run** **[GITHUB]**:
+  - run 39412733270, attempt 3, 21/10 10:16Z, triggered by mistake (#179 comment 6313551158);
+  - its job log (job 119165978089, read through the API) shows `mp-runner-guard: ALLOW …` and `mp-deploy … result=ALREADY_DEPLOYED`;
+  - what happened on the VPS itself is **[NOT VERIFIED]** by Claude; Grok was asked to check.
+- **Only one run predates the gate**: 39412733270 on `3dd833f` **[GITHUB]**, the `deploy-vps.yml` run list read on 21/10.
+
+## 2. Environment configuration (owner, phase C)
+
+Only the repository owner can configure environments in a personal-account repository (GitHub documentation) **[NOT VERIFIED]** here.
 
 Settings → Environments → `vps-production`:
 
-| Setting | Value | Gate code if different |
+| Setting | Value | Gate code if different **[SIMULATION]** |
 |---|---|---|
 | Required reviewers | `zarbopiero963-droid` only | `GATE_NO_REQUIRED_REVIEWERS`, `GATE_UNEXPECTED_REVIEWER` |
-| Prevent self-review | **off** (review NB-4: the owner merges and approves; with it on, nobody could approve) | `GATE_SELF_REVIEW` |
+| Prevent self-review | **off**: the owner merges and approves; with it on, nobody could approve and every deploy would stay blocked | `GATE_SELF_REVIEW` |
 | Allow administrators to bypass configured protection rules | **off** | `GATE_ADMIN_BYPASS` |
 | Deployment branches and tags | Selected branches and tags, one branch rule `main` | `GATE_BRANCH_POLICY` |
 | Wait timer, environment secrets | none | — |
 
-**Not documented by GitHub, and so [NOT VERIFIED] until phase C** (in each case the gate fails closed):
-- whether `GITHUB_TOKEN` (`actions: read`) can read the environment and its branch policies;
-- whether the answer contains `can_admins_bypass` and `prevent_self_review`;
-- whether a re-run asks for the approval again.
+## 3. VPS side: proof of authorization (package for Grok, phase B, not wired)
 
-## 3. VPS side: proof of authorization (design for phase B, not wired)
+### Why
 
-**Why a VPS-side proof is needed.** A run created before the gate keeps its old workflow. A re-run of such a run would deploy without any approval. This is how run 39412733270 deployed on 21/10 (#179 comment 6313551158). Code on GitHub cannot close this path. Only the VPS can, by refusing a deploy that lacks a proof that the old run cannot produce.
+A run created before the gate keeps its old workflow. A re-run of it reaches `mp-deploy` without any approval; run 39412733270 did exactly that on 21/10 **[GITHUB]**. Code on GitHub cannot close this path. Only the VPS can, by requiring a proof that such a run cannot produce.
 
-**The proof is a GitHub Actions OIDC token.**
-- The deploy job requests it with a fixed audience (`matchpilot-vps-deploy`). It is a JWT that GitHub signs, valid for minutes.
-- GitHub puts `environment: vps-production` and a subject ending in `:environment:vps-production` only in the token of a job that uses that environment **[documented: OIDC reference, "The subject claim includes the environment name when the job references an environment"]**.
-- Such a job runs only after the approval **[documented for required reviewers; NOT VERIFIED here]**.
-- No static secret is involved. A run older than the gate has no `id-token` permission and no environment, so it cannot obtain such a token.
+### The proof
 
-**The reference verifier is `scripts/deploy-authz.mjs`**, with tests in `test/governance-deploy-authz.test.mjs`. Its tokens are signed with a throwaway key **[tested, simulated]**. It requires:
-1. **Identity and provenance:**
-   - an RS256 signature by a key in GitHub's JWKS;
-   - issuer `https://token.actions.githubusercontent.com` and audience `matchpilot-vps-deploy`;
-   - repository by name **and** numeric id (`1401571874`) and owner id (`249075720`);
-   - `ref` `refs/heads/main` and `event_name` `push`;
-   - `workflow_ref` and `job_workflow_ref` equal to `…/.github/workflows/deploy-vps.yml@refs/heads/main`;
-   - `runner_environment` `self-hosted`.
+The proof is a GitHub Actions OIDC token, requested by the deploy job with the audience `matchpilot-vps-deploy`.
+- It is a JWT signed by GitHub and valid for minutes.
+- GitHub's OIDC reference states that the subject "includes the environment name when the job references an environment", and lists the `environment` claim **[NOT VERIFIED]** here.
+- A run older than the gate has no `id-token` permission and no environment, so it cannot obtain one.
+- No static secret is involved.
+- That self-hosted runners receive OIDC tokens is implied by the documented claim `runner_environment: self-hosted`, but **[NOT VERIFIED]**.
 
-   A different workflow file (`sneak.yml`), a reusable workflow from elsewhere, another repository, a dispatch, a GitHub-hosted runner or a forged, unsigned (`alg: none`/`HS256`) or foreign-key token is refused **[tested]**.
-2. **The approval:** `environment` = `vps-production`, plus the subject. A token from a job without the environment (a run older than the gate) is refused **[tested]**.
+### Specification of the verifier (`scripts/deploy-authz.mjs`, tested by `test/governance-deploy-authz.test.mjs` **[SIMULATION]**)
 
-   Optionally, it also reads the run's approvals from the public API (`GET /repos/…/actions/runs/{run_id}/approvals`) and requires one by the owner for `vps-production` (`approvalProblems`) **[tested]**.
-3. **The commit:**
-   - `workflow_sha` (and `sha` when present) must equal the SHA `mp-deploy` is asked to deploy. GitHub's reference does not list `sha`; `workflow_sha` is listed.
-   - A token for another SHA is refused **[tested]**.
-4. **Anti-replay:**
-   - the token id (`jti`) and the run attempt (`run_id:run_attempt`) are each accepted once and recorded before the deploy;
-   - the token must be issued at most 10 minutes earlier, not be expired, and live at most 15 minutes;
-   - a re-run is a new attempt, so it needs its own approval and its own token **[tested]**.
-5. **Refusal of unauthorized workflows:** points 1–2, independent of the runner guard's workflow-name check.
-6. **Failure and rollback:**
-   - any failure, including an unreachable JWKS or ledger, refuses the deploy (fail closed) and leaves the current release running;
-   - rollback of phase B is the reinstallation of the previous `mp-deploy` and guard, whose hashes Grok already records (`caf9233f…`, `6e32cfff…`).
+**1. Input.** The token is read on stdin, never from the command line.
 
-**Wiring proposed for phase B** (owner GO, Grok on the VPS, a PR for the workflow), in an order that never leaves a deploy without a proof:
+These are refused without an exception:
+- a token that is not a string, or longer than 16 KiB;
+- not three base64url parts;
+- a header or payload that is not a JSON object, including `null`, arrays and strings;
+- a non-integer clock.
 
-**B1. Grok (VPS):** installs `mp-deploy` v3 and the verifier.
-- `mp-deploy` v3 accepts the token on stdin and verifies it in **report-only** mode: it logs the verdict and still deploys as today.
-- The verifier is a copy of `scripts/deploy-authz.mjs` pinned by SHA-256, plus a small CLI that:
-  - fetches the JWKS from `https://token.actions.githubusercontent.com/.well-known/openid-configuration` → `jwks_uri`;
-  - keeps the ledger `/var/lib/mp-deploy/authz-ledger`, root 600, under `flock`.
-- The sudo rule stays limited to `mp-deploy`.
+The 2af874f version threw on a `null` header or payload (NB-7).
 
-**B2. PR (workflow):** the deploy job gets `permissions: id-token: write`. Before `mp-deploy`, it requests the token with
+**2. Signature.**
+- `alg` must be exactly `RS256`; `none`, `HS256` and others are refused, and so is any `crit` header.
+- The key is the single RSA key with that `kid` in GitHub's JWKS. An unknown or ambiguous `kid` is refused.
+- The signature is checked with `RSA-SHA256` on the key's `n` and `e`.
+
+**3. Claims.** Exact strings, with no coercion of arrays, numbers or objects:
+- `iss` = `https://token.actions.githubusercontent.com`;
+- `aud` = `matchpilot-vps-deploy` (or a one-element array);
+- `repository`, plus `repository_id` `1401571874` and `repository_owner_id` `249075720` (read from the GitHub API on 21/10 **[GITHUB]**);
+- `ref` = `refs/heads/main` and `event_name` = `push`;
+- `environment` = `vps-production`, and `sub` ending in `:environment:vps-production`;
+- `workflow_ref`, and `job_workflow_ref` when present, = `zarbopiero963-droid/MatchPilot/.github/workflows/deploy-vps.yml@refs/heads/main`;
+- `runner_environment` = `self-hosted`.
+
+**4. Commit.**
+- `workflow_sha`, and `sha` when present, must equal the SHA `mp-deploy` is asked to deploy, which must be 40 hex digits.
+- GitHub's reference lists `workflow_sha` and not `sha` **[NOT VERIFIED]** in a real token.
+
+**5. Time** (skew 60 s): `exp` in the future, `iat`/`nbf` not in the future, `exp - iat` ≤ 15 min, and **`now - iat` ≤ 5 min**. A token kept across the workflow's 60-second retries ages out.
+
+**6. Anti-replay.** The ledger is a directory with one file per used key, named by its SHA-256.
+- **`verify`** checks without side effects whether `run:<run_id>:<run_attempt>` or `jti:<jti>` is already there.
+- **`consume`** records the run attempt and then the token id, each with an exclusive create (`O_CREAT|O_EXCL`, mode 600) followed by `fsync` of the file and of the directory. An existing key is a replay.
+- Two processes racing with the same token: exactly one consumes it **[SIMULATION]**, and a later process sees the record.
+- A timestamp alone is never the protection.
+
+**7. Not provable from the token.**
+- That the reviewer was the owner. The optional `approvalProblems` reads `GET /repos/…/actions/runs/{run_id}/approvals` and requires an approval of `vps-production` by `zarbopiero963-droid`.
+- That the environment was protected at that moment. The gate and the post-approval gate check this on GitHub.
+- The job's identity beyond workflow, run and attempt. `check_run_id` exists in the reference but is not required.
+
+**8. CLI.**
+```
+node deploy-authz.mjs verify  --sha <sha> --jwks <file> --ledger <dir>   # exit 0: valid and unused
+node deploy-authz.mjs consume --sha <sha> --jwks <file> --ledger <dir>   # exit 0: valid, unused, now recorded
+```
+Any other outcome, including an exception, exits 1, with the reasons as JSON on stdout.
+
+### Changes to `mp-deploy` (Grok, phase B, owner GO)
+
+**Runtime requirements**, to be verified read-only as the runner user `ghrunner`, then as root for `mp-deploy`:
+- `node` ≥ 20, `curl`, `grep`, `cat`;
+- HTTPS to `raw.githubusercontent.com`, `api.github.com` and `token.actions.githubusercontent.com`.
+
+**`mp-deploy` v3** (root, sudo rule unchanged, `<sha>` argument unchanged):
+1. Read the token from stdin; with none, refuse once enforcing.
+2. Fetch the JWKS from `https://token.actions.githubusercontent.com/.well-known/openid-configuration` → `jwks_uri` into a root-only temporary file. **STOP** on failure.
+3. `deploy-authz.mjs verify`. A refusal stops before the lock.
+4. Take the existing deploy lock. If it is held, exit 75 as today: nothing is consumed.
+5. `deploy-authz.mjs consume`, under the lock. A refusal releases the lock and exits non-zero.
+6. Deploy as today. A deploy that fails after `consume` cannot be retried in the same run attempt; a new attempt needs a new approval.
+
+**Pinned copy.** `deploy-authz.mjs` is installed at `/usr/local/libexec/mp-deploy-authz.mjs`, root:root 0755, pinned by SHA-256 in the infra repository. The ledger is `/var/lib/mp-deploy/authz-ledger/`, root:root 0700.
+
+**Trust policy.**
+- Only GitHub's issuer and keys are trusted, and only for this repository (name and ids), this workflow, `main`, `push`, the environment `vps-production`, a self-hosted runner and the requested SHA.
+- No other identity provider and no static credential.
+
+**Retry.** Each try of the workflow's exit-75 loop requests a **new** token: same run attempt, new `jti`. Nothing is consumed until the lock is held, so a try that meets a busy lock does not burn the attempt.
+
+### Workflow change for phase B (a PR, owner GO)
+
+The deploy job gets `permissions: id-token: write`. Inside the retry loop, before each `sudo -n /usr/local/sbin/mp-deploy <sha>`, it runs:
 ```
 curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=matchpilot-vps-deploy"
 ```
-and pipes its `value` to `sudo -n /usr/local/sbin/mp-deploy <sha>` on stdin. Whether self-hosted runners receive OIDC tokens is **[NOT VERIFIED]**: the docs list `runner_environment: self-hosted` but do not state it.
+and pipes the `value` field to that call's stdin. The canonical structure in `scripts/workflow-policy.mjs` changes in the same PR.
 
-**B3. Grok:** after one deploy whose report-only verdict is ACCEPT, switches `mp-deploy` to **enforce**.
-- From then on, a deploy without a valid, unused token for that SHA is refused.
-- That includes a re-run of 39412733270 or any other run older than the gate.
+### Sequence, evidence and STOP conditions
 
-Steps B1–B3 change the VPS, `mp-deploy`, the runner's sudo usage and the workflow's permissions. None of them is done or authorized on this branch.
+| Step | Who | What | Evidence | STOP if |
+|---|---|---|---|---|
+| B0 | Grok, read-only | runtime requirements above; hashes of the installed `mp-deploy` and guard | command output in #179 | anything missing |
+| B1 | Grok | install the verifier and `mp-deploy` v3 in **report-only**: verify and log the verdict, deploy as today | install log, SHA-256 of the files, a dry verify with a token from a test run, which must REFUSE (wrong audience/SHA) | v3 changes any deploy behaviour |
+| B2 | PR, owner GO | the workflow sends the token | CI green; review | — |
+| B3 | Grok | after one real deploy whose report-only verdict is ACCEPT, switch to **enforce** | `deploy.log` lines with ACCEPT/REFUSE, ledger entries | any REFUSE on a legitimate deploy |
+| D6 | Grok | replay: the recorded token, or a second token of a consumed attempt | `AUTHZ_REPLAY` | accepted |
+| D7 | owner, deliberately | re-run the old run 39412733270 | refused (no token) | it deploys |
+
+**Rollback of phase B:** reinstall the previous `mp-deploy` and guard. Grok reports their SHA-256 as `caf9233f…` and `6e32cfff…` (#179) **[NOT VERIFIED by Claude]**. Keep the ledger directory, which is only an append record.
+
+Until B3, a re-run of a run older than the gate can still reach `mp-deploy` **[GITHUB: 21/10]**. Whether `mp-deploy` refuses `3dd833f` once a newer release is current (forward-only) is **[NOT VERIFIED]**.
 
 ## 4. Activation plan
 
-**Phase A — code and tests (this branch)**
-- Done: the gate, the all-workflow check, the post-approval gate and the reference verifier, with RED→GREEN, mutation tests and a separate review.
+**Phase A — code and tests (this branch).**
+- Code, RED→GREEN, mutations and Gate A are done.
+- The separate review of this head is pending.
 - No PR while #178 is open, unless the owner authorizes an exception.
 
-**Phase B — VPS protection (Grok, separate owner GO).** Steps B1–B3 above. Grok first verifies, read-only and as `ghrunner`:
-- `command -v node curl grep cat`;
-- `curl -sSf https://raw.githubusercontent.com/zarbopiero963-droid/MatchPilot/3dd833f38bf8a7de3b51dfbebd3118e1602185ac/README.md >/dev/null`;
-- `curl -sSf https://api.github.com/repos/zarbopiero963-droid/MatchPilot >/dev/null`.
+**Phase B — VPS** (Grok, separate owner GO). Section 3. It may come before or after phases C–D. Until B3, runs older than the gate stay open.
 
-**STOP if** any is missing: the post-approval gate would block every deploy.
-
-Phase B may come after phases C–D. Until B3, a re-run of a run older than the gate remains possible. Today only run 39412733270 exists, and on 21/10 `mp-deploy` answered `ALREADY_DEPLOYED` for it **[observed in the job log]**. Whether `mp-deploy` refuses `3dd833f` once a newer release is current (forward-only) is **[NOT VERIFIED]**.
-
-**Phase C — GitHub bootstrap** (separate owner GO: the PR, then its merge)
-1. Open the PR. CI runs (`CI gate`), then a separate review and Gate B on its head.
-2. Merge with `vps-production` **not yet configured**. Expected run of the merge commit:
+**Phase C — GitHub bootstrap** (owner GOs: open the PR, then merge it)
+1. The PR opens. CI runs, including `test/governance-*.test.mjs`. Then Gate B on its head and a separate review.
+2. **Merge with `vps-production` not yet configured.** Expected run of the merge commit:
    - `gate` fails with `GATE_ENVIRONMENT_MISSING`, or with `GATE_NO_REQUIRED_REVIEWERS`/`GATE_ADMIN_BYPASS`/`GATE_BRANCH_POLICY` if GitHub created the environment from the workflow;
    - `deploy` is skipped.
 
    **STOP if** `deploy` starts.
 3. The owner configures `vps-production` per section 2.
 4. Owner: *Re-run all jobs*. Expected:
-   - `gate` PASS, with its report showing the settings;
+   - `gate` PASS, with its report showing `can_admins_bypass: false`, `prevent_self_review: false`, the reviewer and `branch:main`;
    - `deploy` *Waiting for review*.
 
-   **STOP if** `gate` fails with `GATE_API_ERROR … 403`: the token cannot read the environment, and the design must change. **STOP if** `deploy` starts without waiting.
+   **STOP if** `gate` reports `GATE_API_ERROR … 403` (the token cannot read the environment: redesign before going on), if the fields are absent, or if `deploy` starts without waiting.
 
-**Phase D — certification on GitHub (and the VPS after B)**
+**Phase D — certification on GitHub** (owner actions, Grok checks on the VPS)
 
 | Step | Action | Expected | STOP if |
 |---|---|---|---|
-| D1 | wait 10 min without acting | `deploy` still waiting (approval missing) | it starts |
-| D2 | Reject | run fails, nothing on the VPS (Grok: no new `deploy.log` line) | anything on the VPS |
+| D1 | wait 10 min | `deploy` still waiting (approval missing) | it starts |
+| D2 | Reject | run fails, nothing on the VPS (no new `deploy.log` line) | anything on the VPS |
 | D3 | Re-run failed jobs | `deploy` waits again (re-run of the job alone) | it starts without approval |
 | D4 | Reject, then Re-run all jobs | `gate` runs again, `deploy` waits again | it starts without approval |
-| D5 | Approve | post-approval gate PASS (`DEPLOY_GATE_SHA_OK <sha>`), `mp-deploy` deploys the gate commit (application identical to `3dd833f`); Grok checks guard log, `deploy.log`, release, health | any check fails |
-| D6 | (after B3) Grok re-uses a recorded token, or re-runs the token step | refused as `AUTHZ_REPLAY` | accepted |
-| D7 | (after B3) re-run of the old run 39412733270 (owner, deliberately) | refused: no token | it deploys |
+| D5 | Approve | post-approval gate PASS (`DEPLOY_GATE_SHA_OK <sha>`), `mp-deploy` deploys the gate commit (application unchanged from `3dd833f`); Grok checks guard log, `deploy.log`, release, health | any check fails |
+| D6, D7 | after B3 | section 3 | section 3 |
 
-The cases not exercised on GitHub stay as the test matrix states: runner unavailable, SHA superseded in a real race, an alternative workflow on a real merge.
-
-**Phase E — PR #178.** Only after phases C–D pass, and with its own owner GO. Its merge run waits for approval. Approving it deploys the squash commit of `57aab63`. Not approving it leaves the current release.
+**Phase E — PR #178.** Only after phase D, with its own owner GO. Its merge run waits for approval. Approving it deploys the squash commit of `57aab63`; not approving it leaves the current release.
 
 **Rollback**
-- **Stop every deploy now:** the owner removes the required reviewer or deletes `vps-production`. Every later gate fails closed **[tested, simulated]**. What GitHub does to a job already waiting when its environment is deleted is **[documented: "will automatically fail"; NOT VERIFIED here]**.
-- **Back to deploy-on-merge:** a PR reverting this change, with an owner GO. Its own merge runs the old workflow, and so deploys the revert commit without approval.
-- **Phase B:** reinstall the previous `mp-deploy` and guard. Their hashes are recorded by Grok in the infra repository.
+- **Stop every deploy now:** the owner removes the required reviewer or deletes `vps-production`. Every later gate fails closed **[SIMULATION]**. GitHub documents that jobs waiting on a deleted environment fail **[NOT VERIFIED]**.
+- **Back to deploy-on-merge:** a PR reverting this change, with an owner GO. Its own merge runs the old workflow and so deploys the revert commit without approval.
+- **Phase B:** section 3.
 
-## 5. Test matrix
+## 5. Evidence
 
-**Kinds:**
-- **S** — simulated: a test in this repository with a fake API, git, curl or keys.
-- **T** — static: the workflow files.
-- **G** — real GitHub run.
-- **V** — real VPS.
+### RED → GREEN
 
-| # | Case | Kind and result | Real check |
+Each attack file was placed in `.github/workflows/` of a copy, then `node --test test/governance-workflows.test.mjs` was run.
+
+| Finding | Attack | Vulnerable head | This head |
 |---|---|---|---|
-| 1 | second workflow on the VPS runner (B-1) | T: RED on 9a7124a → GREEN | G: none needed (the merge is refused by CI) |
-| 2 | several workflows: every runs-on, mp-deploy, reusable, workflow_call/run, repository_dispatch, groups, expressions | T: PASS (10 cases) | — |
-| 3 | indirect triggers (dispatch, workflow_run, workflow_call, repository_dispatch, PR events) | T: PASS; S: `GATE_EVENT`; V after B: `event_name` | — |
-| 4 | different SHA | S: `GATE_SUPERSEDED` (before and after approval), `AUTHZ_SHA` | G: NOT VERIFIED |
-| 5 | environment missing | S: `GATE_ENVIRONMENT_MISSING` | G: phase C2 |
-| 6 | environment unprotected or misconfigured | S: reviewers, team, self-review, bypass, branch policies | G: phase C2/C4 |
-| 7 | approval rejected | — | G: D2, NOT VERIFIED |
-| 8 | approval missing | — | G: D1, NOT VERIFIED |
-| 9 | full re-run | T: the VPS job always has the environment and the gate | G: D4, NOT VERIFIED |
-| 10 | re-run of the deploy job alone | S: the post-approval gate stops an unprotected environment or a stale SHA | G: D3, NOT VERIFIED |
-| 11 | run older than the gate | S: a token without environment is `AUTHZ_CLAIM environment` | V: D7 after B3, NOT VERIFIED; until then open (section 3) |
-| 12 | script path with spaces (NB-2) | S: RED on 9a7124a (exit 0, no output) → GREEN (exit 1); workflow requires an explicit PASS | — |
-| 13 | API error | S: 401, 403, 404, 500, network, malformed answers → fail closed | G: phase C4 |
-| 14 | runner unavailable | T: the job has no fallback runner label, so it stays queued | G/V: NOT VERIFIED |
-| 15 | replay of an authorization | S: `jti` and run attempt used twice → `AUTHZ_REPLAY` | V: D6 after B3, NOT VERIFIED |
+| B-1 | `sneak.yml`: push to main, VPS runner, `mp-deploy`, no environment | 9a7124a: 12/12 pass (bypass) | refused |
+| B-2 v1 | jobs indented by four spaces | 2af874f: fail 0 (bypass) | fail 1: `runs-on ["self-hosted","matchpilot-vps"] is not allowed` |
+| B-2 v2 | quoted job name | 2af874f: fail 0 | fail 1 |
+| B-2 v3 | `jobs:` as a flow mapping | 2af874f: fail 0 | fail 1 |
+| B-2 v7 | `on: [pull_request]`, four-space job calling `attacker/x/…@main`, file `.yaml` | 2af874f: fail 0 | fail 1: `calls the reusable workflow attacker/x/…` |
+| NB-5 | `if: false` on the post-approval gate | 2af874f: survived (review M6) | refused: `deploy: step 1 has if` |
+| NB-2 | gate script from a path with spaces | 9a7124a: exit 0, no output | exit 1, report with `GATE_ERROR` |
+| NB-7 | `null` header / `null` payload | 2af874f: throws `Cannot read properties of null` | refused `AUTHZ_MALFORMED_TOKEN` |
 
-**Mutations** (gate, verifier, workflow and the check itself): 16/16 killed. Commands and output are in #97.
+Each attack is also checked inside the permanent tests:
+- it parses cleanly with `yaml`, so it is a true positive and not a parse failure;
+- its job is structurally a VPS job or a reusable call.
+
+As an independent cross-check, PyYAML 6.0.1 (`yaml.safe_load`) gives the same jobs for the five files, with `runs-on ['self-hosted', 'matchpilot-vps']` or the reusable `uses`.
+
+**Permanent tests** **[STATIC]**:
+- 18 equivalent valid YAML forms, including quoted keys and labels, block sequences, runner groups, expressions, an escaped `matchpilot\x2dvps` or `mp-deploy`, comments and a renamed copy of the deploy workflow;
+- 14 unreadable forms, including duplicates, anchors, aliases, merge keys, tags, two documents, tabs, boolean keys and empty jobs;
+- 40 changes to `deploy-vps.yml`;
+- 4 changes to `ci.yml`.
+
+### Mutations
+
+Each mutation was applied to a copy, the three gate test files were run, and the file was restored. **29/30 killed, 1 equivalent.**
+
+| Id | Mutation | Expected | Observed |
+|---|---|---|---|
+| P1 | parse errors ignored | killed | killed |
+| P2 | duplicate keys accepted | killed | killed |
+| P3 | aliases accepted | killed | **survived, equivalent**: an alias needs an anchor, which stays refused, and an alias without one does not parse |
+| P4 | explicit tags accepted | killed | killed |
+| P5 | merge keys accepted | killed | killed |
+| P6 | several documents accepted | killed | killed |
+| P7 | reusable workflows accepted | killed | killed |
+| P8 | workflow_call/run, repository_dispatch accepted | killed | killed |
+| P9 | any `runs-on` accepted outside the deploy job | killed | killed |
+| P10 | names in parsed values not checked | killed | survived first; killed after adding the escaped-name tests |
+| P11 | other workflows not scanned | killed | killed |
+| P12 | `deploy-vps.yml` not checked | killed | killed |
+| P13 | step-level `if` accepted (NB-5) | killed | killed |
+| P14 | canonical equality removed | killed | survived first; killed after adding timeout/name tests |
+| P15 | empty `jobs` accepted | killed | survived first; killed after adding `jobs: {}` |
+| P16 | YAML 1.1 instead of 1.2 | killed | killed |
+| A1 | `null` header/payload not refused | killed | killed |
+| A2 | signature ignored | killed | killed |
+| A3 | `alg` ignored | killed | killed |
+| A4 | claims coerced to strings | killed | killed |
+| A5 | token age ignored | killed | killed |
+| A6 | replay check in verify off | killed | killed |
+| A7 | non-exclusive consume | killed | killed |
+| A8 | SHA binding off | killed | killed |
+| A9 | ambiguous `kid` accepted | killed | killed |
+| A10 | environment claim not pinned | killed | killed |
+| A11 | `crit` header accepted | killed | killed |
+| G1 | prevent self-review not checked | killed | killed |
+| G2 | entry check as in 9a7124a | killed | killed |
+| G3 | absent `can_admins_bypass` accepted | killed | killed |
+
+The earlier 16 mutations on 2af874f (signature, replay, SHA, age, approver, self-review, entry check, the VPS step, the B-1 scan) were all killed. They are covered again by the rows above.
+
+### Test matrix
+
+| # | Case | Result | Real check |
+|---|---|---|---|
+| 1 | second workflow on the VPS runner | [STATIC] RED→GREEN | CI on the PR: [NOT VERIFIED] until it opens |
+| 2 | several workflows, every YAML form above | [STATIC] | — |
+| 3 | indirect triggers | [STATIC]; [SIMULATION] `GATE_EVENT`, `AUTHZ_CLAIM event_name` | — |
+| 4 | different SHA | [SIMULATION] `GATE_SUPERSEDED`, `AUTHZ_SHA` | [NOT VERIFIED] |
+| 5 | environment missing | [SIMULATION] | phase C2 [NOT VERIFIED] |
+| 6 | environment unprotected or misconfigured | [SIMULATION] | phase C2/C4 [NOT VERIFIED] |
+| 7 | approval rejected | — | D2 [NOT VERIFIED] |
+| 8 | approval missing | — | D1 [NOT VERIFIED] |
+| 9 | full re-run | [STATIC] the VPS job always has the environment and the gate | D4 [NOT VERIFIED] |
+| 10 | re-run of the deploy job alone | [SIMULATION] post-approval gate | D3 [NOT VERIFIED] |
+| 11 | run older than the gate | [SIMULATION] a token without environment is refused | D7 after B3 [NOT VERIFIED]; open until B3 |
+| 12 | script path with spaces | [SIMULATION] RED→GREEN | — |
+| 13 | API error | [SIMULATION] | C4 [NOT VERIFIED] |
+| 14 | runner unavailable | [STATIC] no fallback runner label | [NOT VERIFIED] |
+| 15 | replay of an authorization | [SIMULATION] exclusive, persistent, racing | D6 after B3 [NOT VERIFIED] |
 
 ## 6. Residual risks
 
 1. **Same GitHub identity.**
-   - The agents act through the owner's account. They cannot approve a deployment or configure environments (403 **[observed]**).
-   - They can merge a PR, since the rulesets require a PR and `CI gate`, not an approval. Until phase B3, a merged workflow that dropped the environment would deploy without approval.
-   - The CI check of section 1 turns such a PR red. A PR that also weakened the check itself would pass CI, so only governance stops it: workflows, `scripts/` and `test/governance-*` are owner-GO files.
+   - The agents act through the owner's account. They cannot approve deployments or read or configure environments **[GITHUB: 403]**.
+   - They can merge a PR: the rulesets require a PR and `CI gate`, not an approval.
+   - A PR that changed the workflow, the policy and its tests together would pass CI. Only governance stops it: workflows, `scripts/` and `test/governance-*` are owner-GO files.
    - After B3, the VPS refuses a deploy without a token from `vps-production`, whatever the workflow says.
-2. **Runs older than the gate** can be re-run until B3 (section 3).
-3. **Waiting runs and concurrency.** The concurrency group `deploy-vps` lets one run wait while newer runs queue behind it. How GitHub treats a third run while one is waiting is **[NOT VERIFIED]**. Reject a stale run to let the newer one through; the post-approval gate refuses a stale SHA in any case.
-4. **Fork pull requests** cannot reach this workflow, which runs only on push to `main`. The runner rule is unchanged.
+2. **Runs older than the gate** can be re-run until B3.
+3. **Concurrency.** The group `deploy-vps` lets one run wait while newer ones queue. How GitHub treats a third run while one waits is **[NOT VERIFIED]**. Reject a stale run; the post-approval gate refuses a stale SHA anyway **[SIMULATION]**.
+4. **Window between the post-approval gate and `mp-deploy`.** The exit-75 retries can last up to about 10 minutes, during which `main` can move. That window is covered only by `mp-deploy`'s own check that the SHA is on `main` **[NOT VERIFIED]**. In phase B, each try's fresh token is still bound to the approved SHA.
