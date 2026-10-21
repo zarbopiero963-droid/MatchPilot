@@ -28,9 +28,9 @@ export const HOSTED_LABELS = Object.freeze(['ubuntu-latest', 'ubuntu-24.04', 'ub
 // Workflow files GitHub runs are the .yml/.yaml files directly in .github/workflows; this check reads exactly those and
 // refuses anything else there (review B-3: a `sneak.YML` was not even read).
 export const WORKFLOW_NAME = /^[a-z0-9][a-z0-9._-]*\.ya?ml$/;
-// Characters a workflow may not contain (see parseWorkflow): controls but tab/LF/CR, format, line and paragraph
-// separators, spaces but U+0020, private use, surrogates, unassigned.
-export const UNSAFE_CHARACTER = /(?![\t\n\r])[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Co}\p{Cs}\p{Cn}]|(?! )\p{Zs}/u;
+// Characters a workflow may not contain (see parseWorkflow): controls but tab/LF and CR in CRLF, format, line and
+// paragraph separators, spaces but U+0020, private use, surrogates, unassigned.
+export const UNSAFE_CHARACTER = /(?![\t\n\r])[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Co}\p{Cs}\p{Cn}]|\r(?!\n)|(?! )\p{Zs}/u;
 // Reserved names (review NB-15: the environment too, so no other job can ask for its approval or its OIDC audience).
 export const PRIVATE = /self-hosted|matchpilot-vps|mp-deploy|vps-production/i;
 export const INDIRECT_EVENTS = Object.freeze(['workflow_call', 'workflow_run', 'repository_dispatch']);
@@ -124,9 +124,10 @@ const plain = value => value !== null && typeof value === 'object' && !Array.isA
 // Parses one workflow file strictly. Returns {value, problems}.
 export function parseWorkflow(text) {
   const problems = [];
-  // Reviews NB-14 and B-4: one character policy, by Unicode category, so that no parser can see a line break, a space
-  // or a structure that another parser does not. Refused: every control character except tab, LF and CR (C0, DEL and
-  // C1, NEL U+0085 included), format characters (byte-order mark, zero-width and bidirectional controls), line and
+  // Reviews NB-14, B-4 and B-5: one character policy, by Unicode category, so that no parser can see a line break, a
+  // space or a structure that another parser does not. Refused: every control character except tab, LF and a CR that
+  // ends a CRLF (C0, DEL and C1, NEL U+0085 included; a lone CR is a line break for YAML 1.1/1.2 parsers, not for
+  // `yaml`), format characters (byte-order mark, zero-width and bidirectional controls), line and
   // paragraph separators (U+2028, U+2029), every space other than U+0020, private-use, surrogate and unassigned code
   // points. Ordinary letters, accented ones included, and punctuation such as an em dash are accepted.
   const refused = UNSAFE_CHARACTER.exec(String(text));

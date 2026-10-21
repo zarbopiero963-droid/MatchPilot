@@ -45,9 +45,10 @@ The review of this head is reported in #97.
 
 What GitHub itself would run among such entries is **[NOT VERIFIED]**: its documentation says only ".yml or .yaml" in that directory. The policy refuses them all, so the question does not matter for this check.
 
-**Encoding (reviews NB-14, B-4, NB-19).** Each file is decoded as strict UTF-8, keeping any byte-order mark so the character policy sees it. Then one character policy applies, defined by Unicode category (`UNSAFE_CHARACTER`). These are refused **[STATIC]**:
+**Encoding (reviews NB-14, B-4, NB-19, B-5).** Each file is decoded as strict UTF-8, keeping any byte-order mark so the character policy sees it. Then one character policy applies, defined by Unicode category (`UNSAFE_CHARACTER`). These are refused **[STATIC]**:
 - invalid UTF-8 and UTF-16/32 byte-order marks;
 - every control character except tab, LF and CR (category Cc): C0, DEL U+007F and C1 U+0080–U+009F, NEL U+0085 included;
+- a CR that is not followed by LF (a lone CR, review B-5); CRLF stays accepted;
 - format characters (Cf): byte-order mark anywhere, zero-width and bidirectional controls, soft hyphen;
 - line and paragraph separators U+2028 and U+2029 (Zl, Zp);
 - every space other than U+0020 (Zs), such as a no-break space;
@@ -59,6 +60,10 @@ Why this matters (review B-4): `yaml` 2.9.1 reads NEL, LS and PS as ordinary cha
 - The policy refuses the character, so no parser difference can be used.
 - Whether GitHub's own parser reads these characters as line breaks is **[NOT VERIFIED]**.
 - How GitHub decodes UTF-16 is **[NOT VERIFIED]**; the policy refuses it either way.
+
+The same holds for a lone CR (review B-5). The YAML 1.2 specification (§5.4, `b-carriage-return`) and YAML 1.1 read it as a line break, and so do PyYAML 6.0.3 and Ruby Psych/libyaml **[STATIC: test with both when available]**. `yaml` 2.9.1 does not: in a comment the rest of the line disappears. The same hidden job therefore works with a lone CR, in a comment or inside a block scalar `run: |`, in `deploy-vps.yml` or in another file. Git keeps a lone CR as it is.
+- The policy refuses a CR not followed by LF.
+- Whether GitHub's own parser reads a lone CR as a line break is **[NOT VERIFIED]**; YamlDotNet's source treats it as one.
 
 **Parsing.** Each workflow is parsed by `yaml` 2.9.1 (devDependency) as YAML 1.2, strictly **[STATIC]**. Under YAML 1.1, `on` would become `true`; PyYAML does that on the attack files (§5).
 
@@ -340,6 +345,7 @@ In each case the attack file was put in `.github/workflows/` of a copy, or the i
 | CI on PR #180 | the `mp-deploy` step simulation as a non-root user | a6abe28: `EACCES` (a fake `sleep` written through a symlink to the real one) | passes; fake tools are created with `wx` |
 | B-4 | a job hidden behind NEL in `deploy-vps.yml` (the review's line), also with U+2028/U+2029 and in another file | 10f6f95: workflow tests 8/8 pass, policy `[]` | refused: `ENCODING: character U+0085 is not accepted` |
 | NB-19 | a leading UTF-8 BOM on disk; U+007F | 10f6f95: survived as review mutations M4, M13 | refused (E4, E7 killed) |
+| B-5 | the B-4 line with a lone CR instead of NEL, in `deploy-vps.yml`, in a comment and in a block scalar of another file | be8d4e4: policy `[]`; PyYAML and Ruby/libyaml read the job `evil` | refused: `ENCODING: character U+000D is not accepted` |
 | NB-21 | header file at a fixed path written over an existing file | 10f6f95: an existing file kept its mode | private `mktemp -d` directory, `noclobber`; a collision stops the step |
 
 PyYAML 6.0.1 gives the same jobs as `yaml` for the B-1/B-2 attack files. That is an independent parser cross-check.
@@ -354,16 +360,16 @@ PyYAML 6.0.1 gives the same jobs as `yaml` for the B-1/B-2 attack files. That is
 
 ### 5.2 Mutations
 
-The complete catalogue was run on the final code of this branch. Each mutation was applied to a copy, then the three gate test files were run (60 s timeout per test), and the file was restored.
+The complete catalogue was run on `e998815`. Each mutation was applied to a copy, then the three gate test files were run (60 s timeout per test), and the file was restored. The B-5 fix changes only `UNSAFE_CHARACTER` and its tests. On that code, E4–E9 and the new E12 were run again, together with a sample of the other groups (P3, P16, A14, W7–W10), and gave the same results.
 
-**69 mutations: 68 killed, 1 equivalent, 0 surviving.** The equivalent mutation is listed apart and not counted as killed.
+**70 mutations: 69 killed, 1 equivalent, 0 surviving.** The equivalent mutation is listed apart and not counted as killed.
 
-The full matrix, with ID, component, change, observed result, class and the tests that fail, is published in #97 together with the head it was run on (review NB-20).
+The full matrix, with ID, component, change, observed result, class and the tests that fail, is published in #97 together with the head it was run on (review NB-20). E12 (a lone CR accepted) is added on PR #180 with the B-5 fix.
 
 | Group | Ids | Result |
 |---|---|---|
 | Workflow policy and directory | P1, P2, P4–P24, R5 | 24 killed |
-| Encoding and reserved names | E1–E11 | 11 killed |
+| Encoding and reserved names | E1–E12 | 12 killed |
 | OIDC verifier, ledger, CLI | A1–A16, R8, R9, R9b | 19 killed |
 | Gate script | G1–G4 | 4 killed |
 | `mp-deploy` step (token, header file) | W1–W10 | 10 killed |
@@ -384,7 +390,7 @@ The full matrix, with ID, component, change, observed result, class and the test
 | # | Surface | Defense | Proof | Real check still needed |
 |---|---|---|---|---|
 | 1 | workflow directory entries | `readWorkflowDirectory` | [STATIC] B-3 tests | — |
-| 2 | YAML forms and encodings | strict UTF-8, one character policy by Unicode category, strict YAML 1.2 parser | [STATIC] 40 forms, 24 refused characters, B-4 attack + PyYAML | GitHub's own parser on NEL/LS/PS: NOT VERIFIED (refused anyway) |
+| 2 | YAML forms and encodings | strict UTF-8, one character policy by Unicode category, strict YAML 1.2 parser | [STATIC] 40 forms, 25 refused characters, B-4 and B-5 attacks + PyYAML, Ruby/libyaml | GitHub's own parser on NEL/LS/PS and a lone CR: NOT VERIFIED (refused anyway) |
 | 3 | paths to the VPS runner and `mp-deploy` | label allow-list, single exception, name scan; VPS guard; `mp-deploy` v3 | [STATIC]; guard [NOT VERIFIED] | B0, D7 |
 | 4 | triggers and reusable workflows | event allow-list, no job `uses` | [STATIC] | — |
 | 5 | canonical deploy workflow | exact structure + named invariants | [STATIC] 43 changes | — |

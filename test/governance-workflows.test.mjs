@@ -249,14 +249,46 @@ test('B-4: an independent YAML 1.1 parser (PyYAML) reads the hidden NEL job, whi
   assert.match(problems(withFile(DEPLOY_FILE, deploy + hiddenJob('\u0085'))), /ENCODING: character U\+0085/);
 });
 
+// ---- review 6319315939 (B-5): a lone CR is a line break for YAML 1.1/1.2 parsers but not for `yaml`; RED on be8d4e4 ----
+test('B-5: a lone CR cannot hide a VPS job in a comment or a block scalar, in deploy-vps.yml or in another file', () => {
+  const inBlock = `on: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps:\n      - run: |\n          echo hi\r  evil:\r    runs-on: ["self\\x2dhosted"]\r    steps: [{run: x}]\n`;
+  const other = `on: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: id}]\n${hiddenJob('\r')}`;
+  // A true positive: with the CR read as a line break (the YAML 1.2 rule) a third job is on the VPS runner.
+  const broken = parse((deploy + hiddenJob('\r')).replaceAll('\r', '\n'), {version: '1.2'});
+  assert.deepEqual(Object.keys(broken.jobs), ['gate', 'deploy', 'evil']);
+  assert.deepEqual(Object.keys(parse(deploy + hiddenJob('\r'), {version: '1.2'}).jobs), ['gate', 'deploy'], 'invisible to yaml 2.9.1');
+  assert.deepEqual(Object.keys(parse(inBlock.replaceAll('\r', '\n'), {version: '1.2'}).jobs), ['x', 'evil']);
+  assert.match(problems(withFile(DEPLOY_FILE, deploy + hiddenJob('\r'))), /deploy-vps\.yml: ENCODING: character U\+000D is not accepted/);
+  assert.match(directoryWith(dir => writeFileSync(join(dir, DEPLOY_FILE), deploy + hiddenJob('\r'))), /deploy-vps\.yml: ENCODING: character U\+000D/);
+  assert.match(directoryWith(dir => writeFileSync(join(dir, 'other.yml'), other)), /other\.yml: ENCODING: character U\+000D/);
+  assert.match(directoryWith(dir => writeFileSync(join(dir, 'block.yml'), inBlock)), /block\.yml: ENCODING: character U\+000D/);
+  // CRLF is one line break for every parser: still accepted.
+  assert.deepEqual(parseWorkflow('on: push\r\njobs:\r\n  x:\r\n    runs-on: ubuntu-latest\r\n    steps: [{run: id}]\r\n').problems, []);
+});
+
+test('B-5: independent parsers (PyYAML, Ruby/libyaml) read the hidden lone-CR job, which the policy refuses', t => {
+  const input = deploy + hiddenJob('\r');
+  const probes = [['python3', ['-I', '-c', 'import yaml, sys, json; print(json.dumps(list(yaml.safe_load(sys.stdin.read())["jobs"])))']],
+    ['ruby', ['-ryaml', '-rjson', '-e', 'puts JSON.generate(YAML.load($stdin.read)["jobs"].keys)']]];
+  let ran = 0;
+  for (const [command, args] of probes) {
+    const probe = spawnSync(command, args, {input, encoding: 'utf8'});
+    if (probe.status !== 0) continue;
+    ran += 1;
+    assert.deepEqual(JSON.parse(probe.stdout), ['gate', 'deploy', 'evil'], command);
+  }
+  if (!ran) { t.skip('neither PyYAML nor Ruby is available here'); return; }
+  assert.match(problems(withFile(DEPLOY_FILE, input)), /ENCODING: character U\+000D/);
+});
+
 test('B-4/NB-19: one character policy by Unicode category; ordinary letters stay accepted', () => {
-  const refused = ['\u0000', '\u0008', '\u000b', '\u000c', '\u001b', '\u007f', '\u0080', '\u0085', '\u009f', '\u00a0', '\u00ad', '\u1680',
+  const refused = ['\u0000', '\u0008', '\r', '\u000b', '\u000c', '\u001b', '\u007f', '\u0080', '\u0085', '\u009f', '\u00a0', '\u00ad', '\u1680',
     '\u2000', '\u200b', '\u200e', '\u202e', '\u2028', '\u2029', '\u2066', '\u3000', '\ufeff', '\ue000', '\ud800', '\u0378'];
   for (const c of refused) {
     assert.ok(UNSAFE_CHARACTER.test(c), `U+${c.charCodeAt(0).toString(16)} refused`);
     assert.match(parseWorkflow(`on: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: "a${c}b"}]\n`).problems.join(), /ENCODING/, `U+${c.charCodeAt(0).toString(16)} in a value`);
   }
-  for (const c of ['\t', '\n', '\r', ' ', 'a', 'è', 'ò', 'à', 'é', 'ü', 'ß', 'ç', '—', '€', '«', '»', '’', '✓', '中']) assert.ok(!UNSAFE_CHARACTER.test(c), `${c} accepted`);
+  for (const c of ['\t', '\n', '\r\n', ' ', 'a', 'è', 'ò', 'à', 'é', 'ü', 'ß', 'ç', '—', '€', '«', '»', '’', '✓', '中']) assert.ok(!UNSAFE_CHARACTER.test(c), `${c} accepted`);
   assert.deepEqual(parseWorkflow(`name: Città è perché — ok\non: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: "echo perché"}]\n`).problems, []);
   // NB-19: a byte-order mark at the start of a file on disk (it must not be dropped by the decoder), inside a file, DEL,
   // and combinations.
