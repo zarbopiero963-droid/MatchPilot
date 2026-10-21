@@ -304,7 +304,7 @@ Each attack is also checked inside the permanent tests:
 As an independent cross-check, PyYAML 6.0.1 (`yaml.safe_load`) gives the same jobs for the five files, with `runs-on ['self-hosted', 'matchpilot-vps']` or the reusable `uses`.
 
 **Permanent tests** **[STATIC]**:
-- 18 equivalent valid YAML forms, including quoted keys and labels, block sequences, runner groups, expressions, an escaped `matchpilot\x2dvps` or `mp-deploy`, comments and a renamed copy of the deploy workflow;
+- 18 equivalent valid YAML forms, including quoted keys and labels, block sequences, runner groups, expressions, a `matchpilot-vps` or `mp-deploy` written with YAML escapes (`\x2d`, `\u002d`), comments and a renamed copy of the deploy workflow;
 - 14 unreadable forms, including duplicates, anchors, aliases, merge keys, tags, two documents, tabs, boolean keys and empty jobs;
 - 40 changes to `deploy-vps.yml`;
 - 4 changes to `ci.yml`.
