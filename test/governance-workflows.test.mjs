@@ -82,6 +82,9 @@ test('equivalent valid YAML forms that reach the VPS are refused too', () => {
     ['workflow_run', `on:\n  workflow_run:\n    workflows: [CI]\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps:\n      - run: id\n`, /triggered by workflow_run/],
     ['repository_dispatch', `on: [repository_dispatch]\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps:\n      - run: id\n`, /triggered by repository_dispatch/],
     ['mp-deploy from a GitHub-hosted job', `on: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps:\n      - run: ssh vps sudo /usr/local/sbin/mp-deploy x\n`, /names the VPS runner or mp-deploy/],
+    // Review NB-15: the protected environment and the OIDC audience are reserved to the deploy job.
+    ['the protected environment on a hosted job', `on: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    environment: vps-production\n    permissions:\n      id-token: write\n    steps:\n      - run: id\n`, /names the VPS runner or mp-deploy \(vps-production\)/],
+    ['the deploy audience on a hosted job', `on: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps:\n      - run: curl "$U&audience=matchpilot-vps-deploy"\n`, /names the VPS runner or mp-deploy/],
     ['the VPS label in an env value', `on: push\nenv:\n  R: matchpilot-vps\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps:\n      - run: id\n`, /names the VPS runner or mp-deploy/],
     // Escapes hide the name from the text but not from the parsed value (mutation P10).
     ['the VPS label written with an escape', `on: push\nenv:\n  R: "matchpilot\\x2dvps"\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps:\n      - run: id\n`, /names the VPS runner or mp-deploy \(matchpilot-vps\)/],
@@ -107,6 +110,12 @@ test('YAML that cannot be read exactly is refused: duplicates, anchors, aliases,
     ['a tab indentation', `on: push\njobs:\n\tx:\n\t\truns-on: ubuntu-latest\n`, /YAML_ERROR/],
     ['a boolean key', `on: push\njobs:\n  true:\n    runs-on: ubuntu-latest\n    steps: [{run: id}]\n`, /YAML_KEY_TYPE/],
     ['no jobs', `on: push\n`, /no readable jobs/],
+    // Review NB-13: a document with only a warning (an unknown directive) is refused too.
+    ['an unknown directive (warning only)', `%FOO bar\n---\non: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: id}]\n`, /YAML_WARNING/],
+    // Review NB-14: byte-order marks, NUL and control characters.
+    ['a UTF-8 byte-order mark', `\uFEFFon: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: id}]\n`, /ENCODING: character U\+FEFF/],
+    ['a NUL in a comment', `# a\u0000b\non: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: id}]\n`, /ENCODING: character U\+0000/],
+    ['an escape character', `on: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: "a\u001bb"}]\n`, /ENCODING: character U\+001B/],
     ['an empty jobs mapping', `on: push\njobs: {}\n`, /no readable jobs/],
     ['a list instead of a workflow', `- on: push\n`, /not a mapping/],
     ['an unreadable trigger', `on: 1\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps: [{run: id}]\n`, /unreadable trigger/],
@@ -131,6 +140,7 @@ test('deploy-vps.yml: skipping, reordering, removing or rewriting any part of th
     ['the mp-deploy call changed', deploy.replace('sudo -n /usr/local/sbin/mp-deploy "$DEPLOY_SHA"', 'sudo -n /usr/local/sbin/mp-deploy "$(cat /tmp/sha)"'), /the mp-deploy call changed/],
     ['the OIDC token not sent', deploy.replace(`printf '%s' "$token" | sudo -n`, 'sudo -n'), /the mp-deploy call changed/],
     ['another audience', deploy.replace('&audience=matchpilot-vps-deploy', '&audience=other'), /the mp-deploy call changed/],
+    ['the request token on the command line (NB-16)', deploy.replace('-H @"$hdr"', '-H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"'), /the mp-deploy call changed/],
     ['needs removed', deploy.replace('    needs: gate\n', ''), /does not need exactly the gate job/],
     ['needs widened', deploy.replace('    needs: gate\n', '    needs: [gate, other]\n'), /does not need exactly the gate job/],
     ['the deploy job condition made always()', deploy.replace(/(  deploy:\n    needs: gate\n    if: )/, '$1always() && '), /deploy: condition changed/],
@@ -182,6 +192,9 @@ test('B-3: an upper-case extension, another name, a subdirectory, a symlink or a
     ['a subdirectory', dir => { mkdirSync(join(dir, 'sub')); writeFileSync(join(dir, 'sub', 'sneak.yml'), SNEAK); }, /sub: a subdirectory in the workflow directory is not accepted/],
     ['a symlink to a VPS workflow outside', dir => { const outside = join(mkdtempSync(join(tmpdir(), 'outside-')), 'x.yml'); writeFileSync(outside, SNEAK); symlinkSync(outside, join(dir, 'linked.yml')); }, /linked\.yml: a symlink in the workflow directory is not accepted/],
     ['a symlink to the deploy workflow', dir => symlinkSync(join(dir, DEPLOY_FILE), join(dir, 'again.yml')), /again\.yml: a symlink/],
+    ['a UTF-16 file', dir => writeFileSync(join(dir, 'u16.yml'), Buffer.concat([Buffer.from([0xFF, 0xFE]), Buffer.from(SNEAK, 'utf16le')])), /u16\.yml: UTF-16\/32 is not accepted/],
+    ['a UTF-16 big-endian file', dir => writeFileSync(join(dir, 'u16be.yml'), Buffer.from([0xFE, 0xFF, 0x00, 0x6F])), /u16be\.yml: UTF-16\/32 is not accepted/],
+    ['invalid UTF-8', dir => writeFileSync(join(dir, 'bad.yml'), Buffer.concat([Buffer.from('on: push\n# '), Buffer.from([0xC3, 0x28]), Buffer.from('\n')])), /bad\.yml: not valid UTF-8/],
     ['a lower-case .yaml VPS workflow is read and refused', dir => writeFileSync(join(dir, 'sneak.yaml'), SNEAK), /sneak\.yaml: job sneak: runs-on/],
   ];
   for (const [what, extra, expected] of cases) assert.match(directoryWith(extra), expected, what);

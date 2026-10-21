@@ -123,6 +123,11 @@ test('time: expired, future, older than one try, or long-lived tokens are refuse
   // The workflow retries every 60 s up to 10 times on exit 75: a token kept across tries ages out.
   assert.match(check(token({iat: NOW - MAX_AGE_S - 1, nbf: NOW - MAX_AGE_S - 1, exp: NOW + 100})).reasons.join(), /AUTHZ_TOO_OLD/);
   assert.match(check(token({exp: NOW + 3600})).reasons.join(), /AUTHZ_LIFETIME/);
+  // Review NB-13: absolute values, not only the constants; nbf in the future with a valid iat.
+  assert.equal(MAX_AGE_S, 300);
+  assert.equal(check(token({iat: NOW - 299, nbf: NOW - 299, exp: NOW + 200})).ok, true);
+  assert.match(check(token({iat: NOW - 301, nbf: NOW - 301, exp: NOW + 200})).reasons.join(), /AUTHZ_TOO_OLD/);
+  assert.match(check(token({iat: NOW - 10, nbf: NOW + 120, exp: NOW + 280})).reasons.join(), /AUTHZ_NOT_YET_VALID/);
   assert.match(check(token({exp: NOW - 40, iat: NOW - 30})).reasons.join(), /AUTHZ_LIFETIME/);
   assert.match(check(token({}, {drop: ['iat']})).reasons.join(), /AUTHZ_TIME/);
 });
@@ -143,6 +148,9 @@ test('anti-replay: consumption is exclusive and persistent; a busy lock records 
   assert.deepEqual(consume(dir, first.record), {ok: false, reasons: ['AUTHZ_REPLAY: run:424242:1 already used']});
   // A re-run is a new attempt: it needs its own approval, and so its own token.
   assert.equal(check(token({jti: 'jti-4', run_attempt: '2'}), {seen}).ok, true);
+  // Review NB-13: only "not found" means unused; another error (EACCES) is thrown, so the CLI refuses.
+  const denied = {openSync: () => { throw Object.assign(new Error('EACCES'), {code: 'EACCES'}); }, closeSync: () => {}};
+  assert.throws(() => ledgerHas(dir, 'run:9:9', {fs: denied}), {code: 'EACCES'});
   // Nothing to consume, or an unwritable ledger, is a refusal.
   assert.equal(consume(dir, []).ok, false);
   assert.match(consume(join(dir, 'missing'), ['run:1:1']).reasons.join(), /AUTHZ_LEDGER: ENOENT/);

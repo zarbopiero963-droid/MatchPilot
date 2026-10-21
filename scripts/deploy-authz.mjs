@@ -115,8 +115,9 @@ export function verifyDeployToken({token, jwks, sha, now, seen = () => false}) {
 
 // The ledger: one file per used key, named by its SHA-256, created exclusively. A key already there is a replay.
 const entry = (dir, key) => join(dir, createHash('sha256').update(key).digest('hex'));
-export function ledgerHas(dir, key) {
-  try { closeSync(openSync(entry(dir, key), 'r')); return true; }
+// Only "not found" means unused; any other error (EACCES, EIO) is thrown, so the CLI refuses (AUTHZ_ERROR).
+export function ledgerHas(dir, key, {fs = {openSync, closeSync}} = {}) {
+  try { fs.closeSync(fs.openSync(entry(dir, key), 'r')); return true; }
   catch (error) { if (error.code === 'ENOENT') return false; throw error; }
 }
 // Consume under mp-deploy's deploy lock, just before deploying. All or nothing per key; the first key that exists

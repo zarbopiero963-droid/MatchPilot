@@ -3,7 +3,7 @@
 // the approval, that a re-run asks for it again) is verified at activation, per docs/deploy-approval.md.
 import assert from 'node:assert/strict';
 import {execFileSync, spawn, spawnSync} from 'node:child_process';
-import {chmodSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync} from 'node:fs';
+import {chmodSync, mkdtempSync, readFileSync, readdirSync, symlinkSync, writeFileSync} from 'node:fs';
 import {createServer} from 'node:http';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -215,7 +215,7 @@ function vps({curl = 'serve', tools = ['node', 'curl', 'grep', 'cat']} = {}) {
          [ "$url" = "https://raw.githubusercontent.com/zarbopiero963-droid/MatchPilot/$DEPLOY_SHA/scripts/deploy-gate.mjs" ] || { echo "curl: (22) 404" >&2; exit 22; }
          /bin/cp "${GATE_SOURCE}" "$out"`
       : curl;
-    writeFileSync(join(bin, 'curl'), `#!/bin/bash\n${body}\n`);
+    writeFileSync(join(bin, 'curl'), `#!/bin/bash\n${body}\n`, {flag: 'wx'});
     chmodSync(join(bin, 'curl'), 0o755);
   }
   return {bin, tmp: join(dir, 'tmp')};
@@ -279,27 +279,33 @@ function mpDeployStep({oidc = 'ok', results = [0]} = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'deploy-step-'));
   const bin = join(dir, 'bin');
   execFileSync('mkdir', [bin]);
-  for (const tool of ['cat', 'sleep']) symlinkSync(execFileSync('bash', ['-c', `command -v ${tool}`], {encoding: 'utf8'}).trim(), join(bin, tool));
+  // Fake tools are created with 'wx' (never through an existing symlink: a write through one would replace the real
+  // binary when the tests run as root, as happened to /usr/bin/sleep in a container on 21/10).
+  for (const tool of ['cat', 'stat', 'rm']) symlinkSync(execFileSync('bash', ['-c', `command -v ${tool}`], {encoding: 'utf8'}).trim(), join(bin, tool));
   symlinkSync(process.execPath, join(bin, 'node'));
-  writeFileSync(join(bin, 'sleep'), '#!/bin/bash\nexit 0\n'); chmodSync(join(bin, 'sleep'), 0o755);
+  writeFileSync(join(bin, 'sleep'), '#!/bin/bash\nexit 0\n', {flag: 'wx'}); chmodSync(join(bin, 'sleep'), 0o755);
   const log = join(dir, 'log');
   writeFileSync(log, '');
   // Each OIDC request returns a new token; the URL must carry the audience.
   const curl = oidc === 'ok'
-    ? `n=$(( $(/bin/cat ${dir}/n 2>/dev/null || echo 0) + 1 )); echo $n > ${dir}/n; for a in "$@"; do case "$a" in *audience=matchpilot-vps-deploy) ok=1;; esac; done; [ "$ok" = 1 ] || exit 22; echo "{\\"value\\":\\"tok-$n\\"}"`
+    // The request token must come from the 0600 header file, never from argv (review NB-16).
+    ? `n=$(( $(/bin/cat ${dir}/n 2>/dev/null || echo 0) + 1 )); echo $n > ${dir}/n; for a in "$@"; do case "$a" in *request-token*) echo argv >> ${dir}/leak; exit 22;; *audience=matchpilot-vps-deploy) ok=1;; @*) h="\${a#@}";; esac; done; [ "$ok" = 1 ] || exit 22; [ "$(/bin/cat "$h")" = "Authorization: bearer request-token" ] || exit 22; [ "$(stat -c %a "$h")" = 600 ] || exit 22; echo "{\\"value\\":\\"tok-$n\\"}"`
     : oidc;
-  writeFileSync(join(bin, 'curl'), `#!/bin/bash\n${curl}\n`); chmodSync(join(bin, 'curl'), 0o755);
+  writeFileSync(join(bin, 'curl'), `#!/bin/bash\n${curl}\n`, {flag: 'wx'}); chmodSync(join(bin, 'curl'), 0o755);
   // sudo -n /usr/local/sbin/mp-deploy <sha>: records the argument and the token read on stdin, then exits as told.
-  writeFileSync(join(bin, 'sudo'), `#!/bin/bash\nk=$(( $(/bin/cat ${dir}/k 2>/dev/null || echo 0) + 1 )); echo $k > ${dir}/k\ntok=$(/bin/cat)\nprintf '%s token=%s\\n' "$*" "$tok" >> ${log}\nset -- ${results.join(' ')}\nshift $((k-1)); exit \${1:-0}\n`);
+  writeFileSync(join(bin, 'sudo'), `#!/bin/bash\nk=$(( $(/bin/cat ${dir}/k 2>/dev/null || echo 0) + 1 )); echo $k > ${dir}/k\ntok=$(/bin/cat)\nprintf '%s token=%s\\n' "$*" "$tok" >> ${log}\nset -- ${results.join(' ')}\nshift $((k-1)); exit \${1:-0}\n`, {flag: 'wx'});
   chmodSync(join(bin, 'sudo'), 0o755);
-  const result = spawnSync('/bin/bash', ['-e', '-c', stepScript('mp-deploy')], {encoding: 'utf8', env: {PATH: bin, DEPLOY_SHA: SHA,
+  execFileSync('mkdir', [join(dir, 'tmp')]);
+  const result = spawnSync('/bin/bash', ['-e', '-c', stepScript('mp-deploy')], {encoding: 'utf8', env: {PATH: bin, DEPLOY_SHA: SHA, RUNNER_TEMP: join(dir, 'tmp'),
     ACTIONS_ID_TOKEN_REQUEST_URL: 'https://oidc.example/token?api-version=2.0', ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'request-token'}});
-  return {status: result.status, out: result.stdout + result.stderr, calls: readFileSync(log, 'utf8').trim().split('\n').filter(Boolean)};
+  return {status: result.status, out: result.stdout + result.stderr, calls: readFileSync(log, 'utf8').trim().split('\n').filter(Boolean),
+    leftover: readdirSync(join(dir, 'tmp'))};
 }
 
 test('mp-deploy step: each try sends a new OIDC token on stdin; without a token nothing is deployed', () => {
   const once = mpDeployStep();
   assert.equal(once.status, 0, once.out);
+  assert.deepEqual(once.leftover, [], 'the request header file is removed');
   assert.deepEqual(once.calls, [`-n /usr/local/sbin/mp-deploy ${SHA} token=tok-1`]);
   // Lock busy (75) twice, then deployed: three tries, three different tokens, same SHA.
   const retried = mpDeployStep({results: [75, 75, 0]});

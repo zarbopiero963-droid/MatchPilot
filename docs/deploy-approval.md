@@ -45,10 +45,17 @@ The review of this head is reported in #97.
 
 What GitHub itself would run among such entries is **[NOT VERIFIED]**: its documentation says only ".yml or .yaml" in that directory. The policy refuses them all, so the question does not matter for this check.
 
+**Encoding (review NB-14).** Each file is decoded as strict UTF-8. These are refused **[STATIC]**:
+- invalid sequences;
+- UTF-16/32 byte-order marks;
+- a UTF-8 byte-order mark, NUL, or any control character other than tab, LF and CR.
+
+How GitHub decodes UTF-16 is **[NOT VERIFIED]**; the policy refuses it either way.
+
 **Parsing.** Each workflow is parsed by `yaml` 2.9.1 (devDependency) as YAML 1.2, strictly **[STATIC]**. Under YAML 1.1, `on` would become `true`; PyYAML does that on the attack files (§5).
 
 These are refused (fail closed):
-- parse errors or warnings;
+- parse errors or warnings (a document with only a warning, such as an unknown directive, included);
 - duplicate keys;
 - keys that differ only by case (`RUNS-ON` beside `runs-on`, review NB-9);
 - several documents;
@@ -64,7 +71,8 @@ GitHub Actions accepting YAML anchors is **[NOT VERIFIED]** here. This repositor
 - **Every job runs on one label from the hosted allow-list** (review NB-10): `ubuntu-latest`, `ubuntu-24.04`, `ubuntu-22.04`, `ubuntu-24.04-arm`, `ubuntu-22.04-arm`, `windows-latest`, `windows-2025`, `windows-2022`, `macos-latest`, `macos-15`, `macos-14`, `macos-13`.
   - A custom label of that shape (`ubuntu-vps`), a list, a group, an expression or any self-hosted label is refused.
   - The only exception is job `deploy` of `deploy-vps.yml`, on exactly `[self-hosted, matchpilot-vps]`.
-- **Outside `deploy-vps.yml`**, no key or value names `self-hosted`, `matchpilot-vps` or `mp-deploy`, including when written with YAML escapes (`\x2d`, `-`). No line of text names them either, comments included.
+- **Outside `deploy-vps.yml`**, no key or value names `self-hosted`, `matchpilot-vps`, `mp-deploy` or `vps-production`, including when written with YAML escapes (`\x2d`, `\u002d`). No line of text names them either, comments included.
+  - `vps-production` is reserved too (review NB-15), so no other job can ask for that environment's approval or use the deploy audience `matchpilot-vps-deploy`.
 
 **`deploy-vps.yml`** must equal the canonical structure in `scripts/workflow-policy.mjs` exactly. Each invariant is also checked by name, so a change is reported precisely **[STATIC]**:
 - the trigger is a push to `main` only;
@@ -115,6 +123,8 @@ In every case it still writes its structured report, listing the settings read, 
 The script runs its checks from a path with spaces or through a symlink **[SIMULATION]** (review NB-2).
 
 ### 1.3 `mp-deploy` step: a fresh OIDC token on every try
+
+The request token (`ACTIONS_ID_TOKEN_REQUEST_TOKEN`) goes to curl through a header file, never on a command line visible in `ps` (review NB-16). The file is written mode 0600 in `$RUNNER_TEMP` and removed on exit **[SIMULATION]**.
 
 On every try of the exit-75 retry loop, the step does three things:
 1. requests a new OIDC token for the audience `matchpilot-vps-deploy`;
@@ -274,7 +284,7 @@ node deploy-authz.mjs consume --sha <sha> --jwks <file> --ledger <dir>
 | 1 | open the gate PR | owner exception (#97 6316562293) | CI runs | — |
 | 2 | CI green, Gate A/B, separate review on the PR head | agent | evidence in #97 | any finding |
 | 3 | **phase B0–B1: `mp-deploy` v3 in freeze + report** | owner GO, Grok | §3.5 | §3.5 |
-| 4 | merge the gate PR, with `vps-production` not yet configured | owner GO | run of the merge commit: `gate` FAIL (`GATE_ENVIRONMENT_MISSING`, or the codes for an unprotected environment); `deploy` skipped | `deploy` starts |
+| 4 | merge the gate PR, with `vps-production` not yet configured | owner GO | run of the merge commit: `gate` FAIL (`GATE_ENVIRONMENT_MISSING`, or the codes for an unprotected environment); `deploy` skipped | **before merging:** B1 (`mp-deploy` v3 in freeze + report) not certified in #179 → do not merge (review NB-17); after: `deploy` starts |
 | 5 | configure `vps-production` (§2) | owner GO | — | — |
 | 6 | re-run all jobs of that run | owner | `gate` PASS, report showing the settings; `deploy` *Waiting* | `GATE_API_ERROR … 403` (token cannot read the environment), missing fields, or `deploy` starting |
 | 7 | D1: wait 10 min | owner | still waiting | it starts |
@@ -303,7 +313,7 @@ In each case the attack file was put in `.github/workflows/` of a copy, or the i
 | Finding | Attack | Vulnerable head | This branch |
 |---|---|---|---|
 | B-1 | `sneak.yml` (VPS runner, `mp-deploy`, no environment) | 9a7124a: 12/12 pass | refused |
-| B-2 v1 | jobs indented by four spaces | 2af874f: fail 0 | refused |
+| B-2 v1 | jobs indented by four spaces | 2af874f: fail 0 (2af874f is on branch `deploy-approval-01-history-2af874f`; same tree as `97e9eea` here) | refused |
 | B-2 v2 | quoted job name | 2af874f: fail 0 | refused |
 | B-2 v3 | `jobs:` in flow style | 2af874f: fail 0 | refused |
 | B-2 v7 | `.yaml`, `pull_request`, external reusable workflow | 2af874f: fail 0 | refused |
@@ -313,22 +323,23 @@ In each case the attack file was put in `.github/workflows/` of a copy, or the i
 | NB-7 | `null` header/payload | 2af874f: throws | `AUTHZ_MALFORMED_TOKEN` |
 | NB-11 | `reviewers: "x"` | 512ef32: exit 1, 0 bytes of report | exit 1, 286-byte report |
 | NB-12 | `verify` with a missing ledger | 512ef32: ACCEPT (review) | refused (`AUTHZ_ERROR`) |
+| CI on PR #180 | the `mp-deploy` step simulation as a non-root user | a6abe28: `EACCES` (a fake `sleep` written through a symlink to the real one) | passes; fake tools are created with `wx` |
 
 PyYAML 6.0.1 gives the same jobs as `yaml` for the B-1/B-2 attack files. That is an independent parser cross-check.
 
 **Permanent tests** **[STATIC]**:
-- the directory checks of B-3: 9 entries, plus an unreadable directory;
-- 18 equivalent YAML forms;
-- 16 unreadable forms;
+- the directory checks of B-3 and NB-14: 12 entries, plus an unreadable directory;
+- 20 equivalent YAML forms;
+- 20 unreadable forms;
 - 8 key, event and label cases with 2 accepted ordinary workflows;
-- 43 changes to `deploy-vps.yml`;
+- 44 changes to `deploy-vps.yml`;
 - 4 changes to `ci.yml`.
 
 ### 5.2 Mutations
 
 Final run on this code; the list of replacements is published with the #97 report. Each mutation was applied to a copy, then the three gate test files were run with a 60 s timeout per test, and the file was restored.
 
-**49 mutations: 48 killed, 1 equivalent.** Equivalent mutations are listed apart and not counted as killed.
+**58 mutations: 57 killed, 1 equivalent.** Equivalent mutations are listed apart and not counted as killed.
 
 | Id | Mutation | Result |
 |---|---|---|
@@ -338,6 +349,7 @@ Final run on this code; the list of replacements is published with the #97 repor
 | R8, R9, R9b | no `fsync` of the directory; no `fsync` of the file; file `fsync` error not handled | 3/3 killed (fs injected and observed) |
 | G1–G4 | self-review, entry check, absent admin bypass, unprotected report | 4/4 killed |
 | W1–W4 | one token reused across retries; missing token tolerated; token not piped; `pipefail` removed | 4/4 killed |
+| N1–N9 | encoding check off; UTF-16 check off; non-fatal decoding; `vps-production` not reserved; `ledgerHas` swallowing errors; `nbf` unchecked; warnings ignored; header file not removed; header file not 0600 | 9/9 killed (review NB-13…NB-16) |
 | **P3 (equivalent)** | aliases accepted | an alias needs an anchor, which is refused; without one it does not parse |
 
 Notes:
@@ -355,7 +367,7 @@ Notes:
 | # | Surface | Defense | Proof | Real check still needed |
 |---|---|---|---|---|
 | 1 | workflow directory entries | `readWorkflowDirectory` | [STATIC] B-3 tests | — |
-| 2 | YAML forms | strict YAML 1.2 parser, refusals | [STATIC] 34 forms + PyYAML | — |
+| 2 | YAML forms and encodings | strict UTF-8, strict YAML 1.2 parser, refusals | [STATIC] 40 forms + PyYAML | — |
 | 3 | paths to the VPS runner and `mp-deploy` | label allow-list, single exception, name scan; VPS guard; `mp-deploy` v3 | [STATIC]; guard [NOT VERIFIED] | B0, D7 |
 | 4 | triggers and reusable workflows | event allow-list, no job `uses` | [STATIC] | — |
 | 5 | canonical deploy workflow | exact structure + named invariants | [STATIC] 43 changes | — |

@@ -28,7 +28,8 @@ export const HOSTED_LABELS = Object.freeze(['ubuntu-latest', 'ubuntu-24.04', 'ub
 // Workflow files GitHub runs are the .yml/.yaml files directly in .github/workflows; this check reads exactly those and
 // refuses anything else there (review B-3: a `sneak.YML` was not even read).
 export const WORKFLOW_NAME = /^[a-z0-9][a-z0-9._-]*\.ya?ml$/;
-export const PRIVATE = /self-hosted|matchpilot-vps|mp-deploy/i;
+// Reserved names (review NB-15: the environment too, so no other job can ask for its approval or its OIDC audience).
+export const PRIVATE = /self-hosted|matchpilot-vps|mp-deploy|vps-production/i;
 export const INDIRECT_EVENTS = Object.freeze(['workflow_call', 'workflow_run', 'repository_dispatch']);
 // Events a workflow may use, exactly as written (review NB-9: an allow-list, so `Workflow_Run` or an unknown event is
 // refused rather than guessed). pull_request_target is not here: it runs fork code with this repository's rights.
@@ -108,7 +109,7 @@ export const CANONICAL_DEPLOY = Object.freeze({
           "env": {
             "DEPLOY_SHA": "${{ github.sha }}"
           },
-          "run": "set -uo pipefail\nfor i in 1 2 3 4 5 6 7 8 9 10; do\n  token=$(curl --fail --silent --show-error --proto '=https' --max-time 30 -H \"Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN\" \"$ACTIONS_ID_TOKEN_REQUEST_URL&audience=matchpilot-vps-deploy\" | node -e 'let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>{let v;try{v=JSON.parse(s).value}catch{}if(typeof v!==\"string\"||!v)process.exit(1);process.stdout.write(v)})') || { echo \"DEPLOY_OIDC_UNAVAILABLE\"; exit 1; }\n  printf '%s' \"$token\" | sudo -n /usr/local/sbin/mp-deploy \"$DEPLOY_SHA\" && exit 0\n  rc=$?; [ \"$rc\" -eq 75 ] || exit \"$rc\"\n  echo \"deploy in corso, attendo 60s\"; sleep 60\ndone\nexit 75\n"
+          "run": "set -uo pipefail\n# The request token goes to curl through a 0600 file, never on a command line (visible in ps).\nhdr=\"$RUNNER_TEMP/oidc-request-header\"\ntrap 'rm -f \"$hdr\"' EXIT\n(umask 077 && printf 'Authorization: bearer %s\\n' \"$ACTIONS_ID_TOKEN_REQUEST_TOKEN\" > \"$hdr\")\nfor i in 1 2 3 4 5 6 7 8 9 10; do\n  token=$(curl --fail --silent --show-error --proto '=https' --max-time 30 -H @\"$hdr\" \"$ACTIONS_ID_TOKEN_REQUEST_URL&audience=matchpilot-vps-deploy\" | node -e 'let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>{let v;try{v=JSON.parse(s).value}catch{}if(typeof v!==\"string\"||!v)process.exit(1);process.stdout.write(v)})') || { echo \"DEPLOY_OIDC_UNAVAILABLE\"; exit 1; }\n  printf '%s' \"$token\" | sudo -n /usr/local/sbin/mp-deploy \"$DEPLOY_SHA\" && exit 0\n  rc=$?; [ \"$rc\" -eq 75 ] || exit \"$rc\"\n  echo \"deploy in corso, attendo 60s\"; sleep 60\ndone\nexit 75\n"
         }
       ]
     }
@@ -120,6 +121,10 @@ const plain = value => value !== null && typeof value === 'object' && !Array.isA
 // Parses one workflow file strictly. Returns {value, problems}.
 export function parseWorkflow(text) {
   const problems = [];
+  // Review NB-14: a byte-order mark, NUL or a control character other than tab, LF and CR is refused, so what is
+  // parsed is plain UTF-8 text.
+  const control = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\uFEFF]/.exec(String(text));
+  if (control) return {value: null, problems: [`ENCODING: character U+${control[0].codePointAt(0).toString(16).toUpperCase().padStart(4, '0')} is not accepted`]};
   let documents;
   try {
     documents = parseAllDocuments(String(text), {version: '1.2', uniqueKeys: true, strict: true, merge: false, prettyErrors: false});
@@ -267,7 +272,13 @@ export function readWorkflowDirectory(dir) {
     else if (info.isDirectory()) problems.push(`${name}: a subdirectory in the workflow directory is not accepted`);
     else if (!info.isFile()) problems.push(`${name}: not a regular file`);
     else if (!WORKFLOW_NAME.test(name)) problems.push(`${name}: not a lower-case .yml/.yaml workflow name`);
-    else entries.push([name, readFileSync(join(dir, name), 'utf8')]);
+    else {
+      // Strict UTF-8 (review NB-14): an invalid sequence, or a UTF-16/32 byte-order mark, is refused, not repaired.
+      const bytes = readFileSync(join(dir, name));
+      if (bytes[0] === 0xFE && bytes[1] === 0xFF || bytes[0] === 0xFF && bytes[1] === 0xFE || bytes[0] === 0x00 && bytes[1] === 0x00) { problems.push(`${name}: UTF-16/32 is not accepted`); continue; }
+      try { entries.push([name, new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes)]); }
+      catch { problems.push(`${name}: not valid UTF-8`); }
+    }
   }
   return {entries, problems};
 }
