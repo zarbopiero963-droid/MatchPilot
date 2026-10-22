@@ -5,6 +5,42 @@ import {join} from 'node:path';
 import {findSecrets} from './secrets.mjs';
 
 export const SCHEMA_VERSION = 'mp-checkpoint-v2';
+// v3 (MP-GITHUB-RECON-IMPLEMENTATION-01) extends v2 with the handoff record: every v2 rule still applies, v2 stays valid.
+export const SCHEMA_V3 = 'mp-checkpoint-v3';
+export const HANDOFF_STATUSES = ['NONE', 'OUT', 'IN', 'PENDING_VERIFICATION'];
+export const AUTHORIZATION_STATUSES = ['VALID', 'CONSUMED', 'REVOKED', 'NOT_GRANTED'];
+// MP-OWNER-AGENTS-INTERCHANGEABLE-01: an authorization depends on mandate, task, resource and action, never on who the
+// agent is; any agent holding the lease may use it.
+export const AUTHORIZATION_SCOPE_KEYS = ['mandate', 'task', 'resource', 'action'];
+// MP-PR183-HARDENING-01: a GO names at least the task and the action it allows; a wildcard value is ambiguous.
+export const REQUIRED_SCOPE_KEYS = ['task', 'action'];
+const WILDCARD = /^\s*(\*|any|all|every|tutt[ie]|qualsiasi)\s*$/i;
+export const VERIFICATION_RESULTS = ['VERIFIED', 'MISMATCH'];
+export const PR_STATES = ['open', 'closed', 'merged'];
+// PR state read from GitHub is evidence for a few minutes only; an older reading must be taken again.
+export const PR_EVIDENCE_MAX_AGE_MS = 10 * 60e3;
+export const VERIFICATION_MAX_AGE_MS = 24 * 3600e3;
+
+// Resources a task writes, whoever holds it: the declared ones plus, implicitly, the branch of an implementation task
+// and its PR. Two writers on any of them at the same time are refused (NO DUAL WRITER).
+export function taskResources(task) {
+  const resources = new Set(Array.isArray(task?.resources) ? task.resources : []);
+  if (task?.kind === 'implementation' && typeof task.branch === 'string' && task.branch) resources.add(`branch:${task.branch}`);
+  if (Number.isInteger(task?.pr)) resources.add(`pr:${task.pr}`);
+  return [...resources];
+}
+
+// One structured verification by the receiving agent: which claim, on which resource, how it was checked (the command
+// or read), what was observed, when, by whom, and the result. A bare sentence is not evidence.
+export function validateVerification(entry, where = 'verification') {
+  const errors = [];
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [`${where} must be an object`];
+  for (const key of ['claim', 'resource', 'method', 'observed', 'observer']) if (!text(entry[key])) errors.push(`${where} missing ${key}`);
+  if (!VERIFICATION_RESULTS.includes(entry.result)) errors.push(`${where} result must be ${VERIFICATION_RESULTS.join(' or ')}`);
+  if (!validIso(entry.observed_at)) errors.push(`${where} observed_at must be ISO UTC`);
+  if (entry.artifact_sha256 !== undefined && !/^[0-9a-f]{64}$/.test(entry.artifact_sha256)) errors.push(`${where} artifact_sha256 must be SHA-256`);
+  return errors;
+}
 // v1 checkpoints written before v2 (#151 review R-2) stay valid as history; new ones must be v2.
 // Only these historical v1 checkpoints are accepted: a new checkpoint cannot dodge v2 by backdating (#152 review N-3).
 export const LEGACY_SCHEMA = {version: 'mp-checkpoint-v1', ids: new Set(['CP-20261018T201559Z-agent-a-claude-code', 'CP-20261018T202029Z-agent-b-claude-subagent', 'CP-20261018T202316Z-agent-a-claude-code', 'CP-20261018T202336Z-agent-a-claude-code', 'CP-20261018T203228Z-agent-a-claude-code'])};
@@ -17,6 +53,9 @@ export const CI_CONCLUSIONS = ['SUCCESS', 'FAILURE', 'PENDING', 'NOT_RUN'];
 export const ACTIVE_STATES = new Set(['RUNNING', 'REVIEW', 'BLOCKED']);
 
 const SHA = /^[0-9a-f]{40}$/;
+// Owner decision ids as written in mandates (MP-..., OWN-...), e.g. MP-PR183-HARDENING-01.
+const DECISION_ID = /\b(?:MP|OWN)-[A-Z0-9]+(?:-[A-Z0-9]+)*\b/g;
+const text = value => typeof value === 'string' && value.trim() !== '';
 const ID = /^CP-(\d{8}T\d{6}Z)-[a-z0-9][a-z0-9-]*$/;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
@@ -108,7 +147,8 @@ export function validateCheckpoint(cp, {decisionIds, requirementIds, taskIds, no
   const at = `checkpoint ${cp?.id}`;
   if (!cp || typeof cp !== 'object') return ['checkpoint must be an object'];
   const legacy = cp.schema_version === LEGACY_SCHEMA.version && LEGACY_SCHEMA.ids.has(cp.id);
-  if (cp.schema_version !== SCHEMA_VERSION && !legacy) errors.push(`${at} schema_version must be ${SCHEMA_VERSION}`);
+  if (cp.schema_version !== SCHEMA_VERSION && cp.schema_version !== SCHEMA_V3 && !legacy) errors.push(`${at} schema_version must be ${SCHEMA_VERSION} or ${SCHEMA_V3}`);
+  if (cp.schema_version === SCHEMA_V3) errors.push(...validateV3(cp, at));
   if (!legacy) {
     // v2: a review and a CI run are only evidence for the exact commit they covered.
     if (cp.review?.verdict === 'APPROVED' && !SHA.test(cp.review?.reviewed_sha || '')) errors.push(`${at} APPROVED review needs review.reviewed_sha`);
@@ -143,6 +183,13 @@ export function validateCheckpoint(cp, {decisionIds, requirementIds, taskIds, no
     if (!finding.id || !['BLOCKING', 'NON_BLOCKING'].includes(finding.severity) || !['OPEN', 'RESOLVED', 'TRACKED'].includes(finding.status)) errors.push(`${at} malformed finding ${finding.id}`);
   }
   if (decisionIds) for (const id of cp.owner_decisions || []) if (!decisionIds.has(id)) errors.push(`${at} unknown owner decision ${id}`);
+  // Review 6326994852 finding 1: a v3 mandate may only name decisions that the register really holds, in its id and in
+  // the text of its source.
+  if (decisionIds && cp.schema_version === SCHEMA_V3) {
+    for (const id of new Set([cp.mandate?.id, ...String(cp.mandate?.source ?? '').match(DECISION_ID) ?? []])) {
+      if (id && !decisionIds.has(id)) errors.push(`${at} mandate names ${id}, which is not in the owner-decision register`);
+    }
+  }
   if (requirementIds) for (const id of cp.requirements || []) if (!requirementIds.has(id)) errors.push(`${at} unknown requirement ${id}`);
   if (cp.state === 'HANDOFF READY' && !(cp.resume_conditions || []).length) errors.push(`${at} HANDOFF READY needs resume_conditions`);
   if (['CERTIFIED', 'MERGED', 'COMPLETED'].includes(cp.state)) {
@@ -153,6 +200,207 @@ export function validateCheckpoint(cp, {decisionIds, requirementIds, taskIds, no
   if (cp.supersedes !== null && !ID.test(cp.supersedes || '')) errors.push(`${at} supersedes must be a checkpoint id or null`);
   for (const secret of findSecrets(cp)) errors.push(`${at} contains a secret-like value at ${secret}`);
   return errors;
+}
+
+const stringArray = value => Array.isArray(value) && value.every(text);
+
+function scopeErrors(scope, where) {
+  const errors = [];
+  if (!scope || typeof scope !== 'object' || Array.isArray(scope) || !Object.keys(scope).length) return [`${where} needs a scope`];
+  for (const key of Object.keys(scope)) {
+    if (!AUTHORIZATION_SCOPE_KEYS.includes(key)) errors.push(`${where} scope key ${key} is not admitted (authorizations depend on ${AUTHORIZATION_SCOPE_KEYS.join(', ')}, never on the agent)`);
+    else if (!text(scope[key])) errors.push(`${where} scope.${key} must be a string`);
+    else if (WILDCARD.test(scope[key])) errors.push(`${where} scope.${key} is a wildcard: ambiguous`);
+  }
+  for (const key of REQUIRED_SCOPE_KEYS) if (!(key in scope)) errors.push(`${where} scope needs ${key}`);
+  return errors;
+}
+
+// v3 handoff record. The receiving agent needs nothing from the sender's conversation: mandate, session, base and tree,
+// worktree, progress, authorizations, external commands, artifacts, stop conditions, costs and VPS facts are all here.
+// No secret ever goes in a checkpoint (findSecrets runs on the whole object); credentials stay where they are.
+function validateV3(cp, at) {
+  const errors = [];
+  if (!text(cp.mandate?.id) || !text(cp.mandate?.source)) errors.push(`${at} v3 mandate needs id and source`);
+  if (!text(cp.agent?.session)) errors.push(`${at} v3 agent.session is required`);
+  if (!SHA.test(cp.base_sha || '')) errors.push(`${at} v3 base_sha must be a full SHA`);
+  if (typeof cp.worktree?.clean !== 'boolean') errors.push(`${at} v3 worktree.clean must be a boolean`);
+  for (const key of ['done', 'in_progress', 'not_started']) if (!stringArray(cp.progress?.[key])) errors.push(`${at} v3 progress.${key} must be an array of strings`);
+  if (!stringArray(cp.resources)) errors.push(`${at} v3 resources must be an array of strings`);
+  if (!Array.isArray(cp.stop_conditions) || !cp.stop_conditions.length || !stringArray(cp.stop_conditions)) errors.push(`${at} v3 stop_conditions must be a non-empty array of strings`);
+  if (!text(cp.costs?.incurred) || !text(cp.costs?.authorized)) errors.push(`${at} v3 costs needs incurred and authorized`);
+  if (cp.vps !== null && (typeof cp.vps !== 'object' || Array.isArray(cp.vps))) errors.push(`${at} v3 vps must be an object or null`);
+  if (!Array.isArray(cp.external_commands)) errors.push(`${at} v3 external_commands must be an array`);
+  (cp.external_commands || []).forEach((entry, i) => {
+    if (!text(entry?.target) || !text(entry?.command) || !text(entry?.effect)) errors.push(`${at} external_commands[${i}] needs target, command and effect`);
+  });
+  if (!Array.isArray(cp.artifacts)) errors.push(`${at} v3 artifacts must be an array`);
+  (cp.artifacts || []).forEach((entry, i) => {
+    if (!text(entry?.path) || !/^[0-9a-f]{64}$/.test(entry?.sha256 || '')) errors.push(`${at} artifacts[${i}] needs path and a SHA-256`);
+  });
+  if (!Array.isArray(cp.authorizations)) errors.push(`${at} v3 authorizations must be an array`);
+  (cp.authorizations || []).forEach((entry, i) => {
+    const where = `${at} authorizations[${i}]`;
+    if (!text(entry?.id) || !text(entry?.source)) errors.push(`${where} needs id and source`);
+    if (!AUTHORIZATION_STATUSES.includes(entry?.status)) errors.push(`${where} invalid status ${entry?.status}`);
+    if (entry?.status === 'CONSUMED' && !text(entry?.consumed_by)) errors.push(`${where} CONSUMED needs consumed_by`);
+    errors.push(...scopeErrors(entry?.scope, where));
+  });
+  const handoff = cp.handoff;
+  if (!HANDOFF_STATUSES.includes(handoff?.status)) errors.push(`${at} v3 handoff.status must be one of ${HANDOFF_STATUSES.join(', ')}`);
+  else {
+    if (!stringArray(handoff.responsibilities)) errors.push(`${at} v3 handoff.responsibilities must be an array of strings`);
+    if (cp.state === 'HANDOFF READY' && handoff.status !== 'OUT') errors.push(`${at} HANDOFF READY needs handoff.status OUT`);
+    if (handoff.status === 'OUT' && cp.state !== 'HANDOFF READY') errors.push(`${at} handoff OUT needs state HANDOFF READY`);
+    if (handoff.status === 'OUT' && !(handoff.responsibilities || []).length) errors.push(`${at} handoff OUT must list the responsibilities transferred`);
+    if (handoff.status === 'IN') {
+      if (!text(handoff.from) || !Array.isArray(handoff.verified) || !handoff.verified.length) errors.push(`${at} handoff IN needs from and the structured verifications of the receiver`);
+      (Array.isArray(handoff.verified) ? handoff.verified : []).forEach((entry, i) => errors.push(...validateVerification(entry, `${at} handoff.verified[${i}]`)));
+    }
+    if (handoff.claims !== undefined) {
+      const ids = new Set();
+      if (!Array.isArray(handoff.claims)) errors.push(`${at} handoff.claims must be an array`);
+      else handoff.claims.forEach((claim, i) => {
+        if (!text(claim?.id) || !text(claim?.resource) || !text(claim?.statement)) errors.push(`${at} handoff.claims[${i}] needs id, resource and statement`);
+        else if (ids.has(claim.id)) errors.push(`${at} handoff.claims[${i}] duplicates ${claim.id}`);
+        ids.add(claim?.id);
+      });
+    }
+    if (handoff.status === 'PENDING_VERIFICATION' && ['CERTIFIED', 'MERGED', 'COMPLETED', 'HANDOFF READY'].includes(cp.state)) errors.push(`${at} PENDING_VERIFICATION cannot be ${cp.state}: unverified claims certify nothing`);
+    if (handoff.to !== undefined && handoff.to !== null && !text(handoff.to)) errors.push(`${at} handoff.to must be an agent id, ANY or null`);
+  }
+  if (cp.state === 'MERGED' && !SHA.test(cp.merge_sha || '')) errors.push(`${at} v3 MERGED needs merge_sha`);
+  return errors;
+}
+
+// Authorization ledger over all checkpoints: once an owner GO is CONSUMED or REVOKED it never becomes VALID again,
+// whatever a later checkpoint says (fail closed).
+export function authorizationLedger(checkpoints) {
+  const ledger = new Map();
+  for (const cp of checkpoints) for (const entry of cp.authorizations || []) {
+    if (!entry?.id) continue;
+    const item = ledger.get(entry.id) ?? {id: entry.id, status: null, scope: entry.scope ?? {}, sources: [], ambiguous: false};
+    item.sources.push(cp.id);
+    if (entry.status === 'CONSUMED' || entry.status === 'REVOKED') { if (item.status !== 'REVOKED') item.status = entry.status; if (entry.consumed_by) item.consumed_by = entry.consumed_by; }
+    // A GO recorded as not granted may be granted later; nothing brings back a consumed or revoked one. The same GO
+    // recorded VALID with two different scopes is ambiguous and never usable.
+    else if (entry.status === 'VALID' && (item.status === null || item.status === 'NOT_GRANTED')) { item.status = 'VALID'; item.scope = entry.scope ?? {}; }
+    else if (entry.status === 'VALID' && item.status === 'VALID' && canonicalScope(entry.scope) !== canonicalScope(item.scope)) item.ambiguous = true;
+    else if (entry.status === 'NOT_GRANTED' && item.status === null) item.status = 'NOT_GRANTED';
+    ledger.set(entry.id, item);
+  }
+  return ledger;
+}
+
+// May an authorization be used for this request? The request names mandate, task, resource and action; there is no
+// agent parameter on purpose. Unknown, consumed, revoked, not granted or out-of-scope: refused.
+// The request must name at least task and action; every key of the GO scope must match, and the request may not
+// name a key the GO does not bound (a GO without a resource is not a GO for any resource).
+export function checkAuthorization(checkpoints, id, request = {}) {
+  const missing = REQUIRED_SCOPE_KEYS.filter(key => !text(request[key]));
+  if (missing.length) return {ok: false, problems: [`AUTHZ_REQUEST_INCOMPLETE: the request must name ${missing.join(' and ')}`]};
+  const item = authorizationLedger(checkpoints).get(id);
+  if (!item || item.status === null) return {ok: false, problems: [`AUTHZ_UNKNOWN: ${id} is not recorded in any checkpoint`]};
+  if (item.status !== 'VALID') return {ok: false, problems: [`AUTHZ_${item.status}: ${id}${item.consumed_by ? ` (consumed by ${item.consumed_by})` : ''}`]};
+  if (item.ambiguous) return {ok: false, problems: [`AUTHZ_AMBIGUOUS: ${id} is recorded VALID with different scopes`]};
+  const scopeProblems = scopeErrors(item.scope, id);
+  if (scopeProblems.length) return {ok: false, problems: scopeProblems.map(problem => `AUTHZ_SCOPE_INCOMPLETE: ${problem}`)};
+  const problems = [];
+  for (const [key, value] of Object.entries(item.scope)) {
+    if (request[key] !== value) problems.push(`AUTHZ_SCOPE: ${id} is for ${key} ${value}, not ${request[key] ?? '(none)'}`);
+  }
+  for (const key of Object.keys(request)) {
+    if (!(key in item.scope)) problems.push(`AUTHZ_SCOPE_UNBOUNDED: ${id} does not bound ${key}, so it cannot authorize ${key} ${request[key]}`);
+  }
+  return {ok: !problems.length, problems};
+}
+
+const canonicalScope = scope => JSON.stringify(Object.entries(scope ?? {}).sort(([a], [b]) => a.localeCompare(b)));
+
+// PR state evidence (MP-PR183-HARDENING-01): read from the GitHub API by the tool itself (tools/governance/github.mjs),
+// for this PR number, a few minutes old at most. A state typed by the agent is not evidence.
+function prProblems(prNumber, evidence, error, now) {
+  if (!evidence) return [`PR_STATE_${error ? 'UNVERIFIABLE' : 'REQUIRED'}: PR #${prNumber} state must be read from GitHub${error ? ` (${error})` : ''}`];
+  const problems = [];
+  if (evidence.source !== 'github-api') problems.push(`PR_STATE_REQUIRED: PR #${prNumber} state has no GitHub API source`);
+  if (evidence.number !== prNumber) problems.push(`PR_STATE_MISMATCH: evidence is for PR #${evidence.number}, not #${prNumber}`);
+  if (!PR_STATES.includes(evidence.state)) problems.push(`PR_STATE_UNVERIFIABLE: state ${evidence.state}`);
+  if (!SHA.test(evidence.head_sha || '')) problems.push('PR_STATE_UNVERIFIABLE: no head SHA');
+  const age = now.getTime() - Date.parse(evidence.fetched_at);
+  if (!validIso(evidence.fetched_at) || age > PR_EVIDENCE_MAX_AGE_MS || age < -FUTURE_TOLERANCE_MS) problems.push(`PR_STATE_STALE: read at ${evidence.fetched_at}`);
+  return problems;
+}
+
+// Claims pending verification are released only by structured verifications of this agent covering every claim on its
+// resource, recent and all VERIFIED. Unstructured claims can never be released: the sender must restate them.
+function claimProblems(cp, evidence, agentId, now) {
+  const claims = cp.handoff?.claims;
+  if (!Array.isArray(claims) || !claims.length || claims.some(claim => !text(claim?.id) || !text(claim?.resource))) {
+    return [`HANDOFF_CLAIMS_UNSTRUCTURED: ${cp.id} carries unverified claims without ids and resources; they must be restated as structured claims before any takeover`];
+  }
+  const records = Array.isArray(evidence) ? evidence : [];
+  const problems = [];
+  const ids = new Set(claims.map(claim => claim.id));
+  records.forEach((entry, i) => {
+    const errors = validateVerification(entry, `evidence[${i}]`);
+    if (errors.length) problems.push(...errors.map(error => `EVIDENCE_INVALID: ${error}`));
+    else if (!ids.has(entry.claim)) problems.push(`EVIDENCE_UNKNOWN_CLAIM: evidence[${i}] names ${entry.claim}`);
+  });
+  for (const claim of claims) {
+    const own = records.filter(entry => entry?.claim === claim.id && !validateVerification(entry).length);
+    const usable = own.filter(entry => entry.resource === claim.resource && entry.observer === agentId
+      && now.getTime() - Date.parse(entry.observed_at) <= VERIFICATION_MAX_AGE_MS && Date.parse(entry.observed_at) <= now.getTime() + FUTURE_TOLERANCE_MS);
+    if (!usable.length) problems.push(`EVIDENCE_MISSING: claim ${claim.id} on ${claim.resource} has no recent verification by ${agentId} on that resource`);
+    if (usable.some(entry => entry.result === 'MISMATCH')) problems.push(`CLAIM_MISMATCH: claim ${claim.id} does not match what ${agentId} observed`);
+  }
+  if (!problems.length) return [];
+  return [`HANDOFF_PENDING_VERIFICATION: ${cp.id} carries unverified claims`, ...problems];
+}
+
+// HANDOFF IN: what an agent must establish before writing anything on a task, whoever it is. Any problem stops it
+// (fail closed): a stale or forked chain, a registry behind the chain, a branch that does not match, a lease or a
+// resource held by another writer, a handoff addressed to someone else or still pending verification.
+// `reality` comes from git (realityFor) plus the PR state read from GitHub; never from the checkpoint.
+// `evidence` holds the receiver's structured verifications (validateVerification), made read-only before any write;
+// they go into its handoff IN checkpoint and are required to take over claims pending verification. `reality.pr` is the
+// PR state read from GitHub by the tool, required whenever the task or its checkpoint has a PR.
+export function handoffIn({checkpoints, registry, task: taskId, agentId, reality = {}, now = new Date(), errata = new Map(), evidence = []}) {
+  const problems = [];
+  try {
+    const task = registry.tasks.find(item => item.id === taskId);
+    if (!task) return {ok: false, problems: [`UNKNOWN_TASK: ${taskId}`], checkpoint: null};
+    const {latest, conflicts} = resolveLatest(checkpoints, taskId, {errata});
+    for (const conflict of conflicts) problems.push(`CHAIN_CONFLICT: ${conflict}`);
+    if (!latest) return {ok: false, problems: [...problems, `NO_CHECKPOINT: ${taskId}`], checkpoint: null};
+    if (task.latest_checkpoint !== latest.id) problems.push(`STALE_REGISTRY: registry says ${task.latest_checkpoint}, chain head is ${latest.id}`);
+    const prNumber = Number.isInteger(task.pr) ? task.pr : Number.isInteger(latest.pr) ? latest.pr : null;
+    let prState = null;
+    if (prNumber !== null) {
+      const prErrors = prProblems(prNumber, reality.pr, reality.prError, now);
+      problems.push(...prErrors);
+      if (!prErrors.length) {
+        prState = reality.pr.state;
+        if (task.pr_open === true && prState !== 'open') problems.push(`PR_OPEN_MISMATCH: registry says PR #${prNumber} is open, GitHub says ${prState}`);
+        if (task.pr_open === false && prState === 'open') problems.push(`PR_OPEN_MISMATCH: registry says PR #${prNumber} is not open, GitHub says open`);
+        if (prState === 'open' && reality.branchHead && reality.pr.head_sha !== reality.branchHead) problems.push(`PR_HEAD_MISMATCH: PR #${prNumber} head is ${reality.pr.head_sha}, local view of ${latest.branch} is ${reality.branchHead}: fetch first`);
+      }
+    }
+    for (const divergence of reconcile(latest, {...reality, prState}, {now, errata})) problems.push(`${divergence.code}: ${divergence.detail}`);
+    const nowMs = now.getTime();
+    const activeLease = lease => Boolean(lease) && Date.parse(lease.expires_at) > nowMs;
+    if (activeLease(task.lease) && task.lease.holder !== agentId) problems.push(`DUAL_WRITER: ${taskId} is leased to ${task.lease.holder} until ${task.lease.expires_at}`);
+    const resources = new Set([...taskResources(task), ...(Array.isArray(latest.resources) ? latest.resources : [])]);
+    for (const other of registry.tasks) {
+      if (other.id === taskId || !activeLease(other.lease) || other.lease.holder === agentId) continue;
+      for (const resource of taskResources(other)) if (resources.has(resource)) problems.push(`DUAL_WRITER_RESOURCE: ${resource} is written by ${other.id} (${other.lease.holder})`);
+    }
+    const handoff = latest.handoff;
+    if (handoff?.status === 'PENDING_VERIFICATION') problems.push(...claimProblems(latest, evidence, agentId, now));
+    if (handoff?.to && handoff.to !== 'ANY' && handoff.to !== agentId) problems.push(`HANDOFF_ADDRESSED_ELSEWHERE: ${latest.id} is handed to ${handoff.to}`);
+    return {ok: !problems.length, problems, checkpoint: latest};
+  } catch (error) {
+    return {ok: false, problems: [...problems, `HANDOFF_IN_ERROR: ${String(error?.message ?? error).split('\n')[0]}`], checkpoint: null};
+  }
 }
 
 // Latest valid checkpoint of a task: the single head of the supersedes chain. Forks are conflicts.

@@ -1,0 +1,203 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261021T204410Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-21T20:44:10Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "mandate": {
+    "id": "MP-GITHUB-RECON-IMPLEMENTATION-01",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-21), registered in docs/governance/owner-decisions.json"
+  },
+  "activity": "governance reconciliation R1-R7, checkpoint v3 and agent-independent handoff; PR #183 opened, independent review requested; merge not authorized",
+  "task": "GOV-RECON-01",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 97,
+  "pr": 183,
+  "branch": "claude/gov-recon-01",
+  "commit_sha": "c242616a6629f1957690bed6b58ec9ce028baeb3",
+  "tree_sha": "33773b489e092bb606039682b297a5e00e8ecca1",
+  "base_sha": "170305418bd4fbbdbf4f3b7a4ed0ac5fcdc407c4",
+  "worktree": {
+    "clean": true
+  },
+  "requirements": [
+    "MP-GOV-017",
+    "MP-GOV-022"
+  ],
+  "changes": [
+    "tools/governance: checkpoint v3, handoffIn, authorization ledger, resource single writer, operations kind, parallel authorization",
+    "CLI handoff-in and authz-check",
+    "registry and checkpoints reconciled (#181, #180, #177, HIST-01a, APP-01, GOV-01, VPS-MIGRATION-01, TC-OFF-01, HANDOFF-TEST-01)",
+    "owner decisions registered with sources",
+    "pr_registry delivery status, no verdict changed",
+    "render.yaml autoDeploy false; Neon write-capable harness permissions denied",
+    "HANDOFF.md, AGENTS.md, CLAUDE.md, README, reconciliation note, R1-R7 audit archived"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/governance-*.test.mjs test/requirements-inventory.test.mjs test/ci-classify.test.mjs (149 pass, 0 skipped); after the ledger fix, governance tests 127/127",
+      "result": "PASS",
+      "environment": "local container, Node 22, root",
+      "commit": "c242616a6629f1957690bed6b58ec9ce028baeb3",
+      "time": "2026-10-21T20:43:40Z",
+      "limits": [
+        "simulated handoff only; GitHub and VPS not involved"
+      ]
+    },
+    {
+      "command": "npm run check; governance:check; render-inventory --check; scan-closing; check-append-only BASE 1703054",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "c242616a6629f1957690bed6b58ec9ce028baeb3",
+      "time": "2026-10-21T20:43:40Z",
+      "limits": []
+    },
+    {
+      "command": "full suite with a throwaway PostgreSQL 16: 427 tests, 426 pass, 0 fail, 1 skipped",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "c242616a6629f1957690bed6b58ec9ce028baeb3",
+      "time": "2026-10-21T20:43:40Z",
+      "limits": [
+        "postgres-independence skipped (needs PostgreSQL 17): not counted as PASS, CI runs it",
+        "run before the ledger fix (one function and its test); the governance tests were rerun after it"
+      ]
+    },
+    {
+      "command": "real Claude -> Grok -> Claude handoff with two distinct sessions",
+      "result": "NOT_VERIFIED",
+      "environment": "not executed",
+      "commit": "c242616a6629f1957690bed6b58ec9ce028baeb3",
+      "time": "2026-10-21T20:43:40Z",
+      "limits": [
+        "this session cannot start or drive a Grok session: HANDOFF NOT VERIFIED; task HANDOFF-TEST-01"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "c242616a6629f1957690bed6b58ec9ce028baeb3"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "GR-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "HANDOFF NOT VERIFIED: the real Claude -> Grok -> Claude handoff with two sessions is task HANDOFF-TEST-01"
+    },
+    {
+      "id": "GR-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "pr_open is still declared by the agent, not read from GitHub by status; handoff-in takes the PR state as --pr-state read by the agent"
+    },
+    {
+      "id": "GR-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "operations checkpoints on main go UNRECONCILED_COMMITS when main moves: intended (re-verify), handled by the STALE procedure"
+    },
+    {
+      "id": "GR-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "R-02 SHA_MISMATCH persists in status (shared branch ccr-e45875c0-5r0fnf); not changed here"
+    }
+  ],
+  "owner_decisions": [
+    "MP-GITHUB-RECON-IMPLEMENTATION-01",
+    "MP-OWNER-AGENTS-INTERCHANGEABLE-01",
+    "MP-VPS-ONLY-OPERATIONS-2026-10-21"
+  ],
+  "authorizations": [
+    {
+      "id": "MP-GITHUB-RECON-IMPLEMENTATION-01",
+      "source": "owner mandate, owner-decisions.json",
+      "scope": {
+        "task": "GOV-RECON-01",
+        "action": "one governance PR and issue comments, no merge"
+      },
+      "status": "VALID"
+    }
+  ],
+  "external_commands": [
+    {
+      "target": "github",
+      "command": "git push origin claude/gov-recon-01",
+      "effect": "branch created at c242616"
+    },
+    {
+      "target": "github",
+      "command": "create_pull_request #183",
+      "effect": "https://github.com/zarbopiero963-droid/MatchPilot/pull/183"
+    },
+    {
+      "target": "github",
+      "command": "read-only: list PRs, check runs, workflows, issue comments",
+      "effect": "none"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "docs/governance/audits/2026-10-21-MP-GLOBAL-RECON-HANDOFF-01.md",
+      "sha256": "8ff985bff800f3ed9013529cc41831295b21455bf3fa17932cee14643117338a"
+    }
+  ],
+  "progress": {
+    "done": [
+      "registry and checkpoints reconciled",
+      "owner decisions registered",
+      "pr_registry reconciled",
+      "render.yaml and harness permissions",
+      "checkpoint v3, handoff-in, authz-check, tests",
+      "docs",
+      "PR #183 opened"
+    ],
+    "in_progress": [
+      "issue comments #3 #12 #20 #40 #97 #104 #150 #179 #182",
+      "independent review in a separate session"
+    ],
+    "not_started": [
+      "CI verdict on this head",
+      "real handoff test HANDOFF-TEST-01"
+    ]
+  },
+  "resources": [
+    "branch:claude/gov-recon-01",
+    "pr:183",
+    "file:docs/governance/work-registry.json"
+  ],
+  "stop_conditions": [
+    "no merge (not authorized)",
+    "no change to PR #178, VPS, databases, services or remote permissions",
+    "any review finding on the head is handled on this branch only"
+  ],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "dependencies": [],
+  "state": "REVIEW",
+  "next_action": "CI on this head and a separate independent review; fix findings on this branch; merge only with an explicit owner GO",
+  "resume_conditions": [
+    "CI and review verdict on the head"
+  ],
+  "supersedes": null
+}

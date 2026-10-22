@@ -1,0 +1,110 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "4fdfbfc8c598d73013b65de66715fc95a5948c41",
+  "tree_sha": "ac4b3dcd536da9f8928d3225f42e8f31e4a427d3",
+  "supersedes": null,
+  "pr": null,
+  "id": "CP-20261020T122610Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-20T12:26:10Z",
+  "activity": "HIST-01a: offline deterministic backtest engine on synthetic fixtures; ready for PR and independent review",
+  "task": "HIST-01a",
+  "issue": 34,
+  "requirements": [
+    "MP-STA-001",
+    "MP-STA-011",
+    "MP-MKT-001",
+    "MP-MKT-002",
+    "MP-MKT-003",
+    "MP-MTH-003",
+    "MP-RPL-003",
+    "MP-PIT-002",
+    "MP-PIT-003"
+  ],
+  "changes": [
+    "src/hist/{contract,admission,strategies,engine}.mjs, src/math/money.mjs, tools/hist/backtest.mjs",
+    "test/hist-backtest.test.mjs (10 tests, synthetic fixtures)",
+    "docs/hist-backtest.md, docs/math-core.md, certifiability matrix (Backtest, Settlement), requirements evidence, inventory"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/hist-backtest.test.mjs under three mutations (admission on provider time; outcome guard removed; commission on losses)",
+      "result": "FAIL",
+      "environment": "local container, Node 22",
+      "commit": "4fdfbfc8c598d73013b65de66715fc95a5948c41",
+      "time": "2026-10-20T12:26:10Z",
+      "limits": [
+        "intended RED: 6/10, 1/10 and 1/10 tests failed, each mutation restored; time is an upper bound"
+      ]
+    },
+    {
+      "command": "node --test test/hist-backtest.test.mjs (10/10)",
+      "result": "PASS",
+      "environment": "local container, Node 22",
+      "commit": "4fdfbfc8c598d73013b65de66715fc95a5948c41",
+      "time": "2026-10-20T12:26:10Z",
+      "limits": [
+        "synthetic fixtures only; time is an upper bound"
+      ]
+    },
+    {
+      "command": "npm run check; governance check, validate, render-inventory --check, scan-closing; CI=1 node --test (363/364)",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16",
+      "commit": "4fdfbfc8c598d73013b65de66715fc95a5948c41",
+      "time": "2026-10-20T12:26:10Z",
+      "limits": [
+        "test/postgres-independence needs PostgreSQL 17 (CI); time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN",
+    "head_sha": "4fdfbfc8c598d73013b65de66715fc95a5948c41"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "HIST-1",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "real-data verification blocked: archive #40 pre-match observations reported all acquired after kickoff (Grok handoff not yet received or verified); HIST-01b waits for it"
+    },
+    {
+      "id": "HIST-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "1X2 BACK only; Asian lines, PUSH, other markets, walk-forward and out-of-sample are not built"
+    },
+    {
+      "id": "R1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "matchAnalysis uses fact versions acquired after the match (reproduced); HIST-01a is isolated from it by a static test; fix in a later PR"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-HIST-01A-01",
+    "MP-OWNER-FUNCTIONAL-DELIVERY-03",
+    "MP-OWNER-VPS-DEPLOY-01"
+  ],
+  "dependencies": [
+    "CP-20261020T121904Z-agent-a-claude-code"
+  ],
+  "state": "REVIEW",
+  "next_action": "open the PR, CI, independent review D2, Gate B; stop before the merge (not authorized in advance)",
+  "resume_conditions": [
+    "branch ccr-e45875c0-5r0fnf contains 4fdfbfc8c598d73013b65de66715fc95a5948c41"
+  ]
+}

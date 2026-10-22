@@ -3,12 +3,19 @@
 //   validate                  registry, checkpoints, chains and owner-decision register
 //   status [--json]           where the work stands: tasks, leases, latest checkpoints, divergences
 //   resume <task>             handoff/recovery check for <task>; exit 2 on divergence
+//   handoff-in <task> --agent <id> [--evidence <file.json>]
+//                             HANDOFF IN for any agent: exit 2 unless it may write on <task> now (fail closed); the PR
+//                             state is read from GitHub by the tool, claims need structured evidence
+//   authz-check <id> [--mandate M] [--task T] [--resource R] [--action A]
+//                             may this owner authorization be used for this request (task and action required)? the
+//                             repository state is validated first; exit 2 if not
 //   scan-closing [files...]   reject auto-closing references in files, PR_TITLE/PR_BODY and BASE_SHA..HEAD_SHA commits
 //   merge-gate <file.json>    evaluate MP-OWNER-AUTOMERGE-01 for a merge input filled from GitHub facts
 //   check-append-only         fail if BASE_SHA..HEAD_SHA modifies or deletes an existing checkpoint
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {errataMap, loadCheckpoints, reconcile, resolveLatest, validateCheckpoint, validateErrata, validateHistory} from './checkpoints.mjs';
+import {checkAuthorization, errataMap, handoffIn, loadCheckpoints, reconcile, resolveLatest, taskResources, validateCheckpoint, validateErrata, validateHistory} from './checkpoints.mjs';
+import {readPullRequest} from './github.mjs';
 import {validateRegistry} from './registry.mjs';
 import {evaluateMergeGate, findClosingReferences} from './policy.mjs';
 import {checkpointHistory, commitMessages, realityFor, rewrittenCheckpoints} from './git.mjs';
@@ -40,7 +47,7 @@ export function validateState({decisions, inventory, registry, checkpoints, erra
   const requirementIds = new Set(inventory.requirements.map(item => item.id));
   const taskIds = new Set(registry.tasks.map(task => task.id));
   const errors = [...validateDecisions(decisions)];
-  errors.push(...validateRegistry(registry, {checkpointIds: new Set(checkpoints.map(cp => cp.id))}));
+  errors.push(...validateRegistry(registry, {checkpointIds: new Set(checkpoints.map(cp => cp.id)), decisions, now}));
   errors.push(...validateErrata(errataFile, checkpoints));
   errors.push(...validateHistory(checkpoints, errataFile, history, {now}));
   const errata = errataMap(errataFile);
@@ -49,6 +56,12 @@ export function validateState({decisions, inventory, registry, checkpoints, erra
     const {latest, conflicts} = resolveLatest(checkpoints, task.id, {errata});
     errors.push(...conflicts);
     if ((latest?.id ?? null) !== (task.latest_checkpoint ?? null)) errors.push(`${task.id} registry latest_checkpoint ${task.latest_checkpoint} != chain head ${latest?.id}`);
+    // NO DUAL WRITER needs the registry to know every resource the work writes: a v3 checkpoint of an open task may
+    // not write a resource its registry entry does not declare.
+    if (latest && Array.isArray(latest.resources) && !['MERGED', 'COMPLETED'].includes(task.state)) {
+      const declared = new Set(taskResources(task));
+      for (const resource of latest.resources) if (!declared.has(resource)) errors.push(`${task.id} checkpoint ${latest.id} writes ${resource}, not declared in the registry`);
+    }
   }
   return errors;
 }
@@ -78,6 +91,8 @@ function scanClosing(files) {
   return hits;
 }
 
+const option = (args, name) => { const i = args.indexOf(name); return i >= 0 && i + 1 < args.length ? args[i + 1] : undefined; };
+
 async function main([command, ...args]) {
   if (command === 'validate') {
     const errors = validateState(await loadState());
@@ -94,6 +109,46 @@ async function main([command, ...args]) {
     if (args.includes('--json') || command === 'resume') console.log(JSON.stringify(report, null, 2));
     else for (const row of rows) console.log(`${row.task} [${row.state}] issue #${row.issue}${row.pr ? ` PR #${row.pr}` : ''} — ${row.title}\n  lease: ${row.lease ? `${row.lease.holder} until ${row.lease.expires_at}` : 'none'} · latest: ${row.latest_checkpoint ?? 'none'}\n  next: ${row.next_action ?? '—'}${row.divergences.length ? `\n  DIVERGENCES: ${row.divergences.map(d => d.code).join(', ')}` : ''}`);
     return errors.length || rows.some(row => row.divergences.length) ? 2 : 0;
+  }
+  if (command === 'handoff-in') {
+    const task = args[0];
+    const agentId = option(args, '--agent');
+    if (!task || !agentId) { console.error('usage: cli.mjs handoff-in <task> --agent <id> [--evidence <file.json>]'); return 1; }
+    // Declared values are not evidence (MP-PR183-HARDENING-01): refuse them instead of ignoring them silently.
+    for (const flag of ['--pr-state', '--verified']) if (args.includes(flag)) { console.error(`${flag} is not accepted: the PR state is read from GitHub and claims need --evidence <file.json>`); return 1; }
+    let evidence = [];
+    const evidenceFile = option(args, '--evidence');
+    if (evidenceFile) {
+      try { evidence = JSON.parse(readFileSync(evidenceFile, 'utf8')); } catch (error) { console.error(`cannot read ${evidenceFile}: ${error.message}`); return 1; }
+      if (!Array.isArray(evidence)) { console.error(`${evidenceFile} must hold an array of verification records`); return 1; }
+    }
+    const state = await loadState();
+    const now = new Date();
+    const errata = errataMap(state.errata);
+    const {latest} = resolveLatest(state.checkpoints, task, {errata});
+    const registryTask = state.registry.tasks.find(item => item.id === task);
+    const prNumber = Number.isInteger(registryTask?.pr) ? registryTask.pr : Number.isInteger(latest?.pr) ? latest.pr : null;
+    const reality = latest ? realityFor(root, latest) : {};
+    if (latest && prNumber !== null) {
+      const read = readPullRequest({repository: latest.repository, number: prNumber, now});
+      reality.pr = read.evidence ?? null;
+      reality.prError = read.error ?? null;
+    }
+    const verdict = handoffIn({checkpoints: state.checkpoints, registry: state.registry, task, agentId, reality, now, errata, evidence});
+    const errors = validateState(state);
+    const problems = [...verdict.problems, ...errors.map(error => `VALIDATION: ${error}`)];
+    console.log(JSON.stringify({result: problems.length ? 'STOP' : 'PROCEED', task, agent: agentId, checkpoint: verdict.checkpoint?.id ?? null, pr: reality.pr ?? null,
+      next_action: verdict.checkpoint?.next_action ?? null, stop_conditions: verdict.checkpoint?.stop_conditions ?? [], problems}, null, 2));
+    return problems.length ? 2 : 0;
+  }
+  if (command === 'authz-check') {
+    const state = await loadState();
+    const request = Object.fromEntries(['mandate', 'task', 'resource', 'action'].map(key => [key, option(args, `--${key}`)]).filter(([, value]) => value !== undefined));
+    // Checkpoints are used as evidence only when the whole repository state validates (fail closed).
+    const errors = validateState(state);
+    const verdict = errors.length ? {ok: false, problems: errors.map(error => `VALIDATION: ${error}`)} : checkAuthorization(state.checkpoints, args[0], request);
+    console.log(JSON.stringify({result: verdict.ok ? 'USABLE' : 'REFUSED', id: args[0], request, problems: verdict.problems}, null, 2));
+    return verdict.ok ? 0 : 2;
   }
   if (command === 'scan-closing') {
     const hits = scanClosing(args.length ? args : CANONICAL_FILES);
@@ -115,7 +170,7 @@ async function main([command, ...args]) {
     console.log(JSON.stringify(verdict, null, 2));
     return verdict.allowed ? 0 : 3;
   }
-  console.error('usage: cli.mjs validate | status [--json] | resume <task> | scan-closing [files...] | check-append-only | merge-gate <file.json>');
+  console.error('usage: cli.mjs validate | status [--json] | resume <task> | handoff-in <task> --agent <id> | authz-check <id> | scan-closing [files...] | check-append-only | merge-gate <file.json>');
   return 1;
 }
 

@@ -1,0 +1,97 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "5045ba0a7cf46283b36bb4cf96e4d2c73edb173c",
+  "tree_sha": "270fb69226162c1cc9f7fa3b65367895f3692cab",
+  "supersedes": "CP-20261020T105618Z-agent-a-claude-code",
+  "pr": 177,
+  "id": "CP-20261020T121904Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-20T12:19:04Z",
+  "activity": "VPS-DEPLOY-01 merged: PR #177 squash 3dd833f on main, merged on explicit owner authorization (the merge-gate refuses merges that deploy); first VPS deploy succeeded",
+  "task": "VPS-DEPLOY-01",
+  "issue": 97,
+  "requirements": [],
+  "changes": [
+    "main 3dd833f38bf8a7de3b51dfbebd3118e1602185ac (squash of PR #177, head 5045ba0 checked with expectedHeadSha)"
+  ],
+  "tests": [
+    {
+      "command": "CI run 39411744251 on 5045ba0 (all jobs green)",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "5045ba0a7cf46283b36bb4cf96e4d2c73edb173c",
+      "time": "2026-10-20T12:19:04Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    },
+    {
+      "command": "post-merge: fresh clone of main (tree equal to the PR head); governance check; test/governance-workflows.test.mjs 2/2",
+      "result": "PASS",
+      "environment": "local container, Node 22",
+      "commit": "3dd833f38bf8a7de3b51dfbebd3118e1602185ac",
+      "time": "2026-10-20T12:19:04Z",
+      "limits": [
+        "time is an upper bound"
+      ]
+    },
+    {
+      "command": "deploy-vps run 39412733270 on runner matchpilot-vps: mp-deploy fetched, npm ci, tests 343 pass 0 fail 11 skipped, result=OK health=200",
+      "result": "PASS",
+      "environment": "private VPS self-hosted runner",
+      "commit": "3dd833f38bf8a7de3b51dfbebd3118e1602185ac",
+      "time": "2026-10-20T12:19:04Z",
+      "limits": [
+        "read from the GitHub job log; mp-deploy source, sudoers and rollback not seen; time is an upper bound"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39411744251,
+    "conclusion": "SUCCESS",
+    "head_sha": "5045ba0a7cf46283b36bb4cf96e4d2c73edb173c"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/177#issuecomment-6289475738",
+    "reviewed_sha": "5045ba0a7cf46283b36bb4cf96e4d2c73edb173c"
+  },
+  "findings": [
+    {
+      "id": "VPS-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "public repository: fork pull request workflows need the owner approval setting; not readable from this session (403)"
+    },
+    {
+      "id": "VPS-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "src/server.mjs runs migrate() at start, so every merge to main applies pending migrations to the VPS database through the auto-deploy"
+    },
+    {
+      "id": "VPS-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "user running npm ci and tests inside mp-deploy, sudoers and rollback to be confirmed by Grok"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-VPS-DEPLOY-01"
+  ],
+  "dependencies": [
+    "CP-20261020T105618Z-agent-a-claude-code"
+  ],
+  "state": "MERGED",
+  "next_action": "HIST-01a: offline deterministic backtest engine on synthetic fixtures (MP-OWNER-HIST-01A-01)",
+  "resume_conditions": [
+    "main contains 3dd833f38bf8a7de3b51dfbebd3118e1602185ac"
+  ]
+}

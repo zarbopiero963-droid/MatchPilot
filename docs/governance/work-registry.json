@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 110,
+  "revision": 118,
   "tasks": [
     {
       "id": "R-01",
@@ -430,7 +430,7 @@
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261020T105618Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261020T121904Z-agent-a-claude-code",
       "pr_open": false
     },
     {
@@ -446,7 +446,7 @@
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261021T151747Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261021T203600Z-agent-a-claude-code",
       "pr_open": false
     },
     {
@@ -456,17 +456,128 @@
       "pr": 181,
       "branch": "deploy-gate-final-01",
       "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261021T212121Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "HIST-01a",
+      "title": "Offline deterministic backtest engine on synthetic fixtures: PIT admission, reference strategy, settlement, report (first slice of R-14 with the R-13 parts it needs)",
+      "issue": 34,
+      "pr": 178,
+      "branch": "ccr-e45875c0-5r0fnf",
+      "kind": "implementation",
+      "state": "BLOCKED",
+      "assignee": null,
+      "lease": null,
+      "latest_checkpoint": "CP-20261021T203601Z-agent-a-claude-code",
+      "pr_open": true,
+      "resources": [
+        "branch:ccr-e45875c0-5r0fnf",
+        "pr:178"
+      ]
+    },
+    {
+      "id": "APP-01",
+      "title": "Snapshot row-gap check as one aggregation (#179 F3): ~24 s certification endpoint; oracle and plan regression tests",
+      "issue": 179,
+      "pr": null,
+      "branch": "app-01-row-gaps",
+      "kind": "implementation",
+      "state": "BLOCKED",
+      "assignee": null,
+      "lease": null,
+      "latest_checkpoint": "CP-20261021T203602Z-agent-a-claude-code",
+      "pr_open": false,
+      "resources": [
+        "branch:app-01-row-gaps"
+      ]
+    },
+    {
+      "id": "GOV-01",
+      "title": "File- and impact-based merge policy proposal (MP-OWNER-AUTOMERGE-02/03, not approved): base-commit classifier and merge gate",
+      "issue": 97,
+      "pr": null,
+      "branch": "gov-01-merge-policy",
+      "kind": "implementation",
+      "state": "BLOCKED",
+      "assignee": null,
+      "lease": null,
+      "latest_checkpoint": "CP-20261021T203603Z-agent-a-claude-code",
+      "pr_open": false,
+      "resources": [
+        "branch:gov-01-merge-policy"
+      ]
+    },
+    {
+      "id": "VPS-MIGRATION-01",
+      "title": "VPS-only operations (#182) on #179: verify the reported VPS state, then S3, S4, DR PG18 and cutover, each under its own owner GO",
+      "issue": 179,
+      "pr": null,
+      "branch": "main",
+      "kind": "operations",
+      "state": "BLOCKED",
+      "assignee": null,
+      "lease": null,
+      "latest_checkpoint": "CP-20261021T212122Z-agent-a-claude-code",
+      "resources": [
+        "vps:matchpilot",
+        "db:pg18-staging",
+        "db:pg17"
+      ]
+    },
+    {
+      "id": "TC-OFF-01",
+      "title": "TotalCorner off in production by explicit configuration, with a negative test that no TC collector starts (#182; behaviour unchanged until its PR)",
+      "issue": 20,
+      "pr": null,
+      "branch": null,
+      "kind": "implementation",
+      "state": "PLANNED",
+      "assignee": null,
+      "lease": null,
+      "latest_checkpoint": null,
+      "resources": []
+    },
+    {
+      "id": "HANDOFF-TEST-01",
+      "title": "Real handoff test A -> B -> A between two distinct agents and sessions on a non-destructive task (MP-OWNER-AGENTS-INTERCHANGEABLE-01)",
+      "issue": 150,
+      "pr": null,
+      "branch": null,
+      "kind": "audit",
+      "state": "PLANNED",
+      "assignee": null,
+      "lease": null,
+      "latest_checkpoint": null,
+      "resources": [
+        "checkpoints:HANDOFF-TEST-01"
+      ]
+    },
+    {
+      "id": "GOV-RECON-01",
+      "title": "Governance reconciliation R1-R7, checkpoint v3 and agent-independent handoff (MP-GITHUB-RECON-IMPLEMENTATION-01)",
+      "issue": 97,
+      "pr": 183,
+      "branch": "claude/gov-recon-01",
+      "kind": "implementation",
       "state": "REVIEW",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "lease": {
-        "holder": "agent-a-claude-code",
-        "acquired_at": "2026-10-21T17:00:00.000Z",
-        "expires_at": "2026-10-22T05:00:00.000Z"
-      },
-      "latest_checkpoint": "CP-20261021T185835Z-agent-a-claude-code",
+      "lease": null,
+      "latest_checkpoint": "CP-20261021T214147Z-agent-a-claude-code",
+      "parallel_authorization": "MP-GITHUB-RECON-IMPLEMENTATION-01",
+      "resources": [
+        "branch:claude/gov-recon-01",
+        "file:docs/governance/work-registry.json"
+      ],
       "pr_open": true
     }
   ]

@@ -1,10 +1,12 @@
-// Shared activity registry (#150): verifiable assignments, leases, one active implementation task,
+// Shared activity registry (#150): verifiable assignments, leases, one active implementation task, one writer per resource,
 // optimistic concurrency (revision compare-and-swap) and a local file lock for same-worktree writers.
 import {closeSync, existsSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync} from 'node:fs';
-import {STATES} from './checkpoints.mjs';
+import {STATES, taskResources} from './checkpoints.mjs';
 
 export const REGISTRY_SCHEMA = 'mp-work-registry-v1';
-export const KINDS = ['implementation', 'review', 'audit', 'readonly'];
+// operations: work outside the repository (VPS, databases, services) under an owner GO; it never takes the PR slot,
+// but its resources follow the single-writer rule like any other task.
+export const KINDS = ['implementation', 'review', 'audit', 'readonly', 'operations'];
 // RUNNING and REVIEW always occupy the single implementation slot. Any other non-final state occupies it
 // while its PR may still be open: only an explicit `pr_open: false` releases it, so a missing flag fails
 // closed (#152 review N-4, #153 review NB-5). A BLOCKED task without an open PR has no work in flight and
@@ -19,7 +21,34 @@ export class RegistryConflict extends Error {
 
 const leaseActive = (lease, now) => Boolean(lease) && Date.parse(lease.expires_at) > now.getTime();
 
-export function validateRegistry(registry, {checkpointIds} = {}) {
+// A second live implementation task is admitted only when it cites an IN_FORCE owner decision that names it in
+// `parallel_tasks` (e.g. one governance PR while another PR waits): the exception is the owner's, recorded, and
+// limited to the tasks it names. Without the decision register the rule stays strict.
+export function parallelAuthorized(task, decisions) {
+  if (!decisions || !task.parallel_authorization) return false;
+  const decision = (decisions.decisions || []).find(item => item.id === task.parallel_authorization);
+  return decision?.status === 'IN_FORCE' && Array.isArray(decision.parallel_tasks) && decision.parallel_tasks.includes(task.id);
+}
+
+// No dual writer (MP-OWNER-AGENTS-INTERCHANGEABLE-01): a resource (branch, PR, VPS host, database...) has at most one
+// writer, whoever the agent is. Two active leases of different holders on one resource are an error. The branch of an
+// implementation task and its PR are resources even when not declared (taskResources). The registry file itself is
+// protected by the revision compare-and-swap and the file lock, not by a lease.
+export function resourceConflicts(registry, now = new Date()) {
+  const writers = new Map();
+  const conflicts = [];
+  for (const task of registry.tasks || []) {
+    if (!leaseActive(task.lease, now)) continue;
+    for (const resource of taskResources(task)) {
+      const other = writers.get(resource);
+      if (other && other.holder !== task.lease.holder) conflicts.push(`dual writer on ${resource}: ${other.task} (${other.holder}) and ${task.id} (${task.lease.holder})`);
+      else writers.set(resource, {task: task.id, holder: task.lease.holder});
+    }
+  }
+  return conflicts;
+}
+
+export function validateRegistry(registry, {checkpointIds, decisions, now = new Date()} = {}) {
   const errors = [];
   if (registry.schema_version !== REGISTRY_SCHEMA) errors.push(`registry schema_version must be ${REGISTRY_SCHEMA}`);
   if (!Number.isInteger(registry.revision) || registry.revision < 0) errors.push('registry revision must be a non-negative integer');
@@ -36,9 +65,12 @@ export function validateRegistry(registry, {checkpointIds} = {}) {
     if (task.lease && !(task.lease.holder && Date.parse(task.lease.acquired_at) < Date.parse(task.lease.expires_at))) errors.push(`${task.id} malformed lease`);
     if (task.lease && task.assignee?.agent !== task.lease.holder) errors.push(`${task.id} lease holder is not the assignee`);
     if (checkpointIds && task.latest_checkpoint && !checkpointIds.has(task.latest_checkpoint)) errors.push(`${task.id} latest_checkpoint ${task.latest_checkpoint} not found`);
+    if (task.resources !== undefined && !(Array.isArray(task.resources) && task.resources.every(item => typeof item === 'string' && item))) errors.push(`${task.id} resources must be an array of strings`);
+    if (task.parallel_authorization !== undefined && decisions && !parallelAuthorized(task, decisions)) errors.push(`${task.id} parallel_authorization ${task.parallel_authorization} is not an IN_FORCE owner decision naming this task`);
   }
-  const liveImplementations = (registry.tasks || []).filter(task => task.kind === 'implementation' && isLive(task));
+  const liveImplementations = (registry.tasks || []).filter(task => task.kind === 'implementation' && isLive(task) && !parallelAuthorized(task, decisions));
   if (liveImplementations.length > 1) errors.push(`more than one active implementation task: ${liveImplementations.map(task => task.id).join(', ')}`);
+  errors.push(...resourceConflicts(registry, now));
   return errors;
 }
 
@@ -48,7 +80,7 @@ function bump(registry, taskId, change) {
 
 // Claim (or renew) a task. Taking over an expired lease from another agent requires an explicit
 // reconciliation of its latest checkpoint against the real repository (`reconciled: true`).
-export function claim(registry, taskId, agent, now, {expectedRevision, ttlMinutes = 120, reconciled = false} = {}) {
+export function claim(registry, taskId, agent, now, {expectedRevision, ttlMinutes = 120, reconciled = false, decisions} = {}) {
   if (expectedRevision !== undefined && expectedRevision !== registry.revision) throw new RegistryConflict('CONFLICT_REVISION', `expected ${expectedRevision}, found ${registry.revision}`);
   const task = registry.tasks.find(item => item.id === taskId);
   if (!task) throw new RegistryConflict('UNKNOWN_TASK', taskId);
@@ -58,9 +90,15 @@ export function claim(registry, taskId, agent, now, {expectedRevision, ttlMinute
     if (leaseActive(task.lease, now)) throw new RegistryConflict('CONFLICT_LEASE_ACTIVE', `${taskId} held by ${holder} until ${task.lease.expires_at}`);
     if (!reconciled) throw new RegistryConflict('CONFLICT_UNRECONCILED', `${taskId}: expired lease of ${holder} needs reconciliation first`);
   }
-  if (task.kind === 'implementation') {
-    const other = registry.tasks.find(item => item.id !== taskId && item.kind === 'implementation' && isLive(item));
+  if (task.kind === 'implementation' && !parallelAuthorized(task, decisions)) {
+    const other = registry.tasks.find(item => item.id !== taskId && item.kind === 'implementation' && isLive(item) && !parallelAuthorized(item, decisions));
     if (other) throw new RegistryConflict('CONFLICT_PARALLEL_IMPLEMENTATION', `${other.id} is ${other.state}`);
+  }
+  const wanted = taskResources(task);
+  for (const other of registry.tasks) {
+    if (other.id === taskId || !leaseActive(other.lease, now) || other.lease.holder === agent.id) continue;
+    const shared = taskResources(other).filter(resource => wanted.includes(resource));
+    if (shared.length) throw new RegistryConflict('CONFLICT_RESOURCE_LEASED', `${shared.join(', ')} written by ${other.id} (${other.lease.holder}) until ${other.lease.expires_at}`);
   }
   const lease = {holder: agent.id, acquired_at: now.toISOString(), expires_at: new Date(now.getTime() + ttlMinutes * 60e3).toISOString()};
   return bump(registry, taskId, {assignee: {agent: agent.id, role: agent.role}, lease, state: 'RUNNING'});
