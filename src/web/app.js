@@ -806,7 +806,7 @@ async function signalsView(params) {
     el('p', {class: 'state partial', role: 'status', 'data-testid': 'sim-banner'}, 'SIMULAZIONE: nessun messaggio Telegram, nessuna scommessa. Regola: media Over 2.5 delle ultime 10 partite di entrambe le squadre ≥ 60%.')];
   if (!d.rows.length) return [...head, el('p', {class: 'state empty', 'data-testid': 'sim-empty'}, 'Nessuna simulazione eseguita.')];
   const s = d.summary;
-  const runs = el('p', {class: 'meta'}, 'Simulazioni: ', d.runs.map(r => [el('a', {href: `#/segnali?${queryString({run: r.run_id})}`}, `${r.match_date} (${r.n})`), ' ']));
+  const runs = el('p', {class: 'meta'}, 'Simulazioni: ', d.runs.flatMap(r => [el('a', {href: `#/segnali?${queryString({run: r.run_id})}`}, `${r.match_date} (${r.n})`), ' ']));
   const rows = d.rows.map(r => el('tr', {'data-decision': r.decision},
     el('td', {}, r.match_date), el('td', {}, el('a', {href: matchHref(r.internal_match_id)}, `${r.home_name ?? '?'} – ${r.away_name ?? '?'}`)),
     el('td', {}, DECISION_IT[r.decision] ?? r.decision), el('td', {}, r.avg_over25_rate === null ? '—' : `${(Number(r.avg_over25_rate) * 100).toFixed(1)}%`),
