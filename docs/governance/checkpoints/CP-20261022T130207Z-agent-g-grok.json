@@ -1,0 +1,195 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261022T130207Z-agent-g-grok",
+  "timestamp_utc": "2026-10-22T13:02:07Z",
+  "agent": {
+    "id": "agent-g-grok",
+    "role": "Roadmap Coordinator",
+    "session": "grok-matchpilot-owner-chat-t101u-2026-10-22"
+  },
+  "mandate": {
+    "id": "MP-GROK-GLOBAL-TAKEOVER-01",
+    "source": "owner mandate t101u (2026-10-22 14:16 Rome), registered in docs/governance/owner-decisions.json"
+  },
+  "activity": "PR #185 merged (squash, pinned to 33c470e, no --admin); post-merge CI 39782751359 success; MERGED record carried by the TC-OFF-01 PR",
+  "task": "TAKEOVER-01",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 97,
+  "pr": 185,
+  "branch": "governance/grok-takeover-20261022",
+  "commit_sha": "33c470e86151ac45c70923db5814d590ba365f09",
+  "tree_sha": "668c7b6911c8d4479fed1f72b5e89c3c249b4768",
+  "base_sha": "0c084d5d2e5e4fefee65d6dfea4f32f49b88fb98",
+  "worktree": {
+    "clean": true
+  },
+  "requirements": [],
+  "changes": [
+    "owner-decisions.json: MP-GROK-GLOBAL-TAKEOVER-01",
+    "work-registry.json: task TAKEOVER-01 and lease",
+    "docs/governance/audits/2026-10-22-MP-GROK-GLOBAL-TAKEOVER-01.md and branch matrix"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/hist-backtest.test.mjs on ccr-e45875c0-5r0fnf 57aab63: 16 pass, 0 fail",
+      "result": "PASS",
+      "environment": "box, Node 22, no PostgreSQL",
+      "commit": "57aab633735e2ecac3569e19666e3a73a0d956ed",
+      "time": "2026-10-22T12:20:22Z",
+      "limits": [
+        "branch-specific test only"
+      ]
+    },
+    {
+      "command": "node --test governance merge-class/merge-facts/policy tests on gov-01-merge-policy b841a06: 20 pass, 0 fail",
+      "result": "PASS",
+      "environment": "box, Node 22",
+      "commit": "b841a0671344f308eb96ee743bd2d5ad13331c08",
+      "time": "2026-10-22T12:20:22Z",
+      "limits": [
+        "branch-specific tests only"
+      ]
+    },
+    {
+      "command": "node --test test/fpt-row-gaps.test.mjs on app-01-row-gaps 768bae9: 2 skipped",
+      "result": "SKIPPED",
+      "environment": "box, no PostgreSQL",
+      "commit": "768bae9838af32f842021052692bc7e01fac57c3",
+      "time": "2026-10-22T12:20:22Z",
+      "limits": [
+        "needs PostgreSQL: NOT VERIFIED"
+      ]
+    },
+    {
+      "command": "node tools/governance/cli.mjs validate",
+      "result": "PASS",
+      "environment": "box",
+      "commit": "955240a2b1aa0a9d1d097b28373f0c1fd4cdcf28",
+      "time": "2026-10-22T12:20:22Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": 39781348296,
+    "conclusion": "SUCCESS",
+    "head_sha": "33c470e86151ac45c70923db5814d590ba365f09"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/185#issuecomment-6341134026: Grok review pass authorized by the owner (t103u), same account (P1/A7), not an independent attestation",
+    "reviewed_sha": "33c470e86151ac45c70923db5814d590ba365f09"
+  },
+  "findings": [
+    {
+      "id": "GR-T1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "registry on main keeps GOV-RECON-01 in REVIEW with pr_open true although PR #183 is merged (handoff-in STOP PR_OPEN_MISMATCH); needs a MERGED checkpoint with merge_sha"
+    },
+    {
+      "id": "APP-F1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "same checkpoint id CP-20261020T200407Z-agent-a-claude-code with different content on app-01-row-gaps and gov-01-merge-policy; neither may reach main as is"
+    },
+    {
+      "id": "GR-T2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "APP-02 has no branch, commit or checkpoint: not started"
+    },
+    {
+      "id": "GR-T3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "#184 and this branch both bump work-registry.json revision: the later one to reach main must reconcile"
+    }
+  ],
+  "owner_decisions": [
+    "MP-GROK-GLOBAL-TAKEOVER-01",
+    "MP-OWNER-AGENTS-INTERCHANGEABLE-01"
+  ],
+  "authorizations": [
+    {
+      "id": "MP-GROK-GLOBAL-TAKEOVER-01",
+      "source": "owner mandate t101u, owner-decisions.json",
+      "scope": {
+        "task": "TAKEOVER-01",
+        "action": "read-only reconnaissance, push of the governance branch, one comment on issue #97, no PR"
+      },
+      "status": "VALID"
+    },
+    {
+      "id": "MP-GROK-AUTONOMOUS-EXECUTION-01",
+      "source": "owner mandate t102u (2026-10-22 14:33 Rome) with owner decision t103u (Grok review pass)",
+      "scope": {
+        "task": "TAKEOVER-01",
+        "action": "governance PR, review pass and squash merge with green CI, no --admin"
+      },
+      "status": "VALID"
+    }
+  ],
+  "external_commands": [
+    {
+      "target": "github",
+      "command": "read-only: git ls-remote, gh pr list --state all, gh pr checks 178 and 184, gh issue view/list",
+      "effect": "none"
+    },
+    {
+      "target": "github",
+      "command": "git push origin governance/grok-takeover-20261022",
+      "effect": "new branch"
+    },
+    {
+      "target": "github",
+      "command": "git push origin governance/grok-takeover-20261022; gh pr create (#185)",
+      "effect": "PR #185"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "docs/governance/audits/2026-10-22-MP-GROK-GLOBAL-TAKEOVER-01.md",
+      "sha256": "f5f90675e3e71a861e481225bf3150e3215a9f12627690d2322e64e31569345f"
+    }
+  ],
+  "progress": {
+    "done": [
+      "reconnaissance",
+      "#97 comments 6340604077 and 6341332738",
+      "GR-T1",
+      "GR-T3",
+      "merge da92728"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "branch:governance/grok-takeover-20261022"
+  ],
+  "stop_conditions": [
+    "task finished: no further writes"
+  ],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": {
+    "production_release": "3dd833f38bf8a7de3b51dfbebd3118e1602185ac",
+    "freeze": "1",
+    "note": "not re-read in this delivery; last read 2026-10-22 ~12:54 Rome during FUNC-RECOVERY-01"
+  },
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "dependencies": [],
+  "state": "MERGED",
+  "next_action": "nothing on this task",
+  "resume_conditions": [],
+  "supersedes": "CP-20261022T124759Z-agent-g-grok",
+  "merge_sha": "da927281c26d80d2e9003c9922db830dd077476c"
+}

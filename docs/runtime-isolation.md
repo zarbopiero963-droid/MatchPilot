@@ -89,3 +89,7 @@ Both gaps found by the PR #157 reviews were fixed in a dedicated PR under the ow
   - a refused connection fails at once.
 
 **Accepted risk:** any absolute Unix-socket path counts as local. A socket is on this machine, but a proxy socket (for example a cloud SQL proxy) can forward to a remote database. That is the same trust as a loopback tunnel. Offline and test environments must not run such proxies (PR #158 review NB-2).
+
+## TotalCorner spento (TC-OFF-01)
+
+Decisione owner `MP-VPS-ONLY-OPERATIONS-2026-10-21` (#182): raccolta, polling e backfill TotalCorner sono sospesi (#20 resta aperta). Anche con `MATCHPILOT_BACKGROUND_ENABLED=true` in produzione, **nessun job TotalCorner** (discovery, mapping, prematch, historical, live) parte se `MATCHPILOT_TOTALCORNER` non vale `on`. Default: spento, qualunque altro valore è spento; all'avvio il log riporta `TOTALCORNER_OFF` o `TOTALCORNER_ON`. Riattivarlo richiede un GO owner. Test: `test/runtime-isolation.test.mjs` (TC-OFF-01).

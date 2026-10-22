@@ -72,7 +72,7 @@ test('production background remains available only through explicit double opt-i
 
   const enabledCalls = [];
   await startBackgroundServices({
-    env: {MATCHPILOT_RUNTIME_MODE: 'production', MATCHPILOT_BACKGROUND_ENABLED: 'true'},
+    env: {MATCHPILOT_RUNTIME_MODE: 'production', MATCHPILOT_BACKGROUND_ENABLED: 'true', MATCHPILOT_TOTALCORNER: 'on'},
     services: fakeServices(enabledCalls), log: () => {},
   });
   await new Promise(resolve => setImmediate(resolve));
@@ -80,6 +80,21 @@ test('production background remains available only through explicit double opt-i
     assert.ok(enabledCalls.includes(required), required);
   }
   assert.equal(enabledCalls.includes('backfill'), false);
+});
+
+test('TC-OFF-01: with background enabled, no TotalCorner job starts unless MATCHPILOT_TOTALCORNER is exactly on', async () => {
+  for (const setting of [undefined, '', 'off', 'ON', 'true', '1', ' on x']) {
+    const calls = [];
+    const logs = [];
+    const env = {MATCHPILOT_RUNTIME_MODE: 'production', MATCHPILOT_BACKGROUND_ENABLED: 'true', TOTALCORNER_API_TOKEN: 'must-not-be-used',
+      TOTALCORNER_LIVE_ENABLED: 'true', TOTALCORNER_PREMATCH_ENABLED: 'true', TOTALCORNER_HISTORY_ENABLED: 'true'};
+    if (setting !== undefined) env.MATCHPILOT_TOTALCORNER = setting;
+    await startBackgroundServices({env, services: fakeServices(calls), log: line => logs.push(line), error: () => {}});
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(calls.filter(name => name.startsWith('tc_')), [], `setting ${JSON.stringify(setting)}`);
+    assert.ok(calls.includes('cron'), 'the other services still start');
+    assert.ok(logs.some(line => line.startsWith('TOTALCORNER_OFF ')), 'the off state is logged');
+  }
 });
 
 test('real backend starts in test mode with PostgreSQL and performs no hidden background work', {timeout: 60000}, async t => {
