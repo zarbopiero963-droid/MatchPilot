@@ -155,8 +155,8 @@ export async function recoveryTargets(client, {config = reconConfig(), runId = n
        WHERE source=$1 AND recovery_action = ANY($2::text[])
          AND (status IN ('DETECTED','QUEUED','PARTIAL')
            OR (status = 'FAILED' AND recovery_finished_at < now() - make_interval(hours => $5::int)))
-         AND NOT (details->>'verified' = 'unchanged'
-           AND (details->>'verified_unchanged_at')::timestamptz > now() - make_interval(hours => $6::int))
+         AND NOT (COALESCE(details->>'verified', '') = 'unchanged'
+           AND COALESCE((details->>'verified_unchanged_at')::timestamptz, '-infinity') > now() - make_interval(hours => $6::int))
        ORDER BY priority, detected_at, entity LIMIT $4)
      RETURNING l.entity, l.recovery_action`, [SOURCE, actions, runId, limit, Math.round(config.retryFailedHours), Math.round(config.currentSeasonTtlHours)])).rows;
   const rows = [...await pick(['refresh_dataset'], config.refreshPerRun), ...await pick(['fetch_dataset'], config.recoveryPerRun)];
@@ -319,7 +319,7 @@ async function emitReconAlerts(client, summary, deliver) {
      WHERE source=$1 AND status IN ('DETECTED','QUEUED','RECOVERING','PARTIAL')
        -- The daily refresh of current seasons is routine: it alerts only once it falls a day behind.
        AND NOT (gap_kind = 'current_season_stale' AND detected_at > now() - interval '24 hours')
-       AND NOT (gap_kind = 'current_season_stale' AND details->>'verified' = 'unchanged')
+       AND NOT (gap_kind = 'current_season_stale' AND COALESCE(details->>'verified', '') = 'unchanged')
      GROUP BY 1, 2 ORDER BY 2, 1`, [SOURCE])).rows;
   if (open.length) {
     await emitAlert({source: SOURCE, severity: open.some(r => r.priority === 'P1') ? 'warning' : 'info',
