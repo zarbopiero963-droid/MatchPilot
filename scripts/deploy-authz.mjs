@@ -149,6 +149,63 @@ export function approvalProblems(approvals) {
   return ok ? [] : ['AUTHZ_NO_OWNER_APPROVAL'];
 }
 
+// ---- MP-AUTODEPLOY-01 (owner t123u): ordinary deploys need no human approval. What authorizes a SHA instead:
+// - it is the merge commit of a PR merged into main of this repository (GET /commits/{sha}/pulls), never a direct push;
+// - the required check "CI gate" of GitHub Actions concluded success on exactly that SHA (GET /commits/{sha}/check-runs);
+//   the newest such check run decides, so a later failed re-run of CI withdraws the authorization.
+export const REQUIRED_CHECK = 'CI gate';
+export function mergeProblems(pulls, sha) {
+  if (!Array.isArray(pulls)) return ['AUTHZ_PULLS_UNREADABLE'];
+  const ok = pulls.some(pr => plain(pr) && typeof pr.merged_at === 'string' && pr.merged_at !== '' && pr.merge_commit_sha === sha
+    && pr.base?.ref === 'main' && pr.base?.repo?.full_name === EXPECTED.repository);
+  return ok ? [] : ['AUTHZ_NOT_A_MERGED_PR'];
+}
+// (owner t124u) The check must come from the trusted CI workflow, not from a workflow changed in the same PR: the "CI gate"
+// check run belongs to the check suite of a push run of .github/workflows/ci.yml on main for exactly this SHA, that run
+// (the newest such) concluded success, and ci.yml at this SHA is byte for byte the root-pinned file (ciBlob = its
+// contents-API answer, pinnedBlob from the root-owned config). A changed ci.yml needs a new pin by root.
+export const CI_WORKFLOW_PATH = '.github/workflows/ci.yml';
+export function ciProblems(checks, sha, {ciRuns, ciBlob, pinnedBlob} = {}) {
+  const runs = plain(checks) && Array.isArray(checks.check_runs) ? checks.check_runs : null;
+  if (!runs) return ['AUTHZ_CHECKS_UNREADABLE'];
+  const mine = runs.filter(run => plain(run) && run.name === REQUIRED_CHECK && run.head_sha === sha && run.app?.slug === 'github-actions');
+  if (!mine.length) return ['AUTHZ_CI_MISSING'];
+  const latest = mine.reduce((a, b) => (Number(b.id) > Number(a.id) ? b : a));
+  if (latest.status !== 'completed') return [`AUTHZ_CI_PENDING: ${latest.status}`];
+  if (latest.conclusion !== 'success') return [`AUTHZ_CI_NOT_GREEN: ${latest.conclusion}`];
+  // The workflow run is read directly by the id in the check run's details_url (the runs search with filters is not
+  // consistent from one read to the next on GitHub's side: a fail-closed refusal would kill a run that cannot be re-run).
+  const ciRun = plain(ciRuns) && Array.isArray(ciRuns.workflow_runs) ? ciRuns.workflow_runs[0] : ciRuns;
+  if (!plain(ciRun)) return ['AUTHZ_CI_RUNS_UNREADABLE'];
+  if (!(ciRun.path === CI_WORKFLOW_PATH && ciRun.event === 'push' && ciRun.head_branch === 'main' && ciRun.head_sha === sha
+    && ciRun.repository?.full_name === EXPECTED.repository && String(ciRun.id) === ciRunId(latest))) return ['AUTHZ_CI_NOT_FROM_TRUSTED_WORKFLOW'];
+  if (ciRun.status !== 'completed') return [`AUTHZ_CI_PENDING: run ${ciRun.status}`];
+  if (ciRun.conclusion !== 'success') return [`AUTHZ_CI_RUN_NOT_GREEN: ${ciRun.status}/${ciRun.conclusion}`];
+  if (latest.check_suite?.id == null || String(latest.check_suite.id) !== String(ciRun.check_suite_id)) return ['AUTHZ_CI_CHECK_NOT_FROM_TRUSTED_WORKFLOW'];
+  if (!SHA.test(pinnedBlob ?? '')) return ['AUTHZ_CI_PIN_MISSING'];
+  if (!(plain(ciBlob) && ciBlob.type === 'file' && ciBlob.path === CI_WORKFLOW_PATH && ciBlob.sha === pinnedBlob)) {
+    return [`AUTHZ_CI_WORKFLOW_NOT_PINNED: ${plain(ciBlob) ? ciBlob.sha : 'unreadable'} (pinned ${pinnedBlob})`];
+  }
+  return [];
+}
+// The Actions run id of a check run, from its details_url (https://github.com/<repo>/actions/runs/<id>/job/<job>).
+export function ciRunId(check) {
+  const m = /^https:\/\/github\.com\/([^/]+\/[^/]+)\/actions\/runs\/([1-9][0-9]{0,19})\/job\/[0-9]+$/.exec(String(check?.details_url ?? ''));
+  return m && m[1] === EXPECTED.repository ? m[2] : null;
+}
+// The newest green-or-not "CI gate" check run of the SHA (the one ciProblems judges), or null.
+export function latestCiCheck(checks, sha) {
+  const runs = plain(checks) && Array.isArray(checks.check_runs) ? checks.check_runs : [];
+  const mine = runs.filter(run => plain(run) && run.name === REQUIRED_CHECK && run.head_sha === sha && run.app?.slug === 'github-actions');
+  return mine.length ? mine.reduce((a, b) => (Number(b.id) > Number(a.id) ? b : a)) : null;
+}
+export const mergeUrls = sha => ({
+  pulls: `${GITHUB_API}/commits/${sha}/pulls?per_page=100`,
+  checks: `${GITHUB_API}/commits/${sha}/check-runs?check_name=${encodeURIComponent(REQUIRED_CHECK)}&filter=all&per_page=100`,
+  ciRun: id => `${GITHUB_API}/actions/runs/${id}`,
+  ciBlob: `${GITHUB_API}/contents/${CI_WORKFLOW_PATH}?ref=${sha}`,
+});
+
 // ---- MP-GATE-S1S2-FIX: anti-stale. Only the current tip of refs/heads/main may be deployed (owner requirement #97
 // 6321186934). The tip is read from two GitHub sources, which must agree with each other and with the SHA asked for:
 // the git smart-HTTP ref advertisement and the REST branch. Public reads, no token. Any doubt (network, timeout, an HTTP

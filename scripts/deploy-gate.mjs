@@ -15,6 +15,10 @@
 //   node scripts/deploy-gate.mjs   (GITHUB_REPOSITORY, GITHUB_SHA, GITHUB_REF, GITHUB_EVENT_NAME, GH_TOKEN)
 import {appendFileSync, realpathSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
+import {REQUIRED_CHECK, ciProblems, ciRunId, latestCiCheck, mergeProblems} from './deploy-authz.mjs';
+
+// ciProblems without the ci.yml pin, which only the root-installed runner guard holds (its config).
+export const basicCiProblems = (checks, sha, ciRun) => ciProblems(checks, sha, {ciRuns: ciRun}).filter(item => item !== 'AUTHZ_CI_PIN_MISSING');
 
 export const REPOSITORY = 'zarbopiero963-droid/MatchPilot';
 export const ENVIRONMENT = 'vps-production';
@@ -34,15 +38,17 @@ export function gateProblems(facts) {
   const environment = facts.environment;
   if (!environment) problems.push(`GATE_ENVIRONMENT_MISSING: ${ENVIRONMENT}`);
   else {
+    // MP-AUTODEPLOY-01 (owner t123u): ordinary deploys need no human approval. A required-reviewers rule is no longer
+    // required; if one is still configured (transition), it may name only the owner, with prevent self-review off.
+    if (!Array.isArray(environment.protection_rules)) problems.push('GATE_PROTECTION_RULES_UNREADABLE');
     const rules = Array.isArray(environment.protection_rules) ? environment.protection_rules : [];
     const reviewerRules = rules.filter(rule => rule?.type === 'required_reviewers');
+    if (reviewerRules.some(rule => !Array.isArray(rule.reviewers))) problems.push('GATE_REVIEWERS_UNREADABLE');
     const reviewers = reviewerRules.flatMap(rule => Array.isArray(rule.reviewers) ? rule.reviewers : []);
-    if (reviewerRules.length === 0 || reviewers.length === 0) problems.push('GATE_NO_REQUIRED_REVIEWERS');
     for (const entry of reviewers) {
       const login = entry?.reviewer?.login;
       if (entry?.type !== 'User' || !REVIEWERS.includes(login)) problems.push(`GATE_UNEXPECTED_REVIEWER: ${entry?.type} ${login ?? entry?.reviewer?.slug ?? '?'}`);
     }
-    if (reviewers.length && !reviewers.some(entry => entry?.type === 'User' && REVIEWERS.includes(entry?.reviewer?.login))) problems.push('GATE_OWNER_NOT_REVIEWER');
     if (reviewerRules.some(rule => rule.prevent_self_review !== false)) problems.push('GATE_SELF_REVIEW: prevent_self_review must be false, or the owner who merges cannot approve');
     if (environment.can_admins_bypass !== false) problems.push(`GATE_ADMIN_BYPASS: can_admins_bypass is ${environment.can_admins_bypass}`);
     const policy = environment.deployment_branch_policy;
@@ -52,6 +58,10 @@ export function gateProblems(facts) {
       if (JSON.stringify(names) !== JSON.stringify([`branch:${BRANCH}`])) problems.push(`GATE_BRANCH_POLICY: ${names.join(', ') || 'none'}`);
     }
   }
+  // MP-AUTODEPLOY-01: what authorizes the SHA is a merged PR into main and a green "CI gate" on exactly this SHA. The
+  // root-installed runner guard also proves the check comes from the pinned ci.yml (owner t124u).
+  problems.push(...mergeProblems(facts.pulls, facts.sha).map(item => item.replace(/^AUTHZ_/, 'GATE_')));
+  problems.push(...basicCiProblems(facts.checks, facts.sha, facts.ciRun).map(item => item.replace(/^AUTHZ_/, 'GATE_')));
   if (!SHA.test(facts.mainSha ?? '')) problems.push('GATE_MAIN_UNREADABLE');
   else if (facts.mainSha !== facts.sha) problems.push(`GATE_SUPERSEDED: main is ${facts.mainSha}, this run is ${facts.sha}`);
   return problems;
@@ -74,6 +84,12 @@ export async function readFacts({repository, ref, event, sha, api}) {
     facts.branchPolicies = (await call('branch policies', `${env}/deployment-branch-policies?per_page=100`))?.branch_policies ?? null;
   }
   facts.mainSha = (await call('main', `repos/${repository}/branches/${BRANCH}`))?.commit?.sha ?? null;
+  if (SHA.test(sha ?? '')) {
+    facts.pulls = await call('pulls', `repos/${repository}/commits/${sha}/pulls?per_page=100`);
+    facts.checks = await call('checks', `repos/${repository}/commits/${sha}/check-runs?check_name=${encodeURIComponent(REQUIRED_CHECK)}&filter=all&per_page=100`);
+    const ciId = ciRunId(latestCiCheck(facts.checks, sha));
+    if (ciId) facts.ciRun = await call('ci run', `repos/${repository}/actions/runs/${ciId}`);
+  }
   return facts;
 }
 
@@ -113,9 +129,18 @@ if (entry === import.meta.url) {
   let facts = {};
   try {
     if (!env.GH_TOKEN) throw new Error('GH_TOKEN is not set');
-    facts = await readFacts({repository: env.GITHUB_REPOSITORY, ref: env.GITHUB_REF, event: env.GITHUB_EVENT_NAME, sha: env.GITHUB_SHA,
+    const read = () => readFacts({repository: env.GITHUB_REPOSITORY, ref: env.GITHUB_REF, event: env.GITHUB_EVENT_NAME, sha: env.GITHUB_SHA,
       api: githubApi({token: env.GH_TOKEN, base: env.GITHUB_API_URL || 'https://api.github.com'})});
-    problems = gateProblems(facts);
+    // MP-AUTODEPLOY-01: in the gate job (DEPLOY_GATE_WAIT_CI_S > 0) wait for CI on this SHA to finish; only a pending or
+    // missing CI is waited for, every other problem stops at once. On the VPS the wait is 0: CI must already be green.
+    const deadline = Date.now() + 1000 * Math.min(Number(env.DEPLOY_GATE_WAIT_CI_S || 0) || 0, 3600);
+    for (;;) {
+      facts = await read();
+      problems = gateProblems(facts);
+      const waiting = problems.length > 0 && problems.every(item => /^GATE_CI_(PENDING|MISSING)/.test(item));
+      if (!waiting || Date.now() >= deadline) break;
+      await new Promise(resolve => setTimeout(resolve, 20000));
+    }
   } catch (error) {
     problems = [`GATE_ERROR: ${String(error?.message ?? error).split('\n')[0]}`];
   }
