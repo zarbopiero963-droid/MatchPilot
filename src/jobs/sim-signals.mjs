@@ -10,10 +10,12 @@ const opt = name => { const i = args.indexOf(name); return i === -1 ? null : arg
 const date = opt('--date');
 if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? '')) { console.error('usage: --date YYYY-MM-DD [--limit N]'); process.exit(2); }
 if (assertRuntimeSafety(process.env).mode === 'production') { console.error('SIM_SIGNALS_REFUSED production mode'); process.exit(2); }
+const limitRaw = opt('--limit') ?? '500';
+if (!/^\d+$/.test(limitRaw) || Number(limitRaw) < 1 || Number(limitRaw) > 5000) { console.error('--limit must be an integer 1-5000'); process.exit(2); }
 const runId = `sim-${date}-${new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15)}Z`;
 const client = await getPool().connect();
 try {
-  const out = await runForDate(client, {date, runId, limit: Number(opt('--limit') ?? 500)});
+  const out = await runForDate(client, {date, runId, limit: Number(limitRaw)});
   const count = k => out.filter(r => r.decision === k).length;
   const sig = out.filter(r => r.decision === 'SIGNAL');
   console.log(JSON.stringify({run_id: runId, date, matches: out.length, SIGNAL: count('SIGNAL'), NO_SIGNAL: count('NO_SIGNAL'),

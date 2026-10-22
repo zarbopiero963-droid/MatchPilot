@@ -3,6 +3,7 @@
 // cutoff strictly before the match day) and, for a match already FINAL, settles the signal against the stored score so a
 // historical day can be replayed. Results are written to the sim schema of the database the process is connected to.
 import {matchAnalysis} from '../analysis/match-analysis.mjs';
+import {Decimal, ROUNDING} from '../math/decimal.mjs';
 
 export const RULE_VERSION = 'mp-sim-over25-v1';
 export const RULE = {market: 'OVER_2_5', window: 10, venue: 'both', min_n: 10, min_avg_over25_rate: 0.6};
@@ -38,9 +39,10 @@ export function decide(analysis) {
   if (!home || !away || home.n < RULE.min_n || away.n < RULE.min_n || home.over25_rate === null || away.over25_rate === null) {
     return {decision: 'INSUFFICIENT_DATA', inputs};
   }
-  const avg = (Number(home.over25_rate) + Number(away.over25_rate)) / 2;
-  inputs.avg_over25_rate = avg.toFixed(4);
-  return {decision: avg >= RULE.min_avg_over25_rate ? 'SIGNAL' : 'NO_SIGNAL', inputs};
+  // Exact arithmetic (Math Core Decimal), rounded HALF_EVEN like the analysis rates.
+  const avg = Decimal.from(home.over25_rate).add(away.over25_rate).div(2).round(4, ROUNDING.HALF_EVEN);
+  inputs.avg_over25_rate = avg.toString(4);
+  return {decision: avg.cmp(Decimal.from(String(RULE.min_avg_over25_rate))) >= 0 ? 'SIGNAL' : 'NO_SIGNAL', inputs};
 }
 
 export function settle(match, decision) {
