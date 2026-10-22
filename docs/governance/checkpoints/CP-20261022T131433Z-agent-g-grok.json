@@ -1,0 +1,138 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261022T131433Z-agent-g-grok",
+  "timestamp_utc": "2026-10-22T13:14:33Z",
+  "agent": {
+    "id": "agent-g-grok",
+    "role": "Development Agent",
+    "session": "grok-matchpilot-owner-chat-t102u-2026-10-22"
+  },
+  "mandate": {
+    "id": "MP-GROK-AUTONOMOUS-EXECUTION-01",
+    "source": "owner mandates t102u/t103u (2026-10-22), registered in docs/governance/owner-decisions.json"
+  },
+  "activity": "simulated Telegram outbox: SIGNAL rows get a message in sim.outbox (SIMULATED_NOT_SENT, channel telegram-simulated), no delivery code; API and Segnali view show it; verified on the isolated VPS test env with real archived data",
+  "task": "SIM-OUTBOX-01",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 182,
+  "pr": null,
+  "branch": "sim-outbox-01",
+  "commit_sha": "ccd8e3162965825dce94aacede1465f80a54e50f",
+  "tree_sha": "96e7feeb088d48ac087e22f4145e681e7c01513e",
+  "base_sha": "7b4baf75b76e312a48e5c39966d4e331933f1fd4",
+  "worktree": {
+    "clean": true
+  },
+  "requirements": [],
+  "changes": [
+    "src/signals/outbox.mjs",
+    "src/jobs/sim-signals.mjs: queue outbox (--no-outbox to skip)",
+    "src/signals/simulated.mjs: outbox in the API answer",
+    "src/web/app.js: simulated messages section",
+    "test/sim-outbox.test.mjs",
+    "package.json check"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/sim-outbox.test.mjs test/sim-signals.test.mjs: 6 pass",
+      "result": "PASS",
+      "environment": "box, Node 22",
+      "commit": "ccd8e3162965825dce94aacede1465f80a54e50f",
+      "time": "2026-10-22T13:14:33Z",
+      "limits": []
+    },
+    {
+      "command": "VPS functest: sim-signals --date 2026-09-19 -> 134 SIGNAL, 134 outbox rows SIMULATED_NOT_SENT; API returns 50 outbox rows; headless Chrome renders 50 messages, 0 page errors",
+      "result": "PASS",
+      "environment": "VPS isolated functest (PG18 5440, app 3100)",
+      "commit": "ccd8e3162965825dce94aacede1465f80a54e50f",
+      "time": "2026-10-22T13:14:33Z",
+      "limits": [
+        "historical replay of archived data"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "ccd8e3162965825dce94aacede1465f80a54e50f"
+  },
+  "gate_a": "NOT_VERIFIED",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-GROK-AUTONOMOUS-EXECUTION-01",
+    "MP-VPS-ONLY-OPERATIONS-2026-10-21"
+  ],
+  "authorizations": [
+    {
+      "id": "MP-GROK-AUTONOMOUS-EXECUTION-01",
+      "source": "owner mandate t102u + t103u, owner-decisions.json",
+      "scope": {
+        "task": "SIM-OUTBOX-01",
+        "action": "one implementation PR, review pass, squash merge with green CI, no --admin"
+      },
+      "status": "VALID"
+    }
+  ],
+  "external_commands": [
+    {
+      "target": "vps",
+      "command": "functest only: code copied to /srv/matchpilot-functest/app, service restarted, sim-signals job run",
+      "effect": "isolated test env"
+    },
+    {
+      "target": "github",
+      "command": "git push origin sim-outbox-01",
+      "effect": "branch"
+    }
+  ],
+  "artifacts": [],
+  "progress": {
+    "done": [
+      "implementation",
+      "tests",
+      "VPS functest check"
+    ],
+    "in_progress": [
+      "PR, CI, review"
+    ],
+    "not_started": []
+  },
+  "resources": [
+    "branch:sim-outbox-01"
+  ],
+  "stop_conditions": [
+    "no real Telegram delivery",
+    "no merge without green CI gate and a review pass on the exact head",
+    "no --admin"
+  ],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": {
+    "functest_cluster": "18/functest 127.0.0.1:5440",
+    "functest_app": "127.0.0.1:3100",
+    "production": "untouched",
+    "freeze": "1"
+  },
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "dependencies": [],
+  "state": "RUNNING",
+  "next_action": "open the PR, CI, review pass, merge",
+  "resume_conditions": [
+    "CI result"
+  ],
+  "supersedes": null,
+  "merge_sha": null
+}

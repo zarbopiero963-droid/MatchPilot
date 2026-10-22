@@ -817,6 +817,9 @@ async function signalsView(params) {
     el('div', {class: 'tablewrap'}, el('table', {'data-testid': 'sim-table'},
       el('thead', {}, el('tr', {}, ['Data', 'Partita', 'Decisione', 'Over 2.5 medio', 'N casa/trasf.', 'Quota O2.5', 'Risultato', 'Esito', 'P/L'].map(t => el('th', {scope: 'col'}, t)))),
       el('tbody', {}, rows))),
+    el('h2', {}, 'Messaggi Telegram simulati (non inviati)'),
+    (d.outbox ?? []).length === 0 ? el('p', {class: 'state empty', 'data-testid': 'sim-outbox-empty'}, 'Nessun messaggio simulato per questa simulazione.')
+      : el('div', {'data-testid': 'sim-outbox'}, d.outbox.map(m => el('pre', {class: 'meta', 'data-status': m.status}, m.text))),
     el('p', {class: 'meta'}, `Fonte: /api/v1/sim/signals · simulazione ${d.run_id} · ${d.rule_version}`)];
 }
 
