@@ -8,7 +8,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {CI_WORKFLOW_PATH, EXPECTED, GITHUB_API, TIP_SOURCES, mergeUrls} from '../scripts/deploy-authz.mjs';
-import {JOB, WORKFLOW_PATH, configProblems, gitBlobSha, runGuard} from '../scripts/runner-job-guard.mjs';
+import {JOB, WORKFLOW_PATH, RUN_LAG_TRIES, configProblems, gitBlobSha, runGuard} from '../scripts/runner-job-guard.mjs';
 
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
@@ -71,8 +71,9 @@ function github({sha = C, tip = C, blob = PIN, pulls, checks, ciRuns, ciBlob = C
 }
 const guard = async (world = {}, envOverrides = {}, config = CONFIG) => {
   const gh = github(world);
-  const report = await runGuard({env: env(envOverrides), config, fetchJson: gh.fetchJson, fetchText: gh.fetchText});
-  return {...report, reads: gh.reads, text: report.problems.join(' | ')};
+  const sleeps = [];
+  const report = await runGuard({env: env(envOverrides), config, fetchJson: gh.fetchJson, fetchText: gh.fetchText, sleep: async ms => { sleeps.push(ms); }});
+  return {...report, reads: gh.reads, sleeps, text: report.problems.join(' | ')};
 };
 
 test('the pin is the git blob SHA of deploy-vps.yml (what `git hash-object` and the contents API give)', () => {
@@ -274,4 +275,25 @@ test('MP-AUTODEPLOY-01: commits/{sha}/pulls unreadable -> the closed PRs into ma
     assert.match((await guard({overrides: {...down, [mergeUrls(C).pullsFallback]: list}})).text, /GUARD_NOT_A_MERGED_PR/);
   }
   assert.match((await guard({overrides: {...down, [mergeUrls(C).pullsFallback]: new Error('HTTP 500')}})).text, /GUARD_API_ERROR: pulls/);
+});
+
+// t130u: run 39840654366 was refused because GitHub still said `queued` for the run while its deploy job was running.
+test('a run reported queued only for a moment is re-read (bounded); one that stays queued is still refused', async () => {
+  const runUrl = `${GITHUB_API}/actions/runs/${RUN}`;
+  const base = {id: Number(RUN), run_attempt: 1, event: 'push', head_branch: 'main', head_sha: C, path: WORKFLOW_PATH,
+    repository: {full_name: EXPECTED.repository}};
+  const gh = github();
+  let n = 0;
+  const sleeps = [];
+  const fetchJson = async url => (url === runUrl && ++n < 3 ? {...base, status: 'queued'} : gh.fetchJson(url));
+  const ok = await runGuard({env: env(), config: CONFIG, fetchJson, fetchText: gh.fetchText, sleep: async ms => { sleeps.push(ms); }});
+  assert.equal(ok.result, 'ALLOW', ok.problems.join(' | '));
+  assert.equal(sleeps.length, 2);
+  const stuck = await guard({run: {status: 'queued'}});
+  assert.equal(stuck.result, 'REFUSE');
+  assert.match(stuck.text, /GUARD_RUN_MISMATCH/);
+  assert.equal(stuck.sleeps.length, RUN_LAG_TRIES - 1);
+  assert.equal(stuck.reads.filter(u => u === runUrl).length, RUN_LAG_TRIES);
+  const over = await guard({run: {status: 'completed', conclusion: 'success'}});
+  assert.equal(over.sleeps.length, 0);
 });
