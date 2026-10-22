@@ -125,6 +125,16 @@ const LABELS = {
   later_dataset_t0: 'Partite del dataset successivo note a T0', later_dataset_t1: 'Partite del dataset successivo note a T1',
   wrong_contract_t0: 'Partite note a T0 con un altro contratto',
   cadence: 'Cadenza', missing_definition: 'Definizione di mancante', expected_match_count: 'Numero atteso di partite',
+  // data health v2 (t132u FIX-05): machinery vs new data vs provider, kept apart
+  version: 'Versione', overall: 'Stato complessivo', worker: 'Worker', state: 'Condizione', heartbeatAt: 'Ultimo battito',
+  heartbeatAgeHours: 'Ore dall\'ultimo battito', scheduler: 'Pianificatore', missedCycles: 'Cicli saltati', cycleHours: 'Ore per ciclo',
+  lastCycle: 'Ultimo ciclo', ageHours: 'Ore trascorse', sync: 'Esito tecnico', lastEffectiveUpdate: 'Ultimo aggiornamento effettivo',
+  at: 'Quando', newData: 'Dati nuovi', provider: 'Fornitore', providerEvidence: 'Prove sul fornitore',
+  datasetFreshness: 'Freschezza dei dataset', staleCurrentSeasons: 'Stagioni correnti ferme', pendingGaps: 'Buchi in sospeso',
+  syncErrors: 'Errori di sincronizzazione', localErrors: 'Errori locali',
+  RETRY_PENDING: 'In attesa di nuovo tentativo', ALREADY_COMPLETE: 'Già completi', STILL_MISSING: 'Ancora mancanti',
+  PROVIDER_UNAVAILABLE: 'Fornitore non disponibile', PERMANENTLY_UNAVAILABLE: 'Non disponibili in modo permanente', RECOVERED: 'Recuperati',
+  DETECTED: 'Rilevati', QUEUED: 'In coda', FAILED: 'Falliti', RECOVERING: 'In recupero',
 };
 const keyWords = key => key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
 

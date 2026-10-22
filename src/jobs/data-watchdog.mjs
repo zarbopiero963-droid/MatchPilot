@@ -1,5 +1,6 @@
 import { withClient } from '../db.mjs';
-import { emitAlert, resolveAlert, readContentFreshness } from '../alerts.mjs';
+import { emitAlert, resolveAlert, readContentFreshness, retryPendingResolutions } from '../alerts.mjs';
+import { classifyFreshness, readFreshnessFacts } from '../providers/futpython/freshness.mjs';
 import { budgetConfig, budgetPressure, countsTowardCircuit } from '../providers/futpython/budget.mjs';
 import { reconcileFpt } from '../providers/futpython/reconciliation.mjs';
 
@@ -10,9 +11,10 @@ export function syncIsStale(reference, now = Date.now(), staleHours = 8) {
   return now - new Date(reference).getTime() > staleHours * 3600000;
 }
 
-async function alertOrResolve(client, active, alert, deliver) {
+async function alertOrResolve(client, active, alert, deliver, evidence) {
   if (active) await emitAlert(alert, client, deliver ? {deliver} : {});
-  else await resolveAlert({source: alert.source, code: alert.code, key: alert.key}, client, deliver ? {deliver} : {});
+  else await resolveAlert({source: alert.source, code: alert.code, key: alert.key}, client,
+    {...(deliver ? {deliver} : {}), evidence: evidence || null});
 }
 
 export async function evaluateProviderAlerts(client, {deliver, limits, circuitFailures} = {}) {
@@ -95,7 +97,7 @@ export async function checkDataWatchdog(options = {}) {
       title: 'FutPython sync non aggiornato',
       message: `Nessun sync recente entro ${staleHours} ore.`,
       payload: {lastRun: row || null, staleHours}
-    }, options.deliver);
+    }, options.deliver, `ultimo sync ${row?.run_id ?? '?'} (${row?.status ?? '?'}) alle ${reference ? new Date(reference).toISOString() : '?'}`);
 
     const failed = await client.query(
       `SELECT dataset_key,last_synced_at,last_error
@@ -112,15 +114,21 @@ export async function checkDataWatchdog(options = {}) {
       payload: {count: failed.rowCount, datasets: failed.rows.map(item => item.dataset_key)}
     }, options.deliver);
 
-    // t131u: content freshness, attributed to the provider when the sync itself is on time.
+    // t131u/t132u FIX-02: content freshness; the provider is blamed only with evidence, otherwise UNDETERMINED.
     const content = await readContentFreshness(client, options.now ?? Date.now());
+    const freshness = classifyFreshness(await readFreshnessFacts(client), {now: options.now ?? Date.now()});
+    const cause = stale ? 'pipeline (sync non aggiornato)' : freshness.provider === 'NO_UPDATES'
+      ? 'provider FutPython senza aggiornamenti (HTTP 200, contenuto identico)'
+      : freshness.provider === 'UNREACHABLE' ? 'provider FutPython non raggiungibile' : 'INDETERMINATA (prove insufficienti)';
     await alertOrResolve(client, content.stale, {
       source: 'futpython', severity: 'warning', code: 'DATA_CONTENT_STALE', key: 'content',
       title: 'Contenuti FutPython fermi',
-      message: `${stale ? 'Causa probabile: pipeline (sync non aggiornato).' : 'Causa probabile: provider FutPython (i sync girano ma non pubblica dati nuovi).'} `
-        + `${content.reasons.join('; ')}. Ultimo cambiamento: ${content.maxLastChangedAt ?? 'mai'}; ultima partita: ${content.maxMatchDate ?? 'nessuna'}.`,
-      payload: {...content, attributedTo: stale ? 'pipeline' : 'provider'}
-    }, options.deliver);
+      message: `Causa: ${cause}. ${content.reasons.join('; ')}. Ultimo cambiamento: ${content.maxLastChangedAt ?? 'mai'}; ultima partita: ${content.maxMatchDate ?? 'nessuna'}.`,
+      payload: {...content, attributedTo: stale ? 'pipeline' : freshness.provider === 'UNDETERMINED' ? 'undetermined' : 'provider',
+        provider: freshness.provider, evidence: freshness.providerEvidence}
+    }, options.deliver, `nuovo contenuto rilevato: ultimo cambiamento ${content.maxLastChangedAt}, ultima partita ${content.maxMatchDate}`);
+    try { await retryPendingResolutions(client, options.deliver ? {deliver: options.deliver} : {}); }
+    catch (error) { console.error('DATA_ALERT_RESOLUTION_RETRY_ERROR', String(error?.message || error)); }
 
     const budget = await evaluateProviderAlerts(client, options);
     // #31 reconciliation rides on the watchdog cycle (startup, then hourly): no extra timer keeps Neon awake.
@@ -153,6 +161,7 @@ export async function checkDataWatchdog(options = {}) {
       status: stale ? 'critical' : (failed.rowCount || content.stale) ? 'warning' : 'ok',
       stale,
       content,
+      freshness,
       datasetErrors: failed.rowCount,
       budget,
       reconciliation
@@ -188,8 +197,8 @@ export function startDataWatchdog() {
   // A skipped incremental sync is caught up in this process, behind the same advisory lock and budget.
   const catchup = () => import('./futpython-sync.mjs').then(m => m.runFutpythonSync({kind: 'recovery', mode: 'incremental'}));
   const cycle = phase => checkDataWatchdog({reconcile: true, phase, catchup})
-    .then(result => { if (result?.reconciliation) console.log('FUTPYTHON_RECONCILIATION ' + JSON.stringify(result.reconciliation)); })
-    .catch(error => console.error('DATA_WATCHDOG_ERROR', String(error?.message || error)));
+    .then(result => { if (result?.reconciliation) console.log('FUTPYTHON_RECONCILIATION ' + JSON.stringify({ts: new Date().toISOString(), ...result.reconciliation})); })
+    .catch(error => console.error('DATA_WATCHDOG_ERROR ' + JSON.stringify({ts: new Date().toISOString(), phase, error: String(error?.message || error).slice(0, 300)})));
   setTimeout(() => cycle('startup'), 30000);
   timer = setInterval(() => cycle('periodic'), intervalMs);
   timer.unref?.();

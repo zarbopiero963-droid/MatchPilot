@@ -1,3 +1,4 @@
+import { logEvent } from '../log.mjs';
 import { randomUUID } from 'node:crypto';
 import { withClient, closePool } from '../db.mjs';
 import { migrate } from '../migrate.mjs';
@@ -53,6 +54,16 @@ export function backfillResumeDecision(state = {}) {
     return {skip: true, reconcileToAvailable: true};
   }
   return {skip: false, reconcileToAvailable: false};
+}
+
+// t135u FIX-09: the "already downloaded" resume skip is a backfill tool. An incremental (cron/recovery) run always
+// re-fetches current-season files (the SHA check in storeDataset still prevents duplicate snapshots/rows); before this
+// a current season fetched once was a cache_hit forever unless reconciliation forced it after 24h. Past seasons fetched
+// inside an incremental run (onboarding) keep the skip: their files are final.
+export function resumeSkipApplies(entry = {}, mode = 'incremental') {
+  if (entry.force) return false;
+  if (mode === 'backfill') return true;
+  return !isCurrentSeason(entry.season);
 }
 
 export function isBackfillTerminalState(state = {}) {
@@ -269,8 +280,9 @@ async function syncEntry(client, entry, stats) {
       priority,
       purpose: priority === 'backfill' ? 'backfill' : 'current_season',
       // A reconciliation target is fetched even when the mirror already holds a snapshot of it.
-      cacheLookup: entry.force ? async () => false
-        : async () => backfillResumeDecision(await loadDatasetState(client, entry.datasetKey)).skip
+      cacheLookup: resumeSkipApplies(entry, stats.meta?.mode)
+        ? async () => backfillResumeDecision(await loadDatasetState(client, entry.datasetKey)).skip
+        : async () => false
     });
     if (data.cacheHit) {
       stats.datasetsAttempted--;
@@ -312,6 +324,8 @@ async function syncEntry(client, entry, stats) {
       datasetKey: entry.datasetKey, error: message, status: error?.status || null,
       regression404: error?.status === 404 && previouslySucceeded
     });
+    logEvent('FUTPYTHON_DATASET_ERROR', {runId: stats.runId, datasetKey: entry.datasetKey, status: error?.status || null,
+      error: message.slice(0, 200)}, {out: console.error});
     await markAvailability(
       client, entry.datasetKey, 'error',
       error?.status === 404 && previouslySucceeded ? 'REGRESSION_404' : message.slice(0, 1000),
@@ -541,7 +555,7 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
 
       if (activeRun.stop) {
         await markRunInterrupted(client);
-        console.log('FUTPYTHON_SYNC_INTERRUPTED ' + JSON.stringify({runId, signal: activeRun.signal || null}));
+        console.log('FUTPYTHON_SYNC_INTERRUPTED ' + JSON.stringify({ts: new Date().toISOString(), runId, signal: activeRun.signal || null}));
         return {runId, status: 'partial', interrupted: true, ...stats};
       }
 
@@ -600,7 +614,7 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
          ORDER BY outcome, http_status`,
         [runId]
       );
-      console.log('FUTPYTHON_SYNC ' + JSON.stringify({
+      console.log('FUTPYTHON_SYNC ' + JSON.stringify({ts: new Date().toISOString(),
         runId, status, mode, bootstrap, catalogEntries: stats.catalogEntries,
         catalogSnapshotId: stats.catalogSnapshotId, datasetsAttempted: stats.datasetsAttempted,
         resumedSkips: stats.resumedSkips, datasetsChanged: stats.datasetsChanged,

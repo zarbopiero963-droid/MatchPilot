@@ -104,3 +104,14 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `dati-desktop.png` `be94b2614543eeba868d77bb9eb797d7718037ad2de1c76c069591cc7a8e6a3d`
   - `dati-tablet.png` `aa225c045255ddbd0cf30eefee1c3d88ab8d7d3e1561d508634f2fb02b8f0e7d`
   - `dati-mobile.png` `f5c8d4a4db04abdebabd20b9bffc7467691871507542ce627135ab1a25e1b79f`
+
+## 2026-10-22 — t132u FIX-05: data health v2 «Critico» when no sync run exists
+
+- Approval: PR #201, owner t132u/t136u (FPT hardening)
+- Run: commit `897229af1359972b9f01cef34dbf50882ec1f597`, chromium 155.0.8059.39
+- Thresholds: block 8, pixel 32, ratio 0
+- Reason: the QA archive has no sync run, so the separated freshness view reports CRITICAL (sync NEVER) instead of «Attenzione»; never a healthy state on missing machinery
+- Baselines (only the three scenes over threshold; the others are unchanged):
+  - `dati-desktop.png` `79d5a266769dd0d86b578dd7e81324f946fce4300a65a852d2411820f10ddfdd`
+  - `dati-tablet.png` `50697e4f66a301638ec115c0d2712ebcae50904408bddd77a3a9225dd8a57d28`
+  - `dati-mobile.png` `2b5c9f303813b6663c9efc90467ef01eb94febd770ce91ef313f5f9dfffcd1c1`
