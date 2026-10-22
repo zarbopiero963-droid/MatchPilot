@@ -4,7 +4,6 @@
 // historical day can be replayed. Results are written to the sim schema of the database the process is connected to.
 import {matchAnalysis} from '../analysis/match-analysis.mjs';
 import {Decimal, ROUNDING} from '../math/decimal.mjs';
-import {listOutbox} from './outbox.mjs';
 
 export const RULE_VERSION = 'mp-sim-over25-v1';
 export const RULE = {market: 'OVER_2_5', window: 10, venue: 'both', min_n: 10, min_avg_over25_rate: 0.6};
@@ -82,7 +81,7 @@ export async function runForDate(client, {date, runId, limit = 500}) {
 // Read side for the API: a missing sim schema is an empty answer, never an error.
 export async function listSignals(client, {date = null, runId = null} = {}) {
   const exists = (await client.query(`SELECT to_regclass('sim.signals') IS NOT NULL AS ok`)).rows[0].ok;
-  if (!exists) return {mode: 'SIMULATION', rule_version: RULE_VERSION, rule: RULE, rows: [], summary: null, runs: [], outbox: []};
+  if (!exists) return {mode: 'SIMULATION', rule_version: RULE_VERSION, rule: RULE, rows: [], summary: null, runs: []};
   const runs = (await client.query(`SELECT run_id, min(match_date)::text AS match_date, count(*)::int AS n, max(created_at) AS created_at
     FROM sim.signals GROUP BY run_id ORDER BY max(created_at) DESC LIMIT 20`)).rows;
   const run = runId ?? runs[0]?.run_id ?? null;
@@ -97,6 +96,5 @@ export async function listSignals(client, {date = null, runId = null} = {}) {
   const summary = {matches: rows.length, signals: signals.length, hit: settled.filter(r => r.outcome === 'HIT').length,
     miss: settled.filter(r => r.outcome === 'MISS').length, pending: signals.filter(r => r.outcome === 'PENDING').length,
     priced: priced.length, sim_profit_units: priced.reduce((s, r) => s + Number(r.sim_profit), 0).toFixed(2)};
-  const outbox = await listOutbox(client, run);
-  return {mode: 'SIMULATION', rule_version: RULE_VERSION, rule: RULE, run_id: run, runs, rows, summary, outbox};
+  return {mode: 'SIMULATION', rule_version: RULE_VERSION, rule: RULE, run_id: run, runs, rows, summary};
 }
