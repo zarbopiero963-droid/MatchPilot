@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { withClient } from './db.mjs';
+import { classifyFreshness, readFreshnessFacts } from './providers/futpython/freshness.mjs';
 
 const sha = value => createHash('sha256').update(value).digest('hex');
 
@@ -23,9 +24,55 @@ export function alertFingerprint({source='futpython',code,key=''}) {
 // t131u: data-collection notices carry their own category tag, distinct from mp-deploy's "[MatchPilot deploy]".
 export const DATA_CATEGORY = '[MatchPilot dati]';
 export function telegramText(alert) {
-  const head = alert.resolved ? '✅ RISOLTO' :
-    alert.severity === 'critical' ? '🚨 CRITICAL' : alert.severity === 'warning' ? '⚠️ WARNING' : 'ℹ️ INFO';
+  if (alert.resolved) return [`${DATA_CATEGORY} MATCHPILOT — RISOLTO`, alert.title, redact(alert.message)].join('\n');
+  const head = alert.severity === 'critical' ? '🚨 CRITICAL' : alert.severity === 'warning' ? '⚠️ WARNING' : 'ℹ️ INFO';
   return [`${DATA_CATEGORY} ${head}`, alert.title, redact(alert.message)].join('\n');
+}
+
+// t132u FIX-03: component that owns each alert code (shown in the RISOLTO notice).
+export const ALERT_COMPONENT = {FPT_WORKER_LIVENESS: 'worker FPT (systemd matchpilot-fpt-worker)', SYNC_STALE: 'scheduler/sync FPT',
+  SYNC_FAILURES_AGG: 'sync FPT', DATASET_ERRORS: 'sync FPT (dataset)', DATA_CONTENT_STALE: 'contenuti provider FutPython',
+  RECON_GAPS: 'riconciliazione FPT', RECON_FAILED: 'riconciliazione FPT'};
+
+export function resolvedNotice(row, {resolvedAt = new Date(), evidence = null} = {}) {
+  const when = new Date(resolvedAt).toISOString();
+  return {source: row.source, severity: 'info', code: row.code, title: row.title, resolved: true,
+    message: [`Problema: ${row.title} (${row.code})${row.message ? ' — ' + row.message : ''}`,
+      `Componente: ${ALERT_COMPONENT[row.code] || row.source}`,
+      `Risolto alle: ${when} (UTC)`,
+      `Verifica: ${evidence || 'condizione non più rilevata dal controllo automatico'}`].join('\n'),
+    payload: {resolved: true, resolvedAt: when, evidence}};
+}
+
+// t132u FIX-06: stable id of one notice = alert + exact text. The same event id is never sent twice.
+export function eventId(alert) {
+  return sha([alert.fingerprint || alertFingerprint(alert), alert.resolved ? 'resolved' : 'open', alert.title, alert.message].join('|')).slice(0, 24);
+}
+
+// Transient = the request surely did not reach Telegram or Telegram asked to retry: safe to resend.
+// A timeout is ambiguous (the message may have been delivered): it is NOT resent (at-most-once).
+export function classifyDeliveryError(error) {
+  const status = error?.status ?? Number((/HTTP (\d{3})/.exec(String(error?.message || '')) || [])[1] || NaN);
+  if (status === 429 || (status >= 500 && status < 600)) return 'transient';
+  if (status >= 400 && status < 500) return 'permanent';
+  const name = error?.name || '';
+  const code = error?.cause?.code || error?.code || '';
+  if (name === 'TimeoutError' || name === 'AbortError') return 'ambiguous';
+  if (/ECONNREFUSED|ENOTFOUND|EAI_AGAIN|ENETUNREACH|EHOSTUNREACH/.test(code)) return 'transient';
+  return 'ambiguous';
+}
+
+export async function sendWithRetry(fn, alert, {tries = 3, sleep = ms => new Promise(r => setTimeout(r, ms)),
+  baseMs = Number(process.env.MATCHPILOT_ALERT_RETRY_BASE_MS ?? 2000)} = {}) {
+  for (let i = 1; ; i++) {
+    try { return {...await fn(alert), tries: i}; }
+    catch (error) {
+      const kind = classifyDeliveryError(error);
+      if (kind !== 'transient' || i >= tries) { error.kind = kind; error.tries = i; throw error; }
+      console.warn('DATA_ALERT_DELIVERY_RETRY ' + JSON.stringify({ts: new Date().toISOString(), code: alert.code, try: i, kind}));
+      await sleep(baseMs * i);
+    }
+  }
 }
 
 // t131u: an unchanged open alert is never re-sent with the same text; a failed or never-attempted delivery is retried
@@ -50,7 +97,7 @@ async function deliverTelegram(alert) {
     body:JSON.stringify({chat_id:chatId,text,disable_web_page_preview:true}),
     signal:AbortSignal.timeout(10000)
   });
-  if (!response.ok) throw new Error(`Telegram HTTP ${response.status}`);
+  if (!response.ok) { const e = new Error(`Telegram HTTP ${response.status}`); e.status = response.status; throw e; }
   return {attempted:true,channel:'telegram'};
 }
 
@@ -66,7 +113,7 @@ async function deliverWebhook(alert) {
     }),
     signal:AbortSignal.timeout(10000)
   });
-  if (!response.ok) throw new Error(`Webhook HTTP ${response.status}`);
+  if (!response.ok) { const e = new Error(`Webhook HTTP ${response.status}`); e.status = response.status; throw e; }
   return {attempted:true,channel:'webhook'};
 }
 
@@ -113,15 +160,33 @@ export async function emitAlert(input, clientOverride, options = {}) {
       row = ins.rows[0];
     }
 
+    const event = eventId(alert);
+    // t132u FIX-06: a send interrupted by a crash/restart ('sending' left behind) or a timeout ('unknown') is not
+    // resent for the same event: at-most-once in that window, logged. A changed text is a new event.
+    if (row.delivery_status === 'sending' || row.delivery_status === 'unknown') {
+      if (row.payload?._event === event) {
+        if (row.delivery_status === 'sending') {
+          await client.query(`UPDATE data_alerts SET delivery_status='unknown' WHERE alert_id=$1`, [row.alert_id]);
+          console.warn('DATA_ALERT_SEND_INTERRUPTED '+JSON.stringify({ts:new Date().toISOString(),code:alert.code,event}));
+        }
+        return {stored:true,delivered:false,suppressed:true,reason:'interrupted_send_not_repeated'};
+      }
+      shouldDeliver = true;
+    }
     if (!shouldDeliver) return {stored:true,delivered:false,suppressed:true};
 
+    await client.query(
+      `UPDATE data_alerts SET delivery_status='sending', payload = payload || jsonb_build_object('_event', $2::text)
+       WHERE fingerprint=$1 AND resolved_at IS NULL`, [alert.fingerprint, event]);
     const deliveryErrors = [];
     let delivered = false;
+    let ambiguous = false;
     for (const fn of deliverers) {
       try {
-        const result = await fn(alert);
+        const result = await sendWithRetry(fn, alert, options.retry);
         if (result.attempted) delivered = true;
       } catch (e) {
+        if (e?.kind === 'ambiguous') ambiguous = true;
         deliveryErrors.push(redact(e?.message || e));
       }
     }
@@ -134,12 +199,12 @@ export async function emitAlert(input, clientOverride, options = {}) {
       [
         alert.fingerprint,
         delivered ? (deliveryErrors.length ? 'partial' : 'delivered') :
-          (deliveryErrors.length ? 'failed' : 'stored_only'),
+          ambiguous ? 'unknown' : (deliveryErrors.length ? 'failed' : 'stored_only'),
         delivered
       ]
     );
-    if (deliveryErrors.length) console.error('DATA_ALERT_DELIVERY_ERROR '+JSON.stringify({code:alert.code,count:deliveryErrors.length}));
-    return {stored:true,delivered,deliveryErrors};
+    if (deliveryErrors.length) console.error('DATA_ALERT_DELIVERY_ERROR '+JSON.stringify({ts:new Date().toISOString(),code:alert.code,count:deliveryErrors.length,event,ambiguous}));
+    return {stored:true,delivered,deliveryErrors,event};
   };
 
   return clientOverride ? runner(clientOverride) : withClient(runner);
@@ -154,21 +219,59 @@ export async function resolveAlert({source='futpython',code,key=''}, clientOverr
     : [deliverTelegram, deliverWebhook];
   const runner = async client => {
     const res = await client.query(
-      `UPDATE data_alerts SET resolved_at=now() WHERE fingerprint=$1 AND resolved_at IS NULL
-       RETURNING alert_id, source, severity, code, title, last_delivered_at`,
+      `UPDATE data_alerts SET resolved_at=now(), delivery_status='resolved_sending' WHERE fingerprint=$1 AND resolved_at IS NULL
+       RETURNING alert_id, source, severity, code, title, message, last_delivered_at, resolved_at, payload`,
       [fingerprint]
     );
     const row = res.rows?.[0];
-    if (!row || !row.last_delivered_at) return {resolved: Boolean(row), notified: false};
-    const notice = {source: row.source, severity: 'info', code: row.code, title: row.title, resolved: true,
-      message: `Condizione rientrata (${row.code}).`, payload: {resolved: true}};
-    let notified = false;
-    for (const fn of deliverers) {
-      try { if ((await fn(notice)).attempted) notified = true; }
-      catch (e) { console.error('DATA_ALERT_RESOLVE_DELIVERY_ERROR '+JSON.stringify({code: row.code, error: redact(e?.message || e)})); }
+    if (!row) return {resolved: false, notified: false};
+    if (!row.last_delivered_at) {
+      // Never reached a channel: nothing to close on Telegram, recorded (not silent) in the store.
+      await client.query(`UPDATE data_alerts SET delivery_status='resolved_silent_never_notified' WHERE alert_id=$1`, [row.alert_id]);
+      return {resolved: true, notified: false};
     }
-    await client.query(`UPDATE data_alerts SET delivery_status=$2 WHERE alert_id=$1`, [row.alert_id, notified ? 'resolved_notified' : 'resolved_unnotified']);
-    return {resolved: true, notified};
+    return sendResolution(client, row, deliverers, options);
+  };
+  return clientOverride ? runner(clientOverride) : withClient(runner);
+}
+
+async function sendResolution(client, row, deliverers, options = {}) {
+  const notice = resolvedNotice(row, {resolvedAt: row.resolved_at || new Date(), evidence: options.evidence});
+  let notified = false;
+  let ambiguous = false;
+  for (const fn of deliverers) {
+    try { if ((await sendWithRetry(fn, notice, options.retry)).attempted) notified = true; }
+    catch (e) {
+      if (e?.kind === 'ambiguous') ambiguous = true;
+      console.error('DATA_ALERT_RESOLVE_DELIVERY_ERROR '+JSON.stringify({ts:new Date().toISOString(),code: row.code, error: redact(e?.message || e)}));
+    }
+  }
+  const status = notified ? 'resolved_notified' : ambiguous ? 'resolved_unknown' : 'resolved_unnotified';
+  await client.query(`UPDATE data_alerts SET delivery_status=$2,
+      payload = payload || jsonb_build_object('_resolution', $3::jsonb) WHERE alert_id=$1`,
+    [row.alert_id, status, JSON.stringify({evidence: options.evidence || null, at: new Date().toISOString(),
+      tries: (row.payload?._resolution?.tries || 0) + 1})]);
+  return {resolved: true, notified, status};
+}
+
+// t132u FIX-06: a RISOLTO that failed on a sure-not-delivered error is retried by the next cycle (max 5 cycles, 7 days).
+export async function retryPendingResolutions(clientOverride, options = {}) {
+  const deliverers = options.deliver
+    ? (Array.isArray(options.deliver) ? options.deliver : [options.deliver])
+    : [deliverTelegram, deliverWebhook];
+  const runner = async client => {
+    const rows = (await client.query(
+      `SELECT alert_id, source, severity, code, title, message, last_delivered_at, resolved_at, payload FROM data_alerts
+       WHERE delivery_status='resolved_unnotified' AND last_delivered_at IS NOT NULL AND resolved_at > now() - interval '7 days'
+         AND COALESCE((payload->'_resolution'->>'tries')::int, 0) < 5 ORDER BY resolved_at LIMIT 20`)).rows;
+    const out = [];
+    for (const row of rows) {
+      const claimed = await client.query(`UPDATE data_alerts SET delivery_status='resolved_sending'
+        WHERE alert_id=$1 AND delivery_status='resolved_unnotified'`, [row.alert_id]);
+      if (!claimed.rowCount) continue;
+      out.push(await sendResolution(client, row, deliverers, {...options, evidence: row.payload?._resolution?.evidence || options.evidence}));
+    }
+    return out;
   };
   return clientOverride ? runner(clientOverride) : withClient(runner);
 }
@@ -211,8 +314,25 @@ export async function getDataHealth() {
       client.query(`SELECT count(*)::int AS n FROM fpt_dataset_state WHERE last_error IS NOT NULL`),
       readContentFreshness(client)
     ]);
+    const facts = await readFreshnessFacts(client);
+    const fr = classifyFreshness(facts);
+    const gaps = (await client.query(`SELECT COALESCE(details->>'classification', status) AS state, count(*)::int AS n
+      FROM data_reconciliation_ledger WHERE source='futpython' AND status IN ('DETECTED','QUEUED','RECOVERING','PARTIAL','FAILED')
+      GROUP BY 1 ORDER BY 1`)).rows;
     return {
-      status: healthStatus(openAlerts.rows, freshness),
+      // v1 fields kept (status ok|warning|critical); v2 adds the separated view (t132u FIX-05). Never "ok" with stale data.
+      version: 2,
+      overall: {status: fr.overall, reason: fr.reason},
+      worker: {state: fr.worker, heartbeatAt: facts.watchdogCheckedAt, heartbeatAgeHours: fr.heartbeatAgeHours},
+      scheduler: {state: fr.scheduler, missedCycles: fr.missedCycles, cycleHours: 6},
+      lastCycle: {...(facts.lastRun || {}), ageHours: fr.lastCycleAgeHours, sync: fr.sync},
+      lastEffectiveUpdate: {at: freshness.maxLastChangedAt, ageHours: fr.lastChangedAgeHours, newData: fr.newData,
+        provider: fr.provider, providerEvidence: fr.providerEvidence},
+      datasetFreshness: {staleCurrentSeasons: fr.staleDatasets, maxMatchDate: freshness.maxMatchDate},
+      pendingGaps: Object.fromEntries(gaps.map(g => [g.state, g.n])),
+      syncErrors: {datasetsWithErrors: facts.datasetErrors, localErrors: fr.localErrors},
+      status: fr.overall === 'CRITICAL' ? 'critical' : fr.overall === 'DEGRADED' && healthStatus(openAlerts.rows, freshness) === 'ok' ? 'warning'
+        : healthStatus(openAlerts.rows, freshness),
       contentFreshness: freshness,
       maxMatchDate: freshness.maxMatchDate,
       lastRun:lastRun.rows[0] || null,

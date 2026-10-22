@@ -1,5 +1,5 @@
 [Unit]
-Description=MatchPilot FPT liveness probe (outside the worker; alerts if the last fpt_sync_runs is older than 7h)
+Description=MatchPilot FPT external watchdog (worker unit, heartbeat, missed cycles, persistent errors)
 After=network-online.target postgresql@18-staging.service
 [Service]
 Type=oneshot

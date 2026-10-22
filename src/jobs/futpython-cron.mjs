@@ -1,5 +1,6 @@
 import { Cron } from 'croner';
 import { runFutpythonSync } from './futpython-sync.mjs';
+import { logEvent } from '../log.mjs';
 
 let job;
 
@@ -11,13 +12,21 @@ export function startFutpythonCron() {
   const timezone = process.env.FUTPYTHON_CRON_TZ || 'Europe/Rome';
 
   job = new Cron(expression, { timezone, protect: true }, async () => {
-    try { await runFutpythonSync({kind:'cron',mode:'incremental'}); }
+    const started = Date.now();
+    logEvent('FUTPYTHON_CYCLE_BEGIN', {kind: 'cron', expression, timezone});
+    try {
+      const r = await runFutpythonSync({kind:'cron',mode:'incremental'});
+      logEvent(r?.status === 'skipped' ? 'FUTPYTHON_CYCLE_SKIPPED' : 'FUTPYTHON_CYCLE_END', {kind: 'cron', status: r?.status ?? null,
+        reason: r?.reason ?? null, runId: r?.runId ?? null, datasetsAttempted: r?.datasetsAttempted ?? null,
+        datasetsChanged: r?.datasetsChanged ?? null, datasetErrors: r?.failures?.length ?? null, durationMs: Date.now() - started});
+    }
     catch (e) {
-      console.error('FUTPYTHON_CRON_ERROR', String(e?.message||e).replace(/api_key=[^&\s]+/gi,'api_key=[REDACTED]'));
+      logEvent('FUTPYTHON_CYCLE_ERROR', {kind: 'cron', durationMs: Date.now() - started,
+        error: String(e?.message||e).replace(/api_key=[^&\s]+/gi,'api_key=[REDACTED]').slice(0, 300)}, {out: console.error});
     }
   });
 
-  console.log('FUTPYTHON_CRON_READY '+JSON.stringify({expression,timezone}));
+  logEvent('FUTPYTHON_CRON_READY', {expression, timezone, nextRun: job.nextRun()?.toISOString?.() ?? null});
   return job;
 }
 

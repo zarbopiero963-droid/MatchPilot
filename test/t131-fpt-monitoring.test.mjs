@@ -9,41 +9,8 @@ import { isoTimestamps } from '../src/worker.mjs';
 
 const NOW = Date.parse('2026-10-22T19:40:00Z');
 
-// In-memory data_alerts plus canned answers for the watchdog reads.
-function fakeDb(canned = {}) {
-  const alerts = [];
-  let id = 0;
-  const query = async (sql, params = []) => {
-    const q = sql.replace(/\s+/g, ' ').trim();
-    if (q.startsWith('SELECT * FROM data_alerts WHERE fingerprint=$1 AND resolved_at IS NULL')) {
-      const rows = alerts.filter(a => a.fingerprint === params[0] && !a.resolved_at).map(a => ({...a}));
-      return {rows, rowCount: rows.length};
-    }
-    if (q.startsWith('INSERT INTO data_alerts')) {
-      const [source, severity, code, fingerprint, title, message] = params;
-      const row = {alert_id: ++id, source, severity, code, fingerprint, title, message, delivery_status: 'pending', last_delivered_at: null, resolved_at: null};
-      alerts.push(row); return {rows: [{...row}], rowCount: 1};
-    }
-    if (q.startsWith('UPDATE data_alerts SET last_seen_at')) {
-      const a = alerts.find(x => x.alert_id === params[0]); a.title = params[2]; a.message = params[3]; return {rows: [], rowCount: 1};
-    }
-    if (q.startsWith('UPDATE data_alerts SET delivery_status=$2, last_delivered_at')) {
-      for (const a of alerts.filter(x => x.fingerprint === params[0] && !x.resolved_at)) { a.delivery_status = params[1]; if (params[2]) a.last_delivered_at = new Date(); }
-      return {rows: [], rowCount: 1};
-    }
-    if (q.startsWith('UPDATE data_alerts SET resolved_at=now()')) {
-      const rows = alerts.filter(a => a.fingerprint === params[0] && !a.resolved_at);
-      for (const a of rows) a.resolved_at = new Date();
-      return {rows: rows.map(a => ({...a})), rowCount: rows.length};
-    }
-    if (q.startsWith('UPDATE data_alerts SET delivery_status=$2 WHERE alert_id=$1')) {
-      alerts.find(x => x.alert_id === params[0]).delivery_status = params[1]; return {rows: [], rowCount: 1};
-    }
-    for (const [needle, rows] of Object.entries(canned)) if (q.includes(needle)) return {rows, rowCount: rows.length};
-    return {rows: [], rowCount: 0};
-  };
-  return {alerts, client: {query}};
-}
+import { fakeAlertsDb as fakeDb } from './helpers/fake-alerts-db.mjs';
+process.env.MATCHPILOT_ALERT_RETRY_BASE_MS = '0';
 const channel = () => { const sent = []; let fail = false;
   const fn = async alert => { if (fail) throw new Error('Telegram HTTP 502'); sent.push(telegramText(alert)); return {attempted: true}; };
   return {sent, fn, setFail: v => { fail = v; }}; };
@@ -52,10 +19,10 @@ test('(1) liveness probe outside the worker: alert when the last fpt_sync_runs i
   assert.equal(livenessVerdict('2026-10-22T12:00:00Z', NOW).dead, true);
   assert.equal(livenessVerdict('2026-10-22T17:05:00Z', NOW).dead, false);
   assert.equal(livenessVerdict(null, NOW).dead, true);
-  const db = fakeDb({'max(started_at)': [{last: '2026-10-09T10:19:00Z'}]});
+  const db = fakeDb({'AS last_run': [{last_run: {run_id: 'r', status: 'complete', started_at: '2026-10-09T10:19:00Z'}, heartbeat_at: new Date(NOW), failed_last3: 0}]});
   const tg = channel();
-  await probe(db.client, {now: NOW, deliver: tg.fn});
-  await probe(db.client, {now: NOW + 1800000, deliver: tg.fn});
+  await probe(db.client, {now: NOW, deliver: tg.fn, workerActive: true});
+  await probe(db.client, {now: NOW + 1800000, deliver: tg.fn, workerActive: true});
   assert.equal(tg.sent.length, 1, 'unchanged state is not repeated');
   assert.match(tg.sent[0], /Worker FPT fermo/);
 });
@@ -72,7 +39,7 @@ test('(2) DATA_CONTENT_STALE: last_changed_at > 72h or match_date > 7d, attribut
   assert.equal(r1.content.stale, true);
   const stale = tg.sent.filter(t => /Contenuti FutPython fermi/.test(t));
   assert.equal(stale.length, 1, 'sent exactly once');
-  assert.match(stale[0], /provider FutPython/);
+  assert.match(stale[0], /Causa: /);
   assert.ok(stale[0].startsWith(DATA_CATEGORY), 'data category, distinct from [MatchPilot deploy]');
   assert.equal(db.alerts.find(a => a.code === 'DATA_CONTENT_STALE').delivery_status, 'delivered');
 });
