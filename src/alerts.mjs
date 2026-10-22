@@ -98,7 +98,11 @@ async function deliverTelegram(alert) {
     signal:AbortSignal.timeout(10000)
   });
   if (!response.ok) { const e = new Error(`Telegram HTTP ${response.status}`); e.status = response.status; throw e; }
-  return {attempted:true,channel:'telegram'};
+  // t138: the Bot API result is the delivery proof: ok=true plus a message_id. HTTP 200 without it is not "delivered".
+  let body = null;
+  try { body = await response.json(); } catch {}
+  if (body && body.ok === false) { const e = new Error(`Telegram API ok=false ${body.error_code ?? ''}`.trim()); e.status = body.error_code; throw e; }
+  return {attempted:true,channel:'telegram',messageId: body?.result?.message_id ?? null};
 }
 
 async function deliverWebhook(alert) {
@@ -179,12 +183,13 @@ export async function emitAlert(input, clientOverride, options = {}) {
       `UPDATE data_alerts SET delivery_status='sending', payload = payload || jsonb_build_object('_event', $2::text)
        WHERE fingerprint=$1 AND resolved_at IS NULL`, [alert.fingerprint, event]);
     const deliveryErrors = [];
+    const sent = [];
     let delivered = false;
     let ambiguous = false;
     for (const fn of deliverers) {
       try {
         const result = await sendWithRetry(fn, alert, options.retry);
-        if (result.attempted) delivered = true;
+        if (result.attempted) { delivered = true; sent.push({channel: result.channel ?? null, messageId: result.messageId ?? null}); logDelivery('open', alert.code, result); }
       } catch (e) {
         if (e?.kind === 'ambiguous') ambiguous = true;
         deliveryErrors.push(redact(e?.message || e));
@@ -194,13 +199,15 @@ export async function emitAlert(input, clientOverride, options = {}) {
     await client.query(
       `UPDATE data_alerts SET
         delivery_status=$2,
-        last_delivered_at=CASE WHEN $3 THEN now() ELSE last_delivered_at END
+        last_delivered_at=CASE WHEN $3 THEN now() ELSE last_delivered_at END,
+        payload = payload || jsonb_build_object('_delivery', $4::jsonb)
        WHERE fingerprint=$1 AND resolved_at IS NULL`,
       [
         alert.fingerprint,
         delivered ? (deliveryErrors.length ? 'partial' : 'delivered') :
           ambiguous ? 'unknown' : (deliveryErrors.length ? 'failed' : 'stored_only'),
-        delivered
+        delivered,
+        JSON.stringify({at: new Date().toISOString(), event, sent, errors: deliveryErrors.length})
       ]
     );
     if (deliveryErrors.length) console.error('DATA_ALERT_DELIVERY_ERROR '+JSON.stringify({ts:new Date().toISOString(),code:alert.code,count:deliveryErrors.length,event,ambiguous}));
@@ -208,6 +215,12 @@ export async function emitAlert(input, clientOverride, options = {}) {
   };
 
   return clientOverride ? runner(clientOverride) : withClient(runner);
+}
+
+// t138: every successful send is logged with its channel and Bot API message_id (no token, no text).
+export function logDelivery(kind, code, result, out = console.log) {
+  out('DATA_ALERT_DELIVERED ' + JSON.stringify({ts: new Date().toISOString(), kind, code, channel: result?.channel ?? null,
+    messageId: result?.messageId ?? null, tries: result?.tries ?? null}));
 }
 
 // t131u: resolving an alert that had reached a channel sends one '✅ RISOLTO' notice. The UPDATE ... WHERE resolved_at IS
@@ -239,8 +252,12 @@ async function sendResolution(client, row, deliverers, options = {}) {
   const notice = resolvedNotice(row, {resolvedAt: row.resolved_at || new Date(), evidence: options.evidence});
   let notified = false;
   let ambiguous = false;
+  const deliveries = [];
   for (const fn of deliverers) {
-    try { if ((await sendWithRetry(fn, notice, options.retry)).attempted) notified = true; }
+    try {
+      const result = await sendWithRetry(fn, notice, options.retry);
+      if (result.attempted) { notified = true; deliveries.push({channel: result.channel ?? null, messageId: result.messageId ?? null}); logDelivery('resolved', row.code, result); }
+    }
     catch (e) {
       if (e?.kind === 'ambiguous') ambiguous = true;
       console.error('DATA_ALERT_RESOLVE_DELIVERY_ERROR '+JSON.stringify({ts:new Date().toISOString(),code: row.code, error: redact(e?.message || e)}));
@@ -249,7 +266,7 @@ async function sendResolution(client, row, deliverers, options = {}) {
   const status = notified ? 'resolved_notified' : ambiguous ? 'resolved_unknown' : 'resolved_unnotified';
   await client.query(`UPDATE data_alerts SET delivery_status=$2,
       payload = payload || jsonb_build_object('_resolution', $3::jsonb) WHERE alert_id=$1`,
-    [row.alert_id, status, JSON.stringify({evidence: options.evidence || null, at: new Date().toISOString(),
+    [row.alert_id, status, JSON.stringify({evidence: options.evidence || null, at: new Date().toISOString(), deliveries,
       tries: (row.payload?._resolution?.tries || 0) + 1})]);
   return {resolved: true, notified, status};
 }

@@ -4,6 +4,12 @@ import { logEvent } from '../log.mjs';
 
 let job;
 
+// t138: refresh the watchdog heartbeat and freshness right after a cycle (errors are logged by the watchdog itself).
+export async function afterCycle(trigger) {
+  const fn = trigger || (await import('./data-watchdog.mjs')).triggerDataWatchdog;
+  try { await fn('post-cycle'); } catch {}
+}
+
 export function startFutpythonCron() {
   if (process.env.FUTPYTHON_CRON_ENABLED === 'false') return null;
   if (!process.env.FUTPYTHON_API_KEY || !process.env.DATABASE_URL) return null;
@@ -19,6 +25,7 @@ export function startFutpythonCron() {
       logEvent(r?.status === 'skipped' ? 'FUTPYTHON_CYCLE_SKIPPED' : 'FUTPYTHON_CYCLE_END', {kind: 'cron', status: r?.status ?? null,
         reason: r?.reason ?? null, runId: r?.runId ?? null, datasetsAttempted: r?.datasetsAttempted ?? null,
         datasetsChanged: r?.datasetsChanged ?? null, datasetErrors: r?.failures?.length ?? null, durationMs: Date.now() - started});
+      await afterCycle();
     }
     catch (e) {
       logEvent('FUTPYTHON_CYCLE_ERROR', {kind: 'cron', durationMs: Date.now() - started,

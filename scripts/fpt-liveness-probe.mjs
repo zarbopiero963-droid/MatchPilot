@@ -5,6 +5,8 @@
 // than cycle 6h + grace, or than FPT_LIVENESS_MAX_HOURS), and persistent errors (>= 3 consecutive failed runs).
 // Alerts go through the deduplicated store; when the condition clears, one RISOLTO notice with evidence.
 import { execFile } from 'node:child_process';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { emitAlert, resolveAlert } from '../src/alerts.mjs';
 import { withClient, closePool } from '../src/db.mjs';
 import { classifyFreshness } from '../src/providers/futpython/freshness.mjs';
@@ -65,8 +67,61 @@ export async function probe(client, {now = Date.now(), maxHours = Number(process
   return {probe: 'FPT_LIVENESS', ...v, workerActive: active, maxHours, at: new Date(now).toISOString()};
 }
 
+// t138: the probe stores its alerts in PostgreSQL, so with the DB down it used to only exit 1 (blind). Now an
+// unreachable DB is reported straight to Telegram, deduplicated by a state file (one alert per outage, one RISOLTO
+// when the DB answers again). The message never contains the error text verbatim beyond a redacted 160 chars.
+export function dbOutageStep(state, dbOk, {now = Date.now(), error = null} = {}) {
+  const open = Boolean(state?.dbDown);
+  if (!dbOk && !open) return {send: 'down', next: {dbDown: true, since: new Date(now).toISOString()}};
+  if (!dbOk && open) return {send: null, next: state};
+  if (dbOk && open) return {send: 'resolved', next: {dbDown: false, since: null, lastOutage: state.since}};
+  return {send: null, next: state || {dbDown: false}};
+}
+
+export function dbOutageText(kind, {since, error, now = Date.now()} = {}) {
+  const safe = String(error || '').replace(/postgres(ql)?:\/\/[^\s]+/gi, '[db-url]').replace(/password=\S+/gi, 'password=[REDACTED]').slice(0, 160);
+  return kind === 'down'
+    ? ['🚨 MATCHPILOT — CRITICO', 'Database non raggiungibile dal watchdog FPT', `Dal: ${since} (UTC). Errore: ${safe || 'n/d'}`,
+       'Il watchdog non può verificare worker e cicli finché il DB non risponde.'].join('\n')
+    : ['✅ MATCHPILOT — RISOLTO', 'Database di nuovo raggiungibile dal watchdog FPT',
+       `Guasto iniziato: ${since} (UTC). Risolto alle: ${new Date(now).toISOString()} (UTC).`].join('\n');
+}
+
+async function sendDirect(text, env = process.env) {
+  const token = env.MATCHPILOT_TELEGRAM_BOT_TOKEN?.trim(); const chatId = env.MATCHPILOT_TELEGRAM_CHAT_ID?.trim();
+  if (!token || !chatId) return {ok: false, reason: 'missing_config'};
+  const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {method: 'POST', headers: {'content-type': 'application/json'},
+    body: JSON.stringify({chat_id: chatId, text, disable_web_page_preview: true}), signal: AbortSignal.timeout(10000)});
+  const body = await r.json().catch(() => null);
+  return {ok: r.ok && body?.ok === true, status: r.status, messageId: body?.result?.message_id ?? null};
+}
+
+export async function handleDbOutage(dbOk, {error = null, now = Date.now(), stateFile, send = sendDirect, log = console.log} = {}) {
+  let state = null;
+  try { state = JSON.parse(readFileSync(stateFile, 'utf8')); } catch {}
+  const step = dbOutageStep(state, dbOk, {now, error});
+  if (!step.send) return {sent: null};
+  const text = dbOutageText(step.send, {since: step.send === 'down' ? step.next.since : state.since, error, now});
+  let result;
+  try { result = await send(text); } catch (e) { result = {ok: false, error: String(e?.message || e).slice(0, 120)}; }
+  log('FPT_LIVENESS_DB_ALERT ' + JSON.stringify({ts: new Date(now).toISOString(), kind: step.send, ok: result.ok, messageId: result.messageId ?? null}));
+  // A failed 'down' send keeps the state closed so the next run retries; a failed RISOLTO keeps it open for the same reason.
+  if (result.ok) { try { mkdirSync(join(stateFile, '..'), {recursive: true}); writeFileSync(stateFile, JSON.stringify(step.next)); } catch {} }
+  return {sent: step.send, ok: result.ok};
+}
+
+const STATE_FILE = join(process.env.STATE_DIRECTORY || '/var/lib/matchpilot-fpt-liveness', 'db-outage.json');
+
 if (import.meta.url === `file://${process.argv[1]}`) {
-  try { console.log(JSON.stringify(await withClient(client => probe(client)))); }
-  catch (error) { console.error(new Date().toISOString(), 'FPT_LIVENESS_ERROR', String(error?.message || error)); process.exitCode = 1; }
-  finally { try { await closePool(); } catch {} }
+  try {
+    console.log(JSON.stringify(await withClient(client => probe(client))));
+    await handleDbOutage(true, {stateFile: STATE_FILE});
+  } catch (error) {
+    const msg = String(error?.message || error);
+    console.error(new Date().toISOString(), 'FPT_LIVENESS_ERROR', msg.slice(0, 300));
+    process.exitCode = 1;
+    if (/ECONNREFUSED|ENOTFOUND|ETIMEDOUT|EHOSTUNREACH|timeout|terminat|Connection|too many clients|the database system is|57P0|53300/i.test(msg)) {
+      await handleDbOutage(false, {error: msg, stateFile: STATE_FILE});
+    }
+  } finally { try { await closePool(); } catch {} }
 }

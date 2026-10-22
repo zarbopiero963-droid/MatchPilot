@@ -1,6 +1,8 @@
 // FPT worker entrypoint (systemd matchpilot-fpt-worker). On SIGTERM/SIGINT it stops scheduling new work, waits for an
 // in-flight FutPython sync up to a grace period (each dataset is written in its own transaction, so an abort after the
 // grace rolls back only the open one; a run left 'running' is reconciled at the next start), closes the pool, exits 0.
+import { realpathSync } from 'node:fs';
+import { basename } from 'node:path';
 import { closePool } from './db.mjs';
 import { logEvent } from './log.mjs';
 import { futpythonCronBusy } from './jobs/futpython-cron.mjs';
@@ -33,9 +35,17 @@ export function isoTimestamps(target = console, now = () => new Date()) {
   return target;
 }
 
+// t138: the worker unit runs from /srv/mp-deploy/current -> releases/<40-hex sha>. MP_RELEASE_SHA wins when set;
+// otherwise the release is the resolved working directory name when it is a full SHA (never guessed).
+export function releaseSha(env = process.env, cwd = process.cwd(), resolve = realpathSync) {
+  const fromEnv = String(env.MP_RELEASE_SHA || '').trim();
+  if (/^[0-9a-f]{40}$/.test(fromEnv)) return fromEnv;
+  try { const name = basename(resolve(cwd)); return /^[0-9a-f]{40}$/.test(name) ? name : null; } catch { return null; }
+}
+
 export async function main({proc = process, start = startBackgroundServices, shutdown = createShutdown()} = {}) {
   for (const signal of ['SIGTERM', 'SIGINT']) proc.on(signal, () => shutdown(signal));
-  logEvent('MATCHPILOT_WORKER_STARTED', {pid: proc.pid ?? null, release: process.env.MP_RELEASE_SHA || null});
+  logEvent('MATCHPILOT_WORKER_STARTED', {pid: proc.pid ?? null, release: releaseSha()});
   await start();
   return setInterval(() => {}, 1 << 30);
 }
