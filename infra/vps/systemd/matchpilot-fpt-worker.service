@@ -1,0 +1,24 @@
+[Unit]
+Description=MatchPilot FPT worker (FutPythonTrader cron 17 */6 Europe/Rome, data watchdog, Telegram ops alerts; TotalCorner off)
+After=network-online.target postgresql@18-staging.service
+Wants=network-online.target
+[Service]
+User=matchpilot
+Group=matchpilot
+WorkingDirectory=/srv/mp-deploy/current
+EnvironmentFile=/srv/matchpilot/secrets/worker.env
+EnvironmentFile=/srv/matchpilot/secrets/fpt.env
+ExecStart=/usr/bin/node src/worker.mjs
+Restart=always
+RestartSec=30
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+StandardOutput=append:/srv/matchpilot/logs/fpt-worker.log
+StandardError=append:/srv/matchpilot/logs/fpt-worker.log
+[Install]
+WantedBy=multi-user.target
