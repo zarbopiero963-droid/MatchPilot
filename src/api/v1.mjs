@@ -2,7 +2,6 @@
 // source, provenance), every response uses the same envelope and every error a stable code.
 // The API reads only MatchPilot's database: no provider call, no LIVE, no write.
 import {matchAnalysis, matchIdOf} from '../analysis/match-analysis.mjs';
-import {listSignals} from '../signals/simulated.mjs';
 import {MAX_CURSOR_LENGTH, QUERY_CATALOG, ROUTES as FPT_LEGACY_ROUTES, buildQuery, runQuery} from '../providers/futpython/query.mjs';
 
 export const API_VERSION = 'v1';
@@ -90,15 +89,6 @@ export function createEndpoints(tc) {
       params: {id: param('id interno della partita (fpt:…)', true, undefined, 400)},
       precheck: input => matchIdOf(input.id),
       read: (client, input) => matchAnalysis(client, input), provenance: data => data.provenance, asOf: () => null},
-    // MP-VPS-FUNCTIONAL-RECOVERY-01: simulated signals written by src/jobs/sim-signals.mjs (no Telegram, no betting).
-    {path: '/api/v1/sim/signals', source: 'MatchPilot',
-      summary: 'Segnali SIMULATI (regola mp-sim-over25-v1) generati sui dati FutPythonTrader archiviati, con esito sul risultato finale',
-      params: {run_id: param('id della simulazione, default ultima'), date: param('giorno YYYY-MM-DD', false, value => {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new ApiError('BAD_REQUEST', 'date must be YYYY-MM-DD');
-        return value;
-      })},
-      read: (client, input) => listSignals(client, {date: input.date ?? null, runId: input.run_id ?? null}),
-      provenance: () => ({source: 'database', upstream_calls: 0, mode: 'SIMULATION'}), asOf: () => null},
     tcEndpoint('discovery', 'TotalCorner discovery report', {}, client => tc.discovery(client)),
     tcEndpoint('schema-registry', 'TotalCorner observed schema registry', {endpoint_family: param('endpoint family'), phase: param('phase'),
       limit: param(`integer 1–${TC_SCHEMA_REGISTRY_LIMIT.max}, default ${TC_SCHEMA_REGISTRY_LIMIT.default}`, false, integer('limit', 1, TC_SCHEMA_REGISTRY_LIMIT.max))},
