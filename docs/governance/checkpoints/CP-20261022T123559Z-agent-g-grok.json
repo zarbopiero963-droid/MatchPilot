@@ -1,0 +1,174 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261022T123559Z-agent-g-grok",
+  "timestamp_utc": "2026-10-22T12:35:59Z",
+  "agent": {
+    "id": "agent-g-grok",
+    "role": "Development Agent",
+    "session": "grok-matchpilot-owner-chat-t99u-2026-10-22"
+  },
+  "mandate": {
+    "id": "MP-VPS-FUNCTIONAL-RECOVERY-01",
+    "source": "owner mandate t99u (2026-10-22), registered in docs/governance/owner-decisions.json"
+  },
+  "activity": "CI fix: Browser QA failed on 8ed6a4b (general-navigation journeys and every visual baseline, caused by the new menu item); the Segnali (sim) view leaves the menu and stays reachable at #/segnali; review requested again on the new head",
+  "task": "FUNC-RECOVERY-01",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 179,
+  "pr": 184,
+  "branch": "functional/mp-vps-recovery-20261022",
+  "commit_sha": "fd9b4b893c13c09489c9e198c803bef4ab192227",
+  "tree_sha": "44d8cefa9c206544eae817a2a7f99f9197c35748",
+  "base_sha": "c4b82ba8ca3e11975ff6da5885ffee06ab750780",
+  "worktree": {
+    "clean": true
+  },
+  "requirements": [],
+  "changes": [
+    "src/signals/simulated.mjs",
+    "src/jobs/sim-signals.mjs",
+    "src/api/v1.mjs: GET /api/v1/sim/signals",
+    "src/web/app.js + index.html: view #/segnali",
+    "src/server.mjs: optional MATCHPILOT_BIND_HOST",
+    "test/sim-signals.test.mjs",
+    "package.json: check + sim:signals"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite, no PostgreSQL)",
+      "result": "PASS",
+      "environment": "box, Node 22",
+      "commit": "b1689118aebe9cd60361df47d54cbb6682bdeb40",
+      "time": "2026-10-22T10:53:59Z",
+      "limits": [
+        "61 DB tests skipped: not counted as PASS"
+      ]
+    },
+    {
+      "command": "VPS functest: sim-signals --date 2026-09-19 -> 331 matches, 134 SIGNAL (81 HIT, 53 MISS), API and #/segnali rendered in headless Chrome via SSH tunnel",
+      "result": "PASS",
+      "environment": "VPS 45.14.186.174 isolated functest",
+      "commit": "b1689118aebe9cd60361df47d54cbb6682bdeb40",
+      "time": "2026-10-22T10:53:59Z",
+      "limits": [
+        "historical replay of archived data; no live acquisition; PIT_NOT_VERIFIED"
+      ]
+    },
+    {
+      "command": "node --test after the fix: 390 pass, 0 fail, 61 skipped",
+      "result": "PASS",
+      "environment": "box, Node 22, no PostgreSQL",
+      "commit": "fd9b4b893c13c09489c9e198c803bef4ab192227",
+      "time": "2026-10-22T12:35:59Z",
+      "limits": [
+        "61 DB tests skipped: not PASS"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "fd9b4b893c13c09489c9e198c803bef4ab192227"
+  },
+  "gate_a": "NOT_VERIFIED",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "FR-2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "Browser QA FAIL on 8ed6a4b (run 39776908035): menu item changed general-navigation and all visual baselines; menu item removed, baselines untouched"
+    }
+  ],
+  "owner_decisions": [
+    "MP-VPS-FUNCTIONAL-RECOVERY-01"
+  ],
+  "authorizations": [
+    {
+      "id": "MP-VPS-FUNCTIONAL-RECOVERY-01",
+      "source": "owner mandate t99u, owner-decisions.json",
+      "scope": {
+        "task": "FUNC-RECOVERY-01",
+        "action": "commits and push on the dedicated branch, isolated VPS test environment, one functional PR, no merge"
+      },
+      "status": "VALID"
+    }
+  ],
+  "external_commands": [
+    {
+      "target": "github",
+      "command": "git push origin functional/mp-vps-recovery-20261022",
+      "effect": "new branch"
+    },
+    {
+      "target": "vps",
+      "command": "pg_createcluster 18 functest -p 5440 (manual start, 127.0.0.1); pg_dump -n public from staging 5434 (read only) and pg_restore into matchpilot_functest",
+      "effect": "new isolated cluster and database"
+    },
+    {
+      "target": "vps",
+      "command": "systemd-run --unit=matchpilot-functest (DynamicUser, IPAddressAllow=localhost) node src/server.mjs on 127.0.0.1:3100",
+      "effect": "transient test service"
+    },
+    {
+      "target": "database",
+      "command": "sim-signals job on matchpilot_functest",
+      "effect": "schema sim, 331 rows"
+    }
+  ],
+  "artifacts": [],
+  "progress": {
+    "done": [
+      "Phase A recon",
+      "isolated env",
+      "backend+frontend in browser",
+      "PG checks",
+      "simulated signals E2E",
+      "restart and DB-down tests"
+    ],
+    "in_progress": [
+      "CI and independent review on the new head"
+    ],
+    "not_started": [
+      "live data acquisition",
+      "Telegram stub delivery",
+      "production deploy (needs GO)"
+    ]
+  },
+  "resources": [
+    "branch:functional/mp-vps-recovery-20261022",
+    "vps:45.14.186.174",
+    "db:matchpilot_functest"
+  ],
+  "stop_conditions": [
+    "no merge or deploy without an explicit owner GO",
+    "no write to PG17, PG18 staging, production service, FREEZE, runner or sudoers"
+  ],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": {
+    "production_release": "3dd833f38bf8a7de3b51dfbebd3118e1602185ac",
+    "freeze": "1",
+    "functest_cluster": "18/functest 127.0.0.1:5440",
+    "functest_app": "127.0.0.1:3100"
+  },
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "dependencies": [],
+  "state": "REVIEW",
+  "next_action": "CI on the new head, independent review by a distinct identity, then merge only under MP-GROK-AUTONOMOUS-EXECUTION-01 conditions",
+  "resume_conditions": [
+    "owner reply on t99u report"
+  ],
+  "supersedes": "CP-20261022T105417Z-agent-g-grok"
+}
