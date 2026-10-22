@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 133,
+  "revision": 134,
   "tasks": [
     {
       "id": "R-01",
@@ -645,7 +645,7 @@
         "acquired_at": "2026-10-22T13:13:58.996Z",
         "expires_at": "2026-10-22T15:13:58.996Z"
       },
-      "latest_checkpoint": null,
+      "latest_checkpoint": "CP-20261022T131433Z-agent-g-grok",
       "pr_open": false,
       "parallel_authorization": "MP-GROK-AUTONOMOUS-EXECUTION-01",
       "resources": [
