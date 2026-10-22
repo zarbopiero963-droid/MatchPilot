@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 128,
+  "revision": 129,
   "tasks": [
     {
       "id": "R-01",
@@ -548,7 +548,7 @@
         "acquired_at": "2026-10-22T13:01:46.734Z",
         "expires_at": "2026-10-22T15:01:46.734Z"
       },
-      "latest_checkpoint": null,
+      "latest_checkpoint": "CP-20261022T130223Z-agent-g-grok",
       "resources": [
         "branch:tc-off-01"
       ],
