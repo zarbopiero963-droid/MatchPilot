@@ -794,8 +794,34 @@ async function endpointsView() {
 // [what is loading, view, area]: a 'user' view shows no technical text (MP-WEB-015, checked by the Browser QA gate); a
 // 'technical' view is where provenance and diagnostics belong. Every view declares one (V-B2). #/board, the former
 // address of the Daily Board, still opens it, and the menu item of each view is its section (NAV_OF).
+
+// MP-VPS-FUNCTIONAL-RECOVERY-01: simulated signals (no Telegram, no betting), read from /api/v1/sim/signals.
+const DECISION_IT = {SIGNAL: 'Segnale', NO_SIGNAL: 'Nessun segnale', INSUFFICIENT_DATA: 'Dati insufficienti'};
+const OUTCOME_IT = {HIT: 'Vinto', MISS: 'Perso', PENDING: 'In attesa', NOT_APPLICABLE: '—'};
+async function signalsView(params) {
+  const run = params.get('run');
+  const body = await getJson(`/api/v1/sim/signals${run ? `?${queryString({run_id: run})}` : ''}`);
+  const d = body.data;
+  const head = [el('h1', {}, 'Segnali simulati'),
+    el('p', {class: 'state partial', role: 'status', 'data-testid': 'sim-banner'}, 'SIMULAZIONE: nessun messaggio Telegram, nessuna scommessa. Regola: media Over 2.5 delle ultime 10 partite di entrambe le squadre ≥ 60%.')];
+  if (!d.rows.length) return [...head, el('p', {class: 'state empty', 'data-testid': 'sim-empty'}, 'Nessuna simulazione eseguita.')];
+  const s = d.summary;
+  const runs = el('p', {class: 'meta'}, 'Simulazioni: ', d.runs.map(r => [el('a', {href: `#/segnali?${queryString({run: r.run_id})}`}, `${r.match_date} (${r.n})`), ' ']));
+  const rows = d.rows.map(r => el('tr', {'data-decision': r.decision},
+    el('td', {}, r.match_date), el('td', {}, el('a', {href: matchHref(r.internal_match_id)}, `${r.home_name ?? '?'} – ${r.away_name ?? '?'}`)),
+    el('td', {}, DECISION_IT[r.decision] ?? r.decision), el('td', {}, r.avg_over25_rate === null ? '—' : `${(Number(r.avg_over25_rate) * 100).toFixed(1)}%`),
+    el('td', {}, `${r.home_n ?? 0}/${r.away_n ?? 0}`), el('td', {}, r.odd ?? '—'), el('td', {}, r.final_score ?? '—'),
+    el('td', {}, OUTCOME_IT[r.outcome] ?? r.outcome), el('td', {}, r.sim_profit ?? '—')));
+  return [...head, runs,
+    el('p', {'data-testid': 'sim-summary'}, `Partite analizzate: ${s.matches} · segnali: ${s.signals} · vinti: ${s.hit} · persi: ${s.miss} · in attesa: ${s.pending} · P/L simulato (stake 1, ${s.priced} quotati): ${s.sim_profit_units} unità`),
+    el('div', {class: 'tablewrap'}, el('table', {'data-testid': 'sim-table'},
+      el('thead', {}, el('tr', {}, ['Data', 'Partita', 'Decisione', 'Over 2.5 medio', 'N casa/trasf.', 'Quota O2.5', 'Risultato', 'Esito', 'P/L'].map(t => el('th', {scope: 'col'}, t)))),
+      el('tbody', {}, rows))),
+    el('p', {class: 'meta'}, `Fonte: /api/v1/sim/signals · simulazione ${d.run_id} · ${d.rule_version}`)];
+}
+
 const VIEWS = {'': ['la pagina', boardView, 'user'], board: ['la pagina', boardView, 'user'], search: ['la ricerca', searchView, 'user'],
-  match: ['la partita', matchView, 'user'],
+  match: ['la partita', matchView, 'user'], segnali: ['i segnali simulati', signalsView, 'user'],
   data: ['lo stato dei dati', dashboardView, 'technical'], providers: ['i fornitori dati', providersView, 'technical'],
   endpoints: ['gli endpoint', endpointsView, 'technical']};
 const NAV_OF = {board: '', providers: 'data', endpoints: 'data', match: null};
