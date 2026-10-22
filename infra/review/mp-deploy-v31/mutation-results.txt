@@ -1,0 +1,71 @@
+D01  mp-deploy.v31          KILLED      60s  FAIL A16b FREEZE enforce: 78 before verify, ledger untouched  :: 2026-10-22T10:56:39+02:00 sha=a0e6b1dae7b0f9e22ad0a3da35d6f8d8d7cfb28f auth
+D02  mp-deploy.v31          KILLED      60s  FAIL A16b FREEZE enforce: 78 before verify, ledger untouched  :: 2026-10-22T10:56:40+02:00 sha=a0e6b1dae7b0f9e22ad0a3da35d6f8d8d7cfb28f resu
+D03  mp-deploy.v31          KILLED      62s  FAIL A17 report+FREEZE=0 invalid -> enforce+freeze  :: 2026-10-22T10:56:41+02:00 sha=a0e6b1dae7b0f9e22ad0a3da35d6f8d8d7cfb28f start prev=
+D04  mp-deploy.v31          KILLED      60s  FAIL A16c config missing -> 78  :: 2026-10-22T10:56:39+02:00 sha=a0e6b1dae7b0f9e22ad0a3da35d6f8d8d7cfb28f authz conf_missing_or_unsafe -> en
+D05  mp-deploy.v31          KILLED      61s  FAIL A16d2 config unknown key -> 78  :: 6:40+02:00 sha=a0e6b1dae7b0f9e22ad0a3da35d6f8d8d7cfb28f npm_ci s=0
+D06  mp-deploy.v31          SURVIVED   322s  
+D07  mp-deploy.v31          KILLED     230s  FAIL H02 latch present + FREEZE=0 conf -> 78 before verify  :: 431e6ec1051e1cf6b8b000d02a2aa main_tip_2=OK (before tests)
+D08  mp-deploy.v31          SURVIVED   317s  
+D09  mp-deploy.v31          KILLED     415s  FAIL D10 FREEZE same SHA unhealthy -> 78, no rebuild  :: :00:33+02:00 sha=ca19e2782acd02341363d2e3f38c749c9fca57a3 authz verify=ACCEPT mode=
+D10  mp-deploy.v31          KILLED       2s  FAIL A01 valid token -> verify, consume, approved, tip x3, real build, switch, health, OK  :: 6:42+02:00 sha=a16ab2ba55d19e48f2ba0c9e1d7f7e2
+D11  mp-deploy.v31          KILLED      12s  FAIL A10c new run_attempt -> AUTHZ_RERUN_APPROVAL_UNBOUND  :: 2026-10-22T10:56:53+02:00 sha=a16ab2ba55d19e48f2ba0c9e1d7f7e2899b29478 result=
+D12  mp-deploy.v31          KILLED      76s  FAIL B10 run_id/run_attempt parser (extracted+executed): strings only (P2-4)  :: {'ok': True, 'array': False, 'number': False, 'att_array': 
+D13  mp-deploy.v31          KILLED       3s  FAIL A02 expired -> 77  :: 2026-10-22T10:56:55+02:00 sha=643b618d86f028c3ad0be4fe00b490b29a5d2bc4 start prev=
+D14  mp-deploy.v31          KILLED      60s  FAIL A16f ledger perms -> 77  :: 7:56+02:00 sha=106b0aad82145b3032b7c565e332522071547ebb npm_ci s=0
+D15  mp-deploy.v31          SURVIVED   316s  
+D16  mp-deploy.v31          KILLED       1s  FAIL A01 valid token -> verify, consume, approved, tip x3, real build, switch, health, OK  :: 2026-10-22T10:57:59+02:00 sha=8b4112c8aab6a7d3
+D20  mp-deploy.v31          KILLED     109s  FAIL M01 main already moved (real git): 79 at main_tip_1, before fetch; snapshot diff EMPTY  :: 0 sha=21e230955b4591f32c7c39eb8a412fdca80572
+D21  mp-deploy.v31          KILLED     102s  FAIL M02 main moved during npm ci (real git): 79 at main_tip_2 BEFORE tests; test DB untouched; worktree removed; marker kept; snapshot diff
+D22  mp-deploy.v31          KILLED     104s  FAIL M03 main moved during tests (real git): 79 at main_tip_3 right before switch; release dir + worktree removed; marker kept; current/depl
+D23  mp-deploy.v31          KILLED     102s  FAIL M03 main moved during tests (real git): 79 at main_tip_3 right before switch; release dir + worktree removed; marker kept; current/depl
+D24  mp-deploy.v31          KILLED     101s  FAIL M03 main moved during tests (real git): 79 at main_tip_3 right before switch; release dir + worktree removed; marker kept; current/depl
+D25  mp-deploy.v31          KILLED     104s  FAIL M04 non-monotonic deploy with root rollback marker, main moves during tests -> 79 at main_tip_3, marker NOT consumed  :: 37cd80c93d tes
+D26  mp-deploy.v31          KILLED     230s  FAIL H01 health fail -> rollback to previous release, freeze-latch written  :: ly/dep/releases/8138c720d28f4254e335415d7d5a4da45d7a851e
+D30  mp-deploy.v31          SURVIVED   319s  
+D31  mp-deploy.v31          KILLED     298s  FAIL E01 guard hash mismatch  :: 8:10+02:00 sha=bada2a5d55354eedd40f62ccebd258aabf644f15 npm_ci s=0
+D32  mp-deploy.v31          SURVIVED   322s  
+D33  mp-deploy.v31          KILLED     307s  FAIL E19 node binary hash mismatch (P2-5)  :: 8:41+02:00 sha=8c8d2e65dabbfd86cc7f10ce8e590232df751353 npm_ci s=0
+D34  mp-deploy.v31          KILLED      57s  FAIL A16e verifier tampered -> 80  :: 2026-10-22T11:04:38+02:00 sha=42e2e256f9cd0be0f790f5516350f0ac342f6c31 authz result=AUTHZ_REFUSED veri
+D35  mp-deploy.v31          KILLED     300s  FAIL E06e runner .env ancestor group-writable (P2-3)  :: 9:37+02:00 sha=4952d54be29fb03f3c7b0c2c7d7acd8181bb9063 npm_ci s=0
+D36  mp-deploy.v31          KILLED     310s  FAIL E18 legacy verifier present (P2-6 branch now covered)  :: 1:12+02:00 sha=93c0c625ef16ef63df2fe338eb14c2fac4f33354 npm_ci s=0
+D37  mp-deploy.v31          KILLED     303s  FAIL E09 workflow pin mismatch  :: 3:06+02:00 sha=28ab8dea349a71022e61092f4774503f7b59b028 npm_ci s=0
+D38  mp-deploy.v31          KILLED     300s  FAIL E06b runner .env extra NODE_OPTIONS (P2-3)  :: 3:10+02:00 sha=8ffd391a8aa009f411ce4675d6d25e5f7521b8ed npm_ci s=0
+D39  mp-deploy.v31          KILLED     300s  FAIL E06d runner .env wrong group (P2-3)  :: 3:34+02:00 sha=b4597009483a858d893e75ff32e13ed9b39de490 npm_ci s=0
+D40  mp-deploy.v31          KILLED     312s  FAIL S16 sudo -l shows an extra effective rule (group/alias resolved by sudo)  :: 3:53+02:00 sha=b1d18751d29779da9f583f4818a1b0ee638bab14 np
+D41  mp-deploy.v31          KILLED     313s  FAIL S24 ghrunner in group sudo  :: 4:50+02:00 sha=932fd526e8ac05005c1803715f9ce02f3d3f4ff5 npm_ci s=0
+D42  mp-deploy.v31          KILLED     500s  FAIL S11 extra @includedir  :: 9:32+02:00 sha=9c70747b5b07295a79cc1e1843f00b4ce57ecef6 npm_ci s=0
+D43  mp-deploy.v31          KILLED     492s  FAIL S01 %ghrunner group rule (file)  :: 1:18+02:00 sha=fed9cf629f87a50c2437cd0a5760cf08c5c799e9 npm_ci s=0
+D44  mp-deploy.v31          SURVIVED   503s  
+D45  mp-deploy.v31          KILLED     494s  FAIL S06 #uid user spec (file)  :: 1:47+02:00 sha=0ca1e5f91f80c6e4dfa99aef992e6ed561e72393 npm_ci s=0
+D46  mp-deploy.v31          KILLED     500s  FAIL S08 ALL users spec (file)  :: 2:13+02:00 sha=280bfa0e4f7809306b0b41fe55907c34e2a1e16b npm_ci s=0
+D47  mp-deploy.v31          KILLED     500s  FAIL S25 new harmless file not re-pinned  :: 3:10+02:00 sha=9d1b4b5f6d417d6de25aaf367c336c3814d2cbea npm_ci s=0
+D48  mp-deploy.v31          KILLED     307s  FAIL S26 sudoers.d file 0644  :: 4:39+02:00 sha=be00b3b332dfd86f8910c7e8545359819e26f000 npm_ci s=0
+D49  mp-deploy.v31          KILLED     315s  FAIL S28 sudoers.d is a symlink  :: 2026-10-22T11:26:34+02:00 sha=e4410e49ba2f81e634fcd3e75adb55c172fbd622 authz result=INTEGRITY unsafe_sud
+D50  mp-deploy.v31          KILLED     301s  FAIL E15 lock dir 0755 -> 80  :: 6:34+02:00 sha=347603bd3be9afe8235b1ee3cb1e3bc2f29b72d3 npm_ci s=0
+D51  mp-deploy.v31          KILLED     307s  FAIL S06 #uid user spec (file)  :: 6:54+02:00 sha=54fcf19f15083e39c617437d09bf5c7f43b3ce66 npm_ci s=0
+K01  mp-runner-guard.sh.in  SURVIVED     9s  
+K02  mp-runner-guard.sh.in  KILLED       9s  FAIL H02 pull_request event  :: rc=1 mp-runner-guard: REFUSED: guard rc=1 {"guard":"MP-RUNNER-JOB-GUARD","result":"REFUSE","problems":["GUAR
+K03  mp-runner-guard.sh.in  KILLED       9s  FAIL H32 node binary replaced  :: rc=0 mp-runner-guard: ALLOW run=39999 attempt=1 job=deploy sha=1111111111111111111111111111111111111111
+K04  mp-runner-guard.sh.in  KILLED       9s  FAIL H30 guard file tampered  :: rc=0 mp-runner-guard: ALLOW run=39999 attempt=1 job=deploy sha=1111111111111111111111111111111111111111
+K05  mp-runner-guard.sh.in  KILLED       8s  FAIL H31 verifier (guard's import) tampered  :: rc=0 mp-runner-guard: ALLOW run=39999 attempt=1 job=deploy sha=11111111111111111111111111111
+K06  mp-runner-guard.sh.in  KILLED       9s  FAIL H40 NODE_OPTIONS/LD_PRELOAD in hook env are dropped (env -i): ALLOW and the injected code never runs  :: d.so: object '/nonexistent.so'
+K07  mp-runner-guard.sh.in  SURVIVED     8s  
+K08  mp-runner-guard.sh.in  SURVIVED     9s  
+K09  mp-runner-guard.sh.in  SURVIVED    14s  
+K10  mp-runner-guard.sh.in  KILLED       8s  FAIL H36 guard config group-writable  :: rc=0 mp-runner-guard: ALLOW run=39999 attempt=1 job=deploy sha=111111111111111111111111111111111111
+K11  mp-runner-guard.sh.in  SURVIVED     9s  
+K12  mp-runner-guard.sh.in  KILLED       9s  FAIL H35 gate dir group-writable  :: rc=0 mp-runner-guard: ALLOW run=39999 attempt=1 job=deploy sha=1111111111111111111111111111111111111111
+I01  install-v31.sh         SURVIVED     2s  
+I02  install-v31.sh         KILLED       0s  FAIL I02 refused when current conf is not FREEZE=1  :: INSTALLED backup=/tmp/insttest-_sqg2a1i/root/mp-deploy-rollback-v31-20261022T112337-1
+I03  install-v31.sh         KILLED       0s  FAIL I05 conf: MODE=report FREEZE=1 and exactly the 10 keys  :: {'MODE': 'enforce', 'FREEZE': '0', 'VERIFIER_SHA256': '69d88f58dd8c88ac8322c
+I04  install-v31.sh         KILLED       0s  FAIL I08 legacy verifier removed; modes gate 755 / files 644 / conf 600 / backup 700  :: /tmp/insttest-dy_ec8sl/root/mp-deploy-rollback-v31-
+I05  install-v31.sh         KILLED       2s  FAIL I14 backup whose conf is not FREEZE=1 refused  :: ROLLED_BACK_TO_V3 (FREEZE=1). mp-gate/ and runner-guard.json left in place (inert wit
+I06  install-v31.sh         KILLED       2s  FAIL I13 corrupted backup refused, installed v3.1 untouched  :: ROLLED_BACK_TO_V3 (FREEZE=1). mp-gate/ and runner-guard.json left in place (
+I07  install-v31.sh         KILLED       0s  FAIL I09 backup complete + SHA256SUMS verifies (v3, conf, v1 hook, legacy verifier)  :: ['SHA256SUMS', 'authz.conf', 'mp-deploy.v3', 'mp-dep
+I08  install-v31.sh         KILLED       0s  FAIL I03 v3 lock held -> 75, binary/conf/hook unchanged, no .new left  :: INSTALLED backup=/tmp/insttest-otqkhfes/root/mp-deploy-rollback-v3
+I09  install-v31.sh         KILLED       0s  FAIL I01c test copy (shim sourced) refused as PKG_NOT_PRODUCTION  :: INSTALLED backup=/tmp/insttest-1qm2ryzy/root/mp-deploy-rollback-v31-202
+C01  mp-deploy.v31          SURVIVED   319s  
+C02  mp-runner-guard.sh.in  SURVIVED     8s  
+C03  install-v31.sh         SURVIVED     2s  
+
+MUTATION SUMMARY killed 54/66 valid mutants (81.8%), invalid 0; controls: C01=SURVIVED, C02=SURVIVED, C03=SURVIVED

@@ -1,0 +1,4 @@
+D06  mp-deploy.v31          KILLED      60s  FAIL A16d3 config 0644 (unsafe) -> ignored, enforce+freeze 78  :: 1:26+02:00 sha=e50f466ea39da40d3d45560471e06ed37bdf1629 npm_ci s=0
+I01  install-v31.sh         KILLED       0s  FAIL I01a tampered #181 component with a consistent forged MANIFEST refused (fixed pins)  :: INSTALLED backup=/tmp/insttest-qmr4w47j/root/mp
+
+MUTATION SUMMARY killed 2/2 valid mutants (100.0%), invalid 0; controls: 

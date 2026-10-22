@@ -1,0 +1,42 @@
+PASS H00 legit deploy job of deploy-vps.yml on main, approved, pinned, tip -> ALLOW
+PASS H01 other repository (fork)
+PASS H02 pull_request event
+PASS H03 workflow_dispatch event
+PASS H04 branch ref
+PASS H05 other workflow (ci.yml) on main
+PASS H06 env vars missing
+PASS H07 event payload repository mismatch
+PASS H10 B4: deploy-vps.yml modified on main (blob != pin)
+PASS H11 B4: extra job added to deploy-vps.yml (GITHUB_JOB != deploy)
+PASS H12 B4: 'environment' dropped -> no approval exists
+PASS H13 approval by another user
+PASS H14 deployment still pending
+PASS H15 re-run (attempt 2)
+PASS H16 run is another workflow per API (path spoof)
+PASS H17 run head_sha differs from GITHUB_SHA
+PASS H18 job assigned to another runner
+PASS H19 job already completed
+PASS H20 two jobs named deploy
+PASS H21 stale SHA (main moved)
+PASS H22 GitHub API down
+PASS H23 run API 500
+PASS H24 guard config extra key
+PASS H25 guard config unreadable
+PASS H26 RUNNER_NAME missing
+PASS H27 run id not numeric
+PASS H30 guard file tampered
+PASS H31 verifier (guard's import) tampered
+PASS H32 node binary replaced
+PASS H33 guard file group-writable
+PASS H34 guard file is a symlink
+PASS H35 gate dir group-writable
+PASS H36 guard config group-writable
+PASS H40 NODE_OPTIONS/LD_PRELOAD in hook env are dropped (env -i): ALLOW and the injected code never runs
+PASS H41 guard hang -> timeout -> REFUSED (5s)
+PASS H50 production template: no MP_* variable, one inert marker
+PASS H51 render refuses a leftover placeholder
+PASS H52 rendered PRODUCTION hook ignores MP_* (real paths absent on box -> REFUSED integrity)
+PASS H53 test copy refuses under sudo env
+
+SUMMARY 39/39 PASS
+EXIT 0

@@ -1,0 +1,69 @@
+== date 2026-10-22T10:29:32+02:00
+== hook
+root:root 755 1729
+6e32cfff5fee207b735022fd9dde542fd94ef55fc42f7a6b885f33b0b649e5a6  /usr/local/libexec/mp-runner-guard.sh
+== sudo -l -U ghrunner
+Matching Defaults entries for ghrunner on ubuntu:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin, use_pty
+
+User ghrunner may run the following commands on ubuntu:
+    (root) NOPASSWD: /usr/local/sbin/mp-deploy
+== sudo -l -U mpdeploy
+
+User mpdeploy may run the following commands on ubuntu:
+    (root) NOPASSWD: /usr/local/sbin/mp-deploy
+== id
+uid=995(ghrunner) gid=986(ghrunner) groups=986(ghrunner)
+uid=996(mpdeploy) gid=987(mpdeploy) groups=987(mpdeploy)
+== sudoers files
+-r--r----- 1 root root 1800 Jan 29  2024 /etc/sudoers
+
+/etc/sudoers.d:
+total 24
+drwxr-xr-x   2 root root 4096 Oct 20 12:44 .
+drwxr-xr-x 118 root root 4096 Oct 22 06:02 ..
+-r--r-----   1 root root   31 Oct 20 11:31 90-mpadmin
+-r--r-----   1 root root   56 Oct 20 12:44 ghrunner
+-r--r-----   1 root root   56 Oct 20 12:29 mpdeploy
+-r--r-----   1 root root 1068 Jan 29  2024 README
+5bac27ce5ff1a78ace8f3ef81bfd60cbd44810ac3f3d280da9d7649fe90c18f8  /etc/sudoers
+359d64f20c9a28b7a633e7de95cf8da25f8b991af8536292800e57db6755c110  /etc/sudoers.d/90-mpadmin
+3c5a45a0fc668fbcb5b66e87376bbbebbc2b2a3562f85f0c79ce2a99558375d5  /etc/sudoers.d/ghrunner
+09d7f9b2b2de4562464c19e77dc828d62a5f2f7d8ea0fb16e8b6cdd599e21055  /etc/sudoers.d/mpdeploy
+b428c9b673c3c806370f2aa28a98293a9cb578c70c3a8a2d1a39031861b3dbd8  /etc/sudoers.d/README
+57:@includedir /etc/sudoers.d
+== sudoers non-comment lines (README excluded)
+Defaults	env_reset
+Defaults	mail_badpass
+Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"
+Defaults	use_pty
+root	ALL=(ALL:ALL) ALL
+%admin ALL=(ALL) ALL
+%sudo	ALL=(ALL:ALL) ALL
+@includedir /etc/sudoers.d
+ghrunner ALL=(root) NOPASSWD: /usr/local/sbin/mp-deploy
+mpdeploy ALL=(root) NOPASSWD: /usr/local/sbin/mp-deploy
+mpadmin ALL=(ALL) NOPASSWD:ALL
+== runner env keys
+root:ghrunner 640
+LANG
+ACTIONS_RUNNER_HOOK_JOB_STARTED
+== tools
+/usr/bin/node
+fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48  /usr/bin/node
+/usr/bin/node
+== test.env keys
+FUTPYTHON_TEST_DATABASE_URL
+== state
+FREEZE=1
+07dbed2140299d82
+/srv/mp-deploy/releases/3dd833f38bf8a7de3b51dfbebd3118e1602185ac
+44981 0 200
+ 
+
+== runner perms (read-only, 10:32 Rome)
+root:root 755 /opt
+root:ghrunner 755 /opt/actions-runner
+root:ghrunner 640 /opt/actions-runner/.env
+ghrunner:ghrunner 755 /opt/actions-runner/_work
+root:root 755 /opt/actions-runner/bin

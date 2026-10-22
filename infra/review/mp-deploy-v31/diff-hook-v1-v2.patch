@@ -1,0 +1,99 @@
+--- mp-runner-guard.sh.v1-live
++++ mp-runner-guard.sh.in
+@@ -1,27 +1,50 @@
+ #!/bin/bash
+-# mp-runner-guard.sh — fail-closed pre-job gate for MatchPilot VPS self-hosted runner.
+-# Installed at /usr/local/libexec/mp-runner-guard.sh (root:root 755).
+-# Triggered by ACTIONS_RUNNER_HOOK_JOB_STARTED before any job step runs.
+-# Relies on GitHub default env vars GITHUB_* which cannot be overwritten by workflow env:
+-# https://docs.github.com/en/actions/reference/workflows-and-actions/variables
+-set -euo pipefail
++# mp-runner-guard.sh v2 (MP-VPS-V31-REVIEW-REMEDIATION-01, review P0-2/B4) — fail-closed job-started hook of the VPS
++# self-hosted runner (ACTIONS_RUNNER_HOOK_JOB_STARTED in /opt/actions-runner/.env). Runs as the runner user BEFORE any
++# step of any job; a non-zero exit fails the job before it runs. Installed root:root 0755 at
++# /usr/local/libexec/mp-runner-guard.sh, generated from mp-runner-guard.sh.in by install-v31.sh (the @..@ pins are
++# substituted; the installer refuses to install a file with a placeholder left). Its sha256 is HOOK_SHA256 in
++# /etc/mp-deploy/authz.conf, checked by mp-deploy at every run.
++# Stages (any failure => REFUSED, exit 1):
++#   1. v1 checks kept verbatim: repository, event=push, ref=main, workflow_ref=deploy-vps.yml@main, event payload.
++#   2. integrity of what stage 3 executes: node, runner-job-guard.mjs, deploy-authz.mjs (its import), guard config:
++#      root-owned, regular, not symlink, no g/o write, exact sha256 pins below.
++#   3. runner-job-guard.mjs (PR #181, reviewed) under `env -i` with only the variables it reads (no NODE_OPTIONS,
++#      LD_PRELOAD or anything else from the job environment), bounded by a timeout; ALLOW requires exit 0 AND a
++#      JSON line with "result":"ALLOW". It reads GitHub (public, no token): run, job assignment, pinned workflow blob,
++#      owner approval, nothing pending, first attempt, main tip from two sources.
++# No secret is read or printed. No file is written (journal line via logger only).
++set -uo pipefail
++umask 077
++PATH=/usr/sbin:/usr/bin:/sbin:/bin
+ 
+ EXPECTED_REPO="zarbopiero963-droid/MatchPilot"
+ EXPECTED_EVENT="push"
+ EXPECTED_REF="refs/heads/main"
+ EXPECTED_WF_REF="zarbopiero963-droid/MatchPilot/.github/workflows/deploy-vps.yml@refs/heads/main"
++NODE="/usr/bin/node"
++GATEDIR="/usr/local/libexec/mp-gate"
++GUARD_CONF="/etc/mp-deploy/runner-guard.json"
++NODE_SHA256="@NODE_SHA256@"
++GUARD_SHA256="@GUARD_SHA256@"
++AUTHZ_SHA256="@VERIFIER_SHA256@"
++GUARD_TIMEOUT=90
++OWNER_UID=0
++NODE_PRE=()
++EXTRA_ENV=()
++# @MP-TEST-SHIM@
+ 
+ fail() {
+   echo "mp-runner-guard: REFUSED: $*" >&2
++  logger -t mp-runner-guard "REFUSED run=${GITHUB_RUN_ID:-?} attempt=${GITHUB_RUN_ATTEMPT:-?} job=${GITHUB_JOB:-?} $*" 2>/dev/null || true
+   exit 1
+ }
+ 
++# ---- stage 1 (v1, unchanged semantics) ----
+ [ "${GITHUB_REPOSITORY:-}" = "$EXPECTED_REPO" ] || fail "repository='${GITHUB_REPOSITORY:-}'"
+ [ "${GITHUB_EVENT_NAME:-}" = "$EXPECTED_EVENT" ] || fail "event='${GITHUB_EVENT_NAME:-}'"
+ [ "${GITHUB_REF:-}" = "$EXPECTED_REF" ] || fail "ref='${GITHUB_REF:-}'"
+ [ "${GITHUB_WORKFLOW_REF:-}" = "$EXPECTED_WF_REF" ] || fail "workflow_ref='${GITHUB_WORKFLOW_REF:-}'"
+-
+-# Cross-check webhook payload when the runner provides it (real jobs).
+ if [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "${GITHUB_EVENT_PATH}" ] && [ -r "${GITHUB_EVENT_PATH}" ]; then
+   python3 - "${GITHUB_EVENT_PATH}" <<'PY' || fail "event_payload_mismatch"
+ import json, sys
+@@ -31,12 +54,34 @@
+ ref = p.get("ref") or ""
+ if full != "zarbopiero963-droid/MatchPilot":
+     sys.exit(1)
+-# push payloads include ref; if present it must be main
+ if ref and ref != "refs/heads/main":
+     sys.exit(1)
+ sys.exit(0)
+ PY
+ fi
+ 
+-echo "mp-runner-guard: ALLOW deploy-vps.yml push refs/heads/main"
+-exit 0
++# ---- stage 2: integrity ----
++hex64(){ [[ "$1" =~ ^[0-9a-f]{64}$ ]]; }
++pinned(){ # $1 file $2 sha256
++  [ -f "$1" ] && [ ! -L "$1" ] && [ "$(stat -c %u "$1")" = "$OWNER_UID" ] && [ $(( 0$(stat -c %a "$1") & 022 )) -eq 0 ] \
++    && hex64 "$2" && [ "$(sha256sum "$1" | cut -d' ' -f1)" = "$2" ]; }
++pinned "$NODE" "$NODE_SHA256" || fail "integrity node"
++pinned "$GATEDIR/runner-job-guard.mjs" "$GUARD_SHA256" || fail "integrity runner-job-guard.mjs"
++pinned "$GATEDIR/deploy-authz.mjs" "$AUTHZ_SHA256" || fail "integrity deploy-authz.mjs"
++{ [ -d "$GATEDIR" ] && [ ! -L "$GATEDIR" ] && [ "$(stat -c %u "$GATEDIR")" = "$OWNER_UID" ] && [ $(( 0$(stat -c %a "$GATEDIR") & 022 )) -eq 0 ]; } || fail "integrity gate dir"
++{ [ -f "$GUARD_CONF" ] && [ ! -L "$GUARD_CONF" ] && [ "$(stat -c %u "$GUARD_CONF")" = "$OWNER_UID" ] && [ $(( 0$(stat -c %a "$GUARD_CONF") & 022 )) -eq 0 ]; } || fail "integrity guard config"
++
++# ---- stage 3: the guard, clean environment, bounded time ----
++OUT=$(env -i PATH=/usr/bin:/bin LANG=C.UTF-8 HOME=/nonexistent \
++  GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-}" GITHUB_EVENT_NAME="${GITHUB_EVENT_NAME:-}" GITHUB_REF="${GITHUB_REF:-}" \
++  GITHUB_WORKFLOW_REF="${GITHUB_WORKFLOW_REF:-}" GITHUB_JOB="${GITHUB_JOB:-}" GITHUB_RUN_ID="${GITHUB_RUN_ID:-}" \
++  GITHUB_RUN_ATTEMPT="${GITHUB_RUN_ATTEMPT:-}" GITHUB_SHA="${GITHUB_SHA:-}" RUNNER_NAME="${RUNNER_NAME:-}" \
++  "${EXTRA_ENV[@]}" \
++  timeout "$GUARD_TIMEOUT" "$NODE" "${NODE_PRE[@]}" "$GATEDIR/runner-job-guard.mjs" "$GUARD_CONF" 2>/dev/null); RC=$?
++LINE=$(printf '%s\n' "$OUT" | tail -n 1)
++if [ "$RC" = 0 ] && printf '%s' "$LINE" | grep -q '^{"guard":"MP-RUNNER-JOB-GUARD","result":"ALLOW"'; then
++  echo "mp-runner-guard: ALLOW run=${GITHUB_RUN_ID} attempt=${GITHUB_RUN_ATTEMPT} job=${GITHUB_JOB} sha=${GITHUB_SHA}"
++  logger -t mp-runner-guard "ALLOW run=${GITHUB_RUN_ID} attempt=${GITHUB_RUN_ATTEMPT} job=${GITHUB_JOB} sha=${GITHUB_SHA}" 2>/dev/null || true
++  exit 0
++fi
++fail "guard rc=$RC $(printf '%s' "$LINE" | head -c 600)"

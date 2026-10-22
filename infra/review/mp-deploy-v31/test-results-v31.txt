@@ -1,0 +1,145 @@
+PASS A01 valid token -> verify, consume, approved, tip x3, real build, switch, health, OK
+PASS A02 expired -> 77
+PASS A03a foreign key -> BAD_SIGNATURE
+PASS A03b tampered payload
+PASS A03c alg none
+PASS A03d unknown kid
+PASS A04 wrong aud
+PASS A05 wrong repo
+PASS A06 wrong branch
+PASS A07 wrong workflow
+PASS A08 environment missing
+PASS A09 token SHA != deploy SHA
+PASS A09b event_name
+PASS A10a replay same token
+PASS A10b new token same run attempt
+PASS A10c new run_attempt -> AUTHZ_RERUN_APPROVAL_UNBOUND
+PASS A11a two concurrent deploys: 0 and 75, loser not consumed
+PASS A11b loser retries after release -> ALREADY_DEPLOYED 0
+PASS A11c 8 racers same token: exactly one 0
+PASS A12 missing token
+PASS A12b whitespace token
+PASS A12c oversized
+PASS A13a JWKS 503
+PASS A13b JWKS timeout (10s)
+PASS A13c JWKS refused
+PASS A14 SIGKILL mid-run: never double use [kill@0.2s consumed=False rc=0] [kill@0.6s consumed=False rc=0] [kill@1.2s consumed=True rc=77] [kill@2.0s consumed=True rc=77] [kill@3.0s consumed=True rc=77] 
+PASS A15b older run token for current SHA
+PASS A15c token > 5 min
+PASS A16b FREEZE enforce: 78 before verify, ledger untouched
+PASS A16c config missing -> 78
+PASS A16d config invalid -> 78
+PASS A16d3 config 0644 (unsafe) -> ignored, enforce+freeze 78
+PASS A16d2 config unknown key -> 78
+PASS A16e verifier tampered -> 80
+PASS A16f ledger perms -> 77
+PASS A16g ledger missing -> 77
+PASS A17 report+FREEZE=0 invalid -> enforce+freeze
+PASS A18 bad SHA arg -> 2
+PASS T01 production file reads no MP_* variable, no TESTMODE/stub/--import
+PASS T02 the only test hook is one inert comment line
+PASS T03 production file with every MP_* override set: ignored (real /etc paths -> enforce+freeze 78), fake root untouched
+PASS T04 test copy with SUDO_* env -> shim refuses (99)
+PASS T05 test copy without MP_TEST_STUB=1 -> refused 99
+PASS T06 shim source refuses euid 0 / sudo / installed path
+PASS B01 no approval -> 77, token consumed
+PASS B02 approval by other user
+PASS B03 rejection
+PASS B04 other environment
+PASS B05 approval of a different run only
+PASS B06 approvals 500
+PASS B07 approvals timeout
+PASS B08 approvals network error
+PASS B09 inconsistent approvals body
+PASS B10 run_id/run_attempt parser (extracted+executed): strings only (P2-4)
+PASS C01 stale -> 79 TIP_STALE
+PASS C02 sources disagree -> 79
+PASS C03 refs down -> 79
+PASS C04 api timeout -> 79
+PASS C05 two main lines -> 79 MALFORMED
+PASS C06 api 404 -> 79
+PASS C07 api malformed -> 79
+PASS C08 refs malformed -> 79
+PASS C10 consecutive merges: approved older run -> 79
+PASS M01 main already moved (real git): 79 at main_tip_1, before fetch; snapshot diff EMPTY
+PASS M02 main moved during npm ci (real git): 79 at main_tip_2 BEFORE tests; test DB untouched; worktree removed; marker kept; snapshot diff EMPTY
+PASS M03 main moved during tests (real git): 79 at main_tip_3 right before switch; release dir + worktree removed; marker kept; current/deployed unchanged; diff EMPTY except the test-DB step
+PASS M05 control: main NOT moved (real git) -> real switch to new release, deployed=SHA, restart issued
+PASS M06 runtime order: tip1 < fetch < npm ci < tip2 < tests < tip3 < switch/OK
+PASS M04 non-monotonic deploy with root rollback marker, main moves during tests -> 79 at main_tip_3, marker NOT consumed
+PASS M07 marker consumed only on the successful switch
+PASS M08 non-monotonic without marker -> FAIL_NOT_MONOTONIC
+PASS H01 health fail -> rollback to previous release, freeze-latch written
+PASS H02 latch present + FREEZE=0 conf -> 78 before verify
+PASS D01 FREEZE enforce: 78, no verify, no lock dir, no ledger
+PASS D02 report+FREEZE new SHA: full eval logged, 78, nothing built/switched (snapshot diff EMPTY)
+PASS D03 R6 replay in report+FREEZE
+PASS D04 R6 second token same attempt
+PASS D05 report+FREEZE no token
+PASS D06 report+FREEZE stale run: TIP_STALE logged, 78
+PASS D07 report+FREEZE same SHA: ALREADY_DEPLOYED, no build
+PASS D08 enforce+FREEZE same SHA no token -> 77
+PASS D09 report+FREEZE integrity failure -> INTEGRITY in deploy.log, 78, nothing consumed (P2-2)
+PASS D10 FREEZE same SHA unhealthy -> 78, no rebuild
+PASS E01 guard hash mismatch
+PASS E02 gate dir 0775
+PASS E03 verifier 0664
+PASS E04 hook symlink
+PASS E05 runner .env second hook line
+PASS E06 runner .env 0644
+PASS E06b runner .env extra NODE_OPTIONS (P2-3)
+PASS E06c runner .env LD_PRELOAD (P2-3)
+PASS E06d runner .env wrong group (P2-3)
+PASS E06e runner .env ancestor group-writable (P2-3)
+PASS E09 workflow pin mismatch
+PASS E10 guard config extra key
+PASS E11 ancestor dir group-writable
+PASS E12 self hash mismatch
+PASS E13 stale verifier, conf pins main
+PASS E14 stale verifier PINNED -> 77/79, no switch
+PASS E15 lock dir 0755 -> 80
+PASS E16 lock dir created 0700
+PASS E17 conf missing GUARD_SHA256
+PASS E18 legacy verifier present (P2-6 branch now covered)
+PASS E19 node binary hash mismatch (P2-5)
+PASS E20 conf missing NODE_SHA256
+PASS S01 %ghrunner group rule (file)
+PASS S02 User_Alias containing ghrunner (file)
+PASS S03 User_Alias multi-member (file)
+PASS S04 Cmnd_Alias to extra command (file)
+PASS S05 Runas_Alias (file)
+PASS S06 #uid user spec (file)
+PASS S07 %#gid group spec (file)
+PASS S08 ALL users spec (file)
+PASS S09 wildcard on the same command (file)
+PASS S10 line continuation hiding a 2nd command
+PASS S11 extra @includedir
+PASS S12 legacy #includedir
+PASS S13 @include file
+PASS S14 rule in /etc/sudoers itself
+PASS S15 Defaults:ghrunner env_keep
+PASS S16 sudo -l shows an extra effective rule (group/alias resolved by sudo)
+PASS S17 sudo -l (ALL) runas instead of (root)
+PASS S18 sudo -l wildcard command
+PASS S19 sudo -l Defaults env_keep added
+PASS S20 sudo -l !env_reset
+PASS S21 sudo -l unparseable
+PASS S22 sudo -l fails (no output)
+PASS S23 sudo -l two commands on one line
+PASS S24 ghrunner in group sudo
+PASS S25 new harmless file not re-pinned
+PASS S26 sudoers.d file 0644
+PASS S27 /etc/sudoers 0640
+PASS S28 sudoers.d is a symlink
+PASS S29 conf missing SUDOERS_SHA256
+PASS S30 symlinked file in sudoers.d
+PASS S00 control: REAL VPS sudo layout + real `sudo -l -U ghrunner` output -> passes (no false positive)
+PASS F01 main_tip_2 precedes the tests unit; main_tip_3 precedes the atomic switch
+PASS F02 main_tip_1 precedes report+FREEZE exit and the fetch
+PASS F03 FREEZE deny precedes integrity, verify, lock
+PASS F04 legacy path referenced once (constant)
+PASS F05 rollback marker removed only after main_tip_3
+PASS F06 every gate node invocation uses the pinned absolute $NODE (the app's own test runner inside the sandbox excluded)
+
+SUMMARY 142/142 PASS
+EXIT 0

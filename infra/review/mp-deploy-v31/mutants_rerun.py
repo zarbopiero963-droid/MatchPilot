@@ -1,0 +1,1 @@
+M=[('D06', 'mp-deploy.v31', 'if safe_file "$AUTHZ_CONF" 600 && safe_ancestors "$AUTHZ_CONF"; then', 'if [ -f "$AUTHZ_CONF" ]; then'), ('I01', 'install-v31.sh', '[ "$(sha "$K/deploy-gate.mjs")" = $EXP_GATE ]', 'true')]

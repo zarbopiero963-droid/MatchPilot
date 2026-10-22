@@ -1,0 +1,1 @@
+mpdeploy ALL=(root) NOPASSWD: /usr/local/sbin/mp-deploy

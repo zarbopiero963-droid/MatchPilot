@@ -1,0 +1,3 @@
+#
+# Files in /etc/sudoers.d are parsed as part of sudoers (fixture: comments only, as the VPS README).
+#

@@ -1,0 +1,22 @@
+PASS I01 tampered package (hash != pinned #181) refused, nothing changed
+PASS I01a tampered #181 component with a consistent forged MANIFEST refused (fixed pins)
+PASS I01b mp-deploy not matching package MANIFEST refused
+PASS I01c test copy (shim sourced) refused as PKG_NOT_PRODUCTION
+PASS I02 refused when current conf is not FREEZE=1
+PASS I03 v3 lock held -> 75, binary/conf/hook unchanged, no .new left
+PASS I04 install OK
+PASS I05 conf: MODE=report FREEZE=1 and exactly the 10 keys
+PASS I06 pins match the installed files
+PASS I07 installed hook: rendered, no placeholder, pins = node/guard/verifier
+PASS I08 legacy verifier removed; modes gate 755 / files 644 / conf 600 / backup 700
+PASS I09 backup complete + SHA256SUMS verifies (v3, conf, v1 hook, legacy verifier)
+PASS I10 post-install smoke (S3 step): installed tree passes ALL integrity checks -> report+FREEZE same SHA -> ALREADY_DEPLOYED 0
+PASS I11 post-install: new SHA -> 78 FROZEN (report+FREEZE)
+PASS I12 rollback (from a FREEZE=0 state) restores v3, v1 hook, legacy verifier, old FREEZE=1 conf
+PASS I13 corrupted backup refused, installed v3.1 untouched
+PASS I14 backup whose conf is not FREEZE=1 refused
+PASS I15 installer never references v2 (caf9233f / mp-deploy.v2)
+PASS I16 swap order: conf before hook before binary (FREEZE=1 at every instant)
+
+SUMMARY 19/19 PASS
+EXIT 0

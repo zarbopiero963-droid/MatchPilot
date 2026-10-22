@@ -1,0 +1,291 @@
+#!/bin/bash
+# mp-deploy <40-hex-sha> — MatchPilot deploy v3 (MP-VPS-OIDC-PREFLIGHT-01, ISOLATED BUILD, NOT INSTALLED)
+# = v2 (caf9233f) + OIDC authorization gate (docs/deploy-approval.md §3.4 of PR #180).
+# Token: GitHub Actions OIDC JWT on STDIN (never argv). Exit: 0 OK/ALREADY; 2 usage; 75 lock (nothing consumed);
+#        1 failures; 77 AUTHZ refused; 78 FROZEN.
+# Config (root-only, fail-closed): /etc/mp-deploy/authz.conf  MODE=enforce|report  FREEZE=1|0  VERIFIER_SHA256=<hex>
+#   missing/unsafe/invalid config => MODE=enforce FREEZE=1.
+set -uo pipefail
+umask 077
+# ---- v3: under sudo NO environment override is honoured (env_reset already strips them; defence in depth)
+if [ -n "${SUDO_USER:-}${SUDO_UID:-}${SUDO_COMMAND:-}" ]; then
+  for v in $(compgen -e | grep -E '^MP_'); do unset "$v"; done
+fi
+TESTMODE=0
+if [ "${MP_TEST_STUB:-0}" = 1 ] && [ -z "${SUDO_USER:-}${SUDO_UID:-}" ]; then TESTMODE=1; fi
+OWNER_UID=0; [ "$TESTMODE" = 1 ] && OWNER_UID=$(id -u)
+# ---- v3: read the token from stdin FIRST (bounded size and time); a tty means "no token"
+TOKEN=""
+if [ ! -t 0 ]; then TOKEN=$(timeout 5 head -c 16385 2>/dev/null | tr -d ' \r\n\t' || true); fi
+# Note: do not use set -e; failures go through finish()
+
+REPO="${MP_REPO:-https://github.com/zarbopiero963-droid/MatchPilot}"
+DEP="${MP_DEPLOY_ROOT:-/srv/mp-deploy}"
+REL="$DEP/releases"
+CUR="$DEP/current"
+BUILD_ROOT="${MP_BUILD_ROOT:-/srv/mp-build}"
+STATE="${MP_STATE:-/var/lib/mp-deploy}"
+LOGD="${MP_LOGDIR:-/var/log/mp-deploy}"
+LOG="$LOGD/deploy.log"
+LOCK="${MP_LOCK:-/run/lock/mp-deploy.lock}"
+KEEP=5
+BUILD_USER="${MP_BUILD_USER:-mpbuild}"
+TESTENV="${MP_TESTENV:-/etc/mp-deploy/test.env}"
+SHA="${1:-}"
+
+[[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "usage: mp-deploy <40-hex sha>" >&2; exit 2; }
+
+require_root_dir() {
+  local d="$1"
+  if [ -L "$d" ]; then echo "FAIL_UNSAFE_PATH symlink $d" >&2; exit 3; fi
+  if [ ! -d "$d" ]; then install -d -m 755 "$d"; fi
+  if [ -L "$d" ] || [ "$(stat -c %u "$d")" != "$OWNER_UID" ]; then echo "FAIL_UNSAFE_OWNER $d" >&2; exit 3; fi
+  local rp; rp=$(realpath -e "$d") || { echo "FAIL_REALPATH $d" >&2; exit 3; }
+  case "$rp" in
+    "$DEP"|"$DEP"/*|"$STATE"|"$STATE"/*|"$LOGD"|"$LOGD"/*|"$BUILD_ROOT"|"$BUILD_ROOT"/*) ;;
+    /run/lock|/run/lock/*|/var/lib/mp-deploy|/var/lib/mp-deploy/*|/var/log/mp-deploy|/var/log/mp-deploy/*|/srv/mp-deploy|/srv/mp-deploy/*|/srv/mp-build|/srv/mp-build/*|/root/goc-staging|/root/goc-staging/*) ;;
+    *) echo "FAIL_REALPATH_OUTSIDE $rp" >&2; exit 3 ;;
+  esac
+}
+
+# ================= v3 AUTHZ (pre-lock: no side effects) =================
+AUTHZ_CONF="/etc/mp-deploy/authz.conf"; VERIFIER="/usr/local/libexec/mp-deploy-authz.mjs"
+LEDGER="$STATE/authz-ledger"; OIDC_BASE="https://token.actions.githubusercontent.com"; CURLPROTO="=https"
+if [ "$TESTMODE" = 1 ]; then
+  AUTHZ_CONF="${MP_AUTHZ_CONF:-$AUTHZ_CONF}"; VERIFIER="${MP_AUTHZ_VERIFIER:-$VERIFIER}"
+  OIDC_BASE="${MP_OIDC_BASE:-$OIDC_BASE}"; CURLPROTO="=https,http"
+fi
+alog(){ mkdir -p "$LOGD" 2>/dev/null; echo "$(date -Is) sha=$SHA authz $*" | tee -a "$LOGD/deploy.log" >&2; }
+MODE=enforce; FREEZE=1; VSUM=""; BADCONF=0
+safe_root_file(){ [ -f "$1" ] && [ ! -L "$1" ] && [ "$(stat -c %u "$1")" = "$OWNER_UID" ] && [ $(( 0$(stat -c %a "$1") & 022 )) -eq 0 ]; }
+if safe_root_file "$AUTHZ_CONF"; then
+  while IFS='=' read -r k v; do
+    case "$k" in
+      MODE) case "$v" in enforce|report) MODE="$v";; *) BADCONF=1;; esac;;
+      FREEZE) case "$v" in 0|1) FREEZE="$v";; *) BADCONF=1;; esac;;
+      VERIFIER_SHA256) [[ "$v" =~ ^[0-9a-f]{64}$ ]] && VSUM="$v";;
+      ''|\#*) ;;
+    esac
+  done < "$AUTHZ_CONF"
+else
+  alog "conf_missing_or_unsafe -> enforce+freeze"
+fi
+[ "$BADCONF" = 1 ] && { MODE=enforce; FREEZE=1; alog "conf_invalid -> enforce+freeze"; }
+deny(){ alog "result=$1 ${2:-}"; exit "${3:-77}"; }
+CURRENT=$(cat "$STATE/deployed" 2>/dev/null || true)
+if [ "$FREEZE" = 1 ] && [ "$SHA" != "$CURRENT" ]; then deny FROZEN "current=${CURRENT:-none}" 78; fi
+AZ_OK=0; AZ_WHY=""
+TMPD=$(mktemp -d /tmp/mp-authz.XXXXXX) || deny AUTHZ_ERROR "mktemp"
+trap 'rm -rf "$TMPD"' EXIT
+authz_verify(){ # $1 = verify|consume ; sets AZ_OK / AZ_WHY
+  AZ_OK=0
+  [ -n "$TOKEN" ] || { AZ_WHY="AUTHZ_NO_TOKEN"; return; }
+  safe_root_file "$VERIFIER" || { AZ_WHY="AUTHZ_VERIFIER_UNSAFE"; return; }
+  [ -n "$VSUM" ] && [ "$(sha256sum "$VERIFIER" | cut -d' ' -f1)" = "$VSUM" ] || { AZ_WHY="AUTHZ_VERIFIER_HASH"; return; }
+  [ -d "$LEDGER" ] && [ ! -L "$LEDGER" ] && [ "$(stat -c %u "$LEDGER")" = "$OWNER_UID" ] && [ "$(stat -c %a "$LEDGER")" = 700 ] || { AZ_WHY="AUTHZ_LEDGER_UNSAFE"; return; }
+  if [ ! -s "$TMPD/jwks.json" ]; then
+    curl -fsS --proto "$CURLPROTO" --max-time 10 --max-filesize 65536 -o "$TMPD/oidc.json" "$OIDC_BASE/.well-known/openid-configuration" 2>/dev/null || { AZ_WHY="AUTHZ_JWKS_UNAVAILABLE oidc-config"; return; }
+    JU=$(timeout 10 node -e 'const c=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));const b=process.argv[2];if(c.issuer!=="https://token.actions.githubusercontent.com"||typeof c.jwks_uri!=="string"||!c.jwks_uri.startsWith(b+"/"))process.exit(1);process.stdout.write(c.jwks_uri)' "$TMPD/oidc.json" "$OIDC_BASE" 2>/dev/null) || { AZ_WHY="AUTHZ_JWKS_UNEXPECTED oidc-config"; return; }
+    curl -fsS --proto "$CURLPROTO" --max-time 10 --max-filesize 65536 -o "$TMPD/jwks.json" "$JU" 2>/dev/null || { rm -f "$TMPD/jwks.json"; AZ_WHY="AUTHZ_JWKS_UNAVAILABLE jwks"; return; }
+  fi
+  local out rc
+  out=$(printf '%s' "$TOKEN" | timeout 20 node "$VERIFIER" "$1" --sha "$SHA" --jwks "$TMPD/jwks.json" --ledger "$LEDGER" 2>/dev/null); rc=$?
+  if [ "$rc" = 0 ] && printf '%s' "$out" | grep -q '"result":"ACCEPT"'; then AZ_OK=1; AZ_WHY="ACCEPT"
+  else AZ_WHY="REFUSE rc=$rc $(printf '%s' "$out" | head -c 600)"; fi
+}
+authz_verify verify
+if [ "$AZ_OK" = 1 ]; then alog "verify=ACCEPT mode=$MODE freeze=$FREEZE"
+elif [ "$MODE" = enforce ]; then deny AUTHZ_REFUSED "$AZ_WHY"
+else alog "verify=REFUSE(report-only) $AZ_WHY"; fi
+# ================= end v3 pre-lock =================
+
+require_root_dir "$DEP"
+require_root_dir "$REL"
+require_root_dir "$STATE"
+require_root_dir "$LOGD"
+chmod 750 "$LOGD"
+# build root owned by build user (root does not write into it after chown)
+if [ ! -d "$BUILD_ROOT" ]; then install -d -o "$BUILD_USER" -g "$BUILD_USER" -m 700 "$BUILD_ROOT"; fi
+if [ "$(stat -c %U "$BUILD_ROOT")" != "$BUILD_USER" ]; then echo "FAIL_BUILD_OWNER" >&2; exit 3; fi
+
+mkdir -p "$(dirname "$LOCK")"
+exec 9>"$LOCK"
+flock -n 9 || { echo "another deploy running" >&2; exit 75; }
+# ================= v3 AUTHZ consume (under the deploy lock, exactly once) =================
+if [ "$MODE" = enforce ]; then
+  authz_verify consume
+  [ "$AZ_OK" = 1 ] || deny AUTHZ_REFUSED "consume: $AZ_WHY"
+  alog "consume=OK"
+fi
+if [ "$TESTMODE" = 1 ]; then sleep "${MP_TEST_HOLD:-0}"; alog "result=STUB_DEPLOY_OK (test mode: stops before fetch/build)"; exit 0; fi
+
+T0=$(date +%s)
+log(){ echo "$(date -Is) sha=$SHA $*" | tee -a "$LOG"; }
+finish(){ log "result=$1 total_s=$(( $(date +%s)-T0 )) ${2:-}"; case "$1" in FAIL_TESTS|FAIL_BUILD|BLOCKED_MIGRATION|BLOCKED_MIGRATION_MODIFIED) echo "$SHA $1 $(date -Is)" >> "$STATE/failed";; esac; exit "${3:-1}"; }
+
+# health: only used when not skipped
+health(){
+  [ "${MP_SKIP_HEALTH:-0}" = 1 ] && return 0
+  local i c
+  for i in $(seq 1 30); do
+    c=$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 http://127.0.0.1:3000/ || true)
+    [ "$c" = 200 ] && return 0
+    sleep 2
+  done
+  return 1
+}
+
+PREV=""
+if [ -L "$CUR" ] || [ -e "$CUR" ]; then
+  PREV=$(readlink -f "$CUR" 2>/dev/null || true)
+  if [ -n "$PREV" ]; then
+    case "$(realpath -e "$PREV" 2>/dev/null || true)" in
+      "$REL"/*) ;;
+      *) finish FAIL_UNSAFE_CURRENT "prev=$PREV" 3 ;;
+    esac
+  fi
+fi
+[ "$PREV" = "$REL/$SHA" ] && health && finish ALREADY_DEPLOYED "" 0
+[ "$FREEZE" = 1 ] && finish FROZEN "same sha not healthy-deployed; no rebuild under freeze" 78
+log "start prev=$PREV"
+
+CACHE="$BUILD_ROOT/repo.git"
+if [ ! -d "$CACHE" ]; then
+  runuser -u "$BUILD_USER" -- git init -q --bare "$CACHE"
+fi
+t=$(date +%s)
+runuser -u "$BUILD_USER" -- git -C "$CACHE" fetch -q --no-tags "$REPO" "+refs/heads/main:refs/heads/main" || finish FAIL_FETCH "" 1
+runuser -u "$BUILD_USER" -- git -C "$CACHE" merge-base --is-ancestor "$SHA" refs/heads/main 2>/dev/null || finish FAIL_NOT_ON_MAIN "" 1
+
+# Forward-only: new SHA must be descendant of currently deployed (unless root one-shot rollback marker)
+LAST=$(cat "$STATE/deployed" 2>/dev/null || true)
+if [ -n "$LAST" ] && [ "$LAST" != "$SHA" ]; then
+  if ! runuser -u "$BUILD_USER" -- git -C "$CACHE" merge-base --is-ancestor "$LAST" "$SHA" 2>/dev/null; then
+    M="$STATE/allow-rollback-$SHA"
+    if [ -f "$M" ] && [ ! -L "$M" ] && [ "$(stat -c %u "$M")" = 0 ]; then
+      rm -f "$M"
+      log "rollback_marker_consumed sha=$SHA"
+    else
+      finish FAIL_NOT_MONOTONIC "last=$LAST" 1
+    fi
+  fi
+fi
+
+W="$BUILD_ROOT/$SHA"
+# remove previous worktree as build user (their dir)
+runuser -u "$BUILD_USER" -- rm -rf "$W"
+{ runuser -u "$BUILD_USER" -- git clone -q --no-checkout "$CACHE" "$W" \
+  && runuser -u "$BUILD_USER" -- git -C "$W" checkout -q --detach "$SHA"; } || finish FAIL_FETCH "" 1
+log "fetched s=$(( $(date +%s)-t ))"
+
+# migration guard (name-based, same as v1) + content ledger if present
+LED="$STATE/migrations.sha256"
+if [ -f "$LED" ] && [ ! -L "$LED" ] && [ "$(stat -c %u "$LED")" = 0 ]; then
+  while read -r h f; do
+    [ -z "${f:-}" ] && continue
+    n=$(runuser -u "$BUILD_USER" -- sha256sum "$W/migrations/$f" 2>/dev/null | awk '{print $1}')
+    [ "$n" = "$h" ] || { runuser -u "$BUILD_USER" -- rm -rf "$W"; finish BLOCKED_MIGRATION_MODIFIED "file=$f" 1; }
+  done < "$LED"
+fi
+if [ -n "$PREV" ] && [ -d "$PREV/migrations" ] && [ -d "$W/migrations" ]; then
+  NEW=$(comm -13 <(ls "$PREV/migrations" | sort) <(runuser -u "$BUILD_USER" -- ls "$W/migrations" | sort) | tr '\n' ' ')
+  if [ -n "${NEW// }" ] && [ ! -e "$STATE/allow-migrations-$SHA" ]; then
+    runuser -u "$BUILD_USER" -- rm -rf "$W"
+    finish BLOCKED_MIGRATION "new_migrations=[$NEW]" 1
+  fi
+fi
+
+# --- npm ci (network OK, FS sandbox) ---
+t=$(date +%s)
+INACC=(
+  -p InaccessiblePaths=/srv/matchpilot/app.env
+  -p InaccessiblePaths=/srv/matchpilot/.dbenv
+  -p InaccessiblePaths=/srv/matchpilot/backups
+  -p InaccessiblePaths=/srv/matchpilot/archives
+  -p InaccessiblePaths=/srv/matchpilot/evidence
+  -p InaccessiblePaths=/root
+  -p InaccessiblePaths=/etc/mp-deploy
+)
+if ! systemd-run --wait --pipe --collect --uid="$BUILD_USER" --gid="$BUILD_USER"   -p PrivateTmp=yes -p NoNewPrivileges=yes -p ProtectHome=yes -p ProtectSystem=strict   -p ReadWritePaths="$BUILD_ROOT"   "${INACC[@]}"   -p Environment=HOME="$BUILD_ROOT"   --working-directory="$W"   -- /usr/bin/npm ci --no-audit --no-fund --loglevel=error >>"$LOG" 2>&1; then
+  runuser -u "$BUILD_USER" -- rm -rf "$W"
+  finish FAIL_BUILD "" 1
+fi
+log "npm_ci s=$(( $(date +%s)-t ))"
+
+# --- tests (localhost only for PG) ---
+t=$(date +%s)
+TAP="$LOGD/test-$SHA.tap"
+if [ ! -f "$TESTENV" ] || [ -L "$TESTENV" ] || [ "$(stat -c %u "$TESTENV")" != 0 ]; then
+  finish FAIL_TESTENV "missing_or_unsafe $TESTENV" 1
+fi
+# Password never sourced into this shell; systemd injects EnvironmentFile into the sandboxed unit only.
+# Note: /etc/mp-deploy is inaccessible to the unit process; EnvironmentFile is loaded by PID1.
+
+set +e
+systemd-run --wait --pipe --collect --uid="$BUILD_USER" --gid="$BUILD_USER"   -p PrivateTmp=yes -p NoNewPrivileges=yes -p ProtectHome=yes -p ProtectSystem=strict   -p ReadWritePaths="$BUILD_ROOT"   "${INACC[@]}"   -p IPAddressDeny=any -p "IPAddressAllow=127.0.0.1 ::1"   -p EnvironmentFile="$TESTENV"   -p Environment=MATCHPILOT_RUNTIME_MODE=offline   -p Environment=MATCHPILOT_BACKGROUND_ENABLED=false   -p Environment=FUTPYTHON_CRON_ENABLED=false   -p Environment=DATA_WATCHDOG_ENABLED=false   -p Environment=HOME="$BUILD_ROOT"   --working-directory="$W"   -- /bin/bash -c 'npm run -s check && node --test --test-reporter=tap' >"$TAP" 2>&1
+RC=$?
+set +e
+SUM=$(grep -E '^# (pass|fail|skipped)' "$TAP" | tr '
+' ' ' || true)
+log "tests rc=$RC s=$(( $(date +%s)-t )) $SUM"
+if [ "$RC" -ne 0 ]; then
+  runuser -u "$BUILD_USER" -- rm -rf "$W"
+  finish FAIL_TESTS "tap=$TAP" 1
+fi
+
+# Copy into fresh ROOT-OWNED dir only (race mitigation: never write/chown under build-user trees).
+# Stream from build user via tar; root extracts into empty root-owned $D.tmp; reject absolute
+# symlinks and any symlink whose realpath escapes $D.tmp (relative ../ inside tree is OK).
+D="$REL/$SHA"
+rm -rf "$D.tmp"
+install -d -o root -g root -m 755 "$D.tmp"
+runuser -u "$BUILD_USER" -- tar -C "$W" --exclude=./.git -cf - . \
+  | tar -C "$D.tmp" -xf - --no-same-owner --no-same-permissions \
+  || { rm -rf "$D.tmp"; finish FAIL_COPY "" 1; }
+while IFS= read -r -d '' link; do
+  tgt=$(readlink "$link" || true)
+  case "$tgt" in
+    /*) rm -rf "$D.tmp"; finish FAIL_UNSAFE_LINK "absolute $link -> $tgt" 1 ;;
+  esac
+  res=$(realpath -e "$link" 2>/dev/null || true)
+  case "$res" in
+    "$D.tmp"|"$D.tmp"/*) ;;
+    *) rm -rf "$D.tmp"; finish FAIL_UNSAFE_LINK "escapes $link -> $res (tgt=$tgt)" 1 ;;
+  esac
+done < <(find "$D.tmp" -type l -print0)
+chown -R -h root:root "$D.tmp"
+chmod -R a-s,go-w "$D.tmp"
+rm -rf "$D"
+mv -T "$D.tmp" "$D"
+
+# Atomic switch
+ln -sfn "$D" "$CUR.new" && mv -T "$CUR.new" "$CUR"
+
+if [ "${MP_SKIP_RESTART:-0}" != 1 ]; then
+  systemctl restart matchpilot-app.service
+fi
+
+if health; then
+  echo "$SHA" > "$STATE/deployed"
+  if [ -d "$D/migrations" ]; then
+    ( cd "$D/migrations" && sha256sum * 2>/dev/null | awk '{print $1, $2}' > "$LED.new" && mv "$LED.new" "$LED" )       || log "warn=migration_ledger_failed"
+  fi
+  # keep last KEEP releases (root-owned listing only)
+  ls -1dt "$REL"/*/ 2>/dev/null | sed 's#/$##' | grep -v -e "^$D\$" -e "^${PREV:-__none__}\$" | tail -n +$KEEP | while read -r old; do
+    case "$old" in "$REL"/*) rm -rf "$old" ;; esac
+  done
+  # cleanup build worktree
+  runuser -u "$BUILD_USER" -- rm -rf "$W"
+  finish OK "health=200" 0
+fi
+
+log "health FAILED -> rollback to $PREV"
+if [ -n "$PREV" ]; then
+  ln -sfn "$PREV" "$CUR.new" && mv -T "$CUR.new" "$CUR"
+  [ "${MP_SKIP_RESTART:-0}" != 1 ] && systemctl restart matchpilot-app.service
+  health && R=ok || R=FAILED
+else
+  R=none
+fi
+echo "$SHA FAIL_HEALTH $(date -Is)" >> "$STATE/failed"
+finish FAIL_HEALTH_ROLLED_BACK "rollback=$R" 1

@@ -1,0 +1,351 @@
+--- mp-deploy.v31-r1
++++ mp-deploy.v31
+@@ -1,43 +1,60 @@
+ #!/bin/bash
+-# mp-deploy <40-hex-sha> — MatchPilot deploy v3.1 (MP-VPS-GATE-V31-PREP-01, OFFLINE BUILD, NOT INSTALLED)
+-# = v3 (07dbed21) + PR #181 §8.4 (approved, main-tip x2) + single verifier + root-only lock + integrity checks.
++# mp-deploy <40-hex-sha> — MatchPilot deploy v3.1-r2 (MP-VPS-V31-REVIEW-REMEDIATION-01, OFFLINE BUILD, NOT INSTALLED)
++# = v3 (07dbed21) + PR #181 §8.4 (approved, main-tip) + single verifier + root-only lock + integrity checks,
++#   + r2 remediation of review #179/6336278907: no test mode in this file, effective-sudo check, main-tip before every
++#   persistent side effect of the build, pinned node, runner .env whitelist, post-rollback freeze latch.
+ # Token: GitHub Actions OIDC JWT on STDIN (never argv).
+-# Exit: 0 OK/ALREADY; 2 usage; 75 lock (nothing consumed); 1 build/other failures; 77 AUTHZ refused; 78 FROZEN;
+-#       79 TIP (stale/unverifiable main); 80 INTEGRITY.
++# Exit: 0 OK/ALREADY; 2 usage; 75 lock; 1 build/other failures; 77 AUTHZ refused; 78 FROZEN; 79 TIP; 80 INTEGRITY.
+ # Config (root 0600, fail-closed): /etc/mp-deploy/authz.conf
+-#   MODE=enforce|report  FREEZE=1|0  VERIFIER_SHA256= GUARD_SHA256= GATE_SHA256= HOOK_SHA256= WORKFLOW_BLOB_SHA= SELF_SHA256=
+-#   missing/unsafe/invalid => MODE=enforce FREEZE=1. MODE=report requires FREEZE=1 (report never deploys a new SHA).
++#   MODE=enforce|report FREEZE=1|0 VERIFIER_SHA256= GUARD_SHA256= GATE_SHA256= HOOK_SHA256= WORKFLOW_BLOB_SHA=
++#   SELF_SHA256= NODE_SHA256= SUDOERS_SHA256= ; missing/unsafe/invalid => MODE=enforce FREEZE=1; report requires FREEZE=1.
++#   $STATE/freeze-latch (written after an automatic health rollback) forces FREEZE=1 until root removes it.
+ # Semantics:
+ #   FREEZE=1 + enforce : SHA != deployed -> 78 immediately (before network, ledger, lock).
+ #   FREEZE=1 + report  : SHA != deployed -> full evaluation (integrity, verify, lock, consume, approved, main-tip),
+-#                        each result logged, then 78. Never builds, never switches. The token IS consumed (R6 provable).
+-#   FREEZE=0 + enforce : deploy only if every step passes; main-tip re-checked just before the release switch.
+-#   SHA == deployed    : ALREADY_DEPLOYED (health) or FROZEN under freeze; never rebuilds under freeze.
++#                        each result logged (deploy.log is the evidence: an integrity failure also ends in 78), then 78.
++#   FREEZE=0 + enforce : deploy only if every step passes. main-tip is checked (1) under the lock before the fetch,
++#                        (2) before the tests (the only step touching a database: the test DB), (3) immediately before
++#                        the release switch; a (2)/(3) refusal removes the worktree and the new release dir.
++# This file has NO test mode and reads NO environment override. The offline harness builds a separate test copy by replacing
++# the single marker line below with `source <test-shim>`; the shim refuses euid 0, sudo and the installed path.
+ set -uo pipefail
+ umask 077
+-if [ -n "${SUDO_USER:-}${SUDO_UID:-}${SUDO_COMMAND:-}" ]; then
+-  for v in $(compgen -e | grep -E '^MP_'); do unset "$v"; done
+-fi
+-TESTMODE=0
+-if [ "${MP_TEST_STUB:-0}" = 1 ] && [ -z "${SUDO_USER:-}${SUDO_UID:-}${SUDO_COMMAND:-}" ]; then TESTMODE=1; fi
+-OWNER_UID=0; [ "$TESTMODE" = 1 ] && OWNER_UID=$(id -u)
++PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ TOKEN=""
+ if [ ! -t 0 ]; then TOKEN=$(timeout 5 head -c 16385 2>/dev/null | tr -d ' \r\n\t' || true); fi
+ 
+-REPO="${MP_REPO:-https://github.com/zarbopiero963-droid/MatchPilot}"
+-DEP="${MP_DEPLOY_ROOT:-/srv/mp-deploy}"
+-REL="$DEP/releases"
+-CUR="$DEP/current"
+-BUILD_ROOT="${MP_BUILD_ROOT:-/srv/mp-build}"
+-STATE="${MP_STATE:-/var/lib/mp-deploy}"
+-LOGD="${MP_LOGDIR:-/var/log/mp-deploy}"
+-LOG="$LOGD/deploy.log"
+-# V31-06: lock inside a root-only 0700 directory: the runner cannot open (hence cannot flock) it.
+-LOCKDIR="${MP_LOCKDIR:-/run/mp-deploy}"
+-LOCK="$LOCKDIR/deploy.lock"
++REPO="https://github.com/zarbopiero963-droid/MatchPilot"
++DEP="/srv/mp-deploy"
++BUILD_ROOT="/srv/mp-build"
++STATE="/var/lib/mp-deploy"
++LOGD="/var/log/mp-deploy"
++LOCKDIR="/run/mp-deploy"          # V31-06: root-only 0700 directory: the runner cannot open (hence cannot flock) it
+ KEEP=5
+-BUILD_USER="${MP_BUILD_USER:-mpbuild}"
+-TESTENV="${MP_TESTENV:-/etc/mp-deploy/test.env}"
++BUILD_USER="mpbuild"
++TESTENV="/etc/mp-deploy/test.env"
++GATEDIR="/usr/local/libexec/mp-gate"            # V31-01: the ONLY verifier location
++LEGACY_VERIFIER="/usr/local/libexec/mp-deploy-authz.mjs"
++AUTHZ_CONF="/etc/mp-deploy/authz.conf"
++GUARD_CONF="/etc/mp-deploy/runner-guard.json"
++HOOK="/usr/local/libexec/mp-runner-guard.sh"
++RUNNER_ENV="/opt/actions-runner/.env"
++RUNNER_USER="ghrunner"
++RUNNER_GROUP="ghrunner"
++SUDOERS_MAIN="/etc/sudoers"
++SUDOERS_DIR="/etc/sudoers.d"
++SUDO_RULE="(root) NOPASSWD: /usr/local/sbin/mp-deploy"
++SUDO_DEFAULTS='env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin, use_pty'
++NODE="/usr/bin/node"
++OIDC_BASE="https://token.actions.githubusercontent.com"; CURLPROTO="=https"
++HEALTH_URL="http://127.0.0.1:3000/"
++APP_UNIT="matchpilot-app.service"
++OWNER_UID=0
++ROOT_STOP="/"
++NODE_PRE=()
++# @MP-TEST-SHIM@
++SELF="$(realpath -e "$0" 2>/dev/null || echo "$0")"
++REL="$DEP/releases"; CUR="$DEP/current"; LOG="$LOGD/deploy.log"; LOCK="$LOCKDIR/deploy.lock"; LEDGER="$STATE/authz-ledger"
+ SHA="${1:-}"
+ [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "usage: mp-deploy <40-hex sha>" >&2; exit 2; }
+ 
+@@ -49,40 +66,22 @@
+   local rp; rp=$(realpath -e "$d") || { echo "FAIL_REALPATH $d" >&2; exit 3; }
+   case "$rp" in
+     "$DEP"|"$DEP"/*|"$STATE"|"$STATE"/*|"$LOGD"|"$LOGD"/*|"$BUILD_ROOT"|"$BUILD_ROOT"/*|"$LOCKDIR") ;;
+-    /run/mp-deploy|/var/lib/mp-deploy|/var/lib/mp-deploy/*|/var/log/mp-deploy|/var/log/mp-deploy/*|/srv/mp-deploy|/srv/mp-deploy/*|/srv/mp-build|/srv/mp-build/*) ;;
+     *) echo "FAIL_REALPATH_OUTSIDE $rp" >&2; exit 3 ;;
+   esac
+ }
+ 
+-# ================= v3.1 configuration =================
+-GATEDIR="/usr/local/libexec/mp-gate"            # V31-01: the ONLY verifier location
+-AUTHZ_CONF="/etc/mp-deploy/authz.conf"
+-GUARD_CONF="/etc/mp-deploy/runner-guard.json"
+-HOOK="/usr/local/libexec/mp-runner-guard.sh"
+-RUNNER_ENV="/opt/actions-runner/.env"
+-SUDOERS_DIR="/etc/sudoers.d"
+-SELF="$(realpath -e "$0" 2>/dev/null || echo "$0")"
+-LEDGER="$STATE/authz-ledger"; OIDC_BASE="https://token.actions.githubusercontent.com"; CURLPROTO="=https"
+-ROOT_STOP="/"                                     # ancestor walk stops here (production: up to /)
+-NODE_PRE=()
+-if [ "$TESTMODE" = 1 ]; then
+-  GATEDIR="${MP_GATEDIR:-$GATEDIR}"; AUTHZ_CONF="${MP_AUTHZ_CONF:-$AUTHZ_CONF}"; GUARD_CONF="${MP_GUARD_CONF:-$GUARD_CONF}"
+-  HOOK="${MP_HOOK:-$HOOK}"; RUNNER_ENV="${MP_RUNNER_ENV:-$RUNNER_ENV}"; SUDOERS_DIR="${MP_SUDOERS_DIR:-$SUDOERS_DIR}"
+-  OIDC_BASE="${MP_OIDC_BASE:-$OIDC_BASE}"; CURLPROTO="=https,http"; ROOT_STOP="${MP_TEST_ROOT:-/}"
+-  [ -n "${MP_TEST_FETCH_MOCK:-}" ] && NODE_PRE=(--import "$MP_TEST_FETCH_MOCK")
+-fi
+ VERIFIER="$GATEDIR/deploy-authz.mjs"
+-alog(){ mkdir -p "$LOGD" 2>/dev/null; echo "$(date -Is) sha=$SHA authz $*" | tee -a "$LOGD/deploy.log" >&2; }
++alog(){ mkdir -p "$LOGD" 2>/dev/null; echo "$(date -Is) sha=$SHA authz $*" | tee -a "$LOG" >&2; }
+ deny(){ alog "result=$1 ${2:-}"; exit "${3:-77}"; }
+ MODE=enforce; FREEZE=1; BADCONF=0
+-VSUM=""; GUARDSUM=""; GATESUM=""; HOOKSUM=""; WFBLOB=""; SELFSUM=""
++VSUM=""; GUARDSUM=""; GATESUM=""; HOOKSUM=""; WFBLOB=""; SELFSUM=""; NODESUM=""; SUDOSUM=""
+ hex64(){ [[ "$1" =~ ^[0-9a-f]{64}$ ]]; }
+ no_acl(){ local o; if command -v getfacl >/dev/null 2>&1; then o=$(getfacl -cps -- "$1" 2>/dev/null) || return 1; [ -z "$o" ] || return 1; fi
+   o=$(ls -ld -- "$1" 2>/dev/null) || return 1; [ "${o:10:1}" != "+" ]; }   # '+' after mode bits = extended ACL
+-# root-owned (or test owner), regular, not symlink, no g/o write, no ACL; optional exact mode
++# root-owned, regular, not symlink, no g/o write, no ACL; optional exact mode
+ safe_file(){ local f="$1" m="${2:-}"; [ -f "$f" ] && [ ! -L "$f" ] && [ "$(stat -c %u "$f")" = "$OWNER_UID" ] \
+   && [ $(( 0$(stat -c %a "$f") & 022 )) -eq 0 ] && no_acl "$f" && { [ -z "$m" ] || [ "$(stat -c %a "$f")" = "$m" ]; }; }
+-# every ancestor directory: not symlink, root (or test owner), no g/o write, no ACL
++# every ancestor directory: not symlink, root, no g/o write, no ACL
+ safe_ancestors(){ local d; d=$(dirname "$1")
+   while :; do
+     [ -L "$d" ] && return 1
+@@ -102,6 +101,8 @@
+       GATE_SHA256) hex64 "$v" && GATESUM="$v" || BADCONF=1;;
+       HOOK_SHA256) hex64 "$v" && HOOKSUM="$v" || BADCONF=1;;
+       SELF_SHA256) hex64 "$v" && SELFSUM="$v" || BADCONF=1;;
++      NODE_SHA256) hex64 "$v" && NODESUM="$v" || BADCONF=1;;
++      SUDOERS_SHA256) hex64 "$v" && SUDOSUM="$v" || BADCONF=1;;
+       WORKFLOW_BLOB_SHA) [[ "$v" =~ ^[0-9a-f]{40}$ ]] && WFBLOB="$v" || BADCONF=1;;
+       ''|\#*) ;;
+       *) BADCONF=1;;
+@@ -112,6 +113,8 @@
+ fi
+ [ "$MODE" = report ] && [ "$FREEZE" != 1 ] && { alog "conf_invalid report_requires_freeze"; BADCONF=1; }
+ [ "$BADCONF" = 1 ] && { MODE=enforce; FREEZE=1; alog "conf_invalid_or_missing -> enforce+freeze"; }
++# post-rollback latch (review P1-4): after an automatic health rollback nothing new deploys until root clears it
++if [ -e "$STATE/freeze-latch" ] || [ -L "$STATE/freeze-latch" ]; then [ "$FREEZE" = 1 ] || alog "freeze_latch present -> FREEZE=1"; FREEZE=1; fi
+ 
+ # ================= V31-04: FREEZE first (enforce: before ANY network, ledger or lock) =================
+ CURRENT=$(cat "$STATE/deployed" 2>/dev/null || true)
+@@ -135,28 +138,53 @@
+ chk "$GATEDIR/runner-job-guard.mjs" "$GUARDSUM" 644
+ chk "$GATEDIR/deploy-gate.mjs" "$GATESUM" 644
+ chk "$HOOK" "$HOOKSUM" 755
+-[ "$TESTMODE" = 1 ] && [ "${MP_TEST_SKIP_SELF:-0}" = 1 ] || chk "$SELF" "$SELFSUM" 755
++chk "$SELF" "$SELFSUM" 755        # tautological against whoever can rewrite this file; detects accidental drift only
++chk "$NODE" "$NODESUM" 755        # review P2-5: pinned interpreter, absolute path
+ if [ -d "$GATEDIR" ] && [ ! -L "$GATEDIR" ] && [ "$(stat -c %u "$GATEDIR")" = "$OWNER_UID" ] && [ "$(stat -c %a "$GATEDIR")" = 755 ] && no_acl "$GATEDIR"; then :; else INTEG+=" unsafe:$GATEDIR"; fi
+ # no other copy of the verifier is used (NB-E): the legacy path must be gone
+-[ -e /usr/local/libexec/mp-deploy-authz.mjs ] && [ "$TESTMODE" != 1 ] && INTEG+=" legacy_verifier_present"
++{ [ -e "$LEGACY_VERIFIER" ] || [ -L "$LEGACY_VERIFIER" ]; } && INTEG+=" legacy_verifier_present"
+ # workflow pin (NB-F): guard config must pin exactly WORKFLOW_BLOB_SHA
+ if safe_file "$GUARD_CONF" 644 && safe_ancestors "$GUARD_CONF"; then
+-  PIN=$(timeout 5 node -e 'const c=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));const k=Object.keys(c);if(k.length!==1||typeof c.workflow_blob_sha!=="string")process.exit(1);process.stdout.write(c.workflow_blob_sha)' "$GUARD_CONF" 2>/dev/null) || PIN=""
++  PIN=$(timeout 5 "$NODE" -e 'const c=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));const k=Object.keys(c);if(k.length!==1||typeof c.workflow_blob_sha!=="string")process.exit(1);process.stdout.write(c.workflow_blob_sha)' "$GUARD_CONF" 2>/dev/null) || PIN=""
+   [ -n "$WFBLOB" ] && [ "$PIN" = "$WFBLOB" ] || INTEG+=" workflow_pin"
+ else INTEG+=" unsafe:$GUARD_CONF"; fi
+-# runner env: root:<runner group> 0640, hook line exactly ours
+-if [ -f "$RUNNER_ENV" ] && [ ! -L "$RUNNER_ENV" ] && [ "$(stat -c %u "$RUNNER_ENV")" = "$OWNER_UID" ] && [ "$(stat -c %a "$RUNNER_ENV")" = 640 ] \
++# runner env (review P2-3): root:<runner group> 0640, safe ancestors, no ACL, keys whitelisted (LANG + our hook only)
++if [ -f "$RUNNER_ENV" ] && [ ! -L "$RUNNER_ENV" ] && [ "$(stat -c %u "$RUNNER_ENV")" = "$OWNER_UID" ] \
++   && [ "$(stat -c %G "$RUNNER_ENV")" = "$RUNNER_GROUP" ] && [ "$(stat -c %a "$RUNNER_ENV")" = 640 ] && no_acl "$RUNNER_ENV" \
++   && safe_ancestors "$RUNNER_ENV" \
++   && [ "$(grep -c '' "$RUNNER_ENV")" = "$(grep -cE '^(LANG=[A-Za-z0-9_.@-]+|ACTIONS_RUNNER_HOOK_JOB_STARTED=.*)$' "$RUNNER_ENV")" ] \
+    && [ "$(grep -c '^ACTIONS_RUNNER_HOOK_JOB_STARTED=' "$RUNNER_ENV")" = 1 ] && grep -qx "ACTIONS_RUNNER_HOOK_JOB_STARTED=$HOOK" "$RUNNER_ENV"; then :; else INTEG+=" runner_env"; fi
+-# sudo (read-only): ghrunner may run only mp-deploy; files root 0440
+-for f in "$SUDOERS_DIR"/*; do [ -e "$f" ] || continue; safe_file "$f" 440 || INTEG+=" unsafe_sudoers:$(basename "$f")"; done
+-G=$(grep -hE '^[[:space:]]*ghrunner[[:space:]]' "$SUDOERS_DIR"/* 2>/dev/null | sed 's/[[:space:]]\+/ /g;s/ $//')
+-[ "$G" = "ghrunner ALL=(root) NOPASSWD: /usr/local/sbin/mp-deploy" ] || INTEG+=" sudo_ghrunner"
++# ---- sudo (review P1-2), all read-only ----
++# (a) effective privileges as sudo itself resolves them (groups, aliases, includes, ALL, wildcards, Runas):
++#     `sudo -n -l -U ghrunner` must show exactly the expected Defaults and exactly ONE rule. Unparseable => fail.
++SL=$(sudo -n -l -U "$RUNNER_USER" 2>/dev/null) || SL="__SUDO_L_FAILED__"
++SLN=$(printf '%s\n' "$SL" | sed -E 's/[[:space:]]+$//; s/ on [^ ]+:$/:/' | awk 'NF')
++EXP_SL=$(printf 'Matching Defaults entries for %s:\n    %s\nUser %s may run the following commands:\n    %s' "$RUNNER_USER" "$SUDO_DEFAULTS" "$RUNNER_USER" "$SUDO_RULE")
++[ "$SLN" = "$EXP_SL" ] || INTEG+=" sudo_effective"
++# (b) group membership: only its own primary group (no sudo/admin/wheel or other %group rule can apply)
++[ "$(id -nG "$RUNNER_USER" 2>/dev/null)" = "$RUNNER_USER" ] || INTEG+=" sudo_groups"
++# (c) files: /etc/sudoers + every file of the include dir: root 0440, safe ancestors; the only include directive is
++#     "@includedir $SUDOERS_DIR"; the only non-comment line naming the runner (name, %group, #uid, %#gid, inside
++#     aliases) is the exact rule; no user spec for ALL; the whole set is pinned by SUDOERS_SHA256.
++sudoers_digest(){ local f; { sha256sum "$SUDOERS_MAIN" | cut -d' ' -f1; for f in "$SUDOERS_DIR"/*; do [ -e "$f" ] || continue; printf '%s %s\n' "$(basename "$f")" "$(sha256sum "$f" | cut -d' ' -f1)"; done; } | sha256sum | cut -d' ' -f1; }
++RUID=$(id -u "$RUNNER_USER" 2>/dev/null || echo x); RGID=$(id -g "$RUNNER_USER" 2>/dev/null || echo x)
++SFILES=("$SUDOERS_MAIN"); for f in "$SUDOERS_DIR"/*; do { [ -e "$f" ] || [ -L "$f" ]; } && SFILES+=("$f"); done
++for f in "${SFILES[@]}"; do { safe_file "$f" 440 && safe_ancestors "$f"; } || INTEG+=" unsafe_sudoers:$(basename "$f")"; done
++{ [ -d "$SUDOERS_DIR" ] && [ ! -L "$SUDOERS_DIR" ] && [ "$(stat -c %u "$SUDOERS_DIR")" = "$OWNER_UID" ] && [ $(( 0$(stat -c %a "$SUDOERS_DIR") & 022 )) -eq 0 ]; } || INTEG+=" unsafe_sudoers_dir"
++INC=$(cat "${SFILES[@]}" 2>/dev/null | grep -E '^[[:space:]]*[@#]include(dir)?[[:space:]]' | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')
++[ "$INC" = "@includedir $SUDOERS_DIR" ] || INTEG+=" sudo_includes"
++# continuations joined; comments dropped ('#' not followed by a digit: '#123' is a uid)
++SBODY=$(cat "${SFILES[@]}" 2>/dev/null | sed -e ':a' -e '/\\$/N; s/\\\n/ /; ta' | grep -vE '^[[:space:]]*(#([^0-9]|$)|$)' | grep -vE '^[[:space:]]*@include' | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')
++RUNNER_LINES=$(printf '%s\n' "$SBODY" | grep -E "(^|[^A-Za-z0-9_-])(%?$RUNNER_USER|#$RUID|%#$RGID)([^A-Za-z0-9_-]|\$)" || true)
++[ "$RUNNER_LINES" = "$RUNNER_USER ALL=(root) NOPASSWD: /usr/local/sbin/mp-deploy" ] || INTEG+=" sudo_files_runner"
++printf '%s\n' "$SBODY" | grep -qE '^ALL[[:space:],=]' && INTEG+=" sudo_files_all_users"
++{ [ -n "$SUDOSUM" ] && [ "$(sudoers_digest)" = "$SUDOSUM" ]; } || INTEG+=" sudoers_pin"
+ if [ -n "$INTEG" ]; then step_fail INTEGRITY "${INTEG# }" 80; [ "$EVAL_ONLY" = 1 ] && deny FROZEN "after_eval integrity_failed current=${CURRENT:-none}" 78; fi
+ 
+ AZ_OK=0; AZ_WHY=""; AZ_OUT=""
+ TMPD=$(mktemp -d /tmp/mp-authz.XXXXXX) || deny AUTHZ_ERROR "mktemp"
+ trap 'rm -rf "$TMPD"' EXIT
+-vnode(){ timeout "${VNODE_TIMEOUT:-25}" node "${NODE_PRE[@]}" "$VERIFIER" "$@"; }
++vnode(){ timeout 25 "$NODE" "${NODE_PRE[@]}" "$VERIFIER" "$@"; }
+ authz_verify(){ # $1 = verify|consume ; sets AZ_OK / AZ_WHY / AZ_OUT
+   AZ_OK=0; AZ_OUT=""
+   [ -n "$TOKEN" ] || { AZ_WHY="AUTHZ_NO_TOKEN"; return; }
+@@ -165,7 +193,7 @@
+   [ "$(sha256sum "$VERIFIER" | cut -d' ' -f1)" = "$VSUM" ] || { AZ_WHY="AUTHZ_VERIFIER_HASH"; return; }
+   if [ ! -s "$TMPD/jwks.json" ]; then
+     curl -fsS --proto "$CURLPROTO" --max-time 10 --max-filesize 65536 -o "$TMPD/oidc.json" "$OIDC_BASE/.well-known/openid-configuration" 2>/dev/null || { AZ_WHY="AUTHZ_JWKS_UNAVAILABLE oidc-config"; return; }
+-    JU=$(timeout 10 node -e 'const c=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));const b=process.argv[2];if(c.issuer!=="https://token.actions.githubusercontent.com"||typeof c.jwks_uri!=="string"||!c.jwks_uri.startsWith(b+"/"))process.exit(1);process.stdout.write(c.jwks_uri)' "$TMPD/oidc.json" "$OIDC_BASE" 2>/dev/null) || { AZ_WHY="AUTHZ_JWKS_UNEXPECTED oidc-config"; return; }
++    JU=$(timeout 10 "$NODE" -e 'const c=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));const b=process.argv[2];if(c.issuer!=="https://token.actions.githubusercontent.com"||typeof c.jwks_uri!=="string"||!c.jwks_uri.startsWith(b+"/"))process.exit(1);process.stdout.write(c.jwks_uri)' "$TMPD/oidc.json" "$OIDC_BASE" 2>/dev/null) || { AZ_WHY="AUTHZ_JWKS_UNEXPECTED oidc-config"; return; }
+     curl -fsS --proto "$CURLPROTO" --max-time 10 --max-filesize 65536 -o "$TMPD/jwks.json" "$JU" 2>/dev/null || { rm -f "$TMPD/jwks.json"; AZ_WHY="AUTHZ_JWKS_UNAVAILABLE jwks"; return; }
+   fi
+   local rc
+@@ -175,7 +203,7 @@
+ }
+ # V31-02: owner approval of exactly the token's run_id/run_attempt
+ approved_check(){ local rid ratt out rc
+-  rid=$(printf '%s' "$AZ_OUT" | timeout 5 node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const r=JSON.parse(s).run;if(r&&/^[1-9][0-9]{0,19}$/.test(r.run_id)&&/^[1-9][0-9]{0,4}$/.test(r.run_attempt)){process.stdout.write(r.run_id+" "+r.run_attempt);return}}catch{}process.exit(1)})' 2>/dev/null) \
++  rid=$(printf '%s' "$AZ_OUT" | timeout 5 "$NODE" -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const r=JSON.parse(s).run;if(r&&typeof r.run_id==="string"&&typeof r.run_attempt==="string"&&/^[1-9][0-9]{0,19}$/.test(r.run_id)&&/^[1-9][0-9]{0,4}$/.test(r.run_attempt)){process.stdout.write(r.run_id+" "+r.run_attempt);return}}catch{}process.exit(1)})' 2>/dev/null) \
+     || { echo "AUTHZ_RUN_IDENTITY_MISSING"; return 1; }
+   ratt=${rid#* }; rid=${rid% *}
+   out=$(vnode approved --run-id "$rid" --run-attempt "$ratt" </dev/null 2>/dev/null); rc=$?
+@@ -215,29 +243,22 @@
+     if [ "$AZ_OK" = 1 ]; then alog "consume=OK"; else step_fail AUTHZ_REFUSED "consume: $AZ_WHY" 77; fi
+   fi
+   if [ "$AZ_OK" = 1 ]; then
+-    if W=$(approved_check); then alog "approved=OK $W"; else step_fail AUTHZ_REFUSED "approved: $W" 77; fi
++    if TW=$(approved_check); then alog "approved=OK $TW"; else step_fail AUTHZ_REFUSED "approved: $TW" 77; fi
+   else
+     [ "$EVAL_ONLY" = 1 ] && alog "eval approved=SKIPPED (no accepted token)"
+   fi
+-  if W=$(tip_check); then alog "main_tip_1=OK"; else step_fail TIP_REFUSED "main_tip_1: $W" 79; fi
++  if TW=$(tip_check); then alog "main_tip_1=OK"; else step_fail TIP_REFUSED "main_tip_1: $TW" 79; fi
+ fi
+ if [ "$EVAL_ONLY" = 1 ]; then deny FROZEN "after_eval eval_fail=$EVAL_FAIL current=${CURRENT:-none} (no build, no switch)" 78; fi
+-if [ "$TESTMODE" = 1 ] && [ "${MP_TEST_FULL_STUB:-1}" = 1 ]; then
+-  sleep "${MP_TEST_HOLD:-0}"
+-  if [ "$MODE" = enforce ]; then W=$(tip_check) || deny TIP_REFUSED "main_tip_2: $W" 79; alog "main_tip_2=OK"; fi
+-  alog "result=STUB_SWITCH_OK (test mode: build/switch stubbed)"; exit 0
+-fi
+-
+ T0=$(date +%s)
+ log(){ echo "$(date -Is) sha=$SHA $*" | tee -a "$LOG"; }
+ finish(){ log "result=$1 total_s=$(( $(date +%s)-T0 )) ${2:-}"; case "$1" in FAIL_TESTS|FAIL_BUILD|BLOCKED_MIGRATION|BLOCKED_MIGRATION_MODIFIED) echo "$SHA $1 $(date -Is)" >> "$STATE/failed";; esac; exit "${3:-1}"; }
+ 
+-# health: only used when not skipped
++# health
+ health(){
+-  [ "${MP_SKIP_HEALTH:-0}" = 1 ] && return 0
+   local i c
+   for i in $(seq 1 30); do
+-    c=$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 http://127.0.0.1:3000/ || true)
++    c=$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "$HEALTH_URL" || true)
+     [ "$c" = 200 ] && return 0
+     sleep 2
+   done
+@@ -267,13 +288,13 @@
+ runuser -u "$BUILD_USER" -- git -C "$CACHE" merge-base --is-ancestor "$SHA" refs/heads/main 2>/dev/null || finish FAIL_NOT_ON_MAIN "" 1
+ 
+ # Forward-only: new SHA must be descendant of currently deployed (unless root one-shot rollback marker)
+-LAST=$(cat "$STATE/deployed" 2>/dev/null || true)
++LAST=$(cat "$STATE/deployed" 2>/dev/null || true); CONSUME_MARKER=""
+ if [ -n "$LAST" ] && [ "$LAST" != "$SHA" ]; then
+   if ! runuser -u "$BUILD_USER" -- git -C "$CACHE" merge-base --is-ancestor "$LAST" "$SHA" 2>/dev/null; then
+     M="$STATE/allow-rollback-$SHA"
+-    if [ -f "$M" ] && [ ! -L "$M" ] && [ "$(stat -c %u "$M")" = 0 ]; then
+-      rm -f "$M"
+-      log "rollback_marker_consumed sha=$SHA"
++    if [ -f "$M" ] && [ ! -L "$M" ] && [ "$(stat -c %u "$M")" = "$OWNER_UID" ]; then
++      CONSUME_MARKER="$M"     # consumed only after main_tip_3, right before the switch (zero change on refusal)
++      log "rollback_marker_present sha=$SHA"
+     else
+       finish FAIL_NOT_MONOTONIC "last=$LAST" 1
+     fi
+@@ -289,7 +310,7 @@
+ 
+ # migration guard (name-based, same as v1) + content ledger if present
+ LED="$STATE/migrations.sha256"
+-if [ -f "$LED" ] && [ ! -L "$LED" ] && [ "$(stat -c %u "$LED")" = 0 ]; then
++if [ -f "$LED" ] && [ ! -L "$LED" ] && [ "$(stat -c %u "$LED")" = "$OWNER_UID" ]; then
+   while read -r h f; do
+     [ -z "${f:-}" ] && continue
+     n=$(runuser -u "$BUILD_USER" -- sha256sum "$W/migrations/$f" 2>/dev/null | awk '{print $1}')
+@@ -321,10 +342,12 @@
+ fi
+ log "npm_ci s=$(( $(date +%s)-t ))"
+ 
++# V31-03/r2: tests are the first step with an effect outside the build tree (the test database): tip re-checked first
++if TW=$(tip_check); then log "main_tip_2=OK (before tests)"; else runuser -u "$BUILD_USER" -- rm -rf "$W"; finish TIP_REFUSED "main_tip_2: $TW" 79; fi
+ # --- tests (localhost only for PG) ---
+ t=$(date +%s)
+ TAP="$LOGD/test-$SHA.tap"
+-if [ ! -f "$TESTENV" ] || [ -L "$TESTENV" ] || [ "$(stat -c %u "$TESTENV")" != 0 ]; then
++if [ ! -f "$TESTENV" ] || [ -L "$TESTENV" ] || [ "$(stat -c %u "$TESTENV")" != "$OWNER_UID" ]; then
+   finish FAIL_TESTENV "missing_or_unsafe $TESTENV" 1
+ fi
+ # Password never sourced into this shell; systemd injects EnvironmentFile into the sandboxed unit only.
+@@ -367,16 +390,19 @@
+ rm -rf "$D"
+ mv -T "$D.tmp" "$D"
+ 
+-# V31-03: second tip check immediately before the atomic switch (enforce only; report never reaches here)
+-if [ "$MODE" = enforce ]; then
+-  if W=$(tip_check); then log "main_tip_2=OK"; else finish TIP_REFUSED "main_tip_2: $W" 79; fi
++# V31-03: last tip check immediately before the atomic switch (only enforce+FREEZE=0 reaches this line).
++# On refusal the new release dir and the worktree are removed: no persistent trace but the log (review P1-1/P1-3).
++if TW=$(tip_check); then log "main_tip_3=OK (before switch)"
++else
++  [ "$D" != "$PREV" ] && rm -rf "$D"
++  runuser -u "$BUILD_USER" -- rm -rf "$W"
++  finish TIP_REFUSED "main_tip_3: $TW" 79
+ fi
++if [ -n "$CONSUME_MARKER" ]; then rm -f "$CONSUME_MARKER"; log "rollback_marker_consumed sha=$SHA"; fi
+ # Atomic switch
+ ln -sfn "$D" "$CUR.new" && mv -T "$CUR.new" "$CUR"
+ 
+-if [ "${MP_SKIP_RESTART:-0}" != 1 ]; then
+-  systemctl restart matchpilot-app.service
+-fi
++systemctl restart "$APP_UNIT"
+ 
+ if health; then
+   echo "$SHA" > "$STATE/deployed"
+@@ -395,10 +421,12 @@
+ log "health FAILED -> rollback to $PREV"
+ if [ -n "$PREV" ]; then
+   ln -sfn "$PREV" "$CUR.new" && mv -T "$CUR.new" "$CUR"
+-  [ "${MP_SKIP_RESTART:-0}" != 1 ] && systemctl restart matchpilot-app.service
++  systemctl restart "$APP_UNIT"
+   health && R=ok || R=FAILED
+ else
+   R=none
+ fi
+ echo "$SHA FAIL_HEALTH $(date -Is)" >> "$STATE/failed"
++# review P1-4: the automatic rollback is recovery only; latch FREEZE until root decides (rm $STATE/freeze-latch)
++echo "$SHA FAIL_HEALTH rollback=$R $(date -Is)" > "$STATE/freeze-latch"
+ finish FAIL_HEALTH_ROLLED_BACK "rollback=$R" 1
