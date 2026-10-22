@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 120,
+  "revision": 124,
   "tasks": [
     {
       "id": "R-01",
@@ -579,6 +579,32 @@
         "file:docs/governance/work-registry.json"
       ],
       "pr_open": true
+    },
+    {
+      "id": "FUNC-RECOVERY-01",
+      "title": "MP-VPS-FUNCTIONAL-RECOVERY-01: MatchPilot working in an isolated VPS test environment, simulated FutPythonTrader signals end to end",
+      "issue": 179,
+      "pr": 184,
+      "branch": "functional/mp-vps-recovery-20261022",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "assignee": {
+        "agent": "agent-g-grok",
+        "role": "Development Agent"
+      },
+      "lease": {
+        "holder": "agent-g-grok",
+        "acquired_at": "2026-10-22T12:35:59.689Z",
+        "expires_at": "2026-10-22T14:35:59.689Z"
+      },
+      "latest_checkpoint": "CP-20261022T123735Z-agent-g-grok",
+      "pr_open": true,
+      "parallel_authorization": "MP-VPS-FUNCTIONAL-RECOVERY-01",
+      "resources": [
+        "branch:functional/mp-vps-recovery-20261022",
+        "vps:45.14.186.174",
+        "db:matchpilot_functest"
+      ]
     },
     {
       "id": "TAKEOVER-01",
