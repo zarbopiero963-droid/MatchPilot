@@ -25,6 +25,7 @@ function fakeApi(overrides = {}) {
     [ENV_PATH]: {status: 200, body: protectedEnvironment()},
     [`${ENV_PATH}/deployment-branch-policies?per_page=100`]: {status: 200, body: {total_count: 1, branch_policies: [{id: 9, name: BRANCH, type: 'branch'}]}},
     [`repos/${REPOSITORY}/branches/${BRANCH}`]: {status: 200, body: {commit: {sha: SHA}}},
+    ...merged(SHA), ...merged('b'.repeat(40)),
     ...overrides,
   };
   return async path => {
@@ -38,6 +39,15 @@ function fakeApi(overrides = {}) {
 const run = {repository: REPOSITORY, ref: 'refs/heads/main', event: 'push', sha: SHA};
 const problems = async (overrides = {}, context = {}) => gateProblems(await readFacts({...run, ...context, api: fakeApi(overrides)}));
 const env = body => ({[ENV_PATH]: {status: 200, body}});
+// MP-AUTODEPLOY-01: a merged PR into main and a green CI gate on the SHA.
+const PULLS = sha => `repos/${REPOSITORY}/commits/${sha}/pulls?per_page=100`;
+const CHECKS = sha => `repos/${REPOSITORY}/commits/${sha}/check-runs?check_name=CI%20gate&filter=all&per_page=100`;
+const runOf = sha => (sha === SHA ? 7 : 70);
+const merged = sha => ({[PULLS(sha)]: {status: 200, body: [{merged_at: '2026-10-22T16:00:00Z', merge_commit_sha: sha, base: {ref: 'main', repo: {full_name: REPOSITORY}}}]},
+  [CHECKS(sha)]: {status: 200, body: {check_runs: [{id: 1, name: 'CI gate', head_sha: sha, status: 'completed', conclusion: 'success', app: {slug: 'github-actions'}, check_suite: {id: 5},
+    details_url: `https://github.com/zarbopiero963-droid/MatchPilot/actions/runs/${runOf(sha)}/job/8`}]}},
+  [`repos/zarbopiero963-droid/MatchPilot/actions/runs/${runOf(sha)}`]: {status: 200, body: {id: runOf(sha), path: '.github/workflows/ci.yml', event: 'push', head_branch: 'main', head_sha: sha,
+    status: 'completed', conclusion: 'success', check_suite_id: 5, repository: {full_name: 'zarbopiero963-droid/MatchPilot'}}}});
 
 test('a push to main with vps-production protected by the owner only, no admin bypass and only main passes', async () => {
   assert.deepEqual(await problems(), []);
@@ -52,22 +62,39 @@ test('prevent self-review on, or unreadable, is reported: the owner who merges c
 
 test('a missing environment, or one GitHub created from the workflow without protection, stops the deploy', async () => {
   assert.match((await problems({[ENV_PATH]: {status: 404, body: null}})).join('\n'), /GATE_ENVIRONMENT_MISSING/);
-  // What GitHub creates when a workflow names an environment that does not exist.
   const created = await problems(env({name: ENVIRONMENT, can_admins_bypass: true, protection_rules: [], deployment_branch_policy: null}));
-  assert.match(created.join('\n'), /GATE_NO_REQUIRED_REVIEWERS/);
   assert.match(created.join('\n'), /GATE_ADMIN_BYPASS/);
   assert.match(created.join('\n'), /GATE_BRANCH_POLICY/);
-  // A wait timer alone is not an approval.
-  assert.match((await problems(env(protectedEnvironment({protection_rules: [{type: 'wait_timer', wait_timer: 30}]})))).join(), /GATE_NO_REQUIRED_REVIEWERS/);
 });
 
-test('only the owner may approve: another user, a team, an empty list or an unreadable entry stops the deploy', async () => {
-  const withReviewers = reviewers => env(protectedEnvironment({protection_rules: [{type: 'required_reviewers', reviewers}]}));
+test('MP-AUTODEPLOY-01: no required reviewer is needed; if one is configured it may only be the owner', async () => {
+  assert.deepEqual(await problems(env(protectedEnvironment({protection_rules: [{type: 'branch_policy'}]}))), []);
+  const withReviewers = reviewers => env(protectedEnvironment({protection_rules: [{type: 'required_reviewers', prevent_self_review: false, reviewers}]}));
   assert.match((await problems(withReviewers([owner, {type: 'User', reviewer: {login: 'someone-else'}}]))).join(), /GATE_UNEXPECTED_REVIEWER: User someone-else/);
   assert.match((await problems(withReviewers([{type: 'Team', reviewer: {slug: 'devs'}}]))).join(), /GATE_UNEXPECTED_REVIEWER: Team devs/);
-  assert.match((await problems(withReviewers([]))).join(), /GATE_NO_REQUIRED_REVIEWERS/);
   assert.match((await problems(withReviewers([{type: 'User'}]))).join(), /GATE_UNEXPECTED_REVIEWER/);
-  assert.match((await problems(env(protectedEnvironment({protection_rules: 'x'})))).join(), /GATE_NO_REQUIRED_REVIEWERS/);
+});
+
+test('MP-AUTODEPLOY-01: a direct push, an unmerged or foreign PR, a missing, pending or red CI gate stop the deploy', async () => {
+  const pulls = body => ({[PULLS(SHA)]: {status: 200, body}});
+  const pr = o => ({merged_at: '2026-10-22T16:00:00Z', merge_commit_sha: SHA, base: {ref: 'main', repo: {full_name: REPOSITORY}}, ...o});
+  for (const body of [[], [pr({merged_at: null})], [pr({merge_commit_sha: NEWER})], [pr({base: {ref: 'dev', repo: {full_name: REPOSITORY}}})], [pr({base: {ref: 'main', repo: {full_name: 'x/y'}}})]]) {
+    assert.match((await problems(pulls(body))).join(), /GATE_NOT_A_MERGED_PR/, JSON.stringify(body));
+  }
+  assert.match((await problems({[PULLS(SHA)]: {status: 404, body: null}})).join(), /GATE_API_ERROR: pulls HTTP 404/);
+  const checks = list => ({[CHECKS(SHA)]: {status: 200, body: {check_runs: list}}});
+  const ck = o => ({id: 1, name: 'CI gate', head_sha: SHA, status: 'completed', conclusion: 'success', app: {slug: 'github-actions'}, ...o});
+  assert.match((await problems(checks([]))).join(), /GATE_CI_MISSING/);
+  assert.match((await problems(checks([ck({status: 'queued', conclusion: null})]))).join(), /GATE_CI_PENDING/);
+  assert.match((await problems(checks([ck({conclusion: 'failure'})]))).join(), /GATE_CI_NOT_GREEN/);
+  assert.match((await problems(checks([ck({app: {slug: 'other'}})]))).join(), /GATE_CI_MISSING/);
+  assert.match((await problems(checks([ck(), ck({id: 2, conclusion: 'cancelled'})]))).join(), /GATE_CI_NOT_GREEN: cancelled/);
+  // The trusted ci.yml run must itself be finished and green (it finalizes just after its last job), and be ci.yml on push/main.
+  const ciRun = o => ({[`repos/${REPOSITORY}/actions/runs/7`]: {status: 200, body: {id: 7, path: '.github/workflows/ci.yml', event: 'push', head_branch: 'main', head_sha: SHA,
+    status: 'completed', conclusion: 'success', check_suite_id: 5, repository: {full_name: REPOSITORY}, ...o}}});
+  assert.match((await problems(ciRun({status: 'in_progress', conclusion: null}))).join(), /GATE_CI_PENDING/);
+  assert.match((await problems(ciRun({path: '.github/workflows/fake.yml'}))).join(), /GATE_CI_NOT_FROM_TRUSTED_WORKFLOW/);
+  assert.match((await problems(ciRun({check_suite_id: 6}))).join(), /GATE_CI_CHECK_NOT_FROM_TRUSTED_WORKFLOW/);
 });
 
 test('administrators must not be able to bypass the approval; an absent setting counts as a bypass', async () => {
@@ -128,6 +155,7 @@ const ROUTES = {
   [ENV_PATH]: {status: 200, body: protectedEnvironment()},
   [`${ENV_PATH}/deployment-branch-policies?per_page=100`]: {status: 200, body: {branch_policies: [{name: 'main', type: 'branch'}]}},
   [`repos/${REPOSITORY}/branches/main`]: {status: 200, body: {commit: {sha: SHA}}},
+  ...merged(SHA),
 };
 
 test('CLI: PASS exits 0; a missing environment, a bad token or no token exits 1 with the reason', async () => {
@@ -166,7 +194,7 @@ test('NB-11: an answer of an unexpected shape still gives a full report, and FAI
     const result = await cli(base);
     assert.equal(result.status, 1);
     assert.equal(result.report.result, 'FAIL');
-    assert.match(result.report.problems.join(), /GATE_NO_REQUIRED_REVIEWERS/);
+    assert.match(result.report.problems.join(), /GATE_REVIEWERS_UNREADABLE/);
     assert.ok(result.report.observed, 'the report is written');
   });
   await withFakeGithub({...ROUTES, [`${ENV_PATH}/deployment-branch-policies?per_page=100`]: {status: 200, body: {branch_policies: {}}}}, async base => {
@@ -183,6 +211,7 @@ test('CLI: from a path with spaces or through a symlink the checks still run', a
   execFileSync('mkdir', ['-p', dir]);
   const copy = join(dir, 'deploy-gate.mjs');
   writeFileSync(copy, readFileSync(new URL('../scripts/deploy-gate.mjs', import.meta.url)));
+  writeFileSync(join(dir, 'deploy-authz.mjs'), readFileSync(new URL('../scripts/deploy-authz.mjs', import.meta.url)));
   symlinkSync(copy, join(dir, 'linked gate.mjs'));
   for (const script of [copy, join(dir, 'linked gate.mjs')]) {
     const result = spawnSync(process.execPath, [script], {encoding: 'utf8', env: {PATH: process.env.PATH, GITHUB_SHA: SHA}});
@@ -214,6 +243,8 @@ function vps({gate = 'installed', tools = ['node', 'grep', 'cat']} = {}) {
   const real = tool => execFileSync('bash', ['-c', `command -v ${tool}`], {encoding: 'utf8'}).trim();
   for (const tool of tools) symlinkSync(tool === 'node' ? process.execPath : real(tool), join(bin, tool));
   if (gate === 'installed') writeFileSync(join(installed, 'deploy-gate.mjs'), readFileSync(GATE_SOURCE), {flag: 'wx'});
+  // MP-AUTODEPLOY-01: the installed gate imports the installed deploy-authz.mjs (root installs both, §8.2).
+  if (gate === 'installed') writeFileSync(join(installed, 'deploy-authz.mjs'), readFileSync(new URL('../scripts/deploy-authz.mjs', import.meta.url)), {flag: 'wx'});
   else if (gate !== 'missing') writeFileSync(join(installed, 'deploy-gate.mjs'), gate, {flag: 'wx'});
   return {bin, tmp: join(dir, 'tmp'), installed: `${installed}/`};
 }
@@ -237,7 +268,7 @@ test('after approval, at every attempt: the gate installed by root runs again on
   // Re-run of the deploy job alone after the environment lost its protection (review NB-1): the step checks again.
   const unprotected = await postApproval({routes: {...ROUTES, [ENV_PATH]: {status: 200, body: {name: ENVIRONMENT, can_admins_bypass: true, protection_rules: [], deployment_branch_policy: null}}}});
   assert.equal(unprotected.status, 1);
-  assert.match(unprotected.out, /GATE_NO_REQUIRED_REVIEWERS[\s\S]*DEPLOY_GATE_FAIL/);
+  assert.match(unprotected.out, /GATE_ADMIN_BYPASS[\s\S]*DEPLOY_GATE_FAIL/);
   // An older run approved after a newer merge.
   const stale = await postApproval({routes: {...ROUTES, [`repos/${REPOSITORY}/branches/main`]: {status: 200, body: {commit: {sha: NEWER}}}}});
   assert.equal(stale.status, 1);

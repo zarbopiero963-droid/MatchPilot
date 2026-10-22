@@ -54,18 +54,20 @@ export const CANONICAL_DEPLOY = Object.freeze({
   },
   "concurrency": {
     "group": "deploy-vps",
-    "cancel-in-progress": false
+    "cancel-in-progress": true
   },
   "jobs": {
     "gate": {
       "name": "Deploy gate",
       "if": "github.repository == 'zarbopiero963-droid/MatchPilot' && github.ref == 'refs/heads/main'",
       "runs-on": "ubuntu-latest",
-      "timeout-minutes": 5,
+      "timeout-minutes": 45,
       "permissions": {
         "contents": "read",
         "actions": "read",
-        "deployments": "read"
+        "deployments": "read",
+        "checks": "read",
+        "pull-requests": "read"
       },
       "steps": [
         {
@@ -77,7 +79,8 @@ export const CANONICAL_DEPLOY = Object.freeze({
         {
           "name": "Environment vps-production protetto e SHA ancora su main",
           "env": {
-            "GH_TOKEN": "${{ github.token }}"
+            "GH_TOKEN": "${{ github.token }}",
+            "DEPLOY_GATE_WAIT_CI_S": "2400"
           },
           "run": "set -euo pipefail\nnode scripts/deploy-gate.mjs > \"$RUNNER_TEMP/deploy-gate.json\" || { cat \"$RUNNER_TEMP/deploy-gate.json\"; echo \"DEPLOY_GATE_FAIL\"; exit 1; }\ncat \"$RUNNER_TEMP/deploy-gate.json\"\ngrep -q '\"result\": \"PASS\"' \"$RUNNER_TEMP/deploy-gate.json\" || { echo \"DEPLOY_GATE_FAIL\"; exit 1; }\n"
         }
@@ -96,6 +99,8 @@ export const CANONICAL_DEPLOY = Object.freeze({
         "contents": "read",
         "actions": "read",
         "deployments": "read",
+        "checks": "read",
+        "pull-requests": "read",
         "id-token": "write"
       },
       "steps": [

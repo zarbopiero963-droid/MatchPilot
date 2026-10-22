@@ -22,7 +22,7 @@
 import {readFileSync, realpathSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
-import {EXPECTED, GITHUB_API, approvalProblems, httpJson, readMainTip, tipProblems} from './deploy-authz.mjs';
+import {EXPECTED, GITHUB_API, ciProblems, ciRunId, httpJson, latestCiCheck, mergeProblems, mergeUrls, readMainTip, tipProblems} from './deploy-authz.mjs';
 
 export const WORKFLOW_PATH = '.github/workflows/deploy-vps.yml';
 export const JOB = 'deploy';
@@ -38,7 +38,11 @@ export function gitBlobSha(bytes) {
 }
 
 export function configProblems(config) {
-  if (!plain(config) || Object.keys(config).join() !== 'workflow_blob_sha' || !SHA.test(config.workflow_blob_sha ?? '')) return ['GUARD_CONFIG: expected exactly {"workflow_blob_sha": "<40 hex>"}'];
+  // MP-AUTODEPLOY-01: the root-owned config pins both deploy-vps.yml and the trusted ci.yml (owner t124u).
+  if (!plain(config) || Object.keys(config).sort().join() !== 'ci_workflow_blob_sha,workflow_blob_sha'
+    || !SHA.test(config.workflow_blob_sha ?? '') || !SHA.test(config.ci_workflow_blob_sha ?? '')) {
+    return ['GUARD_CONFIG: expected exactly {"workflow_blob_sha": "<40 hex>", "ci_workflow_blob_sha": "<40 hex>"}'];
+  }
   return [];
 }
 
@@ -60,13 +64,18 @@ export function envProblems(env) {
 
 // Reads GitHub. Each read that fails is recorded as a problem; nothing is assumed.
 export async function readGuardFacts(env, {fetchJson = httpJson, fetchText} = {}) {
-  const facts = {run: null, jobs: null, workflow: null, approvals: null, pending: null, tip: null, errors: []};
+  const facts = {run: null, jobs: null, workflow: null, pulls: null, checks: null, ciRuns: null, ciBlob: null, pending: null, tip: null, errors: []};
   const run = `${GITHUB_API}/actions/runs/${env.GITHUB_RUN_ID}`;
   const read = async (what, url) => { try { return await fetchJson(url); } catch (error) { facts.errors.push(`GUARD_API_ERROR: ${what} ${message(error)}`); return null; } };
   facts.run = await read('run', run);
   facts.jobs = await read('jobs', `${run}/attempts/${env.GITHUB_RUN_ATTEMPT}/jobs?per_page=100`);
   facts.workflow = await read('workflow', `${GITHUB_API}/contents/${WORKFLOW_PATH}?ref=${env.GITHUB_SHA}`);
-  facts.approvals = await read('approvals', `${run}/approvals`);
+  // MP-AUTODEPLOY-01: a merged PR and a green CI gate on this SHA replace the owner's approval.
+  facts.pulls = await read('pulls', mergeUrls(env.GITHUB_SHA).pulls);
+  facts.checks = await read('checks', mergeUrls(env.GITHUB_SHA).checks);
+  const ciId = ciRunId(latestCiCheck(facts.checks, env.GITHUB_SHA));
+  facts.ciRuns = ciId ? await read('ci run', mergeUrls(env.GITHUB_SHA).ciRun(ciId)) : null;
+  facts.ciBlob = await read('ci workflow', mergeUrls(env.GITHUB_SHA).ciBlob);
   facts.pending = await read('pending deployments', `${run}/pending_deployments`);
   facts.tip = await readMainTip(fetchText ? {fetchText} : {});
   return facts;
@@ -92,7 +101,7 @@ export function guardProblems(env, facts, config) {
   if (!(plain(workflow) && workflow.type === 'file' && workflow.path === WORKFLOW_PATH && workflow.sha === config.workflow_blob_sha)) {
     p.push(`GUARD_WORKFLOW_NOT_PINNED: ${plain(workflow) ? workflow.sha : 'unreadable'} (pinned ${config.workflow_blob_sha})`);
   }
-  p.push(...approvalProblems(facts.approvals).map(item => item.replace(/^AUTHZ_/, 'GUARD_')));
+  p.push(...[...mergeProblems(facts.pulls, env.GITHUB_SHA), ...ciProblems(facts.checks, env.GITHUB_SHA, {ciRuns: facts.ciRuns, ciBlob: facts.ciBlob, pinnedBlob: config.ci_workflow_blob_sha})].map(item => item.replace(/^AUTHZ_/, 'GUARD_')));
   if (!Array.isArray(facts.pending) || facts.pending.length !== 0) p.push('GUARD_DEPLOYMENT_STILL_WAITING');
   p.push(...tipProblems(facts.tip ?? {tip: null, problems: ['TIP_UNVERIFIABLE']}, env.GITHUB_SHA));
   return p;
