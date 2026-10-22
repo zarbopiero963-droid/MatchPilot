@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 126,
+  "revision": 127,
   "tasks": [
     {
       "id": "R-01",
@@ -536,13 +536,23 @@
       "title": "TotalCorner off in production by explicit configuration, with a negative test that no TC collector starts (#182; behaviour unchanged until its PR)",
       "issue": 20,
       "pr": null,
-      "branch": null,
+      "branch": "tc-off-01",
       "kind": "implementation",
-      "state": "PLANNED",
-      "assignee": null,
-      "lease": null,
+      "state": "RUNNING",
+      "assignee": {
+        "agent": "agent-g-grok",
+        "role": "Development Agent"
+      },
+      "lease": {
+        "holder": "agent-g-grok",
+        "acquired_at": "2026-10-22T13:01:46.734Z",
+        "expires_at": "2026-10-22T15:01:46.734Z"
+      },
       "latest_checkpoint": null,
-      "resources": []
+      "resources": [
+        "branch:tc-off-01"
+      ],
+      "parallel_authorization": "MP-GROK-AUTONOMOUS-EXECUTION-01"
     },
     {
       "id": "HANDOFF-TEST-01",
