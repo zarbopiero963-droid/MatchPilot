@@ -1,0 +1,256 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261022T124639Z-agent-g-grok",
+  "timestamp_utc": "2026-10-22T12:46:39Z",
+  "agent": {
+    "id": "agent-g-grok",
+    "role": "Integration Agent",
+    "session": "grok-matchpilot-owner-chat-t102u-2026-10-22"
+  },
+  "mandate": {
+    "id": "MP-GROK-GLOBAL-TAKEOVER-01",
+    "source": "owner mandates t101u/t102u (2026-10-22), registered in docs/governance/owner-decisions.json"
+  },
+  "activity": "MERGED record for PR #183 written by the agent taking over (finding GR-T1): the registry still said REVIEW/pr_open although the owner merged #183 on 2026-10-22 10:28 Rome",
+  "task": "GOV-RECON-01",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 97,
+  "pr": 183,
+  "branch": "claude/gov-recon-01",
+  "commit_sha": "af7478b874a804f787f1e26c38191cbc20ac0cca",
+  "tree_sha": "eb8e1bd6ffe19f0a948aefd71b3d46368947ac0f",
+  "base_sha": "170305418bd4fbbdbf4f3b7a4ed0ac5fcdc407c4",
+  "worktree": {
+    "clean": true
+  },
+  "requirements": [
+    "MP-GOV-017",
+    "MP-GOV-022"
+  ],
+  "changes": [
+    "owner-decisions.json: MP-PR183-FINAL-HARDENING-01",
+    "checkpoints.mjs: mandate decision ids must be registered",
+    "HANDOFF.md: declared limits (self-stated verifications, PROCEED is not an authorization, unauthenticated GitHub read)",
+    "tests: fixtures with a registered mandate id; new test for the mandate rule"
+  ],
+  "tests": [
+    {
+      "command": "RED: new test \"a v3 mandate may only name registered owner decisions\" on cdbeb0e fails; mutation N33 (rule removed) killed",
+      "result": "PASS",
+      "environment": "local container, Node 22",
+      "commit": "af7478b874a804f787f1e26c38191cbc20ac0cca",
+      "time": "2026-10-21T21:41:27Z",
+      "limits": []
+    },
+    {
+      "command": "node --test test/governance-*.test.mjs test/requirements-inventory.test.mjs test/ci-classify.test.mjs: 170/170, 0 skipped",
+      "result": "PASS",
+      "environment": "local container, Node 22, root",
+      "commit": "af7478b874a804f787f1e26c38191cbc20ac0cca",
+      "time": "2026-10-21T21:41:27Z",
+      "limits": []
+    },
+    {
+      "command": "full suite with a throwaway PostgreSQL 16: 448 tests, 447 pass, 0 fail, 1 skipped",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "af7478b874a804f787f1e26c38191cbc20ac0cca",
+      "time": "2026-10-21T21:41:27Z",
+      "limits": [
+        "postgres-independence skipped (needs PostgreSQL 17): not counted as PASS, CI runs it"
+      ]
+    },
+    {
+      "command": "npm run check; governance:check; render-inventory --check; scan-closing; check-append-only BASE 1703054",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "af7478b874a804f787f1e26c38191cbc20ac0cca",
+      "time": "2026-10-21T21:41:27Z",
+      "limits": []
+    },
+    {
+      "command": "mutation testing on cdbeb0e code: 39 mutations, 39 killed (author); 32 mutations, 32 killed (independent review 6326994852); N33 on this delta killed",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "af7478b874a804f787f1e26c38191cbc20ac0cca",
+      "time": "2026-10-21T21:41:27Z",
+      "limits": [
+        "mutations cover tools/governance only"
+      ]
+    },
+    {
+      "command": "CI run 39680933507 on af7478b",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "af7478b874a804f787f1e26c38191cbc20ac0cca",
+      "time": "2026-10-22T12:46:39Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": 39680933507,
+    "conclusion": "SUCCESS",
+    "head_sha": "af7478b874a804f787f1e26c38191cbc20ac0cca"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/183#issuecomment-6336232911: independent technical review D2 of a separate session, APPROVED on af7478b, not a formal GitHub approval",
+    "reviewed_sha": "af7478b874a804f787f1e26c38191cbc20ac0cca"
+  },
+  "findings": [
+    {
+      "id": "D2-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "--pr-state optional: the PR state is now read from GitHub by the tool; declared values refused"
+    },
+    {
+      "id": "D2-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "--verified anything: structured evidence per claim and resource required"
+    },
+    {
+      "id": "D2-3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "DUAL_WRITER_RESOURCE in handoff-in untested (M6, M10): tests added, mutations killed"
+    },
+    {
+      "id": "D2-4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "M2, M9, M14, M23, M28 untested: tests added, mutations killed"
+    },
+    {
+      "id": "D2-5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "partial scopes and authz-check without validation: task and action required, unbounded keys refused, state validated first"
+    },
+    {
+      "id": "D2-6",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "attributions: GO-2 extension note is the agent analysis; #181 review is a technical D2 comment, not a formal GitHub approval"
+    },
+    {
+      "id": "D2-7",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the parallel_tasks exception for GOV-RECON-01 is in a decision transcribed by the agent from the session; an owner confirmation on GitHub is advisable"
+    },
+    {
+      "id": "GR-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "HANDOFF NOT VERIFIED: real two-session handoff is task HANDOFF-TEST-01"
+    },
+    {
+      "id": "GR-5",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "structured evidence is still produced by the receiving agent: identifiable and checkable, not an independent attestation; the IN checkpoint and the review make it auditable"
+    },
+    {
+      "id": "GR-6",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "PR state reading uses the public GitHub API without credentials (60 requests/hour per IP); a private repository or an unreachable API makes handoff-in STOP"
+    },
+    {
+      "id": "GR-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "R-02 SHA_MISMATCH persists in status (shared branch); not changed here"
+    },
+    {
+      "id": "R2-1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "review 6326994852: MP-PR183-FINAL-HARDENING-01 cited as registered but absent; now registered, and validate refuses unregistered mandate decisions"
+    },
+    {
+      "id": "R2-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "verifications remain the receiving agent statements (documented in HANDOFF.md)"
+    },
+    {
+      "id": "R2-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "unauthenticated GitHub read: rate limit or private repository make handoff-in stop (documented)"
+    },
+    {
+      "id": "R2-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "handoff-in PROCEED is not an authorization: stop_conditions and authz-check apply (documented)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-PR183-FINAL-HARDENING-01",
+    "MP-PR183-HARDENING-01",
+    "MP-GITHUB-RECON-IMPLEMENTATION-01",
+    "MP-OWNER-AGENTS-INTERCHANGEABLE-01",
+    "MP-VPS-ONLY-OPERATIONS-2026-10-21"
+  ],
+  "authorizations": [
+    {
+      "id": "MP-GROK-GLOBAL-TAKEOVER-01",
+      "source": "owner mandate t101u, owner-decisions.json",
+      "scope": {
+        "task": "TAKEOVER-01",
+        "action": "governance records of the takeover, no PR other than the governance one"
+      },
+      "status": "VALID"
+    }
+  ],
+  "external_commands": [
+    {
+      "target": "github",
+      "command": "read-only: PR #183 state, comments and check runs",
+      "effect": "none"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "docs/governance/audits/2026-10-21-MP-GLOBAL-RECON-HANDOFF-01.md",
+      "sha256": "8ff985bff800f3ed9013529cc41831295b21455bf3fa17932cee14643117338a"
+    }
+  ],
+  "progress": {
+    "done": [
+      "merged by the owner as c4b82ba"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "branch:claude/gov-recon-01",
+    "pr:183"
+  ],
+  "stop_conditions": [
+    "task finished: no further writes"
+  ],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "dependencies": [],
+  "state": "MERGED",
+  "next_action": "nothing on this task",
+  "resume_conditions": [],
+  "supersedes": "CP-20261021T214147Z-agent-a-claude-code",
+  "merge_sha": "c4b82ba8ca3e11975ff6da5885ffee06ab750780"
+}
