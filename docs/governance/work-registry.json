@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 127,
+  "revision": 128,
   "tasks": [
     {
       "id": "R-01",
@@ -619,21 +619,17 @@
       "pr": 185,
       "branch": "governance/grok-takeover-20261022",
       "kind": "audit",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-g-grok",
         "role": "Roadmap Coordinator"
       },
-      "lease": {
-        "holder": "agent-g-grok",
-        "acquired_at": "2026-10-22T12:47:59.278Z",
-        "expires_at": "2026-10-22T14:47:59.278Z"
-      },
-      "latest_checkpoint": "CP-20261022T124759Z-agent-g-grok",
+      "lease": null,
+      "latest_checkpoint": "CP-20261022T130207Z-agent-g-grok",
       "resources": [
         "branch:governance/grok-takeover-20261022"
       ],
-      "pr_open": true
+      "pr_open": false
     }
   ]
 }
