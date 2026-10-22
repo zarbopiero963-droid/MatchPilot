@@ -3,7 +3,7 @@
 Fonte: mandato owner t121u (22/10/2026) e rettifica owner t122u (DEC-004-R1). Registro canonico: [`owner-decisions.json`](owner-decisions.json).
 Review di questa PR: **self-review dell'agente autore, NON indipendente** (DEC-004-R1). Nessuna certificazione dichiarata.
 
-> **Fonti.** DEC-001…DEC-014: testo verbatim t121u (DEC-001/002 tradotti nel registro; originale italiano conservato in evidenza). DEC-004-R1: rettifica owner t122u. Fonte canonica di DEC-001…014: ratifica owner t121u. Il baseline audit, fornito dall'owner, è conservato in [`audits/2026-10-22-MP-GLOBAL-AUDIT/`](audits/2026-10-22-MP-GLOBAL-AUDIT/) con `SHA256SUMS` (zip 69a23fee…); le schede di D-decisions.md sono domande aperte con raccomandazioni, non decisioni. 47 lacune: §G. Confronto delle 54 trascrizioni: §H. t123u (auto-deploy): voce `OWN-T123U-AUTODEPLOY`, da sintesi, 10 condizioni da trascrivere. t107u/t108u/t109u/t114u: registrati da sintesi della conversazione (**summary source, not verbatim**), voce `AUDIT-SOURCES-2026-10-22`.
+> **Fonti.** DEC-001…DEC-014: testo verbatim t121u (DEC-001/002 tradotti nel registro; originale italiano conservato in evidenza). DEC-004-R1: rettifica owner t122u. Fonte canonica di DEC-001…014: ratifica owner t121u. Il baseline audit, fornito dall'owner, è conservato in [`audits/2026-10-22-MP-GLOBAL-AUDIT/`](audits/2026-10-22-MP-GLOBAL-AUDIT/) con `SHA256SUMS` (zip 69a23fee…); le schede di D-decisions.md sono domande aperte con raccomandazioni, non decisioni. 47 lacune: §G. Confronto delle 54 trascrizioni: §H. t123u (auto-deploy, 10 condizioni) e precisazione t124u: voce `OWN-T123U-AUTODEPLOY`, verbatim. t107u/t108u/t109u/t114u: registrati da sintesi della conversazione (**summary source, not verbatim**), voce `AUDIT-SOURCES-2026-10-22`.
 
 ## A. Registro (tutte OWNER APPROVED; approvazione ≠ implementazione ≠ certificazione)
 
@@ -70,7 +70,8 @@ Nessun conflitto noto resta non classificato rispetto ai testi disponibili.
 - **Fuori scope:** denaro reale, sport diversi dal calcio, Render/Neon runtime, TotalCorner attivo.
 - **Operativo VPS/DR/deploy:** guard bloccante dopo primo ALLOW, backup Drive 05:15, runbook grant post-restore.
 - **Da integrare nella matrice:** 47 lacune (§G, NOT VERIFIED).
-- **Bloccato:** trascrizioni con originale solo in chat (§H, BLOCKED_SOURCE_MISSING); 10 condizioni t123u da trascrivere prima di cambiare l'environment di deploy.
+- **Bloccato:** trascrizioni con originale solo in chat (§H, BLOCKED_SOURCE_MISSING).
+- **Operativo (t123u/t124u):** auto-deploy NOT IMPLEMENTED — correzione permessi mp-deploy v3, check obbligatori legati allo SHA non falsificabili da workflow modificati nella stessa PR, annullamento del run superato da un nuovo commit su main, rollback automatico, notifica Telegram; attivazione solo dopo test isolati.
 
 ## E. Decisioni residue
 
