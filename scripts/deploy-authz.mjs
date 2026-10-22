@@ -221,10 +221,32 @@ export const HTTP_LIMIT = 1 << 20;
 
 // One GET over HTTPS, no redirect, bounded in time and size; anything but a 200 throws. JSON is decoded as UTF-8; the
 // git ref advertisement as latin1, one character per byte, because its pkt-line lengths count bytes (review NB-B).
-export async function httpText(url, {accept = 'application/vnd.github+json', encoding = 'utf8'} = {}) {
-  const response = await fetch(url, {headers: {accept, 'user-agent': 'matchpilot-gate', 'x-github-api-version': '2022-11-28'},
-    redirect: 'error', signal: AbortSignal.timeout(HTTP_TIMEOUT_MS)});
-  if (response.status !== 200) throw new Error(`HTTP ${response.status}`);
+// Transient answers (5xx, 429, a dropped connection) are retried a bounded number of times: GitHub was seen answering
+// 500 to GET /commits/{sha}/pulls on consecutive reads, and a fail-closed refusal kills a deploy run that may not be re-run.
+// Every other answer (404, 403, malformed...) is final at once. The retried request is the same read-only GET.
+export const TRANSIENT_STATUS = status => status === 429 || (status >= 500 && status <= 599);
+export async function withRetry(once, {tries = 4, delayMs = 1500, sleep = ms => new Promise(done => setTimeout(done, ms))} = {}) {
+  for (let attempt = 1; ; attempt += 1) {
+    try { return await once(); } catch (error) {
+      if (!error?.transient || attempt >= tries) throw error;
+      await sleep(delayMs * attempt);
+    }
+  }
+}
+export async function httpText(url, {accept = 'application/vnd.github+json', encoding = 'utf8', fetchImpl = fetch, retry = {}} = {}) {
+  return withRetry(() => httpTextOnce(url, {accept, encoding, fetchImpl}), retry);
+}
+async function httpTextOnce(url, {accept, encoding, fetchImpl}) {
+  let response;
+  try {
+    response = await fetchImpl(url, {headers: {accept, 'user-agent': 'matchpilot-gate', 'x-github-api-version': '2022-11-28'},
+      redirect: 'error', signal: AbortSignal.timeout(HTTP_TIMEOUT_MS)});
+  } catch (error) {
+    // a network failure (TypeError "fetch failed") is transient; a refused redirect or a timeout is not retried
+    const transient = error?.name === 'TypeError' && !/redirect/i.test(String(error?.cause?.message ?? error?.message));
+    throw Object.assign(new Error(String(error?.message ?? error)), {transient});
+  }
+  if (response.status !== 200) throw Object.assign(new Error(`HTTP ${response.status}`), {transient: TRANSIENT_STATUS(response.status)});
   const declared = Number(response.headers.get('content-length') ?? 0);
   if (declared > HTTP_LIMIT) throw new Error('answer too large');
   const body = Buffer.from(await response.arrayBuffer());

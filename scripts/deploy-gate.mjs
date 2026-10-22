@@ -15,7 +15,7 @@
 //   node scripts/deploy-gate.mjs   (GITHUB_REPOSITORY, GITHUB_SHA, GITHUB_REF, GITHUB_EVENT_NAME, GH_TOKEN)
 import {appendFileSync, realpathSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
-import {REQUIRED_CHECK, ciProblems, ciRunId, latestCiCheck, mergeProblems} from './deploy-authz.mjs';
+import {REQUIRED_CHECK, TRANSIENT_STATUS, ciProblems, ciRunId, latestCiCheck, mergeProblems, withRetry} from './deploy-authz.mjs';
 
 // ciProblems without the ci.yml pin, which only the root-installed runner guard holds (its config).
 export const basicCiProblems = (checks, sha, ciRun) => ciProblems(checks, sha, {ciRuns: ciRun}).filter(item => item !== 'AUTHZ_CI_PIN_MISSING');
@@ -68,11 +68,16 @@ export function gateProblems(facts) {
 }
 
 // api(path) resolves to {status, body}; every call that is not a 200 (the environment: 200 or 404) is an error.
-export async function readFacts({repository, ref, event, sha, api}) {
+export async function readFacts({repository, ref, event, sha, api, retry = {}}) {
   const facts = {repository, ref, event, sha, environment: null, branchPolicies: null, mainSha: null, errors: []};
   const call = async (what, path, allow404 = false) => {
     try {
-      const {status, body} = await api(path);
+      // a transient answer (5xx, 429) is read again a bounded number of times (deploy-authz.mjs withRetry)
+      const {status, body} = await withRetry(async () => {
+        const answer = await api(path);
+        if (TRANSIENT_STATUS(answer?.status)) throw Object.assign(new Error(`HTTP ${answer.status}`), {transient: true, answer});
+        return answer;
+      }, retry).catch(error => { if (error?.answer) return error.answer; throw error; });
       if (status === 200) return body;
       if (!(allow404 && status === 404)) facts.errors.push(`GATE_API_ERROR: ${what} HTTP ${status}`);
     } catch (error) { facts.errors.push(`GATE_API_ERROR: ${what} ${String(error?.message ?? error).split('\n')[0]}`); }
