@@ -3,13 +3,13 @@
 // (src/ledger/paper-ledger.mjs accountState) and returns a decision. Pure and deterministic; simulated money only.
 import {Decimal, dec, ROUNDING} from '../math/decimal.mjs';
 import {MODES} from '../ledger/paper-ledger.mjs';
+import {REGISTRY, IMPLEMENTED_TYPES} from './registry.mjs';
 
-export const MM_ENGINE_VERSION = 'mp-mm-1';
+export const MM_ENGINE_VERSION = 'mp-mm-2';
 export const BANKROLL_MODES = Object.freeze(['SHARED_ACCOUNT_BANKROLL', 'SEGREGATED']);
-export const MODELS = Object.freeze({
-  FIXED_STAKE: {category: 'A', requires_bankroll: false, requires_sequence_state: false, supports_back: true, supports_lay: true, supports_void: true},
-  PERCENT_BANKROLL: {category: 'B', requires_bankroll: true, requires_available_bankroll: true, requires_sequence_state: false, supports_back: true, supports_lay: true, supports_void: true},
-});
+// Implemented models with their capability flags, from the registry (MM-PR-01). DISCOVERED models are not usable.
+export const MODELS = Object.freeze(Object.fromEntries(REGISTRY.filter(t => IMPLEMENTED_TYPES.includes(t.type_id))
+  .map(t => [t.type_id, Object.freeze({category: t.category, ...t.capabilities})])));
 export const ADVISORY_LABEL = 'ADVISORY ONLY — operazione non registrata';
 
 export class MMError extends Error {
@@ -28,7 +28,8 @@ const optDec = (field, v) => {
 export function createProfile({profileId, version = 1, model, params = {}, caps = {}, bankrollMode = 'SHARED_ACCOUNT_BANKROLL',
   voidPushAdvancesProgression = false, stakeStep = '0.01'}) {
   if (typeof profileId !== 'string' || !profileId) fail('BAD_INPUT', 'profile_id is required');
-  if (!MODELS[model]) fail('UNKNOWN_MODEL', `model ${model} is not registered`);
+  if (!MODELS[model]) fail(REGISTRY.some(t => t.type_id === model) ? 'MODEL_NOT_IMPLEMENTED' : 'UNKNOWN_MODEL',
+    `model ${model} is not implemented (registry status must be IMPLEMENTED)`);
   if (!BANKROLL_MODES.includes(bankrollMode)) fail('BAD_INPUT', `bankroll_mode ${bankrollMode}`);
   if (bankrollMode === 'SEGREGATED') fail('NOT_IMPLEMENTED', 'SEGREGATED bankroll is an option not implemented yet (DEC-013)');
   if (typeof voidPushAdvancesProgression !== 'boolean') fail('BAD_INPUT', 'void_push_advances_progression must be boolean');
@@ -38,10 +39,24 @@ export function createProfile({profileId, version = 1, model, params = {}, caps 
     p.percent = optDec('params.percent', params.percent) ?? fail('BAD_INPUT', 'PERCENT_BANKROLL needs params.percent');
     if (p.percent.gt(100)) fail('BAD_INPUT', 'params.percent must be <= 100');
   }
-  const c = {max_stake: optDec('caps.max_stake', caps.max_stake), max_liability: optDec('caps.max_liability', caps.max_liability)};
+  if (model === 'FIXED_LIABILITY') p.liability = optDec('params.liability', params.liability) ?? fail('BAD_INPUT', 'FIXED_LIABILITY needs params.liability');
+  if (model === 'LIABILITY_PERCENT_BANKROLL') {
+    p.percent = optDec('params.percent', params.percent) ?? fail('BAD_INPUT', 'LIABILITY_PERCENT_BANKROLL needs params.percent');
+    if (p.percent.gt(100)) fail('BAD_INPUT', 'params.percent must be <= 100');
+  }
+  const intCap = (field, v) => {
+    if (v === undefined || v === null) return null;
+    if (!Number.isInteger(v) || v < 1) fail('BAD_INPUT', `${field} must be an integer >= 1`);
+    return v;
+  };
+  const c = {max_stake: optDec('caps.max_stake', caps.max_stake), max_liability: optDec('caps.max_liability', caps.max_liability),
+    max_total_exposure: optDec('caps.max_total_exposure', caps.max_total_exposure)};
+  const unknown = Object.keys(caps).filter(k => !['max_stake', 'max_liability', 'max_total_exposure', 'max_concurrent_trades'].includes(k));
+  if (unknown.length) fail('BAD_INPUT', `unsupported caps: ${unknown.join(', ')}`);
   const str = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, v === null ? null : v.toString()]));
+  const maxConcurrent = intCap('caps.max_concurrent_trades', caps.max_concurrent_trades);
   return Object.freeze({profile_id: profileId, version, model, capabilities: MODELS[model], params: Object.freeze(str(p)),
-    caps: Object.freeze(str(c)), bankroll_mode: bankrollMode, void_push_advances_progression: voidPushAdvancesProgression,
+    caps: Object.freeze({...str(c), max_concurrent_trades: maxConcurrent}), bankroll_mode: bankrollMode, void_push_advances_progression: voidPushAdvancesProgression,
     stake_step: dec(stakeStep).toString(), engine_version: MM_ENGINE_VERSION});
 }
 
@@ -68,13 +83,28 @@ export function evaluate({profile, operational, account, proposal, commissionRat
   const odds = dec(o); if (!odds.gt(1)) fail('BAD_INPUT', 'proposal.odds must be > 1');
   const reasons = [], caps = [];
   const available = dec(account.available_bankroll);
-  let stake = profile.model === 'FIXED_STAKE' ? dec(profile.params.stake)
-    : available.mul(dec(profile.params.percent)).div(100).roundToStep(profile.stake_step, ROUNDING.DOWN);
+  const cap = MODELS[profile.model];
+  if (!cap) fail('MODEL_NOT_IMPLEMENTED', profile.model);
+  if ((side === 'BACK' && !cap.supports_back) || (side === 'LAY' && !cap.supports_lay)) fail('SIDE_NOT_SUPPORTED', `${profile.model} ${side}`);
+  const fromLiability = L => (side === 'LAY' ? L.div(odds.sub(1)) : L).roundToStep(profile.stake_step, ROUNDING.DOWN);
+  let stake;
+  if (profile.model === 'FIXED_STAKE') stake = dec(profile.params.stake);
+  else if (profile.model === 'PERCENT_BANKROLL') stake = available.mul(dec(profile.params.percent)).div(100).roundToStep(profile.stake_step, ROUNDING.DOWN);
+  else if (profile.model === 'FIXED_LIABILITY') stake = fromLiability(dec(profile.params.liability));
+  else stake = fromLiability(available.mul(dec(profile.params.percent)).div(100));
   const original = {stake, liability: liabilityOf(side, odds, stake)};
   if (profile.caps.max_stake && stake.gt(profile.caps.max_stake)) { stake = dec(profile.caps.max_stake); caps.push('max_stake'); }
   if (profile.caps.max_liability && liabilityOf(side, odds, stake).gt(profile.caps.max_liability)) {
     stake = side === 'LAY' ? dec(profile.caps.max_liability).div(odds.sub(1)).roundToStep(profile.stake_step, ROUNDING.DOWN) : dec(profile.caps.max_liability);
     caps.push('max_liability');
+  }
+  // Optional total exposure cap (#96 "max exposure totale"): open liability from #99 + this liability must fit.
+  if (profile.caps.max_total_exposure) {
+    const room = dec(profile.caps.max_total_exposure).sub(dec(account.open_liability));
+    if (liabilityOf(side, odds, stake).gt(room)) {
+      stake = room.gt(0) ? fromLiability(room) : Decimal.zero();
+      caps.push('max_total_exposure');
+    }
   }
   // Hard account safety: the worst case must fit the available shared bankroll (exposure of every profile included).
   if (liabilityOf(side, odds, stake).gt(available)) {
@@ -83,6 +113,10 @@ export function evaluate({profile, operational, account, proposal, commissionRat
   }
   let decision = caps.length ? 'REDUCE' : 'ALLOW';
   if (!stake.gt(0)) { decision = 'BLOCK'; reasons.push('STAKE_ZERO_AFTER_CAPS'); }
+  // Optional concurrency cap (#96 "max concurrent trades"): open positions from #99.
+  if (profile.caps.max_concurrent_trades && account.open_position_count >= profile.caps.max_concurrent_trades) {
+    decision = 'BLOCK'; caps.push('max_concurrent_trades'); reasons.push('MAX_CONCURRENT_TRADES');
+  }
   let execution = decision !== 'BLOCK';
   if (operational.mode === 'ADVISORY_ONLY') { decision = 'SIMULATION_ONLY'; execution = false; reasons.push('ADVISORY_ONLY'); }
   if (operational.mode === 'PAUSED' || operational.mode === 'ARCHIVED') { decision = 'BLOCK'; execution = false; reasons.push(operational.mode); }
@@ -93,7 +127,9 @@ export function evaluate({profile, operational, account, proposal, commissionRat
     hard_caps_triggered: caps, structured_reasons: reasons, operational_mode: operational.mode,
     money_management_profile_id: profile.profile_id, money_management_version: profile.version, engine_version: MM_ENGINE_VERSION,
     bankroll_mode: profile.bankroll_mode, commission_rate_used: commissionRate === undefined ? null : dec(commissionRate).toString(),
-    settings_version: settingsVersion ?? null, bankroll_snapshot_ref: `${account.account_id}@${account.entries}`, timestamp: at ?? null});
+    settings_version: settingsVersion ?? null, bankroll_snapshot_ref: `${account.account_id}@${account.entries}`,
+    exposure_snapshot_ref: `${account.account_id}@${account.entries}:open_liability=${account.open_liability}`,
+    matched_rules: Object.freeze([]), failed_filters: Object.freeze([]) /* rule/filter engine: MM-PR-03 */, timestamp: at ?? null});
 }
 
 // Sequence state advances only from a final #99 settlement, once per position (also during STOP, DEC-001), never for an
