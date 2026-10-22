@@ -1,9 +1,11 @@
 // MP-VPS-FUNCTIONAL-RECOVERY-01: generate SIMULATED signals for one stored match day. Usage:
-//   node src/jobs/sim-signals.mjs --date YYYY-MM-DD [--limit N]
+//   node src/jobs/sim-signals.mjs --date YYYY-MM-DD [--limit N] [--no-outbox]
+// SIGNAL rows also get a simulated Telegram message in sim.outbox (SIMULATED_NOT_SENT, never delivered).
 // Refuses to run in production mode; never calls Telegram, an exchange or any upstream API.
 import {getPool, closePool} from '../db.mjs';
 import {assertRuntimeSafety} from '../runtime-safety.mjs';
 import {runForDate} from '../signals/simulated.mjs';
+import {queueRun} from '../signals/outbox.mjs';
 
 const args = process.argv.slice(2);
 const opt = name => { const i = args.indexOf(name); return i === -1 ? null : args[i + 1]; };
@@ -16,9 +18,10 @@ const runId = `sim-${date}-${new Date().toISOString().replace(/[-:.]/g, '').slic
 const client = await getPool().connect();
 try {
   const out = await runForDate(client, {date, runId, limit: Number(limitRaw)});
+  const outbox = args.includes('--no-outbox') ? null : await queueRun(client, runId);
   const count = k => out.filter(r => r.decision === k).length;
   const sig = out.filter(r => r.decision === 'SIGNAL');
   console.log(JSON.stringify({run_id: runId, date, matches: out.length, SIGNAL: count('SIGNAL'), NO_SIGNAL: count('NO_SIGNAL'),
     INSUFFICIENT_DATA: count('INSUFFICIENT_DATA'), HIT: sig.filter(r => r.outcome === 'HIT').length,
-    MISS: sig.filter(r => r.outcome === 'MISS').length, PENDING: sig.filter(r => r.outcome === 'PENDING').length, telegram: 'disabled'}));
+    MISS: sig.filter(r => r.outcome === 'MISS').length, PENDING: sig.filter(r => r.outcome === 'PENDING').length, telegram: 'disabled', outbox}));
 } finally { client.release(); await closePool(); }
