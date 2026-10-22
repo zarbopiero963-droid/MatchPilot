@@ -201,6 +201,9 @@ export function latestCiCheck(checks, sha) {
 }
 export const mergeUrls = sha => ({
   pulls: `${GITHUB_API}/commits/${sha}/pulls?per_page=100`,
+  // Second source of the same fact, read only when the first is unreadable (GitHub answered 500 to it for minutes):
+  // the most recently updated closed PRs into main. A merged PR of this repo whose merge commit is the SHA (mergeProblems).
+  pullsFallback: `${GITHUB_API}/pulls?state=closed&base=main&sort=updated&direction=desc&per_page=50`,
   checks: `${GITHUB_API}/commits/${sha}/check-runs?check_name=${encodeURIComponent(REQUIRED_CHECK)}&filter=all&per_page=100`,
   ciRun: id => `${GITHUB_API}/actions/runs/${id}`,
   ciBlob: `${GITHUB_API}/contents/${CI_WORKFLOW_PATH}?ref=${sha}`,
@@ -225,7 +228,7 @@ export const HTTP_LIMIT = 1 << 20;
 // 500 to GET /commits/{sha}/pulls on consecutive reads, and a fail-closed refusal kills a deploy run that may not be re-run.
 // Every other answer (404, 403, malformed...) is final at once. The retried request is the same read-only GET.
 export const TRANSIENT_STATUS = status => status === 429 || (status >= 500 && status <= 599);
-export async function withRetry(once, {tries = 4, delayMs = 1500, sleep = ms => new Promise(done => setTimeout(done, ms))} = {}) {
+export async function withRetry(once, {tries = 5, delayMs = 1500, sleep = ms => new Promise(done => setTimeout(done, ms))} = {}) {
   for (let attempt = 1; ; attempt += 1) {
     try { return await once(); } catch (error) {
       if (!error?.transient || attempt >= tries) throw error;

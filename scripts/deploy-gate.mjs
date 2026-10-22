@@ -90,7 +90,12 @@ export async function readFacts({repository, ref, event, sha, api, retry = {}}) 
   }
   facts.mainSha = (await call('main', `repos/${repository}/branches/${BRANCH}`))?.commit?.sha ?? null;
   if (SHA.test(sha ?? '')) {
+    const quiet = {errors: facts.errors.length};
     facts.pulls = await call('pulls', `repos/${repository}/commits/${sha}/pulls?per_page=100`);
+    if (facts.pulls === null) { // second source of the same fact (deploy-authz.mjs mergeUrls.pullsFallback)
+      facts.errors.length = quiet.errors;
+      facts.pulls = await call('pulls (closed PRs into main)', `repos/${repository}/pulls?state=closed&base=main&sort=updated&direction=desc&per_page=50`);
+    }
     facts.checks = await call('checks', `repos/${repository}/commits/${sha}/check-runs?check_name=${encodeURIComponent(REQUIRED_CHECK)}&filter=all&per_page=100`);
     const ciId = ciRunId(latestCiCheck(facts.checks, sha));
     if (ciId) facts.ciRun = await call('ci run', `repos/${repository}/actions/runs/${ciId}`);

@@ -71,7 +71,7 @@ export async function readGuardFacts(env, {fetchJson = httpJson, fetchText} = {}
   facts.jobs = await read('jobs', `${run}/attempts/${env.GITHUB_RUN_ATTEMPT}/jobs?per_page=100`);
   facts.workflow = await read('workflow', `${GITHUB_API}/contents/${WORKFLOW_PATH}?ref=${env.GITHUB_SHA}`);
   // MP-AUTODEPLOY-01: a merged PR and a green CI gate on this SHA replace the owner's approval.
-  facts.pulls = await read('pulls', mergeUrls(env.GITHUB_SHA).pulls);
+  try { facts.pulls = await fetchJson(mergeUrls(env.GITHUB_SHA).pulls); } catch { facts.pulls = await read('pulls', mergeUrls(env.GITHUB_SHA).pullsFallback); }
   facts.checks = await read('checks', mergeUrls(env.GITHUB_SHA).checks);
   const ciId = ciRunId(latestCiCheck(facts.checks, env.GITHUB_SHA));
   facts.ciRuns = ciId ? await read('ci run', mergeUrls(env.GITHUB_SHA).ciRun(ciId)) : null;

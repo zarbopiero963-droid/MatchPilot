@@ -37,7 +37,7 @@ function fakeApi(overrides = {}) {
 }
 
 const run = {repository: REPOSITORY, ref: 'refs/heads/main', event: 'push', sha: SHA};
-const problems = async (overrides = {}, context = {}) => gateProblems(await readFacts({...run, ...context, api: fakeApi(overrides)}));
+const problems = async (overrides = {}, context = {}) => gateProblems(await readFacts({...run, ...context, api: fakeApi(overrides), retry: {sleep: async () => {}}}));
 const env = body => ({[ENV_PATH]: {status: 200, body}});
 // MP-AUTODEPLOY-01: a merged PR into main and a green CI gate on the SHA.
 const PULLS = sha => `repos/${REPOSITORY}/commits/${sha}/pulls?per_page=100`;
@@ -81,7 +81,7 @@ test('MP-AUTODEPLOY-01: a direct push, an unmerged or foreign PR, a missing, pen
   for (const body of [[], [pr({merged_at: null})], [pr({merge_commit_sha: NEWER})], [pr({base: {ref: 'dev', repo: {full_name: REPOSITORY}}})], [pr({base: {ref: 'main', repo: {full_name: 'x/y'}}})]]) {
     assert.match((await problems(pulls(body))).join(), /GATE_NOT_A_MERGED_PR/, JSON.stringify(body));
   }
-  assert.match((await problems({[PULLS(SHA)]: {status: 404, body: null}})).join(), /GATE_API_ERROR: pulls HTTP 404/);
+  assert.match((await problems({[PULLS(SHA)]: {status: 404, body: null}, [`repos/${REPOSITORY}/pulls?state=closed&base=main&sort=updated&direction=desc&per_page=50`]: {status: 404, body: null}})).join(), /GATE_API_ERROR: pulls \(closed PRs into main\) HTTP 404/);
   const checks = list => ({[CHECKS(SHA)]: {status: 200, body: {check_runs: list}}});
   const ck = o => ({id: 1, name: 'CI gate', head_sha: SHA, status: 'completed', conclusion: 'success', app: {slug: 'github-actions'}, ...o});
   assert.match((await problems(checks([]))).join(), /GATE_CI_MISSING/);
@@ -467,4 +467,14 @@ test('anti-stale: a superseded run says on its page which run to approve instead
     assert.equal(result.status, 0);
     assert.equal(existsSync(summary), false);
   });
+});
+
+test('MP-AUTODEPLOY-01: commits/{sha}/pulls unreadable -> the closed PRs into main prove the merge; a direct push still fails', async () => {
+  const FALLBACK = `repos/${REPOSITORY}/pulls?state=closed&base=main&sort=updated&direction=desc&per_page=50`;
+  const pr = o => ({number: 9, merged_at: '2026-10-22T16:00:00Z', merge_commit_sha: SHA, base: {ref: 'main', repo: {full_name: REPOSITORY}}, ...o});
+  const down = {[PULLS(SHA)]: {status: 500, body: null}};
+  assert.deepEqual((await problems({...down, [FALLBACK]: {status: 200, body: [pr({number: 8, merge_commit_sha: NEWER}), pr()]}})).filter(p => /PR|PULLS|API/.test(p)), []);
+  assert.match((await problems({...down, [FALLBACK]: {status: 200, body: [pr({merge_commit_sha: NEWER})]}})).join(), /GATE_NOT_A_MERGED_PR/);
+  assert.match((await problems({...down, [FALLBACK]: {status: 200, body: [pr({merged_at: null})]}})).join(), /GATE_NOT_A_MERGED_PR/);
+  assert.match((await problems({...down, [FALLBACK]: {status: 500, body: null}})).join(), /GATE_API_ERROR: pulls \(closed PRs into main\) HTTP 500/);
 });
