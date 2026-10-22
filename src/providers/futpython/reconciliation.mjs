@@ -155,8 +155,10 @@ export async function recoveryTargets(client, {config = reconConfig(), runId = n
        WHERE source=$1 AND recovery_action = ANY($2::text[])
          AND (status IN ('DETECTED','QUEUED','PARTIAL')
            OR (status = 'FAILED' AND recovery_finished_at < now() - make_interval(hours => $5::int)))
+         AND NOT (details->>'verified' = 'unchanged'
+           AND (details->>'verified_unchanged_at')::timestamptz > now() - make_interval(hours => $6::int))
        ORDER BY priority, detected_at, entity LIMIT $4)
-     RETURNING l.entity, l.recovery_action`, [SOURCE, actions, runId, limit, Math.round(config.retryFailedHours)])).rows;
+     RETURNING l.entity, l.recovery_action`, [SOURCE, actions, runId, limit, Math.round(config.retryFailedHours), Math.round(config.currentSeasonTtlHours)])).rows;
   const rows = [...await pick(['refresh_dataset'], config.refreshPerRun), ...await pick(['fetch_dataset'], config.recoveryPerRun)];
   if (!rows.length) return [];
   const catalog = (await client.query(
@@ -167,20 +169,39 @@ export async function recoveryTargets(client, {config = reconConfig(), runId = n
     season: c.season, route: c.route, recovery: action.get(c.dataset_key), force: true}));
 }
 
+// t131u: a current-season refresh whose content did not change since the gap was detected is not a recovery.
+export function staleRefreshUnchanged(row) {
+  if (row.gap_kind !== 'current_season_stale') return false;
+  if (!row.last_changed_at) return true;
+  return new Date(row.last_changed_at).getTime() <= new Date(row.detected_at).getTime();
+}
+
 const PIPELINE_KINDS = new Set(['incremental_sync_skipped', 'interrupted_run']);
 
 async function closeVanished(client, detected, now, {deferred = new Set(), config, phase, runId}) {
   const live = new Set(detected.map(g => g.entity));
   const open = (await client.query(
     `SELECT l.reconciliation_id, l.gap_kind, l.entity, l.status, l.attempts, s.availability, l.details->>'run_id' AS run_id,
-            r.status AS run_status
+            r.status AS run_status, l.detected_at, s.last_changed_at
      FROM data_reconciliation_ledger l
      LEFT JOIN fpt_dataset_state s ON s.dataset_key = l.entity
      LEFT JOIN fpt_sync_runs r ON r.run_id = l.details->>'run_id'
      WHERE l.source=$1 AND l.status = ANY($2::text[])`, [SOURCE, OPEN])).rows;
-  const closed = {recovered: [], unrecoverable: [], failed: [], requeued: []};
+  const closed = {recovered: [], unrecoverable: [], failed: [], requeued: [], unchanged: []};
   for (const row of open) {
     const still = live.has(row.entity);
+    if (!still && staleRefreshUnchanged(row)) {
+      // t131u: the refresh answered, but with the same content (same SHA): nothing was recovered. The gap stays open as
+      // 'verified unchanged' (PARTIAL), not re-fetched until the TTL passes again; DATA_CONTENT_STALE carries the notice.
+      if (row.status !== 'PARTIAL') {
+        await client.query(
+          `UPDATE data_reconciliation_ledger SET status='PARTIAL',
+             details = details || jsonb_build_object('verified', 'unchanged', 'verified_unchanged_at', $2::timestamptz)
+           WHERE reconciliation_id=$1`, [row.reconciliation_id, now]);
+      }
+      closed.unchanged.push(`${row.gap_kind}:${row.entity}`);
+      continue;
+    }
     if (!still) {
       // The gap is gone. A dataset that answered 404 was not recovered: the provider does not serve it.
       const unrecoverable = row.availability === 'unavailable_404' && row.gap_kind !== 'current_season_stale';
@@ -298,6 +319,7 @@ async function emitReconAlerts(client, summary, deliver) {
      WHERE source=$1 AND status IN ('DETECTED','QUEUED','RECOVERING','PARTIAL')
        -- The daily refresh of current seasons is routine: it alerts only once it falls a day behind.
        AND NOT (gap_kind = 'current_season_stale' AND detected_at > now() - interval '24 hours')
+       AND NOT (gap_kind = 'current_season_stale' AND details->>'verified' = 'unchanged')
      GROUP BY 1, 2 ORDER BY 2, 1`, [SOURCE])).rows;
   if (open.length) {
     await emitAlert({source: SOURCE, severity: open.some(r => r.priority === 'P1') ? 'warning' : 'info',
@@ -347,5 +369,5 @@ export async function reconcileFpt(client, {phase = 'periodic', runId = null, ru
   const byKind = detected.reduce((acc, g) => ({...acc, [g.gap_kind]: (acc[g.gap_kind] || 0) + 1}), {});
   return {phase, detected: detected.length, by_kind: byKind, created, orphan_runs: orphanRuns,
     recovered: closed.recovered.length, unrecoverable: closed.unrecoverable.length, failed: closed.failed.length,
-    requeued: closed.requeued.length, open: alerts.open, catchup_started: catchupStarted};
+    requeued: closed.requeued.length, verified_unchanged: closed.unchanged.length, open: alerts.open, catchup_started: catchupStarted};
 }

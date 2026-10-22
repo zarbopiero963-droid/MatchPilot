@@ -20,17 +20,29 @@ export function alertFingerprint({source='futpython',code,key=''}) {
   return sha([source,code,key].join('|'));
 }
 
+// t131u: data-collection notices carry their own category tag, distinct from mp-deploy's "[MatchPilot deploy]".
+export const DATA_CATEGORY = '[MatchPilot dati]';
+export function telegramText(alert) {
+  const head = alert.resolved ? '✅ RISOLTO' :
+    alert.severity === 'critical' ? '🚨 CRITICAL' : alert.severity === 'warning' ? '⚠️ WARNING' : 'ℹ️ INFO';
+  return [`${DATA_CATEGORY} ${head}`, alert.title, redact(alert.message)].join('\n');
+}
+
+// t131u: an unchanged open alert is never re-sent with the same text; a failed or never-attempted delivery is retried
+// (bounded by the cooldown); a changed text is sent once the cooldown has passed.
+export function redeliveryDue(row, alert, now = Date.now(), cooldownMinutes = 180) {
+  if (row.delivery_status === 'failed') return true;
+  if (!row.last_delivered_at) return true;
+  if (row.message === alert.message && row.title === alert.title) return false;
+  return deliveryDue(row.last_delivered_at, now, cooldownMinutes);
+}
+
 async function deliverTelegram(alert) {
   const token = process.env.MATCHPILOT_TELEGRAM_BOT_TOKEN?.trim();
   const chatId = process.env.MATCHPILOT_TELEGRAM_CHAT_ID?.trim();
   if (!token || !chatId) return {attempted:false,channel:'telegram'};
 
-  const text = [
-    alert.severity === 'critical' ? '🚨 MATCHPILOT CRITICAL' :
-    alert.severity === 'warning' ? '⚠️ MATCHPILOT WARNING' : 'ℹ️ MATCHPILOT',
-    alert.title,
-    redact(alert.message)
-  ].join('\n');
+  const text = telegramText(alert);
 
   const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method:'POST',
@@ -90,7 +102,7 @@ export async function emitAlert(input, clientOverride, options = {}) {
          WHERE alert_id=$1`,
         [row.alert_id,JSON.stringify(alert.payload),alert.title,alert.message]
       );
-      shouldDeliver = deliveryDue(row.last_delivered_at, Date.now(), cooldownMinutes);
+      shouldDeliver = redeliveryDue(row, alert, Date.now(), cooldownMinutes);
     } else {
       const ins = await client.query(
         `INSERT INTO data_alerts(source,severity,code,fingerprint,title,message,payload)
@@ -133,18 +145,60 @@ export async function emitAlert(input, clientOverride, options = {}) {
   return clientOverride ? runner(clientOverride) : withClient(runner);
 }
 
-export async function resolveAlert({source='futpython',code,key=''}, clientOverride) {
+// t131u: resolving an alert that had reached a channel sends one '✅ RISOLTO' notice. The UPDATE ... WHERE resolved_at IS
+// NULL RETURNING makes the notice exactly-once: a second resolve finds no open row and sends nothing.
+export async function resolveAlert({source='futpython',code,key=''}, clientOverride, options = {}) {
   const fingerprint = alertFingerprint({source,code,key});
-  const runner = client => client.query(
-    'UPDATE data_alerts SET resolved_at=now() WHERE fingerprint=$1 AND resolved_at IS NULL',
-    [fingerprint]
-  );
+  const deliverers = options.deliver
+    ? (Array.isArray(options.deliver) ? options.deliver : [options.deliver])
+    : [deliverTelegram, deliverWebhook];
+  const runner = async client => {
+    const res = await client.query(
+      `UPDATE data_alerts SET resolved_at=now() WHERE fingerprint=$1 AND resolved_at IS NULL
+       RETURNING alert_id, source, severity, code, title, last_delivered_at`,
+      [fingerprint]
+    );
+    const row = res.rows?.[0];
+    if (!row || !row.last_delivered_at) return {resolved: Boolean(row), notified: false};
+    const notice = {source: row.source, severity: 'info', code: row.code, title: row.title, resolved: true,
+      message: `Condizione rientrata (${row.code}).`, payload: {resolved: true}};
+    let notified = false;
+    for (const fn of deliverers) {
+      try { if ((await fn(notice)).attempted) notified = true; }
+      catch (e) { console.error('DATA_ALERT_RESOLVE_DELIVERY_ERROR '+JSON.stringify({code: row.code, error: redact(e?.message || e)})); }
+    }
+    await client.query(`UPDATE data_alerts SET delivery_status=$2 WHERE alert_id=$1`, [row.alert_id, notified ? 'resolved_notified' : 'resolved_unnotified']);
+    return {resolved: true, notified};
+  };
   return clientOverride ? runner(clientOverride) : withClient(runner);
+}
+
+// t131u: content freshness — the sync can run on time while the provider publishes nothing new.
+export function contentStaleness({maxChangedAt, maxMatchDate, now = Date.now(), changedHours = 72, matchDays = 7}) {
+  const changedAge = maxChangedAt ? (now - new Date(maxChangedAt).getTime()) / 3600000 : Infinity;
+  const matchAge = maxMatchDate ? (now - new Date(`${String(maxMatchDate).slice(0, 10)}T00:00:00Z`).getTime()) / 86400000 : Infinity;
+  const reasons = [];
+  if (changedAge > changedHours) reasons.push(`nessun contenuto cambiato da oltre ${changedHours}h`);
+  if (matchAge > matchDays) reasons.push(`ultima partita oltre ${matchDays} giorni fa`);
+  return {stale: reasons.length > 0, reasons,
+    maxLastChangedAt: maxChangedAt ? new Date(maxChangedAt).toISOString() : null,
+    maxMatchDate: maxMatchDate ? String(maxMatchDate instanceof Date ? maxMatchDate.toISOString() : maxMatchDate).slice(0, 10) : null};
+}
+
+export async function readContentFreshness(client, now = Date.now()) {
+  const r = await client.query(`SELECT (SELECT max(last_changed_at) FROM fpt_dataset_state) AS max_changed,
+    (SELECT max(match_date) FROM fpt_match_facts) AS max_match_date`);
+  return contentStaleness({maxChangedAt: r.rows[0]?.max_changed, maxMatchDate: r.rows[0]?.max_match_date, now});
+}
+
+export function healthStatus(alerts, freshness) {
+  return alerts.some(a=>a.severity==='critical') ? 'critical' :
+    (alerts.some(a=>a.severity==='warning') || freshness?.stale) ? 'warning' : 'ok';
 }
 
 export async function getDataHealth() {
   return withClient(async client => {
-    const [lastRun, openAlerts, catalog, fields, failed] = await Promise.all([
+    const [lastRun, openAlerts, catalog, fields, failed, freshness] = await Promise.all([
       client.query(`SELECT run_id,kind,status,started_at,finished_at,catalog_entries,datasets_attempted,
                            datasets_changed,rows_seen,rows_inserted,fields_seen
                     FROM fpt_sync_runs ORDER BY started_at DESC LIMIT 1`),
@@ -154,11 +208,13 @@ export async function getDataHealth() {
                     LIMIT 100`),
       client.query('SELECT count(*)::int AS n FROM fpt_catalog WHERE active=true'),
       client.query('SELECT count(*)::int AS n FROM fpt_schema_fields'),
-      client.query(`SELECT count(*)::int AS n FROM fpt_dataset_state WHERE last_error IS NOT NULL`)
+      client.query(`SELECT count(*)::int AS n FROM fpt_dataset_state WHERE last_error IS NOT NULL`),
+      readContentFreshness(client)
     ]);
     return {
-      status: openAlerts.rows.some(a=>a.severity==='critical') ? 'critical' :
-              openAlerts.rows.some(a=>a.severity==='warning') ? 'warning' : 'ok',
+      status: healthStatus(openAlerts.rows, freshness),
+      contentFreshness: freshness,
+      maxMatchDate: freshness.maxMatchDate,
       lastRun:lastRun.rows[0] || null,
       activeDatasets:catalog.rows[0]?.n || 0,
       schemaFields:fields.rows[0]?.n || 0,

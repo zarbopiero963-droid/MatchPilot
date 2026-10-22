@@ -10,6 +10,8 @@ conserva la versione canonica per review, diff e disaster recovery.
 | `sbin/mp-runner-guard.sh` | `/usr/local/libexec/mp-runner-guard.sh` | v2 (v1 + runner-job-guard, enforce con `/etc/mp-deploy/runner-guard.enforce`) |
 | `sbin/mp-runner-guard-v1.sh` | `/usr/local/libexec/mp-runner-guard-v1.sh` | v1 |
 | `systemd/matchpilot-fpt-worker.service` | `/etc/systemd/system/matchpilot-fpt-worker.service` | `node src/worker.mjs`, TotalCorner off |
+| `systemd/matchpilot-fpt-liveness.{service,timer}` | `/etc/systemd/system/` | t131u: probe esterno al worker ogni 30 min (salta 03:15–04:45), alert se l'ultimo `fpt_sync_runs` > 7h |
+| (repo) `scripts/runner-job-guard.mjs` | `/usr/local/libexec/mp-gate/runner-job-guard.mjs` | copia del file repo (t130u: ri-lettura limitata se il run è ancora `queued`) |
 
 Nessun segreto è contenuto qui: i token sono letti a runtime da `EnvironmentFile` / file root-only.
 Ogni modifica sulla VPS va riportata qui (e `SHA256SUMS` aggiornato); `test/infra-vps.test.mjs` verifica
