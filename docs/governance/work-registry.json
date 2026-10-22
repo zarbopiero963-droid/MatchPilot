@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 125,
+  "revision": 126,
   "tasks": [
     {
       "id": "R-01",
@@ -606,23 +606,24 @@
       "id": "TAKEOVER-01",
       "title": "MP-GROK-GLOBAL-TAKEOVER-01: first delivery, global reconnaissance and takeover checkpoint",
       "issue": 97,
-      "pr": null,
+      "pr": 185,
       "branch": "governance/grok-takeover-20261022",
       "kind": "audit",
-      "state": "RUNNING",
+      "state": "REVIEW",
       "assignee": {
         "agent": "agent-g-grok",
         "role": "Roadmap Coordinator"
       },
       "lease": {
         "holder": "agent-g-grok",
-        "acquired_at": "2026-10-22T12:19:52.963Z",
-        "expires_at": "2026-10-22T14:19:52.963Z"
+        "acquired_at": "2026-10-22T12:47:59.278Z",
+        "expires_at": "2026-10-22T14:47:59.278Z"
       },
-      "latest_checkpoint": "CP-20261022T122022Z-agent-g-grok",
+      "latest_checkpoint": "CP-20261022T124759Z-agent-g-grok",
       "resources": [
         "branch:governance/grok-takeover-20261022"
-      ]
+      ],
+      "pr_open": true
     }
   ]
 }
