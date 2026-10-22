@@ -97,7 +97,12 @@ async function deliverTelegram(alert) {
     body:JSON.stringify({chat_id:chatId,text,disable_web_page_preview:true}),
     signal:AbortSignal.timeout(10000)
   });
-  if (!response.ok) { const e = new Error(`Telegram HTTP ${response.status}`); e.status = response.status; throw e; }
+  if (!response.ok) {
+    // t141: keep Telegram's own reason (e.g. "Bad Request: chat not found"), bounded; never the token or the text.
+    let desc = '';
+    try { desc = String((await response.json())?.description || '').slice(0, 120); } catch {}
+    const e = new Error(`Telegram HTTP ${response.status}${desc ? ' ' + desc : ''}`); e.status = response.status; throw e;
+  }
   // t138: the Bot API result is the delivery proof: ok=true plus a message_id. HTTP 200 without it is not "delivered".
   let body = null;
   try { body = await response.json(); } catch {}
@@ -183,6 +188,7 @@ export async function emitAlert(input, clientOverride, options = {}) {
       `UPDATE data_alerts SET delivery_status='sending', payload = payload || jsonb_build_object('_event', $2::text)
        WHERE fingerprint=$1 AND resolved_at IS NULL`, [alert.fingerprint, event]);
     const deliveryErrors = [];
+    const failures = [];
     const sent = [];
     let delivered = false;
     let ambiguous = false;
@@ -193,6 +199,8 @@ export async function emitAlert(input, clientOverride, options = {}) {
       } catch (e) {
         if (e?.kind === 'ambiguous') ambiguous = true;
         deliveryErrors.push(redact(e?.message || e));
+        // t141: the failure reason (redacted, bounded) is kept so a 'failed' row says why (alert 73 had only a count).
+        failures.push({kind: e?.kind ?? null, status: e?.status ?? null, tries: e?.tries ?? null, error: redact(e?.message || e).slice(0, 200)});
       }
     }
 
@@ -207,10 +215,10 @@ export async function emitAlert(input, clientOverride, options = {}) {
         delivered ? (deliveryErrors.length ? 'partial' : 'delivered') :
           ambiguous ? 'unknown' : (deliveryErrors.length ? 'failed' : 'stored_only'),
         delivered,
-        JSON.stringify({at: new Date().toISOString(), event, sent, errors: deliveryErrors.length})
+        JSON.stringify({at: new Date().toISOString(), event, sent, errors: deliveryErrors.length, failures})
       ]
     );
-    if (deliveryErrors.length) console.error('DATA_ALERT_DELIVERY_ERROR '+JSON.stringify({ts:new Date().toISOString(),code:alert.code,count:deliveryErrors.length,event,ambiguous}));
+    if (deliveryErrors.length) console.error('DATA_ALERT_DELIVERY_ERROR '+JSON.stringify({ts:new Date().toISOString(),code:alert.code,count:deliveryErrors.length,event,ambiguous,failures}));
     return {stored:true,delivered,deliveryErrors,event};
   };
 
