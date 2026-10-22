@@ -22,7 +22,7 @@ Il denominatore definitivo uscirà dal censimento completo; nessun gruppo ha una
 - **Validazione:** `npm run governance:validate`.
 
 Regole owner del 18/10/2026:
-- auto-merge solo per PR certificate (Gate A/B, CI, review indipendente APPROVED, nessun finding bloccante);
+- auto-merge solo per PR certificate (Gate A/B, CI, review APPROVED, nessun finding bloccante); dal 22/10/2026 la review può essere una self-review dell'agente autore, etichettata come tale (DEC-004-R1, t122u; "review indipendente" SUPERSEDED). I deploy richiedono sempre l'approvazione umana GitHub;
 - **le issue le chiude solo l'owner** (READY TO CLOSE — OWNER APPROVAL REQUIRED; riferimenti `Refs #`);
 - nessun deploy, costo, produzione o LIVE senza autorizzazione esplicita.
 

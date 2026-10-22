@@ -1,0 +1,3319 @@
+{
+ "audit": "B-RTM",
+ "repo": "zarbopiero963-droid/MatchPilot",
+ "main_head": "39fe08eadaad382550c8994b2be308ee6493111e",
+ "date": "2026-10-22",
+ "method": {
+  "tests": "node --test --test-concurrency=1 test/*.test.mjs on local PostgreSQL 16.15 (FUTPYTHON_TEST_DATABASE_URL local): 439 tests, 437 pass, 1 fail (governance-workflows: package yaml missing from linked node_modules; 13/13 pass in a clean npm ci copy), 1 skipped (postgres-independence requires PG17). Browser QA tools/qa/browser-qa.mjs 12/12 PASS; visual tools/qa/visual.mjs 45/45 PASS; npm audit --omit=dev high: 0; governance:validate and governance:check PASS.",
+  "code": "every code/test path in requirements.json exists on main (24 design entries are prose labels, not paths); functions inspected; runtime reachability computed from src/server.mjs import graph.",
+  "levels": {
+   "NI": "not implemented",
+   "INI": "implemented, not integrated",
+   "II": "implemented and integrated",
+   "CC": "certified component",
+   "CI": "certified integrated",
+   "PROC": "N/A (process-only)"
+  }
+ },
+ "counts": {
+  "audited_status": {
+   "PASS": 33,
+   "NOT_VERIFIED": 56,
+   "FAIL": 43,
+   "BLOCKED": 7
+  },
+  "implementation_level": {
+   "certified component": 30,
+   "N/A (process-only)": 16,
+   "implemented and integrated": 47,
+   "not implemented": 39,
+   "implemented, not integrated": 7
+  },
+  "declared_verdict": {
+   "PASS": 36,
+   "NOT_VERIFIED": 61,
+   "BLOCKED": 7,
+   "FAIL": 35
+  },
+  "transitions": {
+   "PASS->NOT_VERIFIED": 1,
+   "NOT_VERIFIED->FAIL": 6,
+   "PASS->FAIL": 2
+  },
+  "p0_not_pass": 78
+ },
+ "requirements": [
+  {
+   "id": "MP-GOV-001",
+   "group": "GOV",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Limit HARD CERTIFIED OFFLINE v1 to the owner-approved included scope.",
+   "code": [],
+   "tests": [
+    "test/requirements-inventory.test.mjs"
+   ],
+   "evidence": [
+    "owner decision D3 2026-10-18 recorded in docs/governance/owner-decisions.json"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "Census denominator still PROVISIONAL (D3).",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-002",
+   "group": "GOV",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Perform no deploy, Neon/Render write, LIVE acquisition, archive mutation or spend in MP-PR-00.",
+   "code": [],
+   "tests": [
+    "test/requirements-inventory.test.mjs"
+   ],
+   "evidence": [
+    "git diff main...HEAD touches only README.md, docs/governance/**, package.json script, test/ and tools/"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "N/A (process-only)",
+   "residual": "Historical, scoped to MP-PR-00 only.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-003",
+   "group": "GOV",
+   "source": "#3",
+   "priority": "P0",
+   "statement": "Preserve source hierarchy owner → #3 → #97 → #104 → domain issues → repository documents → mock.",
+   "code": [],
+   "tests": [
+    "test/requirements-inventory.test.mjs"
+   ],
+   "evidence": [
+    "source field on every requirement"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-004",
+   "group": "GOV",
+   "source": "AGENTS.md",
+   "priority": "P0",
+   "statement": "Allow only one operational pull request at a time.",
+   "code": [],
+   "tests": [],
+   "evidence": [
+    "pre-flight open PR count 0"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "N/A (process-only)",
+   "residual": "Evidence 'open PR count 0' is stale: PR #178 (HIST-01a) open while #184/#186/#187/#189 were opened/merged; owner parallel_tasks exceptions (MP-VPS-FUNCTIONAL-RECOVERY-01, MP-GROK-AUTONOMOUS-EXECUTION-01).",
+   "note": "DISCREPANCY: declared PASS",
+   "discrepancy": true
+  },
+  {
+   "id": "MP-GOV-005",
+   "group": "GOV",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Merge a PR only when every MP-OWNER-AUTOMERGE-01 condition holds, without bypassing GitHub protections.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "FAIL",
+   "implementation_level": "N/A (process-only)",
+   "residual": "#184, #186, #187, #189 merged 2026-10-22 with 0 GitHub reviews; only same-agent 'Review Grok' comments (t103u); @claude independent review requested on #184 (12:15Z) not awaited (merge 12:44Z on a different head). Conflict MP-OWNER-AUTOMERGE-01/D2 vs t103u needs owner reconciliation.",
+   "note": "NEW FAIL evidence",
+   "discrepancy": true
+  },
+  {
+   "id": "MP-GOV-006",
+   "group": "GOV",
+   "source": "#97",
+   "priority": "P0",
+   "statement": "Develop backend/API and certify integrated paths before final UI authority.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "N/A (process-only)",
+   "residual": "UI built (owner-approved UI roadmap) before integrated certification of #98.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-007",
+   "group": "GOV",
+   "source": "#3",
+   "priority": "P0",
+   "statement": "Do not declare product complete until data, temporal separation, coverage, reproducibility, responsive UI and secret gates pass.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "N/A (process-only)",
+   "residual": "R-18 not reached.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-008",
+   "group": "GOV",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Use PASS, FAIL, BLOCKED, NOT_VERIFIED and NOT_APPLICABLE without status promotion.",
+   "code": [
+    "tools/validate-requirements.mjs"
+   ],
+   "tests": [
+    "test/requirements-inventory.test.mjs"
+   ],
+   "evidence": [
+    "CI run 39140793621 on 21eee83 (Fast checks + PostgreSQL integration suite PASS): test/requirements-inventory.test.mjs exercised the closed verdict vocabulary"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-009",
+   "group": "GOV",
+   "source": "#144",
+   "priority": "P1",
+   "statement": "Use standard GitHub-hosted runners with zero additional Actions spend during public development.",
+   "code": [],
+   "tests": [],
+   "evidence": [
+    "current runs-on ubuntu-latest"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "N/A (process-only)",
+   "residual": "Evidence stale: deploy-vps.yml job 'deploy' runs on [self-hosted, matchpilot-vps] (owner MP-OWNER-VPS-DEPLOY-01); zero Actions spend not measured.",
+   "note": "stale evidence",
+   "discrepancy": true
+  },
+  {
+   "id": "MP-GOV-010",
+   "group": "GOV",
+   "source": "#40",
+   "priority": "P0",
+   "statement": "Keep the frozen provider-trial archive immutable and do not treat it as runtime certification.",
+   "code": [],
+   "tests": [],
+   "evidence": [
+    "docs/provider-trial-final-closure-2026-10-08.md point 14 SHA readback PASS (not independently re-verified)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "N/A (process-only)",
+   "residual": "Depends on R-02 BLOCKED (parts not obtainable).",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-011",
+   "group": "GOV",
+   "source": "#104",
+   "priority": "P1",
+   "statement": "Treat the historical 82-PR plan as planning history, not the verified Gate A denominator.",
+   "code": [],
+   "tests": [
+    "test/requirements-inventory.test.mjs"
+   ],
+   "evidence": [
+    "#104 body edited 2026-10-07 by PR #125: \"82 è baseline storica, NON conteggio verificato\"",
+    "docs/governance/audits/2026-10-18-MP-GATE-A-REVIEW-ROADMAP-01.md §4"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "N/A (process-only)",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-012",
+   "group": "GOV",
+   "source": "AGENTS.md",
+   "priority": "P1",
+   "statement": "State whether each PR changes visible product behavior and update the mock only when it does.",
+   "code": [],
+   "tests": [
+    "test/mockup-alignment.test.mjs"
+   ],
+   "evidence": [
+    ".github/pull_request_template.md \"Mock UX\" SÌ/NO section",
+    "CI run 39140793621 on 21eee83 (Fast checks + PostgreSQL integration suite PASS): test/mockup-alignment.test.mjs"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "FAIL",
+   "implementation_level": "N/A (process-only)",
+   "residual": "PR #184 adds a visible view (#/segnali) and its body has no 'Mock UX SÌ/NO' answer; mock not updated. CI mockup-alignment test cannot catch it.",
+   "note": "DISCREPANCY: declared PASS",
+   "discrepancy": true
+  },
+  {
+   "id": "MP-FPT-001",
+   "group": "FPT",
+   "source": "#12",
+   "priority": "P0",
+   "statement": "Discover and preserve every FutPythonTrader field returned upstream.",
+   "code": [
+    "src/providers/futpython/schema.mjs"
+   ],
+   "tests": [
+    "test/schema.test.mjs",
+    "test/phase4-registry.test.mjs"
+   ],
+   "evidence": [
+    "docs/futpython-certification-2026-10-05.md: schema discovery gates PASS (historical scope)"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "Historical certification 2026-10-05; not re-run on VPS data.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-FPT-002",
+   "group": "FPT",
+   "source": "#12",
+   "priority": "P0",
+   "statement": "Preserve immutable raw snapshots with content hashes and lineage.",
+   "code": [
+    "src/providers/futpython/store.mjs"
+   ],
+   "tests": [
+    "test/fpt-reprocessing.test.mjs"
+   ],
+   "evidence": [
+    "docs/futpython-certification-2026-10-05.md: raw retention and lineage gates PASS (historical scope)"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-FPT-003",
+   "group": "FPT",
+   "source": "#3",
+   "priority": "P0",
+   "statement": "Normalize and make queryable every available field, not only fields displayed in UI.",
+   "code": [
+    "src/providers/futpython/query.mjs"
+   ],
+   "tests": [
+    "test/fpt-assistant-queries.test.mjs"
+   ],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "Query catalog covers selected routes; 'every field queryable' not demonstrated.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-FPT-004",
+   "group": "FPT",
+   "source": "#3",
+   "priority": "P0",
+   "statement": "Expose coverage N and provenance for each metric and dataset slice.",
+   "code": [
+    "src/providers/futpython/coverage.mjs"
+   ],
+   "tests": [
+    "test/phase5-coverage.test.mjs"
+   ],
+   "evidence": [
+    "docs/futpython-certification-2026-10-05.md gate coverage PASS (dataset/league/season/field scope only)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-FPT-005",
+   "group": "FPT",
+   "source": "#12",
+   "priority": "P0",
+   "statement": "Pin parser/schema/transform/data-contract and identity versions for point-in-time reproduction.",
+   "code": [
+    "src/providers/futpython/query.mjs",
+    "src/providers/futpython/reprocess.mjs",
+    "src/providers/futpython/integrity.mjs",
+    "src/pit/policy.mjs",
+    "src/pit/readers.mjs"
+   ],
+   "tests": [
+    "test/pit-fpt-postgres.test.mjs",
+    "test/pit-policy.test.mjs",
+    "test/fpt-reprocessing.test.mjs"
+   ],
+   "evidence": [
+    "R-08b: an FPT version is available at the later of its acquisition and the end of the latest complete re-parse run with its lineage; teamMatchesAsOf returns the same versions and values at the same T before and after a re-parse, including a re-parse writing into a later snapshot (test/pit-fpt-postgres.test.mjs)",
+    "PASS withheld: team identity and dataset activation are not versioned; replay (R-09) not yet built on it"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "Identity/dataset activation not pinned (declared).",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-FPT-006",
+   "group": "FPT",
+   "source": "#31",
+   "priority": "P0",
+   "statement": "Detect gaps, stale checkpoints and interrupted synchronization and recover idempotently.",
+   "code": [
+    "src/providers/futpython/reconciliation.mjs"
+   ],
+   "tests": [
+    "test/fpt-reconciliation.test.mjs",
+    "test/fpt-reconciliation-sync.test.mjs"
+   ],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "No real interrupted-sync drill on VPS.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-FPT-007",
+   "group": "FPT",
+   "source": "#12",
+   "priority": "P1",
+   "statement": "Distinguish AVAILABLE, initial unavailable, regression, provider error, deprecated and removed datasets.",
+   "code": [
+    "src/providers/futpython/classification.mjs"
+   ],
+   "tests": [
+    "test/phase2-classification.test.mjs"
+   ],
+   "evidence": [
+    "docs/futpython-certification-2026-10-05.md gate classification_phase2 PASS (1,027 datasets classified)"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-FPT-008",
+   "group": "FPT",
+   "source": "#12",
+   "priority": "P0",
+   "statement": "Resolve or explicitly classify the 412 historical UNAVAILABLE_404 datasets before global FPT certification.",
+   "code": [],
+   "tests": [],
+   "evidence": [
+    "owner audit requirement"
+   ],
+   "declared_verdict": "BLOCKED",
+   "audited_status": "BLOCKED",
+   "implementation_level": "not implemented",
+   "residual": "Audit 412 not executed (owner AUDIT412); no code.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-FPT-009",
+   "group": "FPT",
+   "source": "#3",
+   "priority": "P1",
+   "statement": "Provide pre-match feature slices for form, home/away, goals, xG, shooting, possession, defence, discipline, corners, halves, timing, H2H and odds where available.",
+   "code": [
+    "src/analysis/match-analysis.mjs"
+   ],
+   "tests": [
+    "test/match-analysis.test.mjs"
+   ],
+   "evidence": [
+    "R-07a: /api/v1/fpt/match-analysis serves form, home/away, goals, xG and odds coverage per window from finished matches strictly before the match day, exact Decimal, percentages computed by the server; PIT_NOT_VERIFIED (current fact versions with a date cutoff)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "FAIL",
+   "implementation_level": "implemented and integrated",
+   "residual": "src/analysis/match-analysis.mjs serves only form/home-away/goals/xG/1X2+O2.5/BTTS odds/H2H; shooting, possession, defence, discipline, corners, halves, timing are neither served nor marked N/D.",
+   "note": "partial implementation",
+   "discrepancy": true
+  },
+  {
+   "id": "MP-FPT-010",
+   "group": "FPT",
+   "source": "#12",
+   "priority": "P1",
+   "statement": "Require owner promotion for a new league while permitting controlled new-season onboarding.",
+   "code": [
+    "src/providers/futpython/onboarding.mjs"
+   ],
+   "tests": [
+    "test/fpt-onboarding.test.mjs"
+   ],
+   "evidence": [
+    "docs/futpython-certification-2026-10-05.md §18 onboarding gate PASS (catalog_without_onboarding 0)"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-FPT-011",
+   "group": "FPT",
+   "source": "#12",
+   "priority": "P1",
+   "statement": "Monitor freshness, failures, budget state and schema changes without alert spam.",
+   "code": [
+    "src/jobs/data-watchdog.mjs",
+    "src/alerts.mjs"
+   ],
+   "tests": [
+    "test/alerts.test.mjs",
+    "test/alert-aggregation.test.mjs"
+   ],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "#182 requires Telegram delivery/anti-duplication tests on VPS: not evidenced.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-FPT-012",
+   "group": "FPT",
+   "source": "#12",
+   "priority": "P0",
+   "statement": "Do not call FutPythonTrader globally certified while residual classification, PIT or real gates remain open.",
+   "code": [
+    "src/futpython-certification.mjs"
+   ],
+   "tests": [
+    "test/phase9-certificate.test.mjs"
+   ],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-TC-001",
+   "group": "TC",
+   "source": "#20",
+   "priority": "P0",
+   "statement": "Store lossless TotalCorner raw responses and a request ledger without token leakage.",
+   "code": [
+    "src/providers/totalcorner/client.mjs"
+   ],
+   "tests": [
+    "test/tc-core-discovery.test.mjs"
+   ],
+   "evidence": [
+    "#20 comment 6057763877 (TC-CORE-01 run 1: 100 ledger requests, raw persisted, no token)"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "Historical real evidence (#20 comment 6057763877); collectors OFF by default since #186 (MATCHPILOT_TOTALCORNER), per #182.",
+   "note": "runtime disabled by owner decision",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-TC-002",
+   "group": "TC",
+   "source": "#20",
+   "priority": "P0",
+   "statement": "Use only VERIFIED FPT↔TotalCorner competition mappings in operational collectors.",
+   "code": [
+    "src/providers/totalcorner/mapping.mjs"
+   ],
+   "tests": [
+    "test/tc-core-mapping.test.mjs"
+   ],
+   "evidence": [
+    "#20 comment 6058681486 (TC-CORE-02 v2, PR #133: 96 VERIFIED competitions)"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-TC-003",
+   "group": "TC",
+   "source": "#20",
+   "priority": "P0",
+   "statement": "Classify PREMATCH only when provider time is strictly before scheduled kickoff and no in-play minute exists.",
+   "code": [
+    "src/providers/totalcorner/prematch.mjs"
+   ],
+   "tests": [
+    "test/tc-core-prematch.test.mjs"
+   ],
+   "evidence": [
+    "#20 comment 6069755000 (TC-CORE-03 HARD CERTIFIED REAL re-verification, 14/14 pre-kickoff; supersedes disputed 6068767147)"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-TC-004",
+   "group": "TC",
+   "source": "#20",
+   "priority": "P0",
+   "statement": "Measure provider timezone and fail closed when missing, stale or inconsistent.",
+   "code": [
+    "src/jobs/totalcorner-prematch.mjs"
+   ],
+   "tests": [
+    "test/tc-core-prematch.test.mjs"
+   ],
+   "evidence": [
+    "#20 comment 6061682642 (tc-tz-gate-v2: 3 agreeing cycles, 23/23 matches linked to tz_observation_id)"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "Prematch job OFF since #186.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-TC-005",
+   "group": "TC",
+   "source": "#20",
+   "priority": "P1",
+   "statement": "Expose opening and last-prematch 1X2, Asian, Goal, Corner, HT and BTTS where upstream provides them.",
+   "code": [
+    "src/jobs/totalcorner-prematch.mjs"
+   ],
+   "tests": [
+    "test/tc-core-prematch.test.mjs"
+   ],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-TC-006",
+   "group": "TC",
+   "source": "#20",
+   "priority": "P1",
+   "statement": "Keep HISTORICAL_UPSTREAM distinct from HISTORICAL_CAPTURED live history.",
+   "code": [
+    "src/providers/totalcorner/historical.mjs"
+   ],
+   "tests": [
+    "test/tc-core-historical.test.mjs"
+   ],
+   "evidence": [
+    "#20 comment 6069850975 (TC-CORE-03B HARD CERTIFIED REAL on 60-match sample, limits declared)"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-TC-007",
+   "group": "TC",
+   "source": "#20",
+   "priority": "P0",
+   "statement": "Persist live snapshots and events from VERIFIED leagues with canonical deduplication.",
+   "code": [
+    "src/providers/totalcorner/live.mjs",
+    "src/jobs/totalcorner-live.mjs"
+   ],
+   "tests": [
+    "test/tc-core-live.test.mjs"
+   ],
+   "evidence": [
+    "#20 comment 6081058030 (2026-10-09): 1,114 snapshots, 239 events, 0 snapshot/event duplicates; scope PR #145 runtime"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "Live collector OFF since #186; evidence 2026-10-09 remains historical (#182 p.3).",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-TC-008",
+   "group": "TC",
+   "source": "#20",
+   "priority": "P0",
+   "statement": "Recover live cursors after restart and persist provider-confirmed FT exactly once.",
+   "code": [
+    "src/jobs/totalcorner-live.mjs"
+   ],
+   "tests": [
+    "test/tc-core-live.test.mjs"
+   ],
+   "evidence": [
+    "#20 comment 6081058030: exact-SHA restart PASS, transaction lock PASS, 2 provider-confirmed FT persisted exactly once; scope PR #145, not multi-day"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "Same as MP-TC-007.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-TC-009",
+   "group": "TC",
+   "source": "#20",
+   "priority": "P1",
+   "statement": "Share a bounded rate limiter, classify 429/5xx/timeout and apply controlled retry/backoff.",
+   "code": [
+    "src/providers/totalcorner/client.mjs"
+   ],
+   "tests": [
+    "test/tc-core-discovery.test.mjs"
+   ],
+   "evidence": [
+    "#20 comment 6057763877: limiter 4/10 s held over 100 real requests, 0 429; 429/5xx/timeout classification unit-tested in test/tc-core-discovery.test.mjs"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-TC-010",
+   "group": "TC",
+   "source": "#20",
+   "priority": "P0",
+   "statement": "Expose raw linkage, duplicates, gaps, provenance, freshness and leakage counters.",
+   "code": [
+    "src/jobs/totalcorner-prematch.mjs",
+    "src/jobs/totalcorner-live.mjs"
+   ],
+   "tests": [
+    "test/tc-core-prematch.test.mjs",
+    "test/tc-core-live.test.mjs"
+   ],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-TC-011",
+   "group": "TC",
+   "source": "#20",
+   "priority": "P1",
+   "statement": "Route TotalCorner operational alerts through the same outbound-only alert channel as FPT.",
+   "code": [
+    "src/alerts.mjs"
+   ],
+   "tests": [
+    "test/telegram.test.mjs"
+   ],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "TC paused; cannot be exercised live.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-TC-012",
+   "group": "TC",
+   "source": "#20",
+   "priority": "P0",
+   "statement": "Do not declare TotalCorner globally certified before prematch, historical, live frequency, restart, FT and replay gates pass.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "BLOCKED",
+   "audited_status": "BLOCKED",
+   "implementation_level": "not implemented",
+   "residual": "TotalCorner collection suspended (#182); multi-day LIVE certification owner-gated (MP-FUT-007).",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-WEB-001",
+   "group": "WEB",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Provide a real executable read-only website, not a visual prototype.",
+   "code": [
+    "src/server.mjs",
+    "src/web/app.css",
+    "src/web/app.js",
+    "src/web/index.html",
+    "src/web/static.mjs"
+   ],
+   "tests": [
+    "test/web-e2e.test.mjs"
+   ],
+   "evidence": [
+    "current homepage says In costruzione",
+    "R-05: / serves a real read-only shell whose values come from /api/v1 (browser E2E asserts screen values equal API responses); PASS withheld until product data pages (R-06/R-07) exist"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "Real site works (Browser QA 12/12, visual 45/45 on 39fe08e, local fixtures); evidence 'homepage says In costruzione' stale.",
+   "note": "stale evidence",
+   "discrepancy": true
+  },
+  {
+   "id": "MP-WEB-002",
+   "group": "WEB",
+   "source": "#3",
+   "priority": "P0",
+   "statement": "Show a responsive Daily Board with all available matches and data-quality state.",
+   "code": [
+    "src/web/app.js",
+    "src/providers/futpython/query.mjs"
+   ],
+   "tests": [
+    "test/web-e2e.test.mjs",
+    "test/mockup-alignment.test.mjs"
+   ],
+   "evidence": [
+    "R-06b: Daily Board #/board reads /api/v1/fpt/matches; cards show teams, competition, kickoff with time-zone status, score, result status, 1X2/Over 2.5/BTTS odds, favourite, xG, phase and dataset, N/D for missing values, cursor pagination; E2E equality with the API on desktop and mobile (seeded season ingested through the real FutPythonTrader path; not certified against the real archive: MP-OWNER-ARCHIVE-FIRST-01)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-WEB-003",
+   "group": "WEB",
+   "source": "#30",
+   "priority": "P0",
+   "statement": "Provide Match Center search, filters and Home/Away/Both analytical cards.",
+   "code": [
+    "src/analysis/match-analysis.mjs",
+    "src/web/app.js"
+   ],
+   "tests": [
+    "test/match-analysis.test.mjs",
+    "tools/qa/journeys.mjs"
+   ],
+   "evidence": [
+    "R-07a: Match Center #/match?id= reached from the Daily Board, search results and source rows; team, sample and venue filters of the mockup kept in the address; Browser QA journey match-center checks every figure against the API (QA archive, not the real archive)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-WEB-004",
+   "group": "WEB",
+   "source": "#25",
+   "priority": "P1",
+   "statement": "Provide a finished-match page combining prematch, final state, timeline, markets, replay and post-mortem.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-WEB-005",
+   "group": "WEB",
+   "source": "#3",
+   "priority": "P0",
+   "statement": "Render missing values as N/D rather than numeric zero.",
+   "code": [
+    "src/coverage-page.mjs",
+    "src/web/app.js"
+   ],
+   "tests": [
+    "test/fpt-coverage-page.test.mjs",
+    "test/web-e2e.test.mjs"
+   ],
+   "evidence": [
+    "R-05: null/absent values render N/D (E2E: data_health.lastRun null reads N/D); applies to every later view",
+    "R-06b: Daily Board, search and dashboard read N/D for null odds, kickoff, xG and timestamps; a real 0 stays 0 (E2E); no raw null/undefined/NaN on any page"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "FAIL",
+   "implementation_level": "implemented and integrated",
+   "residual": "Regression from #184: src/web/app.js:812 renders missing sample size as 0 (`${r.home_n ?? 0}/${r.away_n ?? 0}`) in user view #/segnali.",
+   "note": "NEW FAIL evidence",
+   "discrepancy": true
+  },
+  {
+   "id": "MP-WEB-006",
+   "group": "WEB",
+   "source": "#3",
+   "priority": "P0",
+   "statement": "Display coverage, source, freshness, gap and quality status for each module.",
+   "code": [
+    "src/coverage-page.mjs"
+   ],
+   "tests": [
+    "test/fpt-coverage-page.test.mjs"
+   ],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-WEB-007",
+   "group": "WEB",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Support search and filters for match, date, competition and quality dimensions.",
+   "code": [
+    "src/providers/futpython/query.mjs",
+    "src/web/app.js"
+   ],
+   "tests": [
+    "test/fpt-pagination.test.mjs",
+    "test/web-e2e.test.mjs"
+   ],
+   "evidence": [
+    "R-06a (API part): validated inputs and deterministic paginated results for search and matches of a day; the UI part follows in R-06b",
+    "R-06b (UI part): #/search with team, venue, competition, dates, result, favourite odds, goals and data-quality filters (with_odds, with_xg on the server); server-side validation shown to the user; rows and order equal the API through every page (seeded season ingested through the real FutPythonTrader path; not certified against the real archive: MP-OWNER-ARCHIVE-FIRST-01)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-WEB-008",
+   "group": "WEB",
+   "source": "#3",
+   "priority": "P1",
+   "statement": "Provide charts for historical odds, statistics and replay without implying fabricated continuity.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-WEB-009",
+   "group": "WEB",
+   "source": "#3",
+   "priority": "P1",
+   "statement": "Operate on supported desktop and mobile viewports.",
+   "code": [
+    "src/web/app.css"
+   ],
+   "tests": [
+    "test/web-e2e.test.mjs"
+   ],
+   "evidence": [
+    "R-05: shell usable at 1280x800 and 390x844 with no horizontal overflow (E2E)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "Visual baselines PASS desktop/tablet/mobile locally.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-WEB-010",
+   "group": "WEB",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Handle loading, empty, partial and error states explicitly.",
+   "code": [
+    "src/web/app.js"
+   ],
+   "tests": [
+    "test/web-e2e.test.mjs"
+   ],
+   "evidence": [
+    "R-05: explicit loading, empty, partial and error states with retry (E2E with held, failed and partial API responses)",
+    "R-06b: partial dashboard (one failed route), failed next page keeps shown rows with retry, explicit empty day and empty search (E2E)",
+    "QA-V2: loading, error, refused filter, partial dashboard and empty day fixed in the visual baselines on desktop, tablet and mobile (docs/qa/visual.md)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-WEB-011",
+   "group": "WEB",
+   "source": "#97",
+   "priority": "P0",
+   "statement": "Keep authoritative formulas, strategy, replay and data rules outside the UI.",
+   "code": [
+    "src/web/app.js"
+   ],
+   "tests": [
+    "test/web-e2e.test.mjs"
+   ],
+   "evidence": [
+    "R-05: the shell only renders API v1 payloads; no formula or rule in the browser",
+    "R-06b: the browser only renders API rows in API order; the only date arithmetic is calendar navigation; data-quality filters run on the server"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-WEB-012",
+   "group": "WEB",
+   "source": "#24",
+   "priority": "P1",
+   "statement": "Expose replay controls and synchronized state in the real site.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-RPL-001",
+   "group": "RPL",
+   "source": "#24",
+   "priority": "P0",
+   "statement": "Select a finished match and reconstruct its chronological state from authentic captured data.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "BLOCKED",
+   "audited_status": "BLOCKED",
+   "implementation_level": "not implemented",
+   "residual": "No replay code; TC live capture paused (#182).",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-RPL-002",
+   "group": "RPL",
+   "source": "#24",
+   "priority": "P0",
+   "statement": "Return the same state for match, timestamp, dataset, code, config and seed.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-RPL-003",
+   "group": "RPL",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Prevent algorithms from reading any information later than simulated time.",
+   "code": [
+    "src/providers/totalcorner/prematch.mjs"
+   ],
+   "tests": [
+    "test/tc-core-prematch.test.mjs"
+   ],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "Only TC prematch reader enforces cutoff; no replay engine.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-RPL-004",
+   "group": "RPL",
+   "source": "OWNER-2026-10-18",
+   "priority": "P1",
+   "statement": "Support configurable speed, pause, resume and event-by-event stepping.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-RPL-005",
+   "group": "RPL",
+   "source": "#24",
+   "priority": "P1",
+   "statement": "Support seek and jumps to kickoff, HT, 60, 75, 90, FT and available events.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-RPL-006",
+   "group": "RPL",
+   "source": "#24",
+   "priority": "P0",
+   "statement": "Expose score, status, statistics, markets and last event available at each replay instant.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-RPL-007",
+   "group": "RPL",
+   "source": "#24",
+   "priority": "P0",
+   "statement": "Never invent intermediate snapshots or interpolate unauthorized information.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "not implemented",
+   "residual": "Vacuous: no replay exists.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-RPL-008",
+   "group": "RPL",
+   "source": "#24",
+   "priority": "P0",
+   "statement": "Identify missing snapshots, gaps, late data and incomplete matches.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-RPL-009",
+   "group": "RPL",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Handle out-of-order timestamps, duplicates, corrections and simultaneous events deterministically.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-RPL-010",
+   "group": "RPL",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Restart a replay without changing state or duplicating predictions/events.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-RPL-011",
+   "group": "RPL",
+   "source": "#24",
+   "priority": "P1",
+   "statement": "Expose replay through a versioned read-only API with validated match/time inputs.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-RPL-012",
+   "group": "RPL",
+   "source": "#24",
+   "priority": "P0",
+   "statement": "Certify replay on complete, incomplete, multi-goal, market-movement and event-rich authentic matches.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "BLOCKED",
+   "audited_status": "BLOCKED",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-STA-001",
+   "group": "STA",
+   "source": "#34",
+   "priority": "P0",
+   "statement": "Version every strategy, rule set and parameter set immutably.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "Only a hard-coded RULE_VERSION in src/signals/simulated.mjs (#184); no strategy registry. HIST-01a PR #178 not merged.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-STA-002",
+   "group": "STA",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Verify mathematical formulas independently from data and predictive performance.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-STA-003",
+   "group": "STA",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Verify authenticity, temporal validity, provenance and coherence of backtest inputs.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "BLOCKED",
+   "audited_status": "BLOCKED",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-STA-004",
+   "group": "STA",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Evaluate predictive validity strictly outside training/selection data.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-STA-005",
+   "group": "STA",
+   "source": "#3",
+   "priority": "P0",
+   "statement": "Run chronological backtests with no look-ahead leakage.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "Sim signals use analysis cutoff before match day but are PIT_NOT_VERIFIED; not a backtest.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-STA-006",
+   "group": "STA",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Support walk-forward validation with frozen train, validation and test windows.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-STA-007",
+   "group": "STA",
+   "source": "OWNER-2026-10-18",
+   "priority": "P1",
+   "statement": "Calculate Brier score, log loss and calibration where probabilistic forecasts exist.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-STA-008",
+   "group": "STA",
+   "source": "#3",
+   "priority": "P1",
+   "statement": "Report ROI, strike rate, drawdown and sample size with consistent definitions.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "Sim signals report hit/miss/P&L only, no drawdown/sample-size definitions.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-STA-009",
+   "group": "STA",
+   "source": "OWNER-2026-10-18",
+   "priority": "P1",
+   "statement": "Report confidence intervals or justified uncertainty estimates.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-STA-010",
+   "group": "STA",
+   "source": "OWNER-2026-10-18",
+   "priority": "P1",
+   "statement": "Compare predictive models with simple documented baselines.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-STA-011",
+   "group": "STA",
+   "source": "#3",
+   "priority": "P0",
+   "statement": "Treat NO TRADE as a valid reproducible strategy outcome.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "Sim NO_SIGNAL/INSUFFICIENT_DATA exist but outside a strategy engine.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-STA-012",
+   "group": "STA",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Prohibit profitable/reliable claims based on few matches or in-sample results.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "N/A (process-only)",
+   "residual": "#/segnali shows 'P/L simulato' of a single day (#184 body: one day, PIT_NOT_VERIFIED) without sample-size warning.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-QAC-001",
+   "group": "QAC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Execute unit tests against production functions with meaningful assertions.",
+   "code": [],
+   "tests": [
+    "test/*.test.mjs"
+   ],
+   "evidence": [
+    "CI run 39140793621 on 21eee83: 161 pre-existing tests executed, 0 failures"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "Local run 39fe08e: 439 tests, 437 pass, 1 fail (env: 'yaml' missing in linked node_modules; 13/13 pass after npm ci), 1 skip (PG17).",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-QAC-002",
+   "group": "QAC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Run integration tests against isolated real PostgreSQL and real backend code.",
+   "code": [],
+   "tests": [
+    "test/postgres-independence.test.mjs"
+   ],
+   "evidence": [
+    "run 37952583495"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "test/postgres-independence.test.mjs SKIPPED locally (PG 16.15); PASS rests on CI run 37952583495; all other PG integration tests passed on local PG.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-QAC-003",
+   "group": "QAC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Validate versioned API schemas, inputs, errors and compatibility.",
+   "code": [
+    "src/api/v1.mjs",
+    "src/server.mjs"
+   ],
+   "tests": [
+    "test/api-v1-contract.test.mjs",
+    "test/api-v1-postgres.test.mjs"
+   ],
+   "evidence": [
+    "R-03: implemented in src/api/v1.mjs; test/api-v1-contract.test.mjs (6) and test/api-v1-postgres.test.mjs (real HTTP + PostgreSQL 16 locally, PostgreSQL 17 in CI) PASS",
+    "PASS withheld: depends on MP-SEC-001 server-side authentication (R-04)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-QAC-004",
+   "group": "QAC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Run frontend and browser E2E tests on the real web application.",
+   "code": [
+    "scripts/ci-classify.mjs",
+    "tools/qa/browser-qa.mjs",
+    "tools/qa/journeys.mjs",
+    "tools/qa/verify-report.mjs",
+    "tools/qa/visual.mjs",
+    "tools/qa/png.mjs"
+   ],
+   "tests": [
+    "test/browser-qa-gate.test.mjs",
+    "test/ci-classify.test.mjs",
+    "test/governance-policy.test.mjs",
+    "test/web-e2e.test.mjs",
+    "test/visual-gate.test.mjs"
+   ],
+   "evidence": [
+    "R-05: browser E2E on the real server and API in CI (playwright-core + runner Chrome), screenshots on failure; PASS withheld until it covers product pages",
+    "QA-01 (MP-OWNER-BROWSER-QA-HARD-GATE-01): Browser QA Gate in CI for every web change; required journeys on desktop and mobile in real Chrome, per-step screenshots, traces, HTTP/JS/console checks, basic accessibility and layout invariants; report bound to the PR head and verified (SHA-256 manifest, computed verdict); merge-gate requires it. Required check on main NOT VERIFIED; exploratory level NOT VERIFIED",
+    "QA-V: versioned visual baselines of 8 approved views on desktop, tablet and mobile (24), SHA-256 manifest, explicit thresholds measured against the CI browser (8x8 blocks, delta 32, no block over), comparison in the Browser QA job, baseline changes only through promote with a reason, an approval and a log entry checked in CI; changes that keep every 8x8 block mean within 32 are not detected (subtle colours, a changed character, the decimal separator; the journeys check values) and near-threshold changes are uncertain under the CI noise of 26 (docs/qa/visual.md)",
+    "QA-V2: loading, error, refused-filter and partial-dashboard states added to the visual baselines (12 scenes, 36 baselines), loading and unavailability forced by holding one route or answering it with the API error envelope, the refused filter from the real server"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "Browser QA 12/12 and visual 45/45 PASS locally; #/segnali not covered by any journey.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-QAC-005",
+   "group": "QAC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Run dependency, secret, authorization and unsafe-configuration tests.",
+   "code": [],
+   "tests": [],
+   "evidence": [
+    "npm audit high exists"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "npm audit --omit=dev high: 0 vulnerabilities (2026-10-22).",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-QAC-006",
+   "group": "QAC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Test crash, restart, concurrent requests and idempotent recovery.",
+   "code": [],
+   "tests": [
+    "test/resume-drill.test.mjs",
+    "test/tc-core-live.test.mjs"
+   ],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-QAC-007",
+   "group": "QAC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P1",
+   "statement": "Measure API, database and replay performance against explicit budgets.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "implemented, not integrated",
+   "residual": "Partial budgets exist (src/providers/futpython/query.mjs PERF_LIMITS/runPerfGate) but no code pointer; no replay/API-wide budgets.",
+   "note": "stale (empty) code pointer",
+   "discrepancy": true
+  },
+  {
+   "id": "MP-QAC-008",
+   "group": "QAC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "For every defect, preserve RED evidence, apply the minimal fix, obtain GREEN and run pertinent regression.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "N/A (process-only)",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-QAC-009",
+   "group": "QAC",
+   "source": "#144",
+   "priority": "P0",
+   "statement": "Maintain a stable required CI gate that fails closed on unknown or failed selected lanes.",
+   "code": [
+    "scripts/ci-classify.mjs"
+   ],
+   "tests": [
+    "test/ci-classify.test.mjs"
+   ],
+   "evidence": [
+    "ruleset 24790739"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-QAC-010",
+   "group": "QAC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Record commit, environment, dependencies, dataset hash, command, result, log, artifact, time and limitations for certifications.",
+   "code": [
+    "tools/governance/checkpoints.mjs"
+   ],
+   "tests": [
+    "test/governance-checkpoints.test.mjs"
+   ],
+   "evidence": [
+    "tools/governance/checkpoints.mjs validateEvidence used by the real checkpoints of the R-01 handoff"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-QAC-011",
+   "group": "QAC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Separate implementer, reviewer and certifier roles where possible.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "FAIL",
+   "implementation_level": "N/A (process-only)",
+   "residual": "t103u: 'no distinct reviewer identity exists', implementer = reviewer for #184-#189.",
+   "note": "NEW FAIL evidence",
+   "discrepancy": true
+  },
+  {
+   "id": "MP-QAC-012",
+   "group": "QAC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Link every new PR to requirements and risk-sized mandatory tests.",
+   "code": [
+    "tools/validate-requirements.mjs",
+    "scripts/ci-classify.mjs",
+    "tools/governance/cli.mjs",
+    ".github/workflows/ci.yml"
+   ],
+   "tests": [
+    "test/requirements-inventory.test.mjs",
+    "test/ci-classify.test.mjs",
+    "test/governance-docs.test.mjs"
+   ],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "#184 code (src/signals/*) is linked to no requirement in requirements.json.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-SEC-001",
+   "group": "SEC",
+   "source": "#23",
+   "priority": "P0",
+   "statement": "Protect the real read-only website and API with server-side authentication/authorization appropriate to offline v1.",
+   "code": [
+    "src/auth/owner-auth.mjs",
+    "src/auth/http.mjs",
+    "migrations/029-owner-auth.sql",
+    "src/server.mjs"
+   ],
+   "tests": [
+    "test/owner-auth.test.mjs"
+   ],
+   "evidence": [
+    "R-04b: with MATCHPILOT_AUTH=enforce every route except /healthz and the login routes requires an owner session (pages 303 to /login, /api/v1 401 UNAUTHENTICATED, other /api 401); misconfiguration or a held auth migration fails closed with 503 (test/owner-auth.test.mjs, real server on PostgreSQL)",
+    "PASS withheld: off by default; production activation is an owner action (D12) with migration 029 approval (D13)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented, not integrated",
+   "residual": "Auth off by default (MATCHPILOT_AUTH); #184 made bind host configurable, default still 0.0.0.0.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-SEC-002",
+   "group": "SEC",
+   "source": "#23",
+   "priority": "P0",
+   "statement": "Keep credentials out of repository, docs, fixtures, logs, errors and endpoints.",
+   "code": [
+    "src/providers/totalcorner/client.mjs",
+    "src/db.mjs"
+   ],
+   "tests": [
+    "test/tc-core-discovery.test.mjs"
+   ],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-SEC-003",
+   "group": "SEC",
+   "source": "#144",
+   "priority": "P0",
+   "statement": "Never provide production Neon credentials or provider secrets to ordinary PR test jobs.",
+   "code": [
+    "src/background.mjs"
+   ],
+   "tests": [
+    "test/postgres-independence.test.mjs"
+   ],
+   "evidence": [
+    "run 37952583495"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "ci.yml uses only local throwaway PG URL, no secrets.*.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-SEC-004",
+   "group": "SEC",
+   "source": "#144",
+   "priority": "P0",
+   "statement": "Use least-privilege workflow permissions and immutable action pins.",
+   "code": [],
+   "tests": [],
+   "evidence": [
+    "permissions contents:read; actions SHA-pinned"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "Every 'uses:' SHA-pinned in ci.yml and deploy-vps.yml.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-SEC-005",
+   "group": "SEC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Reject non-local DATABASE_URL in offline and test modes before connection or migration.",
+   "code": [
+    "src/background.mjs"
+   ],
+   "tests": [
+    "test/runtime-isolation.test.mjs"
+   ],
+   "evidence": [
+    "CI isolated backend"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-SEC-006",
+   "group": "SEC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Validate and bind all API inputs; prohibit query injection and unbounded resource requests.",
+   "code": [
+    "src/providers/futpython/query.mjs",
+    "src/api/v1.mjs",
+    "src/server.mjs"
+   ],
+   "tests": [
+    "test/fpt-assistant-queries.test.mjs",
+    "test/api-v1-contract.test.mjs",
+    "test/api-v1-postgres.test.mjs"
+   ],
+   "evidence": [
+    "R-03: implemented in src/api/v1.mjs; test/api-v1-contract.test.mjs (6) and test/api-v1-postgres.test.mjs (real HTTP + PostgreSQL 16 locally, PostgreSQL 17 in CI) PASS",
+    "PASS withheld: depends on MP-SEC-001 server-side authentication (R-04)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-SEC-007",
+   "group": "SEC",
+   "source": "#23",
+   "priority": "P1",
+   "statement": "Protect sessions against fixation, CSRF, brute force and stale/revoked access.",
+   "code": [
+    "src/auth/owner-auth.mjs",
+    "src/auth/http.mjs",
+    "migrations/029-owner-auth.sql"
+   ],
+   "tests": [
+    "test/owner-auth.test.mjs"
+   ],
+   "evidence": [
+    "R-04b: token rotation at login (planted cookie never adopted), SameSite=Strict HttpOnly cookie plus Origin/Sec-Fetch-Site check on login and logout (403, audited), 10 failed logins per client (IPv4 address or IPv6 /64) in 15 min give 429 even with the right password (atomic per-client reservation, no per-username lockout, proxy-appended address only, explicit proxy trust required in production, failure-spike alert), absolute and idle expiry, logout revokes server-side (test/owner-auth.test.mjs)",
+    "PASS withheld: not active in production until the owner enables it"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented, not integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-SEC-008",
+   "group": "SEC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Fail safely on corrupt input, unavailable DB, timeout, crash, malformed API, bad manifest and insufficient resources.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "No code pointer; API 503 UNAVAILABLE path exists.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-SEC-009",
+   "group": "SEC",
+   "source": "#144",
+   "priority": "P1",
+   "statement": "Audit dependencies and record unresolved vulnerabilities without hiding unavailable alert state.",
+   "code": [],
+   "tests": [],
+   "evidence": [
+    "npm audit --audit-level=high"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-SEC-010",
+   "group": "SEC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Verify manifest and SHA before reading an archive and never modify original archive bytes.",
+   "code": [
+    "tools/archive/verify-archive.mjs"
+   ],
+   "tests": [
+    "test/archive-verify.test.mjs"
+   ],
+   "evidence": [
+    "tools/archive/verify-archive.mjs verifies manifest pins and part SHA-256 before any use and opens files read-only (test/archive-verify.test.mjs); real parts not obtainable (R-02 blocker)"
+   ],
+   "declared_verdict": "BLOCKED",
+   "audited_status": "BLOCKED",
+   "implementation_level": "implemented, not integrated",
+   "residual": "Verifier exists, archive parts not obtainable read-only.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-SEC-012",
+   "group": "SEC",
+   "source": "#23",
+   "priority": "P0",
+   "statement": "Leave no open HIGH/CRITICAL security finding attributable to MatchPilot in offline v1.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "N/A (process-only)",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-013",
+   "group": "GOV",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Only the owner closes issues; agents publish \"READY TO CLOSE — OWNER APPROVAL REQUIRED\" only after full certification.",
+   "code": [
+    "tools/governance/policy.mjs",
+    "AGENTS.md"
+   ],
+   "tests": [
+    "test/governance-policy.test.mjs",
+    "test/governance-docs.test.mjs"
+   ],
+   "evidence": [
+    "AGENTS.md §5 owner-only closure and READY TO CLOSE content; test/governance-docs.test.mjs asserts the agent closure exception is gone",
+    "procedural+preventive control: agents share the owner GitHub account, so closure is not technically distinguishable (limit recorded in docs/governance/HANDOFF.md)"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-014",
+   "group": "GOV",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Reject auto-closing keywords (Closes/Fixes/Resolves #) in PR text and canonical documents; use Refs #.",
+   "code": [
+    "tools/governance/policy.mjs",
+    "tools/governance/cli.mjs",
+    ".github/workflows/ci.yml"
+   ],
+   "tests": [
+    "test/governance-policy.test.mjs",
+    "test/governance-docs.test.mjs"
+   ],
+   "evidence": [
+    "CI run 39162523837 on 9547eca: Fast checks executed npm run governance:scan-closing on PR title, body and commits (PASS)",
+    "test/governance-policy.test.mjs and test/governance-docs.test.mjs (closing-keyword detection, canonical files, CI wiring)",
+    "R-02: underscore emphasis, markdown links and code spans covered (#151 review R-3)"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-015",
+   "group": "GOV",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Record every owner decision on GitHub with identifier, date, decision, scope, precedence, references and status.",
+   "code": [
+    "tools/validate-requirements.mjs"
+   ],
+   "tests": [
+    "test/requirements-inventory.test.mjs"
+   ],
+   "evidence": [
+    "docs/governance/owner-decisions.json validated by npm run governance:validate"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "FAIL",
+   "implementation_level": "implemented and integrated",
+   "residual": "Owner decisions t108u (SIM-OUTBOX removal, basis of #189) and MP-GROK-AUTONOMOUS-ROADMAP-STRICT-02 (t109u) are cited in checkpoints CP-20261022T134339Z/134419Z and #97 comments but absent from docs/governance/owner-decisions.json; decisions t99u..t103u are agent transcriptions of owner chat.",
+   "note": "DISCREPANCY: declared PASS",
+   "discrepancy": true
+  },
+  {
+   "id": "MP-GOV-016",
+   "group": "GOV",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Keep AGENTS.md as canonical operating rules and CLAUDE.md as a non-contradicting pointer.",
+   "code": [
+    "AGENTS.md",
+    "CLAUDE.md"
+   ],
+   "tests": [
+    "test/governance-docs.test.mjs"
+   ],
+   "evidence": [
+    "AGENTS.md canonical, CLAUDE.md pointer; test/governance-docs.test.mjs (no 07/10 block, no closure exception, no per-merge owner approval, CLAUDE.md short pointer)"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-017",
+   "group": "GOV",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Persist machine-readable checkpoints with id, UTC time, agent, branch, commit/tree SHA, issue, PR, requirements, tests, CI, gates, review, findings, decisions, state and next action.",
+   "code": [
+    "tools/governance/checkpoints.mjs",
+    "tools/governance/secrets.mjs"
+   ],
+   "tests": [
+    "test/governance-checkpoints.test.mjs"
+   ],
+   "evidence": [
+    "real checkpoints docs/governance/checkpoints/CP-20261018T201559Z-agent-a-claude-code.json and CP-20261018T202029Z-agent-b-claude-subagent.json validated by npm run governance:check",
+    "test/governance-checkpoints.test.mjs (schema, secrets, cross-references, latest-valid resolution)",
+    "R-02: checkpoint schema v2 binds review and CI evidence to reviewed_sha / ci.head_sha (#151 review R-2)"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-018",
+   "group": "GOV",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Support handoff and recovery idempotently, rejecting SHA mismatch, stale checkpoints and uncoordinated concurrent work.",
+   "code": [
+    "tools/governance/checkpoints.mjs",
+    "tools/governance/registry.mjs",
+    "tools/governance/git.mjs"
+   ],
+   "tests": [
+    "test/governance-checkpoints.test.mjs",
+    "test/governance-registry.test.mjs"
+   ],
+   "evidence": [
+    "test/governance-registry.test.mjs: 8 real concurrent processes, exactly one lease winner; expired lease needs reconciliation",
+    "test/governance-checkpoints.test.mjs: idempotent persistence and comment markers; real git SHA mismatch/unreconciled detection",
+    "real handoff: agent B claimed R-01 only after resume returned no divergences (commit 9989e45, registry revision 3)",
+    "R-02: merge-commit rewrites of checkpoints detected (--diff-merges=first-parent + cumulative diff), RED->GREEN in test/governance-checkpoints.test.mjs (#151 review R-1)"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "governance:status shows R-02 DIVERGENCES SHA_MISMATCH, STALE (expected for BLOCKED task).",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-019",
+   "group": "GOV",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Certify multi-agent continuity only through a real Agent A → GitHub checkpoint → interruption → Agent B recovery and completion test.",
+   "code": [
+    "docs/governance/HANDOFF.md",
+    "tools/governance/cli.mjs"
+   ],
+   "tests": [
+    "test/governance-docs.test.mjs"
+   ],
+   "evidence": [
+    "real handoff A -> B: agent A CP-20261018T201559Z-agent-a-claude-code (#150 comment 6254638793) HANDOFF READY at 26fa7f8; agent B (fresh context, separate clone) resumed, verified and completed N-06 in 477c4344a9ca9b65d34dfecc549b1aebabf63497, CP-20261018T202029Z-agent-b-claude-subagent (#150 comment 6254688637)",
+    "agent A re-verified B's work independently: test/postgres-independence.test.mjs skipped in 0.2s on PostgreSQL 16 locally, fails at once with CI=1; full suite 198/198 on PostgreSQL 16",
+    "limit: B was a separate subagent session of the same tool family in the same container, not a different vendor"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "Limit acknowledged; Claude->Grok takeover (TAKEOVER-01, #185) adds a cross-agent instance.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-020",
+   "group": "GOV",
+   "source": "OWNER-2026-10-18",
+   "priority": "P1",
+   "statement": "Keep #97 as canonical roadmap and #104 as historical card catalogue; link every PR to its cards and requirements.",
+   "code": [],
+   "tests": [],
+   "evidence": [
+    "docs/governance/audits/2026-10-18-MP-GATE-A-REVIEW-ROADMAP-01.md §4 card classification"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "N/A (process-only)",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-021",
+   "group": "GOV",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Incur no cost, deploy, production change, provider renewal or LIVE operation without explicit owner authorization.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "N/A (process-only)",
+   "residual": "VPS deploy gate with owner approval (#180/#181) exists; no structured requirement for it in RTM.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-QAC-013",
+   "group": "QAC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Record HARD OFFLINE certifications with environment, commit, dataset, limits and executed tests; declare every mock or stub.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-API-001",
+   "group": "API",
+   "source": "#98",
+   "priority": "P0",
+   "statement": "Expose a versioned read-only API with an explicit input/output schema per endpoint.",
+   "code": [
+    "src/api/v1.mjs",
+    "src/server.mjs"
+   ],
+   "tests": [
+    "test/api-v1-contract.test.mjs",
+    "test/api-v1-postgres.test.mjs"
+   ],
+   "evidence": [
+    "R-03: implemented in src/api/v1.mjs; test/api-v1-contract.test.mjs (6) and test/api-v1-postgres.test.mjs (real HTTP + PostgreSQL 16 locally, PostgreSQL 17 in CI) PASS",
+    "PASS withheld: depends on MP-SEC-001 server-side authentication (R-04)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-API-002",
+   "group": "API",
+   "source": "#98",
+   "priority": "P0",
+   "statement": "Return a deterministic error envelope with stable codes for invalid input, missing data and internal failure.",
+   "code": [
+    "src/api/v1.mjs",
+    "src/server.mjs"
+   ],
+   "tests": [
+    "test/api-v1-contract.test.mjs",
+    "test/api-v1-postgres.test.mjs"
+   ],
+   "evidence": [
+    "R-03: implemented in src/api/v1.mjs; test/api-v1-contract.test.mjs (6) and test/api-v1-postgres.test.mjs (real HTTP + PostgreSQL 16 locally, PostgreSQL 17 in CI) PASS",
+    "PASS withheld: depends on MP-SEC-001 server-side authentication (R-04)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-API-003",
+   "group": "API",
+   "source": "#3",
+   "priority": "P0",
+   "statement": "Attach provenance, coverage, as_of and data/code versions to every API response.",
+   "code": [
+    "src/api/v1.mjs",
+    "src/server.mjs"
+   ],
+   "tests": [
+    "test/api-v1-contract.test.mjs",
+    "test/api-v1-postgres.test.mjs"
+   ],
+   "evidence": [
+    "R-03: implemented in src/api/v1.mjs; test/api-v1-contract.test.mjs (6) and test/api-v1-postgres.test.mjs (real HTTP + PostgreSQL 16 locally, PostgreSQL 17 in CI) PASS",
+    "PASS withheld: depends on MP-SEC-001 server-side authentication (R-04)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "/api/v1/sim/signals (#184) returns as_of null and no coverage/PIT label.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-API-004",
+   "group": "API",
+   "source": "#30",
+   "priority": "P0",
+   "statement": "Support bounded, validated search, filter and pagination parameters.",
+   "code": [
+    "src/api/v1.mjs",
+    "src/providers/futpython/query.mjs",
+    "src/server.mjs"
+   ],
+   "tests": [
+    "test/api-v1-contract.test.mjs",
+    "test/api-v1-postgres.test.mjs",
+    "test/fpt-pagination.test.mjs"
+   ],
+   "evidence": [
+    "R-03: implemented in src/api/v1.mjs; test/api-v1-contract.test.mjs (6) and test/api-v1-postgres.test.mjs (real HTTP + PostgreSQL 16 locally, PostgreSQL 17 in CI) PASS",
+    "PASS withheld: depends on MP-SEC-001 server-side authentication (R-04)",
+    "R-06a: keyset cursor on /api/v1/fpt/search and /api/v1/fpt/matches; pages equal the unpaginated result for page sizes 1,2,4,7,30 across same-date and NULL-kickoff rows; cursors bound to query and filters, tampered cursors 400 (test/fpt-pagination.test.mjs on PostgreSQL)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-API-005",
+   "group": "API",
+   "source": "#98",
+   "priority": "P1",
+   "statement": "Publish a machine-readable endpoint/tool registry usable without the UI.",
+   "code": [
+    "src/api/v1.mjs",
+    "src/server.mjs"
+   ],
+   "tests": [
+    "test/api-v1-contract.test.mjs",
+    "test/api-v1-postgres.test.mjs"
+   ],
+   "evidence": [
+    "R-03: implemented in src/api/v1.mjs; test/api-v1-contract.test.mjs (6) and test/api-v1-postgres.test.mjs (real HTTP + PostgreSQL 16 locally, PostgreSQL 17 in CI) PASS",
+    "PASS withheld: depends on MP-SEC-001 server-side authentication (R-04)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-API-006",
+   "group": "API",
+   "source": "#98",
+   "priority": "P0",
+   "statement": "Inventory existing unversioned /api/fpt/* and /api/tc/* routes and define authorization and compatibility or deprecation for each.",
+   "code": [
+    "src/server.mjs",
+    "src/providers/futpython/query.mjs",
+    "src/api/v1.mjs"
+   ],
+   "tests": [
+    "test/api-v1-contract.test.mjs",
+    "test/api-v1-postgres.test.mjs"
+   ],
+   "evidence": [
+    "R-03: implemented in src/api/v1.mjs; test/api-v1-contract.test.mjs (6) and test/api-v1-postgres.test.mjs (real HTTP + PostgreSQL 16 locally, PostgreSQL 17 in CI) PASS",
+    "PASS withheld: depends on MP-SEC-001 server-side authentication (R-04)"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-ARC-001",
+   "group": "ARC",
+   "source": "#40",
+   "priority": "P0",
+   "statement": "Make the archive manifest and data dictionary readable with pinned hashes from the repository.",
+   "code": [
+    "tools/archive/verify-archive.mjs",
+    "docs/governance/archive/40/SHA256SUMS"
+   ],
+   "tests": [
+    "test/archive-verify.test.mjs"
+   ],
+   "evidence": [
+    "docs/governance/archive/40: transfer manifest, parts list and trusted inventory pinned with SHA-256 (R-02)",
+    "data dictionary (manifest.json inside the bundle) not readable: bundle download BLOCKED"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented, not integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-ARC-002",
+   "group": "ARC",
+   "source": "#40",
+   "priority": "P0",
+   "statement": "Independently verify DuckDB portability and the SHA-256 of every archive part.",
+   "code": [
+    "tools/archive/verify-archive.mjs"
+   ],
+   "tests": [
+    "test/archive-verify.test.mjs"
+   ],
+   "evidence": [
+    "docs/provider-trial-final-closure-2026-10-08.md §11 claims portability; not independently re-verified (audit 6055386180)",
+    "R-02 2026-10-18: Drive tool refuses downloads over 10 MB (part012, 18,614,975 bytes); no Drive API credentials; part hashes and DuckDB portability not verifiable (docs/governance/archive/40/README.md)"
+   ],
+   "declared_verdict": "BLOCKED",
+   "audited_status": "BLOCKED",
+   "implementation_level": "implemented, not integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-ARC-003",
+   "group": "ARC",
+   "source": "#40",
+   "priority": "P0",
+   "statement": "Surface archive reservations as data limits in query results.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-ARC-004",
+   "group": "ARC",
+   "source": "#144",
+   "priority": "P1",
+   "statement": "Verify publishability of real-data fixtures committed to the public repository.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "N/A (process-only)",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-ARC-005",
+   "group": "ARC",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Access the archive read-only: no modification, regeneration, backfill, Neon write or external publication.",
+   "code": [
+    "tools/archive/verify-archive.mjs"
+   ],
+   "tests": [
+    "test/archive-verify.test.mjs"
+   ],
+   "evidence": [
+    "R-02 accessed Drive only through listing, metadata and a 9 KB download; no write call was made",
+    "test/archive-verify.test.mjs: archive bytes unchanged after a verification run"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-PIT-001",
+   "group": "PIT",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Store event time, provider-declared time, acquisition time, effective availability time and simulated decision time separately.",
+   "code": [
+    "src/pit/policy.mjs",
+    "src/pit/readers.mjs",
+    "src/jobs/totalcorner-prematch.mjs",
+    "src/providers/futpython/query.mjs"
+   ],
+   "tests": [
+    "test/pit-policy.test.mjs",
+    "test/pit-readers-postgres.test.mjs",
+    "test/fpt-assistant-queries.test.mjs"
+   ],
+   "evidence": [
+    "R-08: pit.times on every record of tc/prematch/match and fpt/team-matches-asof; missing times null and listed (test/pit-policy.test.mjs, test/pit-readers-postgres.test.mjs)",
+    "PASS withheld: replay, statistics and backtest (R-09, R-12, R-14) do not exist yet"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-PIT-002",
+   "group": "PIT",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Use a record only when its availability is provably at or before the simulated decision time.",
+   "code": [
+    "src/pit/policy.mjs",
+    "src/pit/readers.mjs",
+    "src/jobs/totalcorner-prematch.mjs",
+    "src/providers/futpython/query.mjs"
+   ],
+   "tests": [
+    "test/pit-policy.test.mjs",
+    "test/pit-readers-postgres.test.mjs",
+    "test/pit-fpt-postgres.test.mjs"
+   ],
+   "evidence": [
+    "R-08: availability = acquisition time; captured readers filter acquisition <= decision; later records classified NOT_AVAILABLE_AT_DECISION",
+    "PASS withheld: replay query layer is R-09"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-PIT-003",
+   "group": "PIT",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Classify records with missing, ambiguous or inconsistent timestamps as not PIT-verified without inventing times.",
+   "code": [
+    "src/pit/policy.mjs",
+    "src/pit/readers.mjs"
+   ],
+   "tests": [
+    "test/pit-policy.test.mjs",
+    "test/pit-readers-postgres.test.mjs"
+   ],
+   "evidence": [
+    "R-08: missing, ambiguous or inconsistent timestamps classified PIT_NOT_VERIFIED with reasons, never repaired (docs/pit-policy.md)",
+    "PASS withheld: depends on MP-PIT-001; exclusion from certified backtests is R-14"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-PIT-004",
+   "group": "PIT",
+   "source": "#12",
+   "priority": "P0",
+   "statement": "Apply an explicit tested policy for UTC, provider time zones and daylight saving per historical date.",
+   "code": [
+    "src/pit/policy.mjs",
+    "src/pit/readers.mjs"
+   ],
+   "tests": [
+    "test/pit-policy.test.mjs"
+   ],
+   "evidence": [
+    "R-08: mp-pit-v1 time zone policy: IANA gaps/overlaps reported, undocumented FPT zone as interval UTC-12..+14, TotalCorner measured offset valid 30 days and only while no consistent IANA zone changes offset (docs/pit-policy.md)",
+    "PASS withheld: depends on MP-PIT-001"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-PIT-005",
+   "group": "PIT",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Label any analysis using non-PIT-verified data as non-PIT and exclude it from certified results.",
+   "code": [
+    "src/pit/policy.mjs",
+    "src/pit/readers.mjs",
+    "src/api/v1.mjs"
+   ],
+   "tests": [
+    "test/pit-policy.test.mjs",
+    "test/api-v1-contract.test.mjs",
+    "test/pit-readers-postgres.test.mjs"
+   ],
+   "evidence": [
+    "R-08: answers labelled PIT_VERIFIED or NON_PIT (pit, meta.pit in API v1); provider knowledge always NON_PIT",
+    "PASS withheld: UI label (R-05+) and certified backtest exclusion (R-14) pending"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "FAIL",
+   "implementation_level": "implemented and integrated",
+   "residual": "Regression from #184: sim signals are computed on PIT_NOT_VERIFIED analysis (inputs.pit) but neither /api/v1/sim/signals rows nor #/segnali carry a NON_PIT label; settled P/L shown as result.",
+   "note": "NEW FAIL evidence",
+   "discrepancy": true
+  },
+  {
+   "id": "MP-XPR-001",
+   "group": "XPR",
+   "source": "#31",
+   "priority": "P0",
+   "statement": "Resolve and version FPT↔TotalCorner match and team identity with VERIFIED status.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-XPR-002",
+   "group": "XPR",
+   "source": "#31",
+   "priority": "P1",
+   "statement": "Detect cross-provider gaps and inconsistencies between FPT and TotalCorner prematch data.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-TC-013",
+   "group": "TC",
+   "source": "#20",
+   "priority": "P1",
+   "statement": "Normalize captured live statistics, events and market lines and report per-minute and per-field coverage.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-TC-014",
+   "group": "TC",
+   "source": "#20",
+   "priority": "P1",
+   "statement": "Expose bookmaker_odds across observed bookmakers, per-bookmaker movement and BTTS where upstream provides them.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "implemented, not integrated",
+   "residual": "bookmaker_odds is already captured by src/jobs/totalcorner-prematch.mjs (/match/bookmaker_odds) and historical; not exposed per bookmaker. Code pointer missing.",
+   "note": "stale (empty) code pointer",
+   "discrepancy": true
+  },
+  {
+   "id": "MP-TC-015",
+   "group": "TC",
+   "source": "#20",
+   "priority": "P0",
+   "statement": "Persist live market snapshots from VERIFIED leagues with canonical deduplication.",
+   "code": [
+    "src/jobs/totalcorner-live.mjs"
+   ],
+   "tests": [
+    "test/tc-core-live.test.mjs"
+   ],
+   "evidence": [],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "tc_market_snapshots written by src/jobs/totalcorner-live.mjs:129; collector OFF.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-WEB-013",
+   "group": "WEB",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Provide a dashboard summarizing data health, coverage, freshness and certification state from real APIs.",
+   "code": [
+    "src/web/app.js"
+   ],
+   "tests": [
+    "test/web-e2e.test.mjs"
+   ],
+   "evidence": [
+    "R-06b: dashboard #/ with one tile per v1 route (health, providers, coverage-competitions, tc historical/prematch/live); a failed route shows N/D with its reason in its own tile only; values equal the API (E2E) (seeded season ingested through the real FutPythonTrader path; not certified against the real archive: MP-OWNER-ARCHIVE-FIRST-01)",
+    "V-B2a: the dashboard is the technical view Stato dei dati at #/data, in the area Dati; a failed tile keeps its code in data-code; the last sync run shows its state and end time"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-WEB-014",
+   "group": "WEB",
+   "source": "#30",
+   "priority": "P0",
+   "statement": "Provide match analysis with Home/Away/Both, 5/10/20/season windows and auditable drill-down.",
+   "code": [
+    "src/analysis/match-analysis.mjs",
+    "src/api/v1.mjs"
+   ],
+   "tests": [
+    "test/match-analysis.test.mjs",
+    "tools/qa/journeys.mjs"
+   ],
+   "evidence": [
+    "R-07a first batch: home/away/both and last 5/10/20/season windows per team, with N, coverage of xG and 1X2 odds, form, head to head and drill-down to every source match; the other analytical cards of #30 are not built"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "Custom window, compare mode, presets missing (see GAP).",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-WEB-015",
+   "group": "WEB",
+   "source": "OWNER-2026-10-19",
+   "priority": "P0",
+   "statement": "Show no technical text in the ordinary interface: no internal identifiers, codes, dataset paths, routes, pipeline states, diagnostics or superfluous explanatory text; sports and financial data in professional, compact components.",
+   "code": [
+    "src/web/app.js",
+    "tools/qa/browser-qa.mjs"
+   ],
+   "tests": [
+    "tools/qa/journeys.mjs",
+    "test/browser-qa-gate.test.mjs",
+    "test/web-e2e.test.mjs"
+   ],
+   "evidence": [
+    "V-B1: Daily Board, Ricerca, shared states and footer cleaned; technical-text invariant in the Browser QA gate (RED on main, GREEN on the PR); Dashboard, navigation and technical views pending V-B2…V-B4 per the inventory; a permanent rule for every later web PR",
+    "V-B2a: home Oggi, menu Oggi · Ricerca · Dati, every view declares its area (user or technical), the Dashboard becomes the technical view Stato dei dati; invariant extended to the header",
+    "V-B2b: every key of the provider tree reads in Italian (technical view), raw key in data-key; a failed update answer is not cached",
+    "V-B4: compact Daily Board rows and day strip of the approved mockup, markets kept on a phone; search results as cards on a phone; no browser calculation"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "FAIL",
+   "implementation_level": "implemented and integrated",
+   "residual": "Regression from #184: user view #/segnali (data-area user) prints 'Fonte: /api/v1/sim/signals · simulazione <run_id> · <rule_version>' and raw ISO dates (app.js:809-820); tools/qa/browser-qa.mjs technicalText() returns true for it; no journey covers #/segnali.",
+   "note": "NEW FAIL evidence",
+   "discrepancy": true
+  },
+  {
+   "id": "MP-MKT-001",
+   "group": "MKT",
+   "source": "#100",
+   "priority": "P0",
+   "statement": "Resolve backtest market outcomes with a versioned rule set including VOID/PUSH and Asian half lines.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "src/signals/simulated.mjs settle() resolves Over 2.5 ad hoc, no VOID/abandoned, no rule version.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-MKT-002",
+   "group": "MKT",
+   "source": "#40",
+   "priority": "P0",
+   "statement": "Materialize outcome labels for backtest matches or mark them N/D.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-MKT-003",
+   "group": "MKT",
+   "source": "#95",
+   "priority": "P0",
+   "statement": "Freeze a configuration snapshot with settings_snapshot_id and Decimal commission_rate_used for every replay and backtest run.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-MTH-001",
+   "group": "MTH",
+   "source": "#94",
+   "priority": "P0",
+   "statement": "Verify formulas against an independent oracle with Decimal fixed precision and test vectors.",
+   "code": [
+    "src/math/decimal.mjs",
+    "src/math/core.mjs"
+   ],
+   "tests": [
+    "test/math-core.test.mjs"
+   ],
+   "evidence": [
+    "R-12 MATH-CORE-01: fixed-precision Decimal (BigInt, 18 decimals), explicit rounding, common envelope; base formulas checked against an independent exact-fraction oracle and seeded property tests (test/math-core.test.mjs)",
+    "PASS withheld: money/commission formulas (MATH-CORE-02..06) and Poisson (MATH-CORE-07) not yet implemented"
+   ],
+   "declared_verdict": "NOT_VERIFIED",
+   "audited_status": "NOT_VERIFIED",
+   "implementation_level": "implemented and integrated",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-MTH-002",
+   "group": "MTH",
+   "source": "#94",
+   "priority": "P1",
+   "statement": "Provide deterministic low-cost baselines: Poisson, fair odds and calibration; heavy ML is out of scope.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-MTH-003",
+   "group": "MTH",
+   "source": "#94",
+   "priority": "P1",
+   "statement": "Apply commission and define P/L in Decimal consistently across statistics and backtest.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "New non-conformant code: simulated.mjs settle() computes profit with binary float `(odd - 1).toFixed(2)` and listSignals sums Number; no commission.",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-STA-013",
+   "group": "STA",
+   "source": "#34",
+   "priority": "P0",
+   "statement": "Define backtest P/L semantics when liquidity or fills are unavailable.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-OPS-001",
+   "group": "OPS",
+   "source": "#144",
+   "priority": "P1",
+   "statement": "Drill backup and restore of the development database and verify PostgreSQL 17 CI against production PostgreSQL 18 compatibility.",
+   "code": [],
+   "tests": [],
+   "evidence": [],
+   "declared_verdict": "FAIL",
+   "audited_status": "FAIL",
+   "implementation_level": "not implemented",
+   "residual": "Backup/restore now required on VPS (#182 AC3, MP-OWNER-VPS-DR-PORTABILITY-01).",
+   "note": "",
+   "discrepancy": false
+  },
+  {
+   "id": "MP-GOV-022",
+   "group": "GOV",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Keep a shared activity registry with verifiable assignments, leases and at most one active implementation task.",
+   "code": [
+    "tools/governance/registry.mjs",
+    "docs/governance/work-registry.json"
+   ],
+   "tests": [
+    "test/governance-registry.test.mjs"
+   ],
+   "evidence": [
+    "docs/governance/work-registry.json used in the real handoff of R-01 (every revision is in the git history of PR #151); test/governance-registry.test.mjs (leases, revision CAS, file lock, single live implementation task)"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "Rule now admits owner parallel_tasks exceptions (tools/governance/registry.mjs:25-30); behavior text 'at most one' should be updated.",
+   "note": "wording stale",
+   "discrepancy": true
+  },
+  {
+   "id": "MP-GOV-023",
+   "group": "GOV",
+   "source": "OWNER-2026-10-18",
+   "priority": "P0",
+   "statement": "Reconcile the latest checkpoint with the real repository before resuming and stop on divergence.",
+   "code": [
+    "tools/governance/checkpoints.mjs",
+    "tools/governance/git.mjs",
+    "tools/governance/cli.mjs"
+   ],
+   "tests": [
+    "test/governance-checkpoints.test.mjs"
+   ],
+   "evidence": [
+    "node tools/governance/cli.mjs resume R-01 returned divergences [] for agent B at 9547eca and for agent A at a7c4777; test/governance-checkpoints.test.mjs reconciles against a real git repository"
+   ],
+   "declared_verdict": "PASS",
+   "audited_status": "PASS",
+   "implementation_level": "certified component",
+   "residual": "",
+   "note": "",
+   "discrepancy": false
+  }
+ ],
+ "gaps": [
+  {
+   "id": "GAP-FPT-001",
+   "source": "#12",
+   "requirement": "Provider budget states NORMAL/ELEVATED/CONSERVE/CRITICAL/EXHAUSTED with configurable thresholds and consumption alerts",
+   "source_quote": "Budget states - NORMAL - ELEVATED - CONSERVE - CRITICAL - EXHAUSTED",
+   "priority": "P1",
+   "code_hint": "implemented, untraced: src/providers/futpython/budget.mjs:97 BUDGET_LEVELS",
+   "note": ""
+  },
+  {
+   "id": "GAP-FPT-002",
+   "source": "#12",
+   "requirement": "Request deduplication: concurrent identical requests share one upstream call",
+   "source_quote": "stessa richiesta contemporanea → una sola chiamata upstream",
+   "priority": "P1",
+   "code_hint": "implemented, untraced: src/providers/futpython/budget.mjs:185 inflight map",
+   "note": ""
+  },
+  {
+   "id": "GAP-FPT-003",
+   "source": "#12",
+   "requirement": "Cache-first: user traffic never triggers provider calls; frontend never calls FPT/TC (hard test 20 clients -> 1 upstream)",
+   "source_quote": "hard test dimostra 20 client → una sola richiesta upstream equivalente",
+   "priority": "P0",
+   "code_hint": "partially implied by MP-WEB-001/API 'no provider call'; no requirement/test for the 20-client gate",
+   "note": ""
+  },
+  {
+   "id": "GAP-FPT-004",
+   "source": "#12",
+   "requirement": "Startup protection: restart/deploy does not relaunch history, reset budgets or duplicate collectors",
+   "source_quote": "Un restart/deploy NON deve: rilanciare massivamente tutto lo storico; resettare i budget",
+   "priority": "P1",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-FPT-005",
+   "source": "#12",
+   "requirement": "Competition & Season Coverage Registry: earliest/latest season, state, match count and field coverage per season",
+   "source_quote": "ogni lega ha earliest/latest; ogni stagione ha stato; match count per stagione; field coverage per stagione",
+   "priority": "P1",
+   "code_hint": "partially implemented: src/providers/futpython/seasons.mjs earliest_season/latest_season",
+   "note": ""
+  },
+  {
+   "id": "GAP-FPT-006",
+   "source": "#12",
+   "requirement": "Missing-season detection without assuming continuity",
+   "source_quote": "2021/22 missing ... → creare gap automatico e reconciliation. Non assumere continuità",
+   "priority": "P1",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-FPT-007",
+   "source": "#12",
+   "requirement": "Field evolution / backtest safety: a metric is never used before the season it first appears",
+   "source_quote": "Mai usare un campo come se fosse disponibile nel 2019 se appare solo dal 2022.",
+   "priority": "P0",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-FPT-008",
+   "source": "#12",
+   "requirement": "Filter metadata registry describing filterable fields, operators and semantics",
+   "source_quote": "filter metadata registry",
+   "priority": "P2",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-TC-001",
+   "source": "#20",
+   "requirement": "Per-match TC data-quality classification complete/partial/inconsistent/upstream_missing incl. score↔events reconciliation",
+   "source_quote": "Classificare: complete; partial; inconsistent; upstream_missing.",
+   "priority": "P1",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-TC-002",
+   "source": "#20",
+   "requirement": "Retention policy of the proprietary live archive",
+   "source_quote": "## Retention (Archivio live proprietario da oggi)",
+   "priority": "P2",
+   "code_hint": "census known gap",
+   "note": ""
+  },
+  {
+   "id": "GAP-TC-003",
+   "source": "#182",
+   "requirement": "TotalCorner disabled by configuration with a negative test (no new acquisitions)",
+   "source_quote": "TotalCorner disabilitato per configurazione e test negativo",
+   "priority": "P0",
+   "code_hint": "implemented, untraced: src/background.mjs:33 tcEnabled, test/runtime-isolation.test.mjs (#186)",
+   "note": ""
+  },
+  {
+   "id": "GAP-VPS-001",
+   "source": "#182",
+   "requirement": "No runtime process depends on Render/Neon, verified by network/config proofs and VPS restart",
+   "source_quote": "Nessun processo runtime richiede Render/Neon; verificare con prove di rete/config e riavvio VPS.",
+   "priority": "P0",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-VPS-002",
+   "source": "#182",
+   "requirement": "FPT acquires and persists validated data on VPS PostgreSQL and Telegram notifies without duplicates",
+   "source_quote": "FPT acquisisce e persiste dati validati in PostgreSQL VPS, Telegram notifica senza duplicati",
+   "priority": "P0",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-VPS-003",
+   "source": "#182",
+   "requirement": "FREEZE archive intact (hash/readback) plus off-host backup and tested restore",
+   "source_quote": "Archivio FREEZE intatto con hash/readback; backup off-host e restore testati.",
+   "priority": "P0",
+   "code_hint": "MP-OPS-001 covers only dev DB drill",
+   "note": ""
+  },
+  {
+   "id": "GAP-VPS-004",
+   "source": "#182",
+   "requirement": "Deploy gate S3/S4 PASS documented before normal deploy; unauthorized deploys refused",
+   "source_quote": "Gate S3/S4 PASS documentato prima del deploy normale; deploy non autorizzati rifiutati.",
+   "priority": "P0",
+   "code_hint": "implemented, untraced: .github/workflows/deploy-vps.yml, scripts/workflow-policy.mjs, test/governance-workflows.test.mjs (13/13 PASS after npm ci)",
+   "note": ""
+  },
+  {
+   "id": "GAP-MIG-001",
+   "source": "#179",
+   "requirement": "Neon→VPS migration: read-only export, full import with hashes and counts, encrypted backup and restore, authorized cutover",
+   "source_quote": "export Neon in sola lettura, import completo con hash e conteggi, applicazione con dati reali, backup cifrato e restore, cutover autorizzato",
+   "priority": "P1",
+   "code_hint": "owner-gated",
+   "note": ""
+  },
+  {
+   "id": "GAP-GH-001",
+   "source": "#144",
+   "requirement": "Return repository to PRIVATE at end of development and verify visibility=private",
+   "source_quote": "cambiare la visibilità GitHub da PUBLIC a PRIVATE e verificare via API/UI visibility=private",
+   "priority": "P2",
+   "code_hint": "end-of-development",
+   "note": ""
+  },
+  {
+   "id": "GAP-GH-002",
+   "source": "#144",
+   "requirement": "Measured (not presumed) zero additional Actions spend",
+   "source_quote": "Zero spesa GitHub Actions aggiuntiva misurata, non presunta",
+   "priority": "P2",
+   "code_hint": "MP-GOV-009 has no measurement evidence",
+   "note": ""
+  },
+  {
+   "id": "GAP-UI-001",
+   "source": "#3",
+   "requirement": "Odds shown with Italian comma and exact precision, no rounding (D-3)",
+   "source_quote": "quote con virgola italiana e precisione esatta, senza arrotondamenti",
+   "priority": "P1",
+   "code_hint": "implemented, untraced: src/web/app.js:131; violated in #/segnali (raw r.odd)",
+   "note": ""
+  },
+  {
+   "id": "GAP-UI-002",
+   "source": "#3",
+   "requirement": "Dates/times shown in Europe/Rome with DST, exact UTC in details (D-7)",
+   "source_quote": "mostrare date/orari in fuso locale italiano esplicitato (Europe/Rome, con DST corretto)",
+   "priority": "P1",
+   "code_hint": "implemented, untraced: src/web/app.js:140-143; violated in #/segnali (raw ISO dates)",
+   "note": ""
+  },
+  {
+   "id": "GAP-ARCH-001",
+   "source": "#3",
+   "requirement": "Shared ingestion/computation: provider → shared collection → DB → reusable computation → N users, no per-user duplication",
+   "source_quote": "provider → raccolta condivisa → DB → calcolo riusabile → N utenti; nessuna duplicazione per utente",
+   "priority": "P1",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-QA-001",
+   "source": "#3",
+   "requirement": "Findings classified BUG / DATA MISSING / DATA QUALITY ...; strategies/backtests run only with available inputs, else NON VALUTABILE",
+   "source_quote": "eseguire strategie e backtest solo quando i loro input necessari sono realmente disponibili, altrimenti mostrare NON VALUTABILE / NOT VERIFIED",
+   "priority": "P0",
+   "code_hint": "MP-OWNER-PRODUCT-QUALITY-DATA-01",
+   "note": ""
+  },
+  {
+   "id": "GAP-MAH-001",
+   "source": "#30",
+   "requirement": "Opponent-strength and favourite/underdog filters",
+   "source_quote": "opponent strength; favorite/underdog",
+   "priority": "P1",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-MAH-002",
+   "source": "#30",
+   "requirement": "Score-state and time-phase filters",
+   "source_quote": "score state; time phase",
+   "priority": "P1",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-MAH-003",
+   "source": "#30",
+   "requirement": "Custom sample window besides 5/10/20/season",
+   "source_quote": "5/10/20/season/custom",
+   "priority": "P2",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-MAH-004",
+   "source": "#30",
+   "requirement": "Compare mode",
+   "source_quote": "compare mode",
+   "priority": "P2",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-MAH-005",
+   "source": "#30",
+   "requirement": "Saved filter presets",
+   "source_quote": "## Save filter preset",
+   "priority": "P2",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-MAH-006",
+   "source": "#3/#25/#30",
+   "requirement": "Card-level catalogue (Similar Odds, Score distribution, Goal timing, League context, Strengths/Weaknesses, ...) not atomized",
+   "source_quote": "card Similar Odds ... card Score Distribution ... card Timing",
+   "priority": "P1",
+   "code_hint": "census known gap (#3, #25/#30)",
+   "note": ""
+  },
+  {
+   "id": "GAP-REC-001",
+   "source": "#31",
+   "requirement": "TC live gap detector recording UNRECOVERABLE_GAP with start/end/duration/affected fields/cause",
+   "source_quote": "registrare UNRECOVERABLE_GAP",
+   "priority": "P1",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-REC-002",
+   "source": "#31",
+   "requirement": "Startup reconciliation for all collectors: mark running runs interrupted, resume from checkpoints",
+   "source_quote": "trovare run rimasti running; marcarli interrupted",
+   "priority": "P1",
+   "code_hint": "FPT only: reconciliation.mjs markOrphanRuns (MP-FPT-006)",
+   "note": ""
+  },
+  {
+   "id": "GAP-REC-003",
+   "source": "#31",
+   "requirement": "Periodic reconciliation (lightweight 5 min, deep 1 h, daily audit), configurable",
+   "source_quote": "lightweight reconciliation: ogni 5 minuti; deep reconciliation: ogni 1 ora; daily audit",
+   "priority": "P2",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-REC-004",
+   "source": "#31",
+   "requirement": "Persistent data integrity ledger with states DETECTED/QUEUED/RECOVERING/RECOVERED/PARTIAL/UNRECOVERABLE/FAILED",
+   "source_quote": "Creare ledger persistente per ogni reconciliation",
+   "priority": "P1",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-REC-005",
+   "source": "#31",
+   "requirement": "Reconciliation queue with priorities P0-P3",
+   "source_quote": "Le anomalie devono essere accodate con priorità",
+   "priority": "P2",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-SEC-001",
+   "source": "#32",
+   "requirement": "Browser never calls providers; upstream tokens not visible; bundle/network hard test",
+   "source_quote": "nessuna chiamata provider diretta dal browser; token upstream non visibili",
+   "priority": "P0",
+   "code_hint": "CSP connect-src 'self' in src/web/static.mjs:7; no traced test",
+   "note": ""
+  },
+  {
+   "id": "GAP-SEC-002",
+   "source": "#32",
+   "requirement": "HTTP security headers",
+   "source_quote": "security headers",
+   "priority": "P1",
+   "code_hint": "implemented, untraced: src/web/static.mjs CSP, src/server.mjs:47 nosniff; may fall under MP-FUT-008",
+   "note": ""
+  },
+  {
+   "id": "GAP-SEC-003",
+   "source": "#32",
+   "requirement": "API rate limiting / anti-abuse on the read API",
+   "source_quote": "rate limiting",
+   "priority": "P1",
+   "code_hint": "only login rate limit (R-04b); may fall under MP-FUT-008",
+   "note": ""
+  },
+  {
+   "id": "GAP-SEC-004",
+   "source": "#32",
+   "requirement": "Public source maps off / frontend minified",
+   "source_quote": "source maps pubbliche off; frontend minified",
+   "priority": "P2",
+   "code_hint": "may fall under MP-FUT-008",
+   "note": ""
+  },
+  {
+   "id": "GAP-AUTH-001",
+   "source": "#23",
+   "requirement": "Persistent audit log of sensitive actions with actor, action, target, UTC time, outcome, sanitized metadata",
+   "source_quote": "Creare audit persistente per azioni sensibili",
+   "priority": "P1",
+   "code_hint": "partially implemented, untraced: migrations/029-owner-auth.sql auth_audit",
+   "note": ""
+  },
+  {
+   "id": "GAP-AUTH-002",
+   "source": "#23",
+   "requirement": "Robust password hashing and login errors that do not reveal whether the account exists",
+   "source_quote": "errori login non devono rivelare se username/email esiste",
+   "priority": "P1",
+   "code_hint": "scrypt in src/auth/owner-auth.mjs; not a traced requirement",
+   "note": ""
+  },
+  {
+   "id": "GAP-STR-001",
+   "source": "#34",
+   "requirement": "Saved backtests with backtest_id, strategy version, parameters, dataset snapshot/version, commit/data-contract version",
+   "source_quote": "Ogni backtest deve essere salvabile con: backtest_id ... dataset snapshot/version ... commit/data contract version",
+   "priority": "P0",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-STR-002",
+   "source": "#34",
+   "requirement": "Backtest controls: date range, leagues, teams, odds range, commission, slippage, data-quality threshold",
+   "source_quote": "L'utente deve poter scegliere: bankroll iniziale; stake; date range; leagues",
+   "priority": "P1",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-STR-003",
+   "source": "#34",
+   "requirement": "Extended backtest metrics: yield, profit factor, longest losing streak, max liability, equity curve",
+   "source_quote": "gross P/L; net P/L; ROI; yield ... profit factor ... bankroll curve",
+   "priority": "P1",
+   "code_hint": "MP-STA-008 covers ROI/strike/drawdown/sample only",
+   "note": ""
+  },
+  {
+   "id": "GAP-ARC-001",
+   "source": "#40",
+   "requirement": "Versioned closing rule: closing odds = last valid observation <= kickoff cutoff, with closing_rule_version and source record",
+   "source_quote": "closing_odds = ultima osservazione valida con provider/acquisition time <= kickoff_cutoff",
+   "priority": "P0",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-ARC-002",
+   "source": "#40",
+   "requirement": "Physical/logical separation FEATURES vs LABELS with label_available_at",
+   "source_quote": "Vietato usare label_available_at > as_of_time come feature.",
+   "priority": "P0",
+   "code_hint": "MP-MKT-002 covers label materialization only",
+   "note": ""
+  },
+  {
+   "id": "GAP-ARC-003",
+   "source": "#40",
+   "requirement": "ScoreTrend raw segregated and excluded from canonical/feature/backtest layers",
+   "source_quote": "ScoreTrend è fuori scope ... non entrano in canonical tables",
+   "priority": "P2",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-ARC-004",
+   "source": "#40",
+   "requirement": "Coverage semantics vocabulary OBSERVED/MISSING/UNKNOWN_UPSTREAM/NOT_APPLICABLE/PROVIDER_UNAVAILABLE/COLLECTION_GAP/STALE",
+   "source_quote": "Distinguere OBSERVED, MISSING, UNKNOWN_UPSTREAM, NOT_APPLICABLE, PROVIDER_UNAVAILABLE, COLLECTION_GAP, STALE",
+   "priority": "P1",
+   "code_hint": "",
+   "note": ""
+  },
+  {
+   "id": "GAP-ARC-005",
+   "source": "#40",
+   "requirement": "Readiness vocabulary: trial archive never called backtest/strategy certified",
+   "source_quote": "Non chiamare il trial archive Strategy Lab certified, backtest certified",
+   "priority": "P2",
+   "code_hint": "",
+   "note": ""
+  }
+ ],
+ "orphan_code": [
+  {
+   "id": "ORPHAN-001",
+   "location": "src/signals/simulated.mjs, src/jobs/sim-signals.mjs, GET /api/v1/sim/signals, view #/segnali, test/sim-signals.test.mjs (#184)",
+   "finding": "Simulated FPT signals (rule mp-sim-over25-v1) with settled P/L: no requirement in requirements.json; overlaps MP-STA-*/MP-MKT-001/MP-MTH-003/MP-PIT-005 and violates MP-WEB-005/015. MP-GROK-AUTONOMOUS-EXECUTION-01 forbids 'invented strategies'; #184 body calls it 'regola dimostrativa, non una strategia dell'owner'. Owner decision needed: keep (and trace) or remove like SIM-OUTBOX (t108u)."
+  },
+  {
+   "id": "ORPHAN-002",
+   "location": "src/server.mjs:188 MATCHPILOT_BIND_HOST (#184)",
+   "finding": "Bind host configurable, default 0.0.0.0 while auth is off by default: relevant to MP-SEC-001, untraced."
+  }
+ ]
+}

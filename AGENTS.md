@@ -71,6 +71,8 @@ Il contratto prodotto si modifica solo con decisione owner registrata.
 
 ## 4. Review indipendente e auto-merge (MP-OWNER-AUTOMERGE-01, D2)
 
+> **Rettifica owner DEC-004-R1 (t122u, 22/10/2026) — prevale su questa sezione per la sola indipendenza della review.** La self-review dell'agente autore è consentita e sufficiente: si registra come "self-review" e non si presenta mai come indipendente. Non servono un secondo reviewer né nuove identità bot. Le approvazioni umane GitHub dei deploy (environment `vps-production`) restano obbligatorie e non si simulano. Il testo seguente resta per storia: dove chiede "review indipendente" va letto come self-review etichettata (SUPERSEDED da DEC-004-R1).
+
 **L'agente esegue il merge senza chiedere l'approvazione owner** solo quando valgono tutte le condizioni:
 - scope autorizzato;
 - Gate A locale PASS;

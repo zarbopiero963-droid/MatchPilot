@@ -1,0 +1,3139 @@
+TAP version 13
+# Subtest: alert aggregation policy distinguishes initial 404 from regression
+ok 1 - alert aggregation policy distinguishes initial 404 from regression
+  ---
+  duration_ms: 50.081431
+  type: 'test'
+  ...
+# Subtest: alert fingerprint is stable and key-sensitive
+ok 2 - alert fingerprint is stable and key-sensitive
+  ---
+  duration_ms: 3.86356
+  type: 'test'
+  ...
+# Subtest: the endpoint registry describes every v1 endpoint with a parameter schema (MP-API-001, MP-API-005)
+ok 3 - the endpoint registry describes every v1 endpoint with a parameter schema (MP-API-001, MP-API-005)
+  ---
+  duration_ms: 59.049308
+  type: 'test'
+  ...
+# Subtest: every legacy route is inventoried with a successor or an explicit KEPT status and a pending auth decision (MP-API-006)
+ok 4 - every legacy route is inventoried with a successor or an explicit KEPT status and a pending auth decision (MP-API-006)
+  ---
+  duration_ms: 0.771274
+  type: 'test'
+  ...
+# Subtest: responses carry the envelope with provenance, coverage, as_of and versions (MP-API-003)
+ok 5 - responses carry the envelope with provenance, coverage, as_of and versions (MP-API-003)
+  ---
+  duration_ms: 3.126268
+  type: 'test'
+  ...
+# Subtest: deterministic error envelope and status codes (MP-API-002)
+ok 6 - deterministic error envelope and status codes (MP-API-002)
+  ---
+  duration_ms: 6.380417
+  type: 'test'
+  ...
+# Subtest: unknown, repeated, oversized and malformed parameters are rejected before database access (MP-API-004, MP-SEC-006)
+ok 7 - unknown, repeated, oversized and malformed parameters are rejected before database access (MP-API-004, MP-SEC-006)
+  ---
+  duration_ms: 2.473417
+  type: 'test'
+  ...
+# Subtest: validated input reaches the query layer only as bound parameters
+ok 8 - validated input reaches the query layer only as bound parameters
+  ---
+  duration_ms: 0.518398
+  type: 'test'
+  ...
+# Subtest: meta.as_of is the instant the reader applied, never an echo of the raw input (review B-1)
+ok 9 - meta.as_of is the instant the reader applied, never an echo of the raw input (review B-1)
+  ---
+  duration_ms: 1.27897
+  type: 'test'
+  ...
+# Subtest: point-in-time answers expose their PIT label in meta.pit; other endpoints report null (MP-PIT-005)
+ok 10 - point-in-time answers expose their PIT label in meta.pit; other endpoints report null (MP-PIT-005)
+  ---
+  duration_ms: 0.790476
+  type: 'test'
+  ...
+# Subtest: TotalCorner parameters are validated, never silently capped or defaulted (review B-2)
+ok 11 - TotalCorner parameters are validated, never silently capped or defaulted (review B-2)
+  ---
+  duration_ms: 2.138435
+  type: 'test'
+  ...
+# Subtest: the registry marks the parameters the query layer requires and errors use API parameter names (review NB-1, NB-7)
+ok 12 - the registry marks the parameters the query layer requires and errors use API parameter names (review NB-1, NB-7)
+  ---
+  duration_ms: 2.810264
+  type: 'test'
+  ...
+# Subtest: input is validated before a connection is taken and only database failures are UNAVAILABLE (review NB-3)
+ok 13 - input is validated before a connection is taken and only database failures are UNAVAILABLE (review NB-3)
+  ---
+  duration_ms: 1.13203
+  type: 'test'
+  ...
+# Subtest: API v1 serves real database content with the v1 envelope, matching the legacy routes
+ok 14 - API v1 serves real database content with the v1 envelope, matching the legacy routes
+  ---
+  duration_ms: 5993.237262
+  type: 'test'
+  ...
+# Subtest: the real Drive metadata zip is read by the stored-ZIP reader and matches the pinned files
+ok 15 - the real Drive metadata zip is read by the stored-ZIP reader and matches the pinned files
+  ---
+  duration_ms: 2.5587
+  type: 'test'
+  ...
+# Subtest: pinned archive files match SHA256SUMS
+ok 16 - pinned archive files match SHA256SUMS
+  ---
+  duration_ms: 1.217035
+  type: 'test'
+  ...
+# Subtest: real \#40 metadata is internally consistent and Drive sizes agree; parts stay NOT_VERIFIED without access
+ok 17 - real \#40 metadata is internally consistent and Drive sizes agree; parts stay NOT_VERIFIED without access
+  ---
+  duration_ms: 3.399785
+  type: 'test'
+  ...
+# Subtest: a complete archive verifies part by part and as a whole bundle, anchored to external pins
+ok 18 - a complete archive verifies part by part and as a whole bundle, anchored to external pins
+  ---
+  duration_ms: 22.516021
+  type: 'test'
+  ...
+# Subtest: a forged but self-consistent archive fails against the independent pins (\#152 review N-1)
+ok 19 - a forged but self-consistent archive fails against the independent pins (\#152 review N-1)
+  ---
+  duration_ms: 18.798887
+  type: 'test'
+  ...
+# Subtest: external pins equal the values recorded in the closure report
+ok 20 - external pins equal the values recorded in the closure report
+  ---
+  duration_ms: 0.451936
+  type: 'test'
+  ...
+# Subtest: extra or duplicated files in the Drive listing are reported (\#152 review N-7)
+ok 21 - extra or duplicated files in the Drive listing are reported (\#152 review N-7)
+  ---
+  duration_ms: 14.728458
+  type: 'test'
+  ...
+# Subtest: a tampered part, a corrupt wrapper or a wrong Drive size fail
+ok 22 - a tampered part, a corrupt wrapper or a wrong Drive size fail
+  ---
+  duration_ms: 54.664102
+  type: 'test'
+  ...
+# Subtest: the verifier is read-only: archive bytes are unchanged after a run
+ok 23 - the verifier is read-only: archive bytes are unchanged after a run
+  ---
+  duration_ms: 571.430842
+  type: 'test'
+  ...
+# Subtest: backfill skips only terminal dataset states
+ok 24 - backfill skips only terminal dataset states
+  ---
+  duration_ms: 1.647603
+  type: 'test'
+  ...
+# Subtest: backfill resume reconciles legacy unknown datasets with snapshots
+ok 25 - backfill resume reconciles legacy unknown datasets with snapshots
+  ---
+  duration_ms: 2.828139
+  type: 'test'
+  ...
+# Subtest: backfill retries error states even when an older snapshot exists
+ok 26 - backfill retries error states even when an older snapshot exists
+  ---
+  duration_ms: 0.338367
+  type: 'test'
+  ...
+# Subtest: backfill skips terminal classifications
+ok 27 - backfill skips terminal classifications
+  ---
+  duration_ms: 0.400898
+  type: 'test'
+  ...
+# Subtest: a complete, unmodified report on the exact commit is accepted
+ok 28 - a complete, unmodified report on the exact commit is accepted
+  ---
+  duration_ms: 396.537729
+  type: 'test'
+  ...
+# Subtest: missing evidence is refused
+ok 29 - missing evidence is refused
+  ---
+  duration_ms: 201.551361
+  type: 'test'
+  ...
+# Subtest: evidence of another commit, a modified tree or an injected defect is refused
+ok 30 - evidence of another commit, a modified tree or an injected defect is refused
+  ---
+  duration_ms: 836.658832
+  type: 'test'
+  ...
+# Subtest: a missing or changed evidence file is refused
+ok 31 - a missing or changed evidence file is refused
+  ---
+  duration_ms: 695.516518
+  type: 'test'
+  ...
+# Subtest: a PASS without execution, a hidden failure or a wrong count is refused
+ok 32 - a PASS without execution, a hidden failure or a wrong count is refused
+  ---
+  duration_ms: 726.382112
+  type: 'test'
+  ...
+# Subtest: a skipped or missing required journey is refused, with or without a reason
+ok 33 - a skipped or missing required journey is refused, with or without a reason
+  ---
+  duration_ms: 240.21424
+  type: 'test'
+  ...
+# Subtest: the runner fails a real page that leaks a raw value, with evidence (deliberately injected defect)
+ok 34 - the runner fails a real page that leaks a raw value, with evidence (deliberately injected defect)
+  ---
+  duration_ms: 8934.932582
+  type: 'test'
+  ...
+# Subtest: inherited keys, files outside the manifest and a wrong missing_required are refused (PR \#164 NB-1, NB-2)
+ok 35 - inherited keys, files outside the manifest and a wrong missing_required are refused (PR \#164 NB-1, NB-2)
+  ---
+  duration_ms: 27.963326
+  type: 'test'
+  ...
+# Subtest: the tested commit must contain the PR head (PR \#164 NB-2)
+ok 36 - the tested commit must contain the PR head (PR \#164 NB-2)
+  ---
+  duration_ms: 81.180848
+  type: 'test'
+  ...
+# Subtest: raw values are caught in text, labels and declared API prose are not (PR \#164 NB-3)
+ok 37 - raw values are caught in text, labels and declared API prose are not (PR \#164 NB-3)
+  ---
+  duration_ms: 0.837862
+  type: 'test'
+  ...
+# Subtest: technical text is caught in user views, plain Italian is not (MP-OWNER-UI-NO-RAW-TEXT-01)
+ok 38 - technical text is caught in user views, plain Italian is not (MP-OWNER-UI-NO-RAW-TEXT-01)
+  ---
+  duration_ms: 1.91955
+  type: 'test'
+  ...
+# Subtest: the runner refuses a non-empty output directory (PR \#164 NB-5)
+ok 39 - the runner refuses a non-empty output directory (PR \#164 NB-5)
+  ---
+  duration_ms: 11.476322
+  type: 'test'
+  ...
+# Subtest: budget levels follow \#31 and admission is a strict priority ladder
+ok 40 - budget levels follow \#31 and admission is a strict priority ladder
+  ---
+  duration_ms: 1.955008
+  type: 'test'
+  ...
+# Subtest: CONSERVE defers discovery and backfill with no upstream call, keeps today and current season
+ok 41 - CONSERVE defers discovery and backfill with no upstream call, keeps today and current season
+  ---
+  duration_ms: 4.400811
+  type: 'test'
+  ...
+# Subtest: CRITICAL keeps only today; EXHAUSTED keeps nothing; throttled rows do not count as usage
+ok 42 - CRITICAL keeps only today; EXHAUSTED keeps nothing; throttled rows do not count as usage
+  ---
+  duration_ms: 3.05638
+  type: 'test'
+  ...
+# Subtest: a restarted process still opens the circuit when deferrals, cache hits and dedups follow the failures
+ok 43 - a restarted process still opens the circuit when deferrals, cache hits and dedups follow the failures
+  ---
+  duration_ms: 0.659747
+  type: 'test'
+  ...
+# MIGRATION_APPLIED 001-futpython-mirror.sql
+# MIGRATION_APPLIED 002-data-watchdog.sql
+# MIGRATION_APPLIED 003-alert-aggregation.sql
+# MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+# MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+# MIGRATION_APPLIED 006-fpt-certification-checks.sql
+# MIGRATION_APPLIED 007-fpt-request-ledger.sql
+# MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+# MIGRATION_APPLIED 009-fpt-team-identity.sql
+# MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+# MIGRATION_APPLIED 011-fpt-schema-registry.sql
+# MIGRATION_APPLIED 012-fpt-field-coverage.sql
+# MIGRATION_APPLIED 013-fpt-season-registry.sql
+# MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+# MIGRATION_APPLIED 015-fpt-query-facts.sql
+# MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+# MIGRATION_APPLIED 017-fpt-budget-levels.sql
+# MIGRATION_APPLIED 018-fpt-onboarding.sql
+# MIGRATION_APPLIED 019-fpt-reconciliation.sql
+# MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+# MIGRATION_APPLIED 021-tc-core-discovery.sql
+# MIGRATION_APPLIED 022-tc-competition-mapping.sql
+# MIGRATION_APPLIED 023-tc-prematch.sql
+# MIGRATION_APPLIED 024-tc-tz-observations.sql
+# MIGRATION_APPLIED 025-tc-tz-inliers.sql
+# MIGRATION_APPLIED 026-tc-historical-backfill.sql
+# MIGRATION_APPLIED 027-tc-live-collector.sql
+# MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+# MIGRATION_APPLIED 029-owner-auth.sql
+# Subtest: a real incremental sync under CONSERVE and CRITICAL defers traffic instead of failing
+ok 44 - a real incremental sync under CONSERVE and CRITICAL defers traffic instead of failing
+  ---
+  duration_ms: 5851.304921
+  type: 'test'
+  ...
+# Subtest: season extractor supports calendar, split and sparse tournament seasons
+ok 45 - season extractor supports calendar, split and sparse tournament seasons
+  ---
+  duration_ms: 1.473717
+  type: 'test'
+  ...
+# Subtest: catalog parser expands every season from official table rows
+ok 46 - catalog parser expands every season from official table rows
+  ---
+  duration_ms: 252.578852
+  type: 'test'
+  ...
+# Subtest: catalog parser keeps route-only fallback and deduplicates
+ok 47 - catalog parser keeps route-only fallback and deduplicates
+  ---
+  duration_ms: 1.759622
+  type: 'test'
+  ...
+# Subtest: current season handles calendar and split-year leagues
+ok 48 - current season handles calendar and split-year leagues
+  ---
+  duration_ms: 0.379827
+  type: 'test'
+  ...
+# Subtest: documentation-only changes use the documentation lane
+ok 49 - documentation-only changes use the documentation lane
+  ---
+  duration_ms: 4.672643
+  type: 'test'
+  ...
+# Subtest: mock-only changes use targeted UI checks
+ok 50 - mock-only changes use targeted UI checks
+  ---
+  duration_ms: 0.300245
+  type: 'test'
+  ...
+# Subtest: database changes include transitive consumers and full suite
+ok 51 - database changes include transitive consumers and full suite
+  ---
+  duration_ms: 0.36124
+  type: 'test'
+  ...
+# Subtest: TotalCorner changes include API, replay and trading dependents
+ok 52 - TotalCorner changes include API, replay and trading dependents
+  ---
+  duration_ms: 0.325439
+  type: 'test'
+  ...
+# Subtest: shared components conservatively select all dependent categories
+ok 53 - shared components conservatively select all dependent categories
+  ---
+  duration_ms: 0.468355
+  type: 'test'
+  ...
+# Subtest: workflow, lockfile and unknown changes fall back to full
+ok 54 - workflow, lockfile and unknown changes fall back to full
+  ---
+  duration_ms: 0.505961
+  type: 'test'
+  ...
+# Subtest: empty or invalid diff fails closed to full
+ok 55 - empty or invalid diff fails closed to full
+  ---
+  duration_ms: 0.127349
+  type: 'test'
+  ...
+# Subtest: documentation mixed with source cannot downgrade the source lane
+ok 56 - documentation mixed with source cannot downgrade the source lane
+  ---
+  duration_ms: 0.103136
+  type: 'test'
+  ...
+# Subtest: web impact: site, browser-read APIs, data schema, dependencies and the gate itself require Browser QA
+ok 57 - web impact: site, browser-read APIs, data schema, dependencies and the gate itself require Browser QA
+  ---
+  duration_ms: 0.758577
+  type: 'test'
+  ...
+# Subtest: web impact exemption is automatic, verifiable and fails closed
+ok 58 - web impact exemption is automatic, verifiable and fails closed
+  ---
+  duration_ms: 0.513068
+  type: 'test'
+  ...
+# Subtest: a moved web file is a web change: the diff lists old and new paths (PR \#164 B-2)
+ok 59 - a moved web file is a web change: the diff lists old and new paths (PR \#164 B-2)
+  ---
+  duration_ms: 159.233585
+  type: 'test'
+  ...
+# Subtest: CSV parser preserves quoted commas, quotes and trailing empty cells
+ok 60 - CSV parser preserves quoted commas, quotes and trailing empty cells
+  ---
+  duration_ms: 1.823768
+  type: 'test'
+  ...
+# Subtest: the crawler PRNG is deterministic per seed
+ok 61 - the crawler PRNG is deterministic per seed
+  ---
+  duration_ms: 1.958922
+  type: 'test'
+  ...
+# Subtest: a complete crawler bundle on the exact commit is accepted
+ok 62 - a complete crawler bundle on the exact commit is accepted
+  ---
+  duration_ms: 11.690245
+  type: 'test'
+  ...
+# Subtest: crawler bundles that are missing, foreign, altered or incomplete are refused
+ok 63 - crawler bundles that are missing, foreign, altered or incomplete are refused
+  ---
+  duration_ms: 174.760542
+  type: 'test'
+  ...
+# Subtest: malformed bundles and reviews are refused with an error, never a crash (PR \#165 NB-1)
+ok 64 - malformed bundles and reviews are refused with an error, never a crash (PR \#165 NB-1)
+  ---
+  duration_ms: 38.924455
+  type: 'test'
+  ...
+# Subtest: a complete AI review of the exact bundle is accepted, with a computed verdict
+ok 65 - a complete AI review of the exact bundle is accepted, with a computed verdict
+  ---
+  duration_ms: 16.806546
+  type: 'test'
+  ...
+# Subtest: AI reviews that are missing, foreign, incomplete or with a declared verdict are refused
+ok 66 - AI reviews that are missing, foreign, incomplete or with a declared verdict are refused
+  ---
+  duration_ms: 58.688947
+  type: 'test'
+  ...
+# Subtest: the same seed on the same site replays the same exploration, and its bundle verifies
+ok 67 - the same seed on the same site replays the same exploration, and its bundle verifies
+  ---
+  duration_ms: 24806.720657
+  type: 'test'
+  ...
+# Subtest: the crawler finds and reproduces a defect no scripted journey covers (deliberately injected)
+ok 68 - the crawler finds and reproduces a defect no scripted journey covers (deliberately injected)
+  ---
+  duration_ms: 17288.690387
+  type: 'test'
+  ...
+# Subtest: a bundle without desktop and mobile, a linked evidence file or a fix without its test is refused (PR \#165 R2-NB-2, NB-3, NB-5)
+ok 69 - a bundle without desktop and mobile, a linked evidence file or a fix without its test is refused (PR \#165 R2-NB-2, NB-3, NB-5)
+  ---
+  duration_ms: 104.811695
+  type: 'test'
+  ...
+# Subtest: a problem caused just before the page leaves the site still reproduces (PR \#165 R2-NB-1)
+ok 70 - a problem caused just before the page leaves the site still reproduces (PR \#165 R2-NB-1)
+  ---
+  duration_ms: 8057.018634
+  type: 'test'
+  ...
+# Subtest: the seeded defects of the AI review evaluation still apply to the page, once each (QA-03)
+ok 71 - the seeded defects of the AI review evaluation still apply to the page, once each (QA-03)
+  ---
+  duration_ms: 1.791993
+  type: 'test'
+  ...
+# Subtest: away matches, odds range and combined search build parameterized SQL only
+ok 72 - away matches, odds range and combined search build parameterized SQL only
+  ---
+  duration_ms: 3.627606
+  type: 'test'
+  ...
+# Subtest: xg by season, point in time and coverage validate their inputs
+ok 73 - xg by season, point in time and coverage validate their inputs
+  ---
+  duration_ms: 0.722025
+  type: 'test'
+  ...
+# Subtest: the catalog describes every route for Copilot and stays DB-only
+ok 74 - the catalog describes every route for Copilot and stays DB-only
+  ---
+  duration_ms: 1.137069
+  type: 'test'
+  ...
+# Subtest: assistant checks look at the returned rows, not only at counts
+ok 75 - assistant checks look at the returned rows, not only at counts
+  ---
+  duration_ms: 0.773278
+  type: 'test'
+  ...
+# MIGRATION_APPLIED 001-futpython-mirror.sql
+# MIGRATION_APPLIED 002-data-watchdog.sql
+# MIGRATION_APPLIED 003-alert-aggregation.sql
+# MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+# MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+# MIGRATION_APPLIED 006-fpt-certification-checks.sql
+# MIGRATION_APPLIED 007-fpt-request-ledger.sql
+# MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+# MIGRATION_APPLIED 009-fpt-team-identity.sql
+# MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+# MIGRATION_APPLIED 011-fpt-schema-registry.sql
+# MIGRATION_APPLIED 012-fpt-field-coverage.sql
+# MIGRATION_APPLIED 013-fpt-season-registry.sql
+# MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+# MIGRATION_APPLIED 015-fpt-query-facts.sql
+# MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+# MIGRATION_APPLIED 017-fpt-budget-levels.sql
+# MIGRATION_APPLIED 018-fpt-onboarding.sql
+# MIGRATION_APPLIED 019-fpt-reconciliation.sql
+# MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+# MIGRATION_APPLIED 021-tc-core-discovery.sql
+# MIGRATION_APPLIED 022-tc-competition-mapping.sql
+# MIGRATION_APPLIED 023-tc-prematch.sql
+# MIGRATION_APPLIED 024-tc-tz-observations.sql
+# MIGRATION_APPLIED 025-tc-tz-inliers.sql
+# MIGRATION_APPLIED 026-tc-historical-backfill.sql
+# MIGRATION_APPLIED 027-tc-live-collector.sql
+# MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+# MIGRATION_APPLIED 029-owner-auth.sql
+# Subtest: assistant queries answer from Postgres with indexes and point-in-time
+ok 76 - assistant queries answer from Postgres with indexes and point-in-time
+  ---
+  duration_ms: 1679.793493
+  type: 'test'
+  ...
+# Subtest: coverage page lists leagues with seasons, matches, coverage and the FPT/TC overlap stated as unavailable
+ok 77 - coverage page lists leagues with seasons, matches, coverage and the FPT/TC overlap stated as unavailable
+  ---
+  duration_ms: 2.868676
+  type: 'test'
+  ...
+# Subtest: league drill-down shows every season, unpublished gaps included
+ok 78 - league drill-down shows every season, unpublished gaps included
+  ---
+  duration_ms: 0.854125
+  type: 'test'
+  ...
+# Subtest: coverage queries bind every filter as a parameter and reject unsafe slugs
+ok 79 - coverage queries bind every filter as a parameter and reject unsafe slugs
+  ---
+  duration_ms: 2.598085
+  type: 'test'
+  ...
+# MIGRATION_APPLIED 001-futpython-mirror.sql
+# MIGRATION_APPLIED 002-data-watchdog.sql
+# MIGRATION_APPLIED 003-alert-aggregation.sql
+# MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+# MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+# MIGRATION_APPLIED 006-fpt-certification-checks.sql
+# MIGRATION_APPLIED 007-fpt-request-ledger.sql
+# MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+# MIGRATION_APPLIED 009-fpt-team-identity.sql
+# MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+# MIGRATION_APPLIED 011-fpt-schema-registry.sql
+# MIGRATION_APPLIED 012-fpt-field-coverage.sql
+# MIGRATION_APPLIED 013-fpt-season-registry.sql
+# MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+# MIGRATION_APPLIED 015-fpt-query-facts.sql
+# MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+# MIGRATION_APPLIED 017-fpt-budget-levels.sql
+# MIGRATION_APPLIED 018-fpt-onboarding.sql
+# MIGRATION_APPLIED 019-fpt-reconciliation.sql
+# MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+# MIGRATION_APPLIED 021-tc-core-discovery.sql
+# MIGRATION_APPLIED 022-tc-competition-mapping.sql
+# MIGRATION_APPLIED 023-tc-prematch.sql
+# MIGRATION_APPLIED 024-tc-tz-observations.sql
+# MIGRATION_APPLIED 025-tc-tz-inliers.sql
+# MIGRATION_APPLIED 026-tc-historical-backfill.sql
+# MIGRATION_APPLIED 027-tc-live-collector.sql
+# MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+# MIGRATION_APPLIED 029-owner-auth.sql
+# Subtest: coverage queries answer from Postgres: league summary and season drill-down with gaps
+ok 80 - coverage queries answer from Postgres: league summary and season drill-down with gaps
+  ---
+  duration_ms: 2677.858755
+  type: 'test'
+  ...
+# Subtest: filter registry gate needs seen dates, source, phases and consistent index flags
+ok 81 - filter registry gate needs seen dates, source, phases and consistent index flags
+  ---
+  duration_ms: 1.183814
+  type: 'test'
+  ...
+# MIGRATION_APPLIED 001-futpython-mirror.sql
+# MIGRATION_APPLIED 002-data-watchdog.sql
+# MIGRATION_APPLIED 003-alert-aggregation.sql
+# MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+# MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+# MIGRATION_APPLIED 006-fpt-certification-checks.sql
+# MIGRATION_APPLIED 007-fpt-request-ledger.sql
+# MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+# MIGRATION_APPLIED 009-fpt-team-identity.sql
+# MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+# MIGRATION_APPLIED 011-fpt-schema-registry.sql
+# MIGRATION_APPLIED 012-fpt-field-coverage.sql
+# MIGRATION_APPLIED 013-fpt-season-registry.sql
+# MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+# MIGRATION_APPLIED 015-fpt-query-facts.sql
+# MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+# MIGRATION_APPLIED 017-fpt-budget-levels.sql
+# MIGRATION_APPLIED 018-fpt-onboarding.sql
+# MIGRATION_APPLIED 019-fpt-reconciliation.sql
+# MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+# MIGRATION_APPLIED 021-tc-core-discovery.sql
+# MIGRATION_APPLIED 022-tc-competition-mapping.sql
+# MIGRATION_APPLIED 023-tc-prematch.sql
+# MIGRATION_APPLIED 024-tc-tz-observations.sql
+# MIGRATION_APPLIED 025-tc-tz-inliers.sql
+# MIGRATION_APPLIED 026-tc-historical-backfill.sql
+# MIGRATION_APPLIED 027-tc-live-collector.sql
+# MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+# MIGRATION_APPLIED 029-owner-auth.sql
+# Subtest: registry reads index usage from the catalog and keeps first/last seen
+ok 82 - registry reads index usage from the catalog and keeps first/last seen
+  ---
+  duration_ms: 1067.143768
+  type: 'test'
+  ...
+# MIGRATION_APPLIED 001-futpython-mirror.sql
+# MIGRATION_APPLIED 002-data-watchdog.sql
+# MIGRATION_APPLIED 003-alert-aggregation.sql
+# MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+# MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+# MIGRATION_APPLIED 006-fpt-certification-checks.sql
+# MIGRATION_APPLIED 007-fpt-request-ledger.sql
+# MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+# MIGRATION_APPLIED 009-fpt-team-identity.sql
+# MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+# MIGRATION_APPLIED 011-fpt-schema-registry.sql
+# MIGRATION_APPLIED 012-fpt-field-coverage.sql
+# MIGRATION_APPLIED 013-fpt-season-registry.sql
+# MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+# MIGRATION_APPLIED 015-fpt-query-facts.sql
+# MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+# MIGRATION_APPLIED 017-fpt-budget-levels.sql
+# MIGRATION_APPLIED 018-fpt-onboarding.sql
+# MIGRATION_APPLIED 019-fpt-reconciliation.sql
+# MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+# MIGRATION_APPLIED 021-tc-core-discovery.sql
+# MIGRATION_APPLIED 022-tc-competition-mapping.sql
+# MIGRATION_APPLIED 023-tc-prematch.sql
+# MIGRATION_APPLIED 024-tc-tz-observations.sql
+# MIGRATION_APPLIED 025-tc-tz-inliers.sql
+# MIGRATION_APPLIED 026-tc-historical-backfill.sql
+# MIGRATION_APPLIED 027-tc-live-collector.sql
+# MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+# MIGRATION_APPLIED 029-owner-auth.sql
+# Subtest: a simulated new league waits for the owner, a new season of an active league goes live by itself
+ok 83 - a simulated new league waits for the owner, a new season of an active league goes live by itself
+  ---
+  duration_ms: 2962.753199
+  type: 'test'
+  ...
+# Subtest: the steps are the \#12 onboarding flow, in order
+ok 84 - the steps are the \#12 onboarding flow, in order
+  ---
+  duration_ms: 1.571843
+  type: 'test'
+  ...
+# Subtest: a dataset stops at the last step whose checks pass, with what it waits for
+ok 85 - a dataset stops at the last step whose checks pass, with what it waits for
+  ---
+  duration_ms: 1.295513
+  type: 'test'
+  ...
+# Subtest: season window allows one year of slack on each side
+ok 86 - season window allows one year of slack on each side
+  ---
+  duration_ms: 0.232559
+  type: 'test'
+  ...
+# Subtest: onboarding gate: tracked catalog, no leakage, owner-only new leagues, audit trail
+ok 87 - onboarding gate: tracked catalog, no leakage, owner-only new leagues, audit trail
+  ---
+  duration_ms: 0.255458
+  type: 'test'
+  ...
+# Subtest: cursors are validated: malformed, tampered, other query or other filters are refused
+ok 88 - cursors are validated: malformed, tampered, other query or other filters are refused
+  ---
+  duration_ms: 3.263386
+  type: 'test'
+  ...
+# Subtest: search pages cover exactly the unpaginated result, in order, across same-date matches
+ok 89 - search pages cover exactly the unpaginated result, in order, across same-date matches
+  ---
+  duration_ms: 1413.311433
+  type: 'test'
+  ...
+# Subtest: matches of a day: kickoff order, missing kickoff last, every match once
+ok 90 - matches of a day: kickoff order, missing kickoff last, every match once
+  ---
+  duration_ms: 511.832124
+  type: 'test'
+  ...
+# Subtest: API v1 exposes cursor and next_cursor and answers 400 for a bad cursor
+ok 91 - API v1 exposes cursor and next_cursor and answers 400 for a bad cursor
+  ---
+  duration_ms: 574.90133
+  type: 'test'
+  ...
+# Subtest: real-world ids and kickoffs paginate through the API; order is byte order on every collation
+ok 92 - real-world ids and kickoffs paginate through the API; order is byte order on every collation
+  ---
+  duration_ms: 733.205777
+  type: 'test'
+  ...
+# Subtest: a deep search page scans only its own rows (PR \#162 review B-1)
+ok 93 - a deep search page scans only its own rows (PR \#162 review B-1)
+  ---
+  duration_ms: 2805.887511
+  type: 'test'
+  ...
+# Subtest: every cursor the server issues is accepted back; forged cursors get 400, never 5xx (PR \#162 NB-5, NB-6)
+ok 94 - every cursor the server issues is accepted back; forged cursors get 400, never 5xx (PR \#162 NB-5, NB-6)
+  ---
+  duration_ms: 821.024314
+  type: 'test'
+  ...
+# Subtest: a key too long for any cursor fails loudly instead of ending the pages silently (NB-5)
+ok 95 - a key too long for any cursor fails loudly instead of ending the pages silently (NB-5)
+  ---
+  duration_ms: 827.959538
+  type: 'test'
+  ...
+# Subtest: dates are calendar dates, whatever the server time zone
+ok 96 - dates are calendar dates, whatever the server time zone
+  ---
+  duration_ms: 1219.450413
+  type: 'test'
+  ...
+# Subtest: data-quality filters: only matches whose facts carry the values; anything but true is refused (MP-WEB-007)
+ok 97 - data-quality filters: only matches whose facts carry the values; anything but true is refused (MP-WEB-007)
+  ---
+  duration_ms: 710.096914
+  type: 'test'
+  ...
+# MIGRATION_APPLIED 001-futpython-mirror.sql
+# MIGRATION_APPLIED 002-data-watchdog.sql
+# MIGRATION_APPLIED 003-alert-aggregation.sql
+# MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+# MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+# MIGRATION_APPLIED 006-fpt-certification-checks.sql
+# MIGRATION_APPLIED 007-fpt-request-ledger.sql
+# MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+# MIGRATION_APPLIED 009-fpt-team-identity.sql
+# MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+# MIGRATION_APPLIED 011-fpt-schema-registry.sql
+# MIGRATION_APPLIED 012-fpt-field-coverage.sql
+# MIGRATION_APPLIED 013-fpt-season-registry.sql
+# MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+# MIGRATION_APPLIED 015-fpt-query-facts.sql
+# MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+# MIGRATION_APPLIED 017-fpt-budget-levels.sql
+# MIGRATION_APPLIED 018-fpt-onboarding.sql
+# MIGRATION_APPLIED 019-fpt-reconciliation.sql
+# MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+# MIGRATION_APPLIED 021-tc-core-discovery.sql
+# MIGRATION_APPLIED 022-tc-competition-mapping.sql
+# MIGRATION_APPLIED 023-tc-prematch.sql
+# MIGRATION_APPLIED 024-tc-tz-observations.sql
+# MIGRATION_APPLIED 025-tc-tz-inliers.sql
+# MIGRATION_APPLIED 026-tc-historical-backfill.sql
+# MIGRATION_APPLIED 027-tc-live-collector.sql
+# MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+# MIGRATION_APPLIED 029-owner-auth.sql
+# Subtest: reconciliation detects lost and stale data, recovers it through the normal sync, without duplicates
+ok 98 - reconciliation detects lost and stale data, recovers it through the normal sync, without duplicates
+  ---
+  duration_ms: 3775.674905
+  type: 'test'
+  ...
+# Subtest: every \#31 FutPython gap kind is detected once, with its priority and recovery action
+ok 99 - every \#31 FutPython gap kind is detected once, with its priority and recovery action
+  ---
+  duration_ms: 2.361683
+  type: 'test'
+  ...
+# Subtest: a skipped incremental sync is a P1 catch-up gap; a backfill does not count as incremental
+ok 100 - a skipped incremental sync is a P1 catch-up gap; a backfill does not count as incremental
+  ---
+  duration_ms: 0.553812
+  type: 'test'
+  ...
+# Subtest: reconciliation gate: fresh checkpoints, nothing given up, nothing open for two days
+ok 101 - reconciliation gate: fresh checkpoints, nothing given up, nothing open for two days
+  ---
+  duration_ms: 0.273028
+  type: 'test'
+  ...
+# Subtest: reprocessing gate: current parser reproduces the stored rows, raw guarded, no failed run left
+ok 102 - reprocessing gate: current parser reproduces the stored rows, raw guarded, no failed run left
+  ---
+  duration_ms: 0.940771
+  type: 'test'
+  ...
+# MIGRATION_APPLIED 001-futpython-mirror.sql
+# MIGRATION_APPLIED 002-data-watchdog.sql
+# MIGRATION_APPLIED 003-alert-aggregation.sql
+# MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+# MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+# MIGRATION_APPLIED 006-fpt-certification-checks.sql
+# MIGRATION_APPLIED 007-fpt-request-ledger.sql
+# MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+# MIGRATION_APPLIED 009-fpt-team-identity.sql
+# MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+# MIGRATION_APPLIED 011-fpt-schema-registry.sql
+# MIGRATION_APPLIED 012-fpt-field-coverage.sql
+# MIGRATION_APPLIED 013-fpt-season-registry.sql
+# MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+# MIGRATION_APPLIED 015-fpt-query-facts.sql
+# MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+# MIGRATION_APPLIED 017-fpt-budget-levels.sql
+# MIGRATION_APPLIED 018-fpt-onboarding.sql
+# MIGRATION_APPLIED 019-fpt-reconciliation.sql
+# MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+# MIGRATION_APPLIED 021-tc-core-discovery.sql
+# MIGRATION_APPLIED 022-tc-competition-mapping.sql
+# MIGRATION_APPLIED 023-tc-prematch.sql
+# MIGRATION_APPLIED 024-tc-tz-observations.sql
+# MIGRATION_APPLIED 025-tc-tz-inliers.sql
+# MIGRATION_APPLIED 026-tc-historical-backfill.sql
+# MIGRATION_APPLIED 027-tc-live-collector.sql
+# MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+# MIGRATION_APPLIED 029-owner-auth.sql
+# Subtest: a parser change is reprocessed from the raw: dry run, apply, idempotent replay, nothing destroyed
+ok 103 - a parser change is reprocessed from the raw: dry run, apply, idempotent replay, nothing destroyed
+  ---
+  duration_ms: 927.037188
+  type: 'test'
+  ...
+# MIGRATION_APPLIED 001-futpython-mirror.sql
+# MIGRATION_APPLIED 002-data-watchdog.sql
+# MIGRATION_APPLIED 003-alert-aggregation.sql
+# MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+# MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+# MIGRATION_APPLIED 006-fpt-certification-checks.sql
+# MIGRATION_APPLIED 007-fpt-request-ledger.sql
+# MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+# MIGRATION_APPLIED 009-fpt-team-identity.sql
+# MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+# MIGRATION_APPLIED 011-fpt-schema-registry.sql
+# MIGRATION_APPLIED 012-fpt-field-coverage.sql
+# MIGRATION_APPLIED 013-fpt-season-registry.sql
+# MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+# MIGRATION_APPLIED 015-fpt-query-facts.sql
+# MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+# MIGRATION_APPLIED 017-fpt-budget-levels.sql
+# MIGRATION_APPLIED 018-fpt-onboarding.sql
+# MIGRATION_APPLIED 019-fpt-reconciliation.sql
+# MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+# MIGRATION_APPLIED 021-tc-core-discovery.sql
+# MIGRATION_APPLIED 022-tc-competition-mapping.sql
+# MIGRATION_APPLIED 023-tc-prematch.sql
+# MIGRATION_APPLIED 024-tc-tz-observations.sql
+# MIGRATION_APPLIED 025-tc-tz-inliers.sql
+# MIGRATION_APPLIED 026-tc-historical-backfill.sql
+# MIGRATION_APPLIED 027-tc-live-collector.sql
+# MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+# MIGRATION_APPLIED 029-owner-auth.sql
+# Subtest: reprocessing apply is atomic, diffs keep version ids across snapshots, and the gate checks scope
+ok 104 - reprocessing apply is atomic, diffs keep version ids across snapshots, and the gate checks scope
+  ---
+  duration_ms: 922.972056
+  type: 'test'
+  ...
+# Subtest: certifiability matrix: the committed matrix has no problem
+ok 105 - certifiability matrix: the committed matrix has no problem
+  ---
+  duration_ms: 5.259897
+  type: 'test'
+  ...
+# Subtest: certifiability matrix: every tampering the reviews found is refused
+ok 106 - certifiability matrix: every tampering the reviews found is refused
+  ---
+  duration_ms: 17.344839
+  type: 'test'
+  ...
+# Automatic merge went well; stopped before committing as requested
+# Automatic merge went well; stopped before committing as requested
+# Subtest: a complete checkpoint validates and every mandatory field is enforced
+ok 107 - a complete checkpoint validates and every mandatory field is enforced
+  ---
+  duration_ms: 11.419969
+  type: 'test'
+  ...
+# Subtest: checkpoints are cross-checked against owner decisions and requirements
+ok 108 - checkpoints are cross-checked against owner decisions and requirements
+  ---
+  duration_ms: 0.783595
+  type: 'test'
+  ...
+# Subtest: terminal states require gates, APPROVED review and no open blocking finding
+ok 109 - terminal states require gates, APPROVED review and no open blocking finding
+  ---
+  duration_ms: 1.45851
+  type: 'test'
+  ...
+# Subtest: Gate B evidence records carry command, result, environment, commit, time and limits (MP-QAC-010)
+ok 110 - Gate B evidence records carry command, result, environment, commit, time and limits (MP-QAC-010)
+  ---
+  duration_ms: 0.300739
+  type: 'test'
+  ...
+# Subtest: secret-like values are rejected anywhere in a checkpoint
+ok 111 - secret-like values are rejected anywhere in a checkpoint
+  ---
+  duration_ms: 0.50339
+  type: 'test'
+  ...
+# Subtest: the latest valid checkpoint is the single head of the supersedes chain
+ok 112 - the latest valid checkpoint is the single head of the supersedes chain
+  ---
+  duration_ms: 0.658839
+  type: 'test'
+  ...
+# Subtest: a checkpoint dated after its validation, or with test times after itself, is refused (PR \#162 NB-9)
+ok 113 - a checkpoint dated after its validation, or with test times after itself, is refused (PR \#162 NB-9)
+  ---
+  duration_ms: 0.563492
+  type: 'test'
+  ...
+# Subtest: errata bound a wrong checkpoint time with a real commit time and keep the chain resolvable
+ok 114 - errata bound a wrong checkpoint time with a real commit time and keep the chain resolvable
+  ---
+  duration_ms: 0.7557
+  type: 'test'
+  ...
+# Subtest: reconciliation against a real git repository detects SHA mismatch and unreconciled work
+ok 115 - reconciliation against a real git repository detects SHA mismatch and unreconciled work
+  ---
+  duration_ms: 312.617388
+  type: 'test'
+  ...
+# Subtest: reconciliation flags tree mismatch, stale active state and merges that did not happen
+ok 116 - reconciliation flags tree mismatch, stale active state and merges that did not happen
+  ---
+  duration_ms: 0.596247
+  type: 'test'
+  ...
+# Subtest: checkpoint persistence and comment publication are idempotent
+ok 117 - checkpoint persistence and comment publication are idempotent
+  ---
+  duration_ms: 2.951049
+  type: 'test'
+  ...
+# Subtest: schema v2 binds reviews and CI runs to the commit they covered (\#151 review R-2)
+ok 118 - schema v2 binds reviews and CI runs to the commit they covered (\#151 review R-2)
+  ---
+  duration_ms: 0.614033
+  type: 'test'
+  ...
+# Subtest: a merge commit that rewrites an existing checkpoint is detected (\#151 review R-1)
+ok 119 - a merge commit that rewrites an existing checkpoint is detected (\#151 review R-1)
+  ---
+  duration_ms: 201.141772
+  type: 'test'
+  ...
+# Subtest: a checkpoint added on a side branch and rewritten in the merge is detected; an unchanged one is not (\#152 review N-2)
+ok 120 - a checkpoint added on a side branch and rewritten in the merge is detected; an unchanged one is not (\#152 review N-2)
+  ---
+  duration_ms: 182.285157
+  type: 'test'
+  ...
+# Subtest: a new v1 checkpoint cannot dodge v2 by backdating (\#152 review N-3)
+ok 121 - a new v1 checkpoint cannot dodge v2 by backdating (\#152 review N-3)
+  ---
+  duration_ms: 0.377453
+  type: 'test'
+  ...
+# Subtest: errata and checkpoint times are checked against the real git history (PR \#162 NB-10, NB-11)
+ok 122 - errata and checkpoint times are checked against the real git history (PR \#162 NB-10, NB-11)
+  ---
+  duration_ms: 119.958011
+  type: 'test'
+  ...
+# Subtest: the CI gate passes only when every selected check passed
+ok 123 - the CI gate passes only when every selected check passed
+  ---
+  duration_ms: 10.307359
+  type: 'test'
+  ...
+# Subtest: a failed, cancelled or skipped Browser QA on a web change fails the CI gate on its own, and the log names it
+ok 124 - a failed, cancelled or skipped Browser QA on a web change fails the CI gate on its own, and the log names it
+  ---
+  duration_ms: 16.161958
+  type: 'test'
+  ...
+# Subtest: every blocking check is reported, not only the first
+ok 125 - every blocking check is reported, not only the first
+  ---
+  duration_ms: 3.157369
+  type: 'test'
+  ...
+# Subtest: an unknown classification fails closed
+ok 126 - an unknown classification fails closed
+  ---
+  duration_ms: 11.088844
+  type: 'test'
+  ...
+# Subtest: a token of the approved deploy job for this SHA is accepted, and names what to record
+ok 127 - a token of the approved deploy job for this SHA is accepted, and names what to record
+  ---
+  duration_ms: 6.141497
+  type: 'test'
+  ...
+# Subtest: NB-7: malformed tokens are refused, never thrown
+ok 128 - NB-7: malformed tokens are refused, never thrown
+  ---
+  duration_ms: 6.176175
+  type: 'test'
+  ...
+# Subtest: NB-7: claims must be exact strings: arrays, numbers and objects are not coerced
+ok 129 - NB-7: claims must be exact strings: arrays, numbers and objects are not coerced
+  ---
+  duration_ms: 7.663574
+  type: 'test'
+  ...
+# Subtest: a token for another SHA, or a deploy of an SHA the token does not name, is refused
+ok 130 - a token for another SHA, or a deploy of an SHA the token does not name, is refused
+  ---
+  duration_ms: 12.246879
+  type: 'test'
+  ...
+# Subtest: a job that did not pass vps-production, a run older than the gate, another workflow or repository is refused
+ok 131 - a job that did not pass vps-production, a run older than the gate, another workflow or repository is refused
+  ---
+  duration_ms: 11.559534
+  type: 'test'
+  ...
+# Subtest: a forged, unsigned, critical-header or foreign-key token is refused
+ok 132 - a forged, unsigned, critical-header or foreign-key token is refused
+  ---
+  duration_ms: 3.933019
+  type: 'test'
+  ...
+# Subtest: time: expired, future, older than one try, or long-lived tokens are refused; a retry needs a new token
+ok 133 - time: expired, future, older than one try, or long-lived tokens are refused; a retry needs a new token
+  ---
+  duration_ms: 5.079932
+  type: 'test'
+  ...
+# Subtest: anti-replay: consumption is exclusive and persistent; a busy lock records nothing; a re-run is a new attempt
+ok 134 - anti-replay: consumption is exclusive and persistent; a busy lock records nothing; a re-run is a new attempt
+  ---
+  duration_ms: 11.360801
+  type: 'test'
+  ...
+# Subtest: consume makes each record durable: the file and then the directory are fsynced, and a failed fsync refuses
+ok 135 - consume makes each record durable: the file and then the directory are fsynced, and a failed fsync refuses
+  ---
+  duration_ms: 8.754309
+  type: 'test'
+  ...
+# Subtest: CLI: verify has no side effect; consume records once, even when two processes race; any error refuses
+ok 136 - CLI: verify has no side effect; consume records once, even when two processes race; any error refuses
+  ---
+  duration_ms: 351.067724
+  type: 'test'
+  ...
+# Subtest: the approvals of the run must include the owner approving vps-production
+ok 137 - the approvals of the run must include the owner approving vps-production
+  ---
+  duration_ms: 0.664569
+  type: 'test'
+  ...
+# Subtest: the ref advertisement is read strictly: exactly one refs/heads/main, well-formed pkt-lines, nothing after the flush
+ok 138 - the ref advertisement is read strictly: exactly one refs/heads/main, well-formed pkt-lines, nothing after the flush
+  ---
+  duration_ms: 1.044179
+  type: 'test'
+  ...
+# Subtest: anti-stale: only the SHA both sources give as the tip of main passes; never another SHA instead
+ok 139 - anti-stale: only the SHA both sources give as the tip of main passes; never another SHA instead
+  ---
+  duration_ms: 0.579576
+  type: 'test'
+  ...
+# Subtest: anti-stale fails closed: a source down, malformed, or the two sources disagreeing (just after a merge)
+ok 140 - anti-stale fails closed: a source down, malformed, or the two sources disagreeing (just after a merge)
+  ---
+  duration_ms: 0.766946
+  type: 'test'
+  ...
+# Subtest: the HTTP reads: 200 only, no redirect, bounded size; anything else throws (the callers refuse)
+ok 141 - the HTTP reads: 200 only, no redirect, bounded size; anything else throws (the callers refuse)
+  ---
+  duration_ms: 74.316985
+  type: 'test'
+  ...
+# Subtest: the run's approval is read from GitHub: the owner approving vps-production, or a refusal
+ok 142 - the run's approval is read from GitHub: the owner approving vps-production, or a refusal
+  ---
+  duration_ms: 0.535264
+  type: 'test'
+  ...
+# Subtest: an approval is not carried over to a re-run: any attempt but the first is refused before reading GitHub
+ok 143 - an approval is not carried over to a re-run: any attempt but the first is refused before reading GitHub
+  ---
+  duration_ms: 0.171586
+  type: 'test'
+  ...
+# Subtest: CLI: main-tip and approved refuse a bad argument with exit 1; an unknown mode refuses
+ok 144 - CLI: main-tip and approved refuse a bad argument with exit 1; an unknown mode refuses
+  ---
+  duration_ms: 214.878325
+  type: 'test'
+  ...
+# Subtest: CLI approved: --run-attempt is honoured; an attempt but the first, or none, is refused before any GitHub read
+ok 145 - CLI approved: --run-attempt is honoured; an attempt but the first, or none, is refused before any GitHub read
+  ---
+  duration_ms: 222.77478
+  type: 'test'
+  ...
+# Subtest: the ref advertisement is parsed by bytes: a non-ASCII capability does not break the pkt-line lengths
+ok 146 - the ref advertisement is parsed by bytes: a non-ASCII capability does not break the pkt-line lengths
+  ---
+  duration_ms: 15.739773
+  type: 'test'
+  ...
+# Subtest: a push to main with vps-production protected by the owner only, no admin bypass and only main passes
+ok 147 - a push to main with vps-production protected by the owner only, no admin bypass and only main passes
+  ---
+  duration_ms: 2.346023
+  type: 'test'
+  ...
+# Subtest: prevent self-review on, or unreadable, is reported: the owner who merges could never approve (review NB-4)
+ok 148 - prevent self-review on, or unreadable, is reported: the owner who merges could never approve (review NB-4)
+  ---
+  duration_ms: 0.673154
+  type: 'test'
+  ...
+# Subtest: a missing environment, or one GitHub created from the workflow without protection, stops the deploy
+ok 149 - a missing environment, or one GitHub created from the workflow without protection, stops the deploy
+  ---
+  duration_ms: 0.486719
+  type: 'test'
+  ...
+# Subtest: only the owner may approve: another user, a team, an empty list or an unreadable entry stops the deploy
+ok 150 - only the owner may approve: another user, a team, an empty list or an unreadable entry stops the deploy
+  ---
+  duration_ms: 0.687494
+  type: 'test'
+  ...
+# Subtest: administrators must not be able to bypass the approval; an absent setting counts as a bypass
+ok 151 - administrators must not be able to bypass the approval; an absent setting counts as a bypass
+  ---
+  duration_ms: 0.350574
+  type: 'test'
+  ...
+# Subtest: only main may deploy: protected branches, no policy, another branch, a tag or a pattern stop the deploy
+ok 152 - only main may deploy: protected branches, no policy, another branch, a tag or a pattern stop the deploy
+  ---
+  duration_ms: 0.765299
+  type: 'test'
+  ...
+# Subtest: an SHA that is no longer the tip of main, a dispatch, another ref or a fork stops the deploy
+ok 153 - an SHA that is no longer the tip of main, a dispatch, another ref or a fork stops the deploy
+  ---
+  duration_ms: 0.893567
+  type: 'test'
+  ...
+# Subtest: an unreadable answer fails closed: 403, 500, a network error, a malformed main
+ok 154 - an unreadable answer fails closed: 403, 500, a network error, a malformed main
+  ---
+  duration_ms: 0.677279
+  type: 'test'
+  ...
+# Subtest: CLI: PASS exits 0; a missing environment, a bad token or no token exits 1 with the reason
+ok 155 - CLI: PASS exits 0; a missing environment, a bad token or no token exits 1 with the reason
+  ---
+  duration_ms: 461.542421
+  type: 'test'
+  ...
+# Subtest: the report lists what GitHub returned, never the token
+ok 156 - the report lists what GitHub returned, never the token
+  ---
+  duration_ms: 178.156171
+  type: 'test'
+  ...
+# Subtest: NB-11: an answer of an unexpected shape still gives a full report, and FAIL
+ok 157 - NB-11: an answer of an unexpected shape still gives a full report, and FAIL
+  ---
+  duration_ms: 446.138558
+  type: 'test'
+  ...
+# Subtest: CLI: from a path with spaces or through a symlink the checks still run
+ok 158 - CLI: from a path with spaces or through a symlink the checks still run
+  ---
+  duration_ms: 81.53663
+  type: 'test'
+  ...
+# Subtest: after approval, at every attempt: the gate installed by root runs again on the VPS before mp-deploy
+ok 159 - after approval, at every attempt: the gate installed by root runs again on the VPS before mp-deploy
+  ---
+  duration_ms: 630.438744
+  type: 'test'
+  ...
+# Subtest: after approval: no node, no installed gate or a gate that does not say PASS stops the deploy
+ok 160 - after approval: no node, no installed gate or a gate that does not say PASS stops the deploy
+  ---
+  duration_ms: 251.12988
+  type: 'test'
+  ...
+# Subtest: on the VPS the gate is the root-installed copy: nothing is downloaded from the approved commit
+ok 161 - on the VPS the gate is the root-installed copy: nothing is downloaded from the approved commit
+  ---
+  duration_ms: 0.826559
+  type: 'test'
+  ...
+# Subtest: the gate job step also requires an explicit PASS
+ok 162 - the gate job step also requires an explicit PASS
+  ---
+  duration_ms: 0.231258
+  type: 'test'
+  ...
+# Subtest: mp-deploy step: each try sends a new OIDC token on stdin; without a token nothing is deployed
+ok 163 - mp-deploy step: each try sends a new OIDC token on stdin; without a token nothing is deployed
+  ---
+  duration_ms: 1401.474659
+  type: 'test'
+  ...
+# Subtest: NB-21: the request header lives in a private directory, is never reused or clobbered, and is removed in every case
+ok 164 - NB-21: the request header lives in a private directory, is never reused or clobbered, and is removed in every case
+  ---
+  duration_ms: 2762.571363
+  type: 'test'
+  ...
+# Subtest: anti-stale: before every retry the gate runs again; a merge while the lock was busy stops the run
+ok 165 - anti-stale: before every retry the gate runs again; a merge while the lock was busy stops the run
+  ---
+  duration_ms: 1244.733696
+  type: 'test'
+  ...
+# Subtest: anti-stale: a superseded run says on its page which run to approve instead; a current one writes nothing
+ok 166 - anti-stale: a superseded run says on its page which run to approve instead; a current one writes nothing
+  ---
+  duration_ms: 305.70828
+  type: 'test'
+  ...
+# Subtest: AGENTS.md is canonical and carries the 2026-10-18 owner rules
+ok 167 - AGENTS.md is canonical and carries the 2026-10-18 owner rules
+  ---
+  duration_ms: 1.529241
+  type: 'test'
+  ...
+# Subtest: obsolete instructions are gone from canonical documents (\#149 review N-05)
+ok 168 - obsolete instructions are gone from canonical documents (\#149 review N-05)
+  ---
+  duration_ms: 1.589131
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md points to AGENTS.md without duplicating the rule set
+ok 169 - CLAUDE.md points to AGENTS.md without duplicating the rule set
+  ---
+  duration_ms: 0.356008
+  type: 'test'
+  ...
+# Subtest: canonical documents and the PR template contain no auto-closing references
+ok 170 - canonical documents and the PR template contain no auto-closing references
+  ---
+  duration_ms: 5.599419
+  type: 'test'
+  ...
+# Subtest: CI enforces the governance gate and the closing-keyword scan on every PR
+ok 171 - CI enforces the governance gate and the closing-keyword scan on every PR
+  ---
+  duration_ms: 0.272364
+  type: 'test'
+  ...
+# Subtest: the handoff procedure documents every admitted state
+ok 172 - the handoff procedure documents every admitted state
+  ---
+  duration_ms: 0.314252
+  type: 'test'
+  ...
+# Subtest: the repository registry and checkpoints are valid and resolvable
+ok 173 - the repository registry and checkpoints are valid and resolvable
+  ---
+  duration_ms: 1701.265116
+  type: 'test'
+  ...
+# Subtest: every evidence package in docs/audits is valid and listed in the index
+ok 174 - every evidence package in docs/audits is valid and listed in the index
+  ---
+  duration_ms: 36.474607
+  type: 'test'
+  ...
+# Subtest: an altered, missing, extra, linked or oversized evidence file is refused
+ok 175 - an altered, missing, extra, linked or oversized evidence file is refused
+  ---
+  duration_ms: 416.597094
+  type: 'test'
+  ...
+# Subtest: a package without its audit data, archive or index entry is refused
+ok 176 - a package without its audit data, archive or index entry is refused
+  ---
+  duration_ms: 836.334325
+  type: 'test'
+  ...
+# Subtest: an evidence.json that is not an object never skips the checks (PR \#167 B-1)
+ok 177 - an evidence.json that is not an object never skips the checks (PR \#167 B-1)
+  ---
+  duration_ms: 347.53966
+  type: 'test'
+  ...
+# Subtest: stray files, linked package folders, repeated manifest lines and a missing folder are refused (PR \#167 NB-3, NB-4)
+ok 178 - stray files, linked package folders, repeated manifest lines and a missing folder are refused (PR \#167 NB-3, NB-4)
+  ---
+  duration_ms: 164.543877
+  type: 'test'
+  ...
+# Subtest: every package is read back from its durable archive: commit on evidence/audits, files and ZIP match (PR \#167 NB-2)
+ok 179 - every package is read back from its durable archive: commit on evidence/audits, files and ZIP match (PR \#167 NB-2)
+  ---
+  duration_ms: 193339.730293
+  type: 'test'
+  ...
+# Subtest: a fake, foreign or altered archive is refused
+ok 180 - a fake, foreign or altered archive is refused
+  ---
+  duration_ms: 1796.113098
+  type: 'test'
+  ...
+# Subtest: a commit only on a local evidence/audits branch is not a read-back (PR \#167 round 2 NB-1)
+ok 181 - a commit only on a local evidence/audits branch is not a read-back (PR \#167 round 2 NB-1)
+  ---
+  duration_ms: 34.19694
+  type: 'test'
+  ...
+# Subtest: open, closed and merged PRs map to evidence with source, number, head and time
+ok 182 - open, closed and merged PRs map to evidence with source, number, head and time
+  ---
+  duration_ms: 1.950206
+  type: 'test'
+  ...
+# Subtest: a failed, malformed or foreign answer is an error, never a state
+ok 183 - a failed, malformed or foreign answer is an error, never a state
+  ---
+  duration_ms: 0.608261
+  type: 'test'
+  ...
+# Subtest: the request carries no credential
+ok 184 - the request carries no credential
+  ---
+  duration_ms: 2.405764
+  type: 'test'
+  ...
+# Subtest: a task with a PR stops when the PR state was not read from GitHub, or is stale, foreign or unverifiable
+ok 185 - a task with a PR stops when the PR state was not read from GitHub, or is stale, foreign or unverifiable
+  ---
+  duration_ms: 822.526587
+  type: 'test'
+  ...
+# Subtest: GitHub PR evidence is checked against the registry and the branch
+ok 186 - GitHub PR evidence is checked against the registry and the branch
+  ---
+  duration_ms: 407.578484
+  type: 'test'
+  ...
+# Subtest: the CLI refuses a declared PR state or declared verifications instead of ignoring them
+ok 187 - the CLI refuses a declared PR state or declared verifications instead of ignoring them
+  ---
+  duration_ms: 95.382074
+  type: 'test'
+  ...
+# Subtest: a generic declaration never releases claims pending verification
+ok 188 - a generic declaration never releases claims pending verification
+  ---
+  duration_ms: 1242.772491
+  type: 'test'
+  ...
+# Subtest: claims without ids and resources can never be released, whatever the evidence
+ok 189 - claims without ids and resources can never be released, whatever the evidence
+  ---
+  duration_ms: 345.688673
+  type: 'test'
+  ...
+# Subtest: evidence must cover every claim, on its resource, by this agent, recently, without mismatch or strays
+ok 190 - evidence must cover every claim, on its resource, by this agent, recently, without mismatch or strays
+  ---
+  duration_ms: 422.609604
+  type: 'test'
+  ...
+# Subtest: handoff IN stops on a resource written by another agent, declared on the task or only in its checkpoint (M6, M10)
+ok 191 - handoff IN stops on a resource written by another agent, declared on the task or only in its checkpoint (M6, M10)
+  ---
+  duration_ms: 161.514604
+  type: 'test'
+  ...
+# Subtest: an expired lease of another agent is not a writer (M9)
+ok 192 - an expired lease of another agent is not a writer (M9)
+  ---
+  duration_ms: 167.498312
+  type: 'test'
+  ...
+# Subtest: registry: one holder may write a resource from two tasks, two holders may not; branch and PR are implicit resources (M23)
+ok 193 - registry: one holder may write a resource from two tasks, two holders may not; branch and PR are implicit resources (M23)
+  ---
+  duration_ms: 1.842139
+  type: 'test'
+  ...
+# Subtest: registry writes stay serialized: stale revision and foreign release are refused
+ok 194 - registry writes stay serialized: stale revision and foreign release are refused
+  ---
+  duration_ms: 0.840635
+  type: 'test'
+  ...
+# Subtest: validate refuses a checkpoint that writes a resource its open task does not declare
+ok 195 - validate refuses a checkpoint that writes a resource its open task does not declare
+  ---
+  duration_ms: 2.931169
+  type: 'test'
+  ...
+# Subtest: claims pending verification cannot sit in a final or handoff state (M14), and handoff.to is validated (M28)
+ok 196 - claims pending verification cannot sit in a final or handoff state (M14), and handoff.to is validated (M28)
+  ---
+  duration_ms: 2.605497
+  type: 'test'
+  ...
+# Subtest: a revoked GO stays revoked even if later recorded as consumed (M2)
+ok 197 - a revoked GO stays revoked even if later recorded as consumed (M2)
+  ---
+  duration_ms: 0.617281
+  type: 'test'
+  ...
+# Subtest: an authorization scope must name task and action, without wildcards
+ok 198 - an authorization scope must name task and action, without wildcards
+  ---
+  duration_ms: 1.054497
+  type: 'test'
+  ...
+# Subtest: a GO cannot be reused for another task, resource or action, nor stretched to a key it does not bound
+ok 199 - a GO cannot be reused for another task, resource or action, nor stretched to a key it does not bound
+  ---
+  duration_ms: 0.632147
+  type: 'test'
+  ...
+# Subtest: an incomplete or ambiguous GO is never usable
+ok 200 - an incomplete or ambiguous GO is never usable
+  ---
+  duration_ms: 8.084222
+  type: 'test'
+  ...
+# Subtest: authz-check validates the repository state before using any checkpoint
+ok 201 - authz-check validates the repository state before using any checkpoint
+  ---
+  duration_ms: 219.694237
+  type: 'test'
+  ...
+# Subtest: a v3 mandate may only name registered owner decisions, in its id and in its source text
+ok 202 - a v3 mandate may only name registered owner decisions, in its id and in its source text
+  ---
+  duration_ms: 0.551944
+  type: 'test'
+  ...
+# Subtest: v3 extends v2: a complete v3 checkpoint validates and v2 checkpoints stay valid
+ok 203 - v3 extends v2: a complete v3 checkpoint validates and v2 checkpoints stay valid
+  ---
+  duration_ms: 8.3322
+  type: 'test'
+  ...
+# Subtest: v3 handoff states are consistent and unverified claims certify nothing
+ok 204 - v3 handoff states are consistent and unverified claims certify nothing
+  ---
+  duration_ms: 3.542853
+  type: 'test'
+  ...
+# Subtest: no secret goes into a v3 checkpoint, wherever it is put
+ok 205 - no secret goes into a v3 checkpoint, wherever it is put
+  ---
+  duration_ms: 0.473188
+  type: 'test'
+  ...
+# Subtest: authorizations depend on mandate, task, resource and action, never on the agent
+ok 206 - authorizations depend on mandate, task, resource and action, never on the agent
+  ---
+  duration_ms: 1.28219
+  type: 'test'
+  ...
+# Subtest: a consumed or revoked GO is refused, even if a later checkpoint calls it VALID again
+ok 207 - a consumed or revoked GO is refused, even if a later checkpoint calls it VALID again
+  ---
+  duration_ms: 0.41586
+  type: 'test'
+  ...
+# Subtest: simulated handoff A -> B -> A on a real git repository works the same whichever agent starts
+ok 208 - simulated handoff A -> B -> A on a real git repository works the same whichever agent starts
+  ---
+  duration_ms: 2303.697559
+  type: 'test'
+  ...
+# Subtest: handoff IN releases structured claims only with structured evidence, and refuses a handoff addressed elsewhere
+ok 209 - handoff IN releases structured claims only with structured evidence, and refuses a handoff addressed elsewhere
+  ---
+  duration_ms: 208.05348
+  type: 'test'
+  ...
+# Subtest: one writer per resource, whoever the agents are
+ok 210 - one writer per resource, whoever the agents are
+  ---
+  duration_ms: 1.588742
+  type: 'test'
+  ...
+# Subtest: a second live implementation PR is admitted only by an IN_FORCE owner decision that names it
+ok 211 - a second live implementation PR is admitted only by an IN_FORCE owner decision that names it
+  ---
+  duration_ms: 0.606962
+  type: 'test'
+  ...
+# Subtest: the governance code grants nothing by agent name
+ok 212 - the governance code grants nothing by agent name
+  ---
+  duration_ms: 3.897929
+  type: 'test'
+  ...
+# Subtest: the repository reflects the 21/10 reconciliation (MP-GITHUB-RECON-IMPLEMENTATION-01)
+ok 213 - the repository reflects the 21/10 reconciliation (MP-GITHUB-RECON-IMPLEMENTATION-01)
+  ---
+  duration_ms: 4.037791
+  type: 'test'
+  ...
+# Subtest: GitHub auto-closing references are detected in every form
+ok 214 - GitHub auto-closing references are detected in every form
+  ---
+  duration_ms: 3.492988
+  type: 'test'
+  ...
+# Subtest: merge is allowed only when every MP-OWNER-AUTOMERGE-01 condition holds
+ok 215 - merge is allowed only when every MP-OWNER-AUTOMERGE-01 condition holds
+  ---
+  duration_ms: 2.499213
+  type: 'test'
+  ...
+# Subtest: the review must be independent, recorded and cover the current head
+ok 216 - the review must be independent, recorded and cover the current head
+  ---
+  duration_ms: 0.544308
+  type: 'test'
+  ...
+# Subtest: auto-closing references in title, body or commits block the merge; merged PRs are a no-op
+ok 217 - auto-closing references in title, body or commits block the merge; merged PRs are a no-op
+  ---
+  duration_ms: 0.503149
+  type: 'test'
+  ...
+# Subtest: regression: the recorded PR \#149 merge input satisfies the gate
+ok 218 - regression: the recorded PR \#149 merge input satisfies the gate
+  ---
+  duration_ms: 0.484607
+  type: 'test'
+  ...
+# Subtest: a web change merges only with verified Browser QA evidence on the current head (MP-OWNER-BROWSER-QA-HARD-GATE-01)
+ok 219 - a web change merges only with verified Browser QA evidence on the current head (MP-OWNER-BROWSER-QA-HARD-GATE-01)
+  ---
+  duration_ms: 0.668008
+  type: 'test'
+  ...
+# Subtest: claiming assigns a lease, bumps the revision and renewing is idempotent
+ok 220 - claiming assigns a lease, bumps the revision and renewing is idempotent
+  ---
+  duration_ms: 3.278767
+  type: 'test'
+  ...
+# Subtest: incompatible concurrent work is refused
+ok 221 - incompatible concurrent work is refused
+  ---
+  duration_ms: 0.594469
+  type: 'test'
+  ...
+# Subtest: a BLOCKED implementation task does not block an independent one
+ok 222 - a BLOCKED implementation task does not block an independent one
+  ---
+  duration_ms: 0.641259
+  type: 'test'
+  ...
+# Subtest: a BLOCKED implementation task with an open PR still holds the single slot (\#152 review N-4)
+ok 223 - a BLOCKED implementation task with an open PR still holds the single slot (\#152 review N-4)
+  ---
+  duration_ms: 0.397067
+  type: 'test'
+  ...
+# Subtest: a task with a PR and no explicit pr_open fails closed; HANDOFF READY and CERTIFIED hold the slot (\#153 review NB-5)
+ok 224 - a task with a PR and no explicit pr_open fails closed; HANDOFF READY and CERTIFIED hold the slot (\#153 review NB-5)
+  ---
+  duration_ms: 0.850265
+  type: 'test'
+  ...
+# Subtest: an expired lease is taken over only after reconciliation
+ok 225 - an expired lease is taken over only after reconciliation
+  ---
+  duration_ms: 0.26148
+  type: 'test'
+  ...
+# Subtest: handoff releases the lease, records the checkpoint and lets another agent continue
+ok 226 - handoff releases the lease, records the checkpoint and lets another agent continue
+  ---
+  duration_ms: 0.613017
+  type: 'test'
+  ...
+# Subtest: registry validation rejects two live implementation tasks and inconsistent leases
+ok 227 - registry validation rejects two live implementation tasks and inconsistent leases
+  ---
+  duration_ms: 0.285643
+  type: 'test'
+  ...
+# Subtest: real concurrent processes: exactly one agent wins the claim
+ok 228 - real concurrent processes: exactly one agent wins the claim
+  ---
+  duration_ms: 325.063797
+  type: 'test'
+  ...
+# Subtest: the pin is the git blob SHA of deploy-vps.yml (what `git hash-object` and the contents API give)
+ok 229 - the pin is the git blob SHA of deploy-vps.yml (what `git hash-object` and the contents API give)
+  ---
+  duration_ms: 7.925478
+  type: 'test'
+  ...
+# Subtest: ALLOW only for the deploy job of the pinned workflow, approved by the owner, assigned here, on the tip of main
+ok 230 - ALLOW only for the deploy job of the pinned workflow, approved by the owner, assigned here, on the tip of main
+  ---
+  duration_ms: 1.944411
+  type: 'test'
+  ...
+# Subtest: B4: a changed deploy-vps.yml cannot run on the VPS, even merged and even approved
+ok 231 - B4: a changed deploy-vps.yml cannot run on the VPS, even merged and even approved
+  ---
+  duration_ms: 1.212298
+  type: 'test'
+  ...
+# Subtest: B4: another workflow, event, branch or repository cannot use the VPS runner
+ok 232 - B4: another workflow, event, branch or repository cannot use the VPS runner
+  ---
+  duration_ms: 1.100398
+  type: 'test'
+  ...
+# Subtest: only the owner's approval of vps-production counts; a deployment still waiting is refused
+ok 233 - only the owner's approval of vps-production counts; a deployment still waiting is refused
+  ---
+  duration_ms: 1.62924
+  type: 'test'
+  ...
+# Subtest: the job must be this run's deploy job assigned to this runner; the run must be what the runner says
+ok 234 - the job must be this run's deploy job assigned to this runner; the run must be what the runner says
+  ---
+  duration_ms: 1.110588
+  type: 'test'
+  ...
+# Subtest: a concluded, cancelled, queued or waiting job, or a run that is over, is refused
+ok 235 - a concluded, cancelled, queued or waiting job, or a run that is over, is refused
+  ---
+  duration_ms: 2.579116
+  type: 'test'
+  ...
+# Subtest: a re-run is refused before any GitHub read: an approval cannot be tied to its attempt
+ok 236 - a re-run is refused before any GitHub read: an approval cannot be tied to its attempt
+  ---
+  duration_ms: 0.285226
+  type: 'test'
+  ...
+# Subtest: anti-stale: after merges A, B, C only C may start; an approval of A or B is refused
+ok 237 - anti-stale: after merges A, B, C only C may start; an approval of A or B is refused
+  ---
+  duration_ms: 2.351796
+  type: 'test'
+  ...
+# Subtest: fail closed: GitHub unreachable, malformed or contradicting answers refuse
+ok 238 - fail closed: GitHub unreachable, malformed or contradicting answers refuse
+  ---
+  duration_ms: 1.63374
+  type: 'test'
+  ...
+# Subtest: CLI: refuses with exit 1 and a JSON report, without reading GitHub, when the config or the job is wrong
+ok 239 - CLI: refuses with exit 1 and a JSON report, without reading GitHub, when the config or the job is wrong
+  ---
+  duration_ms: 254.747622
+  type: 'test'
+  ...
+# node:internal/modules/package_json_reader:314
+#   throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+#         ^
+# Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'yaml' imported from /tmp/claude-0/-home-user-MatchPilot/9501c668-6355-52e9-bcad-bf70034a666f/scratchpad/audit-main/test/governance-workflows.test.mjs
+#     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:314:9)
+#     at packageResolve (node:internal/modules/esm/resolve:767:81)
+#     at moduleResolve (node:internal/modules/esm/resolve:853:18)
+#     at defaultResolve (node:internal/modules/esm/resolve:983:11)
+#     at \#cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+#     at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+#     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+#     at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+#   code: 'ERR_MODULE_NOT_FOUND'
+# }
+# Node.js v22.22.0
+# Subtest: test/governance-workflows.test.mjs
+not ok 37 - test/governance-workflows.test.mjs
+  ---
+  duration_ms: 75.574479
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-MatchPilot/9501c668-6355-52e9-bcad-bf70034a666f/scratchpad/audit-main/test/governance-workflows.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: test/helpers/fpt-seed.mjs
+ok 38 - test/helpers/fpt-seed.mjs
+  ---
+  duration_ms: 54.546224
+  type: 'test'
+  ...
+# Subtest: incremental sync considers only the current season
+ok 242 - incremental sync considers only the current season
+  ---
+  duration_ms: 2.141329
+  type: 'test'
+  ...
+# Subtest: a terminal dataset is not an incremental upstream call
+ok 243 - a terminal dataset is not an incremental upstream call
+  ---
+  duration_ms: 0.411778
+  type: 'test'
+  ...
+# Subtest: window statistics are exact, from the team side, with N and per-family coverage
+ok 244 - window statistics are exact, from the team side, with N and per-family coverage
+  ---
+  duration_ms: 4.526628
+  type: 'test'
+  ...
+# Subtest: the match id is validated before any database access
+ok 245 - the match id is validated before any database access
+  ---
+  duration_ms: 0.864191
+  type: 'test'
+  ...
+# Subtest: analysis of a stored match agrees with an independent SQL oracle and never looks at the match day or later
+ok 246 - analysis of a stored match agrees with an independent SQL oracle and never looks at the match day or later
+  ---
+  duration_ms: 3389.661977
+  type: 'test'
+  ...
+# Subtest: API v1 serves the analysis, refuses a bad id and lists the endpoint
+ok 247 - API v1 serves the analysis, refuses a bad id and lists the endpoint
+  ---
+  duration_ms: 6213.954093
+  type: 'test'
+  ...
+# Subtest: Decimal parses only plain decimal text and refuses binary floats
+ok 248 - Decimal parses only plain decimal text and refuses binary floats
+  ---
+  duration_ms: 2.974849
+  type: 'test'
+  ...
+# Subtest: Decimal arithmetic matches the exact oracle (golden and seeded cases)
+ok 249 - Decimal arithmetic matches the exact oracle (golden and seeded cases)
+  ---
+  duration_ms: 61.357139
+  type: 'test'
+  ...
+# Subtest: rounding modes and step rounding are explicit and exact
+ok 250 - rounding modes and step rounding are explicit and exact
+  ---
+  duration_ms: 1.525865
+  type: 'test'
+  ...
+# Subtest: validators refuse invalid odds, probabilities and commission rates
+ok 251 - validators refuse invalid odds, probabilities and commission rates
+  ---
+  duration_ms: 0.674896
+  type: 'test'
+  ...
+# Subtest: implied probability, overround, normalization and fair odds match the oracle (\#94 golden vectors)
+ok 252 - implied probability, overround, normalization and fair odds match the oracle (\#94 golden vectors)
+  ---
+  duration_ms: 1.138379
+  type: 'test'
+  ...
+# Subtest: property tests: probabilities in [0,1], normalized sums to 1, order preserved, round trips (seeded)
+ok 253 - property tests: probabilities in [0,1], normalized sums to 1, order preserved, round trips (seeded)
+  ---
+  duration_ms: 77.388576
+  type: 'test'
+  ...
+# Subtest: results are deterministic and never read the clock
+ok 254 - results are deterministic and never read the clock
+  ---
+  duration_ms: 0.333214
+  type: 'test'
+  ...
+# Subtest: every rounding mode matches the oracle for parsing, mul and div with both signs (review B-1, NB-1)
+ok 255 - every rounding mode matches the oracle for parsing, mul and div with both signs (review B-1, NB-1)
+  ---
+  duration_ms: 242.469336
+  type: 'test'
+  ...
+# Subtest: odds are bounded, money rounding reports input errors, envelopes copy their inputs (review NB-2..NB-4)
+ok 256 - odds are bounded, money rounding reports input errors, envelopes copy their inputs (review NB-2..NB-4)
+  ---
+  duration_ms: 0.757953
+  type: 'test'
+  ...
+# Subtest: envelopes built from Decimal inputs serialize to JSON and can be chained (second review B-1, NB-1, NB-2)
+ok 257 - envelopes built from Decimal inputs serialize to JSON and can be chained (second review B-1, NB-1, NB-2)
+  ---
+  duration_ms: 77.840585
+  type: 'test'
+  ...
+# Subtest: every accepted input kind serializes; step rounding of negatives; error fields (third review B-1, NB-1, NB-2)
+ok 258 - every accepted input kind serializes; step rounding of negatives; error fields (third review B-1, NB-1, NB-2)
+  ---
+  duration_ms: 1.070268
+  type: 'test'
+  ...
+# Subtest: offline and test modes apply every pending migration
+ok 259 - offline and test modes apply every pending migration
+  ---
+  duration_ms: 1.554113
+  type: 'test'
+  ...
+# Subtest: production holds pending migrations unless each exact file is approved, in order
+ok 260 - production holds pending migrations unless each exact file is approved, in order
+  ---
+  duration_ms: 0.422021
+  type: 'test'
+  ...
+# Subtest: the guard fails closed: unknown modes and non-local databases outside production are refused
+ok 261 - the guard fails closed: unknown modes and non-local databases outside production are refused
+  ---
+  duration_ms: 2.948803
+  type: 'test'
+  ...
+# Subtest: migrate() in production mode applies only approved files on a real database
+ok 262 - migrate() in production mode applies only approved files on a real database
+  ---
+  duration_ms: 5139.751364
+  type: 'test'
+  ...
+# Subtest: MIG-GAP-01: a ?host= override pointing to a remote server is refused outside production
+ok 263 - MIG-GAP-01: a ?host= override pointing to a remote server is refused outside production
+  ---
+  duration_ms: 7.828593
+  type: 'test'
+  ...
+# Subtest: MIG-GAP-01: every other remote or ambiguous host form is refused
+ok 264 - MIG-GAP-01: every other remote or ambiguous host form is refused
+  ---
+  duration_ms: 1.096529
+  type: 'test'
+  ...
+# Subtest: MIG-GAP-01: PGHOST and PGHOSTADDR cannot redirect an offline/test process
+ok 265 - MIG-GAP-01: PGHOST and PGHOSTADDR cannot redirect an offline/test process
+  ---
+  duration_ms: 1.117931
+  type: 'test'
+  ...
+# Subtest: MIG-GAP-01: loopback and local Unix-socket forms are still accepted; production is unaffected
+ok 266 - MIG-GAP-01: loopback and local Unix-socket forms are still accepted; production is unaffected
+  ---
+  duration_ms: 50.503085
+  type: 'test'
+  ...
+# Subtest: MIG-GAP-01: migrate() refuses an overridden host before opening any connection
+ok 267 - MIG-GAP-01: migrate() refuses an overridden host before opening any connection
+  ---
+  duration_ms: 3.580612
+  type: 'test'
+  ...
+# Subtest: MIG-GAP-02: concurrent migrate() processes apply every migration exactly once
+ok 268 - MIG-GAP-02: concurrent migrate() processes apply every migration exactly once
+  ---
+  duration_ms: 4120.490741
+  type: 'test'
+  ...
+# Subtest: MIG-GAP-02: concurrent production processes still apply only approved migrations
+ok 269 - MIG-GAP-02: concurrent production processes still apply only approved migrations
+  ---
+  duration_ms: 901.072495
+  type: 'test'
+  ...
+# Subtest: MIG-GAP-02: a held lock makes migrate() fail closed after the wait limit, then succeed once released
+ok 270 - MIG-GAP-02: a held lock makes migrate() fail closed after the wait limit, then succeed once released
+  ---
+  duration_ms: 2682.588753
+  type: 'test'
+  ...
+# Subtest: MIG-GAP-02: the lock is released after a failing migration; bad lock settings fail closed
+ok 271 - MIG-GAP-02: the lock is released after a failing migration; bad lock settings fail closed
+  ---
+  duration_ms: 992.377131
+  type: 'test'
+  ...
+# Subtest: MIG-GAP-02: a process killed mid-migration leaves no partial change, frees the lock, and a restart resumes
+ok 272 - MIG-GAP-02: a process killed mid-migration leaves no partial change, frees the lock, and a restart resumes
+  ---
+  duration_ms: 1717.510395
+  type: 'test'
+  ...
+# Subtest: MIG-GAP-02: a connection error fails migrate() without hanging or applying anything
+ok 273 - MIG-GAP-02: a connection error fails migrate() without hanging or applying anything
+  ---
+  duration_ms: 66.567036
+  type: 'test'
+  ...
+# Subtest: MIG-GAP-02: a connection cut mid-migration fails migrate() cleanly, with no crash and no partial change
+ok 274 - MIG-GAP-02: a connection cut mid-migration fails migrate() cleanly, with no crash and no partial change
+  ---
+  duration_ms: 1136.94436
+  type: 'test'
+  ...
+# Subtest: MIG-GAP-02: the lock is released even when a migration changes search_path; a missing schema fails clearly
+ok 275 - MIG-GAP-02: the lock is released even when a migration changes search_path; a missing schema fails clearly
+  ---
+  duration_ms: 953.235445
+  type: 'test'
+  ...
+# Subtest: MIG-GAP-02: a connection lost during the release step does not crash; an unlock failure is reported
+ok 276 - MIG-GAP-02: a connection lost during the release step does not crash; an unlock failure is reported
+  ---
+  duration_ms: 1768.131347
+  type: 'test'
+  ...
+# Subtest: mock: lo script principale è JavaScript valido
+ok 277 - mock: lo script principale è JavaScript valido
+  ---
+  duration_ms: 8.628286
+  type: 'test'
+  ...
+# Subtest: mock: lo SHA-256 nel changelog corrisponde al file
+ok 278 - mock: lo SHA-256 nel changelog corrisponde al file
+  ---
+  duration_ms: 1.359618
+  type: 'test'
+  ...
+# Subtest: mock: versione e allineamento a \#97 dichiarati
+ok 279 - mock: versione e allineamento a \#97 dichiarati
+  ---
+  duration_ms: 0.287338
+  type: 'test'
+  ...
+# Subtest: mock: la roadmap contiene \#97, \#98, \#99, \#100, \#102 e le fasi 0–16
+ok 280 - mock: la roadmap contiene \#97, \#98, \#99, \#100, \#102 e le fasi 0–16
+  ---
+  duration_ms: 1.008083
+  type: 'test'
+  ...
+# Subtest: mock: la vecchia roadmap è stata rimossa
+ok 281 - mock: la vecchia roadmap è stata rimossa
+  ---
+  duration_ms: 0.941193
+  type: 'test'
+  ...
+# Subtest: mock: ledger, settlement, posizioni, esposizione e bankroll appartengono a \#99
+ok 282 - mock: ledger, settlement, posizioni, esposizione e bankroll appartengono a \#99
+  ---
+  duration_ms: 1.551643
+  type: 'test'
+  ...
+# Subtest: mock: nessuna promessa di persistenza account-level nel prototipo
+ok 283 - mock: nessuna promessa di persistenza account-level nel prototipo
+  ---
+  duration_ms: 0.850809
+  type: 'test'
+  ...
+# Subtest: mock: REAL e DEMO dichiarati
+ok 284 - mock: REAL e DEMO dichiarati
+  ---
+  duration_ms: 0.511229
+  type: 'test'
+  ...
+# Subtest: mock: \#99, \#100, \#102, STOP/RESUME e Replay + MM presenti
+ok 285 - mock: \#99, \#100, \#102, STOP/RESUME e Replay + MM presenti
+  ---
+  duration_ms: 2.657321
+  type: 'test'
+  ...
+# Subtest: docs: README, CLAUDE e AGENTS citano \#97, il mock vivo e la regola SÌ / NO
+ok 286 - docs: README, CLAUDE e AGENTS citano \#97, il mock vivo e la regola SÌ / NO
+  ---
+  duration_ms: 2.78088
+  type: 'test'
+  ...
+# Subtest: rate-limit buckets: IPv4 per address, IPv4-mapped IPv6 as IPv4, IPv6 per /64
+ok 287 - rate-limit buckets: IPv4 per address, IPv4-mapped IPv6 as IPv4, IPv6 per /64
+  ---
+  duration_ms: 7.226196
+  type: 'test'
+  ...
+# Subtest: production with auth enforced requires an explicit MATCHPILOT_TRUST_PROXY; the audit key is optional
+ok 288 - production with auth enforced requires an explicit MATCHPILOT_TRUST_PROXY; the audit key is optional
+  ---
+  duration_ms: 392.904916
+  type: 'test'
+  ...
+# Subtest: IPv6 /64 rotation is limited as one client; origin_rejected stays one row under concurrency; failure spikes alert without lockout
+ok 289 - IPv6 /64 rotation is limited as one client; origin_rejected stays one row under concurrency; failure spikes alert without lockout
+  ---
+  duration_ms: 4826.172201
+  type: 'test'
+  ...
+# Subtest: passwords are stored as salted scrypt hashes and verified in constant time
+ok 290 - passwords are stored as salted scrypt hashes and verified in constant time
+  ---
+  duration_ms: 160.434683
+  type: 'test'
+  ...
+# Subtest: auth is off unless explicitly enforced; enforce without valid owner credentials fails closed
+ok 291 - auth is off unless explicitly enforced; enforce without valid owner credentials fails closed
+  ---
+  duration_ms: 4.499859
+  type: 'test'
+  ...
+# Subtest: request helpers: cookies, next path, same-origin check, public paths
+ok 292 - request helpers: cookies, next path, same-origin check, public paths
+  ---
+  duration_ms: 0.707101
+  type: 'test'
+  ...
+# Subtest: enforced owner login: deny by default, login, session, logout, revocation, fixation, CSRF, audit
+ok 293 - enforced owner login: deny by default, login, session, logout, revocation, fixation, CSRF, audit
+  ---
+  duration_ms: 18607.994156
+  type: 'test'
+  ...
+# Subtest: repeated failed logins are rate limited, even with the right password, and audited
+ok 294 - repeated failed logins are rate limited, even with the right password, and audited
+  ---
+  duration_ms: 12158.161057
+  type: 'test'
+  ...
+# Subtest: auth stays off by default; misconfigured enforcement fails closed; a held auth migration blocks login in production
+ok 295 - auth stays off by default; misconfigured enforcement fails closed; a held auth migration blocks login in production
+  ---
+  duration_ms: 8574.25287
+  type: 'test'
+  ...
+# Subtest: hardening: path variants, raw //, proxy header spoofing, no owner lockout, atomic limit, bounded audit, idle sliding
+ok 296 - hardening: path variants, raw //, proxy header spoofing, no owner lockout, atomic limit, bounded audit, idle sliding
+  ---
+  duration_ms: 4619.984908
+  type: 'test'
+  ...
+# Subtest: production with the auth migration approved: login works and the cookie is __Host- and Secure
+ok 297 - production with the auth migration approved: login works and the cookie is __Host- and Secure
+  ---
+  duration_ms: 3982.450917
+  type: 'test'
+  ...
+# Subtest: phase1 summary passes only when every real check passes
+ok 298 - phase1 summary passes only when every real check passes
+  ---
+  duration_ms: 0.820421
+  type: 'test'
+  ...
+# Subtest: persisted outcomes keep INITIAL_404 distinct from REGRESSION_404
+ok 299 - persisted outcomes keep INITIAL_404 distinct from REGRESSION_404
+  ---
+  duration_ms: 1.496591
+  type: 'test'
+  ...
+# Subtest: a stored row is classified only when the persisted fields agree
+ok 300 - a stored row is classified only when the persisted fields agree
+  ---
+  duration_ms: 1.423894
+  type: 'test'
+  ...
+# Subtest: gate requires every catalog row, including removed, and rejects duplicate keys
+ok 301 - gate requires every catalog row, including removed, and rejects duplicate keys
+  ---
+  duration_ms: 0.966961
+  type: 'test'
+  ...
+# Subtest: csv audit reports malformed rows, width, identity and dates
+ok 302 - csv audit reports malformed rows, width, identity and dates
+  ---
+  duration_ms: 3.798039
+  type: 'test'
+  ...
+# Subtest: Match_ID does not change the historical match key
+ok 303 - Match_ID does not change the historical match key
+  ---
+  duration_ms: 0.262613
+  type: 'test'
+  ...
+# Subtest: hard sample covers countries, season shapes, small and large
+ok 304 - hard sample covers countries, season shapes, small and large
+  ---
+  duration_ms: 8.727888
+  type: 'test'
+  ...
+# Subtest: case-only spellings share one internal team id
+ok 305 - case-only spellings share one internal team id
+  ---
+  duration_ms: 2.551828
+  type: 'test'
+  ...
+# Subtest: a historical spelling can be attached without a second entity
+ok 306 - a historical spelling can be attached without a second entity
+  ---
+  duration_ms: 0.340351
+  type: 'test'
+  ...
+# Subtest: phase3 sql gate fails closed when a row gap remains
+ok 307 - phase3 sql gate fails closed when a row gap remains
+  ---
+  duration_ms: 0.221859
+  type: 'test'
+  ...
+# Subtest: registry keeps raw names and records alias candidates without dropping fields
+ok 308 - registry keeps raw names and records alias candidates without dropping fields
+  ---
+  duration_ms: 1.826299
+  type: 'test'
+  ...
+# Subtest: rows_seen stays cumulative and is not the unique counter
+ok 309 - rows_seen stays cumulative and is not the unique counter
+  ---
+  duration_ms: 0.333793
+  type: 'test'
+  ...
+# Subtest: lineage identity names the provider, versions and both field names
+ok 310 - lineage identity names the provider, versions and both field names
+  ---
+  duration_ms: 0.165326
+  type: 'test'
+  ...
+# Subtest: coverage density uses the stored nonempty and scoped rows, not a third bucket
+ok 311 - coverage density uses the stored nonempty and scoped rows, not a third bucket
+  ---
+  duration_ms: 1.308436
+  type: 'test'
+  ...
+# Subtest: scope tags are independent and are omitted when the evidence does not require them
+ok 312 - scope tags are independent and are omitted when the evidence does not require them
+  ---
+  duration_ms: 0.665661
+  type: 'test'
+  ...
+# Subtest: phase5 gate stays closed until the independent recount matches
+ok 313 - phase5 gate stays closed until the independent recount matches
+  ---
+  duration_ms: 1.422661
+  type: 'test'
+  ...
+# Subtest: a 404 is never complete and an unknown expected count stays available
+ok 314 - a 404 is never complete and an unknown expected count stays available
+  ---
+  duration_ms: 1.008478
+  type: 'test'
+  ...
+# Subtest: annual holes are gaps and tournament cadences are not filled in
+ok 315 - annual holes are gaps and tournament cadences are not filled in
+  ---
+  duration_ms: 1.386794
+  type: 'test'
+  ...
+# Subtest: a future season and a future championship are not complete
+ok 316 - a future season and a future championship are not complete
+  ---
+  duration_ms: 0.759322
+  type: 'test'
+  ...
+# Subtest: phase6 gate requires zero missing available seasons and a stable past timestamp
+ok 317 - phase6 gate requires zero missing available seasons and a stable past timestamp
+  ---
+  duration_ms: 0.312388
+  type: 'test'
+  ...
+# Subtest: stale detection and alert cooldown are explicit
+ok 318 - stale detection and alert cooldown are explicit
+  ---
+  duration_ms: 1.193157
+  type: 'test'
+  ...
+# Subtest: budget crosses warning then critical and a 429 counts toward the circuit
+ok 319 - budget crosses warning then critical and a 429 counts toward the circuit
+  ---
+  duration_ms: 0.329681
+  type: 'test'
+  ...
+# Subtest: telegram inbound updates have no handler
+ok 320 - telegram inbound updates have no handler
+  ---
+  duration_ms: 0.596397
+  type: 'test'
+  ...
+# Subtest: phase8 gate accepts one real telegram send or a skipped unconfigured bot
+ok 321 - phase8 gate accepts one real telegram send or a skipped unconfigured bot
+  ---
+  duration_ms: 0.250045
+  type: 'test'
+  ...
+# Subtest: every real field family is explicit and AH/EH/Country/Div/throw-ins are fixed
+ok 322 - every real field family is explicit and AH/EH/Country/Div/throw-ins are fixed
+  ---
+  duration_ms: 1.900041
+  type: 'test'
+  ...
+# Subtest: timing class keeps post-match facts out of pre-match analysis
+ok 323 - timing class keeps post-match facts out of pre-match analysis
+  ---
+  duration_ms: 0.550539
+  type: 'test'
+  ...
+# Subtest: payload view marks a market zero as N/D and keeps a goal zero
+ok 324 - payload view marks a market zero as N/D and keeps a goal zero
+  ---
+  duration_ms: 0.94755
+  type: 'test'
+  ...
+# Subtest: ledger rows carry provider, endpoint, latency, budget state and quota; a concurrent duplicate is a deduped row
+ok 325 - ledger rows carry provider, endpoint, latency, budget state and quota; a concurrent duplicate is a deduped row
+  ---
+  duration_ms: 9.384415
+  type: 'test'
+  ...
+# Subtest: budget state reaches critical near the daily cap and a cache hit is ledgered with budget state
+ok 326 - budget state reaches critical near the daily cap and a cache hit is ledgered with budget state
+  ---
+  duration_ms: 0.561327
+  type: 'test'
+  ...
+# Subtest: query inputs are validated and history is strictly before the cut-off
+ok 327 - query inputs are validated and history is strictly before the cut-off
+  ---
+  duration_ms: 1.871339
+  type: 'test'
+  ...
+# Subtest: the query layer never reaches the provider client
+ok 328 - the query layer never reaches the provider client
+  ---
+  duration_ms: 1.003161
+  type: 'test'
+  ...
+# Subtest: plan summary rejects sequential scans on large tables and slow plans
+ok 329 - plan summary rejects sequential scans on large tables and slow plans
+  ---
+  duration_ms: 0.67104
+  type: 'test'
+  ...
+# Subtest: gates fail closed and the verdict is one of the three allowed outcomes
+ok 330 - gates fail closed and the verdict is one of the three allowed outcomes
+  ---
+  duration_ms: 1.574867
+  type: 'test'
+  ...
+# Subtest: certificate route builds in the background and then serves the report
+ok 331 - certificate route builds in the background and then serves the report
+  ---
+  duration_ms: 3.117687
+  type: 'test'
+  ...
+# Subtest: markdown certificate has the 20 sections and the single verdict
+ok 332 - markdown certificate has the 20 sections and the single verdict
+  ---
+  duration_ms: 817.957104
+  type: 'test'
+  ...
+# MIGRATION_APPLIED 001-futpython-mirror.sql
+# MIGRATION_APPLIED 002-data-watchdog.sql
+# MIGRATION_APPLIED 003-alert-aggregation.sql
+# MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+# MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+# MIGRATION_APPLIED 006-fpt-certification-checks.sql
+# MIGRATION_APPLIED 007-fpt-request-ledger.sql
+# MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+# MIGRATION_APPLIED 009-fpt-team-identity.sql
+# MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+# MIGRATION_APPLIED 011-fpt-schema-registry.sql
+# MIGRATION_APPLIED 012-fpt-field-coverage.sql
+# MIGRATION_APPLIED 013-fpt-season-registry.sql
+# MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+# MIGRATION_APPLIED 015-fpt-query-facts.sql
+# MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+# MIGRATION_APPLIED 017-fpt-budget-levels.sql
+# MIGRATION_APPLIED 018-fpt-onboarding.sql
+# MIGRATION_APPLIED 019-fpt-reconciliation.sql
+# MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+# MIGRATION_APPLIED 021-tc-core-discovery.sql
+# MIGRATION_APPLIED 022-tc-competition-mapping.sql
+# MIGRATION_APPLIED 023-tc-prematch.sql
+# MIGRATION_APPLIED 024-tc-tz-observations.sql
+# MIGRATION_APPLIED 025-tc-tz-inliers.sql
+# MIGRATION_APPLIED 026-tc-historical-backfill.sql
+# MIGRATION_APPLIED 027-tc-live-collector.sql
+# MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+# MIGRATION_APPLIED 029-owner-auth.sql
+# Subtest: normalized layer, team links, raw sweep and query answers on a real Postgres
+ok 333 - normalized layer, team links, raw sweep and query answers on a real Postgres
+  ---
+  duration_ms: 16559.57467
+  type: 'test'
+  ...
+# MIGRATION_APPLIED 001-futpython-mirror.sql
+# MIGRATION_APPLIED 002-data-watchdog.sql
+# MIGRATION_APPLIED 003-alert-aggregation.sql
+# MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+# MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+# MIGRATION_APPLIED 006-fpt-certification-checks.sql
+# MIGRATION_APPLIED 007-fpt-request-ledger.sql
+# MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+# MIGRATION_APPLIED 009-fpt-team-identity.sql
+# MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+# MIGRATION_APPLIED 011-fpt-schema-registry.sql
+# MIGRATION_APPLIED 012-fpt-field-coverage.sql
+# MIGRATION_APPLIED 013-fpt-season-registry.sql
+# MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+# MIGRATION_APPLIED 015-fpt-query-facts.sql
+# MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+# MIGRATION_APPLIED 017-fpt-budget-levels.sql
+# MIGRATION_APPLIED 018-fpt-onboarding.sql
+# MIGRATION_APPLIED 019-fpt-reconciliation.sql
+# MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+# MIGRATION_APPLIED 021-tc-core-discovery.sql
+# MIGRATION_APPLIED 022-tc-competition-mapping.sql
+# MIGRATION_APPLIED 023-tc-prematch.sql
+# MIGRATION_APPLIED 024-tc-tz-observations.sql
+# MIGRATION_APPLIED 025-tc-tz-inliers.sql
+# MIGRATION_APPLIED 026-tc-historical-backfill.sql
+# MIGRATION_APPLIED 027-tc-live-collector.sql
+# MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+# MIGRATION_APPLIED 029-owner-auth.sql
+# Subtest: FPT team-matches-asof flags facts corrected after as_of (MP-PIT-002, MP-PIT-003)
+ok 334 - FPT team-matches-asof flags facts corrected after as_of (MP-PIT-002, MP-PIT-003)
+  ---
+  duration_ms: 8289.367322
+  type: 'test'
+  ...
+# MIGRATION_APPLIED 001-futpython-mirror.sql
+# MIGRATION_APPLIED 002-data-watchdog.sql
+# MIGRATION_APPLIED 003-alert-aggregation.sql
+# MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+# MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+# MIGRATION_APPLIED 006-fpt-certification-checks.sql
+# MIGRATION_APPLIED 007-fpt-request-ledger.sql
+# MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+# MIGRATION_APPLIED 009-fpt-team-identity.sql
+# MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+# MIGRATION_APPLIED 011-fpt-schema-registry.sql
+# MIGRATION_APPLIED 012-fpt-field-coverage.sql
+# MIGRATION_APPLIED 013-fpt-season-registry.sql
+# MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+# MIGRATION_APPLIED 015-fpt-query-facts.sql
+# MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+# MIGRATION_APPLIED 017-fpt-budget-levels.sql
+# MIGRATION_APPLIED 018-fpt-onboarding.sql
+# MIGRATION_APPLIED 019-fpt-reconciliation.sql
+# MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+# MIGRATION_APPLIED 021-tc-core-discovery.sql
+# MIGRATION_APPLIED 022-tc-competition-mapping.sql
+# MIGRATION_APPLIED 023-tc-prematch.sql
+# MIGRATION_APPLIED 024-tc-tz-observations.sql
+# MIGRATION_APPLIED 025-tc-tz-inliers.sql
+# MIGRATION_APPLIED 026-tc-historical-backfill.sql
+# MIGRATION_APPLIED 027-tc-live-collector.sql
+# MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+# MIGRATION_APPLIED 029-owner-auth.sql
+# Subtest: a re-parsed version written into a later snapshot is not dated with that snapshot (MP-FPT-005)
+ok 335 - a re-parsed version written into a later snapshot is not dated with that snapshot (MP-FPT-005)
+  ---
+  duration_ms: 3843.137544
+  type: 'test'
+  ...
+# MIGRATION_APPLIED 001-futpython-mirror.sql
+# MIGRATION_APPLIED 002-data-watchdog.sql
+# MIGRATION_APPLIED 003-alert-aggregation.sql
+# MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+# MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+# MIGRATION_APPLIED 006-fpt-certification-checks.sql
+# MIGRATION_APPLIED 007-fpt-request-ledger.sql
+# MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+# MIGRATION_APPLIED 009-fpt-team-identity.sql
+# MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+# MIGRATION_APPLIED 011-fpt-schema-registry.sql
+# MIGRATION_APPLIED 012-fpt-field-coverage.sql
+# MIGRATION_APPLIED 013-fpt-season-registry.sql
+# MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+# MIGRATION_APPLIED 015-fpt-query-facts.sql
+# MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+# MIGRATION_APPLIED 017-fpt-budget-levels.sql
+# MIGRATION_APPLIED 018-fpt-onboarding.sql
+# MIGRATION_APPLIED 019-fpt-reconciliation.sql
+# MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+# MIGRATION_APPLIED 021-tc-core-discovery.sql
+# MIGRATION_APPLIED 022-tc-competition-mapping.sql
+# MIGRATION_APPLIED 023-tc-prematch.sql
+# MIGRATION_APPLIED 024-tc-tz-observations.sql
+# MIGRATION_APPLIED 025-tc-tz-inliers.sql
+# MIGRATION_APPLIED 026-tc-historical-backfill.sql
+# MIGRATION_APPLIED 027-tc-live-collector.sql
+# MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+# MIGRATION_APPLIED 029-owner-auth.sql
+# Subtest: a re-parse reusing the ingest lineage cannot silently drop matches known at T (MP-FPT-005)
+ok 336 - a re-parse reusing the ingest lineage cannot silently drop matches known at T (MP-FPT-005)
+  ---
+  duration_ms: 1762.124078
+  type: 'test'
+  ...
+# MIGRATION_APPLIED 001-futpython-mirror.sql
+# MIGRATION_APPLIED 002-data-watchdog.sql
+# MIGRATION_APPLIED 003-alert-aggregation.sql
+# MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+# MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+# MIGRATION_APPLIED 006-fpt-certification-checks.sql
+# MIGRATION_APPLIED 007-fpt-request-ledger.sql
+# MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+# MIGRATION_APPLIED 009-fpt-team-identity.sql
+# MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+# MIGRATION_APPLIED 011-fpt-schema-registry.sql
+# MIGRATION_APPLIED 012-fpt-field-coverage.sql
+# MIGRATION_APPLIED 013-fpt-season-registry.sql
+# MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+# MIGRATION_APPLIED 015-fpt-query-facts.sql
+# MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+# MIGRATION_APPLIED 017-fpt-budget-levels.sql
+# MIGRATION_APPLIED 018-fpt-onboarding.sql
+# MIGRATION_APPLIED 019-fpt-reconciliation.sql
+# MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+# MIGRATION_APPLIED 021-tc-core-discovery.sql
+# MIGRATION_APPLIED 022-tc-competition-mapping.sql
+# MIGRATION_APPLIED 023-tc-prematch.sql
+# MIGRATION_APPLIED 024-tc-tz-observations.sql
+# MIGRATION_APPLIED 025-tc-tz-inliers.sql
+# MIGRATION_APPLIED 026-tc-historical-backfill.sql
+# MIGRATION_APPLIED 027-tc-live-collector.sql
+# MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+# MIGRATION_APPLIED 029-owner-auth.sql
+# Subtest: the short-snapshot repair is a recorded re-parse (MP-FPT-005)
+ok 337 - the short-snapshot repair is a recorded re-parse (MP-FPT-005)
+  ---
+  duration_ms: 3204.136367
+  type: 'test'
+  ...
+# Subtest: a record exposes the five timestamps separately and marks the missing ones (MP-PIT-001)
+ok 338 - a record exposes the five timestamps separately and marks the missing ones (MP-PIT-001)
+  ---
+  duration_ms: 3.093225
+  type: 'test'
+  ...
+# Subtest: availability is the acquisition time; records acquired after the decision are never available (MP-PIT-002)
+ok 339 - availability is the acquisition time; records acquired after the decision are never available (MP-PIT-002)
+  ---
+  duration_ms: 0.406163
+  type: 'test'
+  ...
+# Subtest: a later availability (a re-parsed version) delays when a record is usable; unknown availability is not verified (MP-FPT-005)
+ok 340 - a later availability (a re-parsed version) delays when a record is usable; unknown availability is not verified (MP-FPT-005)
+  ---
+  duration_ms: 0.302963
+  type: 'test'
+  ...
+# Subtest: missing, ambiguous or inconsistent timestamps are PIT_NOT_VERIFIED, never repaired (MP-PIT-003)
+ok 341 - missing, ambiguous or inconsistent timestamps are PIT_NOT_VERIFIED, never repaired (MP-PIT-003)
+  ---
+  duration_ms: 0.538824
+  type: 'test'
+  ...
+# Subtest: documented zones: DST gaps and repeated hours are reported, never guessed (MP-PIT-004)
+ok 342 - documented zones: DST gaps and repeated hours are reported, never guessed (MP-PIT-004)
+  ---
+  duration_ms: 233.509334
+  type: 'test'
+  ...
+# Subtest: undocumented zones yield only the interval of every possible instant (FPT kickoff, \#12)
+ok 343 - undocumented zones yield only the interval of every possible instant (FPT kickoff, \#12)
+  ---
+  duration_ms: 0.627329
+  type: 'test'
+  ...
+# Subtest: a measured fixed offset is valid only near its measurement and while no consistent zone changes offset (MP-PIT-004)
+ok 344 - a measured fixed offset is valid only near its measurement and while no consistent zone changes offset (MP-PIT-004)
+  ---
+  duration_ms: 46.109857
+  type: 'test'
+  ...
+# Subtest: an analysis is PIT only when every record is PIT_VERIFIED under captured knowledge (MP-PIT-005)
+ok 345 - an analysis is PIT only when every record is PIT_VERIFIED under captured knowledge (MP-PIT-005)
+  ---
+  duration_ms: 0.722822
+  type: 'test'
+  ...
+# Subtest: reader adapters: TotalCorner rows follow their match timezone measurement, FPT dates their undocumented zone
+ok 346 - reader adapters: TotalCorner rows follow their match timezone measurement, FPT dates their undocumented zone
+  ---
+  duration_ms: 3.580215
+  type: 'test'
+  ...
+# Subtest: classification is deterministic and does not read the clock
+ok 347 - classification is deterministic and does not read the clock
+  ---
+  duration_ms: 0.496428
+  type: 'test'
+  ...
+# Subtest: TotalCorner prematch answers carry per-row PIT status and a PIT label (MP-PIT-001..005)
+ok 348 - TotalCorner prematch answers carry per-row PIT status and a PIT label (MP-PIT-001..005)
+  ---
+  duration_ms: 3041.882444
+  type: 'test'
+  ...
+# Subtest: PostgreSQL 17 independent migration, verified sample replay and API are deterministic
+ok 349 - PostgreSQL 17 independent migration, verified sample replay and API are deterministic # SKIP PostgreSQL 17 is required, found server_version_num 160015 (local run; CI fails instead)
+  ---
+  duration_ms: 73.231274
+  type: 'test'
+  ...
+# Subtest: safe provider paths never keep an api key
+ok 350 - safe provider paths never keep an api key
+  ---
+  duration_ms: 1.604803
+  type: 'test'
+  ...
+# Subtest: resume drill keys are explicit and capped
+ok 351 - resume drill keys are explicit and capped
+  ---
+  duration_ms: 1.484822
+  type: 'test'
+  ...
+# Subtest: cache hit performs zero upstream requests
+ok 352 - cache hit performs zero upstream requests
+  ---
+  duration_ms: 10.349269
+  type: 'test'
+  ...
+# Subtest: two identical concurrent requests share one upstream call
+ok 353 - two identical concurrent requests share one upstream call
+  ---
+  duration_ms: 85.263357
+  type: 'test'
+  ...
+# Subtest: restart does not repeat a ledgered success that is already stored
+ok 354 - restart does not repeat a ledgered success that is already stored
+  ---
+  duration_ms: 11.039694
+  type: 'test'
+  ...
+# Subtest: 429 waits for Retry-After and the ledger matches attempts
+ok 355 - 429 waits for Retry-After and the ledger matches attempts
+  ---
+  duration_ms: 1008.850278
+  type: 'test'
+  ...
+# Subtest: repeated upstream failures open the circuit and stop the burst
+ok 356 - repeated upstream failures open the circuit and stop the burst
+  ---
+  duration_ms: 9.421673
+  type: 'test'
+  ...
+# Subtest: historical backfill waits while critical work holds the provider
+ok 357 - historical backfill waits while critical work holds the provider
+  ---
+  duration_ms: 45.283411
+  type: 'test'
+  ...
+# Subtest: MP-PR-00 inventory and owner-decision register are schema-valid
+ok 358 - MP-PR-00 inventory and owner-decision register are schema-valid
+  ---
+  duration_ms: 16.811127
+  type: 'test'
+  ...
+# Subtest: group sizes follow the sources, not a fixed quota (B-03)
+ok 359 - group sizes follow the sources, not a fixed quota (B-03)
+  ---
+  duration_ms: 2.298166
+  type: 'test'
+  ...
+# Subtest: validator rejects PASS without evidence (B-01/B-02)
+ok 360 - validator rejects PASS without evidence (B-01/B-02)
+  ---
+  duration_ms: 6.722487
+  type: 'test'
+  ...
+# Subtest: validator rejects target PRs outside the registry and PRs without requirements (B-05)
+ok 361 - validator rejects target PRs outside the registry and PRs without requirements (B-05)
+  ---
+  duration_ms: 6.210357
+  type: 'test'
+  ...
+# Subtest: validator rejects PASS depending on unresolved requirements and missing paths (B-07)
+ok 362 - validator rejects PASS depending on unresolved requirements and missing paths (B-07)
+  ---
+  duration_ms: 4.975111
+  type: 'test'
+  ...
+# Subtest: owner-decision register rejects incomplete or dangling entries (B-06)
+ok 363 - owner-decision register rejects incomplete or dangling entries (B-06)
+  ---
+  duration_ms: 2.412121
+  type: 'test'
+  ...
+# Subtest: 2026-10-18 owner decisions are registered and drive the inventory
+ok 364 - 2026-10-18 owner decisions are registered and drive the inventory
+  ---
+  duration_ms: 3.035594
+  type: 'test'
+  ...
+# Subtest: excluded future domains remain visible but outside the v1 denominator
+ok 365 - excluded future domains remain visible but outside the v1 denominator
+  ---
+  duration_ms: 2.199197
+  type: 'test'
+  ...
+# Subtest: P0 blockers cannot be hidden by aggregate coverage
+ok 366 - P0 blockers cannot be hidden by aggregate coverage
+  ---
+  duration_ms: 2.37849
+  type: 'test'
+  ...
+# Subtest: human-readable inventory docs carry the generated counts (no drift)
+ok 367 - human-readable inventory docs carry the generated counts (no drift)
+  ---
+  duration_ms: 5.403049
+  type: 'test'
+  ...
+# Subtest: persisted audit report matches its recorded SHA-256
+ok 368 - persisted audit report matches its recorded SHA-256
+  ---
+  duration_ms: 2.546978
+  type: 'test'
+  ...
+# PG_CLIENT_ERROR Connection terminated unexpectedly
+# Subtest: resume drill survives a real SIGTERM without duplicating the mirror
+ok 369 - resume drill survives a real SIGTERM without duplicating the mirror
+  ---
+  duration_ms: 4493.818084
+  type: 'test'
+  ...
+# Subtest: FutPython run stats start with explicit numeric zeros
+ok 370 - FutPython run stats start with explicit numeric zeros
+  ---
+  duration_ms: 0.796049
+  type: 'test'
+  ...
+# Subtest: runtime defaults offline and rejects unknown modes
+ok 371 - runtime defaults offline and rejects unknown modes
+  ---
+  duration_ms: 1.129843
+  type: 'test'
+  ...
+# Subtest: HTTP startup does not await background initialization
+ok 372 - HTTP startup does not await background initialization
+  ---
+  duration_ms: 0.502563
+  type: 'test'
+  ...
+# Subtest: offline and test modes reject every non-local database URL
+ok 373 - offline and test modes reject every non-local database URL
+  ---
+  duration_ms: 1.753975
+  type: 'test'
+  ...
+# Subtest: offline mode starts no cron, watchdog, provider, Telegram, recovery or backfill service
+ok 374 - offline mode starts no cron, watchdog, provider, Telegram, recovery or backfill service
+  ---
+  duration_ms: 1.307246
+  type: 'test'
+  ...
+# Subtest: production background remains available only through explicit double opt-in
+ok 375 - production background remains available only through explicit double opt-in
+  ---
+  duration_ms: 5.385675
+  type: 'test'
+  ...
+# Subtest: TC-OFF-01: with background enabled, no TotalCorner job starts unless MATCHPILOT_TOTALCORNER is exactly on
+ok 376 - TC-OFF-01: with background enabled, no TotalCorner job starts unless MATCHPILOT_TOTALCORNER is exactly on
+  ---
+  duration_ms: 1.448858
+  type: 'test'
+  ...
+# Subtest: real backend starts in test mode with PostgreSQL and performs no hidden background work
+ok 377 - real backend starts in test mode with PostgreSQL and performs no hidden background work
+  ---
+  duration_ms: 3096.261193
+  type: 'test'
+  ...
+# Subtest: schema inference preserves mixed columns as text
+ok 378 - schema inference preserves mixed columns as text
+  ---
+  duration_ms: 1.436907
+  type: 'test'
+  ...
+# Subtest: profile tracks coverage and families
+ok 379 - profile tracks coverage and families
+  ---
+  duration_ms: 0.799968
+  type: 'test'
+  ...
+# Subtest: signal when the average over 2.5 rate reaches the threshold
+ok 380 - signal when the average over 2.5 rate reaches the threshold
+  ---
+  duration_ms: 2.769232
+  type: 'test'
+  ...
+# Subtest: insufficient data below min_n or without a team
+ok 381 - insufficient data below min_n or without a team
+  ---
+  duration_ms: 0.221537
+  type: 'test'
+  ...
+# Subtest: settlement uses the stored final score and odd
+ok 382 - settlement uses the stored final score and odd
+  ---
+  duration_ms: 0.781697
+  type: 'test'
+  ...
+# Subtest: chunkArray preserves all rows and batch boundaries
+ok 383 - chunkArray preserves all rows and batch boundaries
+  ---
+  duration_ms: 2.099209
+  type: 'test'
+  ...
+# Subtest: chunkArray rejects invalid sizes
+ok 384 - chunkArray rejects invalid sizes
+  ---
+  duration_ms: 0.512018
+  type: 'test'
+  ...
+# Subtest: the token never appears in request keys, ledger paths or redacted errors
+ok 385 - the token never appears in request keys, ledger paths or redacted errors
+  ---
+  duration_ms: 2.226016
+  type: 'test'
+  ...
+# Subtest: responses are classified: ok, no_data, rate limit (status or body), auth, 404, 400, 5xx, malformed, timeout
+ok 386 - responses are classified: ok, no_data, rate limit (status or body), auth, 404, 400, 5xx, malformed, timeout
+  ---
+  duration_ms: 0.547541
+  type: 'test'
+  ...
+# Subtest: the limiter admits at most N requests per sliding window and honours a pause
+ok 387 - the limiter admits at most N requests per sliding window and honours a pause
+  ---
+  duration_ms: 0.504693
+  type: 'test'
+  ...
+# Subtest: rate-limit backoff: retry-after first, reset as seconds or epoch, bounded 10..120 s
+ok 388 - rate-limit backoff: retry-after first, reset as seconds or epoch, bounded 10..120 s
+  ---
+  duration_ms: 0.20809
+  type: 'test'
+  ...
+# Subtest: field census keeps every path: pairs, movement tuples, nested events, envelope; phase from status
+ok 389 - field census keeps every path: pairs, movement tuples, nested events, envelope; phase from status
+  ---
+  duration_ms: 1.84848
+  type: 'test'
+  ...
+# Subtest: kickoff timezone evidence and bookmaker enumeration work on any body shape
+ok 390 - kickoff timezone evidence and bookmaker enumeration work on any body shape
+  ---
+  duration_ms: 0.801031
+  type: 'test'
+  ...
+# Subtest: client: bounded retry on rate limit, every attempt in the ledger, raw stored losslessly, token never stored
+ok 391 - client: bounded retry on rate limit, every attempt in the ledger, raw stored losslessly, token never stored
+  ---
+  duration_ms: 24.258263
+  type: 'test'
+  ...
+# Subtest: boot hook skips without token and never prints it
+ok 392 - boot hook skips without token and never prints it
+  ---
+  duration_ms: 1.592524
+  type: 'test'
+  ...
+# MIGRATION_APPLIED 001-futpython-mirror.sql
+# MIGRATION_APPLIED 002-data-watchdog.sql
+# MIGRATION_APPLIED 003-alert-aggregation.sql
+# MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+# MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+# MIGRATION_APPLIED 006-fpt-certification-checks.sql
+# MIGRATION_APPLIED 007-fpt-request-ledger.sql
+# MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+# MIGRATION_APPLIED 009-fpt-team-identity.sql
+# MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+# MIGRATION_APPLIED 011-fpt-schema-registry.sql
+# MIGRATION_APPLIED 012-fpt-field-coverage.sql
+# MIGRATION_APPLIED 013-fpt-season-registry.sql
+# MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+# MIGRATION_APPLIED 015-fpt-query-facts.sql
+# MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+# MIGRATION_APPLIED 017-fpt-budget-levels.sql
+# MIGRATION_APPLIED 018-fpt-onboarding.sql
+# MIGRATION_APPLIED 019-fpt-reconciliation.sql
+# MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+# MIGRATION_APPLIED 021-tc-core-discovery.sql
+# MIGRATION_APPLIED 022-tc-competition-mapping.sql
+# MIGRATION_APPLIED 023-tc-prematch.sql
+# MIGRATION_APPLIED 024-tc-tz-observations.sql
+# MIGRATION_APPLIED 025-tc-tz-inliers.sql
+# MIGRATION_APPLIED 026-tc-historical-backfill.sql
+# MIGRATION_APPLIED 027-tc-live-collector.sql
+# MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+# MIGRATION_APPLIED 029-owner-auth.sql
+# Subtest: discovery on Postgres: every endpoint family called, raw + ledger + registry persisted, list vs detail, no token
+ok 393 - discovery on Postgres: every endpoint family called, raw + ledger + registry persisted, list vs detail, no token
+  ---
+  duration_ms: 4047.742965
+  type: 'test'
+  ...
+# Subtest: historical timezone uses IANA DST instead of a fixed +120 offset
+ok 394 - historical timezone uses IANA DST instead of a fixed +120 offset
+  ---
+  duration_ms: 21.248285
+  type: 'test'
+  ...
+# Subtest: historical zone is usable only while a fresh live measurement agrees
+ok 395 - historical zone is usable only while a fresh live measurement agrees
+  ---
+  duration_ms: 1.692222
+  type: 'test'
+  ...
+# Subtest: historical audit distinguishes available upstream history from retroactive live-like stats
+ok 396 - historical audit distinguishes available upstream history from retroactive live-like stats
+  ---
+  duration_ms: 0.485097
+  type: 'test'
+  ...
+# Subtest: movement audit counts rows and nonzero suspension flags without guessing semantics
+ok 397 - movement audit counts rows and nonzero suspension flags without guessing semantics
+  ---
+  duration_ms: 0.928169
+  type: 'test'
+  ...
+# Subtest: season key is deterministic for common European season boundaries
+ok 398 - season key is deterministic for common European season boundaries
+  ---
+  duration_ms: 0.336785
+  type: 'test'
+  ...
+# Subtest: league schedule parser reads the real data.matches envelope and never the wrapper object
+ok 399 - league schedule parser reads the real data.matches envelope and never the wrapper object
+  ---
+  duration_ms: 0.259965
+  type: 'test'
+  ...
+# Subtest: historical audit recognises TotalCorner schedule HT and card field names
+ok 400 - historical audit recognises TotalCorner schedule HT and card field names
+  ---
+  duration_ms: 0.222129
+  type: 'test'
+  ...
+# Subtest: movement audit reads the real nested bookmaker lists and suspension flags
+ok 401 - movement audit reads the real nested bookmaker lists and suspension flags
+  ---
+  duration_ms: 0.179356
+  type: 'test'
+  ...
+# Subtest: movement catch-up selects only matches missing an expected probe and keeps no_data as done
+ok 402 - movement catch-up selects only matches missing an expected probe and keeps no_data as done
+  ---
+  duration_ms: 1.05053
+  type: 'test'
+  ...
+# Subtest: terminal recovery spends its bounded budget on the newest ended pages
+ok 403 - terminal recovery spends its bounded budget on the newest ended pages
+  ---
+  duration_ms: 1.795
+  type: 'test'
+  ...
+# Subtest: failed-run evidence cannot mask the original live-cycle failure
+ok 404 - failed-run evidence cannot mask the original live-cycle failure
+  ---
+  duration_ms: 0.986284
+  type: 'test'
+  ...
+# Subtest: live selection keeps only in-play rows from verified leagues and drops duplicates
+ok 405 - live selection keeps only in-play rows from verified leagues and drops duplicates
+  ---
+  duration_ms: 0.323965
+  type: 'test'
+  ...
+# Subtest: PostgreSQL legacy hash transition preserves old rows, dedups equal payloads and keeps changed aliases
+ok 406 - PostgreSQL legacy hash transition preserves old rows, dedups equal payloads and keeps changed aliases
+  ---
+  duration_ms: 489.593107
+  type: 'test'
+  ...
+# Subtest: PostgreSQL restart recovery persists a provider-confirmed ended row as FT once
+ok 407 - PostgreSQL restart recovery persists a provider-confirmed ended row as FT once
+  ---
+  duration_ms: 74.620918
+  type: 'test'
+  ...
+# Subtest: PostgreSQL live lock is released after a failed cycle and can be reacquired
+ok 408 - PostgreSQL live lock is released after a failed cycle and can be reacquired
+  ---
+  duration_ms: 33.635604
+  type: 'test'
+  ...
+# Subtest: PostgreSQL clock_timestamp advances inside the transaction-scoped live lock
+ok 409 - PostgreSQL clock_timestamp advances inside the transaction-scoped live lock
+  ---
+  duration_ms: 22.769991
+  type: 'test'
+  ...
+# Subtest: unchanged live snapshot hashes are stable and events dedup on payload
+ok 410 - unchanged live snapshot hashes are stable and events dedup on payload
+  ---
+  duration_ms: 0.507458
+  type: 'test'
+  ...
+# Subtest: observed TotalCorner aliases and unknown fields participate in snapshot identity
+ok 411 - observed TotalCorner aliases and unknown fields participate in snapshot identity
+  ---
+  duration_ms: 0.648882
+  type: 'test'
+  ...
+# Subtest: canonical hashing preserves nested values and ignores object key order recursively
+ok 412 - canonical hashing preserves nested values and ignores object key order recursively
+  ---
+  duration_ms: 0.599878
+  type: 'test'
+  ...
+# Subtest: team names normalise accents, club tokens and B-team synonyms
+ok 413 - team names normalise accents, club tokens and B-team synonyms
+  ---
+  duration_ms: 4.466214
+  type: 'test'
+  ...
+# Subtest: youth, reserve and women leagues never pair with senior competitions (run 1: Liga MX vs Mexico U21)
+ok 414 - youth, reserve and women leagues never pair with senior competitions (run 1: Liga MX vs Mexico U21)
+  ---
+  duration_ms: 3.423826
+  type: 'test'
+  ...
+# Subtest: TotalCorner provider-local start converts to a UTC date
+ok 415 - TotalCorner provider-local start converts to a UTC date
+  ---
+  duration_ms: 0.353969
+  type: 'test'
+  ...
+# Subtest: fixture overlap: VERIFIED across naming differences, AMBIGUOUS when one TC league backs two FPT leagues, CANDIDATE and UNMAPPED kept
+ok 416 - fixture overlap: VERIFIED across naming differences, AMBIGUOUS when one TC league backs two FPT leagues, CANDIDATE and UNMAPPED kept
+  ---
+  duration_ms: 1.487411
+  type: 'test'
+  ...
+# Subtest: a competition is not VERIFIED when a second TotalCorner league competes for its fixtures
+ok 417 - a competition is not VERIFIED when a second TotalCorner league competes for its fixtures
+  ---
+  duration_ms: 0.653751
+  type: 'test'
+  ...
+# MIGRATION_APPLIED 001-futpython-mirror.sql
+# MIGRATION_APPLIED 002-data-watchdog.sql
+# MIGRATION_APPLIED 003-alert-aggregation.sql
+# MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+# MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+# MIGRATION_APPLIED 006-fpt-certification-checks.sql
+# MIGRATION_APPLIED 007-fpt-request-ledger.sql
+# MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+# MIGRATION_APPLIED 009-fpt-team-identity.sql
+# MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+# MIGRATION_APPLIED 011-fpt-schema-registry.sql
+# MIGRATION_APPLIED 012-fpt-field-coverage.sql
+# MIGRATION_APPLIED 013-fpt-season-registry.sql
+# MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+# MIGRATION_APPLIED 015-fpt-query-facts.sql
+# MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+# MIGRATION_APPLIED 017-fpt-budget-levels.sql
+# MIGRATION_APPLIED 018-fpt-onboarding.sql
+# MIGRATION_APPLIED 019-fpt-reconciliation.sql
+# MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+# MIGRATION_APPLIED 021-tc-core-discovery.sql
+# MIGRATION_APPLIED 022-tc-competition-mapping.sql
+# MIGRATION_APPLIED 023-tc-prematch.sql
+# MIGRATION_APPLIED 024-tc-tz-observations.sql
+# MIGRATION_APPLIED 025-tc-tz-inliers.sql
+# MIGRATION_APPLIED 026-tc-historical-backfill.sql
+# MIGRATION_APPLIED 027-tc-live-collector.sql
+# MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+# MIGRATION_APPLIED 029-owner-auth.sql
+# Subtest: mapping on Postgres: paginated schedules, persisted states with evidence, zero duplicates, verified-only discovery
+ok 418 - mapping on Postgres: paginated schedules, persisted states with evidence, zero duplicates, verified-only discovery
+  ---
+  duration_ms: 5411.974934
+  type: 'test'
+  ...
+# Subtest: provider-local time converts to UTC and garbage is rejected
+ok 419 - provider-local time converts to UTC and garbage is rejected
+  ---
+  duration_ms: 1.37852
+  type: 'test'
+  ...
+# Subtest: movement rows: in-play rows are INPLAY, minute-less rows after the scheduled kickoff are QUARANTINE
+ok 420 - movement rows: in-play rows are INPLAY, minute-less rows after the scheduled kickoff are QUARANTINE
+  ---
+  duration_ms: 2.098213
+  type: 'test'
+  ...
+# Subtest: rows acquired before kickoff are PREMATCH_CAPTURED
+ok 421 - rows acquired before kickoff are PREMATCH_CAPTURED
+  ---
+  duration_ms: 0.224819
+  type: 'test'
+  ...
+# Subtest: bookmaker open/close/inplay: a close stamped after kickoff and every inplay quote stay out of PREMATCH
+ok 422 - bookmaker open/close/inplay: a close stamped after kickoff and every inplay quote stay out of PREMATCH
+  ---
+  duration_ms: 1.178631
+  type: 'test'
+  ...
+# Subtest: point-in-time summary: opening and last strictly before kickoff and not after as_of
+ok 423 - point-in-time summary: opening and last strictly before kickoff and not after as_of
+  ---
+  duration_ms: 8.584094
+  type: 'test'
+  ...
+# Subtest: cadence: sparse far from kickoff, dense near it, nothing at or after kickoff
+ok 424 - cadence: sparse far from kickoff, dense near it, nothing at or after kickoff
+  ---
+  duration_ms: 1.565072
+  type: 'test'
+  ...
+# MIGRATION_APPLIED 001-futpython-mirror.sql
+# MIGRATION_APPLIED 002-data-watchdog.sql
+# MIGRATION_APPLIED 003-alert-aggregation.sql
+# MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+# MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+# MIGRATION_APPLIED 006-fpt-certification-checks.sql
+# MIGRATION_APPLIED 007-fpt-request-ledger.sql
+# MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+# MIGRATION_APPLIED 009-fpt-team-identity.sql
+# MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+# MIGRATION_APPLIED 011-fpt-schema-registry.sql
+# MIGRATION_APPLIED 012-fpt-field-coverage.sql
+# MIGRATION_APPLIED 013-fpt-season-registry.sql
+# MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+# MIGRATION_APPLIED 015-fpt-query-facts.sql
+# MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+# MIGRATION_APPLIED 017-fpt-budget-levels.sql
+# MIGRATION_APPLIED 018-fpt-onboarding.sql
+# MIGRATION_APPLIED 019-fpt-reconciliation.sql
+# MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+# MIGRATION_APPLIED 021-tc-core-discovery.sql
+# MIGRATION_APPLIED 022-tc-competition-mapping.sql
+# MIGRATION_APPLIED 023-tc-prematch.sql
+# MIGRATION_APPLIED 024-tc-tz-observations.sql
+# MIGRATION_APPLIED 025-tc-tz-inliers.sql
+# MIGRATION_APPLIED 026-tc-historical-backfill.sql
+# MIGRATION_APPLIED 027-tc-live-collector.sql
+# MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+# MIGRATION_APPLIED 029-owner-auth.sql
+# Subtest: prematch collector on Postgres: verified-only, snapshots before kickoff, dedup, zero leakage, raw replay
+ok 425 - prematch collector on Postgres: verified-only, snapshots before kickoff, dedup, zero leakage, raw replay
+  ---
+  duration_ms: 4424.36198
+  type: 'test'
+  ...
+# Subtest: provider offset is measured from first-half real-time rows, rounded, and rejected when thin or inconsistent
+ok 426 - provider offset is measured from first-half real-time rows, rounded, and rejected when thin or inconsistent
+  ---
+  duration_ms: 1.528348
+  type: 'test'
+  ...
+# Subtest: timezone decision: fresh agreement passes, mismatch / stale / missing hold
+ok 427 - timezone decision: fresh agreement passes, mismatch / stale / missing hold
+  ---
+  duration_ms: 0.965233
+  type: 'test'
+  ...
+# Subtest: timezone re-measure: fresh measurement waits, thin lists retry on the next cycle
+ok 428 - timezone re-measure: fresh measurement waits, thin lists retry on the next cycle
+  ---
+  duration_ms: 0.758172
+  type: 'test'
+  ...
+# Subtest: telegram outbound-only fingerprint helper remains deterministic
+ok 429 - telegram outbound-only fingerprint helper remains deterministic
+  ---
+  duration_ms: 1.249139
+  type: 'test'
+  ...
+# Subtest: PNG codec: what it encodes decodes to the same pixels; a committed baseline decodes to its viewport size
+ok 430 - PNG codec: what it encodes decodes to the same pixels; a committed baseline decodes to its viewport size
+  ---
+  duration_ms: 190.091131
+  type: 'test'
+  ...
+# Subtest: comparison, pixel by pixel (block 1): identical passes, a change over the threshold fails with its share, a size change fails
+ok 431 - comparison, pixel by pixel (block 1): identical passes, a change over the threshold fails with its share, a size change fails
+  ---
+  duration_ms: 43.196814
+  type: 'test'
+  ...
+# Subtest: comparison by blocks (the thresholds in use): glyph-edge noise passes, a shifted or missing element fails
+ok 432 - comparison by blocks (the thresholds in use): glyph-edge noise passes, a shifted or missing element fails
+  ---
+  duration_ms: 21.43966
+  type: 'test'
+  ...
+# Subtest: API metadata: only the time of the answer and the code version are fixed, the data are untouched
+ok 433 - API metadata: only the time of the answer and the code version are fixed, the data are untouched
+  ---
+  duration_ms: 0.672786
+  type: 'test'
+  ...
+# Subtest: manifest: the committed baselines match it; a changed, missing or extra file and a loose threshold are refused
+ok 434 - manifest: the committed baselines match it; a changed, missing or extra file and a loose threshold are refused
+  ---
+  duration_ms: 779.896518
+  type: 'test'
+  ...
+# Subtest: promote: needs a reason and an approval, refuses a run on a modified tree, writes manifest and log
+ok 435 - promote: needs a reason and an approval, refuses a run on a modified tree, writes manifest and log
+  ---
+  duration_ms: 111.383886
+  type: 'test'
+  ...
+# Subtest: check-update: a baseline change without its log entry, its SHA-256 or an approval is refused; a declared one passes
+ok 436 - check-update: a baseline change without its log entry, its SHA-256 or an approval is refused; a declared one passes
+  ---
+  duration_ms: 4376.792959
+  type: 'test'
+  ...
+# Subtest: the web shell renders real API v1 data on desktop and mobile, with N/D for missing values
+ok 437 - the web shell renders real API v1 data on desktop and mobile, with N/D for missing values
+  ---
+  duration_ms: 7748.264028
+  type: 'test'
+  ...
+# Subtest: loading, error, retry and partial states are explicit
+ok 438 - loading, error, retry and partial states are explicit
+  ---
+  duration_ms: 6909.60124
+  type: 'test'
+  ...
+# Subtest: with owner login enforced the shell requires a session and returns to the page after login
+ok 439 - with owner login enforced the shell requires a session and returns to the page after login
+  ---
+  duration_ms: 11282.987632
+  type: 'test'
+  ...
+# Subtest: R-06b: dashboard, Daily Board and search render the stored matches exactly as the API returns them
+ok 440 - R-06b: dashboard, Daily Board and search render the stored matches exactly as the API returns them
+  ---
+  duration_ms: 13529.54624
+  type: 'test'
+  ...
+1..440
+# tests 440
+# suites 0
+# pass 438
+# fail 1
+# cancelled 0
+# skipped 1
+# todo 0
+# duration_ms 223177.279484
+exit=1
