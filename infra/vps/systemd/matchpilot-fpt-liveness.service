@@ -11,6 +11,7 @@ EnvironmentFile=/srv/matchpilot/secrets/fpt.env
 Environment=FPT_LIVENESS_MAX_HOURS=7
 ExecStart=/usr/bin/node scripts/fpt-liveness-probe.mjs
 TimeoutStartSec=60
+StateDirectory=matchpilot-fpt-liveness
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true

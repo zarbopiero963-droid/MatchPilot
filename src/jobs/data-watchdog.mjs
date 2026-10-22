@@ -196,16 +196,29 @@ export function startDataWatchdog() {
   const intervalMs = Number(process.env.DATA_WATCHDOG_INTERVAL_MS || 3600000);
   // A skipped incremental sync is caught up in this process, behind the same advisory lock and budget.
   const catchup = () => import('./futpython-sync.mjs').then(m => m.runFutpythonSync({kind: 'recovery', mode: 'incremental'}));
-  const cycle = phase => checkDataWatchdog({reconcile: true, phase, catchup})
-    .then(result => { if (result?.reconciliation) console.log('FUTPYTHON_RECONCILIATION ' + JSON.stringify({ts: new Date().toISOString(), ...result.reconciliation})); })
+  // Single-flight: a post-cycle trigger and the hourly timer never run checks concurrently (a call while busy is a no-op).
+  let busy = null;
+  const cycle = phase => busy ? Promise.resolve(null) : (busy = checkOnce(phase).finally(() => { busy = null; }));
+  const checkOnce = phase => checkDataWatchdog({reconcile: true, phase, catchup})
+    .then(result => { console.log('DATA_WATCHDOG_CHECK ' + JSON.stringify({ts: new Date().toISOString(), phase, status: result?.status ?? null}));
+      if (result?.reconciliation) console.log('FUTPYTHON_RECONCILIATION ' + JSON.stringify({ts: new Date().toISOString(), ...result.reconciliation})); })
     .catch(error => console.error('DATA_WATCHDOG_ERROR ' + JSON.stringify({ts: new Date().toISOString(), phase, error: String(error?.message || error).slice(0, 300)})));
+  runCycle = cycle;
   setTimeout(() => cycle('startup'), 30000);
   timer = setInterval(() => cycle('periodic'), intervalMs);
   timer.unref?.();
   console.log('DATA_WATCHDOG_READY ' + JSON.stringify({intervalMs}));
 }
 
+// t138: the heartbeat (data_watchdog_state.last_checked_at) was written only by the hourly timer, so it never
+// reflected a just-finished FPT cycle. The cron calls this after each cycle; a no-op when the watchdog is not running.
+let runCycle;
+export function triggerDataWatchdog(phase = 'post-cycle') {
+  return runCycle ? runCycle(phase) : Promise.resolve(null);
+}
+
 export function stopDataWatchdog() {
+  runCycle = undefined;
   if (timer) clearInterval(timer);
   timer = undefined;
 }
