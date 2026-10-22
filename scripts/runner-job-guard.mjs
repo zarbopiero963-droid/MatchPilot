@@ -109,12 +109,21 @@ export function guardProblems(env, facts, config) {
 
 // The whole hook: the config, the runner's word, then GitHub. Stops at the first stage that fails (no read is made for
 // a job that is not even the deploy job).
-export async function runGuard({env, config, fetchJson, fetchText}) {
+export const RUN_LAG_TRIES = 5;
+const RUN_LAG_DELAY_MS = 3000;
+export async function runGuard({env, config, fetchJson, fetchText, sleep = ms => new Promise(done => setTimeout(done, ms))}) {
   let problems = configProblems(config);
   if (!problems.length) problems = envProblems(env);
   if (!problems.length) {
-    const facts = await readGuardFacts(env, {fetchJson, fetchText});
-    problems = guardProblems(env, facts, config);
+    // t130u: GitHub may still report the run as `queued` for a few seconds after this job started (observed on run
+    // 39840654366). Only that lag is re-read, a bounded number of times; the final verdict uses the last read, so a run
+    // that really is queued, waiting or over is still refused.
+    for (let attempt = 1; ; attempt++) {
+      const facts = await readGuardFacts(env, {fetchJson, fetchText});
+      problems = guardProblems(env, facts, config);
+      if (!(facts.run?.status === 'queued' && attempt < RUN_LAG_TRIES)) break;
+      await sleep(RUN_LAG_DELAY_MS);
+    }
   }
   return {guard: 'MP-RUNNER-JOB-GUARD', result: problems.length ? 'REFUSE' : 'ALLOW', problems,
     job: {run_id: env.GITHUB_RUN_ID ?? null, run_attempt: env.GITHUB_RUN_ATTEMPT ?? null, job: env.GITHUB_JOB ?? null,
