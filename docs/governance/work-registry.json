@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 136,
+  "revision": 137,
   "tasks": [
     {
       "id": "R-01",
@@ -652,10 +652,10 @@
       "id": "SIM-SCHEDULE-01",
       "title": "Scheduled simulated signals: --date today|yesterday (Europe/Rome) for an unattended timer on the test env (#182)",
       "issue": 182,
-      "pr": null,
+      "pr": 188,
       "branch": "sim-schedule-01",
       "kind": "implementation",
-      "state": "RUNNING",
+      "state": "REVIEW",
       "assignee": {
         "agent": "agent-g-grok",
         "role": "Development Agent"
@@ -665,8 +665,8 @@
         "acquired_at": "2026-10-22T13:34:26.572Z",
         "expires_at": "2026-10-22T15:34:26.572Z"
       },
-      "latest_checkpoint": "CP-20261022T133425Z-agent-g-grok",
-      "pr_open": false,
+      "latest_checkpoint": "CP-20261022T133454Z-agent-g-grok",
+      "pr_open": true,
       "parallel_authorization": "MP-GROK-AUTONOMOUS-EXECUTION-01",
       "resources": [
         "branch:sim-schedule-01"
