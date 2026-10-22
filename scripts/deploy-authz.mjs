@@ -149,6 +149,66 @@ export function approvalProblems(approvals) {
   return ok ? [] : ['AUTHZ_NO_OWNER_APPROVAL'];
 }
 
+// ---- MP-AUTODEPLOY-01 (owner t123u): ordinary deploys need no human approval. What authorizes a SHA instead:
+// - it is the merge commit of a PR merged into main of this repository (GET /commits/{sha}/pulls), never a direct push;
+// - the required check "CI gate" of GitHub Actions concluded success on exactly that SHA (GET /commits/{sha}/check-runs);
+//   the newest such check run decides, so a later failed re-run of CI withdraws the authorization.
+export const REQUIRED_CHECK = 'CI gate';
+export function mergeProblems(pulls, sha) {
+  if (!Array.isArray(pulls)) return ['AUTHZ_PULLS_UNREADABLE'];
+  const ok = pulls.some(pr => plain(pr) && typeof pr.merged_at === 'string' && pr.merged_at !== '' && pr.merge_commit_sha === sha
+    && pr.base?.ref === 'main' && pr.base?.repo?.full_name === EXPECTED.repository);
+  return ok ? [] : ['AUTHZ_NOT_A_MERGED_PR'];
+}
+// (owner t124u) The check must come from the trusted CI workflow, not from a workflow changed in the same PR: the "CI gate"
+// check run belongs to the check suite of a push run of .github/workflows/ci.yml on main for exactly this SHA, that run
+// (the newest such) concluded success, and ci.yml at this SHA is byte for byte the root-pinned file (ciBlob = its
+// contents-API answer, pinnedBlob from the root-owned config). A changed ci.yml needs a new pin by root.
+export const CI_WORKFLOW_PATH = '.github/workflows/ci.yml';
+export function ciProblems(checks, sha, {ciRuns, ciBlob, pinnedBlob} = {}) {
+  const runs = plain(checks) && Array.isArray(checks.check_runs) ? checks.check_runs : null;
+  if (!runs) return ['AUTHZ_CHECKS_UNREADABLE'];
+  const mine = runs.filter(run => plain(run) && run.name === REQUIRED_CHECK && run.head_sha === sha && run.app?.slug === 'github-actions');
+  if (!mine.length) return ['AUTHZ_CI_MISSING'];
+  const latest = mine.reduce((a, b) => (Number(b.id) > Number(a.id) ? b : a));
+  if (latest.status !== 'completed') return [`AUTHZ_CI_PENDING: ${latest.status}`];
+  if (latest.conclusion !== 'success') return [`AUTHZ_CI_NOT_GREEN: ${latest.conclusion}`];
+  // The workflow run is read directly by the id in the check run's details_url (the runs search with filters is not
+  // consistent from one read to the next on GitHub's side: a fail-closed refusal would kill a run that cannot be re-run).
+  const ciRun = plain(ciRuns) && Array.isArray(ciRuns.workflow_runs) ? ciRuns.workflow_runs[0] : ciRuns;
+  if (!plain(ciRun)) return ['AUTHZ_CI_RUNS_UNREADABLE'];
+  if (!(ciRun.path === CI_WORKFLOW_PATH && ciRun.event === 'push' && ciRun.head_branch === 'main' && ciRun.head_sha === sha
+    && ciRun.repository?.full_name === EXPECTED.repository && String(ciRun.id) === ciRunId(latest))) return ['AUTHZ_CI_NOT_FROM_TRUSTED_WORKFLOW'];
+  if (ciRun.status !== 'completed') return [`AUTHZ_CI_PENDING: run ${ciRun.status}`];
+  if (ciRun.conclusion !== 'success') return [`AUTHZ_CI_RUN_NOT_GREEN: ${ciRun.status}/${ciRun.conclusion}`];
+  if (latest.check_suite?.id == null || String(latest.check_suite.id) !== String(ciRun.check_suite_id)) return ['AUTHZ_CI_CHECK_NOT_FROM_TRUSTED_WORKFLOW'];
+  if (!SHA.test(pinnedBlob ?? '')) return ['AUTHZ_CI_PIN_MISSING'];
+  if (!(plain(ciBlob) && ciBlob.type === 'file' && ciBlob.path === CI_WORKFLOW_PATH && ciBlob.sha === pinnedBlob)) {
+    return [`AUTHZ_CI_WORKFLOW_NOT_PINNED: ${plain(ciBlob) ? ciBlob.sha : 'unreadable'} (pinned ${pinnedBlob})`];
+  }
+  return [];
+}
+// The Actions run id of a check run, from its details_url (https://github.com/<repo>/actions/runs/<id>/job/<job>).
+export function ciRunId(check) {
+  const m = /^https:\/\/github\.com\/([^/]+\/[^/]+)\/actions\/runs\/([1-9][0-9]{0,19})\/job\/[0-9]+$/.exec(String(check?.details_url ?? ''));
+  return m && m[1] === EXPECTED.repository ? m[2] : null;
+}
+// The newest green-or-not "CI gate" check run of the SHA (the one ciProblems judges), or null.
+export function latestCiCheck(checks, sha) {
+  const runs = plain(checks) && Array.isArray(checks.check_runs) ? checks.check_runs : [];
+  const mine = runs.filter(run => plain(run) && run.name === REQUIRED_CHECK && run.head_sha === sha && run.app?.slug === 'github-actions');
+  return mine.length ? mine.reduce((a, b) => (Number(b.id) > Number(a.id) ? b : a)) : null;
+}
+export const mergeUrls = sha => ({
+  pulls: `${GITHUB_API}/commits/${sha}/pulls?per_page=100`,
+  // Second source of the same fact, read only when the first is unreadable (GitHub answered 500 to it for minutes):
+  // the most recently updated closed PRs into main. A merged PR of this repo whose merge commit is the SHA (mergeProblems).
+  pullsFallback: `${GITHUB_API}/pulls?state=closed&base=main&sort=updated&direction=desc&per_page=50`,
+  checks: `${GITHUB_API}/commits/${sha}/check-runs?check_name=${encodeURIComponent(REQUIRED_CHECK)}&filter=all&per_page=100`,
+  ciRun: id => `${GITHUB_API}/actions/runs/${id}`,
+  ciBlob: `${GITHUB_API}/contents/${CI_WORKFLOW_PATH}?ref=${sha}`,
+});
+
 // ---- MP-GATE-S1S2-FIX: anti-stale. Only the current tip of refs/heads/main may be deployed (owner requirement #97
 // 6321186934). The tip is read from two GitHub sources, which must agree with each other and with the SHA asked for:
 // the git smart-HTTP ref advertisement and the REST branch. Public reads, no token. Any doubt (network, timeout, an HTTP
@@ -164,10 +224,32 @@ export const HTTP_LIMIT = 1 << 20;
 
 // One GET over HTTPS, no redirect, bounded in time and size; anything but a 200 throws. JSON is decoded as UTF-8; the
 // git ref advertisement as latin1, one character per byte, because its pkt-line lengths count bytes (review NB-B).
-export async function httpText(url, {accept = 'application/vnd.github+json', encoding = 'utf8'} = {}) {
-  const response = await fetch(url, {headers: {accept, 'user-agent': 'matchpilot-gate', 'x-github-api-version': '2022-11-28'},
-    redirect: 'error', signal: AbortSignal.timeout(HTTP_TIMEOUT_MS)});
-  if (response.status !== 200) throw new Error(`HTTP ${response.status}`);
+// Transient answers (5xx, 429, a dropped connection) are retried a bounded number of times: GitHub was seen answering
+// 500 to GET /commits/{sha}/pulls on consecutive reads, and a fail-closed refusal kills a deploy run that may not be re-run.
+// Every other answer (404, 403, malformed...) is final at once. The retried request is the same read-only GET.
+export const TRANSIENT_STATUS = status => status === 429 || (status >= 500 && status <= 599);
+export async function withRetry(once, {tries = 5, delayMs = 1500, sleep = ms => new Promise(done => setTimeout(done, ms))} = {}) {
+  for (let attempt = 1; ; attempt += 1) {
+    try { return await once(); } catch (error) {
+      if (!error?.transient || attempt >= tries) throw error;
+      await sleep(delayMs * attempt);
+    }
+  }
+}
+export async function httpText(url, {accept = 'application/vnd.github+json', encoding = 'utf8', fetchImpl = fetch, retry = {}} = {}) {
+  return withRetry(() => httpTextOnce(url, {accept, encoding, fetchImpl}), retry);
+}
+async function httpTextOnce(url, {accept, encoding, fetchImpl}) {
+  let response;
+  try {
+    response = await fetchImpl(url, {headers: {accept, 'user-agent': 'matchpilot-gate', 'x-github-api-version': '2022-11-28'},
+      redirect: 'error', signal: AbortSignal.timeout(HTTP_TIMEOUT_MS)});
+  } catch (error) {
+    // a network failure (TypeError "fetch failed") is transient; a refused redirect or a timeout is not retried
+    const transient = error?.name === 'TypeError' && !/redirect/i.test(String(error?.cause?.message ?? error?.message));
+    throw Object.assign(new Error(String(error?.message ?? error)), {transient});
+  }
+  if (response.status !== 200) throw Object.assign(new Error(`HTTP ${response.status}`), {transient: TRANSIENT_STATUS(response.status)});
   const declared = Number(response.headers.get('content-length') ?? 0);
   if (declared > HTTP_LIMIT) throw new Error('answer too large');
   const body = Buffer.from(await response.arrayBuffer());

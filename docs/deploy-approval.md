@@ -577,3 +577,30 @@ Two points are **[NOT VERIFIED]**: that all of them are present in the hook's en
   - Grok installs the guard (§8.2) and `mp-deploy` v3.1 (§8.4), keeping freeze on;
   - Grok runs the S4 tests: a run of a changed workflow refused by the guard; approvals of older runs refused; replay; old runs.
 - **Owner checks** (S1 inventory, #179 6321726326): no other GitHub App, OAuth app or personal access token with Deployments or full `repo` access exists in your account settings, and Grok reports the credentials it uses and any found on the VPS.
+
+## 9. MP-AUTODEPLOY-01: deploy automatico dopo un merge autorizzato (owner t123u, t124u)
+
+**Cosa sostituisce l'approvazione umana.** Il guard del runner (root, `/usr/local/libexec/mp-gate/runner-job-guard.mjs`) e il gate
+(`deploy-gate.mjs`) ammettono il job `deploy` solo se, letti da GitHub e mai dal commit:
+- lo SHA è il `merge_commit_sha` di una PR **mergiata** su `main` di questo repository (`GET /commits/{sha}/pulls`): mai un push diretto;
+- il check `CI gate` dell'app `github-actions` è **completed/success** su esattamente quello SHA, e il più recente decide;
+- quel check appartiene alla check suite di un run **push su main** di `.github/workflows/ci.yml` concluso con successo, e
+  `ci.yml` a quello SHA è il blob pinnato da root in `/etc/mp-deploy/runner-guard.json` (`ci_workflow_blob_sha`): un ci.yml
+  modificato nella stessa PR non può fingere il check (owner t124u, punto a);
+- invariati: `deploy-vps.yml` pinnato, primo tentativo (`GUARD_RERUN_APPROVAL_UNBOUND`), job assegnato a questo runner,
+  run in corso, SHA punta di `main` da due fonti.
+
+**Run più vecchi (owner t124u, punto b).** `concurrency: cancel-in-progress: true`: un push più recente cancella il run
+più vecchio. `mp-deploy` ignora il segnale di cancellazione dentro il protocollo atomico e ricontrolla la punta di `main`
+subito prima dello switch (`deploy-authz.mjs main-tip`): uno SHA superato è rifiutato senza toccare `current`.
+
+**Il job gate attende la CI** (`DEPLOY_GATE_WAIT_CI_S=2400`): solo CI mancante o in corso viene atteso; ogni altro problema ferma subito.
+Sulla VPS l'attesa è 0: la CI deve essere già verde.
+
+**Environment.** `vps-production` mantiene la branch policy solo `main` e nessun bypass admin; la regola required reviewers
+non è più richiesta (se presente può contenere solo l'owner). La rimozione del reviewer è un'azione dell'owner sulle
+impostazioni GitHub, fatta solo all'attivazione, dopo i test.
+
+**Attivazione (ordine):** merge di questa PR → root installa gli script al merge SHA e i due pin → test S4 positivi e
+negativi sulla VPS → mp-deploy v3.2 (segnali ignorati nel protocollo, ricontrollo punta prima dello switch, notifica
+Telegram tecnica dell'esito) → enforce del guard (`/etc/mp-deploy/runner-guard.enforce`) → rimozione del required reviewer.

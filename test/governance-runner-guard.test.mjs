@@ -7,7 +7,7 @@ import {mkdtempSync, readFileSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {EXPECTED, GITHUB_API, TIP_SOURCES} from '../scripts/deploy-authz.mjs';
+import {CI_WORKFLOW_PATH, EXPECTED, GITHUB_API, TIP_SOURCES, mergeUrls} from '../scripts/deploy-authz.mjs';
 import {JOB, WORKFLOW_PATH, configProblems, gitBlobSha, runGuard} from '../scripts/runner-job-guard.mjs';
 
 const A = 'a'.repeat(40);
@@ -16,7 +16,8 @@ const C = 'c'.repeat(40);
 const RUN = '700';
 const WORKFLOW = readFileSync(new URL('../.github/workflows/deploy-vps.yml', import.meta.url));
 const PIN = gitBlobSha(WORKFLOW);
-const CONFIG = {workflow_blob_sha: PIN};
+const CI_PIN = gitBlobSha(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url)));
+const CONFIG = {workflow_blob_sha: PIN, ci_workflow_blob_sha: CI_PIN};
 
 const pkt = line => `${(line.length + 4).toString(16).padStart(4, '0')}${line}`;
 const advertisement = (main, others = []) => pkt('# service=git-upload-pack\n') + '0000'
@@ -26,10 +27,17 @@ const advertisement = (main, others = []) => pkt('# service=git-upload-pack\n') 
 const env = (overrides = {}) => ({GITHUB_REPOSITORY: EXPECTED.repository, GITHUB_EVENT_NAME: 'push', GITHUB_REF: 'refs/heads/main',
   GITHUB_WORKFLOW_REF: EXPECTED.workflow_ref, GITHUB_JOB: JOB, GITHUB_RUN_ID: RUN, GITHUB_RUN_ATTEMPT: '1', GITHUB_SHA: C,
   RUNNER_NAME: 'matchpilot-vps', ...overrides});
-const approval = (overrides = {}) => ({state: 'approved', user: {login: 'zarbopiero963-droid'}, environments: [{name: 'vps-production'}], comment: '', ...overrides});
+// MP-AUTODEPLOY-01: what authorizes a SHA is a merged PR into main and a green CI gate from the pinned ci.yml.
+const mergedPr = (sha, overrides = {}) => ({number: 1, merged_at: '2026-10-22T16:00:00Z', merge_commit_sha: sha,
+  base: {ref: 'main', repo: {full_name: EXPECTED.repository}}, ...overrides});
+const ciCheck = (sha, overrides = {}) => ({id: 10, name: 'CI gate', head_sha: sha, status: 'completed', conclusion: 'success',
+  app: {slug: 'github-actions'}, check_suite: {id: 99},
+  details_url: `https://github.com/${EXPECTED.repository}/actions/runs/20/job/30`, ...overrides});
+const ciRun = (sha, overrides = {}) => ({id: 20, path: CI_WORKFLOW_PATH, event: 'push', head_branch: 'main', head_sha: sha,
+  status: 'completed', conclusion: 'success', check_suite_id: 99, repository: {full_name: EXPECTED.repository}, ...overrides});
 
 // GitHub as the hook reads it, for a run of `sha`; `tip` is what both tip sources say.
-function github({sha = C, tip = C, blob = PIN, approvals = [approval()], pending = [], jobs, run = {}, overrides = {}} = {}) {
+function github({sha = C, tip = C, blob = PIN, pulls, checks, ciRuns, ciBlob = CI_PIN, pending = [], jobs, run = {}, overrides = {}} = {}) {
   const runUrl = `${GITHUB_API}/actions/runs/${RUN}`;
   const routes = {
     [runUrl]: {id: Number(RUN), run_attempt: 1, event: 'push', head_branch: 'main', head_sha: sha, path: WORKFLOW_PATH,
@@ -37,7 +45,10 @@ function github({sha = C, tip = C, blob = PIN, approvals = [approval()], pending
     [`${runUrl}/attempts/1/jobs?per_page=100`]: {jobs: jobs ?? [{name: 'Deploy gate', run_attempt: 1, runner_name: 'GitHub Actions 1'},
       {name: JOB, run_attempt: 1, runner_name: 'matchpilot-vps', status: 'in_progress'}]},
     [`${GITHUB_API}/contents/${WORKFLOW_PATH}?ref=${sha}`]: {type: 'file', path: WORKFLOW_PATH, sha: blob},
-    [`${runUrl}/approvals`]: approvals,
+    [mergeUrls(sha).pulls]: pulls === undefined ? [mergedPr(sha)] : pulls,
+    [mergeUrls(sha).checks]: checks === undefined ? {check_runs: [ciCheck(sha)]} : checks,
+    [mergeUrls(sha).ciRun(20)]: ciRuns === undefined ? ciRun(sha) : ciRuns,
+    [mergeUrls(sha).ciBlob]: {type: 'file', path: CI_WORKFLOW_PATH, sha: ciBlob},
     [`${runUrl}/pending_deployments`]: pending,
     ...overrides,
   };
@@ -68,7 +79,7 @@ test('the pin is the git blob SHA of deploy-vps.yml (what `git hash-object` and 
   const file = new URL('../.github/workflows/deploy-vps.yml', import.meta.url).pathname;
   assert.equal(PIN, execFileSync('git', ['hash-object', file], {encoding: 'utf8'}).trim());
   assert.deepEqual(configProblems(CONFIG), []);
-  for (const bad of [null, {}, {workflow_blob_sha: 'x'}, {workflow_blob_sha: PIN, extra: 1}, {workflow_blob_sha: PIN.toUpperCase()}]) {
+  for (const bad of [null, {}, {workflow_blob_sha: 'x'}, {workflow_blob_sha: PIN}, {...CONFIG, extra: 1}, {...CONFIG, workflow_blob_sha: PIN.toUpperCase()}, {...CONFIG, ci_workflow_blob_sha: 'x'}]) {
     assert.match(configProblems(bad).join(), /GUARD_CONFIG/);
   }
 });
@@ -84,9 +95,9 @@ test('B4: a changed deploy-vps.yml cannot run on the VPS, even merged and even a
   const changed = await guard({blob: gitBlobSha(Buffer.concat([WORKFLOW, Buffer.from('  evil:\n    runs-on: x\n')]))});
   assert.equal(changed.result, 'REFUSE');
   assert.match(changed.text, /GUARD_WORKFLOW_NOT_PINNED/);
-  // Without the environment nobody approved: refused for that too.
-  const noEnvironment = await guard({blob: 'f'.repeat(40), approvals: []});
-  assert.match(noEnvironment.text, /GUARD_WORKFLOW_NOT_PINNED[\s\S]*GUARD_NO_OWNER_APPROVAL/);
+  // A changed workflow that was not even merged through a PR: refused for that too.
+  const notMerged = await guard({blob: 'f'.repeat(40), pulls: []});
+  assert.match(notMerged.text, /GUARD_WORKFLOW_NOT_PINNED[\s\S]*GUARD_NOT_A_MERGED_PR/);
   // A job added to deploy-vps.yml under another name is refused from the runner's word alone, before any read.
   const extraJob = await guard({}, {GITHUB_JOB: 'evil'});
   assert.match(extraJob.text, /GUARD_JOB: evil/);
@@ -112,15 +123,59 @@ test('B4: another workflow, event, branch or repository cannot use the VPS runne
   }
 });
 
-test('only the owner\'s approval of vps-production counts; a deployment still waiting is refused', async () => {
-  for (const approvals of [[], [approval({user: {login: 'someone'}})], [approval({state: 'rejected'})],
-    [approval({environments: [{name: 'other'}]})], {message: 'Not Found'}, null]) {
-    const result = await guard({approvals});
-    assert.equal(result.result, 'REFUSE', JSON.stringify(approvals));
-    assert.match(result.text, /GUARD_NO_OWNER_APPROVAL|GUARD_APPROVALS_UNREADABLE/);
+// MP-AUTODEPLOY-01 (owner t123u/t124u): no human approval; a merged PR and a green CI gate from the pinned ci.yml.
+test('only a SHA merged through a PR into main of this repository may start', async () => {
+  for (const pulls of [[], [mergedPr(C, {merged_at: null})], [mergedPr(C, {merge_commit_sha: B})], [mergedPr(C, {base: {ref: 'feature', repo: {full_name: EXPECTED.repository}}})],
+    [mergedPr(C, {base: {ref: 'main', repo: {full_name: 'fork/MatchPilot'}}})], {message: 'Not Found'}, null]) {
+    const result = await guard({pulls});
+    assert.equal(result.result, 'REFUSE', JSON.stringify(pulls));
+    assert.match(result.text, /GUARD_NOT_A_MERGED_PR|GUARD_PULLS_UNREADABLE/);
   }
   const waiting = await guard({pending: [{environment: {name: 'vps-production'}}]});
   assert.match(waiting.text, /GUARD_DEPLOYMENT_STILL_WAITING/);
+});
+
+test('the CI gate must be green on exactly this SHA, newest run deciding', async () => {
+  const cases = [
+    [{check_runs: []}, /GUARD_CI_MISSING/],
+    [{check_runs: [ciCheck(C, {status: 'in_progress', conclusion: null})]}, /GUARD_CI_PENDING/],
+    [{check_runs: [ciCheck(C, {conclusion: 'failure'})]}, /GUARD_CI_NOT_GREEN: failure/],
+    [{check_runs: [ciCheck(C), ciCheck(C, {id: 11, conclusion: 'failure'})]}, /GUARD_CI_NOT_GREEN/],
+    [{check_runs: [ciCheck(B)]}, /GUARD_CI_MISSING/],
+    [{check_runs: [ciCheck(C, {name: 'CI gate (fake)'})]}, /GUARD_CI_MISSING/],
+    [{check_runs: [ciCheck(C, {app: {slug: 'evil-app'}})]}, /GUARD_CI_MISSING/],
+    [null, /GUARD_CHECKS_UNREADABLE/],
+  ];
+  for (const [checks, expected] of cases) {
+    const result = await guard({checks});
+    assert.equal(result.result, 'REFUSE', JSON.stringify(checks));
+    assert.match(result.text, expected);
+  }
+});
+
+test('owner t124u: a CI gate faked by a workflow changed in the same PR is refused', async () => {
+  // A green "CI gate" from another workflow file (added by the PR) does not count.
+  const otherFile = await guard({ciRuns: ciRun(C, {path: '.github/workflows/fake.yml'})});
+  assert.match(otherFile.text, /GUARD_CI_NOT_FROM_TRUSTED_WORKFLOW/);
+  // The check run must belong to the check suite of the trusted ci.yml run.
+  const otherSuite = await guard({checks: {check_runs: [ciCheck(C, {check_suite: {id: 12345}})]}});
+  assert.match(otherSuite.text, /GUARD_CI_CHECK_NOT_FROM_TRUSTED_WORKFLOW/);
+  // ci.yml changed in the PR (so its gate could be weakened): not the root-pinned blob.
+  const changedCi = await guard({ciBlob: 'e'.repeat(40)});
+  assert.match(changedCi.text, /GUARD_CI_WORKFLOW_NOT_PINNED/);
+  // A pull_request or non-main run of ci.yml does not count, nor a failed trusted run.
+  for (const run of [{event: 'pull_request'}, {head_branch: 'feature'}, {head_sha: B}, {conclusion: 'failure'}, {repository: {full_name: 'fork/x'}}, {id: 21}]) {
+    const result = await guard({ciRuns: ciRun(C, run)});
+    assert.equal(result.result, 'REFUSE', JSON.stringify(run));
+    assert.match(result.text, /GUARD_CI_(NOT_FROM_TRUSTED_WORKFLOW|RUN_NOT_GREEN)/);
+  }
+  assert.match((await guard({ciRuns: null})).text, /GUARD_CI_RUNS_UNREADABLE/);
+  // The run is the one named by the check run's details_url, of this repository only.
+  for (const details_url of ['https://github.com/fork/x/actions/runs/20/job/30', 'https://evil.example/actions/runs/20/job/30', undefined]) {
+    assert.equal((await guard({checks: {check_runs: [ciCheck(C, {details_url})]}})).result, 'REFUSE', String(details_url));
+  }
+  // A trusted run still in progress is not green.
+  assert.match((await guard({ciRuns: ciRun(C, {status: 'in_progress', conclusion: null})})).text, /GUARD_CI_PENDING/);
 });
 
 test('the job must be this run\'s deploy job assigned to this runner; the run must be what the runner says', async () => {
@@ -209,4 +264,14 @@ test('CLI: refuses with exit 1 and a JSON report, without reading GitHub, when t
   const ciJob = run([config], env({GITHUB_WORKFLOW_REF: `${EXPECTED.repository}/.github/workflows/ci.yml@refs/heads/main`, GITHUB_JOB: 'test'}));
   assert.equal(ciJob.status, 1);
   assert.match(ciJob.report.problems.join(), /GUARD_WORKFLOW[\s\S]*GUARD_JOB: test/);
+});
+
+test('MP-AUTODEPLOY-01: commits/{sha}/pulls unreadable -> the closed PRs into main prove the merge; nothing weaker', async () => {
+  const down = {[mergeUrls(C).pulls]: new Error('HTTP 500')};
+  const ok = await guard({overrides: {...down, [mergeUrls(C).pullsFallback]: [mergedPr(B), mergedPr(C)]}});
+  assert.equal(ok.result, 'ALLOW', ok.text);
+  for (const list of [[mergedPr(B)], [mergedPr(C, {merged_at: null})], [mergedPr(C, {base: {ref: 'main', repo: {full_name: 'fork/x'}}})]]) {
+    assert.match((await guard({overrides: {...down, [mergeUrls(C).pullsFallback]: list}})).text, /GUARD_NOT_A_MERGED_PR/);
+  }
+  assert.match((await guard({overrides: {...down, [mergeUrls(C).pullsFallback]: new Error('HTTP 500')}})).text, /GUARD_API_ERROR: pulls/);
 });

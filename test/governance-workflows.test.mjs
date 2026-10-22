@@ -153,7 +153,7 @@ test('deploy-vps.yml: skipping, reordering, removing or rewriting any part of th
     ['an environment from an expression', deploy.replace('environment: vps-production', 'environment: ${{ inputs.env }}'), /environment is not exactly vps-production/],
     ['the environment as a mapping', deploy.replace('environment: vps-production', 'environment: {name: vps-production, url: "https://x"}'), /environment is not exactly vps-production/],
     ['id-token permission removed', deploy.replace('      id-token: write\n', ''), /deploy: permissions changed/],
-    ['id-token on the gate job', deploy.replace('    permissions:\n      contents: read\n      actions: read\n      deployments: read\n    steps:\n      - uses:', '    permissions:\n      contents: read\n      actions: read\n      deployments: read\n      id-token: write\n    steps:\n      - uses:'), /gate: permissions changed/],
+    ['id-token on the gate job', deploy.replace('      checks: read\n      pull-requests: read\n    steps:\n      - uses:', '      checks: read\n      pull-requests: read\n      id-token: write\n    steps:\n      - uses:'), /gate: permissions changed/],
     ['a write permission on the deploy job', deploy.replace(/(  deploy:[\s\S]*?permissions:\n      contents: )read/, '$1write'), /deploy: permissions changed/],
     ['job-level env on deploy', deploy.replace('    timeout-minutes: 30\n', '    timeout-minutes: 30\n    env:\n      X: y\n'), /deploy: job-level env is not accepted/],
     ['a matrix on deploy', deploy.replace('    timeout-minutes: 30\n', '    timeout-minutes: 30\n    strategy:\n      matrix: {a: [1, 2]}\n'), /deploy: job-level strategy is not accepted/],
@@ -167,14 +167,15 @@ test('deploy-vps.yml: skipping, reordering, removing or rewriting any part of th
     ['the checkout unpinned', deploy.replace('actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683', 'actions/checkout@v4'), /gate: checkout changed/],
     ['the checkout persisting credentials', deploy.replace('persist-credentials: false', 'persist-credentials: true'), /gate: checkout changed/],
     ['the gate check not requiring PASS', deploy.replace(/(  gate:[\s\S]*?)grep -q '"result": "PASS"' "\$RUNNER_TEMP\/deploy-gate\.json" \|\| \{ echo "DEPLOY_GATE_FAIL"; exit 1; \}/, '$1true'), /gate: the check step changed/],
-    ['the gate job on the VPS', deploy.replace('    runs-on: ubuntu-latest\n    timeout-minutes: 5', '    runs-on: [self-hosted, matchpilot-vps]\n    timeout-minutes: 5'), /gate: not on ubuntu-latest|job gate: runs-on/],
+    ['the gate job on the VPS', deploy.replace('    runs-on: ubuntu-latest\n    timeout-minutes: 45', '    runs-on: [self-hosted, matchpilot-vps]\n    timeout-minutes: 45'), /gate: not on ubuntu-latest|job gate: runs-on/],
     ['the gate job given an environment', deploy.replace('    runs-on: ubuntu-latest\n', '    runs-on: ubuntu-latest\n    environment: vps-production\n'), /gate: names an environment/],
     ['a third job', `${deploy}  again:\n    needs: gate\n    if: ${GATE_IF}\n    runs-on: ubuntu-latest\n    steps:\n      - run: id\n`, /jobs are not exactly gate and deploy/],
     ['the deploy job on another runner', deploy.replace('runs-on: [self-hosted, matchpilot-vps]', 'runs-on: [self-hosted, matchpilot-vps, extra]'), /deploy: not on \[self-hosted, matchpilot-vps\]/],
     // Changes no named invariant covers, caught by the exact canonical structure (mutation P14).
     ['the deploy timeout changed', deploy.replace('    timeout-minutes: 30\n', '    timeout-minutes: 300\n'), /differs from the canonical workflow/],
     ['the workflow renamed', deploy.replace('name: deploy-vps\n', 'name: deploy\n'), /differs from the canonical workflow/],
-    ['concurrency cancelling runs', deploy.replace('cancel-in-progress: false', 'cancel-in-progress: true'), /concurrency changed/],
+    ['concurrency not cancelling an older run (MP-AUTODEPLOY-01, owner t124u)', deploy.replace('cancel-in-progress: true', 'cancel-in-progress: false'), /concurrency changed/],
+    ['the gate job no longer waits for CI', deploy.replace("          DEPLOY_GATE_WAIT_CI_S: '2400'\n", ''), /gate: the check step changed/],
     ['the deploy workflow removed', null, /deploy-vps\.yml is missing/],
   ];
   for (const [what, text, expected] of cases) {
