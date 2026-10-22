@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 124,
+  "revision": 125,
   "tasks": [
     {
       "id": "R-01",
@@ -566,19 +566,19 @@
       "pr": 183,
       "branch": "claude/gov-recon-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261021T214147Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261022T124639Z-agent-g-grok",
       "parallel_authorization": "MP-GITHUB-RECON-IMPLEMENTATION-01",
       "resources": [
         "branch:claude/gov-recon-01",
         "file:docs/governance/work-registry.json"
       ],
-      "pr_open": true
+      "pr_open": false
     },
     {
       "id": "FUNC-RECOVERY-01",
@@ -587,18 +587,14 @@
       "pr": 184,
       "branch": "functional/mp-vps-recovery-20261022",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-g-grok",
         "role": "Development Agent"
       },
-      "lease": {
-        "holder": "agent-g-grok",
-        "acquired_at": "2026-10-22T12:35:59.689Z",
-        "expires_at": "2026-10-22T14:35:59.689Z"
-      },
-      "latest_checkpoint": "CP-20261022T123735Z-agent-g-grok",
-      "pr_open": true,
+      "lease": null,
+      "latest_checkpoint": "CP-20261022T124640Z-agent-g-grok",
+      "pr_open": false,
       "parallel_authorization": "MP-VPS-FUNCTIONAL-RECOVERY-01",
       "resources": [
         "branch:functional/mp-vps-recovery-20261022",
