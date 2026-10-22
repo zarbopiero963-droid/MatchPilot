@@ -1,16 +1,18 @@
 // MP-VPS-FUNCTIONAL-RECOVERY-01: generate SIMULATED signals for one stored match day. Usage:
-//   node src/jobs/sim-signals.mjs --date YYYY-MM-DD [--limit N] [--no-outbox]
+//   node src/jobs/sim-signals.mjs --date YYYY-MM-DD|today|yesterday [--limit N] [--no-outbox]
+// today/yesterday are Europe/Rome calendar days (SIM-SCHEDULE-01), so a timer can run the job unattended.
 // SIGNAL rows also get a simulated Telegram message in sim.outbox (SIMULATED_NOT_SENT, never delivered).
 // Refuses to run in production mode; never calls Telegram, an exchange or any upstream API.
 import {getPool, closePool} from '../db.mjs';
 import {assertRuntimeSafety} from '../runtime-safety.mjs';
 import {runForDate} from '../signals/simulated.mjs';
 import {queueRun} from '../signals/outbox.mjs';
+import {resolveDate} from '../signals/schedule.mjs';
 
 const args = process.argv.slice(2);
 const opt = name => { const i = args.indexOf(name); return i === -1 ? null : args[i + 1]; };
-const date = opt('--date');
-if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? '')) { console.error('usage: --date YYYY-MM-DD [--limit N]'); process.exit(2); }
+const date = resolveDate(opt('--date'));
+if (!date) { console.error('usage: --date YYYY-MM-DD|today|yesterday [--limit N]'); process.exit(2); }
 if (assertRuntimeSafety(process.env).mode === 'production') { console.error('SIM_SIGNALS_REFUSED production mode'); process.exit(2); }
 const limitRaw = opt('--limit') ?? '500';
 if (!/^\d+$/.test(limitRaw) || Number(limitRaw) < 1 || Number(limitRaw) > 5000) { console.error('--limit must be an integer 1-5000'); process.exit(2); }

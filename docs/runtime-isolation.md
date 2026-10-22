@@ -93,3 +93,15 @@ Both gaps found by the PR #157 reviews were fixed in a dedicated PR under the ow
 ## TotalCorner spento (TC-OFF-01)
 
 Decisione owner `MP-VPS-ONLY-OPERATIONS-2026-10-21` (#182): raccolta, polling e backfill TotalCorner sono sospesi (#20 resta aperta). Anche con `MATCHPILOT_BACKGROUND_ENABLED=true` in produzione, **nessun job TotalCorner** (discovery, mapping, prematch, historical, live) parte se `MATCHPILOT_TOTALCORNER` non vale `on`. Default: spento, qualunque altro valore è spento; all'avvio il log riporta `TOTALCORNER_OFF` o `TOTALCORNER_ON`. Riattivarlo richiede un GO owner. Test: `test/runtime-isolation.test.mjs` (TC-OFF-01).
+
+## Scheduled simulated signals (SIM-SCHEDULE-01)
+
+`src/jobs/sim-signals.mjs` accepts `--date today` or `--date yesterday`, which are calendar days in Europe/Rome.
+That lets a timer run it unattended. It still refuses production mode, and it never sends Telegram messages or calls an exchange or upstream API.
+Example for the isolated test environment only (never production):
+
+```
+systemd-run --on-calendar='*-*-* 06:30:00 Europe/Rome' --unit=matchpilot-functest-sim \
+  -p DynamicUser=yes -p EnvironmentFile=<test env file> -p WorkingDirectory=<test app dir> \
+  -p IPAddressDeny=any -p IPAddressAllow=localhost /usr/bin/node src/jobs/sim-signals.mjs --date yesterday
+```
