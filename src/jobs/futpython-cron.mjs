@@ -21,6 +21,8 @@ export function startFutpythonCron() {
   return job;
 }
 
+export const futpythonCronBusy = () => Boolean(job?.isBusy?.());
+
 export function stopFutpythonCron() {
   if (job) job.stop();
   job = undefined;
