@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 136,
+  "revision": 137,
   "tasks": [
     {
       "id": "R-01",
@@ -632,10 +632,10 @@
       "id": "SIM-OUTBOX-01",
       "title": "Simulated Telegram outbox for simulated signals (SIMULATED_NOT_SENT, no delivery), API and Segnali view (#182: real Telegram only after an owner GO)",
       "issue": 182,
-      "pr": null,
+      "pr": 189,
       "branch": "revert-sim-outbox-01",
       "kind": "implementation",
-      "state": "RUNNING",
+      "state": "REVIEW",
       "assignee": {
         "agent": "agent-g-grok",
         "role": "Development Agent"
@@ -645,8 +645,8 @@
         "acquired_at": "2026-10-22T13:43:40.582Z",
         "expires_at": "2026-10-22T15:43:40.582Z"
       },
-      "latest_checkpoint": "CP-20261022T134339Z-agent-g-grok",
-      "pr_open": false,
+      "latest_checkpoint": "CP-20261022T134419Z-agent-g-grok",
+      "pr_open": true,
       "parallel_authorization": "MP-GROK-AUTONOMOUS-EXECUTION-01",
       "resources": [
         "branch:revert-sim-outbox-01"
