@@ -56,7 +56,8 @@ async function getJson(path) {
 const LABELS = {
   // data health and sync runs
   status: 'Stato', product: 'Prodotto', lastRun: 'Ultima sincronizzazione', activeDatasets: 'Dataset attivi', schemaFields: 'Campi di schema',
-  datasetsWithErrors: 'Dataset con errori', alerts: 'Avvisi', severity: 'Gravità', code: 'Codice', title: 'Titolo', message: 'Messaggio',
+  datasetsWithErrors: 'Dataset con errori', contentFreshness: 'Freschezza dei contenuti', maxMatchDate: 'Ultima partita', maxLastChangedAt: 'Ultimo cambiamento', stale: 'Fermi', reasons: 'Motivi',
+  alerts: 'Avvisi', severity: 'Gravità', code: 'Codice', title: 'Titolo', message: 'Messaggio',
   last_seen_at: 'Visto l’ultima volta', occurrences: 'Occorrenze', run_id: 'Identificativo', kind: 'Tipo', started_at: 'Inizio', finished_at: 'Fine',
   catalog_entries: 'Voci di catalogo', datasets_attempted: 'Dataset tentati', datasets_changed: 'Dataset cambiati', resumed_skips: 'Saltati alla ripresa',
   available_count: 'Disponibili', error_real_count: 'Errori reali', rows_seen: 'Righe lette', rows_inserted: 'Righe inserite', fields_seen: 'Campi letti',

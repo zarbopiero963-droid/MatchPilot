@@ -1,5 +1,5 @@
 import { withClient } from '../db.mjs';
-import { emitAlert, resolveAlert } from '../alerts.mjs';
+import { emitAlert, resolveAlert, readContentFreshness } from '../alerts.mjs';
 import { budgetConfig, budgetPressure, countsTowardCircuit } from '../providers/futpython/budget.mjs';
 import { reconcileFpt } from '../providers/futpython/reconciliation.mjs';
 
@@ -12,7 +12,7 @@ export function syncIsStale(reference, now = Date.now(), staleHours = 8) {
 
 async function alertOrResolve(client, active, alert, deliver) {
   if (active) await emitAlert(alert, client, deliver ? {deliver} : {});
-  else await resolveAlert({source: alert.source, code: alert.code, key: alert.key}, client);
+  else await resolveAlert({source: alert.source, code: alert.code, key: alert.key}, client, deliver ? {deliver} : {});
 }
 
 export async function evaluateProviderAlerts(client, {deliver, limits, circuitFailures} = {}) {
@@ -112,6 +112,16 @@ export async function checkDataWatchdog(options = {}) {
       payload: {count: failed.rowCount, datasets: failed.rows.map(item => item.dataset_key)}
     }, options.deliver);
 
+    // t131u: content freshness, attributed to the provider when the sync itself is on time.
+    const content = await readContentFreshness(client, options.now ?? Date.now());
+    await alertOrResolve(client, content.stale, {
+      source: 'futpython', severity: 'warning', code: 'DATA_CONTENT_STALE', key: 'content',
+      title: 'Contenuti FutPython fermi',
+      message: `${stale ? 'Causa probabile: pipeline (sync non aggiornato).' : 'Causa probabile: provider FutPython (i sync girano ma non pubblica dati nuovi).'} `
+        + `${content.reasons.join('; ')}. Ultimo cambiamento: ${content.maxLastChangedAt ?? 'mai'}; ultima partita: ${content.maxMatchDate ?? 'nessuna'}.`,
+      payload: {...content, attributedTo: stale ? 'pipeline' : 'provider'}
+    }, options.deliver);
+
     const budget = await evaluateProviderAlerts(client, options);
     // #31 reconciliation rides on the watchdog cycle (startup, then hourly): no extra timer keeps Neon awake.
     let reconciliation = null;
@@ -140,8 +150,9 @@ export async function checkDataWatchdog(options = {}) {
       })]
     );
     return {
-      status: stale ? 'critical' : failed.rowCount ? 'warning' : 'ok',
+      status: stale ? 'critical' : (failed.rowCount || content.stale) ? 'warning' : 'ok',
       stale,
+      content,
       datasetErrors: failed.rowCount,
       budget,
       reconciliation

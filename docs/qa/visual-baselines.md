@@ -94,3 +94,13 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
 - Thresholds: block 8, pixel 32, ratio 0
 - Baselines:
   - `partita-confronto-tablet.png` `def533b87f18256fbe903ebc30f5f356f884950679f7acafe4e1f60f13038a0a`
+
+## 2026-10-22 — t131u fix 5: data health «Attenzione» when FPT content is stale
+
+- Approval: PR #200, owner t131u (FPT monitoring fixes)
+- Run: commit `d561c8f16708f7361dfb4cbb4b427a06b056dacd`, chromium 156.0.8078.47
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines (only the three scenes over threshold; the others are unchanged):
+  - `dati-desktop.png` `be94b2614543eeba868d77bb9eb797d7718037ad2de1c76c069591cc7a8e6a3d`
+  - `dati-tablet.png` `aa225c045255ddbd0cf30eefee1c3d88ab8d7d3e1561d508634f2fb02b8f0e7d`
+  - `dati-mobile.png` `f5c8d4a4db04abdebabd20b9bffc7467691871507542ce627135ab1a25e1b79f`

@@ -21,10 +21,21 @@ export function createShutdown({stop = stopBackgroundServices, busy = futpythonC
   })();
 }
 
+// t131u: every worker log line starts with an ISO-8601 UTC timestamp (journald's own stamp is lost in exported logs).
+export function isoTimestamps(target = console, now = () => new Date()) {
+  if (target.__isoTimestamps) return target;
+  for (const level of ['log', 'info', 'warn', 'error']) {
+    const original = target[level].bind(target);
+    target[level] = (...args) => original(now().toISOString(), ...args);
+  }
+  target.__isoTimestamps = true;
+  return target;
+}
+
 export async function main({proc = process, start = startBackgroundServices, shutdown = createShutdown()} = {}) {
   for (const signal of ['SIGTERM', 'SIGINT']) proc.on(signal, () => shutdown(signal));
   await start();
   return setInterval(() => {}, 1 << 30);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main().catch(error => { console.error('MATCHPILOT_WORKER_START_ERROR', String(error?.message || error)); process.exit(1); });
+if (import.meta.url === `file://${process.argv[1]}`) isoTimestamps(), main().catch(error => { console.error('MATCHPILOT_WORKER_START_ERROR', String(error?.message || error)); process.exit(1); });
