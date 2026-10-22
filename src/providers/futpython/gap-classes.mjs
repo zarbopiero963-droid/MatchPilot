@@ -47,14 +47,16 @@ export const RECLASSIFY_SELECT = `SELECT l.reconciliation_id, l.entity, l.gap_ki
 export function planReclassification(rows, batch) {
   return rows.map(row => {
     const {classification, evidence} = classifyGap(row);
-    const before = {status: row.status, recovered_count: row.recovered_count, classification: row.details?.classification ?? null};
+    const before = {status: row.status, recovered_count: row.recovered_count, classification: row.details?.classification ?? null,
+      classification_evidence: row.details?.classification_evidence ?? null};
     const after = {status: row.status, recovered_count: classification === 'RECOVERED' ? row.recovered_count : 0, classification};
     return {reconciliation_id: row.reconciliation_id, entity: row.entity, before, after, evidence, batch,
       change: before.classification !== after.classification || before.recovered_count !== after.recovered_count};
   });
 }
 
-// Each change appends a history entry (batch, before, after, evidence): the revert restores "before" for that batch.
+// Each change appends a history entry (batch, before, after, evidence): the revert restores "before" for that batch,
+// byte-exact (t136u: no empty history array or lost prior evidence is left behind).
 export async function applyReclassification(client, plan, {at = new Date()} = {}) {
   let n = 0;
   for (const p of plan.filter(x => x.change)) {
@@ -86,9 +88,11 @@ export async function revertReclassification(client, batch) {
       `UPDATE data_reconciliation_ledger SET recovered_count=$2,
          details = (details - 'classification' - 'classification_evidence' - 'history')
            || CASE WHEN $3::text IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('classification', $3::text) END
-           || jsonb_build_object('history', $4::jsonb)
+           || CASE WHEN $5::jsonb IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('classification_evidence', $5::jsonb) END
+           || CASE WHEN jsonb_array_length($4::jsonb) = 0 THEN '{}'::jsonb ELSE jsonb_build_object('history', $4::jsonb) END
        WHERE reconciliation_id=$1`,
-      [row.reconciliation_id, last.before.recovered_count, last.before.classification, JSON.stringify(rest)]);
+      [row.reconciliation_id, last.before.recovered_count, last.before.classification, JSON.stringify(rest),
+        last.before.classification_evidence == null ? null : JSON.stringify(last.before.classification_evidence)]);
     n += r.rowCount;
   }
   return n;
