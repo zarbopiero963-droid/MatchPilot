@@ -37,7 +37,8 @@ comp('PG18 staging offsite -> Drive .../VPS/staging/<ID>/', 'OK' if slv and age_
 comp('PG18 config/units/scripts (config-pg18.tgz in each staging backup)', 'OK' if st.get('state')=='OK' else 'CHECK', 'restore doc /srv/matchpilot/infra/staging-backup/RESTORE-PG18-STAGING.md')
 comp('PG18 staging backup timer 01:30', 'OK' if 'enabled' in sh('systemctl is-enabled matchpilot-staging-backup.timer') else 'FAIL', sh('systemctl show matchpilot-staging-backup.service -p Result,ExecMainStatus,ExecMainExitTimestamp | tr "\\n" " "'))
 # 6 App code
-rel=sh('readlink -f /srv/mp-deploy/current')  # t139: the real release source (mp-deploy v3.3); gs=sh(f'cat /srv/matchpilot/backups/pg/{last}/git_sha.txt') if last else ''
+# t139: the real release source is /srv/mp-deploy/current (mp-deploy v3.3)
+rel=sh('readlink -f /srv/mp-deploy/current'); gs=sh(f'cat /srv/matchpilot/backups/pg/{last}/git_sha.txt') if last else ''
 comp('App code (rebuild from GitHub + mp-deploy)', 'OK' if gs and gs in rel else 'CHECK', f'current={rel} backup_git_sha={gs}')
 # 7 scripts installed outside backups: compare with infra repo copies
 for f,ref in (('/usr/local/sbin/matchpilot-backup','/srv/matchpilot/infra/scripts/backup.sh'),('/usr/local/sbin/mp-deploy','/srv/matchpilot/infra/deploy/mp-deploy')):
