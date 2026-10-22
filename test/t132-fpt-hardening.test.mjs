@@ -97,7 +97,9 @@ function fakeLedger(rows) {
     if (sql.includes("details - 'classification'")) {
       const r = ledger.find(x => x.reconciliation_id === p[0]);
       const {classification, classification_evidence, history, ...rest} = r.details;
-      r.recovered_count = p[1]; r.details = {...rest, ...(p[2] == null ? {} : {classification: p[2]}), history: JSON.parse(p[3])};
+      const hist = JSON.parse(p[3]);
+      r.recovered_count = p[1]; r.details = {...rest, ...(p[2] == null ? {} : {classification: p[2]}),
+        ...(p[4] == null ? {} : {classification_evidence: JSON.parse(p[4])}), ...(hist.length ? {history: hist} : {})};
       return {rows: [], rowCount: 1};
     }
     if (sql.includes('UPDATE data_reconciliation_ledger SET recovered_count=$2')) {
@@ -127,8 +129,7 @@ test('FIX-04/t133u the 412 reclassification: per-row evidence, audited history, 
   assert.equal(db.ledger[0].details.history[0].before.recovered_count, 1);
   assert.equal(await applyReclassification(db.client, plan), 0, 'stale plan cannot double-apply');
   assert.equal(await revertReclassification(db.client, 'b1'), 3);
-  assert.deepEqual(db.ledger.map(r => [r.recovered_count, r.details.classification ?? null, r.details.history.length]),
-    [[1, null, 0], [1, null, 0], [1, null, 0]]);
+  assert.deepEqual(db.ledger.map(r => [r.recovered_count, r.details]), [[1, {x: 1}], [1, {}], [1, {}]], 'byte-exact revert: no empty history left');
   assert.equal(db.ledger[0].details.x, 1, 'other metadata preserved');
 });
 
