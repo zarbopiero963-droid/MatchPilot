@@ -29,3 +29,22 @@ Gate di riconciliazione: allocazione + P/L netto realizzato = cassa. `unrealized
 ## Non ancora fatto
 Persistenza PG18 (tabelle append-only: migrazione additiva che richiede approvazione owner D13 e `allow-migrations-<sha>`),
 API/UI, modelli oltre FIXED_STAKE / PERCENT_BANKROLL, filtri/regole condizionali, limiti di perdita giornaliera/drawdown.
+
+## MM-PR-01 (t142): registry, liability models, exposure/concurrency caps
+
+- `src/mm/registry.mjs`: full #96 census (16 types) with every registry field and the 14 capability flags.
+  IMPLEMENTED: FIXED_STAKE, PERCENT_BANKROLL, FIXED_LIABILITY, LIABILITY_PERCENT_BANKROLL. All others are
+  DISCOVERED with `formula=null`: they are refused (`MODEL_NOT_IMPLEMENTED`) until the owner specifies formula,
+  VOID/reset policy and test vectors. Nothing is invented.
+- New optional caps (default null, no arbitrary limits): `max_total_exposure` (REDUCE to remaining room, BLOCK if none),
+  `max_concurrent_trades` (BLOCK at the limit). Unknown caps are refused.
+- Decision output adds `exposure_snapshot_ref`, `matched_rules`, `failed_filters` (empty until the rule engine).
+
+### Gap vs #96/#99 still open
+| Area | Status |
+|---|---|
+| Kelly, Target Profit, Recovery, Risk-based, progressions, Exposure-aware, Composite, Manual | DISCOVERED, formula needed from owner |
+| Exposure per match/market/league/day/strategy, min/max odds, daily/weekly loss, drawdown, stop loss, cooldown | not done (needs owner rule definitions / per-dimension ledger tags) |
+| Filters + rule engine with deterministic priority | not done (MM-PR-03) |
+| Profile CRUD/versioning/safe delete, replay evaluation | not done |
+| Persistence, API/UI | blocked by D13 |
