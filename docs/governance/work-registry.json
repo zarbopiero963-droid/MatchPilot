@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 119,
+  "revision": 120,
   "tasks": [
     {
       "id": "R-01",
@@ -594,10 +594,10 @@
       },
       "lease": {
         "holder": "agent-g-grok",
-        "acquired_at": "2026-10-22T10:52:44.676Z",
-        "expires_at": "2026-10-22T12:52:44.676Z"
+        "acquired_at": "2026-10-22T10:53:59.294Z",
+        "expires_at": "2026-10-22T12:53:59.294Z"
       },
-      "latest_checkpoint": null,
+      "latest_checkpoint": "CP-20261022T105359Z-agent-g-grok",
       "pr_open": false,
       "parallel_authorization": "MP-VPS-FUNCTIONAL-RECOVERY-01",
       "resources": [
