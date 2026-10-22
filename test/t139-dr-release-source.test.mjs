@@ -40,3 +40,17 @@ test('DR coverage check compares the backup SHA with /srv/mp-deploy/current', ()
   assert.doesNotMatch(s, /\/srv\/matchpilot\/current/);
   assert.equal(spawnSync('python3', ['-m', 'py_compile', 'infra/vps/box-helpers/dr_coverage_check.py']).status, 0);
 });
+
+test('DR check: the backup SHA (gs) is really assigned, not swallowed by a trailing comment (t140)', () => {
+  const s = readFileSync('infra/vps/box-helpers/dr_coverage_check.py', 'utf8');
+  const line = s.split('\n').find(l => l.includes('/srv/mp-deploy/current') && !l.trimStart().startsWith('#'));
+  assert.ok(line, 'code line reading the release link');
+  const code = line.split('#')[0];
+  assert.match(code, /gs=sh\(/);
+  // run the App-code section with stubs: it must not raise NameError
+  const sect = s.slice(s.indexOf('# 6 App code'), s.indexOf('# 7 '));
+  const py = `R=[]\ndef comp(*a): R.append(a)\ndef sh(c): return '/srv/mp-deploy/releases/X' if 'readlink' in c else 'X'\nlast='d'\n${sect}\nprint(R[0][1])`;
+  const r = spawnSync('python3', ['-c', py], {encoding: 'utf8'});
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.trim(), 'OK');
+});
