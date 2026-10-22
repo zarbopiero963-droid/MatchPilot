@@ -265,3 +265,13 @@ test('CLI: refuses with exit 1 and a JSON report, without reading GitHub, when t
   assert.equal(ciJob.status, 1);
   assert.match(ciJob.report.problems.join(), /GUARD_WORKFLOW[\s\S]*GUARD_JOB: test/);
 });
+
+test('MP-AUTODEPLOY-01: commits/{sha}/pulls unreadable -> the closed PRs into main prove the merge; nothing weaker', async () => {
+  const down = {[mergeUrls(C).pulls]: new Error('HTTP 500')};
+  const ok = await guard({overrides: {...down, [mergeUrls(C).pullsFallback]: [mergedPr(B), mergedPr(C)]}});
+  assert.equal(ok.result, 'ALLOW', ok.text);
+  for (const list of [[mergedPr(B)], [mergedPr(C, {merged_at: null})], [mergedPr(C, {base: {ref: 'main', repo: {full_name: 'fork/x'}}})]]) {
+    assert.match((await guard({overrides: {...down, [mergeUrls(C).pullsFallback]: list}})).text, /GUARD_NOT_A_MERGED_PR/);
+  }
+  assert.match((await guard({overrides: {...down, [mergeUrls(C).pullsFallback]: new Error('HTTP 500')}})).text, /GUARD_API_ERROR: pulls/);
+});

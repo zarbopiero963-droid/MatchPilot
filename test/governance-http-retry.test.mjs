@@ -16,10 +16,10 @@ test('a 500 then 200 is read again and succeeds; a 429 too', async () => {
   }
 });
 
-test('the retries are bounded: four 500s fail closed', async () => {
-  const api = answers([{status: 500}, {status: 500}, {status: 500}, {status: 500}, {status: 200}]);
+test('the retries are bounded: five 500s fail closed', async () => {
+  const api = answers([{status: 500}, {status: 500}, {status: 500}, {status: 500}, {status: 500}, {status: 200}]);
   await assert.rejects(httpText('https://api.github.com/x', {fetchImpl: api.fetchImpl, retry: noSleep}), /HTTP 500/);
-  assert.equal(api.seen.length, 4);
+  assert.equal(api.seen.length, 5);
 });
 
 test('a 404, 403, 401 or a redirect is final at once (no retry)', async () => {
@@ -38,7 +38,7 @@ test('a dropped connection is retried; withRetry waits longer each time', async 
   assert.equal(await httpText('https://api.github.com/x', {fetchImpl: api.fetchImpl, retry: noSleep}), '1');
   const waits = [];
   await assert.rejects(withRetry(async () => { throw Object.assign(new Error('x'), {transient: true}); }, {sleep: async ms => waits.push(ms), delayMs: 10}));
-  assert.deepEqual(waits, [10, 20, 30]);
+  assert.deepEqual(waits, [10, 20, 30, 40]);
 });
 
 test('the gate re-reads a transient answer and still reports a persistent one', async () => {
