@@ -88,7 +88,7 @@ test('DEC-013 defaults: SHARED_ACCOUNT_BANKROLL, VOID/PUSH do not advance, no ar
   const p = createProfile({profileId: 'mm', model: 'PERCENT_BANKROLL', params: {percent: '1'}});
   assert.equal(p.bankroll_mode, 'SHARED_ACCOUNT_BANKROLL');
   assert.equal(p.void_push_advances_progression, false);
-  assert.deepEqual(p.caps, {max_stake: null, max_liability: null, max_total_exposure: null, max_concurrent_trades: null});
+  assert.deepEqual(p.caps, {max_stake: null, max_liability: null, max_total_exposure: null, max_exposure_per_match: null, max_exposure_per_market: null, max_exposure_per_league: null, max_exposure_per_strategy: null, min_odds: null, max_odds: null, max_concurrent_trades: null, filter_fail_action: null});
   assert.throws(() => createProfile({profileId: 'x', model: 'PERCENT_BANKROLL', params: {percent: '1'}, bankrollMode: 'SEGREGATED'}), {code: 'NOT_IMPLEMENTED'});
   let q = initialSequence();
   q = applySettlement(q, p, {positionId: 'a', outcome: 'VOID'});
