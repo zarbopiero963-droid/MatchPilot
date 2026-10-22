@@ -1,0 +1,123 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261022T133425Z-agent-g-grok",
+  "timestamp_utc": "2026-10-22T13:34:25Z",
+  "agent": {
+    "id": "agent-g-grok",
+    "role": "Development Agent",
+    "session": "grok-matchpilot-owner-chat-t102u-2026-10-22"
+  },
+  "mandate": {
+    "id": "MP-GROK-AUTONOMOUS-EXECUTION-01",
+    "source": "owner mandates t102u/t103u (2026-10-22), registered in docs/governance/owner-decisions.json"
+  },
+  "activity": "scheduled simulated signals: sim-signals job accepts --date today|yesterday (Europe/Rome calendar days, DST-safe) so a timer can run it unattended; documented test-env timer example",
+  "task": "SIM-SCHEDULE-01",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 182,
+  "pr": null,
+  "branch": "sim-schedule-01",
+  "commit_sha": "809dc676cf122aa26e2d55c7872de154f19d2822",
+  "tree_sha": "e062428b60aeb059e4e099b334fbfca7b873255d",
+  "base_sha": "34da37bf5bff6e72cc454d7580403ef7e169b672",
+  "worktree": {
+    "clean": true
+  },
+  "requirements": [],
+  "changes": [
+    "src/signals/schedule.mjs",
+    "src/jobs/sim-signals.mjs: --date today|yesterday",
+    "test/sim-schedule.test.mjs",
+    "docs/runtime-isolation.md section",
+    "package.json check"
+  ],
+  "tests": [
+    {
+      "command": "npm run check && node --test: 397 pass / 0 fail / 61 skipped (DB)",
+      "result": "PASS",
+      "environment": "box, Node 22",
+      "commit": "809dc676cf122aa26e2d55c7872de154f19d2822",
+      "time": "2026-10-22T13:34:25Z",
+      "limits": []
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "809dc676cf122aa26e2d55c7872de154f19d2822"
+  },
+  "gate_a": "NOT_VERIFIED",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-GROK-AUTONOMOUS-EXECUTION-01",
+    "MP-VPS-ONLY-OPERATIONS-2026-10-21"
+  ],
+  "authorizations": [
+    {
+      "id": "MP-GROK-AUTONOMOUS-EXECUTION-01",
+      "source": "owner mandate t102u + t103u, owner-decisions.json",
+      "scope": {
+        "task": "SIM-SCHEDULE-01",
+        "action": "one implementation PR, review pass, squash merge with green CI, no --admin"
+      },
+      "status": "VALID"
+    }
+  ],
+  "external_commands": [
+    {
+      "target": "github",
+      "command": "git push origin sim-schedule-01",
+      "effect": "branch"
+    }
+  ],
+  "artifacts": [],
+  "progress": {
+    "done": [
+      "implementation",
+      "tests"
+    ],
+    "in_progress": [
+      "PR, CI, review"
+    ],
+    "not_started": [
+      "installing the timer on the VPS test env (VPS window 10-20 only)"
+    ]
+  },
+  "resources": [
+    "branch:sim-schedule-01"
+  ],
+  "stop_conditions": [
+    "no production timer",
+    "no real Telegram",
+    "no --admin"
+  ],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": {
+    "functest_cluster": "18/functest 127.0.0.1:5440",
+    "functest_app": "127.0.0.1:3100",
+    "production": "untouched",
+    "freeze": "1"
+  },
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "dependencies": [],
+  "state": "RUNNING",
+  "next_action": "open the PR, CI, review pass, merge",
+  "resume_conditions": [
+    "CI result"
+  ],
+  "supersedes": null,
+  "merge_sha": null
+}
