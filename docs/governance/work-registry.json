@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 132,
+  "revision": 133,
   "tasks": [
     {
       "id": "R-01",
@@ -538,22 +538,18 @@
       "pr": 186,
       "branch": "tc-off-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-g-grok",
         "role": "Development Agent"
       },
-      "lease": {
-        "holder": "agent-g-grok",
-        "acquired_at": "2026-10-22T13:01:46.734Z",
-        "expires_at": "2026-10-22T15:01:46.734Z"
-      },
-      "latest_checkpoint": "CP-20261022T130319Z-agent-g-grok",
+      "lease": null,
+      "latest_checkpoint": "CP-20261022T131411Z-agent-g-grok",
       "resources": [
         "branch:tc-off-01"
       ],
       "parallel_authorization": "MP-GROK-AUTONOMOUS-EXECUTION-01",
-      "pr_open": true
+      "pr_open": false
     },
     {
       "id": "HANDOFF-TEST-01",
