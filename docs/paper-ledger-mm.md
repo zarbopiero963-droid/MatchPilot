@@ -26,6 +26,19 @@ Stato = replay delle entry. Idempotency key per operazione (stessa chiave/conten
 `IDEMPOTENCY_CONFLICT`); doppio settlement → `DOUBLE_SETTLEMENT`. Correzione: `REVERSAL` + settlement `version+1`.
 Gate di riconciliazione: allocazione + P/L netto realizzato = cassa. `unrealized_pnl` = null (servono prezzi live, mai inventati).
 
+## Settlement dalle regole di mercato (LEDGER-CORE-03, #99 × #100)
+`src/ledger/settlement.mjs` `settleFromResult(ledger, {positionId, versions, asOf, at})`. Una posizione aperta con il proprio
+mercato (`openPosition(..., market: {marketType, selection, line?, team?})`, validato sul registro #100) si regola con la
+regola canonica e la versione del risultato (DEC-002, `resolveVersioned`), mai con un esito scritto dal chiamante:
+- nessun FINAL validato, stato non finale o mercato non risolvibile → `PENDING`, nessuna entry (DEC-015: nessun VOID);
+- primo esito → `SETTLED`; la entry `SETTLEMENT_NET` registra `resolution` (regola, versione del risultato, provenienza,
+  flag di correzione);
+- stessa versione di nuovo, o versione successiva con lo stesso esito → `UNCHANGED`, nessuna entry;
+- versione successiva con esito diverso → `CORRECTED`: `REVERSAL` + nuovo settlement (versione +1), storico conservato;
+- risultato più vecchio di quello applicato → `STALE_RESULT`; posizione senza mercato → `MARKET_BINDING_MISSING`;
+  posizione regolata a mano → `MANUAL_SETTLEMENT`; cambio di fornitore → `PROVIDER_CHANGED`.
+Solo in memoria: la persistenza è LEDGER-CORE-01.
+
 ## Non ancora fatto
 Persistenza PG18 (tabelle append-only: migrazione additiva che richiede approvazione owner D13 e `allow-migrations-<sha>`),
 API/UI, modelli oltre FIXED_STAKE / PERCENT_BANKROLL, filtri/regole condizionali, limiti di perdita giornaliera/drawdown.

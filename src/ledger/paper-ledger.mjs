@@ -2,6 +2,7 @@
 // ADVISORY_ONLY boundary (DEC-001) and idempotent, versioned settlement with reversal. Pure: no DB, no network, no
 // clock (the caller passes `at`). Simulated money only; nothing here can place a real order.
 import {Decimal, dec, sum} from '../math/decimal.mjs';
+import {getMarketRule} from '../markets/rules.mjs';
 
 export const LEDGER_VERSION = 'mp-paper-ledger-1';
 export const MODES = Object.freeze(['ACTIVE_OPERATIONAL', 'ADVISORY_ONLY', 'PAUSED', 'ARCHIVED']);
@@ -63,7 +64,8 @@ export function replay(ledger) {
       case 'INITIAL_ALLOCATION': cash = cash.add(a); allocated = allocated.add(a); break;
       case 'OPEN': case 'HEDGE': {
         const p = positions.get(e.position_id) || {position_id: e.position_id, legs: [], status: 'OPEN', commission_rate: e.commission_rate,
-          settings_snapshot_id: e.settings_snapshot_id, scope: e.scope ?? null, settlement: null, settlement_version: 0, history: []};
+          settings_snapshot_id: e.settings_snapshot_id, scope: e.scope ?? null, market: e.market ?? null, settlement: null, settlement_version: 0,
+          resolution: null, history: []};
         p.legs.push({side: e.side, odds: dec(e.odds), stake: dec(e.stake)});
         positions.set(e.position_id, p); break;
       }
@@ -72,7 +74,7 @@ export function replay(ledger) {
       case 'SETTLEMENT_NET': {
         const p = positions.get(e.position_id);
         p.status = e.outcome === 'WIN' ? 'WON' : e.outcome === 'LOSE' ? 'LOST' : e.outcome;
-        p.settlement = e.outcome; p.settlement_version = e.settlement_version; p.history.push(e.seq); break;
+        p.settlement = e.outcome; p.settlement_version = e.settlement_version; p.resolution = e.resolution ?? null; p.history.push(e.seq); break;
       }
       case 'REVERSAL': {
         cash = cash.sub(dec(e.gross)).add(dec(e.commission));
@@ -134,7 +136,19 @@ function scopeOf(scope) {
   }
   return Object.keys(out).length ? Object.freeze(out) : null;
 }
-export function openPosition(ledger, {mode, positionId, side, odds, stake, commissionRate, settingsSnapshotId, idempotencyKey, at, scope}) {
+// Optional market binding (LEDGER-CORE-03): the #100 market the position's selection belongs to, so that settlement
+// resolves it with the canonical rule instead of an outcome typed by the caller.
+function marketOf(market) {
+  if (market === undefined || market === null) return null;
+  if (typeof market !== 'object' || Array.isArray(market)) fail('BAD_INPUT', 'market must be an object');
+  const rule = getMarketRule(market.marketType);
+  if (!rule) fail('UNKNOWN_MARKET', `no #100 rule for ${market.marketType}`);
+  const out = {marketType: market.marketType, selection: text('market.selection', market.selection)};
+  if (market.line !== undefined && market.line !== null) out.line = text('market.line', market.line);
+  if (market.team !== undefined && market.team !== null) out.team = text('market.team', market.team);
+  return Object.freeze(out);
+}
+export function openPosition(ledger, {mode, positionId, side, odds, stake, commissionRate, settingsSnapshotId, idempotencyKey, at, scope, market}) {
   if (!MODES.includes(mode)) fail('BAD_INPUT', `unknown mode ${mode}`);
   if (mode !== 'ACTIVE_OPERATIONAL') fail('OPEN_BLOCKED_BY_MODE', `${mode}: no new virtual position can be opened (DEC-001)`);
   if (!SIDES.includes(side)) fail('BAD_INPUT', `side must be BACK or LAY`);
@@ -142,7 +156,8 @@ export function openPosition(ledger, {mode, positionId, side, odds, stake, commi
   const leg = {side, odds: o, stake: positive('stake', stake)};
   const cr = rate(commissionRate); text('settings_snapshot_id', settingsSnapshotId); text('position_id', positionId);
   const sc = scopeOf(scope);
-  const fp = JSON.stringify(['OPEN', positionId, side, o, leg.stake, cr, settingsSnapshotId, sc]);
+  const mk = marketOf(market);
+  const fp = JSON.stringify(['OPEN', positionId, side, o, leg.stake, cr, settingsSnapshotId, sc, ...(mk ? [mk] : [])]);
   const again = idempotent(ledger, idempotencyKey, fp); if (again) return again;
   const r = replay(ledger);
   if (r.positions.has(positionId)) fail('POSITION_EXISTS', positionId);
@@ -150,7 +165,7 @@ export function openPosition(ledger, {mode, positionId, side, odds, stake, commi
   if (need.gt(r.cash.sub(r.reserved))) fail('INSUFFICIENT_AVAILABLE_BANKROLL', `needs ${need}, available ${r.cash.sub(r.reserved)}`);
   const e = append(ledger, {type: 'OPEN', position_id: positionId, side, odds: o.toString(), stake: leg.stake.toString(),
     commission_rate: cr.toString() /* DEC-013: fixed at the simulated fill */, settings_snapshot_id: settingsSnapshotId,
-    reserved: need.toString(), ...(sc ? {scope: sc} : {}), at});
+    reserved: need.toString(), ...(sc ? {scope: sc} : {}), ...(mk ? {market: mk} : {}), at});
   return remember(ledger, idempotencyKey, fp, [e]);
 }
 
@@ -191,23 +206,24 @@ function settlementEntries(ledger, p, outcome, version, at, extra = {}) {
 
 // Final settlement of a position (any mode: STOP never prevents accounting of existing positions, DEC-001).
 // Idempotent per (position, version); a second settlement of an already settled position is refused.
-export function settlePosition(ledger, {positionId, outcome, settlementVersion = 1, idempotencyKey, at}) {
+// `resolution` (optional) records how the outcome was obtained (rule, result version, provenance): see settlement.mjs.
+export function settlePosition(ledger, {positionId, outcome, settlementVersion = 1, idempotencyKey, at, resolution}) {
   if (!OUTCOMES.includes(outcome)) fail('BAD_INPUT', `outcome must be one of ${OUTCOMES}`);
   if (!Number.isSafeInteger(settlementVersion) || settlementVersion < 1) fail('BAD_INPUT', 'settlement_version must be a positive integer');
-  const fp = JSON.stringify(['SETTLE', positionId, outcome, settlementVersion]);
+  const fp = JSON.stringify(['SETTLE', positionId, outcome, settlementVersion, ...(resolution ? [resolution] : [])]);
   const again = idempotent(ledger, idempotencyKey, fp); if (again) return again;
   const p = replay(ledger).positions.get(positionId);
   if (!p) fail('UNKNOWN_POSITION', positionId);
   if (p.settlement !== null || p.settlement_version >= settlementVersion) fail('DOUBLE_SETTLEMENT', `${positionId} already settled (v${p.settlement_version})`);
-  return remember(ledger, idempotencyKey, fp, settlementEntries(ledger, p, outcome, settlementVersion, at));
+  return remember(ledger, idempotencyKey, fp, settlementEntries(ledger, p, outcome, settlementVersion, at, resolution ? {resolution} : {}));
 }
 
 // Result correction (#99 Reversal): append REVERSAL of the previous settlement, then the new one with version + 1.
 // History is never edited.
-export function correctSettlement(ledger, {positionId, outcome, reason, idempotencyKey, at}) {
+export function correctSettlement(ledger, {positionId, outcome, reason, idempotencyKey, at, resolution}) {
   if (!OUTCOMES.includes(outcome)) fail('BAD_INPUT', `outcome must be one of ${OUTCOMES}`);
   text('reason', reason);
-  const fp = JSON.stringify(['CORRECT', positionId, outcome]);
+  const fp = JSON.stringify(['CORRECT', positionId, outcome, ...(resolution ? [resolution] : [])]);
   const again = idempotent(ledger, idempotencyKey, fp); if (again) return again;
   const p = replay(ledger).positions.get(positionId);
   if (!p) fail('UNKNOWN_POSITION', positionId);
@@ -218,5 +234,5 @@ export function correctSettlement(ledger, {positionId, outcome, reason, idempote
   const rev = append(ledger, {type: 'REVERSAL', position_id: positionId, reverses_version: p.settlement_version, gross: g, commission: c, reason, at});
   const next = replay(ledger).positions.get(positionId);
   return remember(ledger, idempotencyKey, fp,
-    [rev, ...settlementEntries(ledger, next, outcome, p.settlement_version + 1, at, {corrects_version: p.settlement_version})]);
+    [rev, ...settlementEntries(ledger, next, outcome, p.settlement_version + 1, at, {corrects_version: p.settlement_version, ...(resolution ? {resolution} : {})})]);
 }
