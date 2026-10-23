@@ -3,6 +3,7 @@
 // implementation (BigInt numerator/denominator), not a copy of the engine's code.
 import assert from 'node:assert/strict';
 import {execFileSync, spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {mkdtempSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -12,6 +13,7 @@ import {HistInputError, canonicalJson, validateInput} from '../src/hist/contract
 import {OUTCOME_RULE_VERSION, STATUS, runBacktest} from '../src/hist/engine.mjs';
 import {resolve} from '../src/markets/rules.mjs';
 
+const sha256hex = text => createHash('sha256').update(text).digest('hex');
 const CONFIG = {strategy: 'mp-ref-fav-back-1', bookmaker: 'bk1', lead_minutes: 10, stake: '1', commission: '0'};
 const P = 'futpythontrader';
 
@@ -96,7 +98,7 @@ const cents = (next, lo, hi) => { const v = lo + Math.floor(next() * (hi - lo + 
 test('golden fixture: decisions on admitted prices only, exact settlement and metrics, labelled as a fixture', () => {
   const report = runBacktest(golden(), CONFIG, {codeVersion: 'test'});
   assert.equal(report.status, STATUS.OK);
-  assert.deepEqual({...report.certification, notice: undefined}, {data_scope: 'FIXTURE', real_data_verdict: 'NOT_APPLICABLE', certified: false, notice: undefined});
+  assert.deepEqual({...report.certification, notice: undefined}, {data_scope: 'FIXTURE', real_data_verdict: 'NOT_APPLICABLE', certified: false, notice: undefined, pit_mode: 'PIT'});
   assert.match(report.certification.notice, /not a real return/);
   assert.ok(report.limits.every(limit => !/NOT.VERIFIED|VERIFIED/.test(limit)), 'the limits never restate a data verdict (PR #178 review)');
   assert.deepEqual(report.counts.decisions, {BACK: 4, LAY: 0, NO_TRADE: 3});
@@ -233,7 +235,7 @@ test('a technically OK run is not certified data: the run status and the certifi
   real.dataset = {...real.dataset, kind: 'REAL', description: 'synthetic values declared REAL to test the label only'};
   const report = runBacktest(real, CONFIG);
   assert.equal(report.status, STATUS.OK, 'the run itself succeeds');
-  assert.deepEqual({...report.certification, notice: undefined}, {data_scope: 'REAL', real_data_verdict: 'NOT_VERIFIED', certified: false, notice: undefined});
+  assert.deepEqual({...report.certification, notice: undefined}, {data_scope: 'REAL', real_data_verdict: 'NOT_VERIFIED', certified: false, notice: undefined, pit_mode: 'PIT'});
   assert.match(report.certification.notice, /not a certification/);
   assert.equal(report.metrics.pl_net, runBacktest(golden(), CONFIG).metrics.pl_net, 'the label changes nothing in the computation');
   for (const name of ['scope', 'real_data_verdict', 'notice']) assert.ok(!Object.hasOwn(report, name), `${name} lives only in the certification block`);
@@ -704,4 +706,50 @@ test('LAY on random fixtures: every settled bet matches the oracle and the ledge
     if (report.metrics) assert.ok(feq(F(report.metrics.pl_net), total), `total ${round}`);
     if (report.ledger) assert.equal(report.ledger.state.reconciled, true);
   }
+});
+
+// ---- HIST-PG-01: NON_PIT_RESEARCH mode (owner mandate MP-AUTONOMOUS-AUTOMERGE-20261023), explicitly labelled ----
+test('NON_PIT_RESEARCH: the archive #40 profile is simulated, labelled as non point-in-time, never certified; PIT is unchanged', () => {
+  seq = 0;
+  // Every price acquired after kickoff (the stored FPT profile): PIT has nothing, NON_PIT_RESEARCH uses them.
+  const events = Array.from({length: 4}, (_, i) => ev(`n${i}`, `2026-10-05T1${i}:00:00Z`));
+  const observations = events.flatMap(e => ['HOME', 'DRAW', 'AWAY'].map((s, j) =>
+    ob(e.event_id, s, ['1.80', '3.50', '4.50'][j], new Date(Date.parse(e.kickoff_utc) + 3 * 3600000).toISOString())));
+  const outcomes = events.map((e, i) => out(e.event_id, 'FINAL', i % 2, 0, new Date(Date.parse(e.kickoff_utc) + 4 * 3600000).toISOString()));
+  const data = input({events, observations, outcomes});
+  const pit = runBacktest(data, CONFIG);
+  assert.equal(pit.status, STATUS.INSUFFICIENT_PIT_DATA);
+  assert.equal(pit.config.pit_mode, 'PIT');
+  assert.equal(Object.hasOwn(pit.counts, 'pit_exclusions_overridden'), false);
+  const research = runBacktest(data, {...CONFIG, pit_mode: 'NON_PIT_RESEARCH'});
+  assert.equal(research.status, STATUS.OK);
+  assert.deepEqual(research.counts.pit_exclusions_overridden, {ACQUIRED_AFTER_DECISION: 12, PROVIDER_TIME_AFTER_DECISION: 12});
+  assert.deepEqual(research.counts.decisions, {BACK: 4, LAY: 0, NO_TRADE: 0});
+  assert.deepEqual([research.certification.pit_mode, research.certification.certified], ['NON_PIT_RESEARCH', false]);
+  assert.match(research.certification.notice, /not point-in-time and are no evidence of real profitability/);
+  assert.ok(research.limits.some(limit => /^NON_PIT research/.test(limit)));
+  assert.ok(!research.limits.some(limit => /captured knowledge, mp-pit-v1/.test(limit)), 'the PIT limit is not claimed');
+  // HOME at 1.80 wins twice (1-0) and loses twice (0-0): 2·0.8 − 2 = −0.4.
+  assert.equal(research.metrics.pl_net, '-0.4');
+  assert.notEqual(research.config.settings_snapshot_id, pit.config.settings_snapshot_id, 'the mode is part of the settings snapshot');
+  // A PIT configuration keeps the settings snapshot it had before the mode existed.
+  assert.equal(runBacktest(golden(), CONFIG).config.settings_snapshot_id,
+    sha256hex(canonicalJson({strategy: 'mp-ref-fav-back-1', bookmaker: 'bk1', lead_minutes: 10, stake: '1', commission: '0'})));
+  assert.throws(() => runBacktest(data, {...CONFIG, pit_mode: 'LIVE'}), error => error.field === 'config.pit_mode');
+});
+
+test('NON_PIT_RESEARCH without kickoff: decided by match date, ordered by date, kickoff filter reported as not applied', () => {
+  seq = 0;
+  const events = [{...ev('d2', null), match_date: '2026-10-06'}, {...ev('d1', null), match_date: '2026-10-05'}, ev('d0', null)];
+  const observations = ['d1', 'd2', 'd0'].flatMap(id => ['HOME', 'DRAW', 'AWAY'].map((s, j) => ob(id, s, ['2.00', '3.20', '3.90'][j], '2026-10-08T10:00:00Z')));
+  const outcomes = [out('d1', 'FINAL', 2, 0, '2026-10-08T10:00:00Z'), out('d2', 'FINAL', 0, 1, '2026-10-08T10:00:00Z')];
+  const research = runBacktest(input({events, observations, outcomes}), {...CONFIG, pit_mode: 'NON_PIT_RESEARCH'});
+  assert.deepEqual(research.bets.map(b => [b.event_id, b.decision_basis, b.decision_time, b.match_date, b.settlement.outcome, b.settlement.kickoff_filter]),
+    [['d1', 'MATCH_DATE_NON_PIT', null, '2026-10-05', 'WIN', 'NOT_APPLIED_KICKOFF_UNKNOWN'], ['d2', 'MATCH_DATE_NON_PIT', null, '2026-10-06', 'LOSE', 'NOT_APPLIED_KICKOFF_UNKNOWN']]);
+  // No kickoff and no date: still no decision; and PIT never decides without a kickoff.
+  assert.deepEqual(research.counts.no_trade_by_reason, {KICKOFF_UNKNOWN: 1});
+  const pit = runBacktest(input({events, observations, outcomes}), CONFIG);
+  assert.deepEqual([pit.status, pit.counts.decisions.NO_TRADE], [STATUS.INSUFFICIENT_PIT_DATA, 3]);
+  // match_date is validated as a calendar date.
+  assert.throws(() => validateInput(input({events: [{...ev('z', null), match_date: '2026-02-30'}], observations: []})), error => error.field === 'events[0].match_date');
 });
