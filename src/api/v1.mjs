@@ -2,7 +2,7 @@
 // source, provenance), every response uses the same envelope and every error a stable code.
 // The API reads only MatchPilot's database: no provider call, no LIVE, no write.
 import {matchAnalysis, matchIdOf} from '../analysis/match-analysis.mjs';
-import {histBacktestEndpoint} from './hist-backtest.mjs';
+import {histBacktestEndpoint, histCompareEndpoint} from './hist-backtest.mjs';
 import {MAX_CURSOR_LENGTH, QUERY_CATALOG, ROUTES as FPT_LEGACY_ROUTES, buildQuery, runQuery} from '../providers/futpython/query.mjs';
 
 export const API_VERSION = 'v1';
@@ -94,6 +94,7 @@ export function createEndpoints(tc) {
       read: (client, input) => matchAnalysis(client, input), provenance: data => data.provenance, asOf: () => null},
     // HIST-API-01: backtest over the stored FPT data, read only (src/api/hist-backtest.mjs).
     histBacktestEndpoint({param, integer, oneOf, instant, ApiError}),
+    histCompareEndpoint({param, integer, oneOf, instant, ApiError}),
     tcEndpoint('discovery', 'TotalCorner discovery report', {}, client => tc.discovery(client)),
     tcEndpoint('schema-registry', 'TotalCorner observed schema registry', {endpoint_family: param('endpoint family'), phase: param('phase'),
       limit: param(`integer 1–${TC_SCHEMA_REGISTRY_LIMIT.max}, default ${TC_SCHEMA_REGISTRY_LIMIT.default}`, false, integer('limit', 1, TC_SCHEMA_REGISTRY_LIMIT.max))},
@@ -195,8 +196,9 @@ export async function handleV1({method, url}, {withClient, tc, codeVersion = 'un
     if (method !== 'GET') throw new ApiError('METHOD_NOT_ALLOWED', 'only GET is supported');
     const input = validateInput(endpoint, url);
     if (endpoint.exclusive) {
-      if (running.has(endpoint.path)) throw new ApiError('BUSY', 'another request of this endpoint is running; retry later');
-      running.add(endpoint.path);
+      // Endpoints sharing an exclusiveKey (the backtest and the comparison) share one slot.
+      if (running.has(endpoint.exclusiveKey ?? endpoint.path)) throw new ApiError('BUSY', 'another request of this endpoint is running; retry later');
+      running.add(endpoint.exclusiveKey ?? endpoint.path);
     }
     try {
     let data;
@@ -217,7 +219,7 @@ export async function handleV1({method, url}, {withClient, tc, codeVersion = 'un
     if (endpoint.compute && data !== null && data !== undefined) data = endpoint.compute(data, input);
     if (data === null || data === undefined) throw new ApiError('NOT_FOUND', 'no data for this request');
     return {status: 200, body: envelope(endpoint, data, {codeVersion, now: now(), input})};
-    } finally { if (endpoint.exclusive) running.delete(endpoint.path); }
+    } finally { if (endpoint.exclusive) running.delete(endpoint.exclusiveKey ?? endpoint.path); }
   } catch (error) {
     const safe = error instanceof ApiError ? error : new ApiError('INTERNAL', 'internal error');
     return {status: safe.status, body: errorBody(safe)};

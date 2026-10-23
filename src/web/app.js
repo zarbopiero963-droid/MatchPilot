@@ -837,6 +837,14 @@ const labelled = (map, value) => typeof value === 'string' && Object.hasOwn(map,
 const researchNotice = () => el('p', {class: 'state partial research', role: 'note', 'data-testid': 'sim-research'},
   el('b', {}, 'RICERCA ESPLORATIVA'), ' — le quote sono state acquisite dopo l’inizio delle partite: i risultati servono solo a studiare il motore e non dimostrano alcuna redditività.');
 
+// The comparison opens with the simulation's data and its strategy as configuration A.
+function compareHref(params) {
+  const out = {};
+  for (const name of CMP_DATA) if (params.get(name)) out[name] = params.get(name);
+  for (const field of CMP_STRATEGY) if (params.get(field)) out[`a_${field}`] = params.get(field);
+  return `#/compare?${queryString(out)}`;
+}
+
 function simForm(params, competitions) {
   const value = name => params.get(name) ?? '';
   const select = (name, options, fallback) => el('select', {name}, options.map(([v, text]) => el('option', {value: v, selected: (value(name) || fallback) === v}, text)));
@@ -978,7 +986,8 @@ async function simView(params) {
   const head = [el('h1', {}, 'Simulazione'),
     competitionsBody ? null : el('p', {class: 'state partial', role: 'status'}, 'Elenco dei campionati non disponibile: il filtro per campionato è disattivato.'),
     params.get('pit_mode') === 'NON_PIT_RESEARCH' ? researchNotice() : null,
-    simForm(params, competitions)];
+    simForm(params, competitions),
+    el('p', {class: 'meta'}, el('a', {href: compareHref(params), 'data-testid': 'sim-compare-link'}, 'Confronta più strategie sugli stessi dati'))];
   if (params.get('run') !== '1') return [...head, el('p', {class: 'state empty'}, 'Scegli il periodo e premi Simula.')];
   const api = {};
   for (const key of SIM_FIELDS) if (params.get(key)) api[key] = params.get(key);
@@ -1038,6 +1047,192 @@ async function simView(params) {
     Array.isArray(report.bets) && report.bets.length ? simBets(report.bets, body.data?.events, body.data?.totals?.bets) : null];
 }
 
+// ---- Confronto: two or three strategy configurations on the same data (STRAT-CMP-01, #34) ----
+
+// The page sends the configurations to GET /api/v1/hist/compare, which reads the data once and runs each one with the
+// same period, competition, mode, commission and size. The reports sit side by side: the browser computes no
+// difference and no ranking (MP-WEB-011).
+const CMP_KEYS = ['a', 'b', 'c'];
+const CMP_DATA = ['from', 'to', 'competition', 'pit_mode', 'commission', 'max_events'];
+const CMP_STRATEGY = ['strategy', ...DEF_FIELDS, 'stake', 'bankroll', 'mm_model', 'mm_value'];
+const CMP_STRATEGY_LABELS = {strategy: 'Strategia', stake: 'Puntata', bankroll: 'Capitale iniziale', mm_model: 'Gestione del capitale', mm_value: 'Valore della gestione',
+  ...Object.fromEntries(DEF_FIELDS.map(name => [name, SIM_LABELS[name]]))};
+
+// The strategy fields of one configuration, every name prefixed by its key; C may stay empty («Nessuna»).
+function cmpConfiguration(params, key) {
+  const name = field => `${key}_${field}`;
+  const value = field => params.get(name(field)) ?? '';
+  const select = (field, options, fallback) => el('select', {name: name(field)}, options.map(([v, text]) => el('option', {value: v, selected: (value(field) || fallback) === v}, text)));
+  const input = (field, attrs) => el('input', {name: name(field), value: value(field), ...attrs});
+  const price = field => input(field, {type: 'number', step: '0.001', min: '1.001', max: '1000'});
+  const optional = key === 'c';
+  const strategies = optional ? [['', 'Nessuna'], ...SIM_STRATEGIES] : SIM_STRATEGIES;
+  const strategySelect = select('strategy', strategies, optional ? '' : 'mp-ref-fav-back-1');
+  const rules = el('div', {class: 'fields', 'data-testid': `cmp-rules-${key}`, hidden: value('strategy') !== 'custom'},
+    el('label', {}, 'Selezione ', select('selection', Object.entries(DEF_SELECTION_TEXT), 'FAVOURITE')),
+    el('label', {}, 'Lato ', select('side', Object.entries(SIDE_TEXT), 'BACK')),
+    el('label', {}, 'Quota selezione da ', price('odds_min')), el('label', {}, 'Quota selezione fino a ', price('odds_max')),
+    el('label', {}, 'Quota 1 da ', price('home_min')), el('label', {}, 'Quota 1 fino a ', price('home_max')),
+    el('label', {}, 'Quota X da ', price('draw_min')), el('label', {}, 'Quota X fino a ', price('draw_max')),
+    el('label', {}, 'Quota 2 da ', price('away_min')), el('label', {}, 'Quota 2 fino a ', price('away_max')),
+    el('label', {}, 'Squadra ', input('team', {type: 'text', placeholder: 'es. Ajax', autocomplete: 'off', maxlength: '100'})),
+    el('label', {}, 'Sede della squadra ', select('venue', Object.entries(DEF_VENUE_TEXT), 'ANY')));
+  const money = el('div', {class: 'fields', 'data-testid': `cmp-money-${key}`, hidden: optional && !value('strategy')},
+    el('label', {}, 'Puntata ', input('stake', {type: 'number', step: '0.01', min: '0.01', placeholder: '1'})),
+    el('label', {}, 'Capitale iniziale ', input('bankroll', {type: 'number', step: '0.01', min: '0.01'})),
+    el('label', {}, 'Gestione del capitale ', select('mm_model', SIM_MM, '')),
+    el('label', {}, 'Valore della gestione (importo, o percentuale: 2 = 2%) ', input('mm_value', {type: 'number', step: '0.01', min: '0.01'})));
+  strategySelect.addEventListener('change', () => { rules.hidden = strategySelect.value !== 'custom'; money.hidden = optional && !strategySelect.value; });
+  return el('fieldset', {'data-testid': `cmp-config-${key}`}, el('legend', {}, `Configurazione ${key.toUpperCase()}${optional ? ' (facoltativa)' : ''}`),
+    el('div', {class: 'fields'}, el('label', {}, 'Strategia ', strategySelect)), rules, money);
+}
+
+// The form values as the page's address: a reference strategy drops the rules, an empty C drops everything of C.
+function cmpOut(entries) {
+  const out = {};
+  for (const [key, v] of entries) if (String(v).trim() !== '') out[key] = String(v).trim();
+  for (const key of CMP_KEYS) {
+    const strategy = out[`${key}_strategy`];
+    if (!strategy) for (const field of CMP_STRATEGY) delete out[`${key}_${field}`];
+    else if (strategy !== 'custom') for (const field of DEF_FIELDS) delete out[`${key}_${field}`];
+    else if (!out[`${key}_team`] || out[`${key}_venue`] === 'ANY') delete out[`${key}_venue`];
+  }
+  return out;
+}
+
+function cmpForm(params, competitions) {
+  const value = name => params.get(name) ?? '';
+  const select = (name, options, fallback) => el('select', {name}, options.map(([v, text]) => el('option', {value: v, selected: (value(name) || fallback) === v}, text)));
+  const input = (name, attrs) => el('input', {name, value: value(name), ...attrs});
+  const competitionOptions = [['', 'Tutti'], ...competitions.map(c => [c.internal_competition_id, `${words(c.country_slug ?? '')} · ${words(c.league_slug ?? '')}`])];
+  const modeHint = el('p', {class: 'state partial', role: 'note', 'data-testid': 'sim-mode-hint', hidden: (value('pit_mode') || 'PIT') !== 'NON_PIT_RESEARCH'},
+    'Ricerca esplorativa: usa le quote acquisite dopo l’inizio delle partite, solo per studio.');
+  const modeSelect = select('pit_mode', SIM_MODES, 'PIT');
+  modeSelect.addEventListener('change', () => { modeHint.hidden = modeSelect.value !== 'NON_PIT_RESEARCH'; });
+  return el('form', {class: 'card search', 'data-testid': 'cmp-form', onsubmit: event => {
+    event.preventDefault();
+    revealOutcome = true;
+    const target = `#/compare?${queryString({...cmpOut(new FormData(event.target).entries()), run: '1'})}`;
+    if (location.hash === target) render();
+    else location.hash = target;
+  }},
+  el('fieldset', {}, el('legend', {}, 'Dati in comune'),
+    el('div', {class: 'fields'},
+      el('label', {}, 'Dal ', input('from', {type: 'date', required: true})),
+      el('label', {}, 'Al ', input('to', {type: 'date', required: true})),
+      el('label', {}, 'Campionato ', competitions.length ? select('competition', competitionOptions, '')
+        : el('span', {class: 'nd', title: 'Nessun campionato disponibile'}, ND)),
+      el('label', {}, 'Modalità ', modeSelect),
+      el('label', {}, 'Commissione (es. 0,05 = 5%) ', input('commission', {type: 'number', step: '0.001', min: '0', max: '0.999', placeholder: '0'})),
+      el('label', {}, 'Partite al massimo ', input('max_events', {type: 'number', step: '1', min: '1', max: '1000', placeholder: '300'})))),
+  CMP_KEYS.map(key => cmpConfiguration(params, key)),
+  modeHint,
+  el('button', {type: 'submit'}, 'Confronta'), ' ', el('a', {href: '#/compare'}, 'Azzera'), ' ', el('a', {href: '#/sim'}, 'Torna alla simulazione'));
+}
+
+// A refusal names its configuration («a_side…», «b: config.stake…») and its field.
+function cmpRefusedFields(message) {
+  const raw = String(message ?? '');
+  const scoped = /^([abc]): config\.([\w.]+):/.exec(raw);
+  if (scoped) {
+    const path = scoped[2] === 'money_management' ? raw.slice(raw.indexOf(':', 3) + 1) : scoped[2];
+    const text = path.replace(/\bparams\.[a-z_]+/g, 'mm_value').replace(/\bconditions\.teams\b/g, 'team');
+    return Object.keys(CMP_STRATEGY_LABELS).filter(f => new RegExp(`(?<![a-z_])${f}(?![a-z_])`).test(text)).map(f => `${scoped[1]}_${f}`);
+  }
+  const data = CMP_DATA.filter(f => new RegExp(`(?<![a-z_])${f}(?![a-z_])`).test(raw));
+  const own = [...raw.matchAll(/\b([abc])_([a-z_]+)\b/g)].map(([, key, field]) => `${key}_${field}`).filter(n => CMP_STRATEGY.includes(n.slice(2)));
+  return [...new Set([...data, ...own])];
+}
+const cmpFieldLabel = name => /^[abc]_/.test(name) ? `Configurazione ${name[0].toUpperCase()} · ${CMP_STRATEGY_LABELS[name.slice(2)] ?? name.slice(2)}` : SIM_LABELS[name];
+
+// One line of the side-by-side table: a label and, for each configuration, the API's value.
+function cmpRow(label, name, variants, valueOf) {
+  return el('tr', {'data-row': name}, el('th', {scope: 'row'}, label), variants.map(v => el('td', {'data-field': `${v.key}_${name}`, 'data-label': `Configurazione ${v.key.toUpperCase()}`}, valueOf(v))));
+}
+function cmpStrategyText(report) {
+  const d = report.config?.strategy_definition;
+  const reference = SIM_STRATEGIES.find(([id]) => id === report.config?.strategy);
+  if (!d) return reference ? reference[1] : formatScalar(null);
+  const c = d.conditions ?? {};
+  // el() flattens one level of children: each part is a flat list.
+  const range = (text, lo, hi) => (lo !== undefined || hi !== undefined) ? [' · ', text, ...(lo !== undefined ? [' da ', num(lo)] : []), ...(hi !== undefined ? [' fino a ', num(hi)] : [])] : null;
+  return el('span', {'data-strategy': report.config.strategy ?? ''}, 'Personalizzata: ', labelled(SIDE_TEXT, d.side), ' · ', labelled(DEF_SELECTION_TEXT, d.selection),
+    range('quota', c.odds_min, c.odds_max), range('1', c.home_min, c.home_max), range('X', c.draw_min, c.draw_max), range('2', c.away_min, c.away_max),
+    c.teams ? [' · ', c.teams.join(', '), ' ', DEF_VENUE_TEXT[c.venue ?? 'ANY'].toLowerCase()] : null);
+}
+
+async function compareView(params) {
+  const competitionsBody = await getJson('/api/v1/fpt/competitions').catch(error => {
+    if (error?.code === 'UNAUTHENTICATED') throw error;
+    return null;
+  });
+  const competitions = Array.isArray(competitionsBody?.data?.rows) ? competitionsBody.data.rows : [];
+  const head = [el('h1', {}, 'Confronto di strategie'),
+    competitionsBody ? null : el('p', {class: 'state partial', role: 'status'}, 'Elenco dei campionati non disponibile: il filtro per campionato è disattivato.'),
+    params.get('pit_mode') === 'NON_PIT_RESEARCH' ? researchNotice() : null,
+    cmpForm(params, competitions)];
+  if (params.get('run') !== '1') return [...head, el('p', {class: 'state empty'}, 'Scegli il periodo e almeno le configurazioni A e B, poi premi Confronta.')];
+  const api = {};
+  for (const name of CMP_DATA) if (params.get(name)) api[name] = params.get(name);
+  for (const key of CMP_KEYS) {
+    const strategy = params.get(`${key}_strategy`);
+    if (!strategy) continue;
+    for (const field of CMP_STRATEGY) if (params.get(`${key}_${field}`)) api[`${key}_${field}`] = params.get(`${key}_${field}`);
+    // «Personalizzata» is the page's name for a definition: the API receives the rules, not a strategy id.
+    if (strategy === 'custom') delete api[`${key}_strategy`];
+    else for (const field of DEF_FIELDS) delete api[`${key}_${field}`];
+  }
+  let body;
+  try {
+    body = await getJson(`/api/v1/hist/compare?${queryString(api)}`);
+  } catch (error) {
+    if (error?.status === 400) {
+      const fields = cmpRefusedFields(error.message);
+      return [...head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'cmp-invalid', 'data-outcome': '', 'data-fields': fields.join(' '), title: reasonText(error)},
+        fields.length ? `Valore non valido in: ${fields.map(cmpFieldLabel).join(', ')}. Correggi il campo e riprova.` : 'Impostazioni non valide. Correggi i campi e riprova.')];
+    }
+    if (error?.status === 429) {
+      return [...head, el('p', {class: 'state partial', role: 'status', 'data-testid': 'sim-busy', 'data-outcome': '', title: reasonText(error)},
+        'È già in corso un’altra simulazione: riprova tra qualche secondo.')];
+    }
+    throw error;
+  }
+  const variants = Array.isArray(body.data?.variants) ? body.data.variants : [];
+  if (variants.length < 2 || variants.some(v => !v.report)) throw new ApiFailure(200, 'BAD_ENVELOPE', 'risposta senza confronto');
+  const reader = body.data?.reader ?? {};
+  const research = variants.some(v => isResearch(v.report));
+  const metric = (v, field) => num(v.report.metrics?.rounded?.[field] ?? (v.report.metrics ? undefined : null));
+  const plain = (v, field) => num(v.report.metrics?.[field]);
+  const statusText = v => ({INSUFFICIENT_PIT_DATA: 'Nessuna quota utilizzabile', INSUFFICIENT_OUTCOMES: 'Nessun risultato finale'}[v.report.status]
+    ?? (v.report.status === 'OK' && !v.report.metrics ? 'Nessuna scommessa' : 'Completata'));
+  return [...head,
+    el('h2', {'data-testid': 'cmp-outcome', 'data-outcome': '', 'data-input': body.data?.input_sha256 ?? '', 'data-reports': variants.map(v => v.report.report_sha256).join(' '),
+      'data-pit-mode': variants[0].report.config?.pit_mode ?? ''}, 'Esito del confronto'),
+    research ? researchNotice() : null,
+    el('p', {class: 'state partial', role: 'note', 'data-testid': 'sim-certification'},
+      'Non certificato: risultati tecnici su dati reali non verificati, non una previsione di guadagno. Stessi dati, stesso periodo e stessa modalità per tutte le configurazioni.'),
+    reader.truncated ? el('p', {class: 'state partial', role: 'status', 'data-testid': 'sim-truncated'},
+      `Confrontate solo le prime ${formatNumber(reader.events)} partite del periodo: aumenta «Partite al massimo» o riduci il periodo.`) : null,
+    el('section', {class: 'card', 'data-testid': 'cmp-table'}, el('h2', {}, 'Configurazioni a confronto'),
+      el('div', {class: 'tablewrap'}, el('table', {class: 'compare'},
+        el('thead', {}, el('tr', {}, el('th', {scope: 'col'}, ''), variants.map(v => el('th', {scope: 'col', 'data-key': v.key}, `Configurazione ${v.key.toUpperCase()}`)))),
+        el('tbody', {},
+          cmpRow('Strategia', 'strategy', variants, v => cmpStrategyText(v.report)),
+          cmpRow('Esito', 'status', variants, v => el('span', {'data-code': v.report.status ?? ''}, statusText(v))),
+          cmpRow('Partite lette', 'events', variants, v => num(v.report.counts?.events)),
+          cmpRow('Scommesse', 'bets', variants, v => num(v.totals?.bets)),
+          cmpRow('Nessuna operazione', 'no_trade', variants, v => num(v.totals?.no_trade)),
+          cmpRow('Non regolate', 'unsettled', variants, v => num(v.totals?.unsettled)),
+          cmpRow('Vinte', 'won', variants, v => plain(v, 'won')),
+          cmpRow('Perse', 'lost', variants, v => plain(v, 'lost')),
+          cmpRow('Capitale a rischio', 'exposure', variants, v => plain(v, 'exposure')),
+          cmpRow('Profitto netto', 'pl_net', variants, v => metric(v, 'pl_net')),
+          cmpRow('Rendimento sul capitale a rischio', 'roi', variants, v => metric(v, 'roi')),
+          cmpRow('Massimo calo', 'max_drawdown', variants, v => metric(v, 'max_drawdown')),
+          cmpRow('Cassa finale', 'final_cash', variants, v => v.report.bankroll ? num(v.report.bankroll.final_cash) : el('span', {class: 'empty', title: 'Configurazione senza capitale'}, '—'))))),
+      el('p', {class: 'meta'}, 'Profitto netto e massimo calo arrotondati al centesimo, rendimento a quattro decimali (0,0500 = 5%); gli altri importi sono esatti. Nessuna classifica: i valori sono quelli di ciascuna simulazione.'))];
+}
+
 // [what is loading, view, area]: a 'user' view shows no technical text (MP-WEB-015, checked by the Browser QA gate); a
 // 'technical' view is where provenance and diagnostics belong. Every view declares one (V-B2). #/board, the former
 // address of the Daily Board, still opens it, and the menu item of each view is its section (NAV_OF).
@@ -1045,9 +1240,9 @@ async function simView(params) {
 const VIEWS = {'': ['la pagina', boardView, 'user'], board: ['la pagina', boardView, 'user'], search: ['la ricerca', searchView, 'user'],
   match: ['la partita', matchView, 'user'],
   data: ['lo stato dei dati', dashboardView, 'technical'], providers: ['i fornitori dati', providersView, 'technical'],
-  sim: ['la simulazione', simView, 'user'],
+  sim: ['la simulazione', simView, 'user'], compare: ['il confronto', compareView, 'user'],
   endpoints: ['gli endpoint', endpointsView, 'technical']};
-const NAV_OF = {board: '', providers: 'data', endpoints: 'data', match: null};
+const NAV_OF = {board: '', providers: 'data', endpoints: 'data', match: null, compare: 'sim'};
 
 let generation = 0;
 // Set by the search form: the next search render moves the focus to its outcome and scrolls it into view, so the result,
@@ -1065,7 +1260,7 @@ async function render() {
   const name = location.hash.replace(/^#\/?/, '').split('?')[0];
   // The submit flag belongs to this render only: any navigation consumes it, so a search abandoned before its answer
   // never moves the focus later, when the page is opened again without a submit (PR #168 review NB-1).
-  const reveal = revealOutcome && (name === 'search' || name === 'sim');
+  const reveal = revealOutcome && (name === 'search' || name === 'sim' || name === 'compare');
   revealOutcome = false;
   const [what, view, area] = Object.hasOwn(VIEWS, name) ? VIEWS[name] : [null, null, 'user'];
   const host = document.getElementById('view');

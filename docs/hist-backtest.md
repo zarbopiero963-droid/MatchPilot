@@ -96,6 +96,19 @@ The backtest over the stored FPT data, through API v1 (read only, same envelope 
 
 Every parameter, and the configuration through the engine's own validation, is checked before any database access (400 otherwise). The read runs in a `READ ONLY` transaction with a 20 s statement timeout. The computation runs after the transaction is closed and the database client released, one request at a time per process (a concurrent request gets `429 BUSY`); `data.reader.truncated` says when more matches than `max_events` exist (the reader asks for one more and drops it). A stored row the reader refuses is a `500 INTERNAL` data defect, never a `503`. `data` is `{reader, report, events, totals}`: the reader's counts, the engine's report (unchanged, same `report_sha256`), and two blocks for the web page «Simulazione» (HIST-WEB-01), so the browser computes nothing: `events` maps the `event_id` of every match bet on to its names, `match_date` and `kickoff_utc` as the input carries them (not to be confused with `reader.events`, a count); `totals` gives `bets`, `unsettled`, `no_trade` and `skipped_by_money_management` (null without a bankroll), the sums of the report's counters; `meta.provenance` repeats the PIT mode, the certification block (`certified: false`) and the report hash. On the stored FPT data a `PIT` request gives `INSUFFICIENT_PIT_DATA`; `NON_PIT_RESEARCH` simulates, labelled as exploratory.
 
+## Comparison: `GET /api/v1/hist/compare` (STRAT-CMP-01, #34)
+
+Two or three strategy configurations on **one read of the same data**:
+- the data parameters are shared: `from`, `to`, `competition`, `pit_mode`, `commission`, `outcomes_as_of`, `max_events`;
+- each configuration takes the strategy parameters of the backtest with its prefix `a_`, `b_` or `c_`: `strategy` or `selection`/`side` with the price conditions, `team`, `venue`, `stake`, `bankroll`, `mm_model`, `mm_value`;
+- `a_` and `b_` are required, `c_` is optional.
+
+The configurations run one after another on the same input, so their reports share `dataset.input_sha256` (also returned as `data.input_sha256`). Each report is exactly the one `/api/v1/hist/backtest` gives for the same parameters (test-checked on PostgreSQL). `data` is `{reader, input_sha256, variants: [{key, report, totals}], events}`.
+
+There is no ranking and no computed difference: the page sets the reports side by side. Refusals name the configuration: `a_side is required with a_selection`, `b: config.stake: must be positive`.
+
+The backtest and the comparison share one exclusive slot, so a request arriving while either runs gets `429 BUSY`.
+
 ## Configurable strategies `mp-strategy-def-1` (STRAT-CFG-01, #34)
 
 `config.strategy_definition` replaces `config.strategy`. A `strategy` beside it is accepted only when it is the definition's own id, so a report's `config`, without the derived `settings_snapshot_id` and `commission_rate_used`, runs again unchanged. A definition is a closed JSON object: every field is validated, unknown fields and `null` values are refused, nothing is evaluated as code.

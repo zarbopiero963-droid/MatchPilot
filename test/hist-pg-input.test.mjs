@@ -154,6 +154,16 @@ test('FPT reader: versions, prices and results from PostgreSQL; PIT finds nothin
       assert.deepEqual([defPit.status, defPit.body.data.report.status], [200, 'INSUFFICIENT_PIT_DATA'], 'the stored prices are not PIT: rigorous mode simulates nothing');
       assert.equal(mmApi.body.data.totals.skipped_by_money_management, sumOf(mmApi.body.data.report.bankroll.skipped_by_reason));
 
+      // STRAT-CMP-01 on the real tables: each configuration of a comparison is exactly the backtest of the same parameters.
+      const v1 = path => handleV1({method: 'GET', url: new URL(`http://localhost${path}`)}, {withClient: async fn => fn(db), tc: {}, codeVersion: 't'});
+      const period = 'from=2025-09-01&to=2025-09-30&pit_mode=NON_PIT_RESEARCH&commission=0.05';
+      const compared = await v1(`/api/v1/hist/compare?${period}&a_strategy=mp-ref-fav-back-1&b_selection=HOME&b_side=LAY&b_odds_max=3`);
+      assert.equal(compared.status, 200);
+      const singleA = await v1(`/api/v1/hist/backtest?${period}&strategy=mp-ref-fav-back-1`);
+      const singleB = await v1(`/api/v1/hist/backtest?${period}&selection=HOME&side=LAY&odds_max=3`);
+      assert.deepEqual(compared.body.data.variants.map(v => v.report.report_sha256), [singleA.body.data.report.report_sha256, singleB.body.data.report.report_sha256]);
+      assert.deepEqual(compared.body.data.variants.map(v => v.totals), [singleA.body.data.totals, singleB.body.data.totals]);
+      assert.equal(compared.body.data.input_sha256, singleA.body.data.report.dataset.input_sha256);
       const after = (await db.query(`SELECT (SELECT count(*) FROM fpt_match_versions) v, (SELECT count(*) FROM fpt_match_facts) f`)).rows[0];
       assert.deepEqual(after, before, 'the reader writes nothing');
       assert.equal(summary.reader.events, 3);

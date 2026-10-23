@@ -87,3 +87,47 @@ test('configurable strategy parameters: refused combinations never reach the dat
   assert.match(result.body.data.report.config.strategy, /^def:[0-9a-f]{16}$/);
   assert.deepEqual(result.body.data.report.config.strategy_definition.conditions, {odds_max: '2.5'});
 });
+
+// STRAT-CMP-01: two or three configurations on one read of the same data.
+const cmp = '/api/v1/hist/compare?from=2025-09-01&to=2025-09-30';
+test('comparison: refusals name the configuration and never reach the database; one read, runs side by side', async () => {
+  calls.length = 0;
+  const refused = [[`${cmp}&a_strategy=mp-ref-fav-back-1`, /configurations a and b/], [`${cmp}&b_selection=HOME&b_side=BACK`, /configurations a and b/],
+    [`${cmp}&a_selection=HOME&b_strategy=mp-ref-fav-lay-1`, /^a_side is required with a_selection$/],
+    [`${cmp}&a_strategy=mp-ref-fav-back-1&b_strategy=mp-ref-fav-lay-1&b_stake=0`, /^b: config\.stake: must be positive$/],
+    [`${cmp}&a_selection=FIRST_GOAL&a_side=BACK&b_strategy=mp-ref-fav-lay-1`, /^a_selection must be one of/],
+    [`${cmp}&a_strategy=mp-ref-fav-back-1&a_selection=HOME&a_side=BACK&b_strategy=mp-ref-fav-lay-1`, /^a_strategy and a_selection are exclusive$/],
+    [`${cmp}&a_strategy=mp-ref-fav-back-1&b_strategy=mp-ref-fav-lay-1&c_odds_min=2`, /^c_odds_min need c_selection$/],
+    [`${cmp}&a_strategy=mp-ref-fav-back-1&b_strategy=mp-ref-fav-lay-1&d_strategy=mp-ref-fav-back-1`, /unknown parameter/],
+    [`${cmp}&a_strategy=mp-ref-fav-back-1&b_strategy=mp-ref-fav-lay-1&b_mm_model=PERCENT_BANKROLL&b_mm_value=2`, /^b: config\.money_management: needs config\.bankroll$/],
+    ['/api/v1/hist/compare?from=2025-13-01&to=2025-09-30&a_strategy=mp-ref-fav-back-1&b_strategy=mp-ref-fav-lay-1', /^from must be a date/]];
+  for (const [path, message] of refused) {
+    const result = await get(path);
+    assert.equal(result.status, 400, path);
+    assert.match(result.body.error.message, message, path);
+  }
+  assert.deepEqual(calls, [], 'no query was sent');
+  const ok = await get(`${cmp}&pit_mode=NON_PIT_RESEARCH&commission=0.05&a_strategy=mp-ref-fav-back-1&b_selection=UNDERDOG&b_side=LAY&b_odds_max=6&c_strategy=mp-ref-fav-lay-1&c_bankroll=100&c_mm_model=PERCENT_BANKROLL&c_mm_value=2`);
+  assert.equal(ok.status, 200);
+  assert.equal(calls.filter(sql => sql === 'BEGIN READ ONLY').length, 1, 'one read for every configuration');
+  const {variants, input_sha256: shared} = ok.body.data;
+  assert.deepEqual(variants.map(v => v.key), ['a', 'b', 'c']);
+  assert.ok(variants.every(v => v.report.dataset.input_sha256 === shared && v.report.config.pit_mode === 'NON_PIT_RESEARCH' && v.report.config.commission === '0.05'));
+  assert.deepEqual(variants.map(v => v.report.config.strategy.startsWith('def:') ? 'def' : v.report.config.strategy), ['mp-ref-fav-back-1', 'def', 'mp-ref-fav-lay-1']);
+  assert.equal(variants[2].report.config.bankroll, '100');
+  assert.deepEqual(ok.body.meta.provenance.report_sha256, variants.map(v => v.report.report_sha256));
+});
+
+test('comparison and backtest share one exclusive slot: a comparison waits for a running backtest (429)', async () => {
+  let release;
+  const slow = {query: async sql => { if (sql === 'COMMIT') await new Promise(resolve => { release = resolve; }); return {rows: []}; }};
+  const deps = {tc: {}, codeVersion: 't', now: () => new Date('2026-10-23T00:00:00Z')};
+  const running = handleV1({method: 'GET', url: new URL(`http://localhost${base}`)}, {...deps, withClient: async fn => fn(slow)});
+  await new Promise(resolve => setImmediate(resolve));
+  calls.length = 0;
+  const blocked = await get(`${cmp}&a_strategy=mp-ref-fav-back-1&b_strategy=mp-ref-fav-lay-1`);
+  assert.deepEqual([blocked.status, blocked.body.error.code, calls.length], [429, 'BUSY', 0]);
+  release();
+  assert.equal((await running).status, 200);
+  assert.equal((await get(`${cmp}&a_strategy=mp-ref-fav-back-1&b_strategy=mp-ref-fav-lay-1`)).status, 200);
+});

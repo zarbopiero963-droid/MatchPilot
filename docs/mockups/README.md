@@ -3,9 +3,9 @@
 ## File corrente
 
 - File: [`matchpilot-trading-os.html`](matchpilot-trading-os.html), percorso stabile. Le versioni non cambiano nome: la storia è in git e in questo changelog.
-- Versione: **Mock UX v2026.10.23b**
+- Versione: **Mock UX v2026.10.23c**
 - Ultimo aggiornamento: 2026-10-23
-- SHA-256: `c94dbecad5c624942a19fa831a0380134c9e70677599a081e7dedc7be9b2b786`
+- SHA-256: `5b950555d77a47d5e1e6dcb7c6dccbd0e4f71ad09b088a02ac18742e88d271b0`
 - Allineato a: roadmap #97 (revisione owner 06/10/2026)
 - Issue rappresentate: #12, #20, #23, #24, #25, #27, #28, #29, #30, #31, #32, #34, #40, #44, #45, #46, #87, #91, #94, #95, #96, #97, #98, #99, #100, #102
 
@@ -53,6 +53,11 @@ Il mock è un riferimento UX/prodotto **vivo**. Non è l'architettura e non cert
 - Il layout usa font Google; senza rete il menu desktop può tagliare l'ultima voce.
 
 ## Changelog
+
+### v2026.10.23c — Confronto di strategie (STRAT-CMP-01, #34)
+
+- La nota sul sito reale nella pagina Backtest descrive il «Confronto di strategie»: 2–3 configurazioni sulla stessa lettura dei dati, affiancate senza classifiche.
+- Il confronto DEMO dentro/fuori campione del mock resta DEMO.
 
 ### v2026.10.23b — Strategia personalizzata (STRAT-CFG-01, #34)
 
