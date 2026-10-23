@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 171,
+  "revision": 172,
   "tasks": [
     {
       "id": "R-01",
@@ -1209,9 +1209,9 @@
       "pr": 224,
       "branch": "hist-pg-tzfix",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T163453Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T165226Z-agent-a-claude-code",
       "resources": [
         "src/providers/futpython/hist-input.mjs",
         "test/hist-pg-input.test.mjs"
@@ -1220,7 +1220,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "3c776dd1d017246c389cd530711b4f8269f9f20e"
     }
   ]
 }
