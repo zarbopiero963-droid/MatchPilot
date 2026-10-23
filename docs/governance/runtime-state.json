@@ -1,7 +1,7 @@
 {
   "schema_version": "mp-runtime-state-v1",
-  "updated_at": "2026-10-23T06:29:10Z",
-  "updated_by": "agent-g-grok",
+  "updated_at": "2026-10-23T07:37:00Z",
+  "updated_by": "agent-b-claude-code",
   "note": "Vendor-neutral runtime state of MatchPilot (GOV-RUNTIME-STATE-01, #150, owner t141u). Source of truth on GitHub; any local CHECKPOINT.md is a derived copy. Every PR that changes production or the plan must update this file (docs/governance/PROTOCOL.md).",
   "production": {
     "release_sha": "569fb0fa049d648e149457bfba066964d6accc81",
@@ -14,7 +14,7 @@
       "TotalCorner"
     ]
   },
-  "current_task": "HANDOFF-TEST-01 (HANDOFF READY, lease released; waiting for Agent B launched by owner)",
+  "current_task": "HANDOFF-TEST-01 (leg B done by agent-b-claude-code on PR #216, HANDOFF READY handed back to agent-g-grok, lease released; return leg pending)",
   "blockers": [
     {
       "id": "DEPLOY-CI-PIN",
@@ -34,7 +34,7 @@
     },
     {
       "id": "HANDOFF-TEST-01",
-      "detail": "cross-agent test needs an independent Agent B launched by the owner (t141u); this agent must not run or certify it"
+      "detail": "leg A (agent-g-grok OUT) and leg B (agent-b-claude-code IN, tests/docs, OUT to agent-g-grok, PR #216) done; return leg A pending; HANDOFF NOT VERIFIED until then; neither agent certifies #150 without owner mandate"
     }
   ],
   "pending_runtime_checks": [
@@ -64,7 +64,7 @@
       "status": "PENDING"
     }
   ],
-  "next_action": "Owner launches Agent B on HANDOFF-TEST-01 per PROTOCOL.md; separately owner GO for DEPLOY-CI-PIN re-pin",
+  "next_action": "agent-g-grok (Agent A): orient, takeover-check and handoff-in HANDOFF-TEST-01, checkpoint IN on handoff-test-01 (PR #216, not merged by B); owner decides on PR #216; separately owner GO for DEPLOY-CI-PIN re-pin",
   "roadmap_after_governance": [
     "MARKET-CORE-04 (void/postponed/abandoned/corrected results)",
     "#99 ledger link",
