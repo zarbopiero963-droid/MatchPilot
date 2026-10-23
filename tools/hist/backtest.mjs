@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // HIST-01a: run the offline backtest engine on an explicit input file and write its canonical report.
-//   node tools/hist/backtest.mjs --input <mp-hist-input-1.json> --config <config.json> --out <report.json> [--code-version <sha>] [--repeat N]
+//   node tools/hist/backtest.mjs --input <mp-hist-input-2.json (or -1)> --config <config.json> --out <report.json> [--code-version <sha>] [--repeat N]
 // The input and configuration are always explicit arguments: nothing is read from the environment, the database or the
 // network, so the deploy's test run never touches real data. --repeat runs the engine N times and fails unless every
 // report is byte-identical. Exit codes: 0 report written (any status), 2 invalid input or configuration, 3 reports differ.

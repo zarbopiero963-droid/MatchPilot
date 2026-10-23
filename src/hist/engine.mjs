@@ -113,15 +113,17 @@ function resolveOutcome(versions, event, selection, asOf) {
   if (!versions?.length) return {result: null, reason: 'OUTCOME_MISSING'};
   if (!OUTCOME_PROVIDERS.has(event.provider)) return {result: null, reason: 'OUTCOME_PROVIDER_UNSUPPORTED'};
   const known = versions.filter(v => Date.parse(v.acquired_at) >= Date.parse(event.kickoff_utc));
-  if (!known.length) return {result: null, reason: 'OUTCOME_ACQUIRED_BEFORE_KICKOFF'};
+  const ignored = versions.length - known.length;
+  // A void declared before the match (a cancellation announced in advance) keeps its own reason.
+  if (!known.length) return {result: null, reason: versions.some(v => v.void_declared) ? 'VOID_NO_APPROVED_RULE' : 'OUTCOME_ACQUIRED_BEFORE_KICKOFF', ignored};
   const res = resolveVersioned({marketType: 'MATCH_ODDS', selection, asOf, versions: known.map(v => resultVersion({provider: v.provider,
     version: v.version, acquired_at: v.acquired_at, provenance: v.provenance, final: v.status === 'FINAL', home: v.home_score, away: v.away_score,
     providerStatus: v.void_declared ? 'VOID' : v.status}))});
   if (res.status !== 'RESOLVED') {
     const latest = known.filter(v => Date.parse(v.acquired_at) <= Date.parse(asOf)).at(-1);
-    return {result: null, reason: latest?.void_declared ? 'VOID_NO_APPROVED_RULE' : res.reason};
+    return {result: null, reason: latest?.void_declared ? 'VOID_NO_APPROVED_RULE' : res.reason, ignored};
   }
-  return {result: res.winning_selection, outcome: res.outcome, reason: null,
+  return {result: res.winning_selection, outcome: res.outcome, reason: null, ignored,
     resolution: {market_rule_id: res.market_rule_id, outcome_version: res.outcome_version, provenance: res.provenance, recorded_at: res.recorded_at,
       corrected: res.corrected, ...(res.corrected ? {first_final_version: res.first_final_version, first_final_outcome: res.first_final_outcome} : {})}};
 }
@@ -226,19 +228,26 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
     if (!outcomes.has(k)) outcomes.set(k, []);
     outcomes.get(k).push(version);
   }
-  // DEC-002 asOf: the configured cutoff, else the latest acquisition in the input (every version available).
-  const asOf = config.outcomes_as_of ?? input.outcomes.reduce((latest, v) => (byte(latest, v.acquired_at) < 0 ? v.acquired_at : latest), '1970-01-01T00:00:00.000Z');
-  report.settlement_policy = {outcomes_as_of: asOf, outcomes_as_of_source: config.outcomes_as_of ? 'CONFIG' : 'LATEST_IN_INPUT', void_policy: 'NONE_APPROVED (DEC-015)'};
+  // DEC-002 asOf: the configured cutoff, else the latest acquisition in the input (every version available); none when
+  // the input has no result at all (every bet is then OUTCOME_MISSING and nothing is resolved).
+  const asOf = config.outcomes_as_of ?? input.outcomes.reduce((latest, v) => (latest === null || byte(latest, v.acquired_at) < 0 ? v.acquired_at : latest), null);
+  report.settlement_policy = {outcomes_as_of: asOf, outcomes_as_of_source: config.outcomes_as_of ? 'CONFIG' : asOf ? 'LATEST_IN_INPUT' : 'NO_OUTCOMES',
+    void_policy: 'NONE_APPROVED (DEC-015)'};
   const unsettled = counter();
+  let ignoredBeforeKickoff = 0;
   const settledBets = bets.map(bet => {
     const event = events.get(key(bet.provider, bet.event_id));
-    const {result, outcome, reason, resolution} = resolveOutcome(outcomes.get(key(bet.provider, bet.event_id)), event, bet.selection, asOf);
+    const {result, outcome, reason, resolution, ignored = 0} = resolveOutcome(outcomes.get(key(bet.provider, bet.event_id)), event, bet.selection, asOf);
+    ignoredBeforeKickoff += ignored;
     if (!result) { count(unsettled, reason); return {...bet, settlement: null}; }
     const market = settleMarket({bets: [{side: bet.side, stake: bet.stake, odds: bet.odds, outcome}], commission: config.commission});
     return {...bet, settlement: {result, outcome, gross: market.result.gross, commission: market.result.commission, net: market.result.net, resolution}};
   });
   const settled = settledBets.filter(bet => bet.settlement);
-  const base = {...report, bets: settledBets, counts: {...report.counts, settled: settled.length, unsettled_by_reason: sorted(unsettled)}};
+  // Result versions of the bets' events acquired before the kickoff: a final cannot be known then, so they are ignored,
+  // and counted (an ignored version can hide a correction of the first final).
+  const base = {...report, bets: settledBets, counts: {...report.counts, settled: settled.length, unsettled_by_reason: sorted(unsettled),
+    result_versions_ignored_before_kickoff: ignoredBeforeKickoff}};
   if (bets.length > 0 && settled.length === 0) return seal({...base, status: STATUS.INSUFFICIENT_OUTCOMES, metrics: null});
   // No bet at all (every event NO_TRADE): a valid outcome (MP-STA-011), with no metric rather than a row of zeros.
   return seal({...base, status: STATUS.OK, metrics: settled.length ? metricsOf(settled) : null});

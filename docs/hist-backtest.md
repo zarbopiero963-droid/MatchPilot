@@ -45,7 +45,7 @@ Every list is sorted by its ids, so the same data in any order has the same hash
 
 ## Configuration (frozen snapshot, MP-MKT-003)
 
-`{strategy, bookmaker, lead_minutes, stake, commission}`, plus the optional `outcomes_as_of` (UTC instant): the cutoff of the result versions used to settle (DEC-002 `asOf`). Without it, every version in the input is available, and the report says so. The report carries:
+`{strategy, bookmaker, lead_minutes, stake, commission}`, plus the optional `outcomes_as_of` (UTC instant): the cutoff of the result versions used to settle (DEC-002 `asOf`). Without it, every version in the input is available, and the report says so (`LATEST_IN_INPUT`, or `NO_OUTCOMES` with a null cutoff when the input has no result). The report carries:
 - the normalized configuration;
 - `settings_snapshot_id`, the SHA-256 of that configuration;
 - `commission_rate_used`.
@@ -87,7 +87,7 @@ Results are read only after every decision is fixed. The 1X2 rule is the Market 
 - **No VOID** (DEC-015): `NOT_FINAL` versions (postponed, suspended, no result) and matches declared void leave the bet unsettled (`NO_VALIDATED_FINAL`, `VOID_NO_APPROVED_RULE`). No stake is returned by an invented rule;
 - **Providers:** results are resolved only for MatchPilot's two football APIs (`futpythontrader`, `totalcorner`); any other provider id gives `OUTCOME_PROVIDER_UNSUPPORTED`;
 - **Same provider only:** the versions must belong to the same provider and event as the odds. Cross-provider mappings are not used;
-- **Acquired at or after kickoff:** a version acquired before the kickoff instant is ignored; when every version is, the bet stays unsettled (`OUTCOME_ACQUIRED_BEFORE_KICKOFF`);
+- **Acquired at or after kickoff:** a version acquired before the kickoff instant is ignored and counted in `counts.result_versions_ignored_before_kickoff` (it can hide a correction of the first final); when every version is, the bet stays unsettled (`OUTCOME_ACQUIRED_BEFORE_KICKOFF`, or `VOID_NO_APPROVED_RULE` for a void announced before the match);
 - **Missing result:** the bet stays unsettled (`OUTCOME_MISSING`, N/D).
 
 **P/L.** `settleMarket` computes it in Decimal:

@@ -508,6 +508,15 @@ test('no VOID and no guess: NOT_FINAL, declared void and unsupported providers s
   // A FINAL acquired before the kickoff is ignored; a later one is used.
   const mixed = versioned([rv('x', 1, 'FINAL', 0, 2, '2026-03-01T14:59:00Z'), rv('x', 2, 'FINAL', 1, 0, '2026-03-01T17:00:00Z')]);
   assert.deepEqual([mixed.bets[0].settlement.outcome, mixed.bets[0].settlement.resolution.outcome_version], ['WIN', 2]);
+  assert.equal(mixed.counts.result_versions_ignored_before_kickoff, 1, 'the ignored pre-kickoff version is counted (review NB-1)');
+  assert.equal(played.counts.result_versions_ignored_before_kickoff, 0);
+  // A void announced before the match keeps its reason (review NB-2).
+  const announced = golden();
+  announced.outcomes = announced.outcomes.map(o => (o.event_id === 'e6' ? {...o, acquired_at: '2026-01-10T10:00:00Z'} : o));
+  assert.equal(runBacktest(announced, CONFIG).counts.unsettled_by_reason.VOID_NO_APPROVED_RULE, 1);
+  // No result at all: no invented cutoff (review NB-4).
+  const none = versioned([]);
+  assert.deepEqual([none.settlement_policy.outcomes_as_of, none.settlement_policy.outcomes_as_of_source], [null, 'NO_OUTCOMES']);
   // The input-1 VOID is never applied as a refund: no stake is returned, the bet is not in the metrics.
   const legacy = golden();
   const e6 = runBacktest(legacy, CONFIG).bets.find(bet => bet.event_id === 'e6');
