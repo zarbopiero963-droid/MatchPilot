@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 156,
+  "revision": 157,
   "tasks": [
     {
       "id": "R-01",
@@ -1093,7 +1093,7 @@
       "kind": "implementation",
       "state": "REVIEW",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T125253Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T125354Z-agent-a-claude-code",
       "resources": [
         "src/ledger/settlement.mjs",
         "src/ledger/paper-ledger.mjs",
