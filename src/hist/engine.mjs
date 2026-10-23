@@ -23,8 +23,10 @@ import {STRATEGIES} from './strategies.mjs';
 import {getMarketRule} from '../markets/rules.mjs';
 import {resolveVersioned, resultVersion} from '../markets/outcomes.mjs';
 
-export const ENGINE_VERSION = 'mp-hist-engine-3';
-export const REPORT_VERSION = 'mp-hist-report-3';
+export const ENGINE_VERSION = 'mp-hist-engine-4';
+export const REPORT_VERSION = 'mp-hist-report-4';
+// HIST-LAY-01: a strategy may BACK or LAY the selection it picks; the engine takes the price from the view either way.
+export const SIDES = Object.freeze(['BACK', 'LAY']);
 // The 1X2 outcome rule is the registry's MATCH_ODDS rule (DEC-006: no duplicate resolver); the report records its id.
 export const OUTCOME_RULE_VERSION = getMarketRule('MATCH_ODDS').market_rule_id;
 // `status` is the technical result of the run; it never says anything about the data. Whether the data are certified
@@ -173,7 +175,7 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
   // ---- Decision phase (no outcome is read here) ----
   const ordered = input.events.map(event => ({event, decisionTime: decisionTimeOf(event.kickoff_utc, config.lead_minutes)}))
     .sort((a, b) => byte(a.decisionTime ?? '~', b.decisionTime ?? '~') || byte(a.event.provider, b.event.provider) || byte(a.event.event_id, b.event.event_id));
-  const decisions = {BACK: 0, NO_TRADE: 0};
+  const decisions = {BACK: 0, LAY: 0, NO_TRADE: 0};
   const noTrade = counter();
   const bets = [];
   for (const {event, decisionTime} of ordered) {
@@ -200,11 +202,11 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
       count(noTrade, reason);
       continue;
     }
-    if (action !== 'BACK' || typeof selection !== 'string' || !Object.hasOwn(odds, selection)) {
+    if (!SIDES.includes(action) || typeof selection !== 'string' || !Object.hasOwn(odds, selection)) {
       throw new EngineError('BAD_STRATEGY_DECISION', `strategy ${config.strategy} returned an invalid decision for ${event.event_id}`);
     }
-    decisions.BACK++;
-    bets.push({provider: event.provider, event_id: event.event_id, decision_time: decisionTime, side: 'BACK', selection,
+    decisions[action]++;
+    bets.push({provider: event.provider, event_id: event.event_id, decision_time: decisionTime, side: action, selection,
       odds: odds[selection].odds, observation_id: odds[selection].observation_id, acquired_at: odds[selection].acquired_at, stake: config.stake});
   }
 
@@ -223,7 +225,7 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
 
   if (usableCount === 0) {
     // No admissible observation for the configured bookmaker: nothing was decided on data, so nothing is simulated.
-    return seal({...report, status: STATUS.INSUFFICIENT_PIT_DATA, counts: {...report.counts, decisions: {BACK: 0, NO_TRADE: report.counts.decisions.NO_TRADE}},
+    return seal({...report, status: STATUS.INSUFFICIENT_PIT_DATA, counts: {...report.counts, decisions: {BACK: 0, LAY: 0, NO_TRADE: report.counts.decisions.NO_TRADE}},
       bets: [], metrics: null});
   }
 
@@ -263,7 +265,9 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
     if (done.status !== 'SETTLED' || done.outcome !== outcome || done.resolution.outcome_version !== resolution.outcome_version)
       throw new EngineError('LEDGER_MISMATCH', `${positionOf(bet)}: engine ${outcome} v${resolution.outcome_version}, ledger ${done.status} ${done.outcome}`);
     const [gross, commission, net] = done.entries.map(entry);
-    return {...bet, position_id: positionOf(bet), settlement: {result, outcome, gross: gross.amount, commission: commission.amount, net: net.net,
+    // outcome is the selection's (WIN when it won); bet_result is the bettor's, which a LAY inverts.
+    const betResult = Decimal.from(gross.amount).gt(0) ? 'WON' : Decimal.from(gross.amount).isNegative() ? 'LOST' : 'EVEN';
+    return {...bet, position_id: positionOf(bet), settlement: {result, outcome, bet_result: betResult, gross: gross.amount, commission: commission.amount, net: net.net,
       ledger_entries: done.entries, resolution}};
   });
   if (ledger) {
@@ -283,25 +287,32 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
   return seal({...base, status: STATUS.OK, metrics: settled.length ? metricsOf(settled) : null});
 }
 
-// Totals of the settled bets in decision order: P/L, ROI on the stake at risk, maximum drawdown of the cumulative net.
+// Totals of the settled bets in decision order: P/L, ROI on the capital at risk (the exposure: a BACK's stake, a LAY's
+// liability), maximum drawdown of the cumulative net.
 function metricsOf(settled) {
+  const exposureOfBet = bet => exposureOf([{side: bet.side, odds: Decimal.from(bet.odds), stake: Decimal.from(bet.stake)}]);
   const gross = sum(settled.map(bet => Decimal.from(bet.settlement.gross)));
   const commission = sum(settled.map(bet => Decimal.from(bet.settlement.commission)));
   const net = gross.sub(commission);
   const staked = sum(settled.map(bet => Decimal.from(bet.stake)));
+  const exposure = sum(settled.map(exposureOfBet));
   let cumulative = Decimal.zero(), peak = Decimal.zero(), drawdown = Decimal.zero();
   for (const bet of settled) {
     cumulative = cumulative.add(Decimal.from(bet.settlement.net));
     if (cumulative.gt(peak)) peak = cumulative;
     if (peak.sub(cumulative).gt(drawdown)) drawdown = peak.sub(cumulative);
   }
-  const outcomes = name => settled.filter(bet => bet.settlement.outcome === name).length;
-  const roi = staked.isZero() ? null : net.div(staked);
+  const results = name => settled.filter(bet => bet.settlement.bet_result === name).length;
+  const roi = exposure.isZero() ? null : net.div(exposure);
+  const bySide = Object.fromEntries(SIDES.map(side => {
+    const own = settled.filter(bet => bet.side === side);
+    return [side, {bets: own.length, pl_net: sum(own.map(bet => Decimal.from(bet.settlement.net))).toString()}];
+  }));
   return {
     unit: 'stake units',
-    bets: settled.length, won: outcomes('WIN'), lost: outcomes('LOSE'), corrected_results: settled.filter(bet => bet.settlement.resolution.corrected).length,
-    staked: staked.toString(), pl_gross: gross.toString(), commission: commission.toString(), pl_net: net.toString(),
-    roi: roi ? roi.toString() : null, max_drawdown: drawdown.toString(),
+    bets: settled.length, won: results('WON'), lost: results('LOST'), corrected_results: settled.filter(bet => bet.settlement.resolution.corrected).length,
+    staked: staked.toString(), exposure: exposure.toString(), pl_gross: gross.toString(), commission: commission.toString(), pl_net: net.toString(),
+    roi: roi ? roi.toString() : null, max_drawdown: drawdown.toString(), by_side: bySide,
     rounded: {pl_gross: cents(gross).toString(2), commission: cents(commission).toString(2), pl_net: cents(gross).sub(cents(commission)).toString(2),
       roi: roi ? roi.round(ROI_PLACES, ROUNDING.HALF_EVEN).toString(ROI_PLACES) : null, max_drawdown: cents(drawdown).toString(2),
       step: MONEY_STEP, mode: ROUNDING.HALF_EVEN, roi_places: ROI_PLACES},

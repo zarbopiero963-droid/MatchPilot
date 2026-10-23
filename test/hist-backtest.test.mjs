@@ -99,7 +99,7 @@ test('golden fixture: decisions on admitted prices only, exact settlement and me
   assert.deepEqual({...report.certification, notice: undefined}, {data_scope: 'FIXTURE', real_data_verdict: 'NOT_APPLICABLE', certified: false, notice: undefined});
   assert.match(report.certification.notice, /not a real return/);
   assert.ok(report.limits.every(limit => !/NOT.VERIFIED|VERIFIED/.test(limit)), 'the limits never restate a data verdict (PR #178 review)');
-  assert.deepEqual(report.counts.decisions, {BACK: 4, NO_TRADE: 3});
+  assert.deepEqual(report.counts.decisions, {BACK: 4, LAY: 0, NO_TRADE: 3});
   assert.deepEqual(report.counts.no_trade_by_reason, {FAVOURITE_TIE: 1, INCOMPLETE_1X2: 1, KICKOFF_UNKNOWN: 1});
   assert.deepEqual(report.counts.excluded_by_reason, {ACQUIRED_AFTER_DECISION: 1, KICKOFF_UNKNOWN: 1});
   assert.equal(report.counts.usable, 18);
@@ -108,8 +108,8 @@ test('golden fixture: decisions on admitted prices only, exact settlement and me
   assert.equal(report.bets[0].observation_id, 'o0004', 'e1 is decided on the 1.70 acquired at 14:45, not the 1.10 acquired after the decision');
   assert.deepEqual(report.counts.unsettled_by_reason, {OUTCOME_MISSING: 1, VOID_NO_APPROVED_RULE: 1});
   // +0.70, −1: staked 2, net −0.30, ROI −0.15; cumulative 0.70 → −0.30, drawdown 1.00.
-  assert.deepEqual({...report.metrics, rounded: undefined}, {unit: 'stake units', bets: 2, won: 1, lost: 1, corrected_results: 0, staked: '2', pl_gross: '-0.3',
-    commission: '0', pl_net: '-0.3', roi: '-0.15', max_drawdown: '1', rounded: undefined});
+  assert.deepEqual({...report.metrics, rounded: undefined}, {unit: 'stake units', bets: 2, won: 1, lost: 1, corrected_results: 0, staked: '2', exposure: '2', pl_gross: '-0.3',
+    commission: '0', pl_net: '-0.3', roi: '-0.15', max_drawdown: '1', by_side: {BACK: {bets: 2, pl_net: '-0.3'}, LAY: {bets: 0, pl_net: '0'}}, rounded: undefined});
   assert.equal(report.metrics.rounded.pl_net, '-0.30');
   assert.equal(report.metrics.rounded.roi, '-0.1500');
   assert.equal(report.config.commission_rate_used, '0');
@@ -256,7 +256,7 @@ test('admissible data but no bet: OK with no metrics, not a row of zeros (PR #17
   const report = runBacktest(input({events: [ev('z', '2026-04-01T15:00:00Z')], observations: [ob('z', 'HOME', '2.00', '2026-04-01T14:00:00Z')],
     outcomes: [out('z', 'FINAL', 1, 0, '2026-04-01T17:00:00Z')]}), CONFIG);
   assert.equal(report.status, STATUS.OK);
-  assert.deepEqual(report.counts.decisions, {BACK: 0, NO_TRADE: 1});
+  assert.deepEqual(report.counts.decisions, {BACK: 0, LAY: 0, NO_TRADE: 1});
   assert.deepEqual(report.counts.no_trade_by_reason, {INCOMPLETE_1X2: 1});
   assert.equal(report.metrics, null);
   assert.deepEqual(report.bets, []);
@@ -297,7 +297,7 @@ test('only another bookmaker admitted: INSUFFICIENT_PIT_DATA with no bet or metr
   assert.equal(report.counts.admitted, 3);
   assert.equal(report.counts.usable, 0);
   assert.equal(report.status, STATUS.INSUFFICIENT_PIT_DATA);
-  assert.deepEqual(report.counts.decisions, {BACK: 0, NO_TRADE: 1});
+  assert.deepEqual(report.counts.decisions, {BACK: 0, LAY: 0, NO_TRADE: 1});
   assert.deepEqual(report.counts.no_trade_by_reason, {NO_ADMISSIBLE_ODDS: 1});
   assert.deepEqual(report.bets, []);
   assert.equal(report.metrics, null);
@@ -650,4 +650,58 @@ test('ledger commission on an exact half cent is HALF_EVEN (final-head review NB
   // 0.035 rounds up to the even cent 0.04.
   const up = versioned([rv('x', 1, 'FINAL', 1, 0, '2026-03-01T17:00:00Z')], {commission: '0.07'});
   assert.equal(up.bets[0].settlement.commission, '0.04');
+});
+
+// ---- HIST-LAY-01: LAY bets through the same decision, ledger and settlement path ----
+test('LAY: liability as exposure, inverted bettor result, exact P/L against the oracle, commission on LAY winnings', () => {
+  const lay = {...CONFIG, strategy: 'mp-ref-fav-lay-1'};
+  const report = runBacktest(golden(), lay);
+  assert.deepEqual(report.counts.decisions, {BACK: 0, LAY: 4, NO_TRADE: 3});
+  // Same decisions as the BACK oracle, other side: e1 LAY HOME 1.70 (home won: LAY loses 0.70), e2 LAY AWAY 2.40 (draw: LAY wins 1).
+  assert.deepEqual(report.bets.map(bet => [bet.event_id, bet.side, bet.selection, bet.odds, bet.settlement?.outcome ?? null, bet.settlement?.bet_result ?? null, bet.settlement?.net ?? null]),
+    [['e1', 'LAY', 'HOME', '1.7', 'WIN', 'LOST', '-0.7'], ['e2', 'LAY', 'AWAY', '2.4', 'LOSE', 'WON', '1'], ['e6', 'LAY', 'HOME', '1.5', null, null, null], ['e7', 'LAY', 'HOME', '2', null, null, null]]);
+  // Exposure = liability S·(O − 1): 0.7 + 1.4 settled; ROI = 0.3 / 2.1. The notional allocation covers every liability.
+  assert.deepEqual([report.metrics.won, report.metrics.lost, report.metrics.staked, report.metrics.exposure, report.metrics.pl_net], [1, 1, '2', '2.1', '0.3']);
+  assert.equal(report.metrics.rounded.roi, '0.1429');
+  assert.deepEqual(report.metrics.by_side, {BACK: {bets: 0, pl_net: '0'}, LAY: {bets: 2, pl_net: '0.3'}});
+  // allocation 0.7 + 1.4 + 0.5 + 1 = 3.6; the two open LAYs keep 1.5 reserved.
+  assert.deepEqual([report.ledger.notional_allocation, report.ledger.state.reserved_funds, report.ledger.state.realized_pnl, report.ledger.state.reconciled], ['3.6', '1.5', '0.3', true]);
+  // Each settled LAY against the independent exact-fraction oracle, commission on positive winnings rounded to the cent.
+  const fee = runBacktest(golden(), {...lay, stake: '2.50', commission: '0.05'});
+  for (const bet of fee.bets.filter(b => b.settlement)) {
+    const m = oracleMarket([{side: 'LAY', stake: '2.50', odds: bet.odds, outcome: bet.settlement.outcome}], '0.05');
+    const c = fcentsHalfEven(m.commission);
+    assert.ok(feq(F(bet.settlement.gross), m.gross), `gross ${bet.event_id}`);
+    assert.ok(feq(F(bet.settlement.commission), c), `commission ${bet.event_id}`);
+    assert.ok(feq(F(bet.settlement.net), fsub(m.gross, c)), `net ${bet.event_id}`);
+  }
+  assert.deepEqual(fee.bets.slice(0, 2).map(b => [b.settlement.gross, b.settlement.commission, b.settlement.net]), [['-1.75', '0', '-1.75'], ['2.5', '0.12', '2.38']]); // 5 % of 2.50 = 0.125, HALF_EVEN 0.12
+  // A strategy cannot use any other action, and a LAY needs a priced selection like a BACK.
+  const sell = view => ({action: 'SELL', selection: 'HOME'});
+  assert.throws(() => runBacktest(golden(), {...CONFIG, strategy: 'sell'}, {strategies: {sell}}), {code: 'BAD_STRATEGY_DECISION'});
+  const layOver = () => ({action: 'LAY', selection: 'OVER'});
+  assert.throws(() => runBacktest(golden(), {...CONFIG, strategy: 'layOver'}, {strategies: {layOver}}), {code: 'BAD_STRATEGY_DECISION'});
+});
+
+test('LAY on random fixtures: every settled bet matches the oracle and the ledger reconciles', () => {
+  const next = rng(77);
+  for (let round = 0; round < 40; round++) {
+    seq = 0;
+    const events = Array.from({length: 6}, (_, i) => ev(`r${i}`, `2026-08-0${1 + (i % 5)}T1${i}:00:00Z`));
+    const observations = events.flatMap(e => ['HOME', 'DRAW', 'AWAY'].map(s => ob(e.event_id, s, cents(next, 105, 2000), new Date(Date.parse(e.kickoff_utc) - 3600000).toISOString())));
+    const outcomes = events.map(e => out(e.event_id, 'FINAL', Math.floor(next() * 4), Math.floor(next() * 4), new Date(Date.parse(e.kickoff_utc) + 7200000).toISOString()));
+    const side = next() < 0.5 ? 'mp-ref-fav-lay-1' : 'mp-ref-fav-back-1';
+    const commission = ['0', '0.02', '0.05'][Math.floor(next() * 3)];
+    const stake = cents(next, 10, 5000);
+    const report = runBacktest(input({events, observations, outcomes}), {...CONFIG, strategy: side, stake, commission});
+    let total = frac(0n);
+    for (const bet of report.bets.filter(b => b.settlement)) {
+      const m = oracleMarket([{side: bet.side, stake, odds: bet.odds, outcome: bet.settlement.outcome}], commission);
+      const net = fsub(m.gross, fcentsHalfEven(m.commission));
+      assert.ok(feq(F(bet.settlement.net), net), `round ${round} ${bet.event_id}`);
+      total = fadd(total, net);
+    }
+    if (report.metrics) assert.ok(feq(F(report.metrics.pl_net), total), `total ${round}`);
+    if (report.ledger) assert.equal(report.ledger.state.reconciled, true);
+  }
 });
