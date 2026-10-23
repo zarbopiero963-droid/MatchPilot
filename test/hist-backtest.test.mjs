@@ -13,7 +13,7 @@ import {OUTCOME_RULE_VERSION, STATUS, runBacktest} from '../src/hist/engine.mjs'
 import {resolve} from '../src/markets/rules.mjs';
 
 const CONFIG = {strategy: 'mp-ref-fav-back-1', bookmaker: 'bk1', lead_minutes: 10, stake: '1', commission: '0'};
-const P = 'fixture-provider';
+const P = 'futpythontrader';
 
 const ev = (id, kickoff, home = `Home ${id}`, away = `Away ${id}`, provider = P) => ({provider, event_id: id, kickoff_utc: kickoff, home, away});
 let seq = 0;
@@ -46,7 +46,7 @@ function golden() {
       ob('e4', 'HOME', '2.00', '2026-01-10T12:00:00Z'),
       // e5: tie for the favourite
       ob('e5', 'HOME', '2.50', '2026-01-10T20:00:00Z'), ob('e5', 'DRAW', '3.00', '2026-01-10T20:00:00Z'), ob('e5', 'AWAY', '2.50', '2026-01-10T20:00:00Z'),
-      // e6: HOME favourite, match voided
+      // e6: HOME favourite, match declared void: no VOID rule is approved (DEC-015), so it stays unsettled
       ob('e6', 'HOME', '1.50', '2026-01-10T21:00:00Z'), ob('e6', 'DRAW', '4.00', '2026-01-10T21:00:00Z'), ob('e6', 'AWAY', '6.00', '2026-01-10T21:00:00Z'),
       // e7: HOME favourite, no outcome
       ob('e7', 'HOME', '2.00', '2026-01-10T22:00:00Z'), ob('e7', 'DRAW', '3.50', '2026-01-10T22:00:00Z'), ob('e7', 'AWAY', '3.80', '2026-01-10T22:00:00Z'),
@@ -96,11 +96,11 @@ test('golden fixture: decisions on admitted prices only, exact settlement and me
   assert.deepEqual(report.counts.excluded_by_reason, {ACQUIRED_AFTER_DECISION: 1, KICKOFF_UNKNOWN: 1});
   assert.equal(report.counts.usable, 18);
   assert.deepEqual(report.bets.map(bet => [bet.event_id, bet.selection, bet.odds, bet.settlement?.outcome ?? null]),
-    [['e1', 'HOME', '1.7', 'WIN'], ['e2', 'AWAY', '2.4', 'LOSE'], ['e6', 'HOME', '1.5', 'VOID'], ['e7', 'HOME', '2', null]]);
+    [['e1', 'HOME', '1.7', 'WIN'], ['e2', 'AWAY', '2.4', 'LOSE'], ['e6', 'HOME', '1.5', null], ['e7', 'HOME', '2', null]]);
   assert.equal(report.bets[0].observation_id, 'o0004', 'e1 is decided on the 1.70 acquired at 14:45, not the 1.10 acquired after the decision');
-  assert.deepEqual(report.counts.unsettled_by_reason, {OUTCOME_MISSING: 1});
-  // +0.70, −1, void: staked 2, net −0.30, ROI −0.15; cumulative 0.70 → −0.30 → −0.30, drawdown 1.00.
-  assert.deepEqual({...report.metrics, rounded: undefined}, {unit: 'stake units', bets: 3, won: 1, lost: 1, void: 1, staked: '2', pl_gross: '-0.3',
+  assert.deepEqual(report.counts.unsettled_by_reason, {OUTCOME_MISSING: 1, VOID_NO_APPROVED_RULE: 1});
+  // +0.70, −1: staked 2, net −0.30, ROI −0.15; cumulative 0.70 → −0.30, drawdown 1.00.
+  assert.deepEqual({...report.metrics, rounded: undefined}, {unit: 'stake units', bets: 2, won: 1, lost: 1, corrected_results: 0, staked: '2', pl_gross: '-0.3',
     commission: '0', pl_net: '-0.3', roi: '-0.15', max_drawdown: '1', rounded: undefined});
   assert.equal(report.metrics.rounded.pl_net, '-0.30');
   assert.equal(report.metrics.rounded.roi, '-0.1500');
@@ -339,7 +339,7 @@ test('INSUFFICIENT_OUTCOMES, same-provider settlement and outcomes known before 
   assert.deepEqual(runBacktest(cross, CONFIG).counts.unsettled_by_reason, {OUTCOME_MISSING: 1});
   const early = golden();
   early.outcomes[0] = {...early.outcomes[0], acquired_at: '2026-01-10T14:00:00Z'};
-  assert.deepEqual(runBacktest(early, CONFIG).counts.unsettled_by_reason, {OUTCOME_ACQUIRED_BEFORE_KICKOFF: 1, OUTCOME_MISSING: 1});
+  assert.deepEqual(runBacktest(early, CONFIG).counts.unsettled_by_reason, {OUTCOME_ACQUIRED_BEFORE_KICKOFF: 1, OUTCOME_MISSING: 1, VOID_NO_APPROVED_RULE: 1});
 });
 
 test('settlement agrees with an independent exact-fraction oracle, with commission on market net winnings', () => {
@@ -398,7 +398,7 @@ test('invalid inputs and configurations are refused with the field named', () =>
 test('isolation from R1: the engine reads no FutPythonTrader path, no match analysis, no SQL and no environment', () => {
   const dir = new URL('../src/hist/', import.meta.url);
   const allowed = new Set(['node:crypto', '../math/core.mjs', '../math/decimal.mjs', '../math/money.mjs', '../pit/policy.mjs',
-    '../markets/rules.mjs', './admission.mjs', './contract.mjs', './strategies.mjs']);
+    '../markets/rules.mjs', '../markets/outcomes.mjs', './admission.mjs', './contract.mjs', './strategies.mjs']);
   for (const file of readdirSync(dir).filter(name => name.endsWith('.mjs'))) {
     const source = readFileSync(new URL(file, dir), 'utf8');
     for (const [, target] of source.matchAll(/^\s*import\s[^;]*?from\s+'([^']+)'/gm)) assert.ok(allowed.has(target), `${file} imports ${target}`);
@@ -461,4 +461,101 @@ test('metric rounding: HALF_EVEN to the cent on an exact half cent, net = rounde
   const net = single({stake: '1.5', commission: '0.05'});
   assert.deepEqual([net.metrics.pl_gross, net.metrics.commission, net.metrics.pl_net], ['0.015', '0.00075', '0.01425']);
   assert.deepEqual([net.metrics.rounded.pl_gross, net.metrics.rounded.commission, net.metrics.rounded.pl_net], ['0.02', '0.00', '0.02']);
+});
+
+// ---- HIST-LINK-01 (#34 x #100): result versions (DEC-002), no VOID (DEC-015) ----
+const rv = (event, version, status, hs, as, acquired, provenance = `futpythontrader:snapshot:${event}-v${version}`, provider = P) =>
+  ({provider, event_id: event, version, status, home_score: hs, away_score: as, acquired_at: acquired, provenance});
+const input2 = parts => ({...input(parts), schema_version: 'mp-hist-input-2'});
+// One event x, kickoff 15:00, HOME favourite at 1.50 acquired at 14:30; results as given.
+const versioned = (outcomes, config = {}) => {
+  seq = 0;
+  const at = '2026-03-01T14:30:00Z';
+  return runBacktest(input2({events: [ev('x', '2026-03-01T15:00:00Z')],
+    observations: [ob('x', 'HOME', '1.50', at), ob('x', 'DRAW', '4', at), ob('x', 'AWAY', '6', at)], outcomes}), {...CONFIG, ...config});
+};
+
+test('result versions: the latest validated FINAL settles, a correction is flagged, the cutoff selects what was known (DEC-002)', () => {
+  const v1 = rv('x', 1, 'FINAL', 2, 1, '2026-03-01T17:00:00Z'), v2 = rv('x', 2, 'FINAL', 0, 1, '2026-03-02T09:00:00Z');
+  const first = versioned([v1]);
+  assert.equal(first.bets[0].settlement.outcome, 'WIN');
+  assert.deepEqual(first.bets[0].settlement.resolution, {market_rule_id: 'MATCH_ODDS@v2', outcome_version: 1,
+    provenance: 'futpythontrader:snapshot:x-v1', recorded_at: '2026-03-01T17:00:00.000Z', corrected: false});
+  assert.deepEqual(first.settlement_policy, {outcomes_as_of: '2026-03-01T17:00:00.000Z', outcomes_as_of_source: 'LATEST_IN_INPUT', void_policy: 'NONE_APPROVED (DEC-015)'});
+  const corrected = versioned([v2, v1]);
+  assert.deepEqual([corrected.bets[0].settlement.result, corrected.bets[0].settlement.outcome, corrected.bets[0].settlement.net], ['AWAY', 'LOSE', '-1']);
+  assert.deepEqual(corrected.bets[0].settlement.resolution, {market_rule_id: 'MATCH_ODDS@v2', outcome_version: 2, provenance: 'futpythontrader:snapshot:x-v2',
+    recorded_at: '2026-03-02T09:00:00.000Z', corrected: true, first_final_version: 1, first_final_outcome: 'WIN'});
+  assert.equal(corrected.metrics.corrected_results, 1);
+  // The same input with a cutoff before the correction settles on v1, and the cutoff is part of the settings snapshot.
+  const before = versioned([v1, v2], {outcomes_as_of: '2026-03-01T23:00:00Z'});
+  assert.deepEqual([before.bets[0].settlement.outcome, before.bets[0].settlement.resolution.outcome_version], ['WIN', 1]);
+  assert.equal(before.settlement_policy.outcomes_as_of_source, 'CONFIG');
+  assert.notEqual(before.config.settings_snapshot_id, corrected.config.settings_snapshot_id);
+  // A cutoff before any final: nothing is settled.
+  const early = versioned([v1, v2], {outcomes_as_of: '2026-03-01T16:00:00Z'});
+  assert.equal(early.status, STATUS.INSUFFICIENT_OUTCOMES);
+  assert.deepEqual(early.counts.unsettled_by_reason, {NO_VALIDATED_FINAL: 1});
+});
+
+test('no VOID and no guess: NOT_FINAL, declared void and unsupported providers stay unsettled (DEC-015)', () => {
+  const pending = versioned([rv('x', 1, 'NOT_FINAL', null, null, '2026-03-01T17:00:00Z')]);
+  assert.deepEqual([pending.status, pending.bets[0].settlement], [STATUS.INSUFFICIENT_OUTCOMES, null]);
+  assert.deepEqual(pending.counts.unsettled_by_reason, {NO_VALIDATED_FINAL: 1});
+  // A later FINAL after a postponement settles normally.
+  const played = versioned([rv('x', 1, 'NOT_FINAL', null, null, '2026-03-01T17:00:00Z'), rv('x', 2, 'FINAL', 1, 0, '2026-03-08T17:00:00Z')]);
+  assert.deepEqual([played.bets[0].settlement.outcome, played.bets[0].settlement.resolution.corrected], ['WIN', false]);
+  // A FINAL acquired before the kickoff is ignored; a later one is used.
+  const mixed = versioned([rv('x', 1, 'FINAL', 0, 2, '2026-03-01T14:59:00Z'), rv('x', 2, 'FINAL', 1, 0, '2026-03-01T17:00:00Z')]);
+  assert.deepEqual([mixed.bets[0].settlement.outcome, mixed.bets[0].settlement.resolution.outcome_version], ['WIN', 2]);
+  assert.equal(mixed.counts.result_versions_ignored_before_kickoff, 1, 'the ignored pre-kickoff version is counted (review NB-1)');
+  assert.equal(played.counts.result_versions_ignored_before_kickoff, 0);
+  // A void announced before the match keeps its reason (review NB-2).
+  const announced = golden();
+  announced.outcomes = announced.outcomes.map(o => (o.event_id === 'e6' ? {...o, acquired_at: '2026-01-10T10:00:00Z'} : o));
+  assert.equal(runBacktest(announced, CONFIG).counts.unsettled_by_reason.VOID_NO_APPROVED_RULE, 1);
+  // No result at all: no invented cutoff (review NB-4).
+  const none = versioned([]);
+  assert.deepEqual([none.settlement_policy.outcomes_as_of, none.settlement_policy.outcomes_as_of_source], [null, 'NO_OUTCOMES']);
+  // The input-1 VOID is never applied as a refund: no stake is returned, the bet is not in the metrics.
+  const legacy = golden();
+  const e6 = runBacktest(legacy, CONFIG).bets.find(bet => bet.event_id === 'e6');
+  assert.equal(e6.settlement, null);
+  // A provider that is not one of MatchPilot's two football APIs has no result rule.
+  seq = 0;
+  const other = runBacktest(input2({events: [ev('y', '2026-03-01T15:00:00Z', 'H', 'A', 'some-feed')],
+    observations: ['HOME', 'DRAW', 'AWAY'].map((s, i) => ob('y', s, ['1.5', '4', '6'][i], '2026-03-01T14:30:00Z', {provider: 'some-feed'})),
+    outcomes: [rv('y', 1, 'FINAL', 1, 0, '2026-03-01T17:00:00Z', 'feed:1', 'some-feed')]}), CONFIG);
+  assert.deepEqual(other.counts.unsettled_by_reason, {OUTCOME_PROVIDER_UNSUPPORTED: 1});
+  const engine = readFileSync(new URL('../src/hist/engine.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(engine, /'VOID'\s*\?|outcome === 'VOID'|outcome: 'VOID'/, 'the engine never applies a VOID');
+});
+
+test('mp-hist-input-2 validation: versions unique and monotonic, NOT_FINAL without scores, provenance required', () => {
+  seq = 0;
+  const base = {events: [ev('x', '2026-03-01T15:00:00Z')], observations: []};
+  const ok = [rv('x', 1, 'FINAL', 1, 0, '2026-03-01T17:00:00Z'), rv('x', 2, 'FINAL', 1, 1, '2026-03-02T17:00:00Z')];
+  assert.equal(validateInput(input2({...base, outcomes: ok})).outcomes.length, 2);
+  const cases = [
+    [[ok[0], {...ok[1], version: 1}], 'outcomes[1].version'],
+    [[ok[0], {...ok[1], acquired_at: '2026-03-01T16:00:00Z'}], 'outcomes[1].acquired_at'],
+    [[{...ok[0], status: 'NOT_FINAL'}], 'outcomes[0].home_score'],
+    [[{...ok[0], status: 'VOID', home_score: null, away_score: null}], 'outcomes[0].status'],
+    [[{...ok[0], version: 0}], 'outcomes[0].version'],
+    [[{...ok[0], version: '1'}], 'outcomes[0].version'],
+    [[{...ok[0], provenance: ''}], 'outcomes[0].provenance'],
+    [[(({provenance, ...rest}) => rest)(ok[0])], 'outcomes[0].provenance'],
+  ];
+  for (const [outcomes, field] of cases) assert.throws(() => validateInput(input2({...base, outcomes})), error => error instanceof HistInputError && error.field === field, field);
+  // An input-1 outcome shape under the input-2 schema is refused, not reinterpreted.
+  assert.throws(() => validateInput(input2({...base, outcomes: [out('x', 'FINAL', 1, 0, '2026-03-01T17:00:00Z')]})), {code: 'BAD_HIST_INPUT'});
+  assert.throws(() => runBacktest(golden(), {...CONFIG, outcomes_as_of: '2026-03-01'}), error => error.field === 'config.outcomes_as_of');
+  // Same data as input-1 and as input-2: the same decisions and P/L.
+  const legacy = runBacktest(golden(), CONFIG);
+  const g = golden();
+  const asV2 = {...g, schema_version: 'mp-hist-input-2', outcomes: g.outcomes.filter(o => o.status === 'FINAL')
+    .map(o => rv(o.event_id, 1, 'FINAL', o.home_score, o.away_score, o.acquired_at, `mp-hist-input-1:${P}:${o.event_id}`))};
+  const v2 = runBacktest(asV2, CONFIG);
+  assert.deepEqual(v2.metrics, legacy.metrics);
+  assert.deepEqual(v2.bets.filter(b => b.settlement).map(b => b.settlement), legacy.bets.filter(b => b.settlement).map(b => b.settlement));
 });

@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 160,
+  "revision": 163,
   "tasks": [
     {
       "id": "R-01",
@@ -1091,13 +1091,37 @@
       "pr": 219,
       "branch": "ledger-core-03",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T132542Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T134646Z-agent-a-claude-code",
       "resources": [
         "src/ledger/settlement.mjs",
         "src/ledger/paper-ledger.mjs",
         "test/ledger-core-03.test.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "8268d3a51217f27c96b75b86efc22b0c1cbfce11"
+    },
+    {
+      "id": "HIST-LINK-01",
+      "title": "Backtest engine settles on versioned results through #100, no VOID (#34 x #100, DEC-002, DEC-015)",
+      "issue": 34,
+      "pr": 220,
+      "branch": "hist-link-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T135123Z-agent-a-claude-code",
+      "resources": [
+        "src/hist/contract.mjs",
+        "src/hist/engine.mjs",
+        "src/markets/outcomes.mjs",
+        "test/hist-backtest.test.mjs",
+        "docs/hist-backtest.md"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",

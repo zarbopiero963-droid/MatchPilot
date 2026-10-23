@@ -1,15 +1,22 @@
-// HIST-01a (#34; MP-OWNER-HIST-01A-01): the input contract of the offline backtest engine, `mp-hist-input-1`. It is
-// provider-independent: an archive extract, captured TotalCorner snapshots or a synthetic fixture all arrive in this
-// shape, with the times the PIT policy needs kept apart (kickoff, provider time, acquisition time). Validation is strict
-// and fails with BAD_HIST_INPUT naming the field; nothing is guessed or filled in. Pure module: no database, no clock.
+// HIST-01a (#34; MP-OWNER-HIST-01A-01): the input contract of the offline backtest engine. It is provider-independent: an
+// archive extract, captured TotalCorner snapshots or a synthetic fixture all arrive in this shape, with the times the PIT
+// policy needs kept apart (kickoff, provider time, acquisition time). Validation is strict and fails with BAD_HIST_INPUT
+// naming the field; nothing is guessed or filled in. Pure module: no database, no clock.
+// HIST-LINK-01 (#34 x #100): `mp-hist-input-2` carries the result as versions (DEC-002): any number per event, each with
+// its version number, acquisition time and provenance, FINAL or NOT_FINAL. There is no VOID (DEC-015). An
+// `mp-hist-input-1` input is still accepted: its single outcome becomes version 1, and a VOID becomes a NOT_FINAL
+// version flagged `void_declared`, which the engine leaves unsettled. The normalized input is always version 2.
 import {createHash} from 'node:crypto';
 import {decimalOdds, MathInputError} from '../math/core.mjs';
 
-export const INPUT_VERSION = 'mp-hist-input-1';
+export const INPUT_VERSION = 'mp-hist-input-2';
+export const INPUT_VERSIONS = ['mp-hist-input-1', INPUT_VERSION];
 export const DATASET_KINDS = ['FIXTURE', 'REAL'];
 export const SELECTIONS_1X2 = ['HOME', 'DRAW', 'AWAY'];
-// FINAL: a final result with scores; VOID: the match will not be played or its bets are void (abandoned, cancelled).
+// mp-hist-input-1 outcome: FINAL with scores, or VOID (the source declared the match void: abandoned, cancelled).
 export const OUTCOME_STATUSES = ['FINAL', 'VOID'];
+// mp-hist-input-2 result version: FINAL with both scores, or NOT_FINAL (postponed, suspended, no result yet) without.
+export const RESULT_STATUSES = ['FINAL', 'NOT_FINAL'];
 
 export class HistInputError extends Error {
   constructor(field, message) {
@@ -70,7 +77,7 @@ const eventKey = (provider, eventId) => `${provider}\u0000${eventId}`;
 // identifiers, so the same data in any order gives the same normalized input and the same hash.
 export function validateInput(input) {
   keys('input', input, ['schema_version', 'dataset', 'events', 'observations', 'outcomes']);
-  if (input.schema_version !== INPUT_VERSION) throw new HistInputError('input.schema_version', `must be ${INPUT_VERSION}`);
+  if (!INPUT_VERSIONS.includes(input.schema_version)) throw new HistInputError('input.schema_version', `must be one of ${INPUT_VERSIONS.join(', ')}`);
   keys('dataset', input.dataset, ['id', 'kind', 'description']);
   const dataset = {id: id('dataset.id', input.dataset.id), kind: oneOf('dataset.kind', input.dataset.kind, DATASET_KINDS),
     description: text('dataset.description', input.dataset.description)};
@@ -113,22 +120,7 @@ export function validateInput(input) {
     return normalized;
   });
 
-  const outcomeKeys = new Set();
-  const outcomes = input.outcomes.map((outcome, i) => {
-    const field = `outcomes[${i}]`;
-    keys(field, outcome, ['provider', 'event_id', 'status', 'home_score', 'away_score', 'acquired_at']);
-    const status = oneOf(`${field}.status`, outcome.status, OUTCOME_STATUSES);
-    const normalized = {provider: id(`${field}.provider`, outcome.provider), event_id: id(`${field}.event_id`, outcome.event_id), status,
-      home_score: status === 'FINAL' ? score(`${field}.home_score`, outcome.home_score) : null,
-      away_score: status === 'FINAL' ? score(`${field}.away_score`, outcome.away_score) : null,
-      acquired_at: instant(`${field}.acquired_at`, outcome.acquired_at)};
-    if (status === 'VOID' && (outcome.home_score !== null || outcome.away_score !== null)) throw new HistInputError(`${field}.home_score`, 'a VOID outcome has no scores');
-    const key = eventKey(normalized.provider, normalized.event_id);
-    if (!events.has(key)) throw new HistInputError(`${field}.event_id`, 'no such event for this provider');
-    if (outcomeKeys.has(key)) throw new HistInputError(`${field}.event_id`, 'more than one outcome for the event');
-    outcomeKeys.add(key);
-    return normalized;
-  });
+  const outcomes = input.schema_version === INPUT_VERSION ? resultVersions(input.outcomes, events) : legacyOutcomes(input.outcomes, events);
 
   const byte = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
   return {
@@ -136,8 +128,59 @@ export function validateInput(input) {
     dataset,
     events: [...events.values()].sort((a, b) => byte(a.provider, b.provider) || byte(a.event_id, b.event_id)),
     observations: observations.sort((a, b) => byte(a.observation_id, b.observation_id)),
-    outcomes: outcomes.sort((a, b) => byte(a.provider, b.provider) || byte(a.event_id, b.event_id)),
+    outcomes: outcomes.sort((a, b) => byte(a.provider, b.provider) || byte(a.event_id, b.event_id) || a.version - b.version),
   };
+}
+
+// mp-hist-input-1: one outcome per event, FINAL or VOID, normalized to version 1 of mp-hist-input-2.
+function legacyOutcomes(list, events) {
+  const outcomeKeys = new Set();
+  return list.map((outcome, i) => {
+    const field = `outcomes[${i}]`;
+    keys(field, outcome, ['provider', 'event_id', 'status', 'home_score', 'away_score', 'acquired_at']);
+    const status = oneOf(`${field}.status`, outcome.status, OUTCOME_STATUSES);
+    const provider = id(`${field}.provider`, outcome.provider), eventId = id(`${field}.event_id`, outcome.event_id);
+    const normalized = {provider, event_id: eventId, version: 1, status: status === 'FINAL' ? 'FINAL' : 'NOT_FINAL',
+      home_score: status === 'FINAL' ? score(`${field}.home_score`, outcome.home_score) : null,
+      away_score: status === 'FINAL' ? score(`${field}.away_score`, outcome.away_score) : null,
+      acquired_at: instant(`${field}.acquired_at`, outcome.acquired_at), provenance: `mp-hist-input-1:${provider}:${eventId}`,
+      void_declared: status === 'VOID'};
+    if (status === 'VOID' && (outcome.home_score !== null || outcome.away_score !== null)) throw new HistInputError(`${field}.home_score`, 'a VOID outcome has no scores');
+    const key = eventKey(provider, eventId);
+    if (!events.has(key)) throw new HistInputError(`${field}.event_id`, 'no such event for this provider');
+    if (outcomeKeys.has(key)) throw new HistInputError(`${field}.event_id`, 'more than one outcome for the event');
+    outcomeKeys.add(key);
+    return normalized;
+  });
+}
+
+// mp-hist-input-2: result versions. A version number is unique per event, and a later version is a later acquisition
+// (DEC-002: a higher number recorded earlier would make a stale record the latest).
+function resultVersions(list, events) {
+  const byEvent = new Map();
+  const versions = list.map((outcome, i) => {
+    const field = `outcomes[${i}]`;
+    keys(field, outcome, ['provider', 'event_id', 'version', 'status', 'home_score', 'away_score', 'acquired_at', 'provenance']);
+    const status = oneOf(`${field}.status`, outcome.status, RESULT_STATUSES);
+    if (!Number.isSafeInteger(outcome.version) || outcome.version < 1) throw new HistInputError(`${field}.version`, 'must be a positive integer');
+    const normalized = {provider: id(`${field}.provider`, outcome.provider), event_id: id(`${field}.event_id`, outcome.event_id), version: outcome.version, status,
+      home_score: status === 'FINAL' ? score(`${field}.home_score`, outcome.home_score) : null,
+      away_score: status === 'FINAL' ? score(`${field}.away_score`, outcome.away_score) : null,
+      acquired_at: instant(`${field}.acquired_at`, outcome.acquired_at), provenance: id(`${field}.provenance`, outcome.provenance), void_declared: false};
+    if (status === 'NOT_FINAL' && (outcome.home_score !== null || outcome.away_score !== null)) throw new HistInputError(`${field}.home_score`, 'a NOT_FINAL version has no scores');
+    const key = eventKey(normalized.provider, normalized.event_id);
+    if (!events.has(key)) throw new HistInputError(`${field}.event_id`, 'no such event for this provider');
+    if (!byEvent.has(key)) byEvent.set(key, new Map());
+    if (byEvent.get(key).has(normalized.version)) throw new HistInputError(`${field}.version`, 'duplicate version for the event');
+    byEvent.get(key).set(normalized.version, {field, at: Date.parse(normalized.acquired_at)});
+    return normalized;
+  });
+  for (const perEvent of byEvent.values()) {
+    const ordered = [...perEvent.entries()].sort((a, b) => a[0] - b[0]);
+    for (let i = 1; i < ordered.length; i++) if (ordered[i][1].at < ordered[i - 1][1].at)
+      throw new HistInputError(`${ordered[i][1].field}.acquired_at`, `version ${ordered[i][0]} acquired before version ${ordered[i - 1][0]}`);
+  }
+  return versions;
 }
 
 // Canonical JSON: object keys sorted, no whitespace. Used for every hash of the engine.

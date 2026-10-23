@@ -14,6 +14,12 @@ const time = (v, f) => { const t = Date.parse(v); if (typeof v !== 'string' || N
 const PROVIDERS = new Set(['futpythontrader', 'totalcorner']);
 // A goal count as delivered: a non-negative integer or its decimal text; anything else is not a validated score.
 const goalsOf = v => (Number.isInteger(v) && v >= 0 ? v : typeof v === 'string' && /^\d{1,3}$/.test(v) ? Number(v) : null);
+// One result version in the shape selectOutcome reads. Exported for inputs already in a provider-independent form (the
+// HIST engine's mp-hist-input-2): the provider must still be one of MatchPilot's two football APIs.
+export const resultVersion = ({provider, version, acquired_at, provenance, final, home, away, providerStatus}) => {
+  if (!PROVIDERS.has(provider)) fail('BAD_INPUT', `unknown provider ${provider}`);
+  return versionOf({provider, version, acquired_at, provenance, final, home, away, providerStatus});
+};
 const versionOf = ({provider, version, acquired_at, provenance, final, home, away, providerStatus}) => {
   const h = goalsOf(home), a = goalsOf(away);
   const validated = final && h !== null && a !== null;

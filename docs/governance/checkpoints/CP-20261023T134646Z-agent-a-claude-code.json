@@ -1,0 +1,207 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "authorizations": [],
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T134646Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T13:46:46Z",
+  "mandate": {
+    "id": "MP-PR219-GO-ROADMAP-20261023",
+    "source": "owner GO in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): protected merge of PR #219 on head 8f3d00e only, then roadmap units 2-4"
+  },
+  "task": "LEDGER-CORE-03",
+  "activity": "PR #219 merged on main as 8268d3a (squash, expectedHeadSha 8f3d00e) after reconfirming CI, mergeability and review; main CI and VPS deploy verified",
+  "issue": 99,
+  "pr": 219,
+  "branch": "ledger-core-03",
+  "commit_sha": "8f3d00e993d6b3535a654a73e5760378c47ac383",
+  "tree_sha": "8d18d20f41165f28b87e3472569a8fb1716eb679",
+  "base_sha": "6407f42d7c6dde5e059f48b2a2ec0e63cab412ae",
+  "requirements": [
+    "MP-MKT-001"
+  ],
+  "changes": [
+    "e48049a: roadmap reconciliation docs, MARKET-CORE-04 MERGED, DEC-015 status, runtime-state, LEDGER-CORE-03 registered",
+    "5a7f9e6: claim",
+    "6df3852: src/ledger/settlement.mjs settleFromResult, market binding on openPosition, resolution on settlement entries, tests, docs",
+    "7593336: owner mandate MP-ROADMAP-RECON-START-20261023 registered (the previous checkpoint named it before registration)",
+    "6feecbf: validateMarketSpec/selectionsOf in rules.mjs used by openPosition; CONFLICTING_VERSION, RULE_VERSION_CHANGED, early PROVIDER_CHANGED, corrected flag on corrections; tests",
+    "968d498: NB-a settled position without a resolvable result -> UNCHANGED; NB-b rewritten applied version anywhere in the array -> CONFLICTING_VERSION; NB-c selectionsOf table test",
+    "a2f35f3: every copy of the applied version must resolve alone to the applied winning selection (same rule version) else CONFLICTING_VERSION; malformed -> BAD_INPUT; comment",
+    "8268d3a: squash merge of PR #219 on main"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "a2f35f369999fd40534171dd38e63ff59760113e",
+      "time": "2026-10-23T13:25:42Z",
+      "limits": [
+        "601 tests: 600 pass, 0 fail, 1 SKIPPED (postgres-independence needs PostgreSQL 17): skipped, not PASS"
+      ]
+    },
+    {
+      "command": "npm run -s check; node tools/governance/cli.mjs validate",
+      "result": "PASS",
+      "environment": "Claude Code cloud container",
+      "commit": "a2f35f369999fd40534171dd38e63ff59760113e",
+      "time": "2026-10-23T13:25:42Z",
+      "limits": []
+    },
+    {
+      "command": "node --test test/ledger-core-03.test.mjs on 968d498 settlement.mjs (RED) vs a2f35f3 (GREEN)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container",
+      "commit": "a2f35f369999fd40534171dd38e63ff59760113e",
+      "time": "2026-10-23T13:25:42Z",
+      "limits": [
+        "new assertions fail on the previous code (1 test RED), pass now"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 8268d3a",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "8268d3a51217f27c96b75b86efc22b0c1cbfce11",
+      "time": "2026-10-23T13:46:46Z",
+      "limits": [
+        "run 39962776607 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 8268d3a (job log evidence)",
+      "result": "PASS",
+      "environment": "VPS via self-hosted runner, evidence from the GitHub Actions job log only",
+      "commit": "8268d3a51217f27c96b75b86efc22b0c1cbfce11",
+      "time": "2026-10-23T13:46:46Z",
+      "limits": [
+        "run 39962776676: guard rc=0 mode=enforce, DEPLOY_GATE_SHA_OK, worker_restart=ok, result=OK total_s=84 health=200 at 2026-10-23T15:45:53+02:00; the VPS itself is not observable from this session"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39961207797,
+    "conclusion": "SUCCESS",
+    "head_sha": "8f3d00e993d6b3535a654a73e5760378c47ac383"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "8f3d00e993d6b3535a654a73e5760378c47ac383",
+    "reference": "delta review posted on PR #219 on head 8f3d00e (context-separated sub-agent of the same model, DEC-004-R1: not identity-independent), after reviews 5628621388 (CHANGES_REQUESTED, fixed) and 5628777945 (APPROVED)"
+  },
+  "findings": [
+    {
+      "id": "LC03-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "in-memory only: persistence is LEDGER-CORE-01 (additive migration, owner approval for production)"
+    },
+    {
+      "id": "LC03-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the HIST-01a engine still settles with its own P/L path (settleMarket) and input VOID: unify through the ledger in a later unit"
+    },
+    {
+      "id": "RECON-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "real-data backtest needs an owner decision: all stored FPT odds acquired after kickoff (NON_PIT research mode per DEC-007 or forward pre-match capture)"
+    },
+    {
+      "id": "R219-B1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "market binding validated on #100 (selection/line/team)"
+    },
+    {
+      "id": "R219-B2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "same result version with other content -> CONFLICTING_VERSION"
+    },
+    {
+      "id": "R219-NB",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "NB1, NB2, NB4 (documented), NB5, NB6 addressed; NB3 documented"
+    },
+    {
+      "id": "R219-NB2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "delta review NB-a, NB-b (real defect: rewritten v1 accepted as correction), NB-c"
+    },
+    {
+      "id": "R219-NB3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "applied version rewritten with same provenance/timestamp but other content was accepted depending on its array position"
+    },
+    {
+      "id": "R219-NB4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "follow-ups of the final delta review (comment 6366140758): external settlement without winning_selection, check order on a future rule version, BAD_INPUT test, error class"
+    }
+  ],
+  "owner_decisions": [
+    "DEC-001",
+    "DEC-002",
+    "DEC-013",
+    "DEC-015"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI",
+      "VPS deploy"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "src/ledger/settlement.mjs",
+    "src/ledger/paper-ledger.mjs",
+    "test/ledger-core-03.test.mjs",
+    "branch:ledger-core-03",
+    "pr:219"
+  ],
+  "stop_conditions": [
+    "no merge or deploy without owner authorization",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "none for LEDGER-CORE-03; next unit HIST-LINK-01 (engine -> versioned results)",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261023T132542Z-agent-a-claude-code",
+  "merge_sha": "8268d3a51217f27c96b75b86efc22b0c1cbfce11"
+}
