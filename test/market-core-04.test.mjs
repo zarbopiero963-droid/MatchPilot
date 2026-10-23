@@ -102,3 +102,11 @@ test('BTTS (Goal/No Goal) from a validated provider final', () => {
   assert.equal(resolveVersioned({marketType: 'BTTS', selection: 'YES', versions: v, asOf: '2026-10-02T00:00:00Z'}).outcome, 'WIN');
   assert.equal(resolveVersioned({marketType: 'BTTS', selection: 'NO', versions: v, asOf: '2026-10-02T00:00:00Z'}).outcome, 'LOSE');
 });
+
+test('DEC-002: version numbers must follow acquisition time; a higher version recorded earlier fails closed (review N2)', () => {
+  const versions = [fpt(1, 2, 1, '2026-10-05T09:00:00Z'), fpt(2, 0, 0, '2026-10-01T09:00:00Z')];
+  assert.throws(() => selectOutcome(versions, {asOf: '2026-10-06T00:00:00Z'}), {code: 'NON_MONOTONIC_VERSION'});
+  assert.throws(() => resolveVersioned({...MO, versions, asOf: '2026-10-06T00:00:00Z'}), {code: 'NON_MONOTONIC_VERSION'});
+  // equal timestamps stay valid (same acquisition instant, version breaks the tie)
+  assert.equal(selectOutcome([fpt(1, 2, 1, '2026-10-05T09:00:00Z'), fpt(2, 2, 2, '2026-10-05T09:00:00Z')], {asOf: '2026-10-06T00:00:00Z'}).outcome_version, 2);
+});

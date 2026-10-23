@@ -51,6 +51,10 @@ export function selectOutcome(versions, {asOf}) {
     if (prior && JSON.stringify(prior) !== JSON.stringify(v)) fail('CONFLICTING_VERSION', `version ${v.version} recorded twice with different content`);
     seen.set(v.version, v);
   }
+  // A later version is a later acquisition: a higher number recorded earlier would make a stale record "latest".
+  const ordered = [...seen.values()].sort((a, b) => a.version - b.version);
+  for (let i = 1; i < ordered.length; i++) if (Date.parse(ordered[i].recorded_at) < Date.parse(ordered[i - 1].recorded_at))
+    fail('NON_MONOTONIC_VERSION', `version ${ordered[i].version} recorded before version ${ordered[i - 1].version}`);
   const finals = [...seen.values()]
     .filter(v => v.kind === 'FINAL' && v.validated === true && Date.parse(v.recorded_at) <= cutoff)
     .sort((a, b) => a.version - b.version);

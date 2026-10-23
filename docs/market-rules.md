@@ -24,7 +24,7 @@ external settlement):
 - Corrections (DEC-002): the outcome used is the latest validated FINAL version available at run time (`asOf`); the
   resolution records `provider`, `outcome_version`, `provenance` and `correction_timestamp`, sets `corrected` when the
   score differs from the first validated FINAL, with the first-FINAL outcome and `outcome_changed`. Two different
-  records with the same version number fail closed. Settled positions are corrected by #99 (`correctSettlement`); the MM
+  records with the same version number, or a higher version recorded before a lower one, fail closed. Settled positions are corrected by #99 (`correctSettlement`); the MM
   sequence records the correction without advancing again (DEC-013).
 - Extra time: the rules settle on the provider's final score; whether FPT/TC include extra time in cup ties is not
   documented (OWNER DECISION REQUIRED before cup matches are certified).
