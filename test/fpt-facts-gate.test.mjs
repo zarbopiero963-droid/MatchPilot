@@ -2,14 +2,17 @@
 // still being onboarded stores a newer version of it. Throwaway PostgreSQL schema, synthetic rows written into the FPT
 // tables as ingestion stores them; the history (fpt_match_versions) is never written by the refresh.
 import assert from 'node:assert/strict';
-import {spawn} from 'node:child_process';
+import {spawn, spawnSync} from 'node:child_process';
+import {mkdtempSync, symlinkSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {gzipSync} from 'node:zlib';
 import test from 'node:test';
 import {refreshNormalizedLayer} from '../src/providers/futpython/query.mjs';
 import {factsGate, factsSection} from '../src/futpython-certificate.mjs';
 import {measureFactsGap} from '../src/providers/futpython/facts-refresh.mjs';
-import {runFactsRefresh} from '../src/jobs/futpython-facts-refresh.mjs';
+import {parseArgs, runFactsRefresh} from '../src/jobs/futpython-facts-refresh.mjs';
 import {readFptHistInput} from '../src/providers/futpython/hist-input.mjs';
 
 const sha256 = value => createHash('sha256').update(value).digest('hex');
@@ -43,7 +46,7 @@ async function withSchema(t, name, body) {
     await runNode(['src/migrate.mjs'], {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test'});
     const db = new pg.Client({connectionString: dbUrl.toString()});
     await db.connect();
-    try { await body(db); }
+    try { await body(db, dbUrl.toString()); }
     finally { await db.end(); }
   } finally {
     await root.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
@@ -233,5 +236,47 @@ test('FPT facts recovery: a history change inside the run rolls everything back'
     assert.deepEqual(await facts(), before.facts, 'no fact written');
     assert.deepEqual(await history(), before.history, 'the injected version is rolled back too');
     assert.equal((await measureFactsGap(db)).hidden, 1);
+  });
+});
+
+test('FPT facts recovery: an orphan fact (no admissible version left) is reported, not stale, and never blocks the run', {timeout: 90000}, async t => {
+  await withSchema(t, 'orphan', async db => {
+    const {version, onboarding, facts} = fixture(db);
+    await version('fpt:id:m9', NEW, '2026-10-02T08:00:00Z', score(1, 0));
+    await refreshNormalizedLayer(db);
+    // The dataset is registered in onboarding after its match reached the facts.
+    await onboarding(NEW, 'DISCOVERED');
+    const gap = await measureFactsGap(db);
+    assert.deepEqual([gap.orphans, gap.stale, gap.hidden], [1, 0, 0]);
+    assert.equal((await factsSection(db)).facts_stale, 0, 'the certificate counts it in the onboarding gate, not as stale');
+    const run = await runFactsRefresh(db, {apply: true, by: 'owner', reason: 'orphan'});
+    assert.equal(run.status, 'COMMITTED');
+    assert.equal(run.written, 0);
+    assert.ok((await facts())['fpt:id:m9'], 'nothing is deleted');
+  });
+});
+
+test('FPT facts recovery command: strict arguments, exit codes, runs through a symlink', {timeout: 90000}, async t => {
+  assert.throws(() => parseArgs(['--apply=true']), /unknown argument --apply/);
+  assert.throws(() => parseArgs(['--dry']), /unknown argument --dry/);
+  assert.deepEqual(parseArgs(['--apply', '--by=o', '--reason=r w']), {apply: true, by: 'o', reason: 'r w'});
+  await withSchema(t, 'cli', async (db, url) => {
+    const link = join(mkdtempSync(join(tmpdir(), 'facts-cli-')), 'current');
+    symlinkSync(process.cwd(), link);
+    const run = args => spawnSync(process.execPath, [join(link, 'src/jobs/futpython-facts-refresh.mjs'), ...args],
+      {cwd: tmpdir(), encoding: 'utf8', env: {PATH: process.env.PATH, DATABASE_URL: url}});
+    const dry = run([]);
+    assert.equal(dry.status, 0, dry.stderr);
+    assert.match(dry.stdout, /^FUTPYTHON_FACTS_REFRESH \{"mode":"dry_run"/);
+    const bad = run(['--apply=true']);
+    assert.equal(bad.status, 1);
+    assert.match(bad.stderr, /unknown argument/);
+    const noReason = run(['--apply', '--by=owner']);
+    assert.equal(noReason.status, 1);
+    assert.match(noReason.stderr, /--by=<who> and --reason=<why>/);
+    assert.ok(!(noReason.stderr + dry.stdout).includes(new URL(url).password), 'the password never appears');
+    const applied = run(['--apply', '--by=owner', '--reason=cli test']);
+    assert.equal(applied.status, 0, applied.stderr);
+    assert.match(applied.stdout, /"status":"COMMITTED"/);
   });
 });

@@ -1,3 +1,5 @@
+import { realpathSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { withClient, closePool } from '../db.mjs';
 import { measureFactsGap, refreshMatchFacts } from '../providers/futpython/facts-refresh.mjs';
 
@@ -6,16 +8,28 @@ import { measureFactsGap, refreshMatchFacts } from '../providers/futpython/facts
 // are recovered at the next productive run; this command does it now.
 //   node src/jobs/futpython-facts-refresh.mjs                                    (dry run: read-only measure)
 //   node src/jobs/futpython-facts-refresh.mjs --apply --by=<who> --reason=<why>  (writes fpt_match_facts only)
-// --apply runs in one transaction: it measures, refreshes, measures again and rolls everything back if the history
-// (fpt_match_versions) changed, if a duplicate appeared or if a hidden or stale match is left.
+// --apply runs in one REPEATABLE READ transaction: it measures, refreshes and measures again in the same snapshot, and
+// rolls back if the refresh did anything but write facts (history count or digest changed), if a duplicate appeared or
+// if a hidden or stale match is left. Orphan facts (no admissible version left) are reported, never deleted. A sync
+// touching the same rows at the same time makes the run fail with 40001 (serialization) or 55P03 (lock timeout): rerun.
+// Exit codes: 0 done (dry run or committed), 1 error, 2 rolled back by a check.
+
+const FLAGS = ['--apply'];
+const VALUES = ['--by=', '--reason='];
+
+export function parseArgs(argv) {
+  const out = {apply: false, by: null, reason: null};
+  for (const a of argv) {
+    if (a === '--apply') out.apply = true;
+    else if (a.startsWith('--by=')) out.by = a.slice(5);
+    else if (a.startsWith('--reason=')) out.reason = a.slice(9);
+    else throw new Error(`unknown argument ${a.split('=')[0]} (accepted: ${[...FLAGS, ...VALUES].join(' ')})`);
+  }
+  return out;
+}
 
 function redact(value) {
   return String(value || '').replace(/postgres(?:ql)?:\/\/\S+/gi, 'postgres://[REDACTED]');
-}
-
-function arg(argv, name) {
-  const hit = argv.find(a => a.startsWith(`--${name}=`));
-  return hit ? hit.slice(name.length + 3) : null;
 }
 
 export async function runFactsRefresh(client, {apply = false, by = null, reason = null} = {}) {
@@ -23,6 +37,8 @@ export async function runFactsRefresh(client, {apply = false, by = null, reason 
   // One snapshot for both measures; a concurrent sync that touches the same rows makes the run fail, not lie.
   await client.query(apply ? 'BEGIN ISOLATION LEVEL REPEATABLE READ' : 'BEGIN READ ONLY');
   try {
+    // Never wait behind the worker's row locks for long (nor make it wait behind ours).
+    await client.query("SET LOCAL lock_timeout = '5s'");
     const before = await measureFactsGap(client);
     if (!apply) {
       await client.query('ROLLBACK');
@@ -47,15 +63,21 @@ export async function runFactsRefresh(client, {apply = false, by = null, reason 
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const argv = process.argv;
-  withClient(client => runFactsRefresh(client, {apply: argv.includes('--apply'), by: arg(argv, 'by'), reason: arg(argv, 'reason')}))
+// Run as a script, also through the /srv/mp-deploy/current symlink.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
+  let args;
+  try { args = parseArgs(process.argv.slice(2)); }
+  catch (error) {
+    console.error('FUTPYTHON_FACTS_REFRESH_FATAL', error.message);
+    process.exit(1);
+  }
+  withClient(client => runFactsRefresh(client, args))
     .then(result => {
       console.log('FUTPYTHON_FACTS_REFRESH ' + JSON.stringify(result));
       if (result.status === 'ROLLED_BACK') process.exitCode = 2;
     })
     .catch(error => {
-      console.error('FUTPYTHON_FACTS_REFRESH_FATAL', redact(error?.message || error));
+      console.error('FUTPYTHON_FACTS_REFRESH_FATAL', error?.code ? `[${error.code}]` : '', redact(error?.message || error));
       process.exitCode = 1;
     })
     .finally(() => closePool());

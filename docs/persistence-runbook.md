@@ -15,7 +15,8 @@ No step creates `allow-migrations-<sha>`, switches to `production` or applies a 
 PORT=<databases.*.server[0].port>        # declared 5434
 DB=<databases.*.server[0].database>      # declared matchpilot_staging
 APPUSER=<units[app].database.user>       # the app role
-REL=/srv/mp-deploy/current
+DBOWNER=<databases.*.server[0].owner>    # owner of the operational database
+REL=$(readlink -f /srv/mp-deploy/current)   # the release directory itself, not the symlink
 TS=$(date -u +%Y%m%dT%H%M%SZ)
 D=/srv/matchpilot/backups/persistence-$TS
 DRILL=mp_restore_drill_$TS
@@ -39,10 +40,13 @@ history **up to the dump**, not with live totals.
 ## 2. Restore drill into an isolated database (creates the drill database only)
 
 ```sh
-sudo -u postgres createdb -p "$PORT" "$DRILL"
-sudo -u postgres pg_restore -p "$PORT" -d "$DRILL" --no-owner --exit-on-error < "$D/$DB.dump"
+sudo -u postgres createdb -p "$PORT" -O "$DBOWNER" "$DRILL"
+sudo -u postgres pg_restore -p "$PORT" -d "$DRILL" --exit-on-error < "$D/$DB.dump"
 echo "restore rc=$?"
 ```
+
+The drill keeps the operational owners and grants (same cluster, no `--no-owner`), so the dry run of step 5 meets the
+same rights as production.
 
 ## 3. Integrity checks (read only on both databases)
 
@@ -58,15 +62,22 @@ sudo -u postgres psql -p "$PORT" -d "$DB" -XAt -c "BEGIN READ ONLY" \
   -c "$V WHERE version_id <= $MAXV" -c "$R WHERE snapshot_id <= $MAXR" -c "ROLLBACK"
 ```
 
-PASS when each pair of lines is identical (id, count, digest). Then the row count of every table of the drill:
+PASS when each pair of lines is identical (id, count, digest). Ids are given out before commit, so a version with a
+lower id can commit after the dump: a mismatch is first rerun, and only a repeated mismatch is a FAIL.
+
+Then the row count of every table, on the drill and on the operational database:
 
 ```sh
-sudo -u postgres psql -p "$PORT" -d "$DRILL" -XAt -c "SELECT n.nspname||'.'||c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind='r' AND n.nspname NOT LIKE 'pg\_%' AND n.nspname<>'information_schema' ORDER BY 1" \
-  | while read t; do echo "$t $(sudo -u postgres psql -p "$PORT" -d "$DRILL" -XAt -c "SELECT count(*) FROM $t")"; done > "$D/drill-rowcounts.txt"
-sha256sum "$D/drill-rowcounts.txt" >> "$D/SHA256SUMS"
+T="SELECT n.nspname||'.'||c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind='r' AND n.nspname NOT LIKE 'pg\\_%' AND n.nspname<>'information_schema' ORDER BY 1"
+for X in "$DRILL" "$DB"; do
+  sudo -u postgres psql -p "$PORT" -d "$X" -XAt -c "$T" | while read t; do echo "$t $(sudo -u postgres psql -p "$PORT" -d "$X" -XAt -c "SELECT count(*) FROM $t")"; done > "$D/rowcounts-$X.txt"
+done
+join <(LC_ALL=C sort "$D/rowcounts-$DRILL.txt") <(LC_ALL=C sort "$D/rowcounts-$DB.txt") | awk '$2 > $3 {print "MORE IN DRILL:", $0}'
+sha256sum "$D"/rowcounts-*.txt >> "$D/SHA256SUMS"
 ```
 
-PASS when no table of the drill has more rows than the operational one (the operational one only grows).
+The append-only history tables (`fpt_raw_snapshots`, `fpt_match_versions`) must not have more rows in the drill. Other
+tables (sessions, alerts, TotalCorner) can shrink after the dump: a line for them is read, not a FAIL by itself.
 
 ## 4. Derived facts on the drill (writes the drill only)
 
@@ -74,9 +85,12 @@ The FPT-FACTS-GATE measure, then the recovery, on the copy:
 
 ```sh
 DRILL_URL="postgresql:///$DRILL?host=/var/run/postgresql&port=$PORT"
-sudo -u postgres env DATABASE_URL="$DRILL_URL" node "$REL/src/jobs/futpython-facts-refresh.mjs"
-sudo -u postgres env DATABASE_URL="$DRILL_URL" node "$REL/src/jobs/futpython-facts-refresh.mjs" --apply --by=owner --reason="drill $TS"
+cd "$REL" && sudo -u postgres env DATABASE_URL="$DRILL_URL" node src/jobs/futpython-facts-refresh.mjs
+cd "$REL" && sudo -u postgres env DATABASE_URL="$DRILL_URL" node src/jobs/futpython-facts-refresh.mjs --apply --by=owner --reason="drill $TS"
 ```
+
+The release is readable by every user (`mp-deploy` installs it `go+rX`); the drill URL holds no password (peer
+authentication of `postgres` on the local socket).
 
 PASS when the second line prints `"status":"COMMITTED"` with `after.hidden = 0`, `after.stale = 0`,
 `after.duplicate_ids = 0` and `after.history_digest` equal to `before.history_digest`. A `ROLLED_BACK` line names the
@@ -88,7 +102,7 @@ Applied as the app role, as `migrate()` would at the app restart, then the schem
 
 ```sh
 sudo -u postgres pg_dump -p "$PORT" -s "$DRILL" > "$D/drill-schema-before.sql"
-sudo -u postgres psql -p "$PORT" -d "$DRILL" -X -1 -v ON_ERROR_STOP=1 -c "SET ROLE $APPUSER" -f "$REL/<staged persistence file>"
+sudo -u postgres psql -p "$PORT" -d "$DRILL" -X -1 -v ON_ERROR_STOP=1 -c "SET ROLE \"$APPUSER\"" -f "$REL/<staged persistence file>"
 echo "dry-run rc=$?"
 sudo -u postgres pg_dump -p "$PORT" -s "$DRILL" > "$D/drill-schema-after.sql"
 diff "$D/drill-schema-before.sql" "$D/drill-schema-after.sql" > "$D/drill-schema.diff"; sha256sum "$D/drill-schema.diff" >> "$D/SHA256SUMS"
@@ -101,16 +115,22 @@ triggers, indexes) and step 3 rerun on the drill still gives the same history di
 
 ## 6. FPT facts recovery on the operational database (separate authorization; writes `fpt_match_facts` only)
 
-Only if the preflight `factsGap` shows `hidden > 0` or `stale > 0`, and only after step 4 passed:
+Only if the preflight `factsGap` shows `hidden > 0` or `stale > 0`, and only after step 4 passed. It runs through
+systemd with exactly the worker's user and environment files (as `matchpilot-fpt-worker.service` loads them, in that
+order), so it reaches the database the worker writes and no secret is read into a shell:
 
 ```sh
-cd "$REL" && bash -c 'set -a; . /srv/matchpilot/secrets/worker.env; set +a; exec node src/jobs/futpython-facts-refresh.mjs'
-cd "$REL" && bash -c 'set -a; . /srv/matchpilot/secrets/worker.env; set +a; exec node src/jobs/futpython-facts-refresh.mjs --apply --by=owner --reason="FPT-FACTS-GATE recovery"'
+RUN="systemd-run --wait --pipe --collect -p User=matchpilot -p Group=matchpilot \
+  -p EnvironmentFile=/srv/matchpilot/secrets/worker.env -p EnvironmentFile=/srv/matchpilot/secrets/fpt.env \
+  -p WorkingDirectory=$REL -p NoNewPrivileges=yes"
+$RUN /usr/bin/node src/jobs/futpython-facts-refresh.mjs
+$RUN /usr/bin/node src/jobs/futpython-facts-refresh.mjs --apply --by=owner --reason="FPT-FACTS-GATE recovery"
 ```
 
-The env file is the worker's (the unit's `EnvironmentFile`, as the preflight lists it); the URL is read from it inside
-the shell and never appears on the terminal or on a command line. Same PASS rule as step 4. It runs in one transaction and rolls back on any history change, duplicate or
-leftover; a concurrent sync on the same rows makes it fail, and it is rerun later.
+Same PASS rule as step 4. Exit 2 is a check that rolled back (nothing written); exit 1 with `[40001]` or `[55P03]` is
+a sync touching the same rows at that moment: rerun later. The before/after checks run in the transaction's own
+snapshot, so they prove that the refresh wrote facts only; the worker's own writes are not part of it. Orphan facts
+(`orphans`: no admissible version left) are reported and kept.
 
 ## Cleanup and rollback
 

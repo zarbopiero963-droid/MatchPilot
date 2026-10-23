@@ -92,7 +92,8 @@ export function unitConfig(unit, {show = u => sh('systemctl', ['show', u, ...SHO
 const SQL = {
   server: `SELECT current_setting('server_version') AS version, current_setting('server_version_num') AS version_num,
       current_database() AS database, current_user AS "user", inet_server_port() AS port, pg_is_in_recovery() AS in_recovery,
-      pg_size_pretty(pg_database_size(current_database())) AS size`,
+      pg_size_pretty(pg_database_size(current_database())) AS size,
+      (SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname = current_database()) AS owner`,
   schemas: `SELECT nspname AS schema FROM pg_namespace WHERE nspname NOT LIKE 'pg\\_%' AND nspname <> 'information_schema' ORDER BY 1`,
   tables: `SELECT n.nspname AS schema, c.relname AS table, c.relkind AS kind, c.reltuples::bigint AS estimated_rows,
       pg_total_relation_size(c.oid) AS bytes
