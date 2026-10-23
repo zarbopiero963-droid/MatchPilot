@@ -80,7 +80,7 @@ Outcomes are read only after every decision is fixed. The 1X2 rule is the Market
 - **FINAL:** gives HOME, DRAW or AWAY from the scores (regular time);
 - **VOID:** voids the bet, and the stake is returned;
 - **Same provider only:** the outcome must belong to the same provider and event as the odds. Cross-provider mappings are not used;
-- **Acquired after kickoff:** an outcome acquired before kickoff is not used (`OUTCOME_ACQUIRED_BEFORE_KICKOFF`). This applies to VOID too, which is conservative: a postponement announced before the match leaves the bet unsettled;
+- **Acquired at or after kickoff:** an outcome acquired before the kickoff instant, including between the decision and the kickoff, is not used (`OUTCOME_ACQUIRED_BEFORE_KICKOFF`); one acquired exactly at kickoff is. This applies to VOID too, which is conservative: a postponement announced before the match leaves the bet unsettled;
 - **Missing outcome:** the bet stays unsettled (`OUTCOME_MISSING`, N/D).
 
 **P/L.** `settleMarket` computes it in Decimal:

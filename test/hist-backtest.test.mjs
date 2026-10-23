@@ -411,23 +411,54 @@ test('isolation from R1: the engine reads no FutPythonTrader path, no match anal
 
 test('1X2 settlement reuses the registry MATCH_ODDS resolver, no duplicate rule (DEC-006)', () => {
   seq = 0;
-  const kicks = {h: '2026-02-01T15:00:00Z', d: '2026-02-01T17:00:00Z', a: '2026-02-01T19:00:00Z'};
-  const observations = Object.entries(kicks).flatMap(([id, kickoff]) => {
+  // Each event has a different favourite, so a wrong selection passed to the resolver changes the result (review NB-1).
+  const events = {h: ['2026-02-01T15:00:00Z', ['1.5', '4', '6'], [2, 0]], d: ['2026-02-01T17:00:00Z', ['4', '1.5', '6'], [1, 1]],
+    a: ['2026-02-01T19:00:00Z', ['6', '4', '1.5'], [0, 3]], l: ['2026-02-01T21:00:00Z', ['1.5', '4', '6'], [0, 1]]};
+  const observations = Object.entries(events).flatMap(([id, [kickoff, prices]]) => {
     const at = new Date(Date.parse(kickoff) - 30 * 60e3).toISOString();
-    return [ob(id, 'HOME', '1.5', at), ob(id, 'DRAW', '4', at), ob(id, 'AWAY', '6', at)];
+    return ['HOME', 'DRAW', 'AWAY'].map((selection, i) => ob(id, selection, prices[i], at));
   });
-  const scores = {h: [2, 0], d: [1, 1], a: [0, 3]};
-  const outcomes = Object.entries(scores).map(([id, [hs, as]]) => out(id, 'FINAL', hs, as, '2026-02-01T23:00:00Z'));
-  const report = runBacktest(input({events: Object.entries(kicks).map(([id, k]) => ev(id, k)), observations, outcomes}), CONFIG, {codeVersion: 'test'});
+  const outcomes = Object.entries(events).map(([id, [, , [hs, as]]]) => out(id, 'FINAL', hs, as, '2026-02-01T23:00:00Z'));
+  const report = runBacktest(input({events: Object.entries(events).map(([id, [k]]) => ev(id, k)), observations, outcomes}), CONFIG, {codeVersion: 'test'});
   assert.equal(OUTCOME_RULE_VERSION, 'MATCH_ODDS@v1');
   assert.equal(report.versions.outcome_rule, 'MATCH_ODDS@v1');
-  assert.deepEqual(report.bets.map(bet => [bet.event_id, bet.settlement.result, bet.settlement.outcome]),
-    [['h', 'HOME', 'WIN'], ['d', 'DRAW', 'LOSE'], ['a', 'AWAY', 'LOSE']]);
+  assert.deepEqual(report.bets.map(bet => [bet.event_id, bet.selection, bet.settlement.result, bet.settlement.outcome, bet.settlement.net]),
+    [['h', 'HOME', 'HOME', 'WIN', '0.5'], ['d', 'DRAW', 'DRAW', 'WIN', '0.5'], ['a', 'AWAY', 'AWAY', 'WIN', '0.5'], ['l', 'HOME', 'AWAY', 'LOSE', '-1']]);
   for (const bet of report.bets) {
-    const [hs, as] = scores[bet.event_id];
+    const [hs, as] = events[bet.event_id][2];
     const ref = resolve({marketType: 'MATCH_ODDS', selection: bet.selection, match: {status: 'FINISHED', ft_home: hs, ft_away: as}});
     assert.deepEqual([bet.settlement.result, bet.settlement.outcome], [ref.winning_selection, ref.outcome]);
   }
   const engine = readFileSync(new URL('../src/hist/engine.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(engine, /home_score\s*[<>]/, 'no local 1X2 comparison of scores');
+});
+
+// One event, kickoff 15:00, decision 14:50, HOME favourite at 1.01 acquired at 14:30.
+const single = ({acquired = '2026-03-01T17:00:00Z', stake = '1', commission = '0', score = [1, 0]} = {}) => {
+  seq = 0;
+  const at = '2026-03-01T14:30:00Z';
+  return runBacktest(input({events: [ev('x', '2026-03-01T15:00:00Z')],
+    observations: [ob('x', 'HOME', '1.01', at), ob('x', 'DRAW', '20', at), ob('x', 'AWAY', '30', at)],
+    outcomes: [out('x', 'FINAL', score[0], score[1], acquired)]}), {...CONFIG, stake, commission}, {codeVersion: 'test'});
+};
+
+test('outcome time boundary: used from the kickoff on, never before it, also between decision and kickoff (review NB-2)', () => {
+  assert.equal(single({acquired: '2026-03-01T15:00:00Z'}).bets[0].settlement.outcome, 'WIN', 'acquired exactly at kickoff: used');
+  for (const acquired of ['2026-03-01T14:59:59Z', '2026-03-01T14:55:00Z', '2026-03-01T14:50:00Z']) {
+    const report = single({acquired});
+    assert.equal(report.bets[0].settlement, null, acquired);
+    assert.deepEqual(report.counts.unsettled_by_reason, {OUTCOME_ACQUIRED_BEFORE_KICKOFF: 1}, acquired);
+  }
+});
+
+test('metric rounding: HALF_EVEN to the cent on an exact half cent, net = rounded gross − rounded commission (review NB-3)', () => {
+  // stake 0.5 at 1.01 wins 0.005: HALF_EVEN gives 0.00 (HALF_UP would give 0.01).
+  const half = single({stake: '0.5'});
+  assert.equal(half.metrics.pl_gross, '0.005');
+  assert.equal(half.metrics.rounded.pl_gross, '0.00');
+  assert.equal(half.metrics.rounded.pl_net, '0.00');
+  // stake 1.5 at 1.01 wins 0.015, commission 5% = 0.00075: rounded 0.02 − 0.00 = 0.02, while cents(net 0.01425) = 0.01.
+  const net = single({stake: '1.5', commission: '0.05'});
+  assert.deepEqual([net.metrics.pl_gross, net.metrics.commission, net.metrics.pl_net], ['0.015', '0.00075', '0.01425']);
+  assert.deepEqual([net.metrics.rounded.pl_gross, net.metrics.rounded.commission, net.metrics.rounded.pl_net], ['0.02', '0.00', '0.02']);
 });
