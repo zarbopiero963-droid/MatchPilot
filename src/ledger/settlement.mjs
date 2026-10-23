@@ -20,7 +20,8 @@ function resolutionOf(res) {
 // - PENDING: no validated final result, or the rule cannot resolve the market (reason from #100); nothing written;
 // - SETTLED: first settlement applied;
 // - CORRECTED: a later result version changed the outcome; REVERSAL + new settlement applied;
-// - UNCHANGED: the result version is already applied, or a later version keeps the same outcome; nothing written.
+// - UNCHANGED: the result version is already applied, a later version keeps the same outcome, or the position is
+//   already settled and the versions passed resolve nothing (reason from #100); nothing written.
 export function settleFromResult(ledger, {positionId, versions, asOf, at}) {
   const p = replay(ledger).positions.get(positionId);
   if (!p) fail('UNKNOWN_POSITION', positionId);
@@ -29,10 +30,16 @@ export function settleFromResult(ledger, {positionId, versions, asOf, at}) {
   // A position settled from one provider is never re-settled from another, even when that one has no final yet.
   const incoming = Array.isArray(versions) ? versions.find(v => v?.provider)?.provider : undefined;
   if (applied && incoming && incoming !== applied.provider) fail('PROVIDER_CHANGED', `${positionId} settled from ${applied.provider}, now ${incoming}`);
-  // DEC-002: the applied result version must not have been rewritten, wherever it sits in the array.
-  const again = applied && Array.isArray(versions) ? versions.find(v => v?.version === applied.outcome_version) : undefined;
-  if (again && (again.provenance !== applied.provenance || again.recorded_at !== applied.recorded_at))
-    fail('CONFLICTING_VERSION', `${positionId}: result v${applied.outcome_version} already applied with other content`);
+  // DEC-002: the applied result version must not have been rewritten, wherever it sits in the array: every copy must
+  // carry the same provenance and timestamp and resolve, on its own, to the applied winning selection (compared only
+  // under the same rule version; a rule version change is refused below as RULE_VERSION_CHANGED).
+  const again = applied && Array.isArray(versions) ? versions.filter(v => v?.version === applied.outcome_version) : [];
+  for (const v of again) {
+    const alone = resolveVersioned({...p.market, versions: [v], asOf: v.recorded_at});
+    if (v.provenance !== applied.provenance || v.recorded_at !== applied.recorded_at || alone.status !== 'RESOLVED'
+      || (alone.rule_version === applied.rule_version && alone.winning_selection !== applied.winning_selection))
+      fail('CONFLICTING_VERSION', `${positionId}: result v${applied.outcome_version} already applied with other content`);
+  }
   const res = resolveVersioned({...p.market, versions, asOf});
   if (res.status !== 'RESOLVED') {
     // An already settled position is not reopened by a missing or earlier result: it stays as settled.

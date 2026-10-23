@@ -158,6 +158,12 @@ test('DEC-002: the same result version with other content in a later call is a c
   // the applied version rewritten next to a newer one is still a conflict, not a correction (review NB-b)
   assert.throws(() => settle(l, 'b1', [{...fpt(1, 0, 0, '2026-10-20T21:00:00Z'), provenance: 'x'}, fpt(2, 0, 1, '2026-10-21T09:00:00Z')]), {code: 'CONFLICTING_VERSION'});
   assert.equal(l.entries.length, n);
+  // same provenance and timestamp but other content is a rewrite too, wherever it sits (delta review 5628777945 NB1)
+  assert.throws(() => settle(l, 'b1', [fpt(1, 0, 0, '2026-10-20T21:00:00Z'), fpt(2, 0, 1, '2026-10-21T09:00:00Z')]), {code: 'CONFLICTING_VERSION'});
+  assert.throws(() => settle(l, 'b1', [fpt(1, null, null, '2026-10-20T21:00:00Z', 'NO_RESULT')]), {code: 'CONFLICTING_VERSION'});
+  // an identical copy of the applied version is not a conflict
+  assert.equal(settle(l, 'b1', [fpt(1, 2, 1, '2026-10-20T21:00:00Z'), fpt(1, 2, 1, '2026-10-20T21:00:00Z')]).status, 'UNCHANGED');
+  assert.equal(l.entries.length, n);
 });
 
 test('a correction is flagged even when only the newer version is passed; another provider is refused before PENDING (review NB1, NB2)', () => {
