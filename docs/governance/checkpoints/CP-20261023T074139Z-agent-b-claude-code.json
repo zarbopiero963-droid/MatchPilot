@@ -1,0 +1,169 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261023T074139Z-agent-b-claude-code",
+  "timestamp_utc": "2026-10-23T07:41:39Z",
+  "agent": {
+    "id": "agent-b-claude-code",
+    "role": "Test Agent",
+    "session": "claude-code-cloud-session-handoff-test-01-agent-b"
+  },
+  "mandate": {
+    "id": "OWN-T141U-GOV150",
+    "source": "owner t141u/t145u 2026-10-23 (OWN-T141U-GOV150, MP-OWNER-AGENTS-INTERCHANGEABLE-01): Agent B launched by the owner on HANDOFF-TEST-01, docs/governance/owner-decisions.json"
+  },
+  "activity": "HANDOFF-TEST-01 leg B completed: tests/docs-only change (real-chain test + HANDOFF.md execution record), PR #216 Refs #150 opened without merge, runtime-state updated, task handed back OUT to agent-g-grok and lease released.",
+  "task": "HANDOFF-TEST-01",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 150,
+  "pr": 216,
+  "branch": "handoff-test-01",
+  "commit_sha": "404ad4aca50dd001f1f909ccc0704e0525fea49d",
+  "tree_sha": "b34dc1c60b44a54e408938216aec7519f2d7a4d1",
+  "base_sha": "d15f1fd43d8e01303f41e6caa7d797ff0ded6447",
+  "worktree": {
+    "clean": true
+  },
+  "requirements": [],
+  "changes": [
+    "test/governance-handoff-test-01.test.mjs",
+    "docs/governance/HANDOFF.md",
+    "docs/governance/runtime-state.json",
+    "docs/governance/work-registry.json",
+    "docs/governance/checkpoints/CP-20261023T073532Z-agent-b-claude-code.json"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/governance-*.test.mjs",
+      "result": "PASS",
+      "environment": "local node v22.22.0, fresh full clone, Claude Code cloud container",
+      "commit": "404ad4aca50dd001f1f909ccc0704e0525fea49d",
+      "time": "2026-10-23T07:38:48Z",
+      "limits": [
+        "182/182 pass; run with the uncommitted final checkpoint draft and released registry present in the worktree (bookkeeping only)",
+        "includes test/governance-handoff-test-01.test.mjs 4/4"
+      ]
+    },
+    {
+      "command": "npm test (node --test) with FUTPYTHON_TEST_DATABASE_URL on local disposable PostgreSQL 16",
+      "result": "PASS",
+      "environment": "local node v22.22.0, PostgreSQL 16 local",
+      "commit": "404ad4aca50dd001f1f909ccc0704e0525fea49d",
+      "time": "2026-10-23T07:39:51Z",
+      "limits": [
+        "560 tests: 559 pass, 0 fail, 1 skipped (test/postgres-independence.test.mjs requires PostgreSQL 17: NOT VERIFIED locally, CI runs it)"
+      ]
+    },
+    {
+      "command": "node tools/governance/cli.mjs validate; runtime-state --check; drift --pr 216 --branch handoff-test-01; npm run check",
+      "result": "PASS",
+      "environment": "local node v22.22.0",
+      "commit": "404ad4aca50dd001f1f909ccc0704e0525fea49d",
+      "time": "2026-10-23T07:41:23Z",
+      "limits": [
+        "drift checked 176 PRs, problems []",
+        "GitHub CI on PR #216 not yet observed: NOT VERIFIED in this checkpoint"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN",
+    "head_sha": "404ad4aca50dd001f1f909ccc0704e0525fea49d"
+  },
+  "gate_a": "NOT_VERIFIED",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "HT01-B-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "fast-forward 665bc34 -> d15f1fd before the claim; UNRECONCILED_COMMITS on the grok checkpoint reconciled by CP-20261023T073532Z-agent-b-claude-code (see HANDOFF.md)"
+    }
+  ],
+  "owner_decisions": [
+    "OWN-T141U-GOV150",
+    "MP-OWNER-AGENTS-INTERCHANGEABLE-01"
+  ],
+  "authorizations": [],
+  "external_commands": [
+    {
+      "target": "github",
+      "command": "git push -u origin handoff-test-01 (477275b claim, b28a019 IN checkpoint, 2afc188 tests/docs, 404ad4a runtime-state)",
+      "effect": "branch"
+    },
+    {
+      "target": "github",
+      "command": "create pull request handoff-test-01 -> main",
+      "effect": "PR #216 opened, not merged"
+    },
+    {
+      "target": "github",
+      "command": "node tools/governance/cli.mjs release HANDOFF-TEST-01 --agent agent-b-claude-code --checkpoint CP-20261023T074139Z-agent-b-claude-code --state \"HANDOFF READY\"",
+      "effect": "lease released"
+    }
+  ],
+  "artifacts": [],
+  "progress": {
+    "done": [
+      "handoff IN CP-20261023T073532Z-agent-b-claude-code",
+      "tests/docs change 2afc188",
+      "PR #216 Refs #150",
+      "runtime-state 404ad4a",
+      "final checkpoint HANDOFF READY",
+      "release"
+    ],
+    "in_progress": [],
+    "not_started": [
+      "Agent A return leg: handoff-in and checkpoint IN",
+      "CI result and independent review on PR #216",
+      "owner decision on PR #216"
+    ]
+  },
+  "resources": [
+    "branch:handoff-test-01",
+    "checkpoints:HANDOFF-TEST-01"
+  ],
+  "stop_conditions": [
+    "orient verdict STOP",
+    "takeover-check not PROCEED",
+    "reconcile error (SHA_MISMATCH, UNRECONCILED_COMMITS, TREE_MISMATCH, STALE)",
+    "any change outside tests/ or docs/",
+    "any deploy, merge, spend, secret or production action"
+  ],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": {
+    "production": "untouched",
+    "note": "no VPS action in this task"
+  },
+  "handoff": {
+    "status": "OUT",
+    "from": "agent-b-claude-code",
+    "to": "agent-g-grok",
+    "responsibilities": [
+      "return leg: orient, takeover-check HANDOFF-TEST-01 --agent agent-g-grok, handoff-in HANDOFF-TEST-01 --agent agent-g-grok, proceed only on PROCEED",
+      "re-verify independently the B claims (SHA, tree, PR #216, tests) before trusting them",
+      "claim, write checkpoint IN on handoff-test-01, release",
+      "do not merge PR #216 and do not certify #150 without owner mandate"
+    ]
+  },
+  "dependencies": [
+    "GOV-PROTOCOL-01",
+    "HANDOFF-PREP-01"
+  ],
+  "state": "HANDOFF READY",
+  "next_action": "agent-g-grok: read docs/governance/PROTOCOL.md; node tools/governance/cli.mjs orient; takeover-check HANDOFF-TEST-01 --agent agent-g-grok; handoff-in HANDOFF-TEST-01 --agent agent-g-grok; checkpoint IN on handoff-test-01 (PR #216)",
+  "resume_conditions": [
+    "lease null (released by agent-b-claude-code)",
+    "branch handoff-test-01 at commit_sha, later commits only checkpoint/registry bookkeeping",
+    "PR #216 open"
+  ],
+  "supersedes": "CP-20261023T073532Z-agent-b-claude-code",
+  "merge_sha": null
+}
