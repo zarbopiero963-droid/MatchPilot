@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 176,
+  "revision": 178,
   "tasks": [
     {
       "id": "R-01",
@@ -1252,9 +1252,9 @@
       "pr": 227,
       "branch": "hist-api-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T171447Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T173848Z-agent-a-claude-code",
       "resources": [
         "src/api/hist-backtest.mjs",
         "src/api/v1.mjs",
@@ -1262,6 +1262,31 @@
         "test/hist-pg-input.test.mjs",
         "docs/hist-backtest.md",
         "package.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "4243d5875b18b49a35b09a1d522521c382fbd0ed"
+    },
+    {
+      "id": "LEDGER-PERF-01",
+      "title": "Incremental paper-ledger replay: linear backtests (#99 x #34)",
+      "issue": 34,
+      "pr": 228,
+      "branch": "ledger-perf-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T173848Z-agent-a-claude-code",
+      "resources": [
+        "src/ledger/paper-ledger.mjs",
+        "src/api/hist-backtest.mjs",
+        "test/ledger-perf.test.mjs",
+        "test/hist-api.test.mjs",
+        "docs/paper-ledger-mm.md",
+        "docs/hist-backtest.md"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
