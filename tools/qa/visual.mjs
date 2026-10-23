@@ -62,6 +62,9 @@ export const SCENES = [
   {id: 'simulazione-ricerca', title: 'Simulazione: risultato in ricerca esplorativa, etichettato',
     path: seed => `#/sim?run=1&from=2024-08-01&to=2024-08-31&competition=${encodeURIComponent(seed.eredivisie.competition)}&pit_mode=NON_PIT_RESEARCH&stake=10&commission=0.05`,
     ready: '[data-testid="sim-metrics"]', scroll: '[data-testid="sim-outcome"]'},
+  {id: 'confronto', title: 'Confronto di strategie: tre configurazioni affiancate',
+    path: () => '#/compare?run=1&from=2024-08-01&to=2024-08-31&pit_mode=NON_PIT_RESEARCH&a_strategy=mp-ref-fav-back-1&b_strategy=custom&b_selection=HOME&b_side=LAY&b_odds_max=2.5&c_strategy=mp-ref-fav-lay-1',
+    ready: '[data-testid="cmp-table"] tbody tr', scroll: '[data-testid="cmp-outcome"]'},
 ];
 
 // The matches the Match Center scenes open, chosen from the API of the QA archive: never a hard-coded id.

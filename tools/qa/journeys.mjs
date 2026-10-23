@@ -1040,6 +1040,85 @@ export const JOURNEYS = [
     },
   },
   {
+    id: 'compare', surface: 'Simulazione', title: 'Confronto di strategie: dalla simulazione, stessi dati, valori uguali all’API, ricerca etichettata, rifiuti',
+    allowHttp: [{path: '/api/v1/hist/compare', status: 400}],
+    async run({page, base, step, api, seed}) {
+      const compare = query => api(`/api/v1/hist/compare?${new URLSearchParams(query)}`);
+      await step('dalla simulazione: dati e strategia diventano la configurazione A', async () => {
+        await fresh(page, `${base}/#/sim?from=2024-08-01&to=2024-08-31&pit_mode=NON_PIT_RESEARCH&strategy=mp-ref-fav-lay-1&stake=5`);
+        await titled(page, 'Simulazione');
+        await page.click('[data-testid="sim-compare-link"]');
+        await titled(page, 'Confronto di strategie');
+        assert.equal(await page.getAttribute('main', 'data-area'), 'user');
+        assert.equal(await page.getAttribute('nav a[data-view="sim"]', 'aria-current'), 'page', 'the comparison is a section of Simulazione');
+        assert.deepEqual([await page.inputValue('input[name="from"]'), await page.inputValue('select[name="pit_mode"]'), await page.inputValue('select[name="a_strategy"]'),
+          await page.inputValue('input[name="a_stake"]'), await page.inputValue('select[name="c_strategy"]')], ['2024-08-01', 'NON_PIT_RESEARCH', 'mp-ref-fav-lay-1', '5', '']);
+        assert.ok(!(await page.locator('[data-testid="cmp-money-c"]').isVisible()), 'an empty configuration C shows no fields');
+        // A personalised strategy carries its rules into configuration A (PR #231 review NB-5).
+        await fresh(page, `${base}/#/sim?from=2024-08-01&to=2024-08-31&strategy=custom&selection=UNDERDOG&side=LAY&odds_max=6&team=Ajax&venue=HOME`);
+        await titled(page, 'Simulazione');
+        await page.click('[data-testid="sim-compare-link"]');
+        await titled(page, 'Confronto di strategie');
+        assert.ok(await page.locator('[data-testid="cmp-rules-a"]').isVisible());
+        assert.deepEqual([await page.inputValue('select[name="a_strategy"]'), await page.inputValue('select[name="a_selection"]'), await page.inputValue('select[name="a_side"]'),
+          await page.inputValue('input[name="a_odds_max"]'), await page.inputValue('input[name="a_team"]'), await page.inputValue('select[name="a_venue"]')],
+          ['custom', 'UNDERDOG', 'LAY', '6', 'Ajax', 'HOME']);
+      });
+      await step('tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica', async () => {
+        const query = {from: '2024-08-01', to: '2024-08-31', pit_mode: 'NON_PIT_RESEARCH', commission: '0.05',
+          a_strategy: 'mp-ref-fav-back-1', b_selection: 'HOME', b_side: 'LAY', b_odds_max: '2.5', c_strategy: 'mp-ref-fav-lay-1', c_bankroll: '100', c_mm_model: 'PERCENT_BANKROLL', c_mm_value: '2'};
+        const data = (await compare(query)).data;
+        assert.equal(data.variants.length, 3);
+        await fresh(page, `${base}/#/compare`);
+        await page.waitForSelector('[data-testid="cmp-form"]');
+        await page.fill('input[name="from"]', query.from);
+        await page.fill('input[name="to"]', query.to);
+        await page.selectOption('select[name="pit_mode"]', query.pit_mode);
+        await page.fill('input[name="commission"]', query.commission);
+        await page.selectOption('select[name="a_strategy"]', 'mp-ref-fav-back-1');
+        await page.selectOption('select[name="b_strategy"]', 'custom');
+        assert.ok(await page.locator('[data-testid="cmp-rules-b"]').isVisible());
+        await page.selectOption('select[name="b_selection"]', 'HOME');
+        await page.selectOption('select[name="b_side"]', 'LAY');
+        await page.fill('input[name="b_odds_max"]', '2.5');
+        await page.selectOption('select[name="c_strategy"]', 'mp-ref-fav-lay-1');
+        await page.fill('input[name="c_bankroll"]', '100');
+        await page.selectOption('select[name="c_mm_model"]', 'PERCENT_BANKROLL');
+        await page.fill('input[name="c_mm_value"]', '2');
+        await page.click('[data-testid="cmp-form"] button[type="submit"]');
+        await outcomeShown(page, '[data-testid="cmp-outcome"]');
+        assert.equal(await page.getAttribute('[data-testid="cmp-outcome"]', 'data-reports'), data.variants.map(v => v.report.report_sha256).join(' '), 'the same reports as the API');
+        assert.equal(await page.getAttribute('[data-testid="cmp-outcome"]', 'data-input'), data.input_sha256);
+        await page.waitForSelector('[data-testid="sim-research"]');
+        const cell = (key, name) => page.textContent(`[data-testid="cmp-table"] [data-field="${key}_${name}"]`);
+        for (const v of data.variants) {
+          const m = v.report.metrics;
+          assert.equal(await cell(v.key, 'bets'), shown(v.totals.bets), `${v.key} bets`);
+          assert.equal(await cell(v.key, 'no_trade'), shown(v.totals.no_trade), `${v.key} no_trade`);
+          assert.equal(await cell(v.key, 'events'), shown(v.report.counts.events), `${v.key} events`);
+          assert.equal(await cell(v.key, 'won'), shown(m?.won), `${v.key} won`);
+          assert.equal(await cell(v.key, 'exposure'), shown(m?.exposure), `${v.key} exposure`);
+          assert.equal(await cell(v.key, 'pl_net'), shown(m?.rounded.pl_net), `${v.key} pl_net`);
+          assert.equal(await cell(v.key, 'roi'), shown(m?.rounded.roi), `${v.key} roi`);
+          assert.equal(await cell(v.key, 'max_drawdown'), shown(m?.rounded.max_drawdown), `${v.key} max_drawdown`);
+        }
+        assert.equal(await cell('c', 'final_cash'), shown(data.variants[2].report.bankroll.final_cash));
+        assert.equal(await cell('a', 'final_cash'), '—', 'no capital, no cash');
+        assert.match(await cell('b', 'strategy'), /^Personalizzata: Banca · Casa \(1\) · quota fino a 2,5$/);
+        assert.equal(await cell('a', 'strategy'), 'Favorito · Punta');
+      });
+      await step('configurazione rifiutata dal server: è nominato il suo campo', async () => {
+        await fresh(page, `${base}/#/compare?run=1&from=2024-08-01&to=2024-08-31&a_strategy=mp-ref-fav-back-1&b_strategy=mp-ref-fav-lay-1&b_stake=0`);
+        await page.waitForSelector('[data-testid="cmp-invalid"]');
+        assert.equal(await page.getAttribute('[data-testid="cmp-invalid"]', 'data-fields'), 'b_stake');
+        assert.match(await page.textContent('[data-testid="cmp-invalid"]'), /^Valore non valido in: Configurazione B · Puntata\./);
+        await fresh(page, `${base}/#/compare?run=1&from=2024-08-01&to=2024-08-31&a_strategy=custom&a_selection=HOME&a_side=BACK&a_odds_min=3&a_odds_max=2&b_strategy=mp-ref-fav-lay-1`);
+        await page.waitForSelector('[data-testid="cmp-invalid"]');
+        assert.equal(await page.getAttribute('[data-testid="cmp-invalid"]', 'data-fields'), 'a_odds_min');
+      }, {screenshot: true});
+    },
+  },
+  {
     id: 'providers-endpoints', surface: 'Interfaccia generale', title: 'Fornitori dati e registro API',
     // Certification prose from the API that legitimately ends with "null" (phase 6 evidence).
     allowRawText: [/^null: the provider catalog does not carry a fixture total$/],
