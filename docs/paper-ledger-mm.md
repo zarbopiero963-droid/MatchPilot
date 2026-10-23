@@ -46,7 +46,7 @@ regola canonica e la versione del risultato (DEC-002, `resolveVersioned`), mai c
 Solo in memoria: la persistenza è LEDGER-CORE-01.
 
 ## Non ancora fatto
-Persistenza PG18 (tabelle append-only: migrazione additiva che richiede approvazione owner D13 e `allow-migrations-<sha>`),
+Persistenza PG18 (tabelle append-only: migrazione additiva che richiede approvazione owner D13 e `allow-migrations-<sha>`; piano in [persistence-plan.md](persistence-plan.md)),
 API/UI, modelli oltre FIXED_STAKE / PERCENT_BANKROLL, filtri/regole condizionali, limiti di perdita giornaliera/drawdown.
 
 ## MM-PR-01 (t142): registry, liability models, exposure/concurrency caps
