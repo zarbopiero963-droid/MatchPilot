@@ -1,0 +1,114 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T175929Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T17:59:29Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "HIST-WEB-01",
+  "activity": "Simulazione web view over /api/v1/hist/backtest; API events and totals; Browser QA journey simulation; QA-V scenes and promoted baselines; mock v2026.10.23",
+  "issue": 34,
+  "pr": 229,
+  "branch": "web-sim-01",
+  "commit_sha": "9542d62e2c217bd8fb1ebcb62617f1eb0c49fbcf",
+  "tree_sha": "409ac1b12377729fe27f0825d18da9bd9b768a03",
+  "base_sha": "903dbf976ad3666a82305288f9da4d6a93eefb1a",
+  "requirements": [
+    "MP-STA-001"
+  ],
+  "changes": [
+    "user view #/sim over /api/v1/hist/backtest",
+    "research mode labelled, nothing certified",
+    "API data.events and data.totals (browser computes nothing)",
+    "Browser QA journey simulation",
+    "QA-V scenes simulazione, simulazione-ricerca and promoted baselines",
+    "UI inventory UI-91..UI-99",
+    "mock v2026.10.23"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "9542d62e2c217bd8fb1ebcb62617f1eb0c49fbcf",
+      "time": "2026-10-23T17:59:29Z",
+      "limits": [
+        "626 tests, 625 pass, 1 skipped (TZ=Europe/Rome, local PostgreSQL 16); Browser QA 14/14 PASS and QA-V 51/51 PASS locally on chromium 141; no real data certified"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "9542d62e2c217bd8fb1ebcb62617f1eb0c49fbcf"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "final-head context-separated sub-agent review pending (DEC-004-R1)"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "DEC-015"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and final review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "src/web/app.js",
+    "src/web/index.html",
+    "src/api/hist-backtest.mjs",
+    "tools/qa/journeys.mjs",
+    "tools/qa/visual.mjs",
+    "test/visual",
+    "docs/mockups",
+    "branch:web-sim-01",
+    "pr:229"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and final-head review on PR #229, then protected merge and deploy verification",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}

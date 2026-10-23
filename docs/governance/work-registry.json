@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 179,
+  "revision": 181,
   "tasks": [
     {
       "id": "R-01",
@@ -1277,9 +1277,9 @@
       "pr": 228,
       "branch": "ledger-perf-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T173848Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T175928Z-agent-a-claude-code",
       "resources": [
         "src/ledger/paper-ledger.mjs",
         "src/api/hist-backtest.mjs",
@@ -1287,6 +1287,32 @@
         "test/hist-api.test.mjs",
         "docs/paper-ledger-mm.md",
         "docs/hist-backtest.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "903dbf976ad3666a82305288f9da4d6a93eefb1a"
+    },
+    {
+      "id": "HIST-WEB-01",
+      "title": "HIST-WEB-01: Simulazione web view (backtest)",
+      "issue": 34,
+      "pr": 229,
+      "branch": "web-sim-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T175929Z-agent-a-claude-code",
+      "resources": [
+        "src/web/app.js",
+        "src/web/index.html",
+        "src/api/hist-backtest.mjs",
+        "tools/qa/journeys.mjs",
+        "tools/qa/visual.mjs",
+        "test/visual",
+        "docs/mockups"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
