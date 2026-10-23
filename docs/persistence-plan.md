@@ -34,6 +34,23 @@ source of truth.
   (`IDEMPOTENCY_CONFLICT`).
 - **Exact reload:** a reloaded backtest must be byte-identical to the saved one, with the same `report_sha256`.
 
+## Staged schema and store (PERSIST-STORE-01)
+
+- **Schema:** `db/staged/030-persistence.sql`, outside `migrations/`: `migrate()` and the deploy guard do not see it, so
+  merging it blocks no deploy. The migration PR moves it, unchanged, to `migrations/030-persistence.sql`; that move is
+  the only step that needs the owner's authorization.
+- **Store:** `src/persistence/store.mjs`. Until the schema is applied every call fails with `PERSISTENCE_UNAVAILABLE`
+  (the API answers 503), and nothing is created on the fly.
+  - Ledger: `createAccount`, `applyToLedger(client, account, operation, args)` (any paper-ledger operation, run on the
+    stored ledger under a per-account advisory lock, new entries and keys appended in the same transaction),
+    `loadLedger` (rows re-verified: hash, contiguous seq, seq and type inside the entry).
+  - Strategies: `saveStrategy` (same rules under the same key: no new version; new rules: version + 1, the previous one
+    superseded once), `loadStrategy`, `listStrategies`.
+  - Backtests: `saveBacktest` (the result object as text, every report's engine seal re-verified), `loadBacktest`
+    (byte-identical, hash re-verified).
+- **Canonical fingerprint:** the ledger's `scope` is now built in the fixed scope order, so the persisted idempotency
+  fingerprint does not depend on the caller's key order; `market` already was.
+
 ## Migration properties
 
 - **Additive only:** `CREATE TABLE IF NOT EXISTS`, the trigger functions of the new tables, and new indexes. No
