@@ -609,3 +609,36 @@ test('each bet is a ledger position: opened at its decision, settled by settleFr
   assert.equal(new Set(pair.bets.map(bet => bet.position_id)).size, 2);
   assert.deepEqual([pair.ledger.notional_allocation, pair.ledger.state.open_position_count, pair.ledger.state.reserved_funds, pair.ledger.entries], ['2', 1, '1', 6]);
 });
+
+test('ledger P/L on seeded random fixtures: every bet, the metrics and the ledger agree with the exact oracle (HIST-LEDGER-01)', () => {
+  const next = rng(9901);
+  for (let round = 0; round < 40; round++) {
+    seq = 0;
+    const events = Array.from({length: 6}, (_, i) => ev(`q${i}`, `2026-09-0${1 + (i % 5)}T1${i}:00:00Z`));
+    const observations = events.flatMap(e => ['HOME', 'DRAW', 'AWAY'].map(s => ob(e.event_id, s, cents(next, 105, 2000), new Date(Date.parse(e.kickoff_utc) - 3600000).toISOString())));
+    const outcomes = events.filter(() => next() < 0.85).map(e => out(e.event_id, 'FINAL', Math.floor(next() * 4), Math.floor(next() * 4), new Date(Date.parse(e.kickoff_utc) + 7200000).toISOString()));
+    const commission = ['0', '0.02', '0.05', '0.065'][Math.floor(next() * 4)];
+    const stake = cents(next, 10, 5000);
+    const report = runBacktest(input({events, observations, outcomes}), {...CONFIG, stake, commission});
+    let total = frac(0n), fees = frac(0n);
+    for (const bet of report.bets.filter(b => b.settlement)) {
+      const m = oracleMarket([{side: 'BACK', stake, odds: bet.odds, outcome: bet.settlement.outcome}], commission);
+      const c = fcentsHalfEven(m.commission);
+      assert.ok(feq(F(bet.settlement.gross), m.gross) && feq(F(bet.settlement.commission), c), `round ${round} ${bet.event_id}`);
+      total = fadd(total, fsub(m.gross, c));
+      fees = fadd(fees, c);
+    }
+    if (report.metrics) {
+      assert.ok(feq(F(report.metrics.pl_net), total), `net ${round}`);
+      assert.ok(feq(F(report.ledger.state.realized_pnl), total), `ledger ${round}`);
+      assert.ok(feq(F(report.ledger.state.settled_commission), fees), `fees ${round}`);
+    }
+    if (report.ledger) {
+      assert.equal(report.ledger.state.reconciled, true);
+      // allocation − realized net = cash; open bets keep their stake reserved.
+      const open = report.bets.filter(b => !b.settlement).map(b => F(b.stake)).reduce(fadd, frac(0n));
+      assert.ok(feq(F(report.ledger.state.reserved_funds), open), `reserved ${round}`);
+      assert.ok(feq(F(report.ledger.state.cash_balance), fadd(F(report.ledger.notional_allocation), total)), `cash ${round}`);
+    }
+  }
+});
