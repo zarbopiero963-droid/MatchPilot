@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 151,
+  "revision": 152,
   "tasks": [
     {
       "id": "R-01",
@@ -1070,7 +1070,7 @@
       "kind": "implementation",
       "state": "REVIEW",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T104844Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T115015Z-agent-a-claude-code",
       "resources": [
         "src/markets/rules.mjs",
         "src/markets/outcomes.mjs",
