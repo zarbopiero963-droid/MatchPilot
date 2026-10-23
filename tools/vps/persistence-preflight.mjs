@@ -69,11 +69,17 @@ export function unitConfig(unit, {show = u => sh('systemctl', ['show', u, ...SHO
   }
   const files = environmentFiles(raw);
   // Environment= lines of the unit come first; EnvironmentFile= entries override them, as systemd does.
-  const env = unitEnvironment(props.Environment);
-  for (const file of files) if (existsSync(file)) Object.assign(env, parseEnv(readFileSync(file, 'utf8')));
+  // The raw property line: parseEnv would strip the quotes of a single quoted assignment.
+  const environmentLine = raw.split(/\r?\n/).find(line => line.startsWith('Environment='));
+  const env = unitEnvironment(environmentLine ? environmentLine.slice('Environment='.length) : '');
+  const readable = {};
+  for (const file of files) {
+    try { Object.assign(env, parseEnv(readFileSync(file, 'utf8'))); readable[file] = true; }
+    catch (error) { readable[file] = error.code || false; }
+  }
   return {
     unit, active: props.ActiveState, sub: props.SubState, working_directory: props.WorkingDirectory, started: props.ExecMainStartTimestamp,
-    environment_files: files.map(f => ({path: f, present: existsSync(f), mode: existsSync(f) ? (statSync(f).mode & 0o777).toString(8) : null})),
+    environment_files: files.map(f => ({path: f, present: existsSync(f), readable: readable[f], mode: existsSync(f) ? (statSync(f).mode & 0o777).toString(8) : null})),
     settings: Object.fromEntries(REPORTED_KEYS.map(k => [k, env[k] ?? null])),
     // src/runtime-safety.mjs: an unset mode is 'offline'.
     effective_runtime_mode: String(env.MATCHPILOT_RUNTIME_MODE || 'offline').trim().toLowerCase(),
@@ -160,13 +166,18 @@ function backups() {
   };
 }
 
+function ledgerLines() {
+  try { return readFileSync(`${STATE}/migrations.sha256`, 'utf8').trim().split('\n').length; }
+  catch (error) { return error.code === 'ENOENT' ? null : {error: error.code}; }
+}
+
 function deployState() {
   let current = null;
   try { current = readlinkSync(CURRENT); } catch {}
   return {
     current_release: current,
     migrations_ledger_present: existsSync(`${STATE}/migrations.sha256`),
-    migrations_ledger_files: existsSync(`${STATE}/migrations.sha256`) ? readFileSync(`${STATE}/migrations.sha256`, 'utf8').trim().split('\n').length : null,
+    migrations_ledger_files: ledgerLines(),
     allow_files: listDir(STATE, /^allow-(migrations|rollback)-/),
     release_migrations: listDir(`${CURRENT}/migrations`, /\.sql$/),
     freeze: existsSync(`${STATE}/FREEZE`)
@@ -191,6 +202,8 @@ export async function preflight() {
 }
 
 // Run as a script, also through the /srv/mp-deploy/current symlink.
+// `--self-check` proves the script starts (used by the tests, which must never read the host they run on).
 if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
-  console.log(JSON.stringify(await preflight(), null, 1));
+  if (process.argv.includes('--self-check')) console.log(JSON.stringify({preflight: 'mp-persistence-preflight-1', self_check: true}));
+  else console.log(JSON.stringify(await preflight(), null, 1));
 }

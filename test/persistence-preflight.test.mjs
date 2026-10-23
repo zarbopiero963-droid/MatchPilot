@@ -32,13 +32,17 @@ test('preflight: a unit reads every env file in order, and a unit systemd cannot
   writeFileSync(join(dir, 'worker.env'), 'DATABASE_URL=postgres://w:pw1@127.0.0.1:5434/matchpilot_staging\nMATCHPILOT_RUNTIME_MODE=production\n');
   writeFileSync(join(dir, 'fpt.env'), 'FUTPYTHON_CRON_ENABLED=true\nFUTPYTHON_TOKEN=tok\n');
   const show = () => ['LoadState=loaded', 'ActiveState=active', 'Environment=NODE_ENV=production',
-    `EnvironmentFiles=${dir}/worker.env (ignore_errors=no)`, `EnvironmentFiles=${dir}/fpt.env (ignore_errors=no)`].join('\n');
+    `EnvironmentFiles=${dir}/worker.env (ignore_errors=no)`, `EnvironmentFiles=${dir}/fpt.env (ignore_errors=no)`,
+    `EnvironmentFiles=${dir}/missing.env (ignore_errors=yes)`].join('\n');
   const u = unitConfig('matchpilot-fpt-worker.service', {show});
   assert.equal(u.effective_runtime_mode, 'production');
   assert.equal(u.settings.FUTPYTHON_CRON_ENABLED, 'true');
   assert.equal(u.settings.NODE_ENV, 'production');
   assert.deepEqual(u.database, {scheme: 'postgres', host: '127.0.0.1', port: '5434', database: 'matchpilot_staging', user: 'w', password_set: true});
-  assert.deepEqual(u.environment_files.map(f => f.path), [`${dir}/worker.env`, `${dir}/fpt.env`]);
+  assert.deepEqual(u.environment_files.map(f => [f.path, f.readable]), [[`${dir}/worker.env`, true], [`${dir}/fpt.env`, true], [`${dir}/missing.env`, 'ENOENT']]);
+  // A single quoted Environment= assignment keeps its whole value.
+  const quoted = unitConfig('x.service', {show: () => 'LoadState=loaded\nEnvironment="NODE_ENV=a b"'});
+  assert.equal(quoted.settings.NODE_ENV, 'a b');
   const {_url, ...shown} = u;
   assert.ok(!/pw1|tok/.test(JSON.stringify(shown)));
   for (const raw of ['ERROR: System has not been booted with systemd', 'LoadState=not-found\nActiveState=inactive']) {
@@ -51,8 +55,9 @@ test('preflight: a unit reads every env file in order, and a unit systemd cannot
 test('preflight: run through a symlink from another directory, it still prints its report', () => {
   const dir = mkdtempSync(join(tmpdir(), 'preflight-link-'));
   symlinkSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'tools', 'vps'), join(dir, 'vps'));
-  const out = execFileSync(process.execPath, [join(dir, 'vps', 'persistence-preflight.mjs')], {cwd: tmpdir(), encoding: 'utf8', env: {PATH: process.env.PATH}});
-  assert.equal(JSON.parse(out).preflight, 'mp-persistence-preflight-1');
+  // --self-check only: the test never reads the host it runs on (on the VPS the deploy runs these tests).
+  const out = execFileSync(process.execPath, [join(dir, 'vps', 'persistence-preflight.mjs'), '--self-check'], {cwd: tmpdir(), encoding: 'utf8', env: {PATH: process.env.PATH}});
+  assert.deepEqual(JSON.parse(out), {preflight: 'mp-persistence-preflight-1', self_check: true});
 });
 
 test('preflight: the source writes nothing and runs only read-only commands', () => {

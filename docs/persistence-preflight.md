@@ -34,6 +34,10 @@ What it does (`tools/vps/persistence-preflight.mjs`, tested by `test/persistence
 - **Backups:** last PG17 nightly directory, `matchpilot-staging-backup` service result and timer, presence of
   `RESTORE-PG18-STAGING.md`, `pg_lsclusters`.
 
+An env file or the migration ledger that cannot be read is reported (`readable` / `error`), never a crash. The tests run
+the script only with `--self-check`, which prints a fixed marker and reads nothing, because on the VPS the deploy runs
+the test suite.
+
 The owner sends the JSON back (it holds no secret; review it before sharing). The agent then writes the GO/NO-GO report.
 
 ## Step 2 — GO/NO-GO criteria (evaluated by the agent on the JSON)
