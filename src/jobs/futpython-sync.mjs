@@ -8,6 +8,7 @@ import { storeDataset, upsertCatalog, sha256 } from '../providers/futpython/stor
 import { persistOutcome } from '../providers/futpython/classification.mjs';
 import { shouldYieldToCritical } from '../providers/futpython/budget.mjs';
 import { refreshNormalizedLayer } from '../providers/futpython/query.mjs';
+import { refreshMatchFacts } from '../providers/futpython/facts-refresh.mjs';
 import { advanceOnboarding, onboardingTargets, registerDiscovered } from '../providers/futpython/onboarding.mjs';
 import { reconcileFpt, recoveryTargets } from '../providers/futpython/reconciliation.mjs';
 import { releaseSyncLock, trySyncLock } from '../providers/futpython/lock.mjs';
@@ -580,7 +581,7 @@ export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} =
         stats.meta.onboarding = onboarding;
         // A dataset that just became ACTIVE enters the facts in this same run.
         if (onboarding.activated.length) {
-          stats.meta.onboardingFacts = Number((await client.query('SELECT fpt_refresh_match_facts() AS n')).rows[0].n);
+          stats.meta.onboardingFacts = await refreshMatchFacts(client);
         }
         await emitOnboardingAlerts(client, onboarding);
       } catch (error) {

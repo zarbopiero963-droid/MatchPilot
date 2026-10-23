@@ -8,6 +8,7 @@ import { sha256 } from './providers/futpython/store.mjs';
 import { LINEAGE_VERSIONS } from './providers/futpython/schema.mjs';
 import { DATA_CONTRACT } from './providers/futpython/seasons.mjs';
 import { budgetConfig, LEDGER_OUTCOMES } from './providers/futpython/budget.mjs';
+import { ADMISSIBLE_FACTS_SQL, LATEST_ADMISSIBLE_VERSION_SQL } from './providers/futpython/facts-refresh.mjs';
 import { FACTS_VERSION, FILTERS_VERSION, ROUTES, perfSamples, runPerfGate, runQuery } from './providers/futpython/query.mjs';
 
 export const CERTIFICATE_VERSION = 'fpt-cert-1';
@@ -374,7 +375,7 @@ async function seasonSection(client, status) {
   };
 }
 
-async function factsSection(client) {
+export async function factsSection(client) {
   const row = await one(client, `SELECT
       (SELECT count(*)::int FROM fpt_match_facts) AS facts_rows,
       (SELECT count(DISTINCT match_key)::int FROM fpt_match_versions v
@@ -392,13 +393,12 @@ async function factsSection(client) {
       (SELECT count(*)::int FROM fpt_match_facts WHERE kickoff_local_time IS NOT NULL) AS kickoff_local_time_set,
       (SELECT count(*)::int FROM fpt_match_facts WHERE provider_match_id IS NOT NULL) AS with_provider_match_id,
       (SELECT count(*)::int FROM fpt_match_facts f
-         WHERE f.version_id <> (SELECT v.version_id FROM fpt_match_versions v WHERE v.match_key = f.match_key
-           ORDER BY v.acquired_at DESC, v.version_id DESC LIMIT 1)) AS facts_stale`);
-  // Production facts only: datasets still in onboarding are mirrored but held back from fpt_match_facts.
-  const productionAt = `SELECT count(*)::int AS n FROM fpt_match_facts_at(now()) f
-    WHERE NOT EXISTS (SELECT 1 FROM fpt_onboarding o WHERE o.dataset_key = f.dataset_key AND o.state <> 'ACTIVE')`;
-  const atNow = await one(client, productionAt);
-  const atNowRepeat = await one(client, productionAt);
+         WHERE f.version_id IS DISTINCT FROM ${LATEST_ADMISSIBLE_VERSION_SQL}) AS facts_stale`);
+  // Production facts only: datasets still in onboarding are mirrored but held back from fpt_match_facts, and each match
+  // is counted on its latest admissible version (FPT-FACTS-GATE).
+  const productionAt = `SELECT count(*)::int AS n FROM (${ADMISSIBLE_FACTS_SQL}) f`;
+  const atNow = await one(client, productionAt, ['now']);
+  const atNowRepeat = await one(client, productionAt, ['now']);
   const results = await all(client, `SELECT result_status, count(*)::int AS n FROM fpt_match_facts GROUP BY 1 ORDER BY 1`);
   const tz = await all(client, `SELECT kickoff_tz_status, count(*)::int AS n FROM fpt_match_facts GROUP BY 1 ORDER BY 1`);
   const section = {

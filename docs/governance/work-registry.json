@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 187,
+  "revision": 189,
   "tasks": [
     {
       "id": "R-01",
@@ -1380,12 +1380,35 @@
       "pr": 232,
       "branch": "persist-plan-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T200027Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T201310Z-agent-a-claude-code",
       "resources": [
         "docs/persistence-plan.md",
         "docs/paper-ledger-mm.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "a1a799afbe235b7038e472447eaf44f10696e169"
+    },
+    {
+      "id": "FPT-FACTS-GATE-01",
+      "title": "FPT-FACTS-GATE-01: matches no longer hidden or frozen by a non-ACTIVE dataset",
+      "issue": 12,
+      "pr": 233,
+      "branch": "fpt-facts-gate-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T205459Z-agent-a-claude-code",
+      "resources": [
+        "src/providers/futpython/facts-refresh.mjs",
+        "src/providers/futpython/query.mjs",
+        "src/jobs/futpython-sync.mjs",
+        "src/futpython-certificate.mjs"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",

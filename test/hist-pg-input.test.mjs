@@ -12,6 +12,7 @@ import {FPT_BOOKMAKER, buildFptHistInput, providerPrice, readFptHistInput} from 
 import {STATUS, runBacktest} from '../src/hist/engine.mjs';
 import {validateInput} from '../src/hist/contract.mjs';
 import {handleV1} from '../src/api/v1.mjs';
+import {refreshMatchFacts} from '../src/providers/futpython/facts-refresh.mjs';
 
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 function runNode(args, env) {
@@ -62,7 +63,7 @@ test('FPT reader: versions, prices and results from PostgreSQL; PIT finds nothin
       await version('fpt:id:m3', '2025-09-22', 'Leeds', 'Wolves', {Home_Score: '1', Away_Score: '1', Odd_1_FT: '1.70', Odd_X_FT: '3.80', Odd_2_FT: '5.00'}, '2026-10-04T08:00:00Z');
       await version('fpt:id:m3', '2025-09-22', 'Leeds', 'Wolves', {Home_Score: '2', Away_Score: '1', Odd_1_FT: '1.70', Odd_X_FT: '3.80', Odd_2_FT: '5.00'}, '2026-10-06T08:00:00Z');
       await version('fpt:id:m4', '2025-10-30', 'Spurs', 'Villa', {Home_Score: '0', Away_Score: '0', Odd_1_FT: '2.00', Odd_X_FT: '3.40', Odd_2_FT: '3.80'}, '2026-10-04T08:00:00Z');
-      await db.query('SELECT fpt_refresh_match_facts()');
+      await refreshMatchFacts(db);
       // After the facts refresh, a dataset still being onboarded adds a version under m1's key with another result and
       // price: the reader must never read it (review B-1).
       await db.query(`INSERT INTO fpt_onboarding(dataset_key,country_slug,league_slug,season,kind,promotion,state)
