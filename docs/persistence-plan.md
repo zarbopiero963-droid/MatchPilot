@@ -75,7 +75,8 @@ source of truth.
 2. **Manual dump:** a `pg_dump -Fc` of `matchpilot_staging` is taken right before applying, and its SHA-256 is recorded
    in the checkpoint of the migration.
 3. **Restore drill:** that dump is restored into a throwaway database on the VPS, and the row counts of every existing
-   table (FPT tables included) are compared with production.
+   table (FPT tables included) are compared with counts taken at the moment of the dump. The worker keeps writing, so
+   production counts move on.
 4. **Dry run:** the migration is applied to the restored copy, and the schema diff is recorded. It must contain new
    tables, trigger functions and indexes only.
 
@@ -92,11 +93,15 @@ source of truth.
    DROP FUNCTION …; -- the trigger functions created by the migration
    DELETE FROM schema_migrations WHERE filename = '<file>';
    ```
-   Without the last statement `migrate()` would never create the tables again. The file must also leave the root
-   ledger `migrations.sha256`, a root action, otherwise the guard keeps expecting it.
+   - Without the last statement `migrate()` would never create the tables again.
+   - With it, while the file is still in the release, an app in `offline` mode recreates the tables at its next
+     restart. A drop lasts only if a release without the file is deployed. In that case the file must also leave the
+     root ledger `migrations.sha256` (a root action), otherwise the guard refuses that release.
+   - The simpler choice is to keep the row and the tables, with the code on the disabled (503) path.
 3. **Restore of the dump (step 2): last resort, it loses data.**
-   - It restores the **whole** database to the moment of the dump. Every write made since then is lost, including the
-     FPT data the worker collects on the same database.
+   - It restores the **whole** database to the moment of the dump, and every write made since then is lost. That
+     probably includes FPT data: the worker unit starts after `postgresql@18-staging`, so it likely writes to the same
+     database. This is inferred, not declared, and the owner confirms it.
    - It requires stopping the app and the worker, an owner decision, and a later FPT resync from the provider where
      that data is still available.
    - It is not a rollback of this migration alone.
@@ -105,6 +110,10 @@ source of truth.
 
 - **Services:** DDL touches new objects only, so no lock is taken on existing data. The app applies the file at its
   restart through the ordinary deploy, and the worker is restarted as usual.
+- **Failed health check:** `mp-deploy` switches `current` back automatically (`FAIL_HEALTH_ROLLED_BACK`).
+  - If the migration SQL fails, `migrate()` rolls it back, the app does not start, and the database is unchanged.
+  - If the SQL commits but the health check fails for another reason, the schema stays applied under the old code.
+    The tables are unused there, the migration ledger is not updated, and the next deploy needs the allow file again.
 - **Storage:** grows only with what the owner saves. A report is JSON of a few tens of KB.
 - **Not touched:** the FPT collector and the frozen history.
 
@@ -127,7 +136,13 @@ source of truth.
 2. Confirm the declared VPS state (app mode and database) and decide the keys:
    - keep the app in `offline` mode, where the allow file is the only key;
    - or switch the app to `production` mode first, so that `MATCHPILOT_APPROVED_MIGRATIONS` is a second key. That is
-     a separate change, with its own check that every existing migration is listed.
+     a separate change, with its own checks:
+     - no migration is pending at the moment of the switch (only pending files need to be listed; listing applied
+       ones only logs `MIGRATION_APPROVALS_NOT_PENDING`);
+     - `production` lifts the refusal of non-local databases (`src/runtime-safety.mjs`), so the database must stay
+       local;
+     - `app.env` must not enable `MATCHPILOT_BACKGROUND_ENABLED`, otherwise the app would also start the FPT cron and
+       the watchdog, twice with the worker.
 3. When the migration PR is ready:
    - merge it only when you can act on the VPS;
    - verify the backup (steps 1–3) and run the dry run (step 4);
