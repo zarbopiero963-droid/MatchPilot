@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 146,
+  "revision": 148,
   "tasks": [
     {
       "id": "R-01",
@@ -472,18 +472,18 @@
       "pr": 178,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
       "latest_checkpoint": "CP-20261023T082128Z-agent-a-claude-code",
-      "pr_open": true,
       "resources": [
         "branch:ccr-e45875c0-5r0fnf",
         "pr:178"
-      ]
+      ],
+      "note": "Reconciled by agent-g-grok in PR #216: PR #178 squash-merged as 891e981191251c1756760960cd7ca9d55432accd under owner GO t149u; auto deploy-vps run 39931191163 success."
     },
     {
       "id": "APP-01",
@@ -558,18 +558,19 @@
       "id": "HANDOFF-TEST-01",
       "title": "Real handoff test A -> B -> A between two distinct agents and sessions on a non-destructive task (MP-OWNER-AGENTS-INTERCHANGEABLE-01)",
       "issue": 150,
-      "pr": null,
+      "pr": 216,
       "branch": "handoff-test-01",
       "kind": "audit",
       "state": "HANDOFF READY",
       "assignee": null,
       "lease": null,
-      "latest_checkpoint": "CP-20261023T063401Z-agent-g-grok",
+      "latest_checkpoint": "CP-20261023T103040Z-agent-g-grok",
       "resources": [
         "branch:handoff-test-01",
         "checkpoints:HANDOFF-TEST-01"
       ],
-      "note": "Needs independent Agent B launched by owner (t140u/t141u); not run by agent-g-grok."
+      "note": "Needs independent Agent B launched by owner (t140u/t141u); not run by agent-g-grok.",
+      "pr_open": true
     },
     {
       "id": "GOV-RECON-01",

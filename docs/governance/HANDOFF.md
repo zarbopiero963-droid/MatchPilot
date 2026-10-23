@@ -292,6 +292,19 @@ Il collaudo reale usa l'attività `HANDOFF-TEST-01`, non distruttiva:
 
 Le evidenze (id dei checkpoint, commit, commenti) vanno pubblicate su #150. Solo dopo si può scrivere HANDOFF VERIFIED.
 
+### Esecuzione di HANDOFF-TEST-01 (stato: andata A → B eseguita, ritorno B → A da eseguire)
+
+| Passo | Agente | Checkpoint | Esito |
+|---|---|---|---|
+| 1. A, HANDOFF READY | `agent-g-grok` | `CP-20261023T063401Z-agent-g-grok` | lease rilasciato, `to: ANY`, branch `handoff-test-01` a `665bc34` |
+| 2. B, handoff IN | `agent-b-claude-code` (sessione separata, clone completo, nessuna memoria condivisa) | `CP-20261023T073532Z-agent-b-claude-code` | `orient`, `takeover-check`, `handoff-in` tutti PROCEED; claim revisione 143 → 144 |
+| 2. B, HANDOFF READY | `agent-b-claude-code` | checkpoint finale di B (testa della catena) | modifiche solo test/documentazione, PR `Refs #150`, release, `to: agent-g-grok` |
+| 3. A, handoff IN | `agent-g-grok` | — | **da eseguire** |
+
+Nota di B. Il checkpoint di A fissava il branch a `665bc34`, mentre il suo stato (registro, `runtime-state.json`) è arrivato su main dopo, con `d15f1fd` (PR #215). Per fare il claim sulla revisione che contiene HANDOFF READY, B ha portato il branch in fast-forward a `d15f1fd`, senza riscritture. Da quel momento `resume` segnala `UNRECONCILED_COMMITS` sul checkpoint di A: il solo file non contabile è `runtime-state.json`, cambiato da un commit già su main. Il checkpoint IN di B riconcilia la divergenza (finding `HT01-B-1`). In futuro conviene preparare l'HANDOFF READY con `commit_sha` uguale al commit di main che lo contiene.
+
+`test/governance-handoff-test-01.test.mjs` verifica sui checkpoint reali la catena lineare e i passi registrati. **HANDOFF NOT VERIFIED** finché A non completa il passo 3 e le evidenze non sono su #150.
+
 ## Limiti noti
 
 - Gli agenti operano con lo stesso account GitHub dell'owner, quindi GitHub non distingue tecnicamente chi chiude una issue. La protezione è procedurale (AGENTS §5) e preventiva: la CI rifiuta le parole chiave di auto-chiusura.

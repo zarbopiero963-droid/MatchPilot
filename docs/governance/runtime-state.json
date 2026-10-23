@@ -1,7 +1,7 @@
 {
   "schema_version": "mp-runtime-state-v1",
-  "updated_at": "2026-10-23T08:21:10Z",
-  "updated_by": "agent-a-claude-code",
+  "updated_at": "2026-10-23T10:28:59Z",
+  "updated_by": "agent-g-grok",
   "note": "Vendor-neutral runtime state of MatchPilot (GOV-RUNTIME-STATE-01, #150, owner t141u). Source of truth on GitHub; any local CHECKPOINT.md is a derived copy. Every PR that changes production or the plan must update this file (docs/governance/PROTOCOL.md).",
   "production": {
     "release_sha": "569fb0fa049d648e149457bfba066964d6accc81",
@@ -14,7 +14,7 @@
       "TotalCorner"
     ]
   },
-  "current_task": "HIST-01a (#178): realigned to main under MP-OWNER-HIST-01A-REALIGN-01; review APPROVED by a clean-context Claude Code subagent launched from the author session (reviews 5625569939, 5625698392; separate context, same GitHub account, DEC-004-R1), CI green; waiting for owner merge decision. HANDOFF-TEST-01 (#216) untouched",
+  "current_task": "HANDOFF-TEST-01 (#216): return leg B->A by agent-g-grok (handoff-in PROCEED, checkpoint IN), main merged into handoff-test-01; waiting owner GO on PR #216. Previously on main: HIST-01a (#178) review APPROVED by clean-context Claude Code subagent (reviews 5625569939, 5625698392), merged by owner GO t149u as 891e981",
   "blockers": [
     {
       "id": "DEPLOY-CI-PIN",
@@ -34,7 +34,7 @@
     },
     {
       "id": "HANDOFF-TEST-01",
-      "detail": "cross-agent test needs an independent Agent B launched by the owner (t141u); this agent must not run or certify it"
+      "detail": "leg A (agent-g-grok OUT) and leg B (agent-b-claude-code IN, tests/docs, OUT to agent-g-grok, PR #216) done; return leg A pending; HANDOFF NOT VERIFIED until then; neither agent certifies #150 without owner mandate"
     }
   ],
   "pending_runtime_checks": [
@@ -64,7 +64,7 @@
       "status": "PENDING"
     }
   ],
-  "next_action": "Owner decision on the #178 merge; HANDOFF-TEST-01: see PR #216 (Agent B leg done, B->A return leg addressed to agent-g-grok); then MARKET-CORE-04 from the local patch (DEC-002, DEC-015 and the owner rectification on FPT/TC-only outcomes); separately owner GO for DEPLOY-CI-PIN re-pin",
+  "next_action": "Owner decision on PR #216 (HANDOFF-TEST-01 return leg done); then MARKET-CORE-04 from the local patch (DEC-002, DEC-015 and the owner rectification on FPT/TC-only outcomes); separately owner GO for DEPLOY-CI-PIN re-pin",
   "roadmap_after_governance": [
     "MARKET-CORE-04 (void/postponed/abandoned/corrected results)",
     "#99 ledger link",
