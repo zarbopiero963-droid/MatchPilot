@@ -1,0 +1,202 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261023T073532Z-agent-b-claude-code",
+  "timestamp_utc": "2026-10-23T07:35:32Z",
+  "agent": {
+    "id": "agent-b-claude-code",
+    "role": "Test Agent",
+    "session": "claude-code-cloud-session-handoff-test-01-agent-b"
+  },
+  "mandate": {
+    "id": "OWN-T141U-GOV150",
+    "source": "owner t141u/t145u 2026-10-23 (OWN-T141U-GOV150, MP-OWNER-AGENTS-INTERCHANGEABLE-01): Agent B launched by the owner on HANDOFF-TEST-01, docs/governance/owner-decisions.json"
+  },
+  "activity": "HANDOFF-TEST-01 leg B (handoff IN): independent Agent B in a separate session and fresh full clone, no shared memory with agent-g-grok, takes over HANDOFF-TEST-01 from CP-20261023T063401Z-agent-g-grok after orient PROCEED, takeover-check PROCEED, handoff-in PROCEED and claim OK (registry revision 143 -> 144).",
+  "task": "HANDOFF-TEST-01",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 150,
+  "pr": null,
+  "branch": "handoff-test-01",
+  "commit_sha": "477275bf6c182a27b45de459901d71a1fcd43fd2",
+  "tree_sha": "c7981c358a5a18c73415cd6f69ef5101b26d61eb",
+  "base_sha": "d15f1fd43d8e01303f41e6caa7d797ff0ded6447",
+  "worktree": {
+    "clean": true
+  },
+  "requirements": [],
+  "changes": [],
+  "tests": [],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN",
+    "head_sha": "477275bf6c182a27b45de459901d71a1fcd43fd2"
+  },
+  "gate_a": "NOT_VERIFIED",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "HT01-B-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "CP-20261023T063401Z-agent-g-grok pins handoff-test-01 at 665bc34 while its own registry/runtime-state entry landed on main later in d15f1fd (PR #215). To claim on the registry revision that holds the HANDOFF READY entry (143), Agent B fast-forwarded handoff-test-01 665bc34 -> d15f1fd (main, no rewrite) before the claim. resume then reports UNRECONCILED_COMMITS for the grok checkpoint (M docs/governance/runtime-state.json from d15f1fd only, a merged main commit, not unknown work). Reconciled here: this checkpoint supersedes it at the real head 477275b."
+    }
+  ],
+  "owner_decisions": [
+    "OWN-T141U-GOV150",
+    "MP-OWNER-AGENTS-INTERCHANGEABLE-01"
+  ],
+  "authorizations": [],
+  "external_commands": [
+    {
+      "target": "github",
+      "command": "git clone https://github.com/zarbopiero963-droid/MatchPilot (full, no --depth)",
+      "effect": "read"
+    },
+    {
+      "target": "github",
+      "command": "node tools/governance/cli.mjs orient",
+      "effect": "read"
+    },
+    {
+      "target": "github",
+      "command": "node tools/governance/cli.mjs takeover-check HANDOFF-TEST-01 --agent agent-b-claude-code",
+      "effect": "read"
+    },
+    {
+      "target": "github",
+      "command": "node tools/governance/cli.mjs handoff-in HANDOFF-TEST-01 --agent agent-b-claude-code",
+      "effect": "read"
+    },
+    {
+      "target": "github",
+      "command": "git merge --ff-only origin/main on handoff-test-01 (665bc34 -> d15f1fd)",
+      "effect": "branch"
+    },
+    {
+      "target": "github",
+      "command": "node tools/governance/cli.mjs claim HANDOFF-TEST-01 --agent agent-b-claude-code --role \"Test Agent\" --minutes 120 --expected-revision 143; git push -u origin handoff-test-01 (477275b)",
+      "effect": "branch"
+    }
+  ],
+  "artifacts": [],
+  "progress": {
+    "done": [
+      "orient PROCEED (drift none)",
+      "takeover-check PROCEED (no active lease, no open PR on handoff-test-01, no running CI)",
+      "handoff-in PROCEED (problems [])",
+      "branch fast-forwarded to main d15f1fd",
+      "claim OK revision 144, lease until 2026-10-23T09:34:17Z",
+      "claim pushed 477275b"
+    ],
+    "in_progress": [
+      "handoff IN checkpoint"
+    ],
+    "not_started": [
+      "tests/docs-only change",
+      "PR Refs #150",
+      "final checkpoint HANDOFF READY OUT to agent-g-grok",
+      "release"
+    ]
+  },
+  "resources": [
+    "branch:handoff-test-01",
+    "checkpoints:HANDOFF-TEST-01"
+  ],
+  "stop_conditions": [
+    "orient verdict STOP",
+    "takeover-check not PROCEED",
+    "reconcile error (SHA_MISMATCH, UNRECONCILED_COMMITS, TREE_MISMATCH, STALE) not explained by a merged main commit",
+    "any change outside tests/ or docs/",
+    "any deploy, merge, spend, secret or production action"
+  ],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": {
+    "production": "untouched",
+    "note": "no VPS action in this task"
+  },
+  "handoff": {
+    "status": "IN",
+    "from": "agent-g-grok",
+    "to": "agent-b-claude-code",
+    "responsibilities": [
+      "tests/docs-only change on handoff-test-01",
+      "PR Refs #150 without merge",
+      "checkpoint and release",
+      "hand back OUT to agent-g-grok for the return leg"
+    ],
+    "verified": [
+      {
+        "claim": "orient verdict PROCEED",
+        "resource": "repository main d15f1fd",
+        "method": "node tools/governance/cli.mjs orient (exit 0)",
+        "observed": "verdict: PROCEED; handoff ready: HANDOFF-TEST-01 @ CP-20261023T063401Z-agent-g-grok; drift: none",
+        "observer": "agent-b-claude-code",
+        "result": "VERIFIED",
+        "observed_at": "2026-10-23T07:35:32Z"
+      },
+      {
+        "claim": "HANDOFF-TEST-01 lease released by agent-g-grok",
+        "resource": "docs/governance/work-registry.json revision 143",
+        "method": "node tools/governance/cli.mjs resume HANDOFF-TEST-01 before any write",
+        "observed": "state HANDOFF READY, lease null, assignee null, divergences []",
+        "observer": "agent-b-claude-code",
+        "result": "VERIFIED",
+        "observed_at": "2026-10-23T07:35:32Z"
+      },
+      {
+        "claim": "handoff-test-01 at checkpoint commit_sha and tree_sha",
+        "resource": "branch:handoff-test-01",
+        "method": "git rev-parse origin/handoff-test-01 and origin/handoff-test-01^{tree}",
+        "observed": "665bc34b2716a0f54732d7170eebf11df1166e3d / abd5fa164d1b4009e758d1e8bc691c07cd9d4706, equal to the checkpoint",
+        "observer": "agent-b-claude-code",
+        "result": "VERIFIED",
+        "observed_at": "2026-10-23T07:35:32Z"
+      },
+      {
+        "claim": "takeover allowed",
+        "resource": "GitHub open PRs, running CI, registry leases",
+        "method": "node tools/governance/cli.mjs takeover-check HANDOFF-TEST-01 --agent agent-b-claude-code (exit 0)",
+        "observed": "verdict PROCEED, reasons [], active_leases [], running_ci [], open PRs only #178 (other branch)",
+        "observer": "agent-b-claude-code",
+        "result": "VERIFIED",
+        "observed_at": "2026-10-23T07:35:32Z"
+      },
+      {
+        "claim": "handoff-in fail-closed checks",
+        "resource": "checkpoint CP-20261023T063401Z-agent-g-grok",
+        "method": "node tools/governance/cli.mjs handoff-in HANDOFF-TEST-01 --agent agent-b-claude-code (exit 0)",
+        "observed": "result PROCEED, problems []",
+        "observer": "agent-b-claude-code",
+        "result": "VERIFIED",
+        "observed_at": "2026-10-23T07:35:32Z"
+      },
+      {
+        "claim": "claim recorded",
+        "resource": "docs/governance/work-registry.json",
+        "method": "node tools/governance/cli.mjs claim ... --expected-revision 143",
+        "observed": "result OK, revision 144, state RUNNING, lease holder agent-b-claude-code, pushed as 477275b",
+        "observer": "agent-b-claude-code",
+        "result": "VERIFIED",
+        "observed_at": "2026-10-23T07:35:32Z"
+      }
+    ]
+  },
+  "dependencies": [
+    "GOV-PROTOCOL-01",
+    "HANDOFF-PREP-01"
+  ],
+  "state": "RUNNING",
+  "next_action": "agent-b-claude-code: tests/docs-only change on handoff-test-01, PR Refs #150, final checkpoint HANDOFF READY OUT to agent-g-grok, release",
+  "resume_conditions": [
+    "lease held by agent-b-claude-code until 2026-10-23T09:34:17Z; afterwards only by lease expiry and reconciliation"
+  ],
+  "supersedes": "CP-20261023T063401Z-agent-g-grok",
+  "merge_sha": null
+}
