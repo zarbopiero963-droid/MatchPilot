@@ -420,3 +420,10 @@ Benchmark GOAT del 04/10/2026: MatchPilot deve superarlo con dati FPT + TC più 
 - Il branch archivio non è fonte di contratto.
 - Test e review prima del merge.
 - AGENTS, CLAUDE, README, `docs/integration-map.md` e il mock restano coerenti. La coerenza è verificata da `test/governance-docs.test.mjs` e `test/mockup-alignment.test.mjs`.
+
+## Vendor-neutral protocol (GOV-PROTOCOL-01, owner t141u/t145u)
+
+Every agent, whatever its vendor, follows [`docs/governance/PROTOCOL.md`](docs/governance/PROTOCOL.md):
+1. Run `node tools/governance/cli.mjs orient`.
+2. Before modifying anything, run `takeover-check <TASK> --agent <id>`.
+3. Then `claim`, work, checkpoint and `release`.

@@ -36,3 +36,5 @@
 - Interazioni GitHub tramite gli strumenti MCP GitHub. Ogni commento o review termina con il footer di attribuzione di Claude Code.
 - Nessun identificativo di modello nei file del repository, nei titoli o nei testi delle PR. Unica eccezione: le righe di attribuzione dei commit (`Co-Authored-By`) richieste dall'ambiente Claude Code. Questa regola deriva dall'ambiente, non da una decisione owner.
 - **Prima di un merge:** usare `merge_pull_request` con `expectedHeadSha`. Non serve aspettare CodeRabbit se è bloccato da limiti di piano; in quel caso vale la review indipendente D2.
+
+Protocol for any agent: [`docs/governance/PROTOCOL.md`](docs/governance/PROTOCOL.md). Start with `node tools/governance/cli.mjs orient`.

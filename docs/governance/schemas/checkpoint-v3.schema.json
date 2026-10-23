@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/zarbopiero963-droid/MatchPilot/docs/governance/schemas/checkpoint-v3.schema.json",
+  "title": "MatchPilot checkpoint mp-checkpoint-v3 (structural summary; full rules in tools/governance/checkpoints.mjs and HANDOFF.md)",
+  "type": "object",
+  "required": ["schema_version", "id", "timestamp_utc", "agent", "mandate", "activity", "task", "repository", "issue", "pr", "branch", "commit_sha", "tree_sha", "base_sha", "worktree", "requirements", "changes", "tests", "ci", "gate_a", "gate_b", "review", "findings", "owner_decisions", "authorizations", "external_commands", "artifacts", "progress", "resources", "stop_conditions", "costs", "vps", "handoff", "dependencies", "state", "next_action", "resume_conditions", "supersedes", "merge_sha"],
+  "properties": {
+    "schema_version": {"const": "mp-checkpoint-v3"},
+    "id": {"type": "string", "pattern": "^CP-\\d{8}T\\d{6}Z-[a-z0-9-]+$"},
+    "timestamp_utc": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"},
+    "agent": {"type": "object", "required": ["id", "role", "session"]},
+    "commit_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "tree_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "base_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "state": {"enum": ["PLANNED", "RUNNING", "BLOCKED", "REVIEW", "HANDOFF READY", "CERTIFIED", "MERGED", "COMPLETED"]},
+    "gate_a": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT_VERIFIED", "NOT_APPLICABLE"]},
+    "gate_b": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT_VERIFIED", "NOT_APPLICABLE"]},
+    "handoff": {"type": "object", "required": ["status", "from", "to", "responsibilities"], "properties": {"status": {"enum": ["NONE", "OUT", "IN", "PENDING_VERIFICATION"]}}},
+    "supersedes": {"type": ["string", "null"]},
+    "merge_sha": {"type": ["string", "null"]}
+  }
+}
