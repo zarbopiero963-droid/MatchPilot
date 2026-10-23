@@ -852,13 +852,13 @@ function simForm(params, competitions) {
     el('label', {}, 'Strategia ', select('strategy', SIM_STRATEGIES, 'mp-ref-fav-back-1')),
     el('label', {}, 'Modalità ', modeSelect),
     el('label', {}, 'Puntata ', input('stake', {type: 'number', step: '0.01', min: '0.01', placeholder: '1'})),
-    el('label', {}, 'Commissione (es. 0,05 = 5%) ', input('commission', {type: 'number', step: '0.001', min: '0', max: '1', placeholder: '0'})),
+    el('label', {}, 'Commissione (es. 0,05 = 5%) ', input('commission', {type: 'number', step: '0.001', min: '0', max: '0.999', placeholder: '0'})),
     el('label', {}, 'Partite al massimo ', input('max_events', {type: 'number', step: '1', min: '1', max: '1000', placeholder: '300'}))),
   el('fieldset', {}, el('legend', {}, 'Capitale (facoltativo)'),
     el('div', {class: 'fields'},
       el('label', {}, 'Capitale iniziale ', input('bankroll', {type: 'number', step: '0.01', min: '0.01'})),
       el('label', {}, 'Gestione del capitale ', select('mm_model', SIM_MM, '')),
-      el('label', {}, 'Valore della gestione ', input('mm_value', {type: 'number', step: '0.01', min: '0'})))),
+      el('label', {}, 'Valore della gestione (importo, o percentuale: 2 = 2%) ', input('mm_value', {type: 'number', step: '0.01', min: '0.01'})))),
   modeHint,
   el('button', {type: 'submit'}, 'Simula'), ' ', el('a', {href: '#/sim'}, 'Azzera'));
 }
@@ -877,7 +877,7 @@ function simMetrics(report) {
       field('Massimo calo', num(r.max_drawdown), 'max_drawdown'),
       field('Punta', side('BACK'), 'by_side_back'), field('Banca', side('LAY'), 'by_side_lay'),
       field('Risultati corretti dopo la fine', num(m.corrected_results), 'corrected_results')),
-    el('p', {class: 'meta'}, 'Importi esatti arrotondati al centesimo, il rendimento a quattro decimali (0,0500 = 5%).'));
+    el('p', {class: 'meta'}, 'Profitto lordo, commissioni, profitto netto e massimo calo sono arrotondati al centesimo, il rendimento a quattro decimali (0,0500 = 5%). Gli altri importi, anche per Punta e Banca e per ogni scommessa, sono esatti.'));
 }
 
 function simBankroll(report, totals) {
@@ -890,11 +890,12 @@ function simBankroll(report, totals) {
       field('Rendimento sul capitale', num(b.return_on_bankroll), 'return_on_bankroll'), field('Massimo calo della cassa', num(b.max_drawdown), 'max_drawdown'),
       field('Scommesse piazzate', num(b.placed), 'placed'), field('Ridotte dalla gestione', num(b.reduced), 'reduced'),
       el('dt', {}, 'Saltate dalla gestione'), el('dd', {'data-field': 'skipped', title: Object.entries(b.skipped_by_reason ?? {}).map(([k, n]) => `${k}: ${n}`).join(' · ') || null},
-        num(totals?.skipped_by_money_management))));
+        num(totals?.skipped_by_money_management))),
+    el('p', {class: 'meta'}, 'Importi esatti, senza arrotondamenti.'));
 }
 
 const SIM_COLUMNS = ['Data', 'Partita', 'Lato', 'Segno', 'Quota', 'Puntata', 'Risultato', 'Netto'];
-function simBets(bets, events) {
+function simBets(bets, events, total) {
   const rows = bets.map(bet => {
     const event = events?.[bet.event_id] ?? {};
     const s = bet.settlement;
@@ -909,7 +910,7 @@ function simBets(bets, events) {
     [...line.children].forEach((cell, index) => cell.setAttribute('data-label', SIM_COLUMNS[index]));
     return line;
   });
-  return el('section', {class: 'card', 'data-testid': 'sim-bets'}, el('h2', {}, `Scommesse (${bets.length})`),
+  return el('section', {class: 'card', 'data-testid': 'sim-bets'}, el('h2', {}, 'Scommesse (', num(total), ')'),
     el('div', {class: 'tablewrap'}, el('table', {class: 'results'}, el('thead', {}, el('tr', {}, SIM_COLUMNS.map(text => el('th', {scope: 'col'}, text)))),
       el('tbody', {}, rows))));
 }
@@ -932,7 +933,9 @@ async function simView(params) {
     body = await getJson(`/api/v1/hist/backtest?${queryString(api)}`);
   } catch (error) {
     if (error?.status === 400) {
-      const fields = Object.keys(SIM_LABELS).filter(name => new RegExp(`(?<![a-z_])${name}(?![a-z_])`).test(error.message ?? ''));
+      // The money management refusals name the model's own parameter (params.stake, params.percent…): that is «Valore della gestione».
+      const message = String(error.message ?? '').replace(/\bmoney_management\b[^]*$/, ' mm_value');
+      const fields = Object.keys(SIM_LABELS).filter(name => new RegExp(`(?<![a-z_.])${name}(?![a-z_])`).test(message));
       return [...head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'sim-invalid', 'data-outcome': '', 'data-fields': fields.join(' '), title: reasonText(error)},
         fields.length ? `Valore non valido in: ${fields.map(name => SIM_LABELS[name]).join(', ')}. Correggi il campo e riprova.` : 'Impostazioni non valide. Correggi i campi e riprova.')];
     }
@@ -946,7 +949,7 @@ async function simView(params) {
   const reader = body.data?.reader ?? {};
   if (!report || typeof report !== 'object') throw new ApiFailure(200, 'BAD_ENVELOPE', 'risposta senza report');
   const research = isResearch(report);
-  const outcome = el('h2', {'data-testid': 'sim-outcome', 'data-outcome': '', 'data-status': report.status ?? '', 'data-certified': String(report.certification?.certified),
+  const outcome = el('h2', {'data-testid': 'sim-outcome', 'data-outcome': '', 'data-status': report.status ?? '', 'data-certified': report.certification ? String(report.certification.certified) : '',
     'data-pit-mode': report.config?.pit_mode ?? '', 'data-report': report.report_sha256 ?? ''}, 'Esito della simulazione');
   const status = {
     INSUFFICIENT_PIT_DATA: el('p', {class: 'state empty', role: 'status', 'data-testid': 'sim-no-pit'}, research
@@ -969,7 +972,7 @@ async function simView(params) {
         el('dt', {}, 'Nessuna operazione'), el('dd', {'data-field': 'decisions_no_trade', title: Object.entries(report.counts?.no_trade_by_reason ?? {}).map(([k, n]) => `${k}: ${n}`).join(' · ') || null}, num(decisions.NO_TRADE)),
         el('dt', {}, 'Non regolate'), el('dd', {'data-field': 'unsettled', title: Object.entries(report.counts?.unsettled_by_reason ?? {}).map(([k, n]) => `${k}: ${n}`).join(' · ') || null}, num(body.data?.totals?.unsettled)))),
     simMetrics(report), simBankroll(report, body.data?.totals),
-    Array.isArray(report.bets) && report.bets.length ? simBets(report.bets, body.data?.events) : null];
+    Array.isArray(report.bets) && report.bets.length ? simBets(report.bets, body.data?.events, body.data?.totals?.bets) : null];
 }
 
 // [what is loading, view, area]: a 'user' view shows no technical text (MP-WEB-015, checked by the Browser QA gate); a

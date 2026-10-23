@@ -104,7 +104,7 @@ export function histBacktestEndpoint({param, integer, oneOf, instant, ApiError})
       const events = Object.fromEntries(histInput.events.filter(e => betEvents.has(e.event_id))
         .map(e => [e.event_id, {home: e.home ?? null, away: e.away ?? null, match_date: e.match_date ?? null, kickoff_utc: e.kickoff_utc ?? null}]));
       const total = counts => Object.values(counts ?? {}).reduce((sum, n) => sum + n, 0);
-      const totals = {unsettled: total(report.counts?.unsettled_by_reason), no_trade: total(report.counts?.no_trade_by_reason),
+      const totals = {bets: report.bets.length, unsettled: total(report.counts?.unsettled_by_reason), no_trade: total(report.counts?.no_trade_by_reason),
         skipped_by_money_management: report.bankroll ? total(report.bankroll.skipped_by_reason) : null};
       return {reader: {...read.stats, events: histInput.events.length, truncated}, report, events, totals};
     },

@@ -908,28 +908,31 @@ export const JOURNEYS = [
           assert.equal(await fieldText(name), shown(value), name);
         }
         assert.equal(await fieldText('by_side_back'), `${shown(m.by_side.BACK.bets)} scommesse · netto ${shown(m.by_side.BACK.pl_net)}`);
+        assert.equal(await fieldText('by_side_lay'), `${shown(m.by_side.LAY.bets)} scommesse · netto ${shown(m.by_side.LAY.pl_net)}`);
+        assert.equal(await page.textContent('[data-testid="sim-bets"] h2'), `Scommesse (${shown(data.totals.bets)})`);
         const rows = page.locator('[data-testid="sim-bets"] tbody tr');
         assert.equal(await rows.count(), report.bets.length);
-        for (const [i, bet] of report.bets.slice(0, 10).entries()) {
-          const row = rows.nth(i);
+        const cells = await rows.evaluateAll(trs => trs.map(tr => ({event: tr.dataset.event, date: tr.cells[0].querySelector('time')?.getAttribute('datetime') ?? null,
+          text: [...tr.cells].map(td => td.textContent)})));
+        for (const [i, bet] of report.bets.entries()) {
           const event = data.events[bet.event_id];
-          assert.equal(await row.getAttribute('data-event'), bet.event_id);
-          assert.equal(await row.locator('td:nth-child(2)').textContent(), `${event.home} – ${event.away}`);
-          assert.equal(await row.locator('td:nth-child(3)').textContent(), {BACK: 'Punta', LAY: 'Banca'}[bet.side]);
-          assert.equal(await row.locator('td:nth-child(5)').textContent(), shown(bet.odds));
-          assert.equal(await row.locator('td:nth-child(8)').textContent(), shown(bet.settlement.net));
+          assert.equal(cells[i].event, bet.event_id);
+          assert.equal(cells[i].date, event.match_date, `row ${i} date`);
+          assert.deepEqual(cells[i].text.slice(1), [`${event.home} – ${event.away}`, {BACK: 'Punta', LAY: 'Banca'}[bet.side], {HOME: '1', DRAW: 'X', AWAY: '2'}[bet.selection],
+            shown(bet.odds), shown(bet.stake), {WON: 'Vinta', LOST: 'Persa'}[bet.settlement.bet_result], shown(bet.settlement.net)], `row ${i}`);
         }
         assert.equal(await page.inputValue('select[name="pit_mode"]'), 'NON_PIT_RESEARCH', 'the form keeps its values');
       });
       await step('capitale e gestione: blocco capitale uguale all’API', async () => {
-        const query = {from: '2024-08-01', to: '2024-08-31', pit_mode: 'NON_PIT_RESEARCH', strategy: 'mp-ref-fav-lay-1', bankroll: '100', mm_model: 'PERCENT_BANKROLL', mm_value: '0.02'};
+        const query = {from: '2024-08-01', to: '2024-08-31', pit_mode: 'NON_PIT_RESEARCH', strategy: 'mp-ref-fav-lay-1', bankroll: '100', mm_model: 'PERCENT_BANKROLL', mm_value: '2'};
         const data = (await backtest(query)).data;
         const b = data.report.bankroll;
+        assert.ok(b.placed > 0, 'the capital run places bets');
         await fresh(page, `${base}/#/sim?${new URLSearchParams({...query, run: '1'})}`);
         await page.waitForSelector('[data-testid="sim-bankroll"]');
         assert.equal(await page.getAttribute('[data-testid="sim-outcome"]', 'data-report'), data.report.report_sha256);
         for (const [name, value] of [['initial', b.initial], ['final_cash', b.final_cash], ['available', b.available], ['realized_pnl', b.realized_pnl],
-          ['return_on_bankroll', b.return_on_bankroll], ['placed', b.placed], ['reduced', b.reduced], ['skipped', data.totals.skipped_by_money_management]]) {
+          ['return_on_bankroll', b.return_on_bankroll], ['max_drawdown', b.max_drawdown], ['placed', b.placed], ['reduced', b.reduced], ['skipped', data.totals.skipped_by_money_management]]) {
           assert.equal(await page.textContent(`[data-testid="sim-bankroll"] [data-field="${name}"]`), shown(value), name);
         }
         assert.equal(await page.inputValue('select[name="strategy"]'), 'mp-ref-fav-lay-1');
@@ -950,11 +953,19 @@ export const JOURNEYS = [
         await page.waitForSelector('[data-testid="sim-invalid"]');
         assert.match(await page.textContent('[data-testid="sim-invalid"]'), /^Valore non valido in: .*\bAl\b.*Correggi il campo e riprova\.$/);
       });
+      await step('gestione del capitale rifiutata: è nominato il suo valore, non la puntata', async () => {
+        await fresh(page, `${base}/#/sim?run=1&from=2024-08-01&to=2024-08-31&bankroll=100&mm_model=FIXED_STAKE&mm_value=0`);
+        await page.waitForSelector('[data-testid="sim-invalid"]');
+        assert.equal(await page.getAttribute('[data-testid="sim-invalid"]', 'data-fields'), 'mm_value');
+        assert.match(await page.textContent('[data-testid="sim-invalid"]'), /^Valore non valido in: Valore della gestione\./);
+      });
       await step('un’altra simulazione in corso: avviso, non errore', async () => {
         await page.route('**/api/v1/hist/backtest?*', route => route.fulfill({status: 429, contentType: 'application/json',
           body: JSON.stringify({api_version: 'v1', error: {code: 'BUSY', message: 'another backtest is running'}})}));
         await fresh(page, `${base}/#/sim?run=1&from=2024-08-01&to=2024-08-02`);
         await page.waitForSelector('[data-testid="sim-busy"]');
+        assert.ok(await page.locator('[data-testid="sim-form"]').isVisible(), 'the form stays');
+        assert.equal(await page.locator('.state.error').count(), 0, 'busy is a notice, not an error');
         await page.unroute('**/api/v1/hist/backtest?*');
       });
       await step('servizio non disponibile: stato di errore con Riprova', async () => {

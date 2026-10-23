@@ -131,7 +131,7 @@ test('FPT reader: versions, prices and results from PostgreSQL; PIT finds nothin
         assert.deepEqual(api.body.data.events[event.event_id], {home: event.home, away: event.away, match_date: event.match_date, kickoff_utc: event.kickoff_utc});
       }
       const sumOf = counts => Object.values(counts).reduce((a, n) => a + n, 0);
-      assert.deepEqual(api.body.data.totals, {unsettled: sumOf(api.body.data.report.counts.unsettled_by_reason),
+      assert.deepEqual(api.body.data.totals, {bets: api.body.data.report.bets.length, unsettled: sumOf(api.body.data.report.counts.unsettled_by_reason),
         no_trade: sumOf(api.body.data.report.counts.no_trade_by_reason), skipped_by_money_management: null});
       assert.equal((await db.query('SELECT current_setting($1) AS ro', ['transaction_read_only'])).rows[0].ro, 'off', 'the read-only transaction was closed');
       const pitApi = await handleV1({method: 'GET', url: new URL('http://localhost/api/v1/hist/backtest?from=2025-09-01&to=2025-09-30')}, {withClient: async fn => fn(db), tc: {}, codeVersion: 't'});
