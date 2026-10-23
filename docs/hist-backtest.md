@@ -1,4 +1,4 @@
-# Offline backtest engine — HIST-01a (`mp-hist-engine-1`)
+# Offline backtest engine — HIST-01a, HIST-LINK-01 (`mp-hist-engine-2`)
 
 Owner decision: `MP-OWNER-HIST-01A-01`. Issues: #34 (Strategy Lab, backtest), #99 (settlement), #94 (Math Core). Roadmap #97: first slice of R-14, with the parts of R-13 it needs (1X2 outcome rule, frozen configuration snapshot).
 
@@ -10,16 +10,17 @@ The archive #40 integration (HIST-01b) waits for the Grok handoff. Grok reported
 
 ## Code
 
-- **Contract** — [`src/hist/contract.mjs`](../src/hist/contract.mjs): the input contract `mp-hist-input-1`, strict validation, canonical JSON and SHA-256.
+- **Contract** — [`src/hist/contract.mjs`](../src/hist/contract.mjs): the input contract `mp-hist-input-2` (and the older `mp-hist-input-1`), strict validation, canonical JSON and SHA-256.
 - **Admission** — [`src/hist/admission.mjs`](../src/hist/admission.mjs): which observations are usable at the decision time. It reuses the PIT policy `mp-pit-v1` (`src/pit/policy.mjs`).
 - **Strategy** — [`src/hist/strategies.mjs`](../src/hist/strategies.mjs): the technical test oracle `mp-ref-fav-back-1`.
 - **Engine** — [`src/hist/engine.mjs`](../src/hist/engine.mjs): decision phase, settlement phase and report.
+- **Results** — [`src/markets/outcomes.mjs`](../src/markets/outcomes.mjs) `resolveVersioned`: result versions (DEC-002) resolved by the registry rule (#100).
 - **Settlement** — [`src/math/money.mjs`](../src/math/money.mjs): settlement P/L with commission on market net winnings, in Decimal.
 - **CLI** — [`tools/hist/backtest.mjs`](../tools/hist/backtest.mjs).
 
 None of them touches a database, the network, the clock or the environment. There is no migration, no API route and no new dependency.
 
-## Input contract `mp-hist-input-1`
+## Input contract `mp-hist-input-2`
 
 One JSON document. It is provider-independent: an archive extract, captured TotalCorner snapshots or a fixture all arrive in this shape.
 
@@ -28,10 +29,14 @@ One JSON document. It is provider-independent: an archive extract, captured Tota
 | `dataset` | `id`, `kind` (`FIXTURE` or `REAL`), `description` |
 | `events[]` | `provider`, `event_id`, `kickoff_utc` (UTC or null), `home`, `away` |
 | `observations[]` | `observation_id`, `provider`, `event_id`, `bookmaker`, `market` (`1X2`), `selection` (`HOME`, `DRAW`, `AWAY`), `odds` (decimal text), `provider_time`, `acquired_at` (UTC or null) |
-| `outcomes[]` | `provider`, `event_id`, `status` (`FINAL` with `home_score`/`away_score`, or `VOID` with null scores), `acquired_at` |
+| `outcomes[]` | result versions: `provider`, `event_id`, `version` (integer ≥ 1), `status` (`FINAL` with `home_score`/`away_score`, or `NOT_FINAL` with null scores), `acquired_at`, `provenance` |
+
+Any number of versions per event (HIST-LINK-01, DEC-002): a version number is unique per event and a higher version must not be acquired before a lower one. There is no `VOID` status (DEC-015).
+
+**`mp-hist-input-1` is still accepted.** Its `outcomes[]` hold one outcome per event (`FINAL` with scores, or `VOID` with null scores). Each becomes version 1; a `VOID` becomes a `NOT_FINAL` version flagged as declared void, which is never settled (`VOID_NO_APPROVED_RULE`). The normalized input is always version 2.
 
 **Validation:**
-- unknown or missing fields, duplicate ids, references to unknown events and a second outcome for the same event are refused with `BAD_HIST_INPUT` and the field;
+- unknown or missing fields, duplicate ids, references to unknown events, a second outcome for the same event (input-1), a duplicate or non-monotonic version (input-2) are refused with `BAD_HIST_INPUT` and the field;
 - non-UTC times are refused, as are impossible dates;
 - odds must satisfy `1 < O ≤ 1,000,000` and be plain decimal text such as `2.10`, with at most 7 integer digits and 6 decimals: no JS numbers, sign, surrounding space or leading zero;
 - each list holds at most 2,000,000 items.
@@ -40,7 +45,7 @@ Every list is sorted by its ids, so the same data in any order has the same hash
 
 ## Configuration (frozen snapshot, MP-MKT-003)
 
-`{strategy, bookmaker, lead_minutes, stake, commission}`. The report carries:
+`{strategy, bookmaker, lead_minutes, stake, commission}`, plus the optional `outcomes_as_of` (UTC instant): the cutoff of the result versions used to settle (DEC-002 `asOf`). Without it, every version in the input is available, and the report says so. The report carries:
 - the normalized configuration;
 - `settings_snapshot_id`, the SHA-256 of that configuration;
 - `commission_rate_used`.
@@ -74,21 +79,23 @@ It is a test oracle only, never a trading strategy.
 
 ## Settlement phase (MP-MKT-001 for 1X2, MP-MKT-002, MP-MTH-003)
 
-Outcomes are read only after every decision is fixed. The 1X2 rule is the Market Rules Registry's `MATCH_ODDS@v2`
+Results are read only after every decision is fixed. The 1X2 rule is the Market Rules Registry's `MATCH_ODDS@v2`
 (`src/markets/rules.mjs`, #100), recorded in the report as `versions.outcome_rule`; the engine has no resolver of its own
-(DEC-006). It replaced the earlier branch-local rule `mp-outcome-1x2-1`, with the same results:
-- **FINAL:** gives HOME, DRAW or AWAY from the scores (regular time);
-- **VOID:** voids the bet, and the stake is returned;
-- **Same provider only:** the outcome must belong to the same provider and event as the odds. Cross-provider mappings are not used;
-- **Acquired at or after kickoff:** an outcome acquired before the kickoff instant, including between the decision and the kickoff, is not used (`OUTCOME_ACQUIRED_BEFORE_KICKOFF`); one acquired exactly at kickoff is. This applies to VOID too, which is conservative: a postponement announced before the match leaves the bet unsettled;
-- **Missing outcome:** the bet stays unsettled (`OUTCOME_MISSING`, N/D).
+(DEC-006). Since HIST-LINK-01 the engine resolves through `resolveVersioned` (`src/markets/outcomes.mjs`):
+- **Which version:** the latest validated `FINAL` acquired by the outcomes cutoff (`settlement_policy.outcomes_as_of`). Each settled bet records the rule id, the result version, its provenance and acquisition time;
+- **Corrections:** when that version changes the score of an earlier `FINAL`, the bet carries `corrected: true`, the first final version and the outcome it would have had; `metrics.corrected_results` counts them;
+- **No VOID** (DEC-015): `NOT_FINAL` versions (postponed, suspended, no result) and matches declared void leave the bet unsettled (`NO_VALIDATED_FINAL`, `VOID_NO_APPROVED_RULE`). No stake is returned by an invented rule;
+- **Providers:** results are resolved only for MatchPilot's two football APIs (`futpythontrader`, `totalcorner`); any other provider id gives `OUTCOME_PROVIDER_UNSUPPORTED`;
+- **Same provider only:** the versions must belong to the same provider and event as the odds. Cross-provider mappings are not used;
+- **Acquired at or after kickoff:** a version acquired before the kickoff instant is ignored; when every version is, the bet stays unsettled (`OUTCOME_ACQUIRED_BEFORE_KICKOFF`);
+- **Missing result:** the bet stays unsettled (`OUTCOME_MISSING`, N/D).
 
 **P/L.** `settleMarket` computes it in Decimal:
 - BACK wins `S·(O − 1)` or loses `S`;
 - commission is `max(0, net of the market)·c`;
 - unrounded values are kept, and the rounded ones reconcile to the cent (`net = gross − commission`).
 
-## Report `mp-hist-report-1`
+## Report `mp-hist-report-2`
 
 | `status` | When | Bets and metrics |
 |---|---|---|
@@ -97,7 +104,7 @@ Outcomes are read only after every decision is fixed. The 1X2 rule is the Market
 | `OK` | admissible data, and at least one bet settled or no bet at all | metrics on the settled bets; `metrics: null` when no bet was made (every event NO_TRADE) |
 
 **Metrics (`OK` only):**
-- counts of bets won, lost and void;
+- counts of bets won and lost, and of bets settled on a corrected result;
 - stake at risk, gross P/L, commission and net P/L;
 - ROI = net ÷ stake at risk;
 - maximum drawdown of the cumulative net in decision order.
@@ -118,6 +125,7 @@ HIST-01a has no certification path: no input or configuration field reaches the 
 **Other fields of every report:**
 - the `certification` block above;
 - the dataset with the SHA-256 of the normalized input;
+- `settlement_policy` (when outcomes were read): the outcomes cutoff, its source (`CONFIG` or `LATEST_IN_INPUT`) and the VOID policy;
 - the code version, all component versions and the frozen configuration;
 - counts per exclusion and no-trade reason;
 - the limits: no liquidity, matching or execution; no claim of profitability (MP-STA-012).

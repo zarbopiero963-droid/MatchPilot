@@ -2,8 +2,10 @@
 // offline deterministic backtest engine. Two phases that never mix:
 //   1. decision: for each event, at kickoff minus the lead, the strategy sees only the observations the PIT policy
 //      admits (acquired by the decision time) and no outcome;
-//   2. settlement: after every decision is fixed, each bet is settled with the outcome of the same provider under the
-//      MATCH_ODDS rule of the Market Rules Registry (#100), in Decimal, with the configured commission.
+//   2. settlement: after every decision is fixed, each bet is settled with the result versions of the same provider
+//      (DEC-002: the latest validated FINAL available at the outcomes cutoff, its version and provenance recorded) under
+//      the MATCH_ODDS rule of the Market Rules Registry (#100), in Decimal, with the configured commission. A match with
+//      no validated FINAL stays unsettled; no VOID is ever applied (DEC-015, HIST-LINK-01).
 // Without any admissible observation the report is INSUFFICIENT_PIT_DATA and carries no bet, P/L, ROI or drawdown.
 // The report is canonical JSON with its own SHA-256: the same input, configuration and code give the same bytes.
 // Pure module: no database, no network, no clock, no environment.
@@ -14,10 +16,11 @@ import {PIT_POLICY_VERSION} from '../pit/policy.mjs';
 import {ADMISSION_VERSION, admitObservation, decisionTimeOf} from './admission.mjs';
 import {HistInputError, INPUT_VERSION, SELECTIONS_1X2, canonicalJson, sha256, validateInput} from './contract.mjs';
 import {STRATEGIES} from './strategies.mjs';
-import {getMarketRule, resolve} from '../markets/rules.mjs';
+import {getMarketRule} from '../markets/rules.mjs';
+import {resolveVersioned, resultVersion} from '../markets/outcomes.mjs';
 
-export const ENGINE_VERSION = 'mp-hist-engine-1';
-export const REPORT_VERSION = 'mp-hist-report-1';
+export const ENGINE_VERSION = 'mp-hist-engine-2';
+export const REPORT_VERSION = 'mp-hist-report-2';
 // The 1X2 outcome rule is the registry's MATCH_ODDS rule (DEC-006: no duplicate resolver); the report records its id.
 export const OUTCOME_RULE_VERSION = getMarketRule('MATCH_ODDS').market_rule_id;
 // `status` is the technical result of the run; it never says anything about the data. Whether the data are certified
@@ -53,9 +56,18 @@ const cents = value => value.roundToStep(MONEY_STEP, ROUNDING.HALF_EVEN);
 
 export function validateConfig(config, strategies = STRATEGIES) {
   if (!config || typeof config !== 'object' || Array.isArray(config)) throw new HistInputError('config', 'must be an object');
-  const allowed = ['strategy', 'bookmaker', 'lead_minutes', 'stake', 'commission'];
+  const required = ['strategy', 'bookmaker', 'lead_minutes', 'stake', 'commission'];
+  // outcomes_as_of (optional): the cutoff of the result versions used to settle (DEC-002 asOf). Without it, every
+  // version in the input is available.
+  const allowed = [...required, 'outcomes_as_of'];
   for (const name of Object.keys(config)) if (!allowed.includes(name)) throw new HistInputError(`config.${name}`, 'unknown field');
-  for (const name of allowed) if (!Object.hasOwn(config, name)) throw new HistInputError(`config.${name}`, 'is required');
+  for (const name of required) if (!Object.hasOwn(config, name)) throw new HistInputError(`config.${name}`, 'is required');
+  let outcomesAsOf = null;
+  if (Object.hasOwn(config, 'outcomes_as_of')) {
+    const t = typeof config.outcomes_as_of === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/.test(config.outcomes_as_of) ? Date.parse(config.outcomes_as_of) : NaN;
+    if (Number.isNaN(t) || new Date(t).toISOString().slice(0, 19) !== config.outcomes_as_of.slice(0, 19)) throw new HistInputError('config.outcomes_as_of', 'must be a UTC instant (YYYY-MM-DDTHH:MM:SS[.mmm]Z)');
+    outcomesAsOf = new Date(t).toISOString();
+  }
   if (typeof config.strategy !== 'string' || !Object.hasOwn(strategies, config.strategy)) throw new HistInputError('config.strategy', 'unknown strategy');
   if (typeof config.bookmaker !== 'string' || !/^[\w.:\-/]{1,200}$/.test(config.bookmaker)) throw new HistInputError('config.bookmaker', 'must be an identifier');
   if (!Number.isSafeInteger(config.lead_minutes) || config.lead_minutes < 1 || config.lead_minutes > 1440) throw new HistInputError('config.lead_minutes', 'must be an integer from 1 to 1440');
@@ -69,7 +81,7 @@ export function validateConfig(config, strategies = STRATEGIES) {
     throw error;
   }
   const normalized = {strategy: config.strategy, bookmaker: config.bookmaker, lead_minutes: config.lead_minutes,
-    stake: stake.toString(), commission: commission.toString()};
+    stake: stake.toString(), commission: commission.toString(), ...(outcomesAsOf ? {outcomes_as_of: outcomesAsOf} : {})};
   return {...normalized, settings_snapshot_id: sha256(canonicalJson(normalized)), commission_rate_used: commission.toString()};
 }
 
@@ -92,22 +104,35 @@ function decisionView(event, decisionTime, odds) {
   });
 }
 
-// A FINAL outcome is resolved by the registry's MATCH_ODDS rule (HOME, DRAW or AWAY from the scores); a VOID outcome
-// voids the bet. An outcome is used only when it belongs to the same provider and event as the odds and was acquired at
-// or after the kickoff (a final result cannot be known before the match); otherwise the bet stays unsettled (N/D).
-function resolveOutcome(outcome, event, selection) {
-  if (!outcome) return {result: null, reason: 'OUTCOME_MISSING'};
-  if (Date.parse(outcome.acquired_at) < Date.parse(event.kickoff_utc)) return {result: null, reason: 'OUTCOME_ACQUIRED_BEFORE_KICKOFF'};
-  if (outcome.status === 'VOID') return {result: 'VOID', outcome: 'VOID', reason: null};
-  const resolution = resolve({marketType: 'MATCH_ODDS', selection, match: {status: 'FINISHED', ft_home: outcome.home_score, ft_away: outcome.away_score}});
-  return {result: resolution.winning_selection, outcome: resolution.outcome, reason: null};
+// The result versions of a bet's event are resolved by the registry's MATCH_ODDS rule through resolveVersioned (DEC-002):
+// the latest validated FINAL acquired by the cutoff, flagged when it corrects an earlier FINAL. Only versions of the same
+// provider and event as the odds are read, and only those acquired at or after the kickoff (a final result cannot be
+// known before the match). Otherwise the bet stays unsettled (N/D) with the reason; a VOID is never applied (DEC-015).
+const OUTCOME_PROVIDERS = new Set(['futpythontrader', 'totalcorner']);
+function resolveOutcome(versions, event, selection, asOf) {
+  if (!versions?.length) return {result: null, reason: 'OUTCOME_MISSING'};
+  if (!OUTCOME_PROVIDERS.has(event.provider)) return {result: null, reason: 'OUTCOME_PROVIDER_UNSUPPORTED'};
+  const known = versions.filter(v => Date.parse(v.acquired_at) >= Date.parse(event.kickoff_utc));
+  if (!known.length) return {result: null, reason: 'OUTCOME_ACQUIRED_BEFORE_KICKOFF'};
+  const res = resolveVersioned({marketType: 'MATCH_ODDS', selection, asOf, versions: known.map(v => resultVersion({provider: v.provider,
+    version: v.version, acquired_at: v.acquired_at, provenance: v.provenance, final: v.status === 'FINAL', home: v.home_score, away: v.away_score,
+    providerStatus: v.void_declared ? 'VOID' : v.status}))});
+  if (res.status !== 'RESOLVED') {
+    const latest = known.filter(v => Date.parse(v.acquired_at) <= Date.parse(asOf)).at(-1);
+    return {result: null, reason: latest?.void_declared ? 'VOID_NO_APPROVED_RULE' : res.reason};
+  }
+  return {result: res.winning_selection, outcome: res.outcome, reason: null,
+    resolution: {market_rule_id: res.market_rule_id, outcome_version: res.outcome_version, provenance: res.provenance, recorded_at: res.recorded_at,
+      corrected: res.corrected, ...(res.corrected ? {first_final_version: res.first_final_version, first_final_outcome: res.first_final_outcome} : {})}};
 }
 
 const LIMITS = [
   'Offline engine test: no liquidity, matching, slippage or execution is modelled.',
   'Decisions use only observations acquired by the decision time (captured knowledge, mp-pit-v1).',
-  'Settlement uses only outcomes of the same provider as the odds; cross-provider mappings are not used.',
-  'Metrics cover settled bets only; unsettled bets (missing outcome, outcome acquired before kickoff) are counted in counts.unsettled_by_reason and excluded, which can bias the metrics.',
+  'Settlement uses only result versions of the same provider as the odds; cross-provider mappings are not used.',
+  'Results: the latest validated FINAL acquired by the outcomes cutoff (DEC-002); a corrected result is flagged on the bet. Results are read after the decisions and are not point-in-time features.',
+  'No VOID rule is approved (DEC-015): void, postponed or unfinished matches stay unsettled.',
+  'Metrics cover settled bets only; unsettled bets (missing or non-final result, result acquired before kickoff) are counted in counts.unsettled_by_reason and excluded, which can bias the metrics.',
   'No claim of profitability or reliability (MP-STA-012); the data verdict is in the certification block.',
 ];
 
@@ -195,14 +220,22 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
   }
 
   // ---- Settlement phase: decisions are fixed; outcomes are read only now ----
-  const outcomes = new Map(input.outcomes.map(outcome => [key(outcome.provider, outcome.event_id), outcome]));
+  const outcomes = new Map();
+  for (const version of input.outcomes) {
+    const k = key(version.provider, version.event_id);
+    if (!outcomes.has(k)) outcomes.set(k, []);
+    outcomes.get(k).push(version);
+  }
+  // DEC-002 asOf: the configured cutoff, else the latest acquisition in the input (every version available).
+  const asOf = config.outcomes_as_of ?? input.outcomes.reduce((latest, v) => (byte(latest, v.acquired_at) < 0 ? v.acquired_at : latest), '1970-01-01T00:00:00.000Z');
+  report.settlement_policy = {outcomes_as_of: asOf, outcomes_as_of_source: config.outcomes_as_of ? 'CONFIG' : 'LATEST_IN_INPUT', void_policy: 'NONE_APPROVED (DEC-015)'};
   const unsettled = counter();
   const settledBets = bets.map(bet => {
     const event = events.get(key(bet.provider, bet.event_id));
-    const {result, outcome, reason} = resolveOutcome(outcomes.get(key(bet.provider, bet.event_id)), event, bet.selection);
+    const {result, outcome, reason, resolution} = resolveOutcome(outcomes.get(key(bet.provider, bet.event_id)), event, bet.selection, asOf);
     if (!result) { count(unsettled, reason); return {...bet, settlement: null}; }
     const market = settleMarket({bets: [{side: bet.side, stake: bet.stake, odds: bet.odds, outcome}], commission: config.commission});
-    return {...bet, settlement: {result, outcome, gross: market.result.gross, commission: market.result.commission, net: market.result.net}};
+    return {...bet, settlement: {result, outcome, gross: market.result.gross, commission: market.result.commission, net: market.result.net, resolution}};
   });
   const settled = settledBets.filter(bet => bet.settlement);
   const base = {...report, bets: settledBets, counts: {...report.counts, settled: settled.length, unsettled_by_reason: sorted(unsettled)}};
@@ -216,7 +249,7 @@ function metricsOf(settled) {
   const gross = sum(settled.map(bet => Decimal.from(bet.settlement.gross)));
   const commission = sum(settled.map(bet => Decimal.from(bet.settlement.commission)));
   const net = gross.sub(commission);
-  const staked = sum(settled.filter(bet => bet.settlement.outcome !== 'VOID').map(bet => Decimal.from(bet.stake)));
+  const staked = sum(settled.map(bet => Decimal.from(bet.stake)));
   let cumulative = Decimal.zero(), peak = Decimal.zero(), drawdown = Decimal.zero();
   for (const bet of settled) {
     cumulative = cumulative.add(Decimal.from(bet.settlement.net));
@@ -227,7 +260,7 @@ function metricsOf(settled) {
   const roi = staked.isZero() ? null : net.div(staked);
   return {
     unit: 'stake units',
-    bets: settled.length, won: outcomes('WIN'), lost: outcomes('LOSE'), void: outcomes('VOID'),
+    bets: settled.length, won: outcomes('WIN'), lost: outcomes('LOSE'), corrected_results: settled.filter(bet => bet.settlement.resolution.corrected).length,
     staked: staked.toString(), pl_gross: gross.toString(), commission: commission.toString(), pl_net: net.toString(),
     roi: roi ? roi.toString() : null, max_drawdown: drawdown.toString(),
     rounded: {pl_gross: cents(gross).toString(2), commission: cents(commission).toString(2), pl_net: cents(gross).sub(cents(commission)).toString(2),
