@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 143,
+  "revision": 144,
   "tasks": [
     {
       "id": "R-01",
@@ -558,9 +558,16 @@
       "pr": null,
       "branch": "handoff-test-01",
       "kind": "audit",
-      "state": "HANDOFF READY",
-      "assignee": null,
-      "lease": null,
+      "state": "RUNNING",
+      "assignee": {
+        "agent": "agent-b-claude-code",
+        "role": "Test Agent"
+      },
+      "lease": {
+        "holder": "agent-b-claude-code",
+        "acquired_at": "2026-10-23T07:34:17.905Z",
+        "expires_at": "2026-10-23T09:34:17.905Z"
+      },
       "latest_checkpoint": "CP-20261023T063401Z-agent-g-grok",
       "resources": [
         "branch:handoff-test-01",
