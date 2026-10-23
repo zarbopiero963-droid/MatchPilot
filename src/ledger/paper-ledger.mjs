@@ -55,46 +55,80 @@ function append(ledger, entry) {
 }
 
 // Rebuilds positions and balances from the entries only (the entries are the single source of truth).
-export function replay(ledger) {
-  const positions = new Map();
-  let cash = Decimal.zero(), realized = Decimal.zero(), commission = Decimal.zero(), allocated = Decimal.zero();
-  for (const e of ledger.entries) {
-    const a = e.amount === undefined ? null : dec(e.amount);
-    switch (e.type) {
-      case 'INITIAL_ALLOCATION': cash = cash.add(a); allocated = allocated.add(a); break;
-      case 'OPEN': case 'HEDGE': {
-        const p = positions.get(e.position_id) || {position_id: e.position_id, legs: [], status: 'OPEN', commission_rate: e.commission_rate,
+// LEDGER-PERF-01: the ledger is append-only, so the state of the first n entries is kept and only the new entries are
+// applied; reserved funds, open count and per-scope exposure are maintained as each entry changes a position. When the
+// entries are not an extension of the cached ones (fewer entries, or a different last entry), the state is rebuilt from
+// scratch. Callers receive copies of the positions, so nothing they hold changes after a later append.
+const states = new WeakMap();
+function freshState() {
+  return {n: 0, last: null, positions: new Map(), cash: Decimal.zero(), realized: Decimal.zero(), commission: Decimal.zero(),
+    allocated: Decimal.zero(), reserved: Decimal.zero(), openCount: 0,
+    byScope: Object.fromEntries(SCOPES.map(k => [k, new Map()])), scopeCount: Object.fromEntries(SCOPES.map(k => [k, new Map()]))};
+}
+// Adds (sign 1) or removes (sign -1) an open position's exposure from the reserved totals.
+function reserve(st, p, sign) {
+  const x = sign > 0 ? p.exposure : p.exposure.neg();
+  st.reserved = st.reserved.add(x); st.openCount += sign;
+  for (const [k, id] of Object.entries(p.scope ?? {})) {
+    const n = (st.scopeCount[k].get(id) ?? 0) + sign;
+    if (n === 0) { st.scopeCount[k].delete(id); st.byScope[k].delete(id); }
+    else { st.scopeCount[k].set(id, n); st.byScope[k].set(id, (st.byScope[k].get(id) ?? Decimal.zero()).add(x)); }
+  }
+}
+function applyEntry(st, e) {
+  const a = e.amount === undefined ? null : dec(e.amount);
+  switch (e.type) {
+    case 'INITIAL_ALLOCATION': st.cash = st.cash.add(a); st.allocated = st.allocated.add(a); break;
+    case 'OPEN': case 'HEDGE': {
+      let p = st.positions.get(e.position_id);
+      if (!p) {
+        p = {position_id: e.position_id, legs: [], status: 'OPEN', commission_rate: e.commission_rate,
           settings_snapshot_id: e.settings_snapshot_id, scope: e.scope ?? null, market: e.market ?? null, settlement: null, settlement_version: 0,
-          resolution: null, history: []};
-        p.legs.push({side: e.side, odds: dec(e.odds), stake: dec(e.stake)});
-        positions.set(e.position_id, p); break;
-      }
-      case 'SETTLEMENT_GROSS': realized = realized.add(a); cash = cash.add(a); break;
-      case 'COMMISSION': commission = commission.add(a); cash = cash.sub(a); realized = realized.sub(a); break;
-      case 'SETTLEMENT_NET': {
-        const p = positions.get(e.position_id);
-        p.status = e.outcome === 'WIN' ? 'WON' : e.outcome === 'LOSE' ? 'LOST' : e.outcome;
-        p.settlement = e.outcome; p.settlement_version = e.settlement_version; p.resolution = e.resolution ?? null; p.history.push(e.seq); break;
-      }
-      case 'REVERSAL': {
-        cash = cash.sub(dec(e.gross)).add(dec(e.commission));
-        realized = realized.sub(dec(e.gross)).add(dec(e.commission));
-        commission = commission.sub(dec(e.commission));
-        const p = positions.get(e.position_id); p.status = 'SETTLEMENT_PENDING'; p.settlement = null; p.history.push(e.seq); break;
-      }
-      default: fail('INTERNAL', `unknown entry ${e.type}`);
+          resolution: null, history: [], exposure: Decimal.zero()};
+        st.positions.set(e.position_id, p);
+      } else if (p.settlement === null) reserve(st, p, -1);
+      p.legs.push({side: e.side, odds: dec(e.odds), stake: dec(e.stake)});
+      p.exposure = exposureOf(p.legs);
+      if (p.settlement === null) reserve(st, p, 1);
+      break;
     }
-  }
-  let reserved = Decimal.zero(), openCount = 0;
-  const byScope = Object.fromEntries(SCOPES.map(k => [k, new Map()]));
-  for (const p of positions.values()) {
-    p.exposure = exposureOf(p.legs);
-    if (p.settlement === null) {
-      reserved = reserved.add(p.exposure); openCount++;
-      for (const [k, id] of Object.entries(p.scope ?? {})) byScope[k].set(id, (byScope[k].get(id) ?? Decimal.zero()).add(p.exposure));
+    case 'SETTLEMENT_GROSS': st.realized = st.realized.add(a); st.cash = st.cash.add(a); break;
+    case 'COMMISSION': st.commission = st.commission.add(a); st.cash = st.cash.sub(a); st.realized = st.realized.sub(a); break;
+    case 'SETTLEMENT_NET': {
+      const p = st.positions.get(e.position_id);
+      if (p.settlement === null) reserve(st, p, -1);
+      p.status = e.outcome === 'WIN' ? 'WON' : e.outcome === 'LOSE' ? 'LOST' : e.outcome;
+      p.settlement = e.outcome; p.settlement_version = e.settlement_version; p.resolution = e.resolution ?? null; p.history.push(e.seq); break;
     }
+    case 'REVERSAL': {
+      st.cash = st.cash.sub(dec(e.gross)).add(dec(e.commission));
+      st.realized = st.realized.sub(dec(e.gross)).add(dec(e.commission));
+      st.commission = st.commission.sub(dec(e.commission));
+      const p = st.positions.get(e.position_id);
+      const wasOpen = p.settlement === null;
+      p.status = 'SETTLEMENT_PENDING'; p.settlement = null; p.history.push(e.seq);
+      if (!wasOpen) reserve(st, p, 1);
+      break;
+    }
+    default: fail('INTERNAL', `unknown entry ${e.type}`);
   }
-  return {positions, cash, reserved, realized, commission, allocated, openCount, byScope};
+}
+const copyOf = p => ({...p, legs: p.legs.map(l => ({...l})), history: [...p.history]});
+export function replay(ledger) {
+  let st = states.get(ledger);
+  const entries = ledger.entries;
+  if (!st || entries.length < st.n || (st.n > 0 && entries[st.n - 1] !== st.last)) st = freshState();
+  for (let i = st.n; i < entries.length; i++) applyEntry(st, entries[i]);
+  st.n = entries.length; st.last = entries.at(-1) ?? null;
+  states.set(ledger, st);
+  // A read-only view: each position is copied when it is read, so a replay costs nothing per unread position.
+  const live = st.positions;
+  const positions = Object.freeze({get: id => (live.has(id) ? copyOf(live.get(id)) : undefined), has: id => live.has(id), get size() { return live.size; },
+    keys: () => live.keys(), values: () => [...live.values()].map(copyOf), entries: () => [...live].map(([id, p]) => [id, copyOf(p)]),
+    [Symbol.iterator]() { return this.entries()[Symbol.iterator](); }});
+  const byScope = Object.fromEntries(SCOPES.map(k => [k, new Map(st.byScope[k])]));
+  return {positions, cash: st.cash, reserved: st.reserved, realized: st.realized, commission: st.commission, allocated: st.allocated,
+    openCount: st.openCount, byScope};
 }
 
 export function accountState(ledger) {

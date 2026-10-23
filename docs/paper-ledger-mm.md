@@ -80,3 +80,7 @@ Source: #96 "Parametri policy / risk – Minimo", "Filtri", the capability schem
 - Hard account safety (available bankroll) is applied after every profile cap, so no cap can exceed it (#96 priority 1).
 - Undefined items (formulas, per-day exposure, loss/drawdown/stop/cooldown, same-level rule ties) are owner questions; see
   the consolidated package (mm-owner-questions.md, delivered outside the repo).
+
+## Incremental replay (LEDGER-PERF-01)
+
+`replay(ledger)` keeps, per ledger object, the state of the entries already applied and applies only the new ones (the ledger is append-only); reserved funds, open positions and per-scope exposure are maintained as each entry changes a position. Entries that are not an extension of the cached ones are rebuilt from scratch. Callers receive a copy of each position they read, so a later append never changes what they hold. `test/ledger-perf.test.mjs` checks the result against the previous full replay, kept verbatim as an oracle, after every operation of 60 seeded random sequences. A backtest went from about 38 s to 0.5 s at 2000 events.
