@@ -18,18 +18,19 @@ node tools/vps/persistence-preflight.mjs > /root/persistence-preflight-$(date -u
 ```
 
 What it does (`tools/vps/persistence-preflight.mjs`, tested by `test/persistence-preflight.test.mjs`):
-- **Services:** `systemctl show` of `matchpilot-app.service` and `matchpilot-fpt-worker.service`: state, environment
-  files, and only these settings: `MATCHPILOT_RUNTIME_MODE` (with the effective mode, `offline` when unset),
+- **Services:** `systemctl show` of `matchpilot-app.service` and `matchpilot-fpt-worker.service`: load and active state,
+  every environment file in load order, and only these settings: `MATCHPILOT_RUNTIME_MODE` (with the effective mode, `offline` when unset),
   `MATCHPILOT_BACKGROUND_ENABLED`, `MATCHPILOT_APPROVED_MIGRATIONS`, `FUTPYTHON_CRON_ENABLED`, `DATA_WATCHDOG_ENABLED`,
-  `TOTALCORNER_ENABLED`, `NODE_ENV`.
+  `TOTALCORNER_ENABLED`, `NODE_ENV`. A unit systemd cannot show is reported with its `error` and no mode.
 - **Database actually used:** of each `DATABASE_URL`, scheme, host, port, database name and user, plus whether a
   password is set. The password and the full URL are never printed.
 - **Database content**, inside one `BEGIN READ ONLY` transaction with a 60 s statement timeout, then `ROLLBACK`:
   PostgreSQL version, database size, schemas, every table and view with the planner's row estimate and size, exact
-  counts of `schema_migrations` and the FPT history tables, foreign keys, triggers, the applied migrations, the
+  counts of `schema_migrations` and the FPT history tables (each statement in its own savepoint, so one failure is
+  reported without hiding the others; a 5 s lock timeout so it never waits behind a migration), foreign keys, triggers, the applied migrations, the
   privileges of the app's role, and whether any persistence table already exists.
-- **Deploy state:** the current release, the migration ledger `migrations.sha256` (present, number of files), any
-  `allow-migrations-*` / `allow-rollback-*` file, the FREEZE flag.
+- **Deploy state:** the current release, the migration files it carries (`release_migrations`), the migration ledger
+  `migrations.sha256` (present, number of files), any `allow-migrations-*` / `allow-rollback-*` file, the FREEZE flag.
 - **Backups:** last PG17 nightly directory, `matchpilot-staging-backup` service result and timer, presence of
   `RESTORE-PG18-STAGING.md`, `pg_lsclusters`.
 
@@ -48,7 +49,8 @@ The owner sends the JSON back (it holds no secret; review it before sharing). Th
 | 7 | Backup | staging backup service `Result=success`, timer enabled, restore document present |
 | 8 | Deploy state | no stale `allow-migrations-*` file; FREEZE off; ledger present |
 
-Any failed criterion is a NO-GO with its cause.
+Any failed criterion is a NO-GO with its cause. A missing unit state, a unit `error`, a missing database entry or a
+statement `error` is a NO-GO for the criteria that need it, never a GO by default.
 
 ## Step 3 — operations that need the owner's final authorization (not run by the preflight)
 

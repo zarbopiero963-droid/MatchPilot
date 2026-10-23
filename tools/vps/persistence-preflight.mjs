@@ -9,8 +9,9 @@
 // string: of each DATABASE_URL only scheme, host, port, database and user are reported, and of the env files only
 // the keys listed in REPORTED_KEYS (values of every other key are never read into the report).
 import {execFileSync} from 'node:child_process';
-import {existsSync, readFileSync, readdirSync, readlinkSync, statSync} from 'node:fs';
+import {existsSync, readFileSync, readdirSync, readlinkSync, realpathSync, statSync} from 'node:fs';
 import {createRequire} from 'node:module';
+import {pathToFileURL} from 'node:url';
 
 export const UNITS = ['matchpilot-app.service', 'matchpilot-fpt-worker.service'];
 export const REPORTED_KEYS = ['MATCHPILOT_RUNTIME_MODE', 'MATCHPILOT_BACKGROUND_ENABLED', 'MATCHPILOT_APPROVED_MIGRATIONS',
@@ -47,16 +48,28 @@ function sh(cmd, args) {
   catch (error) { return `ERROR: ${String(error.stderr || error.message).trim().split('\n')[0]}`; }
 }
 
-// The paths of systemd's EnvironmentFiles property ("/path (ignore_errors=no)" entries).
-export const environmentFiles = value => [...String(value || '').matchAll(/(\/\S+?) \(ignore_errors=(?:yes|no)\)/g)].map(m => m[1]);
+// The paths of systemd's EnvironmentFiles property: `systemctl show` prints one "EnvironmentFiles=/path (ignore_errors=no)"
+// line per file, in load order.
+export const environmentFiles = raw => String(raw || '').split(/\r?\n/)
+  .map(line => /^EnvironmentFiles=(\/\S+) \(ignore_errors=(?:yes|no)\)$/.exec(line.trim())?.[1]).filter(Boolean);
+
+// The unit's own Environment= property: space-separated assignments, an assignment holding a space is double-quoted.
+export const unitEnvironment = value => parseEnv([...String(value || '').matchAll(/"((?:[^"\\]|\\.)*)"|(\S+)/g)]
+  .map(m => (m[1] !== undefined ? m[1].replace(/\\(.)/g, '$1') : m[2])).join('\n'));
+
+const SHOW_PROPERTIES = ['LoadState', 'ActiveState', 'SubState', 'WorkingDirectory', 'ExecMainStartTimestamp', 'Environment', 'EnvironmentFiles'];
 
 // The env files a unit loads (systemd's own view), and the reported keys they set; the last file wins, as in systemd.
-export function unitConfig(unit) {
-  const raw = sh('systemctl', ['show', unit, '-p', 'EnvironmentFiles', '-p', 'Environment', '-p', 'ActiveState', '-p', 'SubState', '-p', 'WorkingDirectory', '-p', 'ExecMainStartTimestamp']);
-  const props = parseEnv(raw);
-  const files = environmentFiles(props.EnvironmentFiles);
+// A unit systemd cannot show is reported with its error and no mode, never with the code default.
+export function unitConfig(unit, {show = u => sh('systemctl', ['show', u, ...SHOW_PROPERTIES.flatMap(p => ['-p', p])])} = {}) {
+  const raw = show(unit);
+  const props = parseEnv(raw.split(/\r?\n/).filter(line => !line.startsWith('EnvironmentFiles=')).join('\n'));
+  if (raw.startsWith('ERROR:') || props.LoadState !== 'loaded') {
+    return {unit, error: raw.startsWith('ERROR:') ? raw : `LoadState=${props.LoadState ?? 'unknown'}`, effective_runtime_mode: null, database: null, _url: null};
+  }
+  const files = environmentFiles(raw);
   // Environment= lines of the unit come first; EnvironmentFile= entries override them, as systemd does.
-  const env = parseEnv(String(props.Environment || '').split(/\s+(?=[A-Za-z_][A-Za-z0-9_]*=)/).join('\n'));
+  const env = unitEnvironment(props.Environment);
   for (const file of files) if (existsSync(file)) Object.assign(env, parseEnv(readFileSync(file, 'utf8')));
   return {
     unit, active: props.ActiveState, sub: props.SubState, working_directory: props.WorkingDirectory, started: props.ExecMainStartTimestamp,
@@ -99,14 +112,31 @@ export async function inspectDatabase(url, {pg = createRequire(`${CURRENT}/packa
   try {
     await client.query('BEGIN READ ONLY');
     await client.query("SET LOCAL statement_timeout = '60s'");
-    for (const [name, sql] of Object.entries(SQL)) {
-      try { out[name] = (await client.query(sql)).rows; }
-      catch (error) { out[name] = {error: error.code || error.message}; }
-    }
+    // Never queue behind a migration or another exclusive lock.
+    await client.query("SET LOCAL lock_timeout = '5s'");
+    // Each statement in its own savepoint: one failure (missing table, timeout, permission) is reported and the others
+    // still run.
+    const read = async (sql, params) => {
+      await client.query('SAVEPOINT preflight');
+      try {
+        const rows = (await client.query(sql, params)).rows;
+        await client.query('RELEASE SAVEPOINT preflight');
+        return rows;
+      } catch (error) {
+        await client.query('ROLLBACK TO SAVEPOINT preflight');
+        return {error: error.code || error.message};
+      }
+    };
+    for (const [name, sql] of Object.entries(SQL)) out[name] = await read(sql);
     out.exact_counts = {};
     for (const table of COUNTED) {
-      const exists = (await client.query('SELECT to_regclass($1) IS NOT NULL AS ok', [table])).rows[0].ok;
-      out.exact_counts[table] = exists ? Number((await client.query(`SELECT count(*) AS n FROM ${table}`)).rows[0].n) : null;
+      const exists = await read('SELECT to_regclass($1) IS NOT NULL AS ok', [table]);
+      if (!Array.isArray(exists)) out.exact_counts[table] = exists;
+      else if (!exists[0].ok) out.exact_counts[table] = null;
+      else {
+        const rows = await read(`SELECT count(*) AS n FROM ${table}`);
+        out.exact_counts[table] = Array.isArray(rows) ? Number(rows[0].n) : rows;
+      }
     }
     out.transaction_read_only = (await client.query('SHOW transaction_read_only')).rows[0].transaction_read_only;
   } finally {
@@ -160,6 +190,7 @@ export async function preflight() {
     deploy_state: deployState(), backups: backups()};
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Run as a script, also through the /srv/mp-deploy/current symlink.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   console.log(JSON.stringify(await preflight(), null, 1));
 }
