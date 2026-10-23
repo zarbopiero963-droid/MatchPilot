@@ -856,7 +856,7 @@ Cosa cambia nel codice:
 
 Limiti, non presentati come piano del fornitore:
 
-- default conservativi di codice, da sostituire quando l'owner conosce la quota reale: `FUTPYTHON_REQUESTS_PER_MINUTE` 20, `FUTPYTHON_REQUESTS_PER_DAY` 2000, `FUTPYTHON_BACKFILL_REQUESTS_PER_MINUTE` 8, `FUTPYTHON_MAX_ATTEMPTS` 4;
+- default conservativi di codice, da sostituire quando l'owner conosce la quota reale: `FUTPYTHON_REQUESTS_PER_MINUTE` 20, `FUTPYTHON_REQUESTS_PER_DAY` 2000, `FUTPYTHON_BACKFILL_REQUESTS_PER_MINUTE` 8, `FUTPYTHON_MAX_ATTEMPTS` 4; questi sono limiti interni di protezione, non quote del provider. `FUTPYTHON_PROVIDER_DAILY_QUOTA` (default `unlimited`, come da dashboard FutPythonTrader dell'owner; ammessi `unknown` o un intero) descrive la quota reale del provider. `BUDGET_WARNING`/`BUDGET_CRITICAL` dipendono solo dal contatore giornaliero interno; la saturazione del passo al minuto è regolazione interna (attesa), non un allarme; la risoluzione richiede contatori misurati (t145);
 - un successo già persistito non viene riscaricato. Se la risposta è nel ledger ma lo snapshot non è committato, una nuova GET è ammessa: non si sigilla un buco;
 - catalogo e `jogos-do-dia` restano richieste di run, non dataset terminali;
 - il drill accetta al massimo 5 chiavi esplicite. Non è stato scelto un elenco di produzione oltre agli esempi già deduplicati in PR #33.

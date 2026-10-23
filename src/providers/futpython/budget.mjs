@@ -16,8 +16,18 @@ export function budgetConfig(env = process.env) {
     backoffBaseMs: positiveInt(env.FUTPYTHON_BACKOFF_BASE_MS, 500, 'FUTPYTHON_BACKOFF_BASE_MS'),
     backoffCapMs: positiveInt(env.FUTPYTHON_BACKOFF_CAP_MS, 30000, 'FUTPYTHON_BACKOFF_CAP_MS'),
     circuitFailures: positiveInt(env.FUTPYTHON_CIRCUIT_FAILURES, 5, 'FUTPYTHON_CIRCUIT_FAILURES'),
-    circuitOpenMs: positiveInt(env.FUTPYTHON_CIRCUIT_OPEN_MS, 60000, 'FUTPYTHON_CIRCUIT_OPEN_MS')
+    circuitOpenMs: positiveInt(env.FUTPYTHON_CIRCUIT_OPEN_MS, 60000, 'FUTPYTHON_CIRCUIT_OPEN_MS'),
+    // t145: the provider's own daily quota, distinct from the internal protection caps above. The owner's
+    // FutPythonTrader dashboard shows unlimited downloads (t138u), so 'unlimited' is the default; 'unknown' or a
+    // positive integer can be set if that ever changes. Real provider signals (429, quota headers) are always honoured.
+    providerDailyQuota: providerQuota(env.FUTPYTHON_PROVIDER_DAILY_QUOTA)
   };
+}
+
+function providerQuota(value) {
+  if (value == null || value === '' || value === 'unlimited') return 'unlimited';
+  if (value === 'unknown') return 'unknown';
+  return positiveInt(value, 'unlimited', 'FUTPYTHON_PROVIDER_DAILY_QUOTA');
 }
 
 export function safeProviderPath(input) {

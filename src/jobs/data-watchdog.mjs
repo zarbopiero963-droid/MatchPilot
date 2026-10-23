@@ -44,40 +44,51 @@ export async function evaluateProviderAlerts(client, {deliver, limits, circuitFa
      LIMIT $1`,
     [needed]
   );
-  const row = usage.rows[0] || {};
-  const level = budgetPressure({
-    dayUsed: row.day_used || 0,
-    dayLimit: perDay,
-    minuteUsed: row.minute_used || 0,
-    minuteLimit: perMinute
-  });
+  const row = usage.rows[0];
+  const recent429 = row?.recent_429 || 0;
+  const recentRows = recent.rows || [];
+  if (!row || row.day_used == null) {
+    // t145: no measurement, no verdict. Missing counters never resolve (nor raise) a budget alert.
+    console.error('DATA_WATCHDOG_BUDGET_UNKNOWN usage counters unreadable; budget alerts left unchanged');
+    return {level: 'unknown', recent429: 0, circuitOpen: false, pacing: null};
+  }
+  // t145 (t138u false positive 23/10 06:25): the per-minute figure is the internal pacing of takeSlot, which waits
+  // when 20 requests/min are reached; a full minute window is normal operation, not budget consumption. Only the
+  // internal daily protection cap drives BUDGET_*; it is labelled as internal, never as a provider quota.
+  const dayUsed = row.day_used || 0;
+  const level = budgetPressure({dayUsed, dayLimit: perDay});
+  const pacing = {minuteUsed: row.minute_used || 0, minuteLimit: perMinute,
+    minuteSaturated: (row.minute_used || 0) >= perMinute, kind: 'internal_pacing'};
+  const payload = {level, dayUsed, dayLimit: perDay, limitKind: 'internal_protection',
+    limitSource: process.env.FUTPYTHON_REQUESTS_PER_DAY ? 'FUTPYTHON_REQUESTS_PER_DAY' : 'code_default',
+    providerQuota: config.providerDailyQuota, pacing};
+  const evidence = `contatore interno misurato: ${dayUsed}/${perDay} richieste nelle ultime 24h (quota provider: ${config.providerDailyQuota})`;
   await alertOrResolve(client, level === 'warning', {
     source: 'futpython', severity: 'warning', code: 'BUDGET_WARNING', key: 'day',
-    title: 'Budget richieste FutPython in avviso',
-    message: 'Il consumo di richieste ha superato la soglia di avviso.',
-    payload: {level, dayUsed: row.day_used || 0, dayLimit: perDay}
-  }, deliver);
+    title: 'Limite interno richieste FutPython in avviso',
+    message: `Consumo giornaliero al ${Math.round(100 * dayUsed / perDay)}% del limite interno di protezione (${dayUsed}/${perDay}). Non è una quota del provider (quota provider: ${config.providerDailyQuota}).`,
+    payload
+  }, deliver, evidence);
   await alertOrResolve(client, level === 'critical', {
     source: 'futpython', severity: 'critical', code: 'BUDGET_CRITICAL', key: 'day',
-    title: 'Budget richieste FutPython critico',
-    message: 'Il consumo di richieste è vicino all’esaurimento.',
-    payload: {level, dayUsed: row.day_used || 0, dayLimit: perDay}
-  }, deliver);
-  const recent429 = row.recent_429 || 0;
+    title: 'Limite interno richieste FutPython quasi raggiunto',
+    message: `Consumo giornaliero al ${Math.round(100 * dayUsed / perDay)}% del limite interno di protezione (${dayUsed}/${perDay}): oltre il limite la raccolta viene rinviata. Non è una quota del provider (quota provider: ${config.providerDailyQuota}).`,
+    payload
+  }, deliver, evidence);
   await alertOrResolve(client, recent429 > 0, {
     source: 'futpython', severity: 'warning', code: 'RATE_LIMIT_429', key: 'aggregate',
     title: 'Risposte 429 FutPython',
     message: `${recent429} risposte 429 nell’ultima ora.`,
     payload: {count: recent429}
   }, deliver);
-  const circuitOpen = recent.rowCount >= needed && recent.rows.every(countsTowardCircuit);
+  const circuitOpen = recentRows.length >= needed && recentRows.every(countsTowardCircuit);
   await alertOrResolve(client, circuitOpen, {
     source: 'futpython', severity: 'critical', code: 'CIRCUIT_OPEN', key: 'provider',
     title: 'Circuit breaker FutPython aperto',
     message: 'Errori ripetuti hanno aperto il circuit breaker.',
-    payload: {failures: recent.rowCount}
+    payload: {failures: recentRows.length}
   }, deliver);
-  return {level, recent429, circuitOpen};
+  return {level, recent429, circuitOpen, pacing};
 }
 
 export async function checkDataWatchdog(options = {}) {
