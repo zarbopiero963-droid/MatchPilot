@@ -691,7 +691,7 @@ test('LAY on random fixtures: every settled bet matches the oracle and the ledge
     seq = 0;
     const events = Array.from({length: 6}, (_, i) => ev(`r${i}`, `2026-08-0${1 + (i % 5)}T1${i}:00:00Z`));
     const observations = events.flatMap(e => ['HOME', 'DRAW', 'AWAY'].map(s => ob(e.event_id, s, cents(next, 105, 2000), new Date(Date.parse(e.kickoff_utc) - 3600000).toISOString())));
-    const outcomes = events.map(e => out(e.event_id, 'FINAL', Math.floor(next() * 4), Math.floor(next() * 4), new Date(Date.parse(e.kickoff_utc) + 7200000).toISOString()));
+    const outcomes = events.filter(() => next() < 0.85).map(e => out(e.event_id, 'FINAL', Math.floor(next() * 4), Math.floor(next() * 4), new Date(Date.parse(e.kickoff_utc) + 7200000).toISOString()));
     const side = next() < 0.5 ? 'mp-ref-fav-lay-1' : 'mp-ref-fav-back-1';
     const commission = ['0', '0.02', '0.05'][Math.floor(next() * 3)];
     const stake = cents(next, 10, 5000);
@@ -704,7 +704,17 @@ test('LAY on random fixtures: every settled bet matches the oracle and the ledge
       total = fadd(total, net);
     }
     if (report.metrics) assert.ok(feq(F(report.metrics.pl_net), total), `total ${round}`);
-    if (report.ledger) assert.equal(report.ledger.state.reconciled, true);
+    if (report.ledger) {
+      // Exposure of each bet: a BACK's stake, a LAY's liability S·(O − 1) (#222 review NB-1).
+      const exposure = bet => (bet.side === 'LAY' ? fmul(F(stake), fsub(F(bet.odds), frac(1n))) : F(stake));
+      const settled = report.bets.filter(b => b.settlement), open = report.bets.filter(b => !b.settlement);
+      assert.equal(report.ledger.state.reconciled, true);
+      assert.ok(feq(F(report.ledger.notional_allocation), report.bets.map(exposure).reduce(fadd, frac(0n))), `allocation ${round}`);
+      assert.ok(feq(F(report.ledger.state.reserved_funds), open.map(exposure).reduce(fadd, frac(0n))), `reserved ${round}`);
+      assert.ok(feq(F(report.ledger.state.realized_pnl), total), `realized ${round}`);
+      assert.ok(feq(F(report.ledger.state.settled_commission), settled.map(b => F(b.settlement.commission)).reduce(fadd, frac(0n))), `fees ${round}`);
+      if (report.metrics) assert.ok(feq(F(report.metrics.exposure), settled.map(exposure).reduce(fadd, frac(0n))), `exposure ${round}`);
+    }
   }
 });
 
@@ -750,6 +760,7 @@ test('NON_PIT_RESEARCH without kickoff: decided by match date, ordered by date, 
   assert.deepEqual(research.counts.no_trade_by_reason, {KICKOFF_UNKNOWN: 1});
   const pit = runBacktest(input({events, observations, outcomes}), CONFIG);
   assert.deepEqual([pit.status, pit.counts.decisions.NO_TRADE], [STATUS.INSUFFICIENT_PIT_DATA, 3]);
+  assert.deepEqual(pit.counts.no_trade_by_reason, {KICKOFF_UNKNOWN: 3}, 'PIT never decides by match date');
   // match_date is validated as a calendar date.
   assert.throws(() => validateInput(input({events: [{...ev('z', null), match_date: '2026-02-30'}], observations: []})), error => error.field === 'events[0].match_date');
 });
