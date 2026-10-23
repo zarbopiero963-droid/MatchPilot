@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 168,
+  "revision": 169,
   "tasks": [
     {
       "id": "R-01",
@@ -1174,6 +1174,32 @@
       },
       "pr_open": false,
       "merge_sha": "b3ac8d00eae3dd52210679904d43b7582c9c0139"
+    },
+    {
+      "id": "HIST-PG-01",
+      "title": "FutPythonTrader PostgreSQL data into the backtest, labelled NON_PIT_RESEARCH mode (#34 x #12)",
+      "issue": 34,
+      "pr": 223,
+      "branch": "hist-pg-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T155655Z-agent-a-claude-code",
+      "resources": [
+        "src/hist/engine.mjs",
+        "src/hist/contract.mjs",
+        "src/providers/futpython/hist-input.mjs",
+        "tools/hist/fpt-backtest.mjs",
+        "test/hist-backtest.test.mjs",
+        "test/hist-pg-input.test.mjs",
+        "docs/hist-backtest.md",
+        "package.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": true
     }
   ]
 }
