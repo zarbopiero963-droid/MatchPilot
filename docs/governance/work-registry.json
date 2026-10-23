@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 154,
+  "revision": 155,
   "tasks": [
     {
       "id": "R-01",
@@ -1091,14 +1091,22 @@
       "pr": null,
       "branch": "ledger-core-03",
       "kind": "implementation",
-      "state": "PLANNED",
-      "lease": null,
+      "state": "RUNNING",
+      "lease": {
+        "holder": "agent-a-claude-code",
+        "acquired_at": "2026-10-23T12:48:25.006Z",
+        "expires_at": "2026-10-23T20:48:25.006Z"
+      },
       "latest_checkpoint": null,
       "resources": [
         "src/ledger/settlement.mjs",
         "src/ledger/paper-ledger.mjs",
         "test/ledger-core-03.test.mjs"
-      ]
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      }
     }
   ]
 }
