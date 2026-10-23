@@ -586,7 +586,7 @@ test('each bet is a ledger position: opened at its decision, settled by settleFr
   assert.match(ledger.entries_sha256, /^[0-9a-f]{64}$/);
   // The bet P/L is the ledger's, and the metrics add up to the ledger's realized P/L.
   assert.deepEqual(report.bets.map(bet => [bet.position_id, bet.settlement?.ledger_entries ?? null]),
-    [['futpythontrader:e1', [6, 7, 8]], ['futpythontrader:e2', [9, 10, 11]], ['futpythontrader:e6', null], ['futpythontrader:e7', null]]);
+    [['hist:15:futpythontrader:e1', [6, 7, 8]], ['hist:15:futpythontrader:e2', [9, 10, 11]], ['hist:15:futpythontrader:e6', null], ['hist:15:futpythontrader:e7', null]]);
   assert.equal(report.metrics.pl_net, ledger.state.realized_pnl);
   // Unsettled bets stay open positions with their exposure reserved: nothing is refunded (DEC-015).
   assert.equal(ledger.state.reserved_funds, '2');
@@ -600,4 +600,12 @@ test('each bet is a ledger position: opened at its decision, settled by settleFr
   assert.equal(none.ledger, undefined);
   const engine = readFileSync(new URL('../src/hist/engine.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(engine, /settleMarket/, 'the ledger is the only P/L path of the engine');
+  // Ids containing ':' never share a position (review B-1): (futpythontrader, 'x:y') and (futpythontrader:x, 'y').
+  seq = 0;
+  const at = '2026-03-01T14:30:00Z';
+  const prices = (id, provider) => ['HOME', 'DRAW', 'AWAY'].map((s, i) => ob(id, s, ['1.50', '4.00', '6.00'][i], at, {provider}));
+  const pair = runBacktest(input({events: [ev('x:y', '2026-03-01T15:00:00Z'), ev('y', '2026-03-01T15:00:00Z', 'H', 'A', 'futpythontrader:x')],
+    observations: [...prices('x:y', P), ...prices('y', 'futpythontrader:x')], outcomes: [out('x:y', 'FINAL', 0, 1, '2026-03-01T17:00:00Z')]}), CONFIG);
+  assert.equal(new Set(pair.bets.map(bet => bet.position_id)).size, 2);
+  assert.deepEqual([pair.ledger.notional_allocation, pair.ledger.state.open_position_count, pair.ledger.state.reserved_funds, pair.ledger.entries], ['2', 1, '1', 6]);
 });

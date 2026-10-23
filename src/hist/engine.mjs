@@ -245,7 +245,8 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
   const legOf = bet => ({side: bet.side, odds: Decimal.from(bet.odds), stake: Decimal.from(bet.stake)});
   const allocation = sum(bets.map(bet => exposureOf([legOf(bet)])));
   const ledger = bets.length ? createLedger({accountId: `hist:${config.settings_snapshot_id}`, initialAllocation: allocation.toString(), at: bets[0].decision_time}) : null;
-  const positionOf = bet => `${bet.provider}:${bet.event_id}`;
+  // Position id: the provider's length prefix makes it unambiguous although ids may contain ':' (review B-1).
+  const positionOf = bet => `hist:${bet.provider.length}:${bet.provider}:${bet.event_id}`;
   for (const bet of bets) {
     openPosition(ledger, {mode: 'ACTIVE_OPERATIONAL', positionId: positionOf(bet), side: bet.side, odds: bet.odds, stake: bet.stake,
       commissionRate: config.commission, settingsSnapshotId: config.settings_snapshot_id, idempotencyKey: `open:${positionOf(bet)}`,
@@ -259,7 +260,8 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
     if (!result) { count(unsettled, reason); return {...bet, position_id: positionOf(bet), settlement: null}; }
     const done = settleFromResult(ledger, {positionId: positionOf(bet), versions: resultVersions, asOf, at: resolution.recorded_at});
     // The ledger resolves the same versions with the same rule: any disagreement is a defect, never a silent choice.
-    if (done.status !== 'SETTLED' || done.outcome !== outcome) throw new EngineError('LEDGER_MISMATCH', `${positionOf(bet)}: engine ${outcome}, ledger ${done.status} ${done.outcome}`);
+    if (done.status !== 'SETTLED' || done.outcome !== outcome || done.resolution.outcome_version !== resolution.outcome_version)
+      throw new EngineError('LEDGER_MISMATCH', `${positionOf(bet)}: engine ${outcome} v${resolution.outcome_version}, ledger ${done.status} ${done.outcome}`);
     const [gross, commission, net] = done.entries.map(entry);
     return {...bet, position_id: positionOf(bet), settlement: {result, outcome, gross: gross.amount, commission: commission.amount, net: net.net,
       ledger_entries: done.entries, resolution}};
