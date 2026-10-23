@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 153,
+  "revision": 154,
   "tasks": [
     {
       "id": "R-01",
@@ -915,7 +915,7 @@
     {
       "id": "MARKET-CORE-01-02",
       "title": "Versioned market rules registry + core resolvers",
-      "issue": 104,
+      "issue": 100,
       "pr": 209,
       "branch": "market-core-01-02",
       "kind": "implementation",
@@ -1068,9 +1068,9 @@
       "pr": 217,
       "branch": "market-core-04",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T121156Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T124733Z-agent-a-claude-code",
       "resources": [
         "src/markets/rules.mjs",
         "src/markets/outcomes.mjs",
@@ -1081,7 +1081,24 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "6407f42d7c6dde5e059f48b2a2ec0e63cab412ae"
+    },
+    {
+      "id": "LEDGER-CORE-03",
+      "title": "Ledger settlement from market rules and versioned outcomes (#99 x #100, DEC-002, DEC-013, DEC-015)",
+      "issue": 99,
+      "pr": null,
+      "branch": "ledger-core-03",
+      "kind": "implementation",
+      "state": "PLANNED",
+      "lease": null,
+      "latest_checkpoint": null,
+      "resources": [
+        "src/ledger/settlement.mjs",
+        "src/ledger/paper-ledger.mjs",
+        "test/ledger-core-03.test.mjs"
+      ]
     }
   ]
 }

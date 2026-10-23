@@ -1,0 +1,1083 @@
+{
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "main_sha": "6407f42",
+  "date": "2026-10-23",
+  "catalogue_source": "issue #104 body (docs/governance/issues/issue-104.md mirror + GitHub API), breakdown table + per-phase headings",
+  "catalogue_count_found": 82,
+  "owner_stated_count": 82,
+  "method": "Each card re-verified against code on main 6407f42, merged PRs (GitHub API merged_at) and owner-decisions.json IN_FORCE entries; baseline audit 2026-10-22 used as starting point and updated for #178, #190-#217.",
+  "items": [
+    {
+      "id": "AUTH-CORE-01",
+      "title": "Authentication/session/security baseline",
+      "owning_issue": "#23",
+      "phase_104": "FASE 0",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "PR #157 (45efd50), #158 (5cb5da1), #159 (b929e4a), #160 (ab0e5fe): src/auth/owner-auth.mjs, src/auth/http.mjs, migrations/029-owner-auth.sql; test/owner-auth.test.mjs (8), test/owner-auth-hardening.test.mjs (3): scrypt hash, sessions, logout/revoke, fixation, CSRF/same-origin, rate limit, audit",
+      "dependencies": [],
+      "gap": "Owner-only login, OFF by default (MATCHPILOT_AUTH); MP-SEC-001 and MP-SEC-007 NOT_VERIFIED; no evidence auth is enforced on the VPS deploy; secret redaction outside TC client not certified"
+    },
+    {
+      "id": "AUTH-CORE-02",
+      "title": "Users/RBAC/account isolation",
+      "owning_issue": "#23",
+      "phase_104": "FASE 0",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "ROLE_PERMISSIONS {owner:['*']} and permission middleware in src/auth/owner-auth.mjs (#159 b929e4a)",
+      "dependencies": [
+        "AUTH-CORE-01"
+      ],
+      "gap": "Only the owner role exists: no users table beyond owner, no roles/permissions model, no account isolation (D12: no public registration in v1)"
+    },
+    {
+      "id": "AUTH-CORE-03",
+      "title": "Secondary admin + audit",
+      "owning_issue": "#23",
+      "phase_104": "FASE 0",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code on main (MP-FUT-018 future register)",
+      "dependencies": [
+        "AUTH-CORE-02"
+      ]
+    },
+    {
+      "id": "AUTH-CORE-04",
+      "title": "Hard certification (real DB/deploy)",
+      "owning_issue": "#23",
+      "phase_104": "FASE 0",
+      "classification": "STILL REQUIRED",
+      "evidence": "No certification evidence; VPS deploy exists (#177 3dd833f) but auth enforcement there NOT VERIFIED",
+      "dependencies": [
+        "AUTH-CORE-01",
+        "AUTH-CORE-02",
+        "AUTH-CORE-03"
+      ]
+    },
+    {
+      "id": "MCP-CORE-00",
+      "title": "Tool registry/schema/error/authz baseline",
+      "owning_issue": "#98",
+      "phase_104": "MCP baseline",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "PR #153 (c211836): src/api/v1.mjs endpoint registry /api/v1/endpoints, deterministic error envelope, provenance/as_of meta; test/api-v1-contract.test.mjs (11)",
+      "dependencies": [
+        "AUTH-CORE-01",
+        "AUTH-CORE-02"
+      ],
+      "gap": "No MCP transport/tool invocation, no tool authz binding to account, no mutation/idempotency convention; read-only HTTP API only"
+    },
+    {
+      "id": "SETTINGS-CORE-01",
+      "title": "Schema/versioning",
+      "owning_issue": "#95",
+      "phase_104": "FASE 1",
+      "classification": "STILL REQUIRED",
+      "evidence": "No settings domain on main: commission rate and settings_snapshot_id are only opaque caller inputs to src/ledger/paper-ledger.mjs openPosition and src/mm/money-management.mjs evaluate (DEC-013 commission fixed at simulated fill)",
+      "dependencies": [
+        "AUTH-CORE-02",
+        "MCP-CORE-00"
+      ]
+    },
+    {
+      "id": "SETTINGS-CORE-02",
+      "title": "API/validation/propagation",
+      "owning_issue": "#95",
+      "phase_104": "FASE 1",
+      "classification": "STILL REQUIRED",
+      "evidence": "No settings domain on main: commission rate and settings_snapshot_id are only opaque caller inputs to src/ledger/paper-ledger.mjs openPosition and src/mm/money-management.mjs evaluate (DEC-013 commission fixed at simulated fill)",
+      "dependencies": [
+        "SETTINGS-CORE-01"
+      ]
+    },
+    {
+      "id": "SETTINGS-CORE-03",
+      "title": "Concurrency/cache/audit",
+      "owning_issue": "#95",
+      "phase_104": "FASE 1",
+      "classification": "STILL REQUIRED",
+      "evidence": "No settings domain on main: commission rate and settings_snapshot_id are only opaque caller inputs to src/ledger/paper-ledger.mjs openPosition and src/mm/money-management.mjs evaluate (DEC-013 commission fixed at simulated fill)",
+      "dependencies": [
+        "SETTINGS-CORE-02"
+      ]
+    },
+    {
+      "id": "SETTINGS-CORE-04",
+      "title": "Hard certification",
+      "owning_issue": "#95",
+      "phase_104": "FASE 1",
+      "classification": "STILL REQUIRED",
+      "evidence": "No settings domain on main: commission rate and settings_snapshot_id are only opaque caller inputs to src/ledger/paper-ledger.mjs openPosition and src/mm/money-management.mjs evaluate (DEC-013 commission fixed at simulated fill)",
+      "dependencies": [
+        "SETTINGS-CORE-03"
+      ]
+    },
+    {
+      "id": "TC-CORE-01",
+      "title": "Provider contract/discovery/raw retention",
+      "owning_issue": "#20",
+      "phase_104": "FASE 2",
+      "classification": "COMPLETED",
+      "evidence": "PR #130 (8817548): src/providers/totalcorner/client.mjs, src/jobs/totalcorner-discovery.mjs, migrations/021; MP-TC-001 PASS (audit B-rtm, #20 comment 6057763877)",
+      "dependencies": [],
+      "runtime_wiring": "wired (job) but switched OFF by TC-OFF-01 #186 (7b4baf7); TotalCorner suspended (MP-VPS-ONLY-OPERATIONS-2026-10-21, DEC-003)"
+    },
+    {
+      "id": "TC-CORE-02",
+      "title": "Competition/team/event mapping",
+      "owning_issue": "#20",
+      "phase_104": "FASE 2",
+      "classification": "COMPLETED",
+      "evidence": "PR #131 (f224b3c), #133 (23fb986): src/providers/totalcorner/mapping.mjs, migrations/022; MP-TC-002 PASS (96 competitions VERIFIED)",
+      "dependencies": [
+        "TC-CORE-01"
+      ],
+      "runtime_wiring": "competition-level only; match-level FPT<->TC identity absent (see RECON-CORE-01); job OFF since #186"
+    },
+    {
+      "id": "TC-CORE-03",
+      "title": "Prematch markets/lines/PIT",
+      "owning_issue": "#20",
+      "phase_104": "FASE 2",
+      "classification": "COMPLETED",
+      "evidence": "PR #134 (3b1bfa9), #135 (5863cba), #136 (c7c853f): src/providers/totalcorner/prematch.mjs, migrations/023-025; MP-TC-003, MP-TC-004 PASS",
+      "dependencies": [
+        "TC-CORE-02"
+      ],
+      "runtime_wiring": "job OFF since #186; API exposure of opening/last prematch lines MP-TC-005 NOT_VERIFIED"
+    },
+    {
+      "id": "TC-CORE-03B",
+      "title": "Historical upstream backfill (HISTORICAL_UPSTREAM)",
+      "owning_issue": "#20",
+      "phase_104": "FASE 2",
+      "classification": "COMPLETED",
+      "evidence": "PR #137 (0600f1c), #138 (79960ca), #139 (599cd75), #140 (80409e3), #141 (97dea4a), #142 (3af1243): src/providers/totalcorner/historical.mjs, migrations/026; test/tc-core-historical.test.mjs; MP-TC-006 PASS (60-match sample)",
+      "dependencies": [
+        "TC-CORE-02"
+      ]
+    },
+    {
+      "id": "TC-CORE-04",
+      "title": "Live collector",
+      "owning_issue": "#20",
+      "phase_104": "FASE 2",
+      "classification": "COMPLETED",
+      "evidence": "PR #143 (1988e9f), #145 (60fdd92): src/jobs/totalcorner-live.mjs, src/providers/totalcorner/live.mjs, migrations/027-028; MP-TC-007, MP-TC-008 PASS (#20 comment 6081058030)",
+      "dependencies": [
+        "TC-CORE-02"
+      ],
+      "runtime_wiring": "collector OFF since #186 (TC suspended)"
+    },
+    {
+      "id": "TC-CORE-05",
+      "title": "Live normalization/events",
+      "owning_issue": "#20",
+      "phase_104": "FASE 2",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "From TC-CORE-04 (#143/#145): tc_live_events with event_hash dedup (eventsOf in src/providers/totalcorner/live.mjs), tc_market_snapshots raw capture",
+      "dependencies": [
+        "TC-CORE-04"
+      ],
+      "gap": "Score/stats/quote-movement/Asian-Goal-Corner line normalization absent: MP-TC-013 FAIL, MP-TC-015 NOT_VERIFIED. Must be done on the captured archive only (MP-OWNER-ARCHIVE-FIRST-01; TC off)"
+    },
+    {
+      "id": "TC-CORE-06",
+      "title": "Captured live history/replay readiness",
+      "owning_issue": "#20",
+      "phase_104": "FASE 2",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "HISTORICAL_CAPTURED provenance enforced by CHECK in migrations/027 and used in src/jobs/totalcorner-live.mjs (from #143)",
+      "dependencies": [
+        "TC-CORE-05"
+      ],
+      "gap": "No gap model, no replay query, no no-future-leakage query over captured live history"
+    },
+    {
+      "id": "TC-CORE-06B",
+      "title": "Field/minute coverage, kickoff cutoff, missingness",
+      "owning_issue": "#20",
+      "phase_104": "FASE 2",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code; MP-TC-013/MP-TC-014 FAIL (audit B-rtm)",
+      "dependencies": [
+        "TC-CORE-05",
+        "TC-CORE-06"
+      ]
+    },
+    {
+      "id": "TC-CORE-07",
+      "title": "Resilience/budgets/alerts",
+      "owning_issue": "#20",
+      "phase_104": "FASE 2",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "Shared limiter, 429/5xx/timeout classification, retry/backoff in src/providers/totalcorner/client.mjs (#130); cursor/terminal recovery (#145); MP-TC-009 PASS",
+      "dependencies": [
+        "TC-CORE-04"
+      ],
+      "gap": "No TC circuit breaker; TC Telegram alert path MP-TC-011 NOT_VERIFIED and cannot be exercised live while TC is suspended (live part effectively deferred)"
+    },
+    {
+      "id": "TC-CORE-08",
+      "title": "Multi-day live hard certification",
+      "owning_issue": "#20",
+      "phase_104": "FASE 2",
+      "classification": "DEFERRED",
+      "evidence": "Requires >=2 real live days: TotalCorner collection suspended (MP-VPS-ONLY-OPERATIONS-2026-10-21, DEC-003 'TotalCorner rimane spento', D6 no renewal/cost); MP-TC-012 BLOCKED; MP-FUT-007 owner-gated",
+      "dependencies": [
+        "TC-CORE-05",
+        "TC-CORE-06",
+        "TC-CORE-06B",
+        "TC-CORE-07"
+      ]
+    },
+    {
+      "id": "RECON-CORE-01",
+      "title": "Cross-provider identity/gap model",
+      "owning_issue": "#31",
+      "phase_104": "#31 residual",
+      "classification": "STILL REQUIRED",
+      "evidence": "No FPT<->TC match/team identity on main: MP-XPR-001 FAIL; src/markets/outcomes.mjs states 'no verified match-level FPT<->TC mapping exists'. #154/#155 are PIT policy only (pr_registry R-08 mis-mapping). Perimeter conflict resolved by DEC-003 (FPT∩TC certifiable on verified captured data)",
+      "dependencies": [
+        "TC-CORE-02",
+        "TC-CORE-03"
+      ]
+    },
+    {
+      "id": "RECON-CORE-02",
+      "title": "TC prematch reconciliation",
+      "owning_issue": "#31",
+      "phase_104": "#31 residual",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code; MP-XPR-002 FAIL",
+      "dependencies": [
+        "RECON-CORE-01",
+        "TC-CORE-03"
+      ]
+    },
+    {
+      "id": "RECON-CORE-03",
+      "title": "Live gap detection/recovery",
+      "owning_issue": "#31",
+      "phase_104": "#31 residual",
+      "classification": "DEFERRED",
+      "evidence": "Live cross-provider gaps need TC live, suspended (MP-VPS-ONLY-OPERATIONS-2026-10-21, DEC-003)",
+      "dependencies": [
+        "RECON-CORE-01",
+        "TC-CORE-05"
+      ]
+    },
+    {
+      "id": "RECON-CORE-04",
+      "title": "Scheduler/idempotency/alerts",
+      "owning_issue": "#31",
+      "phase_104": "#31 residual",
+      "classification": "STILL REQUIRED",
+      "evidence": "Cross-provider scheduler absent. FPT-only reconciliation (#88 a09a1bd) and FPT monitoring fixes (#200 a73fa4b, #201 c50e55a, #206 e03fe2b) predate/sit outside this residual card ('la parte FPT già certificata non va rifatta')",
+      "dependencies": [
+        "RECON-CORE-02"
+      ]
+    },
+    {
+      "id": "RECON-CORE-05",
+      "title": "Failure drills + certification",
+      "owning_issue": "#31",
+      "phase_104": "#31 residual",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code/evidence",
+      "dependencies": [
+        "RECON-CORE-04"
+      ]
+    },
+    {
+      "id": "REPLAY-CORE-01",
+      "title": "PIT domain/query (match_id+timestamp -> state)",
+      "owning_issue": "#24",
+      "phase_104": "FASE 3",
+      "classification": "STILL REQUIRED",
+      "evidence": "No replay code. Prerequisites only: PIT policy src/pit/policy.mjs, src/pit/readers.mjs (#154 e66e329, #155 be53472; test/pit-policy.test.mjs). MP-RPL-001 BLOCKED. Archive #40 read-only verification R-02 BLOCKED (owner hold)",
+      "dependencies": [
+        "TC-CORE-06",
+        "RECON-CORE-01"
+      ]
+    },
+    {
+      "id": "REPLAY-CORE-02",
+      "title": "Neutral replay simulation contract + API/tool",
+      "owning_issue": "#24",
+      "phase_104": "FASE 3",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code",
+      "dependencies": [
+        "REPLAY-CORE-01"
+      ]
+    },
+    {
+      "id": "MATH-CORE-01",
+      "title": "Decimal/common contracts",
+      "owning_issue": "#94",
+      "phase_104": "FASE 4",
+      "classification": "COMPLETED",
+      "evidence": "PR #156 (4ab36de): src/math/decimal.mjs, src/math/core.mjs (implied probability, overround, fair odds, rounding policy); test/math-core.test.mjs (11) with exact-fraction oracle. MP-MTH-001 NOT_VERIFIED only because it spans all formulas",
+      "dependencies": [],
+      "runtime_wiring": "pure code: not wired to runtime, DB or API (no import from src/server.mjs, src/api/v1.mjs or src/worker.mjs; no migration after 029) (used by src/analysis/match-analysis.mjs)"
+    },
+    {
+      "id": "MATH-CORE-02",
+      "title": "Kelly/EV/Liability",
+      "owning_issue": "#94",
+      "phase_104": "FASE 4",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "Liability only, inline in domain modules: liabilityOf in src/mm/money-management.mjs and exposureOf in src/ledger/paper-ledger.mjs (#198 ffd9fc2, #207 91aab47; tests test/paper-ledger-mm.test.mjs, test/mm-pr01-registry-liability.test.mjs)",
+      "dependencies": [
+        "MATH-CORE-01"
+      ],
+      "gap": "No Kelly or EV formula in Math Core; liability not exposed as a Math Core formula with oracle/envelope"
+    },
+    {
+      "id": "MATH-CORE-03",
+      "title": "BACK<->LAY Hedge/Cashout",
+      "owning_issue": "#94",
+      "phase_104": "FASE 4",
+      "classification": "STILL REQUIRED",
+      "evidence": "No hedge/cashout stake formula; ledger hedgePosition only books a caller-supplied leg and checks exposure reduction",
+      "dependencies": [
+        "MATH-CORE-02"
+      ]
+    },
+    {
+      "id": "MATH-CORE-04",
+      "title": "Dutching/Arbitrage/DNB/Each-Way",
+      "owning_issue": "#94",
+      "phase_104": "FASE 4",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code",
+      "dependencies": [
+        "MATH-CORE-01"
+      ]
+    },
+    {
+      "id": "MATH-CORE-05",
+      "title": "Progression formulas",
+      "owning_issue": "#94",
+      "phase_104": "FASE 4",
+      "classification": "BLOCKED",
+      "evidence": "Martingale/Fibonacci/Labouchere/CS progressivo/Recovery are DISCOVERED with formula=null in src/mm/registry.mjs; blocked_by 'formula, VOID/reset policy and test vectors not yet specified by the owner'; runtime-state blocker MM-RULES (owner t139u: no invented economic rules; 25 owner questions not yet on GitHub)",
+      "dependencies": [
+        "MATH-CORE-01",
+        "owner formulas (MM-RULES)"
+      ]
+    },
+    {
+      "id": "MATH-CORE-06",
+      "title": "Risk/exposure/commission math",
+      "owning_issue": "#94",
+      "phase_104": "FASE 4",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "src/math/money.mjs settleMarket/grossProfit with commission on market net winnings (#178 891e981; oracle test in test/hist-backtest.test.mjs); ledger commission at the cent, rate fixed at fill (DEC-013, #198)",
+      "dependencies": [
+        "MATH-CORE-01"
+      ],
+      "gap": "Exposure/risk formulas live inside ledger/MM, not as Math Core formulas with oracle vectors; no tick/rounding for exchange price ladders"
+    },
+    {
+      "id": "MATH-CORE-07",
+      "title": "Poisson/advanced math adapters",
+      "owning_issue": "#94",
+      "phase_104": "FASE 4",
+      "classification": "STILL REQUIRED",
+      "evidence": "No Poisson/Elo/calibration (MP-MTH-002 FAIL; owner OWN-2026-10-07-MATH defines the cheap baseline)",
+      "dependencies": [
+        "MATH-CORE-01"
+      ]
+    },
+    {
+      "id": "MATH-CORE-08",
+      "title": "API/tool + mathematical hard certification",
+      "owning_issue": "#94",
+      "phase_104": "FASE 4",
+      "classification": "STILL REQUIRED",
+      "evidence": "No API/tool for math",
+      "dependencies": [
+        "MATH-CORE-02",
+        "MATH-CORE-03",
+        "MATH-CORE-04",
+        "MATH-CORE-05",
+        "MATH-CORE-06",
+        "MATH-CORE-07",
+        "MCP-CORE-00"
+      ]
+    },
+    {
+      "id": "MM-CORE-01",
+      "title": "Registry/capabilities",
+      "owning_issue": "#96",
+      "phase_104": "FASE 5",
+      "classification": "COMPLETED",
+      "evidence": "PR #207 (91aab47) 'MM-PR-01' + #208 (23d377c): src/mm/registry.mjs full #96 census (16 types, registry fields, 17 capability flags; 4 IMPLEMENTED, 12 DISCOVERED with formula=null); test/mm-pr01-registry-liability.test.mjs",
+      "dependencies": [
+        "MATH-CORE-01"
+      ],
+      "runtime_wiring": "pure code: not wired to runtime, DB or API (no import from src/server.mjs, src/api/v1.mjs or src/worker.mjs; no migration after 029); registry is static data, its API surface belongs to MM-CORE-08"
+    },
+    {
+      "id": "MM-CORE-02",
+      "title": "Profiles CRUD/immutable versions/dependencies",
+      "owning_issue": "#96",
+      "phase_104": "FASE 5",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "createProfile returns a frozen versioned profile (src/mm/money-management.mjs, #198 ffd9fc2)",
+      "dependencies": [
+        "MM-CORE-01",
+        "SETTINGS-CORE-01"
+      ],
+      "gap": "No CRUD, no persistence per account (#96 'persistente per account'), no dependency tracking/safe delete; additive migration needs owner D13 path for production"
+    },
+    {
+      "id": "MM-CORE-03",
+      "title": "Rules/filters/risk policy",
+      "owning_issue": "#96",
+      "phase_104": "FASE 5",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "Caps max_stake/max_liability/max_total_exposure/max_concurrent_trades (#207), per match/market/league/strategy exposure caps and min/max odds filters with filter_fail_action (#208 23d377c 'MM-PR-02'); tests test/mm-pr01-*.test.mjs, test/mm-pr02-scope-odds.test.mjs",
+      "dependencies": [
+        "MM-CORE-02"
+      ],
+      "gap": "Deterministic-priority rule engine absent (docs/paper-ledger-mm.md 'MM-PR-03 not done'); daily/weekly loss, drawdown, stop-loss, cooldown, per-day exposure need owner rule definitions"
+    },
+    {
+      "id": "MM-CORE-04",
+      "title": "Operational mode STOP/RESUME",
+      "owning_issue": "#96",
+      "phase_104": "FASE 5",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "stopOperations/resumeOperations/pause/archive with who/when/reason audit; ADVISORY_ONLY -> SIMULATION_ONLY, execution_permission=false (DEC-001) in src/mm/money-management.mjs (#198 ffd9fc2); test/paper-ledger-mm.test.mjs",
+      "dependencies": [
+        "MM-CORE-02"
+      ],
+      "gap": "Mode not persisted per account and not wired to any runtime/API (pure code: not wired to runtime, DB or API (no import from src/server.mjs, src/api/v1.mjs or src/worker.mjs; no migration after 029))"
+    },
+    {
+      "id": "MM-CORE-05",
+      "title": "Stateless + bankroll-dependent models",
+      "owning_issue": "#96",
+      "phase_104": "FASE 5",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "FIXED_STAKE, FIXED_LIABILITY, PERCENT_BANKROLL, LIABILITY_PERCENT_BANKROLL implemented with SHARED_ACCOUNT_BANKROLL (DEC-013) (#198, #207)",
+      "dependencies": [
+        "MM-CORE-01",
+        "MATH-CORE-02"
+      ],
+      "gap": "KELLY, FRACTIONAL_KELLY, TARGET_PROFIT, RISK_BASED_STAKE, MANUAL_WITHIN_LIMITS DISCOVERED (owner formulas); SEGREGATED bankroll NOT_IMPLEMENTED"
+    },
+    {
+      "id": "MM-CORE-06",
+      "title": "Recovery/progression models",
+      "owning_issue": "#96",
+      "phase_104": "FASE 5",
+      "classification": "BLOCKED",
+      "evidence": "RECOVERY_STAKE, MARTINGALE, FIBONACCI, LABOUCHERE, CS_PROGRESSIVO DISCOVERED with formula=null (src/mm/registry.mjs); sequence state + DEC-013 VOID/PUSH neutrality exist (applySettlement). Blocker MM-RULES in docs/governance/runtime-state.json",
+      "dependencies": [
+        "MATH-CORE-05",
+        "MM-CORE-05",
+        "owner formulas (MM-RULES)"
+      ]
+    },
+    {
+      "id": "MM-CORE-07",
+      "title": "Exposure-aware/composite policy",
+      "owning_issue": "#96",
+      "phase_104": "FASE 5",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "Exposure-aware caps on open exposure from #99 accountState (total and per scope) (#207, #208)",
+      "dependencies": [
+        "MM-CORE-03",
+        "MM-CORE-05"
+      ],
+      "gap": "EXPOSURE_AWARE and COMPOSITE models DISCOVERED (owner formulas)"
+    },
+    {
+      "id": "MM-CORE-08",
+      "title": "API/tool + core hard certification",
+      "owning_issue": "#96",
+      "phase_104": "FASE 5",
+      "classification": "STILL REQUIRED",
+      "evidence": "No MM API/tool, no certification",
+      "dependencies": [
+        "MM-CORE-02",
+        "MM-CORE-03",
+        "MM-CORE-04",
+        "MM-CORE-05",
+        "MM-CORE-06",
+        "MM-CORE-07",
+        "MCP-CORE-00"
+      ]
+    },
+    {
+      "id": "MARKET-CORE-01",
+      "title": "Registry/version schema",
+      "owning_issue": "#100",
+      "phase_104": "FASE 6",
+      "classification": "COMPLETED",
+      "evidence": "PR #209 (6ed4919), revised by #217 (6407f42): src/markets/rules.mjs MARKET_RULES with every #100 minimum field, ids '<type>@v2'; test/market-core-01-02.test.mjs 'every #100 minimum field on every rule'",
+      "dependencies": [],
+      "runtime_wiring": "pure code: not wired to runtime, DB or API (no import from src/server.mjs, src/api/v1.mjs or src/worker.mjs; no migration after 029); version freeze/lookup is MARKET-CORE-05"
+    },
+    {
+      "id": "MARKET-CORE-02",
+      "title": "Core football resolvers",
+      "owning_issue": "#100",
+      "phase_104": "FASE 6",
+      "classification": "COMPLETED",
+      "evidence": "PR #209 (6ed4919): resolve() for MATCH_ODDS, DOUBLE_CHANCE, OVER_UNDER (n+0.5), BTTS, CORRECT_SCORE, HT_MATCH_ODDS, HT_OVER_UNDER, TEAM_GOALS_OVER_UNDER; non-finished/missing -> UNRESOLVED; test/market-core-01-02.test.mjs (5); reused by HIST-01a engine (DEC-006)",
+      "dependencies": [
+        "MARKET-CORE-01"
+      ],
+      "runtime_wiring": "pure code: not wired to runtime, DB or API (no import from src/server.mjs, src/api/v1.mjs or src/worker.mjs; no migration after 029); extra-time policy for cup ties OWNER DECISION REQUIRED (rules.mjs)"
+    },
+    {
+      "id": "MARKET-CORE-03",
+      "title": "Asian/partial/dead-heat",
+      "owning_issue": "#100",
+      "phase_104": "FASE 6",
+      "classification": "STILL REQUIRED",
+      "evidence": "Whole/quarter lines refused with UNSUPPORTED_LINE in src/markets/rules.mjs; dead_heat/partial NOT_APPLICABLE",
+      "dependencies": [
+        "MARKET-CORE-02"
+      ]
+    },
+    {
+      "id": "MARKET-CORE-04",
+      "title": "postponed/abandoned/corrections",
+      "owning_issue": "#100",
+      "phase_104": "FASE 6",
+      "classification": "COMPLETED",
+      "evidence": "PR #217 (6407f42): src/markets/outcomes.mjs fromFutPythonTrader/fromTotalCorner/selectOutcome/resolveVersioned; DEC-015 non-final UNRESOLVED with no time window, never VOID; DEC-002 latest validated FINAL at run time with version/provenance/correction flag; test/market-core-04.test.mjs (9)",
+      "dependencies": [
+        "MARKET-CORE-02"
+      ],
+      "runtime_wiring": "pure code: not wired to runtime, DB or API (no import from src/server.mjs, src/api/v1.mjs or src/worker.mjs; no migration after 029); real provider rows not yet connected (PR #217 'NOT VERIFIED'); cancelled-match policy still OWNER DECISION REQUIRED (stays UNRESOLVED)"
+    },
+    {
+      "id": "MARKET-CORE-05",
+      "title": "API/tool + hard certification",
+      "owning_issue": "#100",
+      "phase_104": "FASE 6",
+      "classification": "STILL REQUIRED",
+      "evidence": "No API/tool lookup, no version freeze in DB, no certification on real data",
+      "dependencies": [
+        "MARKET-CORE-03",
+        "MARKET-CORE-04",
+        "MCP-CORE-00"
+      ]
+    },
+    {
+      "id": "LEDGER-CORE-01",
+      "title": "Position/leg/fill + append-only schema",
+      "owning_issue": "#99",
+      "phase_104": "FASE 7",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "PR #198 (ffd9fc2) MM-LEDGER-01, #208 (23d377c) scope tags: src/ledger/paper-ledger.mjs; test/paper-ledger-mm.test.mjs (8), test/mm-pr02-scope-odds.test.mjs: frozen append-only entries INITIAL_ALLOCATION/OPEN/HEDGE/SETTLEMENT_*/COMMISSION/REVERSAL, state rebuilt by replay()",
+      "dependencies": [
+        "SETTINGS-CORE-01",
+        "MATH-CORE-01"
+      ],
+      "gap": "No persistence: in-memory ledger; additive PG migration not written (docs/paper-ledger-mm.md: needs owner D13 path for production); pure code: not wired to runtime, DB or API (no import from src/server.mjs, src/api/v1.mjs or src/worker.mjs; no migration after 029)"
+    },
+    {
+      "id": "LEDGER-CORE-02",
+      "title": "Reserve/exposure + BACK/LAY accounting",
+      "owning_issue": "#99",
+      "phase_104": "FASE 7",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "PR #198 (ffd9fc2) MM-LEDGER-01, #208 (23d377c) scope tags: src/ledger/paper-ledger.mjs; test/paper-ledger-mm.test.mjs (8), test/mm-pr02-scope-odds.test.mjs: reserved worst-case exposure, available bankroll refusal, BACK/LAY P/L, per-scope open exposure",
+      "dependencies": [
+        "LEDGER-CORE-01"
+      ],
+      "gap": "No persistence: in-memory ledger; additive PG migration not written (docs/paper-ledger-mm.md: needs owner D13 path for production); pure code: not wired to runtime, DB or API (no import from src/server.mjs, src/api/v1.mjs or src/worker.mjs; no migration after 029)"
+    },
+    {
+      "id": "LEDGER-CORE-03",
+      "title": "Settlement/commission/market-rules integration",
+      "owning_issue": "#99",
+      "phase_104": "FASE 7",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "PR #198 (ffd9fc2) MM-LEDGER-01, #208 (23d377c) scope tags: src/ledger/paper-ledger.mjs; test/paper-ledger-mm.test.mjs (8), test/mm-pr02-scope-odds.test.mjs: settlePosition with commission fixed at fill (DEC-013), VOID/PUSH P/L 0",
+      "dependencies": [
+        "LEDGER-CORE-02",
+        "MARKET-CORE-02",
+        "MARKET-CORE-04",
+        "SETTINGS-CORE-02"
+      ],
+      "gap": "settlePosition takes the outcome as a caller input: no integration with src/markets resolvers/outcome versions; no persistence"
+    },
+    {
+      "id": "LEDGER-CORE-04",
+      "title": "Hedge/cashout/multi-leg/reversal",
+      "owning_issue": "#99",
+      "phase_104": "FASE 7",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "PR #198 (ffd9fc2) MM-LEDGER-01, #208 (23d377c) scope tags: src/ledger/paper-ledger.mjs; test/paper-ledger-mm.test.mjs (8), test/mm-pr02-scope-odds.test.mjs: hedgePosition (multi-leg, reducing-only outside ACTIVE, DEC-001), correctSettlement REVERSAL + version+1",
+      "dependencies": [
+        "LEDGER-CORE-03",
+        "MATH-CORE-03"
+      ],
+      "gap": "No cashout pricing (needs MATH-CORE-03); unrealized P/L null; no persistence"
+    },
+    {
+      "id": "LEDGER-CORE-05",
+      "title": "Concurrency/idempotency/crash recovery",
+      "owning_issue": "#99",
+      "phase_104": "FASE 7",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "PR #198 (ffd9fc2) MM-LEDGER-01, #208 (23d377c) scope tags: src/ledger/paper-ledger.mjs; test/paper-ledger-mm.test.mjs (8), test/mm-pr02-scope-odds.test.mjs: idempotency keys (ALREADY_APPLIED / IDEMPOTENCY_CONFLICT), DOUBLE_SETTLEMENT refusal",
+      "dependencies": [
+        "LEDGER-CORE-01"
+      ],
+      "gap": "No DB, so no concurrency control or crash recovery; idempotency map is in-memory only"
+    },
+    {
+      "id": "LEDGER-CORE-06",
+      "title": "API/tool surface",
+      "owning_issue": "#99",
+      "phase_104": "FASE 7",
+      "classification": "STILL REQUIRED",
+      "evidence": "No ledger API/tool",
+      "dependencies": [
+        "LEDGER-CORE-05",
+        "MCP-CORE-00"
+      ]
+    },
+    {
+      "id": "LEDGER-CORE-07",
+      "title": "Hard certification/reconciliation",
+      "owning_issue": "#99",
+      "phase_104": "FASE 7",
+      "classification": "STILL REQUIRED",
+      "evidence": "Reconciliation invariant tested in memory only (allocation + realized net = cash); no real DB/API certification",
+      "dependencies": [
+        "LEDGER-CORE-06"
+      ]
+    },
+    {
+      "id": "PAPER-CORE-01",
+      "title": "Intent -> Paper Position",
+      "owning_issue": "cross (#28/#96/#99)",
+      "phase_104": "Paper bridge",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "src/mm/paper-trading.mjs proposePaperTrade (#198 ffd9fc2): MM evaluate -> execution_permission -> openPosition, advisory never mutates; test/paper-ledger-mm.test.mjs",
+      "dependencies": [
+        "TRADE-CORE-01",
+        "TRADE-CORE-05",
+        "MM-CORE-04",
+        "LEDGER-CORE-05"
+      ],
+      "gap": "No #28 entry-intent contract (takes a raw proposal), no audit trail, no persistence; pure code: not wired to runtime, DB or API (no import from src/server.mjs, src/api/v1.mjs or src/worker.mjs; no migration after 029)"
+    },
+    {
+      "id": "STRAT-CORE-01",
+      "title": "Persistence/DSL/versioning",
+      "owning_issue": "#34",
+      "phase_104": "FASE 8",
+      "classification": "STILL REQUIRED",
+      "evidence": "MP-STA-001 FAIL; only hard-coded reference strategy refFavouriteBack in src/hist/strategies.mjs (#178)",
+      "dependencies": [
+        "SETTINGS-CORE-01"
+      ]
+    },
+    {
+      "id": "STRAT-CORE-02",
+      "title": "MM assignment/overrides/dependencies",
+      "owning_issue": "#34",
+      "phase_104": "FASE 8",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code",
+      "dependencies": [
+        "STRAT-CORE-01",
+        "MM-CORE-02"
+      ]
+    },
+    {
+      "id": "STRAT-CORE-03",
+      "title": "Backtest PIT/no-leakage",
+      "owning_issue": "#34",
+      "phase_104": "FASE 8",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "PR #178 (891e981) HIST-01a: src/hist/admission.mjs, engine.mjs, contract.mjs; test/hist-backtest.test.mjs (19) anti-lookahead, anti-contamination, outcome boundary; reuses MARKET MATCH_ODDS resolver",
+      "dependencies": [
+        "STRAT-CORE-01",
+        "REPLAY-CORE-01",
+        "MARKET-CORE-04"
+      ],
+      "gap": "Synthetic fixtures only (real_data_verdict NOT VERIFIED); HIST-01b on real data (MP-OWNER-HIST-01B-OPTION-A) not done; DEC-007 NON_PIT/EXPLORATORY path absent; DEC-002 outcome versions (outcomes.mjs) not yet consumed by the engine"
+    },
+    {
+      "id": "STRAT-CORE-04",
+      "title": "Backtest config/saved/reproducibility",
+      "owning_issue": "#34",
+      "phase_104": "FASE 8",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "PR #178 (891e981): frozen config, canonical JSON + SHA-256, byte-identical report regardless of input order (test 'determinism')",
+      "dependencies": [
+        "STRAT-CORE-03"
+      ],
+      "gap": "No saved configs/runs persistence; no strategy versions to pin"
+    },
+    {
+      "id": "STRAT-CORE-05",
+      "title": "Live matcher + near-match",
+      "owning_issue": "#34",
+      "phase_104": "FASE 8",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code; live evidence depends on live data (TC suspended), replay-based implementation possible",
+      "dependencies": [
+        "STRAT-CORE-01",
+        "REPLAY-CORE-02"
+      ]
+    },
+    {
+      "id": "STRAT-CORE-06",
+      "title": "Indicator Library contracts/validation",
+      "owning_issue": "#34",
+      "phase_104": "FASE 8",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code",
+      "dependencies": [
+        "STRAT-CORE-01"
+      ]
+    },
+    {
+      "id": "STRAT-CORE-07",
+      "title": "API/tool + hard certification",
+      "owning_issue": "#34",
+      "phase_104": "FASE 8",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code",
+      "dependencies": [
+        "STRAT-CORE-02",
+        "STRAT-CORE-04",
+        "STRAT-CORE-05",
+        "STRAT-CORE-06",
+        "MCP-CORE-00"
+      ]
+    },
+    {
+      "id": "TRADE-CORE-01",
+      "title": "Signal lifecycle/decision contract",
+      "owning_issue": "#28",
+      "phase_104": "FASE 9",
+      "classification": "STILL REQUIRED",
+      "evidence": "No Trading Engine code on main (simulated signals of #184 removed by DEC-008, #190 69f4358)",
+      "dependencies": [
+        "STRAT-CORE-01",
+        "MM-CORE-04"
+      ]
+    },
+    {
+      "id": "TRADE-CORE-02",
+      "title": "Prematch planner",
+      "owning_issue": "#28",
+      "phase_104": "FASE 9",
+      "classification": "STILL REQUIRED",
+      "evidence": "No Trading Engine code on main (simulated signals of #184 removed by DEC-008, #190 69f4358)",
+      "dependencies": [
+        "TRADE-CORE-01"
+      ]
+    },
+    {
+      "id": "TRADE-CORE-03",
+      "title": "Live state engine",
+      "owning_issue": "#28",
+      "phase_104": "FASE 9",
+      "classification": "STILL REQUIRED",
+      "evidence": "No Trading Engine code on main (simulated signals of #184 removed by DEC-008, #190 69f4358)",
+      "dependencies": [
+        "TRADE-CORE-01",
+        "REPLAY-CORE-02"
+      ]
+    },
+    {
+      "id": "TRADE-CORE-04",
+      "title": "BACK/LAY/DUTCH engines (analytic/simulated only)",
+      "owning_issue": "#28",
+      "phase_104": "FASE 9",
+      "classification": "STILL REQUIRED",
+      "evidence": "No Trading Engine code on main (simulated signals of #184 removed by DEC-008, #190 69f4358); real execution excluded (MP-OWNER-EXCLUDE-REAL-EXECUTION-01): analytic/simulated engines only",
+      "dependencies": [
+        "TRADE-CORE-01",
+        "MATH-CORE-04"
+      ]
+    },
+    {
+      "id": "TRADE-CORE-05",
+      "title": "Entry validation/MM gate",
+      "owning_issue": "#28",
+      "phase_104": "FASE 9",
+      "classification": "STILL REQUIRED",
+      "evidence": "No Trading Engine code on main (simulated signals of #184 removed by DEC-008, #190 69f4358)",
+      "dependencies": [
+        "TRADE-CORE-01",
+        "MM-CORE-03"
+      ]
+    },
+    {
+      "id": "TRADE-CORE-06",
+      "title": "Position-management intents",
+      "owning_issue": "#28",
+      "phase_104": "FASE 9",
+      "classification": "STILL REQUIRED",
+      "evidence": "No Trading Engine code on main (simulated signals of #184 removed by DEC-008, #190 69f4358)",
+      "dependencies": [
+        "TRADE-CORE-05",
+        "LEDGER-CORE-04"
+      ]
+    },
+    {
+      "id": "TRADE-CORE-07",
+      "title": "Historical/replay validation",
+      "owning_issue": "#28",
+      "phase_104": "FASE 9",
+      "classification": "STILL REQUIRED",
+      "evidence": "No Trading Engine code on main (simulated signals of #184 removed by DEC-008, #190 69f4358)",
+      "dependencies": [
+        "TRADE-CORE-03",
+        "REPLAY-CORE-02"
+      ]
+    },
+    {
+      "id": "TRADE-CORE-08",
+      "title": "API/tool + live hard certification",
+      "owning_issue": "#28",
+      "phase_104": "FASE 9",
+      "classification": "STILL REQUIRED",
+      "evidence": "No Trading Engine code on main (simulated signals of #184 removed by DEC-008, #190 69f4358); live certification gate depends on live data (TC suspended) and stays NOT VERIFIED until then",
+      "dependencies": [
+        "TRADE-CORE-07",
+        "MCP-CORE-00"
+      ]
+    },
+    {
+      "id": "MM-INTEGRATION-01",
+      "title": "MM integration with Strategy/Trading/Replay",
+      "owning_issue": "#96",
+      "phase_104": "Late integration",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code",
+      "dependencies": [
+        "STRAT-CORE-02",
+        "TRADE-CORE-05",
+        "REPLAY-CORE-02",
+        "LEDGER-CORE-05",
+        "PAPER-CORE-01"
+      ]
+    },
+    {
+      "id": "REPLAY-CORE-03",
+      "title": "Replay + MM/tool certification",
+      "owning_issue": "#24",
+      "phase_104": "Late integration",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code",
+      "dependencies": [
+        "MM-INTEGRATION-01",
+        "SETTINGS-CORE-04",
+        "LEDGER-CORE-07"
+      ]
+    },
+    {
+      "id": "QUERY-CORE-01",
+      "title": "#25 finished-match backend contract",
+      "owning_issue": "#25",
+      "phase_104": "FASE 10",
+      "classification": "STILL REQUIRED",
+      "evidence": "No finished-match contract (MP-WEB-004 FAIL). #176 is pre-match analysis (#30), mis-linked to this card in pr_registry R-07",
+      "dependencies": [
+        "REPLAY-CORE-01",
+        "MARKET-CORE-04"
+      ]
+    },
+    {
+      "id": "QUERY-CORE-02",
+      "title": "#30 analysis/query backend contract",
+      "owning_issue": "#30",
+      "phase_104": "FASE 10",
+      "classification": "PARTIALLY COMPLETED",
+      "evidence": "PR #162 (2cf3d4b) keyset pagination, #163 (56fe579) Daily Board/search on API v1, #176 (61361b8) src/analysis/match-analysis.mjs + /api/v1/fpt/match-analysis; test/match-analysis.test.mjs",
+      "dependencies": [
+        "MCP-CORE-00"
+      ],
+      "gap": "First batch of #30 cards only; certified on seeded data, real-data verification NOT_VERIFIED"
+    },
+    {
+      "id": "BENCH-CORE-01",
+      "title": "#27 GOAT benchmark on certified data/engine",
+      "owning_issue": "#27",
+      "phase_104": "FASE 10",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code",
+      "dependencies": [
+        "TRADE-CORE-08"
+      ]
+    },
+    {
+      "id": "TCOP-CORE-01",
+      "title": "Trading context + prematch/live tools",
+      "owning_issue": "#102",
+      "phase_104": "#102 pre-UI",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code",
+      "dependencies": [
+        "TRADE-CORE-08",
+        "QUERY-CORE-02"
+      ]
+    },
+    {
+      "id": "TCOP-CORE-02",
+      "title": "Position/P&L/outcome-matrix tools",
+      "owning_issue": "#102",
+      "phase_104": "#102 pre-UI",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code",
+      "dependencies": [
+        "TCOP-CORE-01",
+        "LEDGER-CORE-06"
+      ]
+    },
+    {
+      "id": "TCOP-CORE-03",
+      "title": "Management intents + STOP/advisory + settlement/postmortem",
+      "owning_issue": "#102",
+      "phase_104": "#102 pre-UI",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code",
+      "dependencies": [
+        "TCOP-CORE-02",
+        "MM-INTEGRATION-01"
+      ]
+    },
+    {
+      "id": "TCOP-CORE-04",
+      "title": "Agent-driven hard certification",
+      "owning_issue": "#102",
+      "phase_104": "#102 pre-UI",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code",
+      "dependencies": [
+        "TCOP-CORE-03",
+        "REPLAY-CORE-03"
+      ]
+    },
+    {
+      "id": "MCP-CORE-01",
+      "title": "Cross-domain tool registry integration",
+      "owning_issue": "#98",
+      "phase_104": "#98 final",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code",
+      "dependencies": [
+        "TCOP-CORE-04",
+        "MCP-CORE-00"
+      ]
+    },
+    {
+      "id": "MCP-CORE-02",
+      "title": "Agent workflow integration",
+      "owning_issue": "#98",
+      "phase_104": "#98 final",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code",
+      "dependencies": [
+        "MCP-CORE-01"
+      ]
+    },
+    {
+      "id": "MCP-CORE-03",
+      "title": "Final pre-UI certification (agent E2E without site)",
+      "owning_issue": "#98",
+      "phase_104": "#98 final",
+      "classification": "STILL REQUIRED",
+      "evidence": "No code",
+      "dependencies": [
+        "MCP-CORE-02"
+      ]
+    }
+  ],
+  "totals": {
+    "COMPLETED": 10,
+    "PARTIALLY COMPLETED": 22,
+    "STILL REQUIRED": 46,
+    "SUPERSEDED": 0,
+    "DUPLICATED": 0,
+    "DEFERRED": 2,
+    "BLOCKED": 2,
+    "denominator": 82,
+    "not_finished_actionable": 68,
+    "by_issue": {
+      "#23": {
+        "PARTIALLY COMPLETED": 2,
+        "STILL REQUIRED": 2
+      },
+      "#98": {
+        "PARTIALLY COMPLETED": 1,
+        "STILL REQUIRED": 3
+      },
+      "#95": {
+        "STILL REQUIRED": 4
+      },
+      "#20": {
+        "COMPLETED": 5,
+        "PARTIALLY COMPLETED": 3,
+        "STILL REQUIRED": 1,
+        "DEFERRED": 1
+      },
+      "#31": {
+        "STILL REQUIRED": 4,
+        "DEFERRED": 1
+      },
+      "#24": {
+        "STILL REQUIRED": 3
+      },
+      "#94": {
+        "COMPLETED": 1,
+        "PARTIALLY COMPLETED": 2,
+        "STILL REQUIRED": 4,
+        "BLOCKED": 1
+      },
+      "#96": {
+        "COMPLETED": 1,
+        "PARTIALLY COMPLETED": 5,
+        "BLOCKED": 1,
+        "STILL REQUIRED": 2
+      },
+      "#100": {
+        "COMPLETED": 3,
+        "STILL REQUIRED": 2
+      },
+      "#99": {
+        "PARTIALLY COMPLETED": 5,
+        "STILL REQUIRED": 2
+      },
+      "cross (#28/#96/#99)": {
+        "PARTIALLY COMPLETED": 1
+      },
+      "#34": {
+        "STILL REQUIRED": 5,
+        "PARTIALLY COMPLETED": 2
+      },
+      "#28": {
+        "STILL REQUIRED": 8
+      },
+      "#25": {
+        "STILL REQUIRED": 1
+      },
+      "#30": {
+        "PARTIALLY COMPLETED": 1
+      },
+      "#27": {
+        "STILL REQUIRED": 1
+      },
+      "#102": {
+        "STILL REQUIRED": 4
+      }
+    }
+  }
+}
