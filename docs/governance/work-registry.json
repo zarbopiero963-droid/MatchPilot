@@ -1062,7 +1062,7 @@
       "id": "MARKET-CORE-04",
       "title": "Market rules: simulated outcomes from FPT/TC final scores only, non-final UNRESOLVED (DEC-015), result versions and corrections (DEC-002)",
       "issue": 100,
-      "pr": null,
+      "pr": 217,
       "branch": "market-core-04",
       "kind": "implementation",
       "state": "RUNNING",
@@ -1081,7 +1081,8 @@
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
-      }
+      },
+      "pr_open": true
     }
   ]
 }
