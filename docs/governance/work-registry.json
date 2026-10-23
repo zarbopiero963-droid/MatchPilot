@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 164,
+  "revision": 165,
   "tasks": [
     {
       "id": "R-01",
@@ -1129,6 +1129,27 @@
       },
       "pr_open": false,
       "merge_sha": "c47289f2e8f6292458a466953cef95f1226785b3"
+    },
+    {
+      "id": "HIST-LEDGER-01",
+      "title": "Backtest bets as paper-ledger positions, the ledger as the only P/L path (#34 x #99, DEC-013)",
+      "issue": 34,
+      "pr": 221,
+      "branch": "hist-ledger-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T151957Z-agent-a-claude-code",
+      "resources": [
+        "src/hist/engine.mjs",
+        "test/hist-backtest.test.mjs",
+        "docs/hist-backtest.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": true
     }
   ]
 }
