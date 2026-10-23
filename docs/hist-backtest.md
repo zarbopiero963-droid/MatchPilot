@@ -1,4 +1,4 @@
-# Offline backtest engine — HIST-01a, HIST-LINK-01, HIST-LEDGER-01, HIST-LAY-01, HIST-PG-01 (`mp-hist-engine-5`)
+# Offline backtest engine — HIST-01a, HIST-LINK-01, HIST-LEDGER-01, HIST-LAY-01, HIST-PG-01, HIST-MM-01 (`mp-hist-engine-6`)
 
 Owner decision: `MP-OWNER-HIST-01A-01`. Issues: #34 (Strategy Lab, backtest), #99 (settlement), #94 (Math Core). Roadmap #97: first slice of R-14, with the parts of R-13 it needs (1X2 outcome rule, frozen configuration snapshot).
 
@@ -132,7 +132,17 @@ Results are read only after every decision is fixed. The 1X2 rule is the Market 
 - **P/L:** BACK wins `S·(O − 1)` or loses `S`; LAY wins `S` when the selection loses and loses `S·(O − 1)` when it wins; the ledger charges commission on each position's positive net winnings, rounded to the cent HALF_EVEN (DEC-013). Before HIST-LEDGER-01 the engine kept the commission unrounded (`settleMarket`), so figures with commission differ by that rounding;
 - each settled bet carries its `position_id` and the sequence numbers of its ledger entries; the report's `ledger` block gives the allocation, the number of entries, their SHA-256 and the final state (cash, realized P/L, commission, reserved funds, open positions, `reconciled`).
 
-## Report `mp-hist-report-4`
+## Bankroll and Money Management (HIST-MM-01, #96)
+
+Without `config.bankroll` the engine works as above (notional allocation, every bet at `config.stake`). With it, the run is a **chronological simulation** on that starting bankroll:
+- the decisions are the strategy's, unchanged; before each decision (in decision order) every placed bet whose result is **known by then** is settled, so the bankroll a stake sees contains exactly the results known at that moment;
+- a result is known at the acquisition of the version that settles it (the PIT rule); in `NON_PIT_RESEARCH`, a match without kickoff is taken as known at the end of its match date, and `bankroll.settlement_timing` says so;
+- the stake is `config.stake`, or, with `config.money_management` (`{model, params, caps}` of an IMPLEMENTED #96 model: `FIXED_STAKE`, `FIXED_LIABILITY`, `PERCENT_BANKROLL`, `LIABILITY_PERCENT_BANKROLL`), the `adjusted_stake` of `evaluate()` on the ledger's account state; the profile's caps and odds filters apply; `config.stake` is then not required;
+- a bet whose exposure does not fit the available bankroll, or that the profile blocks, is not placed: counted in `bankroll.skipped_by_reason` (`INSUFFICIENT_AVAILABLE_BANKROLL`, `MM_<decision>:<reasons>`); the strategy's decision counts are unchanged;
+- each placed bet carries its stake and, with a profile, its `money_management` decision (original stake, caps triggered, bankroll snapshot);
+- the report's `bankroll` block gives the initial bankroll, final cash, available bankroll, realized P/L, return on bankroll, maximum drawdown of the cash in settlement order, the settlement timing, the profile, and the placed, reduced and skipped counts. `bankroll` and `money_management` are part of the settings snapshot.
+
+## Report `mp-hist-report-6`
 
 | `status` | When | Bets and metrics |
 |---|---|---|

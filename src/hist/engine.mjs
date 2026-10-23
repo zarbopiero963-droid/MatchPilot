@@ -24,8 +24,8 @@ import {STRATEGIES} from './strategies.mjs';
 import {getMarketRule} from '../markets/rules.mjs';
 import {resolveVersioned, resultVersion} from '../markets/outcomes.mjs';
 
-export const ENGINE_VERSION = 'mp-hist-engine-5';
-export const REPORT_VERSION = 'mp-hist-report-5';
+export const ENGINE_VERSION = 'mp-hist-engine-6';
+export const REPORT_VERSION = 'mp-hist-report-6';
 // HIST-PG-01 (owner mandate MP-AUTONOMOUS-AUTOMERGE-20261023): PIT is the default; NON_PIT_RESEARCH is an explicitly
 // labelled research and testing mode that also uses prices acquired after the decision time. It is never a PIT backtest
 // and never evidence of real profitability; the certification block and the limits say so on every report.
@@ -176,7 +176,7 @@ function resolveOutcome(versions, event, selection, asOf) {
 
 const LIMITS = [
   'Offline engine test: no liquidity, matching, slippage or execution is modelled.',
-  'Each bet is a paper-ledger position (#99) funded by a notional allocation equal to the sum of the bets exposures: it is not a bankroll, and no money management is applied.',
+  'Each bet is a paper-ledger position (#99). Without a configured bankroll the ledger is funded by a notional allocation equal to the sum of the bets exposures (not a bankroll, no money management); with one, the run is chronological and bets are settled when their result is known.',
   'Commission is charged by the ledger on each position positive net winnings at the rate fixed at the fill, rounded to the cent (DEC-013).',
   'PIT_LIMIT',
   'Settlement uses only result versions of the same provider as the odds; cross-provider mappings are not used.',
