@@ -4,14 +4,18 @@
 //      admits (acquired by the decision time) and no outcome;
 //   2. settlement: after every decision is fixed, each bet is settled with the result versions of the same provider
 //      (DEC-002: the latest validated FINAL available at the outcomes cutoff, its version and provenance recorded) under
-//      the MATCH_ODDS rule of the Market Rules Registry (#100), in Decimal, with the configured commission. A match with
-//      no validated FINAL stays unsettled; no VOID is ever applied (DEC-015, HIST-LINK-01).
+//      the MATCH_ODDS rule of the Market Rules Registry (#100). A match with no validated FINAL stays unsettled; no VOID
+//      is ever applied (DEC-015, HIST-LINK-01). Every bet is a position of a paper ledger (#99, HIST-LEDGER-01): opened
+//      at its decision time with the commission fixed at the fill (DEC-013), settled by settleFromResult; the bet P/L,
+//      the metrics and the ledger state in the report all come from the ledger entries, the only P/L path.
 // Without any admissible observation the report is INSUFFICIENT_PIT_DATA and carries no bet, P/L, ROI or drawdown.
 // The report is canonical JSON with its own SHA-256: the same input, configuration and code give the same bytes.
 // Pure module: no database, no network, no clock, no environment.
 import {Decimal, ROUNDING, sum} from '../math/decimal.mjs';
 import {MATH_CORE_VERSION, ROUNDING_POLICY_VERSION, commissionRate, nonNegative, MathInputError} from '../math/core.mjs';
-import {MONEY_STEP, settleMarket} from '../math/money.mjs';
+import {MONEY_STEP} from '../math/money.mjs';
+import {LEDGER_VERSION, accountState, createLedger, exposureOf, openPosition} from '../ledger/paper-ledger.mjs';
+import {settleFromResult} from '../ledger/settlement.mjs';
 import {PIT_POLICY_VERSION} from '../pit/policy.mjs';
 import {ADMISSION_VERSION, admitObservation, decisionTimeOf} from './admission.mjs';
 import {HistInputError, INPUT_VERSION, SELECTIONS_1X2, canonicalJson, sha256, validateInput} from './contract.mjs';
@@ -19,8 +23,8 @@ import {STRATEGIES} from './strategies.mjs';
 import {getMarketRule} from '../markets/rules.mjs';
 import {resolveVersioned, resultVersion} from '../markets/outcomes.mjs';
 
-export const ENGINE_VERSION = 'mp-hist-engine-2';
-export const REPORT_VERSION = 'mp-hist-report-2';
+export const ENGINE_VERSION = 'mp-hist-engine-3';
+export const REPORT_VERSION = 'mp-hist-report-3';
 // The 1X2 outcome rule is the registry's MATCH_ODDS rule (DEC-006: no duplicate resolver); the report records its id.
 export const OUTCOME_RULE_VERSION = getMarketRule('MATCH_ODDS').market_rule_id;
 // `status` is the technical result of the run; it never says anything about the data. Whether the data are certified
@@ -116,20 +120,22 @@ function resolveOutcome(versions, event, selection, asOf) {
   const ignored = versions.length - known.length;
   // A void declared before the match (a cancellation announced in advance) keeps its own reason.
   if (!known.length) return {result: null, reason: versions.some(v => v.void_declared) ? 'VOID_NO_APPROVED_RULE' : 'OUTCOME_ACQUIRED_BEFORE_KICKOFF', ignored};
-  const res = resolveVersioned({marketType: 'MATCH_ODDS', selection, asOf, versions: known.map(v => resultVersion({provider: v.provider,
-    version: v.version, acquired_at: v.acquired_at, provenance: v.provenance, final: v.status === 'FINAL', home: v.home_score, away: v.away_score,
-    providerStatus: v.void_declared ? 'VOID' : v.status}))});
+  const resultVersions = known.map(v => resultVersion({provider: v.provider, version: v.version, acquired_at: v.acquired_at,
+    provenance: v.provenance, final: v.status === 'FINAL', home: v.home_score, away: v.away_score, providerStatus: v.void_declared ? 'VOID' : v.status}));
+  const res = resolveVersioned({marketType: 'MATCH_ODDS', selection, asOf, versions: resultVersions});
   if (res.status !== 'RESOLVED') {
     const latest = known.filter(v => Date.parse(v.acquired_at) <= Date.parse(asOf)).at(-1);
     return {result: null, reason: latest?.void_declared ? 'VOID_NO_APPROVED_RULE' : res.reason, ignored};
   }
-  return {result: res.winning_selection, outcome: res.outcome, reason: null, ignored,
+  return {result: res.winning_selection, outcome: res.outcome, reason: null, ignored, resultVersions,
     resolution: {market_rule_id: res.market_rule_id, outcome_version: res.outcome_version, provenance: res.provenance, recorded_at: res.recorded_at,
       corrected: res.corrected, ...(res.corrected ? {first_final_version: res.first_final_version, first_final_outcome: res.first_final_outcome} : {})}};
 }
 
 const LIMITS = [
   'Offline engine test: no liquidity, matching, slippage or execution is modelled.',
+  'Each bet is a paper-ledger position (#99) funded by a notional allocation equal to the sum of the bets exposures: it is not a bankroll, and no money management is applied.',
+  'Commission is charged by the ledger on each position positive net winnings at the rate fixed at the fill, rounded to the cent (DEC-013).',
   'Decisions use only observations acquired by the decision time (captured knowledge, mp-pit-v1).',
   'Settlement uses only result versions of the same provider as the odds; cross-provider mappings are not used.',
   'Results: the latest validated FINAL acquired by the outcomes cutoff (DEC-002); a corrected result is flagged on the bet. Results are read after the decisions and are not point-in-time features.',
@@ -235,14 +241,36 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
     void_policy: 'NONE_APPROVED (DEC-015)'};
   const unsettled = counter();
   let ignoredBeforeKickoff = 0;
+  // The paper ledger of the run: one position per bet, opened in decision order at its decision time.
+  const legOf = bet => ({side: bet.side, odds: Decimal.from(bet.odds), stake: Decimal.from(bet.stake)});
+  const allocation = sum(bets.map(bet => exposureOf([legOf(bet)])));
+  const ledger = bets.length ? createLedger({accountId: `hist:${config.settings_snapshot_id}`, initialAllocation: allocation.toString(), at: bets[0].decision_time}) : null;
+  const positionOf = bet => `${bet.provider}:${bet.event_id}`;
+  for (const bet of bets) {
+    openPosition(ledger, {mode: 'ACTIVE_OPERATIONAL', positionId: positionOf(bet), side: bet.side, odds: bet.odds, stake: bet.stake,
+      commissionRate: config.commission, settingsSnapshotId: config.settings_snapshot_id, idempotencyKey: `open:${positionOf(bet)}`,
+      at: bet.decision_time, market: {marketType: 'MATCH_ODDS', selection: bet.selection}});
+  }
+  const entry = seq => ledger.entries[seq - 1];
   const settledBets = bets.map(bet => {
     const event = events.get(key(bet.provider, bet.event_id));
-    const {result, outcome, reason, resolution, ignored = 0} = resolveOutcome(outcomes.get(key(bet.provider, bet.event_id)), event, bet.selection, asOf);
+    const {result, outcome, reason, resolution, resultVersions, ignored = 0} = resolveOutcome(outcomes.get(key(bet.provider, bet.event_id)), event, bet.selection, asOf);
     ignoredBeforeKickoff += ignored;
-    if (!result) { count(unsettled, reason); return {...bet, settlement: null}; }
-    const market = settleMarket({bets: [{side: bet.side, stake: bet.stake, odds: bet.odds, outcome}], commission: config.commission});
-    return {...bet, settlement: {result, outcome, gross: market.result.gross, commission: market.result.commission, net: market.result.net, resolution}};
+    if (!result) { count(unsettled, reason); return {...bet, position_id: positionOf(bet), settlement: null}; }
+    const done = settleFromResult(ledger, {positionId: positionOf(bet), versions: resultVersions, asOf, at: resolution.recorded_at});
+    // The ledger resolves the same versions with the same rule: any disagreement is a defect, never a silent choice.
+    if (done.status !== 'SETTLED' || done.outcome !== outcome) throw new EngineError('LEDGER_MISMATCH', `${positionOf(bet)}: engine ${outcome}, ledger ${done.status} ${done.outcome}`);
+    const [gross, commission, net] = done.entries.map(entry);
+    return {...bet, position_id: positionOf(bet), settlement: {result, outcome, gross: gross.amount, commission: commission.amount, net: net.net,
+      ledger_entries: done.entries, resolution}};
   });
+  if (ledger) {
+    const state = accountState(ledger);
+    report.ledger = {ledger_version: LEDGER_VERSION, account_id: ledger.account_id, notional_allocation: allocation.toString(),
+      entries: ledger.entries.length, entries_sha256: sha256(canonicalJson(ledger.entries)),
+      state: {cash_balance: state.cash_balance, realized_pnl: state.realized_pnl, settled_commission: state.settled_commission,
+        reserved_funds: state.reserved_funds, open_position_count: state.open_position_count, reconciled: state.reconciled}};
+  }
   const settled = settledBets.filter(bet => bet.settlement);
   // Result versions of the bets' events acquired before the kickoff: a final cannot be known then, so they are ignored,
   // and counted (an ignored version can hide a correction of the first final).

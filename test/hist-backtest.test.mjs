@@ -73,6 +73,14 @@ function oracleBet({side, stake, odds, outcome}) {
   if (side === 'BACK') return outcome === 'WIN' ? backerProfit : frac(-S.n, S.d);
   return outcome === 'WIN' ? frac(-backerProfit.n, backerProfit.d) : S;
 }
+// A non-negative fraction rounded to the cent, HALF_EVEN.
+function fcentsHalfEven(f) {
+  const n = f.n * 100n, d = f.d;
+  let q = n / d;
+  const r2 = (n - q * d) * 2n;
+  if (r2 > d || (r2 === d && q % 2n === 1n)) q += 1n;
+  return frac(q, 100n);
+}
 function oracleMarket(bets, commission) {
   const gross = bets.map(oracleBet).reduce(fadd, frac(0n));
   const charged = gross.n > 0n ? fmul(gross, F(commission)) : frac(0n);
@@ -360,13 +368,19 @@ test('settlement agrees with an independent exact-fraction oracle, with commissi
       assert.ok((diff.n < 0n ? -diff.n : diff.n) * 200n <= diff.d, `${name} rounding ${i}`);
     }
   }
-  // The engine's metrics with commission, against the oracle over the golden bets.
+  // The engine's metrics with commission, against the oracle over the golden bets. The engine settles through the paper
+  // ledger, which charges each position's commission rounded to the cent, HALF_EVEN (DEC-013, HIST-LEDGER-01).
   const report = runBacktest(golden(), {...CONFIG, commission: '0.05', stake: '2.50'});
   const settled = report.bets.filter(bet => bet.settlement);
-  const markets = settled.map(bet => oracleMarket([{side: 'BACK', stake: '2.50', odds: bet.odds, outcome: bet.settlement.outcome}], '0.05'));
+  const markets = settled.map(bet => {
+    const m = oracleMarket([{side: 'BACK', stake: '2.50', odds: bet.odds, outcome: bet.settlement.outcome}], '0.05');
+    const c = fcentsHalfEven(m.commission);
+    return {gross: m.gross, commission: c, net: fsub(m.gross, c)};
+  });
+  assert.ok(feq(F(report.metrics.pl_gross), markets.map(m => m.gross).reduce(fadd, frac(0n))));
   assert.ok(feq(F(report.metrics.pl_net), markets.map(m => m.net).reduce(fadd, frac(0n))));
   assert.ok(feq(F(report.metrics.commission), markets.map(m => m.commission).reduce(fadd, frac(0n))));
-  assert.equal(report.metrics.commission, '0.0875'); // 5 % of the 1.75 won on e1
+  assert.equal(report.metrics.commission, '0.09'); // 5 % of the 1.75 won on e1 = 0.0875, charged 0.09
   assert.equal(report.config.commission_rate_used, '0.05');
 });
 
@@ -398,7 +412,7 @@ test('invalid inputs and configurations are refused with the field named', () =>
 test('isolation from R1: the engine reads no FutPythonTrader path, no match analysis, no SQL and no environment', () => {
   const dir = new URL('../src/hist/', import.meta.url);
   const allowed = new Set(['node:crypto', '../math/core.mjs', '../math/decimal.mjs', '../math/money.mjs', '../pit/policy.mjs',
-    '../markets/rules.mjs', '../markets/outcomes.mjs', './admission.mjs', './contract.mjs', './strategies.mjs']);
+    '../markets/rules.mjs', '../markets/outcomes.mjs', '../ledger/paper-ledger.mjs', '../ledger/settlement.mjs', './admission.mjs', './contract.mjs', './strategies.mjs']);
   for (const file of readdirSync(dir).filter(name => name.endsWith('.mjs'))) {
     const source = readFileSync(new URL(file, dir), 'utf8');
     for (const [, target] of source.matchAll(/^\s*import\s[^;]*?from\s+'([^']+)'/gm)) assert.ok(allowed.has(target), `${file} imports ${target}`);
@@ -457,9 +471,9 @@ test('metric rounding: HALF_EVEN to the cent on an exact half cent, net = rounde
   assert.equal(half.metrics.pl_gross, '0.005');
   assert.equal(half.metrics.rounded.pl_gross, '0.00');
   assert.equal(half.metrics.rounded.pl_net, '0.00');
-  // stake 1.5 at 1.01 wins 0.015, commission 5% = 0.00075: rounded 0.02 − 0.00 = 0.02, while cents(net 0.01425) = 0.01.
+  // stake 1.5 at 1.01 wins 0.015, commission 5% = 0.00075, charged by the ledger rounded to the cent: 0.00 (DEC-013).
   const net = single({stake: '1.5', commission: '0.05'});
-  assert.deepEqual([net.metrics.pl_gross, net.metrics.commission, net.metrics.pl_net], ['0.015', '0.00075', '0.01425']);
+  assert.deepEqual([net.metrics.pl_gross, net.metrics.commission, net.metrics.pl_net], ['0.015', '0', '0.015']);
   assert.deepEqual([net.metrics.rounded.pl_gross, net.metrics.rounded.commission, net.metrics.rounded.pl_net], ['0.02', '0.00', '0.02']);
 });
 
@@ -558,4 +572,32 @@ test('mp-hist-input-2 validation: versions unique and monotonic, NOT_FINAL witho
   const v2 = runBacktest(asV2, CONFIG);
   assert.deepEqual(v2.metrics, legacy.metrics);
   assert.deepEqual(v2.bets.filter(b => b.settlement).map(b => b.settlement), legacy.bets.filter(b => b.settlement).map(b => b.settlement));
+});
+
+// ---- HIST-LEDGER-01 (#34 x #99): every bet is a paper-ledger position, the only P/L path ----
+test('each bet is a ledger position: opened at its decision, settled by settleFromResult, the report reconciles with the ledger', () => {
+  const report = runBacktest(golden(), CONFIG);
+  const ledger = report.ledger;
+  // 4 BACK bets at stake 1: notional allocation 4 (not a bankroll); 1 allocation + 4 opens + 2 settlements x 3 entries.
+  assert.deepEqual({...ledger, entries_sha256: undefined, account_id: undefined}, {ledger_version: 'mp-paper-ledger-1', notional_allocation: '4', entries: 11,
+    entries_sha256: undefined, account_id: undefined, state: {cash_balance: '3.7', realized_pnl: '-0.3', settled_commission: '0', reserved_funds: '2',
+      open_position_count: 2, reconciled: true}});
+  assert.equal(ledger.account_id, `hist:${report.config.settings_snapshot_id}`);
+  assert.match(ledger.entries_sha256, /^[0-9a-f]{64}$/);
+  // The bet P/L is the ledger's, and the metrics add up to the ledger's realized P/L.
+  assert.deepEqual(report.bets.map(bet => [bet.position_id, bet.settlement?.ledger_entries ?? null]),
+    [['futpythontrader:e1', [6, 7, 8]], ['futpythontrader:e2', [9, 10, 11]], ['futpythontrader:e6', null], ['futpythontrader:e7', null]]);
+  assert.equal(report.metrics.pl_net, ledger.state.realized_pnl);
+  // Unsettled bets stay open positions with their exposure reserved: nothing is refunded (DEC-015).
+  assert.equal(ledger.state.reserved_funds, '2');
+  // With commission: 5 % of the 1.75 won at stake 2.50 on e1 is 0.0875, charged 0.09 by the ledger (DEC-013).
+  const fee = runBacktest(golden(), {...CONFIG, commission: '0.05', stake: '2.50'});
+  assert.deepEqual([fee.bets[0].settlement.gross, fee.bets[0].settlement.commission, fee.bets[0].settlement.net], ['1.75', '0.09', '1.66']);
+  assert.deepEqual([fee.ledger.state.settled_commission, fee.ledger.state.realized_pnl, fee.metrics.pl_net], ['0.09', '-0.84', '-0.84']);
+  assert.equal(fee.ledger.state.reconciled, true);
+  // No bet: no ledger.
+  const none = runBacktest(golden(), {...CONFIG, strategy: 'never'}, {strategies: {never: () => ({action: 'NO_TRADE', reason: 'NEVER'})}});
+  assert.equal(none.ledger, undefined);
+  const engine = readFileSync(new URL('../src/hist/engine.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(engine, /settleMarket/, 'the ledger is the only P/L path of the engine');
 });
