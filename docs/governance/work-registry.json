@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 142,
+  "revision": 143,
   "tasks": [
     {
       "id": "R-01",
@@ -1032,6 +1032,26 @@
         "CLAUDE.md"
       ],
       "merge_sha": "665bc34b2716a0f54732d7170eebf11df1166e3d"
+    },
+    {
+      "id": "HANDOFF-PREP-01",
+      "title": "Agent A prepares HANDOFF-TEST-01 in HANDOFF READY (checkpoint, lease released)",
+      "issue": 150,
+      "pr": 215,
+      "branch": "handoff-prep-01",
+      "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-g-grok",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": null,
+      "parallel_authorization": "OWN-T141U-GOV150",
+      "resources": [
+        "docs/governance/work-registry.json"
+      ],
+      "note": "Registered final in the same PR so that no live lease remains after Agent A stops (t144u); merge SHA is the squash of PR #215."
     }
   ]
 }
