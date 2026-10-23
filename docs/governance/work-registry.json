@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 181,
+  "revision": 182,
   "tasks": [
     {
       "id": "R-01",
@@ -1302,9 +1302,9 @@
       "pr": 229,
       "branch": "web-sim-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T175929Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T182948Z-agent-a-claude-code",
       "resources": [
         "src/web/app.js",
         "src/web/index.html",
@@ -1318,7 +1318,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "2cd0b613751f42911f689922851092dbc251c2fa"
     }
   ]
 }
