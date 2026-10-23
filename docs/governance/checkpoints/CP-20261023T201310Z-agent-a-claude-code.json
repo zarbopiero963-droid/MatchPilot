@@ -1,0 +1,126 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T201310Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T20:13:10Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "PERSIST-PLAN-01",
+  "activity": "PR #232 auto-merged as a1a799a (squash, expectedHeadSha b21a1af); main CI and VPS deploy verified",
+  "issue": 34,
+  "pr": 232,
+  "branch": "persist-plan-01",
+  "commit_sha": "b21a1afe74fa4d5228dd57507f762146f6c32291",
+  "tree_sha": "cd1cd383b7394aa1f146fc9a2bc163e1f0cc6ad8",
+  "base_sha": "8a912c8bc9ccf15c37b26d5e7093f77a01a23cb9",
+  "requirements": [
+    "MP-STA-001"
+  ],
+  "changes": [
+    "docs/persistence-plan.md: tables, append-only rules, compatibility, mp-deploy migration guard, backup, rollback, impact, tests, owner actions",
+    "a1a799a: squash merge of PR #232"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "8b8706d8b85a5d5eb4dd2df6d0b918a29a01fb08",
+      "time": "2026-10-23T20:00:27Z",
+      "limits": [
+        "documentation only; full suite and governance validate run locally"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main a1a799a",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "a1a799afbe235b7038e472447eaf44f10696e169",
+      "time": "2026-10-23T20:13:10Z",
+      "limits": [
+        "run 40017010017 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main a1a799a (job log evidence)",
+      "result": "PASS",
+      "environment": "VPS via self-hosted runner, evidence from the job log only",
+      "commit": "a1a799afbe235b7038e472447eaf44f10696e169",
+      "time": "2026-10-23T20:13:10Z",
+      "limits": [
+        "run 40017011096: guard rc=0 mode=enforce; DEPLOY_GATE_SHA_OK a1a799a; worker_restart=ok; result=OK total_s=87 health=200 (2026-10-23T22:12:43+02:00)"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "SUCCESS",
+    "head_sha": "b21a1afe74fa4d5228dd57507f762146f6c32291"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "b21a1afe74fa4d5228dd57507f762146f6c32291",
+    "reference": "PR #232 review 5633855353 on b21a1af (DEC-004-R1, three rounds: CHANGES_REQUESTED x2, then APPROVED)"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "DEC-015"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI",
+      "VPS deploy"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "docs/persistence-plan.md",
+    "docs/paper-ledger-mm.md",
+    "branch:persist-plan-01",
+    "pr:232"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "none for PERSIST-PLAN-01",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261023T200027Z-agent-a-claude-code",
+  "merge_sha": "a1a799afbe235b7038e472447eaf44f10696e169"
+}
