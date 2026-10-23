@@ -104,15 +104,15 @@ Applied as the app role, as `migrate()` would at the app restart, then the schem
 
 ```sh
 sudo -u postgres pg_dump -p "$PORT" -s "$DRILL" > "$D/drill-schema-before.sql"
-sudo -u postgres psql -p "$PORT" -d "$DRILL" -X -1 -v ON_ERROR_STOP=1 -c "SET ROLE \"$APPUSER\"" -f "$REL/<staged persistence file>"
+sudo -u postgres psql -p "$PORT" -d "$DRILL" -X -1 -v ON_ERROR_STOP=1 -c "SET ROLE \"$APPUSER\"" -f "$REL/db/staged/030-persistence.sql"
 echo "dry-run rc=$?"
 sudo -u postgres pg_dump -p "$PORT" -s "$DRILL" > "$D/drill-schema-after.sql"
 diff "$D/drill-schema-before.sql" "$D/drill-schema-after.sql" > "$D/drill-schema.diff"; sha256sum "$D/drill-schema.diff" >> "$D/SHA256SUMS"
 grep -E '^< ' "$D/drill-schema.diff" | head          # PASS when empty: nothing removed or changed
 ```
 
-The staged file is the one of the persistence PR (outside `migrations/`, so no deploy is blocked); its path goes in the
-command once that PR is merged. PASS when the dry run exits 0, the diff has only `>` lines (new tables, functions,
+The staged file `db/staged/030-persistence.sql` is outside `migrations/`, so neither `migrate()` nor the deploy guard
+sees it and no deploy is blocked. PASS when the dry run exits 0, the diff has only `>` lines (new tables, functions,
 triggers, indexes) and step 3 rerun on the drill still gives the same history digests.
 
 ## 6. FPT facts recovery on the operational database (separate authorization; writes `fpt_match_facts` only)

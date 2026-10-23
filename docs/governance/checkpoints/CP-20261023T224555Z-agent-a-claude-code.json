@@ -1,0 +1,142 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T224555Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T22:45:55Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "PERSIST-GONOGO-01",
+  "activity": "PR #236 auto-merged as eb993eb (squash, expectedHeadSha ca4a093); main CI and VPS deploy verified",
+  "issue": 99,
+  "pr": 236,
+  "branch": "persist-gonogo-01",
+  "commit_sha": "ca4a093ac9de47751afcb5a21f1f51dad5629eb5",
+  "tree_sha": "092f8588bb22a8fc0901235a3b66666a70580155",
+  "base_sha": "2cf0463690e0c627cdf9902e5cfb5b2b22f37637",
+  "requirements": [],
+  "changes": [
+    "futpython-facts-refresh.mjs",
+    "FACTS_GAP_SQL",
+    "preflight factsGap",
+    "persistence-go-no-go.md",
+    "persistence-runbook.md",
+    "eb993eb: squash merge of PR #236"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "1a0877e247f21550a113f18acde99393e7fa1dd1",
+      "time": "2026-10-23T22:16:44Z",
+      "limits": [
+        "synthetic data on throwaway PostgreSQL 16 and a local runbook drill (steps 1-4); real VPS data not available"
+      ]
+    },
+    {
+      "command": "local runbook drill, docs/persistence-runbook.md steps 1-4 on PostgreSQL 16 (throwaway source database in the legacy hidden/stale state)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container",
+      "commit": "1a0877e247f21550a113f18acde99393e7fa1dd1",
+      "time": "2026-10-23T22:16:44Z",
+      "limits": [
+        "dump/restore/checksums OK; history prefix digests equal; drill dry run hidden=1 stale=1; apply COMMITTED hidden=0 stale=0 duplicates=0 digest unchanged; source untouched"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main eb993eb",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "eb993ebd7cbf8d50a79c5012d36ef08e21c3fbe6",
+      "time": "2026-10-23T22:45:55Z",
+      "limits": [
+        "run 40034431073 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main eb993eb (job log evidence)",
+      "result": "PASS",
+      "environment": "VPS via self-hosted runner, evidence from the job log only",
+      "commit": "eb993ebd7cbf8d50a79c5012d36ef08e21c3fbe6",
+      "time": "2026-10-23T22:45:55Z",
+      "limits": [
+        "run 40034430803: guard rc=0 mode=enforce; DEPLOY_GATE_SHA_OK eb993eb; worker_restart=ok; result=OK health=200"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "SUCCESS",
+    "head_sha": "ca4a093ac9de47751afcb5a21f1f51dad5629eb5"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "ca4a093ac9de47751afcb5a21f1f51dad5629eb5",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/236#issuecomment-6375969130"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "MP-PERSISTENCE-232-NEXT-20261023",
+    "MP-FPT-PROVISIONAL-DEPRIORITIZATION-20261023"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI",
+      "VPS deploy"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "src/jobs/futpython-facts-refresh.mjs",
+    "src/providers/futpython/facts-refresh.mjs",
+    "tools/vps/persistence-preflight.mjs",
+    "docs/persistence-go-no-go.md",
+    "docs/persistence-runbook.md",
+    "branch:persist-gonogo-01",
+    "pr:236"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "none for PERSIST-GONOGO-01",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261023T221644Z-agent-a-claude-code",
+  "merge_sha": "eb993ebd7cbf8d50a79c5012d36ef08e21c3fbe6"
+}

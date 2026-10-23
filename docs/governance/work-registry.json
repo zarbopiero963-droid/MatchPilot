@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 193,
+  "revision": 195,
   "tasks": [
     {
       "id": "R-01",
@@ -1446,15 +1446,37 @@
       "pr": 236,
       "branch": "persist-gonogo-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T221644Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T224555Z-agent-a-claude-code",
       "resources": [
         "src/jobs/futpython-facts-refresh.mjs",
         "src/providers/futpython/facts-refresh.mjs",
         "tools/vps/persistence-preflight.mjs",
         "docs/persistence-go-no-go.md",
         "docs/persistence-runbook.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "eb993ebd7cbf8d50a79c5012d36ef08e21c3fbe6"
+    },
+    {
+      "id": "PERSIST-STORE-01",
+      "title": "PERSIST-STORE-01: staged persistence schema and store (priority 4)",
+      "issue": 99,
+      "pr": 237,
+      "branch": "persist-store-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T224556Z-agent-a-claude-code",
+      "resources": [
+        "db/staged/030-persistence.sql",
+        "src/persistence/store.mjs",
+        "src/ledger/paper-ledger.mjs"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",

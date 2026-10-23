@@ -1,0 +1,106 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T224556Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T22:45:56Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "PERSIST-STORE-01",
+  "activity": "staged persistence schema (outside migrations/) and store; no migration applied",
+  "issue": 99,
+  "pr": 237,
+  "branch": "persist-store-01",
+  "commit_sha": "0763d6d125faf9194cc8336187c1de87c152cd27",
+  "tree_sha": "27b292761fc4c1d311e639359c3f8f1a59935a71",
+  "base_sha": "eb993ebd7cbf8d50a79c5012d36ef08e21c3fbe6",
+  "requirements": [],
+  "changes": [
+    "db/staged/030-persistence.sql",
+    "src/persistence/store.mjs",
+    "test/persistence-store.test.mjs",
+    "paper-ledger scope order"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "0763d6d125faf9194cc8336187c1de87c152cd27",
+      "time": "2026-10-23T22:45:56Z",
+      "limits": [
+        "throwaway PostgreSQL 16 with the staged schema applied by the tests; not applied anywhere else"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "0763d6d125faf9194cc8336187c1de87c152cd27"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "final-head context-separated sub-agent review pending (DEC-004-R1)"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "MP-PERSISTENCE-232-NEXT-20261023",
+    "MP-FPT-PROVISIONAL-DEPRIORITIZATION-20261023"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and final review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "db/staged/030-persistence.sql",
+    "src/persistence/store.mjs",
+    "src/ledger/paper-ledger.mjs",
+    "branch:persist-store-01",
+    "pr:237"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and final-head review on PR #237, then protected merge and deploy verification",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}

@@ -170,11 +170,11 @@ const SCOPES = Object.freeze(['match', 'market', 'league', 'strategy']);
 // Optional exposure scope tags (#96 "max exposure per partita/mercato/campionato/strategia"). Plain ids, no semantics.
 function scopeOf(scope) {
   if (scope === undefined || scope === null) return null;
+  for (const k of Object.keys(scope)) if (!SCOPES.includes(k)) fail('BAD_INPUT', `unknown scope ${k}`);
+  // In the fixed SCOPES order, so the idempotency fingerprint does not depend on the caller's key order (a persisted key
+  // is compared again after a restart).
   const out = {};
-  for (const [k, v] of Object.entries(scope)) {
-    if (!SCOPES.includes(k)) fail('BAD_INPUT', `unknown scope ${k}`);
-    if (v !== undefined && v !== null) out[k] = text(`scope.${k}`, v);
-  }
+  for (const k of SCOPES) if (scope[k] !== undefined && scope[k] !== null) out[k] = text(`scope.${k}`, scope[k]);
   return Object.keys(out).length ? Object.freeze(out) : null;
 }
 // Optional market binding (LEDGER-CORE-03): the #100 market the position's selection belongs to, so that settlement
