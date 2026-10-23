@@ -1,0 +1,139 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T211812Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T21:18:12Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "FPT-FACTS-GATE-01",
+  "activity": "PR #233 auto-merged as 92eb96d (squash, expectedHeadSha 92472dc); main CI and VPS deploy verified",
+  "issue": 12,
+  "pr": 233,
+  "branch": "fpt-facts-gate-01",
+  "commit_sha": "92472dccf5a4c2e77406c480149c99048d403298",
+  "tree_sha": "d9ac2be08e433eec78e3f73e8fe31aca7fb032aa",
+  "base_sha": "a1a799afbe235b7038e472447eaf44f10696e169",
+  "requirements": [],
+  "changes": [
+    "facts-refresh.mjs: gated refresh",
+    "query.mjs and futpython-sync.mjs call it",
+    "certificate facts_at_now and facts_stale use the same gate",
+    "test/fpt-facts-gate.test.mjs RED then GREEN",
+    "owner decisions recorded",
+    "92eb96d: squash merge of PR #233"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "1b02d4ba87cbc1df25cd7174c0a54f60aa9960e6",
+      "time": "2026-10-23T20:54:59Z",
+      "limits": [
+        "synthetic rows on throwaway PostgreSQL 16; real VPS impact not measured (no VPS access)"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 92eb96d",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "92eb96d09a9453c4e1c9c421a437468c65259f18",
+      "time": "2026-10-23T21:18:12Z",
+      "limits": [
+        "run 40024519906 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 92eb96d (job log evidence)",
+      "result": "PASS",
+      "environment": "VPS via self-hosted runner, evidence from the job log only",
+      "commit": "92eb96d09a9453c4e1c9c421a437468c65259f18",
+      "time": "2026-10-23T21:18:12Z",
+      "limits": [
+        "run 40024519845: guard rc=0 mode=enforce; DEPLOY_GATE_SHA_OK 92eb96d; worker_restart=ok; result=OK health=200"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "SUCCESS",
+    "head_sha": "92472dccf5a4c2e77406c480149c99048d403298"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "92472dccf5a4c2e77406c480149c99048d403298",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/233#issuecomment-6374620563"
+  },
+  "findings": [
+    {
+      "id": "FPT-FACTS-GATE",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "criticality check per MP-FPT-PROVISIONAL-DEPRIORITIZATION-20261023: history not affected (derived table only); simulation data affected (readFptHistInput takes its match list from fpt_match_facts, so a hidden match is silently missing from backtests); match analysis reads facts (frozen matches show old results); hence minimal fix, no migration"
+    }
+  ],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "DEC-015",
+    "MP-PERSISTENCE-232-NEXT-20261023",
+    "MP-FPT-PROVISIONAL-DEPRIORITIZATION-20261023"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI",
+      "VPS deploy"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "src/providers/futpython/facts-refresh.mjs",
+    "src/providers/futpython/query.mjs",
+    "src/jobs/futpython-sync.mjs",
+    "src/futpython-certificate.mjs",
+    "branch:fpt-facts-gate-01",
+    "pr:233"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "none for FPT-FACTS-GATE-01",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261023T205459Z-agent-a-claude-code",
+  "merge_sha": "92eb96d09a9453c4e1c9c421a437468c65259f18"
+}

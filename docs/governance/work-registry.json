@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 189,
+  "revision": 191,
   "tasks": [
     {
       "id": "R-01",
@@ -1401,14 +1401,36 @@
       "pr": 233,
       "branch": "fpt-facts-gate-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T205459Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T211812Z-agent-a-claude-code",
       "resources": [
         "src/providers/futpython/facts-refresh.mjs",
         "src/providers/futpython/query.mjs",
         "src/jobs/futpython-sync.mjs",
         "src/futpython-certificate.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "92eb96d09a9453c4e1c9c421a437468c65259f18"
+    },
+    {
+      "id": "PERSIST-PREFLIGHT-01",
+      "title": "PERSIST-PREFLIGHT-01: read-only VPS preflight (priority 4)",
+      "issue": 99,
+      "pr": 235,
+      "branch": "persist-preflight-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T211813Z-agent-a-claude-code",
+      "resources": [
+        "tools/vps/persistence-preflight.mjs",
+        "docs/persistence-preflight.md",
+        "docs/persistence-plan.md"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
