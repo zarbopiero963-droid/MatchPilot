@@ -420,8 +420,8 @@ test('1X2 settlement reuses the registry MATCH_ODDS resolver, no duplicate rule 
   });
   const outcomes = Object.entries(events).map(([id, [, , [hs, as]]]) => out(id, 'FINAL', hs, as, '2026-02-01T23:00:00Z'));
   const report = runBacktest(input({events: Object.entries(events).map(([id, [k]]) => ev(id, k)), observations, outcomes}), CONFIG, {codeVersion: 'test'});
-  assert.equal(OUTCOME_RULE_VERSION, 'MATCH_ODDS@v1');
-  assert.equal(report.versions.outcome_rule, 'MATCH_ODDS@v1');
+  assert.equal(OUTCOME_RULE_VERSION, 'MATCH_ODDS@v2');
+  assert.equal(report.versions.outcome_rule, 'MATCH_ODDS@v2');
   assert.deepEqual(report.bets.map(bet => [bet.event_id, bet.selection, bet.settlement.result, bet.settlement.outcome, bet.settlement.net]),
     [['h', 'HOME', 'HOME', 'WIN', '0.5'], ['d', 'DRAW', 'DRAW', 'WIN', '0.5'], ['a', 'AWAY', 'AWAY', 'WIN', '0.5'], ['l', 'HOME', 'AWAY', 'LOSE', '-1']]);
   for (const bet of report.bets) {

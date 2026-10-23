@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-runtime-state-v1",
-  "updated_at": "2026-10-23T08:21:10Z",
+  "updated_at": "2026-10-23T10:28:28Z",
   "updated_by": "agent-a-claude-code",
   "note": "Vendor-neutral runtime state of MatchPilot (GOV-RUNTIME-STATE-01, #150, owner t141u). Source of truth on GitHub; any local CHECKPOINT.md is a derived copy. Every PR that changes production or the plan must update this file (docs/governance/PROTOCOL.md).",
   "production": {
@@ -14,15 +14,11 @@
       "TotalCorner"
     ]
   },
-  "current_task": "HIST-01a (#178): realigned to main under MP-OWNER-HIST-01A-REALIGN-01; review APPROVED by a clean-context Claude Code subagent launched from the author session (reviews 5625569939, 5625698392; separate context, same GitHub account, DEC-004-R1), CI green; waiting for owner merge decision. HANDOFF-TEST-01 (#216) untouched",
+  "current_task": "MARKET-CORE-04 (#100): PR open, lease agent-a-claude-code; HIST-01a MERGED (891e981, deploy-vps 39931191163 success); HANDOFF-TEST-01 (#216) kept HANDOFF READY to agent-g-grok, untouched",
   "blockers": [
     {
       "id": "DEPLOY-CI-PIN",
       "detail": "Auto-deploy refused since c7820ea (#212): the VPS runner guard pins the ci.yml blob (ci_workflow_blob_sha 2514af08 in root-owned /etc/mp-deploy/runner-guard.json) and #212/#213 changed ci.yml (GUARD_CI_WORKFLOW_NOT_PINNED; current main blob 33f6c6dc056c44878b62d83a876a19e3a832279d). Production stays 569fb0f; the changes since are governance-only, with no runtime impact. Re-pinning needs an owner GO (docs/deploy-approval.md); no agent may change the pin without it."
-    },
-    {
-      "id": "HIST-01a",
-      "detail": "PR #178 open, BLOCKED on owner (DEC-006)"
     },
     {
       "id": "R-02",
@@ -64,7 +60,7 @@
       "status": "PENDING"
     }
   ],
-  "next_action": "Owner decision on the #178 merge; HANDOFF-TEST-01: see PR #216 (Agent B leg done, B->A return leg addressed to agent-g-grok); then MARKET-CORE-04 from the local patch (DEC-002, DEC-015 and the owner rectification on FPT/TC-only outcomes); separately owner GO for DEPLOY-CI-PIN re-pin",
+  "next_action": "Review and CI of MARKET-CORE-04; owner decision on its merge. HANDOFF-TEST-01: return leg B->A by agent-g-grok on PR #216 (PARTIAL closure not authorized). FPT diagnosis: read-only script handed to the owner, to be run on the VPS by an authorized operator (not in the repo)",
   "roadmap_after_governance": [
     "MARKET-CORE-04 (void/postponed/abandoned/corrected results)",
     "#99 ledger link",

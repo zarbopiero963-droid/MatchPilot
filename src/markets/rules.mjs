@@ -1,15 +1,21 @@
-// MARKET-CORE-01/02 (#100, #104): versioned Market Rules Registry + core football resolvers. Pure, deterministic.
-// Scope: regular-time result markets whose winning condition is fully determined by the score. Venue-specific policies
-// (postponed, abandoned, dead heat, partial/Asian lines, corrections) are MARKET-CORE-03/04: here a non-FINISHED match or a
-// missing input is UNRESOLVED (never guessed), and #99 must not settle it.
+// MARKET-CORE-01/02/04 (#100, #104): versioned Market Rules Registry + core football resolvers. Pure, deterministic.
+// MatchPilot computes simulated market outcomes itself, from the final score delivered by its two football APIs
+// (FutPythonTrader, TotalCorner) and these internal rules; no exchange, bookmaker or external settlement is consulted
+// (owner rectification MP-MARKET-CORE-04). A match that is not FINISHED (postponed, suspended, cancelled, unknown) or a
+// missing input is UNRESOLVED, never guessed, and #99 must not settle it. No internal VOID rule is approved yet (DEC-015:
+// OWNER DECISION REQUIRED), so these resolvers never return VOID. Provider adapters and result versions: outcomes.mjs.
+// Dead heat, partial and Asian lines are MARKET-CORE-03.
 const fail = (code, msg) => { const e = new Error(msg); e.code = code; throw e; };
-export const MARKET_RULES_VERSION = 1;
-const SRC = 'Betfair Exchange football rules: match markets settle on regular time incl. stoppage time; extra time and penalties excluded';
+export const MARKET_RULES_VERSION = 2; // v2: internal policies, no external source (v1 was never persisted)
+const SRC = 'MatchPilot internal simulation rule: settle on the validated final score delivered by the match provider (FutPythonTrader Home_Score/Away_Score, TotalCorner hg/ag)';
 
-const common = Object.freeze({venue: 'EXCHANGE_GENERIC', version: MARKET_RULES_VERSION, effective_from: '2026-10-23', effective_to: null,
-  void_policy: 'MARKET_CORE_04', postponed_policy: 'MARKET_CORE_04', abandoned_policy: 'MARKET_CORE_04',
-  dead_heat_policy: 'NOT_APPLICABLE', extra_time_policy: 'EXCLUDED', penalty_policy: 'EXCLUDED', partial_policy: 'NOT_APPLICABLE',
-  provenance: '#100 MARKET-CORE-02', source_reference: SRC, created_at: '2026-10-23T02:15:00+02:00'});
+const common = Object.freeze({venue: 'MATCHPILOT_SIMULATION', version: MARKET_RULES_VERSION, effective_from: '2026-10-23', effective_to: null,
+  void_policy: 'NONE_APPROVED (OWNER DECISION REQUIRED)', postponed_policy: 'UNRESOLVED_UNTIL_FINAL (DEC-015)',
+  abandoned_policy: 'UNRESOLVED (DEC-015)', cancelled_policy: 'UNRESOLVED (OWNER DECISION REQUIRED)',
+  correction_policy: 'LATEST_VALIDATED_FINAL_FLAGGED (DEC-002)', dead_heat_policy: 'NOT_APPLICABLE',
+  extra_time_policy: 'PROVIDER_FINAL_SCORE (extra-time inclusion undocumented by FPT/TC: OWNER DECISION REQUIRED for cup ties)',
+  penalty_policy: 'EXCLUDED', partial_policy: 'NOT_APPLICABLE',
+  provenance: '#100 MARKET-CORE-02/04', source_reference: SRC, created_at: '2026-10-23T02:15:00+02:00'});
 const rule = (market_type, resolution_inputs, result_mapping, extra = {}) =>
   Object.freeze({market_rule_id: `${market_type}@v${MARKET_RULES_VERSION}`, market_type, resolution_inputs: Object.freeze(resolution_inputs), result_mapping, ...common, ...extra});
 
@@ -32,11 +38,11 @@ const halfLine = line => {
   return n;
 };
 const mo = (h, a) => (h > a ? 'HOME' : h < a ? 'AWAY' : 'DRAW');
-// The Correct Score grid for "any other" (exchange listing 0-0..3-3). Venue listings differ; the listed grid is an input.
+// The Correct Score grid for "any other" (default 0-0..3-3). The simulated market's grid is an input.
 export const DEFAULT_CS_GRID = Object.freeze(['0-0', '0-1', '0-2', '0-3', '1-0', '1-1', '1-2', '1-3', '2-0', '2-1', '2-2', '2-3', '3-0', '3-1', '3-2', '3-3']);
 
-// Resolves one selection. match = {status, ft_home, ft_away, ht_home, ht_away}. Returns {status: RESOLVED, outcome: WIN|LOSE,
-// market_rule_id, winning_selection} or {status: UNRESOLVED, reason}. Same input + same rule version => same output.
+// Resolves one selection. match = {status, ft_home, ft_away, ht_home, ht_away}. Returns {status: RESOLVED, outcome:
+// WIN|LOSE, market_rule_id, winning_selection} or {status: UNRESOLVED, reason}. Same input + same rule version => same output.
 export function resolve({marketType, selection, line, team, match, csGrid = DEFAULT_CS_GRID}) {
   const r = getMarketRule(marketType);
   if (!r) fail('UNKNOWN_MARKET', `no rule for ${marketType}`);

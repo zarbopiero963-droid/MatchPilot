@@ -10,7 +10,7 @@ const FIELDS = ['market_rule_id', 'market_type', 'venue', 'version', 'effective_
   'provenance', 'source_reference', 'created_at'];
 
 test('registry: every #100 minimum field on every rule, ids carry the version', () => {
-  for (const r of MARKET_RULES) { for (const f of FIELDS) assert.ok(f in r, `${r.market_type}.${f}`); assert.match(r.market_rule_id, /@v1$/); }
+  for (const r of MARKET_RULES) { for (const f of FIELDS) assert.ok(f in r, `${r.market_type}.${f}`); assert.match(r.market_rule_id, /@v2$/); }
   assert.equal(getMarketRule('ASIAN_HANDICAP'), null);
   assert.throws(() => resolve({marketType: 'ASIAN_HANDICAP', selection: 'x', match: FT(1, 0)}), {code: 'UNKNOWN_MARKET'});
 });
@@ -52,5 +52,5 @@ test('never guessed: non-finished match or missing score is UNRESOLVED; bad scor
   assert.throws(() => resolve({marketType: 'MATCH_ODDS', selection: 'HOME', match: FT(1.5, 0)}), {code: 'BAD_INPUT'});
   const a = resolve({marketType: 'OVER_UNDER', selection: 'UNDER', line: '3.5', match: FT(2, 2)});
   assert.deepEqual(a, resolve({marketType: 'OVER_UNDER', selection: 'UNDER', line: '3.5', match: FT(2, 2)}));
-  assert.equal(a.market_rule_id, 'OVER_UNDER@v1'); assert.ok(Object.isFrozen(a));
+  assert.equal(a.market_rule_id, 'OVER_UNDER@v2'); assert.ok(Object.isFrozen(a));
 });
