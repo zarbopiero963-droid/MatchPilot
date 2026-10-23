@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {accountState, correctSettlement, createLedger, openPosition, settlePosition} from '../src/ledger/paper-ledger.mjs';
 import {settleFromResult} from '../src/ledger/settlement.mjs';
 import {fromFutPythonTrader, fromTotalCorner} from '../src/markets/outcomes.mjs';
+import {DEFAULT_CS_GRID, MARKET_RULES, selectionsOf} from '../src/markets/rules.mjs';
 
 const AT = '2026-10-23T12:00:00Z';
 const fpt = (version, h, a, acquired_at, status = 'FINAL') =>
@@ -154,6 +155,8 @@ test('DEC-002: the same result version with other content in a later call is a c
   assert.throws(() => settle(l, 'b1', [{...fpt(1, 2, 1, '2026-10-20T21:00:00Z'), provenance: 'futpythontrader:snapshot:elsewhere'}]), {code: 'CONFLICTING_VERSION'});
   assert.throws(() => settle(l, 'b1', [fpt(1, 2, 1, '2026-10-20T22:00:00Z')]), {code: 'CONFLICTING_VERSION'});
   assert.throws(() => settle(l, 'b1', [fpt(1, 1, 1, '2026-10-20T21:00:00Z')]), {code: 'CONFLICTING_VERSION'});
+  // the applied version rewritten next to a newer one is still a conflict, not a correction (review NB-b)
+  assert.throws(() => settle(l, 'b1', [{...fpt(1, 0, 0, '2026-10-20T21:00:00Z'), provenance: 'x'}, fpt(2, 0, 1, '2026-10-21T09:00:00Z')]), {code: 'CONFLICTING_VERSION'});
   assert.equal(l.entries.length, n);
 });
 
@@ -167,8 +170,11 @@ test('a correction is flagged even when only the newer version is passed; anothe
   assert.equal(lastNet(l, 'b1').resolution.corrected, true);
   const half = fromTotalCorner({version: 3, status: 'half', hg: 0, ag: 0, acquired_at: '2026-10-22T09:00:00Z', raw_id: 2});
   assert.throws(() => settle(l, 'b1', [half]), {code: 'PROVIDER_CHANGED'});
-  // same provider, no final at this asOf: the settled position is not touched
-  assert.equal(settle(l, 'b1', [fpt(3, null, null, '2026-10-22T09:00:00Z', 'NO_RESULT')], '2026-10-19T00:00:00Z').status, 'PENDING');
+  // same provider, no final at this asOf: the settled position is not reopened (review NB-a)
+  const n = l.entries.length;
+  const early = settle(l, 'b1', [fpt(3, null, null, '2026-10-22T09:00:00Z', 'NO_RESULT')], '2026-10-19T00:00:00Z');
+  assert.deepEqual([early.status, early.outcome, early.applied_outcome_version, early.reason], ['UNCHANGED', 'LOSE', 2, 'NO_VALIDATED_FINAL']);
+  assert.equal(l.entries.length, n);
 });
 
 test('a settlement made under another rule version is not re-resolved silently (review NB5)', () => {
@@ -188,4 +194,13 @@ test('the resolution is part of the settlement fingerprints: same key with anoth
   assert.throws(() => settlePosition(l, {positionId: 'b1', outcome: 'WIN', idempotencyKey: 'k', at: AT, resolution: r2}), {code: 'IDEMPOTENCY_CONFLICT'});
   correctSettlement(l, {positionId: 'b1', outcome: 'LOSE', reason: 'r', idempotencyKey: 'c', at: AT, resolution: r1});
   assert.throws(() => correctSettlement(l, {positionId: 'b1', outcome: 'LOSE', reason: 'r', idempotencyKey: 'c', at: AT, resolution: r2}), {code: 'IDEMPOTENCY_CONFLICT'});
+});
+
+test('selectionsOf: the exact settleable set of every #100 rule (review NB-c)', () => {
+  const expected = {MATCH_ODDS: ['HOME', 'DRAW', 'AWAY'], HT_MATCH_ODDS: ['HOME', 'DRAW', 'AWAY'], DOUBLE_CHANCE: ['HOME_DRAW', 'HOME_AWAY', 'DRAW_AWAY'],
+    OVER_UNDER: ['OVER', 'UNDER'], HT_OVER_UNDER: ['OVER', 'UNDER'], TEAM_GOALS_OVER_UNDER: ['OVER', 'UNDER'], BTTS: ['YES', 'NO'],
+    CORRECT_SCORE: [...DEFAULT_CS_GRID, 'ANY_OTHER_HOME', 'ANY_OTHER_AWAY', 'ANY_OTHER_DRAW']};
+  assert.deepEqual(MARKET_RULES.map(r => r.market_type).sort(), Object.keys(expected).sort());
+  for (const [type, set] of Object.entries(expected)) assert.deepEqual([...selectionsOf(type)].sort(), [...set].sort(), type);
+  assert.throws(() => selectionsOf('ASIAN_HANDICAP'), {code: 'UNKNOWN_MARKET'});
 });

@@ -29,8 +29,17 @@ export function settleFromResult(ledger, {positionId, versions, asOf, at}) {
   // A position settled from one provider is never re-settled from another, even when that one has no final yet.
   const incoming = Array.isArray(versions) ? versions.find(v => v?.provider)?.provider : undefined;
   if (applied && incoming && incoming !== applied.provider) fail('PROVIDER_CHANGED', `${positionId} settled from ${applied.provider}, now ${incoming}`);
+  // DEC-002: the applied result version must not have been rewritten, wherever it sits in the array.
+  const again = applied && Array.isArray(versions) ? versions.find(v => v?.version === applied.outcome_version) : undefined;
+  if (again && (again.provenance !== applied.provenance || again.recorded_at !== applied.recorded_at))
+    fail('CONFLICTING_VERSION', `${positionId}: result v${applied.outcome_version} already applied with other content`);
   const res = resolveVersioned({...p.market, versions, asOf});
-  if (res.status !== 'RESOLVED') return Object.freeze({status: 'PENDING', ledger_mutation: false, position_id: positionId, reason: res.reason});
+  if (res.status !== 'RESOLVED') {
+    // An already settled position is not reopened by a missing or earlier result: it stays as settled.
+    if (p.settlement !== null) return Object.freeze({status: 'UNCHANGED', ledger_mutation: false, position_id: positionId, outcome: p.settlement,
+      applied_outcome_version: applied?.outcome_version ?? null, reason: res.reason});
+    return Object.freeze({status: 'PENDING', ledger_mutation: false, position_id: positionId, reason: res.reason});
+  }
   const resolution = resolutionOf(res);
   if (p.settlement === null && !applied) {
     const r = settlePosition(ledger, {positionId, outcome: res.outcome, settlementVersion: p.settlement_version + 1,
