@@ -1,0 +1,45 @@
+{
+  "schema_version": "mp-runtime-state-v1",
+  "updated_at": "2026-10-23T06:19:25Z",
+  "updated_by": "agent-g-grok",
+  "note": "Vendor-neutral runtime state of MatchPilot (GOV-RUNTIME-STATE-01, #150, owner t141u). Source of truth on GitHub; any local CHECKPOINT.md is a derived copy. Every PR that changes production or the plan must update this file (docs/governance/PROTOCOL.md).",
+  "production": {
+    "release_sha": "569fb0fa049d648e149457bfba066964d6accc81",
+    "verified_at": "2026-10-23T06:19:25Z",
+    "verification": "VPS 45.14.186.174: /srv/mp-deploy/current -> releases/<sha>; matchpilot-app and matchpilot-fpt-worker active; GET 127.0.0.1:3000/healthz = 200",
+    "deploy": "automatic via deploy-vps workflow on push to main (OWN-T123U-AUTODEPLOY); no deploys 03:15-04:45 Europe/Rome (backup window)",
+    "disabled": ["Render", "Neon", "TotalCorner"]
+  },
+  "current_task": "GOV-RUNTIME-STATE-01 (#150)",
+  "blockers": [
+    {"id": "HIST-01a", "detail": "PR #178 open, BLOCKED on owner (DEC-006)"},
+    {"id": "R-02", "detail": "#40 archive is immutable; task BLOCKED by owner hold"},
+    {"id": "MM-RULES", "detail": "MM models beyond the 4 IMPLEMENTED need owner formulas; no invented economic rules (owner t139u). Open questions: 25 items prepared by agent (not yet on GitHub)"},
+    {"id": "HANDOFF-TEST-01", "detail": "cross-agent test needs an independent Agent B launched by the owner (t141u); this agent must not run or certify it"}
+  ],
+  "pending_runtime_checks": [
+    {"id": "DR-APP-CODE", "detail": "backup/DR log line 'App code' OK not found in logs for backup 20261023T033001 (git_sha.txt = 6ed4919, BACKUP_OK); locate the DR/offsite log and verify", "status": "PENDING"},
+    {"id": "RECOVERY-415", "detail": "412 recovery rows reclassified ALREADY_COMPLETE in details (batch t136u-412) + 3 (usa/venezuela/wales) PARTIAL; status column still RECOVERED because the CHECK constraint lacks ALREADY_COMPLETE: needs the additive migration under D13=A", "status": "PENDING"},
+    {"id": "RESTORE-TEST", "detail": "restore of a backup on a private copy not yet executed", "status": "PENDING"},
+    {"id": "PR-210-RUNTIME", "detail": "PR #210 (BUDGET_CRITICAL false positive, merge 806e001) deployed; first watchdog line with the new payload (limitKind internal_protection) still to be observed", "status": "PENDING"},
+    {"id": "TEMP-COPIES", "detail": "/workspace/stg-offsite and /workspace/stg-redl cleanup only after verifying they are not unique backups / evidence / prod files", "status": "PENDING"}
+  ],
+  "next_action": "Merge GOV-RUNTIME-STATE-01, then GOV-PROTOCOL-01 (docs/governance/PROTOCOL.md + schema + node CLI + negative-test scripts), then HANDOFF READY as Agent A (HANDOFF-PREP-01), then MARKET-CORE-04",
+  "roadmap_after_governance": ["MARKET-CORE-04 (void/postponed/abandoned/corrected results)", "#99 ledger link", "MM persistence and models (D13=A)", "#34 Strategy Lab/backtest", "rest of canonical roadmap (t130u)"],
+  "owner_decisions_relayed": {
+    "source": "Owner instructions relayed to the agent by the bot conversation (Piero, Europe/Rome). Summaries transcribed by the agent; where the exact owner text is not available in the repo it is marked as such. Formal registry: docs/governance/owner-decisions.json.",
+    "items": [
+      {"ref": "t122u", "text": "Self-review is labelled 'self-review (t122u)', never independent; it does not replace CI, Gate A/B and deploy checks (t133u)."},
+      {"ref": "t123u/t124u", "text": "Auto-deploy of ordinary releases (OWN-T123U-AUTODEPLOY)."},
+      {"ref": "t125u", "text": "CODE-FIRST: no audits or plans without a concrete defect."},
+      {"ref": "t130u", "text": "Build MatchPilot fully per approved issues: #3, #97, #104, #12, #96, #99, #28/#29/#102 (integrated Live Trading Center), #34, #24, #25, #30, #94, #98 API/MCP, #196 Betwatch (preparation only, no trial, no purchase). Unapproved or superseded ideas stay out."},
+      {"ref": "t131u-t136u", "text": "FPT reliability, fixes FIX-01..09. Verdicts always separate: SOFTWARE CERTIFIED / PROVIDER STALE / FULLY OPERATIONAL (the last only with real fresh data)."},
+      {"ref": "t137u", "text": "Permanent: never stop after a PR. Cycle ANALYSIS -> IMPLEMENTATION -> TEST -> CI -> GATE -> REVIEW -> PROTECTED MERGE -> DEPLOY -> RUNTIME CHECK -> NEXT TASK, one PR at a time; stop only when the roadmap is complete, on a real block, or when the owner suspends. 7-point report after each PR (feature, PR+SHA, tests+gates, deploy, runtime, residuals, next task started). Keep a resumable checkpoint."},
+      {"ref": "t138u", "text": "BUDGET_CRITICAL: answer questions 1-7 with evidence; if a false positive fix it with RED->GREEN tests; no arbitrary limits; never declare resolution from mere absence of data. Done in PR #210."},
+      {"ref": "t139u", "text": "D13 = A: additive, non-destructive migrations allowed only when all 10 owner conditions hold (the 10 conditions are not transcribed in the repo: owner text to be added verbatim); 412+3 recovery cases; MM rules: no invented economic rules; MM persistence (model configs, simulated bankroll, simulated trades, liability/exposure, change register, simulated settlement, #99 ledger link, audit, restart recovery, consistency under crash/restart/concurrency, no real exchange orders); backup verification (real release SHA, restore on private copy, never delete valid backups); Telegram/monitoring checks."},
+      {"ref": "t140u", "text": "Audit #150; GOV-SYNC-01, GOV-DRIFT-01, GOV-RUNTIME-STATE-01 before MARKET-CORE-04; do NOT run HANDOFF-TEST-01; publish HANDOFF READY as Agent A (audit section 7)."},
+      {"ref": "t141u", "text": "Binding order: GOV-SYNC-01 -> GOV-DRIFT-01 -> GOV-RUNTIME-STATE-01 -> vendor-neutral protocol (PROTOCOL.md, JSON schema, git/gh/node, tested, usable by any agent with only the repo) -> negative-test scripts -> HANDOFF READY as Agent A, release lease, stop and report. No certification on #150; do not claim the cross-agent test; every later PR updates the GitHub checkpoint. Then MARKET-CORE-04, #99, MM, #34. Formal entry OWN-T141U-GOV150."},
+      {"ref": "standing", "text": "Simulated money only, football only, no spend; Render/Neon/TotalCorner off; #40 immutable; no destructive migrations; do not reopen #198-#210 without a concrete defect; no deploys 03:15-04:45 Europe/Rome; never use 45.14.187.69; never print secrets; Telegram deploy notifications confirmed PASS, do not ask again."}
+    ]
+  }
+}

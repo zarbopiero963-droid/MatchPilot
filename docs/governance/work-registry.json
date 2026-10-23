@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 139,
+  "revision": 140,
   "tasks": [
     {
       "id": "R-01",
@@ -958,8 +958,33 @@
       "id": "GOV-DRIFT-01",
       "title": "Executable CI drift check: registry vs GitHub (merged/closed PR, expired lease, unregistered merge, unclaimed PR)",
       "issue": 150,
-      "pr": null,
+      "pr": 212,
       "branch": "gov-drift-01",
+      "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-g-grok",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": null,
+      "parallel_authorization": "OWN-T141U-GOV150",
+      "resources": [
+        "tools/governance/drift.mjs",
+        "tools/governance/cli.mjs",
+        ".github/workflows/ci.yml",
+        "test/governance-drift.test.mjs"
+      ],
+      "pr_open": false,
+      "merge_sha": "c7820ea05373eac346f3e73a94a6eaa6a840756f",
+      "review": "self-review (t122u), not independent"
+    },
+    {
+      "id": "GOV-RUNTIME-STATE-01",
+      "title": "Vendor-neutral runtime state on GitHub (release SHA, task, blockers, pending checks, next action, owner decisions t122u-t141u)",
+      "issue": 150,
+      "pr": null,
+      "branch": "gov-runtime-state-01",
       "kind": "implementation",
       "state": "RUNNING",
       "assignee": {
@@ -968,16 +993,18 @@
       },
       "lease": {
         "holder": "agent-g-grok",
-        "acquired_at": "2026-10-23T06:09:35Z",
-        "expires_at": "2026-10-23T09:09:35Z"
+        "acquired_at": "2026-10-23T06:19:25Z",
+        "expires_at": "2026-10-23T09:19:25Z"
       },
       "latest_checkpoint": null,
       "parallel_authorization": "OWN-T141U-GOV150",
       "resources": [
-        "tools/governance/drift.mjs",
+        "docs/governance/runtime-state.json",
+        "docs/governance/schemas/runtime-state.schema.json",
+        "tools/governance/runtime-state.mjs",
         "tools/governance/cli.mjs",
         ".github/workflows/ci.yml",
-        "test/governance-drift.test.mjs"
+        "test/governance-runtime-state.test.mjs"
       ]
     }
   ]

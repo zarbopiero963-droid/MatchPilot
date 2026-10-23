@@ -165,6 +165,15 @@ async function main([command, ...args]) {
     console.log(JSON.stringify({result: 'PASS'}));
     return 0;
   }
+  if (command === 'runtime-state') {
+    // GOV-RUNTIME-STATE-01: print (default) or --check the vendor-neutral runtime state.
+    const {validateRuntimeState} = await import('./runtime-state.mjs');
+    const state = JSON.parse(readFileSync(`${root}docs/governance/runtime-state.json`, 'utf8'));
+    const errors = validateRuntimeState(state);
+    if (args.includes('--check')) { console.log(JSON.stringify({result: errors.length ? 'FAIL' : 'PASS', errors})); return errors.length ? 1 : 0; }
+    console.log(JSON.stringify({...state, validation_errors: errors}, null, 2));
+    return errors.length ? 1 : 0;
+  }
   if (command === 'drift') {
     // GOV-DRIFT-01: registry vs GitHub. --pr/--branch: the PR under test; --grace: PR numbers allowed non-final.
     const {detectDrift, fetchPulls} = await import('./drift.mjs');
