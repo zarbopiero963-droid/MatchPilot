@@ -1,12 +1,12 @@
 {
   "schema_version": "mp-runtime-state-v1",
-  "updated_at": "2026-10-23T10:28:28Z",
+  "updated_at": "2026-10-23T10:48:44Z",
   "updated_by": "agent-a-claude-code",
   "note": "Vendor-neutral runtime state of MatchPilot (GOV-RUNTIME-STATE-01, #150, owner t141u). Source of truth on GitHub; any local CHECKPOINT.md is a derived copy. Every PR that changes production or the plan must update this file (docs/governance/PROTOCOL.md).",
   "production": {
-    "release_sha": "569fb0fa049d648e149457bfba066964d6accc81",
-    "verified_at": "2026-10-23T06:29:10Z",
-    "verification": "VPS 45.14.186.174: /srv/mp-deploy/current -> releases/<sha>; matchpilot-app and matchpilot-fpt-worker active; GET 127.0.0.1:3000/healthz = 200",
+    "release_sha": "891e981191251c1756760960cd7ca9d55432accd",
+    "verified_at": "2026-10-23T09:29:04Z",
+    "verification": "deploy-vps run 39931191163 on 891e981 concluded success at 2026-10-23T09:29:04Z (GitHub API); VPS current -> releases/891e981 and healthz 200 reported by agent-g-grok (PR #216 comment 6363164972), not re-verified on the VPS by agent-a-claude-code",
     "deploy": "automatic via deploy-vps workflow on push to main (OWN-T123U-AUTODEPLOY); no deploys 03:15-04:45 Europe/Rome (backup window)",
     "disabled": [
       "Render",
