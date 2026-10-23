@@ -1,0 +1,128 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T214514Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T21:45:14Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "PERSIST-PREFLIGHT-01",
+  "activity": "PR #235 auto-merged as 2cf0463 (squash, expectedHeadSha 984c646); main CI and VPS deploy verified",
+  "issue": 99,
+  "pr": 235,
+  "branch": "persist-preflight-01",
+  "commit_sha": "984c646fcbc8900fd4e4813ada565b015535cffd",
+  "tree_sha": "e5540527de0b68b55563260a8df1569b85fea600",
+  "base_sha": "92eb96d09a9453c4e1c9c421a437468c65259f18",
+  "requirements": [],
+  "changes": [
+    "tools/vps/persistence-preflight.mjs",
+    "test/persistence-preflight.test.mjs",
+    "docs/persistence-preflight.md",
+    "2cf0463: squash merge of PR #235"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "346f8469e49e3e5b19dcb5e549ef5d5c38cb4544",
+      "time": "2026-10-23T21:18:13Z",
+      "limits": [
+        "the script ran in the cloud container without systemd; on the VPS it is run by the owner"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 2cf0463",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "2cf0463690e0c627cdf9902e5cfb5b2b22f37637",
+      "time": "2026-10-23T21:45:14Z",
+      "limits": [
+        "run 40027916803 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 2cf0463 (job log evidence)",
+      "result": "PASS",
+      "environment": "VPS via self-hosted runner, evidence from the job log only",
+      "commit": "2cf0463690e0c627cdf9902e5cfb5b2b22f37637",
+      "time": "2026-10-23T21:45:14Z",
+      "limits": [
+        "run 40027916725: guard rc=0 mode=enforce; DEPLOY_GATE_SHA_OK 2cf0463; worker_restart=ok; result=OK health=200"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "SUCCESS",
+    "head_sha": "984c646fcbc8900fd4e4813ada565b015535cffd"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "984c646fcbc8900fd4e4813ada565b015535cffd",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/235#issuecomment-6375049729"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "MP-PERSISTENCE-232-NEXT-20261023",
+    "MP-FPT-PROVISIONAL-DEPRIORITIZATION-20261023"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI",
+      "VPS deploy"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "tools/vps/persistence-preflight.mjs",
+    "docs/persistence-preflight.md",
+    "docs/persistence-plan.md",
+    "branch:persist-preflight-01",
+    "pr:235"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "none for PERSIST-PREFLIGHT-01",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261023T211813Z-agent-a-claude-code",
+  "merge_sha": "2cf0463690e0c627cdf9902e5cfb5b2b22f37637"
+}

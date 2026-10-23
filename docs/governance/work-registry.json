@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 191,
+  "revision": 192,
   "tasks": [
     {
       "id": "R-01",
@@ -1424,9 +1424,9 @@
       "pr": 235,
       "branch": "persist-preflight-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T211813Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T214514Z-agent-a-claude-code",
       "resources": [
         "tools/vps/persistence-preflight.mjs",
         "docs/persistence-preflight.md",
@@ -1436,7 +1436,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "2cf0463690e0c627cdf9902e5cfb5b2b22f37637"
     }
   ]
 }
