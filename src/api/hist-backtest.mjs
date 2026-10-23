@@ -98,7 +98,15 @@ export function histBacktestEndpoint({param, integer, oneOf, instant, ApiError})
         if (error instanceof HistInputError) throw badRequest(ApiError, `stored data refused by the backtest contract: ${error.message}`);
         throw error;
       }
-      return {reader: {...read.stats, events: histInput.events.length, truncated}, report};
+      // For the page (HIST-WEB-01): the names and date of each match a bet was placed on, and the totals of the reason
+      // counters, so the browser shows them without computing anything (MP-WEB-011).
+      const betEvents = new Set(report.bets.map(bet => bet.event_id));
+      const events = Object.fromEntries(histInput.events.filter(e => betEvents.has(e.event_id))
+        .map(e => [e.event_id, {home: e.home ?? null, away: e.away ?? null, match_date: e.match_date ?? null, kickoff_utc: e.kickoff_utc ?? null}]));
+      const total = counts => Object.values(counts ?? {}).reduce((sum, n) => sum + n, 0);
+      const totals = {bets: report.bets.length, unsettled: total(report.counts?.unsettled_by_reason), no_trade: total(report.counts?.no_trade_by_reason),
+        skipped_by_money_management: report.bankroll ? total(report.bankroll.skipped_by_reason) : null};
+      return {reader: {...read.stats, events: histInput.events.length, truncated}, report, events, totals};
     },
     provenance: data => ({source: 'database', source_provider: 'futpythontrader', upstream_calls: 0, writes: 0,
       pit_mode: data.report.config.pit_mode, certification: data.report.certification, report_sha256: data.report.report_sha256}),

@@ -124,6 +124,15 @@ test('FPT reader: versions, prices and results from PostgreSQL; PIT finds nothin
       assert.equal(api.status, 200);
       assert.deepEqual([api.body.data.report.metrics.pl_net, api.body.data.reader.events, api.body.meta.provenance.pit_mode], ['2.51', 3, 'NON_PIT_RESEARCH']);
       assert.equal(api.body.data.report.report_sha256, runBacktest(input, {...CONFIG, pit_mode: 'NON_PIT_RESEARCH'}).report_sha256);
+      // For the page (HIST-WEB-01): names and date of every match bet on, as the input carries them; totals of the counters.
+      const eventsOfBets = new Set(api.body.data.report.bets.map(bet => bet.event_id));
+      assert.deepEqual(Object.keys(api.body.data.events).sort(), [...eventsOfBets].sort());
+      for (const event of input.events.filter(e => eventsOfBets.has(e.event_id))) {
+        assert.deepEqual(api.body.data.events[event.event_id], {home: event.home, away: event.away, match_date: event.match_date, kickoff_utc: event.kickoff_utc});
+      }
+      const sumOf = counts => Object.values(counts).reduce((a, n) => a + n, 0);
+      assert.deepEqual(api.body.data.totals, {bets: api.body.data.report.bets.length, unsettled: sumOf(api.body.data.report.counts.unsettled_by_reason),
+        no_trade: sumOf(api.body.data.report.counts.no_trade_by_reason), skipped_by_money_management: null});
       assert.equal((await db.query('SELECT current_setting($1) AS ro', ['transaction_read_only'])).rows[0].ro, 'off', 'the read-only transaction was closed');
       const pitApi = await handleV1({method: 'GET', url: new URL('http://localhost/api/v1/hist/backtest?from=2025-09-01&to=2025-09-30')}, {withClient: async fn => fn(db), tc: {}, codeVersion: 't'});
       assert.deepEqual([pitApi.status, pitApi.body.data.report.status], [200, 'INSUFFICIENT_PIT_DATA']);
@@ -131,6 +140,7 @@ test('FPT reader: versions, prices and results from PostgreSQL; PIT finds nothin
       const mmApi = await handleV1({method: 'GET', url: new URL('http://localhost/api/v1/hist/backtest?from=2025-09-01&to=2025-09-30&pit_mode=NON_PIT_RESEARCH&bankroll=100&mm_model=PERCENT_BANKROLL&mm_value=10')},
         {withClient: async fn => fn(db), tc: {}, codeVersion: 't'});
       assert.deepEqual([mmApi.status, mmApi.body.data.report.bets.map(b => b.stake)], [200, ['10', '10.85', '12.04']]); // 100 → 108.5 → 120.435: 10 % rounded down to the cent
+      assert.equal(mmApi.body.data.totals.skipped_by_money_management, sumOf(mmApi.body.data.report.bankroll.skipped_by_reason));
 
       const after = (await db.query(`SELECT (SELECT count(*) FROM fpt_match_versions) v, (SELECT count(*) FROM fpt_match_facts) f`)).rows[0];
       assert.deepEqual(after, before, 'the reader writes nothing');

@@ -29,7 +29,8 @@ const SIDE = {HOME: 'Casa', AWAY: 'Ospite', EVEN: 'Pari'};
 // [view, menu label, page title, area]: the menu label is what the user reads before clicking (QA-03: it was not checked);
 // the area decides whether the no-technical-text rule applies (MP-WEB-015). Every view declares one (V-B2): the home page
 // Oggi (D-2) and the search are user views; «Dati» holds the technical views, reached through its tabs (DATA_TABS).
-const NAV = [['', 'Oggi', 'Oggi', 'user'], ['search', 'Ricerca', 'Ricerca partite', 'user'], ['data', 'Dati', 'Stato dei dati', 'technical']];
+const NAV = [['', 'Oggi', 'Oggi', 'user'], ['search', 'Ricerca', 'Ricerca partite', 'user'], ['sim', 'Simulazione', 'Simulazione', 'user'],
+  ['data', 'Dati', 'Stato dei dati', 'technical']];
 const DATA_TABS = [['#/data', 'Panoramica', 'Stato dei dati'], ['#/providers', 'Fornitori', 'Fornitori dati'], ['#/endpoints', 'API', 'API v1']];
 const titled = (page, text) => page.waitForFunction(title => document.querySelector('main h1')?.textContent === title && !document.querySelector('.state.loading'), text);
 const unavailable = {api_version: 'v1', error: {code: 'UNAVAILABLE', message: 'data source unavailable'}};
@@ -841,6 +842,147 @@ export const JOURNEYS = [
         await page.waitForSelector('[data-testid="match-not-found"]');
         assert.equal(await page.getAttribute('[data-testid="match-not-found"]', 'data-code'), 'MATCH_NOT_FOUND');
       });
+    },
+  },
+  {
+    id: 'simulation', surface: 'Simulazione', title: 'Backtest: modalità rigorosa e ricerca etichettata, valori uguali all’API, capitale, troncamento, errori',
+    allowHttp: [{path: '/api/v1/hist/backtest', status: 400}, {path: '/api/v1/hist/backtest', status: 429}, {path: '/api/v1/hist/backtest', status: 503}],
+    async run({page, base, step, api, seed}) {
+      const backtest = query => api(`/api/v1/hist/backtest?${new URLSearchParams(query)}`);
+      const submit = async () => {
+        await page.click('[data-testid="sim-form"] button[type="submit"]');
+        await outcomeShown(page);
+      };
+      const fieldText = name => page.textContent(`[data-field="${name}"]`);
+      await step('modulo vuoto: nessuna simulazione finché non si preme Simula', async () => {
+        await fresh(page, `${base}/#/sim`);
+        await titled(page, 'Simulazione');
+        assert.equal(await page.getAttribute('main', 'data-area'), 'user');
+        assert.equal(await page.inputValue('select[name="pit_mode"]'), 'PIT', 'the rigorous mode is the default');
+        assert.equal(await page.locator('[data-testid="sim-research"]').count(), 0);
+        await page.waitForSelector('text=Scegli il periodo e premi Simula.');
+      });
+      await step('modalità rigorosa: le quote archiviate sono successive all’inizio, nulla da simulare', async () => {
+        const expected = (await backtest({from: '2024-08-01', to: '2024-08-31'})).data.report;
+        assert.equal(expected.status, 'INSUFFICIENT_PIT_DATA');
+        await page.fill('input[name="from"]', '2024-08-01');
+        await page.fill('input[name="to"]', '2024-08-31');
+        await submit();
+        assert.equal(await page.getAttribute('[data-testid="sim-outcome"]', 'data-status'), 'INSUFFICIENT_PIT_DATA');
+        assert.equal(await page.getAttribute('[data-testid="sim-outcome"]', 'data-report'), expected.report_sha256, 'the same report as the API');
+        await page.waitForSelector('[data-testid="sim-no-pit"]');
+        assert.equal(await page.locator('[data-testid="sim-research"]').count(), 0, 'no research label in the rigorous mode');
+        assert.equal(await page.getAttribute('[data-testid="sim-outcome"]', 'data-certified'), 'false');
+        await page.waitForSelector('[data-testid="sim-certification"]');
+        assert.equal(await fieldText('events'), shown(expected.counts.events));
+      });
+      await step('ricerca esplorativa: etichetta visibile e valori uguali all’API', async () => {
+        const query = {from: '2024-08-01', to: '2024-08-31', competition: seed.eredivisie.competition, pit_mode: 'NON_PIT_RESEARCH', commission: '0.05', stake: '10'};
+        const data = (await backtest(query)).data;
+        const report = data.report;
+        assert.equal(report.status, 'OK');
+        assert.ok(report.metrics && report.bets.length > 0, 'the QA archive gives settled bets in research mode');
+        await fresh(page, `${base}/#/sim`);
+        await page.waitForSelector('[data-testid="sim-form"]');
+        await page.fill('input[name="from"]', query.from);
+        await page.fill('input[name="to"]', query.to);
+        await page.selectOption('select[name="competition"]', query.competition);
+        assert.ok(!(await page.locator('[data-testid="sim-mode-hint"]').isVisible()), 'no hint in the rigorous mode');
+        await page.selectOption('select[name="pit_mode"]', query.pit_mode);
+        assert.ok(await page.locator('[data-testid="sim-mode-hint"]').isVisible(), 'the research mode is explained as soon as it is chosen');
+        await page.fill('input[name="commission"]', query.commission);
+        await page.fill('input[name="stake"]', query.stake);
+        await submit();
+        assert.equal(await page.getAttribute('[data-testid="sim-outcome"]', 'data-report'), report.report_sha256);
+        assert.equal(await page.getAttribute('[data-testid="sim-outcome"]', 'data-pit-mode'), 'NON_PIT_RESEARCH');
+        // The label is on the form and above the result, in plain words, never only in a tooltip.
+        assert.equal(await page.locator('[data-testid="sim-research"]').count(), 2);
+        assert.match(await page.textContent('[data-testid="sim-research"] >> nth=1'), /^RICERCA ESPLORATIVA — .*non dimostrano alcuna redditività/);
+        assert.ok(await page.locator('[data-testid="sim-research"] >> nth=1').isVisible());
+        const m = report.metrics;
+        for (const [name, value] of [['bets', m.bets], ['won', m.won], ['lost', m.lost], ['staked', m.staked], ['exposure', m.exposure],
+          ['pl_gross', m.rounded.pl_gross], ['commission', m.rounded.commission], ['pl_net', m.rounded.pl_net], ['roi', m.rounded.roi],
+          ['max_drawdown', m.rounded.max_drawdown], ['corrected_results', m.corrected_results], ['events', report.counts.events],
+          ['decisions_back', report.counts.decisions.BACK], ['decisions_lay', report.counts.decisions.LAY], ['decisions_no_trade', report.counts.decisions.NO_TRADE],
+          ['unsettled', data.totals.unsettled]]) {
+          assert.equal(await fieldText(name), shown(value), name);
+        }
+        assert.equal(await fieldText('by_side_back'), `${shown(m.by_side.BACK.bets)} scommesse · netto ${shown(m.by_side.BACK.pl_net)}`);
+        assert.equal(await fieldText('by_side_lay'), `${shown(m.by_side.LAY.bets)} scommesse · netto ${shown(m.by_side.LAY.pl_net)}`);
+        assert.equal(await page.textContent('[data-testid="sim-bets"] h2'), `Scommesse (${shown(data.totals.bets)})`);
+        const rows = page.locator('[data-testid="sim-bets"] tbody tr');
+        assert.equal(await rows.count(), report.bets.length);
+        const cells = await rows.evaluateAll(trs => trs.map(tr => ({event: tr.dataset.event, date: tr.cells[0].querySelector('time')?.getAttribute('datetime') ?? null,
+          text: [...tr.cells].map(td => td.textContent)})));
+        for (const [i, bet] of report.bets.entries()) {
+          const event = data.events[bet.event_id];
+          assert.equal(cells[i].event, bet.event_id);
+          assert.equal(cells[i].date, event.match_date, `row ${i} date`);
+          assert.deepEqual(cells[i].text.slice(1), [`${event.home} – ${event.away}`, {BACK: 'Punta', LAY: 'Banca'}[bet.side], {HOME: '1', DRAW: 'X', AWAY: '2'}[bet.selection],
+            shown(bet.odds), shown(bet.stake), {WON: 'Vinta', LOST: 'Persa'}[bet.settlement.bet_result], shown(bet.settlement.net)], `row ${i}`);
+        }
+        assert.equal(await page.inputValue('select[name="pit_mode"]'), 'NON_PIT_RESEARCH', 'the form keeps its values');
+      });
+      await step('capitale e gestione: blocco capitale uguale all’API', async () => {
+        const query = {from: '2024-08-01', to: '2024-08-31', pit_mode: 'NON_PIT_RESEARCH', strategy: 'mp-ref-fav-lay-1', bankroll: '100', mm_model: 'PERCENT_BANKROLL', mm_value: '2'};
+        const data = (await backtest(query)).data;
+        const b = data.report.bankroll;
+        assert.ok(b.placed > 0, 'the capital run places bets');
+        await fresh(page, `${base}/#/sim?${new URLSearchParams({...query, run: '1'})}`);
+        await page.waitForSelector('[data-testid="sim-bankroll"]');
+        assert.equal(await page.getAttribute('[data-testid="sim-outcome"]', 'data-report'), data.report.report_sha256);
+        for (const [name, value] of [['initial', b.initial], ['final_cash', b.final_cash], ['available', b.available], ['realized_pnl', b.realized_pnl],
+          ['return_on_bankroll', b.return_on_bankroll], ['max_drawdown', b.max_drawdown], ['placed', b.placed], ['reduced', b.reduced], ['skipped', data.totals.skipped_by_money_management]]) {
+          assert.equal(await page.textContent(`[data-testid="sim-bankroll"] [data-field="${name}"]`), shown(value), name);
+        }
+        assert.equal(await page.inputValue('select[name="strategy"]'), 'mp-ref-fav-lay-1');
+      });
+      await step('troncamento: la pagina dice quante partite ha simulato', async () => {
+        const data = (await backtest({from: '2024-08-01', to: '2024-08-31', max_events: '3'})).data;
+        assert.equal(data.reader.truncated, true);
+        await fresh(page, `${base}/#/sim?run=1&from=2024-08-01&to=2024-08-31&max_events=3`);
+        await page.waitForSelector('[data-testid="sim-truncated"]');
+        assert.match(await page.textContent('[data-testid="sim-truncated"]'), /^Simulate solo le prime 3 partite/);
+      });
+      await step('periodo rifiutato dal server: i campi sono nominati in italiano', async () => {
+        await fresh(page, `${base}/#/sim`);
+        await page.waitForSelector('[data-testid="sim-form"]');
+        await page.fill('input[name="from"]', '2024-08-31');
+        await page.fill('input[name="to"]', '2024-08-01');
+        await submit();
+        await page.waitForSelector('[data-testid="sim-invalid"]');
+        assert.match(await page.textContent('[data-testid="sim-invalid"]'), /^Valore non valido in: .*\bAl\b.*Correggi il campo e riprova\.$/);
+      });
+      await step('gestione del capitale rifiutata: è nominato il suo valore, non la puntata', async () => {
+        await fresh(page, `${base}/#/sim?run=1&from=2024-08-01&to=2024-08-31&bankroll=100&mm_model=FIXED_STAKE&mm_value=0`);
+        await page.waitForSelector('[data-testid="sim-invalid"]');
+        assert.equal(await page.getAttribute('[data-testid="sim-invalid"]', 'data-fields'), 'mm_value');
+        assert.match(await page.textContent('[data-testid="sim-invalid"]'), /^Valore non valido in: Valore della gestione\./);
+      });
+      await step('gestione senza capitale e puntata non valida: sono nominati i loro campi', async () => {
+        for (const [query, fields, text] of [['bankroll=&mm_model=FIXED_STAKE&mm_value=1', 'bankroll', 'Capitale iniziale'], ['stake=0', 'stake', 'Puntata']]) {
+          await fresh(page, `${base}/#/sim?run=1&from=2024-08-01&to=2024-08-31&${query}`);
+          await page.waitForSelector('[data-testid="sim-invalid"]');
+          assert.equal(await page.getAttribute('[data-testid="sim-invalid"]', 'data-fields'), fields, query);
+          assert.match(await page.textContent('[data-testid="sim-invalid"]'), new RegExp(`^Valore non valido in: ${text}\\.`), query);
+        }
+      });
+      await step('un’altra simulazione in corso: avviso, non errore', async () => {
+        await page.route('**/api/v1/hist/backtest?*', route => route.fulfill({status: 429, contentType: 'application/json',
+          body: JSON.stringify({api_version: 'v1', error: {code: 'BUSY', message: 'another backtest is running'}})}));
+        await fresh(page, `${base}/#/sim?run=1&from=2024-08-01&to=2024-08-02`);
+        await page.waitForSelector('[data-testid="sim-busy"]');
+        assert.ok(await page.locator('[data-testid="sim-form"]').isVisible(), 'the form stays');
+        assert.equal(await page.locator('.state.error').count(), 0, 'busy is a notice, not an error');
+        await page.unroute('**/api/v1/hist/backtest?*');
+      });
+      await step('servizio non disponibile: stato di errore con Riprova', async () => {
+        await page.route('**/api/v1/hist/backtest?*', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
+        await fresh(page, `${base}/#/sim?run=1&from=2024-08-01&to=2024-08-02`);
+        await titled(page, 'Dati non disponibili');
+        await page.waitForSelector('.state.error button');
+        await page.unroute('**/api/v1/hist/backtest?*');
+      }, {screenshot: true});
     },
   },
   {

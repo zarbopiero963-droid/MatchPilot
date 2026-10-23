@@ -115,3 +115,62 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `dati-desktop.png` `79d5a266769dd0d86b578dd7e81324f946fce4300a65a852d2411820f10ddfdd`
   - `dati-tablet.png` `50697e4f66a301638ec115c0d2712ebcae50904408bddd77a3a9225dd8a57d28`
   - `dati-mobile.png` `2b5c9f303813b6663c9efc90467ef01eb94febd770ce91ef313f5f9dfffcd1c1`
+
+## 2026-10-23 — HIST-WEB-01: menu entry «Simulazione» in the header of every view; new scenes simulazione and simulazione-ricerca
+
+- Approval: PR #229, owner mandate MP-AUTONOMOUS-AUTOMERGE-20261023 (roadmap priority 9: operational web interfaces)
+- Run: commit `c3c604e33251cc3b0b77a7b17a0e7ab526d72320`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `dati-desktop.png` `7a44d4bdc96bfd98a6b0f103736a527ff3534c34e07c6b8e9bafbe1880ab2b51`
+  - `dati-mobile.png` `2609cc84ffc06fdf4874462751c39932b260a8c665a5d8b88893c4aa5dad5e8e`
+  - `dati-parziale-mobile.png` `de46ff18809dd7386a4eaa29f8f9ec1bf7f6df203d77404195d62567b63dd207`
+  - `dati-tablet.png` `064249cf3fa10f43b94e978ad6d2e919282d27a8a74db38c9dfdf916895c0f74`
+  - `non-trovata-desktop.png` `166d3c1fa233c04a498c309c90d52e4e6b135d68ff5a62adea3dd3d7fbeb99aa`
+  - `non-trovata-mobile.png` `97c018b6b46b89e107d67a5e2ef6e6470768e61535d2f1fee6e80cb95382e42d`
+  - `non-trovata-tablet.png` `008f8afe3ba925d1935bf7d89b8792e16d7f6ca4615edf7f02e44db4b94dd1b1`
+  - `oggi-caricamento-desktop.png` `a9c342ab8afd229d2a274b9e0669a8d152df3096ff256570c9a02e7d9a314c5d`
+  - `oggi-caricamento-mobile.png` `dea8527a9c791feab00815c495877903b873f5e1368ae38073f249293ecad579`
+  - `oggi-caricamento-tablet.png` `4cdcb4629ef8f3de28116264b79c68f4571cbc54e6caf70d2fdc257bfaed38d5`
+  - `oggi-desktop.png` `7f1b76196cd6ea7f555e7bc553e1d99feff154250158b56d2f50396fe3c6cac1`
+  - `oggi-errore-desktop.png` `cd7bf48434cf0c392e10df62c6d77d109ff9f7020aad7f6a1e8a2f1d5f249bb5`
+  - `oggi-errore-mobile.png` `dad20affd3b2ff9184d963306fd32ef3a010844999fa55fb806d82325b4b4830`
+  - `oggi-errore-tablet.png` `28d5e4e934f331cae03b97f56d42b4abb943ca030308920e662f5fc7cdcc356a`
+  - `oggi-mobile.png` `81c702971bd15a8bd01addfc5d48fd9a72dfb4e43bffd04a2d4fb0946062eea2`
+  - `oggi-oggi-desktop.png` `7fa9f907eaa44190f08370a75114eac2725e2c072e3dcbc5e8c3849ce4ec590a`
+  - `oggi-oggi-mobile.png` `39044276f1b0ce984c5bbd398a93efc6274a8a61fe1d9268f21afe483320fba5`
+  - `oggi-oggi-tablet.png` `6479398c0b344334a66bdf7819fc37c63634fc19c132cbbd6145c32ec0b0ac53`
+  - `oggi-righe-mobile.png` `b2e569034d136aa1f54be4946d2dbd4fcab8461b9a20955b186534caae2eebb7`
+  - `oggi-tablet.png` `bb024a355398eaf52814a52703341a14f85399807d6b0e3f56db937ff41a927a`
+  - `oggi-vuoto-desktop.png` `d2c19c8a0819c78e9d0b5f79364dd0e621514549a1f53bb532f6d7c334867418`
+  - `oggi-vuoto-mobile.png` `31731d0d3784bc4ae8c14d47fbe7cf718226fbec86916d9fd6bbac3b73786c34`
+  - `oggi-vuoto-tablet.png` `99f368d4789fdaa86dca92770693aa326d63fb29c165a57eb4c179d2fcd875b1`
+  - `partita-confronto-mobile.png` `de8f651d7bb5dad7c5768280fa1a2603be17a1dfaea5fe0efd761679b839290a`
+  - `partita-desktop.png` `96f2bf3c7f5a512402d8cbe8d39f943e5f97d90508f2d27f5d1e7837160a37c9`
+  - `partita-mobile.png` `ccf4d4a6190463206028d66f26a950d7d8bbaecc3383c0b58760e2f3af6da334`
+  - `partita-senza-storico-mobile.png` `88f78aca7e6a6159d8e43a5d140951123d56b18a5c1f1b8cf9b12594197231ef`
+  - `partita-tablet.png` `05a6e0d33eac2d3a7a78488cedec504ecf397928e441b9366c035e3f60f919b9`
+  - `ricerca-desktop.png` `b6266010592fc0e6f7fdca2d079c1975865c75ad0739b8ff220f5e8a738a3ec8`
+  - `ricerca-filtro-rifiutato-desktop.png` `09e3e41005bc0f407290068f8b0126769dc082e53813288bdbb0465eee9f8d9e`
+  - `ricerca-filtro-rifiutato-mobile.png` `3d82c3a4f483538a51ed34de12f2a2ca35458c78a575863b05c00a0dadef2cd1`
+  - `ricerca-filtro-rifiutato-tablet.png` `836eeddd42280b323fc4ecca5d45d9fb597ce5c564f5d7310944e9a25d5770ae`
+  - `ricerca-mobile.png` `3167d201e838077c171f52201b555cd35cb23eb238d45ae302cc6c45abc15bcf`
+  - `ricerca-risultati-mobile.png` `b9eea68c5f3cdc261c9811f6bbe9eee43f35c94fdf15f1a76e208b988f409893`
+  - `ricerca-tablet.png` `48671e26a52015406abcfb3717977c622bebe8a56b40de406125d031a35f2fa9`
+  - `simulazione-desktop.png` `f0f11ac88a9aac1c147bb051a1572d85bfe9992667e5a40613e1a404f65a5aa3`
+  - `simulazione-mobile.png` `513a24cec6d56a3efb3a7f9e69b12349b56a360bae023c86a1e61d40a844c29f`
+  - `simulazione-ricerca-desktop.png` `a60963f7351f8a228e726cdb1280fa01054765aced69c75980a893554ef250b7`
+  - `simulazione-ricerca-mobile.png` `d139a09c6af9f3b8507680c643b589ccd400ea4e7ecbd5dcf8e7344fc093ce06`
+  - `simulazione-ricerca-tablet.png` `f2d470d206a0980ddf07e09410d6e7e37974f732034e6535967a5577061cfeca`
+  - `simulazione-tablet.png` `25b27106fe1189a9c36ef4b317dc13d0a5adfbccc8c4560d527e02e3028bee40`
+
+## 2026-10-23 — HIST-WEB-01 review fixes: management value label with its scale, rounding note naming the rounded figures
+
+- Approval: PR #229, review DEC-004-R1 B-1 and NB-2; owner mandate MP-AUTONOMOUS-AUTOMERGE-20261023
+- Run: commit `59ba137b16e9d180ae96217035e1ae968e67c345`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `simulazione-desktop.png` `1d4ebd3bfc29644223dafd70e6c00a2b2270d751f995f371c86ddcbfde45067e`
+  - `simulazione-mobile.png` `58ef2812a48992504a90b3c594e192e5547b34950ad1fe095c115719d5fe078f`
+  - `simulazione-ricerca-tablet.png` `d473a8ad398712d32cbb51b01142dc0f469288d1aa29448e79022ea4ed2c722a`
+  - `simulazione-tablet.png` `3ebcde7117e9ce3c0a3bc36d2272caaeae35443e22517aacbd51fc97ea995548`

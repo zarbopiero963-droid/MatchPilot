@@ -3,9 +3,9 @@
 ## File corrente
 
 - File: [`matchpilot-trading-os.html`](matchpilot-trading-os.html), percorso stabile. Le versioni non cambiano nome: la storia è in git e in questo changelog.
-- Versione: **Mock UX v2026.10.19**
-- Ultimo aggiornamento: 2026-10-19
-- SHA-256: `4dd546f309ebcc8284b278b06195f8a50bacca42c8a74b6e1236de0c6c8eaf76`
+- Versione: **Mock UX v2026.10.23**
+- Ultimo aggiornamento: 2026-10-23
+- SHA-256: `cde56e3e5e59b92378fd2bfcaaf1eaeaa422b7e6fa3c984e8726a7427407ac18`
 - Allineato a: roadmap #97 (revisione owner 06/10/2026)
 - Issue rappresentate: #12, #20, #23, #24, #25, #27, #28, #29, #30, #31, #32, #34, #40, #44, #45, #46, #87, #91, #94, #95, #96, #97, #98, #99, #100, #102
 
@@ -53,6 +53,11 @@ Il mock è un riferimento UX/prodotto **vivo**. Non è l'architettura e non cert
 - Il layout usa font Google; senza rete il menu desktop può tagliare l'ultima voce.
 
 ## Changelog
+
+### v2026.10.23 — Simulazione reale (HIST-WEB-01, #34)
+
+- Nella pagina Backtest una nota indica cosa fa la pagina «Simulazione» del sito reale (`#/sim`): backtest su `/api/v1/hist/backtest` con le partite archiviate, modalità rigorosa di default, «Ricerca esplorativa» sempre etichettata, risultato «Non certificato», valori dell'API senza calcoli nel browser.
+- Le parti DEMO del backtest (curve, P/L per mese, backtest salvati, in/out-of-sample) non cambiano.
 
 ### v2026.10.19 — Daily Board, Dashboard e Ricerca reali (R-06b, #3, #30)
 

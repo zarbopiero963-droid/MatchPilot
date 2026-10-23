@@ -802,6 +802,179 @@ async function endpointsView() {
   ];
 }
 
+// ---- Simulazione: the backtest over the stored archive (HIST-WEB-01, #34) ----
+
+// Every figure comes from GET /api/v1/hist/backtest exactly as the engine reported it (MP-WEB-011): the page names the
+// fields in Italian and never derives a value. The research mode (prices acquired after kickoff) is labelled on the form
+// and on every result; no result is a certification or a proof of return.
+const SIM_STRATEGIES = [['mp-ref-fav-back-1', 'Favorito · Punta'], ['mp-ref-fav-lay-1', 'Favorito · Banca']];
+const SIM_MODES = [['PIT', 'Rigorosa'], ['NON_PIT_RESEARCH', 'Ricerca esplorativa']];
+const SIM_MM = [['', 'Puntata fissa'], ['FIXED_STAKE', 'Puntata fissa sul capitale'], ['FIXED_LIABILITY', 'Rischio fisso'],
+  ['PERCENT_BANKROLL', 'Percentuale del capitale'], ['LIABILITY_PERCENT_BANKROLL', 'Rischio in percentuale del capitale']];
+const SIM_FIELDS = ['from', 'to', 'competition', 'strategy', 'pit_mode', 'stake', 'commission', 'bankroll', 'mm_model', 'mm_value', 'max_events'];
+const SIM_LABELS = {from: 'Dal', to: 'Al', competition: 'Campionato', strategy: 'Strategia', pit_mode: 'Modalità', stake: 'Puntata',
+  commission: 'Commissione', bankroll: 'Capitale iniziale', mm_model: 'Gestione del capitale', mm_value: 'Valore della gestione', max_events: 'Partite al massimo'};
+const SIDE_TEXT = {BACK: 'Punta', LAY: 'Banca'};
+const SELECTION_TEXT = {HOME: '1', DRAW: 'X', AWAY: '2'};
+const BET_RESULT_TEXT = {WON: 'Vinta', LOST: 'Persa'};
+const isResearch = report => report?.config?.pit_mode === 'NON_PIT_RESEARCH' || report?.certification?.pit_mode === 'NON_PIT_RESEARCH';
+const labelled = (map, value) => typeof value === 'string' && Object.hasOwn(map, value)
+  ? el('span', {class: 'code', title: value, 'data-code': value}, map[value]) : formatScalar(value);
+
+// The research label: shown on the form when chosen and above every research result, never hidden in a tooltip.
+const researchNotice = () => el('p', {class: 'state partial research', role: 'note', 'data-testid': 'sim-research'},
+  el('b', {}, 'RICERCA ESPLORATIVA'), ' — le quote sono state acquisite dopo l’inizio delle partite: i risultati servono solo a studiare il motore e non dimostrano alcuna redditività.');
+
+function simForm(params, competitions) {
+  const value = name => params.get(name) ?? '';
+  const select = (name, options, fallback) => el('select', {name}, options.map(([v, text]) => el('option', {value: v, selected: (value(name) || fallback) === v}, text)));
+  const input = (name, attrs) => el('input', {name, value: value(name), ...attrs});
+  const competitionOptions = [['', 'Tutti'], ...competitions.map(c => [c.internal_competition_id, `${words(c.country_slug ?? '')} · ${words(c.league_slug ?? '')}`])];
+  // The meaning of the research mode is shown as soon as it is chosen, before any run.
+  const modeHint = el('p', {class: 'state partial', role: 'note', 'data-testid': 'sim-mode-hint', hidden: (value('pit_mode') || 'PIT') !== 'NON_PIT_RESEARCH'},
+    'Ricerca esplorativa: usa le quote acquisite dopo l’inizio delle partite, solo per studio.');
+  const modeSelect = select('pit_mode', SIM_MODES, 'PIT');
+  modeSelect.addEventListener('change', () => { modeHint.hidden = modeSelect.value !== 'NON_PIT_RESEARCH'; });
+  return el('form', {class: 'card search', 'data-testid': 'sim-form', onsubmit: event => {
+    event.preventDefault();
+    const out = {};
+    for (const [key, v] of new FormData(event.target).entries()) if (String(v).trim() !== '') out[key] = String(v).trim();
+    revealOutcome = true;
+    const target = `#/sim?${queryString({...out, run: '1'})}`;
+    if (location.hash === target) render();
+    else location.hash = target;
+  }},
+  el('div', {class: 'fields'},
+    el('label', {}, 'Dal ', input('from', {type: 'date', required: true})),
+    el('label', {}, 'Al ', input('to', {type: 'date', required: true})),
+    el('label', {}, 'Campionato ', competitions.length ? select('competition', competitionOptions, '')
+      : el('span', {class: 'nd', title: 'Nessun campionato disponibile'}, ND)),
+    el('label', {}, 'Strategia ', select('strategy', SIM_STRATEGIES, 'mp-ref-fav-back-1')),
+    el('label', {}, 'Modalità ', modeSelect),
+    el('label', {}, 'Puntata ', input('stake', {type: 'number', step: '0.01', min: '0.01', placeholder: '1'})),
+    el('label', {}, 'Commissione (es. 0,05 = 5%) ', input('commission', {type: 'number', step: '0.001', min: '0', max: '0.999', placeholder: '0'})),
+    el('label', {}, 'Partite al massimo ', input('max_events', {type: 'number', step: '1', min: '1', max: '1000', placeholder: '300'}))),
+  el('fieldset', {}, el('legend', {}, 'Capitale (facoltativo)'),
+    el('div', {class: 'fields'},
+      el('label', {}, 'Capitale iniziale ', input('bankroll', {type: 'number', step: '0.01', min: '0.01'})),
+      el('label', {}, 'Gestione del capitale ', select('mm_model', SIM_MM, '')),
+      el('label', {}, 'Valore della gestione (importo, o percentuale: 2 = 2%) ', input('mm_value', {type: 'number', step: '0.01', min: '0.01'})))),
+  modeHint,
+  el('button', {type: 'submit'}, 'Simula'), ' ', el('a', {href: '#/sim'}, 'Azzera'));
+}
+
+function simMetrics(report) {
+  const m = report.metrics;
+  if (!m) return null;
+  const r = m.rounded ?? {};
+  const side = name => m.by_side?.[name] ? [num(m.by_side[name].bets), ' scommesse · netto ', num(m.by_side[name].pl_net)] : formatScalar(null);
+  return el('section', {class: 'card', 'data-testid': 'sim-metrics'}, el('h2', {}, 'Risultato'),
+    el('dl', {},
+      field('Scommesse regolate', num(m.bets), 'bets'), field('Vinte', num(m.won), 'won'), field('Perse', num(m.lost), 'lost'),
+      field('Puntato', num(m.staked), 'staked'), field('Capitale a rischio', num(m.exposure), 'exposure'),
+      field('Profitto lordo', num(r.pl_gross), 'pl_gross'), field('Commissioni', num(r.commission), 'commission'),
+      field('Profitto netto', num(r.pl_net), 'pl_net'), field('Rendimento sul capitale a rischio', num(r.roi), 'roi'),
+      field('Massimo calo', num(r.max_drawdown), 'max_drawdown'),
+      field('Punta', side('BACK'), 'by_side_back'), field('Banca', side('LAY'), 'by_side_lay'),
+      field('Risultati corretti dopo la fine', num(m.corrected_results), 'corrected_results')),
+    el('p', {class: 'meta'}, 'Profitto lordo, commissioni, profitto netto e massimo calo sono arrotondati al centesimo, il rendimento a quattro decimali (0,0500 = 5%). Gli altri importi, anche per Punta e Banca e per ogni scommessa, sono esatti.'));
+}
+
+function simBankroll(report, totals) {
+  const b = report.bankroll;
+  if (!b) return null;
+  return el('section', {class: 'card', 'data-testid': 'sim-bankroll'}, el('h2', {}, 'Capitale'),
+    el('dl', {},
+      field('Capitale iniziale', num(b.initial), 'initial'), field('Cassa finale', num(b.final_cash), 'final_cash'),
+      field('Disponibile', num(b.available), 'available'), field('Profitto realizzato', num(b.realized_pnl), 'realized_pnl'),
+      field('Rendimento sul capitale', num(b.return_on_bankroll), 'return_on_bankroll'), field('Massimo calo della cassa', num(b.max_drawdown), 'max_drawdown'),
+      field('Scommesse piazzate', num(b.placed), 'placed'), field('Ridotte dalla gestione', num(b.reduced), 'reduced'),
+      el('dt', {}, 'Saltate dalla gestione'), el('dd', {'data-field': 'skipped', title: Object.entries(b.skipped_by_reason ?? {}).map(([k, n]) => `${k}: ${n}`).join(' · ') || null},
+        num(totals?.skipped_by_money_management))),
+    el('p', {class: 'meta'}, 'Importi esatti, senza arrotondamenti.'));
+}
+
+const SIM_COLUMNS = ['Data', 'Partita', 'Lato', 'Segno', 'Quota', 'Puntata', 'Risultato', 'Netto'];
+function simBets(bets, events, total) {
+  const rows = bets.map(bet => {
+    const event = events?.[bet.event_id] ?? {};
+    const s = bet.settlement;
+    const line = el('tr', {'data-event': bet.event_id ?? '', 'data-side': bet.side ?? ''},
+      el('td', {}, event.match_date ? calendarDay(event.match_date) : formatScalar(bet.decision_time)),
+      el('td', {}, formatScalar(event.home), ' – ', formatScalar(event.away)),
+      el('td', {}, labelled(SIDE_TEXT, bet.side)),
+      el('td', {}, labelled(SELECTION_TEXT, bet.selection)),
+      el('td', {}, num(bet.odds)), el('td', {}, num(bet.stake)),
+      el('td', {}, s ? labelled(BET_RESULT_TEXT, s.bet_result) : el('span', {class: 'nd', title: 'Risultato non disponibile alla data scelta'}, 'Non regolata')),
+      el('td', {}, s ? num(s.net) : formatScalar(null)));
+    [...line.children].forEach((cell, index) => cell.setAttribute('data-label', SIM_COLUMNS[index]));
+    return line;
+  });
+  return el('section', {class: 'card', 'data-testid': 'sim-bets'}, el('h2', {}, 'Scommesse (', num(total), ')'),
+    el('div', {class: 'tablewrap'}, el('table', {class: 'results'}, el('thead', {}, el('tr', {}, SIM_COLUMNS.map(text => el('th', {scope: 'col'}, text)))),
+      el('tbody', {}, rows))));
+}
+
+async function simView(params) {
+  const competitionsBody = await getJson('/api/v1/fpt/competitions').catch(error => {
+    if (error?.code === 'UNAUTHENTICATED') throw error;
+    return null;
+  });
+  const competitions = Array.isArray(competitionsBody?.data?.rows) ? competitionsBody.data.rows : [];
+  const head = [el('h1', {}, 'Simulazione'),
+    competitionsBody ? null : el('p', {class: 'state partial', role: 'status'}, 'Elenco dei campionati non disponibile: il filtro per campionato è disattivato.'),
+    params.get('pit_mode') === 'NON_PIT_RESEARCH' ? researchNotice() : null,
+    simForm(params, competitions)];
+  if (params.get('run') !== '1') return [...head, el('p', {class: 'state empty'}, 'Scegli il periodo e premi Simula.')];
+  const api = {};
+  for (const key of SIM_FIELDS) if (params.get(key)) api[key] = params.get(key);
+  let body;
+  try {
+    body = await getJson(`/api/v1/hist/backtest?${queryString(api)}`);
+  } catch (error) {
+    if (error?.status === 400) {
+      // The money management refusals name the model's own parameter (params.stake, params.percent…): that is «Valore della gestione».
+      const message = String(error.message ?? '').replace(/\bparams\.[a-z_]+/g, 'mm_value');
+      const fields = Object.keys(SIM_LABELS).filter(name => new RegExp(`(?<![a-z_])${name}(?![a-z_])`).test(message));
+      return [...head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'sim-invalid', 'data-outcome': '', 'data-fields': fields.join(' '), title: reasonText(error)},
+        fields.length ? `Valore non valido in: ${fields.map(name => SIM_LABELS[name]).join(', ')}. Correggi il campo e riprova.` : 'Impostazioni non valide. Correggi i campi e riprova.')];
+    }
+    if (error?.status === 429) {
+      return [...head, el('p', {class: 'state partial', role: 'status', 'data-testid': 'sim-busy', 'data-outcome': '', title: reasonText(error)},
+        'È già in corso un’altra simulazione: riprova tra qualche secondo.')];
+    }
+    throw error;
+  }
+  const report = body.data?.report;
+  const reader = body.data?.reader ?? {};
+  if (!report || typeof report !== 'object') throw new ApiFailure(200, 'BAD_ENVELOPE', 'risposta senza report');
+  const research = isResearch(report);
+  const outcome = el('h2', {'data-testid': 'sim-outcome', 'data-outcome': '', 'data-status': report.status ?? '', 'data-certified': report.certification ? String(report.certification.certified) : '',
+    'data-pit-mode': report.config?.pit_mode ?? '', 'data-report': report.report_sha256 ?? ''}, 'Esito della simulazione');
+  const status = {
+    INSUFFICIENT_PIT_DATA: el('p', {class: 'state empty', role: 'status', 'data-testid': 'sim-no-pit'}, research
+      ? 'Nessuna quota utilizzabile nel periodo scelto: non c’è nulla da simulare.'
+      : 'Nessuna quota nota prima dell’inizio delle partite nel periodo scelto: con la modalità rigorosa non c’è nulla da simulare. La modalità «Ricerca esplorativa» usa le quote acquisite dopo l’inizio, solo per studio.'),
+    INSUFFICIENT_OUTCOMES: el('p', {class: 'state partial', role: 'status', 'data-testid': 'sim-no-outcomes'}, 'Scommesse decise, ma nessun risultato finale disponibile: nessun profitto calcolato.'),
+  }[report.status] ?? (report.status === 'OK' && !report.metrics
+    ? el('p', {class: 'state empty', role: 'status', 'data-testid': 'sim-no-bets'}, 'La strategia non ha scommesso su nessuna partita del periodo.') : null);
+  const decisions = report.counts?.decisions ?? {};
+  return [...head, outcome,
+    research ? researchNotice() : null,
+    el('p', {class: 'state partial', role: 'note', 'data-testid': 'sim-certification', 'data-code': report.certification?.real_data_verdict ?? ''},
+      'Non certificato: risultato tecnico su dati reali non verificati, non una previsione di guadagno.'),
+    reader.truncated ? el('p', {class: 'state partial', role: 'status', 'data-testid': 'sim-truncated'},
+      `Simulate solo le prime ${formatNumber(reader.events)} partite del periodo: aumenta «Partite al massimo» o riduci il periodo.`) : null,
+    status,
+    el('section', {class: 'card', 'data-testid': 'sim-counts'}, el('h2', {}, 'Partite'),
+      el('dl', {}, field('Partite lette', num(report.counts?.events), 'events'), field('Puntate', num(decisions.BACK), 'decisions_back'),
+        field('Bancate', num(decisions.LAY), 'decisions_lay'),
+        el('dt', {}, 'Nessuna operazione'), el('dd', {'data-field': 'decisions_no_trade', title: Object.entries(report.counts?.no_trade_by_reason ?? {}).map(([k, n]) => `${k}: ${n}`).join(' · ') || null}, num(decisions.NO_TRADE)),
+        el('dt', {}, 'Non regolate'), el('dd', {'data-field': 'unsettled', title: Object.entries(report.counts?.unsettled_by_reason ?? {}).map(([k, n]) => `${k}: ${n}`).join(' · ') || null}, num(body.data?.totals?.unsettled)))),
+    simMetrics(report), simBankroll(report, body.data?.totals),
+    Array.isArray(report.bets) && report.bets.length ? simBets(report.bets, body.data?.events, body.data?.totals?.bets) : null];
+}
+
 // [what is loading, view, area]: a 'user' view shows no technical text (MP-WEB-015, checked by the Browser QA gate); a
 // 'technical' view is where provenance and diagnostics belong. Every view declares one (V-B2). #/board, the former
 // address of the Daily Board, still opens it, and the menu item of each view is its section (NAV_OF).
@@ -809,6 +982,7 @@ async function endpointsView() {
 const VIEWS = {'': ['la pagina', boardView, 'user'], board: ['la pagina', boardView, 'user'], search: ['la ricerca', searchView, 'user'],
   match: ['la partita', matchView, 'user'],
   data: ['lo stato dei dati', dashboardView, 'technical'], providers: ['i fornitori dati', providersView, 'technical'],
+  sim: ['la simulazione', simView, 'user'],
   endpoints: ['gli endpoint', endpointsView, 'technical']};
 const NAV_OF = {board: '', providers: 'data', endpoints: 'data', match: null};
 
@@ -828,7 +1002,7 @@ async function render() {
   const name = location.hash.replace(/^#\/?/, '').split('?')[0];
   // The submit flag belongs to this render only: any navigation consumes it, so a search abandoned before its answer
   // never moves the focus later, when the page is opened again without a submit (PR #168 review NB-1).
-  const reveal = revealOutcome && name === 'search';
+  const reveal = revealOutcome && (name === 'search' || name === 'sim');
   revealOutcome = false;
   const [what, view, area] = Object.hasOwn(VIEWS, name) ? VIEWS[name] : [null, null, 'user'];
   const host = document.getElementById('view');
