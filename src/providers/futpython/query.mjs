@@ -3,6 +3,7 @@
 import { createHash } from 'node:crypto';
 import { normalizeTeamName } from './teams.mjs';
 import { classifyFptVersions } from '../../pit/readers.mjs';
+import { refreshMatchFacts } from './facts-refresh.mjs';
 
 export const FACTS_VERSION = 'fpt-facts-2';
 export const FILTERS_VERSION = 'fpt-filters-2';
@@ -996,9 +997,10 @@ export async function runPerfGate(client, limits = PERF_LIMITS) {
   };
 }
 
-// Database-only refresh of the normalized layer after new versions or fields land.
+// Database-only refresh of the normalized layer after new versions or fields land. The facts use the gated refresh of
+// facts-refresh.mjs, not the database function fpt_refresh_match_facts() (FPT-FACTS-GATE).
 export async function refreshNormalizedLayer(client) {
   const filters = await client.query('SELECT fpt_refresh_filter_registry() AS n');
-  const facts = await client.query('SELECT fpt_refresh_match_facts() AS n');
-  return {filters: Number(filters.rows[0].n), facts: Number(facts.rows[0].n)};
+  const facts = await refreshMatchFacts(client);
+  return {filters: Number(filters.rows[0].n), facts};
 }
