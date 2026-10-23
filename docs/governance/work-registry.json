@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 137,
+  "revision": 138,
   "tasks": [
     {
       "id": "R-01",
@@ -564,7 +564,8 @@
       "latest_checkpoint": null,
       "resources": [
         "checkpoints:HANDOFF-TEST-01"
-      ]
+      ],
+      "note": "Needs independent Agent B launched by owner (t140u/t141u); not run by agent-g-grok."
     },
     {
       "id": "GOV-RECON-01",
@@ -635,22 +636,324 @@
       "pr": 189,
       "branch": "revert-sim-outbox-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-g-grok",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261022T134419Z-agent-g-grok",
+      "pr_open": false,
+      "parallel_authorization": "MP-GROK-AUTONOMOUS-EXECUTION-01",
+      "resources": [
+        "branch:revert-sim-outbox-01"
+      ],
+      "merge_sha": "39fe08eadaad382550c8994b2be308ee6493111e",
+      "reconciliation": "GOV-SYNC-01 (t141u, 2026-10-23): PR #189 merged 2026-10-22 15:49 Rome as 39fe08e; expired lease (agent-g-grok, 17:43 Rome) released. History kept in latest_checkpoint."
+    },
+    {
+      "id": "DEC008-REMOVE-SIM",
+      "title": "DEC-008: removal of #184 simulated signals",
+      "issue": 184,
+      "pr": 190,
+      "branch": "dec008-remove-sim-signals",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "69f435829dba82c2c119ed69cfc5fd5f0eed294c",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "GOV-DEC-14",
+      "title": "Owner decisions DEC-001..014 register + DEC-004-R1",
+      "issue": 150,
+      "pr": 191,
+      "branch": "gov/dec-001-014-ratification",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "c5f64bf60d19d1c29968d112398451170853fbb3",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "AUTODEPLOY-01a",
+      "title": "Auto-deploy gated on merged PR + trusted pinned CI",
+      "issue": 150,
+      "pr": 192,
+      "branch": "auto-deploy-gates",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "d165a502a10d1349ffb5d0ab78f94db1f14fdb0b",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "AUTODEPLOY-01b",
+      "title": "Auto-deploy guard: bounded retry of transient GitHub answers",
+      "issue": 150,
+      "pr": 193,
+      "branch": "guard-read-retry",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "904d580d6535bea89f3913ac75a2bc1593fccdf5",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "AUTODEPLOY-01c",
+      "title": "Auto-deploy merge-proof fallback",
+      "issue": 150,
+      "pr": 194,
+      "branch": "merge-proof-fallback",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "04dc44c6e577110cd0b32a1d1471176d56587221",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "FPT-WORKER-SIGTERM",
+      "title": "FPT worker graceful SIGTERM",
+      "issue": 12,
+      "pr": 195,
+      "branch": "worker-sigterm",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "0fe8d9b061e05282b6c1482c065cfba71e9571c6",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "INFRA-VPS-01",
+      "title": "mp-deploy v3.3, runner guard, FPT worker unit versioned",
+      "issue": 150,
+      "pr": 197,
+      "branch": "feat/t129-infra-port",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "8c6e5884fe40a720f762b255363f1a89e64182f6",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "MM-LEDGER-01",
+      "title": "Paper ledger + MM STOP/ADVISORY_ONLY",
+      "issue": 99,
+      "pr": 198,
+      "branch": "feat/t129-paper-ledger-mm",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "ffd9fc22d371fd982a3e7ac97ef2d319b23a916b",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "GUARD-QUEUED-RACE",
+      "title": "Deploy guard: bounded re-read of queued run",
+      "issue": 150,
+      "pr": 199,
+      "branch": "fix/t130-guard-queued-race",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "80f223a22f970a92bbcbf52d819f6d456226ec11",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "FPT-MON-T131",
+      "title": "FPT monitoring fixes (t131u)",
+      "issue": 12,
+      "pr": 200,
+      "branch": "feat/t131-fpt-monitoring",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "a73fa4bc2a0916e05abf42f1d1774c9d50eeb159",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "FPT-FIX-01-09",
+      "title": "FPT hardening FIX-01..09",
+      "issue": 12,
+      "pr": 201,
+      "branch": "feat/t132-fpt-hardening",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "c50e55ada3d26f5b4366f58f93b49856b617634c",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "FPT-RECLASS-REVERT",
+      "title": "Exact revert for FPT gap reclassification",
+      "issue": 12,
+      "pr": 202,
+      "branch": "fix/t136u-revert-exact",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "b393499ec27c48d20ee1fb3334203699525cfae5",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "FPT-RESIDUALS-T138",
+      "title": "Release SHA, post-cycle heartbeat, DB-down probe",
+      "issue": 12,
+      "pr": 203,
+      "branch": "t138-fpt-residuals",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "62311afc22901215efac0739b7b9e7015b20ada2",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "DR-RELEASE-SOURCE",
+      "title": "Backup + DR check read real release",
+      "issue": 150,
+      "pr": 204,
+      "branch": "t139-dr-release-source",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "7aaf6843efdf3934f2f9cf24d8a20f05cf39a071",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "DR-CHECK-FIX",
+      "title": "DR coverage check NameError fix",
+      "issue": 150,
+      "pr": 205,
+      "branch": "t140-dr-check-fix",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "e2b27dac9c3636b428c2edda0a17d66d6620d6b9",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "ALERT-DELIVERY-REASON",
+      "title": "Failed alert delivery records reason",
+      "issue": 12,
+      "pr": 206,
+      "branch": "t141-alert-delivery-reason",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "e03fe2b021033783e3b9d45c3b64929ce119b0f9",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "MM-PR-01",
+      "title": "MM registry census + liability models",
+      "issue": 96,
+      "pr": 207,
+      "branch": "mm-pr01-registry-liability",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "91aab47feb84e98acb56c9e89a75010b4322b30a",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "MM-PR-02",
+      "title": "MM per-scope exposure caps, odds filters",
+      "issue": 96,
+      "pr": 208,
+      "branch": "mm-pr02-scoped-exposure",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "23d377c5f27ee13bb406a490bfe5d97557bb665b",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "MARKET-CORE-01-02",
+      "title": "Versioned market rules registry + core resolvers",
+      "issue": 104,
+      "pr": 209,
+      "branch": "market-core-01-02",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "6ed49191ddd88cd79904e52be451fb8c6f12b579",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "BUDGET-CRITICAL-FP",
+      "title": "BUDGET_CRITICAL false positive fix (t138u)",
+      "issue": 12,
+      "pr": 210,
+      "branch": "t145-budget-critical-false-positive",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "806e001769e6ba759433713e079ab1149856dcbe",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "GOV-SYNC-01",
+      "title": "Reconcile work registry with GitHub (#189-#210), release stale lease",
+      "issue": 150,
+      "pr": null,
+      "branch": "gov-sync-01",
+      "kind": "implementation",
+      "state": "RUNNING",
       "assignee": {
         "agent": "agent-g-grok",
         "role": "Development Agent"
       },
       "lease": {
         "holder": "agent-g-grok",
-        "acquired_at": "2026-10-22T13:43:40.582Z",
-        "expires_at": "2026-10-22T15:43:40.582Z"
+        "acquired_at": "2026-10-23T06:05:04.836251Z",
+        "expires_at": "2026-10-23T08:05:04.836251Z"
       },
-      "latest_checkpoint": "CP-20261022T134419Z-agent-g-grok",
-      "pr_open": true,
-      "parallel_authorization": "MP-GROK-AUTONOMOUS-EXECUTION-01",
+      "latest_checkpoint": null,
       "resources": [
-        "branch:revert-sim-outbox-01"
-      ]
+        "branch:gov-sync-01",
+        "file:docs/governance/work-registry.json"
+      ],
+      "parallel_authorization": "OWN-T141U-GOV150"
     }
   ]
 }
