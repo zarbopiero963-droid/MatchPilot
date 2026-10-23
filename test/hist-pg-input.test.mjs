@@ -1,7 +1,10 @@
 // HIST-PG-01: the FutPythonTrader backtest reader over a real throwaway PostgreSQL. The data are synthetic rows written
 // into the FPT tables exactly as ingestion stores them (raw snapshot, versions, refreshed facts); the reader only reads.
 import assert from 'node:assert/strict';
-import {spawn} from 'node:child_process';
+import {spawn, spawnSync} from 'node:child_process';
+import {mkdtempSync, readFileSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {gzipSync} from 'node:zlib';
 import test from 'node:test';
@@ -85,6 +88,19 @@ test('FPT reader: versions, prices and results from PostgreSQL; PIT finds nothin
       // A cutoff before m3's correction settles it on the first final (1-1: HOME loses).
       const early = runBacktest(input, {...CONFIG, pit_mode: 'NON_PIT_RESEARCH', outcomes_as_of: '2026-10-05T12:00:00Z'});
       assert.equal(early.bets.find(b => b.event_id === 'fpt:id:m3').settlement.outcome, 'LOSE');
+
+      // The CLI: same data through DATABASE_URL, read-only session, report written.
+      const dir = mkdtempSync(join(tmpdir(), 'fpt-bt-'));
+      writeFileSync(join(dir, 'config.json'), JSON.stringify({...CONFIG, pit_mode: 'NON_PIT_RESEARCH'}));
+      const line = await runNode(['tools/hist/fpt-backtest.mjs', '--from', '2025-09-01', '--to', '2025-09-30', '--config', join(dir, 'config.json'),
+        '--out', join(dir, 'report.json')], {PATH: process.env.PATH, DATABASE_URL: dbUrl.toString()});
+      const summary = JSON.parse(line.trim().split('\n').at(-1));
+      assert.deepEqual([summary.status, summary.pit_mode, summary.bets, summary.pl_net], ['OK', 'NON_PIT_RESEARCH', 3, '2.51']);
+      assert.equal(JSON.parse(readFileSync(join(dir, 'report.json'), 'utf8')).report_sha256, summary.report_sha256);
+      const remote = spawnSync(process.execPath, ['tools/hist/fpt-backtest.mjs', '--from', '2025-09-01', '--to', '2025-09-30', '--config', join(dir, 'config.json'),
+        '--out', join(dir, 'x.json')], {env: {PATH: process.env.PATH, DATABASE_URL: 'postgres://u:p@db.example.com:5432/x'}, encoding: 'utf8'});
+      assert.equal(remote.status, 4);
+      assert.match(remote.stderr, /DB_NOT_LOCAL/);
 
       const after = (await db.query(`SELECT (SELECT count(*) FROM fpt_match_versions) v, (SELECT count(*) FROM fpt_match_facts) f`)).rows[0];
       assert.deepEqual(after, before, 'the reader writes nothing');

@@ -1,4 +1,4 @@
-# Offline backtest engine — HIST-01a, HIST-LINK-01, HIST-LEDGER-01, HIST-LAY-01 (`mp-hist-engine-4`)
+# Offline backtest engine — HIST-01a, HIST-LINK-01, HIST-LEDGER-01, HIST-LAY-01, HIST-PG-01 (`mp-hist-engine-5`)
 
 Owner decision: `MP-OWNER-HIST-01A-01`. Issues: #34 (Strategy Lab, backtest), #99 (settlement), #94 (Math Core). Roadmap #97: first slice of R-14, with the parts of R-13 it needs (1X2 outcome rule, frozen configuration snapshot).
 
@@ -17,6 +17,7 @@ The archive #40 integration (HIST-01b) waits for the Grok handoff. Grok reported
 - **Results** — [`src/markets/outcomes.mjs`](../src/markets/outcomes.mjs) `resolveVersioned`: result versions (DEC-002) resolved by the registry rule (#100).
 - **Settlement** — [`src/ledger/paper-ledger.mjs`](../src/ledger/paper-ledger.mjs) and [`src/ledger/settlement.mjs`](../src/ledger/settlement.mjs): every bet is a paper-ledger position settled by `settleFromResult` (#99, HIST-LEDGER-01).
 - **CLI** — [`tools/hist/backtest.mjs`](../tools/hist/backtest.mjs).
+- **FutPythonTrader reader** (HIST-PG-01) — [`src/providers/futpython/hist-input.mjs`](../src/providers/futpython/hist-input.mjs) and the CLI [`tools/hist/fpt-backtest.mjs`](../tools/hist/fpt-backtest.mjs): builds `mp-hist-input-2` from the FPT tables in PostgreSQL, read only. It lives outside `src/hist/`, which still reads no SQL.
 
 None of them touches a database, the network, the clock or the environment. There is no migration, no API route and no new dependency.
 
@@ -42,6 +43,34 @@ Any number of versions per event (HIST-LINK-01, DEC-002): a version number is un
 - each list holds at most 2,000,000 items.
 
 Every list is sorted by its ids, so the same data in any order has the same hash.
+
+## PIT and NON_PIT_RESEARCH (HIST-PG-01)
+
+`config.pit_mode` is `PIT` (the default) or `NON_PIT_RESEARCH`, authorized by the owner mandate MP-AUTONOMOUS-AUTOMERGE-20261023 for research and testing only.
+
+| | `PIT` | `NON_PIT_RESEARCH` |
+|---|---|---|
+| Prices | only those acquired by the decision time (mp-pit-v1) | also those acquired later; every PIT reason overridden is counted in `counts.pit_exclusions_overridden` |
+| Event without kickoff | no decision (`KICKOFF_UNKNOWN`) | decided by its `match_date` (`decision_basis: MATCH_DATE_NON_PIT`, `decision_time: null`), ordered by date; the date is never turned into an instant |
+| Result versions without kickoff | — | all used; the bet carries `kickoff_filter: NOT_APPLIED_KICKOFF_UNKNOWN` |
+| Certification block | `pit_mode: PIT` | `pit_mode: NON_PIT_RESEARCH`, and the notice says the figures are not point-in-time and no evidence of real profitability; `certified` stays `false` |
+
+The mode is part of the settings snapshot; a PIT configuration keeps the snapshot id it had before the mode existed. Events may carry an optional `match_date` (`YYYY-MM-DD`).
+
+## FutPythonTrader data (HIST-PG-01)
+
+`readFptHistInput(db, {dateFrom, dateTo, competitionId, maxEvents})` reads the matches of `fpt_match_facts` in the date range (optionally one `fpt:competition:` id, at most 50,000 events) and every acquired version in `fpt_match_versions`:
+- **events:** the match key (hashed when it has characters outside the contract's alphabet), names as given (`N/D` when absent), `match_date`, and `kickoff_utc: null` (the provider's time zone is undocumented);
+- **observations:** the 1X2 prices of each version (`Odd_1_FT`/`Odd_H_FT`, …, the same parsing as the facts), bookmaker `futpythontrader-odds`, `provider_time: null` (FPT has no price timestamp), `acquired_at` = the ingestion time;
+- **results:** one version per acquired version, numbered in acquisition order, `FINAL` only for a historical version with both scores, provenance `futpythontrader:snapshot:<id>`.
+
+Nothing is invented or written. Because the stored prices were acquired after kickoff, a PIT run gives `INSUFFICIENT_PIT_DATA`; `NON_PIT_RESEARCH` simulates them as labelled exploratory runs.
+
+```
+DATABASE_URL=<local> node tools/hist/fpt-backtest.mjs --from 2025-08-01 --to 2026-05-31 --config config.json --out report.json [--competition fpt:competition:<md5>] [--max-events N] [--input-out input.json]
+```
+
+The CLI refuses a non-local database (exit 4), sets the session read only, and prints a one-line summary with the certification block.
 
 ## Configuration (frozen snapshot, MP-MKT-003)
 
