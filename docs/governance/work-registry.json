@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 160,
+  "revision": 161,
   "tasks": [
     {
       "id": "R-01",
@@ -1091,9 +1091,9 @@
       "pr": 219,
       "branch": "ledger-core-03",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T132542Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T134646Z-agent-a-claude-code",
       "resources": [
         "src/ledger/settlement.mjs",
         "src/ledger/paper-ledger.mjs",
@@ -1103,7 +1103,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "8268d3a51217f27c96b75b86efc22b0c1cbfce11"
     }
   ]
 }
