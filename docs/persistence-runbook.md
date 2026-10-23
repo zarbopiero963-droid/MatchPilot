@@ -72,12 +72,14 @@ T="SELECT n.nspname||'.'||c.relname FROM pg_class c JOIN pg_namespace n ON n.oid
 for X in "$DRILL" "$DB"; do
   sudo -u postgres psql -p "$PORT" -d "$X" -XAt -c "$T" | while read t; do echo "$t $(sudo -u postgres psql -p "$PORT" -d "$X" -XAt -c "SELECT count(*) FROM $t")"; done > "$D/rowcounts-$X.txt"
 done
-join <(LC_ALL=C sort "$D/rowcounts-$DRILL.txt") <(LC_ALL=C sort "$D/rowcounts-$DB.txt") | awk '$2 > $3 {print "MORE IN DRILL:", $0}'
+LC_ALL=C join -a1 -a2 -e MISSING -o 0,1.2,2.2 <(LC_ALL=C sort "$D/rowcounts-$DRILL.txt") <(LC_ALL=C sort "$D/rowcounts-$DB.txt") \
+  | awk '$2 == "MISSING" || $3 == "MISSING" || $2 > $3 {print "CHECK:", $0}'
 sha256sum "$D"/rowcounts-*.txt >> "$D/SHA256SUMS"
 ```
 
 The append-only history tables (`fpt_raw_snapshots`, `fpt_match_versions`) must not have more rows in the drill. Other
-tables (sessions, alerts, TotalCorner) can shrink after the dump: a line for them is read, not a FAIL by itself.
+tables (sessions, alerts, TotalCorner) can shrink after the dump: a line for them is read, not a FAIL by itself. A
+`MISSING` side is a table present in only one database and is always investigated.
 
 ## 4. Derived facts on the drill (writes the drill only)
 
@@ -120,6 +122,7 @@ systemd with exactly the worker's user and environment files (as `matchpilot-fpt
 order), so it reaches the database the worker writes and no secret is read into a shell:
 
 ```sh
+REL=$(readlink -f /srv/mp-deploy/current)   # again: a deploy may have run since step 0
 RUN="systemd-run --wait --pipe --collect -p User=matchpilot -p Group=matchpilot \
   -p EnvironmentFile=/srv/matchpilot/secrets/worker.env -p EnvironmentFile=/srv/matchpilot/secrets/fpt.env \
   -p WorkingDirectory=$REL -p NoNewPrivileges=yes"
