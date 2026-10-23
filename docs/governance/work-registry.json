@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 173,
+  "revision": 174,
   "tasks": [
     {
       "id": "R-01",
@@ -1227,12 +1227,12 @@
       "id": "HIST-MM-01",
       "title": "Bankroll and Money Management in the backtest: chronological settlement, stake from #96 profiles (#34 x #96)",
       "issue": 34,
-      "pr": 225,
+      "pr": 226,
       "branch": "hist-mm-01",
       "kind": "implementation",
       "state": "REVIEW",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T165235Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T165308Z-agent-a-claude-code",
       "resources": [
         "src/hist/engine.mjs",
         "test/hist-backtest.test.mjs",
