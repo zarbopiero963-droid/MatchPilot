@@ -62,6 +62,7 @@ jobs:
         run: |
           npm run governance:validate
           npm run governance:check
+          node tools/governance/cli.mjs runtime-state --check
           node tools/governance/render-inventory.mjs --check
           node --test test/requirements-inventory.test.mjs test/governance-*.test.mjs
           npm run governance:evidence
