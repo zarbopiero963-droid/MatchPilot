@@ -1,0 +1,137 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "id": "CP-20261023T155626Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T15:56:26Z",
+  "authorizations": [],
+  "task": "HIST-LAY-01",
+  "activity": "PR #222 auto-merged as b3ac8d0 (squash, expectedHeadSha 6dbda7a); main CI and VPS deploy verified",
+  "issue": 34,
+  "pr": 222,
+  "branch": "hist-lay-01",
+  "commit_sha": "6dbda7ac5fd62dda0791c9aab9e78247918214b3",
+  "tree_sha": "594a79f9b44e5fe03cf25ee20ee992d094fc8da9",
+  "base_sha": "440c93e95eab652d3180477af7c78bf8a8f4cfc4",
+  "requirements": [
+    "MP-MTH-003",
+    "MP-STA-001"
+  ],
+  "changes": [
+    "d065a42: LAY decisions, mp-ref-fav-lay-1, exposure-based ROI, bet_result, by_side",
+    "cc3c743: staked vs exposure documented",
+    "b3ac8d0: squash merge of PR #222"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "cc3c743194e5578fefc5ac8abdab3be1b94c0100",
+      "time": "2026-10-23T15:39:01Z",
+      "limits": [
+        "609 tests: 608 pass, 0 fail, 1 SKIPPED (postgres-independence needs PostgreSQL 17): skipped, not PASS",
+        "synthetic fixtures only"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main b3ac8d0",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "b3ac8d00eae3dd52210679904d43b7582c9c0139",
+      "time": "2026-10-23T15:56:26Z",
+      "limits": [
+        "run 39981037500 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main b3ac8d0 (job log evidence)",
+      "result": "PASS",
+      "environment": "VPS via self-hosted runner, evidence from the job log only",
+      "commit": "b3ac8d00eae3dd52210679904d43b7582c9c0139",
+      "time": "2026-10-23T15:56:26Z",
+      "limits": [
+        "run 39981037529: guard rc=0 mode=enforce, DEPLOY_GATE_SHA_OK, worker_restart=ok, result=OK total_s=84 health=200 at 2026-10-23T17:55:30+02:00"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "SUCCESS",
+    "head_sha": "6dbda7ac5fd62dda0791c9aab9e78247918214b3"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "6dbda7ac5fd62dda0791c9aab9e78247918214b3",
+    "reference": "review 5630709515 on PR #222 head 6dbda7a (context-separated sub-agent, DEC-004-R1: not identity-independent): APPROVED, 0 blocking"
+  },
+  "findings": [
+    {
+      "id": "HLAY-NB",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "N-2 staked vs exposure (documented), N-3 EVEN branch unreachable"
+    }
+  ],
+  "owner_decisions": [
+    "DEC-013",
+    "DEC-015"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI",
+      "VPS deploy"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "src/hist/engine.mjs",
+    "src/hist/strategies.mjs",
+    "test/hist-backtest.test.mjs",
+    "docs/hist-backtest.md",
+    "branch:hist-lay-01",
+    "pr:222"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "none for HIST-LAY-01",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261023T153901Z-agent-a-claude-code",
+  "merge_sha": "b3ac8d00eae3dd52210679904d43b7582c9c0139"
+}
