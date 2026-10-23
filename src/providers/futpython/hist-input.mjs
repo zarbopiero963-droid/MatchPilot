@@ -16,7 +16,12 @@ const MAX_EVENTS = 50000;
 
 const fail = (code, message) => { const error = new Error(message); error.code = code; throw error; };
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
-const isoDate = value => (value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10));
+// A calendar date is read as text (match_date::text): node-pg turns a DATE into a Date at local midnight, which
+// toISOString() moves to the previous day in any time zone east of UTC (the VPS runs in Europe/Rome).
+const isoDate = value => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) fail('BAD_ROW', `match_date must be read as YYYY-MM-DD text, got ${String(value).slice(0, 40)}`);
+  return value;
+};
 const isoInstant = value => (value instanceof Date ? value : new Date(value)).toISOString();
 // The provider's price text, never rounded (review B-2 on PR #223): the same acceptance as fpt_price (digits with an
 // optional ',' or '.' decimal part, greater than 1), written as the contract's decimal text (no leading or trailing
@@ -94,7 +99,7 @@ export async function readFptHistInput(db, {dateFrom, dateTo, competitionId = nu
       ORDER BY f.match_date, f.match_key
       LIMIT $4
     )
-    SELECT m.match_key, m.match_date, m.kickoff_utc, COALESCE(m.home_name, v.home) AS home, COALESCE(m.away_name, v.away) AS away,
+    SELECT m.match_key, m.match_date::text AS match_date, m.kickoff_utc, COALESCE(m.home_name, v.home) AS home, COALESCE(m.away_name, v.away) AS away,
            v.version_id, v.snapshot_id, v.acquired_at, v.phase,
            fpt_score_int(v.payload->>'Home_Score') AS home_score, fpt_score_int(v.payload->>'Away_Score') AS away_score,
            v.payload->>'Odd_1_FT' AS odd_1, v.payload->>'Odd_H_FT' AS odd_h, v.payload->>'Odd_X_FT' AS odd_x,
