@@ -59,5 +59,10 @@ test('a CPU-bound run is exclusive, computes after the client is released, and f
   const badRows = {query: async sql => (sql.includes('fpt_match_facts') ? {rows: [{match_key: 'k', match_date: new Date(), acquired_at: '2026-10-04T00:00:00Z', version_id: 1, snapshot_id: 1, home: 'H', away: 'A'}]} : {rows: []})};
   const defect = await handleV1({method: 'GET', url: new URL(`http://localhost${base}`)}, {...deps, withClient: async fn => fn(badRows)});
   assert.deepEqual([defect.status, defect.body.error.code], [500, 'INTERNAL']);
-  assert.equal(HIST_BACKTEST_LIMITS.maxEvents, 200);
+  assert.equal(HIST_BACKTEST_LIMITS.maxEvents, 1000);
+  // truncated only when more matches than max_events exist: the reader is asked for one more (review NB-b).
+  let limitSeen = null;
+  const counting = {query: async (sql, values) => { if (sql.includes('fpt_match_facts')) limitSeen = values[3]; return {rows: []}; }};
+  await handleV1({method: 'GET', url: new URL(`http://localhost${base}&max_events=5`)}, {...deps, withClient: async fn => fn(counting)});
+  assert.equal(limitSeen, 6);
 });

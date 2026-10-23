@@ -8,11 +8,10 @@ import {PIT_MODES, runBacktest, validateConfig} from '../hist/engine.mjs';
 import {STRATEGIES} from '../hist/strategies.mjs';
 import {FPT_BOOKMAKER, readFptHistInput} from '../providers/futpython/hist-input.mjs';
 
-// The engine is synchronous and its paper ledger replays its entries on every operation (cost grows with the square of
-// the bets): the event cap keeps one run under about half a second (measured: 200 events ≈ 0.45 s, 300 ≈ 1.1 s), runs
-// are exclusive (one at a time, others get 429 BUSY) and the computation happens after the database client is released
-// (PR #227 review B-1). Raising the cap waits for an incremental ledger replay.
-export const HIST_BACKTEST_LIMITS = Object.freeze({maxDays: 366, maxEvents: 200, defaultEvents: 100, statementTimeoutMs: 20000});
+// The engine is synchronous: runs are exclusive (one at a time, others get 429 BUSY) and the computation happens after
+// the database client is released (PR #227 review B-1). Since the incremental ledger replay (LEDGER-PERF-01) the cost is
+// linear: measured about 0.3 s at 1000 events and 0.5 s at 2000 with two versions per match.
+export const HIST_BACKTEST_LIMITS = Object.freeze({maxDays: 366, maxEvents: 1000, defaultEvents: 300, statementTimeoutMs: 20000});
 // The #96 models the API exposes, with the single parameter each one takes.
 const MM_PARAM = Object.freeze({FIXED_STAKE: 'stake', FIXED_LIABILITY: 'liability', PERCENT_BANKROLL: 'percent', LIABILITY_PERCENT_BANKROLL: 'percent'});
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -72,7 +71,8 @@ export function histBacktestEndpoint({param, integer, oneOf, instant, ApiError})
       await client.query('BEGIN READ ONLY');
       try {
         await client.query(`SET LOCAL statement_timeout = ${HIST_BACKTEST_LIMITS.statementTimeoutMs}`);
-        read = await readFptHistInput(client, {dateFrom: input.from, dateTo: input.to, competitionId: input.competition ?? null, maxEvents});
+        // One match more than asked tells whether the limit really cut the list (dropped again in compute).
+        read = await readFptHistInput(client, {dateFrom: input.from, dateTo: input.to, competitionId: input.competition ?? null, maxEvents: maxEvents + 1});
         await client.query('COMMIT');
       } catch (error) {
         await client.query('ROLLBACK').catch(() => {});
@@ -80,18 +80,25 @@ export function histBacktestEndpoint({param, integer, oneOf, instant, ApiError})
         if (error?.code === 'BAD_ROW' || error?.code === 'ROWS_NOT_ORDERED') throw new Error(error.message);
         throw error;
       }
-      return {read, truncated: read.stats.events >= maxEvents};
+      return {read, maxEvents};
     },
     exclusive: true,
-    compute: ({read, truncated}, input) => {
+    compute: ({read, maxEvents}, input) => {
+      const truncated = read.input.events.length > maxEvents;
+      let histInput = read.input;
+      if (truncated) {
+        const keep = new Set(histInput.events.slice(0, maxEvents).map(e => e.event_id));
+        histInput = {...histInput, events: histInput.events.filter(e => keep.has(e.event_id)),
+          observations: histInput.observations.filter(o => keep.has(o.event_id)), outcomes: histInput.outcomes.filter(o => keep.has(o.event_id))};
+      }
       let report;
-      try { report = runBacktest(read.input, configOf(input)); }
+      try { report = runBacktest(histInput, configOf(input)); }
       catch (error) {
         // Stored data the contract refuses is reported as such; any other engine error stays INTERNAL.
         if (error instanceof HistInputError) throw badRequest(ApiError, `stored data refused by the backtest contract: ${error.message}`);
         throw error;
       }
-      return {reader: {...read.stats, truncated}, report};
+      return {reader: {...read.stats, events: histInput.events.length, truncated}, report};
     },
     provenance: data => ({source: 'database', source_provider: 'futpythontrader', upstream_calls: 0, writes: 0,
       pit_mode: data.report.config.pit_mode, certification: data.report.certification, report_sha256: data.report.report_sha256}),
