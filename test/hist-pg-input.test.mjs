@@ -139,7 +139,7 @@ test('provider prices are kept exactly, never rounded; unusable prices are dropp
   const cases = [['1.0004', '1.0004'], ['2.1234', '2.1234'], ['2,10', '2.1'], ['10.000', '10'], ['007.50', '7.5'], [' 3.4 ', '3.4']];
   for (const [raw, price] of cases) assert.equal(providerPrice(raw).price, price, raw);
   for (const [raw, reason] of [['1.000', 'NOT_GREATER_THAN_1'], ['0.95', 'NOT_GREATER_THAN_1'], ['1.1234567', 'PRECISION_OUT_OF_CONTRACT'],
-    ['12345678', 'PRECISION_OUT_OF_CONTRACT'], ['-2', 'NOT_A_PRICE'], ['2e1', 'NOT_A_PRICE'], ['', null], [null, null]]) {
+    ['12345678', 'PRECISION_OUT_OF_CONTRACT'], ['-2', 'NOT_A_PRICE'], ['2e1', 'NOT_A_PRICE'], ['\t2.1', 'NOT_A_PRICE'], ['2.1\n', 'NOT_A_PRICE'], ['', null], [null, null]]) {
     assert.deepEqual(providerPrice(raw), {price: null, reason}, String(raw));
   }
   // A price that fpt_price would round to 1 does not stop the run: it is kept as 1.0004 (> 1).

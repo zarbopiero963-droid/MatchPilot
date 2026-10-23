@@ -21,8 +21,11 @@ const isoInstant = value => (value instanceof Date ? value : new Date(value)).to
 // The provider's price text, never rounded (review B-2 on PR #223): the same acceptance as fpt_price (digits with an
 // optional ',' or '.' decimal part, greater than 1), written as the contract's decimal text (no leading or trailing
 // zeros). A price the contract cannot carry exactly (more than 7 integer or 6 decimal digits) is dropped and counted.
+// The second spelling is read when the first is absent or unusable, and every unusable spelling is counted, even when
+// the other one then gives the price (prices_dropped counts spellings, not missing prices).
 export function providerPrice(raw) {
-  const text = typeof raw === 'string' ? raw.trim() : '';
+  // Only spaces are trimmed, as btrim() does in fpt_price (a tab or a newline makes the value not a price).
+  const text = typeof raw === 'string' ? raw.replace(/^ +| +$/g, '') : '';
   if (!/^\d+([.,]\d+)?$/.test(text)) return {price: null, reason: text ? 'NOT_A_PRICE' : null};
   const [whole, fraction = ''] = text.replace(',', '.').split('.');
   const int = whole.replace(/^0+(?=\d)/, ''), dec = fraction.replace(/0+$/, '');
