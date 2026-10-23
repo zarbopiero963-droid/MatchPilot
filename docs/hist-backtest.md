@@ -1,4 +1,4 @@
-# Offline backtest engine — HIST-01a, HIST-LINK-01 (`mp-hist-engine-2`)
+# Offline backtest engine — HIST-01a, HIST-LINK-01, HIST-LEDGER-01 (`mp-hist-engine-3`)
 
 Owner decision: `MP-OWNER-HIST-01A-01`. Issues: #34 (Strategy Lab, backtest), #99 (settlement), #94 (Math Core). Roadmap #97: first slice of R-14, with the parts of R-13 it needs (1X2 outcome rule, frozen configuration snapshot).
 
@@ -15,7 +15,7 @@ The archive #40 integration (HIST-01b) waits for the Grok handoff. Grok reported
 - **Strategy** — [`src/hist/strategies.mjs`](../src/hist/strategies.mjs): the technical test oracle `mp-ref-fav-back-1`.
 - **Engine** — [`src/hist/engine.mjs`](../src/hist/engine.mjs): decision phase, settlement phase and report.
 - **Results** — [`src/markets/outcomes.mjs`](../src/markets/outcomes.mjs) `resolveVersioned`: result versions (DEC-002) resolved by the registry rule (#100).
-- **Settlement** — [`src/math/money.mjs`](../src/math/money.mjs): settlement P/L with commission on market net winnings, in Decimal.
+- **Settlement** — [`src/ledger/paper-ledger.mjs`](../src/ledger/paper-ledger.mjs) and [`src/ledger/settlement.mjs`](../src/ledger/settlement.mjs): every bet is a paper-ledger position settled by `settleFromResult` (#99, HIST-LEDGER-01).
 - **CLI** — [`tools/hist/backtest.mjs`](../tools/hist/backtest.mjs).
 
 None of them touches a database, the network, the clock or the environment. There is no migration, no API route and no new dependency.
@@ -90,12 +90,15 @@ Results are read only after every decision is fixed. The 1X2 rule is the Market 
 - **Acquired at or after kickoff:** a version acquired before the kickoff instant is ignored and counted in `counts.result_versions_ignored_before_kickoff` (it can hide a correction of the first final); when every version is, the bet stays unsettled (`OUTCOME_ACQUIRED_BEFORE_KICKOFF`, or `VOID_NO_APPROVED_RULE` for a void announced before the match);
 - **Missing result:** the bet stays unsettled (`OUTCOME_MISSING`, N/D).
 
-**P/L.** `settleMarket` computes it in Decimal:
-- BACK wins `S·(O − 1)` or loses `S`;
-- commission is `max(0, net of the market)·c`;
-- unrounded values are kept, and the rounded ones reconcile to the cent (`net = gross − commission`).
+**Paper ledger (HIST-LEDGER-01, #99).** Every bet is a position of a paper ledger created for the run; the ledger is the engine's only P/L path:
+- the ledger is funded by a **notional allocation** equal to the sum of the bets' exposures (BACK: the stake), so every bet can be opened. It is not a bankroll, and no money management is applied;
+- each position is opened in decision order, at its decision time, with its #100 market binding (`MATCH_ODDS`, the selection) and the commission rate fixed at the fill (DEC-013);
+- a bet with a resolved result is settled by `settleFromResult` with the same result versions; the engine checks that the ledger reached the same outcome (`LEDGER_MISMATCH` otherwise);
+- an unsettled bet stays an open position with its exposure reserved: nothing is refunded;
+- **P/L:** BACK wins `S·(O − 1)` or loses `S`; the ledger charges commission on each position's positive net winnings, rounded to the cent HALF_EVEN (DEC-013). Before HIST-LEDGER-01 the engine kept the commission unrounded (`settleMarket`), so figures with commission differ by that rounding;
+- each settled bet carries its `position_id` and the sequence numbers of its ledger entries; the report's `ledger` block gives the allocation, the number of entries, their SHA-256 and the final state (cash, realized P/L, commission, reserved funds, open positions, `reconciled`).
 
-## Report `mp-hist-report-2`
+## Report `mp-hist-report-3`
 
 | `status` | When | Bets and metrics |
 |---|---|---|
@@ -125,6 +128,7 @@ HIST-01a has no certification path: no input or configuration field reaches the 
 **Other fields of every report:**
 - the `certification` block above;
 - the dataset with the SHA-256 of the normalized input;
+- `ledger` (when at least one bet was made): see above;
 - `settlement_policy` (when outcomes were read): the outcomes cutoff, its source (`CONFIG` or `LATEST_IN_INPUT`) and the VOID policy;
 - the code version, all component versions and the frozen configuration;
 - counts per exclusion and no-trade reason;

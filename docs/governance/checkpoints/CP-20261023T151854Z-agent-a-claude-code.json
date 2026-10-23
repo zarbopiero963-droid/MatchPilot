@@ -1,0 +1,161 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "authorizations": [],
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T151854Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T15:18:54Z",
+  "mandate": {
+    "id": "MP-PR220-GO-UNITS34-20261023",
+    "source": "owner GO in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): merge of PR #220 on head 24cc69d only, then units 3 and 4"
+  },
+  "task": "HIST-LINK-01",
+  "activity": "PR #220 merged on main as c47289f (squash, expectedHeadSha 24cc69d) after re-verifying CI, mergeability and review; main CI and VPS deploy verified",
+  "issue": 34,
+  "pr": 220,
+  "branch": "hist-link-01",
+  "commit_sha": "24cc69dfc446e21bdf2ad4213aece577f329db6a",
+  "tree_sha": "12984287da4f1be80317d1cfbfdb8f95bddf5aaf",
+  "base_sha": "8268d3a51217f27c96b75b86efc22b0c1cbfce11",
+  "requirements": [
+    "MP-MKT-001",
+    "MP-MKT-002",
+    "MP-STA-001",
+    "MP-STA-011"
+  ],
+  "changes": [
+    "4177dcc: contract mp-hist-input-2 (result versions), engine mp-hist-engine-2 settling via resolveVersioned, outcomes.resultVersion, tests, docs/hist-backtest.md",
+    "f1627bf: pre-kickoff versions counted, void announced before kickoff keeps VOID_NO_APPROVED_RULE, null cutoff without results, CLI header",
+    "c47289f: squash merge of PR #220 on main"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "f1627bfd6ae6785d9c7087f342256e44837f41b0",
+      "time": "2026-10-23T13:51:23Z",
+      "limits": [
+        "604 tests: 603 pass, 0 fail, 1 SKIPPED (postgres-independence needs PostgreSQL 17): skipped, not PASS",
+        "synthetic fixtures only (dataset FIXTURE); no real data"
+      ]
+    },
+    {
+      "command": "new assertions against the previous engine (RED) and the current one (GREEN); 4 earlier mutations killed",
+      "result": "PASS",
+      "environment": "Claude Code cloud container",
+      "commit": "f1627bfd6ae6785d9c7087f342256e44837f41b0",
+      "time": "2026-10-23T13:51:23Z",
+      "limits": []
+    },
+    {
+      "command": "GitHub Actions CI on PR head 24cc69d and on main c47289f",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "c47289f2e8f6292458a466953cef95f1226785b3",
+      "time": "2026-10-23T15:18:54Z",
+      "limits": [
+        "PR run 39964689707 success; main run 39975518373 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main c47289f (job log evidence)",
+      "result": "PASS",
+      "environment": "VPS via self-hosted runner, evidence from the GitHub Actions job log only",
+      "commit": "c47289f2e8f6292458a466953cef95f1226785b3",
+      "time": "2026-10-23T15:18:54Z",
+      "limits": [
+        "run 39975518387: guard rc=0 mode=enforce, DEPLOY_GATE_SHA_OK, worker_restart=ok, result=OK total_s=82 health=200 at 2026-10-23T17:18:18+02:00; the VPS itself is not observable from this session"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39964689707,
+    "conclusion": "SUCCESS",
+    "head_sha": "24cc69dfc446e21bdf2ad4213aece577f329db6a"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "24cc69dfc446e21bdf2ad4213aece577f329db6a",
+    "reference": "review 5629304274 on PR #220 head 24cc69d (context-separated sub-agent of the same model, DEC-004-R1: not identity-independent): APPROVED on 4177dcc, delta f1627bf applies NB-1/2/4/6"
+  },
+  "findings": [
+    {
+      "id": "HL01-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "P/L still computed by math/money.settleMarket; unified through the paper ledger in the next unit (engine -> ledger)"
+    },
+    {
+      "id": "RECON-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "real-data backtest needs an owner decision: stored FPT odds acquired after kickoff (NON_PIT research mode per DEC-007 or forward pre-match capture)"
+    },
+    {
+      "id": "R220-NB",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "NB-3 (input-2 has no declared void: NO_VALIDATED_FINAL), NB-5 (two FINAL with the same acquired_at accepted, higher version wins), NB-7 (report schema change covered by mp-hist-report-2)"
+    }
+  ],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-006",
+    "DEC-015"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI",
+      "VPS deploy"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "src/hist/contract.mjs",
+    "src/hist/engine.mjs",
+    "src/markets/outcomes.mjs",
+    "test/hist-backtest.test.mjs",
+    "docs/hist-backtest.md",
+    "branch:hist-link-01",
+    "pr:220"
+  ],
+  "stop_conditions": [
+    "no automatic merge: owner decides",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "none for HIST-LINK-01; next unit HIST-LEDGER-01 (engine -> paper ledger)",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261023T135123Z-agent-a-claude-code",
+  "merge_sha": "c47289f2e8f6292458a466953cef95f1226785b3"
+}
