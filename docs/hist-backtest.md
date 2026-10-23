@@ -1,4 +1,4 @@
-# Offline backtest engine — HIST-01a, HIST-LINK-01, HIST-LEDGER-01 (`mp-hist-engine-3`)
+# Offline backtest engine — HIST-01a, HIST-LINK-01, HIST-LEDGER-01, HIST-LAY-01 (`mp-hist-engine-4`)
 
 Owner decision: `MP-OWNER-HIST-01A-01`. Issues: #34 (Strategy Lab, backtest), #99 (settlement), #94 (Math Core). Roadmap #97: first slice of R-14, with the parts of R-13 it needs (1X2 outcome rule, frozen configuration snapshot).
 
@@ -12,7 +12,7 @@ The archive #40 integration (HIST-01b) waits for the Grok handoff. Grok reported
 
 - **Contract** — [`src/hist/contract.mjs`](../src/hist/contract.mjs): the input contract `mp-hist-input-2` (and the older `mp-hist-input-1`), strict validation, canonical JSON and SHA-256.
 - **Admission** — [`src/hist/admission.mjs`](../src/hist/admission.mjs): which observations are usable at the decision time. It reuses the PIT policy `mp-pit-v1` (`src/pit/policy.mjs`).
-- **Strategy** — [`src/hist/strategies.mjs`](../src/hist/strategies.mjs): the technical test oracle `mp-ref-fav-back-1`.
+- **Strategy** — [`src/hist/strategies.mjs`](../src/hist/strategies.mjs): the technical test oracles `mp-ref-fav-back-1` and `mp-ref-fav-lay-1`.
 - **Engine** — [`src/hist/engine.mjs`](../src/hist/engine.mjs): decision phase, settlement phase and report.
 - **Results** — [`src/markets/outcomes.mjs`](../src/markets/outcomes.mjs) `resolveVersioned`: result versions (DEC-002) resolved by the registry rule (#100).
 - **Settlement** — [`src/ledger/paper-ledger.mjs`](../src/ledger/paper-ledger.mjs) and [`src/ledger/settlement.mjs`](../src/ledger/settlement.mjs): every bet is a paper-ledger position settled by `settleFromResult` (#99, HIST-LEDGER-01).
@@ -66,7 +66,7 @@ Authorized configuration for tests: `mp-ref-fav-back-1`, stake `1`, commission `
 **The view the strategy sees:**
 - it is frozen and has exactly these fields: `provider`, `event_id`, `home`, `away`, `kickoff_utc`, `decision_time`, `odds`;
 - reading any other field, such as an outcome or a score, throws `VIEW_FIELD_NOT_AVAILABLE`;
-- the strategy returns `BACK` with a selection that has a price in the view, or `NO_TRADE` with a reason. Anything else fails with `BAD_STRATEGY_DECISION`. The engine takes the price from the view, so a strategy cannot choose one;
+- the strategy returns `BACK` or `LAY` (HIST-LAY-01) with a selection that has a price in the view, or `NO_TRADE` with a reason. Anything else fails with `BAD_STRATEGY_DECISION`. The engine takes the price from the view, so a strategy cannot choose one;
 - the prices are collected in a prototype-free map: a value planted on `Object.prototype`, by a strategy or any other code, can neither fill a missing selection nor outrank a real price (PR #178 review, finding 1);
 - the view guards against look-ahead; it is not a sandbox. A strategy runs in the same process, so the configuration can select only the strategies registered in code (`STRATEGIES`).
 
@@ -75,7 +75,9 @@ Authorized configuration for tests: `mp-ref-fav-back-1`, stake `1`, commission `
 - without all three prices: `INCOMPLETE_1X2` or `NO_ADMISSIBLE_ODDS`;
 - a tie for the lowest: `FAVOURITE_TIE`.
 
-It is a test oracle only, never a trading strategy.
+**`mp-ref-fav-lay-1`** (HIST-LAY-01): the same favourite and the same no-trade rules, laid instead of backed.
+
+Both are test oracles only, never trading strategies.
 
 ## Settlement phase (MP-MKT-001 for 1X2, MP-MKT-002, MP-MTH-003)
 
@@ -91,14 +93,14 @@ Results are read only after every decision is fixed. The 1X2 rule is the Market 
 - **Missing result:** the bet stays unsettled (`OUTCOME_MISSING`, N/D).
 
 **Paper ledger (HIST-LEDGER-01, #99).** Every bet is a position of a paper ledger created for the run; the ledger is the engine's only P/L path:
-- the ledger is funded by a **notional allocation** equal to the sum of the bets' exposures (BACK: the stake), so every bet can be opened. It is not a bankroll, and no money management is applied;
+- the ledger is funded by a **notional allocation** equal to the sum of the bets' exposures (BACK: the stake; LAY: the liability `S·(O − 1)`), so every bet can be opened. It is not a bankroll, and no money management is applied;
 - each position is opened in decision order, at its decision time, with its #100 market binding (`MATCH_ODDS`, the selection) and the commission rate fixed at the fill (DEC-013);
 - a bet with a resolved result is settled by `settleFromResult` with the same result versions; the engine checks that the ledger reached the same outcome (`LEDGER_MISMATCH` otherwise);
 - an unsettled bet stays an open position with its exposure reserved: nothing is refunded;
-- **P/L:** BACK wins `S·(O − 1)` or loses `S`; the ledger charges commission on each position's positive net winnings, rounded to the cent HALF_EVEN (DEC-013). Before HIST-LEDGER-01 the engine kept the commission unrounded (`settleMarket`), so figures with commission differ by that rounding;
+- **P/L:** BACK wins `S·(O − 1)` or loses `S`; LAY wins `S` when the selection loses and loses `S·(O − 1)` when it wins; the ledger charges commission on each position's positive net winnings, rounded to the cent HALF_EVEN (DEC-013). Before HIST-LEDGER-01 the engine kept the commission unrounded (`settleMarket`), so figures with commission differ by that rounding;
 - each settled bet carries its `position_id` and the sequence numbers of its ledger entries; the report's `ledger` block gives the allocation, the number of entries, their SHA-256 and the final state (cash, realized P/L, commission, reserved funds, open positions, `reconciled`).
 
-## Report `mp-hist-report-3`
+## Report `mp-hist-report-4`
 
 | `status` | When | Bets and metrics |
 |---|---|---|
@@ -107,9 +109,10 @@ Results are read only after every decision is fixed. The 1X2 rule is the Market 
 | `OK` | admissible data, and at least one bet settled or no bet at all | metrics on the settled bets; `metrics: null` when no bet was made (every event NO_TRADE) |
 
 **Metrics (`OK` only):**
-- counts of bets won and lost, and of bets settled on a corrected result;
-- stake at risk, gross P/L, commission and net P/L;
-- ROI = net ÷ stake at risk;
+- counts of bets won and lost from the bettor's side (`bet_result` on each bet: a LAY is `WON` when its selection loses; `outcome` stays the selection's), and of bets settled on a corrected result;
+- `staked` (the stakes as quoted: for a LAY, the backer's stake it accepts, not its risk), `exposure` (capital at risk: a BACK's stake, a LAY's liability; the ROI base) and `by_side` (bets and net P/L for BACK and LAY);
+- gross P/L, commission and net P/L;
+- ROI = net ÷ exposure (for BACK bets the exposure is the stake, as before);
 - maximum drawdown of the cumulative net in decision order.
 
 They are given exact, then rounded to the cent (ROI to 4 places), HALF_EVEN. Unsettled bets are excluded from the metrics and counted in `counts.unsettled_by_reason`; the report's limits say this can bias the metrics.

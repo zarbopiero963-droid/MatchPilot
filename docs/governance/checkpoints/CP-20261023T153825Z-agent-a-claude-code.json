@@ -1,0 +1,146 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "authorizations": [],
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T153825Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T15:38:25Z",
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "HIST-LEDGER-01",
+  "activity": "PR #221 auto-merged as 440c93e (squash, expectedHeadSha 08cec0b) under MP-AUTONOMOUS-AUTOMERGE-20261023; main CI and VPS deploy verified",
+  "issue": 34,
+  "pr": 221,
+  "branch": "hist-ledger-01",
+  "commit_sha": "08cec0b45e72fb60e4ccd7d7cc2855dded52f229",
+  "tree_sha": "cbf156c48ad39a2b8592c6d7353ba64f5da2ef24",
+  "base_sha": "c47289f2e8f6292458a466953cef95f1226785b3",
+  "requirements": [
+    "MP-MKT-001",
+    "MP-MTH-003",
+    "MP-STA-001"
+  ],
+  "changes": [
+    "24585dc: engine mp-hist-engine-3 settles through the paper ledger, ledger block in the report",
+    "7bdbc04: unambiguous position ids (review B-1), result version in the ledger check (N-4)",
+    "68d6aef: seeded random oracle cross-check of ledger P/L, commission, cash and reserves",
+    "08cec0b: half-cent commission tie test (final-head review NB-1)",
+    "440c93e: squash merge of PR #221"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "68d6aef6454ffea9d0098b9b30d98c2292383676",
+      "time": "2026-10-23T15:19:57Z",
+      "limits": [
+        "606 tests: 605 pass, 0 fail, 1 SKIPPED (postgres-independence needs PostgreSQL 17): skipped, not PASS",
+        "synthetic fixtures only (dataset FIXTURE); no real data"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on PR head 08cec0b and main 440c93e",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "440c93e95eab652d3180477af7c78bf8a8f4cfc4",
+      "time": "2026-10-23T15:38:25Z",
+      "limits": [
+        "main run 39978681762 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 440c93e (job log evidence)",
+      "result": "PASS",
+      "environment": "VPS via self-hosted runner, evidence from the job log only",
+      "commit": "440c93e95eab652d3180477af7c78bf8a8f4cfc4",
+      "time": "2026-10-23T15:38:25Z",
+      "limits": [
+        "run 39978681708: guard rc=0 mode=enforce, DEPLOY_GATE_SHA_OK, worker_restart=ok, result=OK total_s=85 health=200 at 2026-10-23T17:37:39+02:00"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "SUCCESS",
+    "head_sha": "08cec0b45e72fb60e4ccd7d7cc2855dded52f229"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "08cec0b45e72fb60e4ccd7d7cc2855dded52f229",
+    "reference": "review 5630472336 on PR #221 head 08cec0b (context-separated sub-agent, DEC-004-R1: not identity-independent): APPROVED on 1ea5e4f + test-only delta 08cec0b"
+  },
+  "findings": [
+    {
+      "id": "HLD-B1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "ambiguous position ids merged two bets into one ledger position"
+    },
+    {
+      "id": "HLD-NB",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "N-1 drawdown in decision order (documented), N-3 EVEN branch unreachable, N-5 ledger errors surface as LedgerError"
+    }
+  ],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "DEC-015"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI",
+      "VPS deploy"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "src/hist/engine.mjs",
+    "test/hist-backtest.test.mjs",
+    "docs/hist-backtest.md",
+    "branch:hist-ledger-01",
+    "pr:221"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding (MP-AUTONOMOUS-AUTOMERGE-20261023)",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "none for HIST-LEDGER-01; next unit HIST-LAY-01",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261023T151957Z-agent-a-claude-code",
+  "merge_sha": "440c93e95eab652d3180477af7c78bf8a8f4cfc4"
+}

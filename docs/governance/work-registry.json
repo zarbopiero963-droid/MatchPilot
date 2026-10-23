@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 165,
+  "revision": 167,
   "tasks": [
     {
       "id": "R-01",
@@ -1137,11 +1137,34 @@
       "pr": 221,
       "branch": "hist-ledger-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T151957Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T153825Z-agent-a-claude-code",
       "resources": [
         "src/hist/engine.mjs",
+        "test/hist-backtest.test.mjs",
+        "docs/hist-backtest.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "440c93e95eab652d3180477af7c78bf8a8f4cfc4"
+    },
+    {
+      "id": "HIST-LAY-01",
+      "title": "LAY bets in the backtest through the decision, ledger and settlement path (#34)",
+      "issue": 34,
+      "pr": 222,
+      "branch": "hist-lay-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T153901Z-agent-a-claude-code",
+      "resources": [
+        "src/hist/engine.mjs",
+        "src/hist/strategies.mjs",
         "test/hist-backtest.test.mjs",
         "docs/hist-backtest.md"
       ],
