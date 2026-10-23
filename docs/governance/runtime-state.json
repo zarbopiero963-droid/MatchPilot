@@ -1,7 +1,7 @@
 {
   "schema_version": "mp-runtime-state-v1",
-  "updated_at": "2026-10-23T07:37:00Z",
-  "updated_by": "agent-b-claude-code",
+  "updated_at": "2026-10-23T10:28:59Z",
+  "updated_by": "agent-g-grok",
   "note": "Vendor-neutral runtime state of MatchPilot (GOV-RUNTIME-STATE-01, #150, owner t141u). Source of truth on GitHub; any local CHECKPOINT.md is a derived copy. Every PR that changes production or the plan must update this file (docs/governance/PROTOCOL.md).",
   "production": {
     "release_sha": "569fb0fa049d648e149457bfba066964d6accc81",
@@ -14,7 +14,7 @@
       "TotalCorner"
     ]
   },
-  "current_task": "HANDOFF-TEST-01 (leg B done by agent-b-claude-code on PR #216, HANDOFF READY handed back to agent-g-grok, lease released; return leg pending)",
+  "current_task": "HANDOFF-TEST-01 (#216): return leg B->A by agent-g-grok (handoff-in PROCEED, checkpoint IN), main merged into handoff-test-01; waiting owner GO on PR #216. Previously on main: HIST-01a (#178) review APPROVED by clean-context Claude Code subagent (reviews 5625569939, 5625698392), merged by owner GO t149u as 891e981",
   "blockers": [
     {
       "id": "DEPLOY-CI-PIN",
@@ -64,7 +64,7 @@
       "status": "PENDING"
     }
   ],
-  "next_action": "agent-g-grok (Agent A): orient, takeover-check and handoff-in HANDOFF-TEST-01, checkpoint IN on handoff-test-01 (PR #216, not merged by B); owner decides on PR #216; separately owner GO for DEPLOY-CI-PIN re-pin",
+  "next_action": "Owner decision on PR #216 (HANDOFF-TEST-01 return leg done); then MARKET-CORE-04 from the local patch (DEC-002, DEC-015 and the owner rectification on FPT/TC-only outcomes); separately owner GO for DEPLOY-CI-PIN re-pin",
   "roadmap_after_governance": [
     "MARKET-CORE-04 (void/postponed/abandoned/corrected results)",
     "#99 ledger link",
