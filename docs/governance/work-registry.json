@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 140,
+  "revision": 141,
   "tasks": [
     {
       "id": "R-01",
@@ -983,19 +983,15 @@
       "id": "GOV-RUNTIME-STATE-01",
       "title": "Vendor-neutral runtime state on GitHub (release SHA, task, blockers, pending checks, next action, owner decisions t122u-t141u)",
       "issue": 150,
-      "pr": null,
+      "pr": 213,
       "branch": "gov-runtime-state-01",
       "kind": "implementation",
-      "state": "RUNNING",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-g-grok",
         "role": "Development Agent"
       },
-      "lease": {
-        "holder": "agent-g-grok",
-        "acquired_at": "2026-10-23T06:19:25Z",
-        "expires_at": "2026-10-23T09:19:25Z"
-      },
+      "lease": null,
       "latest_checkpoint": null,
       "parallel_authorization": "OWN-T141U-GOV150",
       "resources": [
@@ -1005,6 +1001,38 @@
         "tools/governance/cli.mjs",
         ".github/workflows/ci.yml",
         "test/governance-runtime-state.test.mjs"
+      ],
+      "pr_open": false,
+      "merge_sha": "a0c5d7202d26177ea1b41d914170a83b1579af31",
+      "review": "self-review (t122u), not independent"
+    },
+    {
+      "id": "GOV-PROTOCOL-01",
+      "title": "Vendor-neutral protocol: PROTOCOL.md, checkpoint schema, orient/takeover-check/claim/release CLI, negative-test scripts",
+      "issue": 150,
+      "pr": null,
+      "branch": "gov-protocol-01",
+      "kind": "implementation",
+      "state": "RUNNING",
+      "assignee": {
+        "agent": "agent-g-grok",
+        "role": "Development Agent"
+      },
+      "lease": {
+        "holder": "agent-g-grok",
+        "acquired_at": "2026-10-23T06:29:10Z",
+        "expires_at": "2026-10-23T09:29:10Z"
+      },
+      "latest_checkpoint": null,
+      "parallel_authorization": "OWN-T141U-GOV150",
+      "resources": [
+        "docs/governance/PROTOCOL.md",
+        "docs/governance/schemas/checkpoint-v3.schema.json",
+        "tools/governance/cli.mjs",
+        "tools/governance/drift.mjs",
+        "test/governance-protocol-negative.test.mjs",
+        "AGENTS.md",
+        "CLAUDE.md"
       ]
     }
   ]

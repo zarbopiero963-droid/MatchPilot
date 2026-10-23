@@ -13,6 +13,7 @@
 //   merge-gate <file.json>    evaluate MP-OWNER-AUTOMERGE-01 for a merge input filled from GitHub facts
 //   check-append-only         fail if BASE_SHA..HEAD_SHA modifies or deletes an existing checkpoint
 import {readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {checkAuthorization, errataMap, handoffIn, loadCheckpoints, reconcile, resolveLatest, taskResources, validateCheckpoint, validateErrata, validateHistory} from './checkpoints.mjs';
 import {readPullRequest} from './github.mjs';
@@ -164,6 +165,67 @@ async function main([command, ...args]) {
     if (rewritten.length) { console.error(JSON.stringify({result: 'FAIL', rewritten_checkpoints: rewritten}, null, 2)); return 1; }
     console.log(JSON.stringify({result: 'PASS'}));
     return 0;
+  }
+  if (command === 'orient') {
+    // GOV-PROTOCOL-01: one-shot orientation for any agent (PROTOCOL.md step 1). --offline skips the GitHub drift read.
+    const {validateRuntimeState} = await import('./runtime-state.mjs');
+    const state = await loadState();
+    const runtime = JSON.parse(readFileSync(`${root}docs/governance/runtime-state.json`, 'utf8'));
+    const rows = describe(state);
+    const report = {
+      registry_revision: state.registry.revision, validation_errors: validateState(state), runtime_state_errors: validateRuntimeState(runtime),
+      production_release_sha: runtime.production?.release_sha ?? null, runtime_updated_at: runtime.updated_at, current_task: runtime.current_task,
+      next_action: runtime.next_action, blockers: runtime.blockers, pending_runtime_checks: runtime.pending_runtime_checks,
+      decisions_in_force: state.decisions.decisions.filter(item => item.status === 'IN_FORCE').map(item => item.id),
+      live_tasks: rows.filter(row => !['MERGED', 'COMPLETED'].includes(row.state)),
+      handoff_ready: rows.filter(row => row.state === 'HANDOFF READY').map(row => ({task: row.task, checkpoint: row.latest_checkpoint, next_action: row.next_action})),
+      drift: null};
+    if (!args.includes('--offline')) {
+      const {detectDrift, fetchPulls} = await import('./drift.mjs');
+      try { report.drift = detectDrift({registry: state.registry, prs: fetchPulls(option(args, '--repo') || 'zarbopiero963-droid/MatchPilot')}); }
+      catch (error) { report.drift = [{code: 'GITHUB_UNREADABLE', detail: String(error?.message ?? error).split('\n')[0]}]; }
+    }
+    const blocked = report.validation_errors.length || report.runtime_state_errors.length || (report.drift || []).length || report.live_tasks.some(row => row.state !== 'BLOCKED' && row.divergences.length);
+    if (args.includes('--json')) console.log(JSON.stringify(report, null, 2));
+    else console.log(`release ${report.production_release_sha}\ncurrent ${report.current_task}\nnext ${report.next_action}\nhandoff ready: ${report.handoff_ready.map(h => `${h.task} @ ${h.checkpoint}`).join(', ') || 'none'}\nlive: ${report.live_tasks.map(r => `${r.task}[${r.state}${r.lease ? ` lease ${r.lease.holder}->${r.lease.expires_at}` : ''}${r.divergences.length ? ` DIVERGENT ${r.divergences.map(d => d.code)}` : ''}]`).join(', ')}\ndrift: ${report.drift === null ? 'skipped (--offline)' : report.drift.map(d => d.code).join(', ') || 'none'}\nverdict: ${blocked ? 'STOP' : 'PROCEED'}`);
+    return blocked ? 2 : 0;
+  }
+  if (command === 'takeover-check') {
+    // Owner t145u: mandatory before modifying anything. Reads leases (registry), open PRs, unmerged branches, running CI.
+    const {takeoverCheck, fetchPulls, fetchRunningRuns} = await import('./drift.mjs');
+    const task = args[0]; const agent = option(args, '--agent');
+    if (!task || !agent) { console.error('usage: takeover-check <task> --agent <id>'); return 1; }
+    const repository = option(args, '--repo') || 'zarbopiero963-droid/MatchPilot';
+    let pulls, runs;
+    try { pulls = fetchPulls(repository); runs = fetchRunningRuns(repository); }
+    catch (error) { console.log(JSON.stringify({verdict: 'STOP', reasons: [{code: 'GITHUB_UNREADABLE', detail: String(error?.message ?? error).split('\n')[0]}]})); return 2; }
+    const state = await loadState();
+    const report = takeoverCheck({registry: state.registry, task, agentId: agent, openPrs: pulls.filter(pr => pr.state === 'open'), runningRuns: runs});
+    const merged = new Set(pulls.filter(pr => pr.state === 'merged').map(pr => pr.branch));
+    let remote = [];
+    try { remote = execFileSync('git', ['ls-remote', '--heads', 'origin'], {cwd: root, encoding: 'utf8'}).split('\n').filter(Boolean).map(line => line.split('refs/heads/')[1]); } catch {}
+    report.in_progress.unmerged_branches = remote.filter(name => name !== 'main' && !merged.has(name)).length;
+    console.log(JSON.stringify(report, null, 2));
+    return report.verdict === 'PROCEED' ? 0 : 2;
+  }
+  if (command === 'claim' || command === 'release') {
+    // GOV-PROTOCOL-01: lease claim/release on the registry with revision CAS and the file lock (registry.mjs).
+    const {claim, release, updateRegistryFile, RegistryConflict} = await import('./registry.mjs');
+    const task = args[0]; const agent = option(args, '--agent');
+    if (!task || !agent) { console.error(`usage: ${command} <task> --agent <id> [--role R] [--minutes N] [--reconciled] [--checkpoint <id> --state <STATE>] [--expected-revision N]`); return 1; }
+    const expected = option(args, '--expected-revision'); const expectedRevision = expected === undefined ? undefined : Number(expected);
+    const decisions = (await loadState()).decisions;
+    try {
+      const next = updateRegistryFile(`${root}docs/governance/work-registry.json`, registry => command === 'claim'
+        ? claim(registry, task, {id: agent, role: option(args, '--role') || 'Development Agent'}, new Date(), {expectedRevision, ttlMinutes: Number(option(args, '--minutes') || 120), reconciled: args.includes('--reconciled'), decisions})
+        : release(registry, task, agent, option(args, '--checkpoint') ?? null, option(args, '--state') || 'HANDOFF READY', {expectedRevision}));
+      const row = next.tasks.find(item => item.id === task);
+      console.log(JSON.stringify({result: 'OK', revision: next.revision, task, state: row.state, lease: row.lease}));
+      return 0;
+    } catch (error) {
+      if (error instanceof RegistryConflict) { console.error(JSON.stringify({result: 'CONFLICT', code: error.code, detail: error.message})); return 2; }
+      throw error;
+    }
   }
   if (command === 'runtime-state') {
     // GOV-RUNTIME-STATE-01: print (default) or --check the vendor-neutral runtime state.

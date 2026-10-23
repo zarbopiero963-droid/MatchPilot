@@ -61,3 +61,33 @@ export function fetchPulls(repository, {env = process.env, run} = {}) {
   }
   return normalizePulls(all);
 }
+
+// GOV-PROTOCOL-01 takeover rule (owner t145u): before modifying anything an incoming agent checks in-progress work
+// (active leases, open PRs, unmerged branches, running CI). It may take over a task only when the task has no lease
+// (explicitly released) or the lease expired; an interrupted agent is handled by lease expiry, never by overwriting.
+// Returns {verdict: 'PROCEED'|'STOP', reasons[]}. Pure: the CLI supplies GitHub facts.
+export function takeoverCheck({registry, task: taskId, agentId, openPrs = [], runningRuns = [], now = new Date()}) {
+  const reasons = [];
+  const task = (registry?.tasks || []).find(item => item.id === taskId);
+  if (!task) return {verdict: 'STOP', reasons: [{code: 'UNKNOWN_TASK', detail: taskId}]};
+  if (FINAL.has(task.state)) reasons.push({code: 'TASK_FINISHED', detail: `${taskId} is ${task.state}`});
+  const lease = task.lease;
+  if (lease && lease.holder !== agentId && Date.parse(lease.expires_at) > now.getTime())
+    reasons.push({code: 'LEASE_ACTIVE', detail: `${taskId} held by ${lease.holder} until ${lease.expires_at}: wait for release or expiry, never overwrite`});
+  const held = new Set((registry.tasks || []).filter(t => t.lease && t.lease.holder !== agentId && Date.parse(t.lease.expires_at) > now.getTime()).flatMap(t => [t.branch, t.pr].filter(Boolean)));
+  for (const pr of openPrs) if (pr.branch === task.branch || pr.number === task.pr) {
+    if (held.has(pr.branch) || held.has(pr.number)) reasons.push({code: 'OPEN_PR_OF_ACTIVE_AGENT', detail: `PR #${pr.number} (${pr.branch}) belongs to an active lease`});
+  }
+  for (const run of runningRuns) if (run.branch === task.branch) reasons.push({code: 'CI_RUNNING', detail: `CI run ${run.id} on ${run.branch} is ${run.status}: wait for it to finish`});
+  return {verdict: reasons.length ? 'STOP' : 'PROCEED', reasons, task: {id: task.id, state: task.state, branch: task.branch, pr: task.pr, lease: lease ?? null},
+    in_progress: {active_leases: (registry.tasks || []).filter(t => t.lease && Date.parse(t.lease.expires_at) > now.getTime()).map(t => ({task: t.id, holder: t.lease.holder, expires_at: t.lease.expires_at})),
+      open_prs: openPrs.map(pr => ({number: pr.number, branch: pr.branch})), running_ci: runningRuns.map(run => ({id: run.id, branch: run.branch}))}};
+}
+
+export function fetchRunningRuns(repository, {env = process.env, run} = {}) {
+  const exec = run || (url => execFileSync('curl', ['-sS', '--fail', '--max-time', '30', '-H', 'Accept: application/vnd.github+json', '-H', 'User-Agent: matchpilot-governance',
+    ...(env.GITHUB_TOKEN ? ['-H', `Authorization: Bearer ${env.GITHUB_TOKEN}`] : []), url], {encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']}));
+  const rows = [];
+  for (const status of ['in_progress', 'queued']) rows.push(...(JSON.parse(exec(`https://api.github.com/repos/${repository}/actions/runs?status=${status}&per_page=100`)).workflow_runs || []));
+  return rows.map(r => ({id: r.id, branch: r.head_branch, status: r.status}));
+}
