@@ -25,26 +25,51 @@ async function requireSchema(client) {
   if (!(await persistenceAvailable(client))) fail('PERSISTENCE_UNAVAILABLE', 'the persistence schema is not applied (owner-authorized migration pending)');
 }
 
-// One transaction with the given client; nothing is left half-written.
+// One transaction on one dedicated connection; nothing is left half-written. A pool would spread BEGIN, the advisory
+// lock and the inserts over different connections, and two transactions on one client would share a session (advisory
+// locks are re-entrant there): both are refused instead of silently losing atomicity.
+const busy = new WeakSet();
 async function inTransaction(client, fn) {
-  await client.query('BEGIN');
+  if (typeof client?.query !== 'function' || typeof client.totalCount === 'number' || typeof client.connect !== 'function' && typeof client.release !== 'function') {
+    fail('BAD_CLIENT', 'the store needs one dedicated connection (pg.Client or a client checked out of a pool), not a pool');
+  }
+  if (busy.has(client)) fail('CLIENT_BUSY', 'this connection is already inside a store transaction');
+  busy.add(client);
   try {
-    const result = await fn();
-    await client.query('COMMIT');
-    return result;
-  } catch (error) {
-    await client.query('ROLLBACK').catch(() => {});
-    throw error;
+    await client.query('BEGIN');
+    try {
+      const result = await fn();
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw error;
+    }
+  } finally {
+    busy.delete(client);
   }
 }
+
+const deepFreeze = value => {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    for (const inner of Object.values(value)) deepFreeze(inner);
+    Object.freeze(value);
+  }
+  return value;
+};
 
 // The stored text of an entry: canonical JSON of the entry as JSON sees it (undefined fields are dropped).
 const entryText = entry => canonicalJson(JSON.parse(JSON.stringify(entry)));
 
 // --- paper ledger -------------------------------------------------------------------------------------------------
 
-// Reads an account's ledger back, verifying each row: hash, contiguous seq, seq inside the entry, type column.
+// Reads an account's ledger back, verifying each row: hash, contiguous seq, seq inside the entry, type column, and that
+// every idempotency key points at existing entries.
 export async function loadLedger(client, accountId) {
+  await requireSchema(client);
+  return readLedger(client, accountId);
+}
+async function readLedger(client, accountId) {
   const entries = (await client.query(`SELECT seq, type, entry, entry_sha256 FROM paper_ledger_entries WHERE account_id = $1 ORDER BY seq`, [accountId])).rows;
   if (entries.length === 0) return null;
   const ledger = {account_id: accountId, version: LEDGER_VERSION, entries: [], keys: new Map()};
@@ -53,9 +78,10 @@ export async function loadLedger(client, accountId) {
     if (sha256(row.entry) !== row.entry_sha256) fail('LEDGER_CORRUPT', `${accountId}: entry ${row.seq} does not match its hash`);
     const entry = JSON.parse(row.entry);
     if (entry.seq !== row.seq || entry.type !== row.type) fail('LEDGER_CORRUPT', `${accountId}: entry ${row.seq} disagrees with its row`);
-    ledger.entries.push(Object.freeze(entry));
+    ledger.entries.push(deepFreeze(entry));
   });
   for (const row of (await client.query(`SELECT idempotency_key, fingerprint, entry_seqs FROM paper_ledger_keys WHERE account_id = $1`, [accountId])).rows) {
+    if (row.entry_seqs.some(seq => seq < 1 || seq > ledger.entries.length)) fail('LEDGER_CORRUPT', `${accountId}: key ${row.idempotency_key} points at a missing entry`);
     ledger.keys.set(row.idempotency_key, {fingerprint: row.fingerprint, entries: row.entry_seqs});
   }
   return ledger;
@@ -81,7 +107,7 @@ export async function createAccount(client, {accountId, initialAllocation, at}) 
   await requireSchema(client);
   return inTransaction(client, async () => {
     await lockAccount(client, accountId);
-    if (await loadLedger(client, accountId)) fail('ACCOUNT_EXISTS', accountId);
+    if (await readLedger(client, accountId)) fail('ACCOUNT_EXISTS', accountId);
     const ledger = createLedger({accountId, initialAllocation, at});
     await appendNew(client, ledger, 0, new Map());
     return ledger;
@@ -95,7 +121,7 @@ export async function applyToLedger(client, accountId, operation, args) {
   await requireSchema(client);
   return inTransaction(client, async () => {
     await lockAccount(client, accountId);
-    const ledger = await loadLedger(client, accountId);
+    const ledger = await readLedger(client, accountId);
     if (!ledger) fail('UNKNOWN_ACCOUNT', accountId);
     const fromSeq = ledger.entries.length, keysBefore = new Map(ledger.keys);
     const result = operation(ledger, args);
@@ -113,8 +139,9 @@ const visibleName = (field, value) => {
   return text;
 };
 
-// Saves a configurable strategy under a stable key. The same rules saved again under the same key are a no-op; new
-// rules make a new version and supersede the previous one. Definitions are immutable and keyed by their content id.
+// Saves a configurable strategy under a stable key. The same rules and name saved again under the same key are a no-op;
+// new rules, or a new name for the same rules, make a new version and supersede the previous one (the name is part of
+// the version record, never edited in place). Definitions are immutable and keyed by their content id.
 export async function saveStrategy(client, {key, name, definition}) {
   if (typeof key !== 'string' || !STRATEGY_KEY.test(key)) fail('BAD_INPUT', 'key must be lowercase letters, digits and dashes (1 to 63)');
   const label = visibleName('name', name);
@@ -183,12 +210,13 @@ export async function saveBacktest(client, {name, responseText, params}) {
   const digest = sha256(responseText);
   await requireSchema(client);
   return inTransaction(client, async () => {
-    const existing = (await client.query(`SELECT backtest_id FROM saved_backtests WHERE response_sha256 = $1`, [digest])).rows[0];
-    if (existing) return {status: 'ALREADY_SAVED', backtest_id: Number(existing.backtest_id), response_sha256: digest};
+    // A concurrent save of the same response wins once; the other one reads it back as ALREADY_SAVED.
     const row = (await client.query(`INSERT INTO saved_backtests(kind, name, response, response_sha256, report_sha256, input_sha256, strategy_ids, code_version, params)
-      VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING backtest_id`,
+      VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (response_sha256) DO NOTHING RETURNING backtest_id`,
     [kind, label, responseText, digest, reports.map(r => r.report_sha256), input, strategyIds, reports[0].code_version ?? null, canonicalJson(params ?? {})])).rows[0];
-    return {status: 'SAVED', backtest_id: Number(row.backtest_id), kind, response_sha256: digest};
+    if (row) return {status: 'SAVED', backtest_id: Number(row.backtest_id), kind, response_sha256: digest};
+    const existing = (await client.query(`SELECT backtest_id FROM saved_backtests WHERE response_sha256 = $1`, [digest])).rows[0];
+    return {status: 'ALREADY_SAVED', backtest_id: Number(existing.backtest_id), response_sha256: digest};
   });
 }
 

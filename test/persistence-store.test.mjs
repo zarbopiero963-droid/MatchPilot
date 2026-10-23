@@ -4,8 +4,10 @@ import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {readFileSync, readdirSync} from 'node:fs';
 import test from 'node:test';
-import {accountState, correctSettlement, createLedger, hedgePosition, openPosition, settlePosition} from '../src/ledger/paper-ledger.mjs';
+import {accountState, correctSettlement, createLedger, hedgePosition, openPosition, replay, settlePosition} from '../src/ledger/paper-ledger.mjs';
 import {runBacktest} from '../src/hist/engine.mjs';
+import {settleFromResult} from '../src/ledger/settlement.mjs';
+import {fromFutPythonTrader} from '../src/markets/outcomes.mjs';
 import {applyToLedger, createAccount, listStrategies, loadBacktest, loadLedger, loadStrategy, persistenceAvailable, saveBacktest, saveStrategy} from '../src/persistence/store.mjs';
 
 const STAGED = readFileSync(new URL('../db/staged/030-persistence.sql', import.meta.url), 'utf8');
@@ -114,7 +116,7 @@ test('persistence store: replay from the database equals the in-memory ledger (s
         let op, args;
         const roll = R();
         if (roll < 0.35 || ids.length === 0) {
-          const id = `p${i}`; ids.push(id);
+          const id = `p${i}`;
           op = openPosition; args = {mode: pick(['ACTIVE_OPERATIONAL', 'ACTIVE_OPERATIONAL', 'PAUSED']), positionId: id, side: pick(['BACK', 'LAY']),
             odds: pick(['1.5', '2.04', '3.3']), stake: pick(['5', '12.5', '40']), commissionRate: '0.05', settingsSnapshotId: 'cfg', at: at(i),
             scope: R() < 0.5 ? {strategy: 's1', match: `m${i % 4}`} : undefined, idempotencyKey: `k${i}`};
@@ -133,6 +135,7 @@ test('persistence store: replay from the database equals the in-memory ledger (s
         let got;
         try { got = (await applyToLedger(db, account, op, args)).result; } catch (error) { got = {error: error.code}; }
         assert.deepEqual(got, expected, `seed ${seed} step ${i}`);
+        if (op === openPosition && !expected.error && !ids.includes(args.positionId)) ids.push(args.positionId);
         if (i % 15 === 0) {
           // A restart: a new connection reads the ledger back from the rows.
           const fresh = await connect();
@@ -142,6 +145,11 @@ test('persistence store: replay from the database equals the in-memory ledger (s
       }
       const stored = await loadLedger(db, account);
       assert.deepEqual(accountState(stored), accountState(mem));
+      // Not only the totals: every entry and every replayed position (legs, resolution, market, scope, history).
+      const plain = value => JSON.parse(JSON.stringify(value));
+      assert.deepEqual(plain(stored.entries), plain(mem.entries));
+      assert.deepEqual(plain(replay(stored).positions.values()), plain(replay(mem).positions.values()));
+      assert.deepEqual([...stored.keys], [...mem.keys]);
       assert.equal(stored.entries.length, mem.entries.length);
       assert.equal(accountState(stored).reconciled, true);
     }
@@ -268,4 +276,62 @@ test('paper ledger: the idempotency fingerprint does not depend on the order of 
   assert.equal(openPosition(ledger, {...open, scope: {strategy: 's', match: 'm', league: 'l'}}).status, 'APPLIED');
   assert.equal(openPosition(ledger, {...open, scope: {league: 'l', match: 'm', strategy: 's'}}).status, 'ALREADY_APPLIED');
   assert.deepEqual(Object.keys(ledger.entries[1].scope), ['match', 'league', 'strategy']);
+});
+
+test('persistence store: result-based settlement and its corrections survive a restart (market, resolution, versions)', {timeout: 60000}, async t => {
+  await withSchema(t, 'settle', async (db, connect) => {
+    const AT = '2026-10-23T12:00:00Z', MO_HOME = {marketType: 'MATCH_ODDS', selection: 'HOME'};
+    const fpt = (version, h, a, acquired) => fromFutPythonTrader({version, status: 'FINAL', home_score: h, away_score: a, acquired_at: acquired, snapshot_id: `s${version}`});
+    const mem = createLedger({accountId: 'r', initialAllocation: '1000', at: AT});
+    await createAccount(db, {accountId: 'r', initialAllocation: '1000', at: AT});
+    const steps = [
+      [openPosition, {mode: 'ACTIVE_OPERATIONAL', positionId: 'b1', side: 'BACK', odds: '2', stake: '10', commissionRate: '0.05', settingsSnapshotId: 's',
+        idempotencyKey: 'open:b1', at: AT, market: MO_HOME, scope: {match: 'm1', strategy: 'x'}}],
+      [settleFromResult, {positionId: 'b1', versions: [fpt(1, 2, 1, '2026-10-20T21:00:00Z')], asOf: '2026-10-30T00:00:00Z', at: AT}],
+      [settleFromResult, {positionId: 'b1', versions: [fpt(1, 2, 1, '2026-10-20T21:00:00Z')], asOf: '2026-10-30T00:00:00Z', at: AT}],
+      [settleFromResult, {positionId: 'b1', versions: [fpt(1, 2, 1, '2026-10-20T21:00:00Z'), fpt(2, 2, 2, '2026-10-21T09:00:00Z')], asOf: '2026-10-30T00:00:00Z', at: AT}],
+      [settleFromResult, {positionId: 'b1', versions: [fpt(1, 2, 1, '2026-10-20T21:00:00Z'), fpt(2, 2, 2, '2026-10-21T09:00:00Z'), fpt(3, 3, 2, '2026-10-22T09:00:00Z')],
+        asOf: '2026-10-30T00:00:00Z', at: AT}],
+    ];
+    for (const [op, args] of steps) {
+      const expected = op(mem, args);
+      // Each step on a fresh connection: the stored ledger is read back every time.
+      const c = await connect();
+      try { assert.deepEqual((await applyToLedger(c, 'r', op, args)).result, expected); }
+      finally { await c.end(); }
+    }
+    const stored = await loadLedger(db, 'r');
+    const plain = value => JSON.parse(JSON.stringify(value));
+    assert.deepEqual(plain(stored.entries), plain(mem.entries));
+    assert.deepEqual(plain(replay(stored).positions.get('b1')), plain(replay(mem).positions.get('b1')));
+    assert.equal(replay(stored).positions.get('b1').resolution.outcome_version, 3);
+    assert.ok(Object.isFrozen(stored.entries[1].market), 'reloaded entries are frozen deeply');
+  });
+});
+
+test('persistence store: a pool or a busy connection is refused; concurrent saves of one response are ALREADY_SAVED', {timeout: 60000}, async t => {
+  await withSchema(t, 'clients', async (db, connect, schema) => {
+    const pg = (await import('pg')).default;
+    const url = new URL(process.env.FUTPYTHON_TEST_DATABASE_URL || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt');
+    url.searchParams.set('options', `-csearch_path=${schema}`);
+    const pool = new pg.Pool({connectionString: url.toString(), max: 2});
+    try { assert.equal(await code(createAccount(pool, {accountId: 'p', initialAllocation: '1', at: 't'})), 'BAD_CLIENT'); }
+    finally { await pool.end(); }
+    await createAccount(db, {accountId: 'a', initialAllocation: '100', at: 't'});
+    const open = i => ({mode: 'ACTIVE_OPERATIONAL', positionId: `p${i}`, side: 'BACK', odds: '2', stake: '1', commissionRate: '0', settingsSnapshotId: 'c',
+      idempotencyKey: `k${i}`, at: 't'});
+    const both = await Promise.allSettled([applyToLedger(db, 'a', openPosition, open(1)), applyToLedger(db, 'a', openPosition, open(2))]);
+    assert.deepEqual(both.map(r => r.status === 'fulfilled' ? 'OK' : r.reason.code), ['OK', 'CLIENT_BUSY']);
+    // A strategy renamed with the same rules: a new version, same content id.
+    const s1 = await saveStrategy(db, {key: 'k', name: 'Uno', definition: {selection: 'HOME', side: 'BACK'}});
+    const s2 = await saveStrategy(db, {key: 'k', name: 'Due', definition: {selection: 'HOME', side: 'BACK'}});
+    assert.deepEqual([s2.status, s2.version, s2.strategy_id], ['SAVED', 2, s1.strategy_id]);
+    const text = JSON.stringify({reader: {}, report: report(), events: []});
+    const [c1, c2] = [await connect(), await connect()];
+    try {
+      const saves = await Promise.all([c1, c2].map(c => saveBacktest(c, {name: 'x', responseText: text})));
+      assert.deepEqual(saves.map(r => r.status).sort(), ['ALREADY_SAVED', 'SAVED']);
+      assert.equal(saves[0].backtest_id, saves[1].backtest_id);
+    } finally { await c1.end(); await c2.end(); }
+  });
 });

@@ -42,10 +42,12 @@ source of truth.
 - **Store:** `src/persistence/store.mjs`. Until the schema is applied every call fails with `PERSISTENCE_UNAVAILABLE`
   (the API answers 503), and nothing is created on the fly.
   - Ledger: `createAccount`, `applyToLedger(client, account, operation, args)` (any paper-ledger operation, run on the
-    stored ledger under a per-account advisory lock, new entries and keys appended in the same transaction),
+    stored ledger under a per-account advisory lock, on one dedicated connection: a pool or a connection already in a
+    store transaction is refused, new entries and keys appended in the same transaction),
     `loadLedger` (rows re-verified: hash, contiguous seq, seq and type inside the entry).
   - Strategies: `saveStrategy` (same rules under the same key: no new version; new rules: version + 1, the previous one
-    superseded once), `loadStrategy`, `listStrategies`.
+    superseded once; a new name for the same rules is also a new version, never an edit in place), `loadStrategy`,
+    `listStrategies`.
   - Backtests: `saveBacktest` (the result object as text, every report's engine seal re-verified), `loadBacktest`
     (byte-identical, hash re-verified).
 - **Canonical fingerprint:** the ledger's `scope` is now built in the fixed scope order, so the persisted idempotency
@@ -55,8 +57,11 @@ source of truth.
 
 - **Additive only:** `CREATE TABLE IF NOT EXISTS`, the trigger functions of the new tables, and new indexes. No
   existing table, column, constraint or row changes.
-- **Append-only enforced by the database:** `BEFORE UPDATE OR DELETE` triggers raise on the append-only tables. The
-  only UPDATE allowed on `strategy_versions` sets `superseded_at` from NULL.
+- **Append-only enforced by the database:** `BEFORE UPDATE OR DELETE` row triggers and `BEFORE TRUNCATE` statement
+  triggers raise on the append-only tables. The only UPDATE allowed on `strategy_versions` sets `superseded_at` from NULL.
+  This covers data changes (DML). The app role owns the tables (`migrate()` creates them), so it could still
+  `ALTER TABLE … DISABLE TRIGGER`; that is not prevented, it is detected: every stored entry, definition and response is
+  re-verified against its SHA-256 when it is read (`LEDGER_CORRUPT`, `STRATEGY_CORRUPT`, `BACKTEST_CORRUPT`).
 - **Compatibility:**
   - The code running before the migration never reads these tables.
   - The code after it keeps persistence off and answers `503 UNAVAILABLE` until the tables exist (the R-04b pattern).
