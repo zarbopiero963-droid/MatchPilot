@@ -568,7 +568,7 @@
         "acquired_at": "2026-10-23T07:34:17.905Z",
         "expires_at": "2026-10-23T09:34:17.905Z"
       },
-      "latest_checkpoint": "CP-20261023T063401Z-agent-g-grok",
+      "latest_checkpoint": "CP-20261023T073532Z-agent-b-claude-code",
       "resources": [
         "branch:handoff-test-01",
         "checkpoints:HANDOFF-TEST-01"
