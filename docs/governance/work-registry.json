@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 147,
+  "revision": 148,
   "tasks": [
     {
       "id": "R-01",
@@ -561,17 +561,10 @@
       "pr": 216,
       "branch": "handoff-test-01",
       "kind": "audit",
-      "state": "RUNNING",
-      "assignee": {
-        "agent": "agent-g-grok",
-        "role": "Test Agent"
-      },
-      "lease": {
-        "holder": "agent-g-grok",
-        "acquired_at": "2026-10-23T10:27:54.163Z",
-        "expires_at": "2026-10-23T12:27:54.163Z"
-      },
-      "latest_checkpoint": "CP-20261023T102822Z-agent-g-grok",
+      "state": "HANDOFF READY",
+      "assignee": null,
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T103040Z-agent-g-grok",
       "resources": [
         "branch:handoff-test-01",
         "checkpoints:HANDOFF-TEST-01"
