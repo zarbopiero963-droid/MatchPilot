@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 146,
+  "revision": 147,
   "tasks": [
     {
       "id": "R-01",
@@ -472,18 +472,20 @@
       "pr": 178,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261023T082128Z-agent-a-claude-code",
-      "pr_open": true,
+      "latest_checkpoint": "CP-20261023T102622Z-agent-a-claude-code",
+      "pr_open": false,
       "resources": [
         "branch:ccr-e45875c0-5r0fnf",
         "pr:178"
-      ]
+      ],
+      "merge_sha": "891e981191251c1756760960cd7ca9d55432accd",
+      "review": "self-review (DEC-004-R1) 5625913104 on f76e610"
     },
     {
       "id": "APP-01",
@@ -1055,6 +1057,23 @@
         "docs/governance/work-registry.json"
       ],
       "note": "Registered final in the same PR so that no live lease remains after Agent A stops (t144u); merge SHA is the squash of PR #215."
+    },
+    {
+      "id": "MARKET-CORE-04",
+      "title": "Market rules: simulated outcomes from FPT/TC final scores only, non-final UNRESOLVED (DEC-015), result versions and corrections (DEC-002)",
+      "issue": 100,
+      "pr": null,
+      "branch": "market-core-04",
+      "kind": "implementation",
+      "state": "PLANNED",
+      "lease": null,
+      "latest_checkpoint": null,
+      "resources": [
+        "src/markets/rules.mjs",
+        "src/markets/outcomes.mjs",
+        "test/market-core-04.test.mjs",
+        "docs/market-rules.md"
+      ]
     }
   ]
 }
