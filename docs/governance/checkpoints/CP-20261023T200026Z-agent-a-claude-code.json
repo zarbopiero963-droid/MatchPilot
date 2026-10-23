@@ -1,0 +1,134 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T200026Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T20:00:26Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "STRAT-CMP-01",
+  "activity": "PR #231 auto-merged as 8a912c8 (squash, expectedHeadSha f570bea); main CI and VPS deploy verified",
+  "issue": 34,
+  "pr": 231,
+  "branch": "strat-cmp-01",
+  "commit_sha": "f570bea39ac92451b9f2114186f238e98d0666e9",
+  "tree_sha": "17b13ed628433cea85ba9aebb33b5b0a696b5733",
+  "base_sha": "47701200067cee953ccfa5069d26a8c7757c7d6e",
+  "requirements": [
+    "MP-STA-001"
+  ],
+  "changes": [
+    "API /api/v1/hist/compare (one read, a_/b_/c_ configurations, shared input hash)",
+    "page #/compare side by side, no ranking",
+    "shared exclusive slot",
+    "journey compare and QA-V scene confronto",
+    "8a912c8: squash merge of PR #231"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "0297261c137f323245639d99c93c37e00bd88422",
+      "time": "2026-10-23T19:36:59Z",
+      "limits": [
+        "637 tests, 636 pass, 1 skipped (TZ=Europe/Rome, local PostgreSQL 16); Browser QA compare/simulation/general-navigation PASS, QA-V 54/54 after promote, chromium 141; QA archive only, nothing certified"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 8a912c8",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "8a912c8bc9ccf15c37b26d5e7093f77a01a23cb9",
+      "time": "2026-10-23T20:00:26Z",
+      "limits": [
+        "run 40014634061 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 8a912c8 (job log evidence)",
+      "result": "PASS",
+      "environment": "VPS via self-hosted runner, evidence from the job log only",
+      "commit": "8a912c8bc9ccf15c37b26d5e7093f77a01a23cb9",
+      "time": "2026-10-23T20:00:26Z",
+      "limits": [
+        "run 40014633954: guard rc=0 mode=enforce; DEPLOY_GATE_SHA_OK 8a912c8; worker_restart=ok; result=OK total_s=89 health=200 (2026-10-23T21:59:54+02:00)"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "SUCCESS",
+    "head_sha": "f570bea39ac92451b9f2114186f238e98d0666e9"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "f570bea39ac92451b9f2114186f238e98d0666e9",
+    "reference": "PR #231 review 5633616683 on f570bea (DEC-004-R1, two rounds APPROVED; NON_BLOCKING documented)"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "DEC-015"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI",
+      "VPS deploy"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "src/api/hist-backtest.mjs",
+    "src/api/v1.mjs",
+    "src/web/app.js",
+    "tools/qa/journeys.mjs",
+    "tools/qa/visual.mjs",
+    "test/visual",
+    "docs/mockups",
+    "branch:strat-cmp-01",
+    "pr:231"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "none for STRAT-CMP-01",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261023T193659Z-agent-a-claude-code",
+  "merge_sha": "8a912c8bc9ccf15c37b26d5e7093f77a01a23cb9"
+}

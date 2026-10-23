@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 185,
+  "revision": 187,
   "tasks": [
     {
       "id": "R-01",
@@ -1354,9 +1354,9 @@
       "pr": 231,
       "branch": "strat-cmp-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T193659Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T200026Z-agent-a-claude-code",
       "resources": [
         "src/api/hist-backtest.mjs",
         "src/api/v1.mjs",
@@ -1365,6 +1365,27 @@
         "tools/qa/visual.mjs",
         "test/visual",
         "docs/mockups"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "8a912c8bc9ccf15c37b26d5e7093f77a01a23cb9"
+    },
+    {
+      "id": "PERSIST-PLAN-01",
+      "title": "PERSIST-PLAN-01: persistence migration plan (priority 4)",
+      "issue": 34,
+      "pr": 232,
+      "branch": "persist-plan-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T200027Z-agent-a-claude-code",
+      "resources": [
+        "docs/persistence-plan.md",
+        "docs/paper-ledger-mm.md"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
