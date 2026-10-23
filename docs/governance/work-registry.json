@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 183,
+  "revision": 185,
   "tasks": [
     {
       "id": "R-01",
@@ -1328,15 +1328,41 @@
       "pr": 230,
       "branch": "next-unit-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T190341Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T193658Z-agent-a-claude-code",
       "resources": [
         "src/hist/strategy-def.mjs",
         "src/hist/engine.mjs",
         "src/api/hist-backtest.mjs",
         "src/web/app.js",
         "tools/qa/journeys.mjs",
+        "test/visual",
+        "docs/mockups"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "47701200067cee953ccfa5069d26a8c7757c7d6e"
+    },
+    {
+      "id": "STRAT-CMP-01",
+      "title": "STRAT-CMP-01: strategy comparison on the same data",
+      "issue": 34,
+      "pr": 231,
+      "branch": "strat-cmp-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T193659Z-agent-a-claude-code",
+      "resources": [
+        "src/api/hist-backtest.mjs",
+        "src/api/v1.mjs",
+        "src/web/app.js",
+        "tools/qa/journeys.mjs",
+        "tools/qa/visual.mjs",
         "test/visual",
         "docs/mockups"
       ],
