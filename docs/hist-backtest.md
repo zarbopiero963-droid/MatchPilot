@@ -110,7 +110,7 @@ Results are read only after every decision is fixed. The 1X2 rule is the Market 
 
 **Metrics (`OK` only):**
 - counts of bets won and lost from the bettor's side (`bet_result` on each bet: a LAY is `WON` when its selection loses; `outcome` stays the selection's), and of bets settled on a corrected result;
-- stake, exposure (capital at risk: a BACK's stake, a LAY's liability) and `by_side` (bets and net P/L for BACK and LAY);
+- `staked` (the stakes as quoted: for a LAY, the backer's stake it accepts, not its risk), `exposure` (capital at risk: a BACK's stake, a LAY's liability; the ROI base) and `by_side` (bets and net P/L for BACK and LAY);
 - gross P/L, commission and net P/L;
 - ROI = net ÷ exposure (for BACK bets the exposure is the stake, as before);
 - maximum drawdown of the cumulative net in decision order.
