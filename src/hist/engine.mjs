@@ -23,8 +23,12 @@ import {STRATEGIES} from './strategies.mjs';
 import {getMarketRule} from '../markets/rules.mjs';
 import {resolveVersioned, resultVersion} from '../markets/outcomes.mjs';
 
-export const ENGINE_VERSION = 'mp-hist-engine-4';
-export const REPORT_VERSION = 'mp-hist-report-4';
+export const ENGINE_VERSION = 'mp-hist-engine-5';
+export const REPORT_VERSION = 'mp-hist-report-5';
+// HIST-PG-01 (owner mandate MP-AUTONOMOUS-AUTOMERGE-20261023): PIT is the default; NON_PIT_RESEARCH is an explicitly
+// labelled research and testing mode that also uses prices acquired after the decision time. It is never a PIT backtest
+// and never evidence of real profitability; the certification block and the limits say so on every report.
+export const PIT_MODES = Object.freeze(['PIT', 'NON_PIT_RESEARCH']);
 // HIST-LAY-01: a strategy may BACK or LAY the selection it picks; the engine takes the price from the view either way.
 export const SIDES = Object.freeze(['BACK', 'LAY']);
 // The 1X2 outcome rule is the registry's MATCH_ODDS rule (DEC-006: no duplicate resolver); the report records its id.
@@ -36,7 +40,12 @@ export const REAL_DATA_VERDICT = Object.freeze({NOT_APPLICABLE: 'NOT_APPLICABLE'
 
 // HIST-01a has no certification path: a fixture can never certify real data, and a real dataset stays NOT_VERIFIED
 // until a certification exists. No input or configuration can change this block.
-function certificationOf(kind) {
+const NON_PIT_NOTICE = 'NON_PIT research run: prices acquired after the decision time (and decisions by match date when the kickoff is unknown) are used, so the figures are not point-in-time and are no evidence of real profitability.';
+function certificationOf(kind, pitMode) {
+  const base = certificationOfKind(kind);
+  return pitMode === 'PIT' ? {...base, pit_mode: pitMode} : {...base, pit_mode: pitMode, notice: `${base.notice} ${NON_PIT_NOTICE}`};
+}
+function certificationOfKind(kind) {
   return kind === 'FIXTURE'
     ? {data_scope: 'FIXTURE', real_data_verdict: REAL_DATA_VERDICT.NOT_APPLICABLE, certified: false,
       notice: 'Synthetic fixture: the figures test the engine and are not a real return.'}
@@ -65,7 +74,7 @@ export function validateConfig(config, strategies = STRATEGIES) {
   const required = ['strategy', 'bookmaker', 'lead_minutes', 'stake', 'commission'];
   // outcomes_as_of (optional): the cutoff of the result versions used to settle (DEC-002 asOf). Without it, every
   // version in the input is available.
-  const allowed = [...required, 'outcomes_as_of'];
+  const allowed = [...required, 'outcomes_as_of', 'pit_mode'];
   for (const name of Object.keys(config)) if (!allowed.includes(name)) throw new HistInputError(`config.${name}`, 'unknown field');
   for (const name of required) if (!Object.hasOwn(config, name)) throw new HistInputError(`config.${name}`, 'is required');
   let outcomesAsOf = null;
@@ -74,6 +83,8 @@ export function validateConfig(config, strategies = STRATEGIES) {
     if (Number.isNaN(t) || new Date(t).toISOString().slice(0, 19) !== config.outcomes_as_of.slice(0, 19)) throw new HistInputError('config.outcomes_as_of', 'must be a UTC instant (YYYY-MM-DDTHH:MM:SS[.mmm]Z)');
     outcomesAsOf = new Date(t).toISOString();
   }
+  const pitMode = Object.hasOwn(config, 'pit_mode') ? config.pit_mode : 'PIT';
+  if (!PIT_MODES.includes(pitMode)) throw new HistInputError('config.pit_mode', `must be one of ${PIT_MODES.join(', ')}`);
   if (typeof config.strategy !== 'string' || !Object.hasOwn(strategies, config.strategy)) throw new HistInputError('config.strategy', 'unknown strategy');
   if (typeof config.bookmaker !== 'string' || !/^[\w.:\-/]{1,200}$/.test(config.bookmaker)) throw new HistInputError('config.bookmaker', 'must be an identifier');
   if (!Number.isSafeInteger(config.lead_minutes) || config.lead_minutes < 1 || config.lead_minutes > 1440) throw new HistInputError('config.lead_minutes', 'must be an integer from 1 to 1440');
@@ -87,8 +98,9 @@ export function validateConfig(config, strategies = STRATEGIES) {
     throw error;
   }
   const normalized = {strategy: config.strategy, bookmaker: config.bookmaker, lead_minutes: config.lead_minutes,
-    stake: stake.toString(), commission: commission.toString(), ...(outcomesAsOf ? {outcomes_as_of: outcomesAsOf} : {})};
-  return {...normalized, settings_snapshot_id: sha256(canonicalJson(normalized)), commission_rate_used: commission.toString()};
+    stake: stake.toString(), commission: commission.toString(), ...(outcomesAsOf ? {outcomes_as_of: outcomesAsOf} : {}),
+    ...(pitMode === 'PIT' ? {} : {pit_mode: pitMode})};
+  return {...normalized, pit_mode: pitMode, settings_snapshot_id: sha256(canonicalJson(normalized)), commission_rate_used: commission.toString()};
 }
 
 const VIEW_FIELDS = ['provider', 'event_id', 'home', 'away', 'kickoff_utc', 'decision_time', 'odds'];
@@ -118,7 +130,9 @@ const OUTCOME_PROVIDERS = new Set(['futpythontrader', 'totalcorner']);
 function resolveOutcome(versions, event, selection, asOf) {
   if (!versions?.length) return {result: null, reason: 'OUTCOME_MISSING'};
   if (!OUTCOME_PROVIDERS.has(event.provider)) return {result: null, reason: 'OUTCOME_PROVIDER_UNSUPPORTED'};
-  const known = versions.filter(v => Date.parse(v.acquired_at) >= Date.parse(event.kickoff_utc));
+  // Without a kickoff (reachable only in NON_PIT_RESEARCH) no version can be placed before the match: none is dropped,
+  // and the bet records that the kickoff filter was not applied.
+  const known = event.kickoff_utc ? versions.filter(v => Date.parse(v.acquired_at) >= Date.parse(event.kickoff_utc)) : versions;
   const ignored = versions.length - known.length;
   // A void declared before the match (a cancellation announced in advance) keeps its own reason.
   if (!known.length) return {result: null, reason: versions.some(v => v.void_declared) ? 'VOID_NO_APPROVED_RULE' : 'OUTCOME_ACQUIRED_BEFORE_KICKOFF', ignored};
@@ -138,7 +152,7 @@ const LIMITS = [
   'Offline engine test: no liquidity, matching, slippage or execution is modelled.',
   'Each bet is a paper-ledger position (#99) funded by a notional allocation equal to the sum of the bets exposures: it is not a bankroll, and no money management is applied.',
   'Commission is charged by the ledger on each position positive net winnings at the rate fixed at the fill, rounded to the cent (DEC-013).',
-  'Decisions use only observations acquired by the decision time (captured knowledge, mp-pit-v1).',
+  'PIT_LIMIT',
   'Settlement uses only result versions of the same provider as the odds; cross-provider mappings are not used.',
   'Results: the latest validated FINAL acquired by the outcomes cutoff (DEC-002); a corrected result is flagged on the bet. Results are read after the decisions and are not point-in-time features.',
   'No VOID rule is approved (DEC-015): void, postponed or unfinished matches stay unsettled.',
@@ -146,9 +160,14 @@ const LIMITS = [
   'No claim of profitability or reliability (MP-STA-012); the data verdict is in the certification block.',
 ];
 
+const PIT_LIMITS = {PIT: 'Decisions use only observations acquired by the decision time (captured knowledge, mp-pit-v1).',
+  NON_PIT_RESEARCH: 'NON_PIT research: decisions also use prices acquired after the decision time, and events without a kickoff are decided by match date; the figures are exploratory, not point-in-time.'};
+const limitsOf = pitMode => LIMITS.map(limit => (limit === 'PIT_LIMIT' ? PIT_LIMITS[pitMode] : limit));
+
 export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeVersion = null} = {}) {
   const input = validateInput(rawInput);
   const config = validateConfig(rawConfig, strategies);
+  const nonPit = config.pit_mode === 'NON_PIT_RESEARCH';
   const strategy = strategies[config.strategy];
   const inputSha256 = sha256(canonicalJson(input));
 
@@ -157,10 +176,14 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
   const excluded = counter();
   const usable = new Map();
   let admitted = 0, usableCount = 0;
+  // NON_PIT_RESEARCH admits what PIT refuses, and counts each PIT reason it overrode.
+  const overridden = counter();
   for (const observation of input.observations) {
     const event = events.get(key(observation.provider, observation.event_id));
     const verdict = admitObservation(observation, event, config.lead_minutes);
-    if (!verdict.admitted) {
+    if (!verdict.admitted && nonPit) {
+      for (const reason of verdict.reasons.length ? verdict.reasons : [verdict.pit?.status ?? 'NOT_ADMITTED']) count(overridden, reason);
+    } else if (!verdict.admitted) {
       for (const reason of verdict.reasons.length ? verdict.reasons : [verdict.pit?.status ?? 'NOT_ADMITTED']) count(excluded, reason);
       continue;
     }
@@ -173,19 +196,25 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
   }
 
   // ---- Decision phase (no outcome is read here) ----
-  const ordered = input.events.map(event => ({event, decisionTime: decisionTimeOf(event.kickoff_utc, config.lead_minutes)}))
-    .sort((a, b) => byte(a.decisionTime ?? '~', b.decisionTime ?? '~') || byte(a.event.provider, b.event.provider) || byte(a.event.event_id, b.event.event_id));
+  // Order of the decisions: the decision time; in NON_PIT_RESEARCH an event without a kickoff is decided on its match
+  // date, ordered at the start of that date (an ordering key only, never reported as an instant).
+  const ordered = input.events.map(event => {
+    const decisionTime = decisionTimeOf(event.kickoff_utc, config.lead_minutes);
+    const byDate = !decisionTime && nonPit && event.match_date;
+    return {event, decisionTime, basis: decisionTime ? 'KICKOFF_MINUS_LEAD' : byDate ? 'MATCH_DATE_NON_PIT' : null,
+      order: decisionTime ?? (byDate ? `${event.match_date}T00:00:00.000Z` : null)};
+  }).sort((a, b) => byte(a.order ?? '~', b.order ?? '~') || byte(a.event.provider, b.event.provider) || byte(a.event.event_id, b.event.event_id));
   const decisions = {BACK: 0, LAY: 0, NO_TRADE: 0};
   const noTrade = counter();
   const bets = [];
-  for (const {event, decisionTime} of ordered) {
-    if (!decisionTime) { decisions.NO_TRADE++; count(noTrade, 'KICKOFF_UNKNOWN'); continue; }
+  for (const {event, decisionTime, basis} of ordered) {
+    if (!basis) { decisions.NO_TRADE++; count(noTrade, 'KICKOFF_UNKNOWN'); continue; }
     // The latest admitted price of each selection: by acquisition time, then observation id (byte order).
     // Prototype-free, so nothing planted on Object.prototype can stand in for a missing or older price.
     const latest = Object.create(null);
     for (const observation of usable.get(key(event.provider, event.event_id)) ?? []) {
       const current = latest[observation.selection];
-      if (!current || byte(current.acquired_at, observation.acquired_at) < 0
+      if (!current || byte(current.acquired_at ?? '', observation.acquired_at ?? '') < 0
         || (current.acquired_at === observation.acquired_at && byte(current.observation_id, observation.observation_id) < 0)) {
         latest[observation.selection] = observation;
       }
@@ -206,21 +235,22 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
       throw new EngineError('BAD_STRATEGY_DECISION', `strategy ${config.strategy} returned an invalid decision for ${event.event_id}`);
     }
     decisions[action]++;
-    bets.push({provider: event.provider, event_id: event.event_id, decision_time: decisionTime, side: action, selection,
+    bets.push({provider: event.provider, event_id: event.event_id, decision_time: decisionTime, decision_basis: basis,
+      ...(basis === 'MATCH_DATE_NON_PIT' ? {match_date: event.match_date} : {}), side: action, selection,
       odds: odds[selection].odds, observation_id: odds[selection].observation_id, acquired_at: odds[selection].acquired_at, stake: config.stake});
   }
 
   const report = {
     report_version: REPORT_VERSION,
-    certification: certificationOf(input.dataset.kind),
+    certification: certificationOf(input.dataset.kind, config.pit_mode),
     dataset: {...input.dataset, input_sha256: inputSha256},
     code_version: codeVersion,
     config,
     versions: {engine: ENGINE_VERSION, input: INPUT_VERSION, admission: ADMISSION_VERSION, pit_policy: PIT_POLICY_VERSION,
       strategy: config.strategy, outcome_rule: OUTCOME_RULE_VERSION, math_core: MATH_CORE_VERSION, rounding: ROUNDING_POLICY_VERSION},
     counts: {events: input.events.length, observations: input.observations.length, admitted, usable: usableCount,
-      excluded_by_reason: sorted(excluded), decisions, no_trade_by_reason: sorted(noTrade)},
-    limits: LIMITS,
+      excluded_by_reason: sorted(excluded), ...(nonPit ? {pit_exclusions_overridden: sorted(overridden)} : {}), decisions, no_trade_by_reason: sorted(noTrade)},
+    limits: limitsOf(config.pit_mode),
   };
 
   if (usableCount === 0) {
@@ -246,13 +276,13 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
   // The paper ledger of the run: one position per bet, opened in decision order at its decision time.
   const legOf = bet => ({side: bet.side, odds: Decimal.from(bet.odds), stake: Decimal.from(bet.stake)});
   const allocation = sum(bets.map(bet => exposureOf([legOf(bet)])));
-  const ledger = bets.length ? createLedger({accountId: `hist:${config.settings_snapshot_id}`, initialAllocation: allocation.toString(), at: bets[0].decision_time}) : null;
+  const ledger = bets.length ? createLedger({accountId: `hist:${config.settings_snapshot_id}`, initialAllocation: allocation.toString(), at: bets[0].decision_time ?? bets[0].match_date}) : null;
   // Position id: the provider's length prefix makes it unambiguous although ids may contain ':' (review B-1).
   const positionOf = bet => `hist:${bet.provider.length}:${bet.provider}:${bet.event_id}`;
   for (const bet of bets) {
     openPosition(ledger, {mode: 'ACTIVE_OPERATIONAL', positionId: positionOf(bet), side: bet.side, odds: bet.odds, stake: bet.stake,
       commissionRate: config.commission, settingsSnapshotId: config.settings_snapshot_id, idempotencyKey: `open:${positionOf(bet)}`,
-      at: bet.decision_time, market: {marketType: 'MATCH_ODDS', selection: bet.selection}});
+      at: bet.decision_time ?? bet.match_date, market: {marketType: 'MATCH_ODDS', selection: bet.selection}});
   }
   const entry = seq => ledger.entries[seq - 1];
   const settledBets = bets.map(bet => {
@@ -267,7 +297,8 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
     const [gross, commission, net] = done.entries.map(entry);
     // outcome is the selection's (WIN when it won); bet_result is the bettor's, which a LAY inverts.
     const betResult = Decimal.from(gross.amount).gt(0) ? 'WON' : Decimal.from(gross.amount).isNegative() ? 'LOST' : 'EVEN';
-    return {...bet, position_id: positionOf(bet), settlement: {result, outcome, bet_result: betResult, gross: gross.amount, commission: commission.amount, net: net.net,
+    return {...bet, position_id: positionOf(bet), settlement: {result, outcome, bet_result: betResult,
+      ...(event.kickoff_utc ? {} : {kickoff_filter: 'NOT_APPLIED_KICKOFF_UNKNOWN'}), gross: gross.amount, commission: commission.amount, net: net.net,
       ledger_entries: done.entries, resolution}};
   });
   if (ledger) {

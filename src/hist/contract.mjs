@@ -61,6 +61,13 @@ function instant(field, value, {nullable = false} = {}) {
   return date.toISOString();
 }
 
+function calendarDate(field, value) {
+  if (value === null) return null;
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value) || new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) !== value)
+    throw new HistInputError(field, 'must be a calendar date YYYY-MM-DD');
+  return value;
+}
+
 function score(field, value) {
   if (!Number.isSafeInteger(value) || value < 0) throw new HistInputError(field, 'must be a non-negative integer');
   return value;
@@ -89,10 +96,13 @@ export function validateInput(input) {
   const events = new Map();
   input.events.forEach((event, i) => {
     const field = `events[${i}]`;
-    keys(field, event, ['provider', 'event_id', 'kickoff_utc', 'home', 'away']);
+    // match_date (optional, HIST-PG-01): the calendar date of the match as the provider gives it, for sources whose
+    // kickoff instant is unknown (FutPythonTrader's time zone is undocumented). It is never turned into an instant.
+    keys(field, event, ['provider', 'event_id', 'kickoff_utc', 'home', 'away'], ['match_date']);
     const normalized = {provider: id(`${field}.provider`, event.provider), event_id: id(`${field}.event_id`, event.event_id),
       kickoff_utc: instant(`${field}.kickoff_utc`, event.kickoff_utc, {nullable: true}),
-      home: text(`${field}.home`, event.home), away: text(`${field}.away`, event.away)};
+      home: text(`${field}.home`, event.home), away: text(`${field}.away`, event.away),
+      match_date: Object.hasOwn(event, 'match_date') ? calendarDate(`${field}.match_date`, event.match_date) : null};
     const key = eventKey(normalized.provider, normalized.event_id);
     if (events.has(key)) throw new HistInputError(`${field}.event_id`, 'duplicate event');
     events.set(key, normalized);
