@@ -71,6 +71,8 @@ Il contratto prodotto si modifica solo con decisione owner registrata.
 
 ## 4. Review indipendente e auto-merge (MP-OWNER-AUTOMERGE-01, D2)
 
+> **Rettifica owner DEC-004-R1 (t122u, 22/10/2026) — prevale su questa sezione per la sola indipendenza della review.** La self-review dell'agente autore è consentita e sufficiente: si registra come "self-review" e non si presenta mai come indipendente. Non servono un secondo reviewer né nuove identità bot. Le approvazioni umane GitHub dei deploy (environment `vps-production`) restano obbligatorie e non si simulano. Il testo seguente resta per storia: dove chiede "review indipendente" va letto come self-review etichettata (SUPERSEDED da DEC-004-R1).
+
 **L'agente esegue il merge senza chiedere l'approvazione owner** solo quando valgono tutte le condizioni:
 - scope autorizzato;
 - Gate A locale PASS;
@@ -147,7 +149,7 @@ Se manca una prova obbligatoria si usa BLOCKED o NOT VERIFIED. Una PR che comple
 ## 6. Checkpoint, handoff e recovery (MP-MULTIAGENT-SYNC-CHECKPOINT-01, #150)
 
 Ogni ciclo di lavoro lascia su GitHub un checkpoint machine-readable in `docs/governance/checkpoints/<id>.json`:
-- append-only, schema `mp-checkpoint-v2` (v1 accettato solo per i checkpoint storici precedenti al 18/10 21:00Z);
+- append-only, schema `mp-checkpoint-v3` per i nuovi checkpoint (v2 resta valido; v1 accettato solo per i checkpoint storici precedenti al 18/10 21:00Z);
 - stati ammessi: PLANNED, RUNNING, BLOCKED, REVIEW, HANDOFF READY, CERTIFIED, MERGED, COMPLETED;
 - ogni checkpoint ha un commento corrispondente su issue o PR con marker `<!-- mp-checkpoint:<id> -->`.
 
@@ -155,7 +157,19 @@ Il registro attività `docs/governance/work-registry.json` gestisce assegnazioni
 - un lease attivo di un altro agente non si scavalca;
 - un lease scaduto si rileva solo dopo aver riconciliato il suo ultimo checkpoint con lo stato reale.
 
-Quando un agente interrompe il lavoro pubblica `HANDOFF READY`. Procedura completa, regole di idempotenza e casi di recovery (crash, timeout, limiti d'uso, cambio di modello, agente o ambiente): [`docs/governance/HANDOFF.md`](docs/governance/HANDOFF.md).
+**Agenti intercambiabili** (`MP-OWNER-AGENTS-INTERCHANGEABLE-01`). Qualunque agente può assumere qualunque attività autorizzata del progetto: repository, GitHub, VPS, database, deploy, FPT, Telegram e frontend. Nessun privilegio è legato al nome dell'agente. Abilitano a scrivere solo:
+- mandato;
+- attività;
+- risorsa;
+- lease;
+- GO owner.
+
+**Regole di scrittura:**
+- **un solo scrittore per risorsa:** branch, PR, registro, host VPS;
+- **un GO consumato non si riusa;**
+- **nessun segreto nei checkpoint:** si trasferiscono attività, evidenze e responsabilità, mai credenziali.
+
+Quando un agente interrompe il lavoro pubblica `HANDOFF READY` (HANDOFF OUT). Chi subentra esegue `npm run governance:handoff-in -- <task> --agent <id>` e si ferma a ogni problema (fail-closed). Procedura completa, regole di idempotenza e casi di recovery (crash, timeout, limiti d'uso, cambio di modello, agente o ambiente): [`docs/governance/HANDOFF.md`](docs/governance/HANDOFF.md).
 
 ## 7. README sincronizzato
 
@@ -338,7 +352,7 @@ L'audit dei 412 `UNAVAILABLE_404` è autorizzato solo nella parte read-only (D7)
 
 **Produzione:**
 - nessun deploy, scrittura Neon/Render, costo o operazione LIVE senza autorizzazione owner esplicita;
-- Render e Neon sono sospesi dal 09/10 (#144);
+- Render e Neon sono sospesi dal 09/10 (#144) ed esclusi dall'architettura operativa (`MP-VPS-ONLY-OPERATIONS-2026-10-21`, #182). `render.yaml` è conservato solo come storico, con `autoDeploy: false`;
 - lo sviluppo è offline su PostgreSQL isolato.
 
 **VPS privata (runner `self-hosted`, `matchpilot-vps`):** la usa solo `.github/workflows/deploy-vps.yml`, attivato da un push su `main`.
@@ -406,3 +420,10 @@ Benchmark GOAT del 04/10/2026: MatchPilot deve superarlo con dati FPT + TC più 
 - Il branch archivio non è fonte di contratto.
 - Test e review prima del merge.
 - AGENTS, CLAUDE, README, `docs/integration-map.md` e il mock restano coerenti. La coerenza è verificata da `test/governance-docs.test.mjs` e `test/mockup-alignment.test.mjs`.
+
+## Vendor-neutral protocol (GOV-PROTOCOL-01, owner t141u/t145u)
+
+Every agent, whatever its vendor, follows [`docs/governance/PROTOCOL.md`](docs/governance/PROTOCOL.md):
+1. Run `node tools/governance/cli.mjs orient`.
+2. Before modifying anything, run `takeover-check <TASK> --agent <id>`.
+3. Then `claim`, work, checkpoint and `release`.

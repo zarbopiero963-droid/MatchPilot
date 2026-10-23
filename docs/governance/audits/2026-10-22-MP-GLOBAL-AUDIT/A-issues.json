@@ -1,0 +1,1185 @@
+[
+  {
+    "number": 1,
+    "title": "[MASTER] MatchPilot — mappatura, sito Render/Neon e assistente virtuale; Betwatch fase 2",
+    "state": "closed",
+    "role": "Ex MASTER progetto precedente (GOAT/LayScore, Render/Neon, Betwatch fase 2)",
+    "labels": [],
+    "comments": 4,
+    "open_questions": [],
+    "requirements": [],
+    "dependencies": [],
+    "last_status": "CLOSED 2026-10-04T14:23:51Z state_reason=not_planned. Rilevanza attuale: solo storica — Superata da #3 ('Il vecchio progetto è stato archiviato in archive/pre-trading-os-reset-2026-10-04'). Contiene requisiti del vecchio sito (analisi OpenRouter, worker ogni minuto, Betwatch.fr fase 2) non ripresi esplicitamente; rilevanza solo storica.",
+    "last_status_source": "https://github.com/zarbopiero963-droid/MatchPilot/issues/1 (REST issues API + events API)"
+  },
+  {
+    "number": 2,
+    "title": "[QA] Chiudere certificazione reale pulsanti, scenari e calcoli prima di costruire MatchPilot",
+    "state": "closed",
+    "role": "QA certificazione pulsanti del sito sorgente (vecchio progetto)",
+    "labels": [],
+    "comments": 62,
+    "open_questions": [],
+    "requirements": [],
+    "dependencies": [],
+    "last_status": "CLOSED 2026-10-04T14:23:53Z state_reason=not_planned. Rilevanza attuale: solo storica — Riguarda il sito sorgente GOAT/LayScore; 62 commenti di QA. Possibile valore di conoscenza: definizioni Gol+/Gol++ e fallback chiariti dal supporto (comment 5970669043) e incongruenze Ladder Dutching/commissione (QA-15) utili come casi di test per #94, ma non requisiti vigenti.",
+    "last_status_source": "https://github.com/zarbopiero963-droid/MatchPilot/issues/2 (REST issues API + events API)"
+  },
+  {
+    "number": 3,
+    "title": "[MASTER] MatchPilot Sports Trading OS — FutPythonTrader + TotalCorner",
+    "state": "open",
+    "role": "MASTER di prodotto (stato globale, Definition of Done, decisioni owner consolidate)",
+    "labels": [],
+    "comments": 15,
+    "open_questions": [
+      "OPEN / OWNER DECISION REQUIRED — STOP/ADVISORY_ONLY: quali scritture #99 restano consentite sulle posizioni già aperte (registro: OWN-OPEN-STOP-ADVISORY = OPEN)",
+      "OPEN / OWNER DECISION REQUIRED — PIT/reprocessing: replay 'come conosciuto allora' vs ricostruzione col parser nuovo (parzialmente coperto da D4 secondo #97 comment 6254329652)",
+      "Criteri aggiuntivi di 'finestra sicura' #40 (storico, superato dalla SAFE WINDOW ATTESTATION #40 comment 6048918241)",
+      "Body da aggiornare dall'owner con VPS-only (#182) — dichiarato in comment 6326169335",
+      "Conflitto perimetro dati FPT∩TC (OWN-2026-10-06-SCOPE) vs sospensione TotalCorner — dichiarato aperto in #182 comment 6326164559"
+    ],
+    "requirements": [
+      "Gerarchia: decisioni owner → #3 → #97 → #104 → issue di dominio → README/CLAUDE/AGENTS → docs → mock",
+      "Separare Implementazione / Certificazione componente / Certificazione integrata (#28→#96→#99 con #100, #34, replay, #98 E2E prima della UI)",
+      "Contratto PIT: stesso timestamp T + stessa data-contract version → stesso risultato; nessuna riscrittura silenziosa; test parser v1/v2, rename/alias, aggregati senza futuro, raw immutato",
+      "FPT: normalizzazione di ogni campo disponibile; forma 5/10/20; home/away split; xG/xGA/xGOT/xA; shooting; creation/passing; possession; defense; discipline; corners; HT; 2T; timing goals; H2H; odds/history; O/U, BTTS, DC, CS; similar-odds cohorts (checkbox aperti)",
+      "TotalCorner pre-match: opening/closing 1X2, Asian, Goal Line, Corner Line, movement, cutoff al kickoff (aperti)",
+      "TotalCorner live: score/minute/status, events, attacks, shots, possession, corners/cards, 1X2 live, Asian/Goal/Corner live, snapshot/replay (aperti)",
+      "Web: Daily Board responsive, Match Center, 20+ card (Overview…Market Movement), Live State, Trading Opportunities, Trade Journal (aperti)",
+      "Intelligence: Poisson baseline, calibration/fair odds, divergence, coverage penalty, NO TRADE gate, strategy versioning, Lay Score/Lay Draw/Lay Fav/Back Over/Next Goal, strategy builder, entry/invalidation/exit rules (aperti)",
+      "Backtest/risk: replay senza leakage, train/test temporale, ROI, strike rate, drawdown, CI, bankroll virtuale, exposure limits, journal immutabile, post-mortem (aperti)",
+      "DoD: campi FPT normalizzati; PREMATCH/LIVE separati e testati; coverage/provenance per card; strategie riproducibili; backtest senza leakage; desktop+mobile collaudati; nessun secret in log/UI",
+      "Chiusura solo owner dopo commento READY TO CLOSE con checklist/evidenze",
+      "MP-OWNER-EXCLUDE-REAL-EXECUTION-01: #45 fuori scope; nessuna esecuzione reale",
+      "MP-OWNER-PRODUCT-QUALITY-DATA-01: certificazione indipendente dalla redditività; MISSING/UNKNOWN espliciti; niente dati sintetici spacciati per reali",
+      "MP-OWNER-VISUAL-BASELINE-D1-D7-01: mock 06/10 (#103) baseline grafica; home 'Oggi/Daily Board'; quote con virgola e precisione esatta; ordine cronologico; stemmi solo con licenza; orari Europe/Rome con UTC nei dettagli",
+      "Contratto owner shared ingestion/computation (comment 6026194935): una raccolta → un DB → un calcolo → N utenti; precalcolo, cache, polling intelligente, osservabilità costi",
+      "Solo calcio (comment 6025859040); perimetro FPT∩TC VERIFIED (comment 6026039594)"
+    ],
+    "dependencies": [
+      97,
+      104,
+      182,
+      12,
+      20,
+      40,
+      45,
+      91,
+      96,
+      99
+    ],
+    "last_status": "Body fermo al 07/10 (prossima azione dichiarata: merge PR #125, superata). Ultimo commento 21/10: riconciliazione via PR #183 (poi mergiata 22/10): 'nessun verdetto di requisito è cambiato: Gate A resta NOT PASS'; lavoro residuo 'certificazione delle viste sui dati reali (oggi solo dati seminati)' e 'body di #3 da aggiornare (owner)'.",
+    "last_status_source": "#3 comment 6326169335 (https://github.com/zarbopiero963-droid/MatchPilot/issues/3#issuecomment-6326169335)"
+  },
+  {
+    "number": 4,
+    "title": "[DATA-01] FutPythonTrader full mirror, schema discovery e sync cron",
+    "state": "closed",
+    "role": "DATA-01 FPT full mirror/schema discovery/sync cron",
+    "labels": [],
+    "comments": 0,
+    "open_questions": [],
+    "requirements": [],
+    "dependencies": [
+      3
+    ],
+    "last_status": "CLOSED 2026-10-04T14:33:38Z state_reason=completed. Rilevanza attuale: SÌ — Criteri di accettazione ancora alla base del collector FPT riattivato il 22/10 sulla VPS (#179 comment 6344141373): registrazione automatica nuove colonne/dataset, dedup payload, raw+provenance, lock contro sync concorrenti, nessuna API key nei log, cron 6 h.",
+    "last_status_source": "https://github.com/zarbopiero963-droid/MatchPilot/issues/4 (REST issues API + events API)"
+  },
+  {
+    "number": 6,
+    "title": "[DATA-02] Data Watchdog: alert nuove colonne, nuovi dataset e sync failures",
+    "state": "closed",
+    "role": "DATA-02 Data Watchdog (alert colonne/dataset/sync failure)",
+    "labels": [],
+    "comments": 0,
+    "open_questions": [],
+    "requirements": [],
+    "dependencies": [
+      3
+    ],
+    "last_status": "CLOSED 2026-10-04T15:02:09Z state_reason=completed. Rilevanza attuale: SÌ — Il watchdog orario è stato riattivato sulla VPS e Grok cita esplicitamente 'Telegram (DATA-02/03/04)' (#179 comment 6344141373). Nota: il body prevede 'Telegram opzionale tramite secret Render' — riferimento infrastrutturale superato da #182.",
+    "last_status_source": "https://github.com/zarbopiero963-droid/MatchPilot/issues/6 (REST issues API + events API)"
+  },
+  {
+    "number": 8,
+    "title": "[DATA-03] Telegram outbound-only, chat whitelist e test one-shot",
+    "state": "closed",
+    "role": "DATA-03 Telegram outbound-only, chat whitelist, test one-shot",
+    "labels": [],
+    "comments": 0,
+    "open_questions": [],
+    "requirements": [],
+    "dependencies": [
+      3
+    ],
+    "last_status": "CLOSED 2026-10-04T15:16:33Z state_reason=completed. Rilevanza attuale: SÌ — Regole outbound-only (nessun getUpdates/webhook, unico chat ID, test one-shot non ripetuto) sono vincoli correnti per la ripresa Telegram (#182 P5); Grok dichiara 'outbound-only setup OK (deleteWebhook); the connectivity test is one-shot and already sent'.",
+    "last_status_source": "https://github.com/zarbopiero963-droid/MatchPilot/issues/8 (REST issues API + events API)"
+  },
+  {
+    "number": 10,
+    "title": "[DATA-04] Anti-spam alert: bootstrap, 404 catalogo e riepiloghi per run",
+    "state": "closed",
+    "role": "DATA-04 Anti-spam alert",
+    "labels": [],
+    "comments": 0,
+    "open_questions": [],
+    "requirements": [],
+    "dependencies": [
+      3
+    ],
+    "last_status": "CLOSED 2026-10-04T15:20:44Z state_reason=completed. Rilevanza attuale: SÌ — Regole anti-spam (alert aggregati, 404 iniziali non notificati, nessuna ripetizione a ogni deploy) restano applicabili alla ripresa delle notifiche; #179 comment 6295922134 richiede inoltre di non reinviare i 4 avvisi storici aperti.",
+    "last_status_source": "https://github.com/zarbopiero963-droid/MatchPilot/issues/10 (REST issues API + events API)"
+  },
+  {
+    "number": 12,
+    "title": "[FPT-CERT] FutPythonTrader — chiusura operativa, backfill completo e certificazione reale",
+    "state": "open",
+    "role": "Dominio dati — FutPythonTrader (certificazione, backfill, audit 412, PIT)",
+    "labels": [],
+    "comments": 11,
+    "open_questions": [
+      "Audit 412 UNAVAILABLE_404 non eseguito (decisione owner comment 6025923710)",
+      "OPEN / OWNER DECISION REQUIRED: semantica PIT/reprocessing (body)",
+      "Verifica chiave e gratuità FPT: NOT VERIFIED (comment 6326171127)",
+      "Conflitto perimetro FPT∩TC mentre TC è sospeso (comment 6326171127)",
+      "F-1 provider: perché FPT non pubblica dati nuovi dopo 20–21/09 — NOT VERIFIED (comment 6344142029)",
+      "F-3 backup off-site automatico del DB definitivo PG18 staging — NOT VERIFIED (comment 6344142029)",
+      "Attivazione 22/10 motivata da 'owner decisions t108u/t114u': t114u non risulta su origin/main (39fe08e) — NOT VERIFIED su GitHub",
+      "READY TO CLOSE del 05/10 (comment 6004781909) ritrattato il 07/10 (body: 'NON globalmente READY TO CLOSE')"
+    ],
+    "requirements": [
+      "Una sola PR aperta alla volta per la issue, con sezione EVIDENZA REALE",
+      "Certificato finale con: paesi, leghe, stagioni/dataset, available/404/errori, snapshot raw, partite/versioni, match unici, colonne, coverage per colonna, campi nuovi, stagioni mancanti, duplicati, secondo sync, anomalie, timestamp UTC, SHA, versione schema",
+      "FASE 1 backfill storico completo; FASE 2 classificazione terminale di ogni dataset; FASE 3 conteggio reale partite/snapshot; FASE 4 censimento colonne 100%; FASE 5 coverage per colonna; FASE 6 audit stagioni mancanti (missing_available_seasons=0); FASE 7 due sync incrementali reali + idempotenza; FASE 8 watchdog + Telegram hard-certified; FASE 9 certificato finale",
+      "Request ledger completo e API budget certificato (dedup, cache-first, 429/Retry-After, backoff, startup protection, budget states)",
+      "Normalized/query layer, filter metadata registry, assistant query layer, Composable Rule Engine compatibile",
+      "Competition & Season Coverage Registry; onboarding automatico nuove leghe/stagioni",
+      "Entity resolution squadre (internal_team_id, alias, storico nomi)",
+      "Data lineage completa (snapshot_id, parser/schema/transform version, source_field)",
+      "PIT reproducibility: stessa T + stessa data-contract version → stesso risultato",
+      "Parser/schema migration policy: reprocessing idempotente e non distruttivo, confronto vecchio/nuovo",
+      "Query performance gate (ultime 20 trasferte, odds range, 5+ filtri, PIT, assistant-style) senza full scan raw",
+      "Raw retention append-only; cancellazione solo con autorizzazione owner + audit",
+      "Audit 412/412: classificazione RECOVERED/RENAMED/FUTURE_NOT_PUBLISHED/LEGITIMATELY_UNAVAILABLE/DEPRECATED/MAPPING_ERROR/NEEDS_MANUAL_REVIEW, recuperi persistiti, catalogo aggiornato (comment 6025923710)",
+      "Ripresa sulla VPS con PostgreSQL locale: idempotenza, timestamp, PIT/reprocessing, gap/backfill verificato, logging, Telegram (comment 6325347117)",
+      "Body storico richiede verifica 'su Render/Neon reali' — superato da #182 (VPS-only)"
+    ],
+    "dependencies": [
+      3,
+      20,
+      31,
+      40,
+      97,
+      104,
+      179,
+      182
+    ],
+    "last_status": "22/10 (Grok): 'FPT collection is ACTIVE on the VPS with scheduler, watchdog, auto-restart, deduplication and Telegram operational alerts. \"Operational with fresh data\" is NOT VERIFIED because of F-1' (dataset correnti fermi al 20–21/09 upstream). Prima (21/10, Claude): FPT fermo dal 09/10, audit 412 e PIT aperti; ripresa solo dopo S3/S4, cutover PG, backend VPS, TC-OFF-01 e GO.",
+    "last_status_source": "#12 comment 6344142029 (https://github.com/zarbopiero963-droid/MatchPilot/issues/12#issuecomment-6344142029); #12 comment 6326171127 (https://github.com/zarbopiero963-droid/MatchPilot/issues/12#issuecomment-6326171127)"
+  },
+  {
+    "number": 20,
+    "title": "[TC-CERT] TotalCorner API — integrazione 100%, storico live, mapping campionati e certificazione reale",
+    "state": "open",
+    "role": "Dominio dati — TotalCorner (pre-match/live/storico); raccolta SOSPESA da #182",
+    "labels": [],
+    "comments": 32,
+    "open_questions": [
+      "Sospensione TC vs OWN-2026-10-06-SCOPE (FPT∩TC come perimetro): decisione owner aperta (#182 comment 6326164559)",
+      "Endpoint vendor multi-bookmaker/BTTS: 'VENDOR_NOTICE_RECEIVED / IMPLEMENTATION_NOT_YET_CERTIFIED' (comment 6057237124)",
+      "Membership TC scaduta 11/10/2026 (scadenza dichiarata nel body e #3 comment 6025831785): stato abbonamento attuale NOT VERIFIED",
+      "TC-CORE-05..08 (live normalization, captured history, coverage temporale, resilience, multi-day) non certificati",
+      "TC-CORE-03 storico: certificazione ritirata e poi riemessa (comments 6069534856 → 6069755000)"
+    ],
+    "requirements": [
+      "TotalCorner CLOSED solo con: endpoint integrati; campi preservati; mapping FPT↔TC verificato; cron live con snapshot temporali completi; replay riproducibile; alert nella stessa chat Telegram di FPT; test automatici + hard test reali per fase; certificato versionato",
+      "Certificato finale con endpoint, leghe scoperte/mappate/comuni, match prematch/live, snapshot, eventi, odds/Asian/Goal/Corner snapshot, coverage per campo, frequenza polling, gap, duplicati, errori, alert, replay deterministico, SHA, schema",
+      "Perimetro: solo intersezione FPT×TC con mapping VERIFIED (≥20 mapping, ≥5 paesi)",
+      "TC-CORE-01 discovery/schema registry; 02 mapping; 03 prematch markets PIT; 03B historical upstream backfill (HISTORICAL_UPSTREAM); 04 live collector; 05 live normalization/events; 06 captured live history (HISTORICAL_CAPTURED); 06B coverage temporale/campo; 07 resilienza/budget/alert; 08 hard certification multi-day",
+      "Nessuna quota post-kickoff come PREMATCH/closing; storico upstream e captured distinti; ciò che non è retroattivo è GAP",
+      "Discovery empirica endpoint×campo×competizione×fase; NULL ≠ assenza upstream (comment 6026048598)",
+      "Nuovi endpoint vendor: bookmaker_odds (18 bookmaker, 1X2/AH/GL/CL, movement con suspension flag), btts/bttsList — 17 punti di verifica (comment 6057237124)",
+      "API budget/request economy; queryability; Composable Rule Engine; Coverage Registry (sezioni comuni del body)",
+      "#182: TotalCorner NON deve riprendere raccolta/polling/backfill; spegnimento per configurazione + test negativo (TC-OFF-01)"
+    ],
+    "dependencies": [
+      3,
+      12,
+      31,
+      40,
+      97,
+      104,
+      182,
+      24,
+      27,
+      28,
+      29
+    ],
+    "last_status": "21/10: raccolta/polling/backfill sospesi (#182); codice TC completo (PR 130–145); il READY TO CLOSE del 09/10 'è stato annullato da D9'; attività TC-OFF-01. Dal #97: TC-OFF-01 MERGED 22/10 come 7b4baf7 (PR #186): 'Nessun job TotalCorner parte senza MATCHPILOT_TOTALCORNER=on'.",
+    "last_status_source": "#20 comment 6326172876 (https://github.com/zarbopiero963-droid/MatchPilot/issues/20#issuecomment-6326172876); #97 comment 6341681530 (https://github.com/zarbopiero963-droid/MatchPilot/issues/97#issuecomment-6341681530)"
+  },
+  {
+    "number": 23,
+    "title": "[AUTH-ADMIN] Accesso owner, secondo admin, privilegi e futura architettura SaaS multiutente",
+    "state": "open",
+    "role": "Dominio — Auth/Admin, RBAC, base SaaS (FASE 0 #97)",
+    "labels": [],
+    "comments": 5,
+    "open_questions": [
+      "Q1 nomi variabili credenziali owner: D12 non li nomina; R-04b usa variabili proprie con hash scrypt (comment 6262520841)",
+      "Attivazione login in produzione: step owner esplicito (D12)",
+      "Body richiede 'segreti solo su Render' e 'hard test reali Render/Neon' — superati da #182 VPS-only"
+    ],
+    "requirements": [
+      "Credenziali mai in repo/issue/log/fixture/risposte",
+      "OWNER unico admin completo, immutabile, non degradabile; nessuna registrazione pubblica con privilegi",
+      "SECONDARY ADMIN con permessi granulari default-deny (view_*, manage_*, export_data, delete_data, destructive_actions); niente privilege escalation; audit",
+      "Settings → Users & Permissions (UI deferita a fase 15)",
+      "Ruoli OWNER/ADMIN/USER; USER SaaS-ready (user_id, password hash, status, role, entitlements)",
+      "RBAC server-side su ogni operazione sensibile",
+      "Sessioni: HttpOnly, Secure, SameSite, scadenza, logout, revoca, rotazione id, niente token in localStorage, CSRF",
+      "Password: Argon2id/bcrypt, salt, rate limit, anti brute force, errori non rivelatori",
+      "Audit log persistente (login/logout/ruoli/privilegi/reset/revoche/impostazioni/azioni distruttive)",
+      "AUTH-CORE-01..04 (#104): auth/session; users/RBAC/isolation; secondo admin + audit; hard certification",
+      "D12: un owner iniziale, hash robusto, sessioni protette, anti-bruteforce, nessuna registrazione pubblica, nessun login pubblico in produzione senza owner",
+      "D13: migrazioni testate su PG isolato; nessuna migrazione automatica in produzione; backup+compatibilità+recovery+GO owner; merge non deve deployare implicitamente"
+    ],
+    "dependencies": [
+      3,
+      32,
+      95,
+      97,
+      104,
+      46,
+      44
+    ],
+    "last_status": "19/10: D12 (owner login) e D13 (migrazioni/auto-deploy) registrate; migration guard R-04a (PR #157) mergiata; 'This issue stays open; only the owner closes it.' R-04b owner login dietro flag OFF in produzione.",
+    "last_status_source": "#23 comment 6263176568 (https://github.com/zarbopiero963-droid/MatchPilot/issues/23#issuecomment-6263176568); #23 comment 6262520841 (https://github.com/zarbopiero963-droid/MatchPilot/issues/23#issuecomment-6262520841)"
+  },
+  {
+    "number": 24,
+    "title": "[MATCH-REPLAY] Replay visuale partite concluse con timeline, playback e snapshot live storici",
+    "state": "open",
+    "role": "Dominio — Match Replay / Time Machine (backend PIT ora, UI in fase 15)",
+    "labels": [],
+    "comments": 5,
+    "open_questions": [
+      "Dipende da dati TotalCorner HISTORICAL_CAPTURED (tc_live_snapshots/events/market) mentre la raccolta TC è sospesa (#182) — non dichiarato nella issue",
+      "MATCH-REPLAY-PR-06 richiede 'deploy Render reale' — superato da #182"
+    ],
+    "requirements": [
+      "Servizio deterministico match_id + timestamp → stato noto (score, stats, mercati, eventi) con provenance, raw hash, schema version",
+      "Nessun dato inventato/interpolato; N/D vs gap espliciti; ultimo stato noto etichettato",
+      "Gap sulla timeline con durata e quality flag",
+      "Player: play/pause/stop, step, slider, velocità 0.5x–8x, jump (kickoff/HT/60/75/90/FT/goal/cartellini/corner/movimenti quota) — UI fase 15",
+      "Grafici dinamici (attacks, shots, corners, odds/lines) sincronizzati",
+      "Hard test: ≥3 partite reali (goal multipli, movement quote, molti eventi), playback kickoff→FT, confronto raw vs replay",
+      "Replay con MM opzionale: PLAY neutro vs con profilo MM/versione; sessione replay_simulation_id separata; nessuna scrittura nel ledger #99; stesso MM/version → stesso risultato (comment 6012632315)",
+      "REPLAY-CORE-01/02 (neutro) prima; REPLAY-CORE-03 dopo #96/#99"
+    ],
+    "dependencies": [
+      20,
+      31,
+      25,
+      96,
+      99,
+      97,
+      104,
+      102
+    ],
+    "last_status": "Ultimo commento 06/10: 'REPLAY-CORE-03 Replay+MM viene spostata dopo #96 e #99'. Body aggiornato 19/10 con MP-OWNER-PRODUCT-QUALITY-DATA-01. Nessun avanzamento implementativo riportato nella issue.",
+    "last_status_source": "#24 comment 6013692750 (https://github.com/zarbopiero963-droid/MatchPilot/issues/24#issuecomment-6013692750)"
+  },
+  {
+    "number": 25,
+    "title": "[MATCH-CENTER-FT] Match Center partita conclusa — analisi completa, replay, mercati e post-mortem",
+    "state": "open",
+    "role": "Dominio — Match Center partita conclusa (backend QUERY-CORE-01 ora, UI fase 15)",
+    "labels": [],
+    "comments": 3,
+    "open_questions": [
+      "Hard certification richiede 'Render' (PR-08) — superato da #182",
+      "Dipende da TotalCorner (stats finali/market movement) sospeso"
+    ],
+    "requirements": [
+      "Pagina /matches/:matchId per stato FINISHED: header (competizione, data, FT/HT, ET/PEN, coverage/provenance badge)",
+      "Pre-match snapshot senza leakage live",
+      "Statistiche finali, timeline eventi, market movement (opening/ultimo prematch/live/closing), trading opportunities history, strategy evaluation (NO TRADE valido), pre-match vs live, data coverage, post-mortem, export futuro",
+      "26 card condizionali; dato assente = N/D, non 0",
+      "Hard test: 5 partite concluse, ≥3 campionati VERIFIED, alta/bassa coverage, movement, replay completo, responsive, refresh stabile"
+    ],
+    "dependencies": [
+      12,
+      20,
+      24,
+      30,
+      28,
+      34,
+      97,
+      104
+    ],
+    "last_status": "Ultimo commento 06/10: 'prima della UI, #25 contribuisce solo con QUERY-CORE-01'. Avanzamento reale riportato altrove: R-07a Match Center primo lotto mergiato (#176) (#97 comment 6298350148).",
+    "last_status_source": "#25 comment 6013576002 (https://github.com/zarbopiero963-droid/MatchPilot/issues/25#issuecomment-6013576002); #97 comment 6298350148 (https://github.com/zarbopiero963-droid/MatchPilot/issues/97#issuecomment-6298350148)"
+  },
+  {
+    "number": 27,
+    "title": "[GOAT-BENCHMARK] 21 partite 04/10/2026 — confronto trading-first vs FutPythonTrader + TotalCorner",
+    "state": "open",
+    "role": "Benchmark — GOAT 21 partite 04/10 (trading-first)",
+    "labels": [],
+    "comments": 2,
+    "open_questions": [
+      "Fonte su Google Drive (cartella 1la5eiqXDpuk6VwT5_DP5zBvTmSXK8psT): accessibilità NOT VERIFIED",
+      "Richiede TC PREMATCH/LIVE certificati, ora sospeso"
+    ],
+    "requirements": [
+      "Per ognuna delle 21 partite: tesi GOAT, evidenze FPT pre-kickoff, TC prematch/live, entry/invalidation/exit, qualità del trade ex-ante, verdict GOOD/BAD/NO TRADE/UNVERIFIABLE",
+      "Metrica principale: qualità della decisione ex-ante, non pronostico preso/perso",
+      "Timestamp anti-leakage; quote reali; replay #24 verificabile per match con live archive completo"
+    ],
+    "dependencies": [
+      12,
+      20,
+      24,
+      25,
+      28,
+      104
+    ],
+    "last_status": "Ultimo commento 06/10: 'una sola BENCH-CORE-01 nel percorso pre-MCP, dopo #28 e dati certificati'. Nessun lavoro registrato.",
+    "last_status_source": "#27 comment 6013577143 (https://github.com/zarbopiero963-droid/MatchPilot/issues/27#issuecomment-6013577143)"
+  },
+  {
+    "number": 28,
+    "title": "[TRADING-ENGINE] Pre-match plan + live decision engine per BACK/LAY/Dutching, entry, exit, hedge e NO TRADE",
+    "state": "open",
+    "role": "Dominio — Trading Decision Engine (intent, non ledger/execution)",
+    "labels": [],
+    "comments": 4,
+    "open_questions": [
+      "Gate 'paper trading live reale' dipende da TC live sospeso"
+    ],
+    "requirements": [
+      "Due fasi separate e verificabili: PRE-MATCH TRADING PLAN e LIVE TRADING DECISION",
+      "Decisioni BACK/LAY/DUTCHING/NO TRADE; NO TRADE come esito valido",
+      "Trading Signal Contract; stati WATCHING/NEAR_MATCH/ARMED/BLOCKED/INVALIDATED/EXPIRED; entry/exit/hedge intent; decision snapshot",
+      "Regola temporale: storico solo disponibile al tempo T",
+      "Non possiede MM, ledger, settlement, execution (#96/#99/#45)",
+      "Catalogo 37 indicatori proprietari (Pressure Index…Data Confidence Score) con spiegabilità",
+      "Hard gate: planner, live engine, BACK/LAY/DUTCH/NO TRADE, entry, exit/hedge, risk/liability certificati; replay senza leakage; paper trading live reale",
+      "TRADE-CORE-01..08 (#104)"
+    ],
+    "dependencies": [
+      12,
+      20,
+      31,
+      94,
+      96,
+      99,
+      100,
+      34,
+      24,
+      27,
+      29,
+      102,
+      104
+    ],
+    "last_status": "Ultimo commento 06/10: 'aggiunta PAPER-CORE-01 dopo il contratto intent #28 e position #99'. Nessuna implementazione riportata in issue; segnali simulati FUNC-RECOVERY-01 mergiati (#184) secondo #97 comment 6341332738.",
+    "last_status_source": "#28 comment 6013695622 (https://github.com/zarbopiero963-droid/MatchPilot/issues/28#issuecomment-6013695622)"
+  },
+  {
+    "number": 29,
+    "title": "[LIVE-TRADING-BOARD] Architettura sezione LIVE realtime con card trading, clock continuo, stats, quote e segnali",
+    "state": "open",
+    "role": "UI finale — LIVE Trading Board realtime (fase 15)",
+    "labels": [],
+    "comments": 2,
+    "open_questions": [
+      "Gate 'hard test reali Render/TotalCorner' superato da #182 e TC sospeso"
+    ],
+    "requirements": [
+      "Realtime senza refresh: score, minuto (server+provider clock), stats, eventi, mercati, segnali",
+      "Store realtime centrale, event envelope, sequence integrity, reconnect/resync, nessuna lacuna silenziosa, freshness visibile",
+      "LIVE match card (header, trading summary, pressure, timeline, stats, market panel); watchlist/filtri/ordinamento",
+      "LIVE-PR-01..12; performance e responsive"
+    ],
+    "dependencies": [
+      20,
+      31,
+      28,
+      34,
+      98,
+      97
+    ],
+    "last_status": "Ultimo commento 06/10: 'LIVE Trading Board è UI finale… frontend definitivo no'.",
+    "last_status_source": "#29 comment 6012098511 (https://github.com/zarbopiero963-droid/MatchPilot/issues/29#issuecomment-6012098511)"
+  },
+  {
+    "number": 30,
+    "title": "[MATCH-ANALYSIS-HUB] Hub analitico partita con card complete, filtri avanzati Home/Away/Both e tutti i dati disponibili",
+    "state": "open",
+    "role": "Dominio/UI — Match Analysis Hub (query backend ora, UI fase 15)",
+    "labels": [],
+    "comments": 5,
+    "open_questions": [
+      "Verifica su archivio reale NOT_VERIFIED",
+      "Card che dipendono da TC (live/market) bloccate dalla sospensione TC"
+    ],
+    "requirements": [
+      "22 card (Overview, Form 5/10/20, Home/Away, xG, Shots, Creation, Possession, Defensive, Discipline, Corners, HT, 2H, Goal timing, Score distribution, H2H, Market history, Similar Odds, League context, ROI/Asset, Strengths/Weaknesses, Trading Context, Data Coverage) o N/D motivato",
+      "Filtri globali Home/Away/Both, 5/10/20/season/custom, venue, opponent strength, favorite/underdog, score state, time phase, market filters",
+      "Drill-down auditabile, compare mode, table mode, preset salvati",
+      "Queryability/normalized layer, Composable Rule Engine, Coverage Registry (sezioni comuni)",
+      "QUERY-CORE-02 (#104)"
+    ],
+    "dependencies": [
+      12,
+      20,
+      31,
+      25,
+      102,
+      104,
+      97
+    ],
+    "last_status": "19/10: R-06a (PR #162) e R-06b (PR #163) mergiate; 'MP-WEB-002, MP-WEB-007, MP-WEB-013 sono TESTED. Restano NOT_VERIFIED rispetto all'archivio reale'.",
+    "last_status_source": "#30 comment 6267631426 (https://github.com/zarbopiero963-droid/MatchPilot/issues/30#issuecomment-6267631426)"
+  },
+  {
+    "number": 31,
+    "title": "[DATA-RECONCILIATION] Self-healing sync, gap detection e recovery automatico FutPythonTrader + TotalCorner",
+    "state": "open",
+    "role": "Dominio dati — Reconciliation / self-healing FPT+TC",
+    "labels": [],
+    "comments": 2,
+    "open_questions": [
+      "Parte TC (prematch/live gap) dipende da TC sospeso"
+    ],
+    "requirements": [
+      "Watermark/checkpoint, gap detection FPT e TC, recovery upstream vs gap live non recuperabile classificato",
+      "Backfill automatico dopo outage, startup e periodic reconciliation, coda P0–P3, idempotenza, data integrity ledger",
+      "Alert Telegram warning/critical/resolved; Trading Engine reagisce a stale/gap",
+      "Hard failure drills reali; RECON-CORE-01..05"
+    ],
+    "dependencies": [
+      12,
+      20,
+      24,
+      28,
+      104
+    ],
+    "last_status": "Ultimo commento 06/10: '5 PR canoniche in #104 (RECON-CORE-01..05). La parte FutPythonTrader già certificata non va rifatta.' Il 22/10 Grok riporta watchdog orario con gap reconciliation attivo sulla VPS (#179 comment 6344141373).",
+    "last_status_source": "#31 comment 6013571867 (https://github.com/zarbopiero963-droid/MatchPilot/issues/31#issuecomment-6013571867)"
+  },
+  {
+    "number": 32,
+    "title": "[SEC-HARDENING] Offuscamento codice, protezione feed/API e riduzione esposizione architettura",
+    "state": "open",
+    "role": "Dominio — Security hardening avanzato (fase 14); baseline anticipata con #23",
+    "labels": [],
+    "comments": 2,
+    "open_questions": [],
+    "requirements": [
+      "Nessuna chiamata provider dal browser; token upstream invisibili; secrets solo server-side; log redaction",
+      "Source maps pubbliche off, frontend minified, trading logic critica backend-only",
+      "Auth su realtime e API, security headers, rate limiting/anti-abuse, bundle/network hard test, nessun HIGH/CRITICAL",
+      "SEC-PR-01..10"
+    ],
+    "dependencies": [
+      23,
+      20,
+      44,
+      45,
+      46,
+      97
+    ],
+    "last_status": "Ultimo commento 06/10: 'Security baseline NON può aspettare la fase pre-release… Nessuna API mutabile può essere certificata prima della baseline security.'",
+    "last_status_source": "#32 comment 6012401944 (https://github.com/zarbopiero963-droid/MatchPilot/issues/32#issuecomment-6012401944)"
+  },
+  {
+    "number": 34,
+    "title": "[STRATEGY-LAB] Rule Builder → strategie salvate, stake, backtest P/L e matching automatico sui live",
+    "state": "open",
+    "role": "Dominio — Strategy Lab / DSL / Indicator Library / backtest",
+    "labels": [],
+    "comments": 10,
+    "open_questions": [
+      "PR #178 HIST-01a: serve mandato owner (stop_condition 'no write on the branch without a new owner mandate')",
+      "Nessuna fonte prematch PIT ammissibile dall'archivio #40 (#97 comment 6298350148)",
+      "Input TC bloccati da sospensione TC"
+    ],
+    "requirements": [
+      "Creazione/gestione/versioning immutabile strategie, clone/archive",
+      "Stake: fixed, bankroll %, fixed liability, risk %, dutching allocation; assegnazione profili MM #96 con profile_version snapshot e override espliciti",
+      "Backtest P/L (BACK/LAY/DUTCH), cronologia, controlli, confronto, salvataggio; PIT/no leakage; stesso snapshot → stesso risultato",
+      "Live matching automatico/manuale, near-match, watchlist, alert",
+      "Indicator Library con formula/versione, input, finestre, coverage, KEEP/MERGE/REJECT su evidenza OOS e costo dati",
+      "STRAT-CORE-01..07 (#104)"
+    ],
+    "dependencies": [
+      94,
+      96,
+      99,
+      100,
+      28,
+      29,
+      12,
+      20,
+      40,
+      104
+    ],
+    "last_status": "Ultimo commento 08/10: input TC multi-bookmaker 'INPUT_DISCOVERY_CANDIDATE — BLOCKED ON #20 HARD CERTIFICATION'. Body aggiornato 19/10 (QUALITY-DATA-01). Avanzamento esterno: HIST-01a (PR #178) aperta, BLOCKED/conflitto, merge non autorizzato (#97 comments 6326159427, 6340604077).",
+    "last_status_source": "#34 comment 6057237834 (https://github.com/zarbopiero963-droid/MatchPilot/issues/34#issuecomment-6057237834); #97 comment 6340604077 (https://github.com/zarbopiero963-droid/MatchPilot/issues/97#issuecomment-6340604077)"
+  },
+  {
+    "number": 40,
+    "title": "[PROVIDER-TRIAL] BetsAPI vs TotalCorner vs FutPythonTrader — raccolta, confronto e spegnimento servizio temporaneo",
+    "state": "open",
+    "role": "Archivio FREEZE trial provider (BetsAPI/TC/FPT) — immutabile",
+    "labels": [],
+    "comments": 36,
+    "open_questions": [
+      "SHA per parte e portabilità DuckDB: BLOCKED (comment 6255253550)",
+      "Follow-up N-1/N-7 sul verificatore",
+      "Body ancora 'READY_TO_CLOSE_WITH_RESERVATIONS' (08/10) vs D9 che la mantiene OPEN",
+      "GO necessario per verifica #40"
+    ],
+    "requirements": [
+      "Contratto canonico FREEZE/ARCHIVE 06/10: freeze boundary (82.862 raw), modello temporale (provider/acquisition/observed time, revision), closing rule (ultima quota ≤ kickoff_cutoff)",
+      "Separazione FEATURES/LABELS; mapping cross-provider con mapping_status; solo VERIFIED come join",
+      "ScoreTrend escluso/segregato; liquidity UNAVAILABLE; vocabolario readiness limitato",
+      "Formati canonici (JSONL raw, Parquet canonical, DuckDB views minime), lineage/versioning, export consistency, secret scrub",
+      "Google Drive upload + readback; shutdown gate tutti TRUE",
+      "Archivio = evidenza/ricerca, non sostituisce mirror FPT/TC né dataset MatchPilot",
+      "#182: FREEZE immutabile; nuovi dati FPT separati; nessuna cancellazione Neon/Render/archivi senza GO"
+    ],
+    "dependencies": [
+      3,
+      12,
+      20,
+      34,
+      179,
+      182
+    ],
+    "last_status": "21/10: 'il COMPLETED dell'08/10 è stato annullato da D9'; R-02 BLOCKED (SHA per parte non verificabili: tool Drive limite 10 MB); FREEZE immutabile; 'La issue resta aperta (D9).'",
+    "last_status_source": "#40 comment 6326174471 (https://github.com/zarbopiero963-droid/MatchPilot/issues/40#issuecomment-6326174471); #40 comment 6255253550 (https://github.com/zarbopiero963-droid/MatchPilot/issues/40#issuecomment-6255253550)"
+  },
+  {
+    "number": 44,
+    "title": "[AI-ASSISTANT] MatchPilot Copilot — OpenRouter, query DB, explainability e tool calling",
+    "state": "open",
+    "role": "Dominio futuro — AI Assistant globale (fase 12)",
+    "labels": [],
+    "comments": 4,
+    "open_questions": [],
+    "requirements": [
+      "Provider abstraction OpenRouter, NL → DSL/query sicura, explainability TRADE/NO TRADE, provenance",
+      "AI non è fonte dati; nessuna invenzione di campi; budget token/timeout/fallback/audit",
+      "Consuma gli stessi tool #98; AI-PR-01..07; non certificabile con soli prompt test"
+    ],
+    "dependencies": [
+      12,
+      20,
+      28,
+      30,
+      34,
+      31,
+      98,
+      102
+    ],
+    "last_status": "Ultimo commento 06/10: '#44 fornisce linguaggio/explainability, ma il Trading Copilot deve consumare tool certificati'. Roadmap futura.",
+    "last_status_source": "#44 comment 6012548740 (https://github.com/zarbopiero963-droid/MatchPilot/issues/44#issuecomment-6012548740)"
+  },
+  {
+    "number": 45,
+    "title": "[EXECUTION] Exchange Gateway — ordini BACK/LAY, hedge, reconciliation e kill switch",
+    "state": "open",
+    "role": "Proposta storica — Exchange Gateway reale: OUT OF SCOPE",
+    "labels": [],
+    "comments": 2,
+    "open_questions": [
+      "Riammissione solo con nuova decisione owner esplicita"
+    ],
+    "requirements": [
+      "Non aprire PR implementative; non contarla tra i lavori residui; conservarla senza chiuderla",
+      "(Storico) adapter, place/cancel/replace, fills, idempotency, reconciliation, kill switch, audit — EXEC-PR-01..08"
+    ],
+    "dependencies": [
+      28,
+      34,
+      29,
+      23,
+      32
+    ],
+    "last_status": "Body 19/10: 'MP-OWNER-EXCLUDE-REAL-EXECUTION-01 … #45 EXCHANGE GATEWAY REALE = OUT OF SCOPE / NOT OWNER AUTHORIZED'.",
+    "last_status_source": "#45 body (https://github.com/zarbopiero963-droid/MatchPilot/issues/45)"
+  },
+  {
+    "number": 46,
+    "title": "[BILLING-SAAS] Abbonamenti, entitlement, piani e pagamenti",
+    "state": "open",
+    "role": "Dominio futuro — Billing/SaaS (fase 16)",
+    "labels": [],
+    "comments": 2,
+    "open_questions": [
+      "Provider di pagamento non scelto (Gumroad/Paddle/Lemon Squeezy/altro)"
+    ],
+    "requirements": [
+      "Piani Trial/Free/Paid, entitlement, webhook firmati e idempotenti, lifecycle abbonamento, refund, grace period, feature gates, seats, audit",
+      "Hard test in sandbox con webhook replay/out-of-order"
+    ],
+    "dependencies": [
+      23,
+      32
+    ],
+    "last_status": "Ultimo commento 06/10: PR card BILLING-PR-01..07 'Quando questa fase verrà attivata'. Roadmap futura.",
+    "last_status_source": "#46 comment 6012167783 (https://github.com/zarbopiero963-droid/MatchPilot/issues/46#issuecomment-6012167783)"
+  },
+  {
+    "number": 87,
+    "title": "[INFRA-COST] Confronto finale Render + Neon vs Railway",
+    "state": "open",
+    "role": "Decisione infrastrutturale deferita — Render+Neon vs Railway (endgame)",
+    "labels": [],
+    "comments": 2,
+    "open_questions": [
+      "Premessa obsoleta: #182 esclude Render/Neon dall'architettura operativa; il confronto Railway non è stato rivalutato"
+    ],
+    "requirements": [
+      "Solo a progetto stabile: 24–72 h di metriche reali (CPU/RAM/DB/egress…)",
+      "Decision matrix costi+tecnica, raccomandazione STAY/MOVE/REASSESS",
+      "Nessuna migrazione o risorsa a pagamento senza decisione owner"
+    ],
+    "dependencies": [
+      12,
+      20,
+      31,
+      3,
+      182
+    ],
+    "last_status": "Ultimo commento 06/10: standard di chiusura decisione infrastrutturale. Nessun aggiornamento dopo #182.",
+    "last_status_source": "#87 comment 6012168419 (https://github.com/zarbopiero963-droid/MatchPilot/issues/87#issuecomment-6012168419)"
+  },
+  {
+    "number": 91,
+    "title": "[PROPOSTA][FRONTEND-WEWEB] MatchPilot — valutazione frontend WeWeb + backend custom, MCP e riduzione manutenzione",
+    "state": "open",
+    "role": "Proposta NON approvata — frontend WeWeb",
+    "labels": [],
+    "comments": 1,
+    "open_questions": [
+      "Decisione owner su POC WW-01 (non autorizzato)"
+    ],
+    "requirements": [
+      "Nessuna PR di migrazione; eventuale POC WW-01 solo con autorizzazione owner",
+      "Chiusura solo dopo POC, confronto, decisione owner"
+    ],
+    "dependencies": [
+      3,
+      97
+    ],
+    "last_status": "Ultimo commento 06/10: 'la proposta WeWeb resta solo proposta e viene valutata nella fase UI finale'.",
+    "last_status_source": "#91 comment 6012099575 (https://github.com/zarbopiero963-droid/MatchPilot/issues/91#issuecomment-6012099575)"
+  },
+  {
+    "number": 94,
+    "title": "[TRADING-TOOLS] Hub strumenti trading — Kelly, EV, Liability, Hedge, Cashout, Dutching, Progressioni, Risk & Poisson",
+    "state": "open",
+    "role": "Dominio — Math Core / Trading Tools (fase 4)",
+    "labels": [],
+    "comments": 10,
+    "open_questions": [
+      "Liquidità: nessuna fonte certificata → LIQUIDITY_UNAVAILABLE",
+      "Resto di R-12 (MATH-CORE-02..08) non fatto"
+    ],
+    "requirements": [
+      "Pure math library → API/tool → test; UI Trading Tools deferita",
+      "Tool: Stake&Kelly, EV, Liability, BACK→LAY/LAY→BACK hedge, Cashout, Dutching BACK/LAY, Arbitrage, Progressions con risk guard, Risk Exposure, Poisson, Commission Optimizer, Dutch Each Way, Synthetic DNB, stake constraint solver, exposure netting",
+      "Solo quote decimali; Decimal/fixed precision; oracle indipendente; test vector, property, metamorphic, fuzz",
+      "Liquidità mai inventata: LIQUIDITY_UNAVAILABLE/UNKNOWN",
+      "Commissione da settings #95 con snapshot; nessun valore hardcoded divergente",
+      "Separazione CALCULATE / PREPARE / EXECUTE; nessun ordine implicito",
+      "Baseline matematica low-cost (Poisson, Elo, Bayes leggero, fair odds, calibration, validazione temporale); ML pesante fuori scope",
+      "MATH-CORE-01..08 (#104)"
+    ],
+    "dependencies": [
+      95,
+      96,
+      99,
+      28,
+      29,
+      30,
+      34,
+      45,
+      104
+    ],
+    "last_status": "Ultimo commento 06/10: catalogo modelli 1–327 classificato; decisione owner 'OWNER MATH BASELINE' (ML pesante OUT OF SCOPE). Avanzamento esterno: MATH-CORE-01 (PR #156) mergiata 19/10 (#97 comment 6262522438).",
+    "last_status_source": "#94 comment 6026425693 (https://github.com/zarbopiero963-droid/MatchPilot/issues/94#issuecomment-6026425693); #94 comment 6026356035 (https://github.com/zarbopiero963-droid/MatchPilot/issues/94#issuecomment-6026356035)"
+  },
+  {
+    "number": 95,
+    "title": "[SETTINGS] Dashboard impostazioni account + commissione Exchange persistente",
+    "state": "open",
+    "role": "Dominio — Settings account + commissione (fase 1)",
+    "labels": [],
+    "comments": 5,
+    "open_questions": [],
+    "requirements": [
+      "Settings account-level server-side; browser storage mai autorevole",
+      "exchange_commission_rate Decimal, validato, versionato, propagato a tutti i consumer; snapshot (commission_rate_used, settings_snapshot_id) nei calcoli/ledger",
+      "Precedenze esplicite e override visibili/auditati",
+      "Concorrenza multi-device senza perdita silenziosa; isolamento account",
+      "Ogni impostazione futura persistente per account (comment 6011826143)",
+      "Test: 5%→3% cross-browser, snapshot storici riproducibili, isolamento, concorrenza"
+    ],
+    "dependencies": [
+      23,
+      94,
+      96,
+      99,
+      28,
+      45
+    ],
+    "last_status": "Ultimo commento 06/10: '#95 usare 4 PR canoniche (SETTINGS-CORE-01..04). Dashboard UI deferita alla fase 15.'",
+    "last_status_source": "#95 comment 6013570726 (https://github.com/zarbopiero963-droid/MatchPilot/issues/95#issuecomment-6013570726)"
+  },
+  {
+    "number": 96,
+    "title": "[MONEY-MANAGEMENT] Engine bankroll, staking, risk limits e filtri persistenti",
+    "state": "open",
+    "role": "Dominio — Money Management registry/profili/policy (fase 5)",
+    "labels": [],
+    "comments": 10,
+    "open_questions": [
+      "OWN-OPEN-STOP-ADVISORY: scritture #99 consentite in ADVISORY_ONLY per posizioni già aperte"
+    ],
+    "requirements": [
+      "Registry tipi MM con categorie (stateless, bankroll-dependent, target/recovery, progressioni, exposure-aware, composite) e capability flags",
+      "Profili multipli CRUD/clone/default/archive/safe-delete, versioni immutabili, dipendenze d'uso",
+      "Decisione ALLOW/REDUCE/BLOCK/SIMULATION_ONLY; risk caps; filtri/regole condizionali con priorità deterministica",
+      "operational_mode ACTIVE_OPERATIONAL/ADVISORY_ONLY/PAUSED/ARCHIVED; STOP/RESUME auditati",
+      "Non possiede ledger/settlement/saldo: legge da #99",
+      "Progressioni avanzano solo su settlement finale; VOID mai loss automatica",
+      "Test matematici (tolleranza 1e-9; 0,01 EUR) + hard test reali per categoria; riconciliazione al centesimo",
+      "Replay MM point-in-time senza scrivere il ledger operativo",
+      "MM-CORE-01..08 + MM-INTEGRATION-01"
+    ],
+    "dependencies": [
+      94,
+      95,
+      99,
+      100,
+      28,
+      34,
+      24,
+      98,
+      102
+    ],
+    "last_status": "Ultimo commento 06/10: 'MM-CORE-07 ora copre solo Exposure-aware/Composite policy… Totale percorso #96 pre-MCP: 8 core + 1 late integration'.",
+    "last_status_source": "#96 comment 6013693341 (https://github.com/zarbopiero963-droid/MatchPilot/issues/96#issuecomment-6013693341)"
+  },
+  {
+    "number": 97,
+    "title": "[ROADMAP] Ordine operativo Backend/API-first → hard test → UI finale",
+    "state": "open",
+    "role": "ROADMAP canonica operativa (D8)",
+    "labels": [],
+    "comments": 45,
+    "open_questions": [
+      "Body #97 da aggiornare con VPS/#179/#182 ('modifica che spetta all'owner', comment 6326159427)",
+      "Sequenza proposta post-#183 (governance, S3, S4, DR, cutover, backend, TC OFF, FPT, Telegram, monitoraggio, #178, sviluppo): solo per approvazione",
+      "Mandato owner per #178 HIST-01a; decisione su GOV-01 (AUTOMERGE-02/03 'non approvata', registro: MP-OWNER-AUTOMERGE-02-03-PROPOSAL OPEN)",
+      "GO-S1..S5 per il gate di deploy; P1/A7 (un agente può approvare un deploy) blocca S4/S5",
+      "ANTI-STALE DEPLOY: requisito owner (comment 6321186934), STOP in attesa di GO-AS-1 (comment 6321311568)",
+      "Run deploy-vps in attesa (39635669968 obsoleto da rifiutare a cura owner)",
+      "OPEN / OWNER DECISION REQUIRED — STOP/ADVISORY_ONLY (body)",
+      "HANDOFF-TEST-01 reale Claude→Grok→Claude: NOT VERIFIED"
+    ],
+    "requirements": [
+      "Ordine DATA CONTRACT → DOMAIN/MATH → DB → API → TEST MATEMATICI → HARD TEST REALI → TOOL/MCP → UI",
+      "Fasi 0–16: #23 identity/security; #95 settings; dati #12/#20/#31; #24 replay PIT; #94 math; #96 MM; #100 market rules; #99 ledger; #34 strategy; #28 trading; #27/#25/#30 query; #98 certificazione integrata; #44 AI; #45 (ora escluso); #32 hardening; UI finale; #46 billing",
+      "Ogni dominio espone subito i propri tool/API; #98 certifica E2E senza UI (22 passi)",
+      "Standard certificazione DISCOVERED→…→HARD_VERIFIED_REAL→TOOL_VERIFIED→CERTIFIED→OWNER_ACCEPTED; mock mai unica prova",
+      "Ogni PR: fase #97, dipendenze, owner dominio, test, hard test, mock SÌ/NO",
+      "MP-OWNER-ARCHIVE-FIRST-01: sviluppo su archivi verificati; inventario probatorio; live NOT VERIFIED/BLOCKED BY LIVE EVIDENCE",
+      "Regole merge vigenti (registro): AUTOMERGE-01 (Gate A/B, CI, review indipendente APPROVED, zero finding bloccanti, niente deploy/costi/LIVE)",
+      "HIST-01b: freschezza quote configurabile (opzione A) e FINAL solo con validazione temporale/coerenza (comments 6301851779, 6301856737)",
+      "Gate approvazione manuale deploy VPS; anti-stale latest-main-only; un solo approvatore owner",
+      "MP-OWNER-UI-NO-RAW-TEXT-01: nessun testo tecnico nelle viste utente (comment 6274947565)",
+      "Riconciliare #97 e #104 card per card (#182 P6)"
+    ],
+    "dependencies": [
+      3,
+      104,
+      179,
+      182,
+      150,
+      178,
+      180,
+      181,
+      183,
+      184,
+      185,
+      186,
+      187,
+      188,
+      189,
+      23,
+      95,
+      12,
+      20,
+      31,
+      40,
+      24,
+      94,
+      96,
+      100,
+      99,
+      34,
+      28,
+      27,
+      25,
+      30,
+      98,
+      102,
+      44,
+      45,
+      32,
+      29,
+      91,
+      46
+    ],
+    "last_status": "22/10 (Grok): SIM-OUTBOX-01 rimosso (PR #189 → 39fe08e); deploy-vps 39790368069 'waiting for the owner's approval'. Prima: TC-OFF-01 MERGED (#186), FUNC-RECOVERY-01 MERGED (#184), TAKEOVER-01 MERGED (#185). Body fermo al 07/10 ('Prossima azione … PR #125'), dichiarato superato in comment 6340604077.",
+    "last_status_source": "#97 comment 6342716999 (https://github.com/zarbopiero963-droid/MatchPilot/issues/97#issuecomment-6342716999); #97 comment 6340604077 (https://github.com/zarbopiero963-droid/MatchPilot/issues/97#issuecomment-6340604077)"
+  },
+  {
+    "number": 98,
+    "title": "[OPERATOR-API-MCP] Controllo completo MatchPilot via API/tooling prima della UI",
+    "state": "open",
+    "role": "Dominio — Operator API/MCP; gate di certificazione integrata pre-UI (fase 11)",
+    "labels": [],
+    "comments": 8,
+    "open_questions": [
+      "Deliverable ARCHIVE-FIRST A–E (inventario fonti, matrice requisito→dati→test) non pubblicati nella issue"
+    ],
+    "requirements": [
+      "Capability: data/query/replay/PIT, settings, MM CRUD/policy, strategy/backtest, trading/paper/settlement/ledger, trading tools",
+      "Contratto tool-first: schema versionato, validation, idempotency, authz, provenance, errori deterministici, nessuna dipendenza UI",
+      "Hard gate ChatGPT: workflow completo senza sito (dati → MM → strategia → backtest → paper → exposure → settlement → P/L/ledger → ripetizione → audit)",
+      "Tool STOP/advisory (OPERATIONS_STOPPED senza mutation) e replay+MM",
+      "MCP-CORE-00 subito dopo #23; MCP-CORE-01..03 finali"
+    ],
+    "dependencies": [
+      12,
+      20,
+      31,
+      94,
+      95,
+      96,
+      99,
+      100,
+      34,
+      28,
+      24,
+      102,
+      44,
+      23,
+      104
+    ],
+    "last_status": "Ultimo commento 06/10: 'aggiunta MCP-CORE-00 subito dopo #23'. Body aggiornato 19/10 con MP-OWNER-ARCHIVE-FIRST-01. Avanzamento esterno: API v1 read-only R-03 (PR #153) mergiata (#97 comment 6256304043).",
+    "last_status_source": "#98 comment 6013694470 (https://github.com/zarbopiero963-droid/MatchPilot/issues/98#issuecomment-6013694470)"
+  },
+  {
+    "number": 99,
+    "title": "[SETTLEMENT-LEDGER] Posizioni, settlement, commissione e ledger append-only",
+    "state": "open",
+    "role": "Dominio — Position/Settlement/Ledger append-only (fase 7)",
+    "labels": [],
+    "comments": 4,
+    "open_questions": [
+      "Contraddizione STOP/ADVISORY: comment 6012586884 ('Le posizioni già esistenti prima dello STOP restano pienamente gestibili e settleabili') vs #97/#96 'blocca financial ledger writes' — registrata OPEN"
+    ],
+    "requirements": [
+      "Unico owner di positions/legs/fills, reserve/release, liability, exposure, P/L realized/unrealized, equity, commissione applicata, settlement, ledger append-only, reversal",
+      "Stati OPEN…REVERSED; eventi ledger INITIAL_ALLOCATION…MANUAL_ADJUSTMENT auditato",
+      "Idempotency key/version per settlement; doppio settlement rifiutato; transazioni atomiche",
+      "Reversal append-only; commissione da snapshot #95; market_rule_version congelata da #100",
+      "Hard certification: ≥3 trade BACK/LAY, WIN/LOSS/VOID, ≥2 posizioni concorrenti, hedge/cashout, reversal, reload, riconciliazione al centesimo",
+      "ADVISORY_ONLY: nessuna nuova position/RESERVE/financial entry per operazioni mai aperte",
+      "LEDGER-CORE-01..07 + PAPER-CORE-01"
+    ],
+    "dependencies": [
+      95,
+      94,
+      96,
+      100,
+      34,
+      28,
+      45,
+      98,
+      102
+    ],
+    "last_status": "Ultimo commento 06/10: '#99 passa a 7 PR… Aggiunta anche PAPER-CORE-01'. Nessuna implementazione riportata.",
+    "last_status_source": "#99 comment 6013693835 (https://github.com/zarbopiero963-droid/MatchPilot/issues/99#issuecomment-6013693835)"
+  },
+  {
+    "number": 100,
+    "title": "[MARKET-RULES] Regole settlement mercati, VOID, postponed, abandoned e dead-heat",
+    "state": "open",
+    "role": "Dominio — Market Rules registry (fase 6)",
+    "labels": [],
+    "comments": 1,
+    "open_questions": [],
+    "requirements": [
+      "Registry versionato per market type/venue: result source, win/lose, VOID, PUSH, postponed, abandoned, ET, rigori, dead heat, partial, line settlement, suspension, correction policy",
+      "Mercati iniziali: 1X2, DC, O/U, BTTS, CS, AH, Asian Goal Line, corners/lines, cards, HT, Next Goal, team goals, dutch",
+      "#99 usa sempre una market_rule_version congelata; stesso input + versione → stessa risoluzione",
+      "MARKET-CORE-01..05"
+    ],
+    "dependencies": [
+      94,
+      99,
+      20,
+      45
+    ],
+    "last_status": "Unico commento 06/10: 'usare 5 PR canoniche in #104 (MARKET-CORE-01..05)'.",
+    "last_status_source": "#100 comment 6013573938 (https://github.com/zarbopiero963-droid/MatchPilot/issues/100#issuecomment-6013573938)"
+  },
+  {
+    "number": 102,
+    "title": "[TRADING-COPILOT] Assistente in-partita PREMATCH → LIVE → POSITION → EXIT",
+    "state": "open",
+    "role": "Dominio — Trading Copilot contestuale (tool pre-UI, card in fase 15)",
+    "labels": [],
+    "comments": 4,
+    "open_questions": [
+      "STOP OPERATIONS: posizioni già aperte 'possono essere gestite/hedgiate/chiuse… fino al settlement' (comment 6012585864) — vedi conflitto OWN-OPEN-STOP-ADVISORY"
+    ],
+    "requirements": [
+      "Ciclo PREMATCH → LIVE → ARMED → ENTRY → OPEN POSITION → MANAGEMENT → EXIT → SETTLEMENT → POST-MORTEM",
+      "Nessuna business logic propria: consuma #94/#96/#100/#99/#34/#28/#98",
+      "P/L per outcome (mai un unico P/L), proposte HOLD/PARTIAL_HEDGE/FULL_HEDGE/CASHOUT/EXIT/STOP/NO_ACTION, LIQUIDITY_UNAVAILABLE",
+      "STOP OPERATIONS / RESUME; funziona anche nel replay senza scrivere il ledger operativo",
+      "12 tool pre-UI (get_match_trading_context … get_postmortem); hard test 18 passi da ChatGPT",
+      "TCOP-CORE-01..04"
+    ],
+    "dependencies": [
+      98,
+      44,
+      30,
+      28,
+      34,
+      96,
+      99,
+      100,
+      94,
+      45,
+      24
+    ],
+    "last_status": "Ultimo commento 06/10: 'le 4 PR pre-UI #102 devono completarsi prima di MCP-CORE-02 e MCP-CORE-03'.",
+    "last_status_source": "#102 comment 6013694981 (https://github.com/zarbopiero963-droid/MatchPilot/issues/102#issuecomment-6013694981)"
+  },
+  {
+    "number": 104,
+    "title": "[PRE-MCP-PR-PLAN] Piano canonico 82 PR fino a MatchPilot utilizzabile via MCP",
+    "state": "open",
+    "role": "CATALOGO storico 82 card pre-MCP (D8) — non conteggio residuo",
+    "labels": [],
+    "comments": 2,
+    "open_questions": [
+      "Ricensimento del residuo reale: '82 è baseline storica, NON conteggio verificato'",
+      "Aggiungere task atomici VPS/PG/FPT/Telegram/TC-off/backup/Gate (comment 6325346427)"
+    ],
+    "requirements": [
+      "Card AUTH-CORE-01..04, MCP-CORE-00, SETTINGS-CORE-01..04, TC-CORE-01..08 (+03B, 06B), RECON-CORE-01..05, REPLAY-CORE-01..03, MATH-CORE-01..08, MM-CORE-01..08, MARKET-CORE-01..05, LEDGER-CORE-01..07, PAPER-CORE-01, STRAT-CORE-01..07, TRADE-CORE-01..08, MM-INTEGRATION-01, QUERY-CORE-01/02, BENCH-CORE-01, TCOP-CORE-01..04, MCP-CORE-01..03",
+      "Non accorpare se si perde un gate separato (schema, matematica, authz, provider evidence, accounting, recovery, hard certification)",
+      "Ogni PR dichiara fase #97, owner, dipendenze, test, hard evidence, tool/API, mock SÌ/NO",
+      "Fuori dal totale: UI finale, #44 polish, #45, #32 avanzato, #46"
+    ],
+    "dependencies": [
+      97,
+      3,
+      182,
+      23,
+      95,
+      20,
+      31,
+      24,
+      94,
+      96,
+      100,
+      99,
+      34,
+      28,
+      25,
+      30,
+      27,
+      102,
+      98
+    ],
+    "last_status": "21/10: '#104 resta catalogo storico e non fa concorrenza a #97'; nessuna card dichiarata COMPLETED; lavoro residuo 'riconciliazione card per card di #97 e #104 (#182 P6)'.",
+    "last_status_source": "#104 comment 6326175628 (https://github.com/zarbopiero963-droid/MatchPilot/issues/104#issuecomment-6326175628)"
+  },
+  {
+    "number": 132,
+    "title": "[IDEA / NON APPROVATA] ML Lab FPT + TotalCorner — training, checkpoint, Vast.ai/RunPod e costi (solo tracciamento)",
+    "state": "open",
+    "role": "Idea NON approvata — ML Lab (solo tracciamento)",
+    "labels": [],
+    "comments": 0,
+    "open_questions": [
+      "Numero reale di match FPT/TC con feature PIT valide; storage modelli; CPU vs GPU; mercati e metriche (tutte 'nessuna decisione richiesta ora')"
+    ],
+    "requirements": [
+      "Nessuna implementazione/spesa/PR senza nuovo mandato scritto owner (perimetro, dataset, budget, stop)"
+    ],
+    "dependencies": [],
+    "last_status": "Body 08/10: 'DEFERRED / INFORMATIONAL / OWNER APPROVAL REQUIRED'. Nessun commento.",
+    "last_status_source": "#132 body (https://github.com/zarbopiero963-droid/MatchPilot/issues/132)"
+  },
+  {
+    "number": 144,
+    "title": "[OWNER APPROVED] Transizione sviluppo GitHub Actions zero-cost: PUBLIC durante sviluppo → PRIVATE al termine",
+    "state": "open",
+    "role": "Decisione owner + piano — CI zero-cost, repo PUBLIC in sviluppo → PRIVATE alla fine",
+    "labels": [],
+    "comments": 18,
+    "open_questions": [
+      "Fase 4 prevede 'Riattivare Render … configurare Neon e collector' — in conflitto con #182",
+      "Ritorno a PRIVATE alla fine: non pianificato",
+      "Zero spesa Actions misurata: non riverificata dopo l'introduzione del runner self-hosted VPS"
+    ],
+    "requirements": [
+      "Repo PUBLIC durante sviluppo, PRIVATE verificato alla fine (non opzionale)",
+      "0 € Actions misurati; nessun larger runner",
+      "CI selettiva con gate stabile non aggirabile, classificatore con fallback suite completa, livelli A/B/C/D (D solo manuale)",
+      "Nessun DATABASE_URL di produzione o accesso in scrittura a produzione nei job CI",
+      "Dataset/certificazioni preservati; nessun collector reale dai workflow",
+      "Owner policy 09/10: tutto certificato sempre; chiusura issue solo owner; niente keyword auto-closing (comment 6078241691)"
+    ],
+    "dependencies": [
+      3,
+      20,
+      40,
+      97,
+      98,
+      104,
+      182
+    ],
+    "last_status": "09/10: Render e Neon sospesi (gate consumati); '#144 resta OPEN: include anche sviluppo successivo, ritorno finale a PRIVATE e certificazione H24 futura'. Nessun aggiornamento dopo il 09/10.",
+    "last_status_source": "#144 comment 6085496888 (https://github.com/zarbopiero963-droid/MatchPilot/issues/144#issuecomment-6085496888)"
+  },
+  {
+    "number": 150,
+    "title": "[GOVERNANCE] MP-MULTIAGENT-SYNC-CHECKPOINT-01 — Permanent GitHub Governance, Multi-Agent Checkpoints & Handoff",
+    "state": "open",
+    "role": "GOVERNANCE — checkpoint multi-agente, handoff, lease (R-01)",
+    "labels": [],
+    "comments": 5,
+    "open_questions": [
+      "HANDOFF-TEST-01 reale non eseguito",
+      "MP-QAC-010/012/013 non PASS (comment 6255071981)",
+      "Conferma owner della formulazione delle decisioni trascritte (N-5, comment 6255318977) — nessuna risposta nella issue"
+    ],
+    "requirements": [
+      "AGENTS.md canonico, CLAUDE.md puntatore; regole obsolete rimosse; precedenza del registro owner",
+      "Controlli automatici contro keyword auto-closing (usare Refs #)",
+      "Checkpoint machine-readable (id, agente, attività, issue/PR/branch/SHA, test/CI/Gate, review, findings, decisioni, next action, handoff) senza segreti",
+      "Registro attività con lease, protezione concorrenza, recovery, rilevazione checkpoint stale/fork/SHA mismatch, riconciliazione con GitHub, idempotenza",
+      "Test D1–D10 inclusa prova reale Agent A → interruzione → Agent B",
+      "READY TO CLOSE solo a certificazione completa; chiusura solo owner"
+    ],
+    "dependencies": [
+      97,
+      3,
+      104,
+      149,
+      151,
+      152,
+      153,
+      183
+    ],
+    "last_status": "21/10: schema mp-checkpoint-v3 e handoff-in (PR #183, mergiata il 22/10 secondo #97 comment 6336455419); 'Collaudo reale Claude → Grok → Claude con due sessioni distinte: HANDOFF NOT VERIFIED'.",
+    "last_status_source": "#150 comment 6326167744 (https://github.com/zarbopiero963-droid/MatchPilot/issues/150#issuecomment-6326167744)"
+  },
+  {
+    "number": 179,
+    "title": "MP-INFRA-MIGRATION-01 — Render e Neon verso VPS: tracciamento e certificazione",
+    "state": "open",
+    "role": "OPERAZIONI — migrazione Render/Neon → VPS (registro operativo)",
+    "labels": [],
+    "comments": 41,
+    "open_questions": [
+      "GO-S3, GO-S4, GO-S5 non concessi; FREEZE=1 MODE=report",
+      "P1/A7: un agente (stessa identità owner) può approvare un deploy — blocca S4/S5 (comment 6321427900; registro decisione MP-S1: nessun secondo account, comment 6321726326)",
+      "F1 regola sudo mpdeploy; F2 migratore che crea tabelle all'avvio; B13; NB-E/NB-F",
+      "DR cross-machine PG18 con dati reali NOT VERIFIED; off-site automatico staging NOT VERIFIED (F-3)",
+      "Scelta DB definitivo: 20/10 owner 'mantenere PG17 come destinazione operativa preferita' (comment 6297274650) vs 22/10 'Chosen definitive DB: PG18 matchpilot_staging' (comment 6344141373)",
+      "Retention backup: AUTOMATIC DELETION DISABLED — OWNER GO REQUIRED (registro MP-OWNER-BACKUP-RETENTION-01 OPEN)",
+      "Incidente 21/10: rerun non autorizzato del deploy 39412733270 da parte di Claude (comment 6313551158)",
+      "Run obsoleto 39635669968 da rifiutare (azione owner)"
+    ],
+    "requirements": [
+      "Gate: staging isolato, export Neon read-only, import con hash/conteggi, app su dati reali, backup cifrato + restore, cutover autorizzato, osservazione 24–48 h, dismissione Render/Neon solo con GO",
+      "Vincoli: non alterare #40, TC OFF, niente Telegram in staging, niente merge/spegnimenti senza GO",
+      "Decisione owner DR: ogni componente VPS censito e ripristinabile su altra macchina (8 criteri: inventario, backup cifrato, manifest/SHA, offsite+retention, procedura restore, prova restore, segreti separati, controllo capacità) (comment 6296081484)",
+      "Nessun segreto/backup/dato riservato su GitHub",
+      "Gate di deploy: approvazione manuale su environment vps-production, nessun bypass da push/rerun/altri workflow; OIDC + ledger anti-replay; anti-stale latest-main-only; FREEZE fino a S5",
+      "S1 permessi, S2 PR anti-stale/approvatore, S3 install v3.1 in FREEZE, S4 certificazione reale, S5 ENFORCE",
+      "Rilievi applicativi APP-01 (rowGaps), APP-02 (F1 host configurabile, F2 modalità verify migrazioni)"
+    ],
+    "dependencies": [
+      97,
+      182,
+      12,
+      20,
+      40,
+      3,
+      149,
+      178,
+      180,
+      181,
+      183,
+      184
+    ],
+    "last_status": "22/10 (Grok): FPT attivo sulla VPS su DB definitivo PG18 'matchpilot_staging' (5434); watchdog + Telegram reali; F-1..F-4 aperti. Stato registro: VPS-MIGRATION-01 BLOCKED/PENDING_VERIFICATION con dichiarazioni C1–C8 da verificare; review v3.1 BLOCKED poi v3.1-r2 'NON READY FOR GO-S3'; P1/A7 blocca S4.",
+    "last_status_source": "#179 comment 6344141373 (https://github.com/zarbopiero963-droid/MatchPilot/issues/179#issuecomment-6344141373); #179 comment 6336457809 (https://github.com/zarbopiero963-droid/MatchPilot/issues/179#issuecomment-6336457809); #179 comment 6337618137 (https://github.com/zarbopiero963-droid/MatchPilot/issues/179#issuecomment-6337618137)"
+  },
+  {
+    "number": 182,
+    "title": "[OWNER DECISION] VPS-only operations — Render/Neon off, FPT+Telegram on, TotalCorner paused",
+    "state": "open",
+    "role": "DECISIONE OWNER canonica — VPS-only (MP-VPS-ONLY-OPERATIONS-2026-10-21)",
+    "labels": [],
+    "comments": 1,
+    "open_questions": [
+      "Decisione sul perimetro dati FPT (FPT∩TC vs sospensione TC)",
+      "GO separato per ogni fase P0–P6",
+      "Disattivazione remota dei workflow provider-trial-* (se voluta)"
+    ],
+    "requirements": [
+      "Render e Neon spenti ed esclusi dall'architettura futura; nessun riavvio/deploy/dipendenza; non eliminare finché backup/export/readback/restore verificati e GO owner",
+      "Tutta l'operatività sulla VPS (backend/API, PostgreSQL locale, FPT, Telegram, frontend, scheduler, runner, deploy protetti); GitHub per sorgenti/PR/CI/review",
+      "Riprendere FPT dopo verifica contratti/credenziali/gap/idempotenza; Telegram con test consegna/anti-duplicazione; TotalCorner sospeso senza cancellare dati",
+      "FREEZE #40 immutabile; nuova acquisizione su storage separato; migrazione Neon con export consistente, checksum, conteggi, restore-test, PIT, rollback",
+      "Sviluppo continua una PR alla volta con Gate A/B, CI, review; certificazione deploy S3/S4 distinta da quella funzionale",
+      "Nessuna spesa/modifica VPS/migrazione/merge/deploy/permessi/collector senza GO separato; PR #178 intoccabile",
+      "Piano P0 preflight, P1 piano migrazione, P2 Gate S3/S4, P3 PostgreSQL locale, P4 backend VPS, P5 FPT+Telegram (TC disabilitato + test negativo), P6 sviluppo continuo",
+      "Acceptance: nessun runtime dipende da Render/Neon; FPT persiste in PG VPS e Telegram senza duplicati; TC nessuna acquisizione; FREEZE intatto; backup off-host+restore testati; S3/S4 PASS prima del deploy normale; tracciabilità #3/#97/#104/#12/#20/#40/#181"
+    ],
+    "dependencies": [
+      3,
+      97,
+      104,
+      12,
+      20,
+      40,
+      178,
+      179,
+      181,
+      183
+    ],
+    "last_status": "21/10: decisione registrata IN_FORCE via PR #183 (mergiata 22/10); lavoro residuo fasi P2–P6; 'conflitto da decidere: OWN-2026-10-06-SCOPE (perimetro FPT∩TC) contro la sospensione di TC'; GO necessari per ogni fase operativa.",
+    "last_status_source": "#182 comment 6326164559 (https://github.com/zarbopiero963-droid/MatchPilot/issues/182#issuecomment-6326164559)"
+  }
+]

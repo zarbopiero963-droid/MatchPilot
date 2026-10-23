@@ -1,0 +1,89 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "deploy-approval-01",
+  "commit_sha": "08064e180e8f45445759f9924708a05cad2470f9",
+  "tree_sha": "e075a39a4b51500a9a4887fcabdb65f200d52418",
+  "supersedes": null,
+  "pr": null,
+  "id": "CP-20261021T102638Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-21T10:26:38Z",
+  "activity": "MP-DEPLOY-APPROVAL-01 prepared on an isolated branch, no PR: one implementation PR at a time while #178 is open; merge and activation need a separate owner GO",
+  "task": "DEPLOY-APPROVAL-01",
+  "issue": 97,
+  "requirements": [],
+  "changes": [
+    ".github/workflows/deploy-vps.yml: gate job (GitHub-hosted, scripts/deploy-gate.mjs) + deploy job with needs: gate, environment: vps-production and a post-approval SHA check before mp-deploy",
+    "scripts/deploy-gate.mjs (new): environment protected by the owner only, no admin bypass, branch main only, SHA still the tip of main; fail closed",
+    "test/governance-deploy-gate.test.mjs (new, 9 tests) and test/governance-workflows.test.mjs (+1 test, 11 tampering cases)",
+    "docs/deploy-approval.md (new); owner decision MP-DEPLOY-APPROVAL-01"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/requirements-inventory.test.mjs test/governance-*.test.mjs test/ci-classify.test.mjs (86/86); npm run check; governance validate/check, render-inventory --check, scan-closing, check-append-only",
+      "result": "PASS",
+      "environment": "local container, Node 22",
+      "limits": [
+        "simulated GitHub API and fake git; no GitHub run of the gated workflow: the activation sequence exercises it",
+        "time is an upper bound"
+      ],
+      "commit": "08064e180e8f45445759f9924708a05cad2470f9",
+      "time": "2026-10-21T10:26:38Z"
+    },
+    {
+      "command": "the new tests against the deploy-vps.yml of main 3dd833f",
+      "result": "PASS",
+      "environment": "local container",
+      "limits": [
+        "RED as expected: 2 tests fail on main"
+      ],
+      "commit": "08064e180e8f45445759f9924708a05cad2470f9",
+      "time": "2026-10-21T10:26:38Z"
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN",
+    "head_sha": "08064e180e8f45445759f9924708a05cad2470f9"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "DAP-1",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "activation needs the owner to configure the environment vps-production and to exercise the gate on GitHub (docs/deploy-approval.md phases 1-7): re-run approval, GITHUB_TOKEN read of the environment and can_admins_bypass are not documented by GitHub"
+    },
+    {
+      "id": "DAP-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "same GitHub identity: an agent able to merge could merge a workflow change removing the environment; only governance blocks it unless an environment-only secret is required on the VPS (owner GO, Grok)"
+    },
+    {
+      "id": "DAP-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "owner-decisions.json and work-registry.json are also changed by PR #178 and the GOV-01/APP-01 branches: conflicts to resolve when brought to main"
+    }
+  ],
+  "owner_decisions": [
+    "MP-DEPLOY-APPROVAL-01",
+    "MP-OWNER-VPS-DEPLOY-01"
+  ],
+  "dependencies": [],
+  "state": "BLOCKED",
+  "next_action": "owner decision on the PR order (#178 is open), then PR, CI, separate review and owner GO for merge and activation",
+  "resume_conditions": [
+    "owner authorizes opening the PR while #178 is open, or #178 is closed"
+  ]
+}

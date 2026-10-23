@@ -1,0 +1,21 @@
+[Unit]
+Description=MatchPilot FPT external watchdog (worker unit, heartbeat, missed cycles, persistent errors)
+After=network-online.target postgresql@18-staging.service
+[Service]
+Type=oneshot
+User=matchpilot
+Group=matchpilot
+WorkingDirectory=/srv/mp-deploy/current
+EnvironmentFile=/srv/matchpilot/secrets/worker.env
+EnvironmentFile=/srv/matchpilot/secrets/fpt.env
+Environment=FPT_LIVENESS_MAX_HOURS=7
+ExecStart=/usr/bin/node scripts/fpt-liveness-probe.mjs
+TimeoutStartSec=60
+StateDirectory=matchpilot-fpt-liveness
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX

@@ -29,6 +29,22 @@ const DEFAULT_SERVICES = {
   runFutpythonSync,
 };
 
+
+export const tcEnabled = (env = process.env) => String(env.MATCHPILOT_TOTALCORNER ?? '').trim() === 'on';
+
+async function startTotalCorner(services, error) {
+  await services.maybeStartTcDiscovery().catch(cause => error('TC_DISCOVERY_ERROR', redactSecrets(String(cause?.message || cause))));
+  await services.maybeStartTcMapping().catch(cause => error('TC_MAPPING_ERROR', redactSecrets(String(cause?.message || cause))));
+  await services.maybeStartTcPrematch().catch(cause => error('TC_PREMATCH_ERROR', redactSecrets(String(cause?.message || cause))));
+  try {
+    await services.maybeStartTcHistorical();
+    await services.maybeStartTcLive();
+  } catch (cause) {
+    // Preserve the existing production chain: live starts only after historical startup succeeds.
+    error('TC_HISTORICAL_ERROR', redactSecrets(String(cause?.message || cause)));
+  }
+}
+
 export async function startBackgroundServices({env = process.env, log = console.log, error = console.error, services = DEFAULT_SERVICES} = {}) {
   const policy = assertRuntimeSafety(env);
   if (!policy.backgroundEnabled) {
@@ -49,16 +65,11 @@ export async function startBackgroundServices({env = process.env, log = console.
       .catch(cause => error('FUTPYTHON_PHASE1_VERIFY_ERROR', String(cause?.message || cause).replace(/api_key=[^&\s]+/gi, 'api_key=[REDACTED]')));
   }
 
-  await services.maybeStartTcDiscovery().catch(cause => error('TC_DISCOVERY_ERROR', redactSecrets(String(cause?.message || cause))));
-  await services.maybeStartTcMapping().catch(cause => error('TC_MAPPING_ERROR', redactSecrets(String(cause?.message || cause))));
-  await services.maybeStartTcPrematch().catch(cause => error('TC_PREMATCH_ERROR', redactSecrets(String(cause?.message || cause))));
-  try {
-    await services.maybeStartTcHistorical();
-    await services.maybeStartTcLive();
-  } catch (cause) {
-    // Preserve the existing production chain: live starts only after historical startup succeeds.
-    error('TC_HISTORICAL_ERROR', redactSecrets(String(cause?.message || cause)));
-  }
+  // TC-OFF-01 (#20, owner decision MP-VPS-ONLY-OPERATIONS-2026-10-21): TotalCorner collection, polling and backfill
+  // are suspended. No TotalCorner job starts unless MATCHPILOT_TOTALCORNER is "on" (surrounding spaces ignored); any other value, or none, is off.
+  const totalcorner = tcEnabled(env);
+  log('TOTALCORNER_' + (totalcorner ? 'ON' : 'OFF') + ' ' + JSON.stringify({setting: env.MATCHPILOT_TOTALCORNER ?? null}));
+  if (totalcorner) await startTotalCorner(services, error);
 
   if (env.FUTPYTHON_BACKFILL_ON_START === 'true') {
     services.runFutpythonSync({kind: 'backfill', mode: 'backfill'})

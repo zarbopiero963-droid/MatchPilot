@@ -56,7 +56,8 @@ async function getJson(path) {
 const LABELS = {
   // data health and sync runs
   status: 'Stato', product: 'Prodotto', lastRun: 'Ultima sincronizzazione', activeDatasets: 'Dataset attivi', schemaFields: 'Campi di schema',
-  datasetsWithErrors: 'Dataset con errori', alerts: 'Avvisi', severity: 'Gravità', code: 'Codice', title: 'Titolo', message: 'Messaggio',
+  datasetsWithErrors: 'Dataset con errori', contentFreshness: 'Freschezza dei contenuti', maxMatchDate: 'Ultima partita', maxLastChangedAt: 'Ultimo cambiamento', stale: 'Fermi', reasons: 'Motivi',
+  alerts: 'Avvisi', severity: 'Gravità', code: 'Codice', title: 'Titolo', message: 'Messaggio',
   last_seen_at: 'Visto l’ultima volta', occurrences: 'Occorrenze', run_id: 'Identificativo', kind: 'Tipo', started_at: 'Inizio', finished_at: 'Fine',
   catalog_entries: 'Voci di catalogo', datasets_attempted: 'Dataset tentati', datasets_changed: 'Dataset cambiati', resumed_skips: 'Saltati alla ripresa',
   available_count: 'Disponibili', error_real_count: 'Errori reali', rows_seen: 'Righe lette', rows_inserted: 'Righe inserite', fields_seen: 'Campi letti',
@@ -124,6 +125,16 @@ const LABELS = {
   later_dataset_t0: 'Partite del dataset successivo note a T0', later_dataset_t1: 'Partite del dataset successivo note a T1',
   wrong_contract_t0: 'Partite note a T0 con un altro contratto',
   cadence: 'Cadenza', missing_definition: 'Definizione di mancante', expected_match_count: 'Numero atteso di partite',
+  // data health v2 (t132u FIX-05): machinery vs new data vs provider, kept apart
+  version: 'Versione', overall: 'Stato complessivo', worker: 'Worker', state: 'Condizione', heartbeatAt: 'Ultimo battito',
+  heartbeatAgeHours: 'Ore dall\'ultimo battito', scheduler: 'Pianificatore', missedCycles: 'Cicli saltati', cycleHours: 'Ore per ciclo',
+  lastCycle: 'Ultimo ciclo', ageHours: 'Ore trascorse', sync: 'Esito tecnico', lastEffectiveUpdate: 'Ultimo aggiornamento effettivo',
+  at: 'Quando', newData: 'Dati nuovi', provider: 'Fornitore', providerEvidence: 'Prove sul fornitore',
+  datasetFreshness: 'Freschezza dei dataset', staleCurrentSeasons: 'Stagioni correnti ferme', pendingGaps: 'Buchi in sospeso',
+  syncErrors: 'Errori di sincronizzazione', localErrors: 'Errori locali',
+  RETRY_PENDING: 'In attesa di nuovo tentativo', ALREADY_COMPLETE: 'Già completi', STILL_MISSING: 'Ancora mancanti',
+  PROVIDER_UNAVAILABLE: 'Fornitore non disponibile', PERMANENTLY_UNAVAILABLE: 'Non disponibili in modo permanente', RECOVERED: 'Recuperati',
+  DETECTED: 'Rilevati', QUEUED: 'In coda', FAILED: 'Falliti', RECOVERING: 'In recupero',
 };
 const keyWords = key => key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
 
@@ -794,6 +805,7 @@ async function endpointsView() {
 // [what is loading, view, area]: a 'user' view shows no technical text (MP-WEB-015, checked by the Browser QA gate); a
 // 'technical' view is where provenance and diagnostics belong. Every view declares one (V-B2). #/board, the former
 // address of the Daily Board, still opens it, and the menu item of each view is its section (NAV_OF).
+
 const VIEWS = {'': ['la pagina', boardView, 'user'], board: ['la pagina', boardView, 'user'], search: ['la ricerca', searchView, 'user'],
   match: ['la partita', matchView, 'user'],
   data: ['lo stato dei dati', dashboardView, 'technical'], providers: ['i fornitori dati', providersView, 'technical'],

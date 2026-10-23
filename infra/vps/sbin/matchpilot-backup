@@ -1,0 +1,33 @@
+#!/bin/bash
+# Backup PostgreSQL (pg_dump -Fc) + config + manifest SHA-256 di archivi/DuckDB. Nessuna cancellazione automatica.
+set -euo pipefail
+ENVF=${1:-/etc/matchpilot/matchpilot.env}; set -a; . "$ENVF"; set +a
+B=$MP_ROOT/backups/pg/$(date +%Y%m%dT%H%M%S); install -d -m 700 $MP_ROOT/backups/pg; mkdir -p $B
+for d in $MP_PG_DBS; do sudo -u postgres pg_dump -p $MP_PG_PORT -Fc $d > $B/$d.dump; done
+sudo -u postgres pg_dumpall -p $MP_PG_PORT --globals-only --no-role-passwords > $B/globals.sql
+tar -czf $B/config.tgz /etc/matchpilot /etc/postgresql/$MP_PG_MAJOR/main/conf.d /etc/systemd/system/matchpilot-* /etc/logrotate.d/matchpilot /etc/fail2ban/jail.d/sshd-matchpilot.local /etc/ufw/user.rules /etc/ufw/user6.rules 2>/dev/null || true
+# DuckDB/archivi: file immutabili => solo manifest SHA-256 (il dato vive in archives/ e su Drive)
+find $MP_ROOT/archives $MP_ROOT/downloads -type f \( -name '*.duckdb' -o -name '*.zip' -o -name '*.bin' -o -name '*.parquet' -o -name '*.gz' \) -print0 | sort -z | xargs -0 -r sha256sum > $B/archives.sha256
+# >>> release-sha (t139): the running release is /srv/mp-deploy/current -> releases/<sha> (not a git checkout).
+# Never fails the backup: legacy git checkout as fallback, otherwise "unknown".
+MP_RELEASE_LINK=${MP_RELEASE_LINK:-/srv/mp-deploy/current}
+rel_sha=$(basename "$(readlink -f "$MP_RELEASE_LINK" 2>/dev/null || true)")
+if ! [[ $rel_sha =~ ^[0-9a-f]{40}$ ]]; then
+  rel_sha=$(sudo -u $MP_USER git -c safe.directory="$(readlink -f $MP_ROOT/current)" -C $MP_ROOT/current rev-parse HEAD 2>/dev/null || echo unknown)
+fi
+echo "$rel_sha" > $B/git_sha.txt
+# <<< release-sha
+# DuckDB: copia coerente (file read-only, nessun writer) + conteggi di riferimento
+install -d $B/duckdb
+for f in $(find $MP_ROOT/archives -name '*.duckdb'); do cp --preserve=timestamps $f $B/duckdb/; done
+$MP_ROOT/venv/bin/python - $B <<'P' > $B/duckdb/readback.txt
+import duckdb,glob,sys
+for f in sorted(glob.glob(sys.argv[1]+'/duckdb/*.duckdb')):
+  c=duckdb.connect(f,read_only=True)
+  for (t,) in c.sql("select table_name from information_schema.tables where table_type='BASE TABLE' order by 1").fetchall(): print(t,c.sql(f'select count(*) from "{t}"').fetchone()[0])
+P
+for d in $MP_PG_DBS; do sudo -u postgres psql -p $MP_PG_PORT -d $d -tAc "select table_schema||'.'||table_name from information_schema.tables where table_schema not in ('pg_catalog','information_schema') order by 1" | while read t; do echo "$d $t $(sudo -u postgres psql -p $MP_PG_PORT -d $d -tAc "select count(*) from $t")"; done; done > $B/pg_rowcounts.txt
+git -C $MP_ROOT/infra bundle create $B/infra.bundle --all 2>/dev/null || true
+(cd $B && sha256sum *.dump globals.sql config.tgz archives.sha256 git_sha.txt pg_rowcounts.txt infra.bundle duckdb/* > SHA256SUMS)
+avail=$(df --output=avail -k / | tail -1); [ "$avail" -gt 5000000 ] || echo "WARN low disk ${avail}KB" >&2
+echo "BACKUP_OK $B"

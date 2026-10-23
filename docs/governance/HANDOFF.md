@@ -2,7 +2,22 @@
 
 Issue: #150, MP-MULTIAGENT-SYNC-CHECKPOINT-01. Regole canoniche: [AGENTS.md](../../AGENTS.md) §0 e §6. Requisiti: MP-GOV-017, 018, 019, 022 e 023 e MP-QAC-010 in [`mp-pr-00/requirements.json`](mp-pr-00/requirements.json).
 
-Il sistema è indipendente dal modello e dal fornitore. Usa soltanto file nel repository, git e GitHub, e lo strumento `node tools/governance/cli.mjs` (Node ≥ 22, nessuna dipendenza esterna).
+Il sistema è indipendente dal modello, dal fornitore e dall'identità dell'agente (`MP-OWNER-AGENTS-INTERCHANGEABLE-01`). Usa soltanto file nel repository, git e GitHub, e lo strumento `node tools/governance/cli.mjs` (Node ≥ 22, nessuna dipendenza esterna).
+
+**Agenti intercambiabili.** Qualunque agente (Claude, Grok o altri) può assumere qualunque attività del progetto, quando è autorizzato:
+- codice e test, PR e review;
+- roadmap e governance, GitHub;
+- VPS e infrastruttura, migrazioni PostgreSQL, deploy e collaudi;
+- FutPythonTrader, Telegram, sviluppo funzionale e frontend.
+
+Nessun agente ha privilegi permanenti esclusivi. Ciò che consente di scrivere è sempre l'insieme di:
+- mandato;
+- attività;
+- risorsa;
+- lease;
+- GO owner.
+
+Il nome dell'agente non conta mai. Chi subentra deve avere gli accessi necessari e verificare lo stato corrente (HANDOFF IN). Un test verifica che il codice di `tools/governance` non nomini nessun agente.
 
 ## Elementi
 
@@ -10,7 +25,7 @@ Il sistema è indipendente dal modello e dal fornitore. Usa soltanto file nel re
 |---|---|---|
 | Decisioni owner | `docs/governance/owner-decisions.json` | registro canonico, validato |
 | Registro attività | `docs/governance/work-registry.json` | attività, assegnatario, lease, stato, ultimo checkpoint; `revision` cresce a ogni modifica |
-| Checkpoint | `docs/governance/checkpoints/<id>.json` | schema `mp-checkpoint-v2` (v1 accettato solo per i checkpoint storici precedenti al 18/10 21:00Z), append-only, catena `supersedes` per attività |
+| Checkpoint | `docs/governance/checkpoints/<id>.json` | schema `mp-checkpoint-v3` per i nuovi checkpoint (v2 resta valido; v1 accettato solo per i checkpoint storici precedenti al 18/10 21:00Z), append-only, catena `supersedes` per attività |
 | Commento GitHub | issue o PR dell'attività | contiene `<!-- mp-checkpoint:<id> -->`: un solo commento per checkpoint |
 
 - **Stati:** PLANNED, RUNNING, BLOCKED, REVIEW, HANDOFF READY, CERTIFIED, MERGED, COMPLETED.
@@ -32,6 +47,139 @@ Il sistema è indipendente dal modello e dal fornitore. Usa soltanto file nel re
 - decisioni owner e requisiti citati devono esistere;
 - `HANDOFF READY` richiede le condizioni di ripresa;
 - CERTIFIED, MERGED e COMPLETED richiedono Gate A e Gate B PASS, review APPROVED e nessun finding bloccante aperto.
+
+## Schema v3 (`mp-checkpoint-v3`)
+
+Estende v2 senza togliere nulla: ogni regola v2 vale anche per v3, e i checkpoint v2 restano validi. Campi aggiunti, tutti obbligatori:
+
+| Campo | Contenuto |
+|---|---|
+| `mandate` | `{id, source}`: il mandato owner, registrato in `owner-decisions.json` o citato con il link |
+| `agent.session` | la sessione che ha scritto il checkpoint |
+| `base_sha` | la base del lavoro (con `commit_sha` = head e `tree_sha`) |
+| `worktree` | `{clean}`: nessun lavoro solo locale |
+| `progress` | `{done, in_progress, not_started}` |
+| `resources` | le risorse su cui l'attività scrive: `branch:<nome>`, `pr:<n>`, `vps:<host>`, `db:<nome>`, `file:<path>` |
+| `authorizations` | `{id, source, scope, status}`. Lo `scope` ammette solo `mandate`, `task`, `resource` e `action`, mai l'agente. Deve contenere almeno `task` e `action` e non ammette valori jolly (`*`, `any`, `all`…). Lo `status` è VALID, CONSUMED (con `consumed_by`), REVOKED o NOT_GRANTED |
+| `external_commands` | `{target, command, effect}`: solo i comandi con effetti fuori dal repository (GitHub, VPS, database) |
+| `artifacts` | `{path, sha256}` |
+| `stop_conditions` | quando chi riprende deve fermarsi (almeno una) |
+| `costs` | `{incurred, authorized}` |
+| `vps` | fatti sulla VPS (release, versioni, hash), oppure `null` |
+| `handoff` | `{status, from, to, responsibilities}`. `status` è NONE, OUT, IN o PENDING_VERIFICATION; `to` è un agente oppure `ANY`. Con PENDING_VERIFICATION, `claims` elenca le dichiarazioni come `{id, resource, statement}` |
+| `merge_sha` | obbligatorio in stato MERGED. `commit_sha` resta l'head revisionato |
+
+Regole v3:
+- `HANDOFF READY` ⇔ `handoff.status` OUT, con le responsabilità trasferite;
+- `IN` elenca in `handoff.verified` le verifiche strutturate del ricevente (vedi sotto); una frase generica non è una verifica;
+- `PENDING_VERIFICATION` registra dichiarazioni non verificate e non può stare in HANDOFF READY, CERTIFIED, MERGED o COMPLETED;
+- i test SKIPPED non sono PASS.
+
+**Nessun segreto nei checkpoint.** `validate` scandisce l'intero checkpoint, compresi `vps` e `external_commands`, e rifiuta qualunque valore simile a un segreto. Si trasferiscono attività, evidenze e responsabilità; credenziali e chiavi restano dove sono (VPS, account dell'owner).
+
+**Verifica strutturata** (`MP-PR183-HARDENING-01`). Ogni verifica è un oggetto con questi campi:
+
+| Campo | Contenuto |
+|---|---|
+| `claim` | id della dichiarazione verificata, oppure `state` per lo stato del repository |
+| `resource` | la risorsa su cui si è verificato, uguale a quella della dichiarazione |
+| `method` | il comando o la lettura eseguita |
+| `observed` | ciò che si è osservato (per esempio uno SHA-256 o un conteggio) |
+| `observed_at` | quando |
+| `observer` | l'agente che ha verificato |
+| `result` | VERIFIED o MISMATCH |
+| `artifact_sha256` | facoltativo |
+
+Le dichiarazioni in attesa di verifica si sbloccano solo se tutte queste condizioni valgono:
+- ogni `claims[].id` ha una verifica VERIFIED;
+- la verifica è sulla stessa risorsa;
+- è fatta dall'agente che subentra;
+- ha meno di 24 ore e non è nel futuro.
+
+Un MISMATCH, una verifica malformata o riferita a una dichiarazione inesistente, o dichiarazioni senza id e risorsa danno STOP. Le dichiarazioni senza id e risorsa vanno riscritte da un nuovo checkpoint.
+
+**Limiti dichiarati** (review 6326994852):
+- **Le verifiche non sono un'attestazione indipendente.** Le scrive l'agente che subentra, e `observer` coincide con l'agente indicato a `--agent`. Lo strumento non confronta `observed` con la realtà: garantisce una dichiarazione strutturata, legata a dichiarazione e risorsa, tracciabile nel checkpoint IN e controllabile da chi rivede, non una verifica automatica.
+- **PROCEED non è un'autorizzazione.** `handoff-in` dice soltanto che si può riprendere senza divergenze né doppi scrittori. Prima di scrivere, l'agente:
+  - rispetta le `stop_conditions` restituite (per esempio "no write on the branch without a new owner mandate" di HIST-01a);
+  - verifica il GO con `authz-check`.
+- **Lettura dello stato della PR.** Usa l'API pubblica di GitHub senza credenziali, con un limite di 60 richieste all'ora per IP. Oltre il limite, con l'API irraggiungibile o con un repository privato, `handoff-in` restituisce sempre `PR_STATE_UNVERIFIABLE` e si ferma, che è il comportamento voluto: si attende o si chiede all'owner.
+
+**Ledger delle autorizzazioni.** `authz-check` valida prima l'intero stato del repository (`governance:check`) e rifiuta se non è valido; poi ricostruisce lo stato di ogni GO da tutti i checkpoint:
+- un GO CONSUMED o REVOKED non torna mai VALID, anche se un checkpoint successivo lo dichiara;
+- un GO mai registrato, non concesso o fuori ambito viene rifiutato;
+- la richiesta deve nominare almeno `--task` e `--action`;
+- ogni chiave dello scope del GO deve coincidere;
+- una chiave che il GO non vincola non è autorizzata. Un GO senza risorsa non vale per nessuna risorsa (`AUTHZ_SCOPE_UNBOUNDED`);
+- un GO registrato VALID con due scope diversi è ambiguo e non è utilizzabile.
+
+```
+npm run governance:authz-check -- <GO> --task <attività> --resource <risorsa> --action "<azione>"
+```
+
+Il comando non ha un parametro per l'agente.
+
+## HANDOFF OUT (chi lascia)
+
+1. Ferma i processi in corso. Esegue il push di tutti i commit: nessun lavoro solo locale.
+2. Scrive un checkpoint v3 in stato `HANDOFF READY`, con:
+   - `handoff.status: "OUT"`, `to` (`ANY` o l'agente designato dall'owner) e le `responsibilities` trasferite;
+   - `next_action` atomica, `resume_conditions` e `stop_conditions`;
+   - le autorizzazioni con il loro stato (le consumate come CONSUMED).
+3. Pubblica il commento con il marker.
+4. Rilascia il lease (`release`).
+5. Cancella o consegna i propri promemoria programmati.
+
+## HANDOFF IN (chi subentra, qualunque agente)
+
+1. Legge AGENTS.md e le decisioni `IN_FORCE`, poi esegue `git fetch origin`.
+2. Esegue `npm run governance:handoff-in -- <task> --agent <id> [--evidence <verifiche.json>]`, che controlla:
+   - catena dei checkpoint e registro (`STALE_REGISTRY` se il registro non punta alla testa della catena);
+   - branch reale contro `commit_sha` e `tree_sha`;
+   - stato della PR, **letto da GitHub dal comando stesso** (API REST, con `curl`, senza credenziali). Uno stato dichiarato dall'agente non è accettato: `--pr-state` e `--verified` sono rifiutati. Il comando si ferma quando:
+     - la lettura manca o fallisce (`PR_STATE_REQUIRED` o `PR_STATE_UNVERIFIABLE`);
+     - la lettura ha più di 10 minuti (`PR_STATE_STALE`);
+     - la PR letta è un'altra (`PR_STATE_MISMATCH`);
+     - lo stato non corrisponde a `pr_open` del registro (`PR_OPEN_MISMATCH`);
+     - lo head della PR non è il branch letto in locale (`PR_HEAD_MISMATCH`);
+   - lease attivo di un altro agente sull'attività (`DUAL_WRITER`) o su una risorsa condivisa (`DUAL_WRITER_RESOURCE`);
+   - handoff indirizzato ad altri;
+   - dichiarazioni in attesa di verifica.
+
+   Esce con 2 a ogni problema (STOP) e con 0 solo se può procedere.
+3. Verifica in sola lettura le evidenze citate (test, CI, review, fatti sulla VPS). Con `PENDING_VERIFICATION` scrive le verifiche strutturate in un file JSON (un array) e lo passa con `--evidence`.
+4. Fa il claim (`reconciled: true` se il lease precedente è scaduto).
+5. Scrive un checkpoint v3 con `handoff.status: "IN"`, `from` e `verified`, cioè le stesse verifiche strutturate.
+6. Solo dopo esegue `next_action`.
+
+**L'handoff è completo solo quando chi subentra ha pubblicato il proprio checkpoint IN.**
+
+## STALE, NO DUAL WRITER, FAIL-CLOSED
+
+- **STALE.** Non si riprende in automatico da un checkpoint obsoleto. Lo è quando:
+  - il registro non punta alla testa della catena;
+  - il branch è cambiato senza un nuovo checkpoint;
+  - la PR ha cambiato stato;
+  - lo stato attivo ha più di 24 h.
+
+  Chi subentra registra prima la riconciliazione (checkpoint BLOCKED con le divergenze), poi un nuovo checkpoint che supera il precedente.
+- **NO DUAL WRITER.** Una risorsa ha un solo scrittore alla volta, chiunque sia:
+  - `validate` rifiuta due lease attivi di agenti diversi sulla stessa risorsa;
+  - `claim` rifiuta con `CONFLICT_RESOURCE_LEASED`;
+  - il branch di un'attività di implementazione e la sua PR sono risorse anche se non dichiarati;
+  - `validate` rifiuta un checkpoint di un'attività aperta che scrive una risorsa non dichiarata nel registro;
+  - il registro è protetto dalla compare-and-swap su `revision` e dal file lock;
+  - vale per branch, PR, registro e host VPS (una sola sessione operativa sulla VPS per volta).
+
+  I branch sono per attività e non si riusano.
+- **FAIL-CLOSED.** Si ferma, pubblica un checkpoint BLOCKED e chiede una decisione all'owner quando:
+  - lo stato non è ricostruibile;
+  - un'autorizzazione è ambigua, consumata o fuori ambito;
+  - il registro non si legge.
+
+  `handoff-in` restituisce STOP anche su un errore interno.
+- **Seconda PR di implementazione.** Ammessa solo se l'attività cita in `parallel_authorization` una decisione owner `IN_FORCE` che la nomina in `parallel_tasks`, come `MP-GITHUB-RECON-IMPLEMENTATION-01` per GOV-RECON-01 mentre #178 attende. Senza il registro delle decisioni la regola resta stretta.
+- **Attività `operations`.** È il lavoro fuori dal repository (VPS, database, servizi): non occupa lo slot delle PR, ma le sue risorse seguono la regola dello scrittore unico.
 
 ## Ciclo di lavoro di un agente
 
@@ -131,6 +279,19 @@ Il sistema è indipendente dal modello e dal fornitore. Usa soltanto file nel re
 
 **Limite:** B era una sessione separata dello stesso strumento nello stesso container, non un fornitore diverso. Il protocollo non dipende dal modello.
 
+## Collaudo reale Claude → Grok → Claude: HANDOFF NOT VERIFIED
+
+Il collaudo richiesto da `MP-OWNER-AGENTS-INTERCHANGEABLE-01` (due sessioni distinte, un'attività non distruttiva) **non è stato eseguito**: la sessione che ha scritto questo schema non può avviare né pilotare una sessione Grok.
+
+Esiste solo la simulazione Claude → Grok → Claude su un repository git reale, in `test/governance-handoff-v3.test.mjs`. È ripetuta con i nomi scambiati e con nomi arbitrari, con esiti identici. **Una simulazione non è un handoff reale.**
+
+Il collaudo reale usa l'attività `HANDOFF-TEST-01`, non distruttiva:
+1. **Agente A.** Claim, poi un checkpoint v3 HANDOFF READY con `to: ANY`, marker su #150, release.
+2. **Agente B, in un'altra sessione.** `handoff-in` con esito PROCEED, verifiche, claim, checkpoint IN, una `next_action` documentale, HANDOFF READY, release.
+3. **Agente A.** `handoff-in`, checkpoint IN.
+
+Le evidenze (id dei checkpoint, commit, commenti) vanno pubblicate su #150. Solo dopo si può scrivere HANDOFF VERIFIED.
+
 ## Limiti noti
 
 - Gli agenti operano con lo stesso account GitHub dell'owner, quindi GitHub non distingue tecnicamente chi chiude una issue. La protezione è procedurale (AGENTS §5) e preventiva: la CI rifiuta le parole chiave di auto-chiusura.
@@ -145,6 +306,7 @@ Il sistema è indipendente dal modello e dal fornitore. Usa soltanto file nel re
 - **Schema v2.** Una review APPROVED richiede `review.reviewed_sha` e un run CI richiede `ci.head_sha`: un'evidenza vale solo per il commit che ha coperto. Un checkpoint MERGED o CERTIFIED deve avere la review sul proprio `commit_sha`.
 - **Merge commit.** L'analisi append-only include anche ciò che i merge commit cambiano rispetto al primo genitore, oltre al diff cumulativo dalla base.
 - **Append-only in CI.** Una PR che modifica o elimina un checkpoint esistente viene rifiutata in CI (`check-append-only`). Le correzioni si fanno con un nuovo checkpoint che sostituisce il precedente tramite `supersedes`.
+- **Mandato registrato.** Un checkpoint v3 può citare, nel `mandate.id` e nel testo di `mandate.source`, solo decisioni presenti in `owner-decisions.json`. Altrimenti `validate` lo rifiuta.
 - **Orari reali.** `timestamp_utc` e gli orari dei test si prendono dall'orologio (`date -u`), mai stimati. `governance:check` rifiuta:
   - un checkpoint con data più di 10 minuti nel futuro;
   - un test con orario successivo al suo checkpoint.

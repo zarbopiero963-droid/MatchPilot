@@ -1,0 +1,262 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261021T212352Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-21T21:23:52Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "mandate": {
+    "id": "MP-PR183-HARDENING-01",
+    "source": "owner mandates MP-PR183-HARDENING-01 and MP-PR183-FINAL-HARDENING-01 in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-21), registered in docs/governance/owner-decisions.json"
+  },
+  "activity": "hardening of PR #183 after review D2 6326290307 (H1-H5): PR state read from GitHub, structured evidence, no dual writer on branch/PR/declared resources, complete GO scopes, attributions; review and CI on the new head pending; merge not authorized",
+  "task": "GOV-RECON-01",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 97,
+  "pr": 183,
+  "branch": "claude/gov-recon-01",
+  "commit_sha": "9baf47b2c0b337887d94cf31ab10173ff06cbeca",
+  "tree_sha": "731e4ddeed535416c137f9d5ff989d64c4b2e6f1",
+  "base_sha": "170305418bd4fbbdbf4f3b7a4ed0ac5fcdc407c4",
+  "worktree": {
+    "clean": true
+  },
+  "requirements": [
+    "MP-GOV-017",
+    "MP-GOV-022"
+  ],
+  "changes": [
+    "tools/governance/github.mjs: PR state from the GitHub API (curl, no credential)",
+    "checkpoints.mjs: PR state and structured evidence in handoffIn, implicit branch/PR resources, scope rules, ambiguous GO",
+    "registry.mjs: implicit resources in validate and claim",
+    "cli.mjs: --pr-state/--verified refused, --evidence, authz-check validates first, undeclared checkpoint resources refused",
+    "H5: owner-decisions text, superseding MERGED checkpoint of DEPLOY-GATE-S1S2-01",
+    "VPS-MIGRATION-01 restated as structured claims C1-C8",
+    "tests: governance-handoff-hardening, governance-github; HANDOFF.md and reconciliation note"
+  ],
+  "tests": [
+    {
+      "command": "RED: test/governance-handoff-hardening.test.mjs and test/governance-github.test.mjs on 6e77cd9: 14 of 18 hardening tests fail and the github test file fails (module absent); the 4 passing tests are regression tests of behaviour already correct (M9, CAS, M14/M28, M2)",
+      "result": "PASS",
+      "environment": "local container, Node 22",
+      "commit": "6e77cd9e81911bebe303872dfc1ff6ce93c559c9",
+      "time": "2026-10-21T21:23:32Z",
+      "limits": [
+        "RED shown on the previous head, GREEN on this one"
+      ]
+    },
+    {
+      "command": "GREEN: node --test test/governance-*.test.mjs test/requirements-inventory.test.mjs test/ci-classify.test.mjs: 169/169, 0 skipped",
+      "result": "PASS",
+      "environment": "local container, Node 22, root",
+      "commit": "9baf47b2c0b337887d94cf31ab10173ff06cbeca",
+      "time": "2026-10-21T21:23:32Z",
+      "limits": []
+    },
+    {
+      "command": "mutation testing: 39 mutations (M2, M6, M9, M10, M14, M23, M28 and N1-N32 on the new code), each applied alone, governance tests run, file restored: 39 KILLED, 0 SURVIVED",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "9baf47b2c0b337887d94cf31ab10173ff06cbeca",
+      "time": "2026-10-21T21:23:32Z",
+      "limits": [
+        "mutations cover tools/governance only",
+        "run on the working tree later committed as this commit"
+      ]
+    },
+    {
+      "command": "full suite with a throwaway PostgreSQL 16: 447 tests, 446 pass, 0 fail, 1 skipped",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "9baf47b2c0b337887d94cf31ab10173ff06cbeca",
+      "time": "2026-10-21T21:23:32Z",
+      "limits": [
+        "postgres-independence skipped (needs PostgreSQL 17): not counted as PASS, CI runs it"
+      ]
+    },
+    {
+      "command": "npm run check; governance:check; render-inventory --check; scan-closing; check-append-only BASE 1703054; real CLI: handoff-in VPS-MIGRATION-01 STOP (EVIDENCE_MISSING C1-C8), --pr-state refused, authz-check GO-2 AUTHZ_CONSUMED, request without action AUTHZ_REQUEST_INCOMPLETE",
+      "result": "PASS",
+      "environment": "local container",
+      "commit": "9baf47b2c0b337887d94cf31ab10173ff06cbeca",
+      "time": "2026-10-21T21:23:32Z",
+      "limits": []
+    },
+    {
+      "command": "real Claude -> Grok -> Claude handoff with two distinct sessions",
+      "result": "NOT_VERIFIED",
+      "environment": "not executed",
+      "commit": "9baf47b2c0b337887d94cf31ab10173ff06cbeca",
+      "time": "2026-10-21T21:23:32Z",
+      "limits": [
+        "HANDOFF NOT VERIFIED: simulation only; task HANDOFF-TEST-01"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "9baf47b2c0b337887d94cf31ab10173ff06cbeca"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "D2-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "--pr-state optional: the PR state is now read from GitHub by the tool; declared values refused"
+    },
+    {
+      "id": "D2-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "--verified anything: structured evidence per claim and resource required"
+    },
+    {
+      "id": "D2-3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "DUAL_WRITER_RESOURCE in handoff-in untested (M6, M10): tests added, mutations killed"
+    },
+    {
+      "id": "D2-4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "M2, M9, M14, M23, M28 untested: tests added, mutations killed"
+    },
+    {
+      "id": "D2-5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "partial scopes and authz-check without validation: task and action required, unbounded keys refused, state validated first"
+    },
+    {
+      "id": "D2-6",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "attributions: GO-2 extension note is the agent analysis; #181 review is a technical D2 comment, not a formal GitHub approval"
+    },
+    {
+      "id": "D2-7",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the parallel_tasks exception for GOV-RECON-01 is in a decision transcribed by the agent from the session; an owner confirmation on GitHub is advisable"
+    },
+    {
+      "id": "GR-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "HANDOFF NOT VERIFIED: real two-session handoff is task HANDOFF-TEST-01"
+    },
+    {
+      "id": "GR-5",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "structured evidence is still produced by the receiving agent: identifiable and checkable, not an independent attestation; the IN checkpoint and the review make it auditable"
+    },
+    {
+      "id": "GR-6",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "PR state reading uses the public GitHub API without credentials (60 requests/hour per IP); a private repository or an unreachable API makes handoff-in STOP"
+    },
+    {
+      "id": "GR-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "R-02 SHA_MISMATCH persists in status (shared branch); not changed here"
+    }
+  ],
+  "owner_decisions": [
+    "MP-PR183-HARDENING-01",
+    "MP-GITHUB-RECON-IMPLEMENTATION-01",
+    "MP-OWNER-AGENTS-INTERCHANGEABLE-01",
+    "MP-VPS-ONLY-OPERATIONS-2026-10-21"
+  ],
+  "authorizations": [
+    {
+      "id": "MP-GITHUB-RECON-IMPLEMENTATION-01",
+      "source": "owner mandate, owner-decisions.json",
+      "scope": {
+        "task": "GOV-RECON-01",
+        "action": "one governance PR and issue comments, no merge"
+      },
+      "status": "VALID"
+    },
+    {
+      "id": "MP-PR183-HARDENING-01",
+      "source": "owner mandates MP-PR183-HARDENING-01 and MP-PR183-FINAL-HARDENING-01, owner-decisions.json",
+      "scope": {
+        "task": "GOV-RECON-01",
+        "action": "hardening commits on PR #183, no merge"
+      },
+      "status": "VALID"
+    }
+  ],
+  "external_commands": [
+    {
+      "target": "github",
+      "command": "git push origin claude/gov-recon-01",
+      "effect": "head 9baf47b"
+    },
+    {
+      "target": "github",
+      "command": "read-only: PR #178 and #183 state through the REST API (handoff-in), check runs, comments",
+      "effect": "none"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "docs/governance/audits/2026-10-21-MP-GLOBAL-RECON-HANDOFF-01.md",
+      "sha256": "8ff985bff800f3ed9013529cc41831295b21455bf3fa17932cee14643117338a"
+    }
+  ],
+  "progress": {
+    "done": [
+      "H1-H5 implemented and tested",
+      "mutation testing 39/39 killed",
+      "docs updated"
+    ],
+    "in_progress": [
+      "CI on this head",
+      "independent review on this head"
+    ],
+    "not_started": [
+      "merge (needs the owner GO)",
+      "HANDOFF-TEST-01"
+    ]
+  },
+  "resources": [
+    "branch:claude/gov-recon-01",
+    "pr:183"
+  ],
+  "stop_conditions": [
+    "no merge without an explicit owner GO",
+    "no change to PR #178, VPS, collectors, deploy gate or GitHub permissions"
+  ],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "dependencies": [],
+  "state": "REVIEW",
+  "next_action": "CI and a new independent review on this head; READY TO MERGE only if both are green/APPROVED; then wait for the owner GO",
+  "resume_conditions": [
+    "CI and review verdict on the head"
+  ],
+  "supersedes": "CP-20261021T204410Z-agent-a-claude-code"
+}

@@ -1,3 +1,7 @@
+# Historical Render blueprint, kept for the record only. Render is excluded from the operational architecture
+# (owner decision MP-VPS-ONLY-OPERATIONS-2026-10-21, #182): the service is suspended and must not be redeployed.
+# autoDeploy is off so that a reactivated service could never rebuild on a push to main; changing this file does not
+# touch Render, and nothing here may be applied without a separate owner GO.
 services:
   - type: web
     name: matchpilot-test
@@ -5,4 +9,4 @@ services:
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /healthz
-    autoDeploy: true
+    autoDeploy: false

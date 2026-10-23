@@ -1,0 +1,204 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261021T203604Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-21T20:36:04Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Requirements Auditor",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "mandate": {
+    "id": "MP-GITHUB-RECON-IMPLEMENTATION-01",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-21), registered in docs/governance/owner-decisions.json"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "task": "VPS-MIGRATION-01",
+  "activity": "HANDOFF PENDING VERIFICATION: the VPS work reported on #179 by the agent that executed it, recorded as claims; nothing here is verified by this checkpoint",
+  "issue": 179,
+  "pr": null,
+  "branch": "main",
+  "commit_sha": "170305418bd4fbbdbf4f3b7a4ed0ac5fcdc407c4",
+  "tree_sha": "7ac8cc76a6d0b9992fdc1f8d3f729207c7ba85d3",
+  "base_sha": "170305418bd4fbbdbf4f3b7a4ed0ac5fcdc407c4",
+  "changes": [
+    "no VPS, database or GitHub settings change; claims transcribed from #179"
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN"
+  },
+  "gate_a": "NOT_VERIFIED",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "BLOCKING",
+      "status": "OPEN",
+      "summary": "sudo rules of mpdeploy (and mpadmin NOPASSWD ALL) to be restricted"
+    },
+    {
+      "id": "F2",
+      "severity": "BLOCKING",
+      "status": "OPEN",
+      "summary": "the mp-deploy lock file can be held by ghrunner"
+    },
+    {
+      "id": "B13",
+      "severity": "BLOCKING",
+      "status": "OPEN",
+      "summary": "inventory of the credentials on the VPS and of the agents (GitHub tokens, root keys) not done"
+    },
+    {
+      "id": "B8",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "cancelling runs and deleting logs remain possible through the REST API"
+    },
+    {
+      "id": "NB-E",
+      "severity": "BLOCKING",
+      "status": "OPEN",
+      "summary": "mp-deploy uses the obsolete verifier /usr/local/libexec/mp-deploy-authz.mjs (a4123e44...); one copy, one hash (69d88f58...) required in S3"
+    },
+    {
+      "id": "NB-F",
+      "severity": "BLOCKING",
+      "status": "OPEN",
+      "summary": "workflow pin blob 560959900fe94ab3ce045bec466a4aa3361615b2 to install in /etc/mp-deploy/runner-guard.json in S3"
+    },
+    {
+      "id": "DR-1",
+      "severity": "BLOCKING",
+      "status": "OPEN",
+      "summary": "cross-machine DR on PG18 with real data NOT VERIFIED (PASS only on PG17 with test data); offsite routines of the staging and the weekly DR check not created"
+    },
+    {
+      "id": "OPS-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "a second session with the root key worked on the VPS (#179 6311571621; identified afterwards as the authorized rerun run): no dual writer from now on, one lease on vps:matchpilot"
+    }
+  ],
+  "owner_decisions": [
+    "MP-VPS-ONLY-OPERATIONS-2026-10-21",
+    "MP-OWNER-VPS-DR-PORTABILITY-01",
+    "MP-OWNER-BACKUP-RETENTION-01",
+    "MP-OWNER-GO1-VPS-OIDC-PREFLIGHT-01",
+    "MP-OWNER-GO-BACKUP-RERUN-20261021",
+    "MP-GATE-PR181-HARDENING",
+    "MP-OWNER-AGENTS-INTERCHANGEABLE-01",
+    "MP-GITHUB-RECON-IMPLEMENTATION-01"
+  ],
+  "authorizations": [
+    {
+      "id": "MP-OWNER-GO1-VPS-OIDC-PREFLIGHT-01",
+      "source": "https://github.com/zarbopiero963-droid/MatchPilot/issues/179#issuecomment-6320528334",
+      "scope": {
+        "task": "VPS-MIGRATION-01",
+        "resource": "vps:matchpilot",
+        "action": "install mp-deploy v3 in FREEZE"
+      },
+      "status": "CONSUMED",
+      "consumed_by": "report t94u, #179 comment 6320706638 (declared)"
+    },
+    {
+      "id": "MP-OWNER-GO-BACKUP-RERUN-20261021",
+      "source": "https://github.com/zarbopiero963-droid/MatchPilot/issues/179#issuecomment-6311340969",
+      "scope": {
+        "task": "VPS-MIGRATION-01",
+        "resource": "vps:matchpilot",
+        "action": "on-demand backup and same-SHA rerun of run 39412733270"
+      },
+      "status": "CONSUMED",
+      "consumed_by": "report t91u, #179 comment 6311424998 (declared)"
+    },
+    {
+      "id": "GO-S3",
+      "source": "not granted: docs/deploy-approval.md section 8 and the S3/S4 plan on #179",
+      "scope": {
+        "task": "VPS-MIGRATION-01",
+        "resource": "vps:matchpilot",
+        "action": "S3 alignment"
+      },
+      "status": "NOT_GRANTED"
+    },
+    {
+      "id": "GO-S4",
+      "source": "not granted",
+      "scope": {
+        "task": "VPS-MIGRATION-01",
+        "resource": "vps:matchpilot",
+        "action": "S4 runtime certification"
+      },
+      "status": "NOT_GRANTED"
+    }
+  ],
+  "external_commands": [],
+  "progress": {
+    "done": [
+      "claimed: PG18 staging on :5434 with real Neon data (75 tables, 2,570,282 rows, checksums equal)",
+      "claimed: encrypted PG17 nightly backup with offsite copy; staging backup and restore PASS",
+      "claimed: infra repository infra@528cd79 with SHA256SUMS.installed",
+      "claimed: mp-deploy v3 07dbed21 installed in FREEZE (GO-1)"
+    ],
+    "in_progress": [],
+    "not_started": [
+      "S3 alignment (gate, guard, v3.1, unified verifier, pin)",
+      "S4 runtime certification",
+      "cross-machine DR on PG18 with real data",
+      "offsite routines of the staging and weekly DR check",
+      "F1, F2, B13, B8, NB-E, NB-F"
+    ]
+  },
+  "resources": [
+    "vps:matchpilot"
+  ],
+  "stop_conditions": [
+    "any claim that does not match what the receiving agent reads on the VPS: stop and record a BLOCKED checkpoint",
+    "no S3/S4, cutover, deletion or service start without its own owner GO",
+    "FREEZE stays on",
+    "one session at a time on vps:matchpilot"
+  ],
+  "costs": {
+    "incurred": "none recorded here",
+    "authorized": "none"
+  },
+  "vps": {
+    "claims_source": "https://github.com/zarbopiero963-droid/MatchPilot/issues/179 (reports t91u-t95u and the migration reports)",
+    "release": "3dd833f (test data)",
+    "postgres": "PG17 :5432 test data; PG18 staging :5434 real data (claimed)",
+    "freeze": "FREEZE=1 MODE=report (claimed)",
+    "mp_deploy": "v3 07dbed21... (claimed)",
+    "verifier": "a4123e44... obsolete (claimed)",
+    "guard_and_gate_installed": false,
+    "note": "nothing confidential is recorded here; access material stays on the VPS and in the owner accounts"
+  },
+  "handoff": {
+    "status": "PENDING_VERIFICATION",
+    "from": "agent-g-grok",
+    "to": "ANY",
+    "responsibilities": [
+      "VPS operations under separate owner GOs",
+      "evidence of the claims above"
+    ]
+  },
+  "state": "BLOCKED",
+  "next_action": "the agent that takes this task (any agent with VPS access and the lease on vps:matchpilot) verifies each claim read-only on the VPS, records a v3 checkpoint with handoff IN and the list of what it verified, and stops; S3 only after GO-S3",
+  "resume_conditions": [
+    "read-only verification of the claims",
+    "lease on vps:matchpilot",
+    "GO-S3 before any VPS change"
+  ],
+  "supersedes": null,
+  "worktree": {
+    "clean": true
+  },
+  "artifacts": [],
+  "dependencies": [],
+  "requirements": [],
+  "tests": []
+}

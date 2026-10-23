@@ -107,3 +107,8 @@ D4 requires an explicit, tested policy but does not fix these values. They are p
 - TotalCorner rows do not store the offset used to convert their provider time: the reader assumes the match offset (`tz_offset_minutes`), which the gate applied at acquisition.
 - Without `as_of`, `tc/prematch/match` decides at the kickoff, itself a converted provider time.
 - **TotalCorner match state:** `tc_matches` keeps only the latest state of each match, and an answer is PIT for it only when that state was last observed by the decision time. Making older decisions PIT needs a per-version history of the match state. That is a schema migration, which on an auto-deployed service would also write to the production database, so it requires owner authorisation (PROPOSAL).
+
+
+## DEC-002 (owner, 22/10/2026) — correzioni degli esiti
+
+Scelta A1, vincolante: feature e input solo osservabili al tempo T; l'esito finale può usare l'ultima versione FINAL validata disponibile alla data di esecuzione del backtest; versione dell'esito, provenienza e timestamp della correzione registrati; il report evidenzia gli esiti corretti dopo la prima FINAL; stessi dati e versioni fissate danno risultati identici. Nessuna seconda modalità certificata con feature ricostruite con informazioni future. Stato: NOT IMPLEMENTED / NOT VERIFIED (vedi `docs/governance/decisions-ratification-2026-10-22.md`).

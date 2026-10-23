@@ -266,7 +266,8 @@ async function storeDatasetInTransaction(client, {
     if (sourceKind==='dataset') {
       await client.query(
         `UPDATE fpt_dataset_state
-         SET last_sha256=$2,last_snapshot_id=$3,last_row_count=$4,last_synced_at=now(),last_error=null
+         SET last_sha256=$2,last_snapshot_id=$3,last_row_count=$4,last_synced_at=now(),last_error=null,
+             last_changed_at=COALESCE(last_changed_at,(SELECT acquired_at FROM fpt_raw_snapshots WHERE snapshot_id=$3))
          WHERE dataset_key=$1`,
         [datasetKey,hash,snapshotId,rows.length]
       );
@@ -327,7 +328,11 @@ async function storeDatasetInTransaction(client, {
     await client.query(
       `UPDATE fpt_dataset_state
        SET last_sha256=$2,last_snapshot_id=$3,last_row_count=$4,
-           last_synced_at=now(),last_changed_at=CASE WHEN $5 THEN now() ELSE last_changed_at END,
+           last_synced_at=now(),
+           -- t135u FIX-09: a snapshot whose first ingest was interrupted and later completed is "changed=false", which left
+           -- last_changed_at NULL forever (6 live datasets). Its content arrived when the snapshot was acquired.
+           last_changed_at=CASE WHEN $5 THEN now()
+             ELSE COALESCE(last_changed_at,(SELECT acquired_at FROM fpt_raw_snapshots WHERE snapshot_id=$3)) END,
            last_error=null
        WHERE dataset_key=$1`,
       [datasetKey,hash,snapshotId,rows.length,changed]

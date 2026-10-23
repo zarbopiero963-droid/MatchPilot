@@ -62,9 +62,24 @@ jobs:
         run: |
           npm run governance:validate
           npm run governance:check
+          node tools/governance/cli.mjs runtime-state --check
           node tools/governance/render-inventory.mjs --check
           node --test test/requirements-inventory.test.mjs test/governance-*.test.mjs
           npm run governance:evidence
+      - name: Governance drift check (registry vs GitHub, GOV-DRIFT-01)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          HEAD_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          if [ -n "$PR_NUMBER" ]; then
+            node tools/governance/cli.mjs drift --pr "$PR_NUMBER" --branch "$PR_BRANCH"
+          else
+            # push to main: the PR just merged may still be non-final until the next PR reconciles it
+            GRACE=$(printf '%s' "$HEAD_MESSAGE" | head -1 | grep -oE '\(#[0-9]+\)$' | tr -dc '0-9')
+            node tools/governance/cli.mjs drift --grace "${GRACE:-0}"
+          fi
       - name: Reject auto-closing issue references
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}

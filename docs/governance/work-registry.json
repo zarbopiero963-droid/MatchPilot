@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 103,
+  "revision": 143,
   "tasks": [
     {
       "id": "R-01",
@@ -434,20 +434,624 @@
       "pr_open": false
     },
     {
+      "id": "DEPLOY-APPROVAL-01",
+      "title": "Manual owner approval before every VPS deploy (MP-DEPLOY-APPROVAL-01)",
+      "issue": 97,
+      "pr": 180,
+      "branch": "deploy-approval-01",
+      "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261021T203600Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
+      "id": "DEPLOY-GATE-S1S2-01",
+      "title": "No code on the VPS without the owner's approval; only the tip of main is deployable (MP-GATE-S1S2-FIX)",
+      "issue": 179,
+      "pr": 181,
+      "branch": "deploy-gate-final-01",
+      "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261021T212121Z-agent-a-claude-code",
+      "pr_open": false
+    },
+    {
       "id": "HIST-01a",
       "title": "Offline deterministic backtest engine on synthetic fixtures: PIT admission, reference strategy, settlement, report (first slice of R-14 with the R-13 parts it needs)",
       "issue": 34,
       "pr": 178,
       "branch": "ccr-e45875c0-5r0fnf",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "BLOCKED",
+      "assignee": null,
+      "lease": null,
+      "latest_checkpoint": "CP-20261021T203601Z-agent-a-claude-code",
+      "pr_open": true,
+      "resources": [
+        "branch:ccr-e45875c0-5r0fnf",
+        "pr:178"
+      ]
+    },
+    {
+      "id": "APP-01",
+      "title": "Snapshot row-gap check as one aggregation (#179 F3): ~24 s certification endpoint; oracle and plan regression tests",
+      "issue": 179,
+      "pr": null,
+      "branch": "app-01-row-gaps",
+      "kind": "implementation",
+      "state": "BLOCKED",
+      "assignee": null,
+      "lease": null,
+      "latest_checkpoint": "CP-20261021T203602Z-agent-a-claude-code",
+      "pr_open": false,
+      "resources": [
+        "branch:app-01-row-gaps"
+      ]
+    },
+    {
+      "id": "GOV-01",
+      "title": "File- and impact-based merge policy proposal (MP-OWNER-AUTOMERGE-02/03, not approved): base-commit classifier and merge gate",
+      "issue": 97,
+      "pr": null,
+      "branch": "gov-01-merge-policy",
+      "kind": "implementation",
+      "state": "BLOCKED",
+      "assignee": null,
+      "lease": null,
+      "latest_checkpoint": "CP-20261021T203603Z-agent-a-claude-code",
+      "pr_open": false,
+      "resources": [
+        "branch:gov-01-merge-policy"
+      ]
+    },
+    {
+      "id": "VPS-MIGRATION-01",
+      "title": "VPS-only operations (#182) on #179: verify the reported VPS state, then S3, S4, DR PG18 and cutover, each under its own owner GO",
+      "issue": 179,
+      "pr": null,
+      "branch": "main",
+      "kind": "operations",
+      "state": "BLOCKED",
+      "assignee": null,
+      "lease": null,
+      "latest_checkpoint": "CP-20261021T212122Z-agent-a-claude-code",
+      "resources": [
+        "vps:matchpilot",
+        "db:pg18-staging",
+        "db:pg17"
+      ]
+    },
+    {
+      "id": "TC-OFF-01",
+      "title": "TotalCorner off in production by explicit configuration, with a negative test that no TC collector starts (#182; behaviour unchanged until its PR)",
+      "issue": 20,
+      "pr": 186,
+      "branch": "tc-off-01",
+      "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-g-grok",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261022T131411Z-agent-g-grok",
+      "resources": [
+        "branch:tc-off-01"
+      ],
+      "parallel_authorization": "MP-GROK-AUTONOMOUS-EXECUTION-01",
+      "pr_open": false
+    },
+    {
+      "id": "HANDOFF-TEST-01",
+      "title": "Real handoff test A -> B -> A between two distinct agents and sessions on a non-destructive task (MP-OWNER-AGENTS-INTERCHANGEABLE-01)",
+      "issue": 150,
+      "pr": null,
+      "branch": "handoff-test-01",
+      "kind": "audit",
+      "state": "HANDOFF READY",
+      "assignee": null,
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T063401Z-agent-g-grok",
+      "resources": [
+        "branch:handoff-test-01",
+        "checkpoints:HANDOFF-TEST-01"
+      ],
+      "note": "Needs independent Agent B launched by owner (t140u/t141u); not run by agent-g-grok."
+    },
+    {
+      "id": "GOV-RECON-01",
+      "title": "Governance reconciliation R1-R7, checkpoint v3 and agent-independent handoff (MP-GITHUB-RECON-IMPLEMENTATION-01)",
+      "issue": 97,
+      "pr": 183,
+      "branch": "claude/gov-recon-01",
+      "kind": "implementation",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
       "lease": null,
-      "latest_checkpoint": "CP-20261020T131010Z-agent-a-claude-code",
-      "pr_open": true
+      "latest_checkpoint": "CP-20261022T124639Z-agent-g-grok",
+      "parallel_authorization": "MP-GITHUB-RECON-IMPLEMENTATION-01",
+      "resources": [
+        "branch:claude/gov-recon-01",
+        "file:docs/governance/work-registry.json"
+      ],
+      "pr_open": false
+    },
+    {
+      "id": "FUNC-RECOVERY-01",
+      "title": "MP-VPS-FUNCTIONAL-RECOVERY-01: MatchPilot working in an isolated VPS test environment, simulated FutPythonTrader signals end to end",
+      "issue": 179,
+      "pr": 184,
+      "branch": "functional/mp-vps-recovery-20261022",
+      "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-g-grok",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261022T124640Z-agent-g-grok",
+      "pr_open": false,
+      "parallel_authorization": "MP-VPS-FUNCTIONAL-RECOVERY-01",
+      "resources": [
+        "branch:functional/mp-vps-recovery-20261022",
+        "vps:45.14.186.174",
+        "db:matchpilot_functest"
+      ]
+    },
+    {
+      "id": "TAKEOVER-01",
+      "title": "MP-GROK-GLOBAL-TAKEOVER-01: first delivery, global reconnaissance and takeover checkpoint",
+      "issue": 97,
+      "pr": 185,
+      "branch": "governance/grok-takeover-20261022",
+      "kind": "audit",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-g-grok",
+        "role": "Roadmap Coordinator"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261022T130207Z-agent-g-grok",
+      "resources": [
+        "branch:governance/grok-takeover-20261022"
+      ],
+      "pr_open": false
+    },
+    {
+      "id": "SIM-OUTBOX-01",
+      "title": "Simulated Telegram outbox for simulated signals (SIMULATED_NOT_SENT, no delivery), API and Segnali view (#182: real Telegram only after an owner GO)",
+      "issue": 182,
+      "pr": 189,
+      "branch": "revert-sim-outbox-01",
+      "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-g-grok",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": "CP-20261022T134419Z-agent-g-grok",
+      "pr_open": false,
+      "parallel_authorization": "MP-GROK-AUTONOMOUS-EXECUTION-01",
+      "resources": [
+        "branch:revert-sim-outbox-01"
+      ],
+      "merge_sha": "39fe08eadaad382550c8994b2be308ee6493111e",
+      "reconciliation": "GOV-SYNC-01 (t141u, 2026-10-23): PR #189 merged 2026-10-22 15:49 Rome as 39fe08e; expired lease (agent-g-grok, 17:43 Rome) released. History kept in latest_checkpoint."
+    },
+    {
+      "id": "DEC008-REMOVE-SIM",
+      "title": "DEC-008: removal of #184 simulated signals",
+      "issue": 184,
+      "pr": 190,
+      "branch": "dec008-remove-sim-signals",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "69f435829dba82c2c119ed69cfc5fd5f0eed294c",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "GOV-DEC-14",
+      "title": "Owner decisions DEC-001..014 register + DEC-004-R1",
+      "issue": 150,
+      "pr": 191,
+      "branch": "gov/dec-001-014-ratification",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "c5f64bf60d19d1c29968d112398451170853fbb3",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "AUTODEPLOY-01a",
+      "title": "Auto-deploy gated on merged PR + trusted pinned CI",
+      "issue": 150,
+      "pr": 192,
+      "branch": "auto-deploy-gates",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "d165a502a10d1349ffb5d0ab78f94db1f14fdb0b",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "AUTODEPLOY-01b",
+      "title": "Auto-deploy guard: bounded retry of transient GitHub answers",
+      "issue": 150,
+      "pr": 193,
+      "branch": "guard-read-retry",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "904d580d6535bea89f3913ac75a2bc1593fccdf5",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "AUTODEPLOY-01c",
+      "title": "Auto-deploy merge-proof fallback",
+      "issue": 150,
+      "pr": 194,
+      "branch": "merge-proof-fallback",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "04dc44c6e577110cd0b32a1d1471176d56587221",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "FPT-WORKER-SIGTERM",
+      "title": "FPT worker graceful SIGTERM",
+      "issue": 12,
+      "pr": 195,
+      "branch": "worker-sigterm",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "0fe8d9b061e05282b6c1482c065cfba71e9571c6",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "INFRA-VPS-01",
+      "title": "mp-deploy v3.3, runner guard, FPT worker unit versioned",
+      "issue": 150,
+      "pr": 197,
+      "branch": "feat/t129-infra-port",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "8c6e5884fe40a720f762b255363f1a89e64182f6",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "MM-LEDGER-01",
+      "title": "Paper ledger + MM STOP/ADVISORY_ONLY",
+      "issue": 99,
+      "pr": 198,
+      "branch": "feat/t129-paper-ledger-mm",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "ffd9fc22d371fd982a3e7ac97ef2d319b23a916b",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "GUARD-QUEUED-RACE",
+      "title": "Deploy guard: bounded re-read of queued run",
+      "issue": 150,
+      "pr": 199,
+      "branch": "fix/t130-guard-queued-race",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "80f223a22f970a92bbcbf52d819f6d456226ec11",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "FPT-MON-T131",
+      "title": "FPT monitoring fixes (t131u)",
+      "issue": 12,
+      "pr": 200,
+      "branch": "feat/t131-fpt-monitoring",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "a73fa4bc2a0916e05abf42f1d1774c9d50eeb159",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "FPT-FIX-01-09",
+      "title": "FPT hardening FIX-01..09",
+      "issue": 12,
+      "pr": 201,
+      "branch": "feat/t132-fpt-hardening",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "c50e55ada3d26f5b4366f58f93b49856b617634c",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "FPT-RECLASS-REVERT",
+      "title": "Exact revert for FPT gap reclassification",
+      "issue": 12,
+      "pr": 202,
+      "branch": "fix/t136u-revert-exact",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "b393499ec27c48d20ee1fb3334203699525cfae5",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "FPT-RESIDUALS-T138",
+      "title": "Release SHA, post-cycle heartbeat, DB-down probe",
+      "issue": 12,
+      "pr": 203,
+      "branch": "t138-fpt-residuals",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "62311afc22901215efac0739b7b9e7015b20ada2",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "DR-RELEASE-SOURCE",
+      "title": "Backup + DR check read real release",
+      "issue": 150,
+      "pr": 204,
+      "branch": "t139-dr-release-source",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "7aaf6843efdf3934f2f9cf24d8a20f05cf39a071",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "DR-CHECK-FIX",
+      "title": "DR coverage check NameError fix",
+      "issue": 150,
+      "pr": 205,
+      "branch": "t140-dr-check-fix",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "e2b27dac9c3636b428c2edda0a17d66d6620d6b9",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "ALERT-DELIVERY-REASON",
+      "title": "Failed alert delivery records reason",
+      "issue": 12,
+      "pr": 206,
+      "branch": "t141-alert-delivery-reason",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "e03fe2b021033783e3b9d45c3b64929ce119b0f9",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "MM-PR-01",
+      "title": "MM registry census + liability models",
+      "issue": 96,
+      "pr": 207,
+      "branch": "mm-pr01-registry-liability",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "91aab47feb84e98acb56c9e89a75010b4322b30a",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "MM-PR-02",
+      "title": "MM per-scope exposure caps, odds filters",
+      "issue": 96,
+      "pr": 208,
+      "branch": "mm-pr02-scoped-exposure",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "23d377c5f27ee13bb406a490bfe5d97557bb665b",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "MARKET-CORE-01-02",
+      "title": "Versioned market rules registry + core resolvers",
+      "issue": 104,
+      "pr": 209,
+      "branch": "market-core-01-02",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "6ed49191ddd88cd79904e52be451fb8c6f12b579",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "BUDGET-CRITICAL-FP",
+      "title": "BUDGET_CRITICAL false positive fix (t138u)",
+      "issue": 12,
+      "pr": 210,
+      "branch": "t145-budget-critical-false-positive",
+      "kind": "implementation",
+      "state": "MERGED",
+      "pr_open": false,
+      "merge_sha": "806e001769e6ba759433713e079ab1149856dcbe",
+      "review": "self-review (t122u), not independent",
+      "latest_checkpoint": null,
+      "reconciliation": "GOV-SYNC-01 (t141u): registered retroactively from GitHub merge record; no per-PR checkpoint existed."
+    },
+    {
+      "id": "GOV-SYNC-01",
+      "title": "Reconcile work registry with GitHub (#189-#210), release stale lease",
+      "issue": 150,
+      "pr": 211,
+      "branch": "gov-sync-01",
+      "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-g-grok",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": null,
+      "resources": [
+        "branch:gov-sync-01",
+        "file:docs/governance/work-registry.json"
+      ],
+      "parallel_authorization": "OWN-T141U-GOV150",
+      "pr_open": false,
+      "merge_sha": "569fb0fa049d648e149457bfba066964d6accc81",
+      "review": "self-review (t122u), not independent"
+    },
+    {
+      "id": "GOV-DRIFT-01",
+      "title": "Executable CI drift check: registry vs GitHub (merged/closed PR, expired lease, unregistered merge, unclaimed PR)",
+      "issue": 150,
+      "pr": 212,
+      "branch": "gov-drift-01",
+      "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-g-grok",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": null,
+      "parallel_authorization": "OWN-T141U-GOV150",
+      "resources": [
+        "tools/governance/drift.mjs",
+        "tools/governance/cli.mjs",
+        ".github/workflows/ci.yml",
+        "test/governance-drift.test.mjs"
+      ],
+      "pr_open": false,
+      "merge_sha": "c7820ea05373eac346f3e73a94a6eaa6a840756f",
+      "review": "self-review (t122u), not independent"
+    },
+    {
+      "id": "GOV-RUNTIME-STATE-01",
+      "title": "Vendor-neutral runtime state on GitHub (release SHA, task, blockers, pending checks, next action, owner decisions t122u-t141u)",
+      "issue": 150,
+      "pr": 213,
+      "branch": "gov-runtime-state-01",
+      "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-g-grok",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": null,
+      "parallel_authorization": "OWN-T141U-GOV150",
+      "resources": [
+        "docs/governance/runtime-state.json",
+        "docs/governance/schemas/runtime-state.schema.json",
+        "tools/governance/runtime-state.mjs",
+        "tools/governance/cli.mjs",
+        ".github/workflows/ci.yml",
+        "test/governance-runtime-state.test.mjs"
+      ],
+      "pr_open": false,
+      "merge_sha": "a0c5d7202d26177ea1b41d914170a83b1579af31",
+      "review": "self-review (t122u), not independent"
+    },
+    {
+      "id": "GOV-PROTOCOL-01",
+      "title": "Vendor-neutral protocol: PROTOCOL.md, checkpoint schema, orient/takeover-check/claim/release CLI, negative-test scripts",
+      "issue": 150,
+      "pr": 214,
+      "branch": "gov-protocol-01",
+      "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-g-grok",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": null,
+      "parallel_authorization": "OWN-T141U-GOV150",
+      "resources": [
+        "docs/governance/PROTOCOL.md",
+        "docs/governance/schemas/checkpoint-v3.schema.json",
+        "tools/governance/cli.mjs",
+        "tools/governance/drift.mjs",
+        "test/governance-protocol-negative.test.mjs",
+        "AGENTS.md",
+        "CLAUDE.md"
+      ],
+      "merge_sha": "665bc34b2716a0f54732d7170eebf11df1166e3d"
+    },
+    {
+      "id": "HANDOFF-PREP-01",
+      "title": "Agent A prepares HANDOFF-TEST-01 in HANDOFF READY (checkpoint, lease released)",
+      "issue": 150,
+      "pr": 215,
+      "branch": "handoff-prep-01",
+      "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-g-grok",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": null,
+      "parallel_authorization": "OWN-T141U-GOV150",
+      "resources": [
+        "docs/governance/work-registry.json"
+      ],
+      "note": "Registered final in the same PR so that no live lease remains after Agent A stops (t144u); merge SHA is the squash of PR #215."
     }
   ]
 }

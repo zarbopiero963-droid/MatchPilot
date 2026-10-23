@@ -22,7 +22,7 @@ Il denominatore definitivo uscirà dal censimento completo; nessun gruppo ha una
 - **Validazione:** `npm run governance:validate`.
 
 Regole owner del 18/10/2026:
-- auto-merge solo per PR certificate (Gate A/B, CI, review indipendente APPROVED, nessun finding bloccante);
+- auto-merge solo per PR certificate (Gate A/B, CI, review APPROVED, nessun finding bloccante); dal 22/10/2026 la review può essere una self-review dell'agente autore, etichettata come tale (DEC-004-R1, t122u; "review indipendente" SUPERSEDED). I deploy richiedono sempre l'approvazione umana GitHub;
 - **le issue le chiude solo l'owner** (READY TO CLOSE — OWNER APPROVAL REQUIRED; riferimenti `Refs #`);
 - nessun deploy, costo, produzione o LIVE senza autorizzazione esplicita.
 
@@ -42,13 +42,20 @@ npm run governance:resume -- R-01  # verifica di ripresa per un'attività (exit 
 
 Checkpoint machine-readable: `docs/governance/checkpoints/`. Registro attività: `docs/governance/work-registry.json`. Procedura di subentro e recovery: [`docs/governance/HANDOFF.md`](docs/governance/HANDOFF.md). Issue: #150, MP-MULTIAGENT-SYNC-CHECKPOINT-01.
 
+**Checkpoint e agenti (21/10/2026).**
+- I nuovi checkpoint usano lo schema `mp-checkpoint-v3`, con HANDOFF OUT/IN, ledger delle autorizzazioni e un solo scrittore per risorsa.
+- Gli agenti sono intercambiabili (`MP-OWNER-AGENTS-INTERCHANGEABLE-01`).
+- Collaudo reale Claude → Grok → Claude: **HANDOFF NOT VERIFIED**.
+
+Riconciliazione del 21/10: [`docs/governance/reconciliation-2026-10-21.md`](docs/governance/reconciliation-2026-10-21.md).
+
 **Gerarchia:** decisioni owner registrate → #3 master di prodotto → #97 roadmap operativa canonica → issue di dominio → requisiti Gate A → AGENTS → CLAUDE/README → docs → mock. #104 resta il catalogo storico delle 82 card.
 
 **Stato al 18/10/2026:**
 - **FPT (#12):** certificato storico del 05/10 nel proprio perimetro; audit 412 (solo parte read-only) e policy PIT D4 ancora da applicare.
 - **TotalCorner (#20):** componenti TC-CORE-01/02/03/03B/04 certificati per componente; normalizzazione residua offline; nessuna spesa autorizzata (D6). #20 resta OPEN.
 - **Archivio #40:** completato con riserve; resta OPEN fino alla verifica indipendente di portabilità e hash (D9).
-- **Infrastruttura:** Render e Neon sospesi dal 09/10; sviluppo offline (#144).
+- **Infrastruttura:** Render e Neon sospesi dal 09/10 (#144) ed esclusi dall'architettura operativa. Tutta l'operatività va sulla VPS (`MP-VPS-ONLY-OPERATIONS-2026-10-21`, #182); la sua attuazione richiede GO owner separati. `render.yaml` è solo storico, con `autoDeploy: false`.
 - **Prodotto:** Gate A NON PASS; nessuna componente è GLOBAL HARD CERTIFIED.
 
 Lo stato dettagliato del 07/10 resta consultabile nella cronologia di git e nelle issue #3/#97; non è più un'istruzione operativa.
@@ -849,7 +856,7 @@ Cosa cambia nel codice:
 
 Limiti, non presentati come piano del fornitore:
 
-- default conservativi di codice, da sostituire quando l'owner conosce la quota reale: `FUTPYTHON_REQUESTS_PER_MINUTE` 20, `FUTPYTHON_REQUESTS_PER_DAY` 2000, `FUTPYTHON_BACKFILL_REQUESTS_PER_MINUTE` 8, `FUTPYTHON_MAX_ATTEMPTS` 4;
+- default conservativi di codice, da sostituire quando l'owner conosce la quota reale: `FUTPYTHON_REQUESTS_PER_MINUTE` 20, `FUTPYTHON_REQUESTS_PER_DAY` 2000, `FUTPYTHON_BACKFILL_REQUESTS_PER_MINUTE` 8, `FUTPYTHON_MAX_ATTEMPTS` 4; questi sono limiti interni di protezione, non quote del provider. `FUTPYTHON_PROVIDER_DAILY_QUOTA` (default `unlimited`, come da dashboard FutPythonTrader dell'owner; ammessi `unknown` o un intero) descrive la quota reale del provider. `BUDGET_WARNING`/`BUDGET_CRITICAL` dipendono solo dal contatore giornaliero interno; la saturazione del passo al minuto è regolazione interna (attesa), non un allarme; la risoluzione richiede contatori misurati (t145);
 - un successo già persistito non viene riscaricato. Se la risposta è nel ledger ma lo snapshot non è committato, una nuova GET è ammessa: non si sigilla un buco;
 - catalogo e `jogos-do-dia` restano richieste di run, non dataset terminali;
 - il drill accetta al massimo 5 chiavi esplicite. Non è stato scelto un elenco di produzione oltre agli esempi già deduplicati in PR #33.

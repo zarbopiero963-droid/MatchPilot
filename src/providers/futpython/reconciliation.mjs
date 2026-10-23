@@ -1,3 +1,4 @@
+import { classifyGap } from './gap-classes.mjs';
 import { isCurrentSeason } from './catalog.mjs';
 import { emitAlert, resolveAlert } from '../../alerts.mjs';
 import { releaseSyncLock, trySyncLock } from './lock.mjs';
@@ -155,9 +156,20 @@ export async function recoveryTargets(client, {config = reconConfig(), runId = n
        WHERE source=$1 AND recovery_action = ANY($2::text[])
          AND (status IN ('DETECTED','QUEUED','PARTIAL')
            OR (status = 'FAILED' AND recovery_finished_at < now() - make_interval(hours => $5::int)))
-       ORDER BY priority, detected_at, entity LIMIT $4)
-     RETURNING l.entity, l.recovery_action`, [SOURCE, actions, runId, limit, Math.round(config.retryFailedHours)])).rows;
+         AND NOT (COALESCE(details->>'verified', '') = 'unchanged'
+           AND COALESCE((details->>'verified_unchanged_at')::timestamptz, '-infinity') > now() - make_interval(hours => $6::int))
+       ORDER BY priority, detected_at, COALESCE(recovery_started_at, '-infinity'), entity LIMIT $4)
+     RETURNING l.entity, l.recovery_action`, [SOURCE, actions, runId, limit, Math.round(config.retryFailedHours), Math.round(config.currentSeasonTtlHours)])).rows;
   const rows = [...await pick(['refresh_dataset'], config.refreshPerRun), ...await pick(['fetch_dataset'], config.recoveryPerRun)];
+  // t132u FIX-08: what did not fit this run's budget is RETRY_PENDING with its reason, never a silent QUEUED.
+  const pending = await client.query(
+    `UPDATE data_reconciliation_ledger SET details = details || jsonb_build_object('classification', 'RETRY_PENDING',
+       'pending_reason', 'per-run budget (FUTPYTHON_REFRESH_PER_RUN / FUTPYTHON_RECOVERY_PER_RUN) used by older gaps',
+       'pending_since_run', $2::text)
+     WHERE source=$1 AND status IN ('DETECTED','QUEUED') AND recovery_action IN ('refresh_dataset','fetch_dataset')
+     RETURNING entity`, [SOURCE, runId]);
+  console.log('FUTPYTHON_RECOVERY_QUEUE ' + JSON.stringify({ts: new Date().toISOString(), runId, picked: rows.length,
+    pending: pending.rowCount ?? 0, pendingEntities: (pending.rows || []).slice(0, 20).map(r => r.entity)}));
   if (!rows.length) return [];
   const catalog = (await client.query(
     `SELECT dataset_key, country_slug, league_slug, season, route FROM fpt_catalog WHERE active AND dataset_key = ANY($1::text[])`,
@@ -167,31 +179,55 @@ export async function recoveryTargets(client, {config = reconConfig(), runId = n
     season: c.season, route: c.route, recovery: action.get(c.dataset_key), force: true}));
 }
 
+// t131u: a current-season refresh whose content did not change since the gap was detected is not a recovery.
+export function staleRefreshUnchanged(row) {
+  if (row.gap_kind !== 'current_season_stale') return false;
+  if (!row.last_changed_at) return true;
+  return new Date(row.last_changed_at).getTime() <= new Date(row.detected_at).getTime();
+}
+
 const PIPELINE_KINDS = new Set(['incremental_sync_skipped', 'interrupted_run']);
 
 async function closeVanished(client, detected, now, {deferred = new Set(), config, phase, runId}) {
   const live = new Set(detected.map(g => g.entity));
   const open = (await client.query(
     `SELECT l.reconciliation_id, l.gap_kind, l.entity, l.status, l.attempts, s.availability, l.details->>'run_id' AS run_id,
-            r.status AS run_status
+            r.status AS run_status, l.detected_at, s.last_changed_at, s.last_http_status, s.http_disposition, s.last_error,
+            snap.ingest_complete
      FROM data_reconciliation_ledger l
      LEFT JOIN fpt_dataset_state s ON s.dataset_key = l.entity
+     LEFT JOIN fpt_raw_snapshots snap ON snap.snapshot_id = s.last_snapshot_id
      LEFT JOIN fpt_sync_runs r ON r.run_id = l.details->>'run_id'
      WHERE l.source=$1 AND l.status = ANY($2::text[])`, [SOURCE, OPEN])).rows;
-  const closed = {recovered: [], unrecoverable: [], failed: [], requeued: []};
+  const closed = {recovered: [], unrecoverable: [], failed: [], requeued: [], unchanged: []};
   for (const row of open) {
     const still = live.has(row.entity);
+    if (!still && staleRefreshUnchanged(row)) {
+      // t131u: the refresh answered, but with the same content (same SHA): nothing was recovered. The gap stays open as
+      // 'verified unchanged' (PARTIAL), not re-fetched until the TTL passes again; DATA_CONTENT_STALE carries the notice.
+      // t132u FIX-04: ALREADY_COMPLETE (coverage proven) or STILL_MISSING / PROVIDER_UNAVAILABLE; re-checked after the
+      // TTL, which is the automatic check for the provider publishing again.
+      const c = classifyGap(row);
+      await client.query(
+        `UPDATE data_reconciliation_ledger SET status='PARTIAL',
+           details = details || jsonb_build_object('verified', 'unchanged', 'verified_unchanged_at', $2::timestamptz,
+             'classification', $3::text, 'classification_evidence', $4::jsonb)
+         WHERE reconciliation_id=$1`, [row.reconciliation_id, now, c.classification, JSON.stringify(c.evidence)]);
+      closed.unchanged.push(`${row.gap_kind}:${row.entity}`);
+      continue;
+    }
     if (!still) {
       // The gap is gone. A dataset that answered 404 was not recovered: the provider does not serve it.
       const unrecoverable = row.availability === 'unavailable_404' && row.gap_kind !== 'current_season_stale';
+      const c = unrecoverable ? {classification: 'PERMANENTLY_UNAVAILABLE', evidence: {rule: 'provider answers 404'}} : classifyGap(row);
       await client.query(
         `UPDATE data_reconciliation_ledger SET status=$2, recovery_finished_at=$3,
-           recovered_count = CASE WHEN $2='RECOVERED' THEN 1 ELSE recovered_count END,
+           recovered_count = CASE WHEN $2='RECOVERED' AND $5::text='RECOVERED' THEN 1 ELSE recovered_count END,
            unrecoverable_count = CASE WHEN $2='UNRECOVERABLE' THEN 1 ELSE unrecoverable_count END,
-           details = details || $4::jsonb
+           details = details || $4::jsonb || jsonb_build_object('classification', $5::text, 'classification_evidence', $6::jsonb)
          WHERE reconciliation_id=$1`,
         [row.reconciliation_id, unrecoverable ? 'UNRECOVERABLE' : 'RECOVERED', now,
-          JSON.stringify(unrecoverable ? {cause: 'unavailable_404'} : {})]);
+          JSON.stringify(unrecoverable ? {cause: 'unavailable_404'} : {}), c.classification, JSON.stringify(c.evidence)]);
       (unrecoverable ? closed.unrecoverable : closed.recovered).push(`${row.gap_kind}:${row.entity}`);
       continue;
     }
@@ -213,11 +249,14 @@ async function closeVanished(client, detected, now, {deferred = new Set(), confi
         [row.reconciliation_id]);
       closed.requeued.push(row.entity);
     } else if (row.attempts >= config.maxAttempts) {
-      await client.query(`UPDATE data_reconciliation_ledger SET status='FAILED', recovery_finished_at=$2 WHERE reconciliation_id=$1`,
+      await client.query(`UPDATE data_reconciliation_ledger SET status='FAILED', recovery_finished_at=$2,
+          details = details || jsonb_build_object('classification', 'PROVIDER_UNAVAILABLE') WHERE reconciliation_id=$1`,
         [row.reconciliation_id, now]);
       closed.failed.push(`${row.gap_kind}:${row.entity}`);
     } else {
-      await client.query(`UPDATE data_reconciliation_ledger SET status='QUEUED' WHERE reconciliation_id=$1`, [row.reconciliation_id]);
+      await client.query(`UPDATE data_reconciliation_ledger SET status='QUEUED',
+          details = details || jsonb_build_object('classification', 'RETRY_PENDING', 'pending_reason', 'attempt failed, retry next run')
+        WHERE reconciliation_id=$1`, [row.reconciliation_id]);
       closed.requeued.push(row.entity);
     }
   }
@@ -298,6 +337,7 @@ async function emitReconAlerts(client, summary, deliver) {
      WHERE source=$1 AND status IN ('DETECTED','QUEUED','RECOVERING','PARTIAL')
        -- The daily refresh of current seasons is routine: it alerts only once it falls a day behind.
        AND NOT (gap_kind = 'current_season_stale' AND detected_at > now() - interval '24 hours')
+       AND NOT (gap_kind = 'current_season_stale' AND COALESCE(details->>'verified', '') = 'unchanged')
      GROUP BY 1, 2 ORDER BY 2, 1`, [SOURCE])).rows;
   if (open.length) {
     await emitAlert({source: SOURCE, severity: open.some(r => r.priority === 'P1') ? 'warning' : 'info',
@@ -347,5 +387,5 @@ export async function reconcileFpt(client, {phase = 'periodic', runId = null, ru
   const byKind = detected.reduce((acc, g) => ({...acc, [g.gap_kind]: (acc[g.gap_kind] || 0) + 1}), {});
   return {phase, detected: detected.length, by_kind: byKind, created, orphan_runs: orphanRuns,
     recovered: closed.recovered.length, unrecoverable: closed.unrecoverable.length, failed: closed.failed.length,
-    requeued: closed.requeued.length, open: alerts.open, catchup_started: catchupStarted};
+    requeued: closed.requeued.length, verified_unchanged: closed.unchanged.length, open: alerts.open, catchup_started: catchupStarted};
 }

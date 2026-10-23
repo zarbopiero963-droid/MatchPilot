@@ -1,0 +1,110 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261023T063401Z-agent-g-grok",
+  "timestamp_utc": "2026-10-23T06:34:01Z",
+  "agent": {
+    "id": "agent-g-grok",
+    "role": "Development Agent",
+    "session": "grok-matchpilot-owner-chat-t141u-2026-10-23"
+  },
+  "mandate": {
+    "id": "OWN-T141U-GOV150",
+    "source": "owner t141u/t144u/t145u 2026-10-23, docs/governance/owner-decisions.json"
+  },
+  "activity": "HANDOFF-PREP-01: Agent A prepares HANDOFF-TEST-01 (isolated tests/docs-only task) in HANDOFF READY, releases the lease and stops. The A->B->A test is run by the owner launching Agent B; agent-g-grok does not run it or claim it.",
+  "task": "HANDOFF-TEST-01",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 150,
+  "pr": null,
+  "branch": "handoff-test-01",
+  "commit_sha": "665bc34b2716a0f54732d7170eebf11df1166e3d",
+  "tree_sha": "abd5fa164d1b4009e758d1e8bc691c07cd9d4706",
+  "base_sha": "665bc34b2716a0f54732d7170eebf11df1166e3d",
+  "worktree": {
+    "clean": true
+  },
+  "requirements": [],
+  "changes": [],
+  "tests": [],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN",
+    "head_sha": "665bc34b2716a0f54732d7170eebf11df1166e3d"
+  },
+  "gate_a": "NOT_VERIFIED",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [],
+  "owner_decisions": [
+    "OWN-T141U-GOV150"
+  ],
+  "authorizations": [],
+  "external_commands": [
+    {
+      "target": "github",
+      "command": "git push origin origin/main:refs/heads/handoff-test-01",
+      "effect": "branch"
+    }
+  ],
+  "artifacts": [],
+  "progress": {
+    "done": [
+      "branch handoff-test-01 created at main",
+      "checkpoint HANDOFF READY",
+      "lease released"
+    ],
+    "in_progress": [],
+    "not_started": [
+      "Agent B handoff-in",
+      "B work tests/docs-only",
+      "return handoff to A"
+    ]
+  },
+  "resources": [
+    "branch:handoff-test-01",
+    "checkpoints:HANDOFF-TEST-01"
+  ],
+  "stop_conditions": [
+    "orient verdict STOP",
+    "takeover-check not ALLOW",
+    "reconcile error (SHA_MISMATCH, UNRECONCILED_COMMITS, TREE_MISMATCH, STALE)",
+    "any change outside tests/ or docs/",
+    "any deploy, spend, secret or production action"
+  ],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": {
+    "production": "untouched",
+    "note": "no VPS action needed for this task"
+  },
+  "handoff": {
+    "status": "OUT",
+    "from": "agent-g-grok",
+    "to": "ANY",
+    "responsibilities": [
+      "run node tools/governance/cli.mjs orient and continue only on PROCEED",
+      "takeover-check HANDOFF-TEST-01 then handoff-in HANDOFF-TEST-01 --agent <id>",
+      "claim the lease, make a tests/docs-only change, open a PR Refs #150, checkpoint, release",
+      "Agent B (different vendor/session) runs orient, takeover-check, handoff-in on HANDOFF-TEST-01",
+      "only tests/ or docs/ changes on branch handoff-test-01; no runtime code, no deploy, no secrets",
+      "B writes a checkpoint with handoff IN and hands back OUT to agent-g-grok (A) for the return leg"
+    ]
+  },
+  "dependencies": [
+    "GOV-PROTOCOL-01"
+  ],
+  "state": "HANDOFF READY",
+  "next_action": "Agent B: read docs/governance/PROTOCOL.md; node tools/governance/cli.mjs orient; takeover-check HANDOFF-TEST-01 --agent <id>; handoff-in HANDOFF-TEST-01 --agent <id>; proceed only on PROCEED/ALLOW",
+  "resume_conditions": [
+    "owner launches Agent B",
+    "lease null (released by agent-g-grok)",
+    "branch handoff-test-01 at commit_sha"
+  ],
+  "supersedes": null,
+  "merge_sha": null
+}

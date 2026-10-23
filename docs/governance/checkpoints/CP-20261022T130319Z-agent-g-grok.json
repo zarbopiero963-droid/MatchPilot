@@ -1,0 +1,122 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261022T130319Z-agent-g-grok",
+  "timestamp_utc": "2026-10-22T13:03:19Z",
+  "agent": {
+    "id": "agent-g-grok",
+    "role": "Development Agent",
+    "session": "grok-matchpilot-owner-chat-t102u-2026-10-22"
+  },
+  "mandate": {
+    "id": "MP-GROK-AUTONOMOUS-EXECUTION-01",
+    "source": "owner mandates t102u/t103u (2026-10-22), registered in docs/governance/owner-decisions.json"
+  },
+  "activity": "TotalCorner off by explicit configuration: no TC job starts unless MATCHPILOT_TOTALCORNER=on; negative test and two mutations killed",
+  "task": "TC-OFF-01",
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "issue": 20,
+  "pr": 186,
+  "branch": "tc-off-01",
+  "commit_sha": "562252cd9da93896503c919889011c9408075d2e",
+  "tree_sha": "c4aba4899702f9dec368adb908f02bc3c18f45ef",
+  "base_sha": "da927281c26d80d2e9003c9922db830dd077476c",
+  "worktree": {
+    "clean": true
+  },
+  "requirements": [],
+  "changes": [
+    "src/background.mjs: tcEnabled guard",
+    "test/runtime-isolation.test.mjs: TC-OFF-01 negative test",
+    "docs/runtime-isolation.md"
+  ],
+  "tests": [
+    {
+      "command": "node --test: 391 pass, 0 fail, 61 skipped; mutations (guard removed; default inverted) killed",
+      "result": "PASS",
+      "environment": "box, Node 22, no PostgreSQL",
+      "commit": "e8cd5edd713b0d43341b4751846164e8bb68cf93",
+      "time": "2026-10-22T13:02:23Z",
+      "limits": [
+        "61 DB tests skipped: not PASS"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "562252cd9da93896503c919889011c9408075d2e"
+  },
+  "gate_a": "NOT_VERIFIED",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "TC-G1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "CP-20261022T130223Z-agent-g-grok pointed at e8cd5ed although owner-decisions.json changed after it; this checkpoint describes 562252c"
+    }
+  ],
+  "owner_decisions": [
+    "MP-GROK-AUTONOMOUS-EXECUTION-01",
+    "MP-VPS-ONLY-OPERATIONS-2026-10-21"
+  ],
+  "authorizations": [
+    {
+      "id": "MP-GROK-AUTONOMOUS-EXECUTION-01",
+      "source": "owner mandate t102u + t103u, owner-decisions.json",
+      "scope": {
+        "task": "TC-OFF-01",
+        "action": "one implementation PR, review pass, squash merge with green CI, no --admin"
+      },
+      "status": "VALID"
+    }
+  ],
+  "external_commands": [
+    {
+      "target": "github",
+      "command": "git push origin tc-off-01; gh pr create (#186)",
+      "effect": "PR #186"
+    }
+  ],
+  "artifacts": [],
+  "progress": {
+    "done": [
+      "implementation",
+      "tests"
+    ],
+    "in_progress": [
+      "PR, CI, review"
+    ],
+    "not_started": []
+  },
+  "resources": [
+    "branch:tc-off-01"
+  ],
+  "stop_conditions": [
+    "no merge without green CI gate and a review pass on the exact head",
+    "no --admin"
+  ],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "dependencies": [],
+  "state": "REVIEW",
+  "next_action": "CI, review pass on the head, squash merge pinned to it",
+  "resume_conditions": [
+    "CI result"
+  ],
+  "supersedes": "CP-20261022T130251Z-agent-g-grok",
+  "merge_sha": null
+}

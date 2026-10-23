@@ -1,0 +1,106 @@
+{
+  "schema_version": "mp-checkpoint-v2",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "branch": "deploy-approval-01",
+  "commit_sha": "e153ff4b1ca0c179da73326aaff41ded47205014",
+  "tree_sha": "0246ec120841c8707fa0318367d24cf74ff5c220",
+  "supersedes": "CP-20261021T114858Z-agent-a-claude-code",
+  "pr": null,
+  "id": "CP-20261021T132413Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-21T13:24:13Z",
+  "activity": "MP-DEPLOY-UNBLOCK-FINAL: B-3 and NB-8..NB-12 fixed; OIDC token per try in the deploy step; freeze-first activation sequence; final separate review pending; PR to open on a favourable review (owner exception #97 6316562293)",
+  "task": "DEPLOY-APPROVAL-01",
+  "issue": 97,
+  "requirements": [],
+  "changes": [
+    "scripts/workflow-policy.mjs: readWorkflowDirectory (lstat, symlinks, subdirectories, names), event and hosted-label allow-lists, case-only keys, node checks on mappings",
+    "scripts/deploy-gate.mjs: report written for any answer shape (NB-11)",
+    "scripts/deploy-authz.mjs: missing ledger refused (NB-12), file fsync failure refuses, injectable fs",
+    ".github/workflows/deploy-vps.yml: id-token: write; new OIDC token per try piped to mp-deploy",
+    "tests: B-3 directory cases, NB-9/NB-10 cases, fsync, 16 KiB, mp-deploy step simulation; docs/deploy-approval.md rewritten; owner decision MP-DEPLOY-UNBLOCK-FINAL"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/requirements-inventory.test.mjs test/governance-*.test.mjs test/ci-classify.test.mjs (109/109, evidence/audits branch present locally); check; governance validate/check; render-inventory --check; scan-closing; check-append-only; npm audit --omit=dev; governance:evidence with the archive: all exit 0",
+      "result": "PASS",
+      "environment": "local container, Node 22",
+      "limits": [
+        "simulated GitHub API, VPS steps, OIDC keys; no GitHub or VPS run",
+        "without the evidence/audits branch 3 archive tests are skipped",
+        "time is an upper bound"
+      ],
+      "commit": "e153ff4b1ca0c179da73326aaff41ded47205014",
+      "time": "2026-10-21T13:24:13Z"
+    },
+    {
+      "command": "full suite node --test with local PostgreSQL 16 (386/387, 1 skip: PostgreSQL 17 required)",
+      "result": "PASS",
+      "environment": "local container, PostgreSQL 16",
+      "limits": [
+        "postgres-independence needs PostgreSQL 17, covered by CI"
+      ],
+      "commit": "e153ff4b1ca0c179da73326aaff41ded47205014",
+      "time": "2026-10-21T13:24:13Z"
+    },
+    {
+      "command": "RED on 512ef32 for B-3 (sneak.YML not read, 6/6 pass) and NB-11 (0-byte report); GREEN here. Final mutation run: 49 mutations, 48 killed, 1 equivalent (P3)",
+      "result": "PASS",
+      "environment": "local container",
+      "limits": [
+        "time is an upper bound"
+      ],
+      "commit": "e153ff4b1ca0c179da73326aaff41ded47205014",
+      "time": "2026-10-21T13:24:13Z"
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "NOT_RUN",
+    "head_sha": "e153ff4b1ca0c179da73326aaff41ded47205014"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reference": null
+  },
+  "findings": [
+    {
+      "id": "DAP-1",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "activation needs owner GOs and the steps of docs/deploy-approval.md section 4 (mp-deploy v3 freeze before the gate merge, environment, real approval/reject/re-run tests); GitHub and VPS behaviours are NOT VERIFIED"
+    },
+    {
+      "id": "DAP-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "until mp-deploy v3 freeze (step 3) a re-run of run 39412733270 can reach mp-deploy (ALREADY_DEPLOYED)"
+    },
+    {
+      "id": "DAP-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "owner-decisions.json and work-registry.json are also changed by PR #178 and other branches: conflicts to resolve when brought to main"
+    }
+  ],
+  "owner_decisions": [
+    "MP-DEPLOY-UNBLOCK-FINAL",
+    "MP-DEPLOY-GATE-FINAL-01",
+    "MP-DEPLOY-APPROVAL-02",
+    "MP-DEPLOY-APPROVAL-01",
+    "MP-OWNER-VPS-DEPLOY-01"
+  ],
+  "dependencies": [
+    "CP-20261021T114858Z-agent-a-claude-code"
+  ],
+  "state": "BLOCKED",
+  "next_action": "separate review of this head; on a favourable verdict open the PR (owner exception), CI, Gate A/B, reports on #97 and #179",
+  "resume_conditions": [
+    "review verdict on this head"
+  ]
+}

@@ -1,0 +1,937 @@
+✔ alert aggregation policy distinguishes initial 404 from regression (0.695595ms)
+✔ alert fingerprint is stable and key-sensitive (1.322829ms)
+✔ the endpoint registry describes every v1 endpoint with a parameter schema (MP-API-001, MP-API-005) (4.951595ms)
+✔ every legacy route is inventoried with a successor or an explicit KEPT status and a pending auth decision (MP-API-006) (0.435954ms)
+✔ responses carry the envelope with provenance, coverage, as_of and versions (MP-API-003) (2.078273ms)
+✔ deterministic error envelope and status codes (MP-API-002) (1.303215ms)
+✔ unknown, repeated, oversized and malformed parameters are rejected before database access (MP-API-004, MP-SEC-006) (1.665193ms)
+✔ validated input reaches the query layer only as bound parameters (2.251545ms)
+✔ meta.as_of is the instant the reader applied, never an echo of the raw input (review B-1) (0.995593ms)
+✔ point-in-time answers expose their PIT label in meta.pit; other endpoints report null (MP-PIT-005) (0.519499ms)
+✔ TotalCorner parameters are validated, never silently capped or defaulted (review B-2) (1.75594ms)
+✔ the registry marks the parameters the query layer requires and errors use API parameter names (review NB-1, NB-7) (1.99ms)
+✔ input is validated before a connection is taken and only database failures are UNAVAILABLE (review NB-3) (0.839778ms)
+✔ API v1 serves real database content with the v1 envelope, matching the legacy routes (2570.654873ms)
+✔ the real Drive metadata zip is read by the stored-ZIP reader and matches the pinned files (2.753071ms)
+✔ pinned archive files match SHA256SUMS (1.190924ms)
+✔ real #40 metadata is internally consistent and Drive sizes agree; parts stay NOT_VERIFIED without access (3.785239ms)
+✔ a complete archive verifies part by part and as a whole bundle, anchored to external pins (16.333504ms)
+✔ a forged but self-consistent archive fails against the independent pins (#152 review N-1) (229.823981ms)
+✔ external pins equal the values recorded in the closure report (1.500497ms)
+✔ extra or duplicated files in the Drive listing are reported (#152 review N-7) (11.990869ms)
+✔ a tampered part, a corrupt wrapper or a wrong Drive size fail (16.870545ms)
+✔ the verifier is read-only: archive bytes are unchanged after a run (33.845904ms)
+✔ backfill skips only terminal dataset states (0.840934ms)
+✔ backfill resume reconciles legacy unknown datasets with snapshots (1.403933ms)
+✔ backfill retries error states even when an older snapshot exists (0.157189ms)
+✔ backfill skips terminal classifications (0.1603ms)
+✔ a complete, unmodified report on the exact commit is accepted (25.12655ms)
+✔ missing evidence is refused (7.924582ms)
+✔ evidence of another commit, a modified tree or an injected defect is refused (60.325891ms)
+✔ a missing or changed evidence file is refused (25.792315ms)
+✔ a PASS without execution, a hidden failure or a wrong count is refused (50.089862ms)
+✔ a skipped or missing required journey is refused, with or without a reason (19.304077ms)
+✔ the runner fails a real page that leaks a raw value, with evidence (deliberately injected defect) (5397.101125ms)
+✔ inherited keys, files outside the manifest and a wrong missing_required are refused (PR #164 NB-1, NB-2) (24.211804ms)
+✔ the tested commit must contain the PR head (PR #164 NB-2) (65.933073ms)
+✔ raw values are caught in text, labels and declared API prose are not (PR #164 NB-3) (0.66187ms)
+✔ technical text is caught in user views, plain Italian is not (MP-OWNER-UI-NO-RAW-TEXT-01) (2.23912ms)
+✔ the runner refuses a non-empty output directory (PR #164 NB-5) (11.313371ms)
+✔ budget levels follow #31 and admission is a strict priority ladder (1.927576ms)
+✔ CONSERVE defers discovery and backfill with no upstream call, keeps today and current season (5.019096ms)
+✔ CRITICAL keeps only today; EXHAUSTED keeps nothing; throttled rows do not count as usage (3.160771ms)
+✔ a restarted process still opens the circuit when deferrals, cache hits and dedups follow the failures (0.656206ms)
+MIGRATION_APPLIED 001-futpython-mirror.sql
+MIGRATION_APPLIED 002-data-watchdog.sql
+MIGRATION_APPLIED 003-alert-aggregation.sql
+MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+MIGRATION_APPLIED 006-fpt-certification-checks.sql
+MIGRATION_APPLIED 007-fpt-request-ledger.sql
+MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+MIGRATION_APPLIED 009-fpt-team-identity.sql
+MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+MIGRATION_APPLIED 011-fpt-schema-registry.sql
+MIGRATION_APPLIED 012-fpt-field-coverage.sql
+MIGRATION_APPLIED 013-fpt-season-registry.sql
+MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+MIGRATION_APPLIED 015-fpt-query-facts.sql
+MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+MIGRATION_APPLIED 017-fpt-budget-levels.sql
+MIGRATION_APPLIED 018-fpt-onboarding.sql
+MIGRATION_APPLIED 019-fpt-reconciliation.sql
+MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+MIGRATION_APPLIED 021-tc-core-discovery.sql
+MIGRATION_APPLIED 022-tc-competition-mapping.sql
+MIGRATION_APPLIED 023-tc-prematch.sql
+MIGRATION_APPLIED 024-tc-tz-observations.sql
+MIGRATION_APPLIED 025-tc-tz-inliers.sql
+MIGRATION_APPLIED 026-tc-historical-backfill.sql
+MIGRATION_APPLIED 027-tc-live-collector.sql
+MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+MIGRATION_APPLIED 029-owner-auth.sql
+✔ a real incremental sync under CONSERVE and CRITICAL defers traffic instead of failing (1933.083496ms)
+✔ season extractor supports calendar, split and sparse tournament seasons (1.428914ms)
+✔ catalog parser expands every season from official table rows (11.214971ms)
+✔ catalog parser keeps route-only fallback and deduplicates (1.45294ms)
+✔ current season handles calendar and split-year leagues (0.363488ms)
+✔ documentation-only changes use the documentation lane (3.611476ms)
+✔ mock-only changes use targeted UI checks (0.354619ms)
+✔ database changes include transitive consumers and full suite (0.446715ms)
+✔ TotalCorner changes include API, replay and trading dependents (0.375586ms)
+✔ shared components conservatively select all dependent categories (0.655464ms)
+✔ workflow, lockfile and unknown changes fall back to full (0.585334ms)
+✔ empty or invalid diff fails closed to full (0.142164ms)
+✔ documentation mixed with source cannot downgrade the source lane (0.138955ms)
+✔ web impact: site, browser-read APIs, data schema, dependencies and the gate itself require Browser QA (0.907237ms)
+✔ web impact exemption is automatic, verifiable and fails closed (0.658454ms)
+✔ a moved web file is a web change: the diff lists old and new paths (PR #164 B-2) (133.308757ms)
+✔ CSV parser preserves quoted commas, quotes and trailing empty cells (2.360719ms)
+✔ the crawler PRNG is deterministic per seed (2.624262ms)
+✔ a complete crawler bundle on the exact commit is accepted (9.336893ms)
+✔ crawler bundles that are missing, foreign, altered or incomplete are refused (114.786245ms)
+✔ malformed bundles and reviews are refused with an error, never a crash (PR #165 NB-1) (27.803173ms)
+✔ a complete AI review of the exact bundle is accepted, with a computed verdict (4.702384ms)
+✔ AI reviews that are missing, foreign, incomplete or with a declared verdict are refused (37.383112ms)
+✔ the same seed on the same site replays the same exploration, and its bundle verifies (27142.531104ms)
+✔ the crawler finds and reproduces a defect no scripted journey covers (deliberately injected) (19093.56876ms)
+✔ a bundle without desktop and mobile, a linked evidence file or a fix without its test is refused (PR #165 R2-NB-2, NB-3, NB-5) (156.615306ms)
+✔ a problem caused just before the page leaves the site still reproduces (PR #165 R2-NB-1) (10684.160773ms)
+✔ the seeded defects of the AI review evaluation still apply to the page, once each (QA-03) (2.634163ms)
+✔ away matches, odds range and combined search build parameterized SQL only (3.793906ms)
+✔ xg by season, point in time and coverage validate their inputs (1.234454ms)
+✔ the catalog describes every route for Copilot and stays DB-only (1.065153ms)
+✔ assistant checks look at the returned rows, not only at counts (0.730351ms)
+MIGRATION_APPLIED 001-futpython-mirror.sql
+MIGRATION_APPLIED 002-data-watchdog.sql
+MIGRATION_APPLIED 003-alert-aggregation.sql
+MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+MIGRATION_APPLIED 006-fpt-certification-checks.sql
+MIGRATION_APPLIED 007-fpt-request-ledger.sql
+MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+MIGRATION_APPLIED 009-fpt-team-identity.sql
+MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+MIGRATION_APPLIED 011-fpt-schema-registry.sql
+MIGRATION_APPLIED 012-fpt-field-coverage.sql
+MIGRATION_APPLIED 013-fpt-season-registry.sql
+MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+MIGRATION_APPLIED 015-fpt-query-facts.sql
+MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+MIGRATION_APPLIED 017-fpt-budget-levels.sql
+MIGRATION_APPLIED 018-fpt-onboarding.sql
+MIGRATION_APPLIED 019-fpt-reconciliation.sql
+MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+MIGRATION_APPLIED 021-tc-core-discovery.sql
+MIGRATION_APPLIED 022-tc-competition-mapping.sql
+MIGRATION_APPLIED 023-tc-prematch.sql
+MIGRATION_APPLIED 024-tc-tz-observations.sql
+MIGRATION_APPLIED 025-tc-tz-inliers.sql
+MIGRATION_APPLIED 026-tc-historical-backfill.sql
+MIGRATION_APPLIED 027-tc-live-collector.sql
+MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+MIGRATION_APPLIED 029-owner-auth.sql
+✔ assistant queries answer from Postgres with indexes and point-in-time (14602.107949ms)
+✔ coverage page lists leagues with seasons, matches, coverage and the FPT/TC overlap stated as unavailable (2.881663ms)
+✔ league drill-down shows every season, unpublished gaps included (0.602506ms)
+✔ coverage queries bind every filter as a parameter and reject unsafe slugs (1.612411ms)
+MIGRATION_APPLIED 001-futpython-mirror.sql
+MIGRATION_APPLIED 002-data-watchdog.sql
+MIGRATION_APPLIED 003-alert-aggregation.sql
+MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+MIGRATION_APPLIED 006-fpt-certification-checks.sql
+MIGRATION_APPLIED 007-fpt-request-ledger.sql
+MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+MIGRATION_APPLIED 009-fpt-team-identity.sql
+MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+MIGRATION_APPLIED 011-fpt-schema-registry.sql
+MIGRATION_APPLIED 012-fpt-field-coverage.sql
+MIGRATION_APPLIED 013-fpt-season-registry.sql
+MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+MIGRATION_APPLIED 015-fpt-query-facts.sql
+MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+MIGRATION_APPLIED 017-fpt-budget-levels.sql
+MIGRATION_APPLIED 018-fpt-onboarding.sql
+MIGRATION_APPLIED 019-fpt-reconciliation.sql
+MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+MIGRATION_APPLIED 021-tc-core-discovery.sql
+MIGRATION_APPLIED 022-tc-competition-mapping.sql
+MIGRATION_APPLIED 023-tc-prematch.sql
+MIGRATION_APPLIED 024-tc-tz-observations.sql
+MIGRATION_APPLIED 025-tc-tz-inliers.sql
+MIGRATION_APPLIED 026-tc-historical-backfill.sql
+MIGRATION_APPLIED 027-tc-live-collector.sql
+MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+MIGRATION_APPLIED 029-owner-auth.sql
+✔ coverage queries answer from Postgres: league summary and season drill-down with gaps (7562.653672ms)
+✔ filter registry gate needs seen dates, source, phases and consistent index flags (1.014647ms)
+MIGRATION_APPLIED 001-futpython-mirror.sql
+MIGRATION_APPLIED 002-data-watchdog.sql
+MIGRATION_APPLIED 003-alert-aggregation.sql
+MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+MIGRATION_APPLIED 006-fpt-certification-checks.sql
+MIGRATION_APPLIED 007-fpt-request-ledger.sql
+MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+MIGRATION_APPLIED 009-fpt-team-identity.sql
+MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+MIGRATION_APPLIED 011-fpt-schema-registry.sql
+MIGRATION_APPLIED 012-fpt-field-coverage.sql
+MIGRATION_APPLIED 013-fpt-season-registry.sql
+MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+MIGRATION_APPLIED 015-fpt-query-facts.sql
+MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+MIGRATION_APPLIED 017-fpt-budget-levels.sql
+MIGRATION_APPLIED 018-fpt-onboarding.sql
+MIGRATION_APPLIED 019-fpt-reconciliation.sql
+MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+MIGRATION_APPLIED 021-tc-core-discovery.sql
+MIGRATION_APPLIED 022-tc-competition-mapping.sql
+MIGRATION_APPLIED 023-tc-prematch.sql
+MIGRATION_APPLIED 024-tc-tz-observations.sql
+MIGRATION_APPLIED 025-tc-tz-inliers.sql
+MIGRATION_APPLIED 026-tc-historical-backfill.sql
+MIGRATION_APPLIED 027-tc-live-collector.sql
+MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+MIGRATION_APPLIED 029-owner-auth.sql
+✔ registry reads index usage from the catalog and keeps first/last seen (4115.504004ms)
+MIGRATION_APPLIED 001-futpython-mirror.sql
+MIGRATION_APPLIED 002-data-watchdog.sql
+MIGRATION_APPLIED 003-alert-aggregation.sql
+MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+MIGRATION_APPLIED 006-fpt-certification-checks.sql
+MIGRATION_APPLIED 007-fpt-request-ledger.sql
+MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+MIGRATION_APPLIED 009-fpt-team-identity.sql
+MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+MIGRATION_APPLIED 011-fpt-schema-registry.sql
+MIGRATION_APPLIED 012-fpt-field-coverage.sql
+MIGRATION_APPLIED 013-fpt-season-registry.sql
+MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+MIGRATION_APPLIED 015-fpt-query-facts.sql
+MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+MIGRATION_APPLIED 017-fpt-budget-levels.sql
+MIGRATION_APPLIED 018-fpt-onboarding.sql
+MIGRATION_APPLIED 019-fpt-reconciliation.sql
+MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+MIGRATION_APPLIED 021-tc-core-discovery.sql
+MIGRATION_APPLIED 022-tc-competition-mapping.sql
+MIGRATION_APPLIED 023-tc-prematch.sql
+MIGRATION_APPLIED 024-tc-tz-observations.sql
+MIGRATION_APPLIED 025-tc-tz-inliers.sql
+MIGRATION_APPLIED 026-tc-historical-backfill.sql
+MIGRATION_APPLIED 027-tc-live-collector.sql
+MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+MIGRATION_APPLIED 029-owner-auth.sql
+✔ a simulated new league waits for the owner, a new season of an active league goes live by itself (7093.685992ms)
+✔ the steps are the #12 onboarding flow, in order (3.927317ms)
+✔ a dataset stops at the last step whose checks pass, with what it waits for (1.963483ms)
+✔ season window allows one year of slack on each side (0.365329ms)
+✔ onboarding gate: tracked catalog, no leakage, owner-only new leagues, audit trail (0.280296ms)
+✔ cursors are validated: malformed, tampered, other query or other filters are refused (3.932487ms)
+✔ search pages cover exactly the unpaginated result, in order, across same-date matches (2845.14223ms)
+✔ matches of a day: kickoff order, missing kickoff last, every match once (4230.731062ms)
+✔ API v1 exposes cursor and next_cursor and answers 400 for a bad cursor (738.585904ms)
+✔ real-world ids and kickoffs paginate through the API; order is byte order on every collation (2236.399096ms)
+✔ a deep search page scans only its own rows (PR #162 review B-1) (3934.869792ms)
+✔ every cursor the server issues is accepted back; forged cursors get 400, never 5xx (PR #162 NB-5, NB-6) (1849.21892ms)
+✔ a key too long for any cursor fails loudly instead of ending the pages silently (NB-5) (2295.115957ms)
+✔ dates are calendar dates, whatever the server time zone (5150.634179ms)
+✔ data-quality filters: only matches whose facts carry the values; anything but true is refused (MP-WEB-007) (1781.918341ms)
+MIGRATION_APPLIED 001-futpython-mirror.sql
+MIGRATION_APPLIED 002-data-watchdog.sql
+MIGRATION_APPLIED 003-alert-aggregation.sql
+MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+MIGRATION_APPLIED 006-fpt-certification-checks.sql
+MIGRATION_APPLIED 007-fpt-request-ledger.sql
+MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+MIGRATION_APPLIED 009-fpt-team-identity.sql
+MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+MIGRATION_APPLIED 011-fpt-schema-registry.sql
+MIGRATION_APPLIED 012-fpt-field-coverage.sql
+MIGRATION_APPLIED 013-fpt-season-registry.sql
+MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+MIGRATION_APPLIED 015-fpt-query-facts.sql
+MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+MIGRATION_APPLIED 017-fpt-budget-levels.sql
+MIGRATION_APPLIED 018-fpt-onboarding.sql
+MIGRATION_APPLIED 019-fpt-reconciliation.sql
+MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+MIGRATION_APPLIED 021-tc-core-discovery.sql
+MIGRATION_APPLIED 022-tc-competition-mapping.sql
+MIGRATION_APPLIED 023-tc-prematch.sql
+MIGRATION_APPLIED 024-tc-tz-observations.sql
+MIGRATION_APPLIED 025-tc-tz-inliers.sql
+MIGRATION_APPLIED 026-tc-historical-backfill.sql
+MIGRATION_APPLIED 027-tc-live-collector.sql
+MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+MIGRATION_APPLIED 029-owner-auth.sql
+✔ reconciliation detects lost and stale data, recovers it through the normal sync, without duplicates (17103.980826ms)
+✔ every #31 FutPython gap kind is detected once, with its priority and recovery action (2.273178ms)
+✔ a skipped incremental sync is a P1 catch-up gap; a backfill does not count as incremental (0.538672ms)
+✔ reconciliation gate: fresh checkpoints, nothing given up, nothing open for two days (0.221983ms)
+✔ reprocessing gate: current parser reproduces the stored rows, raw guarded, no failed run left (1.153028ms)
+MIGRATION_APPLIED 001-futpython-mirror.sql
+MIGRATION_APPLIED 002-data-watchdog.sql
+MIGRATION_APPLIED 003-alert-aggregation.sql
+MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+MIGRATION_APPLIED 006-fpt-certification-checks.sql
+MIGRATION_APPLIED 007-fpt-request-ledger.sql
+MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+MIGRATION_APPLIED 009-fpt-team-identity.sql
+MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+MIGRATION_APPLIED 011-fpt-schema-registry.sql
+MIGRATION_APPLIED 012-fpt-field-coverage.sql
+MIGRATION_APPLIED 013-fpt-season-registry.sql
+MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+MIGRATION_APPLIED 015-fpt-query-facts.sql
+MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+MIGRATION_APPLIED 017-fpt-budget-levels.sql
+MIGRATION_APPLIED 018-fpt-onboarding.sql
+MIGRATION_APPLIED 019-fpt-reconciliation.sql
+MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+MIGRATION_APPLIED 021-tc-core-discovery.sql
+MIGRATION_APPLIED 022-tc-competition-mapping.sql
+MIGRATION_APPLIED 023-tc-prematch.sql
+MIGRATION_APPLIED 024-tc-tz-observations.sql
+MIGRATION_APPLIED 025-tc-tz-inliers.sql
+MIGRATION_APPLIED 026-tc-historical-backfill.sql
+MIGRATION_APPLIED 027-tc-live-collector.sql
+MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+MIGRATION_APPLIED 029-owner-auth.sql
+✔ a parser change is reprocessed from the raw: dry run, apply, idempotent replay, nothing destroyed (3714.774892ms)
+MIGRATION_APPLIED 001-futpython-mirror.sql
+MIGRATION_APPLIED 002-data-watchdog.sql
+MIGRATION_APPLIED 003-alert-aggregation.sql
+MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+MIGRATION_APPLIED 006-fpt-certification-checks.sql
+MIGRATION_APPLIED 007-fpt-request-ledger.sql
+MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+MIGRATION_APPLIED 009-fpt-team-identity.sql
+MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+MIGRATION_APPLIED 011-fpt-schema-registry.sql
+MIGRATION_APPLIED 012-fpt-field-coverage.sql
+MIGRATION_APPLIED 013-fpt-season-registry.sql
+MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+MIGRATION_APPLIED 015-fpt-query-facts.sql
+MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+MIGRATION_APPLIED 017-fpt-budget-levels.sql
+MIGRATION_APPLIED 018-fpt-onboarding.sql
+MIGRATION_APPLIED 019-fpt-reconciliation.sql
+MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+MIGRATION_APPLIED 021-tc-core-discovery.sql
+MIGRATION_APPLIED 022-tc-competition-mapping.sql
+MIGRATION_APPLIED 023-tc-prematch.sql
+MIGRATION_APPLIED 024-tc-tz-observations.sql
+MIGRATION_APPLIED 025-tc-tz-inliers.sql
+MIGRATION_APPLIED 026-tc-historical-backfill.sql
+MIGRATION_APPLIED 027-tc-live-collector.sql
+MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+MIGRATION_APPLIED 029-owner-auth.sql
+✔ reprocessing apply is atomic, diffs keep version ids across snapshots, and the gate checks scope (5322.498167ms)
+✔ certifiability matrix: the committed matrix has no problem (3.730177ms)
+✔ certifiability matrix: every tampering the reviews found is refused (15.817438ms)
+Automatic merge went well; stopped before committing as requested
+Automatic merge went well; stopped before committing as requested
+✔ a complete checkpoint validates and every mandatory field is enforced (8.190418ms)
+✔ checkpoints are cross-checked against owner decisions and requirements (0.516646ms)
+✔ terminal states require gates, APPROVED review and no open blocking finding (0.695064ms)
+✔ Gate B evidence records carry command, result, environment, commit, time and limits (MP-QAC-010) (0.413701ms)
+✔ secret-like values are rejected anywhere in a checkpoint (0.778551ms)
+✔ the latest valid checkpoint is the single head of the supersedes chain (1.074709ms)
+✔ a checkpoint dated after its validation, or with test times after itself, is refused (PR #162 NB-9) (0.768673ms)
+✔ errata bound a wrong checkpoint time with a real commit time and keep the chain resolvable (1.023923ms)
+✔ reconciliation against a real git repository detects SHA mismatch and unreconciled work (1828.384958ms)
+✔ reconciliation flags tree mismatch, stale active state and merges that did not happen (0.783117ms)
+✔ checkpoint persistence and comment publication are idempotent (2.401817ms)
+✔ schema v2 binds reviews and CI runs to the commit they covered (#151 review R-2) (0.716582ms)
+✔ a merge commit that rewrites an existing checkpoint is detected (#151 review R-1) (835.121583ms)
+✔ a checkpoint added on a side branch and rewritten in the merge is detected; an unchanged one is not (#152 review N-2) (772.875123ms)
+✔ a new v1 checkpoint cannot dodge v2 by backdating (#152 review N-3) (0.335446ms)
+✔ errata and checkpoint times are checked against the real git history (PR #162 NB-10, NB-11) (861.093557ms)
+✔ the CI gate passes only when every selected check passed (10.548159ms)
+✔ a failed, cancelled or skipped Browser QA on a web change fails the CI gate on its own, and the log names it (16.587613ms)
+✔ every blocking check is reported, not only the first (3.16871ms)
+✔ an unknown classification fails closed (9.119985ms)
+✔ a token of the approved deploy job for this SHA is accepted, and names what to record (6.420166ms)
+✔ NB-7: malformed tokens are refused, never thrown (6.330666ms)
+✔ NB-7: claims must be exact strings: arrays, numbers and objects are not coerced (6.817532ms)
+✔ a token for another SHA, or a deploy of an SHA the token does not name, is refused (2.606147ms)
+✔ a job that did not pass vps-production, a run older than the gate, another workflow or repository is refused (6.926355ms)
+✔ a forged, unsigned, critical-header or foreign-key token is refused (3.723314ms)
+✔ time: expired, future, older than one try, or long-lived tokens are refused; a retry needs a new token (4.826753ms)
+✔ anti-replay: consumption is exclusive and persistent; a busy lock records nothing; a re-run is a new attempt (133.677825ms)
+✔ consume makes each record durable: the file and then the directory are fsynced, and a failed fsync refuses (39.866709ms)
+✔ CLI: verify has no side effect; consume records once, even when two processes race; any error refuses (310.145248ms)
+✔ the approvals of the run must include the owner approving vps-production (0.573718ms)
+✔ the ref advertisement is read strictly: exactly one refs/heads/main, well-formed pkt-lines, nothing after the flush (1.188333ms)
+✔ anti-stale: only the SHA both sources give as the tip of main passes; never another SHA instead (0.579515ms)
+✔ anti-stale fails closed: a source down, malformed, or the two sources disagreeing (just after a merge) (0.733023ms)
+✔ the HTTP reads: 200 only, no redirect, bounded size; anything else throws (the callers refuse) (60.885423ms)
+✔ the run's approval is read from GitHub: the owner approving vps-production, or a refusal (0.813636ms)
+✔ an approval is not carried over to a re-run: any attempt but the first is refused before reading GitHub (0.290009ms)
+✔ CLI: main-tip and approved refuse a bad argument with exit 1; an unknown mode refuses (89.694772ms)
+✔ CLI approved: --run-attempt is honoured; an attempt but the first, or none, is refused before any GitHub read (183.129198ms)
+✔ the ref advertisement is parsed by bytes: a non-ASCII capability does not break the pkt-line lengths (16.521608ms)
+✔ a push to main with vps-production protected by the owner only, no admin bypass and only main passes (2.446438ms)
+✔ prevent self-review on, or unreadable, is reported: the owner who merges could never approve (review NB-4) (0.744326ms)
+✔ a missing environment, or one GitHub created from the workflow without protection, stops the deploy (0.493492ms)
+✔ only the owner may approve: another user, a team, an empty list or an unreadable entry stops the deploy (0.755041ms)
+✔ administrators must not be able to bypass the approval; an absent setting counts as a bypass (0.469368ms)
+✔ only main may deploy: protected branches, no policy, another branch, a tag or a pattern stop the deploy (0.715058ms)
+✔ an SHA that is no longer the tip of main, a dispatch, another ref or a fork stops the deploy (0.905762ms)
+✔ an unreadable answer fails closed: 403, 500, a network error, a malformed main (1.014126ms)
+✔ CLI: PASS exits 0; a missing environment, a bad token or no token exits 1 with the reason (428.021696ms)
+✔ the report lists what GitHub returned, never the token (173.405008ms)
+✔ NB-11: an answer of an unexpected shape still gives a full report, and FAIL (282.154721ms)
+✔ CLI: from a path with spaces or through a symlink the checks still run (73.645551ms)
+✔ after approval, at every attempt: the gate installed by root runs again on the VPS before mp-deploy (566.026735ms)
+✔ after approval: no node, no installed gate or a gate that does not say PASS stops the deploy (264.140573ms)
+✔ on the VPS the gate is the root-installed copy: nothing is downloaded from the approved commit (0.979764ms)
+✔ the gate job step also requires an explicit PASS (0.40155ms)
+✔ mp-deploy step: each try sends a new OIDC token on stdin; without a token nothing is deployed (966.788759ms)
+✔ NB-21: the request header lives in a private directory, is never reused or clobbered, and is removed in every case (3185.10378ms)
+✔ anti-stale: before every retry the gate runs again; a merge while the lock was busy stops the run (1153.170058ms)
+✔ anti-stale: a superseded run says on its page which run to approve instead; a current one writes nothing (282.221166ms)
+✔ AGENTS.md is canonical and carries the 2026-10-18 owner rules (1.20463ms)
+✔ obsolete instructions are gone from canonical documents (#149 review N-05) (1.541659ms)
+✔ CLAUDE.md points to AGENTS.md without duplicating the rule set (0.371845ms)
+✔ canonical documents and the PR template contain no auto-closing references (3.95492ms)
+✔ CI enforces the governance gate and the closing-keyword scan on every PR (0.320205ms)
+✔ the handoff procedure documents every admitted state (0.302359ms)
+✔ the repository registry and checkpoints are valid and resolvable (311.882949ms)
+✔ every evidence package in docs/audits is valid and listed in the index (23.44355ms)
+✔ an altered, missing, extra, linked or oversized evidence file is refused (957.887491ms)
+✔ a package without its audit data, archive or index entry is refused (1840.937153ms)
+✔ an evidence.json that is not an object never skips the checks (PR #167 B-1) (1408.523485ms)
+✔ stray files, linked package folders, repeated manifest lines and a missing folder are refused (PR #167 NB-3, NB-4) (1004.589499ms)
+✔ every package is read back from its durable archive: commit on evidence/audits, files and ZIP match (PR #167 NB-2) (44135.155525ms)
+✔ a fake, foreign or altered archive is refused (1810.654851ms)
+✔ a commit only on a local evidence/audits branch is not a read-back (PR #167 round 2 NB-1) (33.830614ms)
+✔ open, closed and merged PRs map to evidence with source, number, head and time (2.08395ms)
+✔ a failed, malformed or foreign answer is an error, never a state (0.321437ms)
+✔ the request carries no credential (2.255906ms)
+✔ a task with a PR stops when the PR state was not read from GitHub, or is stale, foreign or unverifiable (208.152878ms)
+✔ GitHub PR evidence is checked against the registry and the branch (130.462452ms)
+✔ the CLI refuses a declared PR state or declared verifications instead of ignoring them (85.289092ms)
+✔ a generic declaration never releases claims pending verification (108.075331ms)
+✔ claims without ids and resources can never be released, whatever the evidence (125.85836ms)
+✔ evidence must cover every claim, on its resource, by this agent, recently, without mismatch or strays (331.440013ms)
+✔ handoff IN stops on a resource written by another agent, declared on the task or only in its checkpoint (M6, M10) (101.364448ms)
+✔ an expired lease of another agent is not a writer (M9) (62.12828ms)
+✔ registry: one holder may write a resource from two tasks, two holders may not; branch and PR are implicit resources (M23) (1.830674ms)
+✔ registry writes stay serialized: stale revision and foreign release are refused (0.938509ms)
+✔ validate refuses a checkpoint that writes a resource its open task does not declare (3.463807ms)
+✔ claims pending verification cannot sit in a final or handoff state (M14), and handoff.to is validated (M28) (2.008689ms)
+✔ a revoked GO stays revoked even if later recorded as consumed (M2) (0.498545ms)
+✔ an authorization scope must name task and action, without wildcards (1.146751ms)
+✔ a GO cannot be reused for another task, resource or action, nor stretched to a key it does not bound (0.639042ms)
+✔ an incomplete or ambiguous GO is never usable (8.290966ms)
+✔ authz-check validates the repository state before using any checkpoint (221.130356ms)
+✔ a v3 mandate may only name registered owner decisions, in its id and in its source text (0.758979ms)
+✔ v3 extends v2: a complete v3 checkpoint validates and v2 checkpoints stay valid (8.089154ms)
+✔ v3 handoff states are consistent and unverified claims certify nothing (2.784539ms)
+✔ no secret goes into a v3 checkpoint, wherever it is put (0.388192ms)
+✔ authorizations depend on mandate, task, resource and action, never on the agent (1.352975ms)
+✔ a consumed or revoked GO is refused, even if a later checkpoint calls it VALID again (0.595672ms)
+✔ simulated handoff A -> B -> A on a real git repository works the same whichever agent starts (740.082414ms)
+✔ handoff IN releases structured claims only with structured evidence, and refuses a handoff addressed elsewhere (94.753864ms)
+✔ one writer per resource, whoever the agents are (1.4977ms)
+✔ a second live implementation PR is admitted only by an IN_FORCE owner decision that names it (0.557908ms)
+✔ the governance code grants nothing by agent name (2.95236ms)
+✔ the repository reflects the 21/10 reconciliation (MP-GITHUB-RECON-IMPLEMENTATION-01) (3.287283ms)
+✔ GitHub auto-closing references are detected in every form (3.070122ms)
+✔ merge is allowed only when every MP-OWNER-AUTOMERGE-01 condition holds (2.301849ms)
+✔ the review must be independent, recorded and cover the current head (0.458514ms)
+✔ auto-closing references in title, body or commits block the merge; merged PRs are a no-op (0.339664ms)
+✔ regression: the recorded PR #149 merge input satisfies the gate (0.374959ms)
+✔ a web change merges only with verified Browser QA evidence on the current head (MP-OWNER-BROWSER-QA-HARD-GATE-01) (0.641018ms)
+✔ claiming assigns a lease, bumps the revision and renewing is idempotent (2.794531ms)
+✔ incompatible concurrent work is refused (0.468666ms)
+✔ a BLOCKED implementation task does not block an independent one (0.273457ms)
+✔ a BLOCKED implementation task with an open PR still holds the single slot (#152 review N-4) (0.222128ms)
+✔ a task with a PR and no explicit pr_open fails closed; HANDOFF READY and CERTIFIED hold the slot (#153 review NB-5) (0.723221ms)
+✔ an expired lease is taken over only after reconciliation (0.340236ms)
+✔ handoff releases the lease, records the checkpoint and lets another agent continue (0.468028ms)
+✔ registry validation rejects two live implementation tasks and inconsistent leases (0.239041ms)
+✔ real concurrent processes: exactly one agent wins the claim (103.573411ms)
+✔ the pin is the git blob SHA of deploy-vps.yml (what `git hash-object` and the contents API give) (7.845148ms)
+✔ ALLOW only for the deploy job of the pinned workflow, approved by the owner, assigned here, on the tip of main (1.634486ms)
+✔ B4: a changed deploy-vps.yml cannot run on the VPS, even merged and even approved (1.065921ms)
+✔ B4: another workflow, event, branch or repository cannot use the VPS runner (0.887912ms)
+✔ only the owner's approval of vps-production counts; a deployment still waiting is refused (1.399885ms)
+✔ the job must be this run's deploy job assigned to this runner; the run must be what the runner says (1.969663ms)
+✔ a concluded, cancelled, queued or waiting job, or a run that is over, is refused (1.88293ms)
+✔ a re-run is refused before any GitHub read: an approval cannot be tied to its attempt (0.419358ms)
+✔ anti-stale: after merges A, B, C only C may start; an approval of A or B is refused (0.777215ms)
+✔ fail closed: GitHub unreachable, malformed or contradicting answers refuse (1.394438ms)
+✔ CLI: refuses with exit 1 and a JSON report, without reading GitHub, when the config or the job is wrong (79.08555ms)
+node:internal/modules/package_json_reader:314
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'yaml' imported from /tmp/claude-0/-home-user-MatchPilot/9501c668-6355-52e9-bcad-bf70034a666f/scratchpad/audit-main/test/governance-workflows.test.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:314:9)
+    at packageResolve (node:internal/modules/esm/resolve:767:81)
+    at moduleResolve (node:internal/modules/esm/resolve:853:18)
+    at defaultResolve (node:internal/modules/esm/resolve:983:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v22.22.0
+✖ test/governance-workflows.test.mjs (42.0851ms)
+✔ incremental sync considers only the current season (1.537633ms)
+✔ a terminal dataset is not an incremental upstream call (0.252985ms)
+✔ window statistics are exact, from the team side, with N and per-family coverage (3.755683ms)
+✔ the match id is validated before any database access (0.678963ms)
+✔ analysis of a stored match agrees with an independent SQL oracle and never looks at the match day or later (486.388083ms)
+✔ API v1 serves the analysis, refuses a bad id and lists the endpoint (472.613827ms)
+✔ Decimal parses only plain decimal text and refuses binary floats (4.336993ms)
+✔ Decimal arithmetic matches the exact oracle (golden and seeded cases) (105.835841ms)
+✔ rounding modes and step rounding are explicit and exact (2.468096ms)
+✔ validators refuse invalid odds, probabilities and commission rates (1.152223ms)
+✔ implied probability, overround, normalization and fair odds match the oracle (#94 golden vectors) (1.665404ms)
+✔ property tests: probabilities in [0,1], normalized sums to 1, order preserved, round trips (seeded) (128.813666ms)
+✔ results are deterministic and never read the clock (0.422747ms)
+✔ every rounding mode matches the oracle for parsing, mul and div with both signs (review B-1, NB-1) (195.954395ms)
+✔ odds are bounded, money rounding reports input errors, envelopes copy their inputs (review NB-2..NB-4) (0.834896ms)
+✔ envelopes built from Decimal inputs serialize to JSON and can be chained (second review B-1, NB-1, NB-2) (75.940353ms)
+✔ every accepted input kind serializes; step rounding of negatives; error fields (third review B-1, NB-1, NB-2) (1.018374ms)
+✔ offline and test modes apply every pending migration (1.533591ms)
+✔ production holds pending migrations unless each exact file is approved, in order (0.436053ms)
+✔ the guard fails closed: unknown modes and non-local databases outside production are refused (2.828535ms)
+✔ migrate() in production mode applies only approved files on a real database (415.099843ms)
+✔ MIG-GAP-01: a ?host= override pointing to a remote server is refused outside production (5.351973ms)
+✔ MIG-GAP-01: every other remote or ambiguous host form is refused (0.764322ms)
+✔ MIG-GAP-01: PGHOST and PGHOSTADDR cannot redirect an offline/test process (0.84108ms)
+✔ MIG-GAP-01: loopback and local Unix-socket forms are still accepted; production is unaffected (1.059672ms)
+✔ MIG-GAP-01: migrate() refuses an overridden host before opening any connection (2.765925ms)
+✔ MIG-GAP-02: concurrent migrate() processes apply every migration exactly once (610.49605ms)
+✔ MIG-GAP-02: concurrent production processes still apply only approved migrations (340.10505ms)
+✔ MIG-GAP-02: a held lock makes migrate() fail closed after the wait limit, then succeed once released (1340.051373ms)
+✔ MIG-GAP-02: the lock is released after a failing migration; bad lock settings fail closed (440.804381ms)
+✔ MIG-GAP-02: a process killed mid-migration leaves no partial change, frees the lock, and a restart resumes (1351.628231ms)
+✔ MIG-GAP-02: a connection error fails migrate() without hanging or applying anything (80.080319ms)
+✔ MIG-GAP-02: a connection cut mid-migration fails migrate() cleanly, with no crash and no partial change (161.766604ms)
+✔ MIG-GAP-02: the lock is released even when a migration changes search_path; a missing schema fails clearly (227.73456ms)
+✔ MIG-GAP-02: a connection lost during the release step does not crash; an unlock failure is reported (305.682739ms)
+✔ mock: lo script principale è JavaScript valido (8.903907ms)
+✔ mock: lo SHA-256 nel changelog corrisponde al file (1.124132ms)
+✔ mock: versione e allineamento a #97 dichiarati (0.35204ms)
+✔ mock: la roadmap contiene #97, #98, #99, #100, #102 e le fasi 0–16 (1.049422ms)
+✔ mock: la vecchia roadmap è stata rimossa (1.034807ms)
+✔ mock: ledger, settlement, posizioni, esposizione e bankroll appartengono a #99 (1.792226ms)
+✔ mock: nessuna promessa di persistenza account-level nel prototipo (0.844091ms)
+✔ mock: REAL e DEMO dichiarati (0.442571ms)
+✔ mock: #99, #100, #102, STOP/RESUME e Replay + MM presenti (2.701744ms)
+✔ docs: README, CLAUDE e AGENTS citano #97, il mock vivo e la regola SÌ / NO (3.009124ms)
+✔ rate-limit buckets: IPv4 per address, IPv4-mapped IPv6 as IPv4, IPv6 per /64 (7.861483ms)
+✔ production with auth enforced requires an explicit MATCHPILOT_TRUST_PROXY; the audit key is optional (113.315702ms)
+✔ IPv6 /64 rotation is limited as one client; origin_rejected stays one row under concurrency; failure spikes alert without lockout (1150.935757ms)
+✔ passwords are stored as salted scrypt hashes and verified in constant time (135.34842ms)
+✔ auth is off unless explicitly enforced; enforce without valid owner credentials fails closed (5.908072ms)
+✔ request helpers: cookies, next path, same-origin check, public paths (0.881893ms)
+✔ enforced owner login: deny by default, login, session, logout, revocation, fixation, CSRF, audit (814.846432ms)
+✔ repeated failed logins are rate limited, even with the right password, and audited (727.496041ms)
+✔ auth stays off by default; misconfigured enforcement fails closed; a held auth migration blocks login in production (2260.000016ms)
+✔ hardening: path variants, raw //, proxy header spoofing, no owner lockout, atomic limit, bounded audit, idle sliding (996.400255ms)
+✔ production with the auth migration approved: login works and the cookie is __Host- and Secure (875.93172ms)
+✔ phase1 summary passes only when every real check passes (0.81744ms)
+✔ persisted outcomes keep INITIAL_404 distinct from REGRESSION_404 (1.100547ms)
+✔ a stored row is classified only when the persisted fields agree (1.378358ms)
+✔ gate requires every catalog row, including removed, and rejects duplicate keys (0.626986ms)
+✔ csv audit reports malformed rows, width, identity and dates (3.539562ms)
+✔ Match_ID does not change the historical match key (0.295139ms)
+✔ hard sample covers countries, season shapes, small and large (8.578249ms)
+✔ case-only spellings share one internal team id (2.41828ms)
+✔ a historical spelling can be attached without a second entity (0.318778ms)
+✔ phase3 sql gate fails closed when a row gap remains (0.240318ms)
+✔ registry keeps raw names and records alias candidates without dropping fields (1.789199ms)
+✔ rows_seen stays cumulative and is not the unique counter (0.28593ms)
+✔ lineage identity names the provider, versions and both field names (0.216535ms)
+✔ coverage density uses the stored nonempty and scoped rows, not a third bucket (1.849643ms)
+✔ scope tags are independent and are omitted when the evidence does not require them (0.899926ms)
+✔ phase5 gate stays closed until the independent recount matches (1.882474ms)
+✔ a 404 is never complete and an unknown expected count stays available (1.134118ms)
+✔ annual holes are gaps and tournament cadences are not filled in (1.406234ms)
+✔ a future season and a future championship are not complete (0.692345ms)
+✔ phase6 gate requires zero missing available seasons and a stable past timestamp (0.33168ms)
+✔ stale detection and alert cooldown are explicit (0.916294ms)
+✔ budget crosses warning then critical and a 429 counts toward the circuit (0.231304ms)
+✔ telegram inbound updates have no handler (0.507636ms)
+✔ phase8 gate accepts one real telegram send or a skipped unconfigured bot (0.283176ms)
+✔ every real field family is explicit and AH/EH/Country/Div/throw-ins are fixed (2.930017ms)
+✔ timing class keeps post-match facts out of pre-match analysis (2.258327ms)
+✔ payload view marks a market zero as N/D and keeps a goal zero (1.631208ms)
+✔ ledger rows carry provider, endpoint, latency, budget state and quota; a concurrent duplicate is a deduped row (11.524943ms)
+✔ budget state reaches critical near the daily cap and a cache hit is ledgered with budget state (0.583045ms)
+✔ query inputs are validated and history is strictly before the cut-off (2.104685ms)
+✔ the query layer never reaches the provider client (1.044213ms)
+✔ plan summary rejects sequential scans on large tables and slow plans (0.589259ms)
+✔ gates fail closed and the verdict is one of the three allowed outcomes (1.123205ms)
+✔ certificate route builds in the background and then serves the report (3.881485ms)
+✔ markdown certificate has the 20 sections and the single verdict (23.80161ms)
+MIGRATION_APPLIED 001-futpython-mirror.sql
+MIGRATION_APPLIED 002-data-watchdog.sql
+MIGRATION_APPLIED 003-alert-aggregation.sql
+MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+MIGRATION_APPLIED 006-fpt-certification-checks.sql
+MIGRATION_APPLIED 007-fpt-request-ledger.sql
+MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+MIGRATION_APPLIED 009-fpt-team-identity.sql
+MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+MIGRATION_APPLIED 011-fpt-schema-registry.sql
+MIGRATION_APPLIED 012-fpt-field-coverage.sql
+MIGRATION_APPLIED 013-fpt-season-registry.sql
+MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+MIGRATION_APPLIED 015-fpt-query-facts.sql
+MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+MIGRATION_APPLIED 017-fpt-budget-levels.sql
+MIGRATION_APPLIED 018-fpt-onboarding.sql
+MIGRATION_APPLIED 019-fpt-reconciliation.sql
+MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+MIGRATION_APPLIED 021-tc-core-discovery.sql
+MIGRATION_APPLIED 022-tc-competition-mapping.sql
+MIGRATION_APPLIED 023-tc-prematch.sql
+MIGRATION_APPLIED 024-tc-tz-observations.sql
+MIGRATION_APPLIED 025-tc-tz-inliers.sql
+MIGRATION_APPLIED 026-tc-historical-backfill.sql
+MIGRATION_APPLIED 027-tc-live-collector.sql
+MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+MIGRATION_APPLIED 029-owner-auth.sql
+✔ normalized layer, team links, raw sweep and query answers on a real Postgres (604.300294ms)
+MIGRATION_APPLIED 001-futpython-mirror.sql
+MIGRATION_APPLIED 002-data-watchdog.sql
+MIGRATION_APPLIED 003-alert-aggregation.sql
+MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+MIGRATION_APPLIED 006-fpt-certification-checks.sql
+MIGRATION_APPLIED 007-fpt-request-ledger.sql
+MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+MIGRATION_APPLIED 009-fpt-team-identity.sql
+MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+MIGRATION_APPLIED 011-fpt-schema-registry.sql
+MIGRATION_APPLIED 012-fpt-field-coverage.sql
+MIGRATION_APPLIED 013-fpt-season-registry.sql
+MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+MIGRATION_APPLIED 015-fpt-query-facts.sql
+MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+MIGRATION_APPLIED 017-fpt-budget-levels.sql
+MIGRATION_APPLIED 018-fpt-onboarding.sql
+MIGRATION_APPLIED 019-fpt-reconciliation.sql
+MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+MIGRATION_APPLIED 021-tc-core-discovery.sql
+MIGRATION_APPLIED 022-tc-competition-mapping.sql
+MIGRATION_APPLIED 023-tc-prematch.sql
+MIGRATION_APPLIED 024-tc-tz-observations.sql
+MIGRATION_APPLIED 025-tc-tz-inliers.sql
+MIGRATION_APPLIED 026-tc-historical-backfill.sql
+MIGRATION_APPLIED 027-tc-live-collector.sql
+MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+MIGRATION_APPLIED 029-owner-auth.sql
+✔ FPT team-matches-asof flags facts corrected after as_of (MP-PIT-002, MP-PIT-003) (1104.671091ms)
+MIGRATION_APPLIED 001-futpython-mirror.sql
+MIGRATION_APPLIED 002-data-watchdog.sql
+MIGRATION_APPLIED 003-alert-aggregation.sql
+MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+MIGRATION_APPLIED 006-fpt-certification-checks.sql
+MIGRATION_APPLIED 007-fpt-request-ledger.sql
+MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+MIGRATION_APPLIED 009-fpt-team-identity.sql
+MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+MIGRATION_APPLIED 011-fpt-schema-registry.sql
+MIGRATION_APPLIED 012-fpt-field-coverage.sql
+MIGRATION_APPLIED 013-fpt-season-registry.sql
+MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+MIGRATION_APPLIED 015-fpt-query-facts.sql
+MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+MIGRATION_APPLIED 017-fpt-budget-levels.sql
+MIGRATION_APPLIED 018-fpt-onboarding.sql
+MIGRATION_APPLIED 019-fpt-reconciliation.sql
+MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+MIGRATION_APPLIED 021-tc-core-discovery.sql
+MIGRATION_APPLIED 022-tc-competition-mapping.sql
+MIGRATION_APPLIED 023-tc-prematch.sql
+MIGRATION_APPLIED 024-tc-tz-observations.sql
+MIGRATION_APPLIED 025-tc-tz-inliers.sql
+MIGRATION_APPLIED 026-tc-historical-backfill.sql
+MIGRATION_APPLIED 027-tc-live-collector.sql
+MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+MIGRATION_APPLIED 029-owner-auth.sql
+✔ a re-parsed version written into a later snapshot is not dated with that snapshot (MP-FPT-005) (641.451507ms)
+MIGRATION_APPLIED 001-futpython-mirror.sql
+MIGRATION_APPLIED 002-data-watchdog.sql
+MIGRATION_APPLIED 003-alert-aggregation.sql
+MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+MIGRATION_APPLIED 006-fpt-certification-checks.sql
+MIGRATION_APPLIED 007-fpt-request-ledger.sql
+MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+MIGRATION_APPLIED 009-fpt-team-identity.sql
+MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+MIGRATION_APPLIED 011-fpt-schema-registry.sql
+MIGRATION_APPLIED 012-fpt-field-coverage.sql
+MIGRATION_APPLIED 013-fpt-season-registry.sql
+MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+MIGRATION_APPLIED 015-fpt-query-facts.sql
+MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+MIGRATION_APPLIED 017-fpt-budget-levels.sql
+MIGRATION_APPLIED 018-fpt-onboarding.sql
+MIGRATION_APPLIED 019-fpt-reconciliation.sql
+MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+MIGRATION_APPLIED 021-tc-core-discovery.sql
+MIGRATION_APPLIED 022-tc-competition-mapping.sql
+MIGRATION_APPLIED 023-tc-prematch.sql
+MIGRATION_APPLIED 024-tc-tz-observations.sql
+MIGRATION_APPLIED 025-tc-tz-inliers.sql
+MIGRATION_APPLIED 026-tc-historical-backfill.sql
+MIGRATION_APPLIED 027-tc-live-collector.sql
+MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+MIGRATION_APPLIED 029-owner-auth.sql
+✔ a re-parse reusing the ingest lineage cannot silently drop matches known at T (MP-FPT-005) (824.156294ms)
+MIGRATION_APPLIED 001-futpython-mirror.sql
+MIGRATION_APPLIED 002-data-watchdog.sql
+MIGRATION_APPLIED 003-alert-aggregation.sql
+MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+MIGRATION_APPLIED 006-fpt-certification-checks.sql
+MIGRATION_APPLIED 007-fpt-request-ledger.sql
+MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+MIGRATION_APPLIED 009-fpt-team-identity.sql
+MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+MIGRATION_APPLIED 011-fpt-schema-registry.sql
+MIGRATION_APPLIED 012-fpt-field-coverage.sql
+MIGRATION_APPLIED 013-fpt-season-registry.sql
+MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+MIGRATION_APPLIED 015-fpt-query-facts.sql
+MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+MIGRATION_APPLIED 017-fpt-budget-levels.sql
+MIGRATION_APPLIED 018-fpt-onboarding.sql
+MIGRATION_APPLIED 019-fpt-reconciliation.sql
+MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+MIGRATION_APPLIED 021-tc-core-discovery.sql
+MIGRATION_APPLIED 022-tc-competition-mapping.sql
+MIGRATION_APPLIED 023-tc-prematch.sql
+MIGRATION_APPLIED 024-tc-tz-observations.sql
+MIGRATION_APPLIED 025-tc-tz-inliers.sql
+MIGRATION_APPLIED 026-tc-historical-backfill.sql
+MIGRATION_APPLIED 027-tc-live-collector.sql
+MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+MIGRATION_APPLIED 029-owner-auth.sql
+✔ the short-snapshot repair is a recorded re-parse (MP-FPT-005) (850.981667ms)
+✔ a record exposes the five timestamps separately and marks the missing ones (MP-PIT-001) (3.398474ms)
+✔ availability is the acquisition time; records acquired after the decision are never available (MP-PIT-002) (0.325835ms)
+✔ a later availability (a re-parsed version) delays when a record is usable; unknown availability is not verified (MP-FPT-005) (0.44162ms)
+✔ missing, ambiguous or inconsistent timestamps are PIT_NOT_VERIFIED, never repaired (MP-PIT-003) (0.3888ms)
+✔ documented zones: DST gaps and repeated hours are reported, never guessed (MP-PIT-004) (18.510648ms)
+✔ undocumented zones yield only the interval of every possible instant (FPT kickoff, #12) (0.518282ms)
+✔ a measured fixed offset is valid only near its measurement and while no consistent zone changes offset (MP-PIT-004) (49.84067ms)
+✔ an analysis is PIT only when every record is PIT_VERIFIED under captured knowledge (MP-PIT-005) (0.538319ms)
+✔ reader adapters: TotalCorner rows follow their match timezone measurement, FPT dates their undocumented zone (5.026319ms)
+✔ classification is deterministic and does not read the clock (0.52145ms)
+✔ TotalCorner prematch answers carry per-row PIT status and a PIT label (MP-PIT-001..005) (613.326551ms)
+﹣ PostgreSQL 17 independent migration, verified sample replay and API are deterministic (38.130154ms) # PostgreSQL 17 is required, found server_version_num 160015 (local run; CI fails instead)
+✔ safe provider paths never keep an api key (1.517246ms)
+✔ resume drill keys are explicit and capped (1.798258ms)
+✔ cache hit performs zero upstream requests (9.692578ms)
+✔ two identical concurrent requests share one upstream call (83.907751ms)
+✔ restart does not repeat a ledgered success that is already stored (11.319631ms)
+✔ 429 waits for Retry-After and the ledger matches attempts (1008.955628ms)
+✔ repeated upstream failures open the circuit and stop the burst (8.847535ms)
+✔ historical backfill waits while critical work holds the provider (44.152115ms)
+✔ MP-PR-00 inventory and owner-decision register are schema-valid (18.396065ms)
+✔ group sizes follow the sources, not a fixed quota (B-03) (2.147481ms)
+✔ validator rejects PASS without evidence (B-01/B-02) (6.955274ms)
+✔ validator rejects target PRs outside the registry and PRs without requirements (B-05) (6.259302ms)
+✔ validator rejects PASS depending on unresolved requirements and missing paths (B-07) (4.580328ms)
+✔ owner-decision register rejects incomplete or dangling entries (B-06) (2.536412ms)
+✔ 2026-10-18 owner decisions are registered and drive the inventory (3.426957ms)
+✔ excluded future domains remain visible but outside the v1 denominator (2.033469ms)
+✔ P0 blockers cannot be hidden by aggregate coverage (2.181288ms)
+✔ human-readable inventory docs carry the generated counts (no drift) (5.856018ms)
+✔ persisted audit report matches its recorded SHA-256 (2.581351ms)
+PG_CLIENT_ERROR Connection terminated unexpectedly
+✔ resume drill survives a real SIGTERM without duplicating the mirror (1486.754177ms)
+✔ FutPython run stats start with explicit numeric zeros (0.855939ms)
+✔ runtime defaults offline and rejects unknown modes (1.703922ms)
+✔ HTTP startup does not await background initialization (0.626817ms)
+✔ offline and test modes reject every non-local database URL (2.475729ms)
+✔ offline mode starts no cron, watchdog, provider, Telegram, recovery or backfill service (1.754945ms)
+✔ production background remains available only through explicit double opt-in (7.162325ms)
+✔ TC-OFF-01: with background enabled, no TotalCorner job starts unless MATCHPILOT_TOTALCORNER is exactly on (2.149872ms)
+✔ real backend starts in test mode with PostgreSQL and performs no hidden background work (901.150411ms)
+✔ schema inference preserves mixed columns as text (1.247877ms)
+✔ profile tracks coverage and families (0.616976ms)
+✔ signal when the average over 2.5 rate reaches the threshold (2.16951ms)
+✔ insufficient data below min_n or without a team (0.341628ms)
+✔ settlement uses the stored final score and odd (0.860926ms)
+✔ chunkArray preserves all rows and batch boundaries (1.734677ms)
+✔ chunkArray rejects invalid sizes (0.434686ms)
+✔ the token never appears in request keys, ledger paths or redacted errors (1.2276ms)
+✔ responses are classified: ok, no_data, rate limit (status or body), auth, 404, 400, 5xx, malformed, timeout (0.663066ms)
+✔ the limiter admits at most N requests per sliding window and honours a pause (1.400315ms)
+✔ rate-limit backoff: retry-after first, reset as seconds or epoch, bounded 10..120 s (0.205742ms)
+✔ field census keeps every path: pairs, movement tuples, nested events, envelope; phase from status (2.038507ms)
+✔ kickoff timezone evidence and bookmaker enumeration work on any body shape (0.721678ms)
+✔ client: bounded retry on rate limit, every attempt in the ledger, raw stored losslessly, token never stored (24.304665ms)
+✔ boot hook skips without token and never prints it (0.462377ms)
+MIGRATION_APPLIED 001-futpython-mirror.sql
+MIGRATION_APPLIED 002-data-watchdog.sql
+MIGRATION_APPLIED 003-alert-aggregation.sql
+MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+MIGRATION_APPLIED 006-fpt-certification-checks.sql
+MIGRATION_APPLIED 007-fpt-request-ledger.sql
+MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+MIGRATION_APPLIED 009-fpt-team-identity.sql
+MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+MIGRATION_APPLIED 011-fpt-schema-registry.sql
+MIGRATION_APPLIED 012-fpt-field-coverage.sql
+MIGRATION_APPLIED 013-fpt-season-registry.sql
+MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+MIGRATION_APPLIED 015-fpt-query-facts.sql
+MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+MIGRATION_APPLIED 017-fpt-budget-levels.sql
+MIGRATION_APPLIED 018-fpt-onboarding.sql
+MIGRATION_APPLIED 019-fpt-reconciliation.sql
+MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+MIGRATION_APPLIED 021-tc-core-discovery.sql
+MIGRATION_APPLIED 022-tc-competition-mapping.sql
+MIGRATION_APPLIED 023-tc-prematch.sql
+MIGRATION_APPLIED 024-tc-tz-observations.sql
+MIGRATION_APPLIED 025-tc-tz-inliers.sql
+MIGRATION_APPLIED 026-tc-historical-backfill.sql
+MIGRATION_APPLIED 027-tc-live-collector.sql
+MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+MIGRATION_APPLIED 029-owner-auth.sql
+✔ discovery on Postgres: every endpoint family called, raw + ledger + registry persisted, list vs detail, no token (1142.370642ms)
+✔ historical timezone uses IANA DST instead of a fixed +120 offset (17.555669ms)
+✔ historical zone is usable only while a fresh live measurement agrees (1.680685ms)
+✔ historical audit distinguishes available upstream history from retroactive live-like stats (0.594417ms)
+✔ movement audit counts rows and nonzero suspension flags without guessing semantics (0.931879ms)
+✔ season key is deterministic for common European season boundaries (0.330566ms)
+✔ league schedule parser reads the real data.matches envelope and never the wrapper object (0.262966ms)
+✔ historical audit recognises TotalCorner schedule HT and card field names (0.224256ms)
+✔ movement audit reads the real nested bookmaker lists and suspension flags (0.176532ms)
+✔ movement catch-up selects only matches missing an expected probe and keeps no_data as done (0.545393ms)
+✔ terminal recovery spends its bounded budget on the newest ended pages (2.94278ms)
+✔ failed-run evidence cannot mask the original live-cycle failure (0.891704ms)
+✔ live selection keeps only in-play rows from verified leagues and drops duplicates (0.256906ms)
+✔ PostgreSQL legacy hash transition preserves old rows, dedups equal payloads and keeps changed aliases (65.380386ms)
+✔ PostgreSQL restart recovery persists a provider-confirmed ended row as FT once (56.338954ms)
+✔ PostgreSQL live lock is released after a failed cycle and can be reacquired (23.736263ms)
+✔ PostgreSQL clock_timestamp advances inside the transaction-scoped live lock (18.15967ms)
+✔ unchanged live snapshot hashes are stable and events dedup on payload (0.555565ms)
+✔ observed TotalCorner aliases and unknown fields participate in snapshot identity (0.723109ms)
+✔ canonical hashing preserves nested values and ignores object key order recursively (0.578642ms)
+✔ team names normalise accents, club tokens and B-team synonyms (2.895076ms)
+✔ youth, reserve and women leagues never pair with senior competitions (run 1: Liga MX vs Mexico U21) (4.077058ms)
+✔ TotalCorner provider-local start converts to a UTC date (0.623756ms)
+✔ fixture overlap: VERIFIED across naming differences, AMBIGUOUS when one TC league backs two FPT leagues, CANDIDATE and UNMAPPED kept (1.822445ms)
+✔ a competition is not VERIFIED when a second TotalCorner league competes for its fixtures (2.086263ms)
+MIGRATION_APPLIED 001-futpython-mirror.sql
+MIGRATION_APPLIED 002-data-watchdog.sql
+MIGRATION_APPLIED 003-alert-aggregation.sql
+MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+MIGRATION_APPLIED 006-fpt-certification-checks.sql
+MIGRATION_APPLIED 007-fpt-request-ledger.sql
+MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+MIGRATION_APPLIED 009-fpt-team-identity.sql
+MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+MIGRATION_APPLIED 011-fpt-schema-registry.sql
+MIGRATION_APPLIED 012-fpt-field-coverage.sql
+MIGRATION_APPLIED 013-fpt-season-registry.sql
+MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+MIGRATION_APPLIED 015-fpt-query-facts.sql
+MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+MIGRATION_APPLIED 017-fpt-budget-levels.sql
+MIGRATION_APPLIED 018-fpt-onboarding.sql
+MIGRATION_APPLIED 019-fpt-reconciliation.sql
+MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+MIGRATION_APPLIED 021-tc-core-discovery.sql
+MIGRATION_APPLIED 022-tc-competition-mapping.sql
+MIGRATION_APPLIED 023-tc-prematch.sql
+MIGRATION_APPLIED 024-tc-tz-observations.sql
+MIGRATION_APPLIED 025-tc-tz-inliers.sql
+MIGRATION_APPLIED 026-tc-historical-backfill.sql
+MIGRATION_APPLIED 027-tc-live-collector.sql
+MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+MIGRATION_APPLIED 029-owner-auth.sql
+✔ mapping on Postgres: paginated schedules, persisted states with evidence, zero duplicates, verified-only discovery (818.323004ms)
+✔ provider-local time converts to UTC and garbage is rejected (1.976077ms)
+✔ movement rows: in-play rows are INPLAY, minute-less rows after the scheduled kickoff are QUARANTINE (3.210255ms)
+✔ rows acquired before kickoff are PREMATCH_CAPTURED (0.386075ms)
+✔ bookmaker open/close/inplay: a close stamped after kickoff and every inplay quote stay out of PREMATCH (1.608899ms)
+✔ point-in-time summary: opening and last strictly before kickoff and not after as_of (14.740917ms)
+✔ cadence: sparse far from kickoff, dense near it, nothing at or after kickoff (0.418422ms)
+MIGRATION_APPLIED 001-futpython-mirror.sql
+MIGRATION_APPLIED 002-data-watchdog.sql
+MIGRATION_APPLIED 003-alert-aggregation.sql
+MIGRATION_APPLIED 004-fpt-backfill-certification.sql
+MIGRATION_APPLIED 005-fpt-resume-reconcile.sql
+MIGRATION_APPLIED 006-fpt-certification-checks.sql
+MIGRATION_APPLIED 007-fpt-request-ledger.sql
+MIGRATION_APPLIED 008-fpt-dataset-classification.sql
+MIGRATION_APPLIED 009-fpt-team-identity.sql
+MIGRATION_APPLIED 010-fpt-team-country-identity.sql
+MIGRATION_APPLIED 011-fpt-schema-registry.sql
+MIGRATION_APPLIED 012-fpt-field-coverage.sql
+MIGRATION_APPLIED 013-fpt-season-registry.sql
+MIGRATION_APPLIED 014-fpt-normalized-layer.sql
+MIGRATION_APPLIED 015-fpt-query-facts.sql
+MIGRATION_APPLIED 016-fpt-filter-registry-complete.sql
+MIGRATION_APPLIED 017-fpt-budget-levels.sql
+MIGRATION_APPLIED 018-fpt-onboarding.sql
+MIGRATION_APPLIED 019-fpt-reconciliation.sql
+MIGRATION_APPLIED 020-fpt-raw-retention-reprocessing.sql
+MIGRATION_APPLIED 021-tc-core-discovery.sql
+MIGRATION_APPLIED 022-tc-competition-mapping.sql
+MIGRATION_APPLIED 023-tc-prematch.sql
+MIGRATION_APPLIED 024-tc-tz-observations.sql
+MIGRATION_APPLIED 025-tc-tz-inliers.sql
+MIGRATION_APPLIED 026-tc-historical-backfill.sql
+MIGRATION_APPLIED 027-tc-live-collector.sql
+MIGRATION_APPLIED 028-tc-live-v2-terminal.sql
+MIGRATION_APPLIED 029-owner-auth.sql
+✔ prematch collector on Postgres: verified-only, snapshots before kickoff, dedup, zero leakage, raw replay (700.271087ms)
+✔ provider offset is measured from first-half real-time rows, rounded, and rejected when thin or inconsistent (1.134876ms)
+✔ timezone decision: fresh agreement passes, mismatch / stale / missing hold (1.29484ms)
+✔ timezone re-measure: fresh measurement waits, thin lists retry on the next cycle (0.507743ms)
+✔ telegram outbound-only fingerprint helper remains deterministic (1.703295ms)
+✔ PNG codec: what it encodes decodes to the same pixels; a committed baseline decodes to its viewport size (45.920071ms)
+✔ comparison, pixel by pixel (block 1): identical passes, a change over the threshold fails with its share, a size change fails (33.46845ms)
+✔ comparison by blocks (the thresholds in use): glyph-edge noise passes, a shifted or missing element fails (20.732936ms)
+✔ API metadata: only the time of the answer and the code version are fixed, the data are untouched (0.690823ms)
+✔ manifest: the committed baselines match it; a changed, missing or extra file and a loose threshold are refused (60.221006ms)
+✔ promote: needs a reason and an approval, refuses a run on a modified tree, writes manifest and log (41.106518ms)
+✔ check-update: a baseline change without its log entry, its SHA-256 or an approval is refused; a declared one passes (1107.746013ms)
+✔ the web shell renders real API v1 data on desktop and mobile, with N/D for missing values (2193.679979ms)
+✔ loading, error, retry and partial states are explicit (1749.92023ms)
+✔ with owner login enforced the shell requires a session and returns to the page after login (1463.65303ms)
+✔ R-06b: dashboard, Daily Board and search render the stored matches exactly as the API returns them (3534.33853ms)
+ℹ tests 439
+ℹ suites 0
+ℹ pass 437
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 260951.757824
+
+✖ failing tests:
+
+test at test/governance-workflows.test.mjs:1:1
+✖ test/governance-workflows.test.mjs (42.0851ms)
+  'test failed'
