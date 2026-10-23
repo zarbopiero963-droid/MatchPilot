@@ -141,3 +141,29 @@ export async function refreshMatchFacts(client) {
   const result = await client.query(REFRESH_SQL, ['infinity']);
   return result.rowCount;
 }
+
+// Read-only measure of the facts against the admissible versions (FPT-FACTS-GATE recovery check):
+// - hidden: matches with an admissible version and no facts row (what the legacy gate dropped);
+// - stale: facts rows not on their match's latest admissible version (what the legacy gate froze);
+// - duplicate_ids: facts rows beyond one per internal_match_id (0 by the primary key; measured, not assumed);
+// - history: number of versions and an order-independent digest of (version_id, payload_sha256, dataset_key), so a
+//   caller can prove a refresh left the history untouched.
+export const FACTS_GAP_SQL = `SELECT
+    (SELECT count(*)::bigint FROM fpt_match_facts) AS facts_rows,
+    (SELECT count(*)::bigint - count(DISTINCT internal_match_id) FROM fpt_match_facts) AS duplicate_ids,
+    (SELECT count(DISTINCT v.match_key)::bigint FROM fpt_match_versions v
+       WHERE NOT EXISTS (SELECT 1 FROM fpt_onboarding o WHERE o.dataset_key = v.dataset_key AND o.state <> 'ACTIVE')
+         AND NOT EXISTS (SELECT 1 FROM fpt_match_facts f WHERE f.internal_match_id = v.match_key)) AS hidden,
+    (SELECT count(*)::bigint FROM fpt_match_facts f
+       WHERE f.version_id IS DISTINCT FROM ${LATEST_ADMISSIBLE_VERSION_SQL}) AS stale,
+    (SELECT count(*)::bigint FROM fpt_match_versions) AS history_versions,
+    (SELECT md5(string_agg(version_id || ':' || payload_sha256 || ':' || dataset_key, ',' ORDER BY version_id)) FROM fpt_match_versions)
+      AS history_digest,
+    (SELECT max(refreshed_at) FROM fpt_match_facts) AS last_refreshed_at`;
+
+export async function measureFactsGap(client) {
+  const row = (await client.query(FACTS_GAP_SQL)).rows[0];
+  return {facts_rows: Number(row.facts_rows), duplicate_ids: Number(row.duplicate_ids), hidden: Number(row.hidden), stale: Number(row.stale),
+    history_versions: Number(row.history_versions), history_digest: row.history_digest,
+    last_refreshed_at: row.last_refreshed_at ? new Date(row.last_refreshed_at).toISOString() : null};
+}

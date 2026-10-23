@@ -2,7 +2,8 @@
 
 **Status: preflight tool only. No migration file, no change to the VPS.** Owner decision
 MP-PERSISTENCE-232-NEXT-20261023: before any migration file of [the persistence plan](persistence-plan.md) is created,
-the real VPS state is verified read-only and reported without credentials, followed by one GO/NO-GO report.
+the real VPS state is verified read-only and reported without credentials, followed by one GO/NO-GO report: [persistence-go-no-go.md](persistence-go-no-go.md), with the commands of the authorized
+operations in [persistence-runbook.md](persistence-runbook.md).
 
 ## Why the owner runs it
 
@@ -31,6 +32,8 @@ What it does (`tools/vps/persistence-preflight.mjs`, tested by `test/persistence
   privileges of the app's role, and whether any persistence table already exists.
 - **Deploy state:** the current release, the migration files it carries (`release_migrations`), the migration ledger
   `migrations.sha256` (present, number of files), any `allow-migrations-*` / `allow-rollback-*` file, the FREEZE flag.
+- **FPT facts recovery (#233):** `factsGap` (facts rows, duplicates, hidden and stale matches, history size and digest,
+  last refresh) and the last five `fpt_sync_runs`, read inside the same READ ONLY transaction.
 - **Backups:** last PG17 nightly directory, `matchpilot-staging-backup` service result and timer, presence of
   `RESTORE-PG18-STAGING.md`, `pg_lsclusters`.
 

@@ -8,6 +8,9 @@ import {gzipSync} from 'node:zlib';
 import test from 'node:test';
 import {refreshNormalizedLayer} from '../src/providers/futpython/query.mjs';
 import {factsGate, factsSection} from '../src/futpython-certificate.mjs';
+import {measureFactsGap} from '../src/providers/futpython/facts-refresh.mjs';
+import {runFactsRefresh} from '../src/jobs/futpython-facts-refresh.mjs';
+import {readFptHistInput} from '../src/providers/futpython/hist-input.mjs';
 
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 function runNode(args, env) {
@@ -161,5 +164,74 @@ test('FPT facts gate: with no dataset in onboarding the refresh equals the legac
     assert.equal(written.facts, 3);
     assert.deepEqual(await rows(), legacy);
     assert.equal((await refreshNormalizedLayer(db)).facts, 0, 'an unchanged layer writes nothing');
+  });
+});
+
+// Recovery of a database refreshed by the legacy function (the state production had before FPT-FACTS-GATE): the owner
+// command measures without writing, then recovers every hidden and stale match without touching the history.
+test('FPT facts recovery: dry run writes nothing, apply recovers hidden and stale matches, history unchanged', {timeout: 90000}, async t => {
+  await withSchema(t, 'recover', async db => {
+    const {version, onboarding, facts, history} = fixture(db);
+    await onboarding(CUP, 'DISCOVERED');
+    await version('fpt:id:m2', BASE, '2026-10-02T08:00:00Z', score(1, 1));
+    await db.query('SELECT fpt_refresh_match_facts()');
+    const m1v1 = await version('fpt:id:m1', BASE, '2026-10-02T08:00:00Z', score(2, 1));
+    await version('fpt:id:m1', CUP, '2026-10-03T08:00:00Z', score(0, 3));
+    const m2v2 = await version('fpt:id:m2', BASE, '2026-10-04T08:00:00Z', score(2, 1));
+    await version('fpt:id:m2', CUP, '2026-10-05T08:00:00Z', score(0, 0));
+    await db.query('SELECT fpt_refresh_match_facts()');
+    const legacy = await facts();
+    assert.equal(legacy['fpt:id:m1'], undefined, 'legacy state: m1 hidden');
+    assert.notEqual(legacy['fpt:id:m2'].version, m2v2, 'legacy state: m2 frozen');
+    const hist = await history();
+    // The backtest reader takes its match list from the facts: in the legacy state it silently misses m1.
+    const missing = await readFptHistInput(db, {dateFrom: '2025-09-01', dateTo: '2025-09-30'});
+    assert.deepEqual(missing.input.events.map(e => e.event_id), ['fpt:id:m2']);
+
+    const dry = await runFactsRefresh(db);
+    assert.equal(dry.mode, 'dry_run');
+    assert.deepEqual([dry.before.hidden, dry.before.stale, dry.before.duplicate_ids], [1, 1, 0]);
+    assert.deepEqual(await facts(), legacy, 'the dry run writes nothing');
+
+    await assert.rejects(runFactsRefresh(db, {apply: true}), /--by=<who> and --reason=<why>/);
+    const applied = await runFactsRefresh(db, {apply: true, by: 'owner', reason: 'FPT-FACTS-GATE recovery'});
+    assert.equal(applied.status, 'COMMITTED');
+    assert.equal(applied.written, 2);
+    assert.deepEqual([applied.after.hidden, applied.after.stale, applied.after.duplicate_ids], [0, 0, 0]);
+    assert.equal(applied.after.history_digest, applied.before.history_digest);
+    const f = await facts();
+    assert.deepEqual(f['fpt:id:m1'], {version: m1v1, dataset: BASE, score: '2-1'});
+    assert.deepEqual(f['fpt:id:m2'], {version: m2v2, dataset: BASE, score: '2-1'});
+    assert.deepEqual(await history(), hist, 'the history is not written');
+    const found = await readFptHistInput(db, {dateFrom: '2025-09-01', dateTo: '2025-09-30'});
+    assert.deepEqual(found.input.events.map(e => e.event_id), ['fpt:id:m1', 'fpt:id:m2'], 'the reader no longer misses m1');
+    assert.equal((await runFactsRefresh(db, {apply: true, by: 'owner', reason: 'again'})).written, 0, 'idempotent');
+  });
+});
+
+test('FPT facts recovery: a history change inside the run rolls everything back', {timeout: 90000}, async t => {
+  await withSchema(t, 'guard', async db => {
+    const {version, onboarding, facts, history} = fixture(db);
+    await onboarding(CUP, 'DISCOVERED');
+    await version('fpt:id:m1', BASE, '2026-10-02T08:00:00Z', score(2, 1));
+    await version('fpt:id:m1', CUP, '2026-10-03T08:00:00Z', score(0, 3));
+    await db.query('SELECT fpt_refresh_match_facts()');
+    const before = {facts: await facts(), history: await history()};
+    // A client that also writes a version right after the refresh, inside the same transaction.
+    const snapshot = (await db.query('SELECT snapshot_id FROM fpt_raw_snapshots LIMIT 1')).rows[0].snapshot_id;
+    const tampering = {query: async (sql, params) => {
+      const result = await db.query(sql, params);
+      if (typeof sql === 'string' && sql.includes('INSERT INTO fpt_match_facts')) {
+        await db.query(`INSERT INTO fpt_match_versions(match_key,dataset_key,snapshot_id,acquired_at,phase,payload,payload_sha256)
+          VALUES('fpt:id:x',$1,$2,now(),'HISTORICAL','{}','tamper')`, [BASE, snapshot]);
+      }
+      return result;
+    }};
+    const result = await runFactsRefresh(tampering, {apply: true, by: 'owner', reason: 'negative test'});
+    assert.equal(result.status, 'ROLLED_BACK');
+    assert.ok(result.problems.includes('HISTORY_CHANGED'));
+    assert.deepEqual(await facts(), before.facts, 'no fact written');
+    assert.deepEqual(await history(), before.history, 'the injected version is rolled back too');
+    assert.equal((await measureFactsGap(db)).hidden, 1);
   });
 });

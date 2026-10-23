@@ -12,6 +12,7 @@ import {execFileSync} from 'node:child_process';
 import {existsSync, readFileSync, readdirSync, readlinkSync, realpathSync, statSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
+import {FACTS_GAP_SQL} from '../../src/providers/futpython/facts-refresh.mjs';
 
 export const UNITS = ['matchpilot-app.service', 'matchpilot-fpt-worker.service'];
 export const REPORTED_KEYS = ['MATCHPILOT_RUNTIME_MODE', 'MATCHPILOT_BACKGROUND_ENABLED', 'MATCHPILOT_APPROVED_MIGRATIONS',
@@ -105,6 +106,9 @@ const SQL = {
     FROM information_schema.role_table_grants WHERE grantee = current_user GROUP BY 1 ORDER BY 1`,
   schemaPrivileges: `SELECT current_schema() AS schema, has_schema_privilege(current_user, current_schema(), 'CREATE') AS can_create,
       has_database_privilege(current_user, current_database(), 'CREATE') AS can_create_schema`,
+  // FPT-FACTS-GATE recovery on the real data: hidden and stale facts, duplicates, history size and digest.
+  factsGap: FACTS_GAP_SQL,
+  syncRuns: `SELECT kind, status, started_at, finished_at, rows_inserted FROM fpt_sync_runs ORDER BY started_at DESC LIMIT 5`,
   persistenceTables: `SELECT to_regclass('paper_ledger_entries') IS NOT NULL OR to_regclass('saved_backtests') IS NOT NULL
       OR to_regclass('strategy_definitions') IS NOT NULL AS any_present`
 };
