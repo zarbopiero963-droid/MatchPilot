@@ -186,3 +186,18 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `simulazione-ricerca-mobile.png` `623c7f665811e27e78d7b8483526aff620be7336915c229413631d2762d9e34f`
   - `simulazione-ricerca-tablet.png` `1a0e1a6d6f7f7722544bc40efa550b2a7b10525a2aab5f2d13cad23a1567608c`
   - `simulazione-tablet.png` `25cca5bc34742e55eeb49f34b0e7fd74b7ec6942ca5ef37a000ee95182a716a4`
+
+## 2026-10-23 — STRAT-CMP-01: link «Confronta più strategie sugli stessi dati» under the simulation form; new scene confronto
+
+- Approval: PR #231, owner mandate MP-PRIORITY7-STRATEGIES-20261023
+- Run: commit `41a06b43648f6172bdaabaf9660b4d312dcfaa3e`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `confronto-desktop.png` `24a362cd045ca8fc75a4c4ad2c724d50cd61a7f0f01ff0544d06569ae7e2c17c`
+  - `confronto-mobile.png` `cde43ae906fba7f07ed90d846fd04e696e57bd2667c76cb888876f216c05f798`
+  - `confronto-tablet.png` `caf18b292ac44289d8d3aa33e78da5081778ddc82b505b14f0cf2b8bc2181a81`
+  - `simulazione-desktop.png` `4f3ca0c82a6f2dfadc4ed4b78d13b74c9c8a68d4589f5d46f070fe7a97728cf5`
+  - `simulazione-ricerca-desktop.png` `cb7612a0f350bbe52b949feb122a23c1b21ca155b42ae32684beaabd1c5e9273`
+  - `simulazione-ricerca-mobile.png` `92086b1914ccecdf77216fc432931bfea570f3580218c0c8e7652fc18132fa03`
+  - `simulazione-ricerca-tablet.png` `9a54cc972e39ac9d33327ebab68a1856a87850ab595dc98b53a5d47d0d043976`
+  - `simulazione-tablet.png` `ce81802e7dd69d9b0599b7e922704c365de9f8b9cff1b1d424403203a6bbc0cd`
