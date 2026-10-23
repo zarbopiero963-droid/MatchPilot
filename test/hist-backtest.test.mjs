@@ -414,7 +414,7 @@ test('invalid inputs and configurations are refused with the field named', () =>
 test('isolation from R1: the engine reads no FutPythonTrader path, no match analysis, no SQL and no environment', () => {
   const dir = new URL('../src/hist/', import.meta.url);
   const allowed = new Set(['node:crypto', '../math/core.mjs', '../math/decimal.mjs', '../math/money.mjs', '../pit/policy.mjs',
-    '../markets/rules.mjs', '../markets/outcomes.mjs', '../ledger/paper-ledger.mjs', '../ledger/settlement.mjs', './admission.mjs', './contract.mjs', './strategies.mjs']);
+    '../markets/rules.mjs', '../markets/outcomes.mjs', '../ledger/paper-ledger.mjs', '../ledger/settlement.mjs', '../mm/money-management.mjs', './admission.mjs', './contract.mjs', './strategies.mjs']);
   for (const file of readdirSync(dir).filter(name => name.endsWith('.mjs'))) {
     const source = readFileSync(new URL(file, dir), 'utf8');
     for (const [, target] of source.matchAll(/^\s*import\s[^;]*?from\s+'([^']+)'/gm)) assert.ok(allowed.has(target), `${file} imports ${target}`);
@@ -763,4 +763,99 @@ test('NON_PIT_RESEARCH without kickoff: decided by match date, ordered by date, 
   assert.deepEqual(pit.counts.no_trade_by_reason, {KICKOFF_UNKNOWN: 3}, 'PIT never decides by match date');
   // match_date is validated as a calendar date.
   assert.throws(() => validateInput(input({events: [{...ev('z', null), match_date: '2026-02-30'}], observations: []})), error => error.field === 'events[0].match_date');
+});
+
+// ---- HIST-MM-01: bankroll and Money Management (#96) in a chronological simulation ----
+// Two events one day apart, HOME favourite at 2.00 (both win 1-0 unless given); results acquired `lag` hours after kickoff.
+const twoDays = ({lag = 2, scores = [[1, 0], [1, 0]], odds = '2.00'} = {}) => {
+  seq = 0;
+  const kick = ['2026-05-01T15:00:00Z', '2026-05-02T15:00:00Z'];
+  const events = kick.map((k, i) => ev(`b${i}`, k));
+  const observations = events.flatMap((e, i) => ['HOME', 'DRAW', 'AWAY'].map((s, j) => ob(e.event_id, s, [odds, '3.50', '4.50'][j], new Date(Date.parse(kick[i]) - 3600000).toISOString())));
+  const outcomes = events.map((e, i) => out(e.event_id, 'FINAL', scores[i][0], scores[i][1], new Date(Date.parse(kick[i]) + lag * 3600000).toISOString()));
+  return input({events, observations, outcomes});
+};
+const {stake: _unusedStake, ...NO_STAKE} = CONFIG;
+const PCT = {...NO_STAKE, bankroll: '10', money_management: {model: 'PERCENT_BANKROLL', params: {percent: '10'}}};
+
+test('bankroll + PERCENT_BANKROLL: a result known before the next decision compounds; one known later does not (no look-ahead)', () => {
+  // Day 1: stake 10 % of 10 = 1, wins 1 -> bankroll 11 before day 2: stake 1.1, wins 1.1 -> 12.1.
+  const known = runBacktest(twoDays({lag: 2}), PCT);
+  assert.deepEqual(known.bets.map(b => [b.event_id, b.stake, b.settlement.net]), [['b0', '1', '1'], ['b1', '1.1', '1.1']]);
+  assert.deepEqual([known.bankroll.final_cash, known.bankroll.realized_pnl, known.bankroll.return_on_bankroll, known.ledger.state.reconciled], ['12.1', '2.1', '0.21', true]);
+  // Day 1's result acquired 30 hours later (after day 2's decision): day 2 sees 10 − 1 reserved = 9 available, stake 0.9.
+  const late = runBacktest(twoDays({lag: 30}), PCT);
+  assert.deepEqual(late.bets.map(b => [b.event_id, b.stake]), [['b0', '1'], ['b1', '0.9']]);
+  assert.equal(late.bankroll.final_cash, '11.9');
+  // Losses shrink the next stake: day 1 loses 1 -> 9 -> stake 0.9.
+  const lost = runBacktest(twoDays({scores: [[0, 1], [1, 0]]}), PCT);
+  assert.deepEqual(lost.bets.map(b => [b.stake, b.settlement.net]), [['1', '-1'], ['0.9', '0.9']]);
+  assert.deepEqual([lost.bankroll.final_cash, lost.bankroll.max_drawdown], ['9.9', '1']);
+  assert.equal(lost.bets[1].money_management.decision, 'ALLOW');
+  assert.equal(lost.bankroll.settlement_timing, 'RESULT_ACQUISITION');
+});
+
+test('bankroll with a fixed stake: a bet that does not fit the available bankroll is skipped, never overdrawn', () => {
+  // Bankroll 1.5, stake 1, both results only after both decisions: the second needs 1 but only 0.5 is available.
+  const report = runBacktest(twoDays({lag: 48}), {...CONFIG, bankroll: '1.5'});
+  assert.deepEqual(report.bets.map(b => b.event_id), ['b0']);
+  assert.deepEqual(report.bankroll.skipped_by_reason, {INSUFFICIENT_AVAILABLE_BANKROLL: 1});
+  assert.deepEqual([report.bankroll.placed, report.bankroll.final_cash, report.ledger.initial_bankroll], [1, '2.5', '1.5']);
+  assert.equal(report.counts.decisions.BACK, 2, 'the strategy decided twice; the bankroll placed once');
+});
+
+test('bankroll + LAY with FIXED_LIABILITY: stake = liability / (odds − 1); caps and odds filters come from the #96 profile', () => {
+  const lay = {...NO_STAKE, strategy: 'mp-ref-fav-lay-1', bankroll: '100', money_management: {model: 'FIXED_LIABILITY', params: {liability: '10'}}};
+  // LAY HOME 2.00 with liability 10: stake 10; home wins both -> LAY loses 10 twice.
+  const report = runBacktest(twoDays(), lay);
+  assert.deepEqual(report.bets.map(b => [b.side, b.stake, b.settlement.net]), [['LAY', '10', '-10'], ['LAY', '10', '-10']]);
+  assert.equal(report.bankroll.final_cash, '80');
+  // At 3.00 the stake for liability 10 is 5.
+  assert.equal(runBacktest(twoDays({odds: '3.00'}), lay).bets[0].stake, '5');
+  // max_odds filter with BLOCK: no bet at 3.00.
+  const filtered = runBacktest(twoDays({odds: '3.00'}), {...lay, money_management: {...lay.money_management, caps: {max_odds: '2.5', filter_fail_action: 'BLOCK'}}});
+  assert.deepEqual([filtered.bets.length, Object.keys(filtered.bankroll.skipped_by_reason)], [0, ['MM_BLOCK:FILTER_FAILED']]);
+  assert.deepEqual([filtered.ledger.state.open_position_count, filtered.ledger.state.cash_balance], [0, '100']);
+  // Validation: MM needs a bankroll and an IMPLEMENTED model; config.stake is not needed with MM.
+  assert.throws(() => runBacktest(twoDays(), {...CONFIG, money_management: {model: 'FIXED_STAKE', params: {stake: '1'}}}), error => error.field === 'config.money_management');
+  assert.throws(() => runBacktest(twoDays(), {...PCT, money_management: {model: 'MARTINGALE'}}), error => error.field === 'config.money_management');
+  assert.throws(() => runBacktest(twoDays(), {...PCT, stake: '1'}), error => error.field === 'config.stake', 'a stake next to a profile is refused');
+  assert.throws(() => runBacktest(twoDays(), {...PCT, money_management: {...PCT.money_management, caps: {max_exposure_per_match: '5'}}}),
+    error => error.field === 'config.money_management', 'per-scope caps are refused');
+  assert.equal(runBacktest(twoDays(), PCT).metrics.unit, 'bankroll currency units');
+  assert.throws(() => runBacktest(twoDays(), {...CONFIG, bankroll: '0'}), error => error.field === 'config.bankroll');
+});
+
+test('bankroll in NON_PIT_RESEARCH without kickoff: a match counts as known at the end of its date, and the report says so', () => {
+  seq = 0;
+  const events = [{...ev('n1', null), match_date: '2026-06-01'}, {...ev('n2', null), match_date: '2026-06-02'}];
+  const observations = ['n1', 'n2'].flatMap(id => ['HOME', 'DRAW', 'AWAY'].map((s, j) => ob(id, s, ['2.00', '3.50', '4.50'][j], '2026-07-01T00:00:00Z')));
+  const outcomes = ['n1', 'n2'].map(id => out(id, 'FINAL', 1, 0, '2026-07-01T00:00:00Z'));
+  const report = runBacktest(input({events, observations, outcomes}), {...PCT, pit_mode: 'NON_PIT_RESEARCH'});
+  assert.deepEqual(report.bets.map(b => b.stake), ['1', '1.1']);
+  assert.match(report.bankroll.settlement_timing, /END_OF_MATCH_DATE_NON_PIT/);
+  assert.equal(report.certification.pit_mode, 'NON_PIT_RESEARCH');
+});
+
+test('bankroll timing and limits: settle-before-decide on a tie, LAY liability decides fit, a correction settles only when acquired (#226 review NB-1)', () => {
+  // Tie: day 1's result acquired exactly at day 2's decision (kickoff 15:00 − 10 min) is settled before deciding: stake 1.1.
+  seq = 0;
+  const kick = ['2026-05-01T15:00:00Z', '2026-05-02T15:00:00Z'];
+  const events = kick.map((k, i) => ev(`t${i}`, k));
+  const observations = events.flatMap((e, i) => ['HOME', 'DRAW', 'AWAY'].map((s, j) => ob(e.event_id, s, ['2.00', '3.50', '4.50'][j], new Date(Date.parse(kick[i]) - 3600000).toISOString())));
+  const tie = runBacktest(input({events, observations, outcomes: [out('t0', 'FINAL', 1, 0, '2026-05-02T14:50:00Z'), out('t1', 'FINAL', 1, 0, '2026-05-02T17:00:00Z')]}), PCT);
+  assert.deepEqual(tie.bets.map(b => b.stake), ['1', '1.1']);
+  // LAY at a fixed stake: stake 1 at 3.40 has liability 2.4; with bankroll 4 the second LAY (2.4 > 1.6 available) is skipped,
+  // although its stake (1) would fit: the liability decides.
+  const layFixed = runBacktest(twoDays({lag: 48, odds: '3.40'}), {...CONFIG, strategy: 'mp-ref-fav-lay-1', bankroll: '4'});
+  assert.deepEqual([layFixed.bets.length, layFixed.bankroll.skipped_by_reason], [1, {INSUFFICIENT_AVAILABLE_BANKROLL: 1}]);
+  // A first FINAL (a loss) before day 2's decision, corrected to a win after it: day 1 is not settled before day 2 (stake 0.9 on 10 − 1
+  // reserved), and it settles on the corrected result when that is acquired.
+  seq = 0;
+  const v2 = input2({events, observations, outcomes: [rv('t0', 1, 'FINAL', 0, 1, '2026-05-01T17:00:00Z'), rv('t0', 2, 'FINAL', 1, 0, '2026-05-03T09:00:00Z'),
+    rv('t1', 1, 'FINAL', 1, 0, '2026-05-02T17:00:00Z')]});
+  const corrected = runBacktest(v2, PCT);
+  assert.deepEqual(corrected.bets.map(b => [b.event_id, b.stake, b.settlement.outcome, b.settlement.resolution.outcome_version]), [['t0', '1', 'WIN', 2], ['t1', '0.9', 'WIN', 1]]);
+  // Settling day 1 on its first final (a loss known before day 2) or early on the correction (a win) would change day 2's stake.
+  assert.equal(corrected.bankroll.final_cash, '11.9');
 });

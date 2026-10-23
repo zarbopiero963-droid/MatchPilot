@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 171,
+  "revision": 174,
   "tasks": [
     {
       "id": "R-01",
@@ -1209,12 +1209,34 @@
       "pr": 224,
       "branch": "hist-pg-tzfix",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T163453Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T165226Z-agent-a-claude-code",
       "resources": [
         "src/providers/futpython/hist-input.mjs",
         "test/hist-pg-input.test.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "3c776dd1d017246c389cd530711b4f8269f9f20e"
+    },
+    {
+      "id": "HIST-MM-01",
+      "title": "Bankroll and Money Management in the backtest: chronological settlement, stake from #96 profiles (#34 x #96)",
+      "issue": 34,
+      "pr": 226,
+      "branch": "hist-mm-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T165308Z-agent-a-claude-code",
+      "resources": [
+        "src/hist/engine.mjs",
+        "test/hist-backtest.test.mjs",
+        "docs/hist-backtest.md"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",

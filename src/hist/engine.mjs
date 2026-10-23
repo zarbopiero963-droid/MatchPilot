@@ -16,6 +16,7 @@ import {MATH_CORE_VERSION, ROUNDING_POLICY_VERSION, commissionRate, nonNegative,
 import {MONEY_STEP} from '../math/money.mjs';
 import {LEDGER_VERSION, accountState, createLedger, exposureOf, openPosition} from '../ledger/paper-ledger.mjs';
 import {settleFromResult} from '../ledger/settlement.mjs';
+import {MMError, createProfile, evaluate} from '../mm/money-management.mjs';
 import {PIT_POLICY_VERSION} from '../pit/policy.mjs';
 import {ADMISSION_VERSION, admitObservation, decisionTimeOf} from './admission.mjs';
 import {HistInputError, INPUT_VERSION, SELECTIONS_1X2, canonicalJson, sha256, validateInput} from './contract.mjs';
@@ -23,8 +24,8 @@ import {STRATEGIES} from './strategies.mjs';
 import {getMarketRule} from '../markets/rules.mjs';
 import {resolveVersioned, resultVersion} from '../markets/outcomes.mjs';
 
-export const ENGINE_VERSION = 'mp-hist-engine-5';
-export const REPORT_VERSION = 'mp-hist-report-5';
+export const ENGINE_VERSION = 'mp-hist-engine-6';
+export const REPORT_VERSION = 'mp-hist-report-6';
 // HIST-PG-01 (owner mandate MP-AUTONOMOUS-AUTOMERGE-20261023): PIT is the default; NON_PIT_RESEARCH is an explicitly
 // labelled research and testing mode that also uses prices acquired after the decision time. It is never a PIT backtest
 // and never evidence of real profitability; the certification block and the limits say so on every report.
@@ -69,12 +70,19 @@ const count = (map, name) => { map[name] = (map[name] ?? 0) + 1; };
 const sorted = map => Object.fromEntries(Object.keys(map).sort().map(name => [name, map[name]]));
 const cents = value => value.roundToStep(MONEY_STEP, ROUNDING.HALF_EVEN);
 
+// The #96 profile of a backtest: an immutable profile id derived from its content.
+const mmProfileOf = m => createProfile({profileId: `hist-mm:${sha256(canonicalJson({model: m.model, params: m.params ?? {}, caps: m.caps ?? {}})).slice(0, 16)}`,
+  model: m.model, params: m.params ?? {}, caps: m.caps ?? {}});
+
 export function validateConfig(config, strategies = STRATEGIES) {
   if (!config || typeof config !== 'object' || Array.isArray(config)) throw new HistInputError('config', 'must be an object');
-  const required = ['strategy', 'bookmaker', 'lead_minutes', 'stake', 'commission'];
+  // HIST-MM-01: with money_management the stake comes from the profile, so config.stake is not used and not required.
+  const required = ['strategy', 'bookmaker', 'lead_minutes', 'commission', ...(config.money_management ? [] : ['stake'])];
   // outcomes_as_of (optional): the cutoff of the result versions used to settle (DEC-002 asOf). Without it, every
   // version in the input is available.
-  const allowed = [...required, 'outcomes_as_of', 'pit_mode'];
+  // bankroll (optional): a real starting bankroll for a chronological simulation; money_management (optional, needs
+  // bankroll): {model, params, caps} of an IMPLEMENTED #96 model.
+  const allowed = [...required, 'stake', 'outcomes_as_of', 'pit_mode', 'bankroll', 'money_management'];
   for (const name of Object.keys(config)) if (!allowed.includes(name)) throw new HistInputError(`config.${name}`, 'unknown field');
   for (const name of required) if (!Object.hasOwn(config, name)) throw new HistInputError(`config.${name}`, 'is required');
   let outcomesAsOf = null;
@@ -88,17 +96,40 @@ export function validateConfig(config, strategies = STRATEGIES) {
   if (typeof config.strategy !== 'string' || !Object.hasOwn(strategies, config.strategy)) throw new HistInputError('config.strategy', 'unknown strategy');
   if (typeof config.bookmaker !== 'string' || !/^[\w.:\-/]{1,200}$/.test(config.bookmaker)) throw new HistInputError('config.bookmaker', 'must be an identifier');
   if (!Number.isSafeInteger(config.lead_minutes) || config.lead_minutes < 1 || config.lead_minutes > 1440) throw new HistInputError('config.lead_minutes', 'must be an integer from 1 to 1440');
-  let stake, commission;
+  let stake = null, commission, bankroll = null;
   try {
-    stake = nonNegative('config.stake', config.stake);
-    if (stake.isZero()) throw new MathInputError('config.stake', 'must be positive');
+    if (Object.hasOwn(config, 'stake')) {
+      stake = nonNegative('config.stake', config.stake);
+      if (stake.isZero()) throw new MathInputError('config.stake', 'must be positive');
+    }
     commission = commissionRate('config.commission', config.commission);
+    if (Object.hasOwn(config, 'bankroll')) {
+      bankroll = nonNegative('config.bankroll', config.bankroll);
+      if (bankroll.isZero()) throw new MathInputError('config.bankroll', 'must be positive');
+    }
   } catch (error) {
     if (error instanceof MathInputError) throw new HistInputError(error.field, error.message.replace(/^[^:]*: /, ''));
     throw error;
   }
+  let mm = null;
+  if (Object.hasOwn(config, 'money_management')) {
+    if (!bankroll) throw new HistInputError('config.money_management', 'needs config.bankroll');
+    // The stake comes from the profile: a config.stake would be ignored, so it is refused rather than snapshotted.
+    if (Object.hasOwn(config, 'stake')) throw new HistInputError('config.stake', 'is not used with money_management (the profile sizes the stake)');
+    const m = config.money_management;
+    if (!m || typeof m !== 'object' || Array.isArray(m) || Object.keys(m).some(k => !['model', 'params', 'caps'].includes(k)))
+      throw new HistInputError('config.money_management', 'must be {model, params, caps}');
+    try { mmProfileOf(m); } catch (error) {
+      if (error instanceof MMError) throw new HistInputError('config.money_management', `${error.code}: ${error.message}`);
+      throw error;
+    }
+    // Per-scope caps need scope ids the backtest does not assign, so evaluate() would BLOCK every bet: refused here.
+    const scoped = Object.keys(m.caps ?? {}).filter(k => k.startsWith('max_exposure_per_'));
+    if (scoped.length) throw new HistInputError('config.money_management', `caps ${scoped.join(', ')} need scope ids the backtest does not assign`);
+    mm = JSON.parse(canonicalJson({model: m.model, params: m.params ?? {}, caps: m.caps ?? {}}));
+  }
   const normalized = {strategy: config.strategy, bookmaker: config.bookmaker, lead_minutes: config.lead_minutes,
-    stake: stake.toString(), commission: commission.toString(), ...(outcomesAsOf ? {outcomes_as_of: outcomesAsOf} : {}),
+    ...(stake ? {stake: stake.toString()} : {}), commission: commission.toString(), ...(bankroll ? {bankroll: bankroll.toString()} : {}), ...(mm ? {money_management: mm} : {}), ...(outcomesAsOf ? {outcomes_as_of: outcomesAsOf} : {}),
     ...(pitMode === 'PIT' ? {} : {pit_mode: pitMode})};
   return {...normalized, pit_mode: pitMode, settings_snapshot_id: sha256(canonicalJson(normalized)), commission_rate_used: commission.toString()};
 }
@@ -150,7 +181,7 @@ function resolveOutcome(versions, event, selection, asOf) {
 
 const LIMITS = [
   'Offline engine test: no liquidity, matching, slippage or execution is modelled.',
-  'Each bet is a paper-ledger position (#99) funded by a notional allocation equal to the sum of the bets exposures: it is not a bankroll, and no money management is applied.',
+  'Each bet is a paper-ledger position (#99). Without a configured bankroll the ledger is funded by a notional allocation equal to the sum of the bets exposures (not a bankroll, no money management); with one, the run is chronological and bets are settled when their result is known.',
   'Commission is charged by the ledger on each position positive net winnings at the rate fixed at the fill, rounded to the cent (DEC-013).',
   'PIT_LIMIT',
   'Settlement uses only result versions of the same provider as the odds; cross-provider mappings are not used.',
@@ -273,22 +304,25 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
     void_policy: 'NONE_APPROVED (DEC-015)'};
   const unsettled = counter();
   let ignoredBeforeKickoff = 0;
-  // The paper ledger of the run: one position per bet, opened in decision order at its decision time.
-  const legOf = bet => ({side: bet.side, odds: Decimal.from(bet.odds), stake: Decimal.from(bet.stake)});
-  const allocation = sum(bets.map(bet => exposureOf([legOf(bet)])));
-  const ledger = bets.length ? createLedger({accountId: `hist:${config.settings_snapshot_id}`, initialAllocation: allocation.toString(), at: bets[0].decision_time ?? bets[0].match_date}) : null;
   // Position id: the provider's length prefix makes it unambiguous although ids may contain ':' (review B-1).
   const positionOf = bet => `hist:${bet.provider.length}:${bet.provider}:${bet.event_id}`;
-  for (const bet of bets) {
-    openPosition(ledger, {mode: 'ACTIVE_OPERATIONAL', positionId: positionOf(bet), side: bet.side, odds: bet.odds, stake: bet.stake,
-      commissionRate: config.commission, settingsSnapshotId: config.settings_snapshot_id, idempotencyKey: `open:${positionOf(bet)}`,
-      at: bet.decision_time ?? bet.match_date, market: {marketType: 'MATCH_ODDS', selection: bet.selection}});
-  }
-  const entry = seq => ledger.entries[seq - 1];
-  const settledBets = bets.map(bet => {
+  const legOf = bet => ({side: bet.side, odds: Decimal.from(bet.odds), stake: Decimal.from(bet.stake)});
+  const orderOf = bet => bet.decision_time ?? `${bet.match_date}T00:00:00.000Z`;
+  // Each bet is resolved once (its decision is already fixed). knownAt is when its result is known: the acquisition of
+  // the settling version; in NON_PIT_RESEARCH a match without kickoff is taken as known at the end of its match date.
+  const plans = bets.map(bet => {
     const event = events.get(key(bet.provider, bet.event_id));
-    const {result, outcome, reason, resolution, resultVersions, ignored = 0} = resolveOutcome(outcomes.get(key(bet.provider, bet.event_id)), event, bet.selection, asOf);
-    ignoredBeforeKickoff += ignored;
+    const r = resolveOutcome(outcomes.get(key(bet.provider, bet.event_id)), event, bet.selection, asOf);
+    ignoredBeforeKickoff += r.ignored ?? 0;
+    const knownAt = !r.result ? null : event.kickoff_utc ? r.resolution.recorded_at : `${bet.match_date}T23:59:59.999Z`;
+    return {bet, event, r, knownAt};
+  });
+  let ledger = null;
+  const entry = seq => ledger.entries[seq - 1];
+  const open = bet => openPosition(ledger, {mode: 'ACTIVE_OPERATIONAL', positionId: positionOf(bet), side: bet.side, odds: bet.odds, stake: bet.stake,
+    commissionRate: config.commission, settingsSnapshotId: config.settings_snapshot_id, idempotencyKey: `open:${positionOf(bet)}`,
+    at: bet.decision_time ?? bet.match_date, market: {marketType: 'MATCH_ODDS', selection: bet.selection}});
+  const settle = ({bet, event, r: {result, outcome, reason, resolution, resultVersions}}) => {
     if (!result) { count(unsettled, reason); return {...bet, position_id: positionOf(bet), settlement: null}; }
     const done = settleFromResult(ledger, {positionId: positionOf(bet), versions: resultVersions, asOf, at: resolution.recorded_at});
     // The ledger resolves the same versions with the same rule: any disagreement is a defect, never a silent choice.
@@ -300,14 +334,72 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
     return {...bet, position_id: positionOf(bet), settlement: {result, outcome, bet_result: betResult,
       ...(event.kickoff_utc ? {} : {kickoff_filter: 'NOT_APPLIED_KICKOFF_UNKNOWN'}), gross: gross.amount, commission: commission.amount, net: net.net,
       ledger_entries: done.entries, resolution}};
-  });
+  };
+  let settledBets;
+  if (!config.bankroll) {
+    // Notional mode: one position per bet, all opened in decision order, then settled.
+    const allocation = sum(bets.map(bet => exposureOf([legOf(bet)])));
+    if (bets.length) ledger = createLedger({accountId: `hist:${config.settings_snapshot_id}`, initialAllocation: allocation.toString(), at: bets[0].decision_time ?? bets[0].match_date});
+    for (const bet of bets) open(bet);
+    settledBets = plans.map(settle);
+    report.ledger = ledger && {notional_allocation: allocation.toString()};
+  } else {
+    // Bankroll mode (HIST-MM-01): a chronological simulation on a real starting bankroll. Before each decision the bets
+    // whose result is known by then are settled, so the stake (fixed, or from the Money Management profile on the
+    // ledger's account state) sees exactly the bankroll of that moment and no later result.
+    ledger = bets.length ? createLedger({accountId: `hist:${config.settings_snapshot_id}`, initialAllocation: config.bankroll, at: bets[0].decision_time ?? bets[0].match_date}) : null;
+    const mmProfile = config.money_management ? mmProfileOf(config.money_management) : null;
+    const pending = [], placed = [], mm = {placed: 0, reduced: 0, skipped_by_reason: counter()};
+    let peak = Decimal.from(config.bankroll), drawdown = Decimal.zero(), cash = Decimal.from(config.bankroll);
+    const settleKnown = until => {
+      pending.sort((a, b) => byte(a.knownAt, b.knownAt) || byte(positionOf(a.bet), positionOf(b.bet)));
+      while (pending.length && (until === null || byte(pending[0].knownAt, until) <= 0)) {
+        const plan = pending.shift();
+        plan.settled = settle(plan);
+        cash = Decimal.from(accountState(ledger).cash_balance);
+        if (cash.gt(peak)) peak = cash;
+        if (peak.sub(cash).gt(drawdown)) drawdown = peak.sub(cash);
+      }
+    };
+    for (const plan of plans) {
+      settleKnown(orderOf(plan.bet));
+      const account = accountState(ledger);
+      let stake = Decimal.from(plan.bet.stake ?? '0'), mmDecision = null;
+      if (config.money_management) {
+        mmDecision = evaluate({profile: mmProfile, operational: {mode: 'ACTIVE_OPERATIONAL'}, account,
+          proposal: {side: plan.bet.side, odds: plan.bet.odds}, commissionRate: config.commission, settingsVersion: config.settings_snapshot_id, at: orderOf(plan.bet)});
+        if (!mmDecision.execution_permission) { count(mm.skipped_by_reason, `MM_${mmDecision.decision}:${mmDecision.structured_reasons.join('+') || 'NONE'}`); continue; }
+        stake = Decimal.from(mmDecision.adjusted_stake);
+      }
+      const need = exposureOf([{...legOf({...plan.bet, stake: '1'}), stake}]);
+      if (!stake.gt(0) || need.gt(Decimal.from(account.available_bankroll))) { count(mm.skipped_by_reason, 'INSUFFICIENT_AVAILABLE_BANKROLL'); continue; }
+      plan.bet = {...plan.bet, stake: stake.toString(), ...(mmDecision ? {money_management: {decision: mmDecision.decision, original_stake: mmDecision.original_stake,
+        hard_caps_triggered: mmDecision.hard_caps_triggered, bankroll_snapshot_ref: mmDecision.bankroll_snapshot_ref}} : {})};
+      if (mmDecision?.decision === 'REDUCE') mm.reduced++;
+      mm.placed++;
+      open(plan.bet);
+      placed.push(plan);
+      if (plan.knownAt) pending.push(plan); else plan.settled = settle(plan);
+    }
+    settleKnown(null);
+    settledBets = placed.map(plan => plan.settled);
+    bets.length = 0;
+    bets.push(...placed.map(plan => plan.bet));
+    const state = ledger && accountState(ledger);
+    report.bankroll = {initial: config.bankroll, final_cash: state ? state.cash_balance : config.bankroll, available: state ? state.available_bankroll : config.bankroll,
+      realized_pnl: state ? state.realized_pnl : '0', return_on_bankroll: state ? Decimal.from(state.realized_pnl).div(Decimal.from(config.bankroll)).toString() : '0',
+      max_drawdown: drawdown.toString(), drawdown_order: 'SETTLEMENT',
+      settlement_timing: plans.some(p => p.knownAt && !p.event.kickoff_utc) ? 'RESULT_ACQUISITION; END_OF_MATCH_DATE_NON_PIT for matches without kickoff' : 'RESULT_ACQUISITION',
+      money_management: config.money_management ?? null, placed: mm.placed, reduced: mm.reduced, skipped_by_reason: sorted(mm.skipped_by_reason)};
+  }
   if (ledger) {
     const state = accountState(ledger);
-    report.ledger = {ledger_version: LEDGER_VERSION, account_id: ledger.account_id, notional_allocation: allocation.toString(),
+    report.ledger = {ledger_version: LEDGER_VERSION, account_id: ledger.account_id, ...(report.ledger ?? {}),
+      ...(config.bankroll ? {initial_bankroll: config.bankroll} : {}),
       entries: ledger.entries.length, entries_sha256: sha256(canonicalJson(ledger.entries)),
       state: {cash_balance: state.cash_balance, realized_pnl: state.realized_pnl, settled_commission: state.settled_commission,
         reserved_funds: state.reserved_funds, open_position_count: state.open_position_count, reconciled: state.reconciled}};
-  }
+  } else delete report.ledger;
   const settled = settledBets.filter(bet => bet.settlement);
   // Result versions of the bets' events acquired before the kickoff: a final cannot be known then, so they are ignored,
   // and counted (an ignored version can hide a correction of the first final).
@@ -315,7 +407,9 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
     result_versions_ignored_before_kickoff: ignoredBeforeKickoff}};
   if (bets.length > 0 && settled.length === 0) return seal({...base, status: STATUS.INSUFFICIENT_OUTCOMES, metrics: null});
   // No bet at all (every event NO_TRADE): a valid outcome (MP-STA-011), with no metric rather than a row of zeros.
-  return seal({...base, status: STATUS.OK, metrics: settled.length ? metricsOf(settled) : null});
+  const metrics = settled.length ? metricsOf(settled) : null;
+  if (metrics && config.bankroll) metrics.unit = 'bankroll currency units';
+  return seal({...base, status: STATUS.OK, metrics});
 }
 
 // Totals of the settled bets in decision order: P/L, ROI on the capital at risk (the exposure: a BACK's stake, a LAY's
