@@ -110,6 +110,12 @@ test('a definition is closed and validated field by field; every refusal names i
   for (const [d, field] of bad) {
     assert.throws(() => validateConfig({...BASE, strategy_definition: d}), error => error instanceof HistInputError && error.field === field, JSON.stringify(d));
   }
+  // null is not «absent»: a closed definition refuses it (PR #230 review NB-4).
+  for (const [d, field] of [[{selection: 'HOME', side: 'BACK', market: null}, 'config.strategy_definition.market'], [{selection: 'HOME', side: 'BACK', conditions: null}, 'config.strategy_definition.conditions'],
+    [def('HOME', 'BACK', {teams: ['Ajax'], venue: null}), 'config.strategy_definition.conditions.venue'], [def('HOME', 'BACK', {odds_min: null}), 'config.strategy_definition.conditions.odds_min'],
+    [def('HOME', 'BACK', {teams: ['\u200b']}), 'config.strategy_definition.conditions.teams'], [def('HOME', 'BACK', {teams: ['Aj\u200bax']}), 'config.strategy_definition.conditions.teams']]) {
+    assert.throws(() => validateConfig({...BASE, strategy_definition: d}), error => error instanceof HistInputError && error.field === field, JSON.stringify(d));
+  }
   // A definition is the strategy: a registered id beside it is refused, and none of the two is a refusal too.
   assert.throws(() => validateConfig({...BASE, strategy: 'mp-ref-fav-back-1', strategy_definition: def('HOME', 'BACK')}), {field: 'config.strategy'});
   assert.throws(() => validateConfig({...BASE}), {field: 'config.strategy'});
@@ -125,11 +131,18 @@ test('identity: the same rules written differently are one strategy; any change 
     {selection: 'HOME', side: 'BACK', conditions: {...a.conditions, odds_min: '1.51'}}, {selection: 'HOME', side: 'BACK', conditions: {teams: ['Ajax']}}]) {
     assert.notEqual(definitionId(normalizeDefinition(changed)), definitionId(a), JSON.stringify(changed));
   }
-  const report = run(randomData(7, 12), {selection: 'HOME', side: 'BACK', conditions: {odds_min: '1.50'}});
+  const data = randomData(7, 12);
+  const report = run(data, {selection: 'HOME', side: 'BACK', conditions: {odds_min: '1.50'}});
   assert.equal(report.config.strategy, definitionId(normalizeDefinition(def('HOME', 'BACK', {odds_min: '1.5'}))));
   assert.deepEqual(report.config.strategy_definition, {version: STRATEGY_DEF_VERSION, market: 'MATCH_ODDS', selection: 'HOME', side: 'BACK', conditions: {odds_min: '1.5'}});
   assert.equal(report.versions.strategy, report.config.strategy);
   assert.equal(report.versions.strategy_definition, STRATEGY_DEF_VERSION);
+  // The report's configuration runs again as it is (PR #230 review NB-1): its strategy is the definition's id.
+  const {settings_snapshot_id: _s, commission_rate_used: _c, ...again} = report.config;
+  assert.equal(runBacktest(data, again).report_sha256, report.report_sha256);
+  assert.throws(() => validateConfig({...BASE, strategy: 'def:0000000000000000', strategy_definition: def('HOME', 'BACK')}), {field: 'config.strategy'});
+  // Team names compare in Unicode NFC: a decomposed «Café» is the same team as the archive's composed one (review NB-3).
+  assert.equal(definitionId(normalizeDefinition(def('HOME', 'BACK', {teams: ['Cafe\u0301']}))), definitionId(normalizeDefinition(def('HOME', 'BACK', {teams: ['Caf\u00e9']}))));
   // A run with a registered strategy keeps its report shape: no definition field appears.
   const reference = runBacktest(randomData(7, 12), {...BASE, strategy: 'mp-ref-fav-back-1'});
   assert.equal(Object.hasOwn(reference.config, 'strategy_definition'), false);

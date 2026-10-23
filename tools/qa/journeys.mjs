@@ -967,8 +967,12 @@ export const JOURNEYS = [
       await step('regole rifiutate dal server: è nominato il campo della regola', async () => {
         await fresh(page, `${base}/#/sim?run=1&from=2024-08-01&to=2024-08-31&strategy=custom&selection=HOME&side=BACK&odds_min=3&odds_max=2`);
         await page.waitForSelector('[data-testid="sim-invalid"]');
-        assert.equal(await page.getAttribute('[data-testid="sim-invalid"]', 'data-fields'), 'odds_min odds_max');
-        assert.match(await page.textContent('[data-testid="sim-invalid"]'), /^Valore non valido in: Quota selezione da, Quota selezione fino a\./);
+        assert.equal(await page.getAttribute('[data-testid="sim-invalid"]', 'data-fields'), 'odds_min');
+        assert.match(await page.textContent('[data-testid="sim-invalid"]'), /^Valore non valido in: Quota selezione da\./);
+        // The explanation of a refusal never names a field by chance («1 to 100» is not «Al»).
+        await fresh(page, `${base}/#/sim?run=1&from=2024-08-01&to=2024-08-31&strategy=custom&selection=HOME&side=BACK&team=${'a'.repeat(101)}`);
+        await page.waitForSelector('[data-testid="sim-invalid"]');
+        assert.equal(await page.getAttribute('[data-testid="sim-invalid"]', 'data-fields'), 'team');
         await fresh(page, `${base}/#/sim?run=1&from=2024-08-01&to=2024-08-31&strategy=mp-ref-fav-back-1&selection=HOME&side=BACK&odds_min=3&odds_max=2`);
         await page.waitForSelector('[data-testid="sim-outcome"]');
         assert.equal(await page.locator('[data-testid="sim-invalid"]').count(), 0, 'rules are not sent with a reference strategy');

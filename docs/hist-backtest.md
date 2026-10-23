@@ -98,7 +98,7 @@ Every parameter, and the configuration through the engine's own validation, is c
 
 ## Configurable strategies `mp-strategy-def-1` (STRAT-CFG-01, #34)
 
-`config.strategy_definition` replaces `config.strategy` (one or the other). A definition is a closed JSON object: every field is validated, unknown fields are refused, nothing is evaluated as code.
+`config.strategy_definition` replaces `config.strategy`. A `strategy` beside it is accepted only when it is the definition's own id, so a report's `config` runs again as it is. A definition is a closed JSON object: every field is validated, unknown fields and `null` values are refused, nothing is evaluated as code.
 
 | Field | Values |
 |---|---|
@@ -108,7 +108,7 @@ Every parameter, and the configuration through the engine's own validation, is c
 | `side` | `BACK` or `LAY` |
 | `conditions.odds_min`, `odds_max` | bounds, inclusive, on the price of the chosen selection |
 | `conditions.home_min` … `away_max` | bounds, inclusive, on each 1X2 price |
-| `conditions.teams`, `venue` | 1–20 exact team names; the event matches when one of them plays (`ANY`), at home (`HOME`) or away (`AWAY`) |
+| `conditions.teams`, `venue` | 1–20 exact team names (compared in Unicode NFC; invisible characters refused); the event matches when one of them plays (`ANY`), at home (`HOME`) or away (`AWAY`) |
 
 Prices are decimal text (`"1.85"`), above 1 and at most 1000, at most 3 decimals.
 

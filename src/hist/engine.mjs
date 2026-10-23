@@ -85,7 +85,7 @@ export function validateConfig(config, strategies = STRATEGIES) {
   // version in the input is available.
   // bankroll (optional): a real starting bankroll for a chronological simulation; money_management (optional, needs
   // bankroll): {model, params, caps} of an IMPLEMENTED #96 model.
-  const allowed = [...required, 'stake', 'outcomes_as_of', 'pit_mode', 'bankroll', 'money_management', 'strategy_definition'];
+  const allowed = [...required, 'strategy', 'stake', 'outcomes_as_of', 'pit_mode', 'bankroll', 'money_management', 'strategy_definition'];
   for (const name of Object.keys(config)) if (!allowed.includes(name)) throw new HistInputError(`config.${name}`, 'unknown field');
   for (const name of required) if (!Object.hasOwn(config, name)) throw new HistInputError(`config.${name}`, 'is required');
   let outcomesAsOf = null;
@@ -98,8 +98,9 @@ export function validateConfig(config, strategies = STRATEGIES) {
   if (!PIT_MODES.includes(pitMode)) throw new HistInputError('config.pit_mode', `must be one of ${PIT_MODES.join(', ')}`);
   let definition = null;
   if (byDefinition) {
-    if (Object.hasOwn(config, 'strategy')) throw new HistInputError('config.strategy', 'is not used with strategy_definition (the definition is the strategy)');
     definition = normalizeDefinition(config.strategy_definition);
+    // A report's config (strategy = the definition's id) runs again as it is; any other strategy beside a definition is refused.
+    if (Object.hasOwn(config, 'strategy') && config.strategy !== definitionId(definition)) throw new HistInputError('config.strategy', 'must be the id of strategy_definition, or absent');
   } else if (typeof config.strategy !== 'string' || !Object.hasOwn(strategies, config.strategy)) throw new HistInputError('config.strategy', 'unknown strategy');
   if (typeof config.bookmaker !== 'string' || !/^[\w.:\-/]{1,200}$/.test(config.bookmaker)) throw new HistInputError('config.bookmaker', 'must be an identifier');
   if (!Number.isSafeInteger(config.lead_minutes) || config.lead_minutes < 1 || config.lead_minutes > 1440) throw new HistInputError('config.lead_minutes', 'must be an integer from 1 to 1440');

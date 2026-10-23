@@ -849,7 +849,7 @@ function simForm(params, competitions) {
   modeSelect.addEventListener('change', () => { modeHint.hidden = modeSelect.value !== 'NON_PIT_RESEARCH'; });
   // The rules of a personalised strategy appear only when it is chosen; their fields are sent only then.
   const strategySelect = select('strategy', SIM_STRATEGIES, 'mp-ref-fav-back-1');
-  const price = name => input(name, {type: 'number', step: '0.01', min: '1.01', max: '1000'});
+  const price = name => input(name, {type: 'number', step: '0.001', min: '1.001', max: '1000'});
   const rules = el('fieldset', {'data-testid': 'sim-rules', hidden: value('strategy') !== 'custom'}, el('legend', {}, 'Regole della strategia'),
     el('div', {class: 'fields'},
       el('label', {}, 'Selezione ', select('selection', Object.entries(DEF_SELECTION_TEXT), 'FAVOURITE')),
@@ -991,7 +991,12 @@ async function simView(params) {
   } catch (error) {
     if (error?.status === 400) {
       // The money management refusals name the model's own parameter (params.stake, params.percent…): that is «Valore della gestione».
-      const message = String(error.message ?? '').replace(/\bparams\.[a-z_]+/g, 'mm_value').replace(/\bconditions\.teams\b/g, 'team');
+      // An engine refusal names its field before the colon (config.<path>: …): only that path is read, so words of the
+      // explanation (e.g. «1 to 100») are never taken for fields.
+      const raw = String(error.message ?? '');
+      const scoped = /^config\.([\w.]+):/.exec(raw);
+      // A money-management refusal names the model's parameter or the missing capital after it, so its text is read whole.
+      const message = (scoped && scoped[1] !== 'money_management' ? scoped[1] : raw).replace(/\bparams\.[a-z_]+/g, 'mm_value').replace(/\bconditions\.teams\b/g, 'team');
       const fields = Object.keys(SIM_LABELS).filter(name => new RegExp(`(?<![a-z_])${name}(?![a-z_])`).test(message));
       return [...head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'sim-invalid', 'data-outcome': '', 'data-fields': fields.join(' '), title: reasonText(error)},
         fields.length ? `Valore non valido in: ${fields.map(name => SIM_LABELS[name]).join(', ')}. Correggi il campo e riprova.` : 'Impostazioni non valide. Correggi i campi e riprova.')];

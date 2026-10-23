@@ -35,6 +35,7 @@ function price(field, value) {
 export function normalizeDefinition(def) {
   if (!plainObject(def)) throw bad('', 'must be an object');
   for (const name of Object.keys(def)) if (!FIELDS.includes(name)) throw bad(name, 'unknown field');
+  for (const name of FIELDS) if (def[name] === null) throw bad(name, 'must not be null');
   const version = def.version ?? STRATEGY_DEF_VERSION;
   if (version !== STRATEGY_DEF_VERSION) throw bad('version', `must be ${STRATEGY_DEF_VERSION}`);
   const market = def.market ?? 'MATCH_ODDS';
@@ -43,7 +44,10 @@ export function normalizeDefinition(def) {
   if (!DEF_SIDES.includes(def.side)) throw bad('side', `must be one of ${DEF_SIDES.join(', ')}`);
   const raw = def.conditions ?? {};
   if (!plainObject(raw)) throw bad('conditions', 'must be an object');
-  for (const name of Object.keys(raw)) if (!CONDITION_FIELDS.includes(name)) throw bad(`conditions.${name}`, 'unknown condition');
+  for (const name of Object.keys(raw)) {
+    if (!CONDITION_FIELDS.includes(name)) throw bad(`conditions.${name}`, 'unknown condition');
+    if (raw[name] === null) throw bad(`conditions.${name}`, 'must not be null');
+  }
   const conditions = {};
   for (const name of PRICE_CONDITIONS) if (Object.hasOwn(raw, name)) conditions[name] = price(name, raw[name]).toString();
   for (const prefix of ['odds', 'home', 'draw', 'away']) {
@@ -52,9 +56,11 @@ export function normalizeDefinition(def) {
   }
   if (Object.hasOwn(raw, 'teams')) {
     if (!Array.isArray(raw.teams) || raw.teams.length === 0 || raw.teams.length > MAX_TEAMS) throw bad('conditions.teams', `must be a list of 1 to ${MAX_TEAMS} team names`);
+    // Names are compared exactly as the archive writes them, in Unicode NFC; invisible characters are refused.
     const teams = raw.teams.map(name => {
-      if (typeof name !== 'string' || !name.trim() || name.trim().length > 100) throw bad('conditions.teams', 'each team must be a name of 1 to 100 characters');
-      return name.trim();
+      const text = typeof name === 'string' ? name.normalize('NFC').trim() : '';
+      if (!text || text.length > 100 || /[\p{Cc}\p{Cf}]/u.test(text)) throw bad('conditions.teams', 'each team must be a visible name of at most 100 characters');
+      return text;
     });
     conditions.teams = [...new Set(teams)].sort();
   }
@@ -82,7 +88,7 @@ export function compileDefinition(normalized) {
   const within = (value, lo, hi) => (!lo || !value.lt(lo)) && (!hi || !value.gt(hi));
   return view => {
     if (teams) {
-      const home = teams.has(String(view.home).trim()), away = teams.has(String(view.away).trim());
+      const home = teams.has(String(view.home).normalize('NFC').trim()), away = teams.has(String(view.away).normalize('NFC').trim());
       if (!(venue === 'HOME' ? home : venue === 'AWAY' ? away : home || away)) return {action: 'NO_TRADE', reason: 'TEAM_FILTER'};
     }
     const present = SELECTIONS_1X2.filter(s => Object.hasOwn(view.odds, s));
