@@ -74,7 +74,7 @@ It is a test oracle only, never a trading strategy.
 
 ## Settlement phase (MP-MKT-001 for 1X2, MP-MKT-002, MP-MTH-003)
 
-Outcomes are read only after every decision is fixed. The 1X2 rule is the Market Rules Registry's `MATCH_ODDS@v1`
+Outcomes are read only after every decision is fixed. The 1X2 rule is the Market Rules Registry's `MATCH_ODDS@v2`
 (`src/markets/rules.mjs`, #100), recorded in the report as `versions.outcome_rule`; the engine has no resolver of its own
 (DEC-006). It replaced the earlier branch-local rule `mp-outcome-1x2-1`, with the same results:
 - **FINAL:** gives HOME, DRAW or AWAY from the scores (regular time);

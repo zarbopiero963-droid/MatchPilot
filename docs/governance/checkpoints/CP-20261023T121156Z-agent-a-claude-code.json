@@ -1,0 +1,160 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "authorizations": [],
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T121156Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T12:11:56Z",
+  "mandate": {
+    "id": "MP-OWNER-NEXT-STEPS-2026-10-23",
+    "source": "owner message in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23, 'MANDATO OWNER — MATCHPILOT — PROSSIMI PASSI' §B): prepare the MARKET-CORE-04 PR from patch v3; tests, CI and review; no merge or deploy"
+  },
+  "task": "MARKET-CORE-04",
+  "activity": "cross-review notes N1/N2 (agent-g-grok 6364546956) addressed: non-monotonic outcome versions fail closed; DEC-015 implementation_status",
+  "issue": 100,
+  "pr": 217,
+  "branch": "market-core-04",
+  "commit_sha": "bf0efcdc5d1aca9b417bb29f4c9a99d5d8475296",
+  "tree_sha": "37c2762e806cc24e3420198987eb7c3fb6d445e0",
+  "base_sha": "8f64c6bdb9c0325f0a913ea3fb42f99950328982",
+  "requirements": [
+    "MP-MKT-001",
+    "MP-MKT-002"
+  ],
+  "changes": [
+    "482ff0b: HIST-01a reconciled MERGED (891e981), MARKET-CORE-04 registered",
+    "claim MARKET-CORE-04 (rev 147 -> 148)",
+    "fdeb717: src/markets/rules.mjs v2 (internal rules, non-final UNRESOLVED, no VOID), src/markets/outcomes.mjs (FPT/TC adapters, DEC-002 selection), tests, docs, MP-MKT-002 evidence, runtime-state",
+    "1585579: registry pr 217",
+    "b760e56: owner mandate MP-OWNER-NEXT-STEPS-2026-10-23 registered",
+    "39b9efb: runtime-state production.release_sha 891e981 (deploy-vps run 39931191163)",
+    "c1f45b2: merge of main 8f64c6b; registry revision 151 (HIST-01a MERGED + #216 note, HANDOFF-TEST-01 MERGED 8f64c6b, #150 NOT CERTIFIED); runtime-state release 8f64c6b, blockers HIST-01a/HANDOFF-TEST-01/DEPLOY-CI-PIN removed with evidence",
+    "bf0efcd: NON_MONOTONIC_VERSION guard in selectOutcome + test (RED->GREEN); DEC-015 implementation_status; docs"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "bf0efcdc5d1aca9b417bb29f4c9a99d5d8475296",
+      "time": "2026-10-23T12:11:56Z",
+      "limits": [
+        "588 tests: 587 pass, 0 fail, 1 SKIPPED (postgres-independence needs PostgreSQL 17): skipped, not PASS"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39939463409,
+    "conclusion": "SUCCESS",
+    "head_sha": "158557905ba9266a89637495cf2d7d8b72a7f3d7"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "abef064879ce3a302d50f45710310a0be4558552",
+    "reference": "cross-review by agent-g-grok 6364546956 (APPROVED, a different agent than the author, same GitHub account) and self-review 5627880738 on abef064; this commit addresses that review's notes N1/N2"
+  },
+  "findings": [
+    {
+      "id": "MC04-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "owner decisions still open: VOID rule for cancelled matches, extra time in cup ties (OWNER DECISION REQUIRED, documented in rules.mjs and docs/market-rules.md)"
+    },
+    {
+      "id": "MC04-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "registry/runtime-state overlap with PR #216 resolved in the realignment merge, both sides kept"
+    },
+    {
+      "id": "R216-F1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "tracked .pyc (infra/vps/box-helpers/__pycache__) changes when tests run: outside this PR's perimeter, left for a later fix (review 6363324999)"
+    },
+    {
+      "id": "R216-F2-F3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "HANDOFF.md step text and checkpoint markers/#150 evidence (review 6363324999): outside this PR's perimeter; runtime-state part fixed here"
+    },
+    {
+      "id": "G-N2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "non-monotonic versions now fail closed"
+    },
+    {
+      "id": "G-N1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "DEC-015 implementation_status updated"
+    },
+    {
+      "id": "G-N3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "outcomes.mjs not wired to the engine/DB yet (fixtures only)"
+    }
+  ],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "DEC-015"
+  ],
+  "progress": {
+    "done": [
+      "implementation, tests, CI green on 1585579"
+    ],
+    "in_progress": [
+      "self-review on the final head"
+    ],
+    "not_started": [
+      "merge (owner decision)",
+      "wiring of real FPT/TC data into the resolvers (later task)"
+    ]
+  },
+  "resources": [
+    "src/markets/rules.mjs",
+    "src/markets/outcomes.mjs",
+    "test/market-core-04.test.mjs",
+    "docs/market-rules.md",
+    "branch:market-core-04",
+    "pr:217"
+  ],
+  "stop_conditions": [
+    "no merge or deploy without owner authorization",
+    "PR #216 / HANDOFF-TEST-01 untouched",
+    "any divergence between this checkpoint and the branch head"
+  ],
+  "state": "REVIEW",
+  "next_action": "owner decision on the PR #217 merge (expectedHeadSha = final head after CI)",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only",
+    "CI green on the final head"
+  ],
+  "supersedes": "CP-20261023T115015Z-agent-a-claude-code"
+}

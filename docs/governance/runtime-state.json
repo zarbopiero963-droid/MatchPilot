@@ -1,12 +1,12 @@
 {
   "schema_version": "mp-runtime-state-v1",
-  "updated_at": "2026-10-23T10:28:59Z",
-  "updated_by": "agent-g-grok",
+  "updated_at": "2026-10-23T11:46:44Z",
+  "updated_by": "agent-a-claude-code",
   "note": "Vendor-neutral runtime state of MatchPilot (GOV-RUNTIME-STATE-01, #150, owner t141u). Source of truth on GitHub; any local CHECKPOINT.md is a derived copy. Every PR that changes production or the plan must update this file (docs/governance/PROTOCOL.md).",
   "production": {
-    "release_sha": "569fb0fa049d648e149457bfba066964d6accc81",
-    "verified_at": "2026-10-23T06:29:10Z",
-    "verification": "VPS 45.14.186.174: /srv/mp-deploy/current -> releases/<sha>; matchpilot-app and matchpilot-fpt-worker active; GET 127.0.0.1:3000/healthz = 200",
+    "release_sha": "8f64c6bdb9c0325f0a913ea3fb42f99950328982",
+    "verified_at": "2026-10-23T11:46:05Z",
+    "verification": "deploy-vps run 39947944189 (job 120395985918) success; its log carries mp-deploy's own report from the VPS: prev=releases/891e981, worker_restart=ok, result=OK total_s=80 health=200 at 2026-10-23T13:46:05+02:00. Service state after that line not observed directly by agent-a-claude-code (no VPS access).",
     "deploy": "automatic via deploy-vps workflow on push to main (OWN-T123U-AUTODEPLOY); no deploys 03:15-04:45 Europe/Rome (backup window)",
     "disabled": [
       "Render",
@@ -14,16 +14,8 @@
       "TotalCorner"
     ]
   },
-  "current_task": "HANDOFF-TEST-01 (#216): return leg B->A by agent-g-grok (handoff-in PROCEED, checkpoint IN), main merged into handoff-test-01; waiting owner GO on PR #216. Previously on main: HIST-01a (#178) review APPROVED by clean-context Claude Code subagent (reviews 5625569939, 5625698392), merged by owner GO t149u as 891e981",
+  "current_task": "MARKET-CORE-04 (#100): PR #217 in REVIEW, realigned to main 8f64c6b; HANDOFF-TEST-01 (#216) MERGED as 8f64c6b (owner GO), #150 NOT CERTIFIED; HIST-01a MERGED (891e981)",
   "blockers": [
-    {
-      "id": "DEPLOY-CI-PIN",
-      "detail": "Auto-deploy refused since c7820ea (#212): the VPS runner guard pins the ci.yml blob (ci_workflow_blob_sha 2514af08 in root-owned /etc/mp-deploy/runner-guard.json) and #212/#213 changed ci.yml (GUARD_CI_WORKFLOW_NOT_PINNED; current main blob 33f6c6dc056c44878b62d83a876a19e3a832279d). Production stays 569fb0f; the changes since are governance-only, with no runtime impact. Re-pinning needs an owner GO (docs/deploy-approval.md); no agent may change the pin without it."
-    },
-    {
-      "id": "HIST-01a",
-      "detail": "PR #178 open, BLOCKED on owner (DEC-006)"
-    },
     {
       "id": "R-02",
       "detail": "#40 archive is immutable; task BLOCKED by owner hold"
@@ -31,10 +23,6 @@
     {
       "id": "MM-RULES",
       "detail": "MM models beyond the 4 IMPLEMENTED need owner formulas; no invented economic rules (owner t139u). Open questions: 25 items prepared by agent (not yet on GitHub)"
-    },
-    {
-      "id": "HANDOFF-TEST-01",
-      "detail": "leg A (agent-g-grok OUT) and leg B (agent-b-claude-code IN, tests/docs, OUT to agent-g-grok, PR #216) done; return leg A pending; HANDOFF NOT VERIFIED until then; neither agent certifies #150 without owner mandate"
     }
   ],
   "pending_runtime_checks": [
@@ -64,7 +52,7 @@
       "status": "PENDING"
     }
   ],
-  "next_action": "Owner decision on PR #216 (HANDOFF-TEST-01 return leg done); then MARKET-CORE-04 from the local patch (DEC-002, DEC-015 and the owner rectification on FPT/TC-only outcomes); separately owner GO for DEPLOY-CI-PIN re-pin",
+  "next_action": "Owner decision on the PR #217 merge. FPT diagnosis: read-only script mp-fpt-diagnose.sh v2 handed to the owner, to be run on the VPS by an authorized operator. #150: evidence of the return leg and negative tests with real agents remain open",
   "roadmap_after_governance": [
     "MARKET-CORE-04 (void/postponed/abandoned/corrected results)",
     "#99 ledger link",

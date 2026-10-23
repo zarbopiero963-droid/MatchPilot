@@ -1,0 +1,196 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "id": "CP-20261023T102622Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T10:26:22Z",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "mandate": {
+    "id": "MP-OWNER-HIST-01A-REALIGN-01",
+    "source": "owner message in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23), registered in docs/governance/owner-decisions.json; applies DEC-006"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "task": "HIST-01a",
+  "activity": "HIST-01a reconciled MERGED: PR #178 merged by the owner as 891e981 (2026-10-23T09:20:48Z); deploy-vps run 39931191163 success",
+  "issue": 34,
+  "pr": 178,
+  "branch": "ccr-e45875c0-5r0fnf",
+  "commit_sha": "f76e610ce54434a84ad7d327491be6d97b15d5d9",
+  "tree_sha": "29d5bdbdd2c3a57d216b5fe2af209f5d7471cb0d",
+  "base_sha": "d15f1fd43d8e01303f41e6caa7d797ff0ded6447",
+  "requirements": [
+    "MP-STA-001",
+    "MP-STA-011",
+    "MP-MKT-001",
+    "MP-MKT-002",
+    "MP-MKT-003",
+    "MP-MTH-003",
+    "MP-RPL-003",
+    "MP-PIT-002",
+    "MP-PIT-003"
+  ],
+  "changes": [
+    "5d687f5: merge of main d15f1fd (conflicts only in owner-decisions.json, work-registry.json taken from main, package.json check script + HIST-01a modules); inventory regenerated, unchanged",
+    "941121a: claim HIST-01a (revision 143->144); MP-OWNER-HIST-01A-REALIGN-01 and DEC-015 registered",
+    "991876c: src/hist/engine.mjs settles FINAL 1X2 outcomes with resolve('MATCH_ODDS') of src/markets/rules.mjs, versions.outcome_rule = MATCH_ODDS@v1; 21/10 snapshot test accepts the protocol lifecycle",
+    "914e18e: tests for review 5625569939 NB-1/NB-2/NB-3 (mutations M6, M1, M12, M10, M11 now killed), doc wording, DEC-006 implementation_status, runtime-state",
+    "0a4492c: checkpoint CP-20261023T081046Z-agent-a-claude-code, release to REVIEW (registry 145)",
+    "296b009: runtime-state keeps the HANDOFF-TEST-01 next action and states the review provenance (delta review ND-1, ND-3)"
+  ],
+  "tests": [
+    {
+      "command": "npm run -s governance:validate; node tools/governance/cli.mjs validate (requirements MP-STA-001/011, MP-MKT-001..003, MP-MTH-003 mapped to src/hist/*, src/markets/rules.mjs and test/hist-backtest.test.mjs)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22",
+      "commit": "914e18e14c37702139d288a65ff36dcdec937901",
+      "time": "2026-10-23T10:26:22Z",
+      "limits": [
+        "Gate A scope: synthetic fixtures; real-data verdicts stay NOT_VERIFIED/BLOCKED"
+      ]
+    },
+    {
+      "command": "node --test (full suite) incl. test/hist-backtest.test.mjs 19/19; 14/14 targeted mutations of src/hist/engine.mjs killed",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "914e18e14c37702139d288a65ff36dcdec937901",
+      "time": "2026-10-23T10:26:22Z",
+      "limits": [
+        "575 tests: 574 pass, 1 SKIPPED (postgres-independence needs PostgreSQL 17): skipped, not PASS"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI run 39924161070 on f76e610: Fast checks, PostgreSQL integration suite, Browser QA, Exploratory QA, CI gate success",
+      "result": "PASS",
+      "environment": "GitHub-hosted runners",
+      "commit": "f76e610ce54434a84ad7d327491be6d97b15d5d9",
+      "time": "2026-10-23T10:26:22Z",
+      "limits": [
+        "UI checks skipped (not PASS)"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39924161070,
+    "conclusion": "SUCCESS",
+    "head_sha": "f76e610ce54434a84ad7d327491be6d97b15d5d9"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "f76e610ce54434a84ad7d327491be6d97b15d5d9",
+    "reference": "self-review (DEC-004-R1) 5625913104 on f76e610, relabelling reviews 5625569939 and 5625698392 (clean-context subagent of the author session)"
+  },
+  "findings": [
+    {
+      "id": "R-NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "no DRAW/AWAY winning bet in engine tests (M6 survived): fixed in 914e18e"
+    },
+    {
+      "id": "R-NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "outcome acquisition boundary untested (M1, M12): fixed in 914e18e"
+    },
+    {
+      "id": "R-NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "metric rounding unconstrained (M10, M11): fixed in 914e18e"
+    },
+    {
+      "id": "R-NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "registry/checkpoint stale: this checkpoint and the release to REVIEW"
+    },
+    {
+      "id": "R-NB-5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "DEC-006 implementation_status stale: updated in 914e18e"
+    },
+    {
+      "id": "R-NB-6",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "work-registry revision collides with PR #216 (both from 143): resolve only the revision field at the second merge"
+    },
+    {
+      "id": "R-NB-7",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "full CI green on 0a4492c (run 39922876292)"
+    },
+    {
+      "id": "D-ND-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "runtime-state next_action had dropped the HANDOFF-TEST-01 action: restored; the #216 runtime-state lines will still conflict at the second merge (keep both)"
+    },
+    {
+      "id": "D-ND-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "registry revision collides with #216: resolve only the revision field at the second merge"
+    },
+    {
+      "id": "D-ND-3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "review provenance stated in runtime-state current_task"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-HIST-01A-01",
+    "MP-OWNER-HIST-01A-02",
+    "DEC-006",
+    "DEC-002",
+    "MP-OWNER-HIST-01A-REALIGN-01"
+  ],
+  "progress": {
+    "done": [
+      "realignment, review, CI green on f76e610",
+      "MP-DEPLOY preflight PASS (agent-g-grok, PR #178 comment 6361673763)",
+      "merge 891e981 by the owner; deploy-vps run 39931191163 success"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "branch:ccr-e45875c0-5r0fnf",
+    "pr:178"
+  ],
+  "stop_conditions": [
+    "task finished"
+  ],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "state": "MERGED",
+  "next_action": "none for HIST-01a; DEC-002 outcome versioning in the backtest follows MARKET-CORE-04",
+  "resume_conditions": [
+    "none: task finished"
+  ],
+  "supersedes": "CP-20261023T082128Z-agent-a-claude-code",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "authorizations": [],
+  "dependencies": [],
+  "merge_sha": "891e981191251c1756760960cd7ca9d55432accd"
+}
