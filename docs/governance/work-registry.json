@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 147,
+  "revision": 148,
   "tasks": [
     {
       "id": "R-01",
@@ -1065,15 +1065,23 @@
       "pr": null,
       "branch": "market-core-04",
       "kind": "implementation",
-      "state": "PLANNED",
-      "lease": null,
+      "state": "RUNNING",
+      "lease": {
+        "holder": "agent-a-claude-code",
+        "acquired_at": "2026-10-23T10:26:59.435Z",
+        "expires_at": "2026-10-23T18:26:59.435Z"
+      },
       "latest_checkpoint": null,
       "resources": [
         "src/markets/rules.mjs",
         "src/markets/outcomes.mjs",
         "test/market-core-04.test.mjs",
         "docs/market-rules.md"
-      ]
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      }
     }
   ]
 }
