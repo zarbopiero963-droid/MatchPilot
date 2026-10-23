@@ -300,7 +300,11 @@ test('the repository reflects the 21/10 reconciliation (MP-GITHUB-RECON-IMPLEMEN
   const tasks = new Map(JSON.parse(repoFile('docs/governance/work-registry.json')).tasks.map(task => [task.id, task]));
   assert.equal(tasks.get('DEPLOY-GATE-S1S2-01').state, 'MERGED');
   assert.equal(tasks.get('DEPLOY-GATE-S1S2-01').lease, null);
-  assert.deepEqual([tasks.get('HIST-01a').state, tasks.get('HIST-01a').pr, tasks.get('HIST-01a').pr_open], ['BLOCKED', 178, true]);
+  // HIST-01a was registered BLOCKED on PR #178; since the owner GO of 2026-10-23 (MP-OWNER-HIST-01A-REALIGN-01) it moves
+  // through the protocol lifecycle via claim/release, never to MERGED while the PR is open.
+  const hist = tasks.get('HIST-01a');
+  assert.equal(hist.pr, 178);
+  assert.ok(hist.pr_open ? ['BLOCKED', 'RUNNING', 'REVIEW', 'HANDOFF READY'].includes(hist.state) : hist.state === 'MERGED', `HIST-01a ${hist.state}`);
   for (const id of ['APP-01', 'GOV-01']) assert.equal(tasks.get(id).pr, null, `${id} has no PR`);
   const vps = JSON.parse(repoFile(`docs/governance/checkpoints/${tasks.get('VPS-MIGRATION-01').latest_checkpoint}.json`));
   assert.equal(vps.handoff.status, 'PENDING_VERIFICATION');

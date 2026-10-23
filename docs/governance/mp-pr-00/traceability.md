@@ -12,17 +12,17 @@ La fonte machine-readable è `requirements.json`. Questo documento rende leggibi
 | TC | 15 | 9 | 8 | 2 | 1 | 4 |
 | WEB | 15 | 11 | 0 | 3 | 0 | 12 |
 | RPL | 12 | 9 | 0 | 8 | 2 | 2 |
-| STA | 13 | 9 | 0 | 11 | 1 | 1 |
+| STA | 13 | 9 | 0 | 9 | 1 | 3 |
 | QAC | 13 | 12 | 3 | 2 | 0 | 8 |
 | SEC | 11 | 9 | 3 | 0 | 1 | 7 |
 | API | 6 | 5 | 0 | 0 | 0 | 6 |
 | ARC | 5 | 4 | 1 | 1 | 1 | 2 |
 | PIT | 5 | 5 | 0 | 0 | 0 | 5 |
 | XPR | 2 | 1 | 0 | 2 | 0 | 0 |
-| MKT | 3 | 3 | 0 | 3 | 0 | 0 |
-| MTH | 3 | 1 | 0 | 2 | 0 | 1 |
+| MKT | 3 | 3 | 0 | 0 | 0 | 3 |
+| MTH | 3 | 1 | 0 | 1 | 0 | 2 |
 | OPS | 1 | 0 | 0 | 1 | 0 | 0 |
-| **Totale** | **139** | **105** | **36** | **35** | **7** | **61** |
+| **Totale** | **139** | **105** | **36** | **29** | **7** | **67** |
 <!-- inventory:groups:end -->
 
 Ogni PASS ha evidenza e vale solo nel proprio scope (es. TC-007/TC-008 = runtime PR #145). Nessun PASS equivale a GLOBAL HARD CERTIFIED.
