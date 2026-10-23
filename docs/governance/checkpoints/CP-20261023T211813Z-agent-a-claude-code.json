@@ -1,0 +1,105 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T211813Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T21:18:13Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "PERSIST-PREFLIGHT-01",
+  "activity": "read-only VPS preflight script and GO/NO-GO criteria for the persistence migration; no migration",
+  "issue": 99,
+  "pr": 235,
+  "branch": "persist-preflight-01",
+  "commit_sha": "346f8469e49e3e5b19dcb5e549ef5d5c38cb4544",
+  "tree_sha": "739384c4565862905d4077fb14a429cd471d8af5",
+  "base_sha": "92eb96d09a9453c4e1c9c421a437468c65259f18",
+  "requirements": [],
+  "changes": [
+    "tools/vps/persistence-preflight.mjs",
+    "test/persistence-preflight.test.mjs",
+    "docs/persistence-preflight.md"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "346f8469e49e3e5b19dcb5e549ef5d5c38cb4544",
+      "time": "2026-10-23T21:18:13Z",
+      "limits": [
+        "the script ran in the cloud container without systemd; on the VPS it is run by the owner"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "346f8469e49e3e5b19dcb5e549ef5d5c38cb4544"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "final-head context-separated sub-agent review pending (DEC-004-R1)"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "MP-PERSISTENCE-232-NEXT-20261023",
+    "MP-FPT-PROVISIONAL-DEPRIORITIZATION-20261023"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and final review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "tools/vps/persistence-preflight.mjs",
+    "docs/persistence-preflight.md",
+    "docs/persistence-plan.md",
+    "branch:persist-preflight-01",
+    "pr:235"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and final-head review on PR #235, then protected merge and deploy verification",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}
