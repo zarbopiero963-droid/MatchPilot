@@ -11,6 +11,7 @@ import test from 'node:test';
 import {FPT_BOOKMAKER, buildFptHistInput, providerPrice, readFptHistInput} from '../src/providers/futpython/hist-input.mjs';
 import {STATUS, runBacktest} from '../src/hist/engine.mjs';
 import {validateInput} from '../src/hist/contract.mjs';
+import {handleV1} from '../src/api/v1.mjs';
 
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 function runNode(args, env) {
@@ -116,6 +117,20 @@ test('FPT reader: versions, prices and results from PostgreSQL; PIT finds nothin
         '--out', join(dir, 'x.json')], {env: {PATH: process.env.PATH, DATABASE_URL: 'postgres://u:p@db.example.com:5432/x'}, encoding: 'utf8'});
       assert.equal(remote.status, 4);
       assert.match(remote.stderr, /DB_NOT_LOCAL/);
+
+      // The API endpoint over the same data (HIST-API-01): same report as the library, read-only transaction closed.
+      const api = await handleV1({method: 'GET', url: new URL('http://localhost/api/v1/hist/backtest?from=2025-09-01&to=2025-09-30&pit_mode=NON_PIT_RESEARCH&commission=0.05')},
+        {withClient: async fn => fn(db), tc: {}, codeVersion: 't'});
+      assert.equal(api.status, 200);
+      assert.deepEqual([api.body.data.report.metrics.pl_net, api.body.data.reader.events, api.body.meta.provenance.pit_mode], ['2.51', 3, 'NON_PIT_RESEARCH']);
+      assert.equal(api.body.data.report.report_sha256, runBacktest(input, {...CONFIG, pit_mode: 'NON_PIT_RESEARCH'}).report_sha256);
+      assert.equal((await db.query('SELECT current_setting($1) AS ro', ['transaction_read_only'])).rows[0].ro, 'off', 'the read-only transaction was closed');
+      const pitApi = await handleV1({method: 'GET', url: new URL('http://localhost/api/v1/hist/backtest?from=2025-09-01&to=2025-09-30')}, {withClient: async fn => fn(db), tc: {}, codeVersion: 't'});
+      assert.deepEqual([pitApi.status, pitApi.body.data.report.status], [200, 'INSUFFICIENT_PIT_DATA']);
+      // With a bankroll and a #96 profile: chronological, end-of-date settlement in NON_PIT research.
+      const mmApi = await handleV1({method: 'GET', url: new URL('http://localhost/api/v1/hist/backtest?from=2025-09-01&to=2025-09-30&pit_mode=NON_PIT_RESEARCH&bankroll=100&mm_model=PERCENT_BANKROLL&mm_value=10')},
+        {withClient: async fn => fn(db), tc: {}, codeVersion: 't'});
+      assert.deepEqual([mmApi.status, mmApi.body.data.report.bets.map(b => b.stake)], [200, ['10', '10.85', '12.04']]); // 100 → 108.5 → 120.435: 10 % rounded down to the cent
 
       const after = (await db.query(`SELECT (SELECT count(*) FROM fpt_match_versions) v, (SELECT count(*) FROM fpt_match_facts) f`)).rows[0];
       assert.deepEqual(after, before, 'the reader writes nothing');

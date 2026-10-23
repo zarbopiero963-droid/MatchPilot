@@ -1,0 +1,128 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T171446Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T17:14:46Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "HIST-MM-01",
+  "activity": "PR #226 auto-merged as 97f8b67 (squash, expectedHeadSha b7c84e5); main CI and VPS deploy verified",
+  "issue": 34,
+  "pr": 226,
+  "branch": "hist-mm-01",
+  "commit_sha": "b7c84e538ded770758342bedec72a40c27e8cbd4",
+  "tree_sha": "82c290662f1062d74e2fcf0e9d9aa5bbce5b5ba6",
+  "base_sha": "3c776dd1d017246c389cd530711b4f8269f9f20e",
+  "requirements": [
+    "MP-STA-001"
+  ],
+  "changes": [
+    "6248e02: chronological bankroll path, MM evaluate, skips, bankroll block",
+    "e6e8a96: docs, engine/report v6",
+    "97f8b67: squash merge of PR #226"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "e6e8a96d892dce89a29d85e27b7863c05fa4d95d",
+      "time": "2026-10-23T16:52:35Z",
+      "limits": [
+        "618 tests under TZ=Europe/Rome: 617 pass, 0 fail, 1 SKIPPED (postgres-independence needs PostgreSQL 17); synthetic fixtures only"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 97f8b67",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "97f8b6741daf0d2fc6c9efe4ef2f516e7535d85f",
+      "time": "2026-10-23T17:14:46Z",
+      "limits": [
+        "run 39992249279 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 97f8b67 (job log evidence)",
+      "result": "PASS",
+      "environment": "VPS via self-hosted runner, evidence from the job log only",
+      "commit": "97f8b6741daf0d2fc6c9efe4ef2f516e7535d85f",
+      "time": "2026-10-23T17:14:46Z",
+      "limits": [
+        "run 39992249276: guard rc=0 mode=enforce, DEPLOY_GATE_SHA_OK, worker_restart=ok, result=OK total_s=82 health=200 at 2026-10-23T19:14:18+02:00"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "SUCCESS",
+    "head_sha": "b7c84e538ded770758342bedec72a40c27e8cbd4"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "b7c84e538ded770758342bedec72a40c27e8cbd4",
+    "reference": "review 5631728925 on PR #226 head b7c84e5 (context-separated sub-agent, DEC-004-R1: not identity-independent): APPROVED, 0 blocking"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "DEC-015"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI",
+      "VPS deploy"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "src/hist/engine.mjs",
+    "test/hist-backtest.test.mjs",
+    "docs/hist-backtest.md",
+    "branch:hist-mm-01",
+    "pr:226"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "none for HIST-MM-01",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261023T165308Z-agent-a-claude-code",
+  "merge_sha": "97f8b6741daf0d2fc6c9efe4ef2f516e7535d85f"
+}

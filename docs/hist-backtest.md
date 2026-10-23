@@ -75,6 +75,23 @@ DATABASE_URL=<local> node tools/hist/fpt-backtest.mjs --from 2025-08-01 --to 202
 
 The CLI refuses a non-local database (exit 4), sets the session read only, and prints a one-line summary with the certification block.
 
+## API: `GET /api/v1/hist/backtest` (HIST-API-01)
+
+The backtest over the stored FPT data, through API v1 (read only, same envelope and errors as every v1 route; owner session when `MATCHPILOT_AUTH=enforce`).
+
+| Parameter | Meaning |
+|---|---|
+| `from`, `to` (required) | match dates `YYYY-MM-DD`, at most 366 days apart |
+| `competition` | one `fpt:competition:<md5>` |
+| `strategy` | `mp-ref-fav-back-1` (default) or `mp-ref-fav-lay-1` |
+| `pit_mode` | `PIT` (default) or `NON_PIT_RESEARCH` |
+| `stake`, `commission` | default `1` and `0` (no market rate is assumed) |
+| `bankroll`, `mm_model`, `mm_value` | chronological simulation with a #96 profile (`FIXED_STAKE`, `FIXED_LIABILITY`, `PERCENT_BANKROLL`, `LIABILITY_PERCENT_BANKROLL`, one value each) |
+| `outcomes_as_of` | ISO-8601 cutoff of the results (DEC-002) |
+| `max_events` | 1–200, default 100 (the engine's paper ledger replays its entries on every operation: about 0.45 s at 200 events) |
+
+Every parameter, and the configuration through the engine's own validation, is checked before any database access (400 otherwise). The read runs in a `READ ONLY` transaction with a 20 s statement timeout. The computation runs after the transaction is closed and the database client released, one request at a time per process (a concurrent request gets `429 BUSY`); `data.reader.truncated` says when `max_events` cut the match list. A stored row the reader refuses is a `500 INTERNAL` data defect, never a `503`. `data` is `{reader, report}`: the reader's counts and the engine's report; `meta.provenance` repeats the PIT mode, the certification block (`certified: false`) and the report hash. On the stored FPT data a `PIT` request gives `INSUFFICIENT_PIT_DATA`; `NON_PIT_RESEARCH` simulates, labelled as exploratory.
+
 ## Configuration (frozen snapshot, MP-MKT-003)
 
 `{strategy, bookmaker, lead_minutes, stake, commission}`, plus the optional `outcomes_as_of` (UTC instant): the cutoff of the result versions used to settle (DEC-002 `asOf`). Without it, every version in the input is available, and the report says so (`LATEST_IN_INPUT`, or `NO_OUTCOMES` with a null cutoff when the input has no result). The report carries:
