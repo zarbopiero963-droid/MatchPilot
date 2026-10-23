@@ -9,7 +9,8 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {settleMarket} from '../src/math/money.mjs';
 import {HistInputError, canonicalJson, validateInput} from '../src/hist/contract.mjs';
-import {STATUS, runBacktest} from '../src/hist/engine.mjs';
+import {OUTCOME_RULE_VERSION, STATUS, runBacktest} from '../src/hist/engine.mjs';
+import {resolve} from '../src/markets/rules.mjs';
 
 const CONFIG = {strategy: 'mp-ref-fav-back-1', bookmaker: 'bk1', lead_minutes: 10, stake: '1', commission: '0'};
 const P = 'fixture-provider';
@@ -397,7 +398,7 @@ test('invalid inputs and configurations are refused with the field named', () =>
 test('isolation from R1: the engine reads no FutPythonTrader path, no match analysis, no SQL and no environment', () => {
   const dir = new URL('../src/hist/', import.meta.url);
   const allowed = new Set(['node:crypto', '../math/core.mjs', '../math/decimal.mjs', '../math/money.mjs', '../pit/policy.mjs',
-    './admission.mjs', './contract.mjs', './strategies.mjs']);
+    '../markets/rules.mjs', './admission.mjs', './contract.mjs', './strategies.mjs']);
   for (const file of readdirSync(dir).filter(name => name.endsWith('.mjs'))) {
     const source = readFileSync(new URL(file, dir), 'utf8');
     for (const [, target] of source.matchAll(/^\s*import\s[^;]*?from\s+'([^']+)'/gm)) assert.ok(allowed.has(target), `${file} imports ${target}`);
@@ -406,4 +407,27 @@ test('isolation from R1: the engine reads no FutPythonTrader path, no match anal
   }
   const cli = readFileSync(new URL('../tools/hist/backtest.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(cli, /process\.env/, 'the CLI takes its input from arguments only');
+});
+
+test('1X2 settlement reuses the registry MATCH_ODDS resolver, no duplicate rule (DEC-006)', () => {
+  seq = 0;
+  const kicks = {h: '2026-02-01T15:00:00Z', d: '2026-02-01T17:00:00Z', a: '2026-02-01T19:00:00Z'};
+  const observations = Object.entries(kicks).flatMap(([id, kickoff]) => {
+    const at = new Date(Date.parse(kickoff) - 30 * 60e3).toISOString();
+    return [ob(id, 'HOME', '1.5', at), ob(id, 'DRAW', '4', at), ob(id, 'AWAY', '6', at)];
+  });
+  const scores = {h: [2, 0], d: [1, 1], a: [0, 3]};
+  const outcomes = Object.entries(scores).map(([id, [hs, as]]) => out(id, 'FINAL', hs, as, '2026-02-01T23:00:00Z'));
+  const report = runBacktest(input({events: Object.entries(kicks).map(([id, k]) => ev(id, k)), observations, outcomes}), CONFIG, {codeVersion: 'test'});
+  assert.equal(OUTCOME_RULE_VERSION, 'MATCH_ODDS@v1');
+  assert.equal(report.versions.outcome_rule, 'MATCH_ODDS@v1');
+  assert.deepEqual(report.bets.map(bet => [bet.event_id, bet.settlement.result, bet.settlement.outcome]),
+    [['h', 'HOME', 'WIN'], ['d', 'DRAW', 'LOSE'], ['a', 'AWAY', 'LOSE']]);
+  for (const bet of report.bets) {
+    const [hs, as] = scores[bet.event_id];
+    const ref = resolve({marketType: 'MATCH_ODDS', selection: bet.selection, match: {status: 'FINISHED', ft_home: hs, ft_away: as}});
+    assert.deepEqual([bet.settlement.result, bet.settlement.outcome], [ref.winning_selection, ref.outcome]);
+  }
+  const engine = readFileSync(new URL('../src/hist/engine.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(engine, /home_score\s*[<>]/, 'no local 1X2 comparison of scores');
 });

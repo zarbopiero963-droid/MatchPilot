@@ -3,7 +3,7 @@
 //   1. decision: for each event, at kickoff minus the lead, the strategy sees only the observations the PIT policy
 //      admits (acquired by the decision time) and no outcome;
 //   2. settlement: after every decision is fixed, each bet is settled with the outcome of the same provider under the
-//      versioned 1X2 rule, in Decimal, with the configured commission.
+//      MATCH_ODDS rule of the Market Rules Registry (#100), in Decimal, with the configured commission.
 // Without any admissible observation the report is INSUFFICIENT_PIT_DATA and carries no bet, P/L, ROI or drawdown.
 // The report is canonical JSON with its own SHA-256: the same input, configuration and code give the same bytes.
 // Pure module: no database, no network, no clock, no environment.
@@ -14,10 +14,12 @@ import {PIT_POLICY_VERSION} from '../pit/policy.mjs';
 import {ADMISSION_VERSION, admitObservation, decisionTimeOf} from './admission.mjs';
 import {HistInputError, INPUT_VERSION, SELECTIONS_1X2, canonicalJson, sha256, validateInput} from './contract.mjs';
 import {STRATEGIES} from './strategies.mjs';
+import {getMarketRule, resolve} from '../markets/rules.mjs';
 
 export const ENGINE_VERSION = 'mp-hist-engine-1';
 export const REPORT_VERSION = 'mp-hist-report-1';
-export const OUTCOME_RULE_VERSION = 'mp-outcome-1x2-1';
+// The 1X2 outcome rule is the registry's MATCH_ODDS rule (DEC-006: no duplicate resolver); the report records its id.
+export const OUTCOME_RULE_VERSION = getMarketRule('MATCH_ODDS').market_rule_id;
 // `status` is the technical result of the run; it never says anything about the data. Whether the data are certified
 // is the separate `certification` block (owner decision on PR #178 NB-2): a technically OK run is not VERIFIED data.
 export const STATUS = Object.freeze({OK: 'OK', INSUFFICIENT_PIT_DATA: 'INSUFFICIENT_PIT_DATA', INSUFFICIENT_OUTCOMES: 'INSUFFICIENT_OUTCOMES'});
@@ -90,15 +92,15 @@ function decisionView(event, decisionTime, odds) {
   });
 }
 
-// mp-outcome-1x2-1: a FINAL outcome gives HOME, DRAW or AWAY from the scores; a VOID outcome voids the bet. An outcome
-// is used only when it belongs to the same provider and event as the odds and was acquired at or after the kickoff (a
-// final result cannot be known before the match); otherwise the bet stays unsettled (N/D).
-function resolveOutcome(outcome, event) {
+// A FINAL outcome is resolved by the registry's MATCH_ODDS rule (HOME, DRAW or AWAY from the scores); a VOID outcome
+// voids the bet. An outcome is used only when it belongs to the same provider and event as the odds and was acquired at
+// or after the kickoff (a final result cannot be known before the match); otherwise the bet stays unsettled (N/D).
+function resolveOutcome(outcome, event, selection) {
   if (!outcome) return {result: null, reason: 'OUTCOME_MISSING'};
   if (Date.parse(outcome.acquired_at) < Date.parse(event.kickoff_utc)) return {result: null, reason: 'OUTCOME_ACQUIRED_BEFORE_KICKOFF'};
-  if (outcome.status === 'VOID') return {result: 'VOID', reason: null};
-  const result = outcome.home_score > outcome.away_score ? 'HOME' : outcome.home_score < outcome.away_score ? 'AWAY' : 'DRAW';
-  return {result, reason: null};
+  if (outcome.status === 'VOID') return {result: 'VOID', outcome: 'VOID', reason: null};
+  const resolution = resolve({marketType: 'MATCH_ODDS', selection, match: {status: 'FINISHED', ft_home: outcome.home_score, ft_away: outcome.away_score}});
+  return {result: resolution.winning_selection, outcome: resolution.outcome, reason: null};
 }
 
 const LIMITS = [
@@ -197,9 +199,8 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
   const unsettled = counter();
   const settledBets = bets.map(bet => {
     const event = events.get(key(bet.provider, bet.event_id));
-    const {result, reason} = resolveOutcome(outcomes.get(key(bet.provider, bet.event_id)), event);
+    const {result, outcome, reason} = resolveOutcome(outcomes.get(key(bet.provider, bet.event_id)), event, bet.selection);
     if (!result) { count(unsettled, reason); return {...bet, settlement: null}; }
-    const outcome = result === 'VOID' ? 'VOID' : result === bet.selection ? 'WIN' : 'LOSE';
     const market = settleMarket({bets: [{side: bet.side, stake: bet.stake, odds: bet.odds, outcome}], commission: config.commission});
     return {...bet, settlement: {result, outcome, gross: market.result.gross, commission: market.result.commission, net: market.result.net}};
   });
