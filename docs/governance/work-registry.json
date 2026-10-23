@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 193,
+  "revision": 194,
   "tasks": [
     {
       "id": "R-01",
@@ -1446,9 +1446,9 @@
       "pr": 236,
       "branch": "persist-gonogo-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T221644Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T224555Z-agent-a-claude-code",
       "resources": [
         "src/jobs/futpython-facts-refresh.mjs",
         "src/providers/futpython/facts-refresh.mjs",
@@ -1460,7 +1460,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "eb993ebd7cbf8d50a79c5012d36ef08e21c3fbe6"
     }
   ]
 }
