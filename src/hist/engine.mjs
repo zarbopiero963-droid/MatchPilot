@@ -114,6 +114,8 @@ export function validateConfig(config, strategies = STRATEGIES) {
   let mm = null;
   if (Object.hasOwn(config, 'money_management')) {
     if (!bankroll) throw new HistInputError('config.money_management', 'needs config.bankroll');
+    // The stake comes from the profile: a config.stake would be ignored, so it is refused rather than snapshotted.
+    if (Object.hasOwn(config, 'stake')) throw new HistInputError('config.stake', 'is not used with money_management (the profile sizes the stake)');
     const m = config.money_management;
     if (!m || typeof m !== 'object' || Array.isArray(m) || Object.keys(m).some(k => !['model', 'params', 'caps'].includes(k)))
       throw new HistInputError('config.money_management', 'must be {model, params, caps}');
@@ -121,6 +123,9 @@ export function validateConfig(config, strategies = STRATEGIES) {
       if (error instanceof MMError) throw new HistInputError('config.money_management', `${error.code}: ${error.message}`);
       throw error;
     }
+    // Per-scope caps need scope ids the backtest does not assign, so evaluate() would BLOCK every bet: refused here.
+    const scoped = Object.keys(m.caps ?? {}).filter(k => k.startsWith('max_exposure_per_'));
+    if (scoped.length) throw new HistInputError('config.money_management', `caps ${scoped.join(', ')} need scope ids the backtest does not assign`);
     mm = JSON.parse(canonicalJson({model: m.model, params: m.params ?? {}, caps: m.caps ?? {}}));
   }
   const normalized = {strategy: config.strategy, bookmaker: config.bookmaker, lead_minutes: config.lead_minutes,
@@ -342,7 +347,7 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
     // Bankroll mode (HIST-MM-01): a chronological simulation on a real starting bankroll. Before each decision the bets
     // whose result is known by then are settled, so the stake (fixed, or from the Money Management profile on the
     // ledger's account state) sees exactly the bankroll of that moment and no later result.
-    ledger = bets.length ? createLedger({accountId: `hist:${config.settings_snapshot_id}`, initialAllocation: config.bankroll, at: orderOf(bets[0])}) : null;
+    ledger = bets.length ? createLedger({accountId: `hist:${config.settings_snapshot_id}`, initialAllocation: config.bankroll, at: bets[0].decision_time ?? bets[0].match_date}) : null;
     const mmProfile = config.money_management ? mmProfileOf(config.money_management) : null;
     const pending = [], placed = [], mm = {placed: 0, reduced: 0, skipped_by_reason: counter()};
     let peak = Decimal.from(config.bankroll), drawdown = Decimal.zero(), cash = Decimal.from(config.bankroll);
@@ -402,7 +407,9 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
     result_versions_ignored_before_kickoff: ignoredBeforeKickoff}};
   if (bets.length > 0 && settled.length === 0) return seal({...base, status: STATUS.INSUFFICIENT_OUTCOMES, metrics: null});
   // No bet at all (every event NO_TRADE): a valid outcome (MP-STA-011), with no metric rather than a row of zeros.
-  return seal({...base, status: STATUS.OK, metrics: settled.length ? metricsOf(settled) : null});
+  const metrics = settled.length ? metricsOf(settled) : null;
+  if (metrics && config.bankroll) metrics.unit = 'bankroll currency units';
+  return seal({...base, status: STATUS.OK, metrics});
 }
 
 // Totals of the settled bets in decision order: P/L, ROI on the capital at risk (the exposure: a BACK's stake, a LAY's
