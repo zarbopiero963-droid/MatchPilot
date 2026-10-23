@@ -28,7 +28,9 @@ Gate di riconciliazione: allocazione + P/L netto realizzato = cassa. `unrealized
 
 ## Settlement dalle regole di mercato (LEDGER-CORE-03, #99 × #100)
 `src/ledger/settlement.mjs` `settleFromResult(ledger, {positionId, versions, asOf, at})`. Una posizione aperta con il proprio
-mercato (`openPosition(..., market: {marketType, selection, line?, team?})`, validato sul registro #100) si regola con la
+mercato (`openPosition(..., market: {marketType, selection, line?, team?})`, validato con `validateMarketSpec` del registro
+#100: selezione ammessa per quel mercato, `line` n+0.5 solo e sempre dove la regola la usa, `team` HOME|AWAY solo e sempre
+dove serve; altrimenti `BAD_SELECTION`/`UNSUPPORTED_LINE`/`BAD_INPUT` all'apertura) si regola con la
 regola canonica e la versione del risultato (DEC-002, `resolveVersioned`), mai con un esito scritto dal chiamante:
 - nessun FINAL validato, stato non finale o mercato non risolvibile → `PENDING`, nessuna entry (DEC-015: nessun VOID);
 - primo esito → `SETTLED`; la entry `SETTLEMENT_NET` registra `resolution` (regola, versione del risultato, provenienza,
@@ -36,7 +38,11 @@ regola canonica e la versione del risultato (DEC-002, `resolveVersioned`), mai c
 - stessa versione di nuovo, o versione successiva con lo stesso esito → `UNCHANGED`, nessuna entry;
 - versione successiva con esito diverso → `CORRECTED`: `REVERSAL` + nuovo settlement (versione +1), storico conservato;
 - risultato più vecchio di quello applicato → `STALE_RESULT`; posizione senza mercato → `MARKET_BINDING_MISSING`;
-  posizione regolata a mano → `MANUAL_SETTLEMENT`; cambio di fornitore → `PROVIDER_CHANGED`.
+  posizione regolata a mano → `MANUAL_SETTLEMENT`; cambio di fornitore (anche senza FINAL) → `PROVIDER_CHANGED`;
+  stessa versione del risultato con contenuto diverso → `CONFLICTING_VERSION` (DEC-002: versioni immutabili);
+  regolata con un'altra versione delle regole → `RULE_VERSION_CHANGED`;
+- una correzione registra sempre `corrected: true` e `corrects_outcome_version`; con `UNCHANGED` la versione più recente
+  è riportata nella risposta ma non registrata (resta la risoluzione applicata).
 Solo in memoria: la persistenza è LEDGER-CORE-01.
 
 ## Non ancora fatto

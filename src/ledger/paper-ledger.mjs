@@ -2,7 +2,7 @@
 // ADVISORY_ONLY boundary (DEC-001) and idempotent, versioned settlement with reversal. Pure: no DB, no network, no
 // clock (the caller passes `at`). Simulated money only; nothing here can place a real order.
 import {Decimal, dec, sum} from '../math/decimal.mjs';
-import {getMarketRule} from '../markets/rules.mjs';
+import {validateMarketSpec} from '../markets/rules.mjs';
 
 export const LEDGER_VERSION = 'mp-paper-ledger-1';
 export const MODES = Object.freeze(['ACTIVE_OPERATIONAL', 'ADVISORY_ONLY', 'PAUSED', 'ARCHIVED']);
@@ -141,9 +141,8 @@ function scopeOf(scope) {
 function marketOf(market) {
   if (market === undefined || market === null) return null;
   if (typeof market !== 'object' || Array.isArray(market)) fail('BAD_INPUT', 'market must be an object');
-  const rule = getMarketRule(market.marketType);
-  if (!rule) fail('UNKNOWN_MARKET', `no #100 rule for ${market.marketType}`);
-  const out = {marketType: market.marketType, selection: text('market.selection', market.selection)};
+  try { validateMarketSpec(market); } catch (e) { fail(e.code || 'BAD_INPUT', `market: ${e.message}`); }
+  const out = {marketType: market.marketType, selection: market.selection};
   if (market.line !== undefined && market.line !== null) out.line = text('market.line', market.line);
   if (market.team !== undefined && market.team !== null) out.team = text('market.team', market.team);
   return Object.freeze(out);

@@ -41,6 +41,27 @@ const mo = (h, a) => (h > a ? 'HOME' : h < a ? 'AWAY' : 'DRAW');
 // The Correct Score grid for "any other" (default 0-0..3-3). The simulated market's grid is an input.
 export const DEFAULT_CS_GRID = Object.freeze(['0-0', '0-1', '0-2', '0-3', '1-0', '1-1', '1-2', '1-3', '2-0', '2-1', '2-2', '2-3', '3-0', '3-1', '3-2', '3-3']);
 
+// Selections each market can settle (CORRECT_SCORE: the listed grid plus ANY_OTHER_*). A selection outside this set
+// would always resolve LOSE, so a position must not be bound to it (LEDGER-CORE-03).
+const SELECTIONS = Object.freeze({MATCH_ODDS: ['HOME', 'DRAW', 'AWAY'], HT_MATCH_ODDS: ['HOME', 'DRAW', 'AWAY'],
+  DOUBLE_CHANCE: ['HOME_DRAW', 'HOME_AWAY', 'DRAW_AWAY'], OVER_UNDER: ['OVER', 'UNDER'], HT_OVER_UNDER: ['OVER', 'UNDER'],
+  TEAM_GOALS_OVER_UNDER: ['OVER', 'UNDER'], BTTS: ['YES', 'NO']});
+export function selectionsOf(marketType, csGrid = DEFAULT_CS_GRID) {
+  if (!getMarketRule(marketType)) fail('UNKNOWN_MARKET', `no rule for ${marketType}`);
+  return Object.freeze(marketType === 'CORRECT_SCORE' ? [...csGrid, 'ANY_OTHER_HOME', 'ANY_OTHER_AWAY', 'ANY_OTHER_DRAW'] : [...SELECTIONS[marketType]]);
+}
+// Checks that {marketType, selection, line, team} is a settleable market of this registry: known selection, a line
+// (n+0.5) only and always where the rule needs one, a team HOME|AWAY only and always where the rule needs one.
+export function validateMarketSpec({marketType, selection, line, team}) {
+  const r = getMarketRule(marketType);
+  if (!r) fail('UNKNOWN_MARKET', `no rule for ${marketType}`);
+  if (!selectionsOf(marketType).includes(selection)) fail('BAD_SELECTION', `${selection} is not a ${marketType} selection`);
+  const needsLine = r.resolution_inputs.includes('line'), needsTeam = r.resolution_inputs.includes('team');
+  if (needsLine) halfLine(line); else if (line !== undefined && line !== null) fail('BAD_INPUT', `${marketType} takes no line`);
+  if (needsTeam ? team !== 'HOME' && team !== 'AWAY' : team !== undefined && team !== null) fail('BAD_INPUT', `${marketType}: team must be ${needsTeam ? 'HOME or AWAY' : 'absent'}`);
+  return r;
+}
+
 // Resolves one selection. match = {status, ft_home, ft_away, ht_home, ht_away}. Returns {status: RESOLVED, outcome:
 // WIN|LOSE, market_rule_id, winning_selection} or {status: UNRESOLVED, reason}. Same input + same rule version => same output.
 export function resolve({marketType, selection, line, team, match, csGrid = DEFAULT_CS_GRID}) {

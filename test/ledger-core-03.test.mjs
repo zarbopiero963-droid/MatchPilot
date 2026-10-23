@@ -1,7 +1,7 @@
 // LEDGER-CORE-03 (#99 x #100): paper positions settled from the canonical market rules and the versioned result.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {accountState, createLedger, openPosition, settlePosition} from '../src/ledger/paper-ledger.mjs';
+import {accountState, correctSettlement, createLedger, openPosition, settlePosition} from '../src/ledger/paper-ledger.mjs';
 import {settleFromResult} from '../src/ledger/settlement.mjs';
 import {fromFutPythonTrader, fromTotalCorner} from '../src/markets/outcomes.mjs';
 
@@ -104,7 +104,7 @@ test('fail closed: no market binding, unknown market, manual settlement, provide
   open(l, 'nb', 'BACK', '2', '10');
   assert.throws(() => settle(l, 'nb', [fpt(1, 2, 1, '2026-10-20T21:00:00Z')]), {code: 'MARKET_BINDING_MISSING'});
   assert.throws(() => open(l, 'x', 'BACK', '2', '10', {marketType: 'ASIAN_HANDICAP', selection: 'HOME'}), {code: 'UNKNOWN_MARKET'});
-  assert.throws(() => open(l, 'y', 'BACK', '2', '10', {marketType: 'MATCH_ODDS'}), {code: 'BAD_INPUT'});
+  assert.throws(() => open(l, 'y', 'BACK', '2', '10', {marketType: 'MATCH_ODDS'}), {code: 'BAD_SELECTION'});
   assert.throws(() => settle(l, 'missing', []), {code: 'UNKNOWN_POSITION'});
   open(l, 'm', 'BACK', '2', '10', MO_HOME);
   settlePosition(l, {positionId: 'm', outcome: 'WIN', idempotencyKey: 'manual', at: AT});
@@ -122,4 +122,70 @@ test('the market binding is part of the open fingerprint: same key with another 
   open(l, 'b1', 'BACK', '2', '10', MO_HOME);
   assert.equal(open(l, 'b1', 'BACK', '2', '10', MO_HOME).status, 'ALREADY_APPLIED');
   assert.throws(() => open(l, 'b1', 'BACK', '2', '10', {marketType: 'MATCH_ODDS', selection: 'AWAY'}), {code: 'IDEMPOTENCY_CONFLICT'});
+});
+
+test('the market binding is validated on the #100 registry: selection, line and team, so no outcome is invented (review B1)', () => {
+  const l = ledger();
+  const bad = (market, code) => assert.throws(() => open(l, `x${Math.random()}`, 'BACK', '2', '1', market), {code}, JSON.stringify(market));
+  bad({marketType: 'MATCH_ODDS', selection: 'home'}, 'BAD_SELECTION');
+  bad({marketType: 'MATCH_ODDS', selection: 'XYZ'}, 'BAD_SELECTION');
+  bad({marketType: 'MATCH_ODDS', selection: 'HOME', line: '2.5'}, 'BAD_INPUT');
+  bad({marketType: 'OVER_UNDER', selection: 'OVER'}, 'UNSUPPORTED_LINE');
+  bad({marketType: 'OVER_UNDER', selection: 'OVER', line: '2'}, 'UNSUPPORTED_LINE');
+  bad({marketType: 'TEAM_GOALS_OVER_UNDER', selection: 'OVER', line: '1.5'}, 'BAD_INPUT');
+  bad({marketType: 'TEAM_GOALS_OVER_UNDER', selection: 'OVER', line: '1.5', team: 'home'}, 'BAD_INPUT');
+  bad({marketType: 'BTTS', selection: 'YES', team: 'HOME'}, 'BAD_INPUT');
+  bad({marketType: 'CORRECT_SCORE', selection: '9-9'}, 'BAD_SELECTION');
+  assert.equal(l.entries.length, 1, 'no refused binding wrote an entry');
+  open(l, 'cs', 'BACK', '9', '1', {marketType: 'CORRECT_SCORE', selection: 'ANY_OTHER_HOME'});
+  open(l, 'tg', 'BACK', '2', '1', {marketType: 'TEAM_GOALS_OVER_UNDER', selection: 'OVER', line: '1.5', team: 'AWAY'});
+  const v = [fpt(1, 4, 2, '2026-10-20T21:00:00Z')];
+  assert.equal(settle(l, 'cs', v).outcome, 'WIN');   // 4-2 is not on the 0-3 grid: any other home win
+  assert.equal(settle(l, 'tg', v).outcome, 'WIN');   // away scored 2 > 1.5
+});
+
+test('DEC-002: the same result version with other content in a later call is a conflict, never a correction (review B2)', () => {
+  const l = ledger();
+  open(l, 'b1', 'BACK', '2', '10', MO_HOME);
+  settle(l, 'b1', [fpt(1, 2, 1, '2026-10-20T21:00:00Z')]);
+  const n = l.entries.length;
+  const other = {...fpt(1, 1, 1, '2026-10-20T21:00:00Z'), provenance: 'futpythontrader:snapshot:other'};
+  assert.throws(() => settle(l, 'b1', [other]), {code: 'CONFLICTING_VERSION'});
+  assert.throws(() => settle(l, 'b1', [{...fpt(1, 2, 1, '2026-10-20T21:00:00Z'), provenance: 'futpythontrader:snapshot:elsewhere'}]), {code: 'CONFLICTING_VERSION'});
+  assert.throws(() => settle(l, 'b1', [fpt(1, 2, 1, '2026-10-20T22:00:00Z')]), {code: 'CONFLICTING_VERSION'});
+  assert.throws(() => settle(l, 'b1', [fpt(1, 1, 1, '2026-10-20T21:00:00Z')]), {code: 'CONFLICTING_VERSION'});
+  assert.equal(l.entries.length, n);
+});
+
+test('a correction is flagged even when only the newer version is passed; another provider is refused before PENDING (review NB1, NB2)', () => {
+  const l = ledger();
+  open(l, 'b1', 'BACK', '2', '10', MO_HOME);
+  settle(l, 'b1', [fpt(1, 2, 1, '2026-10-20T21:00:00Z')]);
+  const c = settle(l, 'b1', [fpt(2, 0, 1, '2026-10-21T09:00:00Z')]);
+  assert.deepEqual([c.status, c.resolution.corrected, c.resolution.corrects_outcome_version, c.resolution.correction_timestamp],
+    ['CORRECTED', true, 1, '2026-10-21T09:00:00Z']);
+  assert.equal(lastNet(l, 'b1').resolution.corrected, true);
+  const half = fromTotalCorner({version: 3, status: 'half', hg: 0, ag: 0, acquired_at: '2026-10-22T09:00:00Z', raw_id: 2});
+  assert.throws(() => settle(l, 'b1', [half]), {code: 'PROVIDER_CHANGED'});
+  // same provider, no final at this asOf: the settled position is not touched
+  assert.equal(settle(l, 'b1', [fpt(3, null, null, '2026-10-22T09:00:00Z', 'NO_RESULT')], '2026-10-19T00:00:00Z').status, 'PENDING');
+});
+
+test('a settlement made under another rule version is not re-resolved silently (review NB5)', () => {
+  const l = ledger();
+  open(l, 'b1', 'BACK', '2', '10', MO_HOME);
+  settlePosition(l, {positionId: 'b1', outcome: 'WIN', idempotencyKey: 'old', at: AT, resolution: {market_rule_id: 'MATCH_ODDS@v1', rule_version: 1,
+    provider: 'futpythontrader', outcome_version: 1, provenance: 'futpythontrader:snapshot:s1', recorded_at: '2026-10-20T21:00:00Z'}});
+  assert.throws(() => settle(l, 'b1', [fpt(1, 2, 1, '2026-10-20T21:00:00Z')]), {code: 'RULE_VERSION_CHANGED'});
+});
+
+test('the resolution is part of the settlement fingerprints: same key with another resolution is an idempotency conflict (review NB6)', () => {
+  const l = ledger();
+  open(l, 'b1', 'BACK', '2', '10', MO_HOME);
+  const r1 = {outcome_version: 1, provenance: 'a'}, r2 = {outcome_version: 1, provenance: 'b'};
+  settlePosition(l, {positionId: 'b1', outcome: 'WIN', idempotencyKey: 'k', at: AT, resolution: r1});
+  assert.equal(settlePosition(l, {positionId: 'b1', outcome: 'WIN', idempotencyKey: 'k', at: AT, resolution: r1}).status, 'ALREADY_APPLIED');
+  assert.throws(() => settlePosition(l, {positionId: 'b1', outcome: 'WIN', idempotencyKey: 'k', at: AT, resolution: r2}), {code: 'IDEMPOTENCY_CONFLICT'});
+  correctSettlement(l, {positionId: 'b1', outcome: 'LOSE', reason: 'r', idempotencyKey: 'c', at: AT, resolution: r1});
+  assert.throws(() => correctSettlement(l, {positionId: 'b1', outcome: 'LOSE', reason: 'r', idempotencyKey: 'c', at: AT, resolution: r2}), {code: 'IDEMPOTENCY_CONFLICT'});
 });
