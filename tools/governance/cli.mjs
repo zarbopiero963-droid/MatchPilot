@@ -165,6 +165,20 @@ async function main([command, ...args]) {
     console.log(JSON.stringify({result: 'PASS'}));
     return 0;
   }
+  if (command === 'drift') {
+    // GOV-DRIFT-01: registry vs GitHub. --pr/--branch: the PR under test; --grace: PR numbers allowed non-final.
+    const {detectDrift, fetchPulls} = await import('./drift.mjs');
+    const state = await loadState();
+    const repository = option(args, '--repo') || process.env.GITHUB_REPOSITORY || 'zarbopiero963-droid/MatchPilot';
+    let prs;
+    try { prs = fetchPulls(repository); } catch (error) { console.error(JSON.stringify({result: 'FAIL', errors: [`GitHub read failed (fail closed): ${String(error?.message ?? error).split('\n')[0]}`]})); return 1; }
+    const currentPr = option(args, '--pr') ? Number(option(args, '--pr')) : null;
+    const grace = String(option(args, '--grace') || '').split(',').filter(Boolean).map(Number);
+    if (Number.isInteger(currentPr)) grace.push(currentPr);
+    const problems = detectDrift({registry: state.registry, prs, grace, currentPr, currentBranch: option(args, '--branch') || null});
+    console.log(JSON.stringify({result: problems.length ? 'FAIL' : 'PASS', checked_prs: prs.length, problems}, null, 2));
+    return problems.length ? 1 : 0;
+  }
   if (command === 'merge-gate') {
     const verdict = evaluateMergeGate(JSON.parse(readFileSync(args[0], 'utf8')));
     console.log(JSON.stringify(verdict, null, 2));
