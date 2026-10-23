@@ -1,12 +1,12 @@
 {
   "schema_version": "mp-runtime-state-v1",
-  "updated_at": "2026-10-23T11:46:44Z",
+  "updated_at": "2026-10-23T12:48:05Z",
   "updated_by": "agent-a-claude-code",
   "note": "Vendor-neutral runtime state of MatchPilot (GOV-RUNTIME-STATE-01, #150, owner t141u). Source of truth on GitHub; any local CHECKPOINT.md is a derived copy. Every PR that changes production or the plan must update this file (docs/governance/PROTOCOL.md).",
   "production": {
-    "release_sha": "8f64c6bdb9c0325f0a913ea3fb42f99950328982",
-    "verified_at": "2026-10-23T11:46:05Z",
-    "verification": "deploy-vps run 39947944189 (job 120395985918) success; its log carries mp-deploy's own report from the VPS: prev=releases/891e981, worker_restart=ok, result=OK total_s=80 health=200 at 2026-10-23T13:46:05+02:00. Service state after that line not observed directly by agent-a-claude-code (no VPS access).",
+    "release_sha": "6407f42d7c6dde5e059f48b2a2ec0e63cab412ae",
+    "verified_at": "2026-10-23T12:43:09Z",
+    "verification": "deploy-vps run 39954464439 success; job log carries mp-deploy's report from the VPS: prev=releases/8f64c6b, worker_restart=ok, result=OK total_s=82 health=200 at 2026-10-23T14:43:09+02:00. Service state after that line not observed directly by agent-a-claude-code (no VPS access).",
     "deploy": "automatic via deploy-vps workflow on push to main (OWN-T123U-AUTODEPLOY); no deploys 03:15-04:45 Europe/Rome (backup window)",
     "disabled": [
       "Render",
@@ -14,7 +14,7 @@
       "TotalCorner"
     ]
   },
-  "current_task": "MARKET-CORE-04 (#100): PR #217 in REVIEW, realigned to main 8f64c6b; HANDOFF-TEST-01 (#216) MERGED as 8f64c6b (owner GO), #150 NOT CERTIFIED; HIST-01a MERGED (891e981)",
+  "current_task": "LEDGER-CORE-03 (#99): ledger settlement from market rules and versioned outcomes (first development unit after the 2026-10-23 roadmap reconciliation, docs/governance/audits/2026-10-23-ROADMAP-RECON)",
   "blockers": [
     {
       "id": "R-02",
@@ -52,13 +52,14 @@
       "status": "PENDING"
     }
   ],
-  "next_action": "Owner decision on the PR #217 merge. FPT diagnosis: read-only script mp-fpt-diagnose.sh v2 handed to the owner, to be run on the VPS by an authorized operator. #150: evidence of the return leg and negative tests with real agents remain open",
+  "next_action": "LEDGER-CORE-03 PR: tests, CI, review; owner decision on its merge. Owner decision needed for real-data backtest (all stored FPT odds acquired after kickoff: NON_PIT research mode per DEC-007 or forward pre-match capture). FPT diagnosis script v2 to be run by an authorized operator",
   "roadmap_after_governance": [
-    "MARKET-CORE-04 (void/postponed/abandoned/corrected results)",
-    "#99 ledger link",
-    "MM persistence and models (D13=A)",
-    "#34 Strategy Lab/backtest",
-    "rest of canonical roadmap (t130u)"
+    "LEDGER-CORE-03 (#99): settle ledger positions from #100 rules and DEC-002 outcome versions",
+    "LEDGER-CORE-01 (#99): append-only ledger persistence (additive migration, owner approval for production)",
+    "PAPER/HIST link: simulated bets of the backtest engine through the ledger (one P/L path)",
+    "API v1 read endpoints for runs, positions, ledger (#98)",
+    "HIST-01b real-data backtest (needs the owner PIT decision)",
+    "rest of canonical roadmap (#97, reconciliation 2026-10-23)"
   ],
   "owner_decisions_relayed": {
     "source": "Owner instructions relayed to the agent by the bot conversation (Piero, Europe/Rome). Summaries transcribed by the agent; where the exact owner text is not available in the repo it is marked as such. Formal registry: docs/governance/owner-decisions.json.",

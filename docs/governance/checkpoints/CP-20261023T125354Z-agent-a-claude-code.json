@@ -1,0 +1,138 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "authorizations": [],
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T125354Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T12:53:54Z",
+  "mandate": {
+    "id": "MP-ROADMAP-RECON-START-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): roadmap reconciliation and start of the first development PR; no merge or deploy"
+  },
+  "task": "LEDGER-CORE-03",
+  "activity": "first development unit after the roadmap reconciliation: ledger settlement from #100 rules and DEC-002 result versions; PR #219",
+  "issue": 99,
+  "pr": 219,
+  "branch": "ledger-core-03",
+  "commit_sha": "7593336d5b5db7d71334dc9a04ee3976dfde51bb",
+  "tree_sha": "95eeceae607cfdefe468418e3806f6ad4fcbc680",
+  "base_sha": "6407f42d7c6dde5e059f48b2a2ec0e63cab412ae",
+  "requirements": [
+    "MP-MKT-001"
+  ],
+  "changes": [
+    "e48049a: roadmap reconciliation docs, MARKET-CORE-04 MERGED, DEC-015 status, runtime-state, LEDGER-CORE-03 registered",
+    "5a7f9e6: claim",
+    "6df3852: src/ledger/settlement.mjs settleFromResult, market binding on openPosition, resolution on settlement entries, tests, docs",
+    "7593336: owner mandate MP-ROADMAP-RECON-START-20261023 registered (the previous checkpoint named it before registration)"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "6df3852ec61770f2a10c25d7178ccabb048ee5ed",
+      "time": "2026-10-23T12:52:53Z",
+      "limits": [
+        "595 tests: 594 pass, 0 fail, 1 SKIPPED (postgres-independence needs PostgreSQL 17): skipped, not PASS"
+      ]
+    },
+    {
+      "command": "13 targeted mutations on settlement.mjs and paper-ledger.mjs",
+      "result": "PASS",
+      "environment": "Claude Code cloud container",
+      "commit": "6df3852ec61770f2a10c25d7178ccabb048ee5ed",
+      "time": "2026-10-23T12:52:53Z",
+      "limits": [
+        "12 killed, 1 equivalent mutant removed by simplifying the condition"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "6df3852ec61770f2a10c25d7178ccabb048ee5ed"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "review to be posted on the final head of PR #219"
+  },
+  "findings": [
+    {
+      "id": "LC03-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "in-memory only: persistence is LEDGER-CORE-01 (additive migration, owner approval for production)"
+    },
+    {
+      "id": "LC03-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the HIST-01a engine still settles with its own P/L path (settleMarket) and input VOID: unify through the ledger in a later unit"
+    },
+    {
+      "id": "RECON-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "real-data backtest needs an owner decision: all stored FPT odds acquired after kickoff (NON_PIT research mode per DEC-007 or forward pre-match capture)"
+    }
+  ],
+  "owner_decisions": [
+    "DEC-001",
+    "DEC-002",
+    "DEC-013",
+    "DEC-015"
+  ],
+  "progress": {
+    "done": [
+      "reconciliation recorded",
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and review"
+    ],
+    "not_started": [
+      "merge (owner decision)"
+    ]
+  },
+  "resources": [
+    "src/ledger/settlement.mjs",
+    "src/ledger/paper-ledger.mjs",
+    "test/ledger-core-03.test.mjs",
+    "branch:ledger-core-03",
+    "pr:219"
+  ],
+  "stop_conditions": [
+    "no merge or deploy without owner authorization",
+    "one development PR at a time"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and review on PR #219; owner decision on its merge",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": "CP-20261023T125253Z-agent-a-claude-code"
+}
