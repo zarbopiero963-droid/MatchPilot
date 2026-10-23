@@ -5,7 +5,7 @@ import {Decimal, dec, ROUNDING} from '../math/decimal.mjs';
 import {MODES} from '../ledger/paper-ledger.mjs';
 import {REGISTRY, IMPLEMENTED_TYPES} from './registry.mjs';
 
-export const MM_ENGINE_VERSION = 'mp-mm-2';
+export const MM_ENGINE_VERSION = 'mp-mm-3';
 export const BANKROLL_MODES = Object.freeze(['SHARED_ACCOUNT_BANKROLL', 'SEGREGATED']);
 // Implemented models with their capability flags, from the registry (MM-PR-01). DISCOVERED models are not usable.
 export const MODELS = Object.freeze(Object.fromEntries(REGISTRY.filter(t => IMPLEMENTED_TYPES.includes(t.type_id))
@@ -50,13 +50,27 @@ export function createProfile({profileId, version = 1, model, params = {}, caps 
     return v;
   };
   const c = {max_stake: optDec('caps.max_stake', caps.max_stake), max_liability: optDec('caps.max_liability', caps.max_liability),
-    max_total_exposure: optDec('caps.max_total_exposure', caps.max_total_exposure)};
-  const unknown = Object.keys(caps).filter(k => !['max_stake', 'max_liability', 'max_total_exposure', 'max_concurrent_trades'].includes(k));
+    max_total_exposure: optDec('caps.max_total_exposure', caps.max_total_exposure),
+    max_exposure_per_match: optDec('caps.max_exposure_per_match', caps.max_exposure_per_match),
+    max_exposure_per_market: optDec('caps.max_exposure_per_market', caps.max_exposure_per_market),
+    max_exposure_per_league: optDec('caps.max_exposure_per_league', caps.max_exposure_per_league),
+    max_exposure_per_strategy: optDec('caps.max_exposure_per_strategy', caps.max_exposure_per_strategy),
+    min_odds: optDec('caps.min_odds', caps.min_odds), max_odds: optDec('caps.max_odds', caps.max_odds)};
+  const KNOWN = ['max_stake', 'max_liability', 'max_total_exposure', 'max_concurrent_trades', 'max_exposure_per_match',
+    'max_exposure_per_market', 'max_exposure_per_league', 'max_exposure_per_strategy', 'min_odds', 'max_odds', 'filter_fail_action'];
+  const unknown = Object.keys(caps).filter(k => !KNOWN.includes(k));
   if (unknown.length) fail('BAD_INPUT', `unsupported caps: ${unknown.join(', ')}`);
   const str = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, v === null ? null : v.toString()]));
   const maxConcurrent = intCap('caps.max_concurrent_trades', caps.max_concurrent_trades);
+  if (c.min_odds && !c.min_odds.gt(1)) fail('BAD_INPUT', 'caps.min_odds must be > 1');
+  if (c.min_odds && c.max_odds && c.min_odds.gt(c.max_odds)) fail('BAD_INPUT', 'caps.min_odds > caps.max_odds');
+  // #96 "ELSE: reduce stake / block / simulation only": the outcome of a failed filter is a profile choice, never a default.
+  const hasFilter = c.min_odds || c.max_odds;
+  const ffa = caps.filter_fail_action ?? null;
+  if (hasFilter && !['BLOCK', 'SIMULATION_ONLY'].includes(ffa)) fail('BAD_INPUT', 'odds filters need caps.filter_fail_action BLOCK or SIMULATION_ONLY');
+  if (!hasFilter && ffa !== null) fail('BAD_INPUT', 'caps.filter_fail_action without filters');
   return Object.freeze({profile_id: profileId, version, model, capabilities: MODELS[model], params: Object.freeze(str(p)),
-    caps: Object.freeze({...str(c), max_concurrent_trades: maxConcurrent}), bankroll_mode: bankrollMode, void_push_advances_progression: voidPushAdvancesProgression,
+    caps: Object.freeze({...str(c), max_concurrent_trades: maxConcurrent, filter_fail_action: ffa}), bankroll_mode: bankrollMode, void_push_advances_progression: voidPushAdvancesProgression,
     stake_step: dec(stakeStep).toString(), engine_version: MM_ENGINE_VERSION});
 }
 
@@ -106,6 +120,20 @@ export function evaluate({profile, operational, account, proposal, commissionRat
       caps.push('max_total_exposure');
     }
   }
+  // Optional per-scope caps (#96 "max exposure per partita/mercato/campionato/strategia"). Fail closed: a set cap with no
+  // scope id on the proposal cannot be checked, so the proposal is BLOCKed (never silently skipped).
+  const missingScope = [];
+  for (const k of ['match', 'market', 'league', 'strategy']) {
+    const lim = profile.caps[`max_exposure_per_${k}`];
+    if (!lim) continue;
+    const id = proposal.scope?.[k];
+    if (!id) { missingScope.push(k); continue; }
+    const room = dec(lim).sub(dec(account.open_exposure_by_scope?.[k]?.[id] ?? '0'));
+    if (liabilityOf(side, odds, stake).gt(room)) {
+      stake = room.gt(0) ? fromLiability(room) : Decimal.zero();
+      caps.push(`max_exposure_per_${k}`);
+    }
+  }
   // Hard account safety: the worst case must fit the available shared bankroll (exposure of every profile included).
   if (liabilityOf(side, odds, stake).gt(available)) {
     stake = side === 'LAY' ? available.div(odds.sub(1)).roundToStep(profile.stake_step, ROUNDING.DOWN) : available.roundToStep(profile.stake_step, ROUNDING.DOWN);
@@ -117,7 +145,15 @@ export function evaluate({profile, operational, account, proposal, commissionRat
   if (profile.caps.max_concurrent_trades && account.open_position_count >= profile.caps.max_concurrent_trades) {
     decision = 'BLOCK'; caps.push('max_concurrent_trades'); reasons.push('MAX_CONCURRENT_TRADES');
   }
+  if (missingScope.length) { decision = 'BLOCK'; reasons.push(...missingScope.map(k => `SCOPE_ID_MISSING:${k}`)); }
+  // Odds filters (#96 "min/max odds"): outcome chosen by the profile (filter_fail_action).
+  const failed = [];
+  if (profile.caps.min_odds && odds.lt(profile.caps.min_odds)) failed.push('min_odds');
+  if (profile.caps.max_odds && odds.gt(profile.caps.max_odds)) failed.push('max_odds');
   let execution = decision !== 'BLOCK';
+  if (failed.length && decision !== 'BLOCK') {
+    decision = profile.caps.filter_fail_action; execution = false; reasons.push('FILTER_FAILED');
+  }
   if (operational.mode === 'ADVISORY_ONLY') { decision = 'SIMULATION_ONLY'; execution = false; reasons.push('ADVISORY_ONLY'); }
   if (operational.mode === 'PAUSED' || operational.mode === 'ARCHIVED') { decision = 'BLOCK'; execution = false; reasons.push(operational.mode); }
   return Object.freeze({decision, execution_permission: execution,
@@ -129,7 +165,7 @@ export function evaluate({profile, operational, account, proposal, commissionRat
     bankroll_mode: profile.bankroll_mode, commission_rate_used: commissionRate === undefined ? null : dec(commissionRate).toString(),
     settings_version: settingsVersion ?? null, bankroll_snapshot_ref: `${account.account_id}@${account.entries}`,
     exposure_snapshot_ref: `${account.account_id}@${account.entries}:open_liability=${account.open_liability}`,
-    matched_rules: Object.freeze([]), failed_filters: Object.freeze([]) /* rule/filter engine: MM-PR-03 */, timestamp: at ?? null});
+    matched_rules: Object.freeze([]), failed_filters: Object.freeze(failed), timestamp: at ?? null});
 }
 
 // Sequence state advances only from a final #99 settlement, once per position (also during STOP, DEC-001), never for an

@@ -48,3 +48,16 @@ API/UI, modelli oltre FIXED_STAKE / PERCENT_BANKROLL, filtri/regole condizionali
 | Filters + rule engine with deterministic priority | not done (MM-PR-03) |
 | Profile CRUD/versioning/safe delete, replay evaluation | not done |
 | Persistence, API/UI | blocked by D13 |
+
+## MM-PR-02 (t143): per-scope exposure caps, min/max odds, reset flags
+
+Source: #96 "Parametri policy / risk – Minimo", "Filtri", the capability schema in the #96 comment, and "Priorità deterministica".
+- `openPosition({..., scope: {match, market, league, strategy}})`: optional plain-id tags. `accountState().open_exposure_by_scope`.
+- Caps `max_exposure_per_{match,market,league,strategy}`: REDUCE to the remaining room, BLOCK when none is left. A set cap
+  with no scope id on the proposal fails closed (`SCOPE_ID_MISSING:<scope>`, BLOCK).
+- `min_odds`/`max_odds` filters: the outcome is the profile's `filter_fail_action` (BLOCK | SIMULATION_ONLY), with no default
+  (#96 "ELSE: reduce stake / block / simulation only"); reported in `failed_filters`.
+- Registry capabilities now include reset_on_win/loss/void (null for DISCOVERED models).
+- Hard account safety (available bankroll) is applied after every profile cap, so no cap can exceed it (#96 priority 1).
+- Undefined items (formulas, per-day exposure, loss/drawdown/stop/cooldown, same-level rule ties) are owner questions; see
+  the consolidated package (mm-owner-questions.md, delivered outside the repo).

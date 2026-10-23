@@ -12,9 +12,9 @@ const FIELDS = ['type_id', 'name', 'category', 'description', 'formula', 'formul
   'settlement_dependency', 'supported_markets', 'supported_sides', 'risk_constraints', 'void_policy', 'reset_policy', 'test_vectors', 'certification_status'];
 const FLAGS = ['requires_bankroll', 'requires_available_bankroll', 'requires_previous_settlement', 'requires_sequence_state', 'requires_open_exposure',
   'requires_liability', 'supports_back', 'supports_lay', 'supports_dutch', 'supports_live', 'supports_prematch', 'supports_void',
-  'supports_partial_settlement', 'can_run_without_settlement_history'];
+  'supports_partial_settlement', 'reset_on_win', 'reset_on_loss', 'reset_on_void', 'can_run_without_settlement_history'];
 
-test('registry: full #96 census with every field and the 14 capability flags', () => {
+test('registry: full #96 census with every field and the 17 #96 capability flags', () => {
   assert.equal(REGISTRY.length, 16);
   for (const t of REGISTRY) {
     for (const f of FIELDS) assert.ok(f in t, `${t.type_id}.${f}`);

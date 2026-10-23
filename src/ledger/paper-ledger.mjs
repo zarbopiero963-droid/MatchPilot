@@ -63,7 +63,7 @@ export function replay(ledger) {
       case 'INITIAL_ALLOCATION': cash = cash.add(a); allocated = allocated.add(a); break;
       case 'OPEN': case 'HEDGE': {
         const p = positions.get(e.position_id) || {position_id: e.position_id, legs: [], status: 'OPEN', commission_rate: e.commission_rate,
-          settings_snapshot_id: e.settings_snapshot_id, settlement: null, settlement_version: 0, history: []};
+          settings_snapshot_id: e.settings_snapshot_id, scope: e.scope ?? null, settlement: null, settlement_version: 0, history: []};
         p.legs.push({side: e.side, odds: dec(e.odds), stake: dec(e.stake)});
         positions.set(e.position_id, p); break;
       }
@@ -84,11 +84,15 @@ export function replay(ledger) {
     }
   }
   let reserved = Decimal.zero(), openCount = 0;
+  const byScope = Object.fromEntries(SCOPES.map(k => [k, new Map()]));
   for (const p of positions.values()) {
     p.exposure = exposureOf(p.legs);
-    if (p.settlement === null) { reserved = reserved.add(p.exposure); openCount++; }
+    if (p.settlement === null) {
+      reserved = reserved.add(p.exposure); openCount++;
+      for (const [k, id] of Object.entries(p.scope ?? {})) byScope[k].set(id, (byScope[k].get(id) ?? Decimal.zero()).add(p.exposure));
+    }
   }
-  return {positions, cash, reserved, realized, commission, allocated, openCount};
+  return {positions, cash, reserved, realized, commission, allocated, openCount, byScope};
 }
 
 export function accountState(ledger) {
@@ -99,6 +103,9 @@ export function accountState(ledger) {
     available_bankroll: s(r.cash.sub(r.reserved)), realized_pnl: s(r.realized), settled_commission: s(r.commission),
     unrealized_pnl: null /* needs live prices: not computed, never invented */, equity: s(r.cash),
     open_position_count: r.openCount,
+    // Open exposure per scope tag (only positions opened with a scope). #96 reads it for per-scope caps.
+    open_exposure_by_scope: Object.freeze(Object.fromEntries(Object.entries(r.byScope).map(([k, m]) =>
+      [k, Object.freeze(Object.fromEntries([...m].map(([id, v]) => [id, v.toString()])))]))),
     // Reconciliation gate (#99): allocation + realized net P/L = cash, to the unit.
     reconciled: r.allocated.add(r.realized).eq(r.cash)});
 }
@@ -116,14 +123,26 @@ const remember = (ledger, key, fingerprint, entries) => {
 };
 
 // New virtual position. DEC-001: refused outside ACTIVE_OPERATIONAL; no entry is written.
-export function openPosition(ledger, {mode, positionId, side, odds, stake, commissionRate, settingsSnapshotId, idempotencyKey, at}) {
+const SCOPES = Object.freeze(['match', 'market', 'league', 'strategy']);
+// Optional exposure scope tags (#96 "max exposure per partita/mercato/campionato/strategia"). Plain ids, no semantics.
+function scopeOf(scope) {
+  if (scope === undefined || scope === null) return null;
+  const out = {};
+  for (const [k, v] of Object.entries(scope)) {
+    if (!SCOPES.includes(k)) fail('BAD_INPUT', `unknown scope ${k}`);
+    if (v !== undefined && v !== null) out[k] = text(`scope.${k}`, v);
+  }
+  return Object.keys(out).length ? Object.freeze(out) : null;
+}
+export function openPosition(ledger, {mode, positionId, side, odds, stake, commissionRate, settingsSnapshotId, idempotencyKey, at, scope}) {
   if (!MODES.includes(mode)) fail('BAD_INPUT', `unknown mode ${mode}`);
   if (mode !== 'ACTIVE_OPERATIONAL') fail('OPEN_BLOCKED_BY_MODE', `${mode}: no new virtual position can be opened (DEC-001)`);
   if (!SIDES.includes(side)) fail('BAD_INPUT', `side must be BACK or LAY`);
   const o = positive('odds', odds); if (!o.gt(1)) fail('BAD_INPUT', 'odds must be > 1');
   const leg = {side, odds: o, stake: positive('stake', stake)};
   const cr = rate(commissionRate); text('settings_snapshot_id', settingsSnapshotId); text('position_id', positionId);
-  const fp = JSON.stringify(['OPEN', positionId, side, o, leg.stake, cr, settingsSnapshotId]);
+  const sc = scopeOf(scope);
+  const fp = JSON.stringify(['OPEN', positionId, side, o, leg.stake, cr, settingsSnapshotId, sc]);
   const again = idempotent(ledger, idempotencyKey, fp); if (again) return again;
   const r = replay(ledger);
   if (r.positions.has(positionId)) fail('POSITION_EXISTS', positionId);
@@ -131,7 +150,7 @@ export function openPosition(ledger, {mode, positionId, side, odds, stake, commi
   if (need.gt(r.cash.sub(r.reserved))) fail('INSUFFICIENT_AVAILABLE_BANKROLL', `needs ${need}, available ${r.cash.sub(r.reserved)}`);
   const e = append(ledger, {type: 'OPEN', position_id: positionId, side, odds: o.toString(), stake: leg.stake.toString(),
     commission_rate: cr.toString() /* DEC-013: fixed at the simulated fill */, settings_snapshot_id: settingsSnapshotId,
-    reserved: need.toString(), at});
+    reserved: need.toString(), ...(sc ? {scope: sc} : {}), at});
   return remember(ledger, idempotencyKey, fp, [e]);
 }
 
