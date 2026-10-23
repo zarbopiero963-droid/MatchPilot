@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 182,
+  "revision": 183,
   "tasks": [
     {
       "id": "R-01",
@@ -1320,6 +1320,31 @@
       },
       "pr_open": false,
       "merge_sha": "2cd0b613751f42911f689922851092dbc251c2fa"
+    },
+    {
+      "id": "STRAT-CFG-01",
+      "title": "STRAT-CFG-01: configurable strategies (definitions, API, Simulazione)",
+      "issue": 34,
+      "pr": 230,
+      "branch": "next-unit-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T190341Z-agent-a-claude-code",
+      "resources": [
+        "src/hist/strategy-def.mjs",
+        "src/hist/engine.mjs",
+        "src/api/hist-backtest.mjs",
+        "src/web/app.js",
+        "tools/qa/journeys.mjs",
+        "test/visual",
+        "docs/mockups"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": true
     }
   ]
 }
