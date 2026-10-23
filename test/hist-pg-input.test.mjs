@@ -8,7 +8,7 @@ import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {gzipSync} from 'node:zlib';
 import test from 'node:test';
-import {FPT_BOOKMAKER, buildFptHistInput, readFptHistInput} from '../src/providers/futpython/hist-input.mjs';
+import {FPT_BOOKMAKER, buildFptHistInput, providerPrice, readFptHistInput} from '../src/providers/futpython/hist-input.mjs';
 import {STATUS, runBacktest} from '../src/hist/engine.mjs';
 import {validateInput} from '../src/hist/contract.mjs';
 
@@ -62,10 +62,19 @@ test('FPT reader: versions, prices and results from PostgreSQL; PIT finds nothin
       await version('fpt:id:m3', '2025-09-22', 'Leeds', 'Wolves', {Home_Score: '2', Away_Score: '1', Odd_1_FT: '1.70', Odd_X_FT: '3.80', Odd_2_FT: '5.00'}, '2026-10-06T08:00:00Z');
       await version('fpt:id:m4', '2025-10-30', 'Spurs', 'Villa', {Home_Score: '0', Away_Score: '0', Odd_1_FT: '2.00', Odd_X_FT: '3.40', Odd_2_FT: '3.80'}, '2026-10-04T08:00:00Z');
       await db.query('SELECT fpt_refresh_match_facts()');
+      // After the facts refresh, a dataset still being onboarded adds a version under m1's key with another result and
+      // price: the reader must never read it (review B-1).
+      await db.query(`INSERT INTO fpt_onboarding(dataset_key,country_slug,league_slug,season,kind,promotion,state)
+        VALUES('england-pl-cup-2025','england','pl-cup','2025','new_league','owner','DISCOVERED')`);
+      await db.query(`INSERT INTO fpt_match_versions(match_key,dataset_key,snapshot_id,acquired_at,country_slug,league_slug,season,match_date,match_time,home,away,phase,payload,payload_sha256)
+        VALUES('fpt:id:m1','england-pl-cup-2025',$1,'2026-10-07T08:00:00Z','england','pl-cup','2025','2025-09-20','15:00','Arsenal','Chelsea','HISTORICAL',$2,$3)`,
+      [snapshot, JSON.stringify({Home_Score: '0', Away_Score: '3', Odd_1_FT: '1.50', Odd_X_FT: '4.00', Odd_2_FT: '6.00'}), sha256('discovered')]);
       const before = (await db.query(`SELECT (SELECT count(*) FROM fpt_match_versions) v, (SELECT count(*) FROM fpt_match_facts) f`)).rows[0];
 
-      const input = await readFptHistInput(db, {dateFrom: '2025-09-01', dateTo: '2025-09-30'});
+      const {input, stats} = await readFptHistInput(db, {dateFrom: '2025-09-01', dateTo: '2025-09-30'});
       validateInput(input);
+      assert.deepEqual([stats.events, stats.versions, stats.prices_dropped], [3, 5, {}], 'the DISCOVERED dataset version is not read');
+      assert.ok(!input.outcomes.some(o => o.provenance.endsWith(':snapshot:' + snapshot) && o.home_score === 0 && o.away_score === 3));
       assert.deepEqual(input.events.map(e => [e.event_id, e.match_date, e.kickoff_utc, e.home]),
         [['fpt:id:m1', '2025-09-20', null, 'Arsenal'], ['fpt:id:m2', '2025-09-21', null, 'Everton'], ['fpt:id:m3', '2025-09-22', null, 'Leeds']]);
       assert.equal(input.observations.find(o => o.event_id === 'fpt:id:m2' && o.selection === 'AWAY').odds, '2.1');
@@ -104,6 +113,7 @@ test('FPT reader: versions, prices and results from PostgreSQL; PIT finds nothin
 
       const after = (await db.query(`SELECT (SELECT count(*) FROM fpt_match_versions) v, (SELECT count(*) FROM fpt_match_facts) f`)).rows[0];
       assert.deepEqual(after, before, 'the reader writes nothing');
+      assert.equal(summary.reader.events, 3);
       await assert.rejects(readFptHistInput(db, {dateFrom: '2025-10-01', dateTo: '2025-09-01'}), {code: 'BAD_INPUT'});
       await assert.rejects(readFptHistInput(db, {dateFrom: '2025-09-01', dateTo: '2025-09-30', competitionId: "x' OR 1=1"}), {code: 'BAD_INPUT'});
     } finally { await db.end(); }
@@ -115,11 +125,28 @@ test('FPT reader: versions, prices and results from PostgreSQL; PIT finds nothin
 
 test('FPT reader (pure): ids outside the contract alphabet are hashed, absent names are N/D, prices keep the provider value', () => {
   const rows = [{match_key: 'fpt:id:a b', match_date: '2025-09-20', kickoff_utc: null, home: null, away: ' Away ', version_id: 7, snapshot_id: 3,
-    acquired_at: '2026-10-04T08:00:00Z', phase: 'PREMATCH', home_score: null, away_score: null, odd_home: '2.000', odd_draw: null, odd_away: '1.050'}];
-  const input = buildFptHistInput(rows, {datasetId: 'fpt:test', description: 'pure'});
+    acquired_at: '2026-10-04T08:00:00Z', phase: 'PREMATCH', home_score: null, away_score: null, odd_1: '2.000', odd_x: null, odd_d: '1,00', odd_2: 'n/a', odd_a: '1.050'}];
+  const {input, stats} = buildFptHistInput(rows, {datasetId: 'fpt:test', description: 'pure'});
+  assert.deepEqual(stats.prices_dropped, {NOT_A_PRICE: 1, NOT_GREATER_THAN_1: 1});
   assert.match(input.events[0].event_id, /^fpt:key:[0-9a-f]{32}$/);
   assert.deepEqual([input.events[0].home, input.events[0].away], ['N/D', 'Away']);
   assert.deepEqual(input.observations.map(o => [o.selection, o.odds]), [['HOME', '2'], ['AWAY', '1.05']]);
   assert.deepEqual([input.outcomes[0].status, input.outcomes[0].provenance], ['NOT_FINAL', 'futpythontrader:snapshot:3']);
   validateInput(input);
+});
+
+test('provider prices are kept exactly, never rounded; unusable prices are dropped and counted (review B-2)', () => {
+  const cases = [['1.0004', '1.0004'], ['2.1234', '2.1234'], ['2,10', '2.1'], ['10.000', '10'], ['007.50', '7.5'], [' 3.4 ', '3.4']];
+  for (const [raw, price] of cases) assert.equal(providerPrice(raw).price, price, raw);
+  for (const [raw, reason] of [['1.000', 'NOT_GREATER_THAN_1'], ['0.95', 'NOT_GREATER_THAN_1'], ['1.1234567', 'PRECISION_OUT_OF_CONTRACT'],
+    ['12345678', 'PRECISION_OUT_OF_CONTRACT'], ['-2', 'NOT_A_PRICE'], ['2e1', 'NOT_A_PRICE'], ['', null], [null, null]]) {
+    assert.deepEqual(providerPrice(raw), {price: null, reason}, String(raw));
+  }
+  // A price that fpt_price would round to 1 does not stop the run: it is kept as 1.0004 (> 1).
+  const {input} = buildFptHistInput([{match_key: 'k', match_date: '2025-09-20', kickoff_utc: null, home: 'H', away: 'A', version_id: 1, snapshot_id: 1,
+    acquired_at: '2026-10-04T08:00:00Z', phase: 'HISTORICAL', home_score: 1, away_score: 0, odd_1: '1.0004', odd_x: '9', odd_2: '30'}], {datasetId: 'fpt:t', description: 'd'});
+  validateInput(input);
+  assert.equal(input.observations[0].odds, '1.0004');
+  assert.throws(() => buildFptHistInput([{match_key: 'k', acquired_at: '2026-10-05T00:00:00Z', version_id: 2, snapshot_id: 1, home: 'H', away: 'A'},
+    {match_key: 'k', acquired_at: '2026-10-04T00:00:00Z', version_id: 1, snapshot_id: 1, home: 'H', away: 'A'}], {datasetId: 'x', description: 'd'}), {code: 'ROWS_NOT_ORDERED'});
 });

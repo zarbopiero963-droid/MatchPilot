@@ -44,11 +44,11 @@ catch (error) { console.error(`HIST_FPT_ERROR DB_UNREACHABLE ${error.code ?? ''}
 try {
   // Read only: the session refuses any write.
   await db.query('SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY');
-  const input = await readFptHistInput(db, {dateFrom: options.from, dateTo: options.to, competitionId: options.competition, maxEvents: options.maxEvents});
+  const {input, stats} = await readFptHistInput(db, {dateFrom: options.from, dateTo: options.to, competitionId: options.competition, maxEvents: options.maxEvents});
   if (options.inputOut) writeFileSync(options.inputOut, canonicalJson(input) + '\n');
   const report = runBacktest(input, JSON.parse(readFileSync(options.config, 'utf8')), {codeVersion: options.codeVersion});
   writeFileSync(options.out, canonicalJson(report) + '\n');
-  console.log(JSON.stringify({status: report.status, pit_mode: report.config.pit_mode, events: report.counts.events, bets: report.bets.length,
+  console.log(JSON.stringify({reader: stats, status: report.status, pit_mode: report.config.pit_mode, events: report.counts.events, bets: report.bets.length,
     pl_net: report.metrics?.pl_net ?? null, certification: report.certification, report_sha256: report.report_sha256}));
 } catch (error) {
   console.error(`HIST_FPT_ERROR ${error.code ?? 'ERROR'} ${error.message}`);

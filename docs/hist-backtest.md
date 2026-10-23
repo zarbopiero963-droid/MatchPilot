@@ -55,13 +55,16 @@ Every list is sorted by its ids, so the same data in any order has the same hash
 | Result versions without kickoff | — | all used; the bet carries `kickoff_filter: NOT_APPLIED_KICKOFF_UNKNOWN` |
 | Certification block | `pit_mode: PIT` | `pit_mode: NON_PIT_RESEARCH`, and the notice says the figures are not point-in-time and no evidence of real profitability; `certified` stays `false` |
 
+Further NON_PIT notes: `counts.admitted` includes the overridden observations; the latest price of an FPT match can be one acquired after the result (the stored historical version); for a match decided by date, the ledger entries of its opening carry the date (`YYYY-MM-DD`) as their time, while settlements carry the result's acquisition instant.
+
 The mode is part of the settings snapshot; a PIT configuration keeps the snapshot id it had before the mode existed. Events may carry an optional `match_date` (`YYYY-MM-DD`).
 
 ## FutPythonTrader data (HIST-PG-01)
 
 `readFptHistInput(db, {dateFrom, dateTo, competitionId, maxEvents})` reads the matches of `fpt_match_facts` in the date range (optionally one `fpt:competition:` id, at most 50,000 events) and every acquired version in `fpt_match_versions`:
 - **events:** the match key (hashed when it has characters outside the contract's alphabet), names as given (`N/D` when absent), `match_date`, and `kickoff_utc: null` (the provider's time zone is undocumented);
-- **observations:** the 1X2 prices of each version (`Odd_1_FT`/`Odd_H_FT`, …, the same parsing as the facts), bookmaker `futpythontrader-odds`, `provider_time: null` (FPT has no price timestamp), `acquired_at` = the ingestion time;
+- **observations:** the 1X2 prices of each version (`Odd_1_FT` then `Odd_H_FT`, …; the facts' acceptance rule, digits with `,` or `.` decimals and greater than 1), kept exactly as the provider wrote them, never rounded; a price the contract cannot carry (more than 7 integer or 6 decimal digits) or not greater than 1 is dropped and counted in the reader's `prices_dropped`; bookmaker `futpythontrader-odds`, `provider_time: null` (FPT has no price timestamp), `acquired_at` = the ingestion time;
+- **onboarding gate:** only versions of datasets with no onboarding row or an `ACTIVE` one are read (the facts' gate, migration 018);
 - **results:** one version per acquired version, numbered in acquisition order, `FINAL` only for a historical version with both scores, provenance `futpythontrader:snapshot:<id>`.
 
 Nothing is invented or written. Because the stored prices were acquired after kickoff, a PIT run gives `INSUFFICIENT_PIT_DATA`; `NON_PIT_RESEARCH` simulates them as labelled exploratory runs.
