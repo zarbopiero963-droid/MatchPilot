@@ -642,3 +642,12 @@ test('ledger P/L on seeded random fixtures: every bet, the metrics and the ledge
     }
   }
 });
+
+test('ledger commission on an exact half cent is HALF_EVEN (final-head review NB-1)', () => {
+  // BACK HOME 1.50 at stake 1 wins 0.50; 5 % = 0.025, charged 0.02 (HALF_UP would charge 0.03).
+  const tie = versioned([rv('x', 1, 'FINAL', 1, 0, '2026-03-01T17:00:00Z')], {commission: '0.05'});
+  assert.deepEqual([tie.bets[0].settlement.gross, tie.bets[0].settlement.commission, tie.bets[0].settlement.net], ['0.5', '0.02', '0.48']);
+  // 0.035 rounds up to the even cent 0.04.
+  const up = versioned([rv('x', 1, 'FINAL', 1, 0, '2026-03-01T17:00:00Z')], {commission: '0.07'});
+  assert.equal(up.bets[0].settlement.commission, '0.04');
+});
