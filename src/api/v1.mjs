@@ -11,7 +11,9 @@ export const MAX_PARAM_LENGTH = 200;
 // R-04 (#23, D12): every v1 route needs an owner session when MATCHPILOT_AUTH=enforce; otherwise it is open.
 export const AUTH_NOTE = 'owner session when MATCHPILOT_AUTH=enforce (R-04, docs/auth.md)';
 
-const STATUS = {BAD_REQUEST: 400, UNKNOWN_PARAMETER: 400, NOT_FOUND: 404, METHOD_NOT_ALLOWED: 405, URI_TOO_LONG: 414, UNAVAILABLE: 503, INTERNAL: 500};
+const STATUS = {BAD_REQUEST: 400, UNKNOWN_PARAMETER: 400, NOT_FOUND: 404, METHOD_NOT_ALLOWED: 405, URI_TOO_LONG: 414, BUSY: 429, UNAVAILABLE: 503, INTERNAL: 500};
+// Endpoints marked `exclusive` run one request at a time per process (a CPU-bound computation must not pile up).
+const running = new Set();
 
 export class ApiError extends Error {
   constructor(code, message, details = undefined) {
@@ -192,6 +194,11 @@ export async function handleV1({method, url}, {withClient, tc, codeVersion = 'un
     if (!endpoint) throw new ApiError('NOT_FOUND', 'unknown v1 endpoint; see /api/v1/endpoints');
     if (method !== 'GET') throw new ApiError('METHOD_NOT_ALLOWED', 'only GET is supported');
     const input = validateInput(endpoint, url);
+    if (endpoint.exclusive) {
+      if (running.has(endpoint.path)) throw new ApiError('BUSY', 'another request of this endpoint is running; retry later');
+      running.add(endpoint.path);
+    }
+    try {
     let data;
     if (endpoint.path === '/api/v1/endpoints') data = describe(endpoints);
     else if (endpoint.db === false) data = await endpoint.read(null, input);
@@ -206,8 +213,11 @@ export async function handleV1({method, url}, {withClient, tc, codeVersion = 'un
         throw error;
       }
     }
+    // `compute` runs after the database client is released: CPU work never holds a pooled connection or a transaction.
+    if (endpoint.compute && data !== null && data !== undefined) data = endpoint.compute(data, input);
     if (data === null || data === undefined) throw new ApiError('NOT_FOUND', 'no data for this request');
     return {status: 200, body: envelope(endpoint, data, {codeVersion, now: now(), input})};
+    } finally { if (endpoint.exclusive) running.delete(endpoint.path); }
   } catch (error) {
     const safe = error instanceof ApiError ? error : new ApiError('INTERNAL', 'internal error');
     return {status: safe.status, body: errorBody(safe)};

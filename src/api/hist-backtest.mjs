@@ -8,7 +8,11 @@ import {PIT_MODES, runBacktest, validateConfig} from '../hist/engine.mjs';
 import {STRATEGIES} from '../hist/strategies.mjs';
 import {FPT_BOOKMAKER, readFptHistInput} from '../providers/futpython/hist-input.mjs';
 
-export const HIST_BACKTEST_LIMITS = Object.freeze({maxDays: 366, maxEvents: 2000, defaultEvents: 500, statementTimeoutMs: 20000});
+// The engine is synchronous and its paper ledger replays its entries on every operation (cost grows with the square of
+// the bets): the event cap keeps one run under about half a second (measured: 200 events ≈ 0.45 s, 300 ≈ 1.1 s), runs
+// are exclusive (one at a time, others get 429 BUSY) and the computation happens after the database client is released
+// (PR #227 review B-1). Raising the cap waits for an incremental ledger replay.
+export const HIST_BACKTEST_LIMITS = Object.freeze({maxDays: 366, maxEvents: 200, defaultEvents: 100, statementTimeoutMs: 20000});
 // The #96 models the API exposes, with the single parameter each one takes.
 const MM_PARAM = Object.freeze({FIXED_STAKE: 'stake', FIXED_LIABILITY: 'liability', PERCENT_BANKROLL: 'percent', LIABILITY_PERCENT_BANKROLL: 'percent'});
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -31,6 +35,7 @@ export function configOf(input) {
 }
 
 export function histBacktestEndpoint({param, integer, oneOf, instant, ApiError}) {
+  // ApiError is the v1 class, so compute() can raise a 400 after the client is released.
   return {
     path: '/api/v1/hist/backtest', source: 'MatchPilot',
     summary: 'Backtest BACK/LAY sui dati FutPythonTrader salvati: PIT (default) o NON_PIT_RESEARCH etichettato; ledger paper, bankroll e Money Management opzionali. Sola lettura, nessuna certificazione.',
@@ -63,24 +68,30 @@ export function histBacktestEndpoint({param, integer, oneOf, instant, ApiError})
     },
     read: async (client, input) => {
       let read;
+      const maxEvents = input.max_events ?? HIST_BACKTEST_LIMITS.defaultEvents;
       await client.query('BEGIN READ ONLY');
       try {
         await client.query(`SET LOCAL statement_timeout = ${HIST_BACKTEST_LIMITS.statementTimeoutMs}`);
-        read = await readFptHistInput(client, {dateFrom: input.from, dateTo: input.to, competitionId: input.competition ?? null,
-          maxEvents: input.max_events ?? HIST_BACKTEST_LIMITS.defaultEvents});
+        read = await readFptHistInput(client, {dateFrom: input.from, dateTo: input.to, competitionId: input.competition ?? null, maxEvents});
         await client.query('COMMIT');
       } catch (error) {
         await client.query('ROLLBACK').catch(() => {});
+        // A row the reader refuses is a data defect (500), not an unavailable database: drop the string code.
+        if (error?.code === 'BAD_ROW' || error?.code === 'ROWS_NOT_ORDERED') throw new Error(error.message);
         throw error;
       }
+      return {read, truncated: read.stats.events >= maxEvents};
+    },
+    exclusive: true,
+    compute: ({read, truncated}, input) => {
       let report;
       try { report = runBacktest(read.input, configOf(input)); }
       catch (error) {
-        // Stored data the contract refuses is reported as such, never as an unavailable database.
-        if (error instanceof HistInputError) throw Object.assign(new Error(`stored data refused by the backtest contract: ${error.message}`), {code: 'BAD_QUERY_INPUT'});
+        // Stored data the contract refuses is reported as such; any other engine error stays INTERNAL.
+        if (error instanceof HistInputError) throw badRequest(ApiError, `stored data refused by the backtest contract: ${error.message}`);
         throw error;
       }
-      return {reader: read.stats, report};
+      return {reader: {...read.stats, truncated}, report};
     },
     provenance: data => ({source: 'database', source_provider: 'futpythontrader', upstream_calls: 0, writes: 0,
       pit_mode: data.report.config.pit_mode, certification: data.report.certification, report_sha256: data.report.report_sha256}),

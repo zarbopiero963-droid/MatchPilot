@@ -35,3 +35,29 @@ test('a valid request reads in a READ ONLY transaction and returns the labelled 
   // Defaults are the tests' (stake 1, commission 0), never a guessed market rate.
   assert.deepEqual(configOf({}), {strategy: 'mp-ref-fav-back-1', bookmaker: 'futpythontrader-odds', lead_minutes: 10, commission: '0', pit_mode: 'PIT', stake: '1'});
 });
+
+test('a CPU-bound run is exclusive, computes after the client is released, and flags truncation (PR #227 review B-1)', async () => {
+  // Exclusive: while one request holds the endpoint, a second gets 429 BUSY before touching the database.
+  let releaseFirst;
+  const slowClient = {query: async sql => { if (sql === 'COMMIT') await new Promise(resolve => { releaseFirst = resolve; }); return {rows: []}; }};
+  const deps = {tc: {}, codeVersion: 't', now: () => new Date('2026-10-23T00:00:00Z')};
+  const first = handleV1({method: 'GET', url: new URL(`http://localhost${base}`)}, {...deps, withClient: async fn => fn(slowClient)});
+  await new Promise(resolve => setImmediate(resolve));
+  calls.length = 0;
+  const second = await get(base);
+  assert.deepEqual([second.status, second.body.error.code, calls.length], [429, 'BUSY', 0]);
+  releaseFirst();
+  assert.equal((await first).status, 200);
+  assert.equal((await get(base)).status, 200, 'the endpoint is free again');
+  // The engine runs after withClient has returned (no pooled connection held during the computation).
+  let inside = false;
+  const tracking = await handleV1({method: 'GET', url: new URL(`http://localhost${base}`)}, {...deps, withClient: async fn => { inside = true; try { return await fn(fakeClient); } finally { inside = false; } }});
+  assert.equal(tracking.status, 200);
+  assert.equal(inside, false);
+  assert.equal(tracking.body.data.reader.truncated, false);
+  // A stored row the reader refuses is a data defect (500 INTERNAL), not an unavailable database (503).
+  const badRows = {query: async sql => (sql.includes('fpt_match_facts') ? {rows: [{match_key: 'k', match_date: new Date(), acquired_at: '2026-10-04T00:00:00Z', version_id: 1, snapshot_id: 1, home: 'H', away: 'A'}]} : {rows: []})};
+  const defect = await handleV1({method: 'GET', url: new URL(`http://localhost${base}`)}, {...deps, withClient: async fn => fn(badRows)});
+  assert.deepEqual([defect.status, defect.body.error.code], [500, 'INTERNAL']);
+  assert.equal(HIST_BACKTEST_LIMITS.maxEvents, 200);
+});
