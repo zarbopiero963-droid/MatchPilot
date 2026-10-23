@@ -934,8 +934,8 @@ async function simView(params) {
   } catch (error) {
     if (error?.status === 400) {
       // The money management refusals name the model's own parameter (params.stake, params.percent…): that is «Valore della gestione».
-      const message = String(error.message ?? '').replace(/\bmoney_management\b[^]*$/, ' mm_value');
-      const fields = Object.keys(SIM_LABELS).filter(name => new RegExp(`(?<![a-z_.])${name}(?![a-z_])`).test(message));
+      const message = String(error.message ?? '').replace(/\bparams\.[a-z_]+/g, 'mm_value');
+      const fields = Object.keys(SIM_LABELS).filter(name => new RegExp(`(?<![a-z_])${name}(?![a-z_])`).test(message));
       return [...head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'sim-invalid', 'data-outcome': '', 'data-fields': fields.join(' '), title: reasonText(error)},
         fields.length ? `Valore non valido in: ${fields.map(name => SIM_LABELS[name]).join(', ')}. Correggi il campo e riprova.` : 'Impostazioni non valide. Correggi i campi e riprova.')];
     }

@@ -959,6 +959,14 @@ export const JOURNEYS = [
         assert.equal(await page.getAttribute('[data-testid="sim-invalid"]', 'data-fields'), 'mm_value');
         assert.match(await page.textContent('[data-testid="sim-invalid"]'), /^Valore non valido in: Valore della gestione\./);
       });
+      await step('gestione senza capitale e puntata non valida: sono nominati i loro campi', async () => {
+        for (const [query, fields, text] of [['bankroll=&mm_model=FIXED_STAKE&mm_value=1', 'bankroll', 'Capitale iniziale'], ['stake=0', 'stake', 'Puntata']]) {
+          await fresh(page, `${base}/#/sim?run=1&from=2024-08-01&to=2024-08-31&${query}`);
+          await page.waitForSelector('[data-testid="sim-invalid"]');
+          assert.equal(await page.getAttribute('[data-testid="sim-invalid"]', 'data-fields'), fields, query);
+          assert.match(await page.textContent('[data-testid="sim-invalid"]'), new RegExp(`^Valore non valido in: ${text}\\.`), query);
+        }
+      });
       await step('un’altra simulazione in corso: avviso, non errore', async () => {
         await page.route('**/api/v1/hist/backtest?*', route => route.fulfill({status: 429, contentType: 'application/json',
           body: JSON.stringify({api_version: 'v1', error: {code: 'BUSY', message: 'another backtest is running'}})}));
