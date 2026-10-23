@@ -106,6 +106,12 @@ test('FPT reader: versions, prices and results from PostgreSQL; PIT finds nothin
       const summary = JSON.parse(line.trim().split('\n').at(-1));
       assert.deepEqual([summary.status, summary.pit_mode, summary.bets, summary.pl_net], ['OK', 'NON_PIT_RESEARCH', 3, '2.51']);
       assert.equal(JSON.parse(readFileSync(join(dir, 'report.json'), 'utf8')).report_sha256, summary.report_sha256);
+      // The VPS runs in Europe/Rome: dates must not move a day east of UTC (deploy 5db6b56 FAIL_TESTS).
+      await runNode(['tools/hist/fpt-backtest.mjs', '--from', '2025-09-01', '--to', '2025-09-30', '--config', join(dir, 'config.json'),
+        '--out', join(dir, 'rome.json'), '--input-out', join(dir, 'rome-input.json')], {PATH: process.env.PATH, DATABASE_URL: dbUrl.toString(), TZ: 'Europe/Rome'});
+      assert.deepEqual(JSON.parse(readFileSync(join(dir, 'rome-input.json'), 'utf8')).events.map(e => e.match_date), ['2025-09-20', '2025-09-21', '2025-09-22']);
+      assert.throws(() => buildFptHistInput([{match_key: 'k', match_date: new Date('2025-09-20T00:00:00'), acquired_at: '2026-10-04T00:00:00Z', version_id: 1, snapshot_id: 1, home: 'H', away: 'A'}],
+        {datasetId: 'x', description: 'd'}), {code: 'BAD_ROW'});
       const remote = spawnSync(process.execPath, ['tools/hist/fpt-backtest.mjs', '--from', '2025-09-01', '--to', '2025-09-30', '--config', join(dir, 'config.json'),
         '--out', join(dir, 'x.json')], {env: {PATH: process.env.PATH, DATABASE_URL: 'postgres://u:p@db.example.com:5432/x'}, encoding: 'utf8'});
       assert.equal(remote.status, 4);

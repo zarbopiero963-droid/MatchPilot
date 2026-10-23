@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 169,
+  "revision": 171,
   "tasks": [
     {
       "id": "R-01",
@@ -1182,9 +1182,9 @@
       "pr": 223,
       "branch": "hist-pg-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T155655Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T162731Z-agent-a-claude-code",
       "resources": [
         "src/hist/engine.mjs",
         "src/hist/contract.mjs",
@@ -1194,6 +1194,27 @@
         "test/hist-pg-input.test.mjs",
         "docs/hist-backtest.md",
         "package.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "5db6b56f999b296d5d61637abc302819ac3acca9"
+    },
+    {
+      "id": "HIST-PG-TZFIX",
+      "title": "FPT match dates never shift a day in Europe/Rome (deploy 5db6b56 FAIL_TESTS)",
+      "issue": 34,
+      "pr": 224,
+      "branch": "hist-pg-tzfix",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T163453Z-agent-a-claude-code",
+      "resources": [
+        "src/providers/futpython/hist-input.mjs",
+        "test/hist-pg-input.test.mjs"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
