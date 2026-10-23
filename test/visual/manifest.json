@@ -6,12 +6,12 @@
     "ratio": 0
   },
   "generated": {
-    "commit": "c3c604e33251cc3b0b77a7b17a0e7ab526d72320",
+    "commit": "59ba137b16e9d180ae96217035e1ae968e67c345",
     "browser": "chromium 141.0.7390.37",
-    "date": "2026-10-23T17:55:38.530Z",
+    "date": "2026-10-23T18:04:05.100Z",
     "fixed_time": "2026-10-20T10:00:00+02:00",
-    "reason": "HIST-WEB-01: menu entry «Simulazione» in the header of every view; new scenes simulazione and simulazione-ricerca",
-    "approval": "PR #229, owner mandate MP-AUTONOMOUS-AUTOMERGE-20261023 (roadmap priority 9: operational web interfaces)"
+    "reason": "HIST-WEB-01 review fixes: management value label with its scale, rounding note naming the rounded figures",
+    "approval": "PR #229, review DEC-004-R1 B-1 and NB-2; owner mandate MP-AUTONOMOUS-AUTOMERGE-20261023"
   },
   "files": {
     "dati-desktop.png": "7a44d4bdc96bfd98a6b0f103736a527ff3534c34e07c6b8e9bafbe1880ab2b51",
@@ -59,11 +59,11 @@
     "ricerca-risultati-mobile.png": "b9eea68c5f3cdc261c9811f6bbe9eee43f35c94fdf15f1a76e208b988f409893",
     "ricerca-risultati-tablet.png": "c8e17d712d37c14570ff91094502ca5311278697ce3a7ce7bf928612c87b7743",
     "ricerca-tablet.png": "48671e26a52015406abcfb3717977c622bebe8a56b40de406125d031a35f2fa9",
-    "simulazione-desktop.png": "f0f11ac88a9aac1c147bb051a1572d85bfe9992667e5a40613e1a404f65a5aa3",
-    "simulazione-mobile.png": "513a24cec6d56a3efb3a7f9e69b12349b56a360bae023c86a1e61d40a844c29f",
+    "simulazione-desktop.png": "1d4ebd3bfc29644223dafd70e6c00a2b2270d751f995f371c86ddcbfde45067e",
+    "simulazione-mobile.png": "58ef2812a48992504a90b3c594e192e5547b34950ad1fe095c115719d5fe078f",
     "simulazione-ricerca-desktop.png": "a60963f7351f8a228e726cdb1280fa01054765aced69c75980a893554ef250b7",
     "simulazione-ricerca-mobile.png": "d139a09c6af9f3b8507680c643b589ccd400ea4e7ecbd5dcf8e7344fc093ce06",
-    "simulazione-ricerca-tablet.png": "f2d470d206a0980ddf07e09410d6e7e37974f732034e6535967a5577061cfeca",
-    "simulazione-tablet.png": "25b27106fe1189a9c36ef4b317dc13d0a5adfbccc8c4560d527e02e3028bee40"
+    "simulazione-ricerca-tablet.png": "d473a8ad398712d32cbb51b01142dc0f469288d1aa29448e79022ea4ed2c722a",
+    "simulazione-tablet.png": "3ebcde7117e9ce3c0a3bc36d2272caaeae35443e22517aacbd51fc97ea995548"
   }
 }

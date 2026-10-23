@@ -163,3 +163,14 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `simulazione-ricerca-mobile.png` `d139a09c6af9f3b8507680c643b589ccd400ea4e7ecbd5dcf8e7344fc093ce06`
   - `simulazione-ricerca-tablet.png` `f2d470d206a0980ddf07e09410d6e7e37974f732034e6535967a5577061cfeca`
   - `simulazione-tablet.png` `25b27106fe1189a9c36ef4b317dc13d0a5adfbccc8c4560d527e02e3028bee40`
+
+## 2026-10-23 — HIST-WEB-01 review fixes: management value label with its scale, rounding note naming the rounded figures
+
+- Approval: PR #229, review DEC-004-R1 B-1 and NB-2; owner mandate MP-AUTONOMOUS-AUTOMERGE-20261023
+- Run: commit `59ba137b16e9d180ae96217035e1ae968e67c345`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `simulazione-desktop.png` `1d4ebd3bfc29644223dafd70e6c00a2b2270d751f995f371c86ddcbfde45067e`
+  - `simulazione-mobile.png` `58ef2812a48992504a90b3c594e192e5547b34950ad1fe095c115719d5fe078f`
+  - `simulazione-ricerca-tablet.png` `d473a8ad398712d32cbb51b01142dc0f469288d1aa29448e79022ea4ed2c722a`
+  - `simulazione-tablet.png` `3ebcde7117e9ce3c0a3bc36d2272caaeae35443e22517aacbd51fc97ea995548`
