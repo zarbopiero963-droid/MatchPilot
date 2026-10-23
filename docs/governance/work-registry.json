@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 174,
+  "revision": 176,
   "tasks": [
     {
       "id": "R-01",
@@ -1230,13 +1230,38 @@
       "pr": 226,
       "branch": "hist-mm-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T165308Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T171446Z-agent-a-claude-code",
       "resources": [
         "src/hist/engine.mjs",
         "test/hist-backtest.test.mjs",
         "docs/hist-backtest.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "97f8b6741daf0d2fc6c9efe4ef2f516e7535d85f"
+    },
+    {
+      "id": "HIST-API-01",
+      "title": "Backtest API endpoint over the stored FPT data, read only (#98 x #34)",
+      "issue": 34,
+      "pr": 227,
+      "branch": "hist-api-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T171447Z-agent-a-claude-code",
+      "resources": [
+        "src/api/hist-backtest.mjs",
+        "src/api/v1.mjs",
+        "test/hist-api.test.mjs",
+        "test/hist-pg-input.test.mjs",
+        "docs/hist-backtest.md",
+        "package.json"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
