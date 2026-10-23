@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 178,
+  "revision": 179,
   "tasks": [
     {
       "id": "R-01",
@@ -1254,7 +1254,7 @@
       "kind": "implementation",
       "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T173848Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T173910Z-agent-a-claude-code",
       "resources": [
         "src/api/hist-backtest.mjs",
         "src/api/v1.mjs",
