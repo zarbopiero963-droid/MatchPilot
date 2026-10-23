@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 155,
+  "revision": 156,
   "tasks": [
     {
       "id": "R-01",
@@ -1088,16 +1088,12 @@
       "id": "LEDGER-CORE-03",
       "title": "Ledger settlement from market rules and versioned outcomes (#99 x #100, DEC-002, DEC-013, DEC-015)",
       "issue": 99,
-      "pr": null,
+      "pr": 219,
       "branch": "ledger-core-03",
       "kind": "implementation",
-      "state": "RUNNING",
-      "lease": {
-        "holder": "agent-a-claude-code",
-        "acquired_at": "2026-10-23T12:48:25.006Z",
-        "expires_at": "2026-10-23T20:48:25.006Z"
-      },
-      "latest_checkpoint": null,
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T125253Z-agent-a-claude-code",
       "resources": [
         "src/ledger/settlement.mjs",
         "src/ledger/paper-ledger.mjs",
@@ -1106,7 +1102,8 @@
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
-      }
+      },
+      "pr_open": true
     }
   ]
 }
