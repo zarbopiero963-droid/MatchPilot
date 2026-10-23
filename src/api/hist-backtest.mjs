@@ -6,6 +6,7 @@
 import {HistInputError} from '../hist/contract.mjs';
 import {PIT_MODES, runBacktest, validateConfig} from '../hist/engine.mjs';
 import {STRATEGIES} from '../hist/strategies.mjs';
+import {DEF_SELECTIONS, DEF_SIDES, DEF_VENUES, PRICE_CONDITIONS} from '../hist/strategy-def.mjs';
 import {FPT_BOOKMAKER, readFptHistInput} from '../providers/futpython/hist-input.mjs';
 
 // The engine is synchronous: runs are exclusive (one at a time, others get 429 BUSY) and the computation happens after
@@ -18,13 +19,26 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const badRequest = (ApiError, message) => new ApiError('BAD_REQUEST', message);
 
 function dateOf(ApiError, name, value) {
-  if (!DATE.test(value) || new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) !== value) throw badRequest(ApiError, `${name} must be a date YYYY-MM-DD`);
+  // An impossible date (month 13, day 32) is an invalid Date: refused here, never a RangeError (PR #230 review R2-NB-2).
+  const time = DATE.test(value) ? Date.parse(`${value}T00:00:00Z`) : NaN;
+  if (Number.isNaN(time) || new Date(time).toISOString().slice(0, 10) !== value) throw badRequest(ApiError, `${name} must be a date YYYY-MM-DD`);
   return value;
 }
 
 // The engine configuration of a request: defaults are the tests' (stake 1, commission 0), never a guessed market rate.
+// STRAT-CFG-01: `selection` turns the request into a configurable strategy (a strategy_definition the engine validates).
+const DEFINITION_PARAMS = ['selection', 'side', ...PRICE_CONDITIONS, 'team', 'venue'];
+export function definitionOf(input) {
+  const conditions = {};
+  for (const name of PRICE_CONDITIONS) if (input[name] !== undefined) conditions[name] = input[name];
+  if (input.team !== undefined) conditions.teams = [input.team];
+  if (input.venue !== undefined) conditions.venue = input.venue;
+  return {selection: input.selection, side: input.side, conditions};
+}
+
 export function configOf(input) {
-  const config = {strategy: input.strategy ?? 'mp-ref-fav-back-1', bookmaker: FPT_BOOKMAKER, lead_minutes: 10, commission: input.commission ?? '0',
+  const strategy = input.selection !== undefined ? {strategy_definition: definitionOf(input)} : {strategy: input.strategy ?? 'mp-ref-fav-back-1'};
+  const config = {...strategy, bookmaker: FPT_BOOKMAKER, lead_minutes: 10, commission: input.commission ?? '0',
     pit_mode: input.pit_mode ?? 'PIT'};
   if (input.outcomes_as_of) config.outcomes_as_of = input.outcomes_as_of;
   if (input.bankroll) config.bankroll = input.bankroll;
@@ -43,6 +57,11 @@ export function histBacktestEndpoint({param, integer, oneOf, instant, ApiError})
       to: param(`data finale YYYY-MM-DD, al massimo ${HIST_BACKTEST_LIMITS.maxDays} giorni dopo from`, true),
       competition: param('id fpt:competition:<md5> (opzionale)'),
       strategy: param(`strategia: ${Object.keys(STRATEGIES).join(' | ')}`, false, oneOf('strategy', Object.keys(STRATEGIES))),
+      selection: param(`strategia configurabile: ${DEF_SELECTIONS.join(' | ')} (non con strategy)`, false, oneOf('selection', DEF_SELECTIONS)),
+      side: param(`lato della strategia configurabile: ${DEF_SIDES.join(' | ')} (con selection)`, false, oneOf('side', DEF_SIDES)),
+      ...Object.fromEntries(PRICE_CONDITIONS.map(name => [name, param(`condizione di prezzo ${name.replace('_', ' ')}, es. 1.85 (con selection)`)])),
+      team: param('squadra, nome esatto dell\'archivio (con selection)'),
+      venue: param(`sede della squadra: ${DEF_VENUES.join(' | ')} (con team)`, false, oneOf('venue', DEF_VENUES)),
       pit_mode: param('PIT (default) | NON_PIT_RESEARCH', false, oneOf('pit_mode', PIT_MODES)),
       stake: param('stake fisso, default 1 (non con mm_model)'),
       commission: param('commissione 0..1, default 0'),
@@ -59,6 +78,11 @@ export function histBacktestEndpoint({param, integer, oneOf, instant, ApiError})
       if (input.competition !== undefined && !/^fpt:competition:[0-9a-f]{32}$/.test(input.competition)) throw badRequest(ApiError, 'competition must be an fpt:competition id');
       if ((input.mm_model === undefined) !== (input.mm_value === undefined)) throw badRequest(ApiError, 'mm_model and mm_value go together');
       if (input.mm_model && input.stake !== undefined) throw badRequest(ApiError, 'stake is not used with mm_model');
+      if (input.selection !== undefined && input.strategy !== undefined) throw badRequest(ApiError, 'strategy and selection are exclusive');
+      if (input.selection === undefined) {
+        const stray = DEFINITION_PARAMS.filter(name => input[name] !== undefined);
+        if (stray.length) throw badRequest(ApiError, `${stray.join(', ')} need selection`);
+      } else if (input.side === undefined) throw badRequest(ApiError, 'side is required with selection');
       try { validateConfig(configOf(input)); }
       catch (error) {
         if (error instanceof HistInputError) throw badRequest(ApiError, error.message);

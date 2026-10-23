@@ -21,6 +21,7 @@ import {PIT_POLICY_VERSION} from '../pit/policy.mjs';
 import {ADMISSION_VERSION, admitObservation, decisionTimeOf} from './admission.mjs';
 import {HistInputError, INPUT_VERSION, SELECTIONS_1X2, canonicalJson, sha256, validateInput} from './contract.mjs';
 import {STRATEGIES} from './strategies.mjs';
+import {STRATEGY_DEF_VERSION, compileDefinition, definitionId, normalizeDefinition} from './strategy-def.mjs';
 import {getMarketRule} from '../markets/rules.mjs';
 import {resolveVersioned, resultVersion} from '../markets/outcomes.mjs';
 
@@ -77,12 +78,14 @@ const mmProfileOf = m => createProfile({profileId: `hist-mm:${sha256(canonicalJs
 export function validateConfig(config, strategies = STRATEGIES) {
   if (!config || typeof config !== 'object' || Array.isArray(config)) throw new HistInputError('config', 'must be an object');
   // HIST-MM-01: with money_management the stake comes from the profile, so config.stake is not used and not required.
-  const required = ['strategy', 'bookmaker', 'lead_minutes', 'commission', ...(config.money_management ? [] : ['stake'])];
+  // STRAT-CFG-01: a configurable strategy (strategy_definition) takes the place of a registered strategy id.
+  const byDefinition = Object.hasOwn(config, 'strategy_definition');
+  const required = [...(byDefinition ? [] : ['strategy']), 'bookmaker', 'lead_minutes', 'commission', ...(config.money_management ? [] : ['stake'])];
   // outcomes_as_of (optional): the cutoff of the result versions used to settle (DEC-002 asOf). Without it, every
   // version in the input is available.
   // bankroll (optional): a real starting bankroll for a chronological simulation; money_management (optional, needs
   // bankroll): {model, params, caps} of an IMPLEMENTED #96 model.
-  const allowed = [...required, 'stake', 'outcomes_as_of', 'pit_mode', 'bankroll', 'money_management'];
+  const allowed = [...required, 'strategy', 'stake', 'outcomes_as_of', 'pit_mode', 'bankroll', 'money_management', 'strategy_definition'];
   for (const name of Object.keys(config)) if (!allowed.includes(name)) throw new HistInputError(`config.${name}`, 'unknown field');
   for (const name of required) if (!Object.hasOwn(config, name)) throw new HistInputError(`config.${name}`, 'is required');
   let outcomesAsOf = null;
@@ -93,7 +96,12 @@ export function validateConfig(config, strategies = STRATEGIES) {
   }
   const pitMode = Object.hasOwn(config, 'pit_mode') ? config.pit_mode : 'PIT';
   if (!PIT_MODES.includes(pitMode)) throw new HistInputError('config.pit_mode', `must be one of ${PIT_MODES.join(', ')}`);
-  if (typeof config.strategy !== 'string' || !Object.hasOwn(strategies, config.strategy)) throw new HistInputError('config.strategy', 'unknown strategy');
+  let definition = null;
+  if (byDefinition) {
+    definition = normalizeDefinition(config.strategy_definition);
+    // A report's config (strategy = the definition's id), without its derived fields, runs again; any other strategy beside a definition is refused.
+    if (Object.hasOwn(config, 'strategy') && config.strategy !== definitionId(definition)) throw new HistInputError('config.strategy', 'must be the id of strategy_definition, or absent');
+  } else if (typeof config.strategy !== 'string' || !Object.hasOwn(strategies, config.strategy)) throw new HistInputError('config.strategy', 'unknown strategy');
   if (typeof config.bookmaker !== 'string' || !/^[\w.:\-/]{1,200}$/.test(config.bookmaker)) throw new HistInputError('config.bookmaker', 'must be an identifier');
   if (!Number.isSafeInteger(config.lead_minutes) || config.lead_minutes < 1 || config.lead_minutes > 1440) throw new HistInputError('config.lead_minutes', 'must be an integer from 1 to 1440');
   let stake = null, commission, bankroll = null;
@@ -128,7 +136,7 @@ export function validateConfig(config, strategies = STRATEGIES) {
     if (scoped.length) throw new HistInputError('config.money_management', `caps ${scoped.join(', ')} need scope ids the backtest does not assign`);
     mm = JSON.parse(canonicalJson({model: m.model, params: m.params ?? {}, caps: m.caps ?? {}}));
   }
-  const normalized = {strategy: config.strategy, bookmaker: config.bookmaker, lead_minutes: config.lead_minutes,
+  const normalized = {strategy: definition ? definitionId(definition) : config.strategy, ...(definition ? {strategy_definition: definition} : {}), bookmaker: config.bookmaker, lead_minutes: config.lead_minutes,
     ...(stake ? {stake: stake.toString()} : {}), commission: commission.toString(), ...(bankroll ? {bankroll: bankroll.toString()} : {}), ...(mm ? {money_management: mm} : {}), ...(outcomesAsOf ? {outcomes_as_of: outcomesAsOf} : {}),
     ...(pitMode === 'PIT' ? {} : {pit_mode: pitMode})};
   return {...normalized, pit_mode: pitMode, settings_snapshot_id: sha256(canonicalJson(normalized)), commission_rate_used: commission.toString()};
@@ -199,7 +207,7 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
   const input = validateInput(rawInput);
   const config = validateConfig(rawConfig, strategies);
   const nonPit = config.pit_mode === 'NON_PIT_RESEARCH';
-  const strategy = strategies[config.strategy];
+  const strategy = config.strategy_definition ? compileDefinition(config.strategy_definition) : strategies[config.strategy];
   const inputSha256 = sha256(canonicalJson(input));
 
   // ---- Admission ----
@@ -278,7 +286,7 @@ export function runBacktest(rawInput, rawConfig, {strategies = STRATEGIES, codeV
     code_version: codeVersion,
     config,
     versions: {engine: ENGINE_VERSION, input: INPUT_VERSION, admission: ADMISSION_VERSION, pit_policy: PIT_POLICY_VERSION,
-      strategy: config.strategy, outcome_rule: OUTCOME_RULE_VERSION, math_core: MATH_CORE_VERSION, rounding: ROUNDING_POLICY_VERSION},
+      strategy: config.strategy, ...(config.strategy_definition ? {strategy_definition: STRATEGY_DEF_VERSION} : {}), outcome_rule: OUTCOME_RULE_VERSION, math_core: MATH_CORE_VERSION, rounding: ROUNDING_POLICY_VERSION},
     counts: {events: input.events.length, observations: input.observations.length, admitted, usable: usableCount,
       excluded_by_reason: sorted(excluded), ...(nonPit ? {pit_exclusions_overridden: sorted(overridden)} : {}), decisions, no_trade_by_reason: sorted(noTrade)},
     limits: limitsOf(config.pit_mode),

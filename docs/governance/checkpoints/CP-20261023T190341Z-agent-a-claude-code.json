@@ -1,0 +1,112 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T190341Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T19:03:41Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "STRAT-CFG-01",
+  "activity": "Configurable strategies mp-strategy-def-1: engine, API, Simulazione «Personalizzata»; checkpoint HIST-WEB-01 MERGED included",
+  "issue": 34,
+  "pr": 230,
+  "branch": "next-unit-01",
+  "commit_sha": "1622a708e13a56e3a4e908532cd50f6860a72fed",
+  "tree_sha": "8d568f01e5399a74f3d28f3009dbd054e4acc51a",
+  "base_sha": "2cd0b613751f42911f689922851092dbc251c2fa",
+  "requirements": [
+    "MP-STA-001"
+  ],
+  "changes": [
+    "mp-strategy-def-1 definitions interpreted by fixed code",
+    "engine config.strategy_definition with content-hash identity",
+    "API selection/side/price bounds/team/venue",
+    "Simulazione «Personalizzata» with rules, recorded definition and no-trade reasons",
+    "independent oracle and reference equivalence tests"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "1622a708e13a56e3a4e908532cd50f6860a72fed",
+      "time": "2026-10-23T19:03:41Z",
+      "limits": [
+        "635 tests, 634 pass, 1 skipped (TZ=Europe/Rome, local PostgreSQL 16); Browser QA 14/14 PASS and QA-V 51/51 after promote, chromium 141; synthetic fixtures and QA archive only, nothing certified"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "1622a708e13a56e3a4e908532cd50f6860a72fed"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "final-head context-separated sub-agent review pending (DEC-004-R1)"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "DEC-015"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and final review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "src/hist/strategy-def.mjs",
+    "src/hist/engine.mjs",
+    "src/api/hist-backtest.mjs",
+    "src/web/app.js",
+    "tools/qa/journeys.mjs",
+    "test/visual",
+    "docs/mockups",
+    "branch:next-unit-01",
+    "pr:230"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and final-head review on PR #230, then protected merge and deploy verification",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}

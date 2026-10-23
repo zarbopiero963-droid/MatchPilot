@@ -140,6 +140,18 @@ test('FPT reader: versions, prices and results from PostgreSQL; PIT finds nothin
       const mmApi = await handleV1({method: 'GET', url: new URL('http://localhost/api/v1/hist/backtest?from=2025-09-01&to=2025-09-30&pit_mode=NON_PIT_RESEARCH&bankroll=100&mm_model=PERCENT_BANKROLL&mm_value=10')},
         {withClient: async fn => fn(db), tc: {}, codeVersion: 't'});
       assert.deepEqual([mmApi.status, mmApi.body.data.report.bets.map(b => b.stake)], [200, ['10', '10.85', '12.04']]); // 100 → 108.5 → 120.435: 10 % rounded down to the cent
+      // STRAT-CFG-01, end to end on the real tables: a configurable strategy through the API gives the library's report.
+      const defApi = await handleV1({method: 'GET', url: new URL('http://localhost/api/v1/hist/backtest?from=2025-09-01&to=2025-09-30&pit_mode=NON_PIT_RESEARCH&selection=HOME&side=LAY&odds_max=3&commission=0.05')},
+        {withClient: async fn => fn(db), tc: {}, codeVersion: 't'});
+      assert.equal(defApi.status, 200);
+      const defConfig = {...CONFIG, commission: '0.05', pit_mode: 'NON_PIT_RESEARCH', strategy_definition: {selection: 'HOME', side: 'LAY', conditions: {odds_max: '3'}}};
+      delete defConfig.strategy;
+      assert.equal(defApi.body.data.report.report_sha256, runBacktest(input, defConfig).report_sha256);
+      assert.equal(defApi.body.data.report.ledger.state.reconciled, true);
+      assert.ok(defApi.body.data.report.bets.every(bet => bet.side === 'LAY' && bet.selection === 'HOME' && Number(bet.odds) <= 3));
+      const defPit = await handleV1({method: 'GET', url: new URL('http://localhost/api/v1/hist/backtest?from=2025-09-01&to=2025-09-30&selection=HOME&side=LAY')},
+        {withClient: async fn => fn(db), tc: {}, codeVersion: 't'});
+      assert.deepEqual([defPit.status, defPit.body.data.report.status], [200, 'INSUFFICIENT_PIT_DATA'], 'the stored prices are not PIT: rigorous mode simulates nothing');
       assert.equal(mmApi.body.data.totals.skipped_by_money_management, sumOf(mmApi.body.data.report.bankroll.skipped_by_reason));
 
       const after = (await db.query(`SELECT (SELECT count(*) FROM fpt_match_versions) v, (SELECT count(*) FROM fpt_match_facts) f`)).rows[0];

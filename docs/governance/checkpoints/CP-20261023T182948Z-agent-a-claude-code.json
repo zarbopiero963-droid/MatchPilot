@@ -1,0 +1,137 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T182948Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T18:29:48Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "HIST-WEB-01",
+  "activity": "PR #229 auto-merged as 2cd0b61 (squash, expectedHeadSha 5684b26); main CI and VPS deploy verified",
+  "issue": 34,
+  "pr": 229,
+  "branch": "web-sim-01",
+  "commit_sha": "5684b269a3650d28dcd45bdc85452f2987ba6641",
+  "tree_sha": "a9038cd459e7e55f7592b7e3788032f149901b3e",
+  "base_sha": "903dbf976ad3666a82305288f9da4d6a93eefb1a",
+  "requirements": [
+    "MP-STA-001"
+  ],
+  "changes": [
+    "user view #/sim over /api/v1/hist/backtest",
+    "research mode labelled, nothing certified",
+    "API data.events and data.totals (browser computes nothing)",
+    "Browser QA journey simulation",
+    "QA-V scenes simulazione, simulazione-ricerca and promoted baselines",
+    "UI inventory UI-91..UI-99",
+    "mock v2026.10.23",
+    "2cd0b61: squash merge of PR #229"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "9542d62e2c217bd8fb1ebcb62617f1eb0c49fbcf",
+      "time": "2026-10-23T17:59:29Z",
+      "limits": [
+        "626 tests, 625 pass, 1 skipped (TZ=Europe/Rome, local PostgreSQL 16); Browser QA 14/14 PASS and QA-V 51/51 PASS locally on chromium 141; no real data certified"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 2cd0b61",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "2cd0b613751f42911f689922851092dbc251c2fa",
+      "time": "2026-10-23T18:29:48Z",
+      "limits": [
+        "run 40001980729 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 2cd0b61 (job log evidence)",
+      "result": "PASS",
+      "environment": "VPS via self-hosted runner, evidence from the job log only",
+      "commit": "2cd0b613751f42911f689922851092dbc251c2fa",
+      "time": "2026-10-23T18:29:48Z",
+      "limits": [
+        "run 40001980516: guard rc=0 mode=enforce; DEPLOY_GATE_SHA_OK 2cd0b61; worker_restart=ok; result=OK total_s=84 health=200 (2026-10-23T20:28:40+02:00)"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "SUCCESS",
+    "head_sha": "5684b269a3650d28dcd45bdc85452f2987ba6641"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "5684b269a3650d28dcd45bdc85452f2987ba6641",
+    "reference": "PR #229 review 5632567431 on 5684b26 (DEC-004-R1, three rounds: CHANGES_REQUESTED x2, then APPROVED)"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "DEC-015"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI",
+      "VPS deploy"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "src/web/app.js",
+    "src/web/index.html",
+    "src/api/hist-backtest.mjs",
+    "tools/qa/journeys.mjs",
+    "tools/qa/visual.mjs",
+    "test/visual",
+    "docs/mockups",
+    "branch:web-sim-01",
+    "pr:229"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "none for HIST-WEB-01",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261023T175929Z-agent-a-claude-code",
+  "merge_sha": "2cd0b613751f42911f689922851092dbc251c2fa"
+}

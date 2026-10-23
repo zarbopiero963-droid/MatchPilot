@@ -174,3 +174,15 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `simulazione-mobile.png` `58ef2812a48992504a90b3c594e192e5547b34950ad1fe095c115719d5fe078f`
   - `simulazione-ricerca-tablet.png` `d473a8ad398712d32cbb51b01142dc0f469288d1aa29448e79022ea4ed2c722a`
   - `simulazione-tablet.png` `3ebcde7117e9ce3c0a3bc36d2272caaeae35443e22517aacbd51fc97ea995548`
+
+## 2026-10-23 — STRAT-CFG-01: «Personalizzata» strategy with its rules, the strategy line and the no-trade reasons in the result; fieldset fields use the full width
+
+- Approval: PR #230, owner mandate MP-PRIORITY7-STRATEGIES-20261023
+- Run: commit `adfe84774f726d5f3b9d52f86ce2d4f48e4db657`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `simulazione-desktop.png` `24e6447b55181c9caa62aeb6a3e61631232d649395207a055885c5be6f504c54`
+  - `simulazione-ricerca-desktop.png` `8dee377518460e07d07bbc4fcf36e4ad7a688d903f479abaa1c8e7d507ec00de`
+  - `simulazione-ricerca-mobile.png` `623c7f665811e27e78d7b8483526aff620be7336915c229413631d2762d9e34f`
+  - `simulazione-ricerca-tablet.png` `1a0e1a6d6f7f7722544bc40efa550b2a7b10525a2aab5f2d13cad23a1567608c`
+  - `simulazione-tablet.png` `25cca5bc34742e55eeb49f34b0e7fd74b7ec6942ca5ef37a000ee95182a716a4`

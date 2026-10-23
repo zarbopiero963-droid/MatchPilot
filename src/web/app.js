@@ -807,13 +807,25 @@ async function endpointsView() {
 // Every figure comes from GET /api/v1/hist/backtest exactly as the engine reported it (MP-WEB-011): the page names the
 // fields in Italian and never derives a value. The research mode (prices acquired after kickoff) is labelled on the form
 // and on every result; no result is a certification or a proof of return.
-const SIM_STRATEGIES = [['mp-ref-fav-back-1', 'Favorito · Punta'], ['mp-ref-fav-lay-1', 'Favorito · Banca']];
+const SIM_STRATEGIES = [['mp-ref-fav-back-1', 'Favorito · Punta'], ['mp-ref-fav-lay-1', 'Favorito · Banca'], ['custom', 'Personalizzata']];
+// STRAT-CFG-01: the rules of a configurable strategy. The API turns them into a versioned definition and validates them;
+// the page only collects them and reads back the definition the report records.
+const DEF_SELECTION_TEXT = {FAVOURITE: 'Favorito', UNDERDOG: 'Sfavorito', HOME: 'Casa (1)', DRAW: 'Pareggio (X)', AWAY: 'Ospite (2)'};
+const DEF_VENUE_TEXT = {ANY: 'Casa o trasferta', HOME: 'Solo in casa', AWAY: 'Solo in trasferta'};
+const DEF_FIELDS = ['selection', 'side', 'odds_min', 'odds_max', 'home_min', 'home_max', 'draw_min', 'draw_max', 'away_min', 'away_max', 'team', 'venue'];
+// The no-trade reasons of the engine and of a definition, in words; the code stays in data-code.
+const NO_TRADE_TEXT = {NO_ADMISSIBLE_ODDS: 'Nessuna quota utilizzabile', INCOMPLETE_1X2: 'Quote 1X2 incomplete', PRICE_MISSING: 'Quota richiesta mancante',
+  FAVOURITE_TIE: 'Favorito non unico', UNDERDOG_TIE: 'Sfavorito non unico', KICKOFF_UNKNOWN: 'Orario di inizio sconosciuto', TEAM_FILTER: 'Squadra o sede diversa',
+  ODDS_OUT_OF_RANGE: 'Quota della selezione fuori intervallo', HOME_PRICE_OUT_OF_RANGE: 'Quota 1 fuori intervallo', DRAW_PRICE_OUT_OF_RANGE: 'Quota X fuori intervallo',
+  AWAY_PRICE_OUT_OF_RANGE: 'Quota 2 fuori intervallo'};
 const SIM_MODES = [['PIT', 'Rigorosa'], ['NON_PIT_RESEARCH', 'Ricerca esplorativa']];
 const SIM_MM = [['', 'Puntata fissa'], ['FIXED_STAKE', 'Puntata fissa sul capitale'], ['FIXED_LIABILITY', 'Rischio fisso'],
   ['PERCENT_BANKROLL', 'Percentuale del capitale'], ['LIABILITY_PERCENT_BANKROLL', 'Rischio in percentuale del capitale']];
-const SIM_FIELDS = ['from', 'to', 'competition', 'strategy', 'pit_mode', 'stake', 'commission', 'bankroll', 'mm_model', 'mm_value', 'max_events'];
+const SIM_FIELDS = ['from', 'to', 'competition', 'strategy', 'pit_mode', 'stake', 'commission', 'bankroll', 'mm_model', 'mm_value', 'max_events', ...DEF_FIELDS];
 const SIM_LABELS = {from: 'Dal', to: 'Al', competition: 'Campionato', strategy: 'Strategia', pit_mode: 'Modalità', stake: 'Puntata',
-  commission: 'Commissione', bankroll: 'Capitale iniziale', mm_model: 'Gestione del capitale', mm_value: 'Valore della gestione', max_events: 'Partite al massimo'};
+  commission: 'Commissione', bankroll: 'Capitale iniziale', mm_model: 'Gestione del capitale', mm_value: 'Valore della gestione', max_events: 'Partite al massimo',
+  selection: 'Selezione', side: 'Lato', odds_min: 'Quota selezione da', odds_max: 'Quota selezione fino a', home_min: 'Quota 1 da', home_max: 'Quota 1 fino a',
+  draw_min: 'Quota X da', draw_max: 'Quota X fino a', away_min: 'Quota 2 da', away_max: 'Quota 2 fino a', team: 'Squadra', venue: 'Sede della squadra'};
 const SIDE_TEXT = {BACK: 'Punta', LAY: 'Banca'};
 const SELECTION_TEXT = {HOME: '1', DRAW: 'X', AWAY: '2'};
 const BET_RESULT_TEXT = {WON: 'Vinta', LOST: 'Persa'};
@@ -835,10 +847,26 @@ function simForm(params, competitions) {
     'Ricerca esplorativa: usa le quote acquisite dopo l’inizio delle partite, solo per studio.');
   const modeSelect = select('pit_mode', SIM_MODES, 'PIT');
   modeSelect.addEventListener('change', () => { modeHint.hidden = modeSelect.value !== 'NON_PIT_RESEARCH'; });
+  // The rules of a personalised strategy appear only when it is chosen; their fields are sent only then.
+  const strategySelect = select('strategy', SIM_STRATEGIES, 'mp-ref-fav-back-1');
+  const price = name => input(name, {type: 'number', step: '0.001', min: '1.001', max: '1000'});
+  const rules = el('fieldset', {'data-testid': 'sim-rules', hidden: value('strategy') !== 'custom'}, el('legend', {}, 'Regole della strategia'),
+    el('div', {class: 'fields'},
+      el('label', {}, 'Selezione ', select('selection', Object.entries(DEF_SELECTION_TEXT), 'FAVOURITE')),
+      el('label', {}, 'Lato ', select('side', Object.entries(SIDE_TEXT), 'BACK')),
+      el('label', {}, 'Quota selezione da ', price('odds_min')), el('label', {}, 'Quota selezione fino a ', price('odds_max')),
+      el('label', {}, 'Quota 1 da ', price('home_min')), el('label', {}, 'Quota 1 fino a ', price('home_max')),
+      el('label', {}, 'Quota X da ', price('draw_min')), el('label', {}, 'Quota X fino a ', price('draw_max')),
+      el('label', {}, 'Quota 2 da ', price('away_min')), el('label', {}, 'Quota 2 fino a ', price('away_max')),
+      el('label', {}, 'Squadra ', input('team', {type: 'text', placeholder: 'es. Ajax', autocomplete: 'off', maxlength: '100'})),
+      el('label', {}, 'Sede della squadra ', select('venue', Object.entries(DEF_VENUE_TEXT), 'ANY'))));
+  strategySelect.addEventListener('change', () => { rules.hidden = strategySelect.value !== 'custom'; });
   return el('form', {class: 'card search', 'data-testid': 'sim-form', onsubmit: event => {
     event.preventDefault();
     const out = {};
     for (const [key, v] of new FormData(event.target).entries()) if (String(v).trim() !== '') out[key] = String(v).trim();
+    if (out.strategy !== 'custom') for (const name of DEF_FIELDS) delete out[name];
+    else if (!out.team || out.venue === 'ANY') delete out.venue;
     revealOutcome = true;
     const target = `#/sim?${queryString({...out, run: '1'})}`;
     if (location.hash === target) render();
@@ -849,11 +877,12 @@ function simForm(params, competitions) {
     el('label', {}, 'Al ', input('to', {type: 'date', required: true})),
     el('label', {}, 'Campionato ', competitions.length ? select('competition', competitionOptions, '')
       : el('span', {class: 'nd', title: 'Nessun campionato disponibile'}, ND)),
-    el('label', {}, 'Strategia ', select('strategy', SIM_STRATEGIES, 'mp-ref-fav-back-1')),
+    el('label', {}, 'Strategia ', strategySelect),
     el('label', {}, 'Modalità ', modeSelect),
     el('label', {}, 'Puntata ', input('stake', {type: 'number', step: '0.01', min: '0.01', placeholder: '1'})),
     el('label', {}, 'Commissione (es. 0,05 = 5%) ', input('commission', {type: 'number', step: '0.001', min: '0', max: '0.999', placeholder: '0'})),
     el('label', {}, 'Partite al massimo ', input('max_events', {type: 'number', step: '1', min: '1', max: '1000', placeholder: '300'}))),
+  rules,
   el('fieldset', {}, el('legend', {}, 'Capitale (facoltativo)'),
     el('div', {class: 'fields'},
       el('label', {}, 'Capitale iniziale ', input('bankroll', {type: 'number', step: '0.01', min: '0.01'})),
@@ -861,6 +890,31 @@ function simForm(params, competitions) {
       el('label', {}, 'Valore della gestione (importo, o percentuale: 2 = 2%) ', input('mm_value', {type: 'number', step: '0.01', min: '0.01'})))),
   modeHint,
   el('button', {type: 'submit'}, 'Simula'), ' ', el('a', {href: '#/sim'}, 'Azzera'));
+}
+
+// The strategy the report ran: a reference strategy by name, a personalised one by the rules its definition records.
+function simStrategy(report) {
+  const d = report.config?.strategy_definition;
+  const reference = SIM_STRATEGIES.find(([id]) => id === report.config?.strategy);
+  if (!d) return reference ? el('p', {class: 'meta', 'data-testid': 'sim-strategy', 'data-strategy': reference[0]}, 'Strategia: ', reference[1]) : null;
+  const c = d.conditions ?? {};
+  const range = (text, lo, hi) => (lo !== undefined || hi !== undefined)
+    ? el('li', {}, text, ' ', lo !== undefined ? ['da ', num(lo)] : null, lo !== undefined && hi !== undefined ? ' ' : null, hi !== undefined ? ['fino a ', num(hi)] : null) : null;
+  return el('section', {class: 'card', 'data-testid': 'sim-strategy', 'data-strategy': report.config.strategy ?? '', 'data-definition': d.version ?? ''},
+    el('h2', {}, 'Strategia personalizzata'),
+    el('ul', {class: 'rules'},
+      el('li', {'data-field': 'rule_main'}, labelled(SIDE_TEXT, d.side), ' · ', labelled(DEF_SELECTION_TEXT, d.selection)),
+      range('Quota della selezione', c.odds_min, c.odds_max), range('Quota 1', c.home_min, c.home_max),
+      range('Quota X', c.draw_min, c.draw_max), range('Quota 2', c.away_min, c.away_max),
+      c.teams ? el('li', {'data-field': 'rule_teams'}, 'Squadra: ', c.teams.join(', '), ' · ', DEF_VENUE_TEXT[c.venue ?? 'ANY']) : null));
+}
+
+// Why the strategy did not trade, as the engine counted it.
+function noTradeReasons(report) {
+  const reasons = Object.entries(report.counts?.no_trade_by_reason ?? {});
+  if (!reasons.length) return null;
+  return el('section', {class: 'card', 'data-testid': 'sim-no-trade'}, el('h2', {}, 'Motivi delle mancate operazioni'),
+    el('dl', {}, reasons.flatMap(([code, n]) => [el('dt', {'data-code': code, title: code}, NO_TRADE_TEXT[code] ?? 'Altro motivo'), el('dd', {'data-reason': code}, num(n))])));
 }
 
 function simMetrics(report) {
@@ -928,13 +982,21 @@ async function simView(params) {
   if (params.get('run') !== '1') return [...head, el('p', {class: 'state empty'}, 'Scegli il periodo e premi Simula.')];
   const api = {};
   for (const key of SIM_FIELDS) if (params.get(key)) api[key] = params.get(key);
+  // «Personalizzata» is the page's name for a definition: the API receives the rules, not a strategy id.
+  if (api.strategy === 'custom') delete api.strategy;
+  else for (const name of DEF_FIELDS) delete api[name];
   let body;
   try {
     body = await getJson(`/api/v1/hist/backtest?${queryString(api)}`);
   } catch (error) {
     if (error?.status === 400) {
       // The money management refusals name the model's own parameter (params.stake, params.percent…): that is «Valore della gestione».
-      const message = String(error.message ?? '').replace(/\bparams\.[a-z_]+/g, 'mm_value');
+      // An engine refusal names its field before the colon (config.<path>: …): only that path is read, so words of the
+      // explanation (e.g. «1 to 100») are never taken for fields.
+      const raw = String(error.message ?? '');
+      const scoped = /^config\.([\w.]+):/.exec(raw);
+      // A money-management refusal names the model's parameter or the missing capital after it, so its text is read whole.
+      const message = (scoped && scoped[1] !== 'money_management' ? scoped[1] : raw).replace(/\bparams\.[a-z_]+/g, 'mm_value').replace(/\bconditions\.teams\b/g, 'team');
       const fields = Object.keys(SIM_LABELS).filter(name => new RegExp(`(?<![a-z_])${name}(?![a-z_])`).test(message));
       return [...head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'sim-invalid', 'data-outcome': '', 'data-fields': fields.join(' '), title: reasonText(error)},
         fields.length ? `Valore non valido in: ${fields.map(name => SIM_LABELS[name]).join(', ')}. Correggi il campo e riprova.` : 'Impostazioni non valide. Correggi i campi e riprova.')];
@@ -971,6 +1033,7 @@ async function simView(params) {
         field('Bancate', num(decisions.LAY), 'decisions_lay'),
         el('dt', {}, 'Nessuna operazione'), el('dd', {'data-field': 'decisions_no_trade', title: Object.entries(report.counts?.no_trade_by_reason ?? {}).map(([k, n]) => `${k}: ${n}`).join(' · ') || null}, num(decisions.NO_TRADE)),
         el('dt', {}, 'Non regolate'), el('dd', {'data-field': 'unsettled', title: Object.entries(report.counts?.unsettled_by_reason ?? {}).map(([k, n]) => `${k}: ${n}`).join(' · ') || null}, num(body.data?.totals?.unsettled)))),
+    simStrategy(report), noTradeReasons(report),
     simMetrics(report), simBankroll(report, body.data?.totals),
     Array.isArray(report.bets) && report.bets.length ? simBets(report.bets, body.data?.events, body.data?.totals?.bets) : null];
 }

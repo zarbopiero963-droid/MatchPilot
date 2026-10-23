@@ -15,6 +15,7 @@ test('invalid backtest requests are refused with 400 before any database access'
   const bad = ['/api/v1/hist/backtest?to=2025-09-30', '/api/v1/hist/backtest?from=2025-09-01&to=2026-10-01', '/api/v1/hist/backtest?from=2025-09-30&to=2025-09-01',
     '/api/v1/hist/backtest?from=2025-02-30&to=2025-03-01', `${base}&strategy=martingale`, `${base}&pit_mode=LIVE`, `${base}&commission=1`, `${base}&stake=0`,
     `${base}&mm_model=PERCENT_BANKROLL&mm_value=5`, `${base}&bankroll=100&mm_model=PERCENT_BANKROLL`, `${base}&bankroll=100&mm_model=PERCENT_BANKROLL&mm_value=5&stake=2`,
+    '/api/v1/hist/backtest?from=2025-13-01&to=2025-09-30', '/api/v1/hist/backtest?from=2025-09-01&to=2025-00-10', // PR #230 review R2-NB-2: not a 500
     `${base}&max_events=${HIST_BACKTEST_LIMITS.maxEvents + 1}`, `${base}&competition=x' OR 1=1`, `${base}&outcomes_as_of=yesterday`, `${base}&unknown=1`];
   for (const path of bad) {
     const result = await get(path);
@@ -65,4 +66,24 @@ test('a CPU-bound run is exclusive, computes after the client is released, and f
   const counting = {query: async (sql, values) => { if (sql.includes('fpt_match_facts')) limitSeen = values[3]; return {rows: []}; }};
   await handleV1({method: 'GET', url: new URL(`http://localhost${base}&max_events=5`)}, {...deps, withClient: async fn => fn(counting)});
   assert.equal(limitSeen, 6);
+});
+
+test('configurable strategy parameters: refused combinations never reach the database; a valid one is a strategy_definition', async () => {
+  calls.length = 0;
+  const bad = [`${base}&strategy=mp-ref-fav-back-1&selection=HOME&side=BACK`, `${base}&selection=HOME`, `${base}&odds_min=1.5`, `${base}&side=LAY`,
+    `${base}&team=Ajax`, `${base}&selection=FIRST_GOAL&side=BACK`, `${base}&selection=HOME&side=DUTCH`, `${base}&selection=HOME&side=BACK&odds_min=1`,
+    `${base}&selection=HOME&side=BACK&odds_min=abc`, `${base}&selection=HOME&side=BACK&home_min=3&home_max=2`, `${base}&selection=HOME&side=BACK&venue=HOME`,
+    `${base}&selection=HOME&side=BACK&team=Ajax&venue=NEUTRAL`];
+  for (const path of bad) {
+    const result = await get(path);
+    assert.equal(result.status, 400, path);
+  }
+  assert.deepEqual(calls, [], 'no query was sent');
+  assert.deepEqual(configOf({selection: 'UNDERDOG', side: 'LAY', odds_max: '6', draw_min: '2.5', team: 'Ajax', venue: 'HOME'}), {
+    strategy_definition: {selection: 'UNDERDOG', side: 'LAY', conditions: {odds_max: '6', draw_min: '2.5', teams: ['Ajax'], venue: 'HOME'}},
+    bookmaker: 'futpythontrader-odds', lead_minutes: 10, commission: '0', pit_mode: 'PIT', stake: '1'});
+  const result = await get(`${base}&selection=HOME&side=BACK&odds_max=2.5&pit_mode=NON_PIT_RESEARCH`);
+  assert.equal(result.status, 200);
+  assert.match(result.body.data.report.config.strategy, /^def:[0-9a-f]{16}$/);
+  assert.deepEqual(result.body.data.report.config.strategy_definition.conditions, {odds_max: '2.5'});
 });

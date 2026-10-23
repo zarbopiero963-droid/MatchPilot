@@ -13,6 +13,7 @@ The archive #40 integration (HIST-01b) waits for the Grok handoff. Grok reported
 - **Contract** — [`src/hist/contract.mjs`](../src/hist/contract.mjs): the input contract `mp-hist-input-2` (and the older `mp-hist-input-1`), strict validation, canonical JSON and SHA-256.
 - **Admission** — [`src/hist/admission.mjs`](../src/hist/admission.mjs): which observations are usable at the decision time. It reuses the PIT policy `mp-pit-v1` (`src/pit/policy.mjs`).
 - **Strategy** — [`src/hist/strategies.mjs`](../src/hist/strategies.mjs): the technical test oracles `mp-ref-fav-back-1` and `mp-ref-fav-lay-1`.
+- **Configurable strategies** — [`src/hist/strategy-def.mjs`](../src/hist/strategy-def.mjs): definitions `mp-strategy-def-1` (STRAT-CFG-01), validated data interpreted by fixed code.
 - **Engine** — [`src/hist/engine.mjs`](../src/hist/engine.mjs): decision phase, settlement phase and report.
 - **Results** — [`src/markets/outcomes.mjs`](../src/markets/outcomes.mjs) `resolveVersioned`: result versions (DEC-002) resolved by the registry rule (#100).
 - **Settlement** — [`src/ledger/paper-ledger.mjs`](../src/ledger/paper-ledger.mjs) and [`src/ledger/settlement.mjs`](../src/ledger/settlement.mjs): every bet is a paper-ledger position settled by `settleFromResult` (#99, HIST-LEDGER-01).
@@ -84,6 +85,9 @@ The backtest over the stored FPT data, through API v1 (read only, same envelope 
 | `from`, `to` (required) | match dates `YYYY-MM-DD`, at most 366 days apart |
 | `competition` | one `fpt:competition:<md5>` |
 | `strategy` | `mp-ref-fav-back-1` (default) or `mp-ref-fav-lay-1` |
+| `selection`, `side` | a configurable strategy instead of `strategy` (exclusive): `FAVOURITE`, `UNDERDOG`, `HOME`, `DRAW` or `AWAY`; `BACK` or `LAY` |
+| `odds_min`, `odds_max`, `home_min` … `away_max` | price conditions of the definition (with `selection`) |
+| `team`, `venue` | one team, exact archive name, and its venue `ANY`, `HOME` or `AWAY` (with `selection`) |
 | `pit_mode` | `PIT` (default) or `NON_PIT_RESEARCH` |
 | `stake`, `commission` | default `1` and `0` (no market rate is assumed) |
 | `bankroll`, `mm_model`, `mm_value` | chronological simulation with a #96 profile (`FIXED_STAKE`, `FIXED_LIABILITY`, `PERCENT_BANKROLL`, `LIABILITY_PERCENT_BANKROLL`, one value each) |
@@ -91,6 +95,28 @@ The backtest over the stored FPT data, through API v1 (read only, same envelope 
 | `max_events` | 1–1000, default 300 (linear cost since LEDGER-PERF-01: about 0.3 s at 1000 events) |
 
 Every parameter, and the configuration through the engine's own validation, is checked before any database access (400 otherwise). The read runs in a `READ ONLY` transaction with a 20 s statement timeout. The computation runs after the transaction is closed and the database client released, one request at a time per process (a concurrent request gets `429 BUSY`); `data.reader.truncated` says when more matches than `max_events` exist (the reader asks for one more and drops it). A stored row the reader refuses is a `500 INTERNAL` data defect, never a `503`. `data` is `{reader, report, events, totals}`: the reader's counts, the engine's report (unchanged, same `report_sha256`), and two blocks for the web page «Simulazione» (HIST-WEB-01), so the browser computes nothing: `events` maps the `event_id` of every match bet on to its names, `match_date` and `kickoff_utc` as the input carries them (not to be confused with `reader.events`, a count); `totals` gives `bets`, `unsettled`, `no_trade` and `skipped_by_money_management` (null without a bankroll), the sums of the report's counters; `meta.provenance` repeats the PIT mode, the certification block (`certified: false`) and the report hash. On the stored FPT data a `PIT` request gives `INSUFFICIENT_PIT_DATA`; `NON_PIT_RESEARCH` simulates, labelled as exploratory.
+
+## Configurable strategies `mp-strategy-def-1` (STRAT-CFG-01, #34)
+
+`config.strategy_definition` replaces `config.strategy`. A `strategy` beside it is accepted only when it is the definition's own id, so a report's `config`, without the derived `settings_snapshot_id` and `commission_rate_used`, runs again unchanged. A definition is a closed JSON object: every field is validated, unknown fields and `null` values are refused, nothing is evaluated as code.
+
+| Field | Values |
+|---|---|
+| `version` | `mp-strategy-def-1` (default) |
+| `market` | `MATCH_ODDS` (default). Any other market is refused with `MARKET_UNSUPPORTED`: the archive carries 1X2 prices only, and no price is invented |
+| `selection` | `FAVOURITE` (lowest of the three prices), `UNDERDOG` (highest), `HOME`, `DRAW`, `AWAY` |
+| `side` | `BACK` or `LAY` |
+| `conditions.odds_min`, `odds_max` | bounds, inclusive, on the price of the chosen selection |
+| `conditions.home_min` … `away_max` | bounds, inclusive, on each 1X2 price |
+| `conditions.teams`, `venue` | 1–20 exact team names (compared in Unicode NFC; invisible characters refused); the event matches when one of them plays (`ANY`), at home (`HOME`) or away (`AWAY`) |
+
+Prices are decimal text (`"1.85"`), above 1 and at most 1000, at most 3 decimals.
+
+**Identity.** The definition is normalized (defaults filled in, prices canonical, teams trimmed, deduplicated and sorted). Its strategy id is `def:` and the first 16 hex digits of the SHA-256 of that canonical form: the same rules always give the same id, and any change gives another (MP-STA-001). The report records `config.strategy` (the id), `config.strategy_definition` (the normalized definition, part of the settings snapshot) and `versions.strategy_definition`. A run with a registered strategy keeps its report unchanged.
+
+**Decision.** The compiled definition is a strategy like the reference ones: it sees only the decision view (teams, kickoff, decision time, the prices the PIT policy admitted) and returns BACK/LAY on a selection or a reasoned NO_TRADE, checked in this order: `TEAM_FILTER`; `NO_ADMISSIBLE_ODDS`; `INCOMPLETE_1X2` (`FAVOURITE`/`UNDERDOG` need all three prices) or `PRICE_MISSING` (the selection or a conditioned price is absent); `HOME_PRICE_OUT_OF_RANGE`, `DRAW_…`, `AWAY_…`; `FAVOURITE_TIE`/`UNDERDOG_TIE`; `ODDS_OUT_OF_RANGE`. A condition can never read a price acquired after the decision in `PIT`; `NON_PIT_RESEARCH` admits later prices and labels the run, as for every strategy. `FAVOURITE` with `BACK` or `LAY` decides exactly as `mp-ref-fav-back-1` and `mp-ref-fav-lay-1` (test-checked).
+
+**Not yet:** saved and named strategies (persistence waits for the priority 4 migration), other markets, dutching, in-play entries and exits.
 
 ## Configuration (frozen snapshot, MP-MKT-003)
 
