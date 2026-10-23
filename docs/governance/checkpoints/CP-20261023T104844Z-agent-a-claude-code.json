@@ -1,0 +1,149 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "authorizations": [],
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T104844Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T10:48:44Z",
+  "mandate": {
+    "id": "MP-OWNER-NEXT-STEPS-2026-10-23",
+    "source": "owner message in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23, 'MANDATO OWNER — MATCHPILOT — PROSSIMI PASSI' §B): prepare the MARKET-CORE-04 PR from patch v3; tests, CI and review; no merge or deploy"
+  },
+  "task": "MARKET-CORE-04",
+  "activity": "MARKET-CORE-04 implemented from patch v3: FPT/TC adapters, non-final UNRESOLVED (DEC-015), no VOID, DEC-002 versions; PR #217 opened, CI green",
+  "issue": 100,
+  "pr": 217,
+  "branch": "market-core-04",
+  "commit_sha": "39b9efb6b4daf862debe8ca38e32c864d9d99886",
+  "tree_sha": "108a282f0eb8f7df8fe3c7ee8af3da8c76069ed6",
+  "base_sha": "891e981191251c1756760960cd7ca9d55432accd",
+  "requirements": [
+    "MP-MKT-001",
+    "MP-MKT-002"
+  ],
+  "changes": [
+    "482ff0b: HIST-01a reconciled MERGED (891e981), MARKET-CORE-04 registered",
+    "claim MARKET-CORE-04 (rev 147 -> 148)",
+    "fdeb717: src/markets/rules.mjs v2 (internal rules, non-final UNRESOLVED, no VOID), src/markets/outcomes.mjs (FPT/TC adapters, DEC-002 selection), tests, docs, MP-MKT-002 evidence, runtime-state",
+    "1585579: registry pr 217",
+    "b760e56: owner mandate MP-OWNER-NEXT-STEPS-2026-10-23 registered",
+    "39b9efb: runtime-state production.release_sha 891e981 (deploy-vps run 39931191163)"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "fdeb71723b172b42ecbe5eb99400232a8efbff83",
+      "time": "2026-10-23T10:37:05Z",
+      "limits": [
+        "583 tests: 582 pass, 0 fail, 1 SKIPPED (postgres-independence needs PostgreSQL 17): skipped, not PASS"
+      ]
+    },
+    {
+      "command": "mutations on src/markets/outcomes.mjs (FT accepted, FINAL derivation, provider mixing, score validation, cutoff, corrected flag)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container",
+      "commit": "fdeb71723b172b42ecbe5eb99400232a8efbff83",
+      "time": "2026-10-23T10:37:05Z",
+      "limits": [
+        "7/7 killed"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI run 39939463409 on 1585579: Classify, Fast checks, PostgreSQL, Browser QA, Exploratory QA, CI gate success",
+      "result": "PASS",
+      "environment": "GitHub-hosted runners",
+      "commit": "158557905ba9266a89637495cf2d7d8b72a7f3d7",
+      "time": "2026-10-23T10:37:05Z",
+      "limits": [
+        "UI checks skipped (not PASS)",
+        "CI evidence from a2d777c (run 39940498321); this head adds only runtime-state text"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 39939463409,
+    "conclusion": "SUCCESS",
+    "head_sha": "158557905ba9266a89637495cf2d7d8b72a7f3d7"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "a2d777cf2d546e084e15b78854d29bc263fc9df5",
+    "reference": "self-review (DEC-004-R1) 5627165425 on a2d777c; the later commit changes only runtime-state production fields"
+  },
+  "findings": [
+    {
+      "id": "MC04-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "PR #216 (agent-g-grok return leg) also reconciles HIST-01a and bumps the registry to 148: the second PR merged resolves only revision and runtime-state lines"
+    },
+    {
+      "id": "MC04-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "owner decisions still open: VOID rule for cancelled matches, extra time in cup ties (OWNER DECISION REQUIRED, documented in rules.mjs and docs/market-rules.md)"
+    }
+  ],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "DEC-015"
+  ],
+  "progress": {
+    "done": [
+      "implementation, tests, CI green on 1585579"
+    ],
+    "in_progress": [
+      "self-review on the final head"
+    ],
+    "not_started": [
+      "merge (owner decision)",
+      "wiring of real FPT/TC data into the resolvers (later task)"
+    ]
+  },
+  "resources": [
+    "src/markets/rules.mjs",
+    "src/markets/outcomes.mjs",
+    "test/market-core-04.test.mjs",
+    "docs/market-rules.md",
+    "branch:market-core-04",
+    "pr:217"
+  ],
+  "stop_conditions": [
+    "no merge or deploy without owner authorization",
+    "PR #216 / HANDOFF-TEST-01 untouched",
+    "any divergence between this checkpoint and the branch head"
+  ],
+  "state": "REVIEW",
+  "next_action": "owner decision on the PR #217 merge (expectedHeadSha = final head); resolve only registry revision/runtime-state if #216 merges first",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only",
+    "CI green on the final head"
+  ],
+  "supersedes": "CP-20261023T103705Z-agent-a-claude-code"
+}
