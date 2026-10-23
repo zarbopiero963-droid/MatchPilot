@@ -393,7 +393,7 @@ export async function factsSection(client) {
       (SELECT count(*)::int FROM fpt_match_facts WHERE kickoff_local_time IS NOT NULL) AS kickoff_local_time_set,
       (SELECT count(*)::int FROM fpt_match_facts WHERE provider_match_id IS NOT NULL) AS with_provider_match_id,
       (SELECT count(*)::int FROM fpt_match_facts f
-         WHERE f.version_id IS DISTINCT FROM ${LATEST_ADMISSIBLE_VERSION_SQL}) AS facts_stale`);
+         WHERE f.version_id <> ${LATEST_ADMISSIBLE_VERSION_SQL}) AS facts_stale`);
   // Production facts only: datasets still in onboarding are mirrored but held back from fpt_match_facts, and each match
   // is counted on its latest admissible version (FPT-FACTS-GATE).
   const productionAt = `SELECT count(*)::int AS n FROM (${ADMISSIBLE_FACTS_SQL}) f`;

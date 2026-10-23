@@ -7,6 +7,7 @@ import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {COUNTED, REPORTED_KEYS, describeDatabaseUrl, environmentFiles, inspectDatabase, parseEnv, unitConfig, unitEnvironment} from '../tools/vps/persistence-preflight.mjs';
+import {FACTS_GAP_SQL} from '../src/providers/futpython/facts-refresh.mjs';
 
 const SOURCE = readFileSync(new URL('../tools/vps/persistence-preflight.mjs', import.meta.url), 'utf8');
 
@@ -74,6 +75,10 @@ test('preflight: the source writes nothing and runs only read-only commands', ()
     // Keywords outside string literals (privilege names such as 'CREATE' are only read).
     assert.doesNotMatch(sql.replace(/'[^']*'/g, "''"), /\b(INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TRUNCATE|GRANT|REVOKE|COPY|VACUUM|COMMIT)\b/i, sql.slice(0, 60));
   }
+  // The facts recovery measure is imported from the application: it must be a read too.
+  assert.match(FACTS_GAP_SQL.trim(), /^SELECT/);
+  assert.doesNotMatch(FACTS_GAP_SQL.replace(/'[^']*'/g, "''"), /\b(INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TRUNCATE|GRANT|REVOKE|COPY|VACUUM|COMMIT)\b/i);
+  assert.match(SOURCE, /factsGap: FACTS_GAP_SQL/);
   assert.match(SOURCE, /BEGIN READ ONLY/);
   assert.deepEqual(COUNTED.filter(t => !/^[a-z_]+$/.test(t)), []);
 });

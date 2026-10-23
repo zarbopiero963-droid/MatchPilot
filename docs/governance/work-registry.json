@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 191,
+  "revision": 193,
   "tasks": [
     {
       "id": "R-01",
@@ -1424,13 +1424,37 @@
       "pr": 235,
       "branch": "persist-preflight-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T211813Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T214514Z-agent-a-claude-code",
       "resources": [
         "tools/vps/persistence-preflight.mjs",
         "docs/persistence-preflight.md",
         "docs/persistence-plan.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "2cf0463690e0c627cdf9902e5cfb5b2b22f37637"
+    },
+    {
+      "id": "PERSIST-GONOGO-01",
+      "title": "PERSIST-GONOGO-01: facts recovery command, GO/NO-GO report and runbook",
+      "issue": 99,
+      "pr": 236,
+      "branch": "persist-gonogo-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261023T221644Z-agent-a-claude-code",
+      "resources": [
+        "src/jobs/futpython-facts-refresh.mjs",
+        "src/providers/futpython/facts-refresh.mjs",
+        "tools/vps/persistence-preflight.mjs",
+        "docs/persistence-go-no-go.md",
+        "docs/persistence-runbook.md"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",

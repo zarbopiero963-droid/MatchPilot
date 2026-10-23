@@ -1,0 +1,119 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T221644Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T22:16:44Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "PERSIST-GONOGO-01",
+  "activity": "FPT facts recovery command and measure, preflight facts section, GO/NO-GO report and runbook; no migration",
+  "issue": 99,
+  "pr": 236,
+  "branch": "persist-gonogo-01",
+  "commit_sha": "1a0877e247f21550a113f18acde99393e7fa1dd1",
+  "tree_sha": "1707427775b9deadb8729a5c42cdaf5b99774cbd",
+  "base_sha": "2cf0463690e0c627cdf9902e5cfb5b2b22f37637",
+  "requirements": [],
+  "changes": [
+    "futpython-facts-refresh.mjs",
+    "FACTS_GAP_SQL",
+    "preflight factsGap",
+    "persistence-go-no-go.md",
+    "persistence-runbook.md"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "1a0877e247f21550a113f18acde99393e7fa1dd1",
+      "time": "2026-10-23T22:16:44Z",
+      "limits": [
+        "synthetic data on throwaway PostgreSQL 16 and a local runbook drill (steps 1-4); real VPS data not available"
+      ]
+    },
+    {
+      "command": "local runbook drill, docs/persistence-runbook.md steps 1-4 on PostgreSQL 16 (throwaway source database in the legacy hidden/stale state)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container",
+      "commit": "1a0877e247f21550a113f18acde99393e7fa1dd1",
+      "time": "2026-10-23T22:16:44Z",
+      "limits": [
+        "dump/restore/checksums OK; history prefix digests equal; drill dry run hidden=1 stale=1; apply COMMITTED hidden=0 stale=0 duplicates=0 digest unchanged; source untouched"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "1a0877e247f21550a113f18acde99393e7fa1dd1"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "final-head context-separated sub-agent review pending (DEC-004-R1)"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "MP-PERSISTENCE-232-NEXT-20261023",
+    "MP-FPT-PROVISIONAL-DEPRIORITIZATION-20261023"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and final review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "src/jobs/futpython-facts-refresh.mjs",
+    "src/providers/futpython/facts-refresh.mjs",
+    "tools/vps/persistence-preflight.mjs",
+    "docs/persistence-go-no-go.md",
+    "docs/persistence-runbook.md",
+    "branch:persist-gonogo-01",
+    "pr:236"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and final-head review on PR #236, then protected merge and deploy verification",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}
