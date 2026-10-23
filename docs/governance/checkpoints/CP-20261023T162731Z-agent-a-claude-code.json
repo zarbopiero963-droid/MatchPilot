@@ -1,0 +1,148 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T162731Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T16:27:31Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "HIST-PG-01",
+  "activity": "PR #223 auto-merged as 5db6b56 (squash, expectedHeadSha 38871a5); main CI green; VPS deploy FAILED its sandbox tests (Europe/Rome time zone shifted DATE values in the FPT reader test), release not switched",
+  "issue": 34,
+  "pr": 223,
+  "branch": "hist-pg-01",
+  "commit_sha": "38871a5b6b740487e9d093bdf68fdf5c592bc364",
+  "tree_sha": "20beded3501e759784d20717991d5aefe6dd3bae",
+  "base_sha": "b3ac8d00eae3dd52210679904d43b7582c9c0139",
+  "requirements": [
+    "MP-STA-001"
+  ],
+  "changes": [
+    "24b3dc5: NON_PIT_RESEARCH mode and FPT reader",
+    "4a1701e: fpt-backtest CLI, docs, checks",
+    "5a1aa99: LAY random test hardening, PIT-by-date mutation guard",
+    "5db6b56: squash merge of PR #223"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "5a1aa9932b47f158c3dd4877c245cfd3e0f44214",
+      "time": "2026-10-23T15:56:55Z",
+      "limits": [
+        "613 tests: 612 pass, 0 fail, 1 SKIPPED (postgres-independence needs PostgreSQL 17); reader tested on synthetic FPT rows in a throwaway local PostgreSQL, not on the VPS database"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 5db6b56",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "5db6b56f999b296d5d61637abc302819ac3acca9",
+      "time": "2026-10-23T16:27:31Z",
+      "limits": [
+        "run 39984889508 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 5db6b56 (job log evidence)",
+      "result": "FAIL",
+      "environment": "VPS via self-hosted runner, evidence from the job log only",
+      "commit": "5db6b56f999b296d5d61637abc302819ac3acca9",
+      "time": "2026-10-23T16:27:31Z",
+      "limits": [
+        "run 39984889403: FAIL_TESTS: tests rc=1 (602 pass, 1 fail, 11 skipped) in the VPS deploy sandbox; current not switched, the VPS keeps release b3ac8d0"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "SUCCESS",
+    "head_sha": "38871a5b6b740487e9d093bdf68fdf5c592bc364"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "38871a5b6b740487e9d093bdf68fdf5c592bc364",
+    "reference": "review on PR #223 head 38871a5 (context-separated sub-agent, DEC-004-R1: not identity-independent): CHANGES_REQUESTED B-1/B-2 on 4b2bdc1, fixed; delta APPROVED on f73345a; N-1 applied in 38871a5"
+  },
+  "findings": [
+    {
+      "id": "HPG-TZ",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "deploy-blocking defect found after merge, tracked as task HIST-PG-TZFIX (its own PR): node-pg returns DATE as a local-midnight Date; in Europe/Rome toISOString() moves match_date one day back; fixed by HIST-PG-TZFIX (match_date::text)"
+    },
+    {
+      "id": "FPT-FACTS-GATE",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "collector/facts: when the latest version of a match belongs to a non-ACTIVE dataset, fpt_match_facts drops the whole match (pre-existing, migration 018 gate on the latest version)"
+    }
+  ],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "DEC-015"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [
+      "VPS deploy: fix HIST-PG-TZFIX"
+    ],
+    "not_started": []
+  },
+  "resources": [
+    "src/hist/engine.mjs",
+    "src/hist/contract.mjs",
+    "src/providers/futpython/hist-input.mjs",
+    "tools/hist/fpt-backtest.mjs",
+    "test/hist-backtest.test.mjs",
+    "test/hist-pg-input.test.mjs",
+    "docs/hist-backtest.md",
+    "package.json",
+    "branch:hist-pg-01",
+    "pr:223"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "HIST-PG-TZFIX PR, then redeploy",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261023T155655Z-agent-a-claude-code",
+  "merge_sha": "5db6b56f999b296d5d61637abc302819ac3acca9"
+}

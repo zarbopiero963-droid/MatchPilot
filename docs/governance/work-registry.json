@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 169,
+  "revision": 170,
   "tasks": [
     {
       "id": "R-01",
@@ -1182,9 +1182,9 @@
       "pr": 223,
       "branch": "hist-pg-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T155655Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T162731Z-agent-a-claude-code",
       "resources": [
         "src/hist/engine.mjs",
         "src/hist/contract.mjs",
@@ -1199,7 +1199,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "5db6b56f999b296d5d61637abc302819ac3acca9"
     }
   ]
 }
