@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 189,
+  "revision": 190,
   "tasks": [
     {
       "id": "R-01",
@@ -1401,9 +1401,9 @@
       "pr": 233,
       "branch": "fpt-facts-gate-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T205459Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T211812Z-agent-a-claude-code",
       "resources": [
         "src/providers/futpython/facts-refresh.mjs",
         "src/providers/futpython/query.mjs",
@@ -1414,7 +1414,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "92eb96d09a9453c4e1c9c421a437468c65259f18"
     }
   ]
 }
