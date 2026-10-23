@@ -90,6 +90,23 @@ New texts of the pre-match analysis; each is checked by the journey `match-cente
 | UI-89 | «Partita non valida: aprila dalla Daily Board o dalla Ricerca.», «Partita non trovata», «Questa partita non è nell'archivio. Torna a Oggi» | invalid or unknown id | U | new; no request for an invalid id; the API's reason in `data-code` | R-07a | journey `match-center`, step «partita non valida o non trovata» |
 | UI-90 | the PIT status, the analysis version, phase and dataset of the match | hero | T | not printed: `data-pit`, `data-version`, `data-phase`, `data-dataset` | R-07a | journey `match-center`: attributes equal the API |
 
+## Simulazione (`#/sim`, user view, HIST-WEB-01)
+
+New texts of the backtest page; each is checked by the journey `simulation` on desktop and mobile, besides the invariants (no technical text, no lead text). Codes (statuses, sides, reasons, the report hash) stay in `data-*` attributes and tooltips.
+
+| ID | Text | Where | Class | Action | PR | Verification |
+|---|---|---|---|---|---|---|
+| UI-91 | «Simulazione» | menu item, page title | U | new | HIST-WEB-01 | journey `general-navigation` (menu) and `simulation` |
+| UI-92 | «Dal», «Al», «Campionato», «Strategia» («Favorito · Punta», «Favorito · Banca»), «Modalità» («Rigorosa», «Ricerca esplorativa»; the research mode is explained by UI-93 as soon as it is chosen), «Puntata», «Commissione (es. 0,05 = 5%)», «Partite al massimo», «Capitale (facoltativo)», «Capitale iniziale», «Gestione del capitale» and its five options, «Valore della gestione», «Simula», «Azzera» | form | U | new | HIST-WEB-01 | journey `simulation` (fields by name; options by value) |
+| UI-93 | «RICERCA ESPLORATIVA — le quote sono state acquisite dopo l’inizio delle partite: i risultati servono solo a studiare il motore e non dimostrano alcuna redditività.» | above the form when chosen and above the result | V | new: the research mode is always labelled in plain words, never only in a tooltip | HIST-WEB-01 | journey `simulation`, step «ricerca esplorativa» |
+| UI-93b | «Ricerca esplorativa: usa le quote acquisite dopo l’inizio delle partite, solo per studio.» | form, as soon as the research mode is chosen | V | new | HIST-WEB-01 | journey `simulation`, step «ricerca esplorativa» |
+| UI-94 | «Non certificato: risultato tecnico su dati reali non verificati, non una previsione di guadagno.» | every result | U | new; the engine's verdict in `data-code` | HIST-WEB-01 | journey `simulation` |
+| UI-95 | «Nessuna quota nota prima dell’inizio delle partite nel periodo scelto: con la modalità rigorosa non c’è nulla da simulare. …», «Scommesse decise, ma nessun risultato finale disponibile…», «La strategia non ha scommesso su nessuna partita del periodo.», «Scegli il periodo e premi Simula.» | result states | U | new | HIST-WEB-01 | journey `simulation` (rigorous mode, empty form) |
+| UI-96 | «Esito della simulazione», «Partite», «Partite lette», «Puntate», «Bancate», «Nessuna operazione», «Non regolate», «Risultato», «Scommesse regolate», «Vinte», «Perse», «Puntato», «Capitale a rischio», «Profitto lordo», «Commissioni», «Profitto netto», «Rendimento sul capitale a rischio», «Massimo calo», «Punta», «Banca», «Risultati corretti dopo la fine», the rounding note | result sections | U | new; values exactly as the API sent them | HIST-WEB-01 | journey `simulation`: every value equals the API |
+| UI-97 | «Capitale», «Cassa finale», «Disponibile», «Profitto realizzato», «Rendimento sul capitale», «Massimo calo della cassa», «Scommesse piazzate», «Ridotte dalla gestione», «Saltate dalla gestione» | capital section | U | new | HIST-WEB-01 | journey `simulation`, step «capitale e gestione» |
+| UI-98 | «Scommesse (n)», columns «Data · Partita · Lato · Segno · Quota · Puntata · Risultato · Netto», «Vinta», «Persa», «Non regolata» | bets table | U | new; a card per bet on a phone | HIST-WEB-01 | journey `simulation` |
+| UI-99 | «Simulate solo le prime n partite del periodo…», «Valore non valido in: … Correggi il campo e riprova.», «È già in corso un’altra simulazione: riprova tra qualche secondo.» | truncation, refused settings, busy | U | new | HIST-WEB-01 | journey `simulation` |
+
 ## Stato dei dati (`#/data`, the former Dashboard; technical view since V-B2a)
 
 Until V-B2 the Dashboard was the home page, though it is almost entirely data health and certification: technical by nature. V-B2a made «Oggi» (the Daily Board) the home page (D-2) and moved this view into the technical area «Dati» as «Stato dei dati».

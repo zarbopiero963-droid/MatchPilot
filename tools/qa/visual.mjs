@@ -58,6 +58,10 @@ export const SCENES = [
     ready: '[data-testid="compare"]', scroll: '[data-testid="cutoff"]'},
   {id: 'dati-parziale', title: 'Dati: un riquadro non disponibile', path: () => '#/data', ready: '[data-testid="tile-tc-live"] .state.partial',
     scroll: '[data-testid="tile-tc-live"]', api: {'/api/v1/tc/live': 'unavailable'}},
+  {id: 'simulazione', title: 'Simulazione: modulo', path: () => '#/sim', ready: '[data-testid="sim-form"] select[name="competition"]'},
+  {id: 'simulazione-ricerca', title: 'Simulazione: risultato in ricerca esplorativa, etichettato',
+    path: seed => `#/sim?run=1&from=2024-08-01&to=2024-08-31&competition=${encodeURIComponent(seed.eredivisie.competition)}&pit_mode=NON_PIT_RESEARCH&stake=10&commission=0.05`,
+    ready: '[data-testid="sim-metrics"]', scroll: '[data-testid="sim-outcome"]'},
 ];
 
 // The matches the Match Center scenes open, chosen from the API of the QA archive: never a hard-coded id.

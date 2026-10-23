@@ -6,7 +6,7 @@ Owner decisions: MP-OWNER-QA-VISUAL-EXECUTION-01 (versioned visual baselines, SH
 
 `node tools/qa/visual.mjs --out <dir>` opens each **scene** of the site on three viewports and compares its first screen with the committed baseline:
 - viewports: desktop 1280×800, tablet 820×1180, mobile 390×844;
-- 15 scenes, so 45 baselines in `test/visual/baselines/`.
+- 17 scenes, so 51 baselines in `test/visual/baselines/`.
 
 | Scene | Address | What it fixes |
 |---|---|---|
@@ -25,6 +25,8 @@ Owner decisions: MP-OWNER-QA-VISUAL-EXECUTION-01 (versioned visual baselines, SH
 | `partita-confronto` | the same match, scrolled to the comparison | comparison, source matches |
 | `partita-senza-storico` | a match of the first day, whose teams have no earlier match | empty states and N/D |
 | `dati-parziale` | Dati, with the live TotalCorner route answering 503 | partial dashboard: one tile N/D, banner |
+| `simulazione` | the backtest form | form, mode selector, capital fieldset |
+| `simulazione-ricerca` | Eredivisie, August 2024, research mode, scrolled to the outcome | research label, certification note, counts and result |
 
 ## What makes it reproducible
 
