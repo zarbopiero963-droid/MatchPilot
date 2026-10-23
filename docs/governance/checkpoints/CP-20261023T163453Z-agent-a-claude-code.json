@@ -1,0 +1,103 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T163453Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T16:34:53Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "HIST-PG-TZFIX",
+  "activity": "FPT reader reads match_date as text (Europe/Rome day shift that failed deploy 5db6b56); PR #224",
+  "issue": 34,
+  "pr": 224,
+  "branch": "hist-pg-tzfix",
+  "commit_sha": "82ea8a8b54757de283cab0a8c2b726bf4a5f20e0",
+  "tree_sha": "dd19be68abd3011725413a313b28b9b78438c374",
+  "base_sha": "5db6b56f999b296d5d61637abc302819ac3acca9",
+  "requirements": [
+    "MP-STA-001"
+  ],
+  "changes": [
+    "82ea8a8: match_date::text, BAD_ROW on non-text dates, CLI test under TZ=Europe/Rome"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "82ea8a8b54757de283cab0a8c2b726bf4a5f20e0",
+      "time": "2026-10-23T16:34:53Z",
+      "limits": [
+        "614 tests under TZ=Europe/Rome: 613 pass, 0 fail, 1 SKIPPED (postgres-independence needs PostgreSQL 17)"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "82ea8a8b54757de283cab0a8c2b726bf4a5f20e0"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "final-head context-separated sub-agent review pending (DEC-004-R1)"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "DEC-015"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and final review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "src/providers/futpython/hist-input.mjs",
+    "test/hist-pg-input.test.mjs",
+    "branch:hist-pg-tzfix",
+    "pr:224"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and final-head review on PR #224, then protected merge and deploy verification",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}
