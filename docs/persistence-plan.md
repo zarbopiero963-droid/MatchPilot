@@ -7,7 +7,8 @@ The agent never creates the VPS authorization file.
 
 **Sources of the facts below.** Code is read in this repository. The VPS state is *declared*: the 2026-10-22 audit
 reports it (`docs/governance/audits/2026-10-22-MP-GLOBAL-AUDIT/C-code.md`, evidence 6344141373), and the agent has no
-access to the VPS. The owner confirms that state before step 1 of the procedure.
+access to the VPS. The owner confirms that state before step 1 of the procedure, with the read-only preflight of
+[persistence-preflight.md](persistence-preflight.md) (owner decision MP-PERSISTENCE-232-NEXT-20261023).
 
 ## What is persisted and why
 
