@@ -98,7 +98,7 @@ Every parameter, and the configuration through the engine's own validation, is c
 
 ## Configurable strategies `mp-strategy-def-1` (STRAT-CFG-01, #34)
 
-`config.strategy_definition` replaces `config.strategy`. A `strategy` beside it is accepted only when it is the definition's own id, so a report's `config` runs again as it is. A definition is a closed JSON object: every field is validated, unknown fields and `null` values are refused, nothing is evaluated as code.
+`config.strategy_definition` replaces `config.strategy`. A `strategy` beside it is accepted only when it is the definition's own id, so a report's `config`, without the derived `settings_snapshot_id` and `commission_rate_used`, runs again unchanged. A definition is a closed JSON object: every field is validated, unknown fields and `null` values are refused, nothing is evaluated as code.
 
 | Field | Values |
 |---|---|

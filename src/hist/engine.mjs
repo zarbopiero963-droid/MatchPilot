@@ -99,7 +99,7 @@ export function validateConfig(config, strategies = STRATEGIES) {
   let definition = null;
   if (byDefinition) {
     definition = normalizeDefinition(config.strategy_definition);
-    // A report's config (strategy = the definition's id) runs again as it is; any other strategy beside a definition is refused.
+    // A report's config (strategy = the definition's id), without its derived fields, runs again; any other strategy beside a definition is refused.
     if (Object.hasOwn(config, 'strategy') && config.strategy !== definitionId(definition)) throw new HistInputError('config.strategy', 'must be the id of strategy_definition, or absent');
   } else if (typeof config.strategy !== 'string' || !Object.hasOwn(strategies, config.strategy)) throw new HistInputError('config.strategy', 'unknown strategy');
   if (typeof config.bookmaker !== 'string' || !/^[\w.:\-/]{1,200}$/.test(config.bookmaker)) throw new HistInputError('config.bookmaker', 'must be an identifier');

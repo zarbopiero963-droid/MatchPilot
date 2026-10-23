@@ -19,7 +19,9 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const badRequest = (ApiError, message) => new ApiError('BAD_REQUEST', message);
 
 function dateOf(ApiError, name, value) {
-  if (!DATE.test(value) || new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) !== value) throw badRequest(ApiError, `${name} must be a date YYYY-MM-DD`);
+  // An impossible date (month 13, day 32) is an invalid Date: refused here, never a RangeError (PR #230 review R2-NB-2).
+  const time = DATE.test(value) ? Date.parse(`${value}T00:00:00Z`) : NaN;
+  if (Number.isNaN(time) || new Date(time).toISOString().slice(0, 10) !== value) throw badRequest(ApiError, `${name} must be a date YYYY-MM-DD`);
   return value;
 }
 

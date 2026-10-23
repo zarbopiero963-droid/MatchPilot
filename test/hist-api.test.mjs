@@ -15,6 +15,7 @@ test('invalid backtest requests are refused with 400 before any database access'
   const bad = ['/api/v1/hist/backtest?to=2025-09-30', '/api/v1/hist/backtest?from=2025-09-01&to=2026-10-01', '/api/v1/hist/backtest?from=2025-09-30&to=2025-09-01',
     '/api/v1/hist/backtest?from=2025-02-30&to=2025-03-01', `${base}&strategy=martingale`, `${base}&pit_mode=LIVE`, `${base}&commission=1`, `${base}&stake=0`,
     `${base}&mm_model=PERCENT_BANKROLL&mm_value=5`, `${base}&bankroll=100&mm_model=PERCENT_BANKROLL`, `${base}&bankroll=100&mm_model=PERCENT_BANKROLL&mm_value=5&stake=2`,
+    '/api/v1/hist/backtest?from=2025-13-01&to=2025-09-30', '/api/v1/hist/backtest?from=2025-09-01&to=2025-00-10', // PR #230 review R2-NB-2: not a 500
     `${base}&max_events=${HIST_BACKTEST_LIMITS.maxEvents + 1}`, `${base}&competition=x' OR 1=1`, `${base}&outcomes_as_of=yesterday`, `${base}&unknown=1`];
   for (const path of bad) {
     const result = await get(path);
