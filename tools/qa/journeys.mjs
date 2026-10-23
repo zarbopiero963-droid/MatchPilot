@@ -1054,6 +1054,15 @@ export const JOURNEYS = [
         assert.deepEqual([await page.inputValue('input[name="from"]'), await page.inputValue('select[name="pit_mode"]'), await page.inputValue('select[name="a_strategy"]'),
           await page.inputValue('input[name="a_stake"]'), await page.inputValue('select[name="c_strategy"]')], ['2024-08-01', 'NON_PIT_RESEARCH', 'mp-ref-fav-lay-1', '5', '']);
         assert.ok(!(await page.locator('[data-testid="cmp-money-c"]').isVisible()), 'an empty configuration C shows no fields');
+        // A personalised strategy carries its rules into configuration A (PR #231 review NB-5).
+        await fresh(page, `${base}/#/sim?from=2024-08-01&to=2024-08-31&strategy=custom&selection=UNDERDOG&side=LAY&odds_max=6&team=Ajax&venue=HOME`);
+        await titled(page, 'Simulazione');
+        await page.click('[data-testid="sim-compare-link"]');
+        await titled(page, 'Confronto di strategie');
+        assert.ok(await page.locator('[data-testid="cmp-rules-a"]').isVisible());
+        assert.deepEqual([await page.inputValue('select[name="a_strategy"]'), await page.inputValue('select[name="a_selection"]'), await page.inputValue('select[name="a_side"]'),
+          await page.inputValue('input[name="a_odds_max"]'), await page.inputValue('input[name="a_team"]'), await page.inputValue('select[name="a_venue"]')],
+          ['custom', 'UNDERDOG', 'LAY', '6', 'Ajax', 'HOME']);
       });
       await step('tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica', async () => {
         const query = {from: '2024-08-01', to: '2024-08-31', pit_mode: 'NON_PIT_RESEARCH', commission: '0.05',

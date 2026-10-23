@@ -155,8 +155,9 @@ export function histBacktestEndpoint({param, integer, oneOf, instant, ApiError})
   return {
     path: '/api/v1/hist/backtest', source: 'MatchPilot',
     summary: 'Backtest BACK/LAY sui dati FutPythonTrader salvati: PIT (default) o NON_PIT_RESEARCH etichettato; ledger paper, bankroll e Money Management opzionali. Sola lettura, nessuna certificazione.',
-    params: {from: data.from, to: data.to, competition: data.competition, ...strategyParams({param, oneOf}), pit_mode: data.pit_mode, commission: data.commission,
-      outcomes_as_of: data.outcomes_as_of, max_events: data.max_events},
+    // The published order of HIST-API-01 is kept (the endpoint registry and UNKNOWN_PARAMETER details list them in order).
+    params: (({stake, bankroll, mm_model, mm_value, ...rule}) => ({from: data.from, to: data.to, competition: data.competition, ...rule, pit_mode: data.pit_mode,
+      stake, commission: data.commission, bankroll, mm_model, mm_value, outcomes_as_of: data.outcomes_as_of, max_events: data.max_events}))(strategyParams({param, oneOf})),
     precheck: input => { checkRequest(ApiError, input); checkStrategy(ApiError, input); },
     read: readRequest,
     exclusive: true, exclusiveKey: 'hist',
@@ -193,6 +194,12 @@ export function histCompareEndpoint({param, integer, oneOf, instant, ApiError}) 
       checkRequest(ApiError, input);
       const keys = variants(input);
       if (!keys.includes('a') || !keys.includes('b')) throw badRequest(ApiError, 'a comparison needs configurations a and b (a_ and b_ parameters)');
+      // The shared parameters are checked once, unprefixed (a wrong commission is not configuration A's).
+      try { validateConfig(configOf(shared(input))); }
+      catch (error) {
+        if (error instanceof HistInputError) throw badRequest(ApiError, error.message);
+        throw error;
+      }
       for (const key of keys) checkStrategy(ApiError, {...shared(input), ...variantInput(input, key)}, `${key}_`);
     },
     read: readRequest,

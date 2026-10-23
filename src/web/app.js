@@ -1195,6 +1195,10 @@ async function compareView(params) {
       return [...head, el('p', {class: 'state partial', role: 'status', 'data-testid': 'sim-busy', 'data-outcome': '', title: reasonText(error)},
         'È già in corso un’altra simulazione: riprova tra qualche secondo.')];
     }
+    if (error?.status === 414) {
+      return [...head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'cmp-too-long', 'data-outcome': '', title: reasonText(error)},
+        'Troppe regole insieme: togli qualche condizione o accorcia i nomi delle squadre e riprova.')];
+    }
     throw error;
   }
   const variants = Array.isArray(body.data?.variants) ? body.data.variants : [];
@@ -1215,7 +1219,7 @@ async function compareView(params) {
       `Confrontate solo le prime ${formatNumber(reader.events)} partite del periodo: aumenta «Partite al massimo» o riduci il periodo.`) : null,
     el('section', {class: 'card', 'data-testid': 'cmp-table'}, el('h2', {}, 'Configurazioni a confronto'),
       el('div', {class: 'tablewrap'}, el('table', {class: 'compare'},
-        el('thead', {}, el('tr', {}, el('th', {scope: 'col'}, ''), variants.map(v => el('th', {scope: 'col', 'data-key': v.key}, `Configurazione ${v.key.toUpperCase()}`)))),
+        el('thead', {}, el('tr', {}, el('td', {}), variants.map(v => el('th', {scope: 'col', 'data-key': v.key}, `Configurazione ${v.key.toUpperCase()}`)))),
         el('tbody', {},
           cmpRow('Strategia', 'strategy', variants, v => cmpStrategyText(v.report)),
           cmpRow('Esito', 'status', variants, v => el('span', {'data-code': v.report.status ?? ''}, statusText(v))),

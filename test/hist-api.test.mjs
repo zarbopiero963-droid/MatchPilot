@@ -100,7 +100,9 @@ test('comparison: refusals name the configuration and never reach the database; 
     [`${cmp}&a_strategy=mp-ref-fav-back-1&b_strategy=mp-ref-fav-lay-1&c_odds_min=2`, /^c_odds_min need c_selection$/],
     [`${cmp}&a_strategy=mp-ref-fav-back-1&b_strategy=mp-ref-fav-lay-1&d_strategy=mp-ref-fav-back-1`, /unknown parameter/],
     [`${cmp}&a_strategy=mp-ref-fav-back-1&b_strategy=mp-ref-fav-lay-1&b_mm_model=PERCENT_BANKROLL&b_mm_value=2`, /^b: config\.money_management: needs config\.bankroll$/],
-    ['/api/v1/hist/compare?from=2025-13-01&to=2025-09-30&a_strategy=mp-ref-fav-back-1&b_strategy=mp-ref-fav-lay-1', /^from must be a date/]];
+    ['/api/v1/hist/compare?from=2025-13-01&to=2025-09-30&a_strategy=mp-ref-fav-back-1&b_strategy=mp-ref-fav-lay-1', /^from must be a date/],
+    // A shared parameter is not a configuration's (PR #231 review NB-2).
+    [`${cmp}&commission=1&a_stake=1&b_stake=2`, /^config\.commission: /]];
   for (const [path, message] of refused) {
     const result = await get(path);
     assert.equal(result.status, 400, path);

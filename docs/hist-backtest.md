@@ -107,7 +107,7 @@ The configurations run one after another on the same input, so their reports sha
 
 There is no ranking and no computed difference: the page sets the reports side by side. Refusals name the configuration: `a_side is required with a_selection`, `b: config.stake: must be positive`.
 
-The backtest and the comparison share one exclusive slot, so a request arriving while either runs gets `429 BUSY`.
+The backtest and the comparison share one exclusive slot, so a request arriving while either runs gets `429 BUSY`. A comparison of three configurations at `max_events=1000` computes about three backtests in a row (about 1 s of server time), inside that slot.
 
 ## Configurable strategies `mp-strategy-def-1` (STRAT-CFG-01, #34)
 
