@@ -54,7 +54,7 @@ const rng = seed => { let s = seed >>> 0; return () => { s = (s + 0x6d2b79f5) >>
 // A ledger object with the same entries but a new identity has no cached state: its replay starts from scratch.
 const fromScratch = ledger => ({...ledger, entries: [...ledger.entries]});
 const view = r => ({cash: r.cash.toString(), reserved: r.reserved.toString(), realized: r.realized.toString(), commission: r.commission.toString(),
-  allocated: r.allocated.toString(), openCount: r.openCount, byScope: Object.fromEntries(Object.entries(r.byScope).map(([k, m]) => [k, [...m].map(([id, v]) => [id, v.toString()]).sort()])),
+  allocated: r.allocated.toString(), openCount: r.openCount, byScope: Object.fromEntries(Object.entries(r.byScope).map(([k, m]) => [k, [...m].map(([id, v]) => [id, v.toString()])])),
   positions: [...r.positions.keys()].sort().map(id => { const p = r.positions.get(id); return [id, p.status, p.settlement, p.settlement_version, p.exposure.toString(), p.legs.length, p.history.join(',')]; })});
 
 test('incremental replay equals a replay from scratch after every operation (seeded random sequences)', () => {
@@ -100,4 +100,32 @@ test('a position read from a replay is a copy: later operations never change it'
   // Entries replaced (not an extension of the cached ones) are rebuilt from scratch.
   const forged = {...l, entries: l.entries.slice(0, 2)};
   assert.equal(replay(forged).positions.get('a').settlement, null);
+});
+
+test('scope keys keep the full replay order after a hedge, and a replaced last entry rebuilds the state', () => {
+  const AT = '2026-10-23T12:00:00Z';
+  const l = createLedger({accountId: 'order', initialAllocation: '100', at: AT});
+  openPosition(l, {mode: 'ACTIVE_OPERATIONAL', positionId: 'a', side: 'BACK', odds: '2', stake: '15', commissionRate: '0', settingsSnapshotId: 's', idempotencyKey: 'oa', at: AT, scope: {match: 'm1'}});
+  openPosition(l, {mode: 'ACTIVE_OPERATIONAL', positionId: 'b', side: 'BACK', odds: '2', stake: '10', commissionRate: '0', settingsSnapshotId: 's', idempotencyKey: 'ob', at: AT, scope: {match: 'm2'}});
+  replay(l);
+  hedgePosition(l, {mode: 'ACTIVE_OPERATIONAL', positionId: 'a', side: 'LAY', odds: '3', stake: '2', idempotencyKey: 'ha', at: AT});
+  assert.equal(JSON.stringify(accountState(l).open_exposure_by_scope), JSON.stringify(accountState(fromScratch(l)).open_exposure_by_scope));
+  assert.deepEqual([...replay(l).byScope.match.keys()], ['m1', 'm2']);
+  // Same length, different last entry: not an extension, so the cached state is not reused.
+  const forged = {...l, entries: l.entries.slice(0, 3)};
+  replay(forged);
+  forged.entries[2] = {...forged.entries[2], stake: '5'};
+  assert.deepEqual(view(replay(forged)), view(referenceReplay(forged)));
+  assert.equal(replay(forged).reserved.toString(), '20');
+});
+
+test('an entry that throws leaves no half-applied state in the cache', () => {
+  const AT = '2026-10-23T12:00:00Z';
+  const l = createLedger({accountId: 'throw', initialAllocation: '100', at: AT});
+  replay(l);
+  // A reversal of an unknown position changes the cash before it fails on the position.
+  l.entries.push({type: 'REVERSAL', seq: 1, position_id: 'ghost', gross: '30', commission: '0'});
+  assert.throws(() => replay(l));
+  l.entries.pop();
+  assert.equal(replay(l).cash.toString(), referenceReplay(l).cash.toString());
 });

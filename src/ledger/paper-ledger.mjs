@@ -63,18 +63,22 @@ const states = new WeakMap();
 function freshState() {
   return {n: 0, last: null, positions: new Map(), cash: Decimal.zero(), realized: Decimal.zero(), commission: Decimal.zero(),
     allocated: Decimal.zero(), reserved: Decimal.zero(), openCount: 0,
-    byScope: Object.fromEntries(SCOPES.map(k => [k, new Map()])), scopeCount: Object.fromEntries(SCOPES.map(k => [k, new Map()]))};
+    byScope: Object.fromEntries(SCOPES.map(k => [k, new Map()])), scopeOpen: Object.fromEntries(SCOPES.map(k => [k, new Map()]))};
 }
 // Adds (sign 1) or removes (sign -1) an open position's exposure from the reserved totals.
 function reserve(st, p, sign) {
   const x = sign > 0 ? p.exposure : p.exposure.neg();
   st.reserved = st.reserved.add(x); st.openCount += sign;
+  // scopeOpen holds, per scope id, the creation ranks of its open positions: the full replay lists the scope ids in the
+  // order of their earliest open position, and replay() restores that order.
   for (const [k, id] of Object.entries(p.scope ?? {})) {
-    const n = (st.scopeCount[k].get(id) ?? 0) + sign;
-    if (n === 0) { st.scopeCount[k].delete(id); st.byScope[k].delete(id); }
-    else { st.scopeCount[k].set(id, n); st.byScope[k].set(id, (st.byScope[k].get(id) ?? Decimal.zero()).add(x)); }
+    const open = st.scopeOpen[k].get(id) ?? new Set();
+    if (sign > 0) open.add(p.rank); else open.delete(p.rank);
+    if (open.size === 0) { st.scopeOpen[k].delete(id); st.byScope[k].delete(id); }
+    else { st.scopeOpen[k].set(id, open); st.byScope[k].set(id, (st.byScope[k].get(id) ?? Decimal.zero()).add(x)); }
   }
 }
+function earliest(set) { let m = Infinity; for (const r of set) if (r < m) m = r; return m; }
 function applyEntry(st, e) {
   const a = e.amount === undefined ? null : dec(e.amount);
   switch (e.type) {
@@ -85,6 +89,7 @@ function applyEntry(st, e) {
         p = {position_id: e.position_id, legs: [], status: 'OPEN', commission_rate: e.commission_rate,
           settings_snapshot_id: e.settings_snapshot_id, scope: e.scope ?? null, market: e.market ?? null, settlement: null, settlement_version: 0,
           resolution: null, history: [], exposure: Decimal.zero()};
+        Object.defineProperty(p, 'rank', {value: st.positions.size});
         st.positions.set(e.position_id, p);
       } else if (p.settlement === null) reserve(st, p, -1);
       p.legs.push({side: e.side, odds: dec(e.odds), stake: dec(e.stake)});
@@ -118,7 +123,8 @@ export function replay(ledger) {
   let st = states.get(ledger);
   const entries = ledger.entries;
   if (!st || entries.length < st.n || (st.n > 0 && entries[st.n - 1] !== st.last)) st = freshState();
-  for (let i = st.n; i < entries.length; i++) applyEntry(st, entries[i]);
+  try { for (let i = st.n; i < entries.length; i++) { applyEntry(st, entries[i]); st.n = i + 1; st.last = entries[i]; } }
+  catch (error) { states.delete(ledger); throw error; } // a half-applied entry never stays in the cache
   st.n = entries.length; st.last = entries.at(-1) ?? null;
   states.set(ledger, st);
   // A read-only view: each position is copied when it is read, so a replay costs nothing per unread position.
@@ -126,7 +132,8 @@ export function replay(ledger) {
   const positions = Object.freeze({get: id => (live.has(id) ? copyOf(live.get(id)) : undefined), has: id => live.has(id), get size() { return live.size; },
     keys: () => live.keys(), values: () => [...live.values()].map(copyOf), entries: () => [...live].map(([id, p]) => [id, copyOf(p)]),
     [Symbol.iterator]() { return this.entries()[Symbol.iterator](); }});
-  const byScope = Object.fromEntries(SCOPES.map(k => [k, new Map(st.byScope[k])]));
+  const byScope = Object.fromEntries(SCOPES.map(k => [k, new Map([...st.byScope[k]].map(([id, v]) => [earliest(st.scopeOpen[k].get(id)), id, v])
+    .sort((a, b) => a[0] - b[0]).map(([, id, v]) => [id, v]))]));
   return {positions, cash: st.cash, reserved: st.reserved, realized: st.realized, commission: st.commission, allocated: st.allocated,
     openCount: st.openCount, byScope};
 }
