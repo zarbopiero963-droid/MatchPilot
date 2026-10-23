@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 141,
+  "revision": 143,
   "tasks": [
     {
       "id": "R-01",
@@ -556,13 +556,14 @@
       "title": "Real handoff test A -> B -> A between two distinct agents and sessions on a non-destructive task (MP-OWNER-AGENTS-INTERCHANGEABLE-01)",
       "issue": 150,
       "pr": null,
-      "branch": null,
+      "branch": "handoff-test-01",
       "kind": "audit",
-      "state": "PLANNED",
+      "state": "HANDOFF READY",
       "assignee": null,
       "lease": null,
-      "latest_checkpoint": null,
+      "latest_checkpoint": "CP-20261023T063401Z-agent-g-grok",
       "resources": [
+        "branch:handoff-test-01",
         "checkpoints:HANDOFF-TEST-01"
       ],
       "note": "Needs independent Agent B launched by owner (t140u/t141u); not run by agent-g-grok."
@@ -1010,19 +1011,15 @@
       "id": "GOV-PROTOCOL-01",
       "title": "Vendor-neutral protocol: PROTOCOL.md, checkpoint schema, orient/takeover-check/claim/release CLI, negative-test scripts",
       "issue": 150,
-      "pr": null,
+      "pr": 214,
       "branch": "gov-protocol-01",
       "kind": "implementation",
-      "state": "RUNNING",
+      "state": "MERGED",
       "assignee": {
         "agent": "agent-g-grok",
         "role": "Development Agent"
       },
-      "lease": {
-        "holder": "agent-g-grok",
-        "acquired_at": "2026-10-23T06:29:10Z",
-        "expires_at": "2026-10-23T09:29:10Z"
-      },
+      "lease": null,
       "latest_checkpoint": null,
       "parallel_authorization": "OWN-T141U-GOV150",
       "resources": [
@@ -1033,7 +1030,28 @@
         "test/governance-protocol-negative.test.mjs",
         "AGENTS.md",
         "CLAUDE.md"
-      ]
+      ],
+      "merge_sha": "665bc34b2716a0f54732d7170eebf11df1166e3d"
+    },
+    {
+      "id": "HANDOFF-PREP-01",
+      "title": "Agent A prepares HANDOFF-TEST-01 in HANDOFF READY (checkpoint, lease released)",
+      "issue": 150,
+      "pr": 215,
+      "branch": "handoff-prep-01",
+      "kind": "implementation",
+      "state": "MERGED",
+      "assignee": {
+        "agent": "agent-g-grok",
+        "role": "Development Agent"
+      },
+      "lease": null,
+      "latest_checkpoint": null,
+      "parallel_authorization": "OWN-T141U-GOV150",
+      "resources": [
+        "docs/governance/work-registry.json"
+      ],
+      "note": "Registered final in the same PR so that no live lease remains after Agent A stops (t144u); merge SHA is the squash of PR #215."
     }
   ]
 }
