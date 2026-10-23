@@ -14,7 +14,7 @@
       "TotalCorner"
     ]
   },
-  "current_task": "GOV-PROTOCOL-01 (#150)",
+  "current_task": "HANDOFF-TEST-01 (HANDOFF READY, lease released; waiting for Agent B launched by owner)",
   "blockers": [
     {
       "id": "DEPLOY-CI-PIN",
@@ -64,7 +64,7 @@
       "status": "PENDING"
     }
   ],
-  "next_action": "Merge GOV-PROTOCOL-01, then HANDOFF-PREP-01: HANDOFF READY checkpoint (to ANY) for the isolated tests/docs-only task HANDOFF-TEST-01, lease released; then the owner launches Agent B. Then MARKET-CORE-04.",
+  "next_action": "Owner launches Agent B on HANDOFF-TEST-01 per PROTOCOL.md; separately owner GO for DEPLOY-CI-PIN re-pin",
   "roadmap_after_governance": [
     "MARKET-CORE-04 (void/postponed/abandoned/corrected results)",
     "#99 ledger link",
