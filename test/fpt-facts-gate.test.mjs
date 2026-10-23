@@ -59,12 +59,12 @@ function fixture(db) {
     }
     return snapshots.get(dataset);
   };
-  const version = async (key, dataset, acquired, payload) => {
+  const version = async (key, dataset, acquired, payload, phase = 'HISTORICAL') => {
     const body = JSON.stringify(payload);
     const row = await db.query(`INSERT INTO fpt_match_versions(match_key,dataset_key,snapshot_id,acquired_at,country_slug,league_slug,season,
         match_date,match_time,home,away,phase,payload,payload_sha256)
-      VALUES($1,$2,$3,$4,'england',$5,'2025','2025-09-20','15:00','Arsenal','Chelsea','HISTORICAL',$6,$7) RETURNING version_id`,
-    [key, dataset, await snapshot(dataset), acquired, dataset.split('-').slice(1, -1).join('-'), body, sha256(body + acquired + n++)]);
+      VALUES($1,$2,$3,$4,'england',$5,'2025','2025-09-20','15:00','Arsenal','Chelsea',$8,$6,$7) RETURNING version_id`,
+    [key, dataset, await snapshot(dataset), acquired, dataset.split('-').slice(1, -1).join('-'), body, sha256(body + acquired + n++), phase]);
     return Number(row.rows[0].version_id);
   };
   const onboarding = (dataset, state) => db.query(`INSERT INTO fpt_onboarding(dataset_key,country_slug,league_slug,season,kind,promotion,state,
@@ -136,9 +136,15 @@ test('FPT facts gate: a newer version in a dataset not yet ACTIVE neither hides 
 test('FPT facts gate: with no dataset in onboarding the refresh equals the legacy database function', {timeout: 90000}, async t => {
   await withSchema(t, 'legacy', async db => {
     const {version} = fixture(db);
+    // Team registry: Arsenal resolves to one team, Chelsea's alias is ambiguous (two teams), so the names CTE is exercised.
+    await db.query(`INSERT INTO fpt_teams(internal_team_id,country_slug,competition_slug,canonical_name)
+      VALUES('t:ars','england','premier-league','Arsenal'),('t:che1','england','premier-league','Chelsea'),('t:che2','england','pl-cup','Chelsea B')`);
+    await db.query(`INSERT INTO fpt_team_aliases(internal_team_id,name,normalized_name,kind)
+      VALUES('t:ars','Arsenal','arsenal','canonical'),('t:che1','Chelsea','chelsea','canonical'),('t:che2','Chelsea','chelsea','alias')`);
     await version('fpt:id:a', BASE, '2026-10-02T08:00:00Z', score(1, 0));
     await version('fpt:id:a', BASE, '2026-10-03T08:00:00Z', score(2, 0));
     await version('fpt:id:b', CUP, '2026-10-02T08:00:00Z', {Home_Score: '', Away_Score: '', Odd_H_FT: '2,10', Odd_D_FT: '3.40', Odd_A_FT: '3.30', xG_Home_FT: '1.2'});
+    await version('fpt:id:c', BASE, '2026-10-02T08:00:00Z', {Odd_1_FT: '2.00', Odd_X_FT: '3.10', Odd_2_FT: '3.90'}, 'PREMATCH');
     const columns = `internal_match_id, match_key, version_id, snapshot_id, dataset_key, phase, acquired_at, internal_competition_id,
       season_id, country_slug, league_slug, season, match_date, kickoff_local_time, kickoff_utc, kickoff_tz_status, home_team_id,
       away_team_id, home_name, away_name, provider_match_id, provider_competition_id, home_score, away_score, result_status,
@@ -147,10 +153,12 @@ test('FPT facts gate: with no dataset in onboarding the refresh equals the legac
     const rows = async () => (await db.query(`SELECT ${columns} FROM fpt_match_facts ORDER BY internal_match_id`)).rows;
     await db.query('SELECT fpt_refresh_match_facts()');
     const legacy = await rows();
-    assert.equal(legacy.length, 2);
+    assert.equal(legacy.length, 3);
+    assert.deepEqual(legacy.map(r => [r.home_team_id, r.away_team_id, r.result_status]),
+      [['t:ars', null, 'FINAL'], ['t:ars', null, 'NO_RESULT'], ['t:ars', null, 'NOT_STARTED']]);
     await db.query('DELETE FROM fpt_match_facts');
     const written = await refreshNormalizedLayer(db);
-    assert.equal(written.facts, 2);
+    assert.equal(written.facts, 3);
     assert.deepEqual(await rows(), legacy);
     assert.equal((await refreshNormalizedLayer(db)).facts, 0, 'an unchanged layer writes nothing');
   });
