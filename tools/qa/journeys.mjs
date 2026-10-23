@@ -923,6 +923,56 @@ export const JOURNEYS = [
         }
         assert.equal(await page.inputValue('select[name="pit_mode"]'), 'NON_PIT_RESEARCH', 'the form keeps its values');
       });
+      await step('strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API', async () => {
+        await fresh(page, `${base}/#/sim`);
+        await page.waitForSelector('[data-testid="sim-form"]');
+        assert.ok(!(await page.locator('[data-testid="sim-rules"]').isVisible()), 'the rules are hidden for a reference strategy');
+        await page.selectOption('select[name="strategy"]', 'custom');
+        assert.ok(await page.locator('[data-testid="sim-rules"]').isVisible(), 'the rules appear when «Personalizzata» is chosen');
+        const query = {from: '2024-08-01', to: '2024-08-31', pit_mode: 'NON_PIT_RESEARCH', selection: 'HOME', side: 'LAY', odds_max: '2.5', team: 'Ajax', venue: 'HOME'};
+        const data = (await backtest(query)).data;
+        const report = data.report;
+        assert.match(report.config.strategy, /^def:[0-9a-f]{16}$/);
+        assert.ok(report.bets.length > 0, 'the QA archive gives bets for this definition');
+        await page.fill('input[name="from"]', query.from);
+        await page.fill('input[name="to"]', query.to);
+        await page.selectOption('select[name="pit_mode"]', query.pit_mode);
+        await page.selectOption('select[name="selection"]', query.selection);
+        await page.selectOption('select[name="side"]', query.side);
+        await page.fill('input[name="odds_max"]', query.odds_max);
+        await page.fill('input[name="team"]', query.team);
+        await page.selectOption('select[name="venue"]', query.venue);
+        await submit();
+        assert.equal(await page.getAttribute('[data-testid="sim-outcome"]', 'data-report'), report.report_sha256, 'the same report as the API');
+        assert.equal(await page.getAttribute('[data-testid="sim-strategy"]', 'data-strategy'), report.config.strategy);
+        assert.equal(await page.textContent('[data-testid="sim-strategy"] [data-field="rule_main"]'), 'Banca · Casa (1)');
+        assert.equal(await page.textContent('[data-testid="sim-strategy"] [data-field="rule_teams"]'), 'Squadra: Ajax · Solo in casa');
+        assert.match(await page.textContent('[data-testid="sim-strategy"] ul'), /Quota della selezione fino a 2,5/);
+        const rows = await page.locator('[data-testid="sim-bets"] tbody tr').evaluateAll(trs => trs.map(tr => [...tr.cells].map(td => td.textContent)));
+        assert.equal(rows.length, report.bets.length);
+        for (const [i, bet] of report.bets.entries()) {
+          assert.equal(rows[i][1], `${data.events[bet.event_id].home} – ${data.events[bet.event_id].away}`);
+          assert.ok(rows[i][1].startsWith('Ajax – '), 'Ajax at home only');
+          assert.deepEqual([rows[i][2], rows[i][3], rows[i][4]], ['Banca', '1', shown(bet.odds)]);
+        }
+        for (const [code, n] of Object.entries(report.counts.no_trade_by_reason)) {
+          assert.equal(await page.textContent(`[data-testid="sim-no-trade"] [data-reason="${code}"]`), shown(n), code);
+        }
+        assert.ok(report.counts.no_trade_by_reason.TEAM_FILTER > 0, 'the team filter is counted');
+        assert.match(await page.textContent('[data-testid="sim-no-trade"]'), /Squadra o sede diversa/);
+        // The form keeps the rules; a reference strategy sends none of them.
+        assert.equal(await page.inputValue('input[name="team"]'), 'Ajax');
+        assert.ok(await page.locator('[data-testid="sim-rules"]').isVisible());
+      });
+      await step('regole rifiutate dal server: è nominato il campo della regola', async () => {
+        await fresh(page, `${base}/#/sim?run=1&from=2024-08-01&to=2024-08-31&strategy=custom&selection=HOME&side=BACK&odds_min=3&odds_max=2`);
+        await page.waitForSelector('[data-testid="sim-invalid"]');
+        assert.equal(await page.getAttribute('[data-testid="sim-invalid"]', 'data-fields'), 'odds_min odds_max');
+        assert.match(await page.textContent('[data-testid="sim-invalid"]'), /^Valore non valido in: Quota selezione da, Quota selezione fino a\./);
+        await fresh(page, `${base}/#/sim?run=1&from=2024-08-01&to=2024-08-31&strategy=mp-ref-fav-back-1&selection=HOME&side=BACK&odds_min=3&odds_max=2`);
+        await page.waitForSelector('[data-testid="sim-outcome"]');
+        assert.equal(await page.locator('[data-testid="sim-invalid"]').count(), 0, 'rules are not sent with a reference strategy');
+      });
       await step('capitale e gestione: blocco capitale uguale all’API', async () => {
         const query = {from: '2024-08-01', to: '2024-08-31', pit_mode: 'NON_PIT_RESEARCH', strategy: 'mp-ref-fav-lay-1', bankroll: '100', mm_model: 'PERCENT_BANKROLL', mm_value: '2'};
         const data = (await backtest(query)).data;

@@ -414,7 +414,7 @@ test('invalid inputs and configurations are refused with the field named', () =>
 test('isolation from R1: the engine reads no FutPythonTrader path, no match analysis, no SQL and no environment', () => {
   const dir = new URL('../src/hist/', import.meta.url);
   const allowed = new Set(['node:crypto', '../math/core.mjs', '../math/decimal.mjs', '../math/money.mjs', '../pit/policy.mjs',
-    '../markets/rules.mjs', '../markets/outcomes.mjs', '../ledger/paper-ledger.mjs', '../ledger/settlement.mjs', '../mm/money-management.mjs', './admission.mjs', './contract.mjs', './strategies.mjs']);
+    '../markets/rules.mjs', '../markets/outcomes.mjs', '../ledger/paper-ledger.mjs', '../ledger/settlement.mjs', '../mm/money-management.mjs', './admission.mjs', './contract.mjs', './strategies.mjs', './strategy-def.mjs']);
   for (const file of readdirSync(dir).filter(name => name.endsWith('.mjs'))) {
     const source = readFileSync(new URL(file, dir), 'utf8');
     for (const [, target] of source.matchAll(/^\s*import\s[^;]*?from\s+'([^']+)'/gm)) assert.ok(allowed.has(target), `${file} imports ${target}`);

@@ -154,6 +154,10 @@ dl.compact{grid-template-columns:auto minmax(0,1fr);gap:2px 12px;font-size:14px}
 .search .fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:10px 16px;margin-bottom:12px}
 .search label{display:flex;flex-direction:column;gap:4px;color:var(--muted);font-size:14px}
 .search label.check{flex-direction:row;align-items:center;color:var(--text)}
+[hidden]{display:none!important}
+fieldset>.fields{flex:1 1 100%;margin-bottom:4px}
+.rules{margin:0;padding-left:18px}
+.rules li{margin:2px 0}
 fieldset{border:1px solid var(--line);border-radius:10px;margin:0 0 12px;padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px 18px}
 legend{color:var(--muted);font-size:14px}
 .tile dl{font-size:14px;grid-template-columns:fit-content(55%) minmax(0,1fr)}
