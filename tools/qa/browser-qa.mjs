@@ -215,22 +215,44 @@ async function runJourney({browser, journey, viewportName, base, out, api, seed,
     await page.screenshot({path: join(out, file), fullPage: true});
     return file;
   };
+  // ASSERTED evidence (MP-UI-PR-002, MP-UI-HARD-GATES-01): inside a step, `asserted(controls, description, check)` runs
+  // the check of what the action produced and, only when it passes, records the controls as asserted in this step. A
+  // control must have been actuated earlier in the same step, the description must say what is verified and the check
+  // must be a function; a failing check fails the step. Calling it outside a step is a defect of the journey.
+  let assertions = null;
+  const asserted = async (controls, description, check) => {
+    const list = [].concat(controls);
+    if (!assertions) throw new Error('asserted() outside a step');
+    if (!list.length || list.some(id => typeof id !== 'string' || !/^CTL-[A-Z0-9-]+$/.test(id))) throw new Error(`asserted(): invalid control ids ${JSON.stringify(list)}`);
+    if (typeof description !== 'string' || description.trim().length < 8) throw new Error('asserted(): the description must say what is verified');
+    if (typeof check !== 'function') throw new Error('asserted(): the check must be a function');
+    await page.evaluate(() => 0); // every action so far has reached the binding
+    const missing = list.filter(id => !actuated.has(id));
+    if (missing.length) throw new Error(`asserted() without an action in this step: ${missing.join(', ')}`);
+    await check();
+    assertions.push({controls: [...list].sort(), description: description.trim()});
+  };
   const step = async (name, fn) => {
     const slug = name.normalize('NFD').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase().slice(0, 40);
     actuated = new Set();
+    assertions = [];
     try {
       await fn();
       const problems = await invariants(page, journey.allowRawText, knownControls);
       if (problems.length) throw new Error(`invariants: ${problems.join('; ')}`);
       const seen = await visibleControls(page); // also a round trip: every action of the step has reached the binding
-      steps.push({name, status: 'PASS', screenshot: await shot(slug), actuated: [...actuated].sort(), seen});
+      const done = assertions;
+      assertions = null;
+      steps.push({name, status: 'PASS', screenshot: await shot(slug), actuated: [...actuated].sort(), seen,
+        asserted: [...new Set(done.flatMap(a => a.controls))].sort(), assertions: done});
     } catch (error) {
-      steps.push({name, status: 'FAIL', error: String(error?.message ?? error).slice(0, 2000), screenshot: await shot(`${slug}-failure`).catch(() => null), actuated: [...actuated].sort()});
+      assertions = null;
+      steps.push({name, status: 'FAIL', error: String(error?.message ?? error).slice(0, 2000), screenshot: await shot(`${slug}-failure`).catch(() => null), actuated: [...actuated].sort(), asserted: []});
       throw error;
     }
   };
   try {
-    await journey.run({page, base, step, api, seed});
+    await journey.run({page, base, step, asserted, api, seed});
   } catch (error) {
     status = 'FAIL';
     reason = String(error?.message ?? error).slice(0, 2000);
