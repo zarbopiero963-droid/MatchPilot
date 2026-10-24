@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 203,
+  "revision": 204,
   "tasks": [
     {
       "id": "R-01",
@@ -1539,7 +1539,7 @@
       "kind": "implementation",
       "state": "REVIEW",
       "lease": null,
-      "latest_checkpoint": "CP-20261024T102011Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261024T102847Z-agent-a-claude-code",
       "resources": [
         "file:tools/qa/browser-qa.mjs",
         "file:tools/qa/journeys.mjs",
