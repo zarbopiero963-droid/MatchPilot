@@ -201,4 +201,3 @@ test('progress is computed from statuses and evidence: verified means ASSERTED, 
   assert.equal(result.certified_mock, 0);
   assert.equal(result.certified_real, 0); // QA data is a seeded fixture: nothing is certified on real data here
 });
-

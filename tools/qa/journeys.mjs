@@ -852,18 +852,27 @@ export const JOURNEYS = [
         }
       });
       await step('filtri: stagione, tutte le partite, solo la squadra di casa', async () => {
-        await page.click('[data-filter="window"] a[data-value="season"]');
-        await asserted('CTL-MATCH-FILTER-WINDOW', 'the season sample recomputes nothing in the page: the statistics shown are the API ones for the season', async () => {
-          await page.waitForFunction(() => document.querySelector('[data-filter="window"] a[aria-current="true"]')?.dataset.value === 'season');
-          await settled();
-          await checkStats(data, side => side, 'season');
-        });
+        // Every venue first (split → both): the values change, with the default sample of 10.
         await page.click('[data-filter="venue"] a[data-value="both"]');
         await asserted('CTL-MATCH-FILTER-VENUE', 'every venue shows the API statistics of all matches', async () => {
           await page.waitForFunction(() => document.querySelector('[data-filter="venue"] a[aria-current="true"]')?.dataset.value === 'both');
           await settled();
-          await checkStats(data, () => 'both', 'season');
+          await checkStats(data, () => 'both', '10');
         });
+        // The last 5 of every venue: a sample whose API values differ from the 10 on screen, so that the check proves the
+        // filter took effect (review #241 B4: in the QA archive the season equals the last 10).
+        const windowOf = (side, sample) => data.teams[side].venues.both.windows[sample];
+        assert.ok(['home', 'away'].some(side => windowOf(side, '5').n !== windowOf(side, '10').n), 'the last 5 differ from the last 10 in the API');
+        await page.click('[data-filter="window"] a[data-value="5"]');
+        await asserted('CTL-MATCH-FILTER-WINDOW', 'the last 5 show the API statistics of that sample, different from the last 10 shown before', async () => {
+          await page.waitForFunction(() => document.querySelector('[data-filter="window"] a[aria-current="true"]')?.dataset.value === '5');
+          await settled();
+          await checkStats(data, () => 'both', '5');
+        });
+        await page.click('[data-filter="window"] a[data-value="season"]');
+        await page.waitForFunction(() => document.querySelector('[data-filter="window"] a[aria-current="true"]')?.dataset.value === 'season');
+        await settled();
+        await checkStats(data, () => 'both', 'season');
         await page.click('[data-filter="team"] a[data-value="home"]');
         await asserted('CTL-MATCH-FILTER-TEAM', 'the home team only: its API statistics, the filter kept in the address', async () => {
           await page.waitForFunction(() => document.querySelector('[data-filter="team"] a[aria-current="true"]')?.dataset.value === 'home');
@@ -1214,7 +1223,7 @@ export const JOURNEYS = [
           assert.equal(await cell('a', 'final_cash'), '—', 'no capital, no cash');
           assert.match(await cell('b', 'strategy'), /^Personalizzata: Banca · Casa \(1\) · quota fino a 2,5$/);
           assert.equal(await cell('a', 'strategy'), 'Favorito · Banca');
-        assert.equal(data.variants[0].report.config.strategy, query.a_strategy);
+          assert.equal(data.variants[0].report.config.strategy, query.a_strategy);
         });
       });
       await step('configurazione rifiutata dal server: è nominato il suo campo', async () => {
