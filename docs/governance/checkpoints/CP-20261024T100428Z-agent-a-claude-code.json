@@ -1,0 +1,161 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261024T100428Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-24T10:04:28Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "MP-UI-PR-001",
+  "activity": "PR #240 auto-merged as cf2908d (squash, expectedHeadSha 9c43d3a); main CI and VPS deploy verified",
+  "issue": 239,
+  "pr": 240,
+  "branch": "ui-pr-001",
+  "commit_sha": "9c43d3a8033044ff2a8a93386a08c7b7d09b7b18",
+  "tree_sha": "669640071fd94a58769a09f71fca725d39a6013b",
+  "base_sha": "764a9bd0eccbd16fe935e1cef1d6b3b1972acf9e",
+  "requirements": [
+    "MP-QAC-004",
+    "MP-QAC-010",
+    "MP-WEB-001"
+  ],
+  "changes": [
+    "data-control ids on every control",
+    "docs/qa/control-inventory.json (mp-control-inventory-1)",
+    "invariants fail on uninventoried controls",
+    "per-step actuated/seen in the report",
+    "verify-report coverage check",
+    "ui:progress",
+    "owner decisions MP-FRONTEND-CLAUDE-DIRECT-E2E-01, MP-UI-ROADMAP-01, MP-UI-INCREMENTAL-13",
+    "evidence levels with report checks for SEEN and ACTUATED; TESTED/CERTIFIED need ASSERTED (not yet recorded)",
+    "review fixes: body-wide control check, change only for select/checkbox, API corrections, generated-id field check, malformed-report guards, docs",
+    "owner decision MP-UI-HARD-GATES-01",
+    "verify-report and verifyCoverage refuse TESTED/CERTIFIED without ASSERTED and any ASSERTED claim; ui:progress validates; generated ids checked per form",
+    "cf2908d: squash merge of PR #240"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "fc424cc469ee8ba8be0189c60ee7ed003d218909",
+      "time": "2026-10-24T09:42:44Z",
+      "limits": [
+        "668 tests, 667 pass, 1 skip: PostgreSQL 17 test (server 16 locally, runs in CI)"
+      ]
+    },
+    {
+      "command": "verifyCoverage with journeys on a Browser QA report of the runner code of this head",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Chromium, local PostgreSQL 16",
+      "commit": "fc424cc469ee8ba8be0189c60ee7ed003d218909",
+      "time": "2026-10-24T09:42:44Z",
+      "limits": [
+        "runner unchanged since the 16/16 PASS run; reviewer's independent run on c95e770 also 16/16 PASS"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main cf2908d",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "cf2908d426195f47531c0e33bbb5f7e17dab27bf",
+      "time": "2026-10-24T10:04:28Z",
+      "limits": [
+        "run 40083852852 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main cf2908d (job log evidence)",
+      "result": "PASS",
+      "environment": "VPS via self-hosted runner, evidence from the job log only",
+      "commit": "cf2908d426195f47531c0e33bbb5f7e17dab27bf",
+      "time": "2026-10-24T10:04:28Z",
+      "limits": [
+        "run 40083852839: guard rc=0 enforce; DEPLOY_GATE_SHA_OK cf2908d; worker_restart=ok; result=OK health=200 total_s=96"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "SUCCESS",
+    "head_sha": "9c43d3a8033044ff2a8a93386a08c7b7d09b7b18"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "9c43d3a8033044ff2a8a93386a08c7b7d09b7b18",
+    "reference": "PR #240 comment 6382789554: D2 review APPROVED on 9c43d3a (DEC-004-R1 sub-agent)"
+  },
+  "findings": [
+    {
+      "id": "R240-F1",
+      "severity": "BLOCKING",
+      "summary": "verify-report accepted a forged CERTIFIED REAL/ASSERTED inventory",
+      "status": "RESOLVED",
+      "commit": "fc424cc469ee8ba8be0189c60ee7ed003d218909"
+    }
+  ],
+  "owner_decisions": [
+    "MP-UI-ROADMAP-01",
+    "MP-UI-INCREMENTAL-13",
+    "MP-FRONTEND-CLAUDE-DIRECT-E2E-01",
+    "MP-AUTOMERGE-RESTORED-20261024",
+    "MP-UI-HARD-GATES-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI",
+      "VPS deploy"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:src/web/app.js",
+    "file:src/web/index.html",
+    "file:tools/qa/browser-qa.mjs",
+    "file:tools/qa/verify-report.mjs",
+    "file:docs/qa/control-inventory.json",
+    "branch:ui-pr-001",
+    "pr:240"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "none for MP-UI-PR-001",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261024T094244Z-agent-a-claude-code",
+  "merge_sha": "cf2908d426195f47531c0e33bbb5f7e17dab27bf"
+}
