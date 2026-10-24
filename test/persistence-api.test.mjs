@@ -166,11 +166,16 @@ test('persistence API: 503 until the schema exists, refusals write nothing, then
     assert.equal(twoTeams.status, 201);
     assert.equal((await call('GET', '/api/v1/strategies?key=derby')).body.data.rules, null);
     // A stored definition that no longer matches its hash: 500 DATA_CORRUPT, never shown, and the read transaction
-    // is closed (review #251 NB-2): the next read on the same pool still works.
+    // is closed (review #251 NB-2): no connection goes back to the pool inside it, and the next read still works.
     await withClient(c => c.query(`INSERT INTO strategy_definitions(strategy_id, definition, definition_sha256, definition_version) VALUES('def:00000000000000aa', '{"selection":"HOME","side":"BACK"}', $1, 'mp-strategy-def-1')`, ['0'.repeat(64)]));
     await withClient(c => c.query(`INSERT INTO strategy_versions(strategy_key, version, strategy_id, name) VALUES('broken', 1, 'def:00000000000000aa', 'Rotta')`));
     const corrupt = await call('GET', '/api/v1/strategies?key=broken');
     assert.deepEqual([corrupt.status, corrupt.body.error.code], [500, 'DATA_CORRUPT']);
+    // No connection is handed back to the pool with the read transaction still open: neither the one checked out next
+    // (it would still be read only) nor any other one of the pool.
+    const open = (await withClient(c => c.query(`SELECT current_setting('transaction_read_only') AS read_only, (SELECT count(*)::int FROM pg_stat_activity
+      WHERE datname = current_database() AND pid <> pg_backend_pid() AND state LIKE 'idle in transaction%') AS others`))).rows[0];
+    assert.deepEqual(open, {read_only: 'off', others: 0}, 'a read transaction was left open');
     assert.equal((await call('GET', '/api/v1/strategies?key=derby')).status, 200);
     for (const [bad, status] of [[{key: 'x', name: 'x', rules: {selection: 'HOME', side: 'BACK'}, definition: {selection: 'HOME', side: 'BACK'}}, 400],
       [{key: 'x', name: 'x'}, 400], [{key: 'x', name: 'x', rules: {selection: 'HOME', side: 'BACK', stake: '5'}}, 400],
