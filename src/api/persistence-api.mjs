@@ -131,9 +131,19 @@ export async function handlePersistence({method, url, headers = {}, rawBody = nu
         if (version !== null && key === null) http(400, 'BAD_REQUEST', 'version needs key');
         if (key === null) return ok(200, {strategies: await withClient(client => listStrategies(client))});
         const checked = strategyKey(key);
+        // One snapshot for the version and its history: a save landing between the two reads cannot show a current
+        // version that the history already marks as superseded (review #251 NB-2).
         const found = await withClient(async client => {
-          const strategy = await loadStrategy(client, checked, {version});
-          return strategy && {strategy, versions: await listStrategyVersions(client, checked)};
+          await client.query('BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
+          try {
+            const strategy = await loadStrategy(client, checked, {version});
+            const result = strategy && {strategy, versions: await listStrategyVersions(client, checked)};
+            await client.query('COMMIT');
+            return result;
+          } catch (error) {
+            await client.query('ROLLBACK').catch(() => {});
+            throw error;
+          }
         });
         if (!found) http(404, 'NOT_FOUND', 'no such strategy');
         // MP-UI-PR-006: the history of the strategy and the request fields of this version (null when the request

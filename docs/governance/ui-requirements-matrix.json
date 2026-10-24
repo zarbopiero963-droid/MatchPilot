@@ -12,7 +12,7 @@
     "MP-UI-PR-003": {"phase":"UI-08/UI-07","note":"MERGED #242 (Simulazione saves)"},
     "MP-UI-PR-004": {"phase":"UI-02","note":"MERGED #243 (shell, session, logout)"},
     "MP-UI-PR-005": {"phase":"UI-10","note":"MERGED #244 + #246 + #247 (Trading Tools, CERTIFIED CALCULATION)"},
-    "MP-UI-PR-006-STRAT": {"phase":"UI-07","note":"phase B of MP-OWNER-D12-IMPLEMENTATION-20261024; in preparation, not published"},
+    "MP-UI-PR-006-STRAT": {"phase":"UI-07","note":"phase B of MP-OWNER-D12-IMPLEMENTATION-20261024; PR #251"},
     "MP-UI-PR-007-FOUND": {"phase":"UI-01"},
     "MP-UI-PR-008-COV": {"phase":"UI-02"},
     "MP-UI-PR-009-NAV": {"phase":"UI-02"},
@@ -195,10 +195,10 @@
     {"id":"MP-REQ-UI-1061","from":"DECISION REQUIRED","to":"NOT STARTED","reason":"D12-7: decision resolved by the owner; the approved behaviour is specified enough to implement; no code yet"},
     {"id":"MP-REQ-UI-1089","from":"DECISION REQUIRED","to":"NOT STARTED","reason":"D12-1: decision resolved by the owner; the approved behaviour is specified enough to implement; no code yet"},
     {"id":"MP-REQ-UI-1090","from":"DECISION REQUIRED","to":"BLOCKED","reason":"D12-6: decision resolved by the owner; an authorization or external dependency still prevents implementation"},
-    {"id":"MP-REQ-UI-0290","from":"NOT STARTED","to":"TESTED","reason":"MP-UI-PR-006-STRAT: the Strategie page lists the saved strategies from GET /api/v1/strategies; empty, 503, 403 (private) and 401 handled; menu reached from the Simulazione","evidence":["tools/qa/journeys.mjs","test/persistence-api.test.mjs"]},
-    {"id":"MP-REQ-UI-0291","from":"PARTIAL","to":"TESTED","reason":"MP-UI-PR-006-STRAT: a saved strategy opens in detail (current version or version N, rules in words, history) and opens in the Simulazione with the same rules","evidence":["tools/qa/journeys.mjs","test/strategy-rules.test.mjs","test/persistence-api.test.mjs","test/web-persistence-contract.test.mjs"]},
-    {"id":"MP-REQ-UI-0297","from":"NOT STARTED","to":"TESTED","reason":"MP-UI-PR-006-STRAT: an earlier version is cloned as the next version of the same strategy and becomes current; cloning again changes nothing","evidence":["tools/qa/journeys.mjs"]},
-    {"id":"MP-REQ-UI-0302","from":"PARTIAL","to":"TESTED","reason":"MP-UI-PR-006-STRAT: reading the saved strategies needs the owner session also when auth is off (403 READS_REQUIRE_AUTH, 401 without session); the page says they are private","evidence":["test/persistence-api.test.mjs","test/web-persistence-contract.test.mjs","tools/qa/journeys.mjs"]}
+    {"id":"MP-REQ-UI-0290","from":"NOT STARTED","to":"TESTED","reason":"MP-UI-PR-006-STRAT: the Strategie page lists the saved strategies from GET /api/v1/strategies; empty, 503, 403 (private) and 401 handled; menu reached from the Simulazione","evidence":["tools/qa/journeys.mjs","test/persistence-api.test.mjs"],"controls":["CTL-SIM-STRATEGIES","CTL-STRAT-OPEN","CTL-STRAT-BACK-LIST"]},
+    {"id":"MP-REQ-UI-0291","from":"PARTIAL","to":"TESTED","reason":"MP-UI-PR-006-STRAT: a saved strategy opens in detail (current version or version N, rules in words, history) and opens in the Simulazione with the same rules","evidence":["tools/qa/journeys.mjs","test/strategy-rules.test.mjs","test/persistence-api.test.mjs","test/web-persistence-contract.test.mjs"],"controls":["CTL-STRAT-OPEN","CTL-STRAT-VERSION","CTL-STRAT-SIMULATE"]},
+    {"id":"MP-REQ-UI-0297","from":"NOT STARTED","to":"TESTED","reason":"MP-UI-PR-006-STRAT: an earlier version is cloned as the next version of the same strategy and becomes current; cloning again changes nothing","evidence":["tools/qa/journeys.mjs"],"controls":["CTL-STRAT-CLONE-NAME","CTL-STRAT-CLONE","CTL-STRAT-CLONE-OPEN"]},
+    {"id":"MP-REQ-UI-0302","from":"PARTIAL","to":"TESTED","reason":"MP-UI-PR-006-STRAT: reading the saved strategies needs the owner session also when auth is off (403 READS_REQUIRE_AUTH, 401 without session); the page says they are private","evidence":["test/persistence-api.test.mjs","test/web-persistence-contract.test.mjs"]}
   ],
   "superseded": [
     {"id":"MP-REQ-UI-0185","superseded_by":["MP-REQ-UI-0460","MP-REQ-UI-0461","MP-REQ-UI-0462"]},

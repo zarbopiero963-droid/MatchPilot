@@ -165,6 +165,13 @@ test('persistence API: 503 until the schema exists, refusals write nothing, then
     const twoTeams = await call('POST', '/api/v1/strategies', {body: {key: 'derby', name: 'Derby', definition: {selection: 'HOME', side: 'BACK', conditions: {teams: ['Ajax', 'PSV']}}}});
     assert.equal(twoTeams.status, 201);
     assert.equal((await call('GET', '/api/v1/strategies?key=derby')).body.data.rules, null);
+    // A stored definition that no longer matches its hash: 500 DATA_CORRUPT, never shown, and the read transaction
+    // is closed (review #251 NB-2): the next read on the same pool still works.
+    await withClient(c => c.query(`INSERT INTO strategy_definitions(strategy_id, definition, definition_sha256, definition_version) VALUES('def:00000000000000aa', '{"selection":"HOME","side":"BACK"}', $1, 'mp-strategy-def-1')`, ['0'.repeat(64)]));
+    await withClient(c => c.query(`INSERT INTO strategy_versions(strategy_key, version, strategy_id, name) VALUES('broken', 1, 'def:00000000000000aa', 'Rotta')`));
+    const corrupt = await call('GET', '/api/v1/strategies?key=broken');
+    assert.deepEqual([corrupt.status, corrupt.body.error.code], [500, 'DATA_CORRUPT']);
+    assert.equal((await call('GET', '/api/v1/strategies?key=derby')).status, 200);
     for (const [bad, status] of [[{key: 'x', name: 'x', rules: {selection: 'HOME', side: 'BACK'}, definition: {selection: 'HOME', side: 'BACK'}}, 400],
       [{key: 'x', name: 'x'}, 400], [{key: 'x', name: 'x', rules: {selection: 'HOME', side: 'BACK', stake: '5'}}, 400],
       [{key: 'x', name: 'x', rules: {selection: 'HOME', side: 2}}, 400], [{key: 'x', name: 'x', rules: {selection: 'NOPE', side: 'BACK'}}, 400]]) {

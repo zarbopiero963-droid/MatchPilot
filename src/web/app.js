@@ -1089,6 +1089,10 @@ const SAVE_REFUSED = {UNAUTHENTICATED: 'Accesso scaduto: accedi di nuovo e ripro
   WRITES_REQUIRE_AUTH: 'Salvataggio non disponibile: serve l’accesso del proprietario.', UNAVAILABLE: 'Salvataggio non disponibile in questo momento: riprova più tardi.',
   BUSY: 'È già in corso un’altra simulazione: riprova tra qualche secondo.', NETWORK: 'Rete non raggiungibile: riprova.'};
 const refusedText = (result, invalid) => SAVE_REFUSED[result.code] ?? (result.status === 400 ? invalid : 'Salvataggio non riuscito: riprova.');
+// The outcome of a read of the saved strategies, in words: the save texts would speak of saving (review #251 NB-1).
+const READ_REFUSED = {UNAUTHENTICATED: 'Accesso scaduto: accedi di nuovo e riprova.', FORBIDDEN: 'Questo account non può consultare le strategie.',
+  DATA_CORRUPT: 'Dati della strategia non validi: non vengono mostrati.', NETWORK: 'Rete non raggiungibile: riprova.'};
+const readRefusedText = (result, invalid) => READ_REFUSED[result.code] ?? (result.status === 400 ? invalid : 'Lettura non riuscita: riprova.');
 // After an expired session, the way back: the login page, then this same page.
 const loginAgain = result => (result.code === 'UNAUTHENTICATED'
   ? [' ', el('a', {href: loginHref(), 'data-testid': 'save-login', 'data-control': 'CTL-SIM-SAVE-LOGIN'}, 'Vai all’accesso')] : null);
@@ -1231,7 +1235,7 @@ async function strategiesView(params) {
     const list = await persistence.listStrategies();
     if (list.code === 'UNAUTHENTICATED') throw toLogin();
     if (!list.ok) {
-      const text = list.code === 'READS_REQUIRE_AUTH' ? STRATEGIES_PRIVATE : list.status === 503 ? 'Non disponibile: l’archivio delle strategie non è ancora attivo.' : refusedText(list, 'Elenco non disponibile.');
+      const text = list.code === 'READS_REQUIRE_AUTH' ? STRATEGIES_PRIVATE : list.status === 503 ? 'Non disponibile: l’archivio delle strategie non è ancora attivo.' : readRefusedText(list, 'Elenco non disponibile.');
       return [title, el('p', {class: 'state partial', role: 'status', 'data-testid': 'strategies-unavailable', 'data-code': list.code}, text), el('p', {class: 'meta'}, backSim)];
     }
     const rows = list.data.strategies ?? [];
@@ -1254,7 +1258,7 @@ async function strategiesView(params) {
   const loaded = await persistence.loadStrategy(key, version);
   if (loaded.code === 'UNAUTHENTICATED') throw toLogin();
   if (!loaded.ok) {
-    const text = loaded.code === 'READS_REQUIRE_AUTH' ? STRATEGIES_PRIVATE : loaded.status === 404 ? 'Questa strategia, o questa versione, non esiste.' : loaded.status === 503 ? 'Non disponibile: l’archivio delle strategie non è ancora attivo.' : refusedText(loaded, 'Strategia non valida.');
+    const text = loaded.code === 'READS_REQUIRE_AUTH' ? STRATEGIES_PRIVATE : loaded.status === 404 ? 'Questa strategia, o questa versione, non esiste.' : loaded.status === 503 ? 'Non disponibile: l’archivio delle strategie non è ancora attivo.' : readRefusedText(loaded, 'Strategia non valida.');
     return [el('h1', {}, 'Strategia'), el('p', {class: loaded.status === 503 ? 'state partial' : 'state error', role: 'alert', 'data-testid': 'strategy-error', 'data-code': loaded.code}, text), el('p', {class: 'meta'}, backList)];
   }
   const {strategy, versions = [], rules} = loaded.data;

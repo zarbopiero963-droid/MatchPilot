@@ -1357,7 +1357,7 @@ export const JOURNEYS = [
     // stake) and its own strategy key: the checks compare the list before and after, never an absolute count.
     id: 'sim-save', surface: 'Simulazione', title: 'Salvataggi: risultato e strategia salvati e riaperti, nessun duplicato, errori e accesso',
     allowHttp: [{path: '/api/v1/persistence/status', status: 503}, {path: '/api/v1/backtests/saved', status: 503}, {path: '/api/v1/backtests/saved', status: 401}, {path: '/auth/logout', status: 500},
-      {path: '/api/v1/strategies', status: 403}, {path: '/api/v1/strategies', status: 404}, {path: '/api/v1/strategies', status: 503}],
+      {path: '/api/v1/strategies', status: 403}, {path: '/api/v1/strategies', status: 404}, {path: '/api/v1/strategies', status: 500}, {path: '/api/v1/strategies', status: 503}],
     async run({page, base, step, asserted, seed, owner}) {
       const phone = page.viewportSize().width <= 560;
       const stake = phone ? '11' : '10';
@@ -1672,6 +1672,30 @@ export const JOURNEYS = [
         assert.match(await page.textContent('[data-testid="strategies-unavailable"]'), /^Non disponibile: l’archivio delle strategie non è ancora attivo\.$/);
         assert.equal(await page.locator('[data-testid="strategies-list"]').count(), 0, 'no list is invented');
         await page.unroute('**/api/v1/strategies');
+        // A stored strategy that fails its integrity check, and an account without the read permission: the page
+        // speaks of reading, not of saving, and shows nothing of the strategy (review #251 NB-1).
+        for (const [status, code, text] of [[500, 'DATA_CORRUPT', 'Dati della strategia non validi: non vengono mostrati.'],
+          [403, 'FORBIDDEN', 'Questo account non può consultare le strategie.']]) {
+          await page.route('**/api/v1/strategies?*', route => route.fulfill({status, contentType: 'application/json', body: JSON.stringify({api_version: 'v1', error: {code, message: code}})}));
+          await fresh(page, `${owner.base}/#/strategies?key=${stratKey}`);
+          await page.waitForSelector(`[data-testid="strategy-error"][data-code="${code}"]`);
+          assert.equal(await page.textContent('[data-testid="strategy-error"]'), text);
+          assert.equal(await page.locator('[data-testid="strategy-rules"]').count(), 0, 'nothing of the strategy is shown');
+          await page.unroute('**/api/v1/strategies?*');
+        }
+        // A version the request cannot express (two teams): shown in words, but neither opened in the Simulazione nor
+        // cloned, and the page says why (review #251 NB-3).
+        const twoTeams = {strategy_key: 'qa-derby', key: 'qa-derby', version: 1, strategy_id: 'def:00000000000000bb', name: 'Derby', created_at: '2026-10-01T10:00:00.000Z',
+          superseded_at: '2026-10-02T10:00:00.000Z', definition: {selection: 'HOME', side: 'BACK', conditions: {teams: ['Ajax', 'PSV']}}};
+        const derby = {strategy: twoTeams, rules: null, versions: [{version: 1, strategy_id: twoTeams.strategy_id, name: 'Derby', created_at: twoTeams.created_at, superseded_at: twoTeams.superseded_at},
+          {version: 2, strategy_id: 'def:00000000000000cc', name: 'Derby', created_at: twoTeams.superseded_at, superseded_at: null}]};
+        await page.route('**/api/v1/strategies?*', route => route.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({api_version: 'v1', data: derby})}));
+        await fresh(page, `${owner.base}/#/strategies?key=qa-derby&version=1`);
+        await page.waitForSelector('[data-testid="strategy-no-request"]');
+        assert.equal(await page.textContent('[data-testid="strategy-no-request"]'), 'Queste regole non si possono aprire in Simulazione: la simulazione accetta una sola squadra.');
+        assert.equal(await page.getAttribute('[data-testid="strategy-clone-unavailable"]', 'data-code'), 'NOT_A_REQUEST');
+        assert.deepEqual([await page.locator('[data-testid="strategy-simulate"]').count(), await page.locator('[data-testid="strategy-clone-form"]').count()], [0, 0]);
+        await page.unroute('**/api/v1/strategies?*');
         // A version whose rules can be cloned, while saving is off: the state says so, no button that cannot work (rule 13).
         await page.route('**/api/v1/persistence/status', route => route.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({api_version: 'v1', data: {available: true, writes_enabled: false, writes: 'disabled'}})}));
         await fresh(page, `${owner.base}/#/strategies?key=${stratKey}&version=1`);
