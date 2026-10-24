@@ -9,7 +9,7 @@
 //   passed on every viewport;
 // - CERTIFIED MOCK / CERTIFIED REAL: besides, a certification record with evidence for each criterion of the policy
 //   (completeness, correctness, contracts, integration, security, financial), or N/A with a reason; financial is never
-//   N/A for a financial feature, integration needs a Browser QA step. MOCK is the level of DEMO data; REAL needs REAL
+//   N/A for a financial feature, integration needs a Browser QA step with recorded assertions. MOCK is the level of DEMO data; REAL needs REAL
 //   data, or COMPUTED (the real server computes from what the user types, no data source involved).
 // The declared state must not exceed the computed one: a certified feature whose evidence no longer holds fails the
 // gate until it is declared REGRESSED (or the evidence is restored). A declared state below the evidence is reported,
@@ -46,8 +46,9 @@ export const controlsOf = (feature, inventory) => {
 };
 
 // A reference is {test, name} (an active test), {journey, step} (a step of a journey; with a report, asserted there
-// on every viewport) or {file} (a document of the repository). Returns the problems.
-function refErrors(ref, {journeys, report}) {
+// on every viewport) or {file} (a document of the repository). Returns the problems; with `asserting`, a step must also
+// have recorded assertions (asserted() after an action) on every viewport.
+function refErrors(ref, {journeys, report, asserting = false}) {
   if (ref?.journey) {
     if (!journeys[ref.journey]?.some(title => (title instanceof RegExp ? title.test(ref.step) : title === ref.step))) return [`no step «${ref.step}» in ${ref.journey}`];
     if (!report) return [];
@@ -57,7 +58,7 @@ function refErrors(ref, {journeys, report}) {
       const run = runs.find(r => r.viewport === viewport);
       const step = run?.status === 'PASS' ? (run.steps ?? []).find(s => s.name === ref.step) : null;
       if (!step) problems.push(`${ref.journey}/${viewport} «${ref.step}» did not pass`);
-      else if (!(step.assertions ?? []).length) problems.push(`${ref.journey}/${viewport} «${ref.step}» has no assertion`);
+      else if (asserting && !(step.assertions ?? []).length) problems.push(`${ref.journey}/${viewport} «${ref.step}» has no assertion`);
     }
     return problems;
   }
@@ -108,6 +109,8 @@ export function evidenceState(feature, {inventory, report = null, journeys = jou
     }
     if (!Array.isArray(value) || !value.length) { certGaps.push(`${criterion}: no evidence`); continue; }
     if (criterion === 'integration' && !value.some(ref => ref?.journey)) certGaps.push('integration needs a Browser QA step');
+    // Integration rests on at least one step that checked the result of an action (ASSERTED), on every viewport.
+    if (criterion === 'integration' && report && !value.some(ref => ref?.journey && !refErrors(ref, {journeys, report, asserting: true}).length)) certGaps.push('integration needs a step with recorded assertions');
     for (const ref of value) certGaps.push(...refErrors(ref, {journeys, report}).map(e => `${criterion}: ${e}`));
   }
   if (certGaps.length) return {state: 'TESTED', gaps: certGaps, controls};

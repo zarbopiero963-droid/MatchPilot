@@ -9,6 +9,8 @@ const inventory = loadInventory();
 const register = loadFeatures();
 const copy = value => structuredClone(value);
 const tools = () => copy(register.features.find(f => f.id === 'FEAT-TRADING-TOOLS'));
+// The same feature without its certification record, as it was before certification.
+const bare = () => { const f = tools(); delete f.certification; f.state = 'TESTED'; return f; };
 const SHA = '0123456789abcdef0123456789abcdef01234567';
 const T = name => ({test: 'test/math-trading.test.mjs', name});
 const certification = () => ({level: 'CERTIFIED REAL', verified_commit: SHA, date: '2026-10-24',
@@ -30,10 +32,10 @@ test('the repository register is valid and matches the evidence of the inventory
 });
 
 test('a state above the evidence is refused; below it is only noted', () => {
-  const over = tools();
+  const over = bare();
   over.state = 'CERTIFIED REAL';
   assert.match(errorsOf([...others(), over]).join('\n'), /FEAT-TRADING-TOOLS: declared CERTIFIED REAL but the evidence supports (TESTED|IMPLEMENTED) — declare it REGRESSED/);
-  const under = tools();
+  const under = bare();
   under.state = 'IN DEVELOPMENT';
   const result = checkFeatures({...copy(register), features: [...others(), under]}, {inventory});
   assert.deepEqual(result.errors, []);
@@ -41,7 +43,7 @@ test('a state above the evidence is refused; below it is only noted', () => {
 });
 
 test('a complete certification record certifies; each missing or false piece of evidence stops it', () => {
-  const feature = tools();
+  const feature = bare();
   assert.equal(evidenceState(feature, {inventory}).state, 'TESTED', 'the feature is TESTED before any record');
   feature.certification = certification();
   assert.equal(evidenceState(feature, {inventory}).state, 'CERTIFIED REAL');
@@ -68,7 +70,7 @@ test('a complete certification record certifies; each missing or false piece of 
 });
 
 test('a lost certification fails until it is declared REGRESSED', () => {
-  const feature = tools();
+  const feature = bare();
   feature.certification = certification();
   feature.certification.criteria.correctness = [T('a test removed later')];
   feature.state = 'CERTIFIED REAL';
@@ -79,8 +81,27 @@ test('a lost certification fails until it is declared REGRESSED', () => {
   assert.match(errorsOf([...others(), feature]).join('\n'), /REGRESSED needs the certification it lost/);
 });
 
-test('with a report, the journeys and the certification steps must have passed with assertions on every viewport', () => {
+test('the certification of the register holds on its evidence (without a report: tests and step titles)', () => {
   const feature = tools();
+  assert.equal(feature.state, 'CERTIFIED REAL');
+  assert.equal(feature.data, 'COMPUTED', 'REAL here is the real server computing from manual input, not real market data');
+  assert.deepEqual(evidenceState(feature, {inventory}), {state: 'CERTIFIED REAL', gaps: [], controls: evidenceState(feature, {inventory}).controls});
+});
+
+test('integration rests on a step with recorded assertions on every viewport', () => {
+  const feature = tools();
+  const steps = Object.values(feature.certification.criteria).flat().filter(ref => ref?.journey === 'trading-tools').map(ref => ref.step);
+  const run = (viewport, assertions) => ({id: 'trading-tools', viewport, status: 'PASS', steps: steps.map(name => ({name, assertions}))});
+  const nav = viewport => ({id: 'general-navigation', viewport, status: 'PASS', steps: [{name: 'menu: Strumenti', assertions: []}, {name: 'apertura del sito', assertions: []}]});
+  const report = assertions => ({journeys: ['desktop', 'mobile'].flatMap(v => [run(v, assertions), nav(v)])});
+  const without = evidenceState(feature, {inventory, report: report([])});
+  assert.equal(without.state, 'TESTED');
+  assert.match(without.gaps.join('\n'), /integration needs a step with recorded assertions/);
+  assert.equal(evidenceState(feature, {inventory, report: report([{controls: ['CTL-TOOLS-KELLY-SUBMIT'], description: 'checked'}])}).state, 'CERTIFIED REAL');
+});
+
+test('with a report, the journeys and the certification steps must have passed on every viewport', () => {
+  const feature = bare();
   const report = {journeys: [{id: 'trading-tools', viewport: 'desktop', status: 'PASS', steps: []}]};
   const state = evidenceState(feature, {inventory, report});
   assert.notEqual(state.state, 'TESTED');
@@ -88,14 +109,14 @@ test('with a report, the journeys and the certification steps must have passed w
 });
 
 test('structure: ids, duplicate ownership, unowned controls, BLOCKED without reason', () => {
-  const dup = tools();
+  const dup = bare();
   dup.id = 'FEAT-TOOLS-AGAIN';
   assert.match(errorsOf([...others(), tools(), dup]).join('\n'), /belongs to FEAT-TRADING-TOOLS and FEAT-TOOLS-AGAIN/);
   assert.match(errorsOf(others()).join('\n'), /CTL-TOOLS-TAB-ODDS belongs to no feature/);
-  const blocked = tools();
+  const blocked = bare();
   blocked.state = 'BLOCKED';
   assert.match(errorsOf([...others(), blocked]).join('\n'), /BLOCKED needs a reason/);
-  const bad = tools();
+  const bad = bare();
   bad.id = 'tools';
   assert.match(errorsOf([...others(), tools(), bad]).join('\n'), /id must match/);
   assert.match(checkFeatures({...copy(register), schema: 'x'}, {inventory}).errors.join('\n'), /schema must be/);
