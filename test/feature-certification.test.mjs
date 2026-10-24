@@ -152,11 +152,16 @@ test('with a report: integration rests on asserted steps; a squash merge keeps t
   // On main after a squash merge the verified commit is not an ancestor of the head (here: OLD as head): the content
   // still matches, so the certification holds (the regression of #246 on main).
   assert.equal(evidenceState(feature, {inventory, report: report(checked, OLD)}).state, 'CERTIFIED CALCULATION');
-  // A verified commit that is not in the clone (a deleted branch): bound by the digest of the files here.
+  // Commits that are not in the clone are never accepted on trust (review #247 B-1): invented SHAs do not certify.
   const gone = certified();
-  gone.certification.verified_commit = 'f'.repeat(40);
-  gone.certification.results[0].commit = 'f'.repeat(40);
-  assert.equal(evidenceState(gone, {inventory, report: report(checked, NEW)}).state, 'CERTIFIED CALCULATION');
+  gone.certification.verified_commit = '1'.repeat(40);
+  gone.certification.results[0].commit = '1'.repeat(40);
+  const goneState = evidenceState(gone, {inventory, report: report(checked, NEW)});
+  assert.equal(goneState.state, 'TESTED');
+  assert.match(goneState.gaps.join('\n'), /verified_commit 1111111 is not in this clone/);
+  const unreviewed = certified();
+  unreviewed.certification.independent_review.reviewed_sha = '2'.repeat(40);
+  assert.match(evidenceState(unreviewed, {inventory, report: report(checked, NEW)}).gaps.join('\n'), /reviewed commit 2222222 is not in this clone/);
 });
 
 test('with a report, the journeys must have passed on every viewport', () => {

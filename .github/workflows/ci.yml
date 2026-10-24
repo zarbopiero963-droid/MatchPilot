@@ -144,6 +144,9 @@ jobs:
         with:
           # The feature certification gate checks that a certified commit is in the history (MP-UI-CERT-CALC-01).
           fetch-depth: 0
+      # After a squash merge the verified and reviewed commits of a certification live on the PR refs (MP-UI-CERT-CALC-01).
+      - name: Fetch the PR refs for the feature certification gate
+        run: git fetch --no-tags --quiet origin '+refs/pull/*/head:refs/remotes/origin/pull/*'
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
@@ -182,6 +185,9 @@ jobs:
         with:
           # The verifier checks that the tested merge commit contains the PR head.
           fetch-depth: 0
+      # After a squash merge the verified and reviewed commits of a certification live on the PR refs (MP-UI-CERT-CALC-01).
+      - name: Fetch the PR refs for the feature certification gate
+        run: git fetch --no-tags --quiet origin '+refs/pull/*/head:refs/remotes/origin/pull/*'
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
