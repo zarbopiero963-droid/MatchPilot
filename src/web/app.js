@@ -1387,6 +1387,172 @@ async function compareView(params) {
       el('p', {class: 'meta'}, 'Profitto netto e massimo calo arrotondati al centesimo, rendimento a quattro decimali (0,0500 = 5%); gli altri importi sono esatti. Nessuna classifica: i valori sono quelli di ciascuna simulazione.'))];
 }
 
+// ---- Strumenti: the Trading Tools of #94 (MP-UI-PR-005) ----
+
+// Each tool: its tab text and its form fields [name, label, attributes]. The page sends what the user typed (a decimal
+// comma is fine) and shows the server's display values; the exact value is in the tooltip (MP-WEB-011). Manual input
+// only, as #94 requires it to be labelled; the tools outside this perimeter are named, not offered as controls.
+const DECIMAL = {type: 'text', inputmode: 'decimal', autocomplete: 'off', maxlength: '40'};
+const TOOL_COMMISSION = ['commission', 'Commissione % sulle vincite', {...DECIMAL, placeholder: '0'}];
+const TOOL_LIST = [
+  ['odds', 'Margine', [['odds', 'Quote (separate da spazi)', {...DECIMAL, inputmode: 'text', maxlength: '200', required: true, placeholder: 'es. 2,10 3,40 3,60'}]]],
+  ['kelly', 'Stake e Kelly', [['bankroll', 'Capitale', {...DECIMAL, required: true}], ['odds', 'Quota', {...DECIMAL, required: true}],
+    ['probability', 'Probabilità stimata %', {...DECIMAL, required: true}], ['fraction', 'Frazione di Kelly %', {...DECIMAL, placeholder: '100'}],
+    ['max_stake', 'Tetto alla puntata', DECIMAL], ['max_bankroll', 'Tetto in % del capitale', DECIMAL]]],
+  ['ev', 'Valore atteso', [['stake', 'Puntata', {...DECIMAL, required: true}], ['odds', 'Quota', {...DECIMAL, required: true}],
+    ['probability', 'Probabilità stimata %', {...DECIMAL, required: true}], TOOL_COMMISSION]],
+  ['liability', 'Responsabilità', [['stake', 'Puntata di banca', {...DECIMAL, required: true}], ['odds', 'Quota di banca', {...DECIMAL, required: true}],
+    TOOL_COMMISSION, ['bankroll', 'Capitale', DECIMAL]]],
+  ['hedge', 'Copertura', [['side', 'Posizione aperta', {select: [['BACK', 'Punta (copri bancando)'], ['LAY', 'Banca (copri puntando)']]}],
+    ['stake', 'Puntata aperta', {...DECIMAL, required: true}], ['odds', 'Quota di apertura', {...DECIMAL, required: true}],
+    ['exit_odds', 'Quota di uscita', {...DECIMAL, required: true}], TOOL_COMMISSION]],
+  ['dutching', 'Dutching', [['total', 'Puntata totale', {...DECIMAL, required: true}],
+    ['odds', 'Quote (separate da spazi)', {...DECIMAL, inputmode: 'text', maxlength: '200', required: true, placeholder: 'es. 4 5 6'}], TOOL_COMMISSION]],
+  ['poisson', 'Poisson', [['xg_home', 'Gol attesi casa', {...DECIMAL, required: true}], ['xg_away', 'Gol attesi ospite', {...DECIMAL, required: true}],
+    ['max_goals', 'Gol per squadra nella griglia', {type: 'number', step: '1', min: '1', max: '8', placeholder: '5'}]]],
+];
+const TOOL_SOON = 'Cash-out su più posizioni, Dutching in banca, Arbitraggio, Each Way, Draw No Bet, Progressioni, Esposizione del portafoglio, Ottimizzatore delle commissioni';
+// The warnings of the server the user needs to read; every code stays in data-warnings.
+const WARNING_TEXT = {
+  NO_BET: 'Nessun vantaggio alla probabilità stimata: Kelly non punta.',
+  CAPPED_BY_MAX_STAKE: 'La puntata è limitata dal tetto alla puntata.',
+  CAPPED_BY_MAX_BANKROLL: 'La puntata è limitata dal tetto in percentuale del capitale.',
+  PROBABILITY_IS_USER_ESTIMATE: 'La probabilità è la tua stima: il risultato vale quanto la stima.',
+  STAKE_ROUNDED_DOWN_TO_CENT: 'La puntata è arrotondata per difetto al centesimo.',
+  NEGATIVE_EV: 'Valore atteso negativo alla probabilità stimata.',
+  BOOK_BELOW_ONE: 'Il totale delle probabilità è sotto il 100%.',
+  SINGLE_SELECTION_NO_MARGIN: 'Con una sola quota non si calcola il margine.',
+  LIABILITY_ABOVE_BANKROLL: 'La responsabilità supera il capitale indicato.',
+  RED: 'La copertura chiude in perdita in entrambi i casi.',
+  LIQUIDITY_UNAVAILABLE: 'Liquidità non disponibile: la puntata indicata è teorica, non è verificato che sia eseguibile.',
+  BOOK_AT_LEAST_ONE: 'Il totale delle probabilità è almeno il 100%: si perde con qualunque selezione vincente.',
+  STAKES_ROUNDED_TO_CENT: 'Le puntate sono arrotondate al centesimo: le vincite differiscono di pochi centesimi.',
+  MODEL_NOT_A_FORECAST: 'Modello teorico con gol indipendenti: non è una previsione.',
+};
+const LIMIT_TEXT = {KELLY: 'Kelly', MAX_STAKE: 'Tetto alla puntata', MAX_BANKROLL: 'Tetto in % del capitale'};
+const SCORE_TEXT = {HOME: '1', DRAW: 'X', AWAY: '2'};
+
+// A value of the answer: the server's display value, its exact value in the tooltip.
+const calc = (shown, exact, name) => el('b', {'data-field': name, title: exact === undefined || exact === null ? null : `Valore esatto: ${formatDecimalText(String(exact))}`}, num(shown));
+const signed = (shown, exact, name) => el('span', {class: Number(shown) < 0 ? 'bad' : Number(shown) > 0 ? 'ok' : null}, calc(shown, exact, name));
+const percentOf = (shown, exact, name) => [calc(shown, exact, name), '%'];
+const row = (label, ...value) => [el('dt', {}, label), el('dd', {}, ...value)];
+
+const TOOL_RESULTS = {
+  odds: (d, r) => [
+    el('div', {class: 'tablewrap'}, el('table', {}, el('thead', {}, el('tr', {}, ['Quota', 'Probabilità implicita', 'Probabilità senza margine', 'Quota equa'].map(t => el('th', {scope: 'col'}, t)))),
+      el('tbody', {}, d.selections.map((s, i) => el('tr', {'data-row': i}, el('td', {}, num(s.odds)),
+        el('td', {}, percentOf(s.implied_percent, r.implied_probabilities?.[i] ?? r.probability, `implied_${i}`)),
+        el('td', {}, s.fair_percent === null ? formatScalar(null) : percentOf(s.fair_percent, r.fair_probabilities[i], `fair_${i}`)),
+        el('td', {}, s.fair_odds === null ? formatScalar(null) : calc(s.fair_odds, r.fair_odds[i], `fair_odds_${i}`))))))),
+    el('dl', {}, row('Totale delle probabilità', percentOf(d.book_percent, r.book ?? r.probability, 'book')),
+      row('Margine', d.overround_percent === null ? formatScalar(null) : percentOf(d.overround_percent, r.overround, 'overround')))],
+  kelly: (d, r) => [el('dl', {}, row('Puntata suggerita', calc(d.stake, r.stake, 'stake')), row('Limite che la determina', el('span', {'data-field': 'governing_limit', 'data-code': d.governing_limit}, LIMIT_TEXT[d.governing_limit] ?? ND)),
+    row('Kelly pieno', percentOf(d.kelly_full_percent, r.kelly_full, 'kelly_full')), row('Kelly frazionario', percentOf(d.kelly_fractional_percent, r.kelly_fractional, 'kelly_fractional')),
+    row('Probabilità implicita della quota', percentOf(d.implied_percent, r.implied_probability, 'implied')), row('Probabilità stimata', percentOf(d.model_percent, r.model_probability, 'model')),
+    row('Vantaggio', percentOf(d.edge_percent, r.edge, 'edge')), row('Perdita nel caso peggiore', calc(d.worst_case_loss, r.worst_case_loss, 'worst_case_loss')),
+    row('Capitale se perde', calc(d.bankroll_after_loss, r.bankroll_after_loss, 'bankroll_after_loss')), row('Capitale se vince', calc(d.bankroll_after_win, r.bankroll_after_win, 'bankroll_after_win')))],
+  ev: (d, r) => [el('dl', {}, row('Valore atteso', signed(d.expected_value, r.expected_value, 'expected_value')), row('Rendimento atteso', percentOf(d.roi_percent, r.roi, 'roi')),
+    row('Quota equa', calc(d.fair_odds, r.fair_odds, 'fair_odds')), row('Quota di mercato', calc(d.market_odds, r.market_odds, 'market_odds')),
+    row('Vantaggio sulla quota', percentOf(d.edge_percent, r.edge, 'edge')), row('Probabilità di pareggio', percentOf(d.break_even_percent, r.break_even_probability, 'break_even')),
+    row('Se vince (netto)', signed(d.profit_if_wins, r.profit_if_wins, 'profit_if_wins')), row('Se perde', signed(d.loss_if_loses, null, 'loss_if_loses')),
+    row('Commissione considerata', percentOf(d.commission_percent, null, 'commission')))],
+  liability: (d, r) => [el('dl', {}, row('Responsabilità', calc(d.liability, r.liability, 'liability')),
+    row('Responsabilità sul capitale', d.liability_percent_of_bankroll === null ? formatScalar(null) : percentOf(d.liability_percent_of_bankroll, r.liability_share_of_bankroll, 'liability_share')),
+    row('Se la selezione perde (netto)', signed(d.if_selection_loses, r.net_profit_if_selection_loses, 'if_selection_loses')),
+    row('Se la selezione vince', signed(d.if_selection_wins, null, 'if_selection_wins')),
+    row('Probabilità di pareggio della selezione', percentOf(d.break_even_percent, r.break_even_probability, 'break_even')))],
+  hedge: (d, r) => [el('dl', {}, row('Copertura', el('span', {'data-field': 'hedge_side', 'data-code': d.hedge_side}, SIDE_TEXT[d.hedge_side] ?? ND), ' ', calc(d.hedge_stake, r.hedge_stake_theoretical, 'hedge_stake')),
+    row('Responsabilità della copertura', calc(d.hedge_liability, r.hedge_liability, 'hedge_liability')), row('Squilibrio da arrotondamento', calc(d.residual_imbalance, r.residual_imbalance, 'residual'))),
+  el('div', {class: 'tablewrap'}, el('table', {}, el('thead', {}, el('tr', {}, ['', 'Se la selezione vince', 'Se la selezione perde'].map(t => el('th', {scope: 'col'}, t)))),
+    el('tbody', {},
+      el('tr', {'data-row': 'before'}, el('th', {scope: 'row'}, 'Senza copertura'), el('td', {}, signed(d.before.if_wins, r.before.if_wins, 'before_wins')), el('td', {}, signed(d.before.if_loses, r.before.if_loses, 'before_loses'))),
+      el('tr', {'data-row': 'after'}, el('th', {scope: 'row'}, 'Con la copertura'), el('td', {}, signed(d.after.if_wins, r.after.if_wins, 'after_wins')), el('td', {}, signed(d.after.if_loses, r.after.if_loses, 'after_loses'))))))],
+  dutching: (d, r) => [
+    el('div', {class: 'tablewrap'}, el('table', {}, el('thead', {}, el('tr', {}, ['Quota', 'Puntata', 'Se vince (netto)'].map(t => el('th', {scope: 'col'}, t)))),
+      el('tbody', {}, d.selections.map((s, i) => el('tr', {'data-row': i}, el('td', {}, num(s.odds)), el('td', {}, calc(s.stake, r.stakes_theoretical[i], `stake_${i}`)),
+        el('td', {}, signed(s.if_wins, r.if_wins[i], `wins_${i}`))))))),
+    el('dl', {}, row('Puntata totale', calc(d.placed, r.placed, 'placed')), row('Se non vince nessuna', signed(d.if_none_wins, r.if_none_wins, 'none')),
+      row('Totale delle probabilità', percentOf(d.book_percent, r.book, 'book')))],
+  poisson: d => {
+    const max = d.grid.max_goals;
+    const cell = (h, a) => d.grid.cells.find(c => c.home === h && c.away === a);
+    return [el('h3', {}, 'Esito finale'),
+      el('div', {class: 'odds', role: 'group', 'aria-label': 'Probabilità 1 X 2'}, d.match_odds.map(m => el('div', {class: 'odd', 'data-field': `p_${m.selection.toLowerCase()}`},
+        el('span', {}, SCORE_TEXT[m.selection] ?? ND), el('b', {}, num(m.percent), '%'), el('small', {title: 'Quota equa'}, num(m.fair_odds))))),
+      el('h3', {}, 'Gol'),
+      el('div', {class: 'tablewrap'}, el('table', {}, el('thead', {}, el('tr', {}, ['Linea', 'Over', 'Quota equa', 'Under', 'Quota equa'].map(t => el('th', {scope: 'col'}, t)))),
+        el('tbody', {}, d.lines.map(l => el('tr', {'data-line': l.line, 'data-field': `line_${l.line}`}, el('td', {}, num(l.line)), el('td', {}, num(l.over_percent), '%'), el('td', {}, num(l.over_fair_odds)),
+          el('td', {}, num(l.under_percent), '%'), el('td', {}, num(l.under_fair_odds))))))),
+      el('dl', {}, row('Entrambe segnano', el('span', {'data-field': 'btts'}, num(d.btts.yes_percent), '% · quota equa ', num(d.btts.yes_fair_odds))),
+        row('Gol attesi', el('span', {'data-field': 'expected_goals'}, num(d.expected_goals.home), ' + ', num(d.expected_goals.away), ' = ', num(d.expected_goals.total))),
+        row('Risultati più probabili', el('span', {'data-field': 'top_scores'}, d.top_scores.flatMap((s, i) => [i ? ' · ' : '', s.score.replace('-', '–'), ' ', num(s.percent), '%'])))),
+      el('h3', {}, 'Risultati esatti'),
+      el('div', {class: 'tablewrap'}, el('table', {'data-testid': 'poisson-grid'},
+        el('thead', {}, el('tr', {}, el('th', {scope: 'col'}, 'Casa \\ Ospite'), Array.from({length: max + 1}, (_, a) => el('th', {scope: 'col'}, String(a))))),
+        el('tbody', {}, Array.from({length: max + 1}, (_, h) => el('tr', {}, el('th', {scope: 'row'}, String(h)),
+          Array.from({length: max + 1}, (_, a) => el('td', {'data-score': `${h}-${a}`, 'data-field': `score_${h}-${a}`}, cell(h, a) ? [num(cell(h, a).percent), '%'] : formatScalar(null)))))))),
+      el('p', {class: 'meta'}, 'Probabilità di 1 X 2 calcolate fino a 40 gol per squadra: copertura ', num(d.grid_coverage_percent), '%. Linee gol esatte.')];
+  },
+};
+
+function toolForm(id, fields, params) {
+  const value = name => params.get(name) ?? '';
+  const control = name => ctl(`TOOLS-${id.toUpperCase()}`, name);
+  return el('form', {class: 'card search', 'data-testid': 'tool-form', 'data-tool': id, novalidate: true, onsubmit: event => {
+    event.preventDefault();
+    const out = {tool: id};
+    for (const [key, v] of new FormData(event.target).entries()) if (String(v).trim() !== '') out[key] = String(v).trim();
+    revealOutcome = true;
+    const target = `#/tools?${queryString({...out, run: '1'})}`;
+    if (location.hash === target) render();
+    else location.hash = target;
+  }},
+  el('div', {class: 'fields'}, fields.map(([name, label, attrs]) => el('label', {}, `${label} `, attrs.select
+    ? el('select', {name, 'data-control': control(name)}, attrs.select.map(([v, text]) => el('option', {value: v, selected: (value(name) || attrs.select[0][0]) === v}, text)))
+    : el('input', {name, value: value(name), 'data-control': control(name), ...attrs})))),
+  el('button', {type: 'submit', 'data-control': control('submit')}, 'Calcola'), ' ',
+  el('a', {href: `#/tools?${queryString({tool: id})}`, 'data-control': control('reset')}, 'Azzera'));
+}
+
+async function toolsView(params) {
+  const tool = choice(params.get('tool'), TOOL_LIST, 'odds');
+  const [, title, fields] = TOOL_LIST.find(([key]) => key === tool);
+  const head = [el('h1', {}, 'Strumenti'),
+    el('p', {class: 'state partial', role: 'note', 'data-testid': 'tools-manual'}, el('b', {}, 'INSERIMENTO MANUALE'),
+      ' — i valori li scrivi tu, non sono dati live né quote dell’archivio. Ogni calcolo è del server; nessuno strumento piazza o prepara ordini.'),
+    el('nav', {class: 'seg tool-tabs', 'aria-label': 'Strumenti', 'data-testid': 'tool-tabs'},
+      TOOL_LIST.map(([key, text]) => el('a', {href: `#/tools?${queryString({tool: key})}`, 'aria-current': key === tool ? 'page' : null, 'data-control': ctl('TOOLS-TAB', key)}, text))),
+    toolForm(tool, fields, params)];
+  const soon = el('p', {class: 'meta', 'data-testid': 'tools-soon'}, 'Non ancora disponibili: ', TOOL_SOON, '.');
+  if (params.get('run') !== '1') return [...head, el('p', {class: 'state empty'}, 'Inserisci i valori e premi Calcola.'), soon];
+  const api = {};
+  for (const [name] of fields) if (params.get(name)) api[name] = params.get(name);
+  let body;
+  try {
+    body = await getJson(`/api/v1/tools/${tool}?${queryString(api)}`);
+  } catch (error) {
+    if (error?.status !== 400) throw error;
+    // The server names the parameter first («odds[1]: …», «stake: …»): the label of that field in this form is shown.
+    const name = /^([a-z_]+)/.exec(String(error.message ?? ''))?.[1];
+    const label = fields.find(([field]) => field === name)?.[1];
+    const form = head.at(-1);
+    form.querySelector(`[name="${name}"]`)?.setAttribute('aria-invalid', 'true');
+    return [...head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'tool-invalid', 'data-outcome': '', 'data-fields': name ?? '', title: reasonText(error)},
+      label ? `Valore non valido in: ${label}. Correggi il campo e riprova.` : 'Valori mancanti o non validi. Correggi i campi e riprova.'), soon];
+  }
+  const data = body.data ?? {};
+  if (data.tool !== tool || !data.display || !data.result) throw new ApiFailure(200, 'BAD_ENVELOPE', 'risposta senza risultato');
+  const warnings = (data.warnings ?? []).filter(code => Object.hasOwn(WARNING_TEXT, code));
+  return [...head,
+    el('section', {class: 'card tool-result', 'data-testid': 'tool-result', 'data-outcome': '', 'data-tool': tool, 'data-warnings': (data.warnings ?? []).join(' '),
+      'data-formula': `${data.formula} ${data.formula_version}`},
+    el('h2', {}, title), ...TOOL_RESULTS[tool](data.display, data.result),
+    warnings.length ? el('ul', {class: 'notes', 'data-testid': 'tool-warnings'}, warnings.map(code => el('li', {'data-code': code}, WARNING_TEXT[code]))) : null,
+    el('p', {class: 'meta'}, 'Calcolo del server in decimali esatti: importi al centesimo, percentuali a due decimali, quote a tre. Il valore esatto è nel suggerimento.')),
+    soon];
+}
+
 // [what is loading, view, area]: a 'user' view shows no technical text (MP-WEB-015, checked by the Browser QA gate); a
 // 'technical' view is where provenance and diagnostics belong. Every view declares one (V-B2). #/board, the former
 // address of the Daily Board, still opens it, and the menu item of each view is its section (NAV_OF).
@@ -1394,7 +1560,7 @@ async function compareView(params) {
 const VIEWS = {'': ['la pagina', boardView, 'user'], board: ['la pagina', boardView, 'user'], search: ['la ricerca', searchView, 'user'],
   match: ['la partita', matchView, 'user'],
   data: ['lo stato dei dati', dashboardView, 'technical'], providers: ['i fornitori dati', providersView, 'technical'],
-  sim: ['la simulazione', simView, 'user'], compare: ['il confronto', compareView, 'user'], saved: ['i backtest salvati', savedView, 'user'],
+  sim: ['la simulazione', simView, 'user'], tools: ['gli strumenti', toolsView, 'user'], compare: ['il confronto', compareView, 'user'], saved: ['i backtest salvati', savedView, 'user'],
   endpoints: ['gli endpoint', endpointsView, 'technical']};
 const NAV_OF = {board: '', providers: 'data', endpoints: 'data', match: null, compare: 'sim', saved: 'sim'};
 
@@ -1414,7 +1580,7 @@ async function render() {
   const name = location.hash.replace(/^#\/?/, '').split('?')[0];
   // The submit flag belongs to this render only: any navigation consumes it, so a search abandoned before its answer
   // never moves the focus later, when the page is opened again without a submit (PR #168 review NB-1).
-  const reveal = revealOutcome && (name === 'search' || name === 'sim' || name === 'compare');
+  const reveal = revealOutcome && (name === 'search' || name === 'sim' || name === 'compare' || name === 'tools');
   revealOutcome = false;
   const [what, view, area] = Object.hasOwn(VIEWS, name) ? VIEWS[name] : [null, null, 'user'];
   const host = document.getElementById('view');

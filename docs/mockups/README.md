@@ -3,9 +3,9 @@
 ## File corrente
 
 - File: [`matchpilot-trading-os.html`](matchpilot-trading-os.html), percorso stabile. Le versioni non cambiano nome: la storia è in git e in questo changelog.
-- Versione: **Mock UX v2026.10.24b**
+- Versione: **Mock UX v2026.10.24c**
 - Ultimo aggiornamento: 2026-10-24
-- SHA-256: `903d0827bd0ff01ba9080d355ac71f5a0b877048b34d33d699346c2a54fdbd71`
+- SHA-256: `b215c2cd10d148e2635447fae87313009f12786c41a8556eb6d735a1ebe233f6`
 - Allineato a: roadmap #97 (revisione owner 06/10/2026)
 - Issue rappresentate: #12, #20, #23, #24, #25, #27, #28, #29, #30, #31, #32, #34, #40, #44, #45, #46, #87, #91, #94, #95, #96, #97, #98, #99, #100, #102
 
@@ -53,6 +53,11 @@ Il mock è un riferimento UX/prodotto **vivo**. Non è l'architettura e non cert
 - Il layout usa font Google; senza rete il menu desktop può tagliare l'ultima voce.
 
 ## Changelog
+
+### v2026.10.24c — Strumenti di trading (MP-UI-PR-005, #94)
+
+- Nella pagina Trading Tools una nota descrive la pagina «Strumenti» del sito reale: sette calcolatori di #94 calcolati dal server in Decimal, con inserimento manuale dichiarato e liquidità non disponibile.
+- Selettore partita, cash-out, Dutching in banca, arbitraggio, Each Way, Draw No Bet, progressioni, esposizione e ottimizzatore del mock restano DEMO.
 
 ### v2026.10.24b — Shell: sessione del proprietario e piè di pagina (MP-UI-PR-004, #23)
 

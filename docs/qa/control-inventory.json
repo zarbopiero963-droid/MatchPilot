@@ -144,12 +144,12 @@
       "issues": [
         3
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "daily-board",
-          "step": "errore dell’API: messaggio semplice, codice conservato, Riprova"
+          "journey": "trading-tools",
+          "step": "server in errore o irraggiungibile: detto, con Riprova"
         }
       ]
     },
@@ -3078,6 +3078,974 @@
         {
           "journey": "sim-save",
           "step": "accesso del proprietario dalla pagina di accesso"
+        }
+      ]
+    },
+    {
+      "id": "CTL-NAV-TOOLS",
+      "view": "shell",
+      "kind": "link",
+      "label": "Strumenti",
+      "action": "apre gli Strumenti di trading",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        3,
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Strumenti"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-TAB-ODDS",
+      "view": "tools",
+      "kind": "link",
+      "label": "Margine",
+      "action": "apre lo strumento Margine",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "strumenti: inserimento manuale dichiarato, schede, nessun calcolo senza Calcola"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-ODDS-ODDS",
+      "view": "tools",
+      "kind": "input",
+      "label": "Quote (Margine)",
+      "action": "imposta un valore di Margine",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "odds: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-ODDS-SUBMIT",
+      "view": "tools",
+      "kind": "button",
+      "label": "Calcola (Margine)",
+      "action": "calcola Margine sul server",
+      "api": "/api/v1/tools/odds",
+      "data": "REAL",
+      "issues": [
+        94
+      ],
+      "data_note": "computed by the real server from manual input (no data source, no feed)",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "odds: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-ODDS-RESET",
+      "view": "tools",
+      "kind": "link",
+      "label": "Azzera (Margine)",
+      "action": "svuota il modulo di Margine",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "odds: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-TAB-KELLY",
+      "view": "tools",
+      "kind": "link",
+      "label": "Stake e Kelly",
+      "action": "apre lo strumento Stake e Kelly",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "strumenti: inserimento manuale dichiarato, schede, nessun calcolo senza Calcola"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-KELLY-BANKROLL",
+      "view": "tools",
+      "kind": "input",
+      "label": "Capitale (Stake e Kelly)",
+      "action": "imposta un valore di Stake e Kelly",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "kelly: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-KELLY-ODDS",
+      "view": "tools",
+      "kind": "input",
+      "label": "Quota (Stake e Kelly)",
+      "action": "imposta un valore di Stake e Kelly",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "kelly: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-KELLY-PROBABILITY",
+      "view": "tools",
+      "kind": "input",
+      "label": "Probabilità stimata % (Stake e Kelly)",
+      "action": "imposta un valore di Stake e Kelly",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "kelly: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-KELLY-FRACTION",
+      "view": "tools",
+      "kind": "input",
+      "label": "Frazione di Kelly % (Stake e Kelly)",
+      "action": "imposta un valore di Stake e Kelly",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "kelly: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-KELLY-MAX-STAKE",
+      "view": "tools",
+      "kind": "input",
+      "label": "Tetto alla puntata (Stake e Kelly)",
+      "action": "imposta un valore di Stake e Kelly",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "kelly: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-KELLY-MAX-BANKROLL",
+      "view": "tools",
+      "kind": "input",
+      "label": "Tetto in % del capitale (Stake e Kelly)",
+      "action": "imposta un valore di Stake e Kelly",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "kelly: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-KELLY-SUBMIT",
+      "view": "tools",
+      "kind": "button",
+      "label": "Calcola (Stake e Kelly)",
+      "action": "calcola Stake e Kelly sul server",
+      "api": "/api/v1/tools/kelly",
+      "data": "REAL",
+      "issues": [
+        94
+      ],
+      "data_note": "computed by the real server from manual input (no data source, no feed)",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "kelly: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-KELLY-RESET",
+      "view": "tools",
+      "kind": "link",
+      "label": "Azzera (Stake e Kelly)",
+      "action": "svuota il modulo di Stake e Kelly",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "kelly: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-TAB-EV",
+      "view": "tools",
+      "kind": "link",
+      "label": "Valore atteso",
+      "action": "apre lo strumento Valore atteso",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "strumenti: inserimento manuale dichiarato, schede, nessun calcolo senza Calcola"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-EV-STAKE",
+      "view": "tools",
+      "kind": "input",
+      "label": "Puntata (Valore atteso)",
+      "action": "imposta un valore di Valore atteso",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "ev: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-EV-ODDS",
+      "view": "tools",
+      "kind": "input",
+      "label": "Quota (Valore atteso)",
+      "action": "imposta un valore di Valore atteso",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "ev: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-EV-PROBABILITY",
+      "view": "tools",
+      "kind": "input",
+      "label": "Probabilità stimata % (Valore atteso)",
+      "action": "imposta un valore di Valore atteso",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "ev: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-EV-COMMISSION",
+      "view": "tools",
+      "kind": "input",
+      "label": "Commissione % (Valore atteso)",
+      "action": "imposta un valore di Valore atteso",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "ev: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-EV-SUBMIT",
+      "view": "tools",
+      "kind": "button",
+      "label": "Calcola (Valore atteso)",
+      "action": "calcola Valore atteso sul server",
+      "api": "/api/v1/tools/ev",
+      "data": "REAL",
+      "issues": [
+        94
+      ],
+      "data_note": "computed by the real server from manual input (no data source, no feed)",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "ev: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-EV-RESET",
+      "view": "tools",
+      "kind": "link",
+      "label": "Azzera (Valore atteso)",
+      "action": "svuota il modulo di Valore atteso",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "ev: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-TAB-LIABILITY",
+      "view": "tools",
+      "kind": "link",
+      "label": "Responsabilità",
+      "action": "apre lo strumento Responsabilità",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "strumenti: inserimento manuale dichiarato, schede, nessun calcolo senza Calcola"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-LIABILITY-STAKE",
+      "view": "tools",
+      "kind": "input",
+      "label": "Puntata di banca (Responsabilità)",
+      "action": "imposta un valore di Responsabilità",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "liability: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-LIABILITY-ODDS",
+      "view": "tools",
+      "kind": "input",
+      "label": "Quota di banca (Responsabilità)",
+      "action": "imposta un valore di Responsabilità",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "liability: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-LIABILITY-COMMISSION",
+      "view": "tools",
+      "kind": "input",
+      "label": "Commissione % (Responsabilità)",
+      "action": "imposta un valore di Responsabilità",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "liability: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-LIABILITY-BANKROLL",
+      "view": "tools",
+      "kind": "input",
+      "label": "Capitale (Responsabilità)",
+      "action": "imposta un valore di Responsabilità",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "liability: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-LIABILITY-SUBMIT",
+      "view": "tools",
+      "kind": "button",
+      "label": "Calcola (Responsabilità)",
+      "action": "calcola Responsabilità sul server",
+      "api": "/api/v1/tools/liability",
+      "data": "REAL",
+      "issues": [
+        94
+      ],
+      "data_note": "computed by the real server from manual input (no data source, no feed)",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "liability: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-LIABILITY-RESET",
+      "view": "tools",
+      "kind": "link",
+      "label": "Azzera (Responsabilità)",
+      "action": "svuota il modulo di Responsabilità",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "liability: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-TAB-HEDGE",
+      "view": "tools",
+      "kind": "link",
+      "label": "Copertura",
+      "action": "apre lo strumento Copertura",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "strumenti: inserimento manuale dichiarato, schede, nessun calcolo senza Calcola"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-HEDGE-SIDE",
+      "view": "tools",
+      "kind": "select",
+      "label": "Posizione aperta (Copertura)",
+      "action": "imposta un valore di Copertura",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "hedge: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-HEDGE-STAKE",
+      "view": "tools",
+      "kind": "input",
+      "label": "Puntata aperta (Copertura)",
+      "action": "imposta un valore di Copertura",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "hedge: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-HEDGE-ODDS",
+      "view": "tools",
+      "kind": "input",
+      "label": "Quota di apertura (Copertura)",
+      "action": "imposta un valore di Copertura",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "hedge: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-HEDGE-EXIT-ODDS",
+      "view": "tools",
+      "kind": "input",
+      "label": "Quota di uscita (Copertura)",
+      "action": "imposta un valore di Copertura",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "hedge: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-HEDGE-COMMISSION",
+      "view": "tools",
+      "kind": "input",
+      "label": "Commissione % (Copertura)",
+      "action": "imposta un valore di Copertura",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "hedge: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-HEDGE-SUBMIT",
+      "view": "tools",
+      "kind": "button",
+      "label": "Calcola (Copertura)",
+      "action": "calcola Copertura sul server",
+      "api": "/api/v1/tools/hedge",
+      "data": "REAL",
+      "issues": [
+        94
+      ],
+      "data_note": "computed by the real server from manual input (no data source, no feed)",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "hedge: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-HEDGE-RESET",
+      "view": "tools",
+      "kind": "link",
+      "label": "Azzera (Copertura)",
+      "action": "svuota il modulo di Copertura",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "hedge: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-TAB-DUTCHING",
+      "view": "tools",
+      "kind": "link",
+      "label": "Dutching",
+      "action": "apre lo strumento Dutching",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "strumenti: inserimento manuale dichiarato, schede, nessun calcolo senza Calcola"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-DUTCHING-TOTAL",
+      "view": "tools",
+      "kind": "input",
+      "label": "Puntata totale (Dutching)",
+      "action": "imposta un valore di Dutching",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "dutching: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-DUTCHING-ODDS",
+      "view": "tools",
+      "kind": "input",
+      "label": "Quote (Dutching)",
+      "action": "imposta un valore di Dutching",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "dutching: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-DUTCHING-COMMISSION",
+      "view": "tools",
+      "kind": "input",
+      "label": "Commissione % (Dutching)",
+      "action": "imposta un valore di Dutching",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "dutching: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-DUTCHING-SUBMIT",
+      "view": "tools",
+      "kind": "button",
+      "label": "Calcola (Dutching)",
+      "action": "calcola Dutching sul server",
+      "api": "/api/v1/tools/dutching",
+      "data": "REAL",
+      "issues": [
+        94
+      ],
+      "data_note": "computed by the real server from manual input (no data source, no feed)",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "dutching: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-DUTCHING-RESET",
+      "view": "tools",
+      "kind": "link",
+      "label": "Azzera (Dutching)",
+      "action": "svuota il modulo di Dutching",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "dutching: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-TAB-POISSON",
+      "view": "tools",
+      "kind": "link",
+      "label": "Poisson",
+      "action": "apre lo strumento Poisson",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "strumenti: inserimento manuale dichiarato, schede, nessun calcolo senza Calcola"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-POISSON-XG-HOME",
+      "view": "tools",
+      "kind": "input",
+      "label": "Gol attesi casa (Poisson)",
+      "action": "imposta un valore di Poisson",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "poisson: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-POISSON-XG-AWAY",
+      "view": "tools",
+      "kind": "input",
+      "label": "Gol attesi ospite (Poisson)",
+      "action": "imposta un valore di Poisson",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "poisson: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-POISSON-MAX-GOALS",
+      "view": "tools",
+      "kind": "input",
+      "label": "Gol per squadra nella griglia (Poisson)",
+      "action": "imposta un valore di Poisson",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "poisson: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-POISSON-SUBMIT",
+      "view": "tools",
+      "kind": "button",
+      "label": "Calcola (Poisson)",
+      "action": "calcola Poisson sul server",
+      "api": "/api/v1/tools/poisson",
+      "data": "REAL",
+      "issues": [
+        94
+      ],
+      "data_note": "computed by the real server from manual input (no data source, no feed)",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "poisson: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+        }
+      ]
+    },
+    {
+      "id": "CTL-TOOLS-POISSON-RESET",
+      "view": "tools",
+      "kind": "link",
+      "label": "Azzera (Poisson)",
+      "action": "svuota il modulo di Poisson",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        94
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "trading-tools",
+          "step": "poisson: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
         }
       ]
     }

@@ -29,7 +29,7 @@ test('every literal data-control id of the page is in the inventory, and every i
   for (const id of literal) assert.ok(ids.has(id), `${id} is in the page but not in the inventory`);
   // Generated ids come from ctl('VIEW', name): each prefix is one of the forms or lists checked below.
   const prefixes = new Set([...app.matchAll(/\bctl\('([A-Z-]+)'/g)].map(match => match[1]));
-  assert.deepEqual([...prefixes].sort(), ['CMP', 'DATA-TAB', 'MATCH-FILTER', 'SEARCH', 'SIM']);
+  assert.deepEqual([...prefixes].sort(), ['CMP', 'DATA-TAB', 'MATCH-FILTER', 'SEARCH', 'SIM', 'TOOLS-TAB']);
   // A generated id must name a field its own form builds: the names passed to the field helpers inside that function
   // (a ghost CTL-SEARCH-STAKE fails although 'stake' exists in another form).
   const body = name => {
@@ -43,7 +43,17 @@ test('every literal data-control id of the page is in the inventory, and every i
   const cmpKeys = [...(/const CMP_KEYS = \[([^\]]*)\]/.exec(app)?.[1].matchAll(/'([a-z])'/g) ?? [])].map(match => match[1]);
   assert.deepEqual(cmpKeys, ['a', 'b', 'c']);
   const dataTabs = [.../const DATA_TABS = (\[.*\]);/.exec(app)[1].matchAll(/\[(?:'([a-z]+)'|null),/g)].map(match => match[1] ?? 'coverage');
+  // The Trading Tools (MP-UI-PR-005): one tab per tool, and per tool its fields, Calcola and Azzera (toolForm).
+  const toolList = /const TOOL_LIST = \[\n([\s\S]*?)\n\];/.exec(app)[1];
+  const tools = toolList.split(/\n(?=  \[')/).map(chunk => {
+    const [key, ...names] = [...chunk.matchAll(/\['([a-z_]+)', '/g)].map(match => match[1]);
+    return [key, [...names, ...(chunk.includes('TOOL_COMMISSION') ? ['commission'] : []), 'submit', 'reset']];
+  });
+  assert.deepEqual(tools.map(([key]) => key), ['odds', 'kelly', 'ev', 'liability', 'hedge', 'dutching', 'poisson']);
+  assert.match(app, /const control = name => ctl\(`TOOLS-\$\{id\.toUpperCase\(\)\}`, name\);/);
   const generated = new Set([
+    ...tools.map(([key]) => `CTL-TOOLS-TAB-${key}`),
+    ...tools.flatMap(([key, names]) => names.map(name => `CTL-TOOLS-${key}-${name}`)),
     ...fields(body('searchForm')).map(name => `CTL-SEARCH-${name}`),
     ...fields(body('simForm')).map(name => `CTL-SIM-${name}`),
     ...fields(body('cmpForm')).map(name => `CTL-CMP-${name}`),

@@ -73,7 +73,7 @@ The warning always says which kind of probability a result is (raw implied or ma
 
 ## Limits
 
-- **Formulas not yet implemented:** the money and commission formulas (Kelly, EV, liability, hedge, dutching, …) are MATH-CORE-02..06, and Poisson is MATH-CORE-07.
+- **Trading Tools formulas (MP-UI-PR-005):** [`src/math/trading.mjs`](../src/math/trading.mjs) implements the #94 formulas of Kelly, EV, LAY liability, BACK/LAY hedge, Dutching BACK and Poisson, with oracle vectors ([`trading-tools.md`](trading-tools.md)). Not implemented: progressions (MATH-CORE-05, owner formulas BLOCKED), Dutching LAY, Each Way, Draw No Bet, cash-out of several legs, exposure netting, commission optimizer.
 - **Settlement P/L:** `src/math/money.mjs` (`settleMarket`, HIST-01a) settles BACK/LAY/VOID bets with commission on market net winnings and is checked against an independent exact-fraction oracle (`test/hist-backtest.test.mjs`, [`docs/hist-backtest.md`](hist-backtest.md)). Commission-aware net results also depend on the persistent commission settings of #95.
-- **No API yet:** the tool surface is MATH-CORE-08.
-- **MP-MTH-001 stays NOT_VERIFIED:** it requires every formula used by statistics or backtest to have oracle vectors, and those formulas don't exist yet.
+- **API:** `/api/v1/tools/*` (MATH-CORE-08, [`trading-tools.md`](trading-tools.md)), manual input only.
+- **MP-MTH-001 stays NOT_VERIFIED:** it requires every formula used by statistics or backtest to have oracle vectors; the progressions and the remaining #94 tools are not built yet.

@@ -1,0 +1,152 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261024T125938Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-24T12:59:38Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "MP-UI-PR-005",
+  "activity": "MP-UI-PR-005: review fixes (B1 stricter certification gate, B2 no level for COMPUTED data: Trading Tools TESTED; N1-N5); owner decision MP-UI-AUTONOMOUS-INTEGRATION-02 recorded",
+  "issue": 239,
+  "pr": 244,
+  "branch": "ui-pr-005",
+  "commit_sha": "da04726009e5686f67891827cd14376dc7ec9979",
+  "tree_sha": "70dda188b7409bf1aa2743a5f8b300ab27584296",
+  "base_sha": "aeea5d865e2740bb2ec0c08437a87e69a0bc6a7e",
+  "requirements": [
+    "MP-MTH-001",
+    "MP-WEB-011",
+    "MP-WEB-015"
+  ],
+  "changes": [
+    "seven #94 calculators on the server",
+    "Strumenti page and trading-tools journey",
+    "feature register and gate",
+    "mutation testing",
+    "FEAT-TRADING-TOOLS CERTIFIED REAL on its perimeter",
+    "review fixes B1, B2, N1-N5",
+    "owner decision MP-UI-AUTONOMOUS-INTEGRATION-02",
+    "prototype 14b2e52 acquired: only webapp/ changed; src/api/tools.mjs identical to the ported version"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "da04726009e5686f67891827cd14376dc7ec9979",
+      "time": "2026-10-24T12:59:38Z",
+      "limits": [
+        "704 tests, 703 pass, 1 skip (PostgreSQL 17, runs in CI)"
+      ]
+    },
+    {
+      "command": "npm run qa:browser + verify-report (inventory and feature register)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Chromium, local PostgreSQL 16",
+      "commit": "da04726009e5686f67891827cd14376dc7ec9979",
+      "time": "2026-10-24T12:59:38Z",
+      "limits": [
+        "20/20 journeys"
+      ]
+    },
+    {
+      "command": "node tools/qa/visual.mjs",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Chromium",
+      "commit": "da04726009e5686f67891827cd14376dc7ec9979",
+      "time": "2026-10-24T12:59:38Z",
+      "limits": [
+        "60/60"
+      ]
+    },
+    {
+      "command": "node tools/qa/mutation-trading.mjs",
+      "result": "PASS",
+      "environment": "Claude Code cloud container",
+      "commit": "da04726009e5686f67891827cd14376dc7ec9979",
+      "time": "2026-10-24T12:59:38Z",
+      "limits": [
+        "25/25 killed"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "da04726009e5686f67891827cd14376dc7ec9979"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "sub-agent review CHANGES REQUESTED on 4305db3 (B1, B2, N1-N6); fixes here; confirmation on the new head pending"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-UI-AUTONOMOUS-INTEGRATION-02",
+    "MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01",
+    "MP-UI-AUTONOMOUS-CONTINUATION-01",
+    "MP-UI-PROTOTYPE-INTEGRATION-01",
+    "MP-UI-HARD-GATES-01",
+    "MP-UI-ROADMAP-01",
+    "MP-UI-INCREMENTAL-13",
+    "MP-AUTOMERGE-RESTORED-20261024"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and final review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:src/math/trading.mjs",
+    "file:src/api/tools.mjs",
+    "file:src/web/app.js",
+    "file:tools/qa/journeys.mjs",
+    "file:tools/qa/feature-certification.mjs",
+    "file:docs/qa/feature-certification.json",
+    "file:docs/qa/control-inventory.json",
+    "branch:ui-pr-005",
+    "pr:244"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and final-head review on PR #244, then protected merge and deploy verification",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": "CP-20261024T124753Z-agent-a-claude-code"
+}

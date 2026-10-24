@@ -32,8 +32,8 @@ const SIDE = {HOME: 'Casa', AWAY: 'Ospite', EVEN: 'Pari'};
 // the area decides whether the no-technical-text rule applies (MP-WEB-015). Every view declares one (V-B2): the home page
 // Oggi (D-2) and the search are user views; «Dati» holds the technical views, reached through its tabs (DATA_TABS).
 const NAV = [['', 'Oggi', 'Oggi', 'user'], ['search', 'Ricerca', 'Ricerca partite', 'user'], ['sim', 'Simulazione', 'Simulazione', 'user'],
-  ['data', 'Dati', 'Stato dei dati', 'technical']];
-const NAV_CONTROL = {'': 'CTL-NAV-OGGI', search: 'CTL-NAV-SEARCH', sim: 'CTL-NAV-SIM', data: 'CTL-NAV-DATA'};
+  ['tools', 'Strumenti', 'Strumenti', 'user'], ['data', 'Dati', 'Stato dei dati', 'technical']];
+const NAV_CONTROL = {'': 'CTL-NAV-OGGI', search: 'CTL-NAV-SEARCH', sim: 'CTL-NAV-SIM', tools: 'CTL-NAV-TOOLS', data: 'CTL-NAV-DATA'};
 // In the order the journey clicks them: Panoramica, the view the area opens on, comes last so that its click changes the
 // view (review #241 B2).
 const DATA_TABS = [['#/providers', 'Fornitori', 'Fornitori dati', 'CTL-DATA-TAB-PROVIDERS'], ['#/endpoints', 'API', 'API v1', 'CTL-DATA-TAB-ENDPOINTS'],
@@ -72,6 +72,36 @@ async function loadAll(page, rows) {
   }
   await page.waitForSelector('[data-testid="end"]');
 }
+
+// MP-UI-PR-005: each Trading Tool of the journey: [tool, tab label, the fields typed (none at its default), the shown
+// values checked against the server's display values, an invalid field with its label].
+const TOOL_SPECS = [
+  ['odds', 'Margine', {odds: '2,10 3,40 3,60'},
+    d => [['book', shown(d.book_percent)], ['overround', shown(d.overround_percent)], ['fair_odds_0', shown(d.selections[0].fair_odds)]],
+    ['odds', '2 1', 'Quote (separate da spazi)']],
+  ['kelly', 'Stake e Kelly', {bankroll: '1000', odds: '2,5', probability: '48', fraction: '50', max_stake: '40', max_bankroll: '3'},
+    d => [['stake', shown(d.stake)], ['kelly_full', shown(d.kelly_full_percent)], ['governing_limit', 'Tetto in % del capitale'], ['bankroll_after_win', shown(d.bankroll_after_win)]],
+    ['probability', '100', 'Probabilità stimata %']],
+  ['ev', 'Valore atteso', {stake: '10', odds: '2,10', probability: '50', commission: '5'},
+    d => [['expected_value', shown(d.expected_value)], ['edge', shown(d.edge_percent)], ['break_even', shown(d.break_even_percent)]],
+    ['commission', '100', 'Commissione % sulle vincite']],
+  ['liability', 'Responsabilità', {stake: '10', odds: '3', commission: '5', bankroll: '15'},
+    d => [['liability', shown(d.liability)], ['liability_share', shown(d.liability_percent_of_bankroll)], ['if_selection_loses', shown(d.if_selection_loses)], ['break_even', shown(d.break_even_percent)]],
+    ['odds', '1', 'Quota di banca']],
+  ['hedge', 'Copertura', {side: 'LAY', stake: '10', odds: '2', exit_odds: '3', commission: '2'},
+    d => [['hedge_side', 'Punta'], ['hedge_stake', shown(d.hedge_stake)], ['after_wins', shown(d.after.if_wins)], ['after_loses', shown(d.after.if_loses)], ['residual', shown(d.residual_imbalance)]],
+    ['exit_odds', 'abc', 'Quota di uscita']],
+  ['dutching', 'Dutching', {total: '100', odds: '4 5 6', commission: '3'},
+    d => [['stake_0', shown(d.selections[0].stake)], ['wins_2', shown(d.selections[2].if_wins)], ['placed', shown(d.placed)]],
+    ['odds', '4', 'Quote (separate da spazi)']],
+  ['poisson', 'Poisson', {xg_home: '1,4', xg_away: '1,1', max_goals: '3'},
+    d => [['btts', `${shown(d.btts.yes_percent)}% · quota equa ${shown(d.btts.yes_fair_odds)}`], ['expected_goals', `${shown(d.expected_goals.home)} + ${shown(d.expected_goals.away)} = ${shown(d.expected_goals.total)}`],
+      ...d.match_odds.map(m => [`p_${m.selection.toLowerCase()}`, `${{HOME: '1', DRAW: 'X', AWAY: '2'}[m.selection]}${shown(m.percent)}%${shown(m.fair_odds)}`]),
+      ['top_scores', d.top_scores.map(s => `${s.score.replace('-', '–')} ${shown(s.percent)}%`).join(' · ')],
+      ...d.lines.map(l => [`line_${l.line}`, `${shown(l.line)}${shown(l.over_percent)}%${shown(l.over_fair_odds)}${shown(l.under_percent)}%${shown(l.under_fair_odds)}`]),
+      ...d.grid.cells.map(c => [`score_${c.home}-${c.away}`, `${shown(c.percent)}%`])],
+    ['xg_home', '12', 'Gol attesi casa']],
+];
 
 export const JOURNEYS = [
   {
@@ -1551,6 +1581,118 @@ export const JOURNEYS = [
         await page.fill('input[name="password"]', owner.password);
         await page.click('button[type="submit"]');
         await titled(page, 'Oggi');
+      });
+    },
+  },
+  {
+    // MP-UI-PR-005 (#94): the Trading Tools. Every value shown is the server's display value for exactly what was typed;
+    // every refusal names the field; a failing or unreachable server is said; the API needs the owner session when the
+    // login is enforced. Each tool's step types every field, so a field that the page ignored would change the request
+    // and the answer.
+    id: 'trading-tools', surface: 'Strumenti', title: 'Calcolatori di #94: valori uguali all’API, campi rifiutati, azzera, errori del server, accesso',
+    allowHttp: TOOL_SPECS.map(([tool]) => ({path: `/api/v1/tools/${tool}`, status: 400})).concat([{path: '/api/v1/tools/ev', status: 503}]),
+    allowNetwork: [{path: '/api/v1/tools/ev', error: 'net::ERR_INTERNET_DISCONNECTED'}],
+    async run({page, base, step, asserted, api, owner}) {
+      const result = '[data-testid="tool-result"]';
+      const field = name => page.textContent(`${result} [data-field="${name}"]`);
+      await step('strumenti: inserimento manuale dichiarato, schede, nessun calcolo senza Calcola', async () => {
+        await fresh(page, `${base}/#/tools`);
+        await titled(page, 'Strumenti');
+        assert.equal(await page.getAttribute('main', 'data-area'), 'user');
+        assert.match(await page.textContent('[data-testid="tools-manual"]'), /^INSERIMENTO MANUALE — /, '#94: manual input is labelled');
+        assert.match(await page.textContent('[data-testid="tools-soon"]'), /^Non ancora disponibili: .*Progressioni/, 'what is not built is said, not offered');
+        assert.equal(await page.locator(result).count(), 0);
+        assert.equal(await page.getAttribute('[data-testid="tool-form"]', 'data-tool'), 'odds', 'the first tool by default');
+        // From the last tab back to the first, so that every click changes the tool.
+        for (const [tool, label] of [...TOOL_SPECS].reverse()) {
+          const tab = page.locator(`[data-testid="tool-tabs"] a[data-control="CTL-TOOLS-TAB-${tool.toUpperCase()}"]`);
+          assert.equal((await tab.textContent()).trim(), label);
+          await tab.click();
+          await asserted(`CTL-TOOLS-TAB-${tool.toUpperCase()}`, `the tab opens the form of ${tool}, marked current, with no result`, async () => {
+            await page.waitForSelector(`[data-testid="tool-form"][data-tool="${tool}"]`);
+            assert.equal(await tab.getAttribute('aria-current'), 'page');
+            assert.equal(await page.locator('[data-testid="tool-tabs"] a[aria-current="page"]').count(), 1);
+            assert.equal(await page.locator(result).count(), 0);
+          });
+        }
+      });
+      for (const [tool, , fields, checks, bad] of TOOL_SPECS) {
+        await step(`${tool}: il risultato è quello del server, un campo errato è indicato, Azzera svuota`, async () => {
+          const id = name => `CTL-TOOLS-${tool.toUpperCase()}-${name.toUpperCase().replace(/_/g, '-')}`;
+          await fresh(page, `${base}/#/tools?tool=${tool}`);
+          await page.waitForSelector(`[data-testid="tool-form"][data-tool="${tool}"]`);
+          for (const [name, value] of Object.entries(fields)) {
+            if (await page.locator(`[data-testid="tool-form"] select[name="${name}"]`).count()) await page.selectOption(`select[name="${name}"]`, value);
+            else await page.fill(`[data-testid="tool-form"] input[name="${name}"]`, value);
+          }
+          await page.click('[data-testid="tool-form"] button[type="submit"]');
+          await outcomeShown(page, result);
+          const body = await api(`/api/v1/tools/${tool}?${new URLSearchParams(fields)}`);
+          await asserted([...Object.keys(fields).map(id), id('submit')], `every field of ${tool} reaches the server and the page shows its answer`, async () => {
+            const sent = new URLSearchParams(new URL(page.url()).hash.split('?')[1]);
+            for (const [name, value] of Object.entries(fields)) assert.equal(sent.get(name), value, `${name} is in the request`);
+            assert.equal(await page.getAttribute(result, 'data-tool'), tool);
+            assert.equal(await page.getAttribute(result, 'data-warnings'), body.data.warnings.join(' '));
+            assert.equal(await page.getAttribute(result, 'data-formula'), `${body.data.formula} ${body.data.formula_version}`);
+            for (const [name, value] of checks(body.data.display)) assert.equal((await field(name)).trim(), value, `${tool} ${name}`);
+          });
+          // One field made invalid: the server refuses it and the page names that field.
+          const [badName, badValue, badLabel] = bad;
+          await page.fill(`[data-testid="tool-form"] input[name="${badName}"]`, badValue);
+          await page.click('[data-testid="tool-form"] button[type="submit"]');
+          await outcomeShown(page, '[data-testid="tool-invalid"]');
+          await asserted([id(badName), id('submit')], `an invalid ${badName} is refused by the server and named on the page`, async () => {
+            assert.equal(await page.getAttribute('[data-testid="tool-invalid"]', 'data-fields'), badName);
+            assert.equal(await page.textContent('[data-testid="tool-invalid"]'), `Valore non valido in: ${badLabel}. Correggi il campo e riprova.`);
+            assert.equal(await page.getAttribute(`[data-testid="tool-form"] [name="${badName}"]`, 'aria-invalid'), 'true');
+            assert.equal(await page.locator(result).count(), 0, 'no result next to a refusal');
+          });
+          await page.click(`[data-control="${id('reset')}"]`);
+          await asserted(id('reset'), `Azzera empties the form of ${tool} and removes the outcome`, async () => {
+            await page.waitForFunction(() => !location.hash.includes('run=1') && document.querySelector('[data-testid="tool-form"]') && !document.querySelector('[data-testid="tool-invalid"]'));
+            for (const name of Object.keys(fields)) {
+              if (await page.locator(`[data-testid="tool-form"] input[name="${name}"]`).count()) assert.equal(await page.inputValue(`input[name="${name}"]`), '', `${name} is empty`);
+            }
+            assert.equal(await page.getAttribute('[data-testid="tool-form"]', 'data-tool'), tool, 'the same tool stays open');
+          });
+        });
+      }
+      await step('indirizzo diretto e ricarica: lo stesso calcolo senza ridigitare', async () => {
+        const query = {tool: 'liability', stake: '25', odds: '4,2', commission: '2', run: '1'};
+        await fresh(page, `${base}/#/tools?${new URLSearchParams(query)}`);
+        await page.waitForSelector(result);
+        const display = (await api('/api/v1/tools/liability?stake=25&odds=4,2&commission=2')).data.display;
+        assert.equal((await field('liability')).trim(), shown(display.liability));
+        await page.reload();
+        await page.waitForSelector(result);
+        assert.equal((await field('liability')).trim(), shown(display.liability), 'the address carries the calculation');
+        assert.equal(await page.inputValue('input[name="odds"]'), '4,2', 'the form shows what was typed');
+      });
+      await step('server in errore o irraggiungibile: detto, con Riprova', async () => {
+        await page.route('**/api/v1/tools/ev?*', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
+        await fresh(page, `${base}/#/tools?tool=ev&stake=10&odds=2&probability=55&run=1`);
+        await page.waitForSelector('.state.error[data-code="UNAVAILABLE"]');
+        assert.equal(await page.locator(result).count(), 0, 'no result is invented');
+        await page.unroute('**/api/v1/tools/ev?*');
+        await page.click('button[data-control="CTL-COMMON-RETRY"]');
+        await asserted('CTL-COMMON-RETRY', 'Riprova asks the server again and shows its answer', async () => {
+          await page.waitForSelector(result);
+          const display = (await api('/api/v1/tools/ev?stake=10&odds=2&probability=55')).data.display;
+          assert.equal((await field('expected_value')).trim(), shown(display.expected_value));
+        });
+        await page.route('**/api/v1/tools/ev?*', route => route.abort('internetdisconnected'));
+        await fresh(page, `${base}/#/tools?tool=ev&stake=10&odds=2&probability=55&run=1`);
+        await page.waitForSelector('.state.error[data-code="NETWORK"]');
+        assert.match(await page.textContent('.state.error'), /Connessione non disponibile/);
+        await page.unroute('**/api/v1/tools/ev?*');
+      });
+      await step('accesso: con il login del proprietario gli strumenti richiedono la sessione', async () => {
+        const anonymous = await page.context().browser().newContext();
+        try {
+          const refused = await anonymous.request.get(`${owner.base}/api/v1/tools/odds?odds=2%203`);
+          assert.equal(refused.status(), 401, 'no calculation without the owner session');
+        } finally { await anonymous.close(); }
+        assert.equal((await page.request.get(`${base}/api/v1/tools/odds?odds=2%203`)).status(), 200, 'with the login off (production today) the tools answer');
       });
     },
   },

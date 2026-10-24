@@ -244,3 +244,56 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `ricerca-tablet.png` `868ca343a79c4c296d2826b27f339007ca5b3c4e73b1a6f8e502ee19d4942d7f`
   - `simulazione-desktop.png` `062d4cbbd0be9433c6bcb164d8bd8ae143f55f2055bd0af76c92a8c556eebfac`
   - `simulazione-tablet.png` `782973547e33eeb412a04e15829086005ffeb3faf36b4f8d480d25256f1164f3`
+
+## 2026-10-24 — MP-UI-PR-005: menu entry Strumenti on every scene; new scenes strumenti and strumenti-copertura (Trading Tools, #94)
+
+- Approval: MP-UI-PR-005 (#239), owner mandate MP-UI-AUTONOMOUS-CONTINUATION-01
+- Run: commit `71236c919c0bbbf4c31ac6de4e2b74690c2620ed`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `confronto-mobile.png` `ad95a40a6d013734ee24f6a1b67b8eeb8d31a105565f9af1f2d26a6e0e863ef0`
+  - `dati-desktop.png` `cca1f9bcc69f14f0dc4417d24128616b052e024303722906bd45d09ca6524c9b`
+  - `dati-mobile.png` `7f7260b1951c3bd647d564fa1989352e194ee6e9b2e841fa400aea7eec9d2ef6`
+  - `dati-parziale-mobile.png` `74ef22f64bdffa0edee81d0f572345f2197df33d839cdcd1f71706ab0113238c`
+  - `dati-tablet.png` `5eaa91a562727560fcc7e8f19ae6fa065851d2e855aeea93d2fc5a09dee12a7a`
+  - `non-trovata-desktop.png` `acdda607f98e2a168aaa0c61692b3af972d17f6b7b06f01626bc23b480a55d17`
+  - `non-trovata-mobile.png` `7eb7d1850301cb4a1df2c5c9bd90d53e125341e2f408fe42cee435ecc6201302`
+  - `non-trovata-tablet.png` `c3cda0e9c2a87c94ddbe82f6491640ee72c71cb5bf22b95faefa1ec0dd91b78c`
+  - `oggi-caricamento-desktop.png` `a6995e493f09e83983434ef25aa331081d307ee62f3537285a8bdd4b915d6203`
+  - `oggi-caricamento-mobile.png` `de4190663a387eb7a751ee042c4a7967ce8d935c3ec3310fe4b73922cbb85bbb`
+  - `oggi-caricamento-tablet.png` `f1495f1f9771a95f1db904898d50add94b3d97ec872c02a544c4e8255b832169`
+  - `oggi-desktop.png` `c1c5daabd99694dfb82a1cc4260d46094f971ff3e709e5d3ebef1c77dfad5f04`
+  - `oggi-errore-desktop.png` `9136934a9913031832b4d228c36c9ca58c6f2f8b1e9ea1639f4c30202bae8071`
+  - `oggi-errore-mobile.png` `92cecc32942e16f4b1a1cd40e7ece832e00322dcf68abef706fa6af6eebf406e`
+  - `oggi-errore-tablet.png` `2fbf85f1f81f0e1e797a485ac644c52039601925774ecc11880369e8aa6374ec`
+  - `oggi-mobile.png` `a99be3eb7ebd1baf455b1230f36e8f1944f8e3efcc80830dbcbafd8b0df2e04f`
+  - `oggi-oggi-desktop.png` `95079816205bea99868d854f5c94e1251f390fc4e2f993b189c18f98874f9ddc`
+  - `oggi-oggi-mobile.png` `e66440c6dba3b849956e2098839377235a183a664bea0f2197a71e4fa54b4904`
+  - `oggi-oggi-tablet.png` `27bfc27eabc308e6d231294824dfb4ce2bdb218325660504a97fa71b167482c7`
+  - `oggi-righe-mobile.png` `6cd27222c43e839a0d85c6893086f13df42fa9e40a461a25b7164badda6d8f8e`
+  - `oggi-tablet.png` `f13e8596aad0d09a3ff41e78b34a67ad229ae4e437e5646f227b97f6d1f6199f`
+  - `oggi-vuoto-desktop.png` `781ed6ae64e4195b81f1a975f592b757deac3f6ae8d48222a7d84f576a62883a`
+  - `oggi-vuoto-mobile.png` `b9b3319b54392ac3a9d47b02092af4fa0189e00f32fe16d1a422529b688e223d`
+  - `oggi-vuoto-tablet.png` `bf4c3bcd9fa2acc151b2434111801cb03bdb4c23541791de56d8da00f6648a52`
+  - `partita-confronto-mobile.png` `220d7dba438fbfc76566977022d226f612370c1fc4624e1e94f6d8f6d3582e28`
+  - `partita-desktop.png` `734bdb3651aaea9c7070f12fef76569249c74aa2c1f4ecff08adbf63192eb2cf`
+  - `partita-mobile.png` `110ea6691106fd380165830c3414661ec5d3457c7f4b37c8a650ae52f36af264`
+  - `partita-senza-storico-mobile.png` `2c2fd27426cbee08fc692377f32011072dcc1a6ab9af3b7ce055a72bd6539732`
+  - `partita-tablet.png` `e9300feb2ad5bb73db1109cb2b57fba7fe14ef9475165b0f73af99de844b4d2e`
+  - `ricerca-desktop.png` `2c2476c6da71f3810d464abd0b460466d35e8a486122b38d39651550836d2062`
+  - `ricerca-filtro-rifiutato-desktop.png` `0aebd7b31f0fa1689c0aced872338b8cd957bfa45a6680062292f569029bf368`
+  - `ricerca-filtro-rifiutato-mobile.png` `9ac244409381a2193a1d1b98de6c9c84358eb9bd5446ce5105cfa26b9545b864`
+  - `ricerca-filtro-rifiutato-tablet.png` `0084c7e0550452ed1806c123b5591214406fec0eeb89254f39745455ea5afdec`
+  - `ricerca-mobile.png` `a36ebac53ebc76ae090b145c256f8fbb1c156af20ac218d4283c7a5eb2d452fc`
+  - `ricerca-risultati-mobile.png` `032beb1bff8839811e0e6949cb2a2353eddf1afe0137a1b222907a9c42febc98`
+  - `ricerca-tablet.png` `9750425a0881f152e7a384244c44985cfabec378f52c97ddb117a804bfc88b73`
+  - `simulazione-desktop.png` `ca5227501c8139a3868c0b011e1e7f54f4cf991e992b5041ae85ae8110cc4a4e`
+  - `simulazione-mobile.png` `2bfe87cfaa8fc3321cb4dc2dac7d377b2f71626e9f81ac41d6346a9804105fd7`
+  - `simulazione-ricerca-mobile.png` `426db5e48038167af34f174a5acae7372ec3aae88e3c4e57916ab9374b1f31aa`
+  - `simulazione-tablet.png` `7befdc4ba62d943120c9fb8776e66b806df4c3f6603a011cd5b974b461a468a3`
+  - `strumenti-copertura-desktop.png` `23a945766c24a7a6839ffc570b43516067f90f435b9e93e3b2754d920f8a412e`
+  - `strumenti-copertura-mobile.png` `60691fe5bf7a25fc5895afe1b3aa1b93bef04d838451d1b12201f7e614163e87`
+  - `strumenti-copertura-tablet.png` `b43ccc59651a25eb81778867b7ce74a58b98455b7effee00a16ac0557a15b6da`
+  - `strumenti-desktop.png` `0bdb169aa206602cf65d7468bd199f05421c53b05ccdb84ae1c5d761b80010fa`
+  - `strumenti-mobile.png` `c58de44344fda5233b0510f5092ba546c4576f0b873504cd7b7e261738ce6315`
+  - `strumenti-tablet.png` `0d3021bc1d8b956ca20af9afdc4ac66de8af1c22a83f9cb46cdf59adb265ac6a`
