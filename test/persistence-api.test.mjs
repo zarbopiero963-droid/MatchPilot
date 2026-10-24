@@ -100,6 +100,13 @@ test('persistence API: 503 until the schema exists, refusals write nothing, then
     const before = calls();
     assert.equal((await handlePersistence(req('POST', '/api/v1/strategies', {body: strategy}), {...ctx, authEnforced: false})).status, 403);
     assert.equal((await handlePersistence(req('POST', '/api/v1/strategies', {body: strategy}), {...ctx, session: null})).status, 401);
+    // The saved strategies are private also when auth is off (MP-UI-PR-006, #34 Strategy permissions, D12-18).
+    for (const path of ['/api/v1/strategies', '/api/v1/strategies?key=fav-home', '/api/v1/strategies?key=fav-home&version=1']) {
+      const off = await handlePersistence(req('GET', path), {...ctx, authEnforced: false, session: null});
+      assert.deepEqual([off.status, off.body.error.code], [403, 'READS_REQUIRE_AUTH'], path);
+      const anonymous = await handlePersistence(req('GET', path), {...ctx, session: null});
+      assert.deepEqual([anonymous.status, anonymous.body.error.code], [401, 'UNAUTHENTICATED'], path);
+    }
     assert.equal((await call('POST', '/api/v1/strategies', {body: strategy, headers: {...SAME_ORIGIN, 'sec-fetch-site': 'cross-site'}})).status, 403);
     assert.equal((await call('POST', '/api/v1/strategies', {body: strategy, headers: {...SAME_ORIGIN, 'content-type': 'text/plain'}})).status, 415);
     assert.equal((await call('POST', '/api/v1/strategies', {tooLarge: true})).status, 413);
@@ -144,6 +151,20 @@ test('persistence API: 503 until the schema exists, refusals write nothing, then
     const withTeam = await call('POST', '/api/v1/strategies', {body: {key: 'ajax-lay', name: 'Ajax in casa', rules: {selection: 'HOME', side: 'LAY', odds_max: '2.5', team: 'Ajax', venue: 'HOME'}}});
     assert.equal(withTeam.status, 201);
     assert.deepEqual((await call('GET', '/api/v1/strategies?key=ajax-lay')).body.data.strategy.definition.conditions, {odds_max: '2.5', teams: ['Ajax'], venue: 'HOME'});
+    // MP-UI-PR-006: the detail carries the request fields of the version and the history of the strategy.
+    const detail = (await call('GET', '/api/v1/strategies?key=ajax-lay')).body.data;
+    assert.deepEqual(detail.rules, {selection: 'HOME', side: 'LAY', odds_max: '2.5', team: 'Ajax', venue: 'HOME'});
+    assert.deepEqual(detail.versions.map(v => [v.version, v.name, v.superseded_at]), [[1, 'Ajax in casa', null]]);
+    const renamed = await call('POST', '/api/v1/strategies', {body: {key: 'ajax-lay', name: 'Ajax, banca in casa', rules: detail.rules}});
+    assert.deepEqual([renamed.status, renamed.body.data.version], [201, 2]);
+    const history = (await call('GET', '/api/v1/strategies?key=ajax-lay')).body.data;
+    assert.deepEqual(history.versions.map(v => [v.version, v.name, v.superseded_at === null]), [[1, 'Ajax in casa', false], [2, 'Ajax, banca in casa', true]]);
+    assert.equal(history.strategy.version, 2);
+    assert.deepEqual((await call('GET', '/api/v1/strategies?key=ajax-lay&version=1')).body.data.strategy.name, 'Ajax in casa');
+    // A definition the request cannot express (two teams) has no request fields: it cannot be reopened as a request.
+    const twoTeams = await call('POST', '/api/v1/strategies', {body: {key: 'derby', name: 'Derby', definition: {selection: 'HOME', side: 'BACK', conditions: {teams: ['Ajax', 'PSV']}}}});
+    assert.equal(twoTeams.status, 201);
+    assert.equal((await call('GET', '/api/v1/strategies?key=derby')).body.data.rules, null);
     for (const [bad, status] of [[{key: 'x', name: 'x', rules: {selection: 'HOME', side: 'BACK'}, definition: {selection: 'HOME', side: 'BACK'}}, 400],
       [{key: 'x', name: 'x'}, 400], [{key: 'x', name: 'x', rules: {selection: 'HOME', side: 'BACK', stake: '5'}}, 400],
       [{key: 'x', name: 'x', rules: {selection: 'HOME', side: 2}}, 400], [{key: 'x', name: 'x', rules: {selection: 'NOPE', side: 'BACK'}}, 400]]) {

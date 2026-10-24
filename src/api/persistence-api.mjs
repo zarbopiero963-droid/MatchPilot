@@ -1,5 +1,6 @@
 // PERSIST-API-01 (priority 4, #99 #34): the persistence store over HTTP. Reads follow the rest of /api/v1 (behind the
-// owner session when MATCHPILOT_AUTH=enforce). Writes are POST with a JSON body and need, all together:
+// owner session when MATCHPILOT_AUTH=enforce), except the saved strategies, which are private: reading them needs the
+// owner session also when auth is off (MP-UI-PR-006, #34 "Strategy permissions", D12-18). Writes are POST with a JSON body and need, all together:
 // - auth enforced and an owner session with the `write` permission: with auth off there is no anonymous write, ever;
 // - a same-origin request (Sec-Fetch-Site / Origin, as for login) and Content-Type application/json, so no other site
 //   can submit one (the session cookie is also SameSite=Strict);
@@ -12,8 +13,8 @@
 // server-side source yet, and a mode declared by the client could bypass STOP. Only the account state is read.
 import {accountState} from '../ledger/paper-ledger.mjs';
 import {HistInputError} from '../hist/contract.mjs';
-import {DEFINITION_PARAMS, definitionOf} from './hist-backtest.mjs';
-import {PersistenceError, listBacktests, listStrategies, loadBacktest, loadLedger, loadStrategy, persistenceAvailable, saveBacktest, saveStrategy} from '../persistence/store.mjs';
+import {DEFINITION_PARAMS, definitionOf, rulesOf} from './hist-backtest.mjs';
+import {PersistenceError, listBacktests, listStrategies, listStrategyVersions, loadBacktest, loadLedger, loadStrategy, persistenceAvailable, saveBacktest, saveStrategy} from '../persistence/store.mjs';
 import {authorize, sameOriginRequest} from '../auth/owner-auth.mjs';
 
 export const PERSISTENCE_ROUTES = Object.freeze({
@@ -88,6 +89,15 @@ export function writeAllowed({headers, authEnforced, session}) {
   return null;
 }
 
+// The gate for reading the saved strategies: never public (#34 «Non rendere pubbliche automaticamente»). With auth off
+// there is no owner session, so nobody reads them; checked before any database access.
+export function strategyReadAllowed({authEnforced, session}) {
+  if (!authEnforced) return errorOf(403, 'READS_REQUIRE_AUTH', 'saved strategies are private: reading them needs MATCHPILOT_AUTH=enforce and an owner session');
+  if (!session) return errorOf(401, 'UNAUTHENTICATED', 'authentication required');
+  if (!authorize(session, 'read')) return errorOf(403, 'FORBIDDEN', 'not allowed');
+  return null;
+}
+
 // Returns null for a path outside the persistence routes; otherwise {status, body}. Never throws.
 // `rawBody` is the request body as text (POST only, read by the caller up to MAX_BODY_BYTES; `tooLarge` when it was cut).
 // `runV1(url)` answers a GET /api/v1 request in process (handleV1), used to produce a backtest before saving it.
@@ -113,15 +123,22 @@ export async function handlePersistence({method, url, headers = {}, rawBody = nu
         return ok(200, {available, writes_enabled: available && authEnforced, writes: authEnforced ? 'owner session' : 'disabled (MATCHPILOT_AUTH is not enforce)'});
       }
       case 'GET /api/v1/strategies': {
+        const refused = strategyReadAllowed({authEnforced, session});
+        if (refused) return refused;
         queryOnly(url, ['key', 'version']);
         const key = url.searchParams.get('key');
         const version = url.searchParams.has('version') ? positiveInt('version', url.searchParams.get('version')) : null;
         if (version !== null && key === null) http(400, 'BAD_REQUEST', 'version needs key');
         if (key === null) return ok(200, {strategies: await withClient(client => listStrategies(client))});
         const checked = strategyKey(key);
-        const strategy = await withClient(client => loadStrategy(client, checked, {version}));
-        if (!strategy) http(404, 'NOT_FOUND', 'no such strategy');
-        return ok(200, {strategy});
+        const found = await withClient(async client => {
+          const strategy = await loadStrategy(client, checked, {version});
+          return strategy && {strategy, versions: await listStrategyVersions(client, checked)};
+        });
+        if (!found) http(404, 'NOT_FOUND', 'no such strategy');
+        // MP-UI-PR-006: the history of the strategy and the request fields of this version (null when the request
+        // cannot express the definition), so the page opens it in the Simulazione or clones it without converting it.
+        return ok(200, {...found, rules: rulesOf(found.strategy.definition)});
       }
       case 'POST /api/v1/strategies': {
         // The rules come either as a definition or as `rules`, the request fields of a configurable backtest (selection,

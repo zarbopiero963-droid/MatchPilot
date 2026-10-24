@@ -1,0 +1,156 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261024T203521Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-24T20:35:21Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-PR250-MERGE-UI006-01",
+    "source": "owner message to Claude Code, 2026-10-24 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): merge of PR #250 only, then the Strategie page PR"
+  },
+  "task": "MP-UI-D12-GOV-01",
+  "activity": "PR #250 merged as 30142a8 (squash, expectedHeadSha c6dcfac) under owner authorization MP-OWNER-PR250-MERGE-UI006-01; main CI green (run 40128861016); post-merge checks: main content equals the approved head, governance validate PASS, matrix and governance tests 193/193, 1,090 requirements and 19 D12 decisions preserved. The push to main started deploy-vps (run 40128860980) automatically: the deploy gate passed, the deploy job stopped at runner setup (owner VPS block) and mp-deploy was skipped: nothing deployed, production stays at 50baeac.",
+  "issue": 239,
+  "pr": 250,
+  "branch": "gov-d12-ratification",
+  "commit_sha": "c6dcface4a7ffd90315a6a9fa163fd4693f9478a",
+  "tree_sha": "c0d346e811418c2c39c67f8e0c8dcaffe280aa0a",
+  "base_sha": "c11029106c75738b7b086d725ac9e8e9d4ecea09",
+  "requirements": [
+    "MP-GOV-015",
+    "MP-GOV-020",
+    "MP-GOV-003"
+  ],
+  "changes": [
+    "owner-decisions: D12 (19 items) and mandate",
+    "ui-requirements-matrix.json and test",
+    "roadmap reconciliation and canonical docs",
+    "MERGED checkpoint of #247",
+    "review B-1/B-2 fixed; verbatim decisions; stricter matrix test",
+    "MP-D12-49-REQUIREMENTS-GATE-01: d12_reconciliation, status_changes, audit baseline, indicator records, MM catalog, report",
+    "round-2 non-blocking fixes: audit_rows_sha256 baseline, 1052 TESTED with journey evidence, 0641 evidence corrected, decided blockers annotated",
+    "30142a8: squash merge of PR #250"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "5a78fb7c95f98e194459be57d4b8310d205e64bd",
+      "time": "2026-10-24T20:04:18Z",
+      "limits": [
+        "714 tests, 713 pass, 1 skip (PostgreSQL 17, runs in CI); governance validate, drift and validate-requirements PASS; scan-closing PASS on its default canonical files (pre-existing references in unrelated lines of owner-decisions.json and integration-map.md are outside the diff)"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 30142a8",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "30142a8f5103f4cb7907a4f518f8b86711d1769f",
+      "time": "2026-10-24T20:35:21Z",
+      "limits": [
+        "run 40128861016 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 30142a8",
+      "result": "NOT_VERIFIED",
+      "environment": "VPS via self-hosted runner",
+      "commit": "30142a8f5103f4cb7907a4f518f8b86711d1769f",
+      "time": "2026-10-24T20:35:21Z",
+      "limits": [
+        "run 40128860980: deploy gate success; deploy job failed at 'Set up runner' (runner guard, owner VPS block); mp-deploy skipped; no deploy was authorized nor happened"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "SUCCESS",
+    "head_sha": "c6dcface4a7ffd90315a6a9fa163fd4693f9478a"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "c6dcface4a7ffd90315a6a9fa163fd4693f9478a",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/250#issuecomment-6388946568"
+  },
+  "findings": [
+    {
+      "id": "REVIEW-250-B1",
+      "severity": "BLOCKING",
+      "summary": "superseded rows and aliases lost in the matrix; test passing on empty lists",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "REVIEW-250-B2",
+      "severity": "BLOCKING",
+      "summary": "indicator blockers overwritten instead of extended",
+      "status": "RESOLVED"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-PR250-MERGE-UI006-01",
+    "MP-UI-D12-DECISIONS-20261024",
+    "MP-OWNER-D12-IMPLEMENTATION-20261024",
+    "MP-D12-49-REQUIREMENTS-GATE-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI",
+      "post-merge verification"
+    ],
+    "in_progress": [],
+    "not_started": [
+      "VPS deploy (not authorized; refused by the runner guard)"
+    ]
+  },
+  "resources": [
+    "file:docs/governance/owner-decisions.json",
+    "file:docs/governance/ui-requirements-matrix.json",
+    "file:docs/governance/roadmap-reconciliation-2026-10-24-D12.md",
+    "file:test/ui-requirements-matrix.test.mjs",
+    "file:AGENTS.md",
+    "file:CLAUDE.md",
+    "file:README.md",
+    "file:docs/integration-map.md",
+    "branch:gov-d12-ratification",
+    "pr:250"
+  ],
+  "stop_conditions": [
+    "no merge and no deploy without explicit owner authorization (MP-OWNER-D12-IMPLEMENTATION-20261024)",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "MP-UI-PR-006 Strategie (MP-OWNER-PR250-MERGE-UI006-01)",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261024T200418Z-agent-a-claude-code",
+  "merge_sha": "30142a8f5103f4cb7907a4f518f8b86711d1769f"
+}

@@ -179,6 +179,14 @@ export async function loadStrategy(client, key, {version = null} = {}) {
     created_at: row.created_at.toISOString(), superseded_at: row.superseded_at ? row.superseded_at.toISOString() : null};
 }
 
+// Every version of one strategy, oldest first, without definitions (MP-UI-PR-006): the history the page shows.
+export async function listStrategyVersions(client, key) {
+  await requireSchema(client);
+  return (await client.query(`SELECT version, strategy_id, name, created_at, superseded_at FROM strategy_versions WHERE strategy_key = $1 ORDER BY version`, [key])).rows
+    .map(row => ({version: row.version, strategy_id: row.strategy_id, name: row.name, created_at: row.created_at.toISOString(),
+      superseded_at: row.superseded_at ? row.superseded_at.toISOString() : null}));
+}
+
 export async function listStrategies(client) {
   await requireSchema(client);
   return (await client.query(`SELECT strategy_key AS key, version, strategy_id, name FROM strategy_versions WHERE superseded_at IS NULL ORDER BY strategy_key`)).rows;

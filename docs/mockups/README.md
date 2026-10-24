@@ -3,9 +3,9 @@
 ## File corrente
 
 - File: [`matchpilot-trading-os.html`](matchpilot-trading-os.html), percorso stabile. Le versioni non cambiano nome: la storia è in git e in questo changelog.
-- Versione: **Mock UX v2026.10.24c**
+- Versione: **Mock UX v2026.10.24d**
 - Ultimo aggiornamento: 2026-10-24
-- SHA-256: `b215c2cd10d148e2635447fae87313009f12786c41a8556eb6d735a1ebe233f6`
+- SHA-256: `9b84b4ad75cf4f07905e2e7904ff08781570ad7c75c6e06d25b96222301d90fe`
 - Allineato a: roadmap #97 (revisione owner 06/10/2026)
 - Issue rappresentate: #12, #20, #23, #24, #25, #27, #28, #29, #30, #31, #32, #34, #40, #44, #45, #46, #87, #91, #94, #95, #96, #97, #98, #99, #100, #102
 
@@ -53,6 +53,12 @@ Il mock è un riferimento UX/prodotto **vivo**. Non è l'architettura e non cert
 - Il layout usa font Google; senza rete il menu desktop può tagliare l'ultima voce.
 
 ## Changelog
+
+### v2026.10.24d — Strategie (MP-UI-PR-006, #34)
+
+- Nella pagina «Le tue strategie» una nota descrive la pagina «Strategie» del sito reale: elenco, dettaglio con regole in parole e versioni, apertura in Simulazione, modifica salvata come versione successiva, clonazione di una versione precedente come nuova versione corrente, strategie private senza l'accesso del proprietario.
+- La costante interna `MOCK_VERSION` torna allineata al changelog (era ferma a v2026.10.19).
+- Rule Builder, Money Management della strategia, archiviazione, duplicazione e matching live del mock restano DEMO.
 
 ### v2026.10.24c — Strumenti di trading (MP-UI-PR-005, #94)
 

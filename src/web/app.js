@@ -885,6 +885,8 @@ function simForm(params, competitions) {
     for (const [key, v] of new FormData(event.target).entries()) if (String(v).trim() !== '') out[key] = String(v).trim();
     if (out.strategy !== 'custom') for (const name of DEF_FIELDS) delete out[name];
     else if (!out.team || out.venue === 'ANY') delete out.venue;
+    // A strategy opened to be modified keeps its code and name across runs (MP-UI-PR-006); they never reach the API.
+    if (out.strategy === 'custom') for (const name of ['save_key', 'save_name']) if (params.get(name)) out[name] = params.get(name);
     revealOutcome = true;
     const target = `#/sim?${queryString({...out, run: '1'})}`;
     if (location.hash === target) render();
@@ -998,7 +1000,8 @@ async function simView(params) {
     params.get('pit_mode') === 'NON_PIT_RESEARCH' ? researchNotice() : null,
     simForm(params, competitions),
     el('p', {class: 'meta'}, el('a', {href: compareHref(params), 'data-testid': 'sim-compare-link', 'data-control': 'CTL-SIM-COMPARE'}, 'Confronta più strategie sugli stessi dati'),
-      ' · ', el('a', {href: '#/saved', 'data-testid': 'sim-saved-link', 'data-control': 'CTL-SIM-SAVED-LIST'}, 'Backtest salvati'))];
+      ' · ', el('a', {href: '#/saved', 'data-testid': 'sim-saved-link', 'data-control': 'CTL-SIM-SAVED-LIST'}, 'Backtest salvati'),
+      ' · ', el('a', {href: '#/strategies', 'data-testid': 'sim-strategies-link', 'data-control': 'CTL-SIM-STRATEGIES'}, 'Strategie salvate'))];
   if (params.get('run') !== '1') return [...head, el('p', {class: 'state empty'}, 'Scegli il periodo e premi Simula.')];
   const api = {};
   for (const key of SIM_FIELDS) if (params.get(key)) api[key] = params.get(key);
@@ -1029,7 +1032,7 @@ async function simView(params) {
   }
   const report = body.data?.report;
   if (!report || typeof report !== 'object') throw new ApiFailure(200, 'BAD_ENVELOPE', 'risposta senza report');
-  return [...head, ...simResult(body.data), await simSave(api, report)];
+  return [...head, ...simResult(body.data), await simSave(api, report, params)];
 }
 
 // The result of a backtest as the API returned it ({report, reader, events, totals}): shown the same way after a run and
@@ -1119,7 +1122,7 @@ function saveForm({testid, fields, button, control, submit}) {
 
 const savedHref = id => `#/saved?${queryString({id})}`;
 
-async function simSave(api, report) {
+async function simSave(api, report, params) {
   const section = el('section', {class: 'card', 'data-testid': 'sim-save'}, el('h2', {}, 'Salva'));
   const availability = await saveAvailability();
   if (!availability.ok) {
@@ -1140,9 +1143,12 @@ async function simSave(api, report) {
   if (report.config?.strategy?.startsWith('def:')) {
     const rules = Object.fromEntries(DEF_FIELDS.filter(name => api[name] !== undefined).map(name => [name, api[name]]));
     section.append(saveForm({testid: 'sim-save-strategy', control: 'CTL-SIM-SAVE-STRATEGY', button: 'Salva strategia',
-      fields: [el('label', {}, 'Nome della strategia ', el('input', {name: 'name', required: true, maxlength: '200', autocomplete: 'off', 'data-control': 'CTL-SIM-SAVE-STRATEGY-NAME'})),
+      // Opened from a saved strategy to modify it (MP-UI-PR-006): its code and name come pre-filled, so saving the changed
+      // rules creates the next version of that strategy.
+      fields: [el('label', {}, 'Nome della strategia ', el('input', {name: 'name', required: true, maxlength: '200', autocomplete: 'off', 'data-control': 'CTL-SIM-SAVE-STRATEGY-NAME',
+          value: params.get('save_name') ?? ''})),
         el('label', {}, 'Codice breve ', el('input', {name: 'key', required: true, maxlength: '63', pattern: '[a-z0-9][a-z0-9\\-]*', autocomplete: 'off',
-          title: 'lettere minuscole, cifre e trattini', 'data-control': 'CTL-SIM-SAVE-STRATEGY-KEY'}))],
+          title: 'lettere minuscole, cifre e trattini', 'data-control': 'CTL-SIM-SAVE-STRATEGY-KEY', value: /^[a-z0-9][a-z0-9-]{0,62}$/.test(params.get('save_key') ?? '') ? params.get('save_key') : ''}))],
       submit: async form => {
         const result = await persistence.saveStrategy({key: String(form.get('key') ?? ''), name: String(form.get('name') ?? ''), rules});
         if (!result.ok) return {ok: false, status: result.code, nodes: [refusedText(result, 'Nome o codice non validi: il codice usa lettere minuscole, cifre e trattini.'), loginAgain(result)]};
@@ -1150,7 +1156,8 @@ async function simSave(api, report) {
         // A code already in use gets a new version: said, so earlier rules are never replaced silently (review #242 NB-4).
         const text = status === 'UNCHANGED' ? `Strategia già salvata con queste regole (versione ${version}).`
           : version > 1 ? `Nuova versione ${version} della strategia con questo codice: la versione ${version - 1} resta nello storico.` : `Strategia salvata (versione ${version}).`;
-        return {ok: true, status, nodes: [el('span', {'data-strategy': id, 'data-version': String(version)}, text)]};
+        return {ok: true, status, nodes: [el('span', {'data-strategy': id, 'data-version': String(version)}, text), ' ',
+          el('a', {href: `#/strategies?${queryString({key: String(form.get('key') ?? '')})}`, 'data-testid': 'sim-strategy-open', 'data-control': 'CTL-SIM-SAVE-STRATEGY-OPEN'}, 'Apri la strategia')]};
       }}));
   }
   return section;
@@ -1194,6 +1201,113 @@ async function savedView(params) {
       el('td', {'data-label': 'Nome'}, el('a', {href: savedHref(row.backtest_id), 'data-control': 'CTL-SAVED-OPEN'}, row.name)),
       el('td', {'data-label': 'Tipo'}, SAVED_KIND[row.kind] ?? ND),
       el('td', {'data-label': 'Salvato il'}, instant(row.created_at))))))), back];
+}
+
+// ---- Strategie: the saved strategies, their versions, a clone, the way back to the Simulazione (MP-UI-PR-006, #34) ----
+
+// The rules of a definition in words, from the stored definition itself; the codes stay in data-code (MP-WEB-015).
+const STRATEGY_PRICES = [['odds', 'Quota della selezione'], ['home', 'Quota 1'], ['draw', 'Quota X'], ['away', 'Quota 2']];
+const strategyHref = (key, version) => `#/strategies?${queryString({key, version})}`;
+// The saved strategies are private: with the owner login off the server refuses to read them (#34, D12-18).
+const STRATEGIES_PRIVATE = 'Le strategie salvate sono private: si consultano solo con l’accesso del proprietario attivo.';
+function strategyRules(definition) {
+  const conditions = definition?.conditions ?? {};
+  const rows = [field('Selezione', labelled(DEF_SELECTION_TEXT, definition?.selection), 'selection'), field('Lato', labelled(SIDE_TEXT, definition?.side), 'side')];
+  for (const [prefix, label] of STRATEGY_PRICES) {
+    const lo = conditions[`${prefix}_min`], hi = conditions[`${prefix}_max`];
+    if (lo === undefined && hi === undefined) continue;
+    rows.push(field(label, [lo === undefined ? null : ['da ', num(lo)], lo !== undefined && hi !== undefined ? ' ' : null, hi === undefined ? null : ['fino a ', num(hi)]].flat(), `${prefix}_range`));
+  }
+  if (conditions.teams?.length) rows.push(field(conditions.teams.length > 1 ? 'Squadre' : 'Squadra', conditions.teams.join(', '), 'teams'));
+  if (conditions.venue) rows.push(field('Sede della squadra', labelled(DEF_VENUE_TEXT, conditions.venue), 'venue'));
+  return el('dl', {'data-testid': 'strategy-rules'}, rows.flat());
+}
+
+async function strategiesView(params) {
+  const backSim = el('a', {href: '#/sim', 'data-control': 'CTL-STRAT-BACK-SIM'}, 'Torna alla simulazione');
+  const key = params.get('key');
+  if (key === null) {
+    const title = el('h1', {}, 'Strategie');
+    const list = await persistence.listStrategies();
+    if (list.code === 'UNAUTHENTICATED') throw toLogin();
+    if (!list.ok) {
+      const text = list.code === 'READS_REQUIRE_AUTH' ? STRATEGIES_PRIVATE : list.status === 503 ? 'Non disponibile: l’archivio delle strategie non è ancora attivo.' : refusedText(list, 'Elenco non disponibile.');
+      return [title, el('p', {class: 'state partial', role: 'status', 'data-testid': 'strategies-unavailable', 'data-code': list.code}, text), el('p', {class: 'meta'}, backSim)];
+    }
+    const rows = list.data.strategies ?? [];
+    if (!rows.length) {
+      return [title, el('p', {class: 'state empty', 'data-testid': 'strategies-empty'}, 'Nessuna strategia salvata: salvane una dalla simulazione, con la strategia «Personalizzata».'),
+        el('p', {class: 'meta'}, backSim)];
+    }
+    return [title, el('div', {class: 'tablewrap'}, el('table', {class: 'results', 'data-testid': 'strategies-list'},
+      el('thead', {}, el('tr', {}, ['Nome', 'Codice', 'Versione'].map(text => el('th', {scope: 'col'}, text)))),
+      el('tbody', {}, rows.map(row => el('tr', {'data-key': row.key, 'data-strategy': row.strategy_id},
+        el('td', {'data-label': 'Nome'}, el('a', {href: strategyHref(row.key), 'data-control': 'CTL-STRAT-OPEN'}, row.name)),
+        el('td', {'data-label': 'Codice'}, el('code', {}, row.key)),
+        el('td', {'data-label': 'Versione', 'data-field': 'version'}, num(row.version))))))), el('p', {class: 'meta'}, backSim)];
+  }
+  const backList = el('a', {href: '#/strategies', 'data-control': 'CTL-STRAT-BACK-LIST'}, 'Tutte le strategie');
+  const version = params.get('version');
+  if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(key) || (version !== null && !/^[1-9][0-9]{0,8}$/.test(version))) {
+    return [el('h1', {}, 'Strategia'), el('p', {class: 'state error', role: 'alert', 'data-testid': 'strategy-invalid'}, 'Strategia non valida.'), el('p', {class: 'meta'}, backList)];
+  }
+  const loaded = await persistence.loadStrategy(key, version);
+  if (loaded.code === 'UNAUTHENTICATED') throw toLogin();
+  if (!loaded.ok) {
+    const text = loaded.code === 'READS_REQUIRE_AUTH' ? STRATEGIES_PRIVATE : loaded.status === 404 ? 'Questa strategia, o questa versione, non esiste.' : loaded.status === 503 ? 'Non disponibile: l’archivio delle strategie non è ancora attivo.' : refusedText(loaded, 'Strategia non valida.');
+    return [el('h1', {}, 'Strategia'), el('p', {class: loaded.status === 503 ? 'state partial' : 'state error', role: 'alert', 'data-testid': 'strategy-error', 'data-code': loaded.code}, text), el('p', {class: 'meta'}, backList)];
+  }
+  const {strategy, versions = [], rules} = loaded.data;
+  const current = strategy.superseded_at === null;
+  const head = [el('h1', {}, strategy.name),
+    el('p', {class: 'meta', 'data-testid': 'strategy-meta', 'data-key': strategy.key, 'data-version': String(strategy.version), 'data-strategy': strategy.strategy_id},
+      'Codice ', el('code', {}, strategy.key), ' · versione ', el('b', {'data-field': 'strategy_version'}, String(strategy.version)),
+      current ? ' (corrente)' : [' · ', el('span', {class: 'code', 'data-testid': 'strategy-superseded'}, 'superata il '), instant(strategy.superseded_at)],
+      ' · salvata il ', instant(strategy.created_at)),
+    el('p', {class: 'meta'}, backList, ' · ', backSim)];
+  const rulesCard = el('section', {class: 'card', 'data-testid': 'strategy-detail'}, el('h2', {}, 'Regole'), strategyRules(strategy.definition),
+    rules
+      ? el('p', {}, el('a', {href: `#/sim?${queryString({strategy: 'custom', ...rules, ...(current ? {save_key: strategy.key, save_name: strategy.name} : {})})}`,
+          'data-testid': 'strategy-simulate', 'data-control': 'CTL-STRAT-SIMULATE'}, 'Apri in Simulazione'),
+        current ? ' — con queste regole; per modificarle cambiale, simula e salva con lo stesso codice: diventano la versione successiva.'
+          : ' — con le regole di questa versione; scegli il periodo e premi Simula.')
+      : el('p', {class: 'state partial', role: 'status', 'data-testid': 'strategy-no-request'}, 'Queste regole non si possono aprire in Simulazione: la simulazione accetta una sola squadra.'));
+  const history = el('section', {class: 'card', 'data-testid': 'strategy-versions'}, el('h2', {}, 'Versioni'),
+    el('div', {class: 'tablewrap'}, el('table', {class: 'results'},
+      el('thead', {}, el('tr', {}, ['Versione', 'Nome', 'Salvata il', 'Stato'].map(text => el('th', {scope: 'col'}, text)))),
+      el('tbody', {}, versions.map(v => el('tr', {'data-version': String(v.version), 'aria-current': v.version === strategy.version ? 'true' : null},
+        el('td', {'data-label': 'Versione'}, v.version === strategy.version ? el('b', {}, String(v.version))
+          : el('a', {href: strategyHref(strategy.key, v.version), 'data-control': 'CTL-STRAT-VERSION'}, `Versione ${v.version}`)),
+        el('td', {'data-label': 'Nome'}, v.name),
+        el('td', {'data-label': 'Salvata il'}, instant(v.created_at)),
+        el('td', {'data-label': 'Stato'}, v.superseded_at === null ? 'Corrente' : ['Superata il ', instant(v.superseded_at)])))))));
+  return [...head, rulesCard, history, await strategyClone(strategy, rules)].filter(Boolean);
+}
+
+// «Clona come nuova versione» (#34, MP-REQ-UI-0297): an earlier version's rules saved again under the same code, so they
+// become the current version; the history keeps every version. Offered only on an earlier version, where a save can work
+// (owner access, archive active) and the rules can be sent back as a request.
+async function strategyClone(strategy, rules) {
+  if (strategy.superseded_at === null) return null;
+  const section = el('section', {class: 'card', 'data-testid': 'strategy-clone'}, el('h2', {}, 'Clona come nuova versione'),
+    el('p', {class: 'meta'}, `Le regole della versione ${strategy.version} diventano la versione corrente di questa strategia; le altre versioni restano nello storico.`));
+  const availability = await saveAvailability();
+  if (!availability.ok || !rules) {
+    section.append(el('p', {class: 'state partial', role: 'status', 'data-testid': 'strategy-clone-unavailable', 'data-code': availability.ok ? 'NOT_A_REQUEST' : availability.code},
+      availability.ok ? 'Non disponibile: queste regole non si possono inviare come richiesta.' : availability.text));
+    return section;
+  }
+  section.append(saveForm({testid: 'strategy-clone-form', control: 'CTL-STRAT-CLONE', button: 'Clona come nuova versione',
+    fields: [el('label', {}, 'Nome della nuova versione ', el('input', {name: 'name', 'data-control': 'CTL-STRAT-CLONE-NAME', required: true, maxlength: '200', autocomplete: 'off', value: strategy.name}))],
+    submit: async form => {
+      const result = await persistence.saveStrategy({key: strategy.key, name: String(form.get('name') ?? ''), rules});
+      if (!result.ok) return {ok: false, status: result.code, nodes: [refusedText(result, 'Nome non valido: scrivi un nome di al massimo 200 caratteri.'), loginAgain(result)]};
+      const {status, version} = result.data;
+      const text = status === 'UNCHANGED' ? `La versione corrente ha già queste regole e questo nome (versione ${version}). `
+        : `Versione ${version} creata con le regole della versione ${strategy.version}: è la versione corrente. `;
+      return {ok: true, status, nodes: [text, el('a', {href: strategyHref(strategy.key), 'data-testid': 'strategy-clone-open', 'data-control': 'CTL-STRAT-CLONE-OPEN'}, 'Apri la versione corrente')]};
+    }}));
+  return section;
 }
 
 // ---- Confronto: two or three strategy configurations on the same data (STRAT-CMP-01, #34) ----
@@ -1560,9 +1674,9 @@ async function toolsView(params) {
 const VIEWS = {'': ['la pagina', boardView, 'user'], board: ['la pagina', boardView, 'user'], search: ['la ricerca', searchView, 'user'],
   match: ['la partita', matchView, 'user'],
   data: ['lo stato dei dati', dashboardView, 'technical'], providers: ['i fornitori dati', providersView, 'technical'],
-  sim: ['la simulazione', simView, 'user'], tools: ['gli strumenti', toolsView, 'user'], compare: ['il confronto', compareView, 'user'], saved: ['i backtest salvati', savedView, 'user'],
+  sim: ['la simulazione', simView, 'user'], tools: ['gli strumenti', toolsView, 'user'], compare: ['il confronto', compareView, 'user'], saved: ['i backtest salvati', savedView, 'user'], strategies: ['le strategie', strategiesView, 'user'],
   endpoints: ['gli endpoint', endpointsView, 'technical']};
-const NAV_OF = {board: '', providers: 'data', endpoints: 'data', match: null, compare: 'sim', saved: 'sim'};
+const NAV_OF = {board: '', providers: 'data', endpoints: 'data', match: null, compare: 'sim', saved: 'sim', strategies: 'sim'};
 
 let generation = 0;
 // Set by the search form: the next search render moves the focus to its outcome and scrolls it into view, so the result,

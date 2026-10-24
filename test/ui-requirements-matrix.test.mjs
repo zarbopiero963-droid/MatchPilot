@@ -3,7 +3,7 @@
 // requirement claims a certification the QA registers do not hold.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 
 const read = path => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
@@ -135,9 +135,15 @@ test('no requirement id is lost or duplicated and every status change is listed 
     if (row.status === row.audit_status) { assert.ok(!changes.has(row.id), `${row.id}: listed change without change`); continue; }
     const change = changes.get(row.id);
     assert.ok(change && change.from === row.audit_status && change.to === row.status && change.reason.trim(), `${row.id}: unlisted change ${row.audit_status} -> ${row.status}`);
-    assert.ok(!VERIFIED.has(row.status), `${row.id}: promoted to ${row.status} without evidence`);
+    // A verified state reached after the audit names the PR that reached it and the test files that prove it; a
+    // certified state is never reached here (the feature register decides certifications).
+    if (VERIFIED.has(row.status)) {
+      assert.equal(row.status, 'TESTED', `${row.id}: ${row.status} is decided by the feature register, not by the matrix`);
+      assert.match(change.reason, /^MP-UI-PR-\d{3}/, `${row.id}: promoted to TESTED without the PR that did it`);
+      assert.ok(change.evidence?.length, `${row.id}: promoted to TESTED without test files`);
+      for (const file of change.evidence) assert.ok(existsSync(new URL(`../${file}`, import.meta.url)), `${row.id}: ${file} does not exist`);
+    }
   }
-  for (const row of rows) if (VERIFIED.has(row.status)) assert.equal(row.status, row.audit_status, `${row.id}: verified state not in the audit`);
 });
 
 test('the 37 indicators are candidates with visible formula dependencies, none presented as working', () => {

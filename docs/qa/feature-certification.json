@@ -596,6 +596,37 @@
         "src/api/tools.mjs"
       ],
       "entry": "src/api/tools.mjs"
+    },
+    {
+      "id": "FEAT-STRATEGIES",
+      "name": "Strategie",
+      "perimeter": "Elenco delle strategie salvate, dettaglio di una versione con le regole in parole, storico delle versioni, apertura in Simulazione, modifica come versione successiva e clonazione di una versione precedente come nuova versione corrente; letture riservate al proprietario.",
+      "views": [
+        "strategies"
+      ],
+      "requirements": [],
+      "issues": [
+        34,
+        239
+      ],
+      "prs": [],
+      "journeys": [
+        "sim-save"
+      ],
+      "data": "REAL",
+      "financial": false,
+      "dependencies": [
+        "schema di persistenza in produzione (#232)",
+        "login del proprietario in produzione (D12)"
+      ],
+      "limits": [
+        "In produzione lo schema non è applicato e il login è spento: le strategie risultano private o non disponibili",
+        "Archiviazione, rinomina, duplicazione su un nuovo codice e confronto fra versioni sono della PR MP-UI-PR-038-STRATLIFE",
+        "Il Rule Builder AND/OR/NOT è della PR MP-UI-PR-039-RULEDSL: le regole sono quelle della Simulazione «Personalizzata»"
+      ],
+      "next": "Verifica REAL dopo la migrazione e il login autorizzati.",
+      "state": "TESTED",
+      "certification": null
     }
   ]
 }
