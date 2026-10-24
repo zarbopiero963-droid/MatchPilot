@@ -12,7 +12,7 @@
 // server-side source yet, and a mode declared by the client could bypass STOP. Only the account state is read.
 import {accountState} from '../ledger/paper-ledger.mjs';
 import {HistInputError} from '../hist/contract.mjs';
-import {PersistenceError, listStrategies, loadBacktest, loadLedger, loadStrategy, persistenceAvailable, saveBacktest, saveStrategy} from '../persistence/store.mjs';
+import {PersistenceError, listBacktests, listStrategies, loadBacktest, loadLedger, loadStrategy, persistenceAvailable, saveBacktest, saveStrategy} from '../persistence/store.mjs';
 import {authorize, sameOriginRequest} from '../auth/owner-auth.mjs';
 
 export const PERSISTENCE_ROUTES = Object.freeze({
@@ -128,7 +128,8 @@ export async function handlePersistence({method, url, headers = {}, rawBody = nu
       }
       case 'GET /api/v1/backtests/saved': {
         queryOnly(url, ['id']);
-        if (!url.searchParams.has('id')) http(400, 'BAD_REQUEST', 'id is required');
+        // Without an id: the list of saved backtests, newest first (WEB-SAVED-01).
+        if (!url.searchParams.has('id')) return ok(200, {backtests: await withClient(client => listBacktests(client))});
         const saved = await withClient(client => loadBacktest(client, positiveInt('id', url.searchParams.get('id'))));
         if (!saved) http(404, 'NOT_FOUND', 'no such saved backtest');
         // response_text is the stored text, byte for byte; `result` is the same value parsed.

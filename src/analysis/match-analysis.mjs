@@ -8,8 +8,10 @@
 import {Decimal, ROUNDING} from '../math/decimal.mjs';
 import {ROUNDING_POLICY_VERSION} from '../math/core.mjs';
 import {FACTS_VERSION, QueryInputError} from '../providers/futpython/query.mjs';
+import {resolve} from '../markets/rules.mjs';
 
-export const ANALYSIS_VERSION = 'mp-match-analysis-1';
+// v2 (WEB-POST-01, #25): adds `post_match`, the settled markets of a match with a final result.
+export const ANALYSIS_VERSION = 'mp-match-analysis-2';
 export const WINDOWS = [5, 10, 20, 'season'];
 export const VENUES = ['home', 'away', 'both'];
 const AVERAGE_PLACES = 2;
@@ -108,6 +110,32 @@ export function windowStats(team, rows) {
   };
 }
 
+// #25 (WEB-POST-01): the markets of a finished match, settled by the internal market rules (#100, src/markets/rules.mjs)
+// from the final score, with the price the archive holds for the winning selection (null when it holds none). A match
+// without a final result settles nothing.
+const POST_LINES = ['1.5', '2.5', '3.5'];
+export function postMatch(match) {
+  if (match.result_status !== 'FINAL' || !Number.isInteger(match.home_score) || !Number.isInteger(match.away_score)) {
+    return {status: 'NOT_SETTLED', reason: match.result_status ?? 'NO_RESULT', markets: []};
+  }
+  const finished = {status: 'FINISHED', ft_home: match.home_score, ft_away: match.away_score};
+  const settle = (marketType, line, prices) => {
+    const r = resolve({marketType, selection: '-', line, match: finished});
+    return {market_type: marketType, line: line ?? null, winning_selection: r.winning_selection, market_rule_id: r.market_rule_id,
+      price: prices?.[r.winning_selection] ?? null};
+  };
+  const markets = [
+    settle('MATCH_ODDS', undefined, {HOME: match.odd_home, DRAW: match.odd_draw, AWAY: match.odd_away}),
+    ...POST_LINES.map(line => settle('OVER_UNDER', line, line === '2.5' ? {OVER: match.odd_over25, UNDER: match.odd_under25} : null)),
+    settle('BTTS', undefined, {YES: match.odd_btts_yes}),
+    settle('CORRECT_SCORE', undefined, null),
+  ];
+  const winner = markets[0].winning_selection;
+  const favourite = ['HOME', 'AWAY'].includes(match.favorite_side) ? match.favorite_side : null;
+  return {status: 'SETTLED', score: {home: match.home_score, away: match.away_score, total: match.home_score + match.away_score},
+    markets, favourite: {side: favourite, odds: match.favorite_odd ?? null, won: favourite ? winner === favourite : null}};
+}
+
 const calendar = value => value instanceof Date
   ? `${String(value.getFullYear()).padStart(4, '0')}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
   : value;
@@ -144,6 +172,7 @@ export async function matchAnalysis(client, input = {}) {
     match,
     teams,
     head_to_head: {n: h2h.length, rows: h2h},
+    post_match: postMatch(match),
     method: {
       analysis_version: ANALYSIS_VERSION,
       windows: WINDOWS,

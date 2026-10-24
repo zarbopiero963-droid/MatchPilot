@@ -231,3 +231,12 @@ export async function loadBacktest(client, backtestId) {
     report_sha256: row.report_sha256, input_sha256: row.input_sha256, strategy_ids: row.strategy_ids, code_version: row.code_version,
     params: JSON.parse(row.params), created_at: row.created_at.toISOString()};
 }
+
+// The saved backtests, newest first, without their responses (WEB-SAVED-01): the page lists them and opens one by id.
+export async function listBacktests(client, {limit = 50} = {}) {
+  await requireSchema(client);
+  return (await client.query(`SELECT backtest_id, kind, name, strategy_ids, input_sha256, created_at FROM saved_backtests
+    ORDER BY created_at DESC, backtest_id DESC LIMIT $1`, [limit])).rows
+    .map(row => ({backtest_id: Number(row.backtest_id), kind: row.kind, name: row.name, strategy_ids: row.strategy_ids, input_sha256: row.input_sha256,
+      created_at: row.created_at.toISOString()}));
+}

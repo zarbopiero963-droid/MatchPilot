@@ -260,7 +260,8 @@ const reasonText = error => `${error?.code ?? 'CLIENT'}${error?.message ? ` — 
 // ---- Dati: the technical area (MP-OWNER-UI-NO-RAW-TEXT-01 §3.7, V-B2) ----
 
 // The technical views share one section of the menu, «Dati», and a strip of tabs, as in the approved mockup.
-const DATA_TABS = [['data', 'Panoramica', '#/data'], ['providers', 'Fornitori', '#/providers'], ['endpoints', 'API', '#/endpoints'], [null, 'Copertura', '/coverage']];
+const DATA_TABS = [['data', 'Panoramica', '#/data'], ['providers', 'Fornitori', '#/providers'], ['endpoints', 'API', '#/endpoints'], ['rules', 'Regole', '#/rules'],
+  [null, 'Copertura', '/coverage']];
 const dataTabs = current => el('nav', {class: 'tabs', 'aria-label': 'Sezioni dei dati', 'data-testid': 'data-tabs'},
   DATA_TABS.map(([view, text, href]) => el('a', {href, 'aria-current': view === current ? 'page' : null}, text)));
 
@@ -637,7 +638,8 @@ async function matchView(params) {
   const h2hCard = el('section', {class: 'card source', 'data-testid': 'head-to-head'}, el('h2', {}, 'Precedenti'),
     h2h.n ? sourceTable('h2h', {n: h2h.n, source_match_ids: h2h.rows.map(row => row.internal_match_id)}, h2hRows)
       : el('p', {class: 'state empty'}, 'Nessun precedente prima di questa data.'));
-  return [hero, filters, cutoff, compareCard(shown('home') ? stats('home') : null, shown('away') ? stats('away') : null, names), ...teamCards, h2hCard];
+  return [hero, matchToolLinks(match), postMatchCard(data.post_match), filters, cutoff,
+    compareCard(shown('home') ? stats('home') : null, shown('away') ? stats('away') : null, names), ...teamCards, h2hCard];
 }
 
 // ---- Search and filters (MP-WEB-007) ----
@@ -983,7 +985,7 @@ async function simView(params) {
     return null;
   });
   const competitions = Array.isArray(competitionsBody?.data?.rows) ? competitionsBody.data.rows : [];
-  const head = [el('h1', {}, 'Simulazione'),
+  const head = [el('h1', {}, 'Simulazione'), simTabs('sim'),
     competitionsBody ? null : el('p', {class: 'state partial', role: 'status'}, 'Elenco dei campionati non disponibile: il filtro per campionato è disattivato.'),
     params.get('pit_mode') === 'NON_PIT_RESEARCH' ? researchNotice() : null,
     simForm(params, competitions),
@@ -1016,8 +1018,15 @@ async function simView(params) {
     }
     throw error;
   }
-  const report = body.data?.report;
-  const reader = body.data?.reader ?? {};
+  return [...head, ...simResult(body.data),
+    saveBox({what: 'simulazione', testid: 'sim-save', save: name => postJson('/api/v1/backtests/saved', {name, kind: 'BACKTEST', params: api})})];
+}
+
+// The result of one simulation (GET /api/v1/hist/backtest data), also shown when a saved simulation is opened.
+function simResult(data) {
+  const report = data?.report;
+  const reader = data?.reader ?? {};
+  const body = {data};
   if (!report || typeof report !== 'object') throw new ApiFailure(200, 'BAD_ENVELOPE', 'risposta senza report');
   const research = isResearch(report);
   const outcome = el('h2', {'data-testid': 'sim-outcome', 'data-outcome': '', 'data-status': report.status ?? '', 'data-certified': report.certification ? String(report.certification.certified) : '',
@@ -1030,7 +1039,7 @@ async function simView(params) {
   }[report.status] ?? (report.status === 'OK' && !report.metrics
     ? el('p', {class: 'state empty', role: 'status', 'data-testid': 'sim-no-bets'}, 'La strategia non ha scommesso su nessuna partita del periodo.') : null);
   const decisions = report.counts?.decisions ?? {};
-  return [...head, outcome,
+  return [outcome,
     research ? researchNotice() : null,
     el('p', {class: 'state partial', role: 'note', 'data-testid': 'sim-certification', 'data-code': report.certification?.real_data_verdict ?? ''},
       'Non certificato: risultato tecnico su dati reali non verificati, non una previsione di guadagno.'),
@@ -1167,7 +1176,7 @@ async function compareView(params) {
     return null;
   });
   const competitions = Array.isArray(competitionsBody?.data?.rows) ? competitionsBody.data.rows : [];
-  const head = [el('h1', {}, 'Confronto di strategie'),
+  const head = [el('h1', {}, 'Confronto di strategie'), simTabs('compare'),
     competitionsBody ? null : el('p', {class: 'state partial', role: 'status'}, 'Elenco dei campionati non disponibile: il filtro per campionato è disattivato.'),
     params.get('pit_mode') === 'NON_PIT_RESEARCH' ? researchNotice() : null,
     cmpForm(params, competitions)];
@@ -1201,6 +1210,13 @@ async function compareView(params) {
     }
     throw error;
   }
+  return [...head, ...cmpResult(body.data),
+    saveBox({what: 'confronto', testid: 'cmp-save', save: name => postJson('/api/v1/backtests/saved', {name, kind: 'COMPARE', params: api})})];
+}
+
+// The result of one comparison (GET /api/v1/hist/compare data), also shown when a saved comparison is opened.
+function cmpResult(data) {
+  const body = {data};
   const variants = Array.isArray(body.data?.variants) ? body.data.variants : [];
   if (variants.length < 2 || variants.some(v => !v.report)) throw new ApiFailure(200, 'BAD_ENVELOPE', 'risposta senza confronto');
   const reader = body.data?.reader ?? {};
@@ -1209,7 +1225,7 @@ async function compareView(params) {
   const plain = (v, field) => num(v.report.metrics?.[field]);
   const statusText = v => ({INSUFFICIENT_PIT_DATA: 'Nessuna quota utilizzabile', INSUFFICIENT_OUTCOMES: 'Nessun risultato finale'}[v.report.status]
     ?? (v.report.status === 'OK' && !v.report.metrics ? 'Nessuna scommessa' : 'Completata'));
-  return [...head,
+  return [
     el('h2', {'data-testid': 'cmp-outcome', 'data-outcome': '', 'data-input': body.data?.input_sha256 ?? '', 'data-reports': variants.map(v => v.report.report_sha256).join(' '),
       'data-pit-mode': variants[0].report.config?.pit_mode ?? ''}, 'Esito del confronto'),
     research ? researchNotice() : null,
@@ -1237,16 +1253,725 @@ async function compareView(params) {
       el('p', {class: 'meta'}, 'Profitto netto e massimo calo arrotondati al centesimo, rendimento a quattro decimali (0,0500 = 5%); gli altri importi sono esatti. Nessuna classifica: i valori sono quelli di ciascuna simulazione.'))];
 }
 
+// ---- Writes: saving strategies and simulations (PERSIST-API-01, WEB-SAVE-01) ----
+
+// A same-origin JSON POST to the persistence API. The server decides everything (owner session, origin, schema); the page
+// never retries a write by itself and never redirects away from a form the user filled in.
+async function postJson(path, body) {
+  let response;
+  try {
+    response = await fetch(path, {method: 'POST', credentials: 'same-origin', body: JSON.stringify(body),
+      headers: {'content-type': 'application/json', accept: 'application/json'}});
+  } catch {
+    throw new ApiFailure(0, 'NETWORK', 'rete non raggiungibile');
+  }
+  const json = await response.json().catch(() => null);
+  if (!response.ok) throw new ApiFailure(response.status, json?.error?.code, json?.error?.message);
+  return {status: response.status, data: json?.data ?? null};
+}
+
+// Why a write was refused, in plain words; the code stays in data-code and the tooltip.
+function writeRefusal(error) {
+  const text = {
+    WRITES_REQUIRE_AUTH: 'Per salvare serve l’accesso owner, che su questo server non è attivo: niente è stato salvato.',
+    UNAUTHENTICATED: 'Sessione scaduta o assente: accedi di nuovo per salvare.',
+    FORBIDDEN: 'Il tuo accesso non consente di salvare.',
+    ORIGIN_NOT_ALLOWED: 'Richiesta rifiutata per sicurezza: ricarica la pagina e riprova.',
+    UNAVAILABLE: 'L’archivio non è ancora attivo su questo server: niente è stato salvato.',
+    CONFLICT: 'Esiste già una strategia diversa con lo stesso contenuto: cambia nome e riprova.',
+    BUSY: 'È in corso un’altra simulazione: riprova tra qualche secondo.',
+    PAYLOAD_TOO_LARGE: 'Troppi dati in una volta sola: riduci le regole e riprova.',
+    NETWORK: 'Connessione non disponibile: niente è stato salvato.',
+  }[error?.code] ?? (error?.status === 400 ? 'Dati non validi: controlla i campi e riprova.' : 'Salvataggio non riuscito: riprova più tardi.');
+  return el('p', {class: 'state error', role: 'alert', 'data-testid': 'save-refused', 'data-code': error?.code ?? '', title: reasonText(error)}, text,
+    error?.code === 'UNAUTHENTICATED' ? [' ', el('a', {href: `/login?next=${encodeURIComponent(location.pathname + location.hash)}`}, 'Accedi')] : null);
+}
+
+// A small form that saves something under a name. The button is disabled while the request runs (no double submit);
+// the outcome replaces the previous one in a status region.
+function saveBox({what, testid, save, describe = savedText}) {
+  const status = el('div', {class: 'save-status', role: 'status', 'data-testid': `${testid}-status`});
+  const name = el('input', {name: 'name', type: 'text', required: true, maxlength: '100', autocomplete: 'off', placeholder: `Nome della ${what}`});
+  const button = el('button', {type: 'submit'}, 'Salva');
+  const form = el('form', {class: 'card save', 'data-testid': testid, onsubmit: async event => {
+    event.preventDefault();
+    if (button.disabled) return;
+    const text = name.value.trim();
+    if (!text) { status.replaceChildren(el('p', {class: 'state error', role: 'alert'}, 'Scrivi un nome prima di salvare.')); return; }
+    button.disabled = true;
+    form.setAttribute('aria-busy', 'true');
+    status.replaceChildren(loading('il salvataggio'));
+    try {
+      const result = await save(text);
+      status.replaceChildren(el('p', {class: 'state saved', 'data-testid': `${testid}-done`, 'data-code': result.data?.status ?? ''}, describe(result.data)));
+    } catch (error) {
+      status.replaceChildren(writeRefusal(error));
+    } finally {
+      button.disabled = false;
+      form.removeAttribute('aria-busy');
+    }
+  }},
+  el('h2', {}, `Salva questa ${what}`), el('div', {class: 'inline'}, el('label', {class: 'grow'}, 'Nome ', name), button), status);
+  return form;
+}
+function savedText(data) {
+  if (data?.status === 'ALREADY_SAVED') return `Già salvata con il numero ${formatNumber(data.backtest_id)}: niente di nuovo da salvare.`;
+  if (data?.status === 'UNCHANGED') return `Già salvata, versione ${formatNumber(data.version)}: nessuna modifica.`;
+  if (data?.status === 'SAVED' && data.version !== undefined) return `Salvata, versione ${formatNumber(data.version)}.`;
+  if (data?.status === 'SAVED') return `Salvata con il numero ${formatNumber(data.backtest_id)}.`;
+  return 'Salvata.';
+}
+
+// ---- Strategie: the rule builder and the saved strategies (#34, STRAT-CFG-01, PERSIST-API-01) ----
+
+// The rules of a definition in words, one list item per condition (the definition is the server's normalized one).
+function rulesList(d) {
+  const c = d?.conditions ?? {};
+  const range = (text, lo, hi) => (lo !== undefined || hi !== undefined)
+    ? el('li', {}, text, lo !== undefined ? [' da ', num(lo)] : null, hi !== undefined ? [' fino a ', num(hi)] : null) : null;
+  return el('ul', {class: 'rules'},
+    el('li', {'data-field': 'rule_main'}, labelled(SIDE_TEXT, d?.side), ' · ', labelled(DEF_SELECTION_TEXT, d?.selection)),
+    range('Quota della selezione', c.odds_min, c.odds_max), range('Quota 1', c.home_min, c.home_max),
+    range('Quota X', c.draw_min, c.draw_max), range('Quota 2', c.away_min, c.away_max),
+    c.teams ? el('li', {'data-field': 'rule_teams'}, 'Squadra: ', c.teams.join(', '), ' · ', DEF_VENUE_TEXT[c.venue ?? 'ANY']) : null);
+}
+// The simulation of a definition: its rules as the form fields of «Simulazione» (one team, as the form has).
+function simHrefOf(d) {
+  const c = d?.conditions ?? {};
+  const out = {strategy: 'custom', selection: d?.selection, side: d?.side};
+  for (const name of DEF_FIELDS) if (c[name] !== undefined) out[name] = c[name];
+  if (c.teams?.length) out.team = c.teams[0];
+  if (c.venue && c.venue !== 'ANY') out.venue = c.venue;
+  return `#/sim?${queryString(out)}`;
+}
+// The key a strategy is saved under: its name in lower case letters, digits and dashes. The same name saves a new version.
+const strategyKey = name => name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '').slice(0, 63).replace(/-+$/, '') || 'strategia';
+
+function builderForm(params) {
+  const value = name => params.get(name) ?? '';
+  const select = (name, options, fallback) => el('select', {name}, options.map(([v, text]) => el('option', {value: v, selected: (value(name) || fallback) === v}, text)));
+  const input = (name, attrs) => el('input', {name, value: value(name), ...attrs});
+  const price = name => input(name, {type: 'number', step: '0.001', min: '1.001', max: '1000'});
+  const status = el('div', {class: 'save-status', role: 'status', 'data-testid': 'builder-status'});
+  const save = el('button', {type: 'submit', 'data-action': 'save-strategy'}, 'Salva strategia');
+  const form = el('form', {class: 'card search', 'data-testid': 'builder-form'},
+    el('h2', {}, 'Nuova strategia'),
+    el('div', {class: 'fields'},
+      el('label', {}, 'Nome ', input('name', {type: 'text', required: true, maxlength: '100', autocomplete: 'off', placeholder: 'es. Favorito in casa'})),
+      el('label', {}, 'Selezione ', select('selection', Object.entries(DEF_SELECTION_TEXT), 'FAVOURITE')),
+      el('label', {}, 'Lato ', select('side', Object.entries(SIDE_TEXT), 'BACK')),
+      el('label', {}, 'Quota selezione da ', price('odds_min')), el('label', {}, 'Quota selezione fino a ', price('odds_max')),
+      el('label', {}, 'Quota 1 da ', price('home_min')), el('label', {}, 'Quota 1 fino a ', price('home_max')),
+      el('label', {}, 'Quota X da ', price('draw_min')), el('label', {}, 'Quota X fino a ', price('draw_max')),
+      el('label', {}, 'Quota 2 da ', price('away_min')), el('label', {}, 'Quota 2 fino a ', price('away_max')),
+      el('label', {}, 'Squadra ', input('team', {type: 'text', placeholder: 'es. Ajax', autocomplete: 'off', maxlength: '100'})),
+      el('label', {}, 'Sede della squadra ', select('venue', Object.entries(DEF_VENUE_TEXT), 'ANY'))),
+    save, ' ', el('button', {type: 'button', 'data-action': 'try-strategy', onclick: () => { location.hash = simHrefOf(definitionFrom(new FormData(form))); }}, 'Prova nella simulazione'),
+    status);
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (save.disabled) return;
+    const data = new FormData(form);
+    const name = String(data.get('name') ?? '').trim();
+    if (!name) { status.replaceChildren(el('p', {class: 'state error', role: 'alert'}, 'Scrivi un nome prima di salvare.')); return; }
+    save.disabled = true;
+    form.setAttribute('aria-busy', 'true');
+    status.replaceChildren(loading('il salvataggio'));
+    try {
+      const result = await postJson('/api/v1/strategies', {key: strategyKey(name), name, definition: definitionFrom(data)});
+      status.replaceChildren(el('p', {class: 'state saved', 'data-testid': 'builder-saved', 'data-code': result.data?.status ?? ''}, savedText(result.data), ' ',
+        el('a', {href: `#/strategies?${queryString({key: result.data?.key})}`}, 'Apri la strategia')));
+      refreshStrategyList?.();
+    } catch (error) {
+      status.replaceChildren(writeRefusal(error));
+    } finally {
+      save.disabled = false;
+      form.removeAttribute('aria-busy');
+    }
+  });
+  return form;
+}
+// The rules of the form as a definition (the server validates and normalizes it).
+function definitionFrom(data) {
+  const conditions = {};
+  for (const name of ['odds_min', 'odds_max', 'home_min', 'home_max', 'draw_min', 'draw_max', 'away_min', 'away_max']) {
+    const v = String(data.get(name) ?? '').trim();
+    if (v) conditions[name] = v;
+  }
+  const team = String(data.get('team') ?? '').trim();
+  if (team) {
+    conditions.teams = [team];
+    if (data.get('venue') && data.get('venue') !== 'ANY') conditions.venue = data.get('venue');
+  }
+  return {selection: data.get('selection'), side: data.get('side'), conditions};
+}
+
+let refreshStrategyList = null;
+// The saved strategies: the list, then the rules of each one (current version).
+function strategyList(mine) {
+  const box = el('section', {class: 'card', 'data-testid': 'strategy-list'}, el('h2', {}, 'Strategie salvate'), loading('le strategie'));
+  const load = async () => {
+    box.replaceChildren(el('h2', {}, 'Strategie salvate'), loading('le strategie'));
+    try {
+      const list = (await getJson('/api/v1/strategies')).data?.strategies ?? [];
+      const full = await Promise.all(list.slice(0, 50).map(item => getJson(`/api/v1/strategies?${queryString({key: item.key})}`)
+        .then(body => body.data?.strategy ?? null).catch(() => null)));
+      if (mine !== generation) return;
+      if (list.length === 0) {
+        box.replaceChildren(el('h2', {}, 'Strategie salvate'), el('p', {class: 'state empty', 'data-testid': 'strategies-empty'}, 'Nessuna strategia salvata.'));
+        return;
+      }
+      const columns = ['Nome', 'Versione', 'Regole', ''];
+      box.replaceChildren(el('h2', {}, 'Strategie salvate'), el('div', {class: 'tablewrap'}, el('table', {class: 'results'},
+        el('thead', {}, el('tr', {}, columns.map(text => el('th', {scope: 'col'}, text)))),
+        el('tbody', {}, list.slice(0, 50).map((item, i) => {
+          const s = full[i];
+          const line = el('tr', {'data-key': item.key, 'data-strategy': item.strategy_id ?? ''},
+            el('td', {'data-field': 'name'}, el('a', {href: `#/strategies?${queryString({key: item.key})}`}, formatScalar(item.name))),
+            el('td', {'data-field': 'version'}, num(item.version)),
+            el('td', {}, s ? rulesList(s.definition) : el('span', {class: 'nd', title: 'Regole non disponibili in questo momento'}, ND)),
+            el('td', {}, s ? el('a', {href: simHrefOf(s.definition), 'data-action': 'simulate'}, 'Simula') : null));
+          [...line.children].forEach((cell, index) => cell.setAttribute('data-label', columns[index] || 'Azioni'));
+          return line;
+        })))));
+    } catch (error) {
+      if (mine !== generation || error?.code === 'UNAUTHENTICATED') return;
+      box.replaceChildren(el('h2', {}, 'Strategie salvate'), archiveState(error, load));
+    }
+  };
+  refreshStrategyList = () => { if (mine === generation) load(); };
+  load();
+  return box;
+}
+// The archive is not active until its owner-authorized migration: that is a state of the server, not an error of the page.
+function archiveState(error, retry) {
+  if (error?.code === 'UNAVAILABLE') {
+    return el('p', {class: 'state partial', role: 'status', 'data-testid': 'archive-off', 'data-code': error.code, title: reasonText(error)},
+      'L’archivio non è ancora attivo su questo server: le regole si possono comunque provare nella simulazione.');
+  }
+  return errorState(error, retry);
+}
+
+async function strategiesView(params, mine) {
+  const key = params.get('key');
+  if (key) return strategyDetail(key, params);
+  return [el('h1', {}, 'Strategie'), builderForm(params), strategyList(mine)];
+}
+
+async function strategyDetail(key, params) {
+  const head = el('p', {class: 'meta'}, el('a', {href: '#/strategies'}, '← Tutte le strategie'));
+  if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(key)) return [el('h1', {}, 'Strategia'), head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'strategy-invalid'}, 'Strategia non valida.')];
+  let current;
+  try {
+    current = (await getJson(`/api/v1/strategies?${queryString({key})}`)).data?.strategy;
+  } catch (error) {
+    if (error?.status === 404) return [el('h1', {}, 'Strategia non trovata'), head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'strategy-not-found'}, 'Nessuna strategia salvata con questo nome.')];
+    if (error?.code === 'UNAVAILABLE') return [el('h1', {}, 'Strategia'), head, archiveState(error)];
+    throw error;
+  }
+  const versions = await Promise.all(Array.from({length: Math.min(current.version, 50)}, (_, i) => current.version - i).map(version => version === current.version ? current
+    : getJson(`/api/v1/strategies?${queryString({key, version})}`).then(body => body.data?.strategy ?? null).catch(() => null)));
+  const columns = ['Versione', 'Nome', 'Regole', 'Creata', 'Sostituita'];
+  return [el('h1', {}, current.name ?? ND), head,
+    el('section', {class: 'card', 'data-testid': 'strategy-current', 'data-key': key, 'data-strategy': current.strategy_id ?? ''},
+      el('h2', {}, 'Regole della versione ', num(current.version)), rulesList(current.definition),
+      el('p', {}, el('a', {href: simHrefOf(current.definition), 'data-action': 'simulate'}, 'Simula questa strategia'))),
+    builderForm(new URLSearchParams(simHrefOf(current.definition).split('?')[1] + `&name=${encodeURIComponent(current.name ?? '')}`)),
+    el('section', {class: 'card', 'data-testid': 'strategy-versions'}, el('h2', {}, 'Versioni'),
+      el('div', {class: 'tablewrap'}, el('table', {class: 'results'}, el('thead', {}, el('tr', {}, columns.map(text => el('th', {scope: 'col'}, text)))),
+        el('tbody', {}, versions.map((v, i) => {
+          const line = v ? el('tr', {'data-version': v.version},
+            el('td', {}, num(v.version)), el('td', {}, formatScalar(v.name)), el('td', {}, rulesList(v.definition)),
+            el('td', {}, formatScalar(v.created_at)), el('td', {}, v.superseded_at ? formatScalar(v.superseded_at) : el('span', {class: 'empty'}, 'in uso')))
+            : el('tr', {}, el('td', {}, num(current.version - i)), el('td', {colspan: '4'}, el('span', {class: 'nd', title: 'Versione non disponibile in questo momento'}, ND)));
+          [...line.children].forEach((cell, index) => cell.setAttribute('data-label', columns[index] ?? ''));
+          return line;
+        }))))),
+  ];
+}
+
+// ---- Simulazioni salvate (PERSIST-API-01, WEB-SAVED-01) ----
+
+const SAVED_KIND = {BACKTEST: 'Simulazione', COMPARE: 'Confronto'};
+async function savedView(params) {
+  const tabs = simTabs('saved');
+  const id = params.get('id');
+  if (id) {
+    if (!/^[1-9]\d{0,8}$/.test(id)) return [el('h1', {}, 'Simulazione salvata'), tabs, el('p', {class: 'state error', role: 'alert', 'data-testid': 'saved-invalid'}, 'Numero non valido.')];
+    let saved;
+    try {
+      saved = (await getJson(`/api/v1/backtests/saved?${queryString({id})}`)).data;
+    } catch (error) {
+      if (error?.status === 404) return [el('h1', {}, 'Simulazione non trovata'), tabs, el('p', {class: 'state empty', role: 'status', 'data-testid': 'saved-not-found'}, 'Nessuna simulazione salvata con questo numero.')];
+      if (error?.code === 'UNAVAILABLE') return [el('h1', {}, 'Simulazione salvata'), tabs, archiveState(error)];
+      throw error;
+    }
+    return [el('h1', {}, saved.name ?? ND), tabs,
+      el('p', {class: 'meta', 'data-testid': 'saved-meta', 'data-kind': saved.kind ?? '', 'data-response': saved.response_sha256 ?? ''},
+        labelled(SAVED_KIND, saved.kind), ' salvata il ', formatScalar(saved.created_at), ' · ', el('a', {href: '#/saved'}, 'tutte le simulazioni salvate')),
+      ...(saved.kind === 'COMPARE' ? cmpResult(saved.result) : simResult(saved.result))];
+  }
+  let list;
+  try {
+    list = (await getJson('/api/v1/backtests/saved')).data?.backtests ?? [];
+  } catch (error) {
+    if (error?.code === 'UNAVAILABLE') return [el('h1', {}, 'Simulazioni salvate'), tabs, archiveState(error)];
+    throw error;
+  }
+  if (list.length === 0) return [el('h1', {}, 'Simulazioni salvate'), tabs, el('p', {class: 'state empty', 'data-testid': 'saved-empty'}, 'Nessuna simulazione salvata: salvane una dal suo risultato.')];
+  const columns = ['Nome', 'Tipo', 'Salvata il'];
+  return [el('h1', {}, 'Simulazioni salvate'), tabs,
+    el('div', {class: 'tablewrap'}, el('table', {class: 'results', 'data-testid': 'saved-list'}, el('thead', {}, el('tr', {}, columns.map(text => el('th', {scope: 'col'}, text)))),
+      el('tbody', {}, list.map(item => {
+        const line = el('tr', {'data-id': item.backtest_id},
+          el('td', {}, el('a', {href: `#/saved?${queryString({id: item.backtest_id})}`}, formatScalar(item.name))),
+          el('td', {}, labelled(SAVED_KIND, item.kind)), el('td', {}, formatScalar(item.created_at)));
+        [...line.children].forEach((cell, index) => cell.setAttribute('data-label', columns[index]));
+        return line;
+      }))))];
+}
+// The sections of «Simulazione»: a run, a comparison, the saved ones.
+const SIM_TABS = [['sim', 'Simula', '#/sim'], ['compare', 'Confronta', '#/compare'], ['saved', 'Salvate', '#/saved']];
+const simTabs = current => el('nav', {class: 'tabs', 'aria-label': 'Sezioni della simulazione', 'data-testid': 'sim-tabs'},
+  SIM_TABS.map(([view, text, href]) => el('a', {href, 'aria-current': view === current ? 'page' : null}, text)));
+
+// ---- Strumenti: the trading calculators (#94, WEB-TOOLS-01) ----
+
+// Each tool: its form fields [name, label, attributes] and the renderer of the server's answer. Every value shown is the
+// server's `display` value (rounded by the server), the exact one stays in the tooltip.
+const NUMBER = {type: 'number', step: 'any', inputmode: 'decimal'};
+const SIDE_FIELD = ['side', 'Lato', {select: Object.entries(SIDE_TEXT)}];
+const COMMISSION_FIELD = ['commission', 'Commissione %', {...NUMBER, min: '0', max: '99.99', placeholder: '0'}];
+const TOOLS = [
+  ['odds', 'Margine', [['odds', 'Quote (separate da spazi)', {type: 'text', required: true, placeholder: 'es. 2,10 3,40 3,60', autocomplete: 'off'}]]],
+  ['ev', 'Valore atteso', [['odds', 'Quota', {...NUMBER, required: true, min: '1.01'}], ['probability', 'Probabilità stimata %', {...NUMBER, required: true, min: '0.01', max: '99.99'}],
+    ['stake', 'Puntata', {...NUMBER, required: true, min: '0.01'}], SIDE_FIELD, COMMISSION_FIELD]],
+  ['kelly', 'Kelly', [['odds', 'Quota', {...NUMBER, required: true, min: '1.01'}], ['probability', 'Probabilità stimata %', {...NUMBER, required: true, min: '0.01', max: '99.99'}],
+    ['bankroll', 'Capitale', {...NUMBER, required: true, min: '0.01'}], ['fraction', 'Frazione di Kelly %', {...NUMBER, min: '1', max: '100', placeholder: '100'}]]],
+  ['position', 'Posizione', [SIDE_FIELD, ['odds', 'Quota', {...NUMBER, required: true, min: '1.01'}], ['stake', 'Puntata', {...NUMBER, min: '0.01'}],
+    ['liability', 'oppure responsabilità', {...NUMBER, min: '0.01'}], COMMISSION_FIELD]],
+  ['hedge', 'Copertura', [['side', 'Posizione aperta', {select: Object.entries(SIDE_TEXT)}], ['odds', 'Quota di apertura', {...NUMBER, required: true, min: '1.01'}],
+    ['stake', 'Puntata di apertura', {...NUMBER, required: true, min: '0.01'}], ['current_odds', 'Quota attuale', {...NUMBER, required: true, min: '1.01'}],
+    ['share', 'Quanto coprire %', {...NUMBER, min: '1', max: '100', placeholder: '100'}], COMMISSION_FIELD]],
+  ['dutching', 'Dutching', [['odds', 'Quote (separate da spazi)', {type: 'text', required: true, placeholder: 'es. 4 5 6', autocomplete: 'off'}],
+    ['total', 'Puntata totale', {...NUMBER, required: true, min: '0.01'}], COMMISSION_FIELD]],
+  ['poisson', 'Poisson', [['xg_home', 'Gol attesi casa', {...NUMBER, required: true, min: '0', max: '10'}], ['xg_away', 'Gol attesi ospite', {...NUMBER, required: true, min: '0', max: '10'}],
+    ['max_goals', 'Gol nella griglia', {type: 'number', step: '1', min: '1', max: '8', placeholder: '5'}]]],
+];
+// The notes of the server that the user needs to read; every code stays in data-notes.
+const NOTE_TEXT = {
+  BOOK_BELOW_ONE: 'Il totale delle probabilità è sotto il 100%: le quote non sono di un unico mercato completo.',
+  SINGLE_SELECTION_NO_MARGIN: 'Con una sola quota non si calcola il margine.',
+  NO_EDGE_NO_STAKE: 'Nessun vantaggio alla probabilità stimata: Kelly non punta.',
+  BACK_ONLY: 'Kelly è calcolato per una puntata (Punta).',
+  PROBABILITY_IS_USER_ESTIMATE: 'La probabilità è la tua stima: il risultato vale quanto la stima.',
+  BOOK_BELOW_ONE_PROFIT_EVERY_SELECTION: 'Il totale delle probabilità è sotto il 100%: si guadagna con qualunque selezione vincente.',
+  BOOK_AT_LEAST_ONE_LOSS_EVERY_SELECTION: 'Il totale delle probabilità è almeno il 100%: si perde con qualunque selezione vincente.',
+  LOSES_PLACED_IF_NONE_WINS: 'Se non vince nessuna delle selezioni si perde tutta la puntata.',
+  LIQUIDITY_NOT_CHECKED: 'La disponibilità della quota sul mercato non è verificata.',
+  MODEL_NOT_A_FORECAST: 'Modello teorico con gol indipendenti: non è una previsione.',
+};
+const MATCH_ODDS_TEXT = {HOME: '1', DRAW: 'X', AWAY: '2'};
+
+// A value of the answer: the display value, the exact one in the tooltip.
+const calcValue = (display, exactValue, testid) => el('b', {'data-field': testid, title: exactValue !== undefined && exactValue !== null ? `Valore esatto: ${formatDecimalText(String(exactValue))}` : null}, num(display));
+const moneyLine = (label, display, exactValue, testid) => [el('dt', {}, label), el('dd', {class: Number(display) < 0 ? 'bad' : Number(display) > 0 ? 'ok' : null}, calcValue(display, exactValue, testid))];
+const pctOf = (display, exactValue, testid) => el('span', {}, calcValue(display, exactValue, testid), '%');
+
+const TOOL_RESULTS = {
+  odds: (d, r) => [
+    el('div', {class: 'tablewrap'}, el('table', {}, el('thead', {}, el('tr', {}, ['Quota', 'Probabilità implicita', 'Probabilità senza margine', 'Quota equa'].map(t => el('th', {scope: 'col'}, t)))),
+      el('tbody', {}, d.selections.map((s, i) => el('tr', {'data-row': i},
+        el('td', {}, num(s.odds)), el('td', {}, pctOf(s.implied_percent, r.selections[i].implied_probability)),
+        el('td', {}, s.fair_percent === null ? formatScalar(null) : pctOf(s.fair_percent, r.selections[i].fair_probability)),
+        el('td', {}, s.fair_odds === null ? formatScalar(null) : calcValue(s.fair_odds, r.selections[i].fair_odds))))))),
+    el('dl', {}, el('dt', {}, 'Totale delle probabilità'), el('dd', {}, pctOf(d.book_percent, r.book, 'book')),
+      el('dt', {}, 'Margine'), el('dd', {}, d.overround_percent === null ? formatScalar(null) : pctOf(d.overround_percent, r.overround, 'overround')))],
+  ev: (d, r) => [el('dl', {},
+    ...moneyLine('Valore atteso', d.expected_value, r.expected_value, 'expected_value'),
+    el('dt', {}, 'Rendimento atteso sul rischio'), el('dd', {}, pctOf(d.roi_percent, r.roi_on_risk, 'roi')),
+    el('dt', {}, 'Vantaggio sulla quota'), el('dd', {}, pctOf(d.edge_percent, r.edge, 'edge')),
+    el('dt', {}, 'Quota equa'), el('dd', {}, calcValue(d.fair_odds, r.fair_odds, 'fair_odds')),
+    el('dt', {}, 'Responsabilità'), el('dd', {}, calcValue(d.liability, r.liability, 'liability')),
+    ...moneyLine('Se la selezione vince', d.if_wins, r.if_wins, 'if_wins'), ...moneyLine('Se la selezione perde', d.if_loses, r.if_loses, 'if_loses'))],
+  kelly: (d, r) => [el('dl', {},
+    el('dt', {}, 'Puntata consigliata'), el('dd', {}, calcValue(d.stake, r.stake, 'stake')),
+    el('dt', {}, 'Kelly pieno'), el('dd', {}, pctOf(d.kelly_percent, r.kelly_fraction, 'kelly')),
+    el('dt', {}, 'Frazione applicata del capitale'), el('dd', {}, pctOf(d.applied_percent, r.applied_fraction, 'applied')),
+    el('dt', {}, 'Vantaggio sulla quota'), el('dd', {}, pctOf(d.edge_percent, r.edge, 'edge')))],
+  position: (d, r) => [el('dl', {},
+    el('dt', {}, 'Puntata'), el('dd', {}, calcValue(d.stake, r.stake, 'stake')),
+    el('dt', {}, 'Responsabilità'), el('dd', {}, calcValue(d.liability, r.liability, 'liability')),
+    ...moneyLine('Se la selezione vince', d.if_wins, r.if_wins, 'if_wins'), ...moneyLine('Se la selezione perde', d.if_loses, r.if_loses, 'if_loses'),
+    el('dt', {}, 'Probabilità di pareggio dei conti'), el('dd', {}, pctOf(d.break_even_percent, r.break_even_probability, 'break_even')))],
+  hedge: (d, r) => [el('dl', {},
+    el('dt', {}, 'Copertura'), el('dd', {}, el('b', {'data-field': 'hedge_side'}, labelled(SIDE_TEXT, d.hedge_side)), ' ', calcValue(d.hedge_stake, r.hedge_stake, 'hedge_stake')),
+    el('dt', {}, 'Responsabilità della copertura'), el('dd', {}, calcValue(d.hedge_liability, r.hedge_liability, 'hedge_liability'))),
+  el('div', {class: 'tablewrap'}, el('table', {}, el('thead', {}, el('tr', {}, ['', 'Se la selezione vince', 'Se la selezione perde'].map(t => el('th', {scope: 'col'}, t)))),
+    el('tbody', {},
+      el('tr', {'data-row': 'before'}, el('th', {scope: 'row'}, 'Senza copertura'), el('td', {}, calcValue(d.before.if_wins, r.before.if_wins)), el('td', {}, calcValue(d.before.if_loses, r.before.if_loses))),
+      el('tr', {'data-row': 'after'}, el('th', {scope: 'row'}, 'Con la copertura'), el('td', {}, calcValue(d.after.if_wins, r.after.if_wins, 'after_wins')), el('td', {}, calcValue(d.after.if_loses, r.after.if_loses, 'after_loses'))))))],
+  dutching: (d, r) => [
+    el('div', {class: 'tablewrap'}, el('table', {}, el('thead', {}, el('tr', {}, ['Quota', 'Puntata', 'Se vince'].map(t => el('th', {scope: 'col'}, t)))),
+      el('tbody', {}, d.selections.map((s, i) => el('tr', {'data-row': i}, el('td', {}, num(s.odds)), el('td', {}, calcValue(s.stake, r.stakes[i])),
+        el('td', {class: Number(s.if_wins) < 0 ? 'bad' : 'ok'}, calcValue(s.if_wins, r.if_wins[i]))))))),
+    el('dl', {}, el('dt', {}, 'Puntata totale'), el('dd', {}, calcValue(d.placed, r.placed, 'placed')), el('dt', {}, 'Totale delle probabilità'), el('dd', {}, pctOf(d.book_percent, r.book, 'book')))],
+  poisson: (d, r) => {
+    const max = d.grid.max_goals;
+    const cell = (h, a) => d.grid.cells.find(c => c.home === h && c.away === a);
+    return [
+      el('h3', {}, 'Esito finale'),
+      el('div', {class: 'odds', role: 'group', 'aria-label': 'Probabilità 1 X 2'}, d.match_odds.map(m => el('div', {class: 'odd', 'data-field': `p_${m.selection.toLowerCase()}`},
+        el('span', {}, MATCH_ODDS_TEXT[m.selection] ?? ND), el('b', {}, num(m.percent), '%'), el('small', {title: 'Quota equa'}, num(m.fair_odds))))),
+      el('h3', {}, 'Gol'),
+      el('div', {class: 'tablewrap'}, el('table', {}, el('thead', {}, el('tr', {}, ['Linea', 'Over', 'Quota equa', 'Under', 'Quota equa'].map(t => el('th', {scope: 'col'}, t)))),
+        el('tbody', {}, d.lines.map(l => el('tr', {'data-line': l.line}, el('td', {}, num(l.line)), el('td', {}, num(l.over_percent), '%'), el('td', {}, num(l.over_fair_odds)),
+          el('td', {}, num(l.under_percent), '%'), el('td', {}, num(l.under_fair_odds))))))),
+      el('dl', {}, el('dt', {}, 'Entrambe segnano'), el('dd', {'data-field': 'btts'}, num(d.btts.yes_percent), '% · quota equa ', num(d.btts.yes_fair_odds)),
+        el('dt', {}, 'Risultati più probabili'), el('dd', {'data-field': 'top_scores'}, d.top_scores.flatMap((s, i) => [i ? ' · ' : '', s.score.replace('-', '–'), ' ', num(s.percent), '%']))),
+      el('h3', {}, 'Risultati esatti'),
+      el('div', {class: 'tablewrap'}, el('table', {class: 'grid-table', 'data-testid': 'poisson-grid'},
+        el('thead', {}, el('tr', {}, el('th', {scope: 'col'}, 'Casa \\ Ospite'), Array.from({length: max + 1}, (_, a) => el('th', {scope: 'col'}, String(a))))),
+        el('tbody', {}, Array.from({length: max + 1}, (_, h) => el('tr', {}, el('th', {scope: 'row'}, String(h)),
+          Array.from({length: max + 1}, (_, a) => el('td', {'data-score': `${h}-${a}`}, cell(h, a) ? [num(cell(h, a).percent), '%'] : formatScalar(null)))))))),
+      el('p', {class: 'meta'}, 'Copertura della griglia usata per 1 X 2: ', num(d.grid_coverage_percent), '%.')];
+  },
+};
+
+function toolForm(tool, params) {
+  const [id, , fields] = TOOLS.find(([key]) => key === tool);
+  const value = name => params.get(name) ?? '';
+  return el('form', {class: 'card search', 'data-testid': 'tool-form', 'data-tool': id, onsubmit: event => {
+    event.preventDefault();
+    const out = {tool: id};
+    for (const [key, v] of new FormData(event.target).entries()) if (String(v).trim() !== '') out[key] = String(v).trim();
+    revealOutcome = true;
+    const target = `#/tools?${queryString({...out, run: '1'})}`;
+    if (location.hash === target) render();
+    else location.hash = target;
+  }},
+  el('div', {class: 'fields'}, fields.map(([name, label, attrs]) => el('label', {}, `${label} `, attrs.select
+    ? el('select', {name}, attrs.select.map(([v, text]) => el('option', {value: v, selected: (value(name) || attrs.select[0][0]) === v}, text)))
+    : el('input', {name, value: value(name), ...attrs})))),
+  el('button', {type: 'submit'}, 'Calcola'), ' ', el('a', {href: `#/tools?${queryString({tool: id})}`}, 'Azzera'));
+}
+
+async function toolsView(params) {
+  const tool = choice(params.get('tool'), TOOLS, 'odds');
+  const [, title, fields] = TOOLS.find(([key]) => key === tool);
+  const head = [el('h1', {}, 'Strumenti'),
+    el('nav', {class: 'seg tool-tabs', 'aria-label': 'Strumenti', 'data-testid': 'tool-tabs'},
+      TOOLS.map(([key, text]) => el('a', {href: `#/tools?${queryString({tool: key})}`, 'aria-current': key === tool ? 'true' : null, 'data-value': key}, text))),
+    toolForm(tool, params)];
+  if (params.get('run') !== '1') return [...head, el('p', {class: 'state empty'}, 'Inserisci i valori e premi Calcola.')];
+  const api = {};
+  for (const [name] of fields) if (params.get(name)) api[name] = params.get(name);
+  let body;
+  try {
+    body = await getJson(`/api/v1/tools/${tool}?${queryString(api)}`);
+  } catch (error) {
+    if (error?.status === 400) {
+      // The server names the parameter first («odds[1]: …», «stake: …»).
+      const name = /^([a-z_]+)/.exec(String(error.message ?? ''))?.[1];
+      // The label of that field in this tool's own form (the same name can read differently in another tool).
+      const label = fields.find(([field]) => field === name)?.[1];
+      return [...head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'tool-invalid', 'data-outcome': '', 'data-fields': name ?? '', title: reasonText(error)},
+        label ? `Valore non valido in: ${label}. Correggi il campo e riprova.` : 'Valori non validi. Correggi i campi e riprova.')];
+    }
+    throw error;
+  }
+  const data = body.data ?? {};
+  if (!data.display || !data.result) throw new ApiFailure(200, 'BAD_ENVELOPE', 'risposta senza risultato');
+  const notes = (data.notes ?? []).filter(code => Object.hasOwn(NOTE_TEXT, code));
+  return [...head,
+    el('section', {class: 'card tool-result', 'data-testid': 'tool-result', 'data-outcome': '', 'data-tool': tool, 'data-notes': (data.notes ?? []).join(' ')},
+      el('h2', {}, title), ...TOOL_RESULTS[tool](data.display, data.result),
+      notes.length ? el('ul', {class: 'notes'}, notes.map(code => el('li', {'data-code': code}, NOTE_TEXT[code]))) : null,
+      el('p', {class: 'meta'}, 'Calcolo del server in decimali esatti; importi al centesimo, percentuali a due decimali. Il valore esatto è nel suggerimento.'))];
+}
+
+// ---- Money: the Money Management registry and the stake calculator (#96, WEB-MM-01) ----
+
+const MM_TEXT = {
+  FIXED_STAKE: ['Puntata fissa', 'Ogni operazione ha la stessa puntata.'],
+  FIXED_LIABILITY: ['Rischio fisso', 'Ogni operazione rischia lo stesso importo massimo.'],
+  PERCENT_BANKROLL: ['Percentuale del capitale', 'La puntata è una percentuale del capitale disponibile.'],
+  LIABILITY_PERCENT_BANKROLL: ['Rischio in percentuale del capitale', 'Il rischio massimo è una percentuale del capitale disponibile.'],
+  KELLY: ['Kelly', 'Puntata dalla probabilità stimata e dal vantaggio.'],
+  FRACTIONAL_KELLY: ['Kelly frazionario', 'Una frazione della puntata di Kelly.'],
+  TARGET_PROFIT: ['Profitto obiettivo', 'La puntata che raggiunge un profitto fissato.'],
+  RECOVERY_STAKE: ['Recupero', 'La puntata che recupera le perdite precedenti.'],
+  RISK_BASED_STAKE: ['Puntata da rischio', 'La puntata dal rischio massimo per operazione.'],
+  MARTINGALE: ['Martingala', 'La puntata raddoppia dopo ogni perdita.'],
+  FIBONACCI: ['Fibonacci', 'La puntata segue la successione di Fibonacci.'],
+  LABOUCHERE: ['Labouchère', 'Progressione a cancellazione su una lista.'],
+  CS_PROGRESSIVO: ['Risultato esatto progressivo', 'Progressione sul mercato del risultato esatto.'],
+  EXPOSURE_AWARE: ['In base all’esposizione', 'La puntata tiene conto delle posizioni aperte.'],
+  COMPOSITE: ['Composto', 'Più modelli e regole insieme.'],
+  MANUAL_WITHIN_LIMITS: ['Manuale entro i limiti', 'La puntata la sceglie l’operatore, entro i limiti.'],
+};
+const MM_CATEGORY = {A: 'Semplice', B: 'Dal capitale', C: 'Obiettivo o recupero', D: 'Progressione', E: 'Dall’esposizione', F: 'Composto'};
+const MM_STATUS = {IMPLEMENTED: 'Utilizzabile', DISCOVERED: 'Da definire'};
+const MM_VALUE_TEXT = {stake: 'Puntata', liability: 'Responsabilità', percent: 'Percentuale %'};
+const MM_DECISION = {ALLOW: 'Consentita', REDUCE: 'Ridotta dai limiti', BLOCK: 'Bloccata', SIMULATION_ONLY: 'Solo simulazione'};
+const MM_CAPS = {max_stake: 'tetto alla puntata', max_liability: 'tetto alla responsabilità', available_bankroll: 'capitale disponibile', max_total_exposure: 'esposizione totale'};
+const MM_FIELDS = ['model', 'value', 'bankroll', 'side', 'odds', 'max_stake', 'max_liability', 'commission'];
+const MM_LABELS = {model: 'Modello', value: 'Valore del modello', bankroll: 'Capitale disponibile', side: 'Lato', odds: 'Quota',
+  max_stake: 'Tetto alla puntata', max_liability: 'Tetto alla responsabilità', commission: 'Commissione %'};
+const mmName = id => MM_TEXT[id]?.[0] ?? words(String(id ?? '').toLowerCase());
+
+async function moneyView(params) {
+  const body = await getJson('/api/v1/mm/models');
+  const models = Array.isArray(body.data?.models) ? body.data.models : [];
+  const usable = models.filter(m => m.certification_status === 'IMPLEMENTED');
+  const value = name => params.get(name) ?? '';
+  const columns = ['Modello', 'Tipo', 'Descrizione', 'Stato'];
+  const registry = el('section', {class: 'card', 'data-testid': 'mm-registry'}, el('h2', {}, 'Modelli di gestione del capitale (', num(usable.length), ' utilizzabili su ', num(models.length), ')'),
+    models.length === 0 ? el('p', {class: 'state empty'}, 'Nessun modello nel registro.') :
+      el('div', {class: 'tablewrap'}, el('table', {class: 'results'}, el('thead', {}, el('tr', {}, columns.map(t => el('th', {scope: 'col'}, t)))),
+        el('tbody', {}, models.map(m => {
+          const line = el('tr', {'data-model': m.type_id ?? '', 'data-status': m.certification_status ?? ''},
+            el('td', {}, el('b', {}, mmName(m.type_id))), el('td', {}, MM_CATEGORY[m.category] ?? formatScalar(null)),
+            el('td', {}, MM_TEXT[m.type_id]?.[1] ?? formatScalar(null)),
+            el('td', {}, el('span', {class: `pill ${m.certification_status === 'IMPLEMENTED' ? 'ok' : ''}`, title: m.certification_status ?? '', 'data-code': m.certification_status ?? ''},
+              MM_STATUS[m.certification_status] ?? 'Sconosciuto')));
+          [...line.children].forEach((cell, index) => cell.setAttribute('data-label', columns[index]));
+          return line;
+        })))));
+  const select = (name, options, fallback) => el('select', {name}, options.map(([v, text]) => el('option', {value: v, selected: (value(name) || fallback) === v}, text)));
+  const input = (name, attrs) => el('input', {name, value: value(name), ...attrs});
+  const form = el('form', {class: 'card search', 'data-testid': 'mm-form', onsubmit: event => {
+    event.preventDefault();
+    const out = {};
+    for (const [key, v] of new FormData(event.target).entries()) if (String(v).trim() !== '') out[key] = String(v).trim();
+    revealOutcome = true;
+    const target = `#/money?${queryString({...out, run: '1'})}`;
+    if (location.hash === target) render();
+    else location.hash = target;
+  }},
+  el('h2', {}, 'Calcola la puntata'),
+  el('div', {class: 'fields'},
+    el('label', {}, 'Modello ', select('model', usable.map(m => [m.type_id, mmName(m.type_id)]), usable[0]?.type_id)),
+    el('label', {}, 'Valore del modello (puntata, responsabilità o percentuale) ', input('value', {...NUMBER, required: true, min: '0.01'})),
+    el('label', {}, 'Capitale disponibile ', input('bankroll', {...NUMBER, required: true, min: '0.01'})),
+    el('label', {}, 'Lato ', select('side', Object.entries(SIDE_TEXT), 'BACK')),
+    el('label', {}, 'Quota ', input('odds', {...NUMBER, required: true, min: '1.01'})),
+    el('label', {}, 'Tetto alla puntata ', input('max_stake', {...NUMBER, min: '0.01'})),
+    el('label', {}, 'Tetto alla responsabilità ', input('max_liability', {...NUMBER, min: '0.01'})),
+    el('label', {}, 'Commissione % ', input('commission', {...NUMBER, min: '0', max: '99.99', placeholder: '0'}))),
+  el('button', {type: 'submit'}, 'Calcola'), ' ', el('a', {href: '#/money'}, 'Azzera'));
+  const head = [el('h1', {}, 'Money Management'), usable.length ? form : null, registry];
+  if (params.get('run') !== '1') return head;
+  const api = {};
+  for (const name of MM_FIELDS) if (params.get(name)) api[name] = params.get(name);
+  let result;
+  try {
+    result = (await getJson(`/api/v1/mm/stake?${queryString(api)}`)).data;
+  } catch (error) {
+    if (error?.status === 400) {
+      const message = String(error.message ?? '').replace(/\bparams\.[a-z_]+/g, 'value');
+      const name = MM_FIELDS.find(f => new RegExp(`(?<![a-z_])${f}(?![a-z_])`).test(message));
+      return [head[0], form, el('p', {class: 'state error', role: 'alert', 'data-testid': 'mm-invalid', 'data-outcome': '', 'data-fields': name ?? '', title: reasonText(error)},
+        name ? `Valore non valido in: ${MM_LABELS[name]}. Correggi il campo e riprova.` : 'Valori non validi. Correggi i campi e riprova.'), registry];
+    }
+    throw error;
+  }
+  const d = result?.display ?? {}, r = result?.result ?? {};
+  const caps = (r.caps_triggered ?? []).map(c => MM_CAPS[c] ?? 'altro limite');
+  return [head[0], form,
+    el('section', {class: 'card tool-result', 'data-testid': 'mm-result', 'data-outcome': '', 'data-decision': r.decision ?? ''},
+      el('h2', {}, 'Decisione: ', labelled(MM_DECISION, r.decision)),
+      el('dl', {},
+        el('dt', {}, 'Puntata del modello'), el('dd', {}, calcValue(d.original_stake, r.original_stake, 'original_stake')),
+        el('dt', {}, 'Puntata consentita'), el('dd', {}, calcValue(d.adjusted_stake, r.adjusted_stake, 'adjusted_stake')),
+        el('dt', {}, 'Responsabilità'), el('dd', {}, calcValue(d.adjusted_liability, r.adjusted_liability, 'adjusted_liability')),
+        ...moneyLine('Se la selezione vince', d.if_wins, r.if_wins, 'if_wins'), ...moneyLine('Se la selezione perde', d.if_loses, r.if_loses, 'if_loses'),
+        el('dt', {}, 'Limiti intervenuti'), el('dd', {'data-field': 'caps', 'data-codes': (r.caps_triggered ?? []).join(' ')}, caps.length ? caps.join(', ') : 'nessuno')),
+      el('p', {class: 'meta'}, 'Conto simulato senza posizioni aperte: niente viene registrato.')),
+    registry];
+}
+
+// ---- Portafoglio: the simulated account of the paper ledger (#99, PERSIST-API-01) ----
+
+async function portfolioView(params) {
+  const account = (params.get('account') ?? '').trim();
+  const form = el('form', {class: 'controls', 'data-testid': 'portfolio-form', onsubmit: event => {
+    event.preventDefault();
+    const name = String(new FormData(event.target).get('account') ?? '').trim();
+    location.hash = `#/portfolio?${queryString({account: name})}`;
+  }},
+  el('label', {}, 'Conto simulato ', el('input', {name: 'account', value: account, required: true, maxlength: '100', autocomplete: 'off', placeholder: 'es. principale'})),
+  el('button', {type: 'submit'}, 'Apri'));
+  const head = [el('h1', {}, 'Portafoglio'), form];
+  if (!account) return [...head, el('p', {class: 'state empty', 'data-testid': 'portfolio-prompt'}, 'Scrivi il nome del conto simulato e premi Apri.')];
+  let state;
+  try {
+    state = (await getJson(`/api/v1/ledger/account?${queryString({account_id: account})}`)).data?.account;
+  } catch (error) {
+    if (error?.status === 404) return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'portfolio-not-found'}, `Nessun conto simulato si chiama «${account}».`)];
+    if (error?.status === 400) return [...head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'portfolio-invalid', title: reasonText(error)}, 'Nome del conto non valido.')];
+    if (error?.code === 'UNAVAILABLE') {
+      return [...head, el('p', {class: 'state partial', role: 'status', 'data-testid': 'archive-off', 'data-code': error.code, title: reasonText(error)},
+        'Il registro delle posizioni simulate non è ancora attivo su questo server.')];
+    }
+    throw error;
+  }
+  if (!state) throw new ApiFailure(200, 'BAD_ENVELOPE', 'risposta senza conto');
+  return [...head,
+    el('section', {class: 'card', 'data-testid': 'portfolio-account', 'data-account': state.account_id ?? '', 'data-version': state.ledger_version ?? ''},
+      el('h2', {}, 'Conto ', formatScalar(state.account_id)),
+      el('div', {class: 'grid kpis'},
+        kpi('Disponibile', state.available_bankroll, 'available_bankroll'), kpi('Cassa', state.cash_balance, 'cash_balance'),
+        kpi('Impegnato nelle posizioni', state.reserved_funds, 'reserved_funds'), kpi('Profitto realizzato', state.realized_pnl, 'realized_pnl')),
+      el('dl', {},
+        field('Commissioni pagate', num(state.settled_commission), 'settled_commission'),
+        field('Profitto non realizzato', el('span', {class: 'nd', title: 'Servono i prezzi in tempo reale: non viene stimato'}, ND), 'unrealized_pnl'),
+        field('Posizioni aperte', num(state.open_position_count), 'open_position_count'),
+        field('Movimenti nel registro', num(state.entries), 'entries'),
+        field('Registro in pari', formatScalar(state.reconciled), 'reconciled')),
+      el('p', {class: 'meta'}, 'Denaro simulato: nessuna operazione reale.'))];
+}
+const kpi = (label, value, name) => el('div', {class: 'kpi', 'data-field': name}, el('span', {}, label), el('b', {}, num(value)));
+
+// ---- Live: the matches still to play today and the live collection (#29) ----
+
+async function liveView(params, mine) {
+  const today = localToday();
+  const [matches, collector] = await Promise.allSettled([getJson(`/api/v1/fpt/matches?${queryString({date: today, limit: 100})}`), getJson('/api/v1/tc/live')]);
+  for (const result of [matches, collector]) if (result.status === 'rejected' && result.reason?.code === 'UNAUTHENTICATED') throw result.reason;
+  if (matches.status === 'rejected' && collector.status === 'rejected') throw matches.reason;
+  const live = collector.status === 'fulfilled' ? collector.value.data : null;
+  const captured = live?.snapshots?.snapshots;
+  const status = el('section', {class: 'card', 'data-testid': 'live-collector', 'data-state': collector.status === 'fulfilled' ? 'ok' : 'error'}, el('h2', {}, 'Raccolta in diretta'),
+    collector.status === 'rejected'
+      ? el('p', {class: 'state partial', role: 'status', 'data-code': collector.reason?.code ?? '', title: reasonText(collector.reason)}, 'Stato della raccolta in diretta non disponibile.')
+      : [
+        !captured ? el('p', {class: 'state empty', 'data-testid': 'live-none'}, 'Nessuna partita in diretta raccolta: la raccolta in diretta è ferma.') : null,
+        el('dl', {},
+          field('Partite seguite', num(live?.snapshots?.matches), 'matches'), field('Rilevazioni', num(captured), 'captured'),
+          field('Ultima rilevazione', formatScalar(live?.snapshots?.latest), 'latest'), field('Ultimo controllo', formatScalar(live?.cursors?.last_polled_at), 'last_polled_at'))]);
+  let upcoming;
+  if (matches.status === 'rejected') {
+    upcoming = el('p', {class: 'state partial', role: 'status', 'data-code': matches.reason?.code ?? '', title: reasonText(matches.reason)}, 'Partite di oggi non disponibili in questo momento.');
+  } else {
+    // The matches of today without a final result, in the API's kickoff order.
+    const rows = (matches.value.data?.rows ?? []).filter(row => row.result_status !== 'FINAL');
+    upcoming = rows.length ? el('div', {class: 'card board', 'data-testid': 'live-upcoming'}, rows.map(matchRow))
+      : el('p', {class: 'state empty', 'data-testid': 'live-upcoming-empty'}, 'Nessuna partita da giocare oggi nei dati. ', el('a', {href: '#/'}, 'Vai a Oggi'));
+  }
+  return [el('h1', {}, 'Live'), status, el('h2', {class: 'day'}, 'Da giocare oggi'), upcoming];
+}
+
+// ---- Account: session and archive (#23, #95) ----
+
+async function accountView() {
+  const archive = await getJson('/api/v1/persistence/status').then(body => body.data).catch(error => {
+    if (error?.code === 'UNAUTHENTICATED') throw error;
+    return {error};
+  });
+  // The session exists only when the server enforces the owner login: an open server answers every route without one.
+  let session = null, sessionCode = 'AUTH_OFF';
+  const enforced = typeof archive?.writes === 'string' && archive.writes.startsWith('owner');
+  if (enforced || archive?.error) {
+    try {
+      const response = await fetch('/auth/session', {headers: {accept: 'application/json'}, credentials: 'same-origin'});
+      if (response.status === 200) session = await response.json().catch(() => null);
+      else sessionCode = response.status === 401 ? 'SIGNED_OUT' : 'AUTH_OFF';
+    } catch {
+      sessionCode = 'NETWORK';
+    }
+  }
+  const out = el('div', {class: 'save-status', role: 'status'});
+  const logout = el('button', {type: 'button', 'data-action': 'logout', onclick: async () => {
+    if (logout.disabled) return;
+    logout.disabled = true;
+    try {
+      const response = await fetch('/auth/logout', {method: 'POST', credentials: 'same-origin'});
+      if (!response.ok) throw new ApiFailure(response.status, `HTTP_${response.status}`);
+      location.assign('/login');
+    } catch (error) {
+      out.replaceChildren(el('p', {class: 'state error', role: 'alert', 'data-code': error?.code ?? '', title: reasonText(error)}, 'Uscita non riuscita: riprova.'));
+      logout.disabled = false;
+    }
+  }}, 'Esci');
+  const access = el('section', {class: 'card', 'data-testid': 'account-session', 'data-session': session?.authenticated ? 'signed-in' : sessionCode}, el('h2', {}, 'Accesso'),
+    session?.authenticated
+      ? [el('dl', {}, field('Utente', formatScalar(session.principal), 'principal'), field('Ruoli', formatScalar((session.roles ?? []).join(', ')), 'roles'),
+        field('Scade', formatScalar(session.expires_at), 'expires_at')), el('p', {}, logout), out]
+      : sessionCode === 'SIGNED_OUT'
+        ? el('p', {class: 'state empty'}, 'Non hai effettuato l’accesso. ', el('a', {href: `/login?next=${encodeURIComponent('/#/account')}`}, 'Accedi'))
+        : el('p', {class: 'state empty', 'data-testid': 'auth-off'}, sessionCode === 'NETWORK' ? 'Connessione non disponibile.' : 'L’accesso owner non è attivo su questo server: il sito è consultabile, i salvataggi sono disattivati.'));
+  const store = el('section', {class: 'card', 'data-testid': 'account-archive', 'data-available': archive?.available === undefined ? '' : String(archive.available)}, el('h2', {}, 'Archivio'),
+    archive?.error ? el('p', {class: 'state partial', role: 'status', 'data-code': archive.error.code ?? '', title: reasonText(archive.error)}, 'Stato dell’archivio non disponibile.')
+      : el('dl', {}, field('Strategie e simulazioni salvate', archive?.available ? 'attivo' : 'non ancora attivo', 'available'),
+        field('Salvataggi', session?.authenticated && archive?.available ? 'consentiti' : 'non consentiti', 'writes')),
+    el('p', {class: 'linkrow'}, el('a', {href: '#/strategies'}, 'Strategie'), el('a', {href: '#/saved'}, 'Simulazioni salvate'), el('a', {href: '#/money'}, 'Money Management')));
+  return [el('h1', {}, 'Account'), access, store];
+}
+
+// ---- Regole dei mercati: the settlement rules registry (#100), a technical view of «Dati» ----
+
+async function rulesView() {
+  const body = await getJson('/api/v1/markets/rules');
+  const rules = Array.isArray(body.data?.rules) ? body.data.rules : [];
+  return [el('h1', {}, 'Regole dei mercati'), dataTabs('rules'),
+    el('section', {class: 'card', 'data-testid': 'market-rules'}, el('h2', {}, `Regole (versione ${body.data?.version ?? ND})`),
+      rules.length === 0 ? el('p', {class: 'state empty'}, 'Nessuna regola nel registro.') :
+        el('div', {class: 'tablewrap'}, el('table', {class: 'nowrap-head'}, el('thead', {}, el('tr', {}, ['Mercato', 'Identificativo', 'Dati usati', 'Esito', 'Annullamento', 'Rinvio', 'In vigore dal']
+          .map(t => el('th', {scope: 'col'}, t)))),
+        el('tbody', {}, rules.map(rule => el('tr', {'data-market': rule.market_type ?? ''},
+          el('td', {}, el('code', {}, rule.market_type ?? ND)), el('td', {}, el('code', {}, rule.market_rule_id ?? ND)),
+          el('td', {}, (rule.resolution_inputs ?? []).join(', ') || ND), el('td', {}, formatScalar(rule.result_mapping)),
+          el('td', {}, formatScalar(rule.void_policy)), el('td', {}, formatScalar(rule.postponed_policy)), el('td', {}, formatScalar(rule.effective_from)))))))),
+    metaLine(body)];
+}
+
+// ---- Match Center additions: settled markets of a finished match (#25) and links to the tools (#94) ----
+
+const OU_TEXT = {OVER: 'Over', UNDER: 'Under'};
+const BTTS_TEXT = {YES: 'Sì', NO: 'No'};
+const CS_OTHER = {ANY_OTHER_HOME: 'Altro risultato (vince la casa)', ANY_OTHER_AWAY: 'Altro risultato (vince l’ospite)', ANY_OTHER_DRAW: 'Altro pareggio'};
+function postMatchCard(post) {
+  if (!post || post.status !== 'SETTLED') return null;
+  const price = market => market.price === null || market.price === undefined ? [] : [' · quota ', num(market.price)];
+  const line = market => {
+    if (market.market_type === 'MATCH_ODDS') return ['Esito finale', [labelled(MATCH_ODDS_TEXT, market.winning_selection), ...price(market)]];
+    if (market.market_type === 'OVER_UNDER') return [['Gol ', num(market.line)], [labelled(OU_TEXT, market.winning_selection), ' ', num(market.line), ...price(market)]];
+    if (market.market_type === 'BTTS') return ['Entrambe segnano', [labelled(BTTS_TEXT, market.winning_selection), ...price(market)]];
+    if (market.market_type === 'CORRECT_SCORE') return ['Risultato esatto', CS_OTHER[market.winning_selection] ?? String(market.winning_selection ?? ND).replace('-', '–')];
+    return null;
+  };
+  const fav = post.favourite ?? {};
+  return el('section', {class: 'card', 'data-testid': 'post-match'}, el('h2', {}, 'Esito dei mercati'),
+    el('dl', {}, post.markets.map(market => [market, line(market)]).filter(([, pair]) => pair).flatMap(([market, [label, value]]) => [el('dt', {}, label),
+      el('dd', {'data-market': market.market_type, 'data-rule': market.market_rule_id ?? '', 'data-winner': market.winning_selection ?? ''}, value)]),
+    el('dt', {}, 'Il favorito'), el('dd', {'data-field': 'favourite_won'}, fav.won === null || fav.won === undefined ? formatScalar(null) : fav.won ? 'ha vinto' : 'non ha vinto')),
+    el('p', {class: 'meta'}, 'Mercati regolati sul risultato finale con le regole interne di MatchPilot.'));
+}
+function matchToolLinks(match) {
+  const links = [];
+  if (match.odd_home && match.odd_draw && match.odd_away) links.push(el('a', {href: `#/tools?${queryString({tool: 'odds', odds: `${match.odd_home} ${match.odd_draw} ${match.odd_away}`, run: '1'})}`, 'data-action': 'tool-odds'}, 'Margine delle quote 1 X 2'));
+  if (match.xg_home !== null && match.xg_home !== undefined && match.xg_away !== null && match.xg_away !== undefined) {
+    links.push(el('a', {href: `#/tools?${queryString({tool: 'poisson', xg_home: match.xg_home, xg_away: match.xg_away, run: '1'})}`, 'data-action': 'tool-poisson'}, 'Poisson dagli xG della partita'));
+  }
+  if (match.favorite_odd) links.push(el('a', {href: `#/tools?${queryString({tool: 'ev', odds: match.favorite_odd})}`, 'data-action': 'tool-ev'}, 'Valore atteso sul favorito'));
+  if (!links.length) return null;
+  return el('p', {class: 'toollinks linkrow', 'data-testid': 'match-tools'}, el('span', {}, 'Strumenti:'), links);
+}
+
 // [what is loading, view, area]: a 'user' view shows no technical text (MP-WEB-015, checked by the Browser QA gate); a
 // 'technical' view is where provenance and diagnostics belong. Every view declares one (V-B2). #/board, the former
 // address of the Daily Board, still opens it, and the menu item of each view is its section (NAV_OF).
 
 const VIEWS = {'': ['la pagina', boardView, 'user'], board: ['la pagina', boardView, 'user'], search: ['la ricerca', searchView, 'user'],
-  match: ['la partita', matchView, 'user'],
+  match: ['la partita', matchView, 'user'], live: ['le partite in diretta', liveView, 'user'],
   data: ['lo stato dei dati', dashboardView, 'technical'], providers: ['i fornitori dati', providersView, 'technical'],
-  sim: ['la simulazione', simView, 'user'], compare: ['il confronto', compareView, 'user'],
-  endpoints: ['gli endpoint', endpointsView, 'technical']};
-const NAV_OF = {board: '', providers: 'data', endpoints: 'data', match: null, compare: 'sim'};
+  sim: ['la simulazione', simView, 'user'], compare: ['il confronto', compareView, 'user'], saved: ['le simulazioni salvate', savedView, 'user'],
+  strategies: ['le strategie', strategiesView, 'user'], tools: ['gli strumenti', toolsView, 'user'], money: ['il money management', moneyView, 'user'],
+  portfolio: ['il portafoglio', portfolioView, 'user'], account: ['l’account', accountView, 'user'],
+  endpoints: ['gli endpoint', endpointsView, 'technical'], rules: ['le regole dei mercati', rulesView, 'technical']};
+const NAV_OF = {board: '', providers: 'data', endpoints: 'data', rules: 'data', match: null, compare: 'sim', saved: 'sim'};
 
 let generation = 0;
 // Set by the search form: the next search render moves the focus to its outcome and scrolls it into view, so the result,
@@ -1264,14 +1989,14 @@ async function render() {
   const name = location.hash.replace(/^#\/?/, '').split('?')[0];
   // The submit flag belongs to this render only: any navigation consumes it, so a search abandoned before its answer
   // never moves the focus later, when the page is opened again without a submit (PR #168 review NB-1).
-  const reveal = revealOutcome && (name === 'search' || name === 'sim' || name === 'compare');
+  const reveal = revealOutcome && ['search', 'sim', 'compare', 'tools', 'money'].includes(name);
   revealOutcome = false;
   const [what, view, area] = Object.hasOwn(VIEWS, name) ? VIEWS[name] : [null, null, 'user'];
   const host = document.getElementById('view');
   if (area) host.dataset.area = area;
   else delete host.dataset.area;
   const section = Object.hasOwn(NAV_OF, name) ? NAV_OF[name] : name;
-  for (const link of document.querySelectorAll('nav a[data-view]')) {
+  for (const link of document.querySelectorAll('header a[data-view]')) {
     if (link.dataset.view === section) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   }

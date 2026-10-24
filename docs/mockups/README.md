@@ -54,6 +54,11 @@ Il mock è un riferimento UX/prodotto **vivo**. Non è l'architettura e non cert
 
 ## Changelog
 
+### v2026.10.24 — Sezioni reali del sito (WEB-APP-01, MP-FRONTEND-CLAUDE-DIRECT-E2E-01)
+
+- Il file del mock non cambia (SHA-256 invariato): rappresenta già Live, Strategie, Tools, Backtest, Portafoglio, Money, Impostazioni e regole di mercato. Questa voce registra che il sito reale ora ha le sezioni Live, Strategie (rule builder e strategie salvate con versioni), Simulazioni salvate, Strumenti (margine, valore atteso, Kelly, posizione, copertura, dutching, Poisson), Money (registro e calcolo della puntata), Portafoglio (conto simulato), Account e Dati › Regole, più l'esito dei mercati nella partita conclusa.
+- Restano DEMO nel mock: segnali live, copilot, replay, assistente, exchange, profili MM con stato operativo, impostazioni account persistenti, SaaS.
+
 ### v2026.10.23c — Confronto di strategie (STRAT-CMP-01, #34)
 
 - La nota sul sito reale nella pagina Backtest descrive il «Confronto di strategie»: 2–3 configurazioni sulla stessa lettura dei dati, affiancate senza classifiche.

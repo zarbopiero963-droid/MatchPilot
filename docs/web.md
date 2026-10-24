@@ -45,7 +45,19 @@ Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). 
     Every figure is computed by the server in exact decimals (percentages included), from the finished matches dated strictly before the match day: matches of the same day are excluded because the provider time zone is undocumented. The page says so in plain words and keeps the cutoff in `data-cutoff`. The PIT status (`PIT_NOT_VERIFIED`: current fact versions with a date cutoff, acquisition time not checked), the analysis version, phase and dataset stay in data attributes. A team without an earlier match shows an explicit empty state and N/D, never 0. An invalid id is refused before any request; an unknown one reads «Partita non trovata».
 
     Not yet: the 20 analytical cards of #30 beyond this first batch, charts (MP-WEB-008), the finished-match page (MP-WEB-004) and the real archive (R-02).
-- **Not yet shown:** historical replay and PIT backtest (R-09…R-14).
+- **Sections added by WEB-APP-01** (owner decision MP-FRONTEND-CLAUDE-DIRECT-E2E-01, 24/10/2026; interaction inventory [docs/qa/ui-interactions.md](qa/ui-interactions.md)). Every value is computed by the server; the page only shows it:
+  - **Live** (`#/live`, #29): the state of the live collection (`/api/v1/tc/live`) and today's matches without a final result (`/api/v1/fpt/matches`). TotalCorner is suspended, so the page says that nothing is collected live; nothing on it is real-time.
+  - **Strategie** (`#/strategies`, #34): a rule builder (selection, Punta/Banca, price bounds, team and venue) that saves a versioned strategy (`POST /api/v1/strategies`, key from the name: the same name saves a new version) or opens it in Simulazione; the saved strategies with their rules; a strategy page (`#/strategies?key=…`) with its versions.
+  - **Simulazione** gets three tabs: Simula, Confronta and **Salvate** (`#/saved`). A run or a comparison can be saved under a name (`POST /api/v1/backtests/saved`: the server runs it again and stores its own sealed result); a saved one reopens with the same report (`#/saved?id=…`).
+  - **Strumenti** (`#/tools`, #94): margin and fair odds, expected value, Kelly, position (liability, outcomes), hedge/green-up, dutching and a Poisson model from expected goals, on `/api/v1/tools/*`. Display values are rounded by the server (money to the cent, percentages to two decimals), the exact value is in the tooltip.
+  - **Money** (`#/money`, #96): the Money Management registry (16 models, the 4 implemented usable) and the stake a profile allows on a simulated account (`/api/v1/mm/stake`), with the caps that reduced it.
+  - **Portafoglio** (`#/portfolio`, #99): the state of a simulated paper-ledger account (`/api/v1/ledger/account`). No position can be opened from the web: that needs the server-side operating mode (DEC-001).
+  - **Account** (`#/account`, header icon, #23/#95): the owner session and «Esci», the state of the archive and whether saving is allowed.
+  - **Dati › Regole** (`#/rules`, #100, technical): the versioned market rules registry (`/api/v1/markets/rules`).
+  - **Match Center**: for a finished match, «Esito dei mercati» (1X2, goal lines 1,5/2,5/3,5, both teams scoring, correct score, the favourite) settled by the internal market rules (`post_match` of `/api/v1/fpt/match-analysis`, analysis v2); links that open Strumenti with the match's odds and xG.
+- **Writes** (strategies, saved simulations) go to the persistence API: owner session, same origin and JSON only, and 503 until the owner-authorized migration of the persistence schema. The page shows each refusal in words (login off, session expired, archive not active…), never retries a write by itself, and sends one request per click (the button is disabled while it runs).
+- **Not in this site:** SaaS (billing, plans, subscriptions, #46), the AI assistant (#44, paid API not authorized), the live trading board and copilot (#28, #29 realtime, #102: no live data), the exchange gateway (#45: no real orders), match replay (#24: no live snapshots).
+- **Not yet shown:** PIT backtest on certified real data (R-09…R-14).
 - **Data used for tests:** one league season ingested through the real FutPythonTrader path (`test/helpers/fpt-seed.mjs`). No production data is read. Against the real archive these views are TESTED, not certified (MP-OWNER-ARCHIVE-FIRST-01).
 
 ## Rules
@@ -87,6 +99,9 @@ Issue #3, #30 and roadmap #97, R-05 and R-06b. Code: [`src/web/`](../src/web/). 
 - **Layout:** works on desktop (1280×800) and mobile (390×844) viewports, with no horizontal scroll (MP-WEB-009).
 
 ## Browser end-to-end tests
+
+`test/web-trading-e2e.test.mjs` (WEB-APP-01) exercises every control of the sections above for its outcome, at desktop, tablet and mobile sizes, on an open server and with a real owner login on the staged persistence schema (applied to the throwaway schema only); the list is [docs/qa/ui-interactions.md](qa/ui-interactions.md). The calculators have hand-computed vectors in `test/web-tools-api.test.mjs`.
+
 
 `test/web-e2e.test.mjs` starts the real server on a throwaway PostgreSQL schema. It drives Chromium or Chrome with `playwright-core`, an exact-pinned dev dependency that only the tests import. The `matchpilot-test` service (suspended since 2026-10-09) builds with `npm install --omit=dev`, so it would not be installed there. `render.yaml` still declares plain `npm install`; even then the server never loads it.
 

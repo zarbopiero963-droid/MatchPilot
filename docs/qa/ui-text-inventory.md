@@ -20,12 +20,13 @@ The Browser QA gate fails a user view, or the page footer, that shows technical 
 
 | ID | Current text (main 3521a07) | Where | Class | Action | PR | Verification |
 |---|---|---|---|---|---|---|
-| UI-01 | «Sito in sola lettura. I dati arrivano dall'API v1 di MatchPilot; nessun calcolo avviene nel browser.» | footer, every page | T | «MatchPilot · consultazione in sola lettura, nessuna operazione di trading.» | V-B1 | invariant on the footer, every step |
+| UI-01 | «Sito in sola lettura. I dati arrivano dall'API v1 di MatchPilot; nessun calcolo avviene nel browser.» | footer, every page | T | «MatchPilot · consultazione in sola lettura, nessuna operazione di trading.» (V-B1); since WEB-APP-01, which adds saving, «MatchPilot · nessuna operazione di trading reale: ogni importo è simulato.» | V-B1, WEB-APP-01 | invariant on the footer, every step |
 | UI-02 | «Caricamento la dashboard…», «Caricamento la Daily Board…» | loading state, every view | R | «Caricamento in corso…», what is loading in `data-what` | V-B1 | `web-e2e` loading state |
 | UI-03 | «Impossibile caricare i dati (UNAVAILABLE). Dettaglio: data source unavailable.», and no title on the page | error state, every view | T | title «Dati non disponibili», message «I dati non sono disponibili in questo momento.» (network: «Connessione non disponibile…»), «Riprova»; code in `data-code`, code and message in the tooltip | V-B1 | journey `daily-board`, step «errore dell'API» (user view, invariants); `web-e2e` error state |
 | UI-04 | «Impossibile caricare altri risultati (UNAVAILABLE — …). I risultati già mostrati restano validi.» | failed next page, Daily Board and Ricerca | T | «Non è stato possibile caricare altri risultati. Quelli già mostrati restano validi.», code in `data-code` | V-B1 | journey `search`, step «pagina successiva in errore» (invariant while the error is on screen) |
 | UI-05 | «Fonte: futpythontrader · generato: 2026-10-19T… · versione codice: …» | provenance line under Daily Board and Ricerca | T | removed from user views; stays in the technical views, with the instant in Europe/Rome and UTC in the tooltip (D-7) | V-B1 | journey `daily-board`: no `p.meta` in `main`; invariant |
 | UI-06 | menu «Dashboard · Daily Board · Ricerca · Fornitori dati · API · Copertura» | header | V | menu «Oggi · Ricerca · Dati» as in the mockup: Oggi is the home page (D-2), «Dati» holds Stato dei dati, Fornitori, API and Copertura as tabs; on a phone a bottom bar with icons | V-B2a | journey `general-navigation`: menu labels, titles, areas, the tabs of Dati, the old `#/board` address, the bar fixed at the bottom on a phone with room left for it; journey `search`: a focused field stays above the bar |
+| UI-06b | menu «Oggi · Ricerca · Simulazione · Dati» | header | U | menu «Oggi · Live · Ricerca · Strategie · Simulazione · Strumenti · Money · Portafoglio · Dati» and the Account icon; on a phone the bar scrolls inside itself | WEB-APP-01 | journey `general-navigation`; `web-trading-e2e` test 1 at three viewports |
 | UI-07 | «MatchPilot — Sports Trading OS» | page title | U | kept | — | — |
 | UI-08 | «Questa pagina richiede JavaScript.» | `noscript` | U | kept | — | — |
 | UI-09 | «Pagina non trovata» · «Questa sezione non esiste. Torna alla dashboard» | unknown route | U | «Torna a Oggi»; user area | V-B1 (area), V-B2a (link) | journey `general-navigation`, step «rotta sconosciuta»: link text «Torna a Oggi» |
@@ -141,6 +142,10 @@ Provenance, identifiers and diagnostics belong here (decision §3.7). They are l
 | UI-63 | «MatchPilot · Accesso riservato all'owner. · Utente · Password · Accedi» | `/login` | U | kept (D-5); logo and palette of the mockup, system fonts (V-B3) | V-B3 | not automated (`test/owner-auth*.test.mjs` checks the statuses, not the text) |
 | UI-64 | «Credenziali non valide.», «Troppi tentativi…» and the other login messages | `/login` | U | kept (D-5); shown in the style of the site (V-B3) | V-B3 | not automated (statuses only) |
 | UI-65 | «Accesso negato», «Accesso temporaneamente non disponibile» | plain-text refusals of the server | U | kept; plain-text refusals of the server, unchanged | — | not automated (statuses only) |
+
+## Sections added by WEB-APP-01
+
+The texts of Live, Strategie, Simulazioni salvate, Strumenti, Money, Portafoglio and Account (all user views) are plain Italian; codes stay in `data-code`, `data-decision`, `data-notes` and tooltips. Each view passes the Browser QA invariants (`invariants` of `tools/qa/browser-qa.mjs`) in `test/web-trading-e2e.test.mjs` after every step that shows it; the controls and their outcomes are in [ui-interactions.md](ui-interactions.md).
 
 ## Controls, options and tooltips
 

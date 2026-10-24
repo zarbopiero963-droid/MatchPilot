@@ -29,9 +29,11 @@ const SIDE = {HOME: 'Casa', AWAY: 'Ospite', EVEN: 'Pari'};
 // [view, menu label, page title, area]: the menu label is what the user reads before clicking (QA-03: it was not checked);
 // the area decides whether the no-technical-text rule applies (MP-WEB-015). Every view declares one (V-B2): the home page
 // Oggi (D-2) and the search are user views; «Dati» holds the technical views, reached through its tabs (DATA_TABS).
-const NAV = [['', 'Oggi', 'Oggi', 'user'], ['search', 'Ricerca', 'Ricerca partite', 'user'], ['sim', 'Simulazione', 'Simulazione', 'user'],
-  ['data', 'Dati', 'Stato dei dati', 'technical']];
-const DATA_TABS = [['#/data', 'Panoramica', 'Stato dei dati'], ['#/providers', 'Fornitori', 'Fornitori dati'], ['#/endpoints', 'API', 'API v1']];
+const NAV = [['', 'Oggi', 'Oggi', 'user'], ['live', 'Live', 'Live', 'user'], ['search', 'Ricerca', 'Ricerca partite', 'user'],
+  ['strategies', 'Strategie', 'Strategie', 'user'], ['sim', 'Simulazione', 'Simulazione', 'user'], ['tools', 'Strumenti', 'Strumenti', 'user'],
+  ['money', 'Money', 'Money Management', 'user'], ['portfolio', 'Portafoglio', 'Portafoglio', 'user'], ['data', 'Dati', 'Stato dei dati', 'technical']];
+const DATA_TABS = [['#/data', 'Panoramica', 'Stato dei dati'], ['#/providers', 'Fornitori', 'Fornitori dati'], ['#/endpoints', 'API', 'API v1'],
+  ['#/rules', 'Regole', 'Regole dei mercati']];
 const titled = (page, text) => page.waitForFunction(title => document.querySelector('main h1')?.textContent === title && !document.querySelector('.state.loading'), text);
 const unavailable = {api_version: 'v1', error: {code: 'UNAVAILABLE', message: 'data source unavailable'}};
 // A full page load: a hash-only change keeps the previous view on screen until the new one renders, so a check
@@ -71,6 +73,9 @@ export const JOURNEYS = [
   {
     id: 'general-navigation', surface: 'Interfaccia generale', title: 'Navigazione, rotte, pagina sconosciuta, tastiera',
     allowRawText: [/^null: the provider catalog does not carry a fixture total$/],
+    // «Strategie» reads the saved strategies: the QA archive has no persistence schema, so the server answers 503 and the
+    // page shows the explicit «archive not active» state (WEB-APP-01).
+    allowHttp: [{path: '/api/v1/strategies', status: 503}],
     async run({page, base, step}) {
       await step('apertura del sito', async () => {
         const response = await page.goto(`${base}/`);
