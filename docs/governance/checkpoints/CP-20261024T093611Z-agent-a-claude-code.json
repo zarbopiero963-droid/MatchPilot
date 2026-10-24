@@ -1,0 +1,129 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261024T093611Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-24T09:36:11Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "MP-UI-PR-001",
+  "activity": "MP-UI-PR-001 after the first review (APPROVED, non-blocking findings fixed) and MP-UI-HARD-GATES-01 §8: evidence chain NONE/SEEN/ACTUATED/ASSERTED; 58 controls ACTUATED, none TESTED or certified until the ASSERTED gate",
+  "issue": 239,
+  "pr": 240,
+  "branch": "ui-pr-001",
+  "commit_sha": "e9bd6269fe2ee7f5e7974753ef26f831b95bd902",
+  "tree_sha": "ba9f404afff83b4fce93f8c36784f4113d418e19",
+  "base_sha": "764a9bd0eccbd16fe935e1cef1d6b3b1972acf9e",
+  "requirements": [
+    "MP-QAC-004",
+    "MP-QAC-010",
+    "MP-WEB-001"
+  ],
+  "changes": [
+    "data-control ids on every control",
+    "docs/qa/control-inventory.json (mp-control-inventory-1)",
+    "invariants fail on uninventoried controls",
+    "per-step actuated/seen in the report",
+    "verify-report coverage check",
+    "ui:progress",
+    "owner decisions MP-FRONTEND-CLAUDE-DIRECT-E2E-01, MP-UI-ROADMAP-01, MP-UI-INCREMENTAL-13",
+    "evidence levels with report checks for SEEN and ACTUATED; TESTED/CERTIFIED need ASSERTED (not yet recorded)",
+    "review fixes: body-wide control check, change only for select/checkbox, API corrections, generated-id field check, malformed-report guards, docs",
+    "owner decision MP-UI-HARD-GATES-01"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "e9bd6269fe2ee7f5e7974753ef26f831b95bd902",
+      "time": "2026-10-24T09:36:11Z",
+      "limits": [
+        "667 tests, 666 pass, 1 skip: PostgreSQL 17 test (server 16 locally, runs in CI)"
+      ]
+    },
+    {
+      "command": "node tools/qa/browser-qa.mjs (all journeys, desktop and mobile) + verifyCoverage",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Chromium, local PostgreSQL 16",
+      "commit": "e9bd6269fe2ee7f5e7974753ef26f831b95bd902",
+      "time": "2026-10-24T09:36:11Z",
+      "limits": [
+        "16/16 PASS on the runner code of this head (run before the inventory-only commit, uncommitted tree); coverage errors none"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "27de6f18d445d0e8d5f9ed86131eff8b5ff2a637"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "first review APPROVED on 7af660d (DEC-004-R1 sub-agent); final-head review pending"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-UI-ROADMAP-01",
+    "MP-UI-INCREMENTAL-13",
+    "MP-FRONTEND-CLAUDE-DIRECT-E2E-01",
+    "MP-AUTOMERGE-RESTORED-20261024",
+    "MP-UI-HARD-GATES-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and final review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:src/web/app.js",
+    "file:src/web/index.html",
+    "file:tools/qa/browser-qa.mjs",
+    "file:tools/qa/verify-report.mjs",
+    "file:docs/qa/control-inventory.json",
+    "branch:ui-pr-001",
+    "pr:240"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and final-head review on PR #240, then protected merge and deploy verification",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": "CP-20261024T092153Z-agent-a-claude-code"
+}
