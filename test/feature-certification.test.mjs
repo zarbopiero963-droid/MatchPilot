@@ -179,4 +179,14 @@ test('structure: ids, duplicate ownership, unowned controls, BLOCKED without rea
   const shared = errorsOf([...others().filter(f => f.id !== 'FEAT-SAVED'), saved, tools()]).join('\n');
   assert.match(shared, /test\/tools-api.test.mjs is a test file of FEAT-SAVED and FEAT-TRADING-TOOLS/);
   assert.match(shared, /src\/api\/tools.mjs is a source of FEAT-SAVED and FEAT-TRADING-TOOLS/);
+  // A module run by the entries of two features is shared, without being listed: neither can claim it.
+  const twin = copy(register.features.find(f => f.id === 'FEAT-SAVED'));
+  twin.entry = 'src/api/persistence-api.mjs';
+  const tool = certified();
+  tool.sources.push('src/math/core.mjs'); // run by both entries, and not in the list below
+  const listedOnly = {...copy(register), shared_modules: ['src/web/app.js']};
+  const alone = checkFeatures({...listedOnly, features: [...others(), tool]}, {inventory});
+  assert.ok(!alone.features.find(f => f.id === 'FEAT-TRADING-TOOLS').gaps.join('\n').includes('core.mjs is a shared module'), 'one entry: not shared by run');
+  const both = checkFeatures({...listedOnly, features: [...others().filter(f => f.id !== 'FEAT-SAVED'), twin, tool]}, {inventory});
+  assert.match(both.features.find(f => f.id === 'FEAT-TRADING-TOOLS').gaps.join('\n'), /sources: src\/math\/core.mjs is a shared module/, 'two entries run it: shared');
 });

@@ -280,9 +280,16 @@ export function checkFeatures(register, {inventory, report = null, journeys = jo
   if (register?.schema !== FEATURES_SCHEMA) errors.push(`schema must be ${FEATURES_SCHEMA}`);
   if (!Array.isArray(register?.features) || !register.features.length) return {errors: [...errors, 'no features'], notes, features};
   const seen = new Set(), owner = new Map(), testOwner = new Map();
-  const shared = Array.isArray(register.shared_modules) ? register.shared_modules : [];
+  const listed = Array.isArray(register.shared_modules) ? register.shared_modules : [];
+  // Besides the list, a module run by the entries of two features is shared too, mechanically (fourth review of the
+  // gate): no future feature can claim the engine or the ledger another feature also runs.
+  const runBy = new Map();
+  for (const feature of register.features) if (typeof feature?.entry === 'string' && existsSync(join(root, feature.entry))) {
+    for (const module of reachable(feature.entry)) runBy.set(module, (runBy.get(module) ?? 0) + 1);
+  }
+  const shared = [...new Set([...listed, ...[...runBy].filter(([, n]) => n > 1).map(([module]) => module)])];
   if (!Array.isArray(register.shared_modules)) errors.push('shared_modules must be a list');
-  for (const module of shared) if (!/^src\/[\w./-]+\.m?js$/.test(module) || !existsSync(join(root, module))) errors.push(`shared module ${module} does not exist`);
+  for (const module of listed) if (!/^src\/[\w./-]+\.m?js$/.test(module) || !existsSync(join(root, module))) errors.push(`shared module ${module} does not exist`);
   for (const feature of register.features) {
     const at = feature?.id ?? '(no id)';
     if (!ID.test(feature?.id ?? '')) { errors.push(`${at}: id must match ${ID}`); continue; }
