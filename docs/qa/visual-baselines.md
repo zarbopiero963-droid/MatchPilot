@@ -320,3 +320,28 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `simulazione-desktop.png` `ca5227501c8139a3868c0b011e1e7f54f4cf991e992b5041ae85ae8110cc4a4e`
   - `simulazione-ricerca-mobile.png` `426db5e48038167af34f174a5acae7372ec3aae88e3c4e57916ab9374b1f31aa`
   - `simulazione-tablet.png` `7befdc4ba62d943120c9fb8776e66b806df4c3f6603a011cd5b974b461a468a3`
+
+## 2026-10-24 — MP-UI-PR-007 foundations: shared PIT / NON PIT badges on results and the Match Center cutoff, NON DISPONIBILE badge and per-status words in the shared error state, saved links only when their archive is active
+
+- Approval: MP-OWNER-UI006-FINAL-UI007-01
+- Run: commit `c60c1cab650065dbfda07f2f69942bd91e9427b2`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `confronto-desktop.png` `b3aee8610c30c97f4541674021b803d730d99a38a855d86fb5399d7f7faae6ba`
+  - `confronto-mobile.png` `8c3ba094ef1c237273486042525bdf4ae62d5e1e11451434b5d13f90444e25f5`
+  - `confronto-tablet.png` `5ca679a4c5f84f1b1d2e3f6171ba9ec3f1ebe03648361def695929c0f4716338`
+  - `oggi-errore-desktop.png` `40bfc61f7c077a382474186ba649aa14de968a8dbb62528a3ecc14a147883045`
+  - `oggi-errore-mobile.png` `a11a12a1631dfaad669373692a202e8c940f2572cb3b6d7e7b045d5a08550849`
+  - `oggi-errore-tablet.png` `5e44adfb2c1023ceeeaa19455abe78ad692df6f04f854fc19a7a2d1a6718b4f6`
+  - `partita-confronto-desktop.png` `7c1cadca28aa578b565db451d38a7707710935e076d87a2a941f6223c1603c53`
+  - `partita-confronto-mobile.png` `ae2a858fcdf280685f76f73b4a5b9d8e9e99f8fe4ed3b693394e721966f5f630`
+  - `partita-confronto-tablet.png` `2b2d7f62199b4ad63d05ceb01da44f431dd856ba9cc59fefaea9adbdbaa4c0b5`
+  - `partita-desktop.png` `b905cc4920005d84caf435a33a22173c413aada70ebd052df65b9fd7bb86b832`
+  - `partita-mobile.png` `b872637371f08a6e3d6f53aabad3f982901fbbd30f6e3ffd5e0949c450b38abc`
+  - `partita-senza-storico-desktop.png` `292398786402f1cc64626c4aa5197258f4411cbe7a6bd54d3533c5a182ff11b2`
+  - `partita-senza-storico-mobile.png` `3af94c6b46a18a6d08c4e85e71a1a36ed4243a6070078bb3aa75203eb3cd6c14`
+  - `partita-senza-storico-tablet.png` `74473d503d7a7081cf59ca4536dd301fde0cabe952be0e10b974c6c3edd4c872`
+  - `partita-tablet.png` `2181d35ce1ad8857a4cec6d926560a58b9b0389253d933bb119666014ec6152b`
+  - `simulazione-ricerca-desktop.png` `0c5ad3f6113d8325a66a78cfcf4abd1b7ceaab4f99fdae64e8147b1323ac7a7b`
+  - `simulazione-ricerca-mobile.png` `6d3fceb7689094e310f31c611e968b1ae59801d7a33419d427c72a944948fde0`
+  - `simulazione-ricerca-tablet.png` `363c1de2e9fdbaab9d4c288bce933926827a9f003c28d07e34282d89eb96788d`
