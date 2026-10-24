@@ -10,8 +10,8 @@
 // - SKIP and NOT_VERIFIED carry a reason and never stand in for a required journey;
 // - counts, missing_required and the verdict equal what the journeys imply;
 // - the report is not dated in the future and carries no secret-like value;
-// - with the control inventory (always from the command line): every control declared TESTED or certified was actuated
-//   in each step it names, and no step actuated or showed a control the inventory does not list (MP-UI-PR-001).
+// - with the control inventory (always from the command line): every control with evidence SEEN or ACTUATED was seen
+//   or actuated in each step it names, and no step actuated or showed a control the inventory does not list (MP-UI-PR-001).
 // Exit code 0 only when the evidence is valid and the verdict is PASS.
 //
 // Usage: node tools/qa/verify-report.mjs <dir> --head <sha> [--commit <sha>]

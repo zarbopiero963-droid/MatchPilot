@@ -30,16 +30,19 @@ After **every step** the runner also checks, on the page as rendered:
 - no horizontal overflow;
 - basic accessibility: `lang`, one `h1`, no heading level skipped, an accessible name for every visible link, button and field, `alt` on images;
 - layout: no clipped text, no overlapping controls.
-- control inventory (MP-UI-PR-001, #239): every visible link, button, field and `summary` in the header and in `main` carries a `data-control` id listed in [`control-inventory.json`](control-inventory.json); a control without an id, or with an id the inventory does not know, fails the step.
+- control inventory (MP-UI-PR-001, #239): every visible link, button, field and `summary` of the page carries a `data-control` id listed in [`control-inventory.json`](control-inventory.json); a control without an id, or with an id the inventory does not know, fails the step.
 
 ## Control inventory
 
-[`control-inventory.json`](control-inventory.json) lists every interactive control of the web app (schema `mp-control-inventory-1`): stable id, view, kind, label, action, API, data state (`REAL`, `DEMO`, `UNAVAILABLE`, `NONE`), issues, status (`NOT STARTED`, `IN PROGRESS`, `IMPLEMENTED`, `TESTED`, `CERTIFIED MOCK`, `CERTIFIED REAL`, `BLOCKED`) and the journey steps that exercise it.
-- The runner records, for every step, the controls actually actuated (`actuated`: click, input, change or submit on the nearest `[data-control]`, through a page binding that survives page loads) and the controls visible at its end (`seen`).
-- A control is `TESTED` only when it names steps, and `verify-report` fails unless it was actuated in each of them on every viewport. A `TESTED` claim without the action in the report, or an actuated or visible id missing from the inventory, refuses the evidence.
+[`control-inventory.json`](control-inventory.json) lists every interactive control of the web app (schema `mp-control-inventory-1`): stable id, view, kind, label, action, API, data state (`REAL`, `DEMO`, `UNAVAILABLE`, `NONE`), issues, status (`NOT STARTED`, `IN PROGRESS`, `IMPLEMENTED`, `TESTED`, `CERTIFIED MOCK`, `CERTIFIED REAL`, `BLOCKED`), evidence level and the journey steps that give that evidence.
+- Evidence follows the chain of MP-UI-HARD-GATES-01: `SEEN` (visible at the end of a step) → `ACTUATED` (clicked, typed, changed or submitted in a step) → `ASSERTED` (the result of the action checked) → `CERTIFIED MOCK`. Seeing or actuating a control is not verifying it: `TESTED` and the certified statuses need `ASSERTED`, which this gate does not record yet (planned as the next PR), so today every control is at most `IMPLEMENTED` with evidence `SEEN` or `ACTUATED`.
+- The runner records, for every step, the controls actually actuated (`actuated`: click, input, change of a select or checkbox, or submit on the nearest `[data-control]`, through a page binding that survives page loads; a form sent with Enter counts as its submit button) and the controls visible at its end (`seen`).
+- An id names a control, not each instance: the seven day links of the board share `CTL-BOARD-DAY`, the options of a Match Center filter share its id, `CTL-LIST-MORE` and `CTL-COMMON-RETRY` serve several views. Evidence on an id means at least one of its instances in each named step.
+- Scope: the single-page app (`/`). The server-rendered `/coverage` page is not inventoried yet; it moves into the app with MP-UI-PR-006.
+- A control with evidence `SEEN` or `ACTUATED` names steps, and `verify-report` fails unless it was seen or actuated in each of them on every viewport. A claim without the sighting or the action in the report, or an actuated or visible id missing from the inventory, refuses the evidence.
 - `test/control-inventory.test.mjs` checks the inventory against the journeys' step titles and the page code: every literal `data-control` id of `src/web` is inventoried, every inventoried id exists in the page, and no `button`, `select` or `input` is built without an id.
-- After a journey change, `node tools/qa/control-inventory.mjs actuations qa-evidence/report.json` lists the steps where each control was actuated on every viewport, to update `exercised_by`.
-- `npm run ui:progress` computes the completion from the statuses: verified = `TESTED` or certified; `CERTIFIED REAL` is counted apart and is impossible on the seeded QA archive.
+- After a journey change, `node tools/qa/control-inventory.mjs actuations qa-evidence/report.json` (and `sightings`) lists the steps where each control was actuated (or seen) on every viewport, to update `evidence` and `exercised_by`.
+- `npm run ui:progress` computes the completion from statuses and evidence: seen, actuated and asserted counts; verified = `TESTED` or certified; `CERTIFIED MOCK` and `CERTIFIED REAL` apart (the latter impossible on the seeded QA archive).
 
 A journey fails on any JavaScript error, failed request or HTTP error ≥ 400 that it did not declare as expected. Expected errors are declared per journey and path (for example the 400 of a refused filter), and only the browser's console line for that status is then accepted: no false positive, no blanket allowance.
 
@@ -52,7 +55,7 @@ A journey fails on any JavaScript error, failed request or HTTP error ≥ 400 th
 - SKIP and NOT_VERIFIED carry a reason and never replace a required journey;
 - counts, `missing_required` and verdict equal what the journeys imply;
 - the report is not dated in the future and has no secret-like value.
-- every control declared `TESTED` or certified was actuated in each step it names, and no step actuated or showed a control the inventory does not list.
+- every control with evidence `SEEN` or `ACTUATED` was seen or actuated in each step it names, and no step actuated or showed a control the inventory does not list.
 
 The verdict is computed, never declared. `test/browser-qa-gate.test.mjs` proves each refusal (missing report, other head, other commit, modified tree, changed or missing file, PASS without steps, hidden failure, wrong counts, duplicate, unexplained skip, missing journey, secret) and that the runner fails a real page with a deliberately injected defect, with screenshot and trace.
 

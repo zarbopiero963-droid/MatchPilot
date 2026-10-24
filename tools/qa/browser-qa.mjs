@@ -47,8 +47,8 @@ export const technicalText = text => TECHNICAL_CODE.test(text) || TECHNICAL_WORD
 export const CONTROL_SELECTOR = 'a[href], button, input:not([type="hidden"]), select, textarea, summary';
 
 // Generic checks after every step: what no page may ever show, whatever the journey.
-// `knownControls` (the ids of docs/qa/control-inventory.json): every visible control in the header and in main must carry
-// a `data-control` id the inventory lists, so no control can be added without being inventoried.
+// `knownControls` (the ids of docs/qa/control-inventory.json): every visible control of the page must carry a
+// `data-control` id the inventory lists, so no control can be added without being inventoried.
 export async function invariants(page, allowRawText = [], knownControls = null) {
   return page.evaluate(([rawSource, allowSources, codeSource, wordSource, known, controlSelector]) => {
     const rawValue = new RegExp(rawSource);
@@ -121,7 +121,7 @@ export async function invariants(page, allowRawText = [], knownControls = null) 
     }
     if (known) {
       const ids = new Set(known);
-      for (const scope of [document.querySelector('header'), main]) for (const el of scope?.querySelectorAll(controlSelector) ?? []) {
+      for (const el of document.body.querySelectorAll(controlSelector)) {
         if (!visible(el)) continue;
         const id = el.dataset.control;
         if (!id) problems.push(`control without data-control: <${el.tagName.toLowerCase()}> ${el.outerHTML.slice(0, 80)}`);
@@ -137,10 +137,13 @@ export const visibleControls = page => page.evaluate(() => [...new Set([...docum
   .filter(el => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; })
   .map(el => el.dataset.control))].sort());
 
-// Records, in the page, every user action on an inventoried control: click, input, change and submit (for a submit, the
-// form's submit button), reported through the __mpControl binding so that page loads lose nothing.
+// Records, in the page, every user action on an inventoried control: click, input, change of a select or checkbox (a
+// text field already reports input; its change fires on blur, possibly in the next step) and submit (for a submit, the
+// form's submit button, also when the form is sent with Enter), reported through the __mpControl binding so that page
+// loads lose nothing.
 const ACTUATION_SCRIPT = `(() => {
   const report = (event) => {
+    if (event.type === 'change' && !(event.target instanceof HTMLSelectElement || event.target.type === 'checkbox')) return;
     const target = event.type === 'submit' ? (event.submitter ?? event.target.querySelector('[type=submit][data-control]')) : event.target;
     const id = target?.closest?.('[data-control]')?.dataset.control;
     if (id && window.__mpControl) window.__mpControl(id);

@@ -1,7 +1,7 @@
 {
   "schema": "mp-control-inventory-1",
   "roadmap": "MP-UI-ROADMAP-01 (#239)",
-  "note": "Generated from the data-control ids of src/web; exercised_by comes from a Browser QA run (node tools/qa/control-inventory.mjs actuations <report.json>) and is re-checked by verify-report on every run.",
+  "note": "The interactive controls of the single-page app (/); the server-rendered /coverage page is not inventoried yet (MP-UI-PR-006). Generated from the data-control ids of src/web; evidence and exercised_by come from a Browser QA run (node tools/qa/control-inventory.mjs actuations|sightings <report.json>) and are re-checked by verify-report on every run. ACTUATED is not a verified result: no control is TESTED or CERTIFIED before the ASSERTED gate.",
   "controls": [
     {
       "id": "CTL-NAV-BRAND",
@@ -15,7 +15,13 @@
         3
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "apertura del sito"
+        }
+      ]
     },
     {
       "id": "CTL-NAV-OGGI",
@@ -28,7 +34,8 @@
       "issues": [
         3
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "general-navigation",
@@ -51,7 +58,8 @@
       "issues": [
         3
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "general-navigation",
@@ -75,7 +83,8 @@
         3,
         34
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "general-navigation",
@@ -95,7 +104,8 @@
         3,
         31
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "general-navigation",
@@ -115,7 +125,13 @@
         3
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "daily-board",
+          "step": "errore dell’API: messaggio semplice, codice conservato, Riprova"
+        }
+      ]
     },
     {
       "id": "CTL-LIST-MORE",
@@ -123,12 +139,16 @@
       "kind": "button",
       "label": "Mostra altre",
       "action": "carica la pagina successiva dell'elenco",
-      "api": "/api/v1/fpt/matches",
+      "api": [
+        "/api/v1/fpt/matches",
+        "/api/v1/fpt/search"
+      ],
       "data": "REAL",
       "issues": [
         3
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "daily-board",
@@ -154,12 +174,16 @@
       "kind": "button",
       "label": "Riprova (elenco)",
       "action": "ripete il caricamento della pagina successiva",
-      "api": "/api/v1/fpt/matches",
+      "api": [
+        "/api/v1/fpt/matches",
+        "/api/v1/fpt/search"
+      ],
       "data": "REAL",
       "issues": [
         3
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "search",
@@ -178,7 +202,8 @@
       "issues": [
         31
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "general-navigation",
@@ -197,7 +222,8 @@
       "issues": [
         31
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "general-navigation",
@@ -216,7 +242,8 @@
       "issues": [
         31
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "general-navigation",
@@ -236,7 +263,13 @@
         31
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Stato dei dati"
+        }
+      ]
     },
     {
       "id": "CTL-DATA-COVERAGE-DAY",
@@ -244,12 +277,13 @@
       "kind": "link",
       "label": "Ultimo giorno di un campionato",
       "action": "apre la Daily Board di quel giorno",
-      "api": "/api/v1/fpt/coverage",
+      "api": "/api/v1/fpt/matches",
       "data": "REAL",
       "issues": [
         31
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "daily-board",
@@ -269,7 +303,8 @@
         3,
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "match-center",
@@ -289,7 +324,8 @@
         3,
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "daily-board",
@@ -309,7 +345,8 @@
         3,
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "daily-board",
@@ -329,7 +366,8 @@
         3,
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "daily-board",
@@ -349,7 +387,8 @@
         3,
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "daily-board",
@@ -369,7 +408,8 @@
         3,
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "daily-board",
@@ -394,7 +434,13 @@
         30
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "apertura del sito"
+        }
+      ]
     },
     {
       "id": "CTL-BOARD-EMPTY-DATA",
@@ -409,7 +455,13 @@
         31
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "apertura del sito"
+        }
+      ]
     },
     {
       "id": "CTL-MATCH-FORM-CHIP",
@@ -423,7 +475,13 @@
         30
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "match-center",
+          "step": "apertura dalla Daily Board"
+        }
+      ]
     },
     {
       "id": "CTL-MATCH-SOURCE-ROW",
@@ -436,7 +494,8 @@
       "issues": [
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "match-center",
@@ -456,6 +515,7 @@
         30
       ],
       "status": "IMPLEMENTED",
+      "evidence": "NONE",
       "exercised_by": []
     },
     {
@@ -470,6 +530,7 @@
         30
       ],
       "status": "IMPLEMENTED",
+      "evidence": "NONE",
       "exercised_by": []
     },
     {
@@ -484,7 +545,13 @@
         30
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "match-center",
+          "step": "partita non valida o non trovata"
+        }
+      ]
     },
     {
       "id": "CTL-MATCH-FILTER-TEAM",
@@ -497,7 +564,8 @@
       "issues": [
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "match-center",
@@ -516,7 +584,8 @@
       "issues": [
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "match-center",
@@ -535,7 +604,8 @@
       "issues": [
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "match-center",
@@ -554,7 +624,8 @@
       "issues": [
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "search",
@@ -577,7 +648,8 @@
       "issues": [
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "search",
@@ -596,7 +668,8 @@
       "issues": [
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "search",
@@ -615,7 +688,8 @@
       "issues": [
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "search",
@@ -634,7 +708,8 @@
       "issues": [
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "search",
@@ -654,7 +729,13 @@
         30
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Ricerca partite"
+        }
+      ]
     },
     {
       "id": "CTL-SEARCH-FAV-MIN",
@@ -668,7 +749,13 @@
         30
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Ricerca partite"
+        }
+      ]
     },
     {
       "id": "CTL-SEARCH-FAV-MAX",
@@ -682,7 +769,13 @@
         30
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Ricerca partite"
+        }
+      ]
     },
     {
       "id": "CTL-SEARCH-MIN-GOALS",
@@ -695,7 +788,8 @@
       "issues": [
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "search",
@@ -715,7 +809,13 @@
         30
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Ricerca partite"
+        }
+      ]
     },
     {
       "id": "CTL-SEARCH-WITH-ODDS",
@@ -728,7 +828,8 @@
       "issues": [
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "search",
@@ -748,7 +849,13 @@
         30
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Ricerca partite"
+        }
+      ]
     },
     {
       "id": "CTL-SEARCH-SUBMIT",
@@ -761,7 +868,8 @@
       "issues": [
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "search",
@@ -793,7 +901,13 @@
         30
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Ricerca partite"
+        }
+      ]
     },
     {
       "id": "CTL-SEARCH-OPEN-DAY",
@@ -807,7 +921,13 @@
         30
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "tutte le partite, pagina dopo pagina, fino alla fine"
+        }
+      ]
     },
     {
       "id": "CTL-SEARCH-OPEN-MATCH",
@@ -820,7 +940,8 @@
       "issues": [
         30
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "match-center",
@@ -840,7 +961,13 @@
         30
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "più squadre con lo stesso nome: scelta leggibile"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-FROM",
@@ -854,7 +981,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "simulation",
@@ -886,7 +1014,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "simulation",
@@ -918,7 +1047,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "simulation",
@@ -938,7 +1068,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "simulation",
@@ -958,7 +1089,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "simulation",
@@ -982,7 +1114,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "simulation",
@@ -1002,7 +1135,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "simulation",
@@ -1023,7 +1157,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Simulazione"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-SELECTION",
@@ -1037,7 +1177,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "simulation",
@@ -1057,7 +1198,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "simulation",
@@ -1078,7 +1220,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-ODDS-MAX",
@@ -1092,7 +1240,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "simulation",
@@ -1113,7 +1262,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-HOME-MAX",
@@ -1128,7 +1283,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-DRAW-MIN",
@@ -1143,7 +1304,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-DRAW-MAX",
@@ -1158,7 +1325,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-AWAY-MIN",
@@ -1173,7 +1346,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-AWAY-MAX",
@@ -1188,7 +1367,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-TEAM",
@@ -1202,7 +1387,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "simulation",
@@ -1222,7 +1408,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "simulation",
@@ -1243,7 +1430,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Simulazione"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-MM-MODEL",
@@ -1258,7 +1451,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Simulazione"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-MM-VALUE",
@@ -1273,7 +1472,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Simulazione"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-SUBMIT",
@@ -1288,7 +1493,8 @@
         96,
         99
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "simulation",
@@ -1320,7 +1526,13 @@
         34
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Simulazione"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-COMPARE",
@@ -1333,7 +1545,8 @@
       "issues": [
         34
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "compare",
@@ -1353,7 +1566,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "compare",
@@ -1373,7 +1587,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "compare",
@@ -1394,7 +1609,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-PIT-MODE",
@@ -1408,7 +1629,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "compare",
@@ -1428,7 +1650,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "compare",
@@ -1449,7 +1672,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-A-STRATEGY",
@@ -1463,7 +1692,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "compare",
@@ -1484,7 +1714,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-A-SIDE",
@@ -1499,7 +1735,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-A-ODDS-MIN",
@@ -1514,7 +1756,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-A-ODDS-MAX",
@@ -1529,7 +1777,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-A-HOME-MIN",
@@ -1544,7 +1798,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-A-HOME-MAX",
@@ -1559,7 +1819,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-A-DRAW-MIN",
@@ -1574,7 +1840,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-A-DRAW-MAX",
@@ -1589,7 +1861,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-A-AWAY-MIN",
@@ -1604,7 +1882,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-A-AWAY-MAX",
@@ -1619,7 +1903,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-A-TEAM",
@@ -1634,7 +1924,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-A-VENUE",
@@ -1649,7 +1945,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-A-STAKE",
@@ -1664,7 +1966,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-A-BANKROLL",
@@ -1679,7 +1987,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-A-MM-MODEL",
@@ -1694,7 +2008,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-A-MM-VALUE",
@@ -1709,7 +2029,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-B-STRATEGY",
@@ -1723,7 +2049,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "compare",
@@ -1743,7 +2070,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "compare",
@@ -1763,7 +2091,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "compare",
@@ -1784,7 +2113,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-B-ODDS-MAX",
@@ -1798,7 +2133,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "compare",
@@ -1819,7 +2155,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-B-HOME-MAX",
@@ -1834,7 +2176,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-B-DRAW-MIN",
@@ -1849,7 +2197,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-B-DRAW-MAX",
@@ -1864,7 +2218,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-B-AWAY-MIN",
@@ -1879,7 +2239,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-B-AWAY-MAX",
@@ -1894,7 +2260,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-B-TEAM",
@@ -1909,7 +2281,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-B-VENUE",
@@ -1924,7 +2302,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-B-STAKE",
@@ -1939,7 +2323,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-B-BANKROLL",
@@ -1954,7 +2344,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-B-MM-MODEL",
@@ -1969,7 +2365,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-B-MM-VALUE",
@@ -1984,7 +2386,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-C-STRATEGY",
@@ -1998,7 +2406,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "compare",
@@ -2019,6 +2428,7 @@
         96
       ],
       "status": "IMPLEMENTED",
+      "evidence": "NONE",
       "exercised_by": []
     },
     {
@@ -2034,6 +2444,7 @@
         96
       ],
       "status": "IMPLEMENTED",
+      "evidence": "NONE",
       "exercised_by": []
     },
     {
@@ -2049,6 +2460,7 @@
         96
       ],
       "status": "IMPLEMENTED",
+      "evidence": "NONE",
       "exercised_by": []
     },
     {
@@ -2064,6 +2476,7 @@
         96
       ],
       "status": "IMPLEMENTED",
+      "evidence": "NONE",
       "exercised_by": []
     },
     {
@@ -2079,6 +2492,7 @@
         96
       ],
       "status": "IMPLEMENTED",
+      "evidence": "NONE",
       "exercised_by": []
     },
     {
@@ -2094,6 +2508,7 @@
         96
       ],
       "status": "IMPLEMENTED",
+      "evidence": "NONE",
       "exercised_by": []
     },
     {
@@ -2109,6 +2524,7 @@
         96
       ],
       "status": "IMPLEMENTED",
+      "evidence": "NONE",
       "exercised_by": []
     },
     {
@@ -2124,6 +2540,7 @@
         96
       ],
       "status": "IMPLEMENTED",
+      "evidence": "NONE",
       "exercised_by": []
     },
     {
@@ -2139,6 +2556,7 @@
         96
       ],
       "status": "IMPLEMENTED",
+      "evidence": "NONE",
       "exercised_by": []
     },
     {
@@ -2154,6 +2572,7 @@
         96
       ],
       "status": "IMPLEMENTED",
+      "evidence": "NONE",
       "exercised_by": []
     },
     {
@@ -2169,6 +2588,7 @@
         96
       ],
       "status": "IMPLEMENTED",
+      "evidence": "NONE",
       "exercised_by": []
     },
     {
@@ -2184,6 +2604,7 @@
         96
       ],
       "status": "IMPLEMENTED",
+      "evidence": "NONE",
       "exercised_by": []
     },
     {
@@ -2199,7 +2620,13 @@
         96
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-C-BANKROLL",
@@ -2213,7 +2640,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "compare",
@@ -2233,7 +2661,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "compare",
@@ -2253,7 +2682,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "compare",
@@ -2273,7 +2703,8 @@
         34,
         96
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "compare",
@@ -2293,7 +2724,13 @@
         34
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-CMP-BACK-SIM",
@@ -2307,7 +2744,13 @@
         34
       ],
       "status": "IMPLEMENTED",
-      "exercised_by": []
+      "evidence": "SEEN",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
     },
     {
       "id": "CTL-NOTFOUND-BOARD",
@@ -2320,7 +2763,8 @@
       "issues": [
         3
       ],
-      "status": "TESTED",
+      "status": "IMPLEMENTED",
+      "evidence": "ACTUATED",
       "exercised_by": [
         {
           "journey": "general-navigation",
