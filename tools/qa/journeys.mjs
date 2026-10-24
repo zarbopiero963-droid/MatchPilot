@@ -6,6 +6,7 @@
 // (raw null/undefined/NaN, horizontal overflow, basic accessibility, truncated text, overlapping controls) and fails
 // on any JavaScript error, failed request or unexpected HTTP error.
 import assert from 'node:assert/strict';
+import {BADGES, httpErrorState} from '../../src/web/states.js';
 
 // Tablet 820 is required too (D12 decision 24/10, MP-REQ-UI-1003/1069): every journey passes on the three.
 export const VIEWPORTS = {desktop: {width: 1280, height: 800}, tablet: {width: 820, height: 1180}, mobile: {width: 390, height: 844}};
@@ -103,6 +104,27 @@ const TOOL_SPECS = [
       ...d.grid.cells.map(c => [`score_${c.home}-${c.away}`, `${shown(c.percent)}%`])],
     ['xg_home', '12', 'Gol attesi casa']],
 ];
+
+// MP-UI-PR-007 (MP-REQ-UI-1010, 1028): the browser negative matrix. Every view that reads the API is opened with its
+// request answered by each failure in turn: the page shows the state of that failure in the same words on every view
+// (src/web/states.js), keeps the code, offers Riprova, never a blank page or a false result. A view with a state of its
+// own for a status (the Simulazione and the Confronto when another run is going) shows that state instead.
+const MATRIX_CODES = {403: 'FORBIDDEN', 404: 'NOT_FOUND', 409: 'CONFLICT', 414: 'URI_TOO_LONG', 429: 'BUSY', 500: 'INTERNAL', 503: 'UNAVAILABLE'};
+const MATRIX_CMP = 'from=2024-08-01&to=2024-08-31&a_strategy=mp-ref-fav-back-1&b_strategy=mp-ref-fav-back-1';
+const matrixViews = ({day, matchId}) => [
+  {name: 'Oggi', hash: `#/board?date=${day}`, path: '/api/v1/fpt/matches'},
+  {name: 'Ricerca', hash: '#/search?run=1', path: '/api/v1/fpt/search'},
+  {name: 'Partita', hash: `#/match?id=${encodeURIComponent(matchId)}`, path: '/api/v1/fpt/match-analysis'},
+  {name: 'Simulazione', hash: '#/sim?run=1&from=2024-08-01&to=2024-08-31', path: '/api/v1/hist/backtest', own: {429: 'sim-busy'}},
+  {name: 'Confronto', hash: `#/compare?run=1&${MATRIX_CMP}`, path: '/api/v1/hist/compare', own: {429: 'sim-busy', 414: 'cmp-too-long'}},
+  {name: 'Strumenti', hash: '#/tools?tool=odds&odds=2+3&run=1', path: '/api/v1/tools/odds'},
+  {name: 'Fornitori', hash: '#/providers', path: '/api/v1/providers'},
+  {name: 'API', hash: '#/endpoints', path: '/api/v1/endpoints'},
+];
+const MATRIX_PATHS = matrixViews({day: '', matchId: ''}).map(view => view.path);
+const matrixStep = code => `matrice negativa: errore ${code} su ogni vista, stesso stato, codice conservato, Riprova`;
+const MATRIX_TIMEOUT_STEP = 'matrice negativa: rete scaduta su ogni vista, connessione non disponibile';
+const MATRIX_LOGIN_STEP = 'matrice negativa: sessione scaduta (401) su ogni vista, si va all’accesso e si torna alla pagina';
 
 export const JOURNEYS = [
   {
@@ -245,7 +267,7 @@ export const JOURNEYS = [
   },
   {
     id: 'dashboard', surface: 'Dashboard', title: 'Riquadri, copertura per campionato, N/D, indisponibilità di una route',
-    allowHttp: [{path: '/api/v1/tc/live', status: 503}],
+    allowHttp: [{path: '/api/v1/tc/live', status: 503, step: 'una route indisponibile: solo il suo riquadro è N/D con il motivo'}],
     async run({page, base, step, api}) {
       const providers = await api('/api/v1/providers');
       const coverage = (await api('/api/v1/fpt/coverage-competitions')).data.rows;
@@ -337,7 +359,8 @@ export const JOURNEYS = [
   },
   {
     id: 'daily-board', surface: 'Daily Board', title: 'Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida',
-    allowHttp: [{path: '/api/v1/fpt/matches', status: 503}, {path: '/api/v1/providers', status: 503}],
+    allowHttp: [{path: '/api/v1/fpt/matches', status: 503, step: 'errore dell’API: messaggio semplice, codice conservato, Riprova'},
+      {path: '/api/v1/providers', status: 503, step: 'un errore della route di aggiornamento non resta in memoria'}],
     async run({page, base, step, asserted, api, seed}) {
       const day = seed.busyDay;
       const boardDay = () => page.getAttribute('[data-testid="board-day"] time', 'datetime');
@@ -590,7 +613,7 @@ export const JOURNEYS = [
   },
   {
     id: 'search', surface: 'Ricerca', title: 'Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione',
-    allowHttp: [{path: '/api/v1/fpt/search', status: 400}, {path: '/api/v1/fpt/search', status: 503}],
+    allowHttp: [{path: '/api/v1/fpt/search', status: 400}, {path: '/api/v1/fpt/search', status: 503, step: 'pagina successiva in errore: le righe restano'}],
     async run({page, base, step, asserted, api, seed}) {
       await step('tutte le partite, pagina dopo pagina, fino alla fine', async () => {
         const expected = (await api('/api/v1/fpt/search?limit=500')).data.rows;
@@ -987,7 +1010,7 @@ export const JOURNEYS = [
   },
   {
     id: 'simulation', surface: 'Simulazione', title: 'Backtest: modalità rigorosa e ricerca etichettata, valori uguali all’API, capitale, troncamento, errori',
-    allowHttp: [{path: '/api/v1/hist/backtest', status: 400}, {path: '/api/v1/hist/backtest', status: 429}, {path: '/api/v1/hist/backtest', status: 503}],
+    allowHttp: [{path: '/api/v1/hist/backtest', status: 400}, {path: '/api/v1/hist/backtest', status: 429}, {path: '/api/v1/hist/backtest', status: 503, step: 'servizio non disponibile: stato di errore con Riprova'}],
     async run({page, base, step, asserted, api, seed}) {
       const backtest = query => api(`/api/v1/hist/backtest?${new URLSearchParams(query)}`);
       const submit = async () => {
@@ -1282,6 +1305,57 @@ export const JOURNEYS = [
         await page.waitForSelector('[data-testid="cmp-invalid"]');
         assert.equal(await page.getAttribute('[data-testid="cmp-invalid"]', 'data-fields'), 'a_odds_min');
       }, {screenshot: true});
+      // MP-UI-PR-007 (MP-REQ-UI-1077): a family of controls is not proven by a sample. Every field of every configuration,
+      // C included, is actuated; its value reaches the API request and the result shown is the API's for that request.
+      await step('ogni campo di ogni configurazione, anche la C: arriva all’API e il risultato è quello dell’API', async () => {
+        const prices = {odds_min: '1.2', odds_max: '9', home_min: '1.1', home_max: '20', draw_min: '1.5', draw_max: '15', away_min: '1.1', away_max: '30'};
+        const rules = {a: {selection: 'HOME', side: 'BACK', team: 'Ajax', venue: 'HOME'}, b: {selection: 'DRAW', side: 'LAY', team: 'PSV', venue: 'AWAY'},
+          c: {selection: 'AWAY', side: 'BACK', team: 'Feyenoord', venue: 'HOME'}};
+        // Stake and money management exclude each other: two runs give every configuration both.
+        const runs = [{a: {stake: '3'}, b: {bankroll: '100', mm_model: 'PERCENT_BANKROLL', mm_value: '2'}, c: {stake: '4'}},
+          {a: {bankroll: '200', mm_model: 'FIXED_STAKE', mm_value: '5'}, b: {stake: '6'}, c: {bankroll: '50', mm_model: 'FIXED_STAKE', mm_value: '1'}}];
+        const id = name => `CTL-CMP-${name.toUpperCase().replace(/_/g, '-')}`;
+        for (const money of runs) {
+          await fresh(page, `${base}/#/compare`);
+          await page.waitForSelector('[data-testid="cmp-form"]');
+          await page.fill('input[name="from"]', '2024-08-01');
+          await page.fill('input[name="to"]', '2024-08-31');
+          await page.selectOption('select[name="pit_mode"]', 'NON_PIT_RESEARCH');
+          await page.selectOption('select[name="competition"]', seed.eredivisie.competition);
+          await page.fill('input[name="max_events"]', '200');
+          const sentExpected = {from: '2024-08-01', to: '2024-08-31', pit_mode: 'NON_PIT_RESEARCH', competition: seed.eredivisie.competition, max_events: '200'};
+          const used = ['from', 'to', 'pit_mode', 'competition', 'max_events', 'submit'];
+          for (const key of ['a', 'b', 'c']) {
+            await page.selectOption(`select[name="${key}_strategy"]`, 'custom');
+            for (const field of ['selection', 'side', 'venue']) await page.selectOption(`select[name="${key}_${field}"]`, rules[key][field]);
+            await page.fill(`input[name="${key}_team"]`, rules[key].team);
+            for (const [field, value] of Object.entries(prices)) await page.fill(`input[name="${key}_${field}"]`, value);
+            for (const field of ['stake', 'bankroll', 'mm_value']) await page.fill(`input[name="${key}_${field}"]`, money[key][field] ?? '');
+            await page.selectOption(`select[name="${key}_mm_model"]`, money[key].mm_model ?? '');
+            // «Personalizzata» is the page's name for rules: the API receives the rules, not a strategy id.
+            Object.assign(sentExpected, ...Object.entries({...rules[key], ...prices, ...money[key]}).map(([field, value]) => ({[`${key}_${field}`]: value})));
+            used.push(...['strategy', 'selection', 'side', 'venue', 'team', ...Object.keys(prices), ...Object.keys(money[key])].map(field => `${key}_${field}`));
+          }
+          const request = page.waitForRequest(r => new URL(r.url()).pathname === '/api/v1/hist/compare');
+          await page.click('[data-testid="cmp-form"] button[type="submit"]');
+          const sent = new URL((await request).url()).searchParams;
+          await asserted(used.map(id), 'every field of A, B and C reaches the API request with its value, and the comparison shown is the API\'s for that request', async () => {
+            assert.deepEqual(Object.fromEntries([...sent].filter(([name]) => name !== 'run')), sentExpected, 'the request carries every field');
+            await outcomeShown(page, '[data-testid="cmp-outcome"]');
+            const data = (await api(`/api/v1/hist/compare?${sent}`)).data;
+            assert.equal(await page.getAttribute('[data-testid="cmp-outcome"]', 'data-reports'), data.variants.map(v => v.report.report_sha256).join(' '));
+            assert.equal(data.variants.length, 3, 'configuration C is compared too');
+          });
+        }
+        await page.click('a[data-control="CTL-CMP-RESET"]');
+        await asserted('CTL-CMP-RESET', 'Azzera empties the form: configuration C back to none, no result', async () => {
+          await page.waitForFunction(() => location.hash === '#/compare' && document.querySelector('select[name="c_strategy"]')?.value === '');
+          assert.equal(await page.locator('[data-testid="cmp-outcome"]').count(), 0);
+          assert.equal(await page.inputValue('input[name="a_stake"]'), '');
+        });
+        await page.click('a[data-control="CTL-CMP-BACK-SIM"]');
+        await asserted('CTL-CMP-BACK-SIM', 'back to the Simulazione', async () => { await titled(page, 'Simulazione'); });
+      });
     },
   },
   {
@@ -1370,8 +1444,11 @@ export const JOURNEYS = [
     // it off, as production does today, so its page offers no save. Each viewport saves its own result (a different
     // stake) and its own strategy key: the checks compare the list before and after, never an absolute count.
     id: 'sim-save', surface: 'Simulazione', title: 'Salvataggi: risultato e strategia salvati e riaperti, nessun duplicato, errori e accesso',
-    allowHttp: [{path: '/api/v1/persistence/status', status: 503}, {path: '/api/v1/backtests/saved', status: 503}, {path: '/api/v1/backtests/saved', status: 401}, {path: '/auth/logout', status: 500, step: 'esci: la sessione si chiude e si torna all’accesso'},
-      {path: '/api/v1/strategies', status: 403}, {path: '/api/v1/strategies', status: 404}, {path: '/api/v1/strategies', status: 500, step: 'strategie: indirizzo non valido, inesistente, archivio non attivo, dati corrotti, permesso mancante, salvataggio spento, private senza accesso'}, {path: '/api/v1/strategies', status: 503}],
+    allowHttp: [{path: '/api/v1/persistence/status', status: 503, step: ['senza accesso del proprietario: nessun salvataggio offerto, archivio non attivo detto in chiaro',
+      'strategie: indirizzo non valido, inesistente, archivio non attivo, dati corrotti, permesso mancante, salvataggio spento, private senza accesso']},
+      {path: '/api/v1/backtests/saved', status: 503, step: ['backtest salvati dalla simulazione: l’elenco dell’API, oppure non disponibile',
+        'errore del server al salvataggio: messaggio, nessun falso successo, si può riprovare']}, {path: '/api/v1/backtests/saved', status: 401}, {path: '/auth/logout', status: 500, step: 'esci: la sessione si chiude e si torna all’accesso'},
+      {path: '/api/v1/strategies', status: 403}, {path: '/api/v1/strategies', status: 404}, {path: '/api/v1/strategies', status: 500, step: 'strategie: indirizzo non valido, inesistente, archivio non attivo, dati corrotti, permesso mancante, salvataggio spento, private senza accesso'}, {path: '/api/v1/strategies', status: 503, step: 'strategie: indirizzo non valido, inesistente, archivio non attivo, dati corrotti, permesso mancante, salvataggio spento, private senza accesso'}],
     async run({page, base, step, asserted, seed, owner}) {
       // Each viewport saves its own result (its stake) and its own strategy key, so the three never meet.
       const width = page.viewportSize().width;
@@ -1401,6 +1478,8 @@ export const JOURNEYS = [
         await simAt(base, research);
         await page.waitForSelector('[data-testid="sim-save-unavailable"][data-code="UNAVAILABLE"]');
         assert.match(await page.textContent('[data-testid="sim-save-unavailable"]'), /l’archivio dei salvataggi non è ancora attivo/);
+        // No way to pages that cannot open: neither the saved backtests nor the strategies (review #251 T-1).
+        assert.deepEqual([await page.locator('[data-testid="sim-saved-link"]').count(), await page.locator('[data-testid="sim-strategies-link"]').count()], [0, 0]);
         await page.unroute('**/api/v1/persistence/status');
       });
       await step('backtest salvati dalla simulazione: l’elenco dell’API, oppure non disponibile', async () => {
@@ -1802,7 +1881,7 @@ export const JOURNEYS = [
     // login is enforced. Each tool's step types every field, so a field that the page ignored would change the request
     // and the answer.
     id: 'trading-tools', surface: 'Strumenti', title: 'Calcolatori di #94: valori uguali all’API, campi rifiutati, azzera, errori del server, accesso',
-    allowHttp: TOOL_SPECS.map(([tool]) => ({path: `/api/v1/tools/${tool}`, status: 400})).concat([{path: '/api/v1/tools/ev', status: 503}]),
+    allowHttp: TOOL_SPECS.map(([tool]) => ({path: `/api/v1/tools/${tool}`, status: 400})).concat([{path: '/api/v1/tools/ev', status: 503, step: 'server in errore o irraggiungibile: detto, con Riprova'}]),
     allowNetwork: [{path: '/api/v1/tools/ev', error: 'net::ERR_INTERNET_DISCONNECTED'}],
     async run({page, base, step, asserted, api, owner}) {
       const result = '[data-testid="tool-result"]';
@@ -1905,6 +1984,76 @@ export const JOURNEYS = [
           assert.equal(refused.status(), 401, 'no calculation without the owner session');
         } finally { await anonymous.close(); }
         assert.equal((await page.request.get(`${base}/api/v1/tools/odds?odds=2%203`)).status(), 200, 'with the login off (production today) the tools answer');
+      });
+    },
+  },
+  {
+    id: 'http-errors', surface: 'Tutte le viste', title: 'Matrice negativa: 401, 403, 404, 409, 414, 429, 500, 503 e rete scaduta su ogni vista con API',
+    // Every allowance is bound to the step that provokes it (review #251).
+    allowHttp: Object.keys(MATRIX_CODES).flatMap(code => MATRIX_PATHS.map(path => ({path, status: Number(code), step: matrixStep(code)})))
+      .concat(MATRIX_PATHS.map(path => ({path, status: 401, step: MATRIX_LOGIN_STEP}))),
+    allowNetwork: MATRIX_PATHS.map(path => ({path, error: 'net::ERR_TIMED_OUT'})),
+    async run({page, base, step, asserted, api, seed}) {
+      const matchId = (await api('/api/v1/fpt/search?limit=1')).data.rows[0].internal_match_id;
+      const views = matrixViews({day: seed.busyDay, matchId});
+      // A view's own request, with or without a query string (the matcher is kept to remove exactly that route).
+      const matchers = new Map(views.map(view => [view, url => url.pathname === view.path]));
+      const failing = (view, answer) => page.route(matchers.get(view), answer);
+      const restore = view => page.unroute(matchers.get(view));
+      for (const [code, errorCode] of Object.entries(MATRIX_CODES)) {
+        await step(`matrice negativa: errore ${code} su ogni vista, stesso stato, codice conservato, Riprova`, async () => {
+          for (const view of views) {
+            await failing(view, route => route.fulfill({status: Number(code), contentType: 'application/json', body: JSON.stringify({api_version: 'v1', error: {code: errorCode, message: 'qa'}})}));
+            await fresh(page, `${base}/${view.hash}`);
+            const own = view.own?.[code];
+            if (own) {
+              await page.waitForSelector(`[data-testid="${own}"]`);
+              assert.equal(await page.locator('.state.error[data-status]').count(), 0, `${view.name} ${code}: its own state, not the generic one`);
+            } else {
+              await page.waitForSelector(`.state.error[data-status="${code}"]`);
+              const state = httpErrorState(Number(code), errorCode);
+              const text = state.badge ? `${BADGES[state.badge].text} ${state.text}` : state.text;
+              assert.equal((await page.textContent('.state.error p')).trim(), text, `${view.name} ${code}: the words of the status`);
+              assert.equal(await page.getAttribute('.state.error', 'data-code'), errorCode, `${view.name} ${code}: the code is kept`);
+              assert.equal((await page.textContent('main h1')).trim(), 'Dati non disponibili', `${view.name} ${code}: a title, never a blank page`);
+              assert.equal(await page.locator('.state.error [data-badge="UNAVAILABLE"]').count(), state.badge ? 1 : 0, `${view.name} ${code}: NON DISPONIBILE only for an unavailable source`);
+            }
+            // Every request of the view has its answer before the next one opens (no response lost on navigation).
+            await page.waitForLoadState('networkidle');
+            if (code === '503') {
+              // Riprova reads the API again: once the source answers, the view shows its data and no error.
+              await restore(view);
+              await page.click('.state.error button');
+              await asserted('CTL-COMMON-RETRY', `${view.name}: Riprova loads the view again once the source answers`, async () => {
+                await page.waitForFunction(() => !document.querySelector('.state.error[data-status]') && document.querySelector('main h1')?.textContent !== 'Caricamento in corso…');
+                assert.notEqual((await page.textContent('main h1')).trim(), 'Dati non disponibili');
+              });
+            } else await restore(view);
+          }
+        });
+      }
+      await step('matrice negativa: rete scaduta su ogni vista, connessione non disponibile', async () => {
+        for (const view of views) {
+          await failing(view, route => route.abort('timedout'));
+          await fresh(page, `${base}/${view.hash}`);
+          await page.waitForSelector('.state.error[data-code="NETWORK"]');
+          assert.equal((await page.textContent('.state.error p')).trim(), httpErrorState(0, 'NETWORK').text, view.name);
+          await restore(view);
+        }
+      });
+      await step('matrice negativa: sessione scaduta (401) su ogni vista, si va all’accesso e si torna alla pagina', async () => {
+        // The login page itself is the server's; here only the way there and the way back are checked.
+        await page.route('**/login?*', route => route.fulfill({status: 200, contentType: 'text/html', body: '<!doctype html><html lang="it"><title>Accesso</title><link rel="icon" href="data:,"><main><h1>Accesso</h1></main></html>'}));
+        for (const view of views) {
+          await failing(view, route => route.fulfill({status: 401, contentType: 'application/json', body: JSON.stringify({api_version: 'v1', error: {code: 'UNAUTHENTICATED', message: 'qa'}})}));
+          await fresh(page, `${base}/${view.hash}`);
+          await page.waitForURL(/\/login\?next=/);
+          assert.equal(new URL(page.url()).searchParams.get('next'), `/${view.hash}`, `${view.name}: back to the same page after the login`);
+          await restore(view);
+        }
+        await page.unroute('**/login?*');
+        await fresh(page, `${base}/#/`);
+        await page.waitForSelector('main h1');
       });
     },
   },

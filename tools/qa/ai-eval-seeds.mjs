@@ -15,8 +15,8 @@ export const SEEDED_DEFECTS = [
     from: "if (typeof value === 'string' && /^-?\\d+(\\.\\d+)?$/.test(value)) return document.createTextNode(formatDecimalText(value));",
     to: "if (typeof value === 'string' && /^-?\\d+(\\.\\d+)?$/.test(value)) return document.createTextNode(value);"},
   {id: 'S2', rule: 'MP-OWNER-PRODUCT-QUALITY-DATA-01: missing data is N/D, never 0',
-    from: "if (missing) return el('span', {class: 'nd', title: 'Valore non disponibile'}, ND);",
-    to: "if (missing) return el('span', {class: 'nd', title: 'Valore non disponibile'}, '0');"},
+    from: "if (missing) return badge('ND');",
+    to: "if (missing) return document.createTextNode('0');"},
   {id: 'S3', rule: 'Italian labels', from: "more: 'Carica altre partite'", to: "more: 'Load more matches'"},
   // V-B1 changed the heading to the day in words; the seed keeps the same defect class (the day before the chosen one).
   {id: 'S4', rule: 'the Daily Board heading names the chosen day',

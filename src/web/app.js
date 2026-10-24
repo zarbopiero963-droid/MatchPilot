@@ -1013,10 +1013,13 @@ function simBets(bets, events, total) {
 // The way to the saved strategies, only when that page can open them (MP-REQ-UI-0290 «voce di menu solo quando la pagina
 // funziona»): the archive is active and the strategies are readable. Otherwise no link, and no error here: the
 // Simulazione works without them.
-async function strategiesLink() {
+// The saved backtests likewise only when their archive is active (MP-UI-PR-007, review #251 T-1, MP-REQ-UI-1029).
+async function savedLinks() {
   const status = await persistence.status();
-  if (!status.ok || status.data?.reads_enabled !== true) return null;
-  return [' · ', el('a', {href: '#/strategies', 'data-testid': 'sim-strategies-link', 'data-control': 'CTL-SIM-STRATEGIES'}, 'Strategie salvate')];
+  if (!status.ok || status.data?.available !== true) return null;
+  const saved = [' · ', el('a', {href: '#/saved', 'data-testid': 'sim-saved-link', 'data-control': 'CTL-SIM-SAVED-LIST'}, 'Backtest salvati')];
+  return status.data.reads_enabled === true
+    ? [...saved, ' · ', el('a', {href: '#/strategies', 'data-testid': 'sim-strategies-link', 'data-control': 'CTL-SIM-STRATEGIES'}, 'Strategie salvate')] : saved;
 }
 
 async function simView(params) {
@@ -1030,8 +1033,7 @@ async function simView(params) {
     params.get('pit_mode') === 'NON_PIT_RESEARCH' ? researchNotice() : null,
     simForm(params, competitions),
     el('p', {class: 'meta'}, el('a', {href: compareHref(params), 'data-testid': 'sim-compare-link', 'data-control': 'CTL-SIM-COMPARE'}, 'Confronta più strategie sugli stessi dati'),
-      ' · ', el('a', {href: '#/saved', 'data-testid': 'sim-saved-link', 'data-control': 'CTL-SIM-SAVED-LIST'}, 'Backtest salvati'),
-      await strategiesLink())];
+      await savedLinks())];
   if (params.get('run') !== '1') return [...head, el('p', {class: 'state empty'}, 'Scegli il periodo e premi Simula.')];
   const api = {};
   for (const key of SIM_FIELDS) if (params.get(key)) api[key] = params.get(key);
