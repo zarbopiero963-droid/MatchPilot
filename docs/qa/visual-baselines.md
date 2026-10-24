@@ -310,3 +310,13 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `strategie-private-desktop.png` `e5b8650518d2f20ce26f7c174d4a4086c877d24278e70b8b4e4d085a2e50b99b`
   - `strategie-private-mobile.png` `451c6c362acb243aad9bcbaaffc8f441b6648a7ebfd2707c149da09daa010891`
   - `strategie-private-tablet.png` `86a0737374540b77f868c37484b49fb75af892de61aee2fd7ba54824d74c3aac`
+
+## 2026-10-24 — PR #251 final hardening: the Simulazione links the saved strategies only when they can be read (MP-REQ-UI-0290); in the visual scene the archive is not readable, so the link is absent
+
+- Approval: MP-OWNER-UI006-FINAL-UI007-01
+- Run: commit `f2cc06fc21c01b62dda0f6666e0c2b350719c8df`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `simulazione-desktop.png` `ca5227501c8139a3868c0b011e1e7f54f4cf991e992b5041ae85ae8110cc4a4e`
+  - `simulazione-ricerca-mobile.png` `426db5e48038167af34f174a5acae7372ec3aae88e3c4e57916ab9374b1f31aa`
+  - `simulazione-tablet.png` `7befdc4ba62d943120c9fb8776e66b806df4c3f6603a011cd5b974b461a468a3`
