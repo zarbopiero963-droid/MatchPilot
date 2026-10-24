@@ -6,14 +6,17 @@
 // provenance stay in data-* attributes and tooltips, and in the technical views (docs/qa/ui-text-inventory.md).
 
 import {createPersistence} from './persistence.js';
+import {badgeSpec, httpErrorState, pitBadgeKind} from './states.js';
 
 const ND = 'N/D';
 
 class ApiFailure extends Error {
-  constructor(status, code, message) {
+  constructor(status, code, message, fields = []) {
     super(message || `HTTP ${status}`);
     this.status = status;
     this.code = code || `HTTP_${status}`;
+    // The request parameters a refusal is about, as the server names them (MP-REQ-UI-1046); never read from the message.
+    this.fields = Array.isArray(fields) ? fields.filter(name => typeof name === 'string') : [];
   }
 }
 
@@ -36,6 +39,13 @@ function el(tag, attrs = {}, ...children) {
   return node;
 }
 
+// The one badge component of every view (MP-REQ-UI-1043): the kind in data-badge, its text and its explanation from
+// states.js. N/D keeps its quiet style (class nd); the other kinds share the badge style.
+function badge(kind, {title = null, tag = 'span', ...attrs} = {}) {
+  const spec = badgeSpec(kind);
+  return el(tag, {class: kind === 'ND' ? 'nd' : `badge badge-${kind.toLowerCase().replace('_', '-')}`, 'data-badge': kind, title: title ?? spec.title, ...attrs}, spec.text);
+}
+
 // Owner login enforced (R-04): go to the login page and come back here. Returns the error the view throws (the render
 // ignores it: the page is leaving).
 const loginHref = () => `/login?next=${encodeURIComponent(location.pathname + location.hash)}`;
@@ -53,7 +63,7 @@ async function getJson(path) {
   }
   if (response.status === 401) throw toLogin();
   const body = await response.json().catch(() => null);
-  if (!response.ok) throw new ApiFailure(response.status, body?.error?.code, body?.error?.message);
+  if (!response.ok) throw new ApiFailure(response.status, body?.error?.code, body?.error?.message, body?.error?.fields);
   if (!body || typeof body !== 'object' || !('data' in body)) throw new ApiFailure(response.status, 'BAD_ENVELOPE', 'risposta senza envelope v1');
   return body;
 }
@@ -172,7 +182,7 @@ function instant(value) {
 export function formatScalar(value) {
   const missing = value === null || value === undefined || (typeof value === 'number' && !Number.isFinite(value))
     || (typeof value === 'string' && value.trim() === '');
-  if (missing) return el('span', {class: 'nd', title: 'Valore non disponibile'}, ND);
+  if (missing) return badge('ND');
   if (typeof value === 'boolean') return el('span', {class: value ? 'ok' : 'bad'}, value ? 'sì' : 'no');
   if (typeof value === 'number') return document.createTextNode(formatNumber(value));
   if (INSTANT.test(value)) return instant(value);
@@ -220,14 +230,17 @@ function renderValue(value) {
 }
 
 const metaLine = body => el('p', {class: 'meta'},
-  'Fonte: ', body.meta?.source ?? ND, ' · generato: ', formatScalar(body.meta?.generated_at), ' · versione codice: ', body.meta?.code_version ?? ND);
+  'Fonte: ', body.meta?.source ?? badge('ND'), ' · generato: ', formatScalar(body.meta?.generated_at), ' · versione codice: ', body.meta?.code_version ?? badge('ND'));
 
 const loading = what => el('p', {class: 'state loading', role: 'status', 'data-what': what}, 'Caricamento in corso…');
 
-// The reason of a failure stays available (data-code and the tooltip), the page says what happened in plain words.
+// The reason of a failure stays available (data-code and the tooltip), the page says what happened in plain words: one
+// wording per status class on every view (states.js, MP-REQ-UI-1010), with the NON DISPONIBILE badge for an
+// unavailable source.
 function errorState(error, retry) {
-  return el('div', {class: 'state error', role: 'alert', 'data-code': error.code, title: reasonText(error)},
-    el('p', {}, error.code === 'NETWORK' ? 'Connessione non disponibile: i dati non sono stati caricati.' : 'I dati non sono disponibili in questo momento.'),
+  const state = httpErrorState(error.status ?? 0, error.code);
+  return el('div', {class: 'state error', role: 'alert', 'data-code': error.code, 'data-status': String(error.status ?? 0), 'data-kind': state.kind, title: reasonText(error)},
+    el('p', {}, state.badge ? [badge(state.badge), ' '] : null, state.text),
     el('button', {type: 'button', onclick: retry, 'data-control': 'CTL-COMMON-RETRY'}, 'Riprova'));
 }
 
@@ -291,7 +304,7 @@ function tile(title, testid, route, settled, body) {
   const source = body => el('p', {class: 'meta'}, 'Fonte: ', el('code', {}, route), body ? [' · generato: ', formatScalar(body.meta?.generated_at)] : '');
   if (settled.status === 'rejected') {
     return el('section', {class: 'card tile', 'data-testid': testid, 'data-state': 'error'}, head,
-      el('p', {class: 'nd', 'data-field': 'value'}, ND),
+      badge('ND', {tag: 'p', 'data-field': 'value'}),
       el('p', {class: 'state partial', role: 'status', 'data-code': settled.reason?.code ?? '', title: reasonText(settled.reason)}, 'Dato non disponibile in questo momento.'), source());
   }
   const content = body(settled.value.data, settled.value);
@@ -529,7 +542,7 @@ const percent = value => value === null || value === undefined ? formatScalar(nu
 const rowsById = venues => new Map(Object.values(venues ?? {}).flatMap(venue => venue.rows ?? []).map(row => [row.internal_match_id, row]));
 
 function formChips(form, rows, label) {
-  if (!Array.isArray(form) || form.length === 0) return el('span', {class: 'nd', 'data-field': 'form'}, ND);
+  if (!Array.isArray(form) || form.length === 0) return badge('ND', {'data-field': 'form'});
   return el('span', {class: 'form', 'data-field': 'form', role: 'list', 'aria-label': label}, form.map(item => {
     const row = rows.get(item.match_id);
     const what = row ? `${FORM_WORD[item.result]}: ${row.home_name} ${row.home_score}–${row.away_score} ${row.away_name}, ${dayText(row.match_date)}` : FORM_WORD[item.result];
@@ -637,7 +650,10 @@ async function matchView(params) {
 
   const filters = el('section', {class: 'card fbar', 'data-testid': 'match-filters'},
     filter('Squadra', 'team', SCOPES, scope), filter('Campione', 'window', WINDOWS, sample), filter('Campo', 'venue', VENUES, venue));
+  // The PIT label of the analysis is visible, not only an attribute (MP-REQ-UI-1032): today PIT_NOT_VERIFIED, so NON PIT.
+  const pit = pitBadgeKind(data.method?.pit);
   const cutoff = el('p', {class: 'updated', 'data-testid': 'cutoff', 'data-cutoff': data.method?.cutoff_before ?? ''},
+    pit ? [badge(pit, {'data-testid': 'pit-badge'}), ' '] : null,
     'Statistiche delle partite concluse prima di ', calendarDay(data.method?.cutoff_before ?? match.match_date, LONG_DAY), '; quelle dello stesso giorno sono escluse.');
   const teamCards = ['home', 'away'].filter(shown).map(side => el('section', {class: 'card source', 'data-testid': `team-${side}`, 'data-team': data.teams?.[side]?.team_id ?? '',
     'data-venue': teamVenue(side), 'data-window': sample},
@@ -679,7 +695,7 @@ function searchForm(params, competitions) {
     el('label', {}, 'Squadra ', input('team', {type: 'search', placeholder: 'es. Ajax', autocomplete: 'off'})),
     el('label', {}, 'Sede ', select('venue', [['', 'Casa o trasferta'], ['home', 'Casa'], ['away', 'Trasferta']])),
     el('label', {}, 'Campionato ', competitions.length ? select('competition', competitionOptions)
-      : el('span', {class: 'nd', title: 'Nessun campionato disponibile'}, ND)),
+      : badge('ND', {title: 'Nessun campionato disponibile'})),
     el('label', {}, 'Dal ', input('from', {type: 'date'})),
     el('label', {}, 'Prima del ', input('before', {type: 'date'})),
     el('label', {}, 'Risultato ', select('result', [['', 'Qualsiasi'], ['FINAL', 'Finale'], ['NO_RESULT', 'Senza risultato'], ['NOT_STARTED', 'Non iniziata']])),
@@ -753,9 +769,8 @@ async function searchView(params, mine) {
     first = await getJson(`${path}?${queryString(api)}`);
   } catch (error) {
     if (error?.status === 400) {
-      // The server names the parameter in its message: the page names the field the user filled in.
-      // A parameter name is a token of its own in the message ("fav_min must be…", "invalid team"); team_id counts as team.
-      const fields = Object.keys(FIELD_LABELS).filter(name => new RegExp(`(?<![a-z_])${name}(?:_id)?(?![a-z_])`).test(error.message ?? ''));
+      // The server names the parameters it refused (error.fields): the page names the fields the user filled in.
+      const fields = Object.keys(FIELD_LABELS).filter(name => error.fields.includes(name));
       return [...head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'search-invalid', 'data-outcome': '', 'data-fields': fields.join(' '), title: reasonText(error)},
         fields.length ? `Valore non valido in: ${fields.map(name => FIELD_LABELS[name]).join(', ')}. Correggi il campo e riprova.` : 'Filtri non validi. Correggi i campi e riprova.')];
     }
@@ -801,12 +816,12 @@ async function endpointsView() {
     el('section', {class: 'card', 'data-testid': 'endpoints'}, el('h2', {}, `Endpoint (${endpoints.length})`),
       endpoints.length === 0 ? el('p', {class: 'state empty'}, 'Nessun endpoint pubblicato.') :
         table(['Percorso', 'Fonte', 'Descrizione', 'Parametri'], endpoints.map(endpoint => el('tr', {'data-path': endpoint.path},
-          el('td', {}, el('code', {}, endpoint.path ?? ND)), el('td', {}, formatScalar(endpoint.source)), el('td', {}, formatScalar(endpoint.summary)),
+          el('td', {}, (endpoint.path ? el('code', {}, endpoint.path) : badge('ND'))), el('td', {}, formatScalar(endpoint.source)), el('td', {}, formatScalar(endpoint.summary)),
           el('td', {}, Object.keys(endpoint.params || {}).length ? Object.entries(endpoint.params).map(([name, spec]) => `${name}${spec?.required ? '*' : ''}`).join(', ') : '—'))))),
     el('section', {class: 'card'}, el('h2', {}, `Route storiche (${legacy.length})`),
       legacy.length === 0 ? el('p', {class: 'state empty'}, 'Nessuna route storica.') :
         table(['Route', 'Stato', 'Successore'], legacy.map(route => el('tr', {},
-          el('td', {}, el('code', {}, route.route ?? ND)), el('td', {}, code(route.status)),
+          el('td', {}, (route.route ? el('code', {}, route.route) : badge('ND'))), el('td', {}, code(route.status)),
           el('td', {}, route.successor ?? (route.status === 'KEPT' ? el('span', {class: 'empty', title: 'La route resta: non ha un successore'}, 'nessuno') : formatScalar(null))))))),
     metaLine(body),
   ];
@@ -845,7 +860,13 @@ const labelled = (map, value) => typeof value === 'string' && Object.hasOwn(map,
 
 // The research label: shown on the form when chosen and above every research result, never hidden in a tooltip.
 const researchNotice = () => el('p', {class: 'state partial research', role: 'note', 'data-testid': 'sim-research'},
-  el('b', {}, 'RICERCA ESPLORATIVA'), ' — le quote sono state acquisite dopo l’inizio delle partite: i risultati servono solo a studiare il motore e non dimostrano alcuna redditività.');
+  badge('NON_PIT'), ' ', el('b', {}, 'RICERCA ESPLORATIVA'), ' — le quote sono state acquisite dopo l’inizio delle partite: i risultati servono solo a studiare il motore e non dimostrano alcuna redditività.');
+
+// The PIT label of a result (MP-REQ-UI-1032): its mode as the server reports it, never inferred.
+function pitBadge(value) {
+  const kind = pitBadgeKind(value);
+  return kind ? [' ', badge(kind, {'data-testid': 'pit-badge'})] : null;
+}
 
 // The comparison opens with the simulation's data and its strategy as configuration A.
 function compareHref(params) {
@@ -896,7 +917,7 @@ function simForm(params, competitions) {
     el('label', {}, 'Dal ', input('from', {type: 'date', required: true})),
     el('label', {}, 'Al ', input('to', {type: 'date', required: true})),
     el('label', {}, 'Campionato ', competitions.length ? select('competition', competitionOptions, '')
-      : el('span', {class: 'nd', title: 'Nessun campionato disponibile'}, ND)),
+      : badge('ND', {title: 'Nessun campionato disponibile'})),
     el('label', {}, 'Strategia ', strategySelect),
     el('label', {}, 'Modalità ', modeSelect),
     el('label', {}, 'Puntata ', input('stake', {type: 'number', step: '0.01', min: '0.01', placeholder: '1'})),
@@ -1022,14 +1043,8 @@ async function simView(params) {
     body = await getJson(`/api/v1/hist/backtest?${queryString(api)}`);
   } catch (error) {
     if (error?.status === 400) {
-      // The money management refusals name the model's own parameter (params.stake, params.percent…): that is «Valore della gestione».
-      // An engine refusal names its field before the colon (config.<path>: …): only that path is read, so words of the
-      // explanation (e.g. «1 to 100») are never taken for fields.
-      const raw = String(error.message ?? '');
-      const scoped = /^config\.([\w.]+):/.exec(raw);
-      // A money-management refusal names the model's parameter or the missing capital after it, so its text is read whole.
-      const message = (scoped && scoped[1] !== 'money_management' ? scoped[1] : raw).replace(/\bparams\.[a-z_]+/g, 'mm_value').replace(/\bconditions\.teams\b/g, 'team');
-      const fields = Object.keys(SIM_LABELS).filter(name => new RegExp(`(?<![a-z_])${name}(?![a-z_])`).test(message));
+      // The server names the request parameters it refused (error.fields): the page names the fields of the form.
+      const fields = Object.keys(SIM_LABELS).filter(name => error.fields.includes(name));
       return [...head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'sim-invalid', 'data-outcome': '', 'data-fields': fields.join(' '), title: reasonText(error)},
         fields.length ? `Valore non valido in: ${fields.map(name => SIM_LABELS[name]).join(', ')}. Correggi il campo e riprova.` : 'Impostazioni non valide. Correggi i campi e riprova.')];
     }
@@ -1051,7 +1066,7 @@ function simResult(data) {
   const reader = data.reader ?? {};
   const research = isResearch(report);
   const outcome = el('h2', {'data-testid': 'sim-outcome', 'data-outcome': '', 'data-status': report.status ?? '', 'data-certified': report.certification ? String(report.certification.certified) : '',
-    'data-pit-mode': report.config?.pit_mode ?? '', 'data-report': report.report_sha256 ?? ''}, 'Esito della simulazione');
+    'data-pit-mode': report.config?.pit_mode ?? '', 'data-report': report.report_sha256 ?? ''}, 'Esito della simulazione', pitBadge(report.config?.pit_mode));
   const status = {
     INSUFFICIENT_PIT_DATA: el('p', {class: 'state empty', role: 'status', 'data-testid': 'sim-no-pit'}, research
       ? 'Nessuna quota utilizzabile nel periodo scelto: non c’è nulla da simulare.'
@@ -1212,7 +1227,7 @@ async function savedView(params) {
     el('thead', {}, el('tr', {}, ['Nome', 'Tipo', 'Salvato il'].map(text => el('th', {scope: 'col'}, text)))),
     el('tbody', {}, rows.map(row => el('tr', {'data-id': String(row.backtest_id), 'data-report': (row.report_sha256 ?? []).join(' ')},
       el('td', {'data-label': 'Nome'}, el('a', {href: savedHref(row.backtest_id), 'data-control': 'CTL-SAVED-OPEN'}, row.name)),
-      el('td', {'data-label': 'Tipo'}, SAVED_KIND[row.kind] ?? ND),
+      el('td', {'data-label': 'Tipo'}, SAVED_KIND[row.kind] ?? badge('ND')),
       el('td', {'data-label': 'Salvato il'}, instant(row.created_at))))))), back];
 }
 
@@ -1397,7 +1412,7 @@ function cmpForm(params, competitions) {
       el('label', {}, 'Dal ', input('from', {type: 'date', required: true})),
       el('label', {}, 'Al ', input('to', {type: 'date', required: true})),
       el('label', {}, 'Campionato ', competitions.length ? select('competition', competitionOptions, '')
-        : el('span', {class: 'nd', title: 'Nessun campionato disponibile'}, ND)),
+        : badge('ND', {title: 'Nessun campionato disponibile'})),
       el('label', {}, 'Modalità ', modeSelect),
       el('label', {}, 'Commissione (es. 0,05 = 5%) ', input('commission', {type: 'number', step: '0.001', min: '0', max: '0.999', placeholder: '0'})),
       el('label', {}, 'Partite al massimo ', input('max_events', {type: 'number', step: '1', min: '1', max: '1000', placeholder: '300'})))),
@@ -1407,19 +1422,9 @@ function cmpForm(params, competitions) {
   el('a', {href: '#/sim', 'data-control': 'CTL-CMP-BACK-SIM'}, 'Torna alla simulazione'));
 }
 
-// A refusal names its configuration («a_side…», «b: config.stake…») and its field.
-function cmpRefusedFields(message) {
-  const raw = String(message ?? '');
-  const scoped = /^([abc]): config\.([\w.]+):/.exec(raw);
-  if (scoped) {
-    const path = scoped[2] === 'money_management' ? raw.slice(raw.indexOf(':', 3) + 1) : scoped[2];
-    const text = path.replace(/\bparams\.[a-z_]+/g, 'mm_value').replace(/\bconditions\.teams\b/g, 'team');
-    return Object.keys(CMP_STRATEGY_LABELS).filter(f => new RegExp(`(?<![a-z_])${f}(?![a-z_])`).test(text)).map(f => `${scoped[1]}_${f}`);
-  }
-  const data = CMP_DATA.filter(f => new RegExp(`(?<![a-z_])${f}(?![a-z_])`).test(raw));
-  const own = [...raw.matchAll(/\b([abc])_([a-z_]+)\b/g)].map(([, key, field]) => `${key}_${field}`).filter(n => CMP_STRATEGY.includes(n.slice(2)));
-  return [...new Set([...data, ...own])];
-}
+// The fields a refusal is about, as the server names them (error.fields, MP-REQ-UI-1046): the shared ones and those of a
+// configuration (a_…, b_…, c_…) the form has.
+const cmpRefusedFields = fields => fields.filter(name => CMP_DATA.includes(name) || (/^[abc]_/.test(name) && CMP_STRATEGY.includes(name.slice(2))));
 const cmpFieldLabel = name => /^[abc]_/.test(name) ? `Configurazione ${name[0].toUpperCase()} · ${CMP_STRATEGY_LABELS[name.slice(2)] ?? name.slice(2)}` : SIM_LABELS[name];
 
 // One line of the side-by-side table: a label and, for each configuration, the API's value.
@@ -1464,7 +1469,7 @@ async function compareView(params) {
     body = await getJson(`/api/v1/hist/compare?${queryString(api)}`);
   } catch (error) {
     if (error?.status === 400) {
-      const fields = cmpRefusedFields(error.message);
+      const fields = cmpRefusedFields(error.fields);
       return [...head, el('p', {class: 'state error', role: 'alert', 'data-testid': 'cmp-invalid', 'data-outcome': '', 'data-fields': fields.join(' '), title: reasonText(error)},
         fields.length ? `Valore non valido in: ${fields.map(cmpFieldLabel).join(', ')}. Correggi il campo e riprova.` : 'Impostazioni non valide. Correggi i campi e riprova.')];
     }
@@ -1488,7 +1493,7 @@ async function compareView(params) {
     ?? (v.report.status === 'OK' && !v.report.metrics ? 'Nessuna scommessa' : 'Completata'));
   return [...head,
     el('h2', {'data-testid': 'cmp-outcome', 'data-outcome': '', 'data-input': body.data?.input_sha256 ?? '', 'data-reports': variants.map(v => v.report.report_sha256).join(' '),
-      'data-pit-mode': variants[0].report.config?.pit_mode ?? ''}, 'Esito del confronto'),
+      'data-pit-mode': variants[0].report.config?.pit_mode ?? ''}, 'Esito del confronto', pitBadge(variants[0].report.config?.pit_mode)),
     research ? researchNotice() : null,
     el('p', {class: 'state partial', role: 'note', 'data-testid': 'sim-certification'},
       'Non certificato: risultati tecnici su dati reali non verificati, non una previsione di guadagno. Stessi dati, stesso periodo e stessa modalità per tutte le configurazioni.'),
@@ -1574,7 +1579,7 @@ const TOOL_RESULTS = {
         el('td', {}, s.fair_odds === null ? formatScalar(null) : calc(s.fair_odds, r.fair_odds[i], `fair_odds_${i}`))))))),
     el('dl', {}, row('Totale delle probabilità', percentOf(d.book_percent, r.book ?? r.probability, 'book')),
       row('Margine', d.overround_percent === null ? formatScalar(null) : percentOf(d.overround_percent, r.overround, 'overround')))],
-  kelly: (d, r) => [el('dl', {}, row('Puntata suggerita', calc(d.stake, r.stake, 'stake')), row('Limite che la determina', el('span', {'data-field': 'governing_limit', 'data-code': d.governing_limit}, LIMIT_TEXT[d.governing_limit] ?? ND)),
+  kelly: (d, r) => [el('dl', {}, row('Puntata suggerita', calc(d.stake, r.stake, 'stake')), row('Limite che la determina', el('span', {'data-field': 'governing_limit', 'data-code': d.governing_limit}, LIMIT_TEXT[d.governing_limit] ?? badge('ND'))),
     row('Kelly pieno', percentOf(d.kelly_full_percent, r.kelly_full, 'kelly_full')), row('Kelly frazionario', percentOf(d.kelly_fractional_percent, r.kelly_fractional, 'kelly_fractional')),
     row('Probabilità implicita della quota', percentOf(d.implied_percent, r.implied_probability, 'implied')), row('Probabilità stimata', percentOf(d.model_percent, r.model_probability, 'model')),
     row('Vantaggio', percentOf(d.edge_percent, r.edge, 'edge')), row('Perdita nel caso peggiore', calc(d.worst_case_loss, r.worst_case_loss, 'worst_case_loss')),
@@ -1589,7 +1594,7 @@ const TOOL_RESULTS = {
     row('Se la selezione perde (netto)', signed(d.if_selection_loses, r.net_profit_if_selection_loses, 'if_selection_loses')),
     row('Se la selezione vince', signed(d.if_selection_wins, null, 'if_selection_wins')),
     row('Probabilità di pareggio della selezione', percentOf(d.break_even_percent, r.break_even_probability, 'break_even')))],
-  hedge: (d, r) => [el('dl', {}, row('Copertura', el('span', {'data-field': 'hedge_side', 'data-code': d.hedge_side}, SIDE_TEXT[d.hedge_side] ?? ND), ' ', calc(d.hedge_stake, r.hedge_stake_theoretical, 'hedge_stake')),
+  hedge: (d, r) => [el('dl', {}, row('Copertura', el('span', {'data-field': 'hedge_side', 'data-code': d.hedge_side}, SIDE_TEXT[d.hedge_side] ?? badge('ND')), ' ', calc(d.hedge_stake, r.hedge_stake_theoretical, 'hedge_stake')),
     row('Responsabilità della copertura', calc(d.hedge_liability, r.hedge_liability, 'hedge_liability')), row('Squilibrio da arrotondamento', calc(d.residual_imbalance, r.residual_imbalance, 'residual'))),
   el('div', {class: 'tablewrap'}, el('table', {}, el('thead', {}, el('tr', {}, ['', 'Se la selezione vince', 'Se la selezione perde'].map(t => el('th', {scope: 'col'}, t)))),
     el('tbody', {},
@@ -1661,6 +1666,7 @@ async function toolsView(params) {
   } catch (error) {
     if (error?.status !== 400) throw error;
     // The server names the parameter first («odds[1]: …», «stake: …»): the label of that field in this form is shown.
+    // The structured error.fields of the other views would change the certified Trading Tools entry: tracked, MP-REQ-UI-1046.
     const name = /^([a-z_]+)/.exec(String(error.message ?? ''))?.[1];
     const label = fields.find(([field]) => field === name)?.[1];
     const form = head.at(-1);

@@ -18,11 +18,14 @@ export const OUTCOME_STATUSES = ['FINAL', 'VOID'];
 // mp-hist-input-2 result version: FINAL with both scores, or NOT_FINAL (postponed, suspended, no result yet) without.
 export const RESULT_STATUSES = ['FINAL', 'NOT_FINAL'];
 
+// `refers` names the config fields the refusal is really about when they differ from the field it is raised on (a money
+// management that needs config.bankroll); by default the field itself.
 export class HistInputError extends Error {
-  constructor(field, message) {
+  constructor(field, message, refers = [field]) {
     super(`${field}: ${message}`);
     this.code = 'BAD_HIST_INPUT';
     this.field = field;
+    this.refers = refers;
   }
 }
 

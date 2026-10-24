@@ -121,14 +121,18 @@ export function validateConfig(config, strategies = STRATEGIES) {
   }
   let mm = null;
   if (Object.hasOwn(config, 'money_management')) {
-    if (!bankroll) throw new HistInputError('config.money_management', 'needs config.bankroll');
+    if (!bankroll) throw new HistInputError('config.money_management', 'needs config.bankroll', ['config.bankroll']);
     // The stake comes from the profile: a config.stake would be ignored, so it is refused rather than snapshotted.
     if (Object.hasOwn(config, 'stake')) throw new HistInputError('config.stake', 'is not used with money_management (the profile sizes the stake)');
     const m = config.money_management;
     if (!m || typeof m !== 'object' || Array.isArray(m) || Object.keys(m).some(k => !['model', 'params', 'caps'].includes(k)))
       throw new HistInputError('config.money_management', 'must be {model, params, caps}');
     try { mmProfileOf(m); } catch (error) {
-      if (error instanceof MMError) throw new HistInputError('config.money_management', `${error.code}: ${error.message}`);
+      // An unknown or unimplemented model is about the model; any other refusal of the profile is about its parameter.
+      if (error instanceof MMError) {
+        throw new HistInputError('config.money_management', `${error.code}: ${error.message}`,
+          [['UNKNOWN_MODEL', 'MODEL_NOT_IMPLEMENTED'].includes(error.code) ? 'config.money_management.model' : 'config.money_management.params']);
+      }
       throw error;
     }
     // Per-scope caps need scope ids the backtest does not assign, so evaluate() would BLOCK every bet: refused here.

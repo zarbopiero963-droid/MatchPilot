@@ -19,6 +19,7 @@ import {join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {JOURNEYS, REQUIRED_JOURNEYS, REQUIRED_VIEWPORTS, VIEWPORTS} from './journeys.mjs';
 import {inventoryIds, loadInventory} from './control-inventory.mjs';
+import {BADGES} from '../../src/web/states.js';
 
 export const REPORT_SCHEMA = 'mp-browser-qa-v1';
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -50,7 +51,7 @@ export const CONTROL_SELECTOR = 'a[href], button, input:not([type="hidden"]), se
 // `knownControls` (the ids of docs/qa/control-inventory.json): every visible control of the page must carry a
 // `data-control` id the inventory lists, so no control can be added without being inventoried.
 export async function invariants(page, allowRawText = [], knownControls = null) {
-  return page.evaluate(([rawSource, allowSources, codeSource, wordSource, known, controlSelector]) => {
+  return page.evaluate(([rawSource, allowSources, codeSource, wordSource, known, controlSelector, badgeTexts]) => {
     const rawValue = new RegExp(rawSource);
     const allowed = allowSources.map(source => new RegExp(source));
     const technical = [new RegExp(codeSource), new RegExp(wordSource, 'i')];
@@ -83,6 +84,16 @@ export async function invariants(page, allowRawText = [], knownControls = null) 
       if (visible(el) && !name(el)) problems.push(`control without accessible name: <${el.tagName.toLowerCase()}> ${el.outerHTML.slice(0, 80)}`);
     }
     for (const img of document.querySelectorAll('img')) if (!img.hasAttribute('alt')) problems.push('img without alt');
+    // Data modes and badges (MP-UI-PR-007, MP-REQ-UI-1029/1043/1079): an area declared DEMO (data-mode, the view itself
+    // included) shows a visible DEMO badge; every badge says exactly the text of its kind in src/web/states.js.
+    for (const area of [main, ...(main?.querySelectorAll('[data-mode="DEMO"]') ?? [])].filter(node => node?.dataset.mode === 'DEMO')) {
+      if (![...area.querySelectorAll('[data-badge="DEMO"]')].some(visible)) problems.push('DEMO data without a visible DEMO badge');
+    }
+    for (const node of document.querySelectorAll('[data-badge]')) {
+      const kind = node.dataset.badge;
+      if (!Object.hasOwn(badgeTexts, kind)) problems.push(`unknown badge ${kind}`);
+      else if (node.textContent.trim() !== badgeTexts[kind]) problems.push(`badge ${kind} shows "${node.textContent.trim().slice(0, 30)}"`);
+    }
     let last = 0;
     for (const h of document.querySelectorAll('main h1, main h2, main h3, main h4')) {
       const level = Number(h.tagName[1]);
@@ -129,7 +140,8 @@ export async function invariants(page, allowRawText = [], knownControls = null) 
       }
     }
     return [...new Set(problems)];
-  }, [RAW_VALUE.source, allowRawText.map(pattern => pattern.source), TECHNICAL_CODE.source, TECHNICAL_WORD.source, knownControls, CONTROL_SELECTOR]);
+  }, [RAW_VALUE.source, allowRawText.map(pattern => pattern.source), TECHNICAL_CODE.source, TECHNICAL_WORD.source, knownControls, CONTROL_SELECTOR,
+    Object.fromEntries(Object.values(BADGES).map(spec => [spec.kind, spec.text]))]);
 }
 
 // The visible inventoried controls of the page.

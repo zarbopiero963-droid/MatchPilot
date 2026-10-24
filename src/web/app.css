@@ -55,6 +55,12 @@ dd{margin:0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
 dd dl{grid-template-columns:minmax(0,1fr);gap:2px;padding-left:8px;border-left:2px solid var(--line)}
 dd dl dd{margin-bottom:6px}
 .nd{color:var(--muted)}
+/* Shared badges (MP-UI-PR-007): DEMO, PIT, NON PIT, NON DISPONIBILE; the kind is in data-badge. */
+.badge{display:inline-block;padding:1px 7px;border-radius:999px;border:1px solid var(--line-2);font:700 11px/1.6 var(--f-body);letter-spacing:.04em;vertical-align:middle;white-space:nowrap;color:var(--ink-2);background:var(--surface-2)}
+.badge-pit{color:var(--ok);border-color:rgba(59,214,154,.45)}
+.badge-non-pit{color:var(--warn);border-color:rgba(255,154,77,.55);background:var(--warn-bg)}
+.badge-demo{color:var(--accent);border-color:rgba(255,181,71,.55);background:var(--accent-soft)}
+.badge-unavailable{color:var(--bad);border-color:rgba(255,95,109,.55);background:var(--bad-bg)}
 .ok{color:var(--ok)}
 .bad{color:var(--bad)}
 /* States: loading, empty, partial and error, each recognisable at a glance. */

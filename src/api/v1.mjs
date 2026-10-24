@@ -16,12 +16,15 @@ const STATUS = {BAD_REQUEST: 400, UNKNOWN_PARAMETER: 400, NOT_FOUND: 404, METHOD
 // Endpoints marked `exclusive` run one request at a time per process (a CPU-bound computation must not pile up).
 const running = new Set();
 
+// `fields` lists the request parameters a refusal is about (MP-REQ-UI-1046): a page marks those fields from the
+// envelope, never by reading the message.
 export class ApiError extends Error {
-  constructor(code, message, details = undefined) {
+  constructor(code, message, details = undefined, fields = undefined) {
     super(message);
     this.code = code;
     this.status = STATUS[code];
     this.details = details;
+    this.fields = fields;
   }
 }
 
@@ -53,6 +56,8 @@ const FPT_REQUIRED = {
 // The query layer names its SQL inputs; errors use the API parameter names instead.
 const FPT_INPUT_NAMES = {team_id: 'team', opponent_id: 'opponent', competition_id: 'competition', season_id: 'season', match_id: 'id', normalized_name: 'q'};
 const apiMessage = message => String(message).replace(/\b(team_id|opponent_id|competition_id|season_id|match_id|normalized_name)\b/g, name => FPT_INPUT_NAMES[name]);
+// A query-layer refusal as a v1 refusal: its message and its fields in the parameter names of the API.
+const queryRefusal = error => new ApiError('BAD_REQUEST', apiMessage(error.message), undefined, (error.fields ?? []).map(name => FPT_INPUT_NAMES[name] ?? name));
 
 // FutPythonTrader endpoints come from the machine-readable query catalog, so v1 never drifts from it.
 const FPT_ENDPOINTS = QUERY_CATALOG.map(entry => ({
@@ -143,18 +148,24 @@ function validateInput(endpoint, url) {
   if (url.search.length > MAX_QUERY_LENGTH) throw new ApiError('URI_TOO_LONG', `query string longer than ${MAX_QUERY_LENGTH} characters`);
   const input = {};
   for (const [name, value] of url.searchParams) {
-    if (!Object.hasOwn(endpoint.params, name)) throw new ApiError('UNKNOWN_PARAMETER', `unknown parameter: ${name.slice(0, 40)}`, {allowed: Object.keys(endpoint.params)});
-    if (Object.hasOwn(input, name)) throw new ApiError('BAD_REQUEST', `parameter repeated: ${name}`);
+    if (!Object.hasOwn(endpoint.params, name)) throw new ApiError('UNKNOWN_PARAMETER', `unknown parameter: ${name.slice(0, 40)}`, {allowed: Object.keys(endpoint.params)}, [name.slice(0, 40)]);
+    if (Object.hasOwn(input, name)) throw new ApiError('BAD_REQUEST', `parameter repeated: ${name}`, undefined, [name]);
     const maxLength = endpoint.params[name].maxLength ?? MAX_PARAM_LENGTH;
-    if (value.length > maxLength) throw new ApiError('BAD_REQUEST', `parameter ${name} longer than ${maxLength} characters`);
-    input[name] = endpoint.params[name].check ? endpoint.params[name].check(value) : value;
+    if (value.length > maxLength) throw new ApiError('BAD_REQUEST', `parameter ${name} longer than ${maxLength} characters`, undefined, [name]);
+    try { input[name] = endpoint.params[name].check ? endpoint.params[name].check(value) : value; }
+    catch (error) {
+      // A value refused by its own check is about this parameter, whatever the check says.
+      if (error instanceof ApiError && !error.fields?.length) error.fields = [name];
+      if (error?.code === 'BAD_QUERY_INPUT') throw queryRefusal(error.fields?.length ? error : Object.assign(error, {fields: [name]}));
+      throw error;
+    }
   }
   for (const [name, spec] of Object.entries(endpoint.params)) {
-    if (spec.required && !Object.hasOwn(input, name)) throw new ApiError('BAD_REQUEST', `missing required parameter: ${name}`);
+    if (spec.required && !Object.hasOwn(input, name)) throw new ApiError('BAD_REQUEST', `missing required parameter: ${name}`, undefined, [name]);
   }
   try { endpoint.precheck?.(input); }
   catch (error) {
-    if (error?.code === 'BAD_QUERY_INPUT') throw new ApiError('BAD_REQUEST', apiMessage(error.message));
+    if (error?.code === 'BAD_QUERY_INPUT') throw queryRefusal(error);
     throw error;
   }
   return input;
@@ -187,7 +198,8 @@ export function envelope(endpoint, data, {codeVersion, now = new Date(), input =
 }
 
 export function errorBody(error) {
-  return {api_version: API_VERSION, error: {code: error.code, message: error.message, ...(error.details ? {details: error.details} : {})}};
+  return {api_version: API_VERSION, error: {code: error.code, message: error.message, ...(error.fields?.length ? {fields: error.fields} : {}),
+    ...(error.details ? {details: error.details} : {})}};
 }
 
 // Returns {status, body}. Never throws; internal errors are reduced to a stable code without details.
@@ -211,7 +223,7 @@ export async function handleV1({method, url}, {withClient, tc, codeVersion = 'un
       let connected = false;
       try { data = await withClient(client => { connected = true; return endpoint.read(client, input); }); }
       catch (error) {
-        if (error?.code === 'BAD_QUERY_INPUT') throw new ApiError('BAD_REQUEST', apiMessage(error.message));
+        if (error?.code === 'BAD_QUERY_INPUT') throw queryRefusal(error);
         // No connection, or a database/driver error (string code such as ECONNRESET or 57P01): the source is
         // unavailable. Any other exception raised while reading is a defect and stays INTERNAL.
         if (!connected || typeof error?.code === 'string') throw new ApiError('UNAVAILABLE', 'data source unavailable');

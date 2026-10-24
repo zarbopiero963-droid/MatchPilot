@@ -49,7 +49,7 @@ const H2H_SQL = `SELECT ${ROW_COLUMNS} FROM fpt_match_facts
 
 export function matchIdOf(value) {
   const id = String(value ?? '').trim();
-  if (!id.startsWith('fpt:') || id.length > MAX_ID || id.includes('\u0000')) throw new QueryInputError('id must be an internal match id (fpt:…)');
+  if (!id.startsWith('fpt:') || id.length > MAX_ID || id.includes('\u0000')) throw new QueryInputError('id must be an internal match id (fpt:…)', ['id']);
   return id;
 }
 

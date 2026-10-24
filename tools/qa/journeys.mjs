@@ -7,7 +7,8 @@
 // on any JavaScript error, failed request or unexpected HTTP error.
 import assert from 'node:assert/strict';
 
-export const VIEWPORTS = {desktop: {width: 1280, height: 800}, mobile: {width: 390, height: 844}};
+// Tablet 820 is required too (D12 decision 24/10, MP-REQ-UI-1003/1069): every journey passes on the three.
+export const VIEWPORTS = {desktop: {width: 1280, height: 800}, tablet: {width: 820, height: 1180}, mobile: {width: 390, height: 844}};
 
 // The formatting rule of the page, applied to API text in the checks (exact digits, comma decimals, dot thousands).
 export const shown = value => {
@@ -436,7 +437,8 @@ export const JOURNEYS = [
         // V-B4 (UI-14): one compact row per match; on a phone the markets go under the teams, never hidden (no data lost).
         const look = await page.evaluate(() => {
           const box = node => node.getBoundingClientRect();
-          return {phone: innerWidth <= 560, board: document.querySelector('[data-testid="paged-list"]').classList.contains('board'),
+          // Below 980px the stylesheet puts the markets under the teams (tablet and phone); above, on the same line.
+          return {phone: innerWidth <= 980, board: document.querySelector('[data-testid="paged-list"]').classList.contains('board'),
             rows: [...document.querySelectorAll('article.match')].map(row => {
               const r = box(row), teams = box(row.querySelector('.teams')), odds = box(row.querySelector('[data-field="odds_1x2"]'));
               const parts = ['.teams', '.score', '[data-field="odds_1x2"]', '[data-field="odd_over25"]', '[data-field="odd_btts_yes"]', '.facts'].map(s => box(row.querySelector(s)));
@@ -447,7 +449,7 @@ export const JOURNEYS = [
         assert.ok(look.board, 'the rows sit in one list card');
         for (const [i, row] of look.rows.entries()) {
           assert.ok(row.inside, `row ${i}: every part shown inside its row`);
-          if (look.phone) assert.ok(row.below, `row ${i}: the markets under the teams on a phone`);
+          if (look.phone) assert.ok(row.below, `row ${i}: the markets under the teams on a phone or a tablet`);
           else {
             assert.ok(row.sameLine, `row ${i}: teams and markets on one line`);
             assert.ok(row.height <= 96, `row ${i}: compact (${row.height}px)`);
@@ -546,7 +548,9 @@ export const JOURNEYS = [
         await fresh(page, `${base}/#/board?date=${day}`);
         await page.waitForSelector('.state.error[role="alert"]');
         assert.equal(await page.getAttribute('.state.error', 'data-code'), 'UNAVAILABLE');
-        assert.equal((await page.textContent('.state.error p')).trim(), 'I dati non sono disponibili in questo momento.');
+        assert.equal((await page.textContent('.state.error p')).trim(), 'NON DISPONIBILE I dati non sono disponibili in questo momento.');
+        assert.ok(await page.locator('.state.error [data-badge="UNAVAILABLE"]').isVisible(), 'the shared NON DISPONIBILE badge');
+        assert.equal(await page.getAttribute('.state.error', 'data-status'), '503');
         assert.equal(await page.textContent('.state.error button'), 'Riprova');
         await page.unroute('**/api/v1/fpt/matches?*');
       });
@@ -875,6 +879,10 @@ export const JOURNEYS = [
         assert.equal(await page.getAttribute('[data-filter="window"] a[aria-current="true"]', 'data-value'), '10');
         assert.equal(await page.getAttribute('[data-filter="team"] a[aria-current="true"]', 'data-value'), 'both');
         assert.equal(await page.getAttribute('[data-testid="cutoff"]', 'data-cutoff'), first.match_date, 'only matches before the match day');
+        // MP-REQ-UI-1032: the PIT label of the analysis is visible; the server declares PIT_NOT_VERIFIED, so NON PIT.
+        assert.equal(await page.getAttribute('[data-testid="match-hero"]', 'data-pit'), 'PIT_NOT_VERIFIED');
+        assert.equal(await page.getAttribute('[data-testid="cutoff"] [data-testid="pit-badge"]', 'data-badge'), 'NON_PIT');
+        assert.ok(await page.locator('[data-testid="cutoff"] [data-testid="pit-badge"]').isVisible());
         await checkStats(data, side => side, '10');
         // The form chips of the board are the last five of each team, every venue, from the API.
         for (const side of ['home', 'away']) {
@@ -1006,6 +1014,9 @@ export const JOURNEYS = [
           assert.equal(await page.getAttribute('[data-testid="sim-outcome"]', 'data-report'), expected.report_sha256, 'the same report as the API');
           await page.waitForSelector('[data-testid="sim-no-pit"]');
           assert.equal(await page.locator('[data-testid="sim-research"]').count(), 0, 'no research label in the rigorous mode');
+          // MP-REQ-UI-1032: the result carries its PIT label, visible, as the server reports the mode.
+          assert.equal(await page.getAttribute('[data-testid="sim-outcome"] [data-testid="pit-badge"]', 'data-badge'), 'PIT');
+          assert.equal((await page.textContent('[data-testid="sim-outcome"] [data-testid="pit-badge"]')).trim(), 'PIT');
           assert.equal(await page.getAttribute('[data-testid="sim-outcome"]', 'data-certified'), 'false');
           await page.waitForSelector('[data-testid="sim-certification"]');
           assert.equal(await fieldText('events'), shown(expected.counts.events));
@@ -1034,7 +1045,9 @@ export const JOURNEYS = [
           assert.equal(await page.getAttribute('[data-testid="sim-outcome"]', 'data-pit-mode'), 'NON_PIT_RESEARCH');
           // The label is on the form and above the result, in plain words, never only in a tooltip.
           assert.equal(await page.locator('[data-testid="sim-research"]').count(), 2);
-          assert.match(await page.textContent('[data-testid="sim-research"] >> nth=1'), /^RICERCA ESPLORATIVA — .*non dimostrano alcuna redditività/);
+          assert.match(await page.textContent('[data-testid="sim-research"] >> nth=1'), /^NON PIT RICERCA ESPLORATIVA — .*non dimostrano alcuna redditività/);
+          assert.ok(await page.locator('[data-testid="sim-research"] >> nth=1 >> [data-badge="NON_PIT"]').isVisible(), 'the shared NON PIT badge');
+          assert.equal(await page.getAttribute('[data-testid="sim-outcome"] [data-testid="pit-badge"]', 'data-badge'), 'NON_PIT', 'MP-REQ-UI-1032');
           assert.ok(await page.locator('[data-testid="sim-research"] >> nth=1').isVisible());
           const m = report.metrics;
           for (const [name, value] of [['bets', m.bets], ['won', m.won], ['lost', m.lost], ['staked', m.staked], ['exposure', m.exposure],
@@ -1239,6 +1252,7 @@ export const JOURNEYS = [
           await outcomeShown(page, '[data-testid="cmp-outcome"]');
           assert.equal(await page.getAttribute('[data-testid="cmp-outcome"]', 'data-reports'), data.variants.map(v => v.report.report_sha256).join(' '), 'the same reports as the API');
           assert.equal(await page.getAttribute('[data-testid="cmp-outcome"]', 'data-input'), data.input_sha256);
+          assert.equal(await page.getAttribute('[data-testid="cmp-outcome"] [data-testid="pit-badge"]', 'data-badge'), 'NON_PIT', 'MP-REQ-UI-1032: the comparison carries its PIT label');
           await page.waitForSelector('[data-testid="sim-research"]');
           const cell = (key, name) => page.textContent(`[data-testid="cmp-table"] [data-field="${key}_${name}"]`);
           for (const v of data.variants) {
@@ -1359,8 +1373,10 @@ export const JOURNEYS = [
     allowHttp: [{path: '/api/v1/persistence/status', status: 503}, {path: '/api/v1/backtests/saved', status: 503}, {path: '/api/v1/backtests/saved', status: 401}, {path: '/auth/logout', status: 500, step: 'esci: la sessione si chiude e si torna all’accesso'},
       {path: '/api/v1/strategies', status: 403}, {path: '/api/v1/strategies', status: 404}, {path: '/api/v1/strategies', status: 500, step: 'strategie: indirizzo non valido, inesistente, archivio non attivo, dati corrotti, permesso mancante, salvataggio spento, private senza accesso'}, {path: '/api/v1/strategies', status: 503}],
     async run({page, base, step, asserted, seed, owner}) {
-      const phone = page.viewportSize().width <= 560;
-      const stake = phone ? '11' : '10';
+      // Each viewport saves its own result (its stake) and its own strategy key, so the three never meet.
+      const width = page.viewportSize().width;
+      const device = width <= 560 ? 'telefono' : width <= 980 ? 'tablet' : 'desktop';
+      const stake = {desktop: '10', telefono: '11', tablet: '12'}[device];
       const research = {from: '2024-08-01', to: '2024-08-31', competition: seed.eredivisie.competition, pit_mode: 'NON_PIT_RESEARCH', commission: '0.05', stake};
       const custom = {from: '2024-08-01', to: '2024-08-31', pit_mode: 'NON_PIT_RESEARCH', strategy: 'custom', selection: 'HOME', side: 'LAY', odds_max: '2.5', team: 'Ajax', venue: 'HOME', stake};
       const simAt = (at, query) => fresh(page, `${at}/#/sim?run=1&${new URLSearchParams(query)}`);
@@ -1506,7 +1522,7 @@ export const JOURNEYS = [
         });
       });
       await step('strategia personalizzata salvata con le regole simulate, poi di nuovo: nessuna nuova versione', async () => {
-        const key = `qa-ajax-${phone ? 'telefono' : 'desktop'}`;
+        const key = `qa-ajax-${device}`;
         await simAt(owner.base, custom);
         await page.waitForSelector('[data-testid="sim-save-strategy"]');
         const simulated = await page.getAttribute('[data-testid="sim-strategy"]', 'data-strategy');
@@ -1530,7 +1546,7 @@ export const JOURNEYS = [
         });
       });
       // MP-UI-PR-006 (#34): the saved strategies — detail in words, versions, the way back to the Simulazione, a clone.
-      const stratKey = `qa-ajax-${phone ? 'telefono' : 'desktop'}`;
+      const stratKey = `qa-ajax-${device}`;
       const rulesShown = async () => ({selection: (await page.textContent('[data-testid="strategy-rules"] [data-field="selection"]')).trim(),
         side: (await page.textContent('[data-testid="strategy-rules"] [data-field="side"]')).trim(),
         odds: (await page.textContent('[data-testid="strategy-rules"] [data-field="odds_range"]')).trim(),
