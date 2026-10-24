@@ -118,11 +118,25 @@ function certificationErrors(control, journeys = null) {
       } else if (typeof ref?.test === 'string' && typeof ref?.name === 'string' && /^test\/[\w./-]+\.test\.mjs$/.test(ref.test) && !ref.test.includes('..')) {
         const file = join(root, ref.test);
         if (!existsSync(file)) errors.push(`${at}: ${gate}.${category}: ${ref.test} does not exist`);
-        else if (!readFileSync(file, 'utf8').includes(`test('${ref.name}'`)) errors.push(`${at}: ${gate}.${category}: no test «${ref.name}» in ${ref.test}`);
+        else if (!activeTest(readFileSync(file, 'utf8'), ref.name)) errors.push(`${at}: ${gate}.${category}: no active test «${ref.name}» in ${ref.test}`);
       } else errors.push(`${at}: ${gate}.${category}: a reference is {journey, step} or {test, name}`);
     }
   }
   return errors;
+}
+
+// A test named in a certification must be a live `test('<name>', ...)` call: not on a commented line and without a
+// `skip` or `todo` option (a skipped test is not a pass, MP-UI-HARD-GATES-01). Its passing is enforced by CI (npm test).
+export function activeTest(source, name) {
+  const call = `test('${name}'`;
+  for (let at = source.indexOf(call); at >= 0; at = source.indexOf(call, at + 1)) {
+    const lineStart = source.lastIndexOf('\n', at) + 1;
+    if (/^\s*(?:\/\/|\*)/.test(source.slice(lineStart, at)) || /[\w.]$/.test(source.slice(lineStart, at))) continue;
+    const head = source.slice(at + call.length, source.indexOf('=>', at) > 0 ? source.indexOf('=>', at) : at + call.length + 200);
+    if (/\b(?:skip|todo)\s*:/.test(head)) continue;
+    return true;
+  }
+  return false;
 }
 
 // The browser steps a control's claims rely on: its evidence steps and the browser steps of its certification.

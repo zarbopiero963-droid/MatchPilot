@@ -34,8 +34,10 @@ const SIDE = {HOME: 'Casa', AWAY: 'Ospite', EVEN: 'Pari'};
 const NAV = [['', 'Oggi', 'Oggi', 'user'], ['search', 'Ricerca', 'Ricerca partite', 'user'], ['sim', 'Simulazione', 'Simulazione', 'user'],
   ['data', 'Dati', 'Stato dei dati', 'technical']];
 const NAV_CONTROL = {'': 'CTL-NAV-OGGI', search: 'CTL-NAV-SEARCH', sim: 'CTL-NAV-SIM', data: 'CTL-NAV-DATA'};
-const DATA_TABS = [['#/data', 'Panoramica', 'Stato dei dati', 'CTL-DATA-TAB-DATA'], ['#/providers', 'Fornitori', 'Fornitori dati', 'CTL-DATA-TAB-PROVIDERS'],
-  ['#/endpoints', 'API', 'API v1', 'CTL-DATA-TAB-ENDPOINTS']];
+// In the order the journey clicks them: Panoramica, the view the area opens on, comes last so that its click changes the
+// view (review #241 B2).
+const DATA_TABS = [['#/providers', 'Fornitori', 'Fornitori dati', 'CTL-DATA-TAB-PROVIDERS'], ['#/endpoints', 'API', 'API v1', 'CTL-DATA-TAB-ENDPOINTS'],
+  ['#/data', 'Panoramica', 'Stato dei dati', 'CTL-DATA-TAB-DATA']];
 const titled = (page, text) => page.waitForFunction(title => document.querySelector('main h1')?.textContent === title && !document.querySelector('.state.loading'), text);
 const unavailable = {api_version: 'v1', error: {code: 'UNAVAILABLE', message: 'data source unavailable'}};
 // A full page load: a hash-only change keeps the previous view on screen until the new one renders, so a check
@@ -151,6 +153,11 @@ export const JOURNEYS = [
       });
       for (const [view, label, title, area] of NAV) {
         await step(`menu: ${title}`, async () => {
+          // The click must change the view: start from another one, where this entry is not current (review #241 B1).
+          const [from, fromTitle] = view === 'search' ? ['sim', 'Simulazione'] : ['search', 'Ricerca partite'];
+          await fresh(page, `${base}/#/${from}`);
+          await titled(page, fromTitle);
+          assert.equal(await page.getAttribute(`nav a[data-view="${view}"]`, 'aria-current'), null, 'not current before the click');
           assert.equal((await page.textContent(`nav a[data-view="${view}"]`)).trim(), label);
           await page.click(`nav a[data-view="${view}"]`);
           await asserted(NAV_CONTROL[view], `the menu opens ${title}, marks it current and declares its area`, async () => {
@@ -167,6 +174,7 @@ export const JOURNEYS = [
         for (const [href, label, title, control] of DATA_TABS) {
           const tab = page.locator(`[data-testid="data-tabs"] a[href="${href}"]`);
           assert.equal((await tab.textContent()).trim(), label);
+          assert.equal(await tab.getAttribute('aria-current'), null, `${label} is not current before the click`);
           await tab.click();
           await asserted(control, `the tab opens ${title} as a technical section of Dati`, async () => {
             await titled(page, title);
@@ -306,7 +314,8 @@ export const JOURNEYS = [
         await page.waitForSelector('[data-testid="tile-coverage"] tbody tr');
         const laliga = page.locator(`[data-testid="tile-coverage"] tr[data-competition="${seed.laliga.competition}"] [data-field="last_match_date"] a`);
         const last = new URLSearchParams((await laliga.getAttribute('href')).split('?')[1]).get('date');
-        assert.match(last, /^\d{4}-\d{2}-\d{2}$/);
+        const coverage = (await api('/api/v1/fpt/coverage-competitions')).data.rows.find(row => row.internal_competition_id === seed.laliga.competition);
+        assert.equal(last, coverage.last_match_date, 'the link carries the last match day of the API');
         await laliga.click();
         await asserted('CTL-DATA-COVERAGE-DAY', 'the last day of the competition opens the Daily Board on that day', async () => {
           await page.waitForSelector('[data-testid="board-day"]');
@@ -666,6 +675,8 @@ export const JOURNEYS = [
         await page.click('nav a[data-view=""]');
         await asserted('CTL-NAV-OGGI', 'the menu leaves the pending search for Oggi', async () => {
           await page.waitForFunction(() => document.querySelector('main h1')?.textContent === 'Oggi');
+          assert.equal(await page.getAttribute('nav a[data-view=""]', 'aria-current'), 'page');
+          assert.equal(await page.getAttribute('main', 'data-area'), 'user');
         });
         await page.waitForTimeout(1800);
         await page.unroute('**/api/v1/fpt/search?*');
@@ -673,6 +684,7 @@ export const JOURNEYS = [
         await page.click('nav a[data-view="search"]');
         await asserted('CTL-NAV-SEARCH', 'the menu opens the search form again', async () => {
           await page.waitForSelector('[data-testid="search-form"]');
+          assert.equal(await page.getAttribute('nav a[data-view="search"]', 'aria-current'), 'page');
         });
         await page.waitForTimeout(300);
         assert.equal(await page.evaluate(() => document.querySelector('main').contains(document.activeElement)), false, 'no focus jump into the page without a submit');
@@ -900,8 +912,11 @@ export const JOURNEYS = [
         const next = await page.getAttribute('[data-testid="source-home"] tr, [data-testid="source-away"] tr', 'data-match').catch(() => null);
         if (next) {
           await page.click(`tr[data-match="${next}"] [data-field="teams"] a`);
-          await asserted('CTL-MATCH-SOURCE-ROW', 'a source match opens its own Match Center', async () => {
+          await asserted('CTL-MATCH-SOURCE-ROW', 'a source match opens its own Match Center, with its teams from the API', async () => {
             await page.waitForFunction(id => document.querySelector('[data-testid="match-hero"]')?.dataset.match === id, next);
+            const match = (await analysis(next)).match;
+            assert.equal(await page.textContent('[data-testid="match-hero"] [data-field="home"]'), match.home_name);
+            assert.equal(await page.textContent('[data-testid="match-hero"] [data-field="away"]'), match.away_name);
           });
         }
       });
@@ -1154,7 +1169,7 @@ export const JOURNEYS = [
       });
       await step('tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica', async () => {
         const query = {from: '2024-08-01', to: '2024-08-31', pit_mode: 'NON_PIT_RESEARCH', commission: '0.05',
-          a_strategy: 'mp-ref-fav-back-1', b_selection: 'HOME', b_side: 'LAY', b_odds_max: '2.5', c_strategy: 'mp-ref-fav-lay-1', c_bankroll: '100', c_mm_model: 'PERCENT_BANKROLL', c_mm_value: '2'};
+          a_strategy: 'mp-ref-fav-lay-1', b_selection: 'HOME', b_side: 'LAY', b_odds_max: '2.5', c_strategy: 'mp-ref-fav-lay-1', c_bankroll: '100', c_mm_model: 'PERCENT_BANKROLL', c_mm_value: '2'};
         const data = (await compare(query)).data;
         assert.equal(data.variants.length, 3);
         await fresh(page, `${base}/#/compare`);
@@ -1163,7 +1178,9 @@ export const JOURNEYS = [
         await page.fill('input[name="to"]', query.to);
         await page.selectOption('select[name="pit_mode"]', query.pit_mode);
         await page.fill('input[name="commission"]', query.commission);
-        await page.selectOption('select[name="a_strategy"]', 'mp-ref-fav-back-1');
+        // A value other than the default, so that the result shows the choice took effect (review #241 B3).
+        assert.equal(await page.inputValue('select[name="a_strategy"]'), 'mp-ref-fav-back-1', 'the default of configuration A');
+        await page.selectOption('select[name="a_strategy"]', query.a_strategy);
         await page.selectOption('select[name="b_strategy"]', 'custom');
         assert.ok(await page.locator('[data-testid="cmp-rules-b"]').isVisible());
         await page.selectOption('select[name="b_selection"]', 'HOME');
@@ -1196,7 +1213,8 @@ export const JOURNEYS = [
           assert.equal(await cell('c', 'final_cash'), shown(data.variants[2].report.bankroll.final_cash));
           assert.equal(await cell('a', 'final_cash'), '—', 'no capital, no cash');
           assert.match(await cell('b', 'strategy'), /^Personalizzata: Banca · Casa \(1\) · quota fino a 2,5$/);
-          assert.equal(await cell('a', 'strategy'), 'Favorito · Punta');
+          assert.equal(await cell('a', 'strategy'), 'Favorito · Banca');
+        assert.equal(data.variants[0].report.config.strategy, query.a_strategy);
         });
       });
       await step('configurazione rifiutata dal server: è nominato il suo campo', async () => {

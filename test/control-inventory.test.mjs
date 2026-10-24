@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {EVIDENCED, actuationsFrom, inventoryIds, journeyStepTitles, loadInventory, progress, validateInventory, verifyCoverage} from '../tools/qa/control-inventory.mjs';
+import {EVIDENCED, actuationsFrom, activeTest, inventoryIds, journeyStepTitles, loadInventory, progress, validateInventory, verifyCoverage} from '../tools/qa/control-inventory.mjs';
 import {JOURNEYS} from '../tools/qa/journeys.mjs';
 
 const source = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
@@ -103,7 +103,13 @@ test('CERTIFIED MOCK: every Gate A and Gate B category needs evidence, browser s
   assert.match(check(cert => { cert.gate_a.positive = [cert.gate_a.contract[0]]; }).join(), /gate_a\.positive needs a Browser QA step/);
   assert.match(check(cert => { cert.gate_b.adversarial = [cert.gate_a.contract[0]]; }).join(), /gate_b\.adversarial needs a Browser QA step/);
   assert.match(check(cert => { cert.gate_a.contract = [{test: 'test/missing.test.mjs', name: 'x'}]; }).join(), /does not exist/);
-  assert.match(check(cert => { cert.gate_a.contract = [{test: 'test/control-inventory.test.mjs', name: 'no such test'}]; }).join(), /no test «no such test»/);
+  assert.match(check(cert => { cert.gate_a.contract = [{test: 'test/control-inventory.test.mjs', name: 'no such test'}]; }).join(), /no active test «no such test»/);
+  // A skipped, todo or commented-out test is not evidence (review #241 N1).
+  const live = "test('x', async () => {});";
+  assert.equal(activeTest(live, 'x'), true);
+  assert.equal(activeTest("test('x', {timeout: 1000}, async () => {});", 'x'), true);
+  for (const dead of ["test('x', {skip: 'later'}, () => {});", "test('x', {todo: true}, () => {});", "// test('x', () => {});", "  * test('x', () => {})",
+    "test.skip('x', () => {});", "mytest('x', () => {});", "test('xy', () => {});"]) assert.equal(activeTest(dead, 'x'), false, dead);
   assert.match(check(cert => { cert.gate_a.contract = [{test: '../etc/passwd', name: 'x'}]; }).join(), /a reference is/);
   assert.match(check(cert => { cert.gate_b.integrated = [{journey: 'search', step: 'no such step'}]; }).join(), /no step «no such step» in search/);
 });
@@ -195,3 +201,4 @@ test('progress is computed from statuses and evidence: verified means ASSERTED, 
   assert.equal(result.certified_mock, 0);
   assert.equal(result.certified_real, 0); // QA data is a seeded fixture: nothing is certified on real data here
 });
+
