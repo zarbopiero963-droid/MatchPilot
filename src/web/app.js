@@ -1019,7 +1019,7 @@ async function simView(params) {
     throw error;
   }
   return [...head, ...simResult(body.data),
-    saveBox({what: 'simulazione', testid: 'sim-save', save: name => postJson('/api/v1/backtests/saved', {name, kind: 'BACKTEST', params: api})})];
+    saveBox({title: 'Salva questa simulazione', placeholder: 'Nome della simulazione', testid: 'sim-save', save: name => postJson('/api/v1/backtests/saved', {name, kind: 'BACKTEST', params: api})})];
 }
 
 // The result of one simulation (GET /api/v1/hist/backtest data), also shown when a saved simulation is opened.
@@ -1211,7 +1211,7 @@ async function compareView(params) {
     throw error;
   }
   return [...head, ...cmpResult(body.data),
-    saveBox({what: 'confronto', testid: 'cmp-save', save: name => postJson('/api/v1/backtests/saved', {name, kind: 'COMPARE', params: api})})];
+    saveBox({title: 'Salva questo confronto', placeholder: 'Nome del confronto', testid: 'cmp-save', save: name => postJson('/api/v1/backtests/saved', {name, kind: 'COMPARE', params: api})})];
 }
 
 // The result of one comparison (GET /api/v1/hist/compare data), also shown when a saved comparison is opened.
@@ -1289,9 +1289,9 @@ function writeRefusal(error) {
 
 // A small form that saves something under a name. The button is disabled while the request runs (no double submit);
 // the outcome replaces the previous one in a status region.
-function saveBox({what, testid, save, describe = savedText}) {
+function saveBox({title, placeholder, testid, save, describe = savedText}) {
   const status = el('div', {class: 'save-status', role: 'status', 'data-testid': `${testid}-status`});
-  const name = el('input', {name: 'name', type: 'text', required: true, maxlength: '100', autocomplete: 'off', placeholder: `Nome della ${what}`});
+  const name = el('input', {name: 'name', type: 'text', required: true, maxlength: '100', autocomplete: 'off', placeholder});
   const button = el('button', {type: 'submit'}, 'Salva');
   const form = el('form', {class: 'card save', 'data-testid': testid, onsubmit: async event => {
     event.preventDefault();
@@ -1311,7 +1311,7 @@ function saveBox({what, testid, save, describe = savedText}) {
       form.removeAttribute('aria-busy');
     }
   }},
-  el('h2', {}, `Salva questa ${what}`), el('div', {class: 'inline'}, el('label', {class: 'grow'}, 'Nome ', name), button), status);
+  el('h2', {}, title), el('div', {class: 'inline'}, el('label', {class: 'grow'}, 'Nome ', name), button), status);
   return form;
 }
 function savedText(data) {
