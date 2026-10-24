@@ -1,0 +1,116 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261024T204621Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-24T20:46:21Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-PR250-MERGE-UI006-01",
+    "source": "owner message to Claude Code, 2026-10-24 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): merge of PR #250 only, then the Strategie page PR, no merge of it without owner authorization"
+  },
+  "task": "MP-UI-PR-006-STRAT",
+  "activity": "MP-UI-PR-006 Strategie page (#34): list, detail, versions, modify as next version, clone a version, private reads; no merge without owner authorization",
+  "issue": 34,
+  "pr": 251,
+  "branch": "ui-pr-006",
+  "commit_sha": "c19a7adc0ecd6af2fe73773f9658d4903c891312",
+  "tree_sha": "cffdf996430cdaf87cb427999f6d3ffd44af5e99",
+  "base_sha": "30142a8f5103f4cb7907a4f518f8b86711d1769f",
+  "requirements": [
+    "MP-WEB-011"
+  ],
+  "changes": [
+    "Strategie page and API",
+    "tests and journeys",
+    "visual scene",
+    "mock v2026.10.24d",
+    "matrix and feature register"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "c19a7adc0ecd6af2fe73773f9658d4903c891312",
+      "time": "2026-10-24T20:46:21Z",
+      "limits": [
+        "716 tests, 715 pass, 1 skip (PostgreSQL 17, runs in CI); Browser QA 20/20 verify-report ok; visual 63/63"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "c19a7adc0ecd6af2fe73773f9658d4903c891312"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "final-head context-separated sub-agent review pending (DEC-004-R1)"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-OWNER-PR250-MERGE-UI006-01",
+    "MP-OWNER-D12-IMPLEMENTATION-20261024",
+    "MP-UI-D12-DECISIONS-20261024",
+    "MP-UI-ROADMAP-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and final review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:src/web/app.js",
+    "file:src/web/persistence.js",
+    "file:src/api/persistence-api.mjs",
+    "file:src/api/hist-backtest.mjs",
+    "file:src/persistence/store.mjs",
+    "file:tools/qa/journeys.mjs",
+    "file:tools/qa/visual.mjs",
+    "file:docs/qa/control-inventory.json",
+    "file:docs/qa/feature-certification.json",
+    "file:docs/governance/ui-requirements-matrix.json",
+    "branch:ui-pr-006",
+    "pr:251"
+  ],
+  "stop_conditions": [
+    "no merge without explicit owner authorization (MP-OWNER-PR250-MERGE-UI006-01)",
+    "one development PR at a time"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and independent review on PR #251, then stop: merge only with explicit owner authorization",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}

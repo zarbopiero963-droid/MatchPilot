@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 225,
+  "revision": 226,
   "tasks": [
     {
       "id": "R-01",
@@ -1705,6 +1705,34 @@
       },
       "pr_open": false,
       "merge_sha": "30142a8f5103f4cb7907a4f518f8b86711d1769f"
+    },
+    {
+      "id": "MP-UI-PR-006-STRAT",
+      "title": "MP-UI-PR-006: Strategie page",
+      "issue": 34,
+      "pr": 251,
+      "branch": "ui-pr-006",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261024T204621Z-agent-a-claude-code",
+      "resources": [
+        "file:src/web/app.js",
+        "file:src/web/persistence.js",
+        "file:src/api/persistence-api.mjs",
+        "file:src/api/hist-backtest.mjs",
+        "file:src/persistence/store.mjs",
+        "file:tools/qa/journeys.mjs",
+        "file:tools/qa/visual.mjs",
+        "file:docs/qa/control-inventory.json",
+        "file:docs/qa/feature-certification.json",
+        "file:docs/governance/ui-requirements-matrix.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": true
     }
   ]
 }
