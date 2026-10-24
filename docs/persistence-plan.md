@@ -53,6 +53,34 @@ source of truth.
 - **Canonical fingerprint:** the ledger's `scope` is now built in the fixed scope order, so the persisted idempotency
   fingerprint does not depend on the caller's key order; `market` already was.
 
+## HTTP API (PERSIST-API-01)
+
+`src/api/persistence-api.mjs`, wired in `src/server.mjs`. Until the schema is applied every route but the status answers
+503 `UNAVAILABLE`.
+
+| Route | Method | What it does |
+|---|---|---|
+| `/api/v1/persistence/status` | GET | `{available, writes}`: whether the schema is applied and whether writes are possible |
+| `/api/v1/strategies` | GET | the current strategies; `?key=` one strategy, `&version=` a given version |
+| `/api/v1/strategies` | POST | `{key, name, definition}`: 201 `SAVED` (new version) or 200 `UNCHANGED` |
+| `/api/v1/backtests/saved` | GET | `?id=`: the saved result, `response_text` byte-identical and `result` parsed |
+| `/api/v1/backtests/saved` | POST | `{name, kind: BACKTEST\|COMPARE, params}`: the server runs the same `/api/v1/hist/backtest` or `/compare` request and saves its own result (201 `SAVED`, 200 `ALREADY_SAVED`); the backtest's own refusals (400, 429 `BUSY`, 503) come back unchanged |
+| `/api/v1/ledger/account` | GET | `?account_id=`: the paper account state rebuilt from the stored entries |
+
+**Reads** follow the rest of `/api/v1`: behind the owner session when `MATCHPILOT_AUTH=enforce`.
+
+**Writes** need all of the following, checked before the body is parsed and before any database access:
+- `MATCHPILOT_AUTH=enforce` and an owner session with the `write` permission. With auth off there is no anonymous
+  write: 403 `WRITES_REQUIRE_AUTH`.
+- A same-origin request (`Sec-Fetch-Site` / `Origin`, the login rule), else 403 `ORIGIN_NOT_ALLOWED`; and
+  `Content-Type: application/json`, else 415. The session cookie is also `SameSite=Strict`.
+- A JSON object body of at most 64 KiB (413 beyond), with only the listed fields (400 `UNKNOWN_FIELD`) and no query
+  parameters.
+
+**Not exposed: paper-ledger writes.** Opening a position needs the operating mode (DEC-001: ACTIVE_OPERATIONAL,
+ADVISORY_ONLY, PAUSED, ARCHIVED), and no server-side source of that mode exists yet; a mode sent by the client could
+bypass STOP. Exposing ledger operations waits for an owner decision on where the mode comes from.
+
 ## Migration properties
 
 - **Additive only:** `CREATE TABLE IF NOT EXISTS`, the trigger functions of the new tables, and new indexes. No
