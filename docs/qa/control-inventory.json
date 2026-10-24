@@ -2945,12 +2945,11 @@
       "label": "Vai all'accesso",
       "action": "dopo una sessione scaduta apre l'accesso e torna alla stessa simulazione",
       "api": "/login",
-      "data": "UNAVAILABLE",
+      "data": "REAL",
       "issues": [
         23,
         34
       ],
-      "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
       "status": "TESTED",
       "evidence": "ASSERTED",
       "exercised_by": [
