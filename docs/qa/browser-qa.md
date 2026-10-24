@@ -74,7 +74,11 @@ Every control of the inventory belongs to exactly one feature.
 - **TESTED:** besides, every control is `TESTED` (`ASSERTED`), every test the feature names is active, and every journey it names passed on every viewport.
 - **CERTIFIED:** besides, a `certification` record (MP-UI-CERT-CALC-01) with every one of these fields, each checked:
   - `level` and `perimeter`;
-  - `verified_commit` and `date`. The commit must be present in the clone (CI checks out the full history) and, with a report, be the report's head or one of its ancestors;
+  - `verified_commit`, `verified_digest` and `date`. `verified_digest` is the SHA-256 of the feature's files (`entry`, `sources`, `test_files`, path and content, sorted by path), computed by `featureDigest`:
+    - the files in the clone must have that digest, so any change to them voids the certification until it is verified again;
+    - `verified_commit` must be in the clone and its files must have the same digest; a commit that is not in the clone is a gap, never accepted on trust;
+    - the commit need not be an ancestor of the head: a squash merge rewrites the history but keeps the content, and the digest binds the certification to the content. The branch commits stay reachable through the PR refs: CI checks out the full history and fetches `refs/pull/*/head`; locally, `git fetch origin '+refs/pull/*/head:refs/remotes/origin/pull/*'`;
+    - the digest covers the feature's own files only: shared modules, the page code and the journeys are outside it, and CI runs the cited tests and journeys again on every change;
   - `requirements`: ids that exist in `docs/governance/mp-pr-00/requirements.json`;
   - `requirements` must also be requirements of the feature itself;
   - `criteria`: evidence for completeness, correctness, contracts, integration, security and financial, or N/A with a reason.
@@ -86,7 +90,7 @@ Every control of the inventory belongs to exactly one feature.
   - `results`: the test runs, all PASS on the verified commit. Accepted commands: `npm test`, `npm run qa:browser`, `npm run qa:verify`, a QA tool `node tools/qa/….mjs`, or `node --test` on the feature's own test files. They are declarations; CI runs every cited test and journey again on each change;
   - `contracts`: module (one of the feature's `sources`), exported constant and version. The gate compares each with the constant in the code, ignoring comments, so a changed contract voids the certification;
   - `limits`, stated explicitly;
-  - `independent_review`: verdict APPROVED, the reviewed commit (containing the verified one) and the GitHub comment of the review.
+  - `independent_review`: verdict APPROVED, the reviewed commit (in the clone, containing the verified one) and the GitHub comment of the review.
 - **Levels** (MP-UI-CERT-CALC-01). They say what was certified, not how well:
   - `CERTIFIED MOCK` for `DEMO` data;
   - `CERTIFIED REAL` for `REAL` data;

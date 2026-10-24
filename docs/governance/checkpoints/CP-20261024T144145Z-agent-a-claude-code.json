@@ -1,0 +1,141 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261024T144145Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-24T14:41:45Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "MP-UI-CERT-CALC-01",
+  "activity": "PR #246 auto-merged as 91b24bd (squash, expectedHeadSha b948a25); main CI FAILED on the certification gate (verified_commit not an ancestor after the squash) and the VPS deploy of 91b24bd was skipped by the deploy gate; fix in PR #247 (supersedes CP-20261024T142358Z-agent-a-claude-code, which named e9ad762 as the merged head: review #247 NB)",
+  "issue": 239,
+  "pr": 246,
+  "branch": "ui-cert-calc-01",
+  "commit_sha": "b948a25ade9d58913c0abce5e2d49c9c988c1acb",
+  "tree_sha": "cac709ae55003aa3497b8e18cda961de0251dfbc",
+  "base_sha": "50baeac1d36f0ec21689dcb76193ab2a9d90ef60",
+  "requirements": [
+    "MP-MTH-001",
+    "MP-WEB-011"
+  ],
+  "changes": [
+    "owner decision MP-UI-CERT-CALC-01",
+    "complete certification record and gate",
+    "evidence anchored to the feature",
+    "Trading Tools record",
+    "91b24bd: squash merge of PR #246"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "50cfd6ba961d74bf856a75c43d38a99caa18206b",
+      "time": "2026-10-24T13:50:11Z",
+      "limits": [
+        "703 tests, 702 pass, 1 skip (PostgreSQL 17, runs in CI); Browser QA 20/20; visual 60/60; mutation 25/25"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 91b24bd",
+      "result": "FAIL",
+      "environment": "GitHub Actions",
+      "commit": "91b24bd683da00c5b06f9ae021a00e89d36f9ec8",
+      "time": "2026-10-24T14:23:58Z",
+      "limits": [
+        "run 40100840857 failure: feature certification gate, verified_commit 50cfd6b is not an ancestor of the squash-merge head"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 91b24bd",
+      "result": "FAIL",
+      "environment": "VPS via self-hosted runner",
+      "commit": "91b24bd683da00c5b06f9ae021a00e89d36f9ec8",
+      "time": "2026-10-24T14:23:58Z",
+      "limits": [
+        "run 40100840889 failure: deploy gate refused the red main head, nothing deployed; the VPS keeps 50baeac"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 40100840857,
+    "conclusion": "FAILURE",
+    "head_sha": "91b24bd683da00c5b06f9ae021a00e89d36f9ec8"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "b948a25ade9d58913c0abce5e2d49c9c988c1acb",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/246#issuecomment-6385146719"
+  },
+  "findings": [
+    {
+      "id": "MAIN-RED-91b24bd",
+      "severity": "BLOCKING",
+      "summary": "main CI red after the squash merge: the gate required verified_commit to be an ancestor of the head; deploy skipped",
+      "status": "TRACKED",
+      "tracked_in": "PR #247 (MP-UI-CERT-HOTFIX-01)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-UI-CERT-CALC-01",
+    "MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01",
+    "MP-UI-AUTONOMOUS-INTEGRATION-02",
+    "MP-UI-HARD-GATES-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge"
+    ],
+    "in_progress": [
+      "main CI and deploy: fix in PR #247"
+    ],
+    "not_started": []
+  },
+  "resources": [
+    "file:tools/qa/feature-certification.mjs",
+    "file:docs/qa/feature-certification.json",
+    "file:test/feature-certification.test.mjs",
+    "file:.github/workflows/ci.yml",
+    "branch:ui-cert-calc-01",
+    "pr:246"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "merge PR #247 to turn main green and let the deploy run",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261024T142358Z-agent-a-claude-code",
+  "merge_sha": "91b24bd683da00c5b06f9ae021a00e89d36f9ec8"
+}

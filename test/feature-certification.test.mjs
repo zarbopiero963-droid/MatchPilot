@@ -4,7 +4,7 @@
 // evidence's, a changed contract, a missing Gate A/B, fixture, result, limit or independent review.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {CERT_FIELDS, checkFeatures, evidenceState, loadFeatures} from '../tools/qa/feature-certification.mjs';
+import {CERT_FIELDS, checkFeatures, evidenceState, featureDigest, loadFeatures} from '../tools/qa/feature-certification.mjs';
 import {loadInventory} from '../tools/qa/control-inventory.mjs';
 
 const inventory = loadInventory();
@@ -13,7 +13,8 @@ const copy = value => structuredClone(value);
 const tools = () => copy(register.features.find(f => f.id === 'FEAT-TRADING-TOOLS'));
 // The feature without a certification record, TESTED.
 const bare = () => { const f = tools(); f.certification = null; f.state = 'TESTED'; return f; };
-// Two commits of the repository's history (#243 and #244 squash merges): the older is an ancestor of the newer.
+// Two commits of the repository's history (#243 and #244 squash merges): the older is an ancestor of the newer. The
+// Trading Tools files exist from NEW on, unchanged since: their digest at NEW is the digest here.
 const OLD = 'aeea5d865e2740bb2ec0c08437a87e69a0bc6a7e';
 const NEW = '50baeac1d36f0ec21689dcb76193ab2a9d90ef60';
 const M = name => ({test: 'test/math-trading.test.mjs', name});
@@ -22,7 +23,7 @@ const J = step => ({journey: 'trading-tools', step});
 const MANUAL = 'strumenti: inserimento manuale dichiarato, schede, nessun calcolo senza Calcola';
 const KELLY = 'kelly: il risultato è quello del server, un campo errato è indicato, Azzera svuota';
 const certification = () => ({level: 'CERTIFIED CALCULATION', perimeter: 'the seven calculators with manual input, computed by the server',
-  verified_commit: OLD, date: '2026-10-24', requirements: ['MP-MTH-001'],
+  verified_commit: NEW, verified_digest: featureDigest(bare(), NEW), date: '2026-10-24', requirements: ['MP-MTH-001'],
   criteria: {completeness: [{file: 'docs/trading-tools.md'}, J(MANUAL)], correctness: [M('Kelly: the #94 golden vectors and its outputs')],
     contracts: [A('the registry lists the tools as GET endpoints without database')], integration: [J(KELLY)],
     security: [A('refusals are 400 and name the parameter; nothing else gets through')],
@@ -30,7 +31,7 @@ const certification = () => ({level: 'CERTIFIED CALCULATION', perimeter: 'the se
   gate_a: {result: 'PASS', evidence: [M('Kelly: the #94 golden vectors and its outputs')]},
   gate_b: {result: 'PASS', evidence: [J(KELLY)]},
   fixtures: [M('Kelly: exact oracle and metamorphic doubling (2000 seeded cases)')],
-  results: [{command: 'npm test', result: 'PASS', commit: OLD}],
+  results: [{command: 'npm test', result: 'PASS', commit: NEW}],
   contracts: [{module: 'src/api/tools.mjs', export: 'TOOLS_VERSION', version: 'mp-tools-1'}],
   limits: ['manual input only'],
   independent_review: {verdict: 'APPROVED', reviewed_sha: NEW, reference: 'https://github.com/zarbopiero963-droid/MatchPilot/pull/244#issuecomment-6384598449'}});
@@ -82,8 +83,8 @@ test('a complete record certifies; each missing or false piece stops it at TESTE
     [f => { f.certification.gate_a.evidence = [J(KELLY)]; }, /gate_a: needs a test/],
     [f => { f.certification.gate_b.evidence = [M('Kelly: the #94 golden vectors and its outputs')]; }, /gate_b needs a Browser QA step/],
     [f => { f.certification.fixtures = [{file: 'docs/trading-tools.md'}]; }, /fixtures: needs a test or a Browser QA step/],
-    [f => { f.certification.results = [{command: 'npm test', result: 'FAIL', commit: OLD}]; }, /results: npm test is not PASS/],
-    [f => { f.certification.results = [{command: 'npm test', result: 'PASS', commit: NEW}]; }, /was not run on the verified commit/],
+    [f => { f.certification.results = [{command: 'npm test', result: 'FAIL', commit: NEW}]; }, /results: npm test is not PASS/],
+    [f => { f.certification.results = [{command: 'npm test', result: 'PASS', commit: OLD}]; }, /was not run on the verified commit/],
     // Contracts: the version is the code's; a change voids the certification.
     [f => { f.certification.contracts = [{module: 'src/api/tools.mjs', export: 'TOOLS_VERSION', version: 'mp-tools-0'}]; }, /TOOLS_VERSION is mp-tools-1, certified mp-tools-0/],
     [f => { f.certification.contracts = [{module: '../etc/passwd', export: 'X', version: '1'}]; }, /bad contract module/],
@@ -92,8 +93,11 @@ test('a complete record certifies; each missing or false piece stops it at TESTE
     [f => { f.certification.limits = []; }, /limits: state them explicitly/],
     [f => { f.certification.independent_review.verdict = 'UNKNOWN'; }, /verdict must be APPROVED/],
     [f => { f.certification.independent_review.reference = 'https://example.com/review'; }, /reference must be the GitHub comment/],
-    [f => { f.certification.independent_review.reviewed_sha = OLD; f.certification.verified_commit = NEW; f.certification.results[0].commit = NEW; }, /the reviewed commit does not contain the verified one/],
-    [f => { f.certification.verified_commit = '0'.repeat(40); f.certification.results[0].commit = '0'.repeat(40); }, /is not in this clone/],
+    [f => { f.certification.independent_review.reviewed_sha = OLD; }, /the reviewed commit does not contain the verified one/],
+    // The content binds the certification (squash merges): another digest, or a commit whose files are not these.
+    [f => { f.certification.verified_digest = '0'.repeat(64); }, /the feature files changed since the verified commit: verify again/],
+    [f => { f.certification.verified_digest = 'x'; }, /verified_digest must be the SHA-256/],
+    [f => { f.certification.verified_commit = OLD; f.certification.results[0].commit = OLD; }, /verified_digest is not the content of verified_commit aeea5d8/],
     [f => { f.certification.verified_commit = 'abc'; }, /verified_commit must be a full SHA/],
     [f => { f.certification.perimeter = ''; }, /the perimeter must be stated/],
     // The review of the gate (cross-feature evidence): tests, journeys, requirements and contracts of other features.
@@ -101,13 +105,13 @@ test('a complete record certifies; each missing or false piece stops it at TESTE
     [f => { f.journeys.push('sim-save'); f.certification.criteria.integration = [{journey: 'sim-save', step: 'accesso del proprietario dalla pagina di accesso'}]; }, /exercises no control of the feature/],
     [f => { f.certification.requirements = ['MP-GOV-001']; }, /requirement MP-GOV-001 is not a requirement of the feature/],
     [f => { f.certification.contracts = [{module: 'src/hist/engine.mjs', export: 'ENGINE_VERSION', version: 'x'}]; }, /src\/hist\/engine.mjs is not a source of the feature/],
-    [f => { f.certification.results = [{command: 'echo', result: 'PASS', commit: OLD}]; }, /echo is not a test command of the feature/],
+    [f => { f.certification.results = [{command: 'echo', result: 'PASS', commit: NEW}]; }, /echo is not a test command of the feature/],
     [f => { f.certification.criteria.integration = {na: 'no browser for this feature, nothing to integrate'}; }, /integration is never N\/A/],
     [f => { f.sources = []; }, /sources: the feature names its source modules/],
     // Second review of the gate: a module the feature does not run, claimed as a source with its tests.
     [f => { f.sources.push('src/hist/engine.mjs'); f.test_files.push('test/hist-backtest.test.mjs'); }, /sources: src\/hist\/engine.mjs is not run by the entry src\/api\/tools.mjs/],
-    [f => { f.certification.results = [{command: 'node --test test/csv.test.mjs', result: 'PASS', commit: OLD}]; }, /node --test test\/csv.test.mjs is not a test command of the feature/],
-    [f => { f.certification.results = [{command: 'npm run governance:status', result: 'PASS', commit: OLD}]; }, /is not a test command of the feature/],
+    [f => { f.certification.results = [{command: 'node --test test/csv.test.mjs', result: 'PASS', commit: NEW}]; }, /node --test test\/csv.test.mjs is not a test command of the feature/],
+    [f => { f.certification.results = [{command: 'npm run governance:status', result: 'PASS', commit: NEW}]; }, /is not a test command of the feature/],
     [f => { f.entry = 'src/api/hist-backtest.mjs'; }, /entry: src\/api\/hist-backtest.mjs does not serve \/api\/v1\/tools\//],
     [f => { delete f.entry; }, /entry: the feature names the module of src\/api\/ that serves its API/],
     // Third review of the gate: shared modules claimed as sources, and an entry that only calls the API.
@@ -137,20 +141,27 @@ test('a lost certification fails until it is declared REGRESSED', () => {
   assert.match(errorsOf([...others(), feature]).join('\n'), /REGRESSED needs the certification it lost/);
 });
 
-test('with a report: integration rests on asserted steps, and the verified commit is the head or an ancestor', () => {
+test('with a report: integration rests on asserted steps; a squash merge keeps the certification (content, not history)', () => {
   const feature = certified();
   const steps = [MANUAL, KELLY];
   const run = (viewport, assertions) => ({id: 'trading-tools', viewport, status: 'PASS', steps: steps.map(name => ({name, assertions}))});
   const report = (assertions, head) => ({head_sha: head, journeys: ['desktop', 'mobile'].map(v => run(v, assertions))});
   const checked = [{controls: ['CTL-TOOLS-KELLY-SUBMIT'], description: 'checked'}];
   assert.match(evidenceState(feature, {inventory, report: report([], NEW)}).gaps.join('\n'), /integration needs a step with recorded assertions/);
-  assert.equal(evidenceState(feature, {inventory, report: report(checked, NEW)}).state, 'CERTIFIED CALCULATION', 'an ancestor of the head');
-  assert.equal(evidenceState(feature, {inventory, report: report(checked, OLD)}).state, 'CERTIFIED CALCULATION', 'the head itself');
-  const later = certified();
-  later.certification.verified_commit = NEW;
-  later.certification.results[0].commit = NEW;
-  const stale = evidenceState(later, {inventory, report: report(checked, OLD)});
-  assert.match(stale.gaps.join('\n'), /verified_commit 50baeac is not the report head or one of its ancestors/);
+  assert.equal(evidenceState(feature, {inventory, report: report(checked, NEW)}).state, 'CERTIFIED CALCULATION');
+  // On main after a squash merge the verified commit is not an ancestor of the head (here: OLD as head): the content
+  // still matches, so the certification holds (the regression of #246 on main).
+  assert.equal(evidenceState(feature, {inventory, report: report(checked, OLD)}).state, 'CERTIFIED CALCULATION');
+  // Commits that are not in the clone are never accepted on trust (review #247 B-1): invented SHAs do not certify.
+  const gone = certified();
+  gone.certification.verified_commit = '1'.repeat(40);
+  gone.certification.results[0].commit = '1'.repeat(40);
+  const goneState = evidenceState(gone, {inventory, report: report(checked, NEW)});
+  assert.equal(goneState.state, 'TESTED');
+  assert.match(goneState.gaps.join('\n'), /verified_commit 1111111 is not in this clone/);
+  const unreviewed = certified();
+  unreviewed.certification.independent_review.reviewed_sha = '2'.repeat(40);
+  assert.match(evidenceState(unreviewed, {inventory, report: report(checked, NEW)}).gaps.join('\n'), /reviewed commit 2222222 is not in this clone/);
 });
 
 test('with a report, the journeys must have passed on every viewport', () => {

@@ -305,6 +305,7 @@
         "level": "CERTIFIED CALCULATION",
         "perimeter": "I sette calcolatori di #94 con inserimento manuale, calcolati dal server in Decimal e mostrati dalla pagina Strumenti su desktop e mobile: Margine delle quote, Stake e Kelly (TOOL 1), Valore atteso BACK (TOOL 2), Responsabilità LAY (TOOL 3), Copertura BACK→LAY e LAY→BACK (TOOL 4 e 5), Dutching BACK (TOOL 7), Poisson (TOOL 12). Certifica formule, arrotondamenti, input validi, invalidi e limite, contratto API, comportamento della pagina ed errori di validazione. Non certifica dati di mercato, partite, liquidità, previsioni, redditività né operazioni reali.",
         "verified_commit": "50cfd6ba961d74bf856a75c43d38a99caa18206b",
+        "verified_digest": "ac5621cfa51e4718ca950b175bcdcc740faebec0c8c54555521bc6b54232dd86",
         "date": "2026-10-24",
         "requirements": [
           "MP-MTH-001",

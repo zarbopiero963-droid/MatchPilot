@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 216,
+  "revision": 220,
   "tasks": [
     {
       "id": "R-01",
@@ -1636,13 +1636,37 @@
       "pr": 246,
       "branch": "ui-cert-calc-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261024T135011Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261024T144145Z-agent-a-claude-code",
       "resources": [
         "file:tools/qa/feature-certification.mjs",
         "file:docs/qa/feature-certification.json",
         "file:test/feature-certification.test.mjs",
+        "file:.github/workflows/ci.yml"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "91b24bd683da00c5b06f9ae021a00e89d36f9ec8"
+    },
+    {
+      "id": "MP-UI-CERT-HOTFIX-01",
+      "title": "MP-UI-CERT-CALC-01 hotfix: verified_digest",
+      "issue": 239,
+      "pr": 247,
+      "branch": "fix-cert-squash",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261024T143256Z-agent-a-claude-code",
+      "resources": [
+        "file:tools/qa/feature-certification.mjs",
+        "file:docs/qa/feature-certification.json",
+        "file:test/feature-certification.test.mjs",
+        "file:docs/qa/browser-qa.md",
         "file:.github/workflows/ci.yml"
       ],
       "assignee": {

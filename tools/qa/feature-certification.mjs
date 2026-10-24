@@ -16,7 +16,10 @@
 //     fixtures and independent vectors, the test results on the verified commit, the contract versions (each checked
 //     against the constant the code exports: a changed contract voids the certification), the limits, and an independent
 //     review APPROVED on a commit that contains the verified one;
-//   - the verified commit, present in this clone and, with a report, the report's head or one of its ancestors.
+//   - the verified commit, present in the clone, and the digest of the feature's files there (entry, sources, test
+//     files): the files here must have that digest, so a change to those files voids the certification, also after a
+//     squash merge. Shared modules, the page code and the journeys are outside the digest: CI runs the cited tests and
+//     journeys again on every change.
 //   The level says what was certified, not how well (owner decision MP-UI-CERT-CALC-01): MOCK is the level of DEMO data,
 //   REAL of REAL data, CALCULATION of COMPUTED features (deterministic calculations on explicit input, computed by the
 //   real server; no external data, no prediction, no profitability, no real trading implied).
@@ -27,6 +30,7 @@
 //
 // Usage: node tools/qa/feature-certification.mjs status [report.json]
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {existsSync, readFileSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -41,7 +45,7 @@ export const FEATURE_STATES = Object.freeze(['NOT STARTED', 'IN DEVELOPMENT', 'I
 const RANK = {'NOT STARTED': 0, 'IN DEVELOPMENT': 1, IMPLEMENTED: 2, TESTED: 3, 'CERTIFIED MOCK': 4, 'CERTIFIED REAL': 4, 'CERTIFIED CALCULATION': 4};
 // The certified level each kind of data can reach (MP-UI-CERT-CALC-01); NONE (navigation only) has none yet.
 export const LEVEL_OF_DATA = Object.freeze({DEMO: 'CERTIFIED MOCK', REAL: 'CERTIFIED REAL', COMPUTED: 'CERTIFIED CALCULATION'});
-export const CERT_FIELDS = Object.freeze(['level', 'perimeter', 'verified_commit', 'date', 'requirements', 'criteria', 'gate_a', 'gate_b', 'fixtures', 'results', 'contracts', 'limits', 'independent_review']);
+export const CERT_FIELDS = Object.freeze(['level', 'perimeter', 'verified_commit', 'verified_digest', 'date', 'requirements', 'criteria', 'gate_a', 'gate_b', 'fixtures', 'results', 'contracts', 'limits', 'independent_review']);
 const REQUIREMENTS_PATH = join(root, 'docs/governance/mp-pr-00/requirements.json');
 export const FEATURE_DATA = Object.freeze(['REAL', 'DEMO', 'COMPUTED', 'NONE']);
 export const CRITERIA = Object.freeze(['completeness', 'correctness', 'contracts', 'integration', 'security', 'financial']);
@@ -49,14 +53,31 @@ const ID = /^FEAT-[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
 const SHA = /^[0-9a-f]{40}$/;
 const NOT_BUILT = ['NOT STARTED', 'IN PROGRESS', 'BLOCKED'];
 
-// The verified commit is the evidence's head or one of its ancestors (git in the repository; unknown commits fail).
+// The commit is the head or one of its ancestors (git in the repository; unknown commits fail).
 function isAncestor(commit, head) {
   if (commit === head) return true;
   try { execFileSync('git', ['merge-base', '--is-ancestor', commit, head], {cwd: root, stdio: 'ignore'}); return true; }
   catch { return false; }
 }
 
-// A commit object present in this clone (a shallow clone lacks old ones: said, never read as "not an ancestor").
+// The content a certification verified: SHA-256 over the feature's entry, sources and test files (path, NUL, content),
+// in the working tree or at a commit. Bound to the content, not to the history, the certification survives a squash
+// merge (whose branch commits are not ancestors of main) and falls as soon as the certified code or its tests change.
+export function featureDigest(feature, commit = null) {
+  const files = [...new Set([feature.entry, ...(feature.sources ?? []), ...(feature.test_files ?? [])].filter(f => typeof f === 'string'))].sort();
+  const hash = createHash('sha256');
+  for (const file of files) {
+    let content;
+    try { content = commit ? execFileSync('git', ['show', `${commit}:${file}`], {cwd: root, maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'ignore']}) : readFileSync(join(root, file)); }
+    catch { return null; }
+    hash.update(file).update('\0').update(content).update('\0');
+  }
+  return hash.digest('hex');
+}
+
+// A commit object present in this clone. A commit that is not here is a gap, never accepted on trust (review #247 B-1:
+// otherwise any invented SHA would certify). After a squash merge the branch commits stay reachable through the PR
+// refs, which CI fetches (refs/pull/*/head); a shallow clone or a clone without them lacks the commit: said.
 function hasCommit(commit) {
   try { execFileSync('git', ['cat-file', '-e', `${commit}^{commit}`], {cwd: root, stdio: 'ignore'}); return true; }
   catch { return false; }
@@ -220,8 +241,15 @@ export function evidenceState(feature, {inventory, report = null, journeys = jou
   if (!['CERTIFIED MOCK', 'CERTIFIED REAL', 'CERTIFIED CALCULATION'].includes(cert.level)) certGaps.push('certification level must be CERTIFIED MOCK, CERTIFIED REAL or CERTIFIED CALCULATION');
   else if (cert.level !== expected) certGaps.push(`${cert.level} is not the level of ${feature.data} data${expected ? ` (${expected})` : ''}`);
   if (!SHA.test(cert.verified_commit ?? '')) certGaps.push('verified_commit must be a full SHA');
-  else if (!hasCommit(cert.verified_commit)) certGaps.push(`verified_commit ${cert.verified_commit.slice(0, 7)} is not in this clone (a full history is needed)`);
-  else if (report && SHA.test(report.head_sha ?? '') && !isAncestor(cert.verified_commit, report.head_sha)) certGaps.push(`verified_commit ${cert.verified_commit.slice(0, 7)} is not the report head or one of its ancestors`);
+  if (!/^[0-9a-f]{64}$/.test(cert.verified_digest ?? '')) certGaps.push('verified_digest must be the SHA-256 of the feature files');
+  else {
+    // The certified code and tests are the ones here: any change since the verification voids the certification.
+    if (featureDigest(feature) !== cert.verified_digest) certGaps.push('the feature files changed since the verified commit: verify again');
+    // The digest is the content of the verified commit (a record cannot claim another commit's).
+    if (!SHA.test(cert.verified_commit ?? '')) { /* said above */ }
+    else if (!hasCommit(cert.verified_commit)) certGaps.push(`verified_commit ${cert.verified_commit.slice(0, 7)} is not in this clone (fetch the full history and the PR refs)`);
+    else if (featureDigest(feature, cert.verified_commit) !== cert.verified_digest) certGaps.push(`verified_digest is not the content of verified_commit ${cert.verified_commit.slice(0, 7)}`);
+  }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(cert.date ?? '')) certGaps.push('date must be YYYY-MM-DD');
   if (typeof cert.perimeter !== 'string' || cert.perimeter.trim().length < 20) certGaps.push('the perimeter must be stated');
   if (Array.isArray(cert.requirements) && cert.requirements.length) {
@@ -267,8 +295,11 @@ export function evidenceState(feature, {inventory, report = null, journeys = jou
     if (review?.verdict !== 'APPROVED') certGaps.push('independent_review: verdict must be APPROVED');
     if (!/^https:\/\/github\.com\/zarbopiero963-droid\/MatchPilot\/(pull|issues)\/\d+#issuecomment-\d+$/.test(review?.reference ?? '')) certGaps.push('independent_review: reference must be the GitHub comment of the review');
     if (!SHA.test(review?.reviewed_sha ?? '')) certGaps.push('independent_review: reviewed_sha must be a full SHA');
-    else if (SHA.test(cert.verified_commit ?? '') && hasCommit(review.reviewed_sha) && !isAncestor(cert.verified_commit, review.reviewed_sha)) certGaps.push('independent_review: the reviewed commit does not contain the verified one');
-    else if (!hasCommit(review.reviewed_sha)) certGaps.push(`independent_review: ${review.reviewed_sha.slice(0, 7)} is not in this clone`);
+    // Both on the PR branch, reachable through its PR ref after a squash merge.
+    else if (!hasCommit(review.reviewed_sha)) certGaps.push(`independent_review: reviewed commit ${review.reviewed_sha.slice(0, 7)} is not in this clone (fetch the full history and the PR refs)`);
+    else if (SHA.test(cert.verified_commit ?? '') && hasCommit(cert.verified_commit) && !isAncestor(cert.verified_commit, review.reviewed_sha)) {
+      certGaps.push('independent_review: the reviewed commit does not contain the verified one');
+    }
   }
   if (certGaps.length) return {state: 'TESTED', gaps: certGaps, controls};
   return {state: cert.level, gaps: [], controls};
