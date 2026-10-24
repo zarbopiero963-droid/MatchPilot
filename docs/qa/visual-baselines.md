@@ -201,3 +201,12 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `simulazione-ricerca-mobile.png` `92086b1914ccecdf77216fc432931bfea570f3580218c0c8e7652fc18132fa03`
   - `simulazione-ricerca-tablet.png` `9a54cc972e39ac9d33327ebab68a1856a87850ab595dc98b53a5d47d0d043976`
   - `simulazione-tablet.png` `ce81802e7dd69d9b0599b7e922704c365de9f8b9cff1b1d424403203a6bbc0cd`
+
+## 2026-10-24 — MP-UI-PR-003: link «Backtest salvati» next to «Confronta più strategie sugli stessi dati» under the simulation form
+
+- Approval: PR #242, owner mandates MP-UI-ROADMAP-01 and MP-UI-HARD-GATES-01
+- Run: commit `361b6ecf5eab8bfc9771fe9e631e568c33c2da89`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `simulazione-desktop.png` `aa3bcb65bfd0b94a1e3fa8c1583ceed22cfb5a9bdeb5596cf40c29b09babf232`
+  - `simulazione-tablet.png` `6aba8bfd682c0ae38ab8647c18b4731f0bde63cf9222cadd2e2c36f65a3ca3fc`

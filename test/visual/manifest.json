@@ -6,12 +6,12 @@
     "ratio": 0
   },
   "generated": {
-    "commit": "41a06b43648f6172bdaabaf9660b4d312dcfaa3e",
+    "commit": "361b6ecf5eab8bfc9771fe9e631e568c33c2da89",
     "browser": "chromium 141.0.7390.37",
-    "date": "2026-10-23T19:33:14.717Z",
+    "date": "2026-10-24T11:00:06.442Z",
     "fixed_time": "2026-10-20T10:00:00+02:00",
-    "reason": "STRAT-CMP-01: link «Confronta più strategie sugli stessi dati» under the simulation form; new scene confronto",
-    "approval": "PR #231, owner mandate MP-PRIORITY7-STRATEGIES-20261023"
+    "reason": "MP-UI-PR-003: link «Backtest salvati» next to «Confronta più strategie sugli stessi dati» under the simulation form",
+    "approval": "PR #242, owner mandates MP-UI-ROADMAP-01 and MP-UI-HARD-GATES-01"
   },
   "files": {
     "confronto-desktop.png": "24a362cd045ca8fc75a4c4ad2c724d50cd61a7f0f01ff0544d06569ae7e2c17c",
@@ -62,11 +62,11 @@
     "ricerca-risultati-mobile.png": "b9eea68c5f3cdc261c9811f6bbe9eee43f35c94fdf15f1a76e208b988f409893",
     "ricerca-risultati-tablet.png": "c8e17d712d37c14570ff91094502ca5311278697ce3a7ce7bf928612c87b7743",
     "ricerca-tablet.png": "48671e26a52015406abcfb3717977c622bebe8a56b40de406125d031a35f2fa9",
-    "simulazione-desktop.png": "4f3ca0c82a6f2dfadc4ed4b78d13b74c9c8a68d4589f5d46f070fe7a97728cf5",
+    "simulazione-desktop.png": "aa3bcb65bfd0b94a1e3fa8c1583ceed22cfb5a9bdeb5596cf40c29b09babf232",
     "simulazione-mobile.png": "58ef2812a48992504a90b3c594e192e5547b34950ad1fe095c115719d5fe078f",
     "simulazione-ricerca-desktop.png": "cb7612a0f350bbe52b949feb122a23c1b21ca155b42ae32684beaabd1c5e9273",
     "simulazione-ricerca-mobile.png": "92086b1914ccecdf77216fc432931bfea570f3580218c0c8e7652fc18132fa03",
     "simulazione-ricerca-tablet.png": "9a54cc972e39ac9d33327ebab68a1856a87850ab595dc98b53a5d47d0d043976",
-    "simulazione-tablet.png": "ce81802e7dd69d9b0599b7e922704c365de9f8b9cff1b1d424403203a6bbc0cd"
+    "simulazione-tablet.png": "6aba8bfd682c0ae38ab8647c18b4731f0bde63cf9222cadd2e2c36f65a3ca3fc"
   }
 }

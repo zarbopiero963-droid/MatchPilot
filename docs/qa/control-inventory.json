@@ -2784,9 +2784,18 @@
         34,
         99
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "backtest salvati dalla simulazione: l’elenco dell’API, oppure non disponibile"
+        },
+        {
+          "journey": "sim-save",
+          "step": "elenco dei salvati: le righe dell’API, apertura e ritorno alla simulazione"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-SAVE-NAME",
@@ -2801,9 +2810,14 @@
         99
       ],
       "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "salva il risultato: lo stesso report dell’API, una sola richiesta anche con il doppio click"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-SAVE",
@@ -2818,9 +2832,26 @@
         99
       ],
       "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "salva il risultato: lo stesso report dell’API, una sola richiesta anche con il doppio click"
+        },
+        {
+          "journey": "sim-save",
+          "step": "lo stesso risultato di nuovo: già salvato, poi aperto dal salvataggio"
+        },
+        {
+          "journey": "sim-save",
+          "step": "errore del server al salvataggio: messaggio, nessun falso successo, si può riprovare"
+        },
+        {
+          "journey": "sim-save",
+          "step": "sessione chiusa: la scrittura è rifiutata e detta, nulla viene salvato"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-SAVE-OPEN",
@@ -2835,9 +2866,14 @@
         99
       ],
       "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "lo stesso risultato di nuovo: già salvato, poi aperto dal salvataggio"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-SAVE-STRATEGY-NAME",
@@ -2851,9 +2887,14 @@
         34
       ],
       "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "strategia personalizzata salvata con le regole simulate, poi di nuovo: nessuna nuova versione"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-SAVE-STRATEGY-KEY",
@@ -2867,9 +2908,14 @@
         34
       ],
       "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "strategia personalizzata salvata con le regole simulate, poi di nuovo: nessuna nuova versione"
+        }
+      ]
     },
     {
       "id": "CTL-SIM-SAVE-STRATEGY",
@@ -2883,9 +2929,14 @@
         34
       ],
       "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "strategia personalizzata salvata con le regole simulate, poi di nuovo: nessuna nuova versione"
+        }
+      ]
     },
     {
       "id": "CTL-SAVED-OPEN",
@@ -2900,9 +2951,14 @@
         99
       ],
       "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "elenco dei salvati: le righe dell’API, apertura e ritorno alla simulazione"
+        }
+      ]
     },
     {
       "id": "CTL-SAVED-BACK-SIM",
@@ -2915,9 +2971,14 @@
       "issues": [
         34
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "elenco dei salvati: le righe dell’API, apertura e ritorno alla simulazione"
+        }
+      ]
     },
     {
       "id": "CTL-LOGIN-USERNAME",
@@ -2930,9 +2991,14 @@
       "issues": [
         23
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "accesso del proprietario dalla pagina di accesso"
+        }
+      ]
     },
     {
       "id": "CTL-LOGIN-PASSWORD",
@@ -2945,9 +3011,14 @@
       "issues": [
         23
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "accesso del proprietario dalla pagina di accesso"
+        }
+      ]
     },
     {
       "id": "CTL-LOGIN-SUBMIT",
@@ -2960,9 +3031,14 @@
       "issues": [
         23
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "accesso del proprietario dalla pagina di accesso"
+        }
+      ]
     }
   ]
 }
