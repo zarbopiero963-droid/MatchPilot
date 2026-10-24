@@ -10,8 +10,9 @@
 // - SKIP and NOT_VERIFIED carry a reason and never stand in for a required journey;
 // - counts, missing_required and the verdict equal what the journeys imply;
 // - the report is not dated in the future and carries no secret-like value;
-// - with the control inventory (always from the command line): every control with evidence SEEN or ACTUATED was seen
-//   or actuated in each step it names, and no step actuated or showed a control the inventory does not list (MP-UI-PR-001).
+// - with the control inventory (always from the command line): the inventory is valid (no verified status without
+//   ASSERTED evidence, no ASSERTED before the gate records it), every control with evidence SEEN or ACTUATED was seen or
+//   actuated in each step it names, and no step actuated or showed a control the inventory does not list (MP-UI-PR-001).
 // Exit code 0 only when the evidence is valid and the verdict is PASS.
 //
 // Usage: node tools/qa/verify-report.mjs <dir> --head <sha> [--commit <sha>]
@@ -22,7 +23,7 @@ import {join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {findSecrets} from '../governance/secrets.mjs';
 import {REQUIRED_JOURNEYS, REQUIRED_VIEWPORTS} from './journeys.mjs';
-import {loadInventory, verifyCoverage} from './control-inventory.mjs';
+import {journeyStepTitles, loadInventory, verifyCoverage} from './control-inventory.mjs';
 
 const SHA = /^[0-9a-f]{40}$/;
 const STATUSES = ['PASS', 'FAIL', 'SKIP', 'NOT_VERIFIED'];
@@ -125,7 +126,7 @@ export function verifyReport(dir, {expectedHead, expectedCommit = null, required
   if (report.verdict !== verdict) errors.push(`declared verdict ${report.verdict} but the journeys give ${verdict}`);
   if (verdict !== 'PASS') errors.push('verdict is not PASS');
   for (const secret of findSecrets(report)) errors.push(`secret-like value at ${secret}`);
-  if (inventory) errors.push(...verifyCoverage(inventory, report).map(message => `control inventory: ${message}`));
+  if (inventory) errors.push(...verifyCoverage(inventory, report, {journeys: journeyStepTitles()}).map(message => `control inventory: ${message}`));
   return {ok: errors.length === 0, errors, report};
 }
 

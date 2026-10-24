@@ -40,7 +40,7 @@ After **every step** the runner also checks, on the page as rendered:
 - An id names a control, not each instance: the seven day links of the board share `CTL-BOARD-DAY`, the options of a Match Center filter share its id, `CTL-LIST-MORE` and `CTL-COMMON-RETRY` serve several views. Evidence on an id means at least one of its instances in each named step.
 - Scope: the single-page app (`/`). The server-rendered `/coverage` page is not inventoried yet; it moves into the app with MP-UI-PR-006.
 - A control with evidence `SEEN` or `ACTUATED` names steps, and `verify-report` fails unless it was seen or actuated in each of them on every viewport. A claim without the sighting or the action in the report, or an actuated or visible id missing from the inventory, refuses the evidence.
-- `test/control-inventory.test.mjs` checks the inventory against the journeys' step titles and the page code: every literal `data-control` id of `src/web` is inventoried, every inventoried id exists in the page, and no `button`, `select` or `input` is built without an id.
+- `test/control-inventory.test.mjs` checks the inventory against the journeys' step titles and the page code: every literal `data-control` id of `src/web` is inventoried, every generated id is built by its own form (and every id a form builds is inventoried), and no `button`, `select` or `input` is built without an id.
 - After a journey change, `node tools/qa/control-inventory.mjs actuations qa-evidence/report.json` (and `sightings`) lists the steps where each control was actuated (or seen) on every viewport, to update `evidence` and `exercised_by`.
 - `npm run ui:progress` computes the completion from statuses and evidence: seen, actuated and asserted counts; verified = `TESTED` or certified; `CERTIFIED MOCK` and `CERTIFIED REAL` apart (the latter impossible on the seeded QA archive).
 
@@ -55,7 +55,7 @@ A journey fails on any JavaScript error, failed request or HTTP error ≥ 400 th
 - SKIP and NOT_VERIFIED carry a reason and never replace a required journey;
 - counts, `missing_required` and verdict equal what the journeys imply;
 - the report is not dated in the future and has no secret-like value.
-- every control with evidence `SEEN` or `ACTUATED` was seen or actuated in each step it names, and no step actuated or showed a control the inventory does not list.
+- the control inventory is valid, with the same checks as its unit test (no `TESTED` or certified status without `ASSERTED`, no `ASSERTED` before the gate records it); every control with evidence `SEEN` or `ACTUATED` was seen or actuated in each step it names, and no step actuated or showed a control the inventory does not list.
 
 The verdict is computed, never declared. `test/browser-qa-gate.test.mjs` proves each refusal (missing report, other head, other commit, modified tree, changed or missing file, PASS without steps, hidden failure, wrong counts, duplicate, unexplained skip, missing journey, secret) and that the runner fails a real page with a deliberately injected defect, with screenshot and trace.
 

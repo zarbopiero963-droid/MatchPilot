@@ -148,6 +148,20 @@ test('the runner fails a real page with a control missing from the control inven
   assert.match(report.journeys[0].reason, /control without data-control: <a>/);
 });
 
+test('the evidence gate refuses a forged certified inventory (review #240)', t => {
+  const inventory = JSON.parse(readFileSync(new URL('../docs/qa/control-inventory.json', import.meta.url), 'utf8'));
+  // Evidence only from steps the synthetic report does not record: start from an inventory claiming no evidence.
+  const clean = structuredClone(inventory);
+  for (const c of clean.controls) Object.assign(c, {status: 'IMPLEMENTED', evidence: 'NONE', exercised_by: []});
+  assert.equal(check(evidence(t), {inventory: clean}).ok, true);
+  const forged = structuredClone(clean);
+  for (const c of forged.controls) Object.assign(c, {status: 'CERTIFIED REAL', evidence: 'ASSERTED', data: 'REAL'});
+  refused(check(evidence(t), {inventory: forged}), /control inventory: .*ASSERTED/);
+  const tested = structuredClone(clean);
+  tested.controls[0].status = 'TESTED';
+  refused(check(evidence(t), {inventory: tested}), /TESTED needs ASSERTED evidence/);
+});
+
 test('inherited keys, files outside the manifest and a wrong missing_required are refused (PR #164 NB-1, NB-2)', t => {
   // Forged evidence naming inherited object keys instead of real files.
   refused(check(evidence(t, (r, dir) => {

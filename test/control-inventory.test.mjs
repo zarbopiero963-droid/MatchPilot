@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {EVIDENCED, actuationsFrom, inventoryIds, loadInventory, progress, validateInventory, verifyCoverage} from '../tools/qa/control-inventory.mjs';
+import {EVIDENCED, actuationsFrom, inventoryIds, journeyStepTitles, loadInventory, progress, validateInventory, verifyCoverage} from '../tools/qa/control-inventory.mjs';
 import {JOURNEYS} from '../tools/qa/journeys.mjs';
 
 const source = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
@@ -11,19 +11,7 @@ const html = source('src/web/index.html');
 const inventory = loadInventory();
 const ids = new Set(inventoryIds(inventory));
 
-// The step titles of each journey, read from its source: a literal title as is, a template title as a pattern.
-function journeySteps() {
-  const text = source('tools/qa/journeys.mjs');
-  const starts = [...text.matchAll(/^ {4}id: '([a-z-]+)'/gm)];
-  const out = {};
-  starts.forEach((match, i) => {
-    const body = text.slice(match.index, starts[i + 1]?.index ?? text.length);
-    out[match[1]] = [...body.matchAll(/\bstep\(\s*(?:'([^']*)'|`([^`]*)`)/g)].map(([, literal, template]) => (literal !== undefined ? literal
-      : new RegExp(`^${template.split(/\$\{[^}]*\}/).map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.+')}$`)));
-  });
-  return out;
-}
-const journeys = journeySteps();
+const journeys = journeyStepTitles();
 
 test('the journey step titles are read for every journey', () => {
   assert.deepEqual(Object.keys(journeys).sort(), JOURNEYS.map(journey => journey.id).sort());
@@ -38,21 +26,33 @@ test('every literal data-control id of the page is in the inventory, and every i
   const literal = new Set([...`${app}\n${html}`.matchAll(/(?:'data-control': |data-control=")['"]?(CTL-[A-Z0-9-]+)/g)].map(match => match[1]));
   assert.ok(literal.size > 30);
   for (const id of literal) assert.ok(ids.has(id), `${id} is in the page but not in the inventory`);
-  // Generated ids come from ctl('VIEW', name): their prefixes.
-  const prefixes = [...app.matchAll(/\bctl\('([A-Z-]+)'/g)].map(match => `CTL-${match[1]}-`);
-  assert.ok(prefixes.length >= 5);
-  // A generated id must name a field the page builds: its name part is a quoted name in app.js (CTL-SIM-ODDS-MIN ->
-  // 'odds_min'; compare ids carry the configuration key first, CTL-CMP-A-STRATEGY -> 'strategy').
+  // Generated ids come from ctl('VIEW', name): each prefix is one of the forms or lists checked below.
+  const prefixes = new Set([...app.matchAll(/\bctl\('([A-Z-]+)'/g)].map(match => match[1]));
+  assert.deepEqual([...prefixes].sort(), ['CMP', 'DATA-TAB', 'MATCH-FILTER', 'SEARCH', 'SIM']);
+  // A generated id must name a field its own form builds: the names passed to the field helpers inside that function
+  // (a ghost CTL-SEARCH-STAKE fails although 'stake' exists in another form).
+  const body = name => {
+    const start = app.search(new RegExp(`^(?:async )?function ${name}\\(`, 'm'));
+    assert.ok(start >= 0, `function ${name} not found`);
+    const rest = app.slice(start + 1);
+    const end = rest.search(/^(?:async function|function|const|let) /m);
+    return app.slice(start, end < 0 ? app.length : start + 1 + end);
+  };
+  const fields = text => [...text.matchAll(/\b(?:select|input|check|price)\(\s*'([a-z_]+)'/g)].map(match => match[1]);
   const cmpKeys = [...(/const CMP_KEYS = \[([^\]]*)\]/.exec(app)?.[1].matchAll(/'([a-z])'/g) ?? [])].map(match => match[1]);
   assert.deepEqual(cmpKeys, ['a', 'b', 'c']);
-  for (const id of ids) {
-    if (literal.has(id)) continue;
-    const prefix = prefixes.find(p => id.startsWith(p));
-    assert.ok(prefix, `${id} is in the inventory but not in the page`);
-    let field = id.slice(prefix.length).toLowerCase().replace(/-/g, '_');
-    if (prefix === 'CTL-CMP-' && cmpKeys.some(key => field.startsWith(`${key}_`)) && !app.includes(`'${field}'`)) field = field.slice(2);
-    assert.ok(app.includes(`'${field}'`), `${id} names no field of the page («${field}»)`);
-  }
+  const dataTabs = [.../const DATA_TABS = (\[.*\]);/.exec(app)[1].matchAll(/\[(?:'([a-z]+)'|null),/g)].map(match => match[1] ?? 'coverage');
+  const generated = new Set([
+    ...fields(body('searchForm')).map(name => `CTL-SEARCH-${name}`),
+    ...fields(body('simForm')).map(name => `CTL-SIM-${name}`),
+    ...fields(body('cmpForm')).map(name => `CTL-CMP-${name}`),
+    ...cmpKeys.flatMap(key => fields(body('cmpConfiguration')).map(name => `CTL-CMP-${key}_${name}`)),
+    ...[...app.matchAll(/\bfilter\('[^']*', '([a-z]+)'/g)].map(match => `CTL-MATCH-FILTER-${match[1]}`),
+    ...dataTabs.map(view => `CTL-DATA-TAB-${view}`),
+  ].map(id => id.toUpperCase().replace(/_/g, '-')));
+  assert.ok(generated.size > 80);
+  for (const id of ids) assert.ok(literal.has(id) || generated.has(id), `${id} is in the inventory but no form of the page builds it`);
+  for (const id of generated) assert.ok(ids.has(id), `${id} is built by the page but not in the inventory`);
   // No control is created without an id: every button, select and input built by el() names one, directly or through
   // the form helpers that add it.
   for (const match of app.matchAll(/el\('(button|select|input)', \{([^}]*)\}/g)) assert.match(match[2], /'data-control'/, `el('${match[1]}') without data-control: ${match[2].slice(0, 80)}`);
@@ -107,6 +107,15 @@ test('coverage: a SEEN or ACTUATED control must be seen or actuated in each step
   const unknown = structuredClone(report);
   unknown.journeys[0].steps.push({name: 'x', status: 'PASS', actuated: [], seen: ['CTL-NOT-INVENTORIED']});
   assert.match(verifyCoverage(inventory, unknown).join(), /CTL-NOT-INVENTORIED not in the inventory/);
+  // The evidence gate itself refuses a verified status or ASSERTED evidence, not only the unit validator (review #240).
+  const forged = structuredClone(inventory);
+  for (const c of forged.controls) Object.assign(c, {status: 'CERTIFIED REAL', evidence: 'ASSERTED', data: 'REAL', exercised_by: []});
+  const refusals = verifyCoverage(forged, report).join();
+  assert.match(refusals, /ASSERTED evidence is not recorded by the gate yet/);
+  const tested = structuredClone(inventory);
+  tested.controls.find(c => c.evidence === 'ACTUATED').status = 'TESTED';
+  assert.match(verifyCoverage(tested, report).join(), /TESTED needs ASSERTED evidence, not ACTUATED/);
+  assert.match(verifyCoverage(tested, report, {journeys}).join(), /TESTED needs ASSERTED evidence/);
   // A malformed report is refused with errors, never a crash.
   for (const bad of [{}, {journeys: 'x'}, {journeys: [{id: claimed[0].exercised_by[0].journey, viewport: 'desktop', status: 'PASS'}]}, {journeys: [null]}]) {
     assert.ok(verifyCoverage(inventory, bad).length > 0, JSON.stringify(bad));

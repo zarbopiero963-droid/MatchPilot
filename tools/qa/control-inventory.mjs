@@ -35,6 +35,19 @@ export function loadInventory(path = INVENTORY_PATH) {
 
 export const inventoryIds = inventory => inventory.controls.map(control => control.id);
 
+// The step titles of each journey, read from the source of tools/qa/journeys.mjs: a literal title as is, a template
+// title as a pattern. Used to check the steps the inventory names, in the unit test and in verify-report.
+export function journeyStepTitles(text = readFileSync(join(root, 'tools/qa/journeys.mjs'), 'utf8')) {
+  const starts = [...text.matchAll(/^ {4}id: '([a-z-]+)'/gm)];
+  const out = {};
+  starts.forEach((match, i) => {
+    const body = text.slice(match.index, starts[i + 1]?.index ?? text.length);
+    out[match[1]] = [...body.matchAll(/\bstep\(\s*(?:'([^']*)'|`([^`]*)`)/g)].map(([, literal, template]) => (literal !== undefined ? literal
+      : new RegExp(`^${template.split(/\$\{[^}]*\}/).map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.+')}$`)));
+  });
+  return out;
+}
+
 // Structural checks; `journeys` is {id: [step titles]} of tools/qa/journeys.mjs (a RegExp for a title built at run time).
 export function validateInventory(inventory, {journeys}) {
   const errors = [];
@@ -69,15 +82,21 @@ export function validateInventory(inventory, {journeys}) {
   return errors;
 }
 
-// Every SEEN or ACTUATED control was seen or actuated in each step it names, in every passed run of that journey.
-export function verifyCoverage(inventory, report) {
-  const errors = [];
+// Every SEEN or ACTUATED control was seen or actuated in each step it names, in every passed run of that journey; no
+// verified status or ASSERTED evidence is claimed that the report cannot back. With `journeys`, the inventory is also
+// validated in full, as verify-report does: the evidence gate never relies on the unit tests alone.
+export function verifyCoverage(inventory, report, {journeys = null} = {}) {
+  const errors = journeys ? validateInventory(inventory, {journeys}) : [];
+  if (!Array.isArray(inventory?.controls)) return [...errors, 'inventory has no controls'];
   const all = Array.isArray(report?.journeys) ? report.journeys : [];
   const stepsOf = run => (Array.isArray(run?.steps) ? run.steps : []);
   const runs = all.filter(journey => journey?.status === 'PASS');
   for (const control of inventory.controls) {
+    if (EVIDENCED.includes(control.status) && control.evidence !== 'ASSERTED') errors.push(`${control.id}: ${control.status} needs ASSERTED evidence, not ${control.evidence}`);
+    if (control.evidence === 'ASSERTED' && !ASSERTED_SUPPORTED) { errors.push(`${control.id}: ASSERTED evidence is not recorded by the gate yet`); continue; }
     const key = REPORT_KEY[control.evidence];
     if (!key) continue;
+    if (!Array.isArray(control.exercised_by)) { errors.push(`${control.id}: exercised_by must be a list`); continue; }
     for (const ref of control.exercised_by) {
       const matching = runs.filter(journey => journey.id === ref.journey);
       if (!matching.length) { errors.push(`${control.id}: no passed run of ${ref.journey}`); continue; }
@@ -127,7 +146,13 @@ export function actuationsFrom(report, key = 'actuated') {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [command, ...rest] = process.argv.slice(2);
-  if (command === 'progress') console.log(JSON.stringify(progress(loadInventory()), null, 2));
+  if (command === 'progress') {
+    // Completion is printed only for an inventory that passes validation.
+    const inventory = loadInventory();
+    const errors = validateInventory(inventory, {journeys: journeyStepTitles()});
+    if (errors.length) { console.error(JSON.stringify({ok: false, errors}, null, 2)); process.exit(1); }
+    console.log(JSON.stringify(progress(inventory), null, 2));
+  }
   else if (['actuations', 'sightings'].includes(command) && rest[0]) {
     console.log(JSON.stringify(actuationsFrom(JSON.parse(readFileSync(rest[0], 'utf8')), command === 'actuations' ? 'actuated' : 'seen'), null, 2));
   } else { console.error('usage: control-inventory.mjs progress | actuations <report.json> | sightings <report.json>'); process.exit(2); }
