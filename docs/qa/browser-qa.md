@@ -59,7 +59,11 @@ Owner decision MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01: certification is pe
 - data: `REAL`, `DEMO`, `COMPUTED` (the real server computes from what the user types) or `NONE`;
 - whether it is financial;
 - dependencies, limits and the next activity;
-- its source modules (`sources`) and test files (`test_files`). A source module and a test file belong to one feature only. Every test file must import one of the feature's sources, and the evidence may cite only these tests;
+- its entry module (`entry`), source modules (`sources`) and test files (`test_files`):
+  - the entry must serve the API of the feature's controls (it names each path, or its family such as `/api/v1/tools/`);
+  - the sources are the entry and the modules it imports, so a module the feature does not run can never be its evidence;
+  - a source module and a test file belong to one feature only;
+  - every test file imports one of the sources (comments ignored), and the evidence may cite only these tests;
 - its state: `NOT STARTED`, `IN DEVELOPMENT`, `IMPLEMENTED`, `TESTED`, `CERTIFIED MOCK`, `CERTIFIED REAL`, `CERTIFIED CALCULATION`, `BLOCKED` or `REGRESSED`.
 
 Every control of the inventory belongs to exactly one feature.
@@ -78,7 +82,7 @@ Every control of the inventory belongs to exactly one feature.
     - Integration needs a step whose assertions passed on every viewport;
   - `gate_a` (result PASS, test evidence) and `gate_b` (result PASS, Browser QA evidence);
   - `fixtures`: the fixtures and independent vectors, at least one test;
-  - `results`: the test runs (`npm test`, `npm run …`, `node --test …`, `node tools/….mjs`), all PASS on the verified commit. They are declarations; CI runs every cited test and journey again on each change;
+  - `results`: the test runs, all PASS on the verified commit. Accepted commands: `npm test`, `npm run qa:browser`, `npm run qa:verify`, a QA tool `node tools/qa/….mjs`, or `node --test` on the feature's own test files. They are declarations; CI runs every cited test and journey again on each change;
   - `contracts`: module (one of the feature's `sources`), exported constant and version. The gate compares each with the constant in the code, ignoring comments, so a changed contract voids the certification;
   - `limits`, stated explicitly;
   - `independent_review`: verdict APPROVED, the reviewed commit (containing the verified one) and the GitHub comment of the review.

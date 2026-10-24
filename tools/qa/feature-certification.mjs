@@ -78,12 +78,43 @@ function contractErrors(contract, sources = []) {
 let requirementIds = null;
 const knownRequirement = id => (requirementIds ??= new Set(JSON.parse(readFileSync(REQUIREMENTS_PATH, 'utf8')).requirements.map(r => r.id))).has(id);
 
-// A test file belongs to a feature when it imports one of the feature's sources (`from '../src/...'`).
+const withoutComments = text => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+const codeOf = path => withoutComments(readFileSync(join(root, path), 'utf8'));
+
+// A test file belongs to a feature when it imports one of the feature's sources (`from '../src/...'`, comments ignored).
 function testImportsSource(testFile, sources) {
-  const file = join(root, testFile);
-  if (!existsSync(file)) return false;
-  const text = readFileSync(file, 'utf8');
+  if (!existsSync(join(root, testFile))) return false;
+  const text = codeOf(testFile);
   return sources.some(source => text.includes(`from '../${source}'`));
+}
+
+// The modules an entry module reaches through its relative imports (itself included).
+function reachable(entry) {
+  const seen = new Set();
+  const visit = path => {
+    if (seen.has(path) || !existsSync(join(root, path))) return;
+    seen.add(path);
+    for (const [, spec] of codeOf(path).matchAll(/from '(\.{1,2}\/[^']+)'/g)) visit(join(dirname(path), spec).replace(/\\/g, '/'));
+  };
+  visit(entry);
+  return seen;
+}
+
+// The entry module serves the feature's API: it names each API path of the feature's controls, or its family prefix
+// ('/api/v1/tools/' for '/api/v1/tools/kelly'). The sources are the entry and the modules it imports: a module the
+// feature does not run can never be its evidence (review of the gate, B1/B4).
+function entryErrors(feature, controls) {
+  const entry = feature.entry;
+  if (typeof entry !== 'string' || !/^src\/[\w./-]+\.m?js$/.test(entry) || entry.includes('..') || !existsSync(join(root, entry))) return ['entry: the feature names the module that serves its API'];
+  const text = codeOf(entry);
+  const apis = [...new Set(controls.flatMap(c => [].concat(c.api ?? [])).filter(api => api.startsWith('/api/')))];
+  if (!apis.length) return ['entry: the feature has no API to anchor its sources'];
+  const family = api => api.slice(0, api.lastIndexOf('/') + 1);
+  const missing = apis.filter(api => !text.includes(`'${api}'`) && !(family(api).split('/').length >= 5 && text.includes(family(api))));
+  const errors = missing.map(api => `entry: ${entry} does not serve ${api}`);
+  const modules = reachable(entry);
+  for (const source of feature.sources ?? []) if (!modules.has(source)) errors.push(`sources: ${source} is not run by the entry ${entry}`);
+  return errors;
 }
 
 // A step exercises the feature when the control inventory records one of the feature's controls in it.
@@ -130,6 +161,14 @@ function refErrors(ref, {journeys, report, asserting = false, testFiles = null})
   return ['a reference is {test, name}, {journey, step} or {file}'];
 }
 
+// A result is the whole suite, Browser QA, a QA tool, or `node --test` on the feature's own test files only.
+function resultCommand(command, testFiles) {
+  if (typeof command !== 'string') return false;
+  if (['npm test', 'npm run qa:browser', 'npm run qa:verify'].includes(command) || /^node tools\/qa\/[\w-]+\.mjs( [\w./-]+)*$/.test(command)) return true;
+  const files = /^node --test( test\/[\w./-]+\.test\.mjs)+$/.test(command) ? command.split(' ').slice(2) : null;
+  return Boolean(files?.length && files.every(file => testFiles.includes(file)));
+}
+
 // The state the evidence supports, with the reasons it stops there.
 export function evidenceState(feature, {inventory, report = null, journeys = journeyStepTitles()}) {
   const gaps = [];
@@ -154,6 +193,7 @@ export function evidenceState(feature, {inventory, report = null, journeys = jou
   // The feature's own code and tests: sources exist, and every test file imports one of them (review of the gate, B1/B4).
   if (!sources.length) certGaps.push('sources: the feature names its source modules');
   for (const source of sources) if (!/^src\/[\w./-]+\.m?js$/.test(source) || source.includes('..') || !existsSync(join(root, source))) certGaps.push(`sources: ${source} is not a source module`);
+  certGaps.push(...entryErrors(feature, controls));
   for (const testFile of testFiles) if (!testImportsSource(testFile, sources)) certGaps.push(`${testFile} does not import a source of the feature`);
   const refs = (field, list, {needTest = false, needJourney = false} = {}) => {
     if (!Array.isArray(list) || !list.length) { certGaps.push(`${field}: no evidence`); return; }
@@ -201,7 +241,7 @@ export function evidenceState(feature, {inventory, report = null, journeys = jou
   if (cert.results !== undefined) {
     if (!Array.isArray(cert.results) || !cert.results.length) certGaps.push('results: at least one test result');
     else for (const result of cert.results) {
-      if (typeof result?.command !== 'string' || !/^(npm (test|run [\w:-]+)|node (--test|tools\/[\w./-]+\.mjs))\b/.test(result.command)) certGaps.push(`results: ${result?.command ?? '(no command)'} is not a test command of the repository`);
+      if (!resultCommand(result?.command, testFiles)) certGaps.push(`results: ${result?.command ?? '(no command)'} is not a test command of the feature`);
       if (result?.result !== 'PASS') certGaps.push(`results: ${result?.command ?? '(no command)'} is not PASS`);
       if (result?.commit !== cert.verified_commit) certGaps.push(`results: ${result?.command ?? '(no command)'} was not run on the verified commit`);
     }

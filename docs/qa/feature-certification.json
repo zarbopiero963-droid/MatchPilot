@@ -300,7 +300,8 @@
       "sources": [
         "src/math/trading.mjs",
         "src/api/tools.mjs"
-      ]
+      ],
+      "entry": "src/api/tools.mjs"
     }
   ]
 }

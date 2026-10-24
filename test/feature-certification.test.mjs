@@ -30,7 +30,7 @@ const certification = () => ({level: 'CERTIFIED CALCULATION', perimeter: 'the se
   gate_a: {result: 'PASS', evidence: [M('Kelly: the #94 golden vectors and its outputs')]},
   gate_b: {result: 'PASS', evidence: [J(KELLY)]},
   fixtures: [M('Kelly: exact oracle and metamorphic doubling (2000 seeded cases)')],
-  results: [{command: 'node --test', result: 'PASS', commit: OLD}],
+  results: [{command: 'npm test', result: 'PASS', commit: OLD}],
   contracts: [{module: 'src/api/tools.mjs', export: 'TOOLS_VERSION', version: 'mp-tools-1'}],
   limits: ['manual input only'],
   independent_review: {verdict: 'APPROVED', reviewed_sha: NEW, reference: 'https://github.com/zarbopiero963-droid/MatchPilot/pull/244#issuecomment-6384598449'}});
@@ -82,8 +82,8 @@ test('a complete record certifies; each missing or false piece stops it at TESTE
     [f => { f.certification.gate_a.evidence = [J(KELLY)]; }, /gate_a: needs a test/],
     [f => { f.certification.gate_b.evidence = [M('Kelly: the #94 golden vectors and its outputs')]; }, /gate_b needs a Browser QA step/],
     [f => { f.certification.fixtures = [{file: 'docs/trading-tools.md'}]; }, /fixtures: needs a test or a Browser QA step/],
-    [f => { f.certification.results = [{command: 'node --test', result: 'FAIL', commit: OLD}]; }, /results: node --test is not PASS/],
-    [f => { f.certification.results = [{command: 'node --test', result: 'PASS', commit: NEW}]; }, /was not run on the verified commit/],
+    [f => { f.certification.results = [{command: 'npm test', result: 'FAIL', commit: OLD}]; }, /results: npm test is not PASS/],
+    [f => { f.certification.results = [{command: 'npm test', result: 'PASS', commit: NEW}]; }, /was not run on the verified commit/],
     // Contracts: the version is the code's; a change voids the certification.
     [f => { f.certification.contracts = [{module: 'src/api/tools.mjs', export: 'TOOLS_VERSION', version: 'mp-tools-0'}]; }, /TOOLS_VERSION is mp-tools-1, certified mp-tools-0/],
     [f => { f.certification.contracts = [{module: '../etc/passwd', export: 'X', version: '1'}]; }, /bad contract module/],
@@ -101,9 +101,15 @@ test('a complete record certifies; each missing or false piece stops it at TESTE
     [f => { f.journeys.push('sim-save'); f.certification.criteria.integration = [{journey: 'sim-save', step: 'accesso del proprietario dalla pagina di accesso'}]; }, /exercises no control of the feature/],
     [f => { f.certification.requirements = ['MP-GOV-001']; }, /requirement MP-GOV-001 is not a requirement of the feature/],
     [f => { f.certification.contracts = [{module: 'src/hist/engine.mjs', export: 'ENGINE_VERSION', version: 'x'}]; }, /src\/hist\/engine.mjs is not a source of the feature/],
-    [f => { f.certification.results = [{command: 'echo', result: 'PASS', commit: OLD}]; }, /echo is not a test command of the repository/],
+    [f => { f.certification.results = [{command: 'echo', result: 'PASS', commit: OLD}]; }, /echo is not a test command of the feature/],
     [f => { f.certification.criteria.integration = {na: 'no browser for this feature, nothing to integrate'}; }, /integration is never N\/A/],
     [f => { f.sources = []; }, /sources: the feature names its source modules/],
+    // Second review of the gate: a module the feature does not run, claimed as a source with its tests.
+    [f => { f.sources.push('src/hist/engine.mjs'); f.test_files.push('test/hist-backtest.test.mjs'); }, /sources: src\/hist\/engine.mjs is not run by the entry src\/api\/tools.mjs/],
+    [f => { f.certification.results = [{command: 'node --test test/csv.test.mjs', result: 'PASS', commit: OLD}]; }, /node --test test\/csv.test.mjs is not a test command of the feature/],
+    [f => { f.certification.results = [{command: 'npm run governance:status', result: 'PASS', commit: OLD}]; }, /is not a test command of the feature/],
+    [f => { f.entry = 'src/hist/engine.mjs'; }, /entry: src\/hist\/engine.mjs does not serve \/api\/v1\/tools\//],
+    [f => { delete f.entry; }, /entry: the feature names the module that serves its API/],
   ];
   for (const [change, message] of broken) {
     const f = certified();
