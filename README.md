@@ -158,7 +158,7 @@ Gerarchia: decisioni owner → #3 prodotto/stato globale → #97 roadmap/fasi �
 | 15 | UI finale | #30, #29, #24, #25, #94, #95, #96, #34, #102, eventuale #91 |
 | 16 | #46 | Billing / SaaS |
 
-#102 Trading Copilot attraversa più fasi: tool contestuali dopo #28, spiegazione conversazionale dopo #44, certificazione in #98, card visuale in fase 15.
+#102 Trading Copilot attraversa più fasi: tool contestuali dopo #28, spiegazione conversazionale dopo #44, certificazione in #98; card visuale nella roadmap UI #239, in modo incrementale (D12-19, PR 069–076).
 
 ### API/tool-first e #98 incrementale
 

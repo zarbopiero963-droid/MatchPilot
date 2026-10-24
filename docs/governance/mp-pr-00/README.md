@@ -106,7 +106,7 @@ Ogni verdict cambiato porta il campo `history`. Le evidenze originali dell'audit
 | C-03 | Certificato FPT 20/20 contro audit 412 e rischio PIT | certificato limitato al suo scope; policy PIT D4; audit 412 in R-16 |
 | C-04 | Componenti TC certificati contro #20 globale | nessuna promozione; #20 OPEN (D9) |
 | C-05 | #40 "READY TO CLOSE" contro issue OPEN | D9: OPEN fino alla verifica indipendente di portabilità e hash |
-| C-06 | UI in fase 15 contro sito reale v1 | D3: sito reale in v1, UI consumer di contratti API |
+| C-06 | UI in fase 15 contro sito reale v1 | D3: sito reale in v1, UI consumer di contratti API; dal 24/10/2026 UI incrementale insieme ai backend (D12-19, MP-UI-D12-DECISIONS-20261024) |
 | C-07 | #23 include SaaS | baseline owner/admin in v1, SaaS futuro |
 | C-08 | Live Board contro LIVE escluso | dati catturati offline; LIVE solo con autorizzazione (D6) |
 | C-09 | Backtest dipendente da MM, ledger e market rules | v1 neutro con MKT-001..003; MM e ledger futuri |

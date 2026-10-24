@@ -21,13 +21,17 @@ Questo documento è un **riepilogo**. In caso di divergenza prevalgono il regist
 `docs/governance/ui-requirements-matrix.json` è la copia canonica, versionata, della matrice pubblicata in #239.
 
 - **Contenuto:** 1.090 requisiti approvati e 10 proposte non approvate, una riga ciascuno. Ogni riga riporta fonte, decisione owner, comportamento, criteri, dipendenze, fase, PR responsabile, stato, evidenza, blocker, priorità, dati e presenza nel mock e nel prototipo.
-- **Tracciabilità:** sono conservate anche le righe accorpate e poi scomposte (`superseded`) e gli alias degli indicatori presenti sia in #28 sia in #34 (`aliases`).
+- **Tracciabilità:** sono conservate anche le 72 righe accorpate e poi scomposte (`superseded`, con le destinazioni risolte sugli id canonici; il campo `splits` delle righe figlie) e i 37 alias degli indicatori presenti sia in #28 (1200–1236) sia in #34 (0460–0496) (`aliases`).
+- **Impatti delle decisioni:** `resolves` elenca i requisiti di cui la decisione chiude lo stato DECISION REQUIRED. `impacts_lexical_candidates` (nella matrice `d12_candidate_impacts`) elenca le corrispondenze per parola chiave: sono candidati da confermare nella PR di destinazione, non una mappatura verificata.
+- **Testo delle decisioni:** il campo `decision` di ogni item è la copia letterale della ratifica, conservata in `docs/governance/owner-ratifications/MP-UI-D12-DECISIONS-20261024.md`; il test lo verifica. Titoli, PR, criteri, dipendenze e dettagli da specificare sono una mappatura dell'agente, non testo approvato dall'owner.
 - **Verifica:** `test/ui-requirements-matrix.test.mjs` controlla che:
   - restino 1.090 requisiti approvati, ciascuno con una destinazione;
   - nessuna riga sia in DECISION REQUIRED;
   - ogni PR citata sia nel registro;
   - nessuna riga dichiari una certificazione che `docs/qa/feature-certification.json` non contiene;
-  - ogni decisione D12 punti a requisiti esistenti.
+  - ogni decisione D12 punti a requisiti esistenti e riporti alla lettera il testo della ratifica;
+  - ogni destinazione sia una PR o una categoria ammessa, e ogni stato verificato citi un test.
+- **Correzioni dalla review della PR #250:** 4 requisiti dichiarati TESTED o CERTIFIED CALCULATION senza alcun test che ne asserisca il comportamento tornano IMPLEMENTED, con il motivo nell'evidenza (0631, 0641, 1042, 1052). Ad altri 12 è stata aggiunta l'evidenza del test esistente.
 - **Stati:** sono quelli verificati su main a `c110291`. Uno stato sale a TESTED o CERTIFIED solo con l'evidenza dei registri QA, mai per la ratifica.
 
 **Effetto della ratifica sugli stati.** I 49 requisiti in DECISION REQUIRED (35 indicatori e 14 altri) sono stati risolti così.
