@@ -96,6 +96,14 @@ test('a complete record certifies; each missing or false piece stops it at TESTE
     [f => { f.certification.verified_commit = '0'.repeat(40); f.certification.results[0].commit = '0'.repeat(40); }, /is not in this clone/],
     [f => { f.certification.verified_commit = 'abc'; }, /verified_commit must be a full SHA/],
     [f => { f.certification.perimeter = ''; }, /the perimeter must be stated/],
+    // The review of the gate (cross-feature evidence): tests, journeys, requirements and contracts of other features.
+    [f => { f.test_files.push('test/csv.test.mjs'); f.certification.criteria.correctness = [{test: 'test/csv.test.mjs', name: 'x'}]; }, /test\/csv.test.mjs does not import a source of the feature/],
+    [f => { f.journeys.push('sim-save'); f.certification.criteria.integration = [{journey: 'sim-save', step: 'accesso del proprietario dalla pagina di accesso'}]; }, /exercises no control of the feature/],
+    [f => { f.certification.requirements = ['MP-GOV-001']; }, /requirement MP-GOV-001 is not a requirement of the feature/],
+    [f => { f.certification.contracts = [{module: 'src/hist/engine.mjs', export: 'ENGINE_VERSION', version: 'x'}]; }, /src\/hist\/engine.mjs is not a source of the feature/],
+    [f => { f.certification.results = [{command: 'echo', result: 'PASS', commit: OLD}]; }, /echo is not a test command of the repository/],
+    [f => { f.certification.criteria.integration = {na: 'no browser for this feature, nothing to integrate'}; }, /integration is never N\/A/],
+    [f => { f.sources = []; }, /sources: the feature names its source modules/],
   ];
   for (const [change, message] of broken) {
     const f = certified();
@@ -152,4 +160,11 @@ test('structure: ids, duplicate ownership, unowned controls, BLOCKED without rea
   bad.id = 'tools';
   assert.match(errorsOf([...others(), tools(), bad]).join('\n'), /id must match/);
   assert.match(checkFeatures({...copy(register), schema: 'x'}, {inventory}).errors.join('\n'), /schema must be/);
+  // A test file and a source module are the evidence of one feature only.
+  const saved = copy(register.features.find(f => f.id === 'FEAT-SAVED'));
+  saved.test_files = ['test/tools-api.test.mjs'];
+  saved.sources = ['src/api/tools.mjs'];
+  const shared = errorsOf([...others().filter(f => f.id !== 'FEAT-SAVED'), saved, tools()]).join('\n');
+  assert.match(shared, /test\/tools-api.test.mjs is a test file of FEAT-SAVED and FEAT-TRADING-TOOLS/);
+  assert.match(shared, /src\/api\/tools.mjs is a source of FEAT-SAVED and FEAT-TRADING-TOOLS/);
 });

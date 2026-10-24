@@ -296,6 +296,10 @@
       "test_files": [
         "test/math-trading.test.mjs",
         "test/tools-api.test.mjs"
+      ],
+      "sources": [
+        "src/math/trading.mjs",
+        "src/api/tools.mjs"
       ]
     }
   ]

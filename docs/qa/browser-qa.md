@@ -59,7 +59,7 @@ Owner decision MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01: certification is pe
 - data: `REAL`, `DEMO`, `COMPUTED` (the real server computes from what the user types) or `NONE`;
 - whether it is financial;
 - dependencies, limits and the next activity;
-- its test files (`test_files`): the only test files its evidence may cite;
+- its source modules (`sources`) and test files (`test_files`). A source module and a test file belong to one feature only. Every test file must import one of the feature's sources, and the evidence may cite only these tests;
 - its state: `NOT STARTED`, `IN DEVELOPMENT`, `IMPLEMENTED`, `TESTED`, `CERTIFIED MOCK`, `CERTIFIED REAL`, `CERTIFIED CALCULATION`, `BLOCKED` or `REGRESSED`.
 
 Every control of the inventory belongs to exactly one feature.
@@ -71,11 +71,15 @@ Every control of the inventory belongs to exactly one feature.
   - `level` and `perimeter`;
   - `verified_commit` and `date`. The commit must be present in the clone (CI checks out the full history) and, with a report, be the report's head or one of its ancestors;
   - `requirements`: ids that exist in `docs/governance/mp-pr-00/requirements.json`;
-  - `criteria`: evidence for completeness, correctness, contracts, integration, security and financial, or N/A with a reason. A financial feature can never mark financial N/A. Each criterion rests on at least one active test of the feature's own `test_files` or one step of its own journeys; a document only supplements them. Integration needs a step whose assertions passed on every viewport;
+  - `requirements` must also be requirements of the feature itself;
+  - `criteria`: evidence for completeness, correctness, contracts, integration, security and financial, or N/A with a reason.
+    - Completeness, correctness and integration are never N/A, and a financial feature never marks financial N/A.
+    - Each criterion rests on at least one active test of the feature's own `test_files`, or on a step of its own journeys that the control inventory records as exercising one of the feature's controls. A document only supplements them.
+    - Integration needs a step whose assertions passed on every viewport;
   - `gate_a` (result PASS, test evidence) and `gate_b` (result PASS, Browser QA evidence);
   - `fixtures`: the fixtures and independent vectors, at least one test;
-  - `results`: the test runs, all PASS on the verified commit;
-  - `contracts`: module, exported constant and version. The gate compares each with the constant in the code, so a changed contract voids the certification;
+  - `results`: the test runs (`npm test`, `npm run …`, `node --test …`, `node tools/….mjs`), all PASS on the verified commit. They are declarations; CI runs every cited test and journey again on each change;
+  - `contracts`: module (one of the feature's `sources`), exported constant and version. The gate compares each with the constant in the code, ignoring comments, so a changed contract voids the certification;
   - `limits`, stated explicitly;
   - `independent_review`: verdict APPROVED, the reviewed commit (containing the verified one) and the GitHub comment of the review.
 - **Levels** (MP-UI-CERT-CALC-01). They say what was certified, not how well:

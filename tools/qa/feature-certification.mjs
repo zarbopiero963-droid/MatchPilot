@@ -63,17 +63,31 @@ function hasCommit(commit) {
 }
 
 // A contract version is the constant the code exports: `export const NAME = 'version'` in that module.
-function contractErrors(contract) {
+function contractErrors(contract, sources = []) {
   if (typeof contract?.module !== 'string' || !/^src\/[\w./-]+\.m?js$/.test(contract.module) || contract.module.includes('..')) return [`bad contract module ${contract?.module}`];
   if (!/^[A-Z][A-Z0-9_]*$/.test(contract.export ?? '') || typeof contract.version !== 'string' || !contract.version) return [`contract ${contract.module}: export and version are required`];
+  if (!sources.includes(contract.module)) return [`contract ${contract.module} is not a source of the feature`];
   const file = join(root, contract.module);
   if (!existsSync(file)) return [`contract ${contract.module} does not exist`];
-  const declared = new RegExp(`^export const ${contract.export} = '([^']*)';`, 'm').exec(readFileSync(file, 'utf8'))?.[1];
+  // Comments are removed first, so a commented-out declaration never counts (review of the gate, N5).
+  const code = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const declared = new RegExp(`^export const ${contract.export} = '([^']*)';`, 'm').exec(code)?.[1];
   return declared === contract.version ? [] : [`contract ${contract.module} ${contract.export} is ${declared ?? 'missing'}, certified ${contract.version}`];
 }
 
 let requirementIds = null;
 const knownRequirement = id => (requirementIds ??= new Set(JSON.parse(readFileSync(REQUIREMENTS_PATH, 'utf8')).requirements.map(r => r.id))).has(id);
+
+// A test file belongs to a feature when it imports one of the feature's sources (`from '../src/...'`).
+function testImportsSource(testFile, sources) {
+  const file = join(root, testFile);
+  if (!existsSync(file)) return false;
+  const text = readFileSync(file, 'utf8');
+  return sources.some(source => text.includes(`from '../${source}'`));
+}
+
+// A step exercises the feature when the control inventory records one of the feature's controls in it.
+const stepOfFeature = (ref, controls) => controls.some(control => (control.exercised_by ?? []).some(e => e.journey === ref.journey && e.step === ref.step));
 
 export function loadFeatures(path = FEATURES_PATH) {
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -136,12 +150,18 @@ export function evidenceState(feature, {inventory, report = null, journeys = jou
   if (!cert) return {state: 'TESTED', gaps: ['no certification record'], controls};
   const certGaps = [];
   const testFiles = feature.test_files ?? [];
+  const sources = feature.sources ?? [];
+  // The feature's own code and tests: sources exist, and every test file imports one of them (review of the gate, B1/B4).
+  if (!sources.length) certGaps.push('sources: the feature names its source modules');
+  for (const source of sources) if (!/^src\/[\w./-]+\.m?js$/.test(source) || source.includes('..') || !existsSync(join(root, source))) certGaps.push(`sources: ${source} is not a source module`);
+  for (const testFile of testFiles) if (!testImportsSource(testFile, sources)) certGaps.push(`${testFile} does not import a source of the feature`);
   const refs = (field, list, {needTest = false, needJourney = false} = {}) => {
     if (!Array.isArray(list) || !list.length) { certGaps.push(`${field}: no evidence`); return; }
     if (!list.some(ref => ref?.test || ref?.journey)) certGaps.push(`${field}: needs a test or a Browser QA step, not only documents`);
     if (needTest && !list.some(ref => ref?.test)) certGaps.push(`${field}: needs a test`);
     if (needJourney && !list.some(ref => ref?.journey)) certGaps.push(`${field} needs a Browser QA step`);
     for (const ref of list) if (ref?.journey && !(feature.journeys ?? []).includes(ref.journey)) certGaps.push(`${field}: ${ref.journey} is not a journey of the feature`);
+    for (const ref of list) if (ref?.journey && !stepOfFeature(ref, controls)) certGaps.push(`${field}: «${ref.step}» exercises no control of the feature`);
     for (const ref of list) certGaps.push(...refErrors(ref, {journeys, report, testFiles}).map(e => `${field}: ${e}`));
   };
   for (const field of CERT_FIELDS) if (cert[field] === undefined) certGaps.push(`certification needs ${field}`);
@@ -154,12 +174,16 @@ export function evidenceState(feature, {inventory, report = null, journeys = jou
   if (!/^\d{4}-\d{2}-\d{2}$/.test(cert.date ?? '')) certGaps.push('date must be YYYY-MM-DD');
   if (typeof cert.perimeter !== 'string' || cert.perimeter.trim().length < 20) certGaps.push('the perimeter must be stated');
   if (Array.isArray(cert.requirements) && cert.requirements.length) {
-    for (const id of cert.requirements) if (!knownRequirement(id)) certGaps.push(`requirement ${id} is not in the requirements inventory`);
+    for (const id of cert.requirements) {
+      if (!knownRequirement(id)) certGaps.push(`requirement ${id} is not in the requirements inventory`);
+      else if (!(feature.requirements ?? []).includes(id)) certGaps.push(`requirement ${id} is not a requirement of the feature`);
+    }
   } else if (cert.requirements !== undefined) certGaps.push('requirements: at least one requirement id');
   for (const criterion of CRITERIA) {
     const value = cert.criteria?.[criterion];
     if (value && typeof value === 'object' && !Array.isArray(value) && 'na' in value) {
       if (criterion === 'financial' && feature.financial) certGaps.push('financial cannot be N/A for a financial feature');
+      else if (['completeness', 'correctness', 'integration'].includes(criterion)) certGaps.push(`${criterion} is never N/A`);
       else if (typeof value.na !== 'string' || value.na.trim().length < 20) certGaps.push(`${criterion}: N/A needs a verifiable reason`);
       continue;
     }
@@ -177,14 +201,14 @@ export function evidenceState(feature, {inventory, report = null, journeys = jou
   if (cert.results !== undefined) {
     if (!Array.isArray(cert.results) || !cert.results.length) certGaps.push('results: at least one test result');
     else for (const result of cert.results) {
-      if (typeof result?.command !== 'string' || !result.command.trim()) certGaps.push('results: each result names its command');
+      if (typeof result?.command !== 'string' || !/^(npm (test|run [\w:-]+)|node (--test|tools\/[\w./-]+\.mjs))\b/.test(result.command)) certGaps.push(`results: ${result?.command ?? '(no command)'} is not a test command of the repository`);
       if (result?.result !== 'PASS') certGaps.push(`results: ${result?.command ?? '(no command)'} is not PASS`);
       if (result?.commit !== cert.verified_commit) certGaps.push(`results: ${result?.command ?? '(no command)'} was not run on the verified commit`);
     }
   }
   if (cert.contracts !== undefined) {
     if (!Array.isArray(cert.contracts) || !cert.contracts.length) certGaps.push('contracts: at least one contract version');
-    else for (const contract of cert.contracts) certGaps.push(...contractErrors(contract));
+    else for (const contract of cert.contracts) certGaps.push(...contractErrors(contract, sources));
   }
   if (cert.limits !== undefined && (!Array.isArray(cert.limits) || !cert.limits.length || cert.limits.some(l => typeof l !== 'string' || !l.trim()))) certGaps.push('limits: state them explicitly');
   const review = cert.independent_review;
@@ -204,7 +228,7 @@ export function checkFeatures(register, {inventory, report = null, journeys = jo
   const errors = [], notes = [], features = [];
   if (register?.schema !== FEATURES_SCHEMA) errors.push(`schema must be ${FEATURES_SCHEMA}`);
   if (!Array.isArray(register?.features) || !register.features.length) return {errors: [...errors, 'no features'], notes, features};
-  const seen = new Set(), owner = new Map();
+  const seen = new Set(), owner = new Map(), testOwner = new Map();
   for (const feature of register.features) {
     const at = feature?.id ?? '(no id)';
     if (!ID.test(feature?.id ?? '')) { errors.push(`${at}: id must match ${ID}`); continue; }
@@ -216,6 +240,17 @@ export function checkFeatures(register, {inventory, report = null, journeys = jo
     if (typeof feature.financial !== 'boolean') errors.push(`${at}: financial must be true or false`);
     for (const key of ['views', 'controls', 'requirements', 'journeys', 'test_files', 'dependencies', 'limits']) if (feature[key] !== undefined && !Array.isArray(feature[key])) errors.push(`${at}: ${key} must be a list`);
     if (typeof feature.next !== 'string' || !feature.next.trim()) errors.push(`${at}: next (the next activity needed) is required`);
+    // A test file is the evidence of one feature only (review of the gate, B1).
+    for (const testFile of feature.test_files ?? []) {
+      if (testOwner.has(testFile) && testOwner.get(testFile) !== feature.id) errors.push(`${testFile} is a test file of ${testOwner.get(testFile)} and ${feature.id}`);
+      testOwner.set(testFile, feature.id);
+    }
+    if (feature.sources !== undefined && !Array.isArray(feature.sources)) errors.push(`${at}: sources must be a list`);
+    // A source module is the code of one feature only: shared modules (the Math Core, the v1 layer) are not listed.
+    for (const source of feature.sources ?? []) {
+      if (testOwner.has(`src:${source}`) && testOwner.get(`src:${source}`) !== feature.id) errors.push(`${source} is a source of ${testOwner.get(`src:${source}`)} and ${feature.id}`);
+      testOwner.set(`src:${source}`, feature.id);
+    }
     const computed = evidenceState(feature, {inventory, report, journeys});
     for (const control of computed.controls) {
       if (owner.has(control.id) && owner.get(control.id) !== feature.id) errors.push(`${control.id} belongs to ${owner.get(control.id)} and ${feature.id}`);
