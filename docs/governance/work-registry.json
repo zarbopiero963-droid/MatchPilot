@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 196,
+  "revision": 197,
   "tasks": [
     {
       "id": "R-01",
@@ -1484,6 +1484,26 @@
       },
       "pr_open": false,
       "merge_sha": "04c493fea09f043c8c7ac4ff12d1d2a4875024e7"
+    },
+    {
+      "id": "PERSIST-API-01",
+      "title": "PERSIST-API-01: persistence HTTP API (priority 4)",
+      "issue": 99,
+      "pr": 238,
+      "branch": "persist-api-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261024T080432Z-agent-a-claude-code",
+      "resources": [
+        "src/api/persistence-api.mjs",
+        "src/server.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": true
     }
   ]
 }
