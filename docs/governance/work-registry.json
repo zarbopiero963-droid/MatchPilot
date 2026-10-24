@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 202,
+  "revision": 203,
   "tasks": [
     {
       "id": "R-01",
@@ -1529,6 +1529,28 @@
       },
       "pr_open": false,
       "merge_sha": "cf2908d426195f47531c0e33bbb5f7e17dab27bf"
+    },
+    {
+      "id": "MP-UI-PR-002",
+      "title": "MP-UI-PR-002: ASSERTED gate and Gate A/B certification rules",
+      "issue": 239,
+      "pr": 241,
+      "branch": "ui-pr-002",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261024T102011Z-agent-a-claude-code",
+      "resources": [
+        "file:tools/qa/browser-qa.mjs",
+        "file:tools/qa/journeys.mjs",
+        "file:tools/qa/control-inventory.mjs",
+        "file:docs/qa/control-inventory.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": true
     }
   ]
 }
