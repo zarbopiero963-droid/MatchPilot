@@ -36,6 +36,14 @@ function el(tag, attrs = {}, ...children) {
   return node;
 }
 
+// Owner login enforced (R-04): go to the login page and come back here. Returns the error the view throws (the render
+// ignores it: the page is leaving).
+const loginHref = () => `/login?next=${encodeURIComponent(location.pathname + location.hash)}`;
+function toLogin() {
+  location.assign(loginHref());
+  return new ApiFailure(401, 'UNAUTHENTICATED', 'accesso richiesto');
+}
+
 async function getJson(path) {
   let response;
   try {
@@ -43,11 +51,7 @@ async function getJson(path) {
   } catch {
     throw new ApiFailure(0, 'NETWORK', 'rete non raggiungibile');
   }
-  if (response.status === 401) {
-    // Owner login enforced (R-04): go to the login page and come back here.
-    location.assign(`/login?next=${encodeURIComponent(location.pathname + location.hash)}`);
-    throw new ApiFailure(401, 'UNAUTHENTICATED', 'accesso richiesto');
-  }
+  if (response.status === 401) throw toLogin();
   const body = await response.json().catch(() => null);
   if (!response.ok) throw new ApiFailure(response.status, body?.error?.code, body?.error?.message);
   if (!body || typeof body !== 'object' || !('data' in body)) throw new ApiFailure(response.status, 'BAD_ENVELOPE', 'risposta senza envelope v1');
@@ -1070,6 +1074,8 @@ const persistence = createPersistence();
 // access (writes need MATCHPILOT_AUTH=enforce and an owner session). Never a button that cannot work (rule 13).
 async function saveAvailability() {
   const status = await persistence.status();
+  // A session that expired is a login to redo, like every other view; not an unavailable archive (review #242 NB-3).
+  if (status.code === 'UNAUTHENTICATED') throw toLogin();
   if (!status.ok || !status.data?.available) return {ok: false, code: status.ok ? 'UNAVAILABLE' : status.code, text: 'Salvataggio non disponibile: l’archivio dei salvataggi non è ancora attivo.'};
   if (!status.data.writes_enabled) return {ok: false, code: 'WRITES_DISABLED', text: 'Salvataggio non disponibile: serve l’accesso del proprietario.'};
   return {ok: true};
@@ -1080,6 +1086,9 @@ const SAVE_REFUSED = {UNAUTHENTICATED: 'Accesso scaduto: accedi di nuovo e ripro
   WRITES_REQUIRE_AUTH: 'Salvataggio non disponibile: serve l’accesso del proprietario.', UNAVAILABLE: 'Salvataggio non disponibile in questo momento: riprova più tardi.',
   BUSY: 'È già in corso un’altra simulazione: riprova tra qualche secondo.', NETWORK: 'Rete non raggiungibile: riprova.'};
 const refusedText = (result, invalid) => SAVE_REFUSED[result.code] ?? (result.status === 400 ? invalid : 'Salvataggio non riuscito: riprova.');
+// After an expired session, the way back: the login page, then this same page.
+const loginAgain = result => (result.code === 'UNAUTHENTICATED'
+  ? [' ', el('a', {href: loginHref(), 'data-testid': 'save-login', 'data-control': 'CTL-SIM-SAVE-LOGIN'}, 'Vai all’accesso')] : null);
 
 // A save form: one request at a time (a double click sends one), the outcome announced next to it.
 function saveForm({testid, fields, button, control, submit}) {
@@ -1099,7 +1108,7 @@ function saveForm({testid, fields, button, control, submit}) {
       const {status, nodes, ok} = await submit(new FormData(form));
       outcome.className = ok ? 'state' : 'state error';
       outcome.dataset.status = status;
-      outcome.replaceChildren(...nodes);
+      outcome.replaceChildren(...nodes.flat().filter(node => node !== null && node !== undefined));
     } finally {
       busy = false;
       action.disabled = false;
@@ -1122,7 +1131,7 @@ async function simSave(api, report) {
     submit: async form => {
       // The server runs the same request again and stores what it produced: the page sends the request, not the result.
       const result = await persistence.saveBacktest({name: String(form.get('name') ?? ''), params: api});
-      if (!result.ok) return {ok: false, status: result.code, nodes: [refusedText(result, 'Nome non valido: scrivi un nome di al massimo 200 caratteri.')]};
+      if (!result.ok) return {ok: false, status: result.code, nodes: [refusedText(result, 'Nome non valido: scrivi un nome di al massimo 200 caratteri.'), loginAgain(result)]};
       const again = result.data.status === 'ALREADY_SAVED';
       return {ok: true, status: result.data.status, nodes: [again ? 'Questo risultato era già salvato. ' : 'Risultato salvato. ',
         el('a', {href: savedHref(result.data.backtest_id), 'data-testid': 'sim-save-open', 'data-id': String(result.data.backtest_id), 'data-control': 'CTL-SIM-SAVE-OPEN'}, 'Apri il salvataggio')]};
@@ -1136,9 +1145,11 @@ async function simSave(api, report) {
           title: 'lettere minuscole, cifre e trattini', 'data-control': 'CTL-SIM-SAVE-STRATEGY-KEY'}))],
       submit: async form => {
         const result = await persistence.saveStrategy({key: String(form.get('key') ?? ''), name: String(form.get('name') ?? ''), rules});
-        if (!result.ok) return {ok: false, status: result.code, nodes: [refusedText(result, 'Nome o codice non validi: il codice usa lettere minuscole, cifre e trattini.')]};
+        if (!result.ok) return {ok: false, status: result.code, nodes: [refusedText(result, 'Nome o codice non validi: il codice usa lettere minuscole, cifre e trattini.'), loginAgain(result)]};
         const {status, version, strategy_id: id} = result.data;
-        const text = status === 'UNCHANGED' ? `Strategia già salvata con queste regole (versione ${version}).` : `Strategia salvata (versione ${version}).`;
+        // A code already in use gets a new version: said, so earlier rules are never replaced silently (review #242 NB-4).
+        const text = status === 'UNCHANGED' ? `Strategia già salvata con queste regole (versione ${version}).`
+          : version > 1 ? `Nuova versione ${version} della strategia con questo codice: la versione ${version - 1} resta nello storico.` : `Strategia salvata (versione ${version}).`;
         return {ok: true, status, nodes: [el('span', {'data-strategy': id, 'data-version': String(version)}, text)]};
       }}));
   }
@@ -1154,6 +1165,7 @@ async function savedView(params) {
   if (id !== null) {
     if (!/^[1-9][0-9]{0,8}$/.test(id)) return [el('h1', {}, 'Backtest salvato'), el('p', {class: 'state error', role: 'alert', 'data-testid': 'saved-invalid'}, 'Salvataggio non valido.'), back];
     const loaded = await persistence.loadBacktest(id);
+    if (loaded.code === 'UNAUTHENTICATED') throw toLogin();
     if (!loaded.ok) {
       const text = loaded.status === 404 ? 'Questo salvataggio non esiste.' : refusedText(loaded, 'Salvataggio non valido.');
       return [el('h1', {}, 'Backtest salvato'), el('p', {class: 'state error', role: 'alert', 'data-testid': 'saved-error', 'data-code': loaded.code}, text), back];
@@ -1168,6 +1180,7 @@ async function savedView(params) {
     return [...head, ...simResult(saved.result)];
   }
   const list = await persistence.listBacktests();
+  if (list.code === 'UNAUTHENTICATED') throw toLogin();
   const title = el('h1', {}, 'Backtest salvati');
   if (!list.ok) {
     const text = list.status === 503 ? 'Non disponibile: l’archivio dei salvataggi non è ancora attivo.' : refusedText(list, 'Elenco non disponibile.');

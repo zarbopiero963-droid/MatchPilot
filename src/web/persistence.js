@@ -41,11 +41,13 @@ export function createPersistence({fetch: fetchImpl = (...args) => globalThis.fe
   };
 }
 
-// The mock: `results` maps a canonical query string to the backtest result the real server would produce for it (the
-// mock never computes one). `schema`: the persistence schema exists (else reads answer 503); `auth`: the owner login is
-// enforced and the session open (else writes answer 403). Writes check the login first, then the schema, in the order
-// of the real server. `now` gives the saved instant, so runs are reproducible.
-export function createMemoryPersistence({results = {}, schema = true, auth = true, now = () => '2026-10-20T08:00:00.000Z'} = {}) {
+// The mock: `results` maps a canonical query string to the backtest result the real server would produce for it, and
+// `strategies` maps the canonical rules to the strategy id the server derives from them (the mock never computes
+// either; rules it does not know are refused). `schema`: the persistence schema exists (else 503); `auth`: the owner
+// login is enforced (else writes 403); `session`: with the login enforced, an owner session is open (else every call
+// 401, as the auth gate answers). Checks run in the order of the real server. `now` gives the saved instant.
+export function createMemoryPersistence({results = {}, strategies: knownStrategies = {}, schema = true, auth = true, session = true,
+  now = () => '2026-10-20T08:00:00.000Z'} = {}) {
   const backtests = [];
   const strategies = new Map();
   const fail = (status, code) => ({ok: false, status, code});
@@ -54,9 +56,10 @@ export function createMemoryPersistence({results = {}, schema = true, auth = tru
   const visible = text => typeof text === 'string' && text.trim() !== '' && text.length <= 200 && !/[\p{Cc}\p{Cf}]/u.test(text);
   const texts = value => value !== null && typeof value === 'object' && !Array.isArray(value) && Object.values(value).every(v => typeof v === 'string');
   const canonical = params => Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&');
-  const gate = write => (write && !auth ? fail(403, 'WRITES_REQUIRE_AUTH') : !schema ? fail(503, 'UNAVAILABLE') : null);
+  const RULES = ['selection', 'side', 'odds_min', 'odds_max', 'home_min', 'home_max', 'draw_min', 'draw_max', 'away_min', 'away_max', 'team', 'venue'];
+  const gate = write => (auth && !session ? fail(401, 'UNAUTHENTICATED') : write && !auth ? fail(403, 'WRITES_REQUIRE_AUTH') : !schema ? fail(503, 'UNAVAILABLE') : null);
   return {
-    status: async () => ok(200, {available: schema, writes_enabled: schema && auth}),
+    status: async () => (auth && !session ? fail(401, 'UNAUTHENTICATED') : ok(200, {available: schema, writes_enabled: schema && auth})),
     listBacktests: async () => gate(false) ?? ok(200, {backtests: [...backtests].reverse().map(({result, response_text: _, params: __, ...meta}) => meta)}),
     loadBacktest: async id => {
       const refused = gate(false);
@@ -75,16 +78,19 @@ export function createMemoryPersistence({results = {}, schema = true, auth = tru
       const existing = backtests.find(b => b.report_sha256[0] === sha && canonical(b.params) === canonical(params));
       if (existing) return ok(200, {status: 'ALREADY_SAVED', backtest_id: existing.backtest_id, kind: 'BACKTEST'});
       const record = {backtest_id: backtests.length + 1, kind: 'BACKTEST', name: name.trim(), report_sha256: [sha], input_sha256: result.report.dataset?.input_sha256 ?? null,
-        strategy_ids: [result.report.config?.strategy ?? null], created_at: now(), params: {...params}, result: structuredClone(result)};
+        strategy_ids: [result.report.config?.strategy ?? null], created_at: now(), params: {...params}, response_text: JSON.stringify(result), result: structuredClone(result)};
       backtests.push(record);
       return ok(201, {status: 'SAVED', backtest_id: record.backtest_id, kind: 'BACKTEST'});
     },
     listStrategies: async () => gate(false) ?? ok(200, {strategies: [...strategies.values()].map(s => s.at(-1)).sort((a, b) => a.key.localeCompare(b.key))}),
-    // The strategy id comes from the result the real server produced for the same rules: the mock never derives one.
-    saveStrategy: async ({key, name, rules, strategyId}) => {
+    // Called with the page's arguments only: the strategy id is the one the server derives from the same rules.
+    saveStrategy: async ({key, name, rules}) => {
       const refused = gate(true);
       if (refused) return refused;
-      if (!KEY.test(key ?? '') || !visible(name) || !texts(rules) || typeof strategyId !== 'string') return fail(400, 'BAD_REQUEST');
+      if (!texts(rules)) return fail(400, 'BAD_REQUEST');
+      if (Object.keys(rules).some(rule => !RULES.includes(rule))) return fail(400, 'UNKNOWN_FIELD');
+      const strategyId = knownStrategies[canonical(rules)];
+      if (!KEY.test(key ?? '') || !visible(name) || typeof strategyId !== 'string') return fail(400, 'BAD_REQUEST');
       const versions = strategies.get(key) ?? [];
       const current = versions.at(-1);
       if (current && current.strategy_id === strategyId && current.name === name.trim()) return ok(200, {status: 'UNCHANGED', key, version: current.version, strategy_id: strategyId});

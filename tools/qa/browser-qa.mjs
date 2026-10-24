@@ -342,6 +342,7 @@ export async function runBrowserQa({out, journeys = JOURNEYS, viewports = REQUIR
         'QA archive is a seeded fixture through the real ingestion path, not the real archive (#40) nor production data',
         'accessibility checks are basic structural checks, not a full WCAG audit',
         'saves are verified on the throwaway schema with the staged persistence schema; production has no persistence schema yet (503)',
+        'the sim-save traces contain the test owner password and session of this run (login request, cookie header): generated per run, valid only on the local server and schema destroyed at its end; no real credential is ever used',
       ],
       verdict,
       files,
@@ -355,7 +356,9 @@ export async function runBrowserQa({out, journeys = JOURNEYS, viewports = REQUIR
 // real server on it, the QA archive through the real ingestion path and a real Chromium. Always cleaned up.
 // MP-UI-PR-003: the staged persistence schema is applied to the same throwaway schema, and a second server runs on it
 // with the owner login enforced (`owner`: its base and a test owner, created for this run only), so a journey can save
-// for real; the first server keeps the login off, as production does today.
+// for real; the first server keeps the login off, as production does today. The Playwright traces of that journey record
+// the login request and the session cookie: the password is random per run and both die with the server and the schema
+// at the end of the run (review #242 NB-1); a real credential must never be used here.
 export async function withQaEnvironment(fn, {browserEnv = null} = {}) {
   const executablePath = browserPath();
   if (!executablePath) throw new Error('no Chromium/Chrome (set MATCHPILOT_E2E_CHROME)');

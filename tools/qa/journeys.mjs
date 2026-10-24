@@ -1372,6 +1372,7 @@ export const JOURNEYS = [
       });
       await step('accesso del proprietario dalla pagina di accesso', async () => {
         await page.goto(`${owner.base}/login?next=${encodeURIComponent('/#/sim')}`);
+        // The password is the per-run test owner's (see withQaEnvironment): never a real credential.
         await page.fill('input[name="username"]', owner.username);
         await page.fill('input[name="password"]', owner.password);
         await page.click('button[type="submit"]');
@@ -1501,11 +1502,21 @@ export const JOURNEYS = [
         await page.click('[data-testid="sim-save-result"] button[type="submit"]');
         await asserted('CTL-SIM-SAVE', 'without a session the save is refused and the page says the access expired', async () => {
           assert.equal(await outcomeOf('sim-save-result'), 'UNAUTHENTICATED');
-          assert.match(await page.textContent('[data-testid="sim-save-result-outcome"]'), /^Accesso scaduto: accedi di nuovo e riprova\.$/);
+          assert.match(await page.textContent('[data-testid="sim-save-result-outcome"]'), /^Accesso scaduto: accedi di nuovo e riprova\. Vai all’accesso$/);
         });
-        // Nothing was saved: read again with a new owner session.
-        const login = await page.request.post(`${owner.base}/auth/login`, {headers: {origin: owner.base}, data: {username: owner.username, password: owner.password}});
-        assert.equal(login.status(), 200);
+        const back = await page.url();
+        await page.click('[data-testid="save-login"]');
+        await asserted('CTL-SIM-SAVE-LOGIN', 'the link opens the login page with the way back to this simulation', async () => {
+          await page.waitForSelector('form[action="/auth/login"] input[name="username"]');
+          const next = await page.getAttribute('input[name="next"]', 'value');
+          assert.equal(`${owner.base}${next}`, back);
+        });
+        // Back in with a new owner session: the page returns to the simulation, nothing was saved.
+        await page.fill('input[name="username"]', owner.username);
+        await page.fill('input[name="password"]', owner.password);
+        await page.click('button[type="submit"]');
+        await titled(page, 'Simulazione');
+        assert.equal(page.url(), back);
         assert.equal((await saved()).length, before.length);
       });
     },

@@ -12,6 +12,7 @@ import {hashPassword} from '../src/auth/owner-auth.mjs';
 
 // The contract, as the page relies on it. `result` is the backtest result the real server produces for `params`.
 async function contract(adapter, {params, result, strategyId}) {
+  // Every call below uses exactly the arguments the page passes (src/web/app.js simSave and savedView).
   const status = await adapter.status();
   assert.deepEqual([status.ok, status.data.available, status.data.writes_enabled], [true, true, true]);
   const empty = await adapter.listBacktests();
@@ -41,14 +42,18 @@ async function contract(adapter, {params, result, strategyId}) {
     assert.deepEqual([refused.ok, refused.status], [false, 400], JSON.stringify(name));
   }
   const rules = {selection: 'HOME', side: 'LAY', odds_max: '2.5', team: 'Ajax', venue: 'HOME'};
-  const strategy = await adapter.saveStrategy({key: 'ajax-casa', name: 'Ajax in casa', rules, strategyId});
+  const strategy = await adapter.saveStrategy({key: 'ajax-casa', name: 'Ajax in casa', rules});
   assert.deepEqual([strategy.status, strategy.data.status, strategy.data.version, strategy.data.strategy_id], [201, 'SAVED', 1, strategyId]);
-  const unchanged = await adapter.saveStrategy({key: 'ajax-casa', name: 'Ajax in casa', rules, strategyId});
+  const unchanged = await adapter.saveStrategy({key: 'ajax-casa', name: 'Ajax in casa', rules});
   assert.deepEqual([unchanged.status, unchanged.data.status, unchanged.data.version], [200, 'UNCHANGED', 1]);
-  const renamed = await adapter.saveStrategy({key: 'ajax-casa', name: 'Ajax, banca in casa', rules, strategyId});
+  const renamed = await adapter.saveStrategy({key: 'ajax-casa', name: 'Ajax, banca in casa', rules});
   assert.deepEqual([renamed.data.status, renamed.data.version], ['SAVED', 2], 'a new name is a new version');
   assert.deepEqual((await adapter.listStrategies()).data.strategies.map(s => [s.key, s.version, s.strategy_id]), [['ajax-casa', 2, strategyId]]);
-  assert.equal((await adapter.saveStrategy({key: 'Not A Key', name: 'x', rules, strategyId})).status, 400);
+  assert.equal((await adapter.saveStrategy({key: 'Not A Key', name: 'x', rules})).status, 400);
+  const unknown = await adapter.saveStrategy({key: 'ajax-casa', name: 'x', rules: {...rules, stake: '5'}});
+  assert.deepEqual([unknown.ok, unknown.status, unknown.code], [false, 400, 'UNKNOWN_FIELD']);
+  assert.equal(typeof loaded.data.response_text, 'string', 'the stored text comes with the result');
+  assert.deepEqual(JSON.parse(loaded.data.response_text), result);
 }
 
 // The refusals the page shows, in the same shape from both adapters.
@@ -61,6 +66,11 @@ async function refusals(adapter, {params, expected}) {
     assert.deepEqual([list.ok, list.status, list.code], [false, 503, 'UNAVAILABLE']);
     const save = await adapter.saveBacktest({name: 'x', params});
     assert.deepEqual([save.ok, save.status, save.code], [false, 403, 'WRITES_REQUIRE_AUTH']);
+  } else if (expected === 'no-session') {
+    // Owner login enforced, no session: every call is refused by the auth gate.
+    for (const result of [status, await adapter.listBacktests(), await adapter.saveBacktest({name: 'x', params}), await adapter.saveStrategy({key: 'k', name: 'x', rules: {selection: 'HOME', side: 'BACK'}})]) {
+      assert.deepEqual([result.ok, result.status, result.code], [false, 401, 'UNAUTHENTICATED']);
+    }
   } else {
     assert.deepEqual([status.data.available, status.data.writes_enabled], [true, false]);
     const refused = await adapter.saveBacktest({name: 'x', params});
@@ -119,11 +129,14 @@ test('the real adapter and the mock satisfy the same persistence contract', {tim
   assert.match(strategyId, /^def:[0-9a-f]{16}$/);
 
   await t.test('real adapter, real server', () => contract(createPersistence({base: owner.base, fetch: browserFetch}), {params: PARAMS, result, strategyId}));
+  await t.test('real adapter, no session', () => refusals(createPersistence({base: owner.base}), {params: PARAMS, expected: 'no-session'}));
   const canonical = params => Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&');
-  await t.test('memory mock', () => contract(createMemoryPersistence({results: {[canonical(PARAMS)]: result}}), {params: PARAMS, result, strategyId}));
+  const strategies = {[canonical({selection: 'HOME', side: 'LAY', odds_max: '2.5', team: 'Ajax', venue: 'HOME'})]: strategyId};
+  await t.test('memory mock', () => contract(createMemoryPersistence({results: {[canonical(PARAMS)]: result}, strategies}), {params: PARAMS, result, strategyId}));
   await t.test('memory mock refusals match the server', async () => {
     await refusals(createMemoryPersistence({schema: false, auth: false}), {params: PARAMS, expected: 'unavailable'});
     await refusals(createMemoryPersistence({auth: false, results: {[canonical(PARAMS)]: result}}), {params: PARAMS, expected: 'read-only'});
+    await refusals(createMemoryPersistence({session: false}), {params: PARAMS, expected: 'no-session'});
   });
   // A network failure is an error with its code, never a success.
   await t.test('network failure', async () => {
