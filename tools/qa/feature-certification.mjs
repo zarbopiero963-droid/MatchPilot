@@ -103,22 +103,33 @@ function reachable(entry) {
 // The entry module serves the feature's API: it names each API path of the feature's controls, or its family prefix
 // ('/api/v1/tools/' for '/api/v1/tools/kelly'). The sources are the entry and the modules it imports: a module the
 // feature does not run can never be its evidence (review of the gate, B1/B4).
-function entryErrors(feature, controls) {
+function entryErrors(feature, controls, shared) {
   const entry = feature.entry;
-  if (typeof entry !== 'string' || !/^src\/[\w./-]+\.m?js$/.test(entry) || entry.includes('..') || !existsSync(join(root, entry))) return ['entry: the feature names the module that serves its API'];
+  if (typeof entry !== 'string' || !/^src\/api\/[\w./-]+\.m?js$/.test(entry) || entry.includes('..') || !existsSync(join(root, entry))) return ['entry: the feature names the module of src/api/ that serves its API'];
+  if (shared.includes(entry)) return [`entry: ${entry} is a shared module`];
   const text = codeOf(entry);
   const apis = [...new Set(controls.flatMap(c => [].concat(c.api ?? [])).filter(api => api.startsWith('/api/')))];
   if (!apis.length) return ['entry: the feature has no API to anchor its sources'];
   const family = api => api.slice(0, api.lastIndexOf('/') + 1);
-  const missing = apis.filter(api => !text.includes(`'${api}'`) && !(family(api).split('/').length >= 5 && text.includes(family(api))));
+  // The entry declares the endpoints (`path: '/api/v1/tools/kelly'` or `path: \`/api/v1/tools/${name}\``), not only calls them.
+  const declares = api => text.includes(`path: '${api}'`) || (family(api).split('/').length >= 5 && text.includes(`path: \`${family(api)}`));
+  const missing = apis.filter(api => !declares(api));
   const errors = missing.map(api => `entry: ${entry} does not serve ${api}`);
   const modules = reachable(entry);
-  for (const source of feature.sources ?? []) if (!modules.has(source)) errors.push(`sources: ${source} is not run by the entry ${entry}`);
+  for (const source of feature.sources ?? []) {
+    if (shared.includes(source)) errors.push(`sources: ${source} is a shared module, the evidence of no single feature`);
+    else if (!modules.has(source)) errors.push(`sources: ${source} is not run by the entry ${entry}`);
+  }
   return errors;
 }
 
 // A step exercises the feature when the control inventory records one of the feature's controls in it.
 const stepOfFeature = (ref, controls) => controls.some(control => (control.exercised_by ?? []).some(e => e.journey === ref.journey && e.step === ref.step));
+
+// Modules many features run (the Math Core, the v1 layer, the page): never a source, a contract or the anchor of a test
+// file (third review of the gate). The list is in the register, so changing it is a visible, reviewed change.
+let sharedList = null;
+export const sharedModules = () => (sharedList ??= loadFeatures().shared_modules ?? []);
 
 export function loadFeatures(path = FEATURES_PATH) {
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -170,7 +181,7 @@ function resultCommand(command, testFiles) {
 }
 
 // The state the evidence supports, with the reasons it stops there.
-export function evidenceState(feature, {inventory, report = null, journeys = journeyStepTitles()}) {
+export function evidenceState(feature, {inventory, report = null, journeys = journeyStepTitles(), shared = sharedModules()}) {
   const gaps = [];
   const controls = controlsOf(feature, inventory);
   const known = new Set(inventory.controls.map(c => c.id));
@@ -193,7 +204,7 @@ export function evidenceState(feature, {inventory, report = null, journeys = jou
   // The feature's own code and tests: sources exist, and every test file imports one of them (review of the gate, B1/B4).
   if (!sources.length) certGaps.push('sources: the feature names its source modules');
   for (const source of sources) if (!/^src\/[\w./-]+\.m?js$/.test(source) || source.includes('..') || !existsSync(join(root, source))) certGaps.push(`sources: ${source} is not a source module`);
-  certGaps.push(...entryErrors(feature, controls));
+  certGaps.push(...entryErrors(feature, controls, shared));
   for (const testFile of testFiles) if (!testImportsSource(testFile, sources)) certGaps.push(`${testFile} does not import a source of the feature`);
   const refs = (field, list, {needTest = false, needJourney = false} = {}) => {
     if (!Array.isArray(list) || !list.length) { certGaps.push(`${field}: no evidence`); return; }
@@ -269,6 +280,9 @@ export function checkFeatures(register, {inventory, report = null, journeys = jo
   if (register?.schema !== FEATURES_SCHEMA) errors.push(`schema must be ${FEATURES_SCHEMA}`);
   if (!Array.isArray(register?.features) || !register.features.length) return {errors: [...errors, 'no features'], notes, features};
   const seen = new Set(), owner = new Map(), testOwner = new Map();
+  const shared = Array.isArray(register.shared_modules) ? register.shared_modules : [];
+  if (!Array.isArray(register.shared_modules)) errors.push('shared_modules must be a list');
+  for (const module of shared) if (!/^src\/[\w./-]+\.m?js$/.test(module) || !existsSync(join(root, module))) errors.push(`shared module ${module} does not exist`);
   for (const feature of register.features) {
     const at = feature?.id ?? '(no id)';
     if (!ID.test(feature?.id ?? '')) { errors.push(`${at}: id must match ${ID}`); continue; }
@@ -291,7 +305,11 @@ export function checkFeatures(register, {inventory, report = null, journeys = jo
       if (testOwner.has(`src:${source}`) && testOwner.get(`src:${source}`) !== feature.id) errors.push(`${source} is a source of ${testOwner.get(`src:${source}`)} and ${feature.id}`);
       testOwner.set(`src:${source}`, feature.id);
     }
-    const computed = evidenceState(feature, {inventory, report, journeys});
+    if (feature.entry !== undefined) {
+      if (testOwner.has(`entry:${feature.entry}`)) errors.push(`${feature.entry} is the entry of ${testOwner.get(`entry:${feature.entry}`)} and ${feature.id}`);
+      testOwner.set(`entry:${feature.entry}`, feature.id);
+    }
+    const computed = evidenceState(feature, {inventory, report, journeys, shared});
     for (const control of computed.controls) {
       if (owner.has(control.id) && owner.get(control.id) !== feature.id) errors.push(`${control.id} belongs to ${owner.get(control.id)} and ${feature.id}`);
       owner.set(control.id, feature.id);

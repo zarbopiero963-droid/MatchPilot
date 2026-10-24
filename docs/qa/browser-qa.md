@@ -60,7 +60,8 @@ Owner decision MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01: certification is pe
 - whether it is financial;
 - dependencies, limits and the next activity;
 - its entry module (`entry`), source modules (`sources`) and test files (`test_files`):
-  - the entry must serve the API of the feature's controls (it names each path, or its family such as `/api/v1/tools/`);
+  - the entry is a module of `src/api/` that declares the endpoints of the feature's controls (`path: '…'`, or the family such as `` path: `/api/v1/tools/${name}` ``). It is the entry of one feature only;
+  - the modules many features run are listed in `shared_modules` (Math Core, Decimal, money, the v1 layer, the page). They are never a source, a contract or the anchor of a test file;
   - the sources are the entry and the modules it imports, so a module the feature does not run can never be its evidence;
   - a source module and a test file belong to one feature only;
   - every test file imports one of the sources (comments ignored), and the evidence may cite only these tests;

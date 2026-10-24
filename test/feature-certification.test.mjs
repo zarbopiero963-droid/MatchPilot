@@ -108,8 +108,14 @@ test('a complete record certifies; each missing or false piece stops it at TESTE
     [f => { f.sources.push('src/hist/engine.mjs'); f.test_files.push('test/hist-backtest.test.mjs'); }, /sources: src\/hist\/engine.mjs is not run by the entry src\/api\/tools.mjs/],
     [f => { f.certification.results = [{command: 'node --test test/csv.test.mjs', result: 'PASS', commit: OLD}]; }, /node --test test\/csv.test.mjs is not a test command of the feature/],
     [f => { f.certification.results = [{command: 'npm run governance:status', result: 'PASS', commit: OLD}]; }, /is not a test command of the feature/],
-    [f => { f.entry = 'src/hist/engine.mjs'; }, /entry: src\/hist\/engine.mjs does not serve \/api\/v1\/tools\//],
-    [f => { delete f.entry; }, /entry: the feature names the module that serves its API/],
+    [f => { f.entry = 'src/api/hist-backtest.mjs'; }, /entry: src\/api\/hist-backtest.mjs does not serve \/api\/v1\/tools\//],
+    [f => { delete f.entry; }, /entry: the feature names the module of src\/api\/ that serves its API/],
+    // Third review of the gate: shared modules claimed as sources, and an entry that only calls the API.
+    [f => { f.sources.push('src/math/core.mjs', 'src/math/decimal.mjs'); f.test_files.push('test/paper-ledger-mm.test.mjs'); }, /sources: src\/math\/core.mjs is a shared module/],
+    [f => { f.test_files.push('test/paper-ledger-mm.test.mjs'); }, /test\/paper-ledger-mm.test.mjs does not import a source of the feature/],
+    [f => { f.certification.contracts = [{module: 'src/math/core.mjs', export: 'MAX_ODDS', version: '1000000'}]; }, /src\/math\/core.mjs is not a source of the feature/],
+    [f => { f.entry = 'src/web/app.js'; }, /entry: the feature names the module of src\/api\//],
+    [f => { f.entry = 'src/api/v1.mjs'; }, /entry: src\/api\/v1.mjs is a shared module/],
   ];
   for (const [change, message] of broken) {
     const f = certified();
