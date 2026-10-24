@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 221,
+  "revision": 222,
   "tasks": [
     {
       "id": "R-01",
@@ -1675,6 +1675,32 @@
       },
       "pr_open": false,
       "merge_sha": "c11029106c75738b7b086d725ac9e8e9d4ecea09"
+    },
+    {
+      "id": "MP-UI-D12-GOV-01",
+      "title": "MP-UI-D12-DECISIONS-20261024: governance phase A",
+      "issue": 239,
+      "pr": 250,
+      "branch": "gov-d12-ratification",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261024T193912Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/governance/owner-decisions.json",
+        "file:docs/governance/ui-requirements-matrix.json",
+        "file:docs/governance/roadmap-reconciliation-2026-10-24-D12.md",
+        "file:test/ui-requirements-matrix.test.mjs",
+        "file:AGENTS.md",
+        "file:CLAUDE.md",
+        "file:README.md",
+        "file:docs/integration-map.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": true
     }
   ]
 }
