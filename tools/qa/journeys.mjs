@@ -1326,7 +1326,7 @@ export const JOURNEYS = [
     // it off, as production does today, so its page offers no save. Each viewport saves its own result (a different
     // stake) and its own strategy key: the checks compare the list before and after, never an absolute count.
     id: 'sim-save', surface: 'Simulazione', title: 'Salvataggi: risultato e strategia salvati e riaperti, nessun duplicato, errori e accesso',
-    allowHttp: [{path: '/api/v1/persistence/status', status: 503}, {path: '/api/v1/backtests/saved', status: 503}, {path: '/api/v1/backtests/saved', status: 401}],
+    allowHttp: [{path: '/api/v1/persistence/status', status: 503}, {path: '/api/v1/backtests/saved', status: 503}, {path: '/api/v1/backtests/saved', status: 401}, {path: '/auth/logout', status: 500}],
     async run({page, base, step, asserted, seed, owner}) {
       const phone = page.viewportSize().width <= 560;
       const stake = phone ? '11' : '10';
@@ -1527,6 +1527,18 @@ export const JOURNEYS = [
       await step('esci: la sessione si chiude e si torna all’accesso', async () => {
         await fresh(page, `${owner.base}/#/sim`);
         await page.waitForSelector('[data-testid="session"]:not([hidden])');
+        // A failed logout is said next to the role, which stays; the session and the page stay too.
+        await page.route('**/auth/logout', route => route.fulfill({status: 500, contentType: 'application/json', body: '{"error":{"code":"INTERNAL"}}'}));
+        const here = page.url();
+        await page.click('[data-testid="logout"]');
+        await asserted('CTL-NAV-LOGOUT', 'a failed logout is reported, the role and the session stay', async () => {
+          await page.waitForSelector('[data-testid="logout-status"]:has-text("Uscita non riuscita")');
+          assert.equal(await page.textContent('[data-testid="session"] [data-field="principal"]'), 'Proprietario');
+          assert.equal(await page.isEnabled('[data-testid="logout"]'), true, 'the button can be used again');
+          assert.equal(page.url(), here);
+          assert.equal((await page.request.get(`${owner.base}/auth/session`)).status(), 200, 'the session is still open');
+        });
+        await page.unroute('**/auth/logout');
         await page.click('[data-testid="logout"]');
         await page.waitForURL(url => new URL(url).pathname === '/login'); // the page leaves for the login: assert on it
         await asserted('CTL-NAV-LOGOUT', '«Esci» closes the session on the server and opens the login page', async () => {

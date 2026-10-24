@@ -20,6 +20,8 @@ a:hover{color:#FFC978}
 /* MP-UI-PR-004: the owner session and «Esci», shown only with the owner login enforced. */
 .session{display:flex;align-items:center;gap:10px;margin-left:auto;color:var(--muted);font-size:14px}
 .session button{padding:5px 12px}
+.session-error:empty{display:none}
+.session-error{color:var(--bad)}
 .brand b{font-family:var(--f-display);font-weight:800;font-size:23px;letter-spacing:.04em;line-height:1}
 .brand b span{color:var(--accent)}
 /* Main menu: Oggi, Ricerca, Dati (V-B2). On a phone it becomes a bottom bar with icons, as in the approved mockup. */

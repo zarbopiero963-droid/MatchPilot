@@ -1475,11 +1475,13 @@ async function showSession() {
 // «Esci» closes the session on the server (same origin), then the login page; a failure is said, never hidden.
 document.querySelector('[data-testid="logout"]')?.addEventListener('click', async event => {
   const button = event.currentTarget;
+  const status = document.querySelector('[data-testid="logout-status"]');
   button.disabled = true;
+  status.textContent = '';
   const response = await fetch('/auth/logout', {method: 'POST', credentials: 'same-origin'}).catch(() => null);
   if (response?.ok) { location.assign('/login'); return; }
   button.disabled = false;
-  document.querySelector('[data-testid="session"] [data-field="principal"]').textContent = 'Uscita non riuscita: riprova';
+  status.textContent = 'Uscita non riuscita: riprova'; // the role label stays as it is
 });
 
 showSession();
