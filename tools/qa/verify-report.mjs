@@ -11,8 +11,10 @@
 // - counts, missing_required and the verdict equal what the journeys imply;
 // - the report is not dated in the future and carries no secret-like value;
 // - with the control inventory (always from the command line): the inventory is valid (no verified status without
-//   ASSERTED evidence, no ASSERTED before the gate records it), every control with evidence SEEN or ACTUATED was seen or
-//   actuated in each step it names, and no step actuated or showed a control the inventory does not list (MP-UI-PR-001).
+//   ASSERTED evidence, no CERTIFIED MOCK without Gate A/B evidence, no CERTIFIED REAL), every control with evidence SEEN,
+//   ACTUATED or ASSERTED was seen, actuated or asserted in each step it names, every asserted control of a step was
+//   actuated in it with a recorded assertion, and no step actuated or showed a control the inventory does not list
+//   (MP-UI-PR-001, MP-UI-PR-002).
 // Exit code 0 only when the evidence is valid and the verdict is PASS.
 //
 // Usage: node tools/qa/verify-report.mjs <dir> --head <sha> [--commit <sha>]

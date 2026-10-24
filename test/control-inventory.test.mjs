@@ -59,9 +59,10 @@ test('every literal data-control id of the page is in the inventory, and every i
 });
 
 test('the validator refuses a forged or incomplete inventory', () => {
-  const actuated = inventory.controls.find(control => control.evidence === 'ACTUATED');
-  const mutate = change => { const copy = structuredClone(inventory); change(copy, copy.controls.find(control => control.id === actuated.id)); return validateInventory(copy, {journeys}); };
-  assert.match(mutate((_, c) => { c.exercised_by = []; }).join(), /evidence ACTUATED without a step/);
+  const tested = inventory.controls.find(control => control.evidence === 'ASSERTED');
+  assert.equal(tested.status, 'TESTED');
+  const mutate = change => { const copy = structuredClone(inventory); change(copy, copy.controls.find(control => control.id === tested.id)); return validateInventory(copy, {journeys}); };
+  assert.match(mutate((_, c) => { c.exercised_by = []; }).join(), /evidence ASSERTED without a step/);
   assert.match(mutate((_, c) => { c.exercised_by = [{journey: c.exercised_by[0].journey, step: 'no such step'}]; }).join(), /has no step/);
   assert.match(mutate((_, c) => { c.exercised_by = [{journey: 'ghost', step: 'x'}]; }).join(), /unknown journey/);
   assert.match(mutate((_, c) => { c.evidence = 'NONE'; }).join(), /evidence is NONE/);
@@ -70,66 +71,127 @@ test('the validator refuses a forged or incomplete inventory', () => {
   assert.match(mutate((copy, c) => { copy.controls.push({...c}); }).join(), /duplicate id/);
   assert.match(mutate((_, c) => { c.id = 'ctl-lower'; }).join(), /id must match/);
   assert.match(mutate((_, c) => { c.kind = 'widget'; }).join(), /kind must be/);
-  // MP-UI-HARD-GATES-01 §8: being actuated is not a verified result. TESTED and the certified statuses need ASSERTED
-  // evidence, which the gate does not record yet: no claim of it is accepted.
-  for (const status of EVIDENCED) assert.match(mutate((_, c) => { c.status = status; }).join(), new RegExp(`${status} needs ASSERTED evidence`), status);
-  assert.match(mutate((_, c) => { c.evidence = 'ASSERTED'; }).join(), /not recorded by the gate yet/);
-  assert.match(mutate((_, c) => { c.status = 'CERTIFIED REAL'; c.evidence = 'ASSERTED'; c.data = 'DEMO'; }).join(), /needs REAL data/);
+  assert.match(mutate(copy => { copy.controls.push(null); }).join(), /a control must be an object/);
+  // MP-UI-HARD-GATES-01 §8: being actuated is not a verified result. TESTED and the certified statuses need ASSERTED.
+  for (const evidence of ['ACTUATED', 'SEEN']) assert.match(mutate((_, c) => { c.evidence = evidence; }).join(), new RegExp(`TESTED needs ASSERTED evidence \\(a verified result\\), not ${evidence}`));
+  // CERTIFIED MOCK needs the Gate A and Gate B evidence; CERTIFIED REAL needs a REAL campaign, which does not exist.
+  assert.match(mutate((_, c) => { c.status = 'CERTIFIED MOCK'; }).join(), /CERTIFIED MOCK needs certification evidence/);
+  assert.match(mutate((_, c) => { c.status = 'CERTIFIED REAL'; }).join(), /CERTIFIED REAL needs a REAL certification campaign/);
+  assert.match(mutate((_, c) => { c.status = 'CERTIFIED REAL'; c.data = 'DEMO'; }).join(), /needs REAL data/);
+  assert.match(mutate((_, c) => { c.certification = {}; }).join(), /certification evidence on a TESTED control/);
 });
 
-test('coverage: a SEEN or ACTUATED control must be seen or actuated in each step it names, on every viewport', () => {
-  const claimed = inventory.controls.filter(control => ['SEEN', 'ACTUATED'].includes(control.evidence));
-  assert.ok(claimed.some(c => c.evidence === 'SEEN') && claimed.some(c => c.evidence === 'ACTUATED'));
-  // A report built from the inventory's own claims passes; dropping one sighting or actuation on one viewport fails.
+// A complete Gate A/B certification for one asserted control: its browser steps and tests that exist in this file.
+const certificationFor = control => {
+  const step = control.exercised_by[0];
+  const unit = {test: 'test/control-inventory.test.mjs', name: 'the inventory is structurally valid against the journeys'};
+  return {gate_a: {positive: [step], negative: [unit], limits: [unit], transitions: [step], contract: [unit]}, gate_b: {integrated: [step], adversarial: [step]}};
+};
+
+test('CERTIFIED MOCK: every Gate A and Gate B category needs evidence, browser steps where the category requires them', () => {
+  const tested = inventory.controls.find(control => control.evidence === 'ASSERTED');
+  const check = change => {
+    const copy = structuredClone(inventory);
+    const c = copy.controls.find(control => control.id === tested.id);
+    Object.assign(c, {status: 'CERTIFIED MOCK', certification: certificationFor(tested)});
+    change?.(c.certification, c);
+    return validateInventory(copy, {journeys});
+  };
+  assert.deepEqual(check(), []);
+  for (const category of ['positive', 'negative', 'limits', 'transitions', 'contract']) assert.match(check(cert => { cert.gate_a[category] = []; }).join(), new RegExp(`gate_a\\.${category} has no evidence`));
+  for (const category of ['integrated', 'adversarial']) assert.match(check(cert => { delete cert.gate_b[category]; }).join(), new RegExp(`gate_b\\.${category} has no evidence`));
+  assert.match(check(cert => { cert.gate_a.positive = [cert.gate_a.contract[0]]; }).join(), /gate_a\.positive needs a Browser QA step/);
+  assert.match(check(cert => { cert.gate_b.adversarial = [cert.gate_a.contract[0]]; }).join(), /gate_b\.adversarial needs a Browser QA step/);
+  assert.match(check(cert => { cert.gate_a.contract = [{test: 'test/missing.test.mjs', name: 'x'}]; }).join(), /does not exist/);
+  assert.match(check(cert => { cert.gate_a.contract = [{test: 'test/control-inventory.test.mjs', name: 'no such test'}]; }).join(), /no test «no such test»/);
+  assert.match(check(cert => { cert.gate_a.contract = [{test: '../etc/passwd', name: 'x'}]; }).join(), /a reference is/);
+  assert.match(check(cert => { cert.gate_b.integrated = [{journey: 'search', step: 'no such step'}]; }).join(), /no step «no such step» in search/);
+});
+
+// A report that backs exactly the inventory's claims: seen for every claim, actuated and asserted for ASSERTED ones.
+function reportFor(inv) {
   const runs = [];
   for (const journey of JOURNEYS) for (const viewport of ['desktop', 'mobile']) {
     const steps = new Map();
-    for (const control of claimed) for (const ref of control.exercised_by) if (ref.journey === journey.id) {
-      if (!steps.has(ref.step)) steps.set(ref.step, {name: ref.step, status: 'PASS', actuated: [], seen: []});
-      const step = steps.get(ref.step);
-      step.seen.push(control.id);
-      if (control.evidence === 'ACTUATED') step.actuated.push(control.id);
+    const stepOf = name => {
+      if (!steps.has(name)) steps.set(name, {name, status: 'PASS', actuated: [], seen: [], asserted: [], assertions: []});
+      return steps.get(name);
+    };
+    for (const control of inv.controls) {
+      const refs = [...control.exercised_by.map(ref => [ref, control.evidence]),
+        ...Object.values(control.certification ?? {}).flatMap(gate => Object.values(gate).flat()).filter(ref => ref.journey).map(ref => [ref, 'ASSERTED'])];
+      for (const [ref, evidence] of refs) if (ref.journey === journey.id) {
+        const step = stepOf(ref.step);
+        if (!step.seen.includes(control.id)) step.seen.push(control.id);
+        if (['ACTUATED', 'ASSERTED'].includes(evidence) && !step.actuated.includes(control.id)) step.actuated.push(control.id);
+        if (evidence === 'ASSERTED' && !step.asserted.includes(control.id)) {
+          step.asserted.push(control.id);
+          step.assertions.push({controls: [control.id], description: 'the result of the action is the expected one'});
+        }
+      }
     }
     runs.push({id: journey.id, viewport, status: 'PASS', steps: [...steps.values()]});
   }
-  const report = {journeys: runs};
-  assert.deepEqual(verifyCoverage(inventory, report), []);
-  assert.equal(Object.keys(actuationsFrom(report)).length, claimed.filter(c => c.evidence === 'ACTUATED').length);
+  return {journeys: runs};
+}
+
+test('coverage: every claimed control was seen, actuated or asserted in each step it names, on every viewport', () => {
+  const claimed = inventory.controls.filter(control => control.evidence !== 'NONE');
+  for (const level of ['SEEN', 'ASSERTED']) assert.ok(claimed.some(c => c.evidence === level), level);
+  const report = reportFor(inventory);
+  assert.deepEqual(verifyCoverage(inventory, report, {journeys}), []);
+  assert.equal(Object.keys(actuationsFrom(report, 'asserted')).length, claimed.filter(c => c.evidence === 'ASSERTED').length);
   assert.equal(Object.keys(actuationsFrom(report, 'seen')).length, claimed.length);
-  const drop = (key, evidence, pattern) => {
+  const forge = (change, pattern) => {
     const forged = structuredClone(report);
-    const id = claimed.find(c => c.evidence === evidence).id;
-    for (const run of forged.journeys) if (run.viewport === 'mobile') for (const step of run.steps) step[key] = step[key].filter(x => x !== id);
+    change(forged);
     assert.match(verifyCoverage(inventory, forged).join(), pattern);
   };
-  drop('actuated', 'ACTUATED', /not actuated in .*\/mobile/);
-  drop('seen', 'SEEN', /not seen in .*\/mobile/);
-  const unknown = structuredClone(report);
-  unknown.journeys[0].steps.push({name: 'x', status: 'PASS', actuated: [], seen: ['CTL-NOT-INVENTORIED']});
-  assert.match(verifyCoverage(inventory, unknown).join(), /CTL-NOT-INVENTORIED not in the inventory/);
-  // The evidence gate itself refuses a verified status or ASSERTED evidence, not only the unit validator (review #240).
-  const forged = structuredClone(inventory);
-  for (const c of forged.controls) Object.assign(c, {status: 'CERTIFIED REAL', evidence: 'ASSERTED', data: 'REAL', exercised_by: []});
-  const refusals = verifyCoverage(forged, report).join();
-  assert.match(refusals, /ASSERTED evidence is not recorded by the gate yet/);
-  const tested = structuredClone(inventory);
-  tested.controls.find(c => c.evidence === 'ACTUATED').status = 'TESTED';
-  assert.match(verifyCoverage(tested, report).join(), /TESTED needs ASSERTED evidence, not ACTUATED/);
-  assert.match(verifyCoverage(tested, report, {journeys}).join(), /TESTED needs ASSERTED evidence/);
+  const assertedId = claimed.find(c => c.evidence === 'ASSERTED').id;
+  const seenId = claimed.find(c => c.evidence === 'SEEN').id;
+  const mobileSteps = r => r.journeys.filter(run => run.viewport === 'mobile').flatMap(run => run.steps);
+  // A missing assertion on one viewport, an assertion without the action, an asserted id without a recorded assertion.
+  forge(r => { for (const s of mobileSteps(r)) { s.asserted = s.asserted.filter(x => x !== assertedId); s.assertions = s.assertions.filter(a => !a.controls.includes(assertedId)); } }, /not asserted in .*\/mobile/);
+  forge(r => { for (const s of mobileSteps(r)) s.actuated = s.actuated.filter(x => x !== assertedId); }, new RegExp(`${assertedId} asserted but not actuated`));
+  forge(r => { for (const s of mobileSteps(r)) s.assertions = s.assertions.filter(a => !a.controls.includes(assertedId)); }, new RegExp(`${assertedId} asserted without a recorded assertion`));
+  forge(r => { const s = mobileSteps(r).find(x => x.assertions.length); s.assertions[0].description = ''; }, /an assertion without a description/);
+  forge(r => { for (const s of mobileSteps(r)) s.seen = s.seen.filter(x => x !== seenId); }, /not seen in .*\/mobile/);
+  forge(r => { r.journeys[0].steps.push({name: 'x', status: 'PASS', actuated: [], seen: ['CTL-NOT-INVENTORIED']}); }, /CTL-NOT-INVENTORIED not in the inventory/);
+  // The evidence gate itself refuses a verified status without ASSERTED and every CERTIFIED REAL, not only the unit validator.
+  const promoted = structuredClone(inventory);
+  promoted.controls.find(c => c.evidence === 'SEEN').status = 'TESTED';
+  assert.match(verifyCoverage(promoted, report).join(), /TESTED needs ASSERTED evidence \(a verified result\), not SEEN/);
+  const real = structuredClone(inventory);
+  for (const c of real.controls) Object.assign(c, {status: 'CERTIFIED REAL', evidence: 'ASSERTED', data: 'REAL', exercised_by: c.exercised_by.length ? c.exercised_by : []});
+  assert.match(verifyCoverage(real, reportFor(real)).join(), /CERTIFIED REAL needs a REAL certification campaign/);
+  // A certified control whose certification steps are not asserted in the report is refused.
+  const certified = structuredClone(inventory);
+  const c = certified.controls.find(x => x.evidence === 'ASSERTED');
+  Object.assign(c, {status: 'CERTIFIED MOCK', certification: certificationFor(c)});
+  assert.deepEqual(verifyCoverage(certified, reportFor(certified), {journeys}), []);
+  const other = JOURNEYS.find(j => j.id !== c.exercised_by[0].journey && journeys[j.id].some(t => typeof t === 'string'));
+  c.certification.gate_b.adversarial = [{journey: other.id, step: journeys[other.id].find(t => typeof t === 'string')}];
+  const unasserted = reportFor(certified);
+  for (const run of unasserted.journeys) if (run.id === other.id) for (const st of run.steps) {
+    st.asserted = st.asserted.filter(x => x !== c.id);
+    st.assertions = st.assertions.filter(x => !x.controls.includes(c.id));
+  }
+  assert.match(verifyCoverage(certified, unasserted).join(), new RegExp(`${c.id}: not asserted in ${other.id}/desktop .*\\(gate_b\\.adversarial\\)`));
   // A malformed report is refused with errors, never a crash.
   for (const bad of [{}, {journeys: 'x'}, {journeys: [{id: claimed[0].exercised_by[0].journey, viewport: 'desktop', status: 'PASS'}]}, {journeys: [null]}]) {
     assert.ok(verifyCoverage(inventory, bad).length > 0, JSON.stringify(bad));
   }
 });
 
-test('progress is computed from statuses and evidence, and nothing counts as verified without ASSERTED', () => {
+test('progress is computed from statuses and evidence: verified means ASSERTED, nothing is certified', () => {
   const result = progress(inventory);
   assert.equal(result.total, inventory.controls.length);
   assert.equal(Object.values(result.by_status).reduce((a, b) => a + b, 0), result.total);
   assert.equal(Object.values(result.by_evidence).reduce((a, b) => a + b, 0), result.total);
   assert.equal(result.actuated, inventory.controls.filter(c => ['ACTUATED', 'ASSERTED'].includes(c.evidence)).length);
   assert.ok(result.seen >= result.actuated && result.actuated >= result.asserted);
-  assert.equal(result.verified, 0);
+  assert.equal(result.verified, inventory.controls.filter(c => c.evidence === 'ASSERTED').length);
+  assert.equal(result.verified, result.by_status.TESTED);
   assert.equal(result.certified_mock, 0);
   assert.equal(result.certified_real, 0); // QA data is a seeded fixture: nothing is certified on real data here
 });

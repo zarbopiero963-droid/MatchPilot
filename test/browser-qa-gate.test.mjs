@@ -148,6 +148,72 @@ test('the runner fails a real page with a control missing from the control inven
   assert.match(report.journeys[0].reason, /control without data-control: <a>/);
 });
 
+test('the runner records ASSERTED only for a passed check after an action in the same step (MP-UI-PR-002, injected defects)', {timeout: 240000}, async t => {
+  const {runBrowserQa} = await import('../tools/qa/browser-qa.mjs');
+  const out = mkdtempSync(join(tmpdir(), 'mp-qa-asserted-'));
+  t.after(() => rmSync(out, {recursive: true, force: true}));
+  const openSearch = async (page, base) => {
+    await page.goto(`${base}/`);
+    await page.waitForSelector('nav a[data-view="search"]');
+    await page.click('nav a[data-view="search"]');
+  };
+  const searchShown = page => async () => { await page.waitForSelector('[data-testid="search-form"]'); };
+  const journey = (id, run) => ({id, surface: 'QA', title: id, run});
+  const journeys = [
+    journey('qa-asserted-ok', async ({page, base, step, asserted}) => {
+      await step('apertura della ricerca', async () => {
+        await openSearch(page, base);
+        await asserted('CTL-NAV-SEARCH', 'the menu opens the search form', searchShown(page));
+      });
+    }),
+    // Defects: a claim without the action, a failing check, an action of an earlier step, a call outside any step.
+    journey('qa-asserted-no-action', async ({page, base, step, asserted}) => {
+      await step('nessuna azione', async () => {
+        await page.goto(`${base}/#/search`);
+        await asserted('CTL-NAV-SEARCH', 'the menu opens the search form', searchShown(page));
+      });
+    }),
+    journey('qa-asserted-failing-check', async ({page, base, step, asserted}) => {
+      await step('verifica fallita', async () => {
+        await openSearch(page, base);
+        await asserted('CTL-NAV-SEARCH', 'the menu opens the search form', async () => { assert.fail('wrong result shown'); });
+      });
+    }),
+    journey('qa-asserted-earlier-step', async ({page, base, step, asserted}) => {
+      await step('azione', async () => { await openSearch(page, base); await searchShown(page)(); });
+      await step('verifica in un altro step', async () => { await asserted('CTL-NAV-SEARCH', 'the menu opens the search form', searchShown(page)); });
+    }),
+    journey('qa-asserted-outside', async ({page, base, step, asserted}) => {
+      await step('azione', async () => { await openSearch(page, base); await searchShown(page)(); });
+      await asserted('CTL-NAV-SEARCH', 'the menu opens the search form', searchShown(page));
+    }),
+    journey('qa-asserted-no-description', async ({page, base, step, asserted}) => {
+      await step('descrizione vuota', async () => {
+        await openSearch(page, base);
+        await asserted('CTL-NAV-SEARCH', ' ', searchShown(page));
+      });
+    }),
+  ];
+  let report;
+  try {
+    report = await runBrowserQa({out, journeys, viewports: ['desktop'], headSha: HEAD});
+  } catch (error) {
+    if (!process.env.CI && /no Chromium|ECONNREFUSED/.test(String(error?.message))) return t.skip(String(error.message));
+    throw error;
+  }
+  const run = id => report.journeys.find(j => j.id === id);
+  assert.equal(run('qa-asserted-ok').status, 'PASS', run('qa-asserted-ok').reason);
+  assert.deepEqual(run('qa-asserted-ok').steps[0].asserted, ['CTL-NAV-SEARCH']);
+  assert.deepEqual(run('qa-asserted-ok').steps[0].assertions, [{controls: ['CTL-NAV-SEARCH'], description: 'the menu opens the search form'}]);
+  for (const [id, reason] of [['qa-asserted-no-action', /asserted\(\) without an action in this step: CTL-NAV-SEARCH/], ['qa-asserted-failing-check', /wrong result shown/],
+    ['qa-asserted-earlier-step', /asserted\(\) without an action in this step: CTL-NAV-SEARCH/], ['qa-asserted-outside', /asserted\(\) outside a step/],
+    ['qa-asserted-no-description', /the description must say what is verified/]]) {
+    assert.equal(run(id).status, 'FAIL', id);
+    assert.match(run(id).reason, reason, id);
+    assert.ok(run(id).steps.every(step => step.asserted.length === 0), `${id}: nothing asserted`);
+  }
+});
+
 test('the evidence gate refuses a forged certified inventory (review #240)', t => {
   const inventory = JSON.parse(readFileSync(new URL('../docs/qa/control-inventory.json', import.meta.url), 'utf8'));
   // Evidence only from steps the synthetic report does not record: start from an inventory claiming no evidence.
