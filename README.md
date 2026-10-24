@@ -265,7 +265,7 @@ Un'analisi pre-match deve poter essere ricostruita usando esclusivamente snapsho
 
 ## Web app
 
-> La web app definitiva è la **fase 15** di #97: consuma API già certificate e non contiene logica finanziaria autorevole. Fino ad allora il riferimento UX è il mock vivo in `docs/mockups/`, che non certifica nulla.
+> La web app cresce in modo incrementale insieme ai backend necessari, una PR alla volta (D12-19, [`docs/governance/roadmap-reconciliation-2026-10-24-D12.md`](docs/governance/roadmap-reconciliation-2026-10-24-D12.md)). Consuma solo API del server e non contiene logica finanziaria autorevole. La roadmap UI è #239; il mock vivo in `docs/mockups/` è un riferimento UX e non certifica nulla.
 
 ### Home / Daily Board
 Card per tutte le partite disponibili con:

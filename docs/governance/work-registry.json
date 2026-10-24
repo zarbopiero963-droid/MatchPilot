@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 220,
+  "revision": 221,
   "tasks": [
     {
       "id": "R-01",
@@ -1659,9 +1659,9 @@
       "pr": 247,
       "branch": "fix-cert-squash",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261024T143256Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261024T193406Z-agent-a-claude-code",
       "resources": [
         "file:tools/qa/feature-certification.mjs",
         "file:docs/qa/feature-certification.json",
@@ -1673,7 +1673,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "c11029106c75738b7b086d725ac9e8e9d4ecea09"
     }
   ]
 }
