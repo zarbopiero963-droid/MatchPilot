@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 197,
+  "revision": 201,
   "tasks": [
     {
       "id": "R-01",
@@ -1492,12 +1492,36 @@
       "pr": 238,
       "branch": "persist-api-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261024T080432Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261024T083528Z-agent-a-claude-code",
       "resources": [
         "src/api/persistence-api.mjs",
         "src/server.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "764a9bd0eccbd16fe935e1cef1d6b3b1972acf9e"
+    },
+    {
+      "id": "MP-UI-PR-001",
+      "title": "MP-UI-PR-001: control inventory and actuation evidence in the Browser QA gate",
+      "issue": 239,
+      "pr": 240,
+      "branch": "ui-pr-001",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261024T094244Z-agent-a-claude-code",
+      "resources": [
+        "file:src/web/app.js",
+        "file:src/web/index.html",
+        "file:tools/qa/browser-qa.mjs",
+        "file:tools/qa/verify-report.mjs",
+        "file:docs/qa/control-inventory.json"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",

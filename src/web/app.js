@@ -15,6 +15,10 @@ class ApiFailure extends Error {
   }
 }
 
+// MP-UI-PR-001: every interactive control carries a stable id (`data-control`), listed in docs/qa/control-inventory.json;
+// the Browser QA gate fails on a visible control without one or with an id the inventory does not know.
+const ctl = (view, name) => `CTL-${view}-${String(name).toUpperCase().replace(/_/g, '-')}`;
+
 function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
   for (const [name, value] of Object.entries(attrs)) {
@@ -218,7 +222,7 @@ const loading = what => el('p', {class: 'state loading', role: 'status', 'data-w
 function errorState(error, retry) {
   return el('div', {class: 'state error', role: 'alert', 'data-code': error.code, title: reasonText(error)},
     el('p', {}, error.code === 'NETWORK' ? 'Connessione non disponibile: i dati non sono stati caricati.' : 'I dati non sono disponibili in questo momento.'),
-    el('button', {type: 'button', onclick: retry}, 'Riprova'));
+    el('button', {type: 'button', onclick: retry, 'data-control': 'CTL-COMMON-RETRY'}, 'Riprova'));
 }
 
 // Archive slugs (country, league) read as words until the API carries display names (ui-text-inventory UI-12).
@@ -262,7 +266,7 @@ const reasonText = error => `${error?.code ?? 'CLIENT'}${error?.message ? ` — 
 // The technical views share one section of the menu, «Dati», and a strip of tabs, as in the approved mockup.
 const DATA_TABS = [['data', 'Panoramica', '#/data'], ['providers', 'Fornitori', '#/providers'], ['endpoints', 'API', '#/endpoints'], [null, 'Copertura', '/coverage']];
 const dataTabs = current => el('nav', {class: 'tabs', 'aria-label': 'Sezioni dei dati', 'data-testid': 'data-tabs'},
-  DATA_TABS.map(([view, text, href]) => el('a', {href, 'aria-current': view === current ? 'page' : null}, text)));
+  DATA_TABS.map(([view, text, href]) => el('a', {href, 'aria-current': view === current ? 'page' : null, 'data-control': ctl('DATA-TAB', view ?? 'coverage')}, text)));
 
 // ---- Stato dei dati, formerly the Dashboard (MP-WEB-013) ----
 
@@ -347,7 +351,7 @@ async function dashboardView() {
           el('td', {'data-field': 'matches'}, num(row.matches)),
           el('td', {}, formatScalar(row.first_match_date)),
           el('td', {'data-field': 'last_match_date'}, row.last_match_date
-            ? el('a', {href: `#/?${queryString({date: row.last_match_date})}`, title: 'Apri le partite di quel giorno'}, row.last_match_date)
+            ? el('a', {href: `#/?${queryString({date: row.last_match_date})}`, title: 'Apri le partite di quel giorno', 'data-control': 'CTL-DATA-COVERAGE-DAY'}, row.last_match_date)
             : formatScalar(null)),
           el('td', {}, num(row.odds_coverage)), el('td', {}, num(row.xg_coverage)), el('td', {}, code(row.coverage_status)))))),
         el('p', {class: 'meta'}, 'Copertura: rapporto 0–1 calcolato dal server sui fatti salvati.'));
@@ -382,7 +386,7 @@ function matchRow(row) {
       // The dash between the teams is hidden on screen (one team per line): the heading keeps it for screen readers (PR #173 review NB-2).
       // The teams open the Match Center of the match (R-07a).
       el('h3', {'aria-label': `${row.home_name || ND} – ${row.away_name || ND}`},
-        el('a', {class: 'match-link', href: row.internal_match_id ? matchHref(row.internal_match_id) : null, 'data-action': 'open-match'},
+        el('a', {class: 'match-link', href: row.internal_match_id ? matchHref(row.internal_match_id) : null, 'data-action': 'open-match', 'data-control': 'CTL-BOARD-OPEN-MATCH'},
           el('span', {'data-field': 'home'}, formatScalar(row.home_name)), el('span', {class: 'sep'}, ' – '),
           el('span', {'data-field': 'away'}, formatScalar(row.away_name)))),
       el('p', {class: 'comp', 'data-field': 'competition'}, nameOf(row.country_slug), ' · ', nameOf(row.league_slug), ' · ', seasonOf(row.season))),
@@ -404,7 +408,7 @@ function pagedList({first, path, params, render, more: moreLabel, mine, list}) {
   const append = rows => { for (const node of render(rows)) list.append(node); };
   const showFooter = () => {
     footer.replaceChildren();
-    if (cursor) footer.append(el('button', {type: 'button', 'data-action': 'more', onclick: loadMore}, moreLabel));
+    if (cursor) footer.append(el('button', {type: 'button', 'data-action': 'more', onclick: loadMore, 'data-control': 'CTL-LIST-MORE'}, moreLabel));
     else footer.append(el('p', {class: 'meta', 'data-testid': 'end'}, 'Fine dei risultati.'));
   };
   async function loadMore() {
@@ -419,7 +423,7 @@ function pagedList({first, path, params, render, more: moreLabel, mine, list}) {
       if (mine !== generation || error?.code === 'UNAUTHENTICATED') return;
       footer.replaceChildren(el('div', {class: 'state error', role: 'alert', 'data-code': error?.code ?? '', title: reasonText(error)},
         el('p', {}, 'Non è stato possibile caricare altri risultati. Quelli già mostrati restano validi.'),
-        el('button', {type: 'button', onclick: loadMore}, 'Riprova')));
+        el('button', {type: 'button', onclick: loadMore, 'data-control': 'CTL-LIST-RETRY'}, 'Riprova')));
     }
   }
   append(first.data?.rows ?? []);
@@ -467,7 +471,7 @@ function dayStrip(date) {
   return el('nav', {class: 'dates', 'aria-label': 'Giorni vicini', 'data-testid': 'day-strip'}, [-3, -2, -1, 0, 1, 2, 3].map(shift => {
     const day = shiftDay(date, shift);
     const at = new Date(`${day}T00:00:00Z`);
-    return el('a', {href: dayHref(day), 'data-date': day, 'aria-current': shift === 0 ? 'date' : null, 'aria-label': dayText(day, LONG_DAY)},
+    return el('a', {href: dayHref(day), 'data-date': day, 'aria-current': shift === 0 ? 'date' : null, 'aria-label': dayText(day, LONG_DAY), 'data-control': 'CTL-BOARD-DAY'},
       el('small', {}, day === today ? 'Oggi' : STRIP_WEEKDAY.format(at)), el('b', {}, STRIP_NUMBER.format(at)));
   }));
 }
@@ -478,11 +482,11 @@ async function boardView(params, mine) {
     event.preventDefault();
     location.hash = dayHref(new FormData(event.target).get('date'));
   }},
-  el('a', {href: validDate(date) ? dayHref(shiftDay(date, -1)) : '#/', 'data-action': 'prev'}, '← Giorno prima'),
-  el('label', {}, 'Giorno ', el('input', {type: 'date', name: 'date', value: validDate(date) ? date : '', required: true})),
-  el('button', {type: 'submit'}, 'Mostra'),
-  el('a', {href: validDate(date) ? dayHref(shiftDay(date, 1)) : '#/', 'data-action': 'next'}, 'Giorno dopo →'),
-  el('a', {href: dayHref(localToday()), 'data-action': 'today'}, 'Oggi'));
+  el('a', {href: validDate(date) ? dayHref(shiftDay(date, -1)) : '#/', 'data-action': 'prev', 'data-control': 'CTL-BOARD-PREV'}, '← Giorno prima'),
+  el('label', {}, 'Giorno ', el('input', {type: 'date', name: 'date', value: validDate(date) ? date : '', required: true, 'data-control': 'CTL-BOARD-DATE'})),
+  el('button', {type: 'submit', 'data-control': 'CTL-BOARD-SHOW'}, 'Mostra'),
+  el('a', {href: validDate(date) ? dayHref(shiftDay(date, 1)) : '#/', 'data-action': 'next', 'data-control': 'CTL-BOARD-NEXT'}, 'Giorno dopo →'),
+  el('a', {href: dayHref(localToday()), 'data-action': 'today', 'data-control': 'CTL-BOARD-TODAY'}, 'Oggi'));
   const head = [el('h1', {}, date === localToday() ? 'Oggi' : 'Partite del giorno'), validDate(date) ? dayStrip(date) : null, picker];
   if (!validDate(date)) return [...head, el('p', {class: 'state error', role: 'alert', 'data-date': date}, 'Data non valida: scegli un giorno dal calendario.')];
   const path = '/api/v1/fpt/matches';
@@ -492,7 +496,7 @@ async function boardView(params, mine) {
   const rows = first.data?.rows ?? [];
   if (rows.length === 0) {
     return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'board-empty'}, `Nessuna partita ${dayText(date, LONG_DAY)}. `,
-      'Fino a quale giorno arrivano i dati di ogni campionato lo trovi in ', el('a', {href: '#/data'}, 'Dati'), '.'), updated];
+      'Fino a quale giorno arrivano i dati di ogni campionato lo trovi in ', el('a', {href: '#/data', 'data-control': 'CTL-BOARD-EMPTY-DATA'}, 'Dati'), '.'), updated];
   }
   // Kickoff order across competitions, as the API returns it; each card names its competition (PR #163 NB-3).
   const render = page => page.map(matchRow);
@@ -523,7 +527,7 @@ function formChips(form, rows, label) {
   return el('span', {class: 'form', 'data-field': 'form', role: 'list', 'aria-label': label}, form.map(item => {
     const row = rows.get(item.match_id);
     const what = row ? `${FORM_WORD[item.result]}: ${row.home_name} ${row.home_score}–${row.away_score} ${row.away_name}, ${dayText(row.match_date)}` : FORM_WORD[item.result];
-    return el('a', {class: `fm ${item.result}`, role: 'listitem', href: matchHref(item.match_id), title: what, 'aria-label': what, 'data-code': item.result}, FORM_LETTER[item.result] ?? '?');
+    return el('a', {class: `fm ${item.result}`, role: 'listitem', href: matchHref(item.match_id), title: what, 'aria-label': what, 'data-code': item.result, 'data-control': 'CTL-MATCH-FORM-CHIP'}, FORM_LETTER[item.result] ?? '?');
   }));
 }
 
@@ -538,7 +542,7 @@ function sourceTable(team, stats, rows) {
     const result = results.get(id);
     const cells = [
       el('td', {'data-field': 'date'}, calendarDay(row.match_date)),
-      el('td', {'data-field': 'teams'}, el('a', {href: matchHref(id)}, formatScalar(row.home_name), ' – ', formatScalar(row.away_name))),
+      el('td', {'data-field': 'teams'}, el('a', {href: matchHref(id), 'data-control': 'CTL-MATCH-SOURCE-ROW'}, formatScalar(row.home_name), ' – ', formatScalar(row.away_name))),
       withResult ? el('td', {'data-field': 'result'}, result ? el('span', {class: `fm ${result}`, title: FORM_WORD[result], 'data-code': result}, FORM_LETTER[result]) : formatScalar(null)) : null,
       el('td', {'data-field': 'score'}, score(row)),
       el('td', {'data-field': 'xg'}, num(row.xg_home), ' · ', num(row.xg_away)),
@@ -580,7 +584,7 @@ async function matchView(params) {
   const id = (params.get('id') ?? '').trim();
   if (!/^fpt:\S{1,396}$/.test(id)) {
     return [el('h1', {}, 'Partita'), el('p', {class: 'state error', role: 'alert', 'data-testid': 'match-invalid'},
-      'Partita non valida: aprila dalla ', el('a', {href: '#/'}, 'Daily Board'), ' o dalla ', el('a', {href: '#/search'}, 'Ricerca'), '.')];
+      'Partita non valida: aprila dalla ', el('a', {href: '#/', 'data-control': 'CTL-MATCH-INVALID-BOARD'}, 'Daily Board'), ' o dalla ', el('a', {href: '#/search', 'data-control': 'CTL-MATCH-INVALID-SEARCH'}, 'Ricerca'), '.')];
   }
   const scope = choice(params.get('team'), SCOPES, 'both');
   const sample = choice(params.get('window'), WINDOWS, '10');
@@ -590,7 +594,7 @@ async function matchView(params) {
   const match = data.match;
   if (!match) {
     return [el('h1', {}, 'Partita non trovata'), el('p', {class: 'state empty', role: 'status', 'data-testid': 'match-not-found', 'data-code': data.reason ?? ''},
-      'Questa partita non è nell\'archivio. ', el('a', {href: '#/'}, 'Torna a Oggi'))];
+      'Questa partita non è nell\'archivio. ', el('a', {href: '#/', 'data-control': 'CTL-MATCH-UNKNOWN-BOARD'}, 'Torna a Oggi'))];
   }
   const names = {home: match.home_name ?? ND, away: match.away_name ?? ND};
   const teamVenue = side => venue === 'split' ? side : venue;
@@ -600,7 +604,7 @@ async function matchView(params) {
   const shown = side => scope === 'both' || scope === side;
   const link = (key, value) => `#/match?${queryString({id, team: scope, window: sample, venue, [key]: value})}`;
   const filter = (label, key, options, current) => el('nav', {class: 'seg', 'aria-label': label, 'data-filter': key},
-    options.map(([value, text]) => el('a', {href: link(key, value), 'aria-current': value === current ? 'true' : null, 'data-value': value}, text)));
+    options.map(([value, text]) => el('a', {href: link(key, value), 'aria-current': value === current ? 'true' : null, 'data-value': value, 'data-control': ctl('MATCH-FILTER', key)}, text)));
 
   const hero = el('section', {class: 'hero', 'data-testid': 'match-hero', 'data-match': match.internal_match_id, 'data-result': match.result_status ?? '',
     'data-phase': match.phase ?? '', 'data-dataset': match.dataset_key ?? '', 'data-pit': data.method?.pit ?? '', 'data-version': data.method?.analysis_version ?? ''},
@@ -650,9 +654,9 @@ const FIELD_LABELS = {team: 'Squadra', venue: 'Sede', competition: 'Campionato',
 
 function searchForm(params, competitions) {
   const value = name => params.get(name) ?? '';
-  const select = (name, options) => el('select', {name}, options.map(([v, text]) => el('option', {value: v, selected: value(name) === v}, text)));
-  const input = (name, attrs) => el('input', {name, value: value(name), ...attrs});
-  const check = (name, text) => el('label', {class: 'check'}, el('input', {type: 'checkbox', name, value: 'true', checked: value(name) === 'true'}), ' ', text);
+  const select = (name, options) => el('select', {name, 'data-control': ctl('SEARCH', name)}, options.map(([v, text]) => el('option', {value: v, selected: value(name) === v}, text)));
+  const input = (name, attrs) => el('input', {name, value: value(name), 'data-control': ctl('SEARCH', name), ...attrs});
+  const check = (name, text) => el('label', {class: 'check'}, el('input', {type: 'checkbox', name, value: 'true', checked: value(name) === 'true', 'data-control': ctl('SEARCH', name)}), ' ', text);
   const competitionOptions = [['', 'Tutte'], ...competitions.map(c => [c.internal_competition_id, `${words(c.country_slug ?? '')} · ${words(c.league_slug ?? '')}`])];
   return el('form', {class: 'card search', 'data-testid': 'search-form', onsubmit: event => {
     event.preventDefault();
@@ -678,7 +682,7 @@ function searchForm(params, competitions) {
     el('label', {}, 'Gol totali da ', input('min_goals', {type: 'number', step: '1', min: '0', max: '30'})),
     el('label', {}, 'a ', input('max_goals', {type: 'number', step: '1', min: '0', max: '30'}))),
   el('fieldset', {}, el('legend', {}, 'Qualità dei dati'), check('with_odds', 'solo con quote 1X2 complete'), check('with_xg', 'solo con xG')),
-  el('button', {type: 'submit'}, 'Cerca'), ' ', el('a', {href: '#/search'}, 'Azzera'));
+  el('button', {type: 'submit', 'data-control': 'CTL-SEARCH-SUBMIT'}, 'Cerca'), ' ', el('a', {href: '#/search', 'data-control': 'CTL-SEARCH-RESET'}, 'Azzera'));
 }
 
 // Column titles are set in capitals by the style; «xG» keeps its own case.
@@ -694,10 +698,10 @@ function resultsTable(rows) {
 }
 function resultCells(row) {
   return [
-    el('td', {'data-field': 'date'}, row.match_date ? el('a', {href: dayHref(row.match_date), title: 'Apri le partite di quel giorno'}, calendarDay(row.match_date)) : formatScalar(null)),
+    el('td', {'data-field': 'date'}, row.match_date ? el('a', {href: dayHref(row.match_date), title: 'Apri le partite di quel giorno', 'data-control': 'CTL-SEARCH-OPEN-DAY'}, calendarDay(row.match_date)) : formatScalar(null)),
     el('td', {'data-field': 'kickoff', title: row.kickoff_local_time ? KICKOFF_NOTE : null}, formatScalar(row.kickoff_local_time)),
     el('td', {'data-field': 'teams'}, row.internal_match_id
-      ? el('a', {href: matchHref(row.internal_match_id), 'data-action': 'open-match'}, formatScalar(row.home_name), ' – ', formatScalar(row.away_name))
+      ? el('a', {href: matchHref(row.internal_match_id), 'data-action': 'open-match', 'data-control': 'CTL-SEARCH-OPEN-MATCH'}, formatScalar(row.home_name), ' – ', formatScalar(row.away_name))
       : [formatScalar(row.home_name), ' – ', formatScalar(row.away_name)]),
     el('td', {'data-field': 'competition'}, nameOf(row.league_slug), ' ', seasonOf(row.season)),
     el('td', {'data-field': 'score'}, outcome(row)),
@@ -726,7 +730,7 @@ async function searchView(params, mine) {
     if (teams.length > 1) {
       return [...head, el('div', {class: 'state partial', role: 'status', 'data-testid': 'team-choice', 'data-outcome': ''},
         el('p', {}, `Più squadre si chiamano «${teamText}»: scegline una.`),
-        el('ul', {}, teams.map(team => el('li', {}, el('a', {href: `#/search?${queryString({...Object.fromEntries(params), team_id: team.internal_team_id})}`},
+        el('ul', {}, teams.map(team => el('li', {}, el('a', {href: `#/search?${queryString({...Object.fromEntries(params), team_id: team.internal_team_id})}`, 'data-control': 'CTL-SEARCH-TEAM-CHOICE'},
           `${team.canonical_name} (${team.country_slug ? words(team.country_slug) : ND})`)))))];
     }
     teamId = teams[0].internal_team_id;
@@ -847,8 +851,8 @@ function compareHref(params) {
 
 function simForm(params, competitions) {
   const value = name => params.get(name) ?? '';
-  const select = (name, options, fallback) => el('select', {name}, options.map(([v, text]) => el('option', {value: v, selected: (value(name) || fallback) === v}, text)));
-  const input = (name, attrs) => el('input', {name, value: value(name), ...attrs});
+  const select = (name, options, fallback) => el('select', {name, 'data-control': ctl('SIM', name)}, options.map(([v, text]) => el('option', {value: v, selected: (value(name) || fallback) === v}, text)));
+  const input = (name, attrs) => el('input', {name, value: value(name), 'data-control': ctl('SIM', name), ...attrs});
   const competitionOptions = [['', 'Tutti'], ...competitions.map(c => [c.internal_competition_id, `${words(c.country_slug ?? '')} · ${words(c.league_slug ?? '')}`])];
   // The meaning of the research mode is shown as soon as it is chosen, before any run.
   const modeHint = el('p', {class: 'state partial', role: 'note', 'data-testid': 'sim-mode-hint', hidden: (value('pit_mode') || 'PIT') !== 'NON_PIT_RESEARCH'},
@@ -897,7 +901,7 @@ function simForm(params, competitions) {
       el('label', {}, 'Gestione del capitale ', select('mm_model', SIM_MM, '')),
       el('label', {}, 'Valore della gestione (importo, o percentuale: 2 = 2%) ', input('mm_value', {type: 'number', step: '0.01', min: '0.01'})))),
   modeHint,
-  el('button', {type: 'submit'}, 'Simula'), ' ', el('a', {href: '#/sim'}, 'Azzera'));
+  el('button', {type: 'submit', 'data-control': 'CTL-SIM-SUBMIT'}, 'Simula'), ' ', el('a', {href: '#/sim', 'data-control': 'CTL-SIM-RESET'}, 'Azzera'));
 }
 
 // The strategy the report ran: a reference strategy by name, a personalised one by the rules its definition records.
@@ -987,7 +991,7 @@ async function simView(params) {
     competitionsBody ? null : el('p', {class: 'state partial', role: 'status'}, 'Elenco dei campionati non disponibile: il filtro per campionato è disattivato.'),
     params.get('pit_mode') === 'NON_PIT_RESEARCH' ? researchNotice() : null,
     simForm(params, competitions),
-    el('p', {class: 'meta'}, el('a', {href: compareHref(params), 'data-testid': 'sim-compare-link'}, 'Confronta più strategie sugli stessi dati'))];
+    el('p', {class: 'meta'}, el('a', {href: compareHref(params), 'data-testid': 'sim-compare-link', 'data-control': 'CTL-SIM-COMPARE'}, 'Confronta più strategie sugli stessi dati'))];
   if (params.get('run') !== '1') return [...head, el('p', {class: 'state empty'}, 'Scegli il periodo e premi Simula.')];
   const api = {};
   for (const key of SIM_FIELDS) if (params.get(key)) api[key] = params.get(key);
@@ -1062,8 +1066,8 @@ const CMP_STRATEGY_LABELS = {strategy: 'Strategia', stake: 'Puntata', bankroll: 
 function cmpConfiguration(params, key) {
   const name = field => `${key}_${field}`;
   const value = field => params.get(name(field)) ?? '';
-  const select = (field, options, fallback) => el('select', {name: name(field)}, options.map(([v, text]) => el('option', {value: v, selected: (value(field) || fallback) === v}, text)));
-  const input = (field, attrs) => el('input', {name: name(field), value: value(field), ...attrs});
+  const select = (field, options, fallback) => el('select', {name: name(field), 'data-control': ctl('CMP', name(field))}, options.map(([v, text]) => el('option', {value: v, selected: (value(field) || fallback) === v}, text)));
+  const input = (field, attrs) => el('input', {name: name(field), value: value(field), 'data-control': ctl('CMP', name(field)), ...attrs});
   const price = field => input(field, {type: 'number', step: '0.001', min: '1.001', max: '1000'});
   const optional = key === 'c';
   const strategies = optional ? [['', 'Nessuna'], ...SIM_STRATEGIES] : SIM_STRATEGIES;
@@ -1102,8 +1106,8 @@ function cmpOut(entries) {
 
 function cmpForm(params, competitions) {
   const value = name => params.get(name) ?? '';
-  const select = (name, options, fallback) => el('select', {name}, options.map(([v, text]) => el('option', {value: v, selected: (value(name) || fallback) === v}, text)));
-  const input = (name, attrs) => el('input', {name, value: value(name), ...attrs});
+  const select = (name, options, fallback) => el('select', {name, 'data-control': ctl('CMP', name)}, options.map(([v, text]) => el('option', {value: v, selected: (value(name) || fallback) === v}, text)));
+  const input = (name, attrs) => el('input', {name, value: value(name), 'data-control': ctl('CMP', name), ...attrs});
   const competitionOptions = [['', 'Tutti'], ...competitions.map(c => [c.internal_competition_id, `${words(c.country_slug ?? '')} · ${words(c.league_slug ?? '')}`])];
   const modeHint = el('p', {class: 'state partial', role: 'note', 'data-testid': 'sim-mode-hint', hidden: (value('pit_mode') || 'PIT') !== 'NON_PIT_RESEARCH'},
     'Ricerca esplorativa: usa le quote acquisite dopo l’inizio delle partite, solo per studio.');
@@ -1127,7 +1131,8 @@ function cmpForm(params, competitions) {
       el('label', {}, 'Partite al massimo ', input('max_events', {type: 'number', step: '1', min: '1', max: '1000', placeholder: '300'})))),
   CMP_KEYS.map(key => cmpConfiguration(params, key)),
   modeHint,
-  el('button', {type: 'submit'}, 'Confronta'), ' ', el('a', {href: '#/compare'}, 'Azzera'), ' ', el('a', {href: '#/sim'}, 'Torna alla simulazione'));
+  el('button', {type: 'submit', 'data-control': 'CTL-CMP-SUBMIT'}, 'Confronta'), ' ', el('a', {href: '#/compare', 'data-control': 'CTL-CMP-RESET'}, 'Azzera'), ' ',
+  el('a', {href: '#/sim', 'data-control': 'CTL-CMP-BACK-SIM'}, 'Torna alla simulazione'));
 }
 
 // A refusal names its configuration («a_side…», «b: config.stake…») and its field.
@@ -1278,7 +1283,7 @@ async function render() {
   // Every navigation starts a new generation, so an earlier view still loading can never replace this one.
   const mine = ++generation;
   if (!view) {
-    host.replaceChildren(el('h1', {}, 'Pagina non trovata'), el('p', {class: 'state empty'}, 'Questa sezione non esiste. ', el('a', {href: '#/'}, 'Torna a Oggi')));
+    host.replaceChildren(el('h1', {}, 'Pagina non trovata'), el('p', {class: 'state empty'}, 'Questa sezione non esiste. ', el('a', {href: '#/', 'data-control': 'CTL-NOTFOUND-BOARD'}, 'Torna a Oggi')));
     return;
   }
   host.replaceChildren(loading(what));

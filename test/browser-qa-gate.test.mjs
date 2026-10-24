@@ -126,6 +126,42 @@ test('the runner fails a real page that leaks a raw value, with evidence (delibe
   assert.ok(JSON.parse(readFileSync(join(out, 'report.json'), 'utf8')).files[journey.trace]);
 });
 
+test('the runner fails a real page with a control missing from the control inventory (MP-UI-PR-001, injected defect)', {timeout: 240000}, async t => {
+  const {runBrowserQa} = await import('../tools/qa/browser-qa.mjs');
+  const {JOURNEYS} = await import('../tools/qa/journeys.mjs');
+  const out = mkdtempSync(join(tmpdir(), 'mp-qa-control-'));
+  t.after(() => rmSync(out, {recursive: true, force: true}));
+  // The defect: the tabs of the Dati area lose their data-control id.
+  const contextHook = context => context.route('**/assets/app.js', async route => {
+    const response = await route.fetch();
+    const body = (await response.text()).replace(", 'data-control': ctl('DATA-TAB', view ?? 'coverage')", '');
+    await route.fulfill({response, body});
+  });
+  let report;
+  try {
+    report = await runBrowserQa({out, journeys: JOURNEYS.filter(journey => journey.id === 'dashboard'), viewports: ['desktop'], headSha: HEAD, contextHook});
+  } catch (error) {
+    if (!process.env.CI && /no Chromium|ECONNREFUSED/.test(String(error?.message))) return t.skip(String(error.message));
+    throw error;
+  }
+  assert.equal(report.verdict, 'FAIL');
+  assert.match(report.journeys[0].reason, /control without data-control: <a>/);
+});
+
+test('the evidence gate refuses a forged certified inventory (review #240)', t => {
+  const inventory = JSON.parse(readFileSync(new URL('../docs/qa/control-inventory.json', import.meta.url), 'utf8'));
+  // Evidence only from steps the synthetic report does not record: start from an inventory claiming no evidence.
+  const clean = structuredClone(inventory);
+  for (const c of clean.controls) Object.assign(c, {status: 'IMPLEMENTED', evidence: 'NONE', exercised_by: []});
+  assert.equal(check(evidence(t), {inventory: clean}).ok, true);
+  const forged = structuredClone(clean);
+  for (const c of forged.controls) Object.assign(c, {status: 'CERTIFIED REAL', evidence: 'ASSERTED', data: 'REAL'});
+  refused(check(evidence(t), {inventory: forged}), /control inventory: .*ASSERTED/);
+  const tested = structuredClone(clean);
+  tested.controls[0].status = 'TESTED';
+  refused(check(evidence(t), {inventory: tested}), /TESTED needs ASSERTED evidence/);
+});
+
 test('inherited keys, files outside the manifest and a wrong missing_required are refused (PR #164 NB-1, NB-2)', t => {
   // Forged evidence naming inherited object keys instead of real files.
   refused(check(evidence(t, (r, dir) => {

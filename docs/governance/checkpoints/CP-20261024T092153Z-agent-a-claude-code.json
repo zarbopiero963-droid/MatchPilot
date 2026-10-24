@@ -1,0 +1,115 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261024T092153Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-24T09:21:53Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "MP-UI-PR-001",
+  "activity": "MP-UI-PR-001 foundations: control inventory (133 controls), data-control ids, Browser QA actuation evidence and coverage verification",
+  "issue": 239,
+  "pr": 240,
+  "branch": "ui-pr-001",
+  "commit_sha": "27de6f18d445d0e8d5f9ed86131eff8b5ff2a637",
+  "tree_sha": "92865ae3ac474dac6716eac812d06479107fc2e6",
+  "base_sha": "764a9bd0eccbd16fe935e1cef1d6b3b1972acf9e",
+  "requirements": [
+    "MP-QAC-004",
+    "MP-QAC-010",
+    "MP-WEB-001"
+  ],
+  "changes": [
+    "data-control ids on every control",
+    "docs/qa/control-inventory.json (mp-control-inventory-1)",
+    "invariants fail on uninventoried controls",
+    "per-step actuated/seen in the report",
+    "verify-report coverage check",
+    "ui:progress",
+    "owner decisions MP-FRONTEND-CLAUDE-DIRECT-E2E-01, MP-UI-ROADMAP-01, MP-UI-INCREMENTAL-13"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "27de6f18d445d0e8d5f9ed86131eff8b5ff2a637",
+      "time": "2026-10-24T09:21:53Z",
+      "limits": [
+        "PostgreSQL 17 test skipped locally (server 16), runs in CI; Browser QA run locally on a dirty tree before commit: 16/16 PASS, 58 of 133 controls actuated"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "27de6f18d445d0e8d5f9ed86131eff8b5ff2a637"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "final-head context-separated sub-agent review pending (DEC-004-R1)"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-UI-ROADMAP-01",
+    "MP-UI-INCREMENTAL-13",
+    "MP-FRONTEND-CLAUDE-DIRECT-E2E-01",
+    "MP-AUTOMERGE-RESTORED-20261024"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and final review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:src/web/app.js",
+    "file:src/web/index.html",
+    "file:tools/qa/browser-qa.mjs",
+    "file:tools/qa/verify-report.mjs",
+    "file:docs/qa/control-inventory.json",
+    "branch:ui-pr-001",
+    "pr:240"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and final-head review on PR #240, then protected merge and deploy verification",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}
