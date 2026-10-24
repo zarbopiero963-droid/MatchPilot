@@ -126,6 +126,28 @@ test('the runner fails a real page that leaks a raw value, with evidence (delibe
   assert.ok(JSON.parse(readFileSync(join(out, 'report.json'), 'utf8')).files[journey.trace]);
 });
 
+test('the runner fails a real page with a control missing from the control inventory (MP-UI-PR-001, injected defect)', {timeout: 240000}, async t => {
+  const {runBrowserQa} = await import('../tools/qa/browser-qa.mjs');
+  const {JOURNEYS} = await import('../tools/qa/journeys.mjs');
+  const out = mkdtempSync(join(tmpdir(), 'mp-qa-control-'));
+  t.after(() => rmSync(out, {recursive: true, force: true}));
+  // The defect: the tabs of the Dati area lose their data-control id.
+  const contextHook = context => context.route('**/assets/app.js', async route => {
+    const response = await route.fetch();
+    const body = (await response.text()).replace(", 'data-control': ctl('DATA-TAB', view ?? 'coverage')", '');
+    await route.fulfill({response, body});
+  });
+  let report;
+  try {
+    report = await runBrowserQa({out, journeys: JOURNEYS.filter(journey => journey.id === 'dashboard'), viewports: ['desktop'], headSha: HEAD, contextHook});
+  } catch (error) {
+    if (!process.env.CI && /no Chromium|ECONNREFUSED/.test(String(error?.message))) return t.skip(String(error.message));
+    throw error;
+  }
+  assert.equal(report.verdict, 'FAIL');
+  assert.match(report.journeys[0].reason, /control without data-control: <a>/);
+});
+
 test('inherited keys, files outside the manifest and a wrong missing_required are refused (PR #164 NB-1, NB-2)', t => {
   // Forged evidence naming inherited object keys instead of real files.
   refused(check(evidence(t, (r, dir) => {

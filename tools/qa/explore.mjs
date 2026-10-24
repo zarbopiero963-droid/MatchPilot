@@ -23,11 +23,13 @@ import {mkdirSync, existsSync, readdirSync, readFileSync, writeFileSync} from 'n
 import {join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {git, invariants, listFiles, sha256, withQaEnvironment} from './browser-qa.mjs';
+import {inventoryIds, loadInventory} from './control-inventory.mjs';
 import {JOURNEYS, VIEWPORTS} from './journeys.mjs';
 
 // API prose the deterministic journeys already declare as legitimate (allowRawText): the crawler crosses every route,
 // so it accepts the union, and nothing else.
 const ALLOW_RAW_TEXT = JOURNEYS.flatMap(journey => journey.allowRawText ?? []);
+const KNOWN_CONTROLS = inventoryIds(loadInventory());
 
 export const EXPLORE_SCHEMA = 'mp-browser-explore-v1';
 // Kinds a reviewer must triage before a merge; an invariant problem is the same class as in the deterministic gate.
@@ -150,7 +152,7 @@ async function check(page, drain) {
   }
   const blank = await page.evaluate(() => { const main = document.querySelector('main'); return !!main && !main.innerText.trim() && !main.querySelector('*'); });
   if (blank) problems.push({kind: 'blank-view', message: 'the view rendered nothing'});
-  for (const message of await invariants(page, ALLOW_RAW_TEXT)) problems.push({kind: 'invariant', message});
+  for (const message of await invariants(page, ALLOW_RAW_TEXT, KNOWN_CONTROLS)) problems.push({kind: 'invariant', message});
   return problems;
 }
 

@@ -18,6 +18,7 @@ import {arch, platform, release} from 'node:os';
 import {join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {JOURNEYS, REQUIRED_JOURNEYS, REQUIRED_VIEWPORTS, VIEWPORTS} from './journeys.mjs';
+import {inventoryIds, loadInventory} from './control-inventory.mjs';
 
 export const REPORT_SCHEMA = 'mp-browser-qa-v1';
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -42,9 +43,14 @@ export const TECHNICAL_CODE = /\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\b|\b[a-z][a-z0-9]*_[a
 export const TECHNICAL_WORD = /\b(?:dataset|pipeline|endpoint|snapshot|backfill|payload|envelope|cursore?|schema|slug|provenance|debug|fornitore|provider|api v1|versione codice|generato|dati salvati|fuso del fornitore)\b|\bfonte:/i;
 export const technicalText = text => TECHNICAL_CODE.test(text) || TECHNICAL_WORD.test(text);
 
+// The interactive elements of the page, as the control inventory counts them (MP-UI-PR-001).
+export const CONTROL_SELECTOR = 'a[href], button, input:not([type="hidden"]), select, textarea, summary';
+
 // Generic checks after every step: what no page may ever show, whatever the journey.
-export async function invariants(page, allowRawText = []) {
-  return page.evaluate(([rawSource, allowSources, codeSource, wordSource]) => {
+// `knownControls` (the ids of docs/qa/control-inventory.json): every visible control in the header and in main must carry
+// a `data-control` id the inventory lists, so no control can be added without being inventoried.
+export async function invariants(page, allowRawText = [], knownControls = null) {
+  return page.evaluate(([rawSource, allowSources, codeSource, wordSource, known, controlSelector]) => {
     const rawValue = new RegExp(rawSource);
     const allowed = allowSources.map(source => new RegExp(source));
     const technical = [new RegExp(codeSource), new RegExp(wordSource, 'i')];
@@ -113,9 +119,34 @@ export async function invariants(page, allowRawText = []) {
         if (overlap) problems.push(`overlapping controls: ${a.tagName.toLowerCase()} "${(a.textContent || a.name || '').trim().slice(0, 20)}" and ${b.tagName.toLowerCase()} "${(b.textContent || b.name || '').trim().slice(0, 20)}"`);
       }
     }
+    if (known) {
+      const ids = new Set(known);
+      for (const scope of [document.querySelector('header'), main]) for (const el of scope?.querySelectorAll(controlSelector) ?? []) {
+        if (!visible(el)) continue;
+        const id = el.dataset.control;
+        if (!id) problems.push(`control without data-control: <${el.tagName.toLowerCase()}> ${el.outerHTML.slice(0, 80)}`);
+        else if (!ids.has(id)) problems.push(`control ${id} is not in the control inventory`);
+      }
+    }
     return [...new Set(problems)];
-  }, [RAW_VALUE.source, allowRawText.map(pattern => pattern.source), TECHNICAL_CODE.source, TECHNICAL_WORD.source]);
+  }, [RAW_VALUE.source, allowRawText.map(pattern => pattern.source), TECHNICAL_CODE.source, TECHNICAL_WORD.source, knownControls, CONTROL_SELECTOR]);
 }
+
+// The visible inventoried controls of the page.
+export const visibleControls = page => page.evaluate(() => [...new Set([...document.querySelectorAll('[data-control]')]
+  .filter(el => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; })
+  .map(el => el.dataset.control))].sort());
+
+// Records, in the page, every user action on an inventoried control: click, input, change and submit (for a submit, the
+// form's submit button), reported through the __mpControl binding so that page loads lose nothing.
+const ACTUATION_SCRIPT = `(() => {
+  const report = (event) => {
+    const target = event.type === 'submit' ? (event.submitter ?? event.target.querySelector('[type=submit][data-control]')) : event.target;
+    const id = target?.closest?.('[data-control]')?.dataset.control;
+    if (id && window.__mpControl) window.__mpControl(id);
+  };
+  for (const type of ['click', 'input', 'change', 'submit']) window.addEventListener(type, report, true);
+})();`;
 
 export function browserPath() {
   return BROWSERS.find(path => path && existsSync(path)) || null;
@@ -148,9 +179,12 @@ export async function startServer(schema) {
 
 const allowedHttp = (journey, url, status) => (journey.allowHttp ?? []).some(rule => new URL(url).pathname === rule.path && rule.status === status);
 
-async function runJourney({browser, journey, viewportName, base, out, api, seed, contextHook}) {
+async function runJourney({browser, journey, viewportName, base, out, api, seed, contextHook, knownControls}) {
   const tag = `${journey.id}-${viewportName}`;
   const context = await browser.newContext({viewport: VIEWPORTS[viewportName]});
+  let actuated = new Set();
+  await context.exposeBinding('__mpControl', (_source, id) => { if (typeof id === 'string') actuated.add(id); });
+  await context.addInitScript(ACTUATION_SCRIPT);
   // Tests only: lets a test inject a defect into the page under test, to prove the gate detects it.
   if (contextHook) await contextHook(context);
   await context.tracing.start({screenshots: true, snapshots: true, sources: false});
@@ -180,13 +214,15 @@ async function runJourney({browser, journey, viewportName, base, out, api, seed,
   };
   const step = async (name, fn) => {
     const slug = name.normalize('NFD').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase().slice(0, 40);
+    actuated = new Set();
     try {
       await fn();
-      const problems = await invariants(page, journey.allowRawText);
+      const problems = await invariants(page, journey.allowRawText, knownControls);
       if (problems.length) throw new Error(`invariants: ${problems.join('; ')}`);
-      steps.push({name, status: 'PASS', screenshot: await shot(slug)});
+      const seen = await visibleControls(page); // also a round trip: every action of the step has reached the binding
+      steps.push({name, status: 'PASS', screenshot: await shot(slug), actuated: [...actuated].sort(), seen});
     } catch (error) {
-      steps.push({name, status: 'FAIL', error: String(error?.message ?? error).slice(0, 2000), screenshot: await shot(`${slug}-failure`).catch(() => null)});
+      steps.push({name, status: 'FAIL', error: String(error?.message ?? error).slice(0, 2000), screenshot: await shot(`${slug}-failure`).catch(() => null), actuated: [...actuated].sort()});
       throw error;
     }
   };
@@ -243,10 +279,11 @@ export async function runBrowserQa({out, journeys = JOURNEYS, viewports = REQUIR
   if (existsSync(out) && readdirSync(out).length) throw new Error(`--out ${out} is not empty`);
   mkdirSync(join(out, 'screenshots'), {recursive: true});
   mkdirSync(join(out, 'traces'), {recursive: true});
+  const knownControls = inventoryIds(loadInventory());
   return withQaEnvironment(async ({browser, server, seed, api, health, executablePath}) => {
     const results = [];
     for (const journey of journeys) for (const viewport of viewports) {
-      results.push(await runJourney({browser, journey, viewportName: viewport, base: server.base, out, api, seed, contextHook}));
+      results.push(await runJourney({browser, journey, viewportName: viewport, base: server.base, out, api, seed, contextHook, knownControls}));
     }
     const {counts, verdict, missing} = computeVerdict(results);
     const files = Object.fromEntries(listFiles(out).filter(path => !path.endsWith('report.json'))

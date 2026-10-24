@@ -1,0 +1,2332 @@
+{
+  "schema": "mp-control-inventory-1",
+  "roadmap": "MP-UI-ROADMAP-01 (#239)",
+  "note": "Generated from the data-control ids of src/web; exercised_by comes from a Browser QA run (node tools/qa/control-inventory.mjs actuations <report.json>) and is re-checked by verify-report on every run.",
+  "controls": [
+    {
+      "id": "CTL-NAV-BRAND",
+      "view": "shell",
+      "kind": "link",
+      "label": "MatchPilot (logo)",
+      "action": "apre Oggi",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        3
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-NAV-OGGI",
+      "view": "shell",
+      "kind": "link",
+      "label": "Oggi",
+      "action": "apre la Daily Board",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        3
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Oggi"
+        },
+        {
+          "journey": "search",
+          "step": "esito vuoto o di errore dal modulo: in vista e con il focus, anche ripetendo la stessa ricerca"
+        }
+      ]
+    },
+    {
+      "id": "CTL-NAV-SEARCH",
+      "view": "shell",
+      "kind": "link",
+      "label": "Ricerca",
+      "action": "apre la Ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        3
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Ricerca partite"
+        },
+        {
+          "journey": "search",
+          "step": "esito vuoto o di errore dal modulo: in vista e con il focus, anche ripetendo la stessa ricerca"
+        }
+      ]
+    },
+    {
+      "id": "CTL-NAV-SIM",
+      "view": "shell",
+      "kind": "link",
+      "label": "Simulazione",
+      "action": "apre la Simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        3,
+        34
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Simulazione"
+        }
+      ]
+    },
+    {
+      "id": "CTL-NAV-DATA",
+      "view": "shell",
+      "kind": "link",
+      "label": "Dati",
+      "action": "apre l'area Dati",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        3,
+        31
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "menu: Stato dei dati"
+        }
+      ]
+    },
+    {
+      "id": "CTL-COMMON-RETRY",
+      "view": "shared",
+      "kind": "button",
+      "label": "Riprova",
+      "action": "ripete la richiesta fallita della vista",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        3
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-LIST-MORE",
+      "view": "shared",
+      "kind": "button",
+      "label": "Mostra altre",
+      "action": "carica la pagina successiva dell'elenco",
+      "api": "/api/v1/fpt/matches",
+      "data": "REAL",
+      "issues": [
+        3
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "daily-board",
+          "step": "paginazione fino alla fine, stesso ordine dell’API"
+        },
+        {
+          "journey": "search",
+          "step": "tutte le partite, pagina dopo pagina, fino alla fine"
+        },
+        {
+          "journey": "search",
+          "step": "campionato e intervallo di date"
+        },
+        {
+          "journey": "search",
+          "step": "pagina successiva in errore: le righe restano"
+        }
+      ]
+    },
+    {
+      "id": "CTL-LIST-RETRY",
+      "view": "shared",
+      "kind": "button",
+      "label": "Riprova (elenco)",
+      "action": "ripete il caricamento della pagina successiva",
+      "api": "/api/v1/fpt/matches",
+      "data": "REAL",
+      "issues": [
+        3
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "Riprova carica la pagina successiva"
+        }
+      ]
+    },
+    {
+      "id": "CTL-DATA-TAB-DATA",
+      "view": "data",
+      "kind": "link",
+      "label": "Panoramica",
+      "action": "apre la scheda Panoramica",
+      "api": "/api/v1/health",
+      "data": "REAL",
+      "issues": [
+        31
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "Dati: le schede aprono le viste tecniche"
+        }
+      ]
+    },
+    {
+      "id": "CTL-DATA-TAB-PROVIDERS",
+      "view": "data",
+      "kind": "link",
+      "label": "Fornitori",
+      "action": "apre la scheda Fornitori",
+      "api": "/api/v1/providers",
+      "data": "REAL",
+      "issues": [
+        31
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "Dati: le schede aprono le viste tecniche"
+        }
+      ]
+    },
+    {
+      "id": "CTL-DATA-TAB-ENDPOINTS",
+      "view": "data",
+      "kind": "link",
+      "label": "API",
+      "action": "apre la scheda API",
+      "api": "/api/v1/endpoints",
+      "data": "REAL",
+      "issues": [
+        31
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "Dati: le schede aprono le viste tecniche"
+        }
+      ]
+    },
+    {
+      "id": "CTL-DATA-TAB-COVERAGE",
+      "view": "data",
+      "kind": "link",
+      "label": "Copertura",
+      "action": "apre la scheda Copertura",
+      "api": "/coverage",
+      "data": "REAL",
+      "issues": [
+        31
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-DATA-COVERAGE-DAY",
+      "view": "data",
+      "kind": "link",
+      "label": "Ultimo giorno di un campionato",
+      "action": "apre la Daily Board di quel giorno",
+      "api": "/api/v1/fpt/coverage",
+      "data": "REAL",
+      "issues": [
+        31
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "daily-board",
+          "step": "apertura dalla copertura in Dati"
+        }
+      ]
+    },
+    {
+      "id": "CTL-BOARD-OPEN-MATCH",
+      "view": "board",
+      "kind": "link",
+      "label": "Partita (riga)",
+      "action": "apre il Match Center della partita",
+      "api": "/api/v1/fpt/match-analysis",
+      "data": "REAL",
+      "issues": [
+        3,
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "match-center",
+          "step": "apertura dalla Daily Board"
+        }
+      ]
+    },
+    {
+      "id": "CTL-BOARD-DAY",
+      "view": "board",
+      "kind": "link",
+      "label": "Giorno della striscia",
+      "action": "mostra le partite di quel giorno",
+      "api": "/api/v1/fpt/matches",
+      "data": "REAL",
+      "issues": [
+        3,
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "daily-board",
+          "step": "striscia dei giorni del mockup: tre giorni prima e dopo, Oggi solo per oggi"
+        }
+      ]
+    },
+    {
+      "id": "CTL-BOARD-PREV",
+      "view": "board",
+      "kind": "link",
+      "label": "Giorno prima",
+      "action": "mostra il giorno precedente",
+      "api": "/api/v1/fpt/matches",
+      "data": "REAL",
+      "issues": [
+        3,
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "daily-board",
+          "step": "giorno prima: nessuna partita salvata"
+        }
+      ]
+    },
+    {
+      "id": "CTL-BOARD-DATE",
+      "view": "board",
+      "kind": "input",
+      "label": "Giorno",
+      "action": "sceglie la data da mostrare",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        3,
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "daily-board",
+          "step": "selezione della data dal campo"
+        }
+      ]
+    },
+    {
+      "id": "CTL-BOARD-SHOW",
+      "view": "board",
+      "kind": "button",
+      "label": "Mostra",
+      "action": "mostra le partite della data scelta",
+      "api": "/api/v1/fpt/matches",
+      "data": "REAL",
+      "issues": [
+        3,
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "daily-board",
+          "step": "selezione della data dal campo"
+        }
+      ]
+    },
+    {
+      "id": "CTL-BOARD-NEXT",
+      "view": "board",
+      "kind": "link",
+      "label": "Giorno dopo",
+      "action": "mostra il giorno successivo",
+      "api": "/api/v1/fpt/matches",
+      "data": "REAL",
+      "issues": [
+        3,
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "daily-board",
+          "step": "un errore della route di aggiornamento non resta in memoria"
+        },
+        {
+          "journey": "daily-board",
+          "step": "giorno dopo: di nuovo il giorno affollato"
+        }
+      ]
+    },
+    {
+      "id": "CTL-BOARD-TODAY",
+      "view": "board",
+      "kind": "link",
+      "label": "Oggi",
+      "action": "torna al giorno corrente",
+      "api": "/api/v1/fpt/matches",
+      "data": "REAL",
+      "issues": [
+        3,
+        30
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-BOARD-EMPTY-DATA",
+      "view": "board",
+      "kind": "link",
+      "label": "Dati (giorno vuoto)",
+      "action": "apre l'area Dati dal giorno senza partite",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        3,
+        31
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-MATCH-FORM-CHIP",
+      "view": "match",
+      "kind": "link",
+      "label": "Esito della forma recente",
+      "action": "apre il Match Center di quella partita",
+      "api": "/api/v1/fpt/match-analysis",
+      "data": "REAL",
+      "issues": [
+        30
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-MATCH-SOURCE-ROW",
+      "view": "match",
+      "kind": "link",
+      "label": "Partita sorgente",
+      "action": "apre il Match Center della partita sorgente",
+      "api": "/api/v1/fpt/match-analysis",
+      "data": "REAL",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "match-center",
+          "step": "apertura dalla Ricerca e da una riga sorgente"
+        }
+      ]
+    },
+    {
+      "id": "CTL-MATCH-INVALID-BOARD",
+      "view": "match",
+      "kind": "link",
+      "label": "Daily Board (partita non valida)",
+      "action": "torna alla Daily Board",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-MATCH-INVALID-SEARCH",
+      "view": "match",
+      "kind": "link",
+      "label": "Ricerca (partita non valida)",
+      "action": "apre la Ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-MATCH-UNKNOWN-BOARD",
+      "view": "match",
+      "kind": "link",
+      "label": "Torna a Oggi (partita assente)",
+      "action": "torna alla Daily Board",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-MATCH-FILTER-TEAM",
+      "view": "match",
+      "kind": "link",
+      "label": "Filtro Squadra",
+      "action": "ricalcola l'analisi con il filtro Squadra",
+      "api": "/api/v1/fpt/match-analysis",
+      "data": "REAL",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "match-center",
+          "step": "filtri: stagione, tutte le partite, solo la squadra di casa"
+        }
+      ]
+    },
+    {
+      "id": "CTL-MATCH-FILTER-WINDOW",
+      "view": "match",
+      "kind": "link",
+      "label": "Filtro Campione",
+      "action": "ricalcola l'analisi con il filtro Campione",
+      "api": "/api/v1/fpt/match-analysis",
+      "data": "REAL",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "match-center",
+          "step": "filtri: stagione, tutte le partite, solo la squadra di casa"
+        }
+      ]
+    },
+    {
+      "id": "CTL-MATCH-FILTER-VENUE",
+      "view": "match",
+      "kind": "link",
+      "label": "Filtro Campo",
+      "action": "ricalcola l'analisi con il filtro Campo",
+      "api": "/api/v1/fpt/match-analysis",
+      "data": "REAL",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "match-center",
+          "step": "filtri: stagione, tutte le partite, solo la squadra di casa"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SEARCH-TEAM",
+      "view": "search",
+      "kind": "input",
+      "label": "Squadra",
+      "action": "imposta il filtro della ricerca",
+      "api": "/api/v1/fpt/teams",
+      "data": "REAL",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "squadra per nome, sede e qualità combinate"
+        },
+        {
+          "journey": "search",
+          "step": "esito vuoto o di errore dal modulo: in vista e con il focus, anche ripetendo la stessa ricerca"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SEARCH-VENUE",
+      "view": "search",
+      "kind": "select",
+      "label": "Campo",
+      "action": "imposta il filtro della ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "squadra per nome, sede e qualità combinate"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SEARCH-COMPETITION",
+      "view": "search",
+      "kind": "select",
+      "label": "Campionato",
+      "action": "imposta il filtro della ricerca",
+      "api": "/api/v1/fpt/competitions",
+      "data": "REAL",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "campionato e intervallo di date"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SEARCH-FROM",
+      "view": "search",
+      "kind": "input",
+      "label": "Dal",
+      "action": "imposta il filtro della ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "campionato e intervallo di date"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SEARCH-BEFORE",
+      "view": "search",
+      "kind": "input",
+      "label": "Prima del",
+      "action": "imposta il filtro della ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "campionato e intervallo di date"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SEARCH-RESULT",
+      "view": "search",
+      "kind": "select",
+      "label": "Esito",
+      "action": "imposta il filtro della ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SEARCH-FAV-MIN",
+      "view": "search",
+      "kind": "input",
+      "label": "Quota favorita minima",
+      "action": "imposta il filtro della ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SEARCH-FAV-MAX",
+      "view": "search",
+      "kind": "input",
+      "label": "Quota favorita massima",
+      "action": "imposta il filtro della ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SEARCH-MIN-GOALS",
+      "view": "search",
+      "kind": "input",
+      "label": "Gol minimi",
+      "action": "imposta il filtro della ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "esito vuoto o di errore dal modulo: in vista e con il focus, anche ripetendo la stessa ricerca"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SEARCH-MAX-GOALS",
+      "view": "search",
+      "kind": "input",
+      "label": "Gol massimi",
+      "action": "imposta il filtro della ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SEARCH-WITH-ODDS",
+      "view": "search",
+      "kind": "checkbox",
+      "label": "Solo con quote",
+      "action": "imposta il filtro della ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "squadra per nome, sede e qualità combinate"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SEARCH-WITH-XG",
+      "view": "search",
+      "kind": "checkbox",
+      "label": "Solo con xG",
+      "action": "imposta il filtro della ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SEARCH-SUBMIT",
+      "view": "search",
+      "kind": "button",
+      "label": "Cerca",
+      "action": "esegue la ricerca con i filtri",
+      "api": "/api/v1/fpt/search",
+      "data": "REAL",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "tutte le partite, pagina dopo pagina, fino alla fine"
+        },
+        {
+          "journey": "search",
+          "step": "squadra per nome, sede e qualità combinate"
+        },
+        {
+          "journey": "search",
+          "step": "campionato e intervallo di date"
+        },
+        {
+          "journey": "search",
+          "step": "esito vuoto o di errore dal modulo: in vista e con il focus, anche ripetendo la stessa ricerca"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SEARCH-RESET",
+      "view": "search",
+      "kind": "link",
+      "label": "Azzera",
+      "action": "svuota i filtri",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SEARCH-OPEN-DAY",
+      "view": "search",
+      "kind": "link",
+      "label": "Data del risultato",
+      "action": "apre la Daily Board di quel giorno",
+      "api": "/api/v1/fpt/matches",
+      "data": "REAL",
+      "issues": [
+        30
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SEARCH-OPEN-MATCH",
+      "view": "search",
+      "kind": "link",
+      "label": "Partita del risultato",
+      "action": "apre il Match Center",
+      "api": "/api/v1/fpt/match-analysis",
+      "data": "REAL",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "match-center",
+          "step": "apertura dalla Ricerca e da una riga sorgente"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SEARCH-TEAM-CHOICE",
+      "view": "search",
+      "kind": "link",
+      "label": "Squadra omonima",
+      "action": "sceglie la squadra tra quelle omonime",
+      "api": "/api/v1/fpt/search",
+      "data": "REAL",
+      "issues": [
+        30
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-FROM",
+      "view": "sim",
+      "kind": "input",
+      "label": "Dal",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "modalità rigorosa: le quote archiviate sono successive all’inizio, nulla da simulare"
+        },
+        {
+          "journey": "simulation",
+          "step": "ricerca esplorativa: etichetta visibile e valori uguali all’API"
+        },
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        },
+        {
+          "journey": "simulation",
+          "step": "periodo rifiutato dal server: i campi sono nominati in italiano"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SIM-TO",
+      "view": "sim",
+      "kind": "input",
+      "label": "Al",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "modalità rigorosa: le quote archiviate sono successive all’inizio, nulla da simulare"
+        },
+        {
+          "journey": "simulation",
+          "step": "ricerca esplorativa: etichetta visibile e valori uguali all’API"
+        },
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        },
+        {
+          "journey": "simulation",
+          "step": "periodo rifiutato dal server: i campi sono nominati in italiano"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SIM-COMPETITION",
+      "view": "sim",
+      "kind": "select",
+      "label": "Campionato",
+      "action": "imposta un parametro della simulazione",
+      "api": "/api/v1/fpt/competitions",
+      "data": "REAL",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "ricerca esplorativa: etichetta visibile e valori uguali all’API"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SIM-STRATEGY",
+      "view": "sim",
+      "kind": "select",
+      "label": "Strategia",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SIM-PIT-MODE",
+      "view": "sim",
+      "kind": "select",
+      "label": "Modalità dati",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "ricerca esplorativa: etichetta visibile e valori uguali all’API"
+        },
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SIM-STAKE",
+      "view": "sim",
+      "kind": "input",
+      "label": "Puntata",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "ricerca esplorativa: etichetta visibile e valori uguali all’API"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SIM-COMMISSION",
+      "view": "sim",
+      "kind": "input",
+      "label": "Commissione",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "ricerca esplorativa: etichetta visibile e valori uguali all’API"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SIM-MAX-EVENTS",
+      "view": "sim",
+      "kind": "input",
+      "label": "Partite massime",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-SELECTION",
+      "view": "sim",
+      "kind": "select",
+      "label": "Selezione",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SIM-SIDE",
+      "view": "sim",
+      "kind": "select",
+      "label": "Lato",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SIM-ODDS-MIN",
+      "view": "sim",
+      "kind": "input",
+      "label": "Quota minima",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-ODDS-MAX",
+      "view": "sim",
+      "kind": "input",
+      "label": "Quota massima",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SIM-HOME-MIN",
+      "view": "sim",
+      "kind": "input",
+      "label": "Quota 1 minima",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-HOME-MAX",
+      "view": "sim",
+      "kind": "input",
+      "label": "Quota 1 massima",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-DRAW-MIN",
+      "view": "sim",
+      "kind": "input",
+      "label": "Quota X minima",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-DRAW-MAX",
+      "view": "sim",
+      "kind": "input",
+      "label": "Quota X massima",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-AWAY-MIN",
+      "view": "sim",
+      "kind": "input",
+      "label": "Quota 2 minima",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-AWAY-MAX",
+      "view": "sim",
+      "kind": "input",
+      "label": "Quota 2 massima",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-TEAM",
+      "view": "sim",
+      "kind": "input",
+      "label": "Squadra",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SIM-VENUE",
+      "view": "sim",
+      "kind": "select",
+      "label": "Campo",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SIM-BANKROLL",
+      "view": "sim",
+      "kind": "input",
+      "label": "Capitale",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-MM-MODEL",
+      "view": "sim",
+      "kind": "select",
+      "label": "Gestione del capitale",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-MM-VALUE",
+      "view": "sim",
+      "kind": "input",
+      "label": "Valore della gestione",
+      "action": "imposta un parametro della simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-SUBMIT",
+      "view": "sim",
+      "kind": "button",
+      "label": "Simula",
+      "action": "esegue il backtest sul server",
+      "api": "/api/v1/hist/backtest",
+      "data": "REAL",
+      "issues": [
+        34,
+        96,
+        99
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "simulation",
+          "step": "modalità rigorosa: le quote archiviate sono successive all’inizio, nulla da simulare"
+        },
+        {
+          "journey": "simulation",
+          "step": "ricerca esplorativa: etichetta visibile e valori uguali all’API"
+        },
+        {
+          "journey": "simulation",
+          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+        },
+        {
+          "journey": "simulation",
+          "step": "periodo rifiutato dal server: i campi sono nominati in italiano"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SIM-RESET",
+      "view": "sim",
+      "kind": "link",
+      "label": "Azzera",
+      "action": "riporta i parametri ai valori iniziali",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-COMPARE",
+      "view": "sim",
+      "kind": "link",
+      "label": "Confronta più strategie",
+      "action": "apre il Confronto con gli stessi dati",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "dalla simulazione: dati e strategia diventano la configurazione A"
+        }
+      ]
+    },
+    {
+      "id": "CTL-CMP-FROM",
+      "view": "compare",
+      "kind": "input",
+      "label": "Dal",
+      "action": "imposta un parametro comune del confronto",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
+    },
+    {
+      "id": "CTL-CMP-TO",
+      "view": "compare",
+      "kind": "input",
+      "label": "Al",
+      "action": "imposta un parametro comune del confronto",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
+    },
+    {
+      "id": "CTL-CMP-COMPETITION",
+      "view": "compare",
+      "kind": "select",
+      "label": "Campionato",
+      "action": "imposta un parametro comune del confronto",
+      "api": "/api/v1/fpt/competitions",
+      "data": "REAL",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-PIT-MODE",
+      "view": "compare",
+      "kind": "select",
+      "label": "Modalità dati",
+      "action": "imposta un parametro comune del confronto",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
+    },
+    {
+      "id": "CTL-CMP-COMMISSION",
+      "view": "compare",
+      "kind": "input",
+      "label": "Commissione",
+      "action": "imposta un parametro comune del confronto",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
+    },
+    {
+      "id": "CTL-CMP-MAX-EVENTS",
+      "view": "compare",
+      "kind": "input",
+      "label": "Partite massime",
+      "action": "imposta un parametro comune del confronto",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-A-STRATEGY",
+      "view": "compare",
+      "kind": "select",
+      "label": "Strategia (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
+    },
+    {
+      "id": "CTL-CMP-A-SELECTION",
+      "view": "compare",
+      "kind": "select",
+      "label": "Selezione (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-A-SIDE",
+      "view": "compare",
+      "kind": "select",
+      "label": "Lato (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-A-ODDS-MIN",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota minima (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-A-ODDS-MAX",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota massima (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-A-HOME-MIN",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota 1 minima (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-A-HOME-MAX",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota 1 massima (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-A-DRAW-MIN",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota X minima (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-A-DRAW-MAX",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota X massima (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-A-AWAY-MIN",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota 2 minima (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-A-AWAY-MAX",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota 2 massima (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-A-TEAM",
+      "view": "compare",
+      "kind": "input",
+      "label": "Squadra (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-A-VENUE",
+      "view": "compare",
+      "kind": "select",
+      "label": "Campo (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-A-STAKE",
+      "view": "compare",
+      "kind": "input",
+      "label": "Puntata (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-A-BANKROLL",
+      "view": "compare",
+      "kind": "input",
+      "label": "Capitale (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-A-MM-MODEL",
+      "view": "compare",
+      "kind": "select",
+      "label": "Gestione del capitale (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-A-MM-VALUE",
+      "view": "compare",
+      "kind": "input",
+      "label": "Valore della gestione (configurazione A)",
+      "action": "imposta un parametro della configurazione A",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-B-STRATEGY",
+      "view": "compare",
+      "kind": "select",
+      "label": "Strategia (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
+    },
+    {
+      "id": "CTL-CMP-B-SELECTION",
+      "view": "compare",
+      "kind": "select",
+      "label": "Selezione (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
+    },
+    {
+      "id": "CTL-CMP-B-SIDE",
+      "view": "compare",
+      "kind": "select",
+      "label": "Lato (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
+    },
+    {
+      "id": "CTL-CMP-B-ODDS-MIN",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota minima (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-B-ODDS-MAX",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota massima (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
+    },
+    {
+      "id": "CTL-CMP-B-HOME-MIN",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota 1 minima (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-B-HOME-MAX",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota 1 massima (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-B-DRAW-MIN",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota X minima (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-B-DRAW-MAX",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota X massima (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-B-AWAY-MIN",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota 2 minima (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-B-AWAY-MAX",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota 2 massima (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-B-TEAM",
+      "view": "compare",
+      "kind": "input",
+      "label": "Squadra (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-B-VENUE",
+      "view": "compare",
+      "kind": "select",
+      "label": "Campo (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-B-STAKE",
+      "view": "compare",
+      "kind": "input",
+      "label": "Puntata (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-B-BANKROLL",
+      "view": "compare",
+      "kind": "input",
+      "label": "Capitale (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-B-MM-MODEL",
+      "view": "compare",
+      "kind": "select",
+      "label": "Gestione del capitale (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-B-MM-VALUE",
+      "view": "compare",
+      "kind": "input",
+      "label": "Valore della gestione (configurazione B)",
+      "action": "imposta un parametro della configurazione B",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-C-STRATEGY",
+      "view": "compare",
+      "kind": "select",
+      "label": "Strategia (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
+    },
+    {
+      "id": "CTL-CMP-C-SELECTION",
+      "view": "compare",
+      "kind": "select",
+      "label": "Selezione (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-C-SIDE",
+      "view": "compare",
+      "kind": "select",
+      "label": "Lato (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-C-ODDS-MIN",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota minima (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-C-ODDS-MAX",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota massima (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-C-HOME-MIN",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota 1 minima (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-C-HOME-MAX",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota 1 massima (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-C-DRAW-MIN",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota X minima (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-C-DRAW-MAX",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota X massima (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-C-AWAY-MIN",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota 2 minima (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-C-AWAY-MAX",
+      "view": "compare",
+      "kind": "input",
+      "label": "Quota 2 massima (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-C-TEAM",
+      "view": "compare",
+      "kind": "input",
+      "label": "Squadra (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-C-VENUE",
+      "view": "compare",
+      "kind": "select",
+      "label": "Campo (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-C-STAKE",
+      "view": "compare",
+      "kind": "input",
+      "label": "Puntata (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-C-BANKROLL",
+      "view": "compare",
+      "kind": "input",
+      "label": "Capitale (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
+    },
+    {
+      "id": "CTL-CMP-C-MM-MODEL",
+      "view": "compare",
+      "kind": "select",
+      "label": "Gestione del capitale (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
+    },
+    {
+      "id": "CTL-CMP-C-MM-VALUE",
+      "view": "compare",
+      "kind": "input",
+      "label": "Valore della gestione (configurazione C)",
+      "action": "imposta un parametro della configurazione C",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
+    },
+    {
+      "id": "CTL-CMP-SUBMIT",
+      "view": "compare",
+      "kind": "button",
+      "label": "Confronta",
+      "action": "esegue il confronto sul server",
+      "api": "/api/v1/hist/compare",
+      "data": "REAL",
+      "issues": [
+        34,
+        96
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "compare",
+          "step": "tre configurazioni sugli stessi dati: ogni valore è quello dell’API, nessuna classifica"
+        }
+      ]
+    },
+    {
+      "id": "CTL-CMP-RESET",
+      "view": "compare",
+      "kind": "link",
+      "label": "Azzera",
+      "action": "riporta il confronto ai valori iniziali",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-CMP-BACK-SIM",
+      "view": "compare",
+      "kind": "link",
+      "label": "Torna alla simulazione",
+      "action": "apre la Simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34
+      ],
+      "status": "IMPLEMENTED",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-NOTFOUND-BOARD",
+      "view": "notfound",
+      "kind": "link",
+      "label": "Torna a Oggi",
+      "action": "torna alla Daily Board",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        3
+      ],
+      "status": "TESTED",
+      "exercised_by": [
+        {
+          "journey": "general-navigation",
+          "step": "rotta sconosciuta"
+        }
+      ]
+    }
+  ]
+}

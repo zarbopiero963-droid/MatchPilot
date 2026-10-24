@@ -9,7 +9,9 @@
 //   a trace, a positive duration and no unexpected browser error;
 // - SKIP and NOT_VERIFIED carry a reason and never stand in for a required journey;
 // - counts, missing_required and the verdict equal what the journeys imply;
-// - the report is not dated in the future and carries no secret-like value.
+// - the report is not dated in the future and carries no secret-like value;
+// - with the control inventory (always from the command line): every control declared TESTED or certified was actuated
+//   in each step it names, and no step actuated or showed a control the inventory does not list (MP-UI-PR-001).
 // Exit code 0 only when the evidence is valid and the verdict is PASS.
 //
 // Usage: node tools/qa/verify-report.mjs <dir> --head <sha> [--commit <sha>]
@@ -20,6 +22,7 @@ import {join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {findSecrets} from '../governance/secrets.mjs';
 import {REQUIRED_JOURNEYS, REQUIRED_VIEWPORTS} from './journeys.mjs';
+import {loadInventory, verifyCoverage} from './control-inventory.mjs';
 
 const SHA = /^[0-9a-f]{40}$/;
 const STATUSES = ['PASS', 'FAIL', 'SKIP', 'NOT_VERIFIED'];
@@ -58,7 +61,7 @@ export function checkManifest(dir, manifest, reportName) {
   return {errors, listed};
 }
 
-export function verifyReport(dir, {expectedHead, expectedCommit = null, required = REQUIRED_JOURNEYS, viewports = REQUIRED_VIEWPORTS, now = new Date(), gitDir = null} = {}) {
+export function verifyReport(dir, {expectedHead, expectedCommit = null, required = REQUIRED_JOURNEYS, viewports = REQUIRED_VIEWPORTS, now = new Date(), gitDir = null, inventory = null} = {}) {
   const errors = [];
   const fail = message => { errors.push(message); return {ok: false, errors, report: null}; };
   if (!SHA.test(expectedHead || '')) return fail('expected head SHA missing or not a full SHA');
@@ -122,6 +125,7 @@ export function verifyReport(dir, {expectedHead, expectedCommit = null, required
   if (report.verdict !== verdict) errors.push(`declared verdict ${report.verdict} but the journeys give ${verdict}`);
   if (verdict !== 'PASS') errors.push('verdict is not PASS');
   for (const secret of findSecrets(report)) errors.push(`secret-like value at ${secret}`);
+  if (inventory) errors.push(...verifyCoverage(inventory, report).map(message => `control inventory: ${message}`));
   return {ok: errors.length === 0, errors, report};
 }
 
@@ -130,7 +134,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const opt = name => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : undefined; };
   const dir = args.find(arg => !arg.startsWith('--') && args[args.indexOf(arg) - 1]?.startsWith('--') !== true);
   if (!dir) { console.error('usage: verify-report.mjs <dir> --head <sha> [--commit <sha>]'); process.exit(2); }
-  const result = verifyReport(dir, {expectedHead: opt('head'), expectedCommit: opt('commit') ?? null, gitDir: process.cwd()});
+  const result = verifyReport(dir, {expectedHead: opt('head'), expectedCommit: opt('commit') ?? null, gitDir: process.cwd(), inventory: loadInventory()});
   console.log(JSON.stringify({ok: result.ok, verdict: result.report?.verdict ?? null, head_sha: result.report?.head_sha ?? null, counts: result.report?.counts ?? null, errors: result.errors}, null, 2));
   process.exit(result.ok ? 0 : 1);
 }
