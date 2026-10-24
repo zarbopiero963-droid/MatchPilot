@@ -10,6 +10,15 @@
     "src/web/app.js",
     "src/web/persistence.js"
   ],
+  "cross_cutting_ui_requirements": [
+    "MP-REQ-UI-1003",
+    "MP-REQ-UI-1010",
+    "MP-REQ-UI-1032",
+    "MP-REQ-UI-1043",
+    "MP-REQ-UI-1045",
+    "MP-REQ-UI-1046",
+    "MP-REQ-UI-1069"
+  ],
   "features": [
     {
       "id": "FEAT-SHELL",
@@ -182,6 +191,9 @@
       "requirements": [
         "MP-WEB-011"
       ],
+      "ui_requirements": [
+        "MP-REQ-UI-1077"
+      ],
       "issues": [
         34,
         96
@@ -194,10 +206,11 @@
       "financial": true,
       "dependencies": [],
       "limits": [
-        "Molti parametri delle configurazioni B e C senza ASSERTED"
+        "Dati FutPythonTrader dell'archivio QA nelle prove; in produzione il confronto legge l'archivio del server, senza certificazione REAL",
+        "Nessuna classifica fra le configurazioni: i report affiancati non sono una previsione di guadagno"
       ],
-      "next": "ASSERTED per i parametri rimanenti.",
-      "state": "IMPLEMENTED",
+      "next": "Certificazione della funzionalità quando l'owner la chiede (MP-UI-CERT-CALC-01 non si applica: i dati sono REAL).",
+      "state": "TESTED",
       "certification": null
     },
     {

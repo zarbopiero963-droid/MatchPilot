@@ -439,6 +439,22 @@ export function checkFeatures(register, {inventory, report = null, journeys = jo
       errors.push(`${at}: declared ${feature.state} but the evidence supports ${computed.state}${regressed} (${computed.gaps.slice(0, 5).join('; ')})`);
     } else if (RANK[feature.state] < RANK[computed.state]) notes.push(`${at}: declared ${feature.state}, the evidence supports ${computed.state}`);
   }
+  // Cross-cutting UI requirements (MP-UI-PR-007): foundations every view shares (viewports, badges, error states, the
+  // negative matrix), so no single feature owns them. Each id is in the matrix, in no feature, and a TESTED one has its
+  // evidence checked as a feature's would be.
+  if (register.cross_cutting_ui_requirements !== undefined) {
+    if (!Array.isArray(register.cross_cutting_ui_requirements)) errors.push('cross_cutting_ui_requirements must be a list');
+    const matrix = loadUiMatrix();
+    const rows = new Map(matrix.requirements.map(row => [row.id, row]));
+    const changes = new Map(matrix.status_changes.map(change => [change.id, change]));
+    for (const id of register.cross_cutting_ui_requirements ?? []) {
+      const row = rows.get(id);
+      if (!row) { errors.push(`cross-cutting: ${id} is not a requirement of the UI matrix`); continue; }
+      if (uiOwner.has(id)) errors.push(`${id} is cross-cutting and a requirement of ${uiOwner.get(id)}`);
+      uiOwner.set(id, 'cross-cutting');
+      if (row.status === 'TESTED') errors.push(...requirementEvidenceErrors(id, changes.get(id)?.evidence_refs, {inventory, report, journeys}).map(e => `cross-cutting: ${e}`));
+    }
+  }
   // Every control of the inventory belongs to a feature: nothing is left out of the certification.
   for (const control of inventory.controls) if (!owner.has(control.id)) errors.push(`${control.id} belongs to no feature`);
   return {errors, notes, features};

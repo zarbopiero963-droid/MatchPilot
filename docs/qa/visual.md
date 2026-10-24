@@ -103,6 +103,6 @@ The thresholds and their measurements are also in the log ([visual-baselines.md]
 ## Limits
 
 - Each scene is the first screen of one address, or of one scrolled position. A defect below it is outside the baseline; the journeys still check it.
-- Browser QA runs the journeys on desktop and mobile only. Tablet is covered by QA-V alone.
+- Browser QA runs the journeys on desktop, tablet and mobile (tablet since MP-UI-PR-007); QA-V compares the same three viewports.
 - A browser update in CI can move antialiasing beyond the thresholds: the margin measured today is 26 against 32. The job then fails with the diff images. A new baseline needs a `promote` with its reason and approval: never an automatic update.
 - Subtle colour changes pass (see the table above).

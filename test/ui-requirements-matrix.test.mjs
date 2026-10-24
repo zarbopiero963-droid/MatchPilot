@@ -146,8 +146,10 @@ test('no requirement id is lost or duplicated and every status change is listed 
       // step with the controls it asserts; never a file cited as a whole.
       assert.deepEqual(requirementEvidenceErrors(row.id, change.evidence_refs, {inventory}), [], `${row.id}: evidence`);
       assert.equal(change.evidence, undefined, `${row.id}: evidence is evidence_refs, not a list of files`);
-      // The requirement belongs to the feature that implements it, in the feature register.
-      assert.equal(features.features.filter(feature => (feature.ui_requirements ?? []).includes(row.id)).length, 1, `${row.id}: not in exactly one feature`);
+      // The requirement belongs to the feature that implements it, or to the cross-cutting foundations, in the register.
+      const owners = features.features.filter(feature => (feature.ui_requirements ?? []).includes(row.id)).length
+        + (features.cross_cutting_ui_requirements ?? []).filter(id => id === row.id).length;
+      assert.equal(owners, 1, `${row.id}: not in exactly one feature or in the cross-cutting list`);
     }
   }
 });
