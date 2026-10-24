@@ -53,25 +53,45 @@ A journey fails on any JavaScript error, failed request or HTTP error ≥ 400 th
 
 ## Feature certification
 
-Owner decision MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01: certification is per feature, not per pull request. [`feature-certification.json`](feature-certification.json) (schema `mp-feature-certification-1`) lists the features a user recognizes, each with:
+Owner decision MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01: certification is per feature, not per pull request. [`feature-certification.json`](feature-certification.json) (schema `mp-feature-certification-2`) lists the features a user recognizes, each with:
 - its perimeter, views and controls;
 - requirements, issues, PRs and journeys;
 - data: `REAL`, `DEMO`, `COMPUTED` (the real server computes from what the user types) or `NONE`;
 - whether it is financial;
 - dependencies, limits and the next activity;
-- its state: `NOT STARTED`, `IN DEVELOPMENT`, `IMPLEMENTED`, `TESTED`, `CERTIFIED MOCK`, `CERTIFIED REAL`, `BLOCKED` or `REGRESSED`.
+- its entry module (`entry`), source modules (`sources`) and test files (`test_files`):
+  - the entry is a module of `src/api/` that declares the endpoints of the feature's controls (`path: '…'`, or the family such as `` path: `/api/v1/tools/${name}` ``). It is the entry of one feature only;
+  - the modules many features run are listed in `shared_modules` (Math Core, Decimal, money, the v1 layer, the page). A module run by the entries of two features counts as shared too, without being listed. Shared modules are never a source, a contract or the anchor of a test file;
+  - the sources are the entry and the modules it imports, so a module the feature does not run can never be its evidence;
+  - a source module and a test file belong to one feature only;
+  - every test file imports one of the sources (comments ignored), and the evidence may cite only these tests;
+- its state: `NOT STARTED`, `IN DEVELOPMENT`, `IMPLEMENTED`, `TESTED`, `CERTIFIED MOCK`, `CERTIFIED REAL`, `CERTIFIED CALCULATION`, `BLOCKED` or `REGRESSED`.
 
 Every control of the inventory belongs to exactly one feature.
 
 `tools/qa/feature-certification.mjs` **computes** the state from the evidence; no agent declares it on its own word.
 - **IMPLEMENTED:** every control of the feature exists and is built.
 - **TESTED:** besides, every control is `TESTED` (`ASSERTED`), every test the feature names is active, and every journey it names passed on every viewport.
-- **CERTIFIED:** besides, a `certification` record with its level, the verified commit, the date and the exact perimeter.
-  - It needs evidence for each criterion of the policy — completeness, correctness, contracts, integration, security, financial — or N/A with a reason. A financial feature can never mark financial N/A.
-  - Each criterion rests on at least one active test or one step of the feature's own journeys; a document is only supplementary.
-  - Integration needs a step whose assertions passed on every viewport.
-  - The verified commit must be the report's head or one of its ancestors.
-- **Levels:** `CERTIFIED MOCK` is the level of DEMO data and `CERTIFIED REAL` the level of `REAL` data. A `COMPUTED` feature (the real server computing from what the user types) has no level until the owner decides one, so it stops at `TESTED`.
+- **CERTIFIED:** besides, a `certification` record (MP-UI-CERT-CALC-01) with every one of these fields, each checked:
+  - `level` and `perimeter`;
+  - `verified_commit` and `date`. The commit must be present in the clone (CI checks out the full history) and, with a report, be the report's head or one of its ancestors;
+  - `requirements`: ids that exist in `docs/governance/mp-pr-00/requirements.json`;
+  - `requirements` must also be requirements of the feature itself;
+  - `criteria`: evidence for completeness, correctness, contracts, integration, security and financial, or N/A with a reason.
+    - Completeness, correctness and integration are never N/A, and a financial feature never marks financial N/A.
+    - Each criterion rests on at least one active test of the feature's own `test_files`, or on a step of its own journeys that the control inventory records as exercising one of the feature's controls. A document only supplements them.
+    - Integration needs a step whose assertions passed on every viewport;
+  - `gate_a` (result PASS, test evidence) and `gate_b` (result PASS, Browser QA evidence);
+  - `fixtures`: the fixtures and independent vectors, at least one test;
+  - `results`: the test runs, all PASS on the verified commit. Accepted commands: `npm test`, `npm run qa:browser`, `npm run qa:verify`, a QA tool `node tools/qa/….mjs`, or `node --test` on the feature's own test files. They are declarations; CI runs every cited test and journey again on each change;
+  - `contracts`: module (one of the feature's `sources`), exported constant and version. The gate compares each with the constant in the code, ignoring comments, so a changed contract voids the certification;
+  - `limits`, stated explicitly;
+  - `independent_review`: verdict APPROVED, the reviewed commit (containing the verified one) and the GitHub comment of the review.
+- **Levels** (MP-UI-CERT-CALC-01). They say what was certified, not how well:
+  - `CERTIFIED MOCK` for `DEMO` data;
+  - `CERTIFIED REAL` for `REAL` data;
+  - `CERTIFIED CALCULATION` for `COMPUTED` features: deterministic calculations on explicit input, by the real server. It implies no REAL feed, no prediction, no profitability and no real trading.
+  - A feature with `NONE` data has no certified level yet.
 
 A control `TESTED` does not certify its feature, and a merged PR certifies nothing.
 

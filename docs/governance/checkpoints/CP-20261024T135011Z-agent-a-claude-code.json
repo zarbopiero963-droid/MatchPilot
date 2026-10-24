@@ -1,0 +1,110 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261024T135011Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-24T13:50:11Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "MP-UI-CERT-CALC-01",
+  "activity": "MP-UI-CERT-CALC-01: CERTIFIED CALCULATION level, complete certification record, Trading Tools evaluated",
+  "issue": 239,
+  "pr": 246,
+  "branch": "ui-cert-calc-01",
+  "commit_sha": "50cfd6ba961d74bf856a75c43d38a99caa18206b",
+  "tree_sha": "aa796119dc884329e25aebf831043d93d48761f9",
+  "base_sha": "50baeac1d36f0ec21689dcb76193ab2a9d90ef60",
+  "requirements": [
+    "MP-MTH-001",
+    "MP-WEB-011"
+  ],
+  "changes": [
+    "owner decision MP-UI-CERT-CALC-01",
+    "complete certification record and gate",
+    "evidence anchored to the feature",
+    "Trading Tools record"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "50cfd6ba961d74bf856a75c43d38a99caa18206b",
+      "time": "2026-10-24T13:50:11Z",
+      "limits": [
+        "703 tests, 702 pass, 1 skip (PostgreSQL 17, runs in CI); Browser QA 20/20; visual 60/60; mutation 25/25"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "50cfd6ba961d74bf856a75c43d38a99caa18206b"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "gate: 5 rounds, APPROVED on 50cfd6b (PR #246 comment 6384973417); certification record: review pending"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-UI-CERT-CALC-01",
+    "MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01",
+    "MP-UI-AUTONOMOUS-INTEGRATION-02",
+    "MP-UI-HARD-GATES-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and final review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:tools/qa/feature-certification.mjs",
+    "file:docs/qa/feature-certification.json",
+    "file:test/feature-certification.test.mjs",
+    "file:.github/workflows/ci.yml",
+    "branch:ui-cert-calc-01",
+    "pr:246"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and final-head review on PR #246, then protected merge and deploy verification",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}

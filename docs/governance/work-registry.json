@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 214,
+  "revision": 216,
   "tasks": [
     {
       "id": "R-01",
@@ -1610,9 +1610,9 @@
       "pr": 244,
       "branch": "ui-pr-005",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261024T125938Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261024T134541Z-agent-a-claude-code",
       "resources": [
         "file:src/math/trading.mjs",
         "file:src/api/tools.mjs",
@@ -1621,6 +1621,29 @@
         "file:tools/qa/feature-certification.mjs",
         "file:docs/qa/feature-certification.json",
         "file:docs/qa/control-inventory.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "50baeac1d36f0ec21689dcb76193ab2a9d90ef60"
+    },
+    {
+      "id": "MP-UI-CERT-CALC-01",
+      "title": "MP-UI-CERT-CALC-01: CERTIFIED CALCULATION level and complete certification record",
+      "issue": 239,
+      "pr": 246,
+      "branch": "ui-cert-calc-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261024T135011Z-agent-a-claude-code",
+      "resources": [
+        "file:tools/qa/feature-certification.mjs",
+        "file:docs/qa/feature-certification.json",
+        "file:test/feature-certification.test.mjs",
+        "file:.github/workflows/ci.yml"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
