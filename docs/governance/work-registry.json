@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 230,
+  "revision": 231,
   "tasks": [
     {
       "id": "R-01",
@@ -1734,6 +1734,34 @@
       },
       "pr_open": false,
       "merge_sha": "03bd11a0002d6cc6cbf693438fd373ca1f3e6eb5"
+    },
+    {
+      "id": "MP-UI-PR-007-FOUND",
+      "title": "MP-UI-PR-007: UI foundations",
+      "issue": 239,
+      "pr": 252,
+      "branch": "ui-pr-007",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261024T234225Z-agent-a-claude-code",
+      "resources": [
+        "file:src/web/app.js",
+        "file:src/web/states.js",
+        "file:src/api/v1.mjs",
+        "file:src/api/hist-backtest.mjs",
+        "file:tools/qa/browser-qa.mjs",
+        "file:tools/qa/journeys.mjs",
+        "file:tools/qa/feature-certification.mjs",
+        "file:docs/qa/control-inventory.json",
+        "file:docs/qa/feature-certification.json",
+        "file:docs/governance/ui-requirements-matrix.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": true
     }
   ]
 }
