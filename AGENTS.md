@@ -71,6 +71,8 @@ Il contratto prodotto si modifica solo con decisione owner registrata.
 
 ## 4. Review indipendente e auto-merge (MP-OWNER-AUTOMERGE-01, D2)
 
+> **Sospensione owner MP-OWNER-D12-IMPLEMENTATION-20261024 (24/10/2026), vigente:** l'auto-merge è sospeso. Nessun merge e nessun deploy senza un'autorizzazione owner esplicita, anche quando tutte le condizioni sotto sono soddisfatte. L'agente porta la PR fino a CI verde e review, poi si ferma. Le condizioni restano necessarie per qualunque merge autorizzato.
+
 > **Rettifica owner DEC-004-R1 (t122u, 22/10/2026) — prevale su questa sezione per la sola indipendenza della review.** La self-review dell'agente autore è consentita e sufficiente: si registra come "self-review" e non si presenta mai come indipendente. Non servono un secondo reviewer né nuove identità bot. Le approvazioni umane GitHub dei deploy (environment `vps-production`) restano obbligatorie e non si simulano. Il testo seguente resta per storia: dove chiede "review indipendente" va letto come self-review etichettata (SUPERSEDED da DEC-004-R1).
 
 **L'agente esegue il merge senza chiedere l'approvazione owner** solo quando valgono tutte le condizioni:
@@ -213,6 +215,8 @@ Il README distingue IMPLEMENTED / TESTED / VERIFIED REAL / CERTIFIED e non dichi
 14. #32 hardening;
 15. UI finale;
 16. #46 Billing.
+
+**Sequenza della UI (D12-19, MP-UI-D12-DECISIONS-20261024):** la UI si sviluppa in modo incrementale insieme ai backend necessari, una PR alla volta e con i gate obbligatori. La voce 15 non è più l'unico momento della UI. L'ordine e l'ownership dei domini restano invariati, e la UI non contiene logica autorevole. Riepilogo: [`docs/governance/roadmap-reconciliation-2026-10-24-D12.md`](docs/governance/roadmap-reconciliation-2026-10-24-D12.md). Matrice dei requisiti UI: [`docs/governance/ui-requirements-matrix.json`](docs/governance/ui-requirements-matrix.json).
 
 #102 Trading Copilot attraversa più fasi. Riassunto: `docs/integration-map.md`.
 

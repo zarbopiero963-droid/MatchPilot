@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 220,
+  "revision": 224,
   "tasks": [
     {
       "id": "R-01",
@@ -1659,15 +1659,45 @@
       "pr": 247,
       "branch": "fix-cert-squash",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261024T143256Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261024T193406Z-agent-a-claude-code",
       "resources": [
         "file:tools/qa/feature-certification.mjs",
         "file:docs/qa/feature-certification.json",
         "file:test/feature-certification.test.mjs",
         "file:docs/qa/browser-qa.md",
         "file:.github/workflows/ci.yml"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "c11029106c75738b7b086d725ac9e8e9d4ecea09"
+    },
+    {
+      "id": "MP-UI-D12-GOV-01",
+      "title": "MP-UI-D12-DECISIONS-20261024: governance phase A",
+      "issue": 239,
+      "pr": 250,
+      "branch": "gov-d12-ratification",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261024T200418Z-agent-a-claude-code",
+      "resources": [
+        "file:AGENTS.md",
+        "file:CLAUDE.md",
+        "file:README.md",
+        "file:docs/governance/d12-requirements-gate-2026-10-24.md",
+        "file:docs/governance/mp-pr-00/README.md",
+        "file:docs/governance/owner-decisions.json",
+        "file:docs/governance/owner-ratifications/MP-UI-D12-DECISIONS-20261024.md",
+        "file:docs/governance/roadmap-reconciliation-2026-10-24-D12.md",
+        "file:docs/governance/ui-requirements-matrix.json",
+        "file:docs/integration-map.md",
+        "file:test/ui-requirements-matrix.test.mjs"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",

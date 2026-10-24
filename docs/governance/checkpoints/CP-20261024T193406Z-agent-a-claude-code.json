@@ -1,0 +1,148 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261024T193406Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-24T19:34:06Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "MP-UI-CERT-HOTFIX-01",
+  "activity": "PR #247 merged as c110291 (squash, expectedHeadSha 932780f); main CI green (run 40104246134); VPS deploy of c110291 refused by the runner guard (owner VPS block), production stays at 50baeac. Review: APPROVED on 7fd6a76 (sub-agent in separate context, DEC-004-R1), governance-only delta 932780f self-reviewed and stated in comment 6385537914",
+  "issue": 239,
+  "pr": 247,
+  "branch": "fix-cert-squash",
+  "commit_sha": "932780ff0687bfb502a92fd3579bea0b313155c4",
+  "tree_sha": "afac230ccbd1d2dd1b25c1cce487a06d77d520e3",
+  "base_sha": "91b24bd683da00c5b06f9ae021a00e89d36f9ec8",
+  "requirements": [
+    "MP-WEB-011"
+  ],
+  "changes": [
+    "featureDigest and verified_digest in the certification gate",
+    "ancestry check removed",
+    "Trading Tools record carries its digest",
+    "tests and docs",
+    "verified_commit and reviewed_sha must be in the clone; CI fetches refs/pull/*/head; git show quiet; digest scope stated",
+    "c110291: squash merge of PR #247"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "8889a53d359bec4bb782cd601e96f3a1fce0ed7c",
+      "time": "2026-10-24T14:32:56Z",
+      "limits": [
+        "703 tests, 702 pass, 1 skip (PostgreSQL 17, runs in CI); Browser QA 20/20 PASS, verify-report ok; feature-certification status ok"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main c110291",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "c11029106c75738b7b086d725ac9e8e9d4ecea09",
+      "time": "2026-10-24T19:34:06Z",
+      "limits": [
+        "run 40104246134 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main c110291",
+      "result": "FAIL",
+      "environment": "VPS via self-hosted runner",
+      "commit": "c11029106c75738b7b086d725ac9e8e9d4ecea09",
+      "time": "2026-10-24T19:34:06Z",
+      "limits": [
+        "run 40104246131: deploy gate job passed; deploy job refused at runner setup ('mp-runner-guard: REFUSED by runner-job-guard'), consistent with the owner VPS block; nothing deployed"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 40104246134,
+    "conclusion": "SUCCESS",
+    "head_sha": "c11029106c75738b7b086d725ac9e8e9d4ecea09"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "932780ff0687bfb502a92fd3579bea0b313155c4",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/247#issuecomment-6385537914"
+  },
+  "findings": [
+    {
+      "id": "MAIN-RED-91b24bd",
+      "severity": "BLOCKING",
+      "summary": "main CI red after the squash merge of #246: verified_commit not an ancestor of the head; deploy of 91b24bd skipped by the deploy gate",
+      "status": "RESOLVED",
+      "tracked_in": "this PR (#247); main stays red until it is merged"
+    },
+    {
+      "id": "REVIEW-247-B1",
+      "severity": "BLOCKING",
+      "summary": "commits absent from the clone were accepted, so invented SHAs certified",
+      "status": "RESOLVED"
+    }
+  ],
+  "owner_decisions": [
+    "MP-UI-CERT-CALC-01",
+    "MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01",
+    "MP-UI-HARD-GATES-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": [
+      "VPS deploy (refused by the runner guard: owner VPS block)"
+    ]
+  },
+  "resources": [
+    "file:tools/qa/feature-certification.mjs",
+    "file:docs/qa/feature-certification.json",
+    "file:test/feature-certification.test.mjs",
+    "file:docs/qa/browser-qa.md",
+    "file:.github/workflows/ci.yml",
+    "branch:fix-cert-squash",
+    "pr:247"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "none for MP-UI-CERT-HOTFIX-01; the VPS deploy waits for the owner",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261024T143256Z-agent-a-claude-code",
+  "merge_sha": "c11029106c75738b7b086d725ac9e8e9d4ecea09"
+}
