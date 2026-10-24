@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 209,
+  "revision": 210,
   "tasks": [
     {
       "id": "R-01",
@@ -1560,9 +1560,9 @@
       "pr": 242,
       "branch": "ui-pr-003",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261024T112040Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261024T113746Z-agent-a-claude-code",
       "resources": [
         "file:src/web/app.js",
         "file:src/web/persistence.js",
@@ -1576,7 +1576,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "c2ee2112ffb4c2260a54a671679ccc18a6914334"
     }
   ]
 }
