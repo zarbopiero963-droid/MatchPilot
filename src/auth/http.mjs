@@ -146,6 +146,9 @@ export function createAuthGate({config, withClient, log = console.log}) {
     if (!session) { denied(res, url, 401); return true; }
     if (!authorize(session, 'read')) { denied(res, url, 403); return true; }
     req.authSession = session;
+    // MP-UI-PR-004: tells the page that the owner login is enforced, so it can show the session and «Esci»; with the
+    // login off the header is absent and /auth/* does not exist.
+    res.setHeader('X-MatchPilot-Auth', 'enforce');
     return false;
   };
 }

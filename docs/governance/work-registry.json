@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 209,
+  "revision": 211,
   "tasks": [
     {
       "id": "R-01",
@@ -1560,9 +1560,9 @@
       "pr": 242,
       "branch": "ui-pr-003",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261024T112040Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261024T113746Z-agent-a-claude-code",
       "resources": [
         "file:src/web/app.js",
         "file:src/web/persistence.js",
@@ -1570,6 +1570,30 @@
         "file:src/persistence/store.mjs",
         "file:tools/qa/journeys.mjs",
         "file:tools/qa/browser-qa.mjs",
+        "file:docs/qa/control-inventory.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "c2ee2112ffb4c2260a54a671679ccc18a6914334"
+    },
+    {
+      "id": "MP-UI-PR-004",
+      "title": "MP-UI-PR-004: shell — owner session and «Esci», footer",
+      "issue": 239,
+      "pr": 243,
+      "branch": "ui-pr-004",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261024T120317Z-agent-a-claude-code",
+      "resources": [
+        "file:src/web/app.js",
+        "file:src/web/index.html",
+        "file:src/auth/http.mjs",
+        "file:tools/qa/journeys.mjs",
         "file:docs/qa/control-inventory.json"
       ],
       "assignee": {

@@ -3,9 +3,9 @@
 ## File corrente
 
 - File: [`matchpilot-trading-os.html`](matchpilot-trading-os.html), percorso stabile. Le versioni non cambiano nome: la storia è in git e in questo changelog.
-- Versione: **Mock UX v2026.10.24a**
+- Versione: **Mock UX v2026.10.24b**
 - Ultimo aggiornamento: 2026-10-24
-- SHA-256: `443920b0c04f36f0ea04be338157e57d92081976a7ad241b12cf6c044e46df61`
+- SHA-256: `903d0827bd0ff01ba9080d355ac71f5a0b877048b34d33d699346c2a54fdbd71`
 - Allineato a: roadmap #97 (revisione owner 06/10/2026)
 - Issue rappresentate: #12, #20, #23, #24, #25, #27, #28, #29, #30, #31, #32, #34, #40, #44, #45, #46, #87, #91, #94, #95, #96, #97, #98, #99, #100, #102
 
@@ -53,6 +53,10 @@ Il mock è un riferimento UX/prodotto **vivo**. Non è l'architettura e non cert
 - Il layout usa font Google; senza rete il menu desktop può tagliare l'ultima voce.
 
 ## Changelog
+
+### v2026.10.24b — Shell: sessione del proprietario e piè di pagina (MP-UI-PR-004, #23)
+
+- La nota sul sito reale descrive «Proprietario» ed «Esci» nell'intestazione con il login attivo, e il piè di pagina «analisi e simulazione, nessuna operazione di trading reale».
 
 ### v2026.10.24a — Salvataggi della simulazione (MP-UI-PR-003, #34, #99)
 

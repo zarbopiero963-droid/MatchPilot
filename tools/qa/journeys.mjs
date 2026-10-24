@@ -81,8 +81,11 @@ export const JOURNEYS = [
       await step('apertura del sito', async () => {
         const response = await page.goto(`${base}/`);
         assert.equal(response.status(), 200);
+        assert.equal(response.headers()['x-matchpilot-auth'], undefined, 'owner login off, as in production today');
         assert.match(response.headers()['content-security-policy'] ?? '', /script-src 'self'/);
         await titled(page, 'Oggi');
+        await page.waitForSelector('[data-testid="session"][data-checked="true"]', {state: 'attached'});
+        assert.equal(await page.isVisible('[data-testid="session"]'), false, 'no session and no «Esci» with the login off');
         // On a phone the menu is a bar fixed at the bottom, and the page leaves room for it; on a desktop it is in the header.
         const bar = await page.evaluate(() => {
           const nav = document.querySelector('.mainnav');
@@ -1323,7 +1326,7 @@ export const JOURNEYS = [
     // it off, as production does today, so its page offers no save. Each viewport saves its own result (a different
     // stake) and its own strategy key: the checks compare the list before and after, never an absolute count.
     id: 'sim-save', surface: 'Simulazione', title: 'Salvataggi: risultato e strategia salvati e riaperti, nessun duplicato, errori e accesso',
-    allowHttp: [{path: '/api/v1/persistence/status', status: 503}, {path: '/api/v1/backtests/saved', status: 503}, {path: '/api/v1/backtests/saved', status: 401}],
+    allowHttp: [{path: '/api/v1/persistence/status', status: 503}, {path: '/api/v1/backtests/saved', status: 503}, {path: '/api/v1/backtests/saved', status: 401}, {path: '/auth/logout', status: 500}],
     async run({page, base, step, asserted, seed, owner}) {
       const phone = page.viewportSize().width <= 560;
       const stake = phone ? '11' : '10';
@@ -1376,11 +1379,13 @@ export const JOURNEYS = [
         await page.fill('input[name="username"]', owner.username);
         await page.fill('input[name="password"]', owner.password);
         await page.click('button[type="submit"]');
-        await asserted(['CTL-LOGIN-USERNAME', 'CTL-LOGIN-PASSWORD', 'CTL-LOGIN-SUBMIT'], 'the owner credentials open the simulation with an owner session', async () => {
+        await asserted(['CTL-LOGIN-USERNAME', 'CTL-LOGIN-PASSWORD', 'CTL-LOGIN-SUBMIT'], 'the owner credentials open the simulation with an owner session, shown in the header', async () => {
           await titled(page, 'Simulazione');
           const session = await page.request.get(`${owner.base}/auth/session`);
           assert.equal(session.status(), 200);
           assert.equal((await session.json()).authenticated, true);
+          await page.waitForSelector('[data-testid="session"]:not([hidden])');
+          assert.equal(await page.textContent('[data-testid="session"] [data-field="principal"]'), 'Proprietario');
         });
       });
       await step('salva il risultato: lo stesso report dell’API, una sola richiesta anche con il doppio click', async () => {
@@ -1518,6 +1523,34 @@ export const JOURNEYS = [
         await titled(page, 'Simulazione');
         assert.equal(page.url(), back);
         assert.equal((await saved()).length, before.length);
+      });
+      await step('esci: la sessione si chiude e si torna all’accesso', async () => {
+        await fresh(page, `${owner.base}/#/sim`);
+        await page.waitForSelector('[data-testid="session"]:not([hidden])');
+        // A failed logout is said next to the role, which stays; the session and the page stay too.
+        await page.route('**/auth/logout', route => route.fulfill({status: 500, contentType: 'application/json', body: '{"error":{"code":"INTERNAL"}}'}));
+        const here = page.url();
+        await page.click('[data-testid="logout"]');
+        await asserted('CTL-NAV-LOGOUT', 'a failed logout is reported, the role and the session stay', async () => {
+          await page.waitForSelector('[data-testid="logout-status"]:has-text("Uscita non riuscita")');
+          assert.equal(await page.textContent('[data-testid="session"] [data-field="principal"]'), 'Proprietario');
+          assert.equal(await page.isEnabled('[data-testid="logout"]'), true, 'the button can be used again');
+          assert.equal(page.url(), here);
+          assert.equal((await page.request.get(`${owner.base}/auth/session`)).status(), 200, 'the session is still open');
+        });
+        await page.unroute('**/auth/logout');
+        await page.click('[data-testid="logout"]');
+        await page.waitForURL(url => new URL(url).pathname === '/login'); // the page leaves for the login: assert on it
+        await asserted('CTL-NAV-LOGOUT', '«Esci» closes the session on the server and opens the login page', async () => {
+          await page.waitForSelector('form[action="/auth/login"] input[name="username"]');
+          assert.equal((await page.request.get(`${owner.base}/auth/session`)).status(), 401, 'the session is closed');
+          assert.equal((await page.request.get(`${owner.base}/api/v1/backtests/saved`)).status(), 401, 'no read without a session');
+        });
+        // Back in (the per-run test owner), so the step ends on the application.
+        await page.fill('input[name="username"]', owner.username);
+        await page.fill('input[name="password"]', owner.password);
+        await page.click('button[type="submit"]');
+        await titled(page, 'Oggi');
       });
     },
   },

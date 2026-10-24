@@ -93,6 +93,26 @@
       ]
     },
     {
+      "id": "CTL-NAV-LOGOUT",
+      "view": "shell",
+      "kind": "button",
+      "label": "Esci",
+      "action": "chiude la sessione owner e apre l'accesso (solo con il login owner attivo)",
+      "api": "/auth/logout",
+      "data": "REAL",
+      "issues": [
+        23
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "esci: la sessione si chiude e si torna all’accesso"
+        }
+      ]
+    },
+    {
       "id": "CTL-NAV-DATA",
       "view": "shell",
       "kind": "link",

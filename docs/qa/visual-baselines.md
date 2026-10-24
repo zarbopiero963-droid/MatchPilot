@@ -210,3 +210,37 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
 - Baselines:
   - `simulazione-desktop.png` `aa3bcb65bfd0b94a1e3fa8c1583ceed22cfb5a9bdeb5596cf40c29b09babf232`
   - `simulazione-tablet.png` `6aba8bfd682c0ae38ab8647c18b4731f0bde63cf9222cadd2e2c36f65a3ca3fc`
+
+## 2026-10-24 — MP-UI-PR-004: footer «analisi e simulazione, nessuna operazione di trading reale» instead of «consultazione in sola lettura» (no longer true with the owner saves)
+
+- Approval: PR #243, owner mandates MP-UI-ROADMAP-01 and MP-UI-PROTOTYPE-INTEGRATION-01
+- Run: commit `06e3d5f58f8ecc93cd24db68f60b8647f55a95fe`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `confronto-tablet.png` `abaa5aa26265a29fbf855db029b488f4817bf1b0e513773515d2f94ebaf691db`
+  - `dati-parziale-desktop.png` `224c772a8d684c8adb5f728721ecc6ab94d482919dd4310fdcab9b9ac4645226`
+  - `dati-parziale-mobile.png` `45553f5c7732132b443b24623d996281d67c84d62302972f2bb05b36667f9459`
+  - `dati-parziale-tablet.png` `8ae78a5cac91c83430b9c92333ddede630e52284106a5cda4b0c8ab7b32add54`
+  - `non-trovata-desktop.png` `9e81f9b5ad88e51bd90cc3e9a26036b78ad3f3f062dae1d9ab42e9f93fffacdd`
+  - `non-trovata-mobile.png` `fbc2fef5c53a315e96770d7cb6a77c4b575b169bfe00929db9c912cc6dff9263`
+  - `non-trovata-tablet.png` `2ddea4e63e84db798b838bff909e6830e5326595326b0d7c56d019b7be99bb59`
+  - `oggi-caricamento-desktop.png` `9057ce905319619f5d6fbc02995bf18ee6adb9d127614c9af85bed4303da7d18`
+  - `oggi-caricamento-mobile.png` `c64a6bcfab5dd1f0ffd12547b26652d75adc1d3d243e39502540aee0ec528cdc`
+  - `oggi-caricamento-tablet.png` `719a3df7010c87a6b8f7b01e6105b568acf046f21d0e4c3d457877c261b43af1`
+  - `oggi-errore-desktop.png` `80af459f5bb6c9f3c825acdc6cfcf4d3161f7ea0b56136169bbcf6dc444d8366`
+  - `oggi-errore-mobile.png` `c715891f4c3bba1b0882af20c5a31ab0ffe35dbfbf7bd25f0fe1222a558505c0`
+  - `oggi-errore-tablet.png` `6558749fa0df87f4c76afed5a3de2222387fdeb94be5dec6e47429dd1beba293`
+  - `oggi-oggi-desktop.png` `db22659e243f90fc8e462203705d996e97c4073ded34ff72e5f96a2e83818eed`
+  - `oggi-oggi-mobile.png` `6c3b4f4a3a5347221d975a3d5915f1553d8a01eb7714a0ee10e107ec92b57310`
+  - `oggi-oggi-tablet.png` `7eb70e0fb67f117165fadbea8fb1e70f6d0c0252e94d56f05edeab677dc5349f`
+  - `oggi-vuoto-desktop.png` `48e9d740ceb28ffe3f46e0a85a7ab4c0520b310bdcffaa8a111f6cb535d1c893`
+  - `oggi-vuoto-mobile.png` `f6c9cfb9a4d32889ffc2e8222a119a7b0999b01a4346f2183f12d4aa3d357d22`
+  - `oggi-vuoto-tablet.png` `4d7b6f2bae4c98e97f9f69ba80f557f4904db90be57afc78c94211d726264493`
+  - `partita-senza-storico-tablet.png` `e760a69b61491b75fc0d93e6f341d8b1a6dbe9cbf6238a4063da018f974a5da6`
+  - `ricerca-desktop.png` `026db1a46ca09bbd1b1b2cdb7f42a7b9180b6679bf0caa2d1ac7d73ad57cda65`
+  - `ricerca-filtro-rifiutato-desktop.png` `fe94f0ecced1c0a530784a9c9afb647e52ec7563a32b314f6ceb5a37cae8643a`
+  - `ricerca-filtro-rifiutato-mobile.png` `805b0dda85478a705990469a28f88064115c66aca6c6967564b4f26a721bbc97`
+  - `ricerca-filtro-rifiutato-tablet.png` `eba240fecf8815908e04f4e3e71bdf3796fa7ff86a6f85101aec0e792a2ec90a`
+  - `ricerca-tablet.png` `868ca343a79c4c296d2826b27f339007ca5b3c4e73b1a6f8e502ee19d4942d7f`
+  - `simulazione-desktop.png` `062d4cbbd0be9433c6bcb164d8bd8ae143f55f2055bd0af76c92a8c556eebfac`
+  - `simulazione-tablet.png` `782973547e33eeb412a04e15829086005ffeb3faf36b4f8d480d25256f1164f3`
