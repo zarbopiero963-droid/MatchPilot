@@ -303,7 +303,7 @@
       "state": "CERTIFIED CALCULATION",
       "certification": {
         "level": "CERTIFIED CALCULATION",
-        "perimeter": "I sette calcolatori di #94 con inserimento manuale, calcolati dal server in Decimal e mostrati dalla pagina Strumenti su desktop e mobile: Margine delle quote, Stake e Kelly (TOOL 1), Valore atteso BACK (TOOL 2), Responsabilità LAY (TOOL 3), Copertura BACK→LAY e LAY→BACK (TOOL 4 e 5), Dutching BACK (TOOL 7), Poisson (TOOL 12). Certifica formule, arrotondamenti, input validi, invalidi e limite, contratto API, comportamento della pagina ed errori. Non certifica dati di mercato, partite, liquidità, previsioni, redditività né operazioni reali.",
+        "perimeter": "I sette calcolatori di #94 con inserimento manuale, calcolati dal server in Decimal e mostrati dalla pagina Strumenti su desktop e mobile: Margine delle quote, Stake e Kelly (TOOL 1), Valore atteso BACK (TOOL 2), Responsabilità LAY (TOOL 3), Copertura BACK→LAY e LAY→BACK (TOOL 4 e 5), Dutching BACK (TOOL 7), Poisson (TOOL 12). Certifica formule, arrotondamenti, input validi, invalidi e limite, contratto API, comportamento della pagina ed errori di validazione. Non certifica dati di mercato, partite, liquidità, previsioni, redditività né operazioni reali.",
         "verified_commit": "50cfd6ba961d74bf856a75c43d38a99caa18206b",
         "date": "2026-10-24",
         "requirements": [
@@ -577,7 +577,8 @@
           "Nessun salvataggio dei calcoli (tool state model di #94)",
           "Strumenti di #94 fuori perimetro: cash-out multi-posizione, Dutching LAY, arbitraggio, Each Way, Draw No Bet, progressioni (MATH-CORE-05 BLOCKED), esposizione, ottimizzatore delle commissioni",
           "La certificazione hard di #94 su partite reali resta NOT VERIFIED nella matrice di certificabilità; MP-MTH-001 resta NOT_VERIFIED come requisito globale",
-          "Il controllo d'accesso (401 senza sessione con il login owner attivo), la ricarica dall'indirizzo e la gestione di errore del server e rete assente sono verificati dalla journey trading-tools, ma sono comportamenti dello strato v1 e della pagina comuni: la sicurezza certificata qui è la validazione lato server degli input"
+          "Il controllo d'accesso (401 senza sessione con il login owner attivo), la ricarica dall'indirizzo e la gestione di errore del server e rete assente sono verificati dalla journey trading-tools, ma sono comportamenti dello strato v1 e della pagina comuni: la sicurezza certificata qui è la validazione lato server degli input",
+          "Margine delle quote: le formule (implied, overround, probabilità normalizzate, quote eque) sono della Math Core condivisa (MATH-CORE-01), verificate dall'oracolo di test/math-core.test.mjs fuori da questo perimetro; qui sono certificati il contratto API, l'arrotondamento mostrato e il percorso della pagina, con un vettore API"
         ],
         "independent_review": {
           "verdict": "APPROVED",
