@@ -6,7 +6,7 @@ Owner decisions: MP-OWNER-QA-VISUAL-EXECUTION-01 (versioned visual baselines, SH
 
 `node tools/qa/visual.mjs --out <dir>` opens each **scene** of the site on three viewports and compares its first screen with the committed baseline:
 - viewports: desktop 1280×800, tablet 820×1180, mobile 390×844;
-- 18 scenes, so 54 baselines in `test/visual/baselines/`.
+- 20 scenes, so 60 baselines in `test/visual/baselines/`.
 
 | Scene | Address | What it fixes |
 |---|---|---|
@@ -28,6 +28,8 @@ Owner decisions: MP-OWNER-QA-VISUAL-EXECUTION-01 (versioned visual baselines, SH
 | `simulazione` | the backtest form | form, mode selector, capital fieldset |
 | `simulazione-ricerca` | Eredivisie, August 2024, research mode, scrolled to the outcome | research label, certification note, counts and result |
 | `confronto` | three configurations on August 2024, research mode, scrolled to the outcome | research label, side-by-side table |
+| `strumenti` | the Trading Tools, first tool | manual-input label, tool tabs, form, tools not yet available |
+| `strumenti-copertura` | a BACK → LAY hedge with commission, scrolled to the result | result list, before/after table, liquidity warning |
 
 ## What makes it reproducible
 

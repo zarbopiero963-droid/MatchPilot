@@ -35,7 +35,7 @@ Owner decision: MP-OWNER-CONTINUOUS-EXECUTION-02 §4. For every feature of the p
 | Match Center, finished match (#25) | MP-WEB-004 | final state, timeline, markets, replay link, post-mortem | — | none | — | FAIL | NOT VERIFIED |
 | Match Replay (#24) | MP-RPL-001…012, MP-WEB-012 | authentic captured snapshots and events in time order, as of each instant | none: live snapshots are in production (not read) and in #40 (not materialized) | none | — | FAIL | BLOCKED (R-02; MP-RPL-001) |
 | Live Trading Board (#29) | none registered | realtime TotalCorner snapshots from a certified H24 collector | none | none | — | FAIL | BLOCKED (MP-TC-012: no certified H24 collector) |
-| Trading Tools (#94) | MP-MTH-001, MP-MTH-002, MP-MTH-003 | Decimal arithmetic, odds, commission, P/L formulas with an independent oracle | synthetic test vectors | `test/math-core.test.mjs` | R-12 part 1 (PR #156) | PARTIAL COVERAGE | NOT VERIFIED |
+| Trading Tools (#94) | MP-MTH-001, MP-MTH-002, MP-MTH-003 | Decimal arithmetic, odds, commission, P/L formulas with an independent oracle; for the hard certification of #94, real pre-match and live matches | synthetic test vectors; manual input on the page | `test/math-core.test.mjs`, `test/math-trading.test.mjs`, `test/tools-api.test.mjs`, Browser QA `trading-tools`, `tools/qa/mutation-trading.mjs` | R-12 part 1 (PR #156); MP-UI-PR-005, `docs/trading-tools.md` | PARTIAL COVERAGE | NOT VERIFIED |
 | Strategy Lab (#34) | MP-STA-001, MP-STA-013 | versioned strategies and parameters, backtest inputs | — | none | — | FAIL | NOT VERIFIED |
 | Indicator Library | MP-FPT-009 (feature slices) | pre-match indicators computed point-in-time | — | none | — | FAIL | NOT VERIFIED |
 | Trading Decision Engine (#28) | none registered | indicators, strategies, market rules, money management | — | none | — | FAIL | NOT VERIFIED |
@@ -56,6 +56,12 @@ Why the Match Center is only a partial coverage: R-07a is the first batch of the
 Why the Backtest is only a partial coverage: HIST-01a is the offline engine (PIT admission, the test-oracle strategy `mp-ref-fav-back-1`, 1X2 settlement, reproducible report) on synthetic fixtures; walk-forward, out-of-sample (MP-STA-004…010), the sample-size gate (MP-STA-012), other markets and the real-data run are not built; of the STA requirements only MP-STA-001 and MP-STA-011 are partly covered. Settlement covers BACK/LAY P/L with commission; the ledger, exposure and positions of #99/#100 are not built.
 
 Why «Visual conformity and states» is only a partial coverage: the baselines and journeys catch regressions against the views as approved, not conformity to the mockup itself. The required check on `main` is not verified (MP-QAC-004), and the login texts are not automated (inventory UI-63…UI-65).
+
+## UI feature states
+
+The state of each feature of the web app (owner decision MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01) is in [`docs/qa/feature-certification.json`](../qa/feature-certification.json), computed from evidence by `tools/qa/feature-certification.mjs` and checked on every Browser QA run ([`docs/qa/browser-qa.md`](../qa/browser-qa.md#feature-certification)). It does not replace the two verdicts of this matrix:
+- a feature state covers its declared perimeter only;
+- `CERTIFIED REAL` of a `COMPUTED` feature (for example the Trading Tools' manual calculators) means the real server computing from what the user types. It says nothing about real market data: the real-data verdict here stays as it is until a real-data test runs.
 
 ## How a verdict changes
 

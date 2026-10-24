@@ -24,6 +24,7 @@ Required journeys (`tools/qa/journeys.mjs`):
 | `search` | all matches page by page, team + venue + data quality, competition + date range, xG filter, server validation error, unknown team, no result, venue without team, failed next page with retry |
 | `match-center` | opening from Oggi and search, every comparison figure, form, odds and source row equal to the API for each filter, PIT cutoff, empty history, invalid and unknown match |
 | `providers-endpoints` | data providers page, API registry equal to the API |
+| `trading-tools` | MP-UI-PR-005 (#94): the manual-input label and the tools not yet available named; every tab; for each of the seven calculators, every field reaches the request and the page shows the server's display values, one invalid field is refused (400) and named, «Azzera» empties the form; the address carries the calculation across a reload; a server error (503) and a lost connection stated, «Riprova» recalculates; 401 without the owner session when the login is enforced ([`../trading-tools.md`](../trading-tools.md)) |
 | `sim-save` | MP-UI-PR-003: no save offered without the owner login or the archive of saves (stated in words); the owner login page; a result saved once even with a double click, the same report, the request and not the result sent; saved again → already saved; opened from the result and from «Backtest salvati» (the API list); a refused save (503) shown as such; a «Personalizzata» strategy saved with the simulated definition, then unchanged; a closed session refused; the header shows «Proprietario» and «Esci», which closes the session on the server; a failed logout (500) is reported beside the role, which stays, with the session still open (MP-UI-PR-004). On the second server of the QA environment (owner login, staged persistence schema). Its traces record the login request and the session cookie of the per-run test owner: random, void when the run ends (server stopped, schema dropped); never a real credential |
 
 After **every step** the runner also checks, on the page as rendered:
@@ -48,7 +49,34 @@ After **every step** the runner also checks, on the page as rendered:
 - After a journey change, `node tools/qa/control-inventory.mjs assertions qa-evidence/report.json` (and `actuations`, `sightings`) lists the steps where each control was asserted (actuated, seen) on every viewport, to update `evidence` and `exercised_by`.
 - `npm run ui:progress` computes the completion from statuses and evidence: seen, actuated and asserted counts; verified = `TESTED` or certified; `CERTIFIED MOCK` and `CERTIFIED REAL` apart (the latter impossible on the seeded QA archive).
 
-A journey fails on any JavaScript error, failed request or HTTP error ≥ 400 that it did not declare as expected. Expected errors are declared per journey and path (for example the 400 of a refused filter), and only the browser's console line for that status is then accepted: no false positive, no blanket allowance.
+A journey fails on any JavaScript error, failed request or HTTP error ≥ 400 that it did not declare as expected. Expected errors are declared per journey and path (for example the 400 of a refused filter), and only the browser's console line for that status is then accepted: no false positive, no blanket allowance. A network failure a journey provokes on purpose is declared the same way (`allowNetwork: [{path, error}]`, MP-UI-PR-005): only that request failing with that error, and its console line, are accepted.
+
+## Feature certification
+
+Owner decision MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01: certification is per feature, not per pull request. [`feature-certification.json`](feature-certification.json) (schema `mp-feature-certification-1`) lists the features a user recognizes, each with:
+- its perimeter, views and controls;
+- requirements, issues, PRs and journeys;
+- data: `REAL`, `DEMO`, `COMPUTED` (the real server computes from what the user types) or `NONE`;
+- whether it is financial;
+- dependencies, limits and the next activity;
+- its state: `NOT STARTED`, `IN DEVELOPMENT`, `IMPLEMENTED`, `TESTED`, `CERTIFIED MOCK`, `CERTIFIED REAL`, `BLOCKED` or `REGRESSED`.
+
+Every control of the inventory belongs to exactly one feature.
+
+`tools/qa/feature-certification.mjs` **computes** the state from the evidence; no agent declares it on its own word.
+- **IMPLEMENTED:** every control of the feature exists and is built.
+- **TESTED:** besides, every control is `TESTED` (`ASSERTED`), every test the feature names is active, and every journey it names passed on every viewport.
+- **CERTIFIED:** besides, a `certification` record with its level, the verified commit, the date and the exact perimeter. It needs evidence for each criterion of the policy — completeness, correctness, contracts, integration, security, financial — or N/A with a reason. A financial feature can never mark financial N/A; integration needs a Browser QA step whose assertions passed on every viewport.
+- **Levels:** `CERTIFIED MOCK` is the level of DEMO data. `CERTIFIED REAL` needs `REAL` or `COMPUTED` data.
+
+A control `TESTED` does not certify its feature, and a merged PR certifies nothing.
+
+`verify-report` runs the check on every Browser QA run (CI gate):
+- a declared state above what the evidence supports fails the gate;
+- a certification whose evidence no longer holds (a test removed or skipped, a journey or a step that stopped passing) fails until the feature is declared `REGRESSED` or the evidence is restored;
+- a declared state below the evidence is only noted.
+
+So an incomplete feature never blocks a merge, and a false claim always does. `node tools/qa/feature-certification.mjs status [report.json]` prints the computed states and their gaps. Tests: `test/feature-certification.test.mjs`.
 
 ## Evidence and verification
 
