@@ -234,6 +234,7 @@ test('requirement evidence: a test titled with the requirement or a journey step
   const ok = id => requirementEvidenceErrors(id, [{test: T, name: own, proves}], {inventory});
   assert.deepEqual(ok('MP-REQ-UI-0302'), []);
   assert.match(ok('MP-REQ-UI-0290').join('\n'), /the test title does not carry MP-REQ-UI-0290/, 'another requirement\'s test');
+  assert.match(ok('MP-REQ-UI-030').join('\n'), /the test title does not carry MP-REQ-UI-030/, 'an id that is only a prefix of the title\'s id');
   const generic = 'persistence API: the write gate refuses before any database access';
   assert.match(requirementEvidenceErrors('MP-REQ-UI-0302', [{test: T, name: generic, proves}], {inventory}).join('\n'), /does not carry MP-REQ-UI-0302[\s\S]*supporting evidence only/);
   assert.match(requirementEvidenceErrors('MP-REQ-UI-0302', [{test: T, name: 'MP-REQ-UI-0302: no such test', proves}], {inventory}).join('\n'), /no active test/);

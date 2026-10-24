@@ -209,7 +209,8 @@ async function runJourney({browser, journey, viewportName, base, out, api, seed,
   const page = await context.newPage();
   page.setDefaultTimeout(15000);
   const consoleErrors = [], pageErrors = [], httpErrors = [], requestFailures = [];
-  const allowedStatuses = new Set();
+  // Allowed responses by status: each one excuses one console line of that status, no more (review #251).
+  const allowedStatuses = new Map();
   const allowedFailures = new Set();
   page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text()); });
   page.on('pageerror', error => pageErrors.push(error.message));
@@ -220,7 +221,7 @@ async function runJourney({browser, journey, viewportName, base, out, api, seed,
   });
   page.on('response', response => {
     if (response.status() < 400) return;
-    if (allowedHttp(journey, response.url(), response.status(), current)) allowedStatuses.add(response.status());
+    if (allowedHttp(journey, response.url(), response.status(), current)) allowedStatuses.set(response.status(), (allowedStatuses.get(response.status()) ?? 0) + 1);
     else httpErrors.push(`${response.status()} ${new URL(response.url()).pathname}`);
   });
   const steps = [];
@@ -288,8 +289,11 @@ async function runJourney({browser, journey, viewportName, base, out, api, seed,
     reason = `allowHttp bound to a step that did not run: ${stale.map(rule => `${rule.status} ${rule.path} «${rule.step}»`).join('; ')}`;
   }
   // Errors the journey did not expect fail it, even when every assertion passed.
-  const expectedConsole = text => [...allowedStatuses].some(code => text.includes(`status of ${code}`))
-    || [...allowedFailures].some(failure => text === `Failed to load resource: ${failure}`);
+  const expectedConsole = text => {
+    const code = [...allowedStatuses.keys()].find(status => allowedStatuses.get(status) > 0 && text.includes(`status of ${status}`));
+    if (code !== undefined) { allowedStatuses.set(code, allowedStatuses.get(code) - 1); return true; }
+    return [...allowedFailures].some(failure => text === `Failed to load resource: ${failure}`);
+  };
   const unexpectedConsole = consoleErrors.filter(text => !expectedConsole(text));
   if (status === 'PASS' && (unexpectedConsole.length || pageErrors.length || httpErrors.length || requestFailures.length)) {
     status = 'FAIL';

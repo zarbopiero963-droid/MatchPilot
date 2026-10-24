@@ -325,7 +325,7 @@ export function requirementEvidenceErrors(id, refs, {inventory, report = null, j
     if (typeof ref?.proves !== 'string' || ref.proves.trim().length < 12) errors.push(`${at}: proves must say what it verifies`);
     if (ref?.test !== undefined) {
       errors.push(...refErrors({test: ref.test, name: ref.name}, {journeys, report}).map(e => `${at}: ${e}`));
-      if (typeof ref.name !== 'string' || !ref.name.includes(id)) errors.push(`${at}: the test title does not carry ${id}`);
+      if (typeof ref.name !== 'string' || !new RegExp(`(^|[^\\w-])${id}(?![\\w-])`).test(ref.name)) errors.push(`${at}: the test title does not carry ${id}`);
       else strong++;
     } else if (ref?.journey !== undefined) {
       errors.push(...refErrors({journey: ref.journey, step: ref.step}, {journeys, report}).map(e => `${at}: ${e}`));

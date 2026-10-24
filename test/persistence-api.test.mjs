@@ -292,9 +292,11 @@ async function strategiesApi(t, name, body) {
 }
 
 test('MP-REQ-UI-0290: the list of saved strategies is 503 without the archive, then empty, then the current version of each key; reads_enabled says when it opens', {timeout: 120000}, async t => {
-  await strategiesApi(t, 'req0290', async ({call, applyStaged}) => {
+  await strategiesApi(t, 'req0290', async ({call, ctx, applyStaged}) => {
     const list = () => call('GET', '/api/v1/strategies');
     assert.deepEqual([(await list()).status, (await list()).body.error.code], [503, 'UNAVAILABLE']);
+    const anonymous = await handlePersistence(req('GET', '/api/v1/strategies'), {...ctx, session: null});
+    assert.deepEqual([anonymous.status, anonymous.body.error.code], [401, 'UNAUTHENTICATED'], 'without a session: the login, not an empty list');
     assert.equal((await call('GET', '/api/v1/persistence/status')).body.data.reads_enabled, false, 'no link while the archive is down');
     await applyStaged();
     assert.equal((await call('GET', '/api/v1/persistence/status')).body.data.reads_enabled, true);
@@ -307,7 +309,7 @@ test('MP-REQ-UI-0290: the list of saved strategies is 503 without the archive, t
 });
 
 test('MP-REQ-UI-0291: a saved strategy opens at its current version or at version N, with its history and the request fields that reopen it', {timeout: 120000}, async t => {
-  await strategiesApi(t, 'req0291', async ({call, applyStaged}) => {
+  await strategiesApi(t, 'req0291', async ({call, applyStaged, withClient}) => {
     await applyStaged();
     const v1 = {selection: 'HOME', side: 'LAY', odds_max: '2.5', team: 'Ajax', venue: 'HOME'};
     const v2 = {...v1, odds_max: '2.4'};
@@ -319,6 +321,11 @@ test('MP-REQ-UI-0291: a saved strategy opens at its current version or at versio
     assert.deepEqual([first.strategy.version, first.rules, first.strategy.superseded_at === null], [1, v1, false]);
     assert.deepEqual(first.versions.map(v => [v.version, v.superseded_at === null]), [[1, false], [2, true]], 'the same history from any version');
     assert.deepEqual([(await call('GET', '/api/v1/strategies?key=ajax&version=3')).status, (await call('GET', '/api/v1/strategies?key=nope')).status], [404, 404]);
+    // The definition is checked against its hash when it opens: a stored definition that no longer matches is refused.
+    await withClient(c => c.query(`INSERT INTO strategy_definitions(strategy_id, definition, definition_sha256, definition_version) VALUES('def:00000000000000ab', '{"selection":"HOME","side":"BACK"}', $1, 'mp-strategy-def-1')`, ['0'.repeat(64)]));
+    await withClient(c => c.query(`INSERT INTO strategy_versions(strategy_key, version, strategy_id, name) VALUES('tampered', 1, 'def:00000000000000ab', 'Alterata')`));
+    const tampered = await call('GET', '/api/v1/strategies?key=tampered');
+    assert.deepEqual([tampered.status, tampered.body.error.code, JSON.stringify(tampered.body).includes('HOME')], [500, 'DATA_CORRUPT', false]);
   });
 });
 
