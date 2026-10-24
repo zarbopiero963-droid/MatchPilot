@@ -297,3 +297,16 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `strumenti-desktop.png` `0bdb169aa206602cf65d7468bd199f05421c53b05ccdb84ae1c5d761b80010fa`
   - `strumenti-mobile.png` `c58de44344fda5233b0510f5092ba546c4576f0b873504cd7b7e261738ce6315`
   - `strumenti-tablet.png` `0d3021bc1d8b956ca20af9afdc4ac66de8af1c22a83f9cb46cdf59adb265ac6a`
+
+## 2026-10-24 — MP-UI-PR-006: new scene strategie-private (the saved strategies are private without the owner login); the Simulazione gains the link «Strategie salvate»
+
+- Approval: owner authorization MP-OWNER-PR250-MERGE-UI006-01 (PR-006 scope)
+- Run: commit `fd3a99b1c502977164bcc147e1101cd98b8f8670`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `simulazione-desktop.png` `443185b46acb221e14896de8f8f940f6a9ea13e36ab591ce01133f92ddc00b5f`
+  - `simulazione-ricerca-mobile.png` `2dc81ab0fe6c29f528262d0c2a0795ac9263badd98c18c22eee093a8d611ec6f`
+  - `simulazione-tablet.png` `6fc4415093635185da779f65ef8ae641ee87be21c57a4744b3d9bb9fa6695a25`
+  - `strategie-private-desktop.png` `e5b8650518d2f20ce26f7c174d4a4086c877d24278e70b8b4e4d085a2e50b99b`
+  - `strategie-private-mobile.png` `451c6c362acb243aad9bcbaaffc8f441b6648a7ebfd2707c149da09daa010891`
+  - `strategie-private-tablet.png` `86a0737374540b77f868c37484b49fb75af892de61aee2fd7ba54824d74c3aac`
