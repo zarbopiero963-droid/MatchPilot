@@ -6,7 +6,8 @@
 // - the persistence schema applied: until the owner-authorized migration, every route answers 503 UNAVAILABLE.
 // A saved backtest is never taken from the client: the server runs the same /api/v1/hist/backtest or
 // /api/v1/hist/compare request again and stores what it produced (each report sealed by the engine). Saving is
-// idempotent: the same rules under the same key, or the same backtest result, write nothing new.
+// idempotent: the same rules under the same key, or the same backtest result, write nothing new (ALREADY_SAVED keeps
+// the first record's name and parameters, and says which record it is).
 // The paper-ledger write operations are not exposed: opening a position needs the operating mode (DEC-001), which has no
 // server-side source yet, and a mode declared by the client could bypass STOP. Only the account state is read.
 import {accountState} from '../ledger/paper-ledger.mjs';
@@ -40,7 +41,9 @@ function mapError(error) {
     const [status, code] = STORE_STATUS[error.code];
     return errorOf(status, code, status === 500 ? 'stored data failed its integrity check' : error.message);
   }
-  if (typeof error?.code === 'string' && /^[0-9A-Z]{5}$/.test(error.code) || ['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT'].includes(error?.code)) {
+  // Only a database that cannot be reached is "unavailable" (connection, resources, shutdown SQLSTATE classes and
+  // network errors); any other SQL error is a defect and stays INTERNAL.
+  if (typeof error?.code === 'string' && /^(08|53|57P)/.test(error.code) || ['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND'].includes(error?.code)) {
     return errorOf(503, 'UNAVAILABLE', 'data source unavailable');
   }
   return errorOf(500, 'INTERNAL', 'internal error');
@@ -56,6 +59,17 @@ function bodyFields(body, allowed, required) {
 
 const queryOnly = (url, allowed) => {
   for (const key of url.searchParams.keys()) if (!allowed.includes(key)) http(400, 'UNKNOWN_PARAMETER', `unknown parameter ${key}`);
+};
+// Query texts are checked before the database sees them: the strategy key rule of the store, and an account id of at
+// most 100 visible characters (the paper ledger's ids are free text).
+const STRATEGY_KEY = /^[a-z0-9][a-z0-9-]{0,62}$/;
+const strategyKey = value => {
+  if (!STRATEGY_KEY.test(value)) http(400, 'BAD_REQUEST', 'key must be lowercase letters, digits and dashes (1 to 63)');
+  return value;
+};
+const accountId = value => {
+  if (!value || value.length > 100 || /[\p{Cc}\p{Cf}]/u.test(value) || !value.trim()) http(400, 'BAD_REQUEST', 'account_id must be a visible text of at most 100 characters');
+  return value;
 };
 const positiveInt = (field, value) => {
   if (!/^[1-9][0-9]{0,8}$/.test(value)) http(400, 'BAD_REQUEST', `${field} must be a positive integer`);
@@ -102,7 +116,8 @@ export async function handlePersistence({method, url, headers = {}, rawBody = nu
         const version = url.searchParams.has('version') ? positiveInt('version', url.searchParams.get('version')) : null;
         if (version !== null && key === null) http(400, 'BAD_REQUEST', 'version needs key');
         if (key === null) return ok(200, {strategies: await withClient(client => listStrategies(client))});
-        const strategy = await withClient(client => loadStrategy(client, key, {version}));
+        const checked = strategyKey(key);
+        const strategy = await withClient(client => loadStrategy(client, checked, {version}));
         if (!strategy) http(404, 'NOT_FOUND', 'no such strategy');
         return ok(200, {strategy});
       }
@@ -137,9 +152,9 @@ export async function handlePersistence({method, url, headers = {}, rawBody = nu
       }
       case 'GET /api/v1/ledger/account': {
         queryOnly(url, ['account_id']);
-        const accountId = url.searchParams.get('account_id');
-        if (!accountId) http(400, 'BAD_REQUEST', 'account_id is required');
-        const ledger = await withClient(client => loadLedger(client, accountId));
+        if (!url.searchParams.has('account_id')) http(400, 'BAD_REQUEST', 'account_id is required');
+        const id = accountId(url.searchParams.get('account_id'));
+        const ledger = await withClient(client => loadLedger(client, id));
         if (!ledger) http(404, 'NOT_FOUND', 'no such account');
         return ok(200, {account: accountState(ledger)});
       }

@@ -216,7 +216,7 @@ export async function saveBacktest(client, {name, responseText, params}) {
     [kind, label, responseText, digest, reports.map(r => r.report_sha256), input, strategyIds, reports[0].code_version ?? null, canonicalJson(params ?? {})])).rows[0];
     if (row) return {status: 'SAVED', backtest_id: Number(row.backtest_id), kind, response_sha256: digest};
     const existing = (await client.query(`SELECT backtest_id FROM saved_backtests WHERE response_sha256 = $1`, [digest])).rows[0];
-    return {status: 'ALREADY_SAVED', backtest_id: Number(existing.backtest_id), response_sha256: digest};
+    return {status: 'ALREADY_SAVED', backtest_id: Number(existing.backtest_id), kind, response_sha256: digest};
   });
 }
 

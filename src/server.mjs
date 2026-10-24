@@ -87,12 +87,18 @@ function route(req, res, url) {
   // PERSIST-API-01: persistence routes (reads, and owner-only same-origin JSON writes; 503 until the schema exists).
   if (Object.hasOwn(PERSISTENCE_ROUTES, url.pathname)) {
     const runV1 = target => handleV1({method: 'GET', url: target}, {withClient, tc: TC_READERS, codeVersion: CODE_VERSION});
-    readBody(req, MAX_BODY_BYTES).then(({text, tooLarge}) => handlePersistence({method: req.method, url, headers: req.headers, rawBody: text, tooLarge},
-      {withClient, authEnforced: Boolean(authGate), session: req.authSession ?? null, runV1})).then(({status, body}) => {
-      // A body that was not read to the end leaves the connection unusable: close it after the answer.
-      res.writeHead(status, {'Content-Type': 'application/json', ...(status === 413 ? {Connection: 'close'} : {})});
-      res.end(JSON.stringify(body));
+    let cut = false;
+    readBody(req, MAX_BODY_BYTES).then(({text, tooLarge}) => {
+      cut = tooLarge;
+      return handlePersistence({method: req.method, url, headers: req.headers, rawBody: text, tooLarge},
+        {withClient, authEnforced: Boolean(authGate), session: req.authSession ?? null, runV1});
+    }).then(({status, body}) => {
+      // A body that was not read to the end leaves the connection unusable, whatever the answer (413, or a refusal of
+      // the gate): close it after the answer and drop the rest of the upload.
+      res.writeHead(status, {'Content-Type': 'application/json', ...(cut ? {Connection: 'close'} : {})});
+      res.end(JSON.stringify(body), () => { if (cut) req.destroy(); });
     }).catch(error => {
+      if (req.aborted || error?.code === 'ECONNRESET') return; // the client went away: nothing to answer, nothing to log
       console.error('MATCHPILOT_PERSISTENCE_API_ERROR', String(error?.message || error).replace(/postgres(?:ql)?:\/\/\S+/gi, 'postgres://[REDACTED]'));
       if (!res.headersSent) res.writeHead(500, {'Content-Type': 'application/json'});
       res.end();

@@ -108,6 +108,10 @@ test('persistence API: 503 until the schema exists, refusals write nothing, then
     assert.equal((await call('POST', '/api/v1/strategies?x=1', {body: strategy})).body.error.code, 'UNKNOWN_PARAMETER');
     assert.equal((await call('DELETE', '/api/v1/strategies')).status, 405);
     assert.equal((await call('POST', '/api/v1/ledger/account', {body: {}})).status, 405, 'no ledger writes through the API');
+    for (const path of ['/api/v1/strategies?key=%00', '/api/v1/strategies?key=Bad%20Key', `/api/v1/strategies?key=${'a'.repeat(70)}`,
+      '/api/v1/ledger/account?account_id=%00', '/api/v1/ledger/account?account_id=%20', `/api/v1/ledger/account?account_id=${'a'.repeat(101)}`]) {
+      assert.equal((await call('GET', path)).status, 400, path);
+    }
     assert.equal(calls(), before, 'no database access for any refusal');
 
     await applyStaged();
@@ -185,9 +189,10 @@ test('persistence API through the server: owner session + same origin to write; 
       assert.equal((await refused.json()).error.code, 'WRITES_REQUIRE_AUTH');
       const status = await (await fetch(`${off.base}/api/v1/persistence/status`)).json();
       assert.deepEqual(status.data, {available: true, writes: 'disabled (MATCHPILOT_AUTH is not enforce)'});
-      // A body over the limit is refused with 413.
-      const big = await fetch(`${off.base}/api/v1/strategies`, {method: 'POST', headers: {'content-type': 'application/json'}, body: 'x'.repeat(MAX_BODY_BYTES + 10)});
-      assert.ok([403, 413].includes(big.status), 'refused either way (the write gate answers first)');
+      // A body over the limit: the write gate answers first (403), and the half-read connection is closed.
+      const big = await fetch(`${off.base}/api/v1/strategies`, {method: 'POST', headers: {'content-type': 'application/json'}, body: 'x'.repeat(MAX_BODY_BYTES * 4)});
+      assert.equal(big.status, 403);
+      assert.equal(big.headers.get('connection'), 'close');
     } finally { await off.stop(); }
 
     const on = await startServer(dbUrl, {MATCHPILOT_AUTH: 'enforce', MATCHPILOT_OWNER_USERNAME: 'owner', MATCHPILOT_OWNER_PASSWORD_HASH: hash});
@@ -208,6 +213,18 @@ test('persistence API through the server: owner session + same origin to write; 
       assert.equal((await fetch(`${on.base}/api/v1/strategies`)).status, 401, 'reads need the session too when auth is enforced');
       const big = await fetch(`${on.base}/api/v1/strategies`, {method: 'POST', headers: {cookie, 'content-type': 'application/json'}, body: 'x'.repeat(MAX_BODY_BYTES + 10)});
       assert.equal(big.status, 413);
+      assert.equal(big.headers.get('connection'), 'close');
+      // The real chain: the server runs the backtest itself (no FPT data in this schema) and saves its own result.
+      const save = await post(on.base, '/api/v1/backtests/saved', {name: 'vuoto', kind: 'BACKTEST', params: {from: '2025-09-01', to: '2025-09-30'}}, {cookie, origin: on.base});
+      const stored = await save.json();
+      assert.equal(save.status, 201, JSON.stringify(stored));
+      const back = await (await fetch(`${on.base}/api/v1/backtests/saved?id=${stored.data.backtest_id}`, {headers: {cookie}})).json();
+      assert.equal(back.data.kind, 'BACKTEST');
+      assert.equal(back.data.result.report.report_sha256, back.data.report_sha256[0]);
+      const again = await (await post(on.base, '/api/v1/backtests/saved', {name: 'vuoto', kind: 'BACKTEST', params: {from: '2025-09-01', to: '2025-09-30'}}, {cookie, origin: on.base})).json();
+      assert.deepEqual([again.data.status, again.data.backtest_id, again.data.kind], ['ALREADY_SAVED', stored.data.backtest_id, 'BACKTEST'], 'the same run is not saved twice');
+      const bad = await post(on.base, '/api/v1/backtests/saved', {name: 'x', kind: 'BACKTEST', params: {from: '2025-09-01', to: '2025-09-30', nope: '1'}}, {cookie, origin: on.base});
+      assert.equal(bad.status, 400, 'unknown backtest parameters are refused by the backtest itself');
       assert.ok(!on.output().includes(password), 'the password never reaches the log');
     } finally { await on.stop(); }
   });

@@ -76,6 +76,11 @@ source of truth.
   `Content-Type: application/json`, else 415. The session cookie is also `SameSite=Strict`.
 - A JSON object body of at most 64 KiB (413 beyond), with only the listed fields (400 `UNKNOWN_FIELD`) and no query
   parameters.
+- The body is read (at most 64 KiB, the rest is never buffered) before the gate answers; a body cut at the limit always
+  ends with `Connection: close`, whatever the answer, so no half-read connection stays open.
+- Query texts (`key`, `account_id`, `id`, `version`) are validated before any database access. Only database
+  connection failures answer 503; any other SQL error is 500 `INTERNAL`.
+- `ALREADY_SAVED` keeps the first record's name and parameters and names the record (`backtest_id`, `kind`).
 
 **Not exposed: paper-ledger writes.** Opening a position needs the operating mode (DEC-001: ACTIVE_OPERATIONAL,
 ADVISORY_ONLY, PAUSED, ARCHIVED), and no server-side source of that mode exists yet; a mode sent by the client could
