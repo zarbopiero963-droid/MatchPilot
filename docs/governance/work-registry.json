@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 219,
+  "revision": 220,
   "tasks": [
     {
       "id": "R-01",
@@ -1638,7 +1638,7 @@
       "kind": "implementation",
       "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261024T142358Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261024T144145Z-agent-a-claude-code",
       "resources": [
         "file:tools/qa/feature-certification.mjs",
         "file:docs/qa/feature-certification.json",
