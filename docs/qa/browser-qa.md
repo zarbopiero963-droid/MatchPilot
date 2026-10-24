@@ -66,8 +66,12 @@ Every control of the inventory belongs to exactly one feature.
 `tools/qa/feature-certification.mjs` **computes** the state from the evidence; no agent declares it on its own word.
 - **IMPLEMENTED:** every control of the feature exists and is built.
 - **TESTED:** besides, every control is `TESTED` (`ASSERTED`), every test the feature names is active, and every journey it names passed on every viewport.
-- **CERTIFIED:** besides, a `certification` record with its level, the verified commit, the date and the exact perimeter. It needs evidence for each criterion of the policy — completeness, correctness, contracts, integration, security, financial — or N/A with a reason. A financial feature can never mark financial N/A; integration needs a Browser QA step whose assertions passed on every viewport.
-- **Levels:** `CERTIFIED MOCK` is the level of DEMO data. `CERTIFIED REAL` needs `REAL` or `COMPUTED` data.
+- **CERTIFIED:** besides, a `certification` record with its level, the verified commit, the date and the exact perimeter.
+  - It needs evidence for each criterion of the policy — completeness, correctness, contracts, integration, security, financial — or N/A with a reason. A financial feature can never mark financial N/A.
+  - Each criterion rests on at least one active test or one step of the feature's own journeys; a document is only supplementary.
+  - Integration needs a step whose assertions passed on every viewport.
+  - The verified commit must be the report's head or one of its ancestors.
+- **Levels:** `CERTIFIED MOCK` is the level of DEMO data and `CERTIFIED REAL` the level of `REAL` data. A `COMPUTED` feature (the real server computing from what the user types) has no level until the owner decides one, so it stops at `TESTED`.
 
 A control `TESTED` does not certify its feature, and a merged PR certifies nothing.
 

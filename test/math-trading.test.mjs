@@ -67,6 +67,9 @@ test('Kelly: refusals name the field', () => {
     [{bankroll: '10', odds: '2', probability: '0.6', maxStake: '-1'}, 'max_stake'], [{bankroll: '10', odds: '2', probability: '0.6', maxBankroll: '2'}, 'max_bankroll']]) {
     assert.throws(() => kelly(input), e => e instanceof MathInputError && e.field === field, JSON.stringify(input));
   }
+  // A share is named as a share, not as a probability (review of PR #244, N3); a 0 cap on the bankroll share is allowed.
+  assert.throws(() => kelly({bankroll: '10', odds: '2', probability: '0.6', fraction: '1.5'}), e => e.message === 'fraction: must be greater than 0 and at most 1 (100%)');
+  assert.equal(kelly({bankroll: '10', odds: '2', probability: '0.6', maxBankroll: '0'}).result.stake, '0');
 });
 
 test('Kelly: exact oracle and metamorphic doubling (2000 seeded cases)', () => {
@@ -193,6 +196,9 @@ test('Dutching BACK: #94 K, R, S_i and the rounded outcomes', () => {
   assert.equal(dutchingBack({total: '100', odds: ['1.5', '2.5', '6']}).warnings[0], 'BOOK_AT_LEAST_ONE');
   const dup = dutchingBack({total: '50', odds: ['3', '3']});
   assert.deepEqual(dup.result.stakes, ['25', '25'], 'duplicate odds');
+  // A stake that rounds to zero leaves a selection uncovered: refused (review of PR #244, N1).
+  assert.throws(() => dutchingBack({total: '0.01', odds: ['3', '3', '3']}), e => e.field === 'total' && /round to 0/.test(e.message));
+  assert.throws(() => dutchingBack({total: '0.05', odds: ['2', '1000']}), e => e.field === 'total');
   for (const [input, field] of [[{total: '100', odds: ['2']}, 'odds'], [{total: '100', odds: ['2', '1']}, 'odds[1]'], [{total: '0', odds: ['2', '3']}, 'total']]) {
     assert.throws(() => dutchingBack(input), e => e instanceof MathInputError && e.field === field);
   }

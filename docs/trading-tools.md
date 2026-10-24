@@ -3,7 +3,7 @@
 Issue: #94 (Trading Tools Hub). Roadmap: #239 MP-UI-PR-005, R-12 (MATH-CORE-02..04, 06, 07 for the formulas, MATH-CORE-08 for the API). Owner decisions:
 - MP-UI-PROTOTYPE-INTEGRATION-01: the calculators are ported from the prototype `claude/matchpilot-web-app-wygcsn` and aligned to #94;
 - MP-UI-HARD-GATES-01;
-- MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01: feature `FEAT-TRADING-TOOLS` in [`qa/feature-certification.json`](qa/feature-certification.json).
+- MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01: feature `FEAT-TRADING-TOOLS` in [`qa/feature-certification.json`](qa/feature-certification.json), state **TESTED**. Its data are `COMPUTED`: the real server computes from manual input. That kind of data has no certification level until the owner decides one.
 
 ## Perimeter
 
@@ -16,7 +16,7 @@ Seven calculators, with **manual input only**. The page labels it «INSERIMENTO 
 | Valore atteso (BACK) | TOOL 2 | `/api/v1/tools/ev` | `EV_net = p·S·(O−1)·(1−c) − (1−p)·S`, `EV/S`, `O_fair = 1/p`, `edge = O/O_fair − 1`. Break-even `p = 1/((O−1)(1−c)+1)`, where `EV_net = 0` |
 | Responsabilità (LAY) | TOOL 3 | `/api/v1/tools/liability` | `L·(O−1)`; net result if the selection loses `L·(1−c)`; break-even `(1−c)/(O−c)`; a warning when the liability exceeds the bankroll |
 | Copertura | TOOL 4 and 5 | `/api/v1/tools/hedge` | BACK→LAY `L = B·O_b/O_l`, LAY→BACK `B = L·O_l/O_b`. P/L per outcome before and after commission. Equalized result. Residual imbalance from the cent rounding |
-| Dutching (BACK) | TOOL 7 | `/api/v1/tools/dutching` | `K = Σ 1/Oᵢ`, `R = T/K`, `Sᵢ = R/Oᵢ`, gross profit `R − T`. Outcomes are recomputed from the rounded stakes |
+| Dutching (BACK) | TOOL 7 | `/api/v1/tools/dutching` | `K = Σ 1/Oᵢ`, `R = T/K`, `Sᵢ = R/Oᵢ`, gross profit `R − T`. Outcomes are recomputed from the rounded stakes. A total so small that a stake rounds to 0 is refused |
 | Poisson | TOOL 12 | `/api/v1/tools/poisson` | independent Poisson baseline. 1X2 is summed over a 0–40 grid per side, with the covered mass reported. Goal lines are exact (`H + A ~ Pois(λh+λa)`). BTTS is `1 − P(H=0) − P(A=0) + P(0,0)`. Also returns expected goals and the most likely scores |
 
 **Commission.** It is charged on the positive net result of each outcome only, never as one multiplication (#94).

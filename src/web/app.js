@@ -1455,7 +1455,7 @@ const TOOL_RESULTS = {
   ev: (d, r) => [el('dl', {}, row('Valore atteso', signed(d.expected_value, r.expected_value, 'expected_value')), row('Rendimento atteso', percentOf(d.roi_percent, r.roi, 'roi')),
     row('Quota equa', calc(d.fair_odds, r.fair_odds, 'fair_odds')), row('Quota di mercato', calc(d.market_odds, r.market_odds, 'market_odds')),
     row('Vantaggio sulla quota', percentOf(d.edge_percent, r.edge, 'edge')), row('Probabilità di pareggio', percentOf(d.break_even_percent, r.break_even_probability, 'break_even')),
-    row('Se vince (netto)', signed(d.profit_if_wins, r.profit_if_wins, 'profit_if_wins')), row('Se perde', signed(`-${d.loss_if_loses}`, null, 'loss_if_loses')),
+    row('Se vince (netto)', signed(d.profit_if_wins, r.profit_if_wins, 'profit_if_wins')), row('Se perde', signed(d.loss_if_loses, null, 'loss_if_loses')),
     row('Commissione considerata', percentOf(d.commission_percent, null, 'commission')))],
   liability: (d, r) => [el('dl', {}, row('Responsabilità', calc(d.liability, r.liability, 'liability')),
     row('Responsabilità sul capitale', d.liability_percent_of_bankroll === null ? formatScalar(null) : percentOf(d.liability_percent_of_bankroll, r.liability_share_of_bankroll, 'liability_share')),
@@ -1482,7 +1482,7 @@ const TOOL_RESULTS = {
         el('span', {}, SCORE_TEXT[m.selection] ?? ND), el('b', {}, num(m.percent), '%'), el('small', {title: 'Quota equa'}, num(m.fair_odds))))),
       el('h3', {}, 'Gol'),
       el('div', {class: 'tablewrap'}, el('table', {}, el('thead', {}, el('tr', {}, ['Linea', 'Over', 'Quota equa', 'Under', 'Quota equa'].map(t => el('th', {scope: 'col'}, t)))),
-        el('tbody', {}, d.lines.map(l => el('tr', {'data-line': l.line}, el('td', {}, num(l.line)), el('td', {}, num(l.over_percent), '%'), el('td', {}, num(l.over_fair_odds)),
+        el('tbody', {}, d.lines.map(l => el('tr', {'data-line': l.line, 'data-field': `line_${l.line}`}, el('td', {}, num(l.line)), el('td', {}, num(l.over_percent), '%'), el('td', {}, num(l.over_fair_odds)),
           el('td', {}, num(l.under_percent), '%'), el('td', {}, num(l.under_fair_odds))))))),
       el('dl', {}, row('Entrambe segnano', el('span', {'data-field': 'btts'}, num(d.btts.yes_percent), '% · quota equa ', num(d.btts.yes_fair_odds))),
         row('Gol attesi', el('span', {'data-field': 'expected_goals'}, num(d.expected_goals.home), ' + ', num(d.expected_goals.away), ' = ', num(d.expected_goals.total))),
@@ -1491,7 +1491,7 @@ const TOOL_RESULTS = {
       el('div', {class: 'tablewrap'}, el('table', {'data-testid': 'poisson-grid'},
         el('thead', {}, el('tr', {}, el('th', {scope: 'col'}, 'Casa \\ Ospite'), Array.from({length: max + 1}, (_, a) => el('th', {scope: 'col'}, String(a))))),
         el('tbody', {}, Array.from({length: max + 1}, (_, h) => el('tr', {}, el('th', {scope: 'row'}, String(h)),
-          Array.from({length: max + 1}, (_, a) => el('td', {'data-score': `${h}-${a}`}, cell(h, a) ? [num(cell(h, a).percent), '%'] : formatScalar(null)))))))),
+          Array.from({length: max + 1}, (_, a) => el('td', {'data-score': `${h}-${a}`, 'data-field': `score_${h}-${a}`}, cell(h, a) ? [num(cell(h, a).percent), '%'] : formatScalar(null)))))))),
       el('p', {class: 'meta'}, 'Probabilità di 1 X 2 calcolate fino a 40 gol per squadra: copertura ', num(d.grid_coverage_percent), '%. Linee gol esatte.')];
   },
 };

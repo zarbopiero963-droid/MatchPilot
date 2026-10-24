@@ -95,7 +95,11 @@ const TOOL_SPECS = [
     d => [['stake_0', shown(d.selections[0].stake)], ['wins_2', shown(d.selections[2].if_wins)], ['placed', shown(d.placed)]],
     ['odds', '4', 'Quote (separate da spazi)']],
   ['poisson', 'Poisson', {xg_home: '1,4', xg_away: '1,1', max_goals: '3'},
-    d => [['btts', `${shown(d.btts.yes_percent)}% · quota equa ${shown(d.btts.yes_fair_odds)}`], ['expected_goals', `${shown(d.expected_goals.home)} + ${shown(d.expected_goals.away)} = ${shown(d.expected_goals.total)}`]],
+    d => [['btts', `${shown(d.btts.yes_percent)}% · quota equa ${shown(d.btts.yes_fair_odds)}`], ['expected_goals', `${shown(d.expected_goals.home)} + ${shown(d.expected_goals.away)} = ${shown(d.expected_goals.total)}`],
+      ...d.match_odds.map(m => [`p_${m.selection.toLowerCase()}`, `${{HOME: '1', DRAW: 'X', AWAY: '2'}[m.selection]}${shown(m.percent)}%${shown(m.fair_odds)}`]),
+      ['top_scores', d.top_scores.map(s => `${s.score.replace('-', '–')} ${shown(s.percent)}%`).join(' · ')],
+      ...d.lines.map(l => [`line_${l.line}`, `${shown(l.line)}${shown(l.over_percent)}%${shown(l.over_fair_odds)}${shown(l.under_percent)}%${shown(l.under_fair_odds)}`]),
+      ...d.grid.cells.map(c => [`score_${c.home}-${c.away}`, `${shown(c.percent)}%`])],
     ['xg_home', '12', 'Gol attesi casa']],
 ];
 

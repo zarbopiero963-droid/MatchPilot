@@ -94,6 +94,14 @@ test('display values are rounded half-even to the cent, two decimals of percent 
   assert.deepEqual([a.liability, b.liability], ['0.12', '0.14']);
 });
 
+test('the server signs the loss and gives no fair odds for a probability shown as zero', async () => {
+  const ev = (await call('ev', {stake: '10', odds: '2', probability: '50'})).body.data.display;
+  assert.equal(ev.loss_if_loses, '-10.00', 'the page shows the server value, it never builds the sign (MP-WEB-011)');
+  const tiny = (await call('poisson', {xg_home: '0.000000000000000001', xg_away: '1'})).body.data.display;
+  assert.deepEqual([tiny.btts.yes_percent, tiny.btts.yes_fair_odds], ['0.00', null]);
+  assert.equal((await call('dutching', {total: '0,01', odds: '3 3 3'})).body.error.message.startsWith('total:'), true);
+});
+
 test('no upper limit on amounts beyond the parameter length (no arbitrary money limit)', async () => {
   const {status, body} = await call('liability', {stake: '123456789012345', odds: '1.01'});
   assert.equal(status, 200);

@@ -9,14 +9,18 @@
 //   passed on every viewport;
 // - CERTIFIED MOCK / CERTIFIED REAL: besides, a certification record with evidence for each criterion of the policy
 //   (completeness, correctness, contracts, integration, security, financial), or N/A with a reason; financial is never
-//   N/A for a financial feature, integration needs a Browser QA step with recorded assertions. MOCK is the level of DEMO data; REAL needs REAL
-//   data, or COMPUTED (the real server computes from what the user types, no data source involved).
+//   N/A for a financial feature. Every criterion rests on at least one active test or one step of the feature's own
+//   journeys (a {file} is only supplementary), integration on a step with recorded assertions, and the verified commit
+//   is the report's head or one of its ancestors. MOCK is the level of DEMO data, REAL of REAL data. A COMPUTED feature
+//   (the real server computing from what the user types, no data source) has no certification level until the owner
+//   decides one: it stops at TESTED (review of PR #244).
 // The declared state must not exceed the computed one: a certified feature whose evidence no longer holds fails the
 // gate until it is declared REGRESSED (or the evidence is restored). A declared state below the evidence is reported,
 // not failed. BLOCKED needs a reason. The check runs in verify-report (Browser QA job, CI gate), so merge readiness,
 // feature state and regressions are reported apart: an incomplete feature never blocks a merge, a false claim does.
 //
 // Usage: node tools/qa/feature-certification.mjs status [report.json]
+import {execFileSync} from 'node:child_process';
 import {existsSync, readFileSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -34,6 +38,13 @@ export const CRITERIA = Object.freeze(['completeness', 'correctness', 'contracts
 const ID = /^FEAT-[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
 const SHA = /^[0-9a-f]{40}$/;
 const NOT_BUILT = ['NOT STARTED', 'IN PROGRESS', 'BLOCKED'];
+
+// The verified commit is the evidence's head or one of its ancestors (git in the repository; unknown commits fail).
+function isAncestor(commit, head) {
+  if (commit === head) return true;
+  try { execFileSync('git', ['merge-base', '--is-ancestor', commit, head], {cwd: root, stdio: 'ignore'}); return true; }
+  catch { return false; }
+}
 
 export function loadFeatures(path = FEATURES_PATH) {
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -96,8 +107,10 @@ export function evidenceState(feature, {inventory, report = null, journeys = jou
   const certGaps = [];
   if (!['CERTIFIED MOCK', 'CERTIFIED REAL'].includes(cert.level)) certGaps.push('certification level must be CERTIFIED MOCK or CERTIFIED REAL');
   if (cert.level === 'CERTIFIED MOCK' && feature.data !== 'DEMO') certGaps.push('CERTIFIED MOCK is the level of DEMO data');
-  if (cert.level === 'CERTIFIED REAL' && !['REAL', 'COMPUTED'].includes(feature.data)) certGaps.push('CERTIFIED REAL needs REAL or COMPUTED data');
+  if (cert.level === 'CERTIFIED REAL' && feature.data !== 'REAL') certGaps.push(feature.data === 'COMPUTED'
+    ? 'a COMPUTED feature has no certification level until the owner decides one' : 'CERTIFIED REAL is the level of REAL data');
   if (!SHA.test(cert.verified_commit ?? '')) certGaps.push('verified_commit must be a full SHA');
+  else if (report && SHA.test(report.head_sha ?? '') && !isAncestor(cert.verified_commit, report.head_sha)) certGaps.push(`verified_commit ${cert.verified_commit.slice(0, 7)} is not the report head or one of its ancestors`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(cert.date ?? '')) certGaps.push('date must be YYYY-MM-DD');
   if (typeof cert.perimeter !== 'string' || cert.perimeter.trim().length < 20) certGaps.push('the perimeter must be stated');
   for (const criterion of CRITERIA) {
@@ -108,6 +121,9 @@ export function evidenceState(feature, {inventory, report = null, journeys = jou
       continue;
     }
     if (!Array.isArray(value) || !value.length) { certGaps.push(`${criterion}: no evidence`); continue; }
+    // A document is supplementary: each criterion rests on a test or a step of the feature's own journeys.
+    if (!value.some(ref => ref?.test || ref?.journey)) certGaps.push(`${criterion}: needs a test or a Browser QA step, not only documents`);
+    for (const ref of value) if (ref?.journey && !(feature.journeys ?? []).includes(ref.journey)) certGaps.push(`${criterion}: ${ref.journey} is not a journey of the feature`);
     if (criterion === 'integration' && !value.some(ref => ref?.journey)) certGaps.push('integration needs a Browser QA step');
     // Integration rests on at least one step that checked the result of an action (ASSERTED), on every viewport.
     if (criterion === 'integration' && report && !value.some(ref => ref?.journey && !refErrors(ref, {journeys, report, asserting: true}).length)) certGaps.push('integration needs a step with recorded assertions');

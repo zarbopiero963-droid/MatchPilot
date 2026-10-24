@@ -18,10 +18,11 @@ const positive = (field, value) => {
   if (v.isZero()) throw new MathInputError(field, 'must be greater than 0');
   return v;
 };
-// A fraction in (0, 1]: Kelly fraction, share of the bankroll.
-const fractionOf = (field, value) => {
-  const f = probability(field, value);
-  if (f.isZero()) throw new MathInputError(field, 'must be greater than 0');
+// A share in (0, 1] (0 allowed when `zero`): Kelly fraction, share of the bankroll. The message names a share, not a
+// probability (review of PR #244, N3).
+const shareOf = (field, value, {zero = false} = {}) => {
+  const f = nonNegative(field, value);
+  if ((!zero && f.isZero()) || f.gt(1)) throw new MathInputError(field, `must be ${zero ? 'at least' : 'greater than'} 0 and at most 1 (100%)`);
   return f;
 };
 const optional = (value, parse) => (value === undefined || value === null ? null : parse(value));
@@ -31,9 +32,9 @@ const optional = (value, parse) => (value === undefined || value === null ? null
 // f* ≤ 0 is NO BET (stake 0). The stake is rounded down to the cent, so the rounded stake never exceeds Kelly or a cap.
 export function kelly({bankroll, odds, probability: p, fraction = '1', maxStake = null, maxBankroll = null}) {
   const B = positive('bankroll', bankroll), O = decimalOdds('odds', odds), P = probability('probability', p, {open: true});
-  const alpha = fractionOf('fraction', fraction);
+  const alpha = shareOf('fraction', fraction);
   const capStake = optional(maxStake, v => nonNegative('max_stake', v));
-  const capShare = optional(maxBankroll, v => probability('max_bankroll', v));
+  const capShare = optional(maxBankroll, v => shareOf('max_bankroll', v, {zero: true}));
   const b = O.sub(1), q = ONE.sub(P);
   const full = b.mul(P).sub(q).div(b);
   const raw = full.gt(0) ? B.mul(full).mul(alpha) : ZERO;
@@ -137,6 +138,8 @@ export function dutchingBack({total, odds, commission = '0'}) {
   const R = T.div(K);
   const exactStakes = list.map(o => R.div(o));
   const stakes = exactStakes.map(s => s.roundToStep(CENT, ROUNDING.HALF_EVEN));
+  // A selection whose stake rounds to zero is not covered: refused, as a hedge too small to place (review of PR #244, N1).
+  if (stakes.some(s => s.isZero())) throw new MathInputError('total', 'too small for these odds: a stake would round to 0 at a cent');
   const placed = sum(stakes);
   const outcomes = stakes.map((s, i) => net(s.mul(list[i]).sub(placed), c));
   return envelope('dutching_back', {

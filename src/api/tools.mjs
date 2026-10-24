@@ -42,7 +42,8 @@ const listOf = (field, value, {min, max}) => {
 const money = text => Decimal.from(text).round(2, ROUNDING.HALF_EVEN).toString(2);
 const pct = text => Decimal.from(text).mul(HUNDRED).round(2, ROUNDING.HALF_EVEN).toString(2);
 const odds3 = text => Decimal.from(text).round(3, ROUNDING.HALF_EVEN).toString(3);
-const fairOdds = text => (Decimal.from(text).gt(0) ? odds3(Decimal.one().div(Decimal.from(text)).toString()) : null);
+// No fair odds for a probability shown as 0.00%: a price of 1e18 means nothing to the user (review of PR #244, N4).
+const fairOdds = text => (Decimal.from(pct(text)).gt(0) ? odds3(Decimal.one().div(Decimal.from(text)).toString()) : null);
 const ROUNDING_POLICY = {mode: 'HALF_EVEN', money_places: 2, percent_places: 2, odds_places: 3};
 
 const answer = (tool, math, display) => ({tool, tools_version: TOOLS_VERSION, formula: math.formula, formula_version: math.formula_version,
@@ -85,7 +86,7 @@ export function evTool({stake, odds, probability, commission = '0'}) {
     commission: percent('commission', commission)});
   const r = math.result;
   return answer('ev', math, {expected_value: money(r.expected_value), roi_percent: pct(r.roi), fair_odds: odds3(r.fair_odds), market_odds: odds3(r.market_odds),
-    edge_percent: pct(r.edge), break_even_percent: pct(r.break_even_probability), profit_if_wins: money(r.profit_if_wins), loss_if_loses: money(r.loss_if_loses),
+    edge_percent: pct(r.edge), break_even_percent: pct(r.break_even_probability), profit_if_wins: money(r.profit_if_wins), loss_if_loses: money(Decimal.from(r.loss_if_loses).neg().toString()),
     commission_percent: pct(math.normalized_inputs.commission)});
 }
 

@@ -9,13 +9,15 @@ const inventory = loadInventory();
 const register = loadFeatures();
 const copy = value => structuredClone(value);
 const tools = () => copy(register.features.find(f => f.id === 'FEAT-TRADING-TOOLS'));
-// The same feature without its certification record, as it was before certification.
-const bare = () => { const f = tools(); delete f.certification; f.state = 'TESTED'; return f; };
+// The feature as registered: TESTED, no certification record.
+const bare = () => { const f = tools(); f.certification = null; f.state = 'TESTED'; return f; };
+// A twin with REAL data, to exercise the certification rules (the register's own feature is COMPUTED: no level yet).
+const realTwin = () => ({...bare(), data: 'REAL'});
 const SHA = '0123456789abcdef0123456789abcdef01234567';
 const T = name => ({test: 'test/math-trading.test.mjs', name});
 const certification = () => ({level: 'CERTIFIED REAL', verified_commit: SHA, date: '2026-10-24',
   perimeter: 'the seven calculators with manual input, computed by the server',
-  criteria: {completeness: [{file: 'docs/trading-tools.md'}], correctness: [T('Kelly: the #94 golden vectors and its outputs')],
+  criteria: {completeness: [{file: 'docs/trading-tools.md'}, {journey: 'trading-tools', step: 'strumenti: inserimento manuale dichiarato, schede, nessun calcolo senza Calcola'}], correctness: [T('Kelly: the #94 golden vectors and its outputs')],
     contracts: [{test: 'test/tools-api.test.mjs', name: 'the registry lists the tools as GET endpoints without database'}],
     integration: [{journey: 'trading-tools', step: 'strumenti: inserimento manuale dichiarato, schede, nessun calcolo senza Calcola'}],
     security: [{test: 'test/tools-api.test.mjs', name: 'refusals are 400 and name the parameter; nothing else gets through'}],
@@ -43,7 +45,7 @@ test('a state above the evidence is refused; below it is only noted', () => {
 });
 
 test('a complete certification record certifies; each missing or false piece of evidence stops it', () => {
-  const feature = bare();
+  const feature = realTwin();
   assert.equal(evidenceState(feature, {inventory}).state, 'TESTED', 'the feature is TESTED before any record');
   feature.certification = certification();
   assert.equal(evidenceState(feature, {inventory}).state, 'CERTIFIED REAL');
@@ -56,7 +58,11 @@ test('a complete certification record certifies; each missing or false piece of 
     [f => { f.certification.criteria.completeness = [{file: 'docs/none.md'}]; }, /docs\/none.md does not exist/],
     [f => { f.certification.criteria.integration = [{journey: 'trading-tools', step: 'no such step'}]; }, /no step «no such step»/],
     [f => { f.certification.level = 'CERTIFIED MOCK'; }, /CERTIFIED MOCK is the level of DEMO data/],
-    [f => { f.data = 'DEMO'; }, /CERTIFIED REAL needs REAL or COMPUTED data/],
+    [f => { f.data = 'DEMO'; }, /CERTIFIED REAL is the level of REAL data/],
+    [f => { f.data = 'COMPUTED'; }, /a COMPUTED feature has no certification level until the owner decides one/],
+    // Review of PR #244, B1: documents alone, a step of another feature's journey.
+    [f => { f.certification.criteria.correctness = [{file: 'package.json'}]; }, /correctness: needs a test or a Browser QA step, not only documents/],
+    [f => { f.certification.criteria.integration = [{journey: 'general-navigation', step: 'apertura del sito'}]; }, /integration: general-navigation is not a journey of the feature/],
     [f => { f.certification.verified_commit = 'abc'; }, /verified_commit must be a full SHA/],
     [f => { f.certification.perimeter = ''; }, /the perimeter must be stated/],
   ];
@@ -70,7 +76,7 @@ test('a complete certification record certifies; each missing or false piece of 
 });
 
 test('a lost certification fails until it is declared REGRESSED', () => {
-  const feature = bare();
+  const feature = realTwin();
   feature.certification = certification();
   feature.certification.criteria.correctness = [T('a test removed later')];
   feature.state = 'CERTIFIED REAL';
@@ -81,23 +87,25 @@ test('a lost certification fails until it is declared REGRESSED', () => {
   assert.match(errorsOf([...others(), feature]).join('\n'), /REGRESSED needs the certification it lost/);
 });
 
-test('the certification of the register holds on its evidence (without a report: tests and step titles)', () => {
+test('the register certifies nothing on the owner\'s behalf: Trading Tools (COMPUTED) stays TESTED', () => {
   const feature = tools();
-  assert.equal(feature.state, 'CERTIFIED REAL');
-  assert.equal(feature.data, 'COMPUTED', 'REAL here is the real server computing from manual input, not real market data');
-  assert.deepEqual(evidenceState(feature, {inventory}), {state: 'CERTIFIED REAL', gaps: [], controls: evidenceState(feature, {inventory}).controls});
+  assert.deepEqual([feature.state, feature.data, feature.certification], ['TESTED', 'COMPUTED', null]);
+  assert.equal(evidenceState(feature, {inventory}).state, 'TESTED');
 });
 
-test('integration rests on a step with recorded assertions on every viewport', () => {
-  const feature = tools();
+test('with a report: integration rests on asserted steps, and the verified commit is the head or an ancestor', () => {
+  const feature = realTwin();
+  feature.certification = certification();
   const steps = Object.values(feature.certification.criteria).flat().filter(ref => ref?.journey === 'trading-tools').map(ref => ref.step);
   const run = (viewport, assertions) => ({id: 'trading-tools', viewport, status: 'PASS', steps: steps.map(name => ({name, assertions}))});
-  const nav = viewport => ({id: 'general-navigation', viewport, status: 'PASS', steps: [{name: 'menu: Strumenti', assertions: []}, {name: 'apertura del sito', assertions: []}]});
-  const report = assertions => ({journeys: ['desktop', 'mobile'].flatMap(v => [run(v, assertions), nav(v)])});
-  const without = evidenceState(feature, {inventory, report: report([])});
-  assert.equal(without.state, 'TESTED');
+  const report = (assertions, head) => ({head_sha: head, journeys: ['desktop', 'mobile'].map(v => run(v, assertions))});
+  const checked = [{controls: ['CTL-TOOLS-KELLY-SUBMIT'], description: 'checked'}];
+  const without = evidenceState(feature, {inventory, report: report([], SHA)});
   assert.match(without.gaps.join('\n'), /integration needs a step with recorded assertions/);
-  assert.equal(evidenceState(feature, {inventory, report: report([{controls: ['CTL-TOOLS-KELLY-SUBMIT'], description: 'checked'}])}).state, 'CERTIFIED REAL');
+  assert.equal(evidenceState(feature, {inventory, report: report(checked, SHA)}).state, 'CERTIFIED REAL', 'the head itself');
+  const other = evidenceState(feature, {inventory, report: report(checked, 'f'.repeat(40))});
+  assert.equal(other.state, 'TESTED');
+  assert.match(other.gaps.join('\n'), /verified_commit 0123456 is not the report head or one of its ancestors/);
 });
 
 test('with a report, the journeys and the certification steps must have passed on every viewport', () => {
