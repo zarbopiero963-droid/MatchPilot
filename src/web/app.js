@@ -1448,6 +1448,41 @@ async function render() {
   }
 }
 
+// ---- Shell: the owner session (MP-UI-PR-004, #23) ----
+
+// With the owner login enforced (the server marks its answers with X-MatchPilot-Auth), the header shows who is signed
+// in and «Esci». With the login off nothing is shown: there is no session and no button that could not work.
+// The role is named in words; the principal id stays in a data attribute (MP-WEB-015).
+async function showSession() {
+  const box = document.querySelector('[data-testid="session"]');
+  if (!box) return;
+  try {
+    const health = await fetch('/api/v1/health', {headers: {accept: 'application/json'}, credentials: 'same-origin'}).catch(() => null);
+    await health?.arrayBuffer().catch(() => null); // the body is read, so the request ends
+    if (health?.headers.get('x-matchpilot-auth') !== 'enforce') return;
+    const session = await fetch('/auth/session', {headers: {accept: 'application/json'}, credentials: 'same-origin'})
+      .then(response => (response.ok ? response.json() : null)).catch(() => null);
+    if (!session?.authenticated) return;
+    const name = box.querySelector('[data-field="principal"]');
+    name.textContent = (session.roles ?? []).includes('owner') ? 'Proprietario' : 'Utente';
+    name.dataset.principal = session.principal;
+    box.hidden = false;
+  } finally {
+    box.dataset.checked = 'true'; // the session check is over, shown or not
+  }
+}
+
+// «Esci» closes the session on the server (same origin), then the login page; a failure is said, never hidden.
+document.querySelector('[data-testid="logout"]')?.addEventListener('click', async event => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  const response = await fetch('/auth/logout', {method: 'POST', credentials: 'same-origin'}).catch(() => null);
+  if (response?.ok) { location.assign('/login'); return; }
+  button.disabled = false;
+  document.querySelector('[data-testid="session"] [data-field="principal"]').textContent = 'Uscita non riuscita: riprova';
+});
+
+showSession();
 window.addEventListener('hashchange', render);
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render);
 else render();

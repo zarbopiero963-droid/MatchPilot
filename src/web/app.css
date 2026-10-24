@@ -17,6 +17,9 @@ a:hover{color:#FFC978}
 /* Header: the logo of the mockup and the menu. */
 .top{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;padding:0 20px;min-height:60px;border-bottom:1px solid var(--line);background:rgba(10,15,23,.92)}
 .brand{display:inline-flex;align-items:center;gap:10px;color:var(--text);text-decoration:none}
+/* MP-UI-PR-004: the owner session and «Esci», shown only with the owner login enforced. */
+.session{display:flex;align-items:center;gap:10px;margin-left:auto;color:var(--muted);font-size:14px}
+.session button{padding:5px 12px}
 .brand b{font-family:var(--f-display);font-weight:800;font-size:23px;letter-spacing:.04em;line-height:1}
 .brand b span{color:var(--accent)}
 /* Main menu: Oggi, Ricerca, Dati (V-B2). On a phone it becomes a bottom bar with icons, as in the approved mockup. */

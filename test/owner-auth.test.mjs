@@ -187,7 +187,9 @@ test('enforced owner login: deny by default, login, session, logout, revocation,
         const me = await fetch(`${base}/auth/session`, {headers: auth});
         assert.equal(me.status, 200);
         assert.equal((await me.json()).principal, 'owner');
-        assert.equal((await fetch(`${base}/api/v1/health`, {headers: auth})).status, 200);
+        const authed = await fetch(`${base}/api/v1/health`, {headers: auth});
+        assert.equal(authed.status, 200);
+        assert.equal(authed.headers.get('x-matchpilot-auth'), 'enforce', 'the page learns that the login is enforced (MP-UI-PR-004)');
         assert.equal((await fetch(`${base}/`, {headers: auth})).status, 200);
 
         // The token is stored only as a hash.
@@ -278,7 +280,9 @@ test('auth stays off by default; misconfigured enforcement fails closed; a held 
       const server = await startServer(schema, {});
       try {
         assert.equal((await fetch(`${server.base}/`)).status, 200, 'unchanged behaviour without MATCHPILOT_AUTH');
-        assert.equal((await fetch(`${server.base}/api/v1/health`)).status, 200);
+        const health = await fetch(`${server.base}/api/v1/health`);
+        assert.equal(health.status, 200);
+        assert.equal(health.headers.get('x-matchpilot-auth'), null, 'no login marker when off');
         assert.equal((await fetch(`${server.base}/auth/session`)).status, 404, 'auth routes absent when off');
       } finally { await server.stop(); }
     });
