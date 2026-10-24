@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 208,
+  "revision": 209,
   "tasks": [
     {
       "id": "R-01",
@@ -1562,7 +1562,7 @@
       "kind": "implementation",
       "state": "REVIEW",
       "lease": null,
-      "latest_checkpoint": "CP-20261024T111634Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261024T112040Z-agent-a-claude-code",
       "resources": [
         "file:src/web/app.js",
         "file:src/web/persistence.js",
