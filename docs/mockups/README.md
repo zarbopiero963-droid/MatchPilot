@@ -3,9 +3,9 @@
 ## File corrente
 
 - File: [`matchpilot-trading-os.html`](matchpilot-trading-os.html), percorso stabile. Le versioni non cambiano nome: la storia è in git e in questo changelog.
-- Versione: **Mock UX v2026.10.23c**
-- Ultimo aggiornamento: 2026-10-23
-- SHA-256: `5b950555d77a47d5e1e6dcb7c6dccbd0e4f71ad09b088a02ac18742e88d271b0`
+- Versione: **Mock UX v2026.10.24a**
+- Ultimo aggiornamento: 2026-10-24
+- SHA-256: `443920b0c04f36f0ea04be338157e57d92081976a7ad241b12cf6c044e46df61`
 - Allineato a: roadmap #97 (revisione owner 06/10/2026)
 - Issue rappresentate: #12, #20, #23, #24, #25, #27, #28, #29, #30, #31, #32, #34, #40, #44, #45, #46, #87, #91, #94, #95, #96, #97, #98, #99, #100, #102
 
@@ -53,6 +53,11 @@ Il mock è un riferimento UX/prodotto **vivo**. Non è l'architettura e non cert
 - Il layout usa font Google; senza rete il menu desktop può tagliare l'ultima voce.
 
 ## Changelog
+
+### v2026.10.24a — Salvataggi della simulazione (MP-UI-PR-003, #34, #99)
+
+- La nota sul sito reale nella pagina Backtest descrive «Salva risultato», «Salva strategia» (versioni, codice breve) e «Backtest salvati», con lo stato «Salvataggio non disponibile» quando manca l'accesso del proprietario o l'archivio dei salvataggi non è attivo.
+- I backtest salvati DEMO del mock restano DEMO: il sito reale li legge dall'API di persistenza.
 
 ### v2026.10.23c — Confronto di strategie (STRAT-CMP-01, #34)
 

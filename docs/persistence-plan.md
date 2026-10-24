@@ -60,10 +60,10 @@ source of truth.
 
 | Route | Method | What it does |
 |---|---|---|
-| `/api/v1/persistence/status` | GET | `{available, writes}`: whether the schema is applied and whether writes are possible |
+| `/api/v1/persistence/status` | GET | `{available, writes_enabled, writes}`: whether the schema is applied; `writes_enabled` (MP-UI-PR-003) is true only with the schema and the owner login enforced, and is what the page reads to offer a save; `writes` keeps the operator's wording |
 | `/api/v1/strategies` | GET | the current strategies; `?key=` one strategy, `&version=` a given version |
-| `/api/v1/strategies` | POST | `{key, name, definition}`: 201 `SAVED` (new version) or 200 `UNCHANGED` |
-| `/api/v1/backtests/saved` | GET | `?id=`: the saved result, `response_text` byte-identical and `result` parsed |
+| `/api/v1/strategies` | POST | `{key, name, definition}` or `{key, name, rules}`: 201 `SAVED` (new version) or 200 `UNCHANGED`. `rules` (MP-UI-PR-003) are the request fields of a configurable backtest as text (selection, side, prices, team, venue): the server builds the definition the backtest itself uses, so a page saves what it simulated without computing anything |
+| `/api/v1/backtests/saved` | GET | `?id=`: the saved result, `response_text` byte-identical and `result` parsed. Without `id` (MP-UI-PR-003): the list, newest first, without responses (`backtest_id, kind, name, report_sha256, input_sha256, strategy_ids, created_at`), `?limit=` 1–200, default 50 |
 | `/api/v1/backtests/saved` | POST | `{name, kind: BACKTEST\|COMPARE, params}`: the server runs the same `/api/v1/hist/backtest` or `/compare` request and saves its own result (201 `SAVED`, 200 `ALREADY_SAVED`); the backtest's own refusals (400, 429 `BUSY`, 503) come back unchanged |
 | `/api/v1/ledger/account` | GET | `?account_id=`: the paper account state rebuilt from the stored entries |
 

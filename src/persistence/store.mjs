@@ -220,6 +220,15 @@ export async function saveBacktest(client, {name, responseText, params}) {
   });
 }
 
+// The saved backtests, newest first, without their responses: what a list shows (MP-UI-PR-003). `limit` 1 to 200.
+export async function listBacktests(client, {limit = 50} = {}) {
+  if (!Number.isInteger(limit) || limit < 1 || limit > 200) fail('BAD_INPUT', 'limit must be an integer from 1 to 200');
+  await requireSchema(client);
+  return (await client.query(`SELECT backtest_id, kind, name, report_sha256, input_sha256, strategy_ids, created_at
+    FROM saved_backtests ORDER BY backtest_id DESC LIMIT $1`, [limit])).rows.map(row => ({backtest_id: Number(row.backtest_id), kind: row.kind, name: row.name,
+    report_sha256: row.report_sha256, input_sha256: row.input_sha256, strategy_ids: row.strategy_ids, created_at: row.created_at.toISOString()}));
+}
+
 // The saved response, byte-identical, re-verified against its hash.
 export async function loadBacktest(client, backtestId) {
   await requireSchema(client);

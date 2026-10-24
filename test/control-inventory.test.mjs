@@ -8,6 +8,7 @@ import {JOURNEYS} from '../tools/qa/journeys.mjs';
 const source = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const app = source('src/web/app.js');
 const html = source('src/web/index.html');
+const login = source('src/auth/http.mjs'); // the server-rendered login page (MP-UI-PR-003)
 const inventory = loadInventory();
 const ids = new Set(inventoryIds(inventory));
 
@@ -23,7 +24,7 @@ test('the inventory is structurally valid against the journeys', () => {
 });
 
 test('every literal data-control id of the page is in the inventory, and every inventory id exists in the page', () => {
-  const literal = new Set([...`${app}\n${html}`.matchAll(/(?:'data-control': |data-control=")['"]?(CTL-[A-Z0-9-]+)/g)].map(match => match[1]));
+  const literal = new Set([...`${app}\n${html}\n${login}`.matchAll(/(?:'data-control': |data-control="|\bcontrol: )['"]?(CTL-[A-Z0-9-]+)/g)].map(match => match[1]));
   assert.ok(literal.size > 30);
   for (const id of literal) assert.ok(ids.has(id), `${id} is in the page but not in the inventory`);
   // Generated ids come from ctl('VIEW', name): each prefix is one of the forms or lists checked below.

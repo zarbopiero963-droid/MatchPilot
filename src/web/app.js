@@ -5,6 +5,8 @@
 // User views show no technical text (MP-OWNER-UI-NO-RAW-TEXT-01, MP-WEB-015): codes, identifiers, dataset keys, routes and
 // provenance stay in data-* attributes and tooltips, and in the technical views (docs/qa/ui-text-inventory.md).
 
+import {createPersistence} from './persistence.js';
+
 const ND = 'N/D';
 
 class ApiFailure extends Error {
@@ -34,6 +36,14 @@ function el(tag, attrs = {}, ...children) {
   return node;
 }
 
+// Owner login enforced (R-04): go to the login page and come back here. Returns the error the view throws (the render
+// ignores it: the page is leaving).
+const loginHref = () => `/login?next=${encodeURIComponent(location.pathname + location.hash)}`;
+function toLogin() {
+  location.assign(loginHref());
+  return new ApiFailure(401, 'UNAUTHENTICATED', 'accesso richiesto');
+}
+
 async function getJson(path) {
   let response;
   try {
@@ -41,11 +51,7 @@ async function getJson(path) {
   } catch {
     throw new ApiFailure(0, 'NETWORK', 'rete non raggiungibile');
   }
-  if (response.status === 401) {
-    // Owner login enforced (R-04): go to the login page and come back here.
-    location.assign(`/login?next=${encodeURIComponent(location.pathname + location.hash)}`);
-    throw new ApiFailure(401, 'UNAUTHENTICATED', 'accesso richiesto');
-  }
+  if (response.status === 401) throw toLogin();
   const body = await response.json().catch(() => null);
   if (!response.ok) throw new ApiFailure(response.status, body?.error?.code, body?.error?.message);
   if (!body || typeof body !== 'object' || !('data' in body)) throw new ApiFailure(response.status, 'BAD_ENVELOPE', 'risposta senza envelope v1');
@@ -991,7 +997,8 @@ async function simView(params) {
     competitionsBody ? null : el('p', {class: 'state partial', role: 'status'}, 'Elenco dei campionati non disponibile: il filtro per campionato è disattivato.'),
     params.get('pit_mode') === 'NON_PIT_RESEARCH' ? researchNotice() : null,
     simForm(params, competitions),
-    el('p', {class: 'meta'}, el('a', {href: compareHref(params), 'data-testid': 'sim-compare-link', 'data-control': 'CTL-SIM-COMPARE'}, 'Confronta più strategie sugli stessi dati'))];
+    el('p', {class: 'meta'}, el('a', {href: compareHref(params), 'data-testid': 'sim-compare-link', 'data-control': 'CTL-SIM-COMPARE'}, 'Confronta più strategie sugli stessi dati'),
+      ' · ', el('a', {href: '#/saved', 'data-testid': 'sim-saved-link', 'data-control': 'CTL-SIM-SAVED-LIST'}, 'Backtest salvati'))];
   if (params.get('run') !== '1') return [...head, el('p', {class: 'state empty'}, 'Scegli il periodo e premi Simula.')];
   const api = {};
   for (const key of SIM_FIELDS) if (params.get(key)) api[key] = params.get(key);
@@ -1021,8 +1028,15 @@ async function simView(params) {
     throw error;
   }
   const report = body.data?.report;
-  const reader = body.data?.reader ?? {};
   if (!report || typeof report !== 'object') throw new ApiFailure(200, 'BAD_ENVELOPE', 'risposta senza report');
+  return [...head, ...simResult(body.data), await simSave(api, report)];
+}
+
+// The result of a backtest as the API returned it ({report, reader, events, totals}): shown the same way after a run and
+// when a saved backtest is opened (MP-UI-PR-003).
+function simResult(data) {
+  const report = data.report;
+  const reader = data.reader ?? {};
   const research = isResearch(report);
   const outcome = el('h2', {'data-testid': 'sim-outcome', 'data-outcome': '', 'data-status': report.status ?? '', 'data-certified': report.certification ? String(report.certification.certified) : '',
     'data-pit-mode': report.config?.pit_mode ?? '', 'data-report': report.report_sha256 ?? ''}, 'Esito della simulazione');
@@ -1034,7 +1048,7 @@ async function simView(params) {
   }[report.status] ?? (report.status === 'OK' && !report.metrics
     ? el('p', {class: 'state empty', role: 'status', 'data-testid': 'sim-no-bets'}, 'La strategia non ha scommesso su nessuna partita del periodo.') : null);
   const decisions = report.counts?.decisions ?? {};
-  return [...head, outcome,
+  return [outcome,
     research ? researchNotice() : null,
     el('p', {class: 'state partial', role: 'note', 'data-testid': 'sim-certification', 'data-code': report.certification?.real_data_verdict ?? ''},
       'Non certificato: risultato tecnico su dati reali non verificati, non una previsione di guadagno.'),
@@ -1045,10 +1059,141 @@ async function simView(params) {
       el('dl', {}, field('Partite lette', num(report.counts?.events), 'events'), field('Puntate', num(decisions.BACK), 'decisions_back'),
         field('Bancate', num(decisions.LAY), 'decisions_lay'),
         el('dt', {}, 'Nessuna operazione'), el('dd', {'data-field': 'decisions_no_trade', title: Object.entries(report.counts?.no_trade_by_reason ?? {}).map(([k, n]) => `${k}: ${n}`).join(' · ') || null}, num(decisions.NO_TRADE)),
-        el('dt', {}, 'Non regolate'), el('dd', {'data-field': 'unsettled', title: Object.entries(report.counts?.unsettled_by_reason ?? {}).map(([k, n]) => `${k}: ${n}`).join(' · ') || null}, num(body.data?.totals?.unsettled)))),
+        el('dt', {}, 'Non regolate'), el('dd', {'data-field': 'unsettled', title: Object.entries(report.counts?.unsettled_by_reason ?? {}).map(([k, n]) => `${k}: ${n}`).join(' · ') || null}, num(data.totals?.unsettled)))),
     simStrategy(report), noTradeReasons(report),
-    simMetrics(report), simBankroll(report, body.data?.totals),
-    Array.isArray(report.bets) && report.bets.length ? simBets(report.bets, body.data?.events, body.data?.totals?.bets) : null];
+    simMetrics(report), simBankroll(report, data.totals),
+    Array.isArray(report.bets) && report.bets.length ? simBets(report.bets, data.events, data.totals?.bets) : null];
+}
+
+// ---- Salvataggi: results and strategies kept by the persistence API (MP-UI-PR-003, #34, #99) ----
+
+// The pages use the adapter only (src/web/persistence.js): the real one here.
+const persistence = createPersistence();
+
+// Why a save is not offered, in plain words: no archive of saves yet (the schema is not applied, 503), or no owner
+// access (writes need MATCHPILOT_AUTH=enforce and an owner session). Never a button that cannot work (rule 13).
+async function saveAvailability() {
+  const status = await persistence.status();
+  // A session that expired is a login to redo, like every other view; not an unavailable archive (review #242 NB-3).
+  if (status.code === 'UNAUTHENTICATED') throw toLogin();
+  if (!status.ok || !status.data?.available) return {ok: false, code: status.ok ? 'UNAVAILABLE' : status.code, text: 'Salvataggio non disponibile: l’archivio dei salvataggi non è ancora attivo.'};
+  if (!status.data.writes_enabled) return {ok: false, code: 'WRITES_DISABLED', text: 'Salvataggio non disponibile: serve l’accesso del proprietario.'};
+  return {ok: true};
+}
+
+// The outcome of a save, in words; the code stays in data-status.
+const SAVE_REFUSED = {UNAUTHENTICATED: 'Accesso scaduto: accedi di nuovo e riprova.', FORBIDDEN: 'Questo account non può salvare.',
+  WRITES_REQUIRE_AUTH: 'Salvataggio non disponibile: serve l’accesso del proprietario.', UNAVAILABLE: 'Salvataggio non disponibile in questo momento: riprova più tardi.',
+  BUSY: 'È già in corso un’altra simulazione: riprova tra qualche secondo.', NETWORK: 'Rete non raggiungibile: riprova.'};
+const refusedText = (result, invalid) => SAVE_REFUSED[result.code] ?? (result.status === 400 ? invalid : 'Salvataggio non riuscito: riprova.');
+// After an expired session, the way back: the login page, then this same page.
+const loginAgain = result => (result.code === 'UNAUTHENTICATED'
+  ? [' ', el('a', {href: loginHref(), 'data-testid': 'save-login', 'data-control': 'CTL-SIM-SAVE-LOGIN'}, 'Vai all’accesso')] : null);
+
+// A save form: one request at a time (a double click sends one), the outcome announced next to it.
+function saveForm({testid, fields, button, control, submit}) {
+  const outcome = el('p', {class: 'state', role: 'status', 'data-testid': `${testid}-outcome`, hidden: true});
+  const action = el('button', {type: 'submit', 'data-control': control}, button);
+  let busy = false;
+  const form = el('form', {class: 'save', 'data-testid': testid, onsubmit: async event => {
+    event.preventDefault();
+    if (busy) return;
+    busy = true;
+    action.disabled = true;
+    outcome.hidden = false;
+    outcome.className = 'state';
+    outcome.dataset.status = 'PENDING';
+    outcome.replaceChildren('Salvataggio in corso…');
+    try {
+      const {status, nodes, ok} = await submit(new FormData(form));
+      outcome.className = ok ? 'state' : 'state error';
+      outcome.dataset.status = status;
+      outcome.replaceChildren(...nodes.flat().filter(node => node !== null && node !== undefined));
+    } finally {
+      busy = false;
+      action.disabled = false;
+    }
+  }}, ...fields, action, outcome);
+  return form;
+}
+
+const savedHref = id => `#/saved?${queryString({id})}`;
+
+async function simSave(api, report) {
+  const section = el('section', {class: 'card', 'data-testid': 'sim-save'}, el('h2', {}, 'Salva'));
+  const availability = await saveAvailability();
+  if (!availability.ok) {
+    section.append(el('p', {class: 'state partial', role: 'status', 'data-testid': 'sim-save-unavailable', 'data-code': availability.code}, availability.text));
+    return section;
+  }
+  section.append(saveForm({testid: 'sim-save-result', control: 'CTL-SIM-SAVE', button: 'Salva risultato',
+    fields: [el('label', {}, 'Nome del risultato ', el('input', {name: 'name', required: true, maxlength: '200', autocomplete: 'off', 'data-control': 'CTL-SIM-SAVE-NAME'}))],
+    submit: async form => {
+      // The server runs the same request again and stores what it produced: the page sends the request, not the result.
+      const result = await persistence.saveBacktest({name: String(form.get('name') ?? ''), params: api});
+      if (!result.ok) return {ok: false, status: result.code, nodes: [refusedText(result, 'Nome non valido: scrivi un nome di al massimo 200 caratteri.'), loginAgain(result)]};
+      const again = result.data.status === 'ALREADY_SAVED';
+      return {ok: true, status: result.data.status, nodes: [again ? 'Questo risultato era già salvato. ' : 'Risultato salvato. ',
+        el('a', {href: savedHref(result.data.backtest_id), 'data-testid': 'sim-save-open', 'data-id': String(result.data.backtest_id), 'data-control': 'CTL-SIM-SAVE-OPEN'}, 'Apri il salvataggio')]};
+    }}));
+  // A «Personalizzata» strategy can be kept by name: the server builds its definition from the same rules it simulated.
+  if (report.config?.strategy?.startsWith('def:')) {
+    const rules = Object.fromEntries(DEF_FIELDS.filter(name => api[name] !== undefined).map(name => [name, api[name]]));
+    section.append(saveForm({testid: 'sim-save-strategy', control: 'CTL-SIM-SAVE-STRATEGY', button: 'Salva strategia',
+      fields: [el('label', {}, 'Nome della strategia ', el('input', {name: 'name', required: true, maxlength: '200', autocomplete: 'off', 'data-control': 'CTL-SIM-SAVE-STRATEGY-NAME'})),
+        el('label', {}, 'Codice breve ', el('input', {name: 'key', required: true, maxlength: '63', pattern: '[a-z0-9][a-z0-9\\-]*', autocomplete: 'off',
+          title: 'lettere minuscole, cifre e trattini', 'data-control': 'CTL-SIM-SAVE-STRATEGY-KEY'}))],
+      submit: async form => {
+        const result = await persistence.saveStrategy({key: String(form.get('key') ?? ''), name: String(form.get('name') ?? ''), rules});
+        if (!result.ok) return {ok: false, status: result.code, nodes: [refusedText(result, 'Nome o codice non validi: il codice usa lettere minuscole, cifre e trattini.'), loginAgain(result)]};
+        const {status, version, strategy_id: id} = result.data;
+        // A code already in use gets a new version: said, so earlier rules are never replaced silently (review #242 NB-4).
+        const text = status === 'UNCHANGED' ? `Strategia già salvata con queste regole (versione ${version}).`
+          : version > 1 ? `Nuova versione ${version} della strategia con questo codice: la versione ${version - 1} resta nello storico.` : `Strategia salvata (versione ${version}).`;
+        return {ok: true, status, nodes: [el('span', {'data-strategy': id, 'data-version': String(version)}, text)]};
+      }}));
+  }
+  return section;
+}
+
+const SAVED_KIND = {BACKTEST: 'Simulazione', COMPARE: 'Confronto'};
+
+// «Backtest salvati»: the list, newest first, and one saved result opened as it was produced.
+async function savedView(params) {
+  const back = el('p', {class: 'meta'}, el('a', {href: '#/sim', 'data-control': 'CTL-SAVED-BACK-SIM'}, 'Torna alla simulazione'));
+  const id = params.get('id');
+  if (id !== null) {
+    if (!/^[1-9][0-9]{0,8}$/.test(id)) return [el('h1', {}, 'Backtest salvato'), el('p', {class: 'state error', role: 'alert', 'data-testid': 'saved-invalid'}, 'Salvataggio non valido.'), back];
+    const loaded = await persistence.loadBacktest(id);
+    if (loaded.code === 'UNAUTHENTICATED') throw toLogin();
+    if (!loaded.ok) {
+      const text = loaded.status === 404 ? 'Questo salvataggio non esiste.' : refusedText(loaded, 'Salvataggio non valido.');
+      return [el('h1', {}, 'Backtest salvato'), el('p', {class: 'state error', role: 'alert', 'data-testid': 'saved-error', 'data-code': loaded.code}, text), back];
+    }
+    const saved = loaded.data;
+    const head = [el('h1', {}, 'Backtest salvato'),
+      el('p', {class: 'meta', 'data-testid': 'saved-meta', 'data-id': String(saved.backtest_id), 'data-kind': saved.kind},
+        el('b', {'data-field': 'saved_name'}, saved.name), ' · salvato il ', instant(saved.created_at)), back];
+    if (saved.kind !== 'BACKTEST' || !saved.result?.report) {
+      return [...head, el('p', {class: 'state partial', role: 'status', 'data-testid': 'saved-kind-unavailable'}, 'Non disponibile: l’apertura dei confronti salvati arriverà con la pagina del confronto.')];
+    }
+    return [...head, ...simResult(saved.result)];
+  }
+  const list = await persistence.listBacktests();
+  if (list.code === 'UNAUTHENTICATED') throw toLogin();
+  const title = el('h1', {}, 'Backtest salvati');
+  if (!list.ok) {
+    const text = list.status === 503 ? 'Non disponibile: l’archivio dei salvataggi non è ancora attivo.' : refusedText(list, 'Elenco non disponibile.');
+    return [title, el('p', {class: 'state partial', role: 'status', 'data-testid': 'saved-unavailable', 'data-code': list.code}, text), back];
+  }
+  const rows = list.data.backtests ?? [];
+  if (!rows.length) return [title, el('p', {class: 'state empty', 'data-testid': 'saved-empty'}, 'Nessun backtest salvato: salva un risultato dalla simulazione.'), back];
+  return [title, el('div', {class: 'tablewrap'}, el('table', {class: 'results', 'data-testid': 'saved-list'},
+    el('thead', {}, el('tr', {}, ['Nome', 'Tipo', 'Salvato il'].map(text => el('th', {scope: 'col'}, text)))),
+    el('tbody', {}, rows.map(row => el('tr', {'data-id': String(row.backtest_id), 'data-report': (row.report_sha256 ?? []).join(' ')},
+      el('td', {'data-label': 'Nome'}, el('a', {href: savedHref(row.backtest_id), 'data-control': 'CTL-SAVED-OPEN'}, row.name)),
+      el('td', {'data-label': 'Tipo'}, SAVED_KIND[row.kind] ?? ND),
+      el('td', {'data-label': 'Salvato il'}, instant(row.created_at))))))), back];
 }
 
 // ---- Confronto: two or three strategy configurations on the same data (STRAT-CMP-01, #34) ----
@@ -1249,9 +1394,9 @@ async function compareView(params) {
 const VIEWS = {'': ['la pagina', boardView, 'user'], board: ['la pagina', boardView, 'user'], search: ['la ricerca', searchView, 'user'],
   match: ['la partita', matchView, 'user'],
   data: ['lo stato dei dati', dashboardView, 'technical'], providers: ['i fornitori dati', providersView, 'technical'],
-  sim: ['la simulazione', simView, 'user'], compare: ['il confronto', compareView, 'user'],
+  sim: ['la simulazione', simView, 'user'], compare: ['il confronto', compareView, 'user'], saved: ['i backtest salvati', savedView, 'user'],
   endpoints: ['gli endpoint', endpointsView, 'technical']};
-const NAV_OF = {board: '', providers: 'data', endpoints: 'data', match: null, compare: 'sim'};
+const NAV_OF = {board: '', providers: 'data', endpoints: 'data', match: null, compare: 'sim', saved: 'sim'};
 
 let generation = 0;
 // Set by the search form: the next search render moves the focus to its outcome and scrolls it into view, so the result,
