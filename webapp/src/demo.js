@@ -441,7 +441,7 @@ function demoBacktest(def, cfg) {
   return {kind: 'BACKTEST', src: 'DEMO', def: JSON.parse(JSON.stringify(def)), cfg: {...cfg}, events, bets, won, lost: bets.length - won, skipped,
     staked: r2(staked), exposure: r2(exposure), plGross: r2(plGross), commission: r2(comm), plNet: r2(plNet), roi: exposure ? plNet / exposure : null,
     strike: bets.length ? won / bets.length : null, avgOdds: bets.length ? bets.reduce((x, b) => x + b.odds, 0) / bets.length : null,
-    maxDrawdown: r2(maxDd), finalCash: r2(cash), byMonth, curve, ranAt: new Date().toISOString()};
+    maxDrawdown: r2(maxDd), finalCash: r2(cash), byMonth, curve, pit: 'PIT', ranAt: new Date().toISOString()};
 }
 
 // ---------------------------------------------------------------- paper ledger (#99) — DEMO, append-only
@@ -461,16 +461,45 @@ function positionPL(p) {
   return {win: r2(win), lose: r2(lose), liability: r2(Math.max(0, -Math.min(win, lose)))};
 }
 function ledgerState(l) {
-  let cash = 0, realized = 0, commission = 0;
+  let cash = 0, realized = 0, commission = 0, allocated = 0;
   for (const e of l.entries) {
-    if (e.type === 'ALLOCATE') cash += e.amount;
+    if (e.type === 'ALLOCATE') { cash += e.amount; allocated += e.amount; }
+    if (e.type === 'RESET') { cash += e.delta; allocated += e.delta; }
     if (e.type === 'SETTLE') { cash += e.net; realized += e.net; commission += e.commission; }
   }
-  const open = Object.values(l.positions).filter(p => p.status === 'OPEN');
+  const all = Object.values(l.positions);
+  const open = all.filter(p => p.status === 'OPEN');
   const reserved = open.reduce((x, p) => x + positionPL(p).liability, 0);
-  const allocated = l.entries.filter(e => e.type === 'ALLOCATE').reduce((x, e) => x + e.amount, 0);
+  // Independent check: the settled positions themselves (not the SETTLE entries) must add up to the realized profit,
+  // and capital + realized must give the cash.
+  const fromPositions = all.filter(p => p.status === 'SETTLED').reduce((x, p) => x + p.net, 0);
+  const reconciled = Math.abs(fromPositions - realized) < 0.005 && Math.abs(allocated + realized - cash) < 0.005;
   return {cash: r2(cash), reserved: r2(reserved), available: r2(cash - reserved), realized: r2(realized), commission: r2(commission), open: open.length,
-    settled: Object.values(l.positions).filter(p => p.status === 'SETTLED').length, reconciled: Math.abs(allocated + realized - cash) < 0.005, entries: l.entries.length};
+    settled: all.filter(p => p.status === 'SETTLED').length, reconciled, fromPositions: r2(fromPositions), entries: l.entries.length, todayLoss: r2(ledgerTodayLoss(l))};
+}
+// Net loss of the positions settled today (Europe/Rome or the configured time zone), as a positive number.
+function ledgerTodayLoss(l) {
+  const day = d => new Date(d).toLocaleDateString('sv-SE', {timeZone: TZ()});
+  const today = day(nowMs());
+  const net = l.entries.filter(e => e.type === 'SETTLE' && day(e.at) === today).reduce((x, e) => x + e.net, 0);
+  return Math.max(0, -net);
+}
+// Every limit that applies to a new position: the settings (#95) and the caps of the profile in use (#96).
+function ledgerLimits(l, {side, odds, stake, profile}) {
+  const st = ledgerState(l), s = settings(), liab = liabilityOf(side, odds, stake);
+  const v = profile ? lib.profiles().find(p => p.id === profile)?.versions.at(-1) : null, caps = v?.caps ?? {};
+  const out = [];
+  if (s.min_stake && stake < s.min_stake) out.push(`puntata sotto il minimo delle impostazioni (${money(s.min_stake)})`);
+  if (s.max_stake && stake > s.max_stake) out.push(`puntata oltre il massimo delle impostazioni (${money(s.max_stake)})`);
+  if (s.max_liability && liab > s.max_liability) out.push(`responsabilità oltre il massimo delle impostazioni (${money(s.max_liability)})`);
+  if (s.max_open && st.open >= s.max_open) out.push(`già ${st.open} posizioni aperte (massimo ${s.max_open})`);
+  if (s.daily_loss && st.todayLoss >= s.daily_loss) out.push(`perdita di oggi ${money(st.todayLoss)}: raggiunto il limite giornaliero (${money(s.daily_loss)})`);
+  if (caps.max_stake && stake > caps.max_stake) out.push(`puntata oltre il tetto del profilo (${money(caps.max_stake)})`);
+  if (caps.max_liability && liab > caps.max_liability) out.push(`responsabilità oltre il tetto del profilo (${money(caps.max_liability)})`);
+  if (caps.min_odds && odds < caps.min_odds) out.push(`quota sotto il minimo del profilo (${odd(caps.min_odds)})`);
+  if (caps.max_odds && odds > caps.max_odds) out.push(`quota oltre il massimo del profilo (${odd(caps.max_odds)})`);
+  if (caps.max_open && st.open >= caps.max_open) out.push(`posizioni aperte oltre il massimo del profilo (${caps.max_open})`);
+  return out;
 }
 function ledgerOpen(l, {match, market, selection, side, odds, stake, profile}) {
   if (l.mode !== 'ACTIVE_OPERATIONAL') return {error: l.mode === 'ADVISORY_ONLY' ? 'Operatività ferma (STOP): la proposta resta un consiglio, niente viene registrato.' : 'Operatività in pausa: nessuna nuova posizione.'};
@@ -478,9 +507,11 @@ function ledgerOpen(l, {match, market, selection, side, odds, stake, profile}) {
   const st = ledgerState(l);
   const liab = liabilityOf(side, odds, stake);
   if (liab > st.available + 1e-9) return {error: `Capitale disponibile insufficiente: servono ${money(liab)}, disponibili ${money(st.available)}.`};
+  const limits = ledgerLimits(l, {side, odds, stake, profile});
+  if (limits.length) return {error: `Bloccata dai limiti: ${limits.join('; ')}.`};
   const id = `P${String(l.seq + 1).padStart(4, '0')}`;
   l.positions[id] = {id, matchId: match.id, label: `${match.home} – ${match.away}`, comp: match.comp.name, market, selection, side, legs: [{side, odds, stake, at: new Date().toISOString()}],
-    status: 'OPEN', openedAt: new Date().toISOString(), profile: profile ?? null};
+    status: 'OPEN', openedAt: new Date().toISOString(), profile: profile ?? null, commission: settings().commission};
   ledgerAppend(l, {type: 'OPEN', position: id, text: `${SIDE_TEXT[side]} ${selectionText(market, selection)} @ ${odd(odds)} · puntata ${money(stake)}`, reserve: r2(liab)});
   store.set('ledger', l);
   return {id};
@@ -488,13 +519,27 @@ function ledgerOpen(l, {match, market, selection, side, odds, stake, profile}) {
 function ledgerHedge(l, id, odds, share = 1) {
   const p = l.positions[id];
   if (!p || p.status !== 'OPEN') return {error: 'Posizione non aperta.'};
-  if (l.mode === 'PAUSED') return {error: 'Operatività in pausa.'};
+  if (l.mode === 'ARCHIVED') return {error: 'Conto archiviato.'};
+  if (!(odds > 1)) return {error: 'Quota non valida.'};
   const h = hedgeCalc(p, odds, share);
   if (!(h.stake > 0)) return {error: 'Niente da coprire.'};
+  const before = positionPL(p).liability, after = r2(Math.max(0, -Math.min(h.after.win, h.after.lose)));
+  // DEC-001: outside ACTIVE_OPERATIONAL a hedge is allowed only when it reduces the exposure.
+  if (l.mode !== 'ACTIVE_OPERATIONAL' && after > before - 0.005) return {error: `Operatività ${MODES[l.mode].toLowerCase()}: la copertura è ammessa solo se riduce l’esposizione (${money(before)} → ${money(after)}).`};
+  if (after - before > ledgerState(l).available + 1e-9) return {error: 'Capitale disponibile insufficiente per la copertura.'};
   p.legs.push({side: h.side, odds, stake: h.stake, at: new Date().toISOString()});
   ledgerAppend(l, {type: 'HEDGE', position: id, text: `Copertura ${SIDE_TEXT[h.side]} @ ${odd(odds)} · puntata ${money(h.stake)}`});
   store.set('ledger', l);
   return {ok: true, ...h};
+}
+// Reset (#99): never deletes history; appends a RESET entry that brings the cash to the new capital.
+function ledgerReset(l, amount) {
+  const st = ledgerState(l);
+  if (!(amount > 0)) return {error: 'Capitale non valido.'};
+  if (amount < st.reserved) return {error: `Il nuovo capitale non copre l’impegnato delle posizioni aperte (${money(st.reserved)}).`};
+  ledgerAppend(l, {type: 'RESET', amount, delta: r2(amount - st.cash), text: `Azzeramento: cassa ${money(st.cash)} → ${money(amount)} (storico conservato)`});
+  store.set('ledger', l);
+  return {ok: true};
 }
 // The opposite trade that equalises a position at a price (green-up); share < 1 covers part of it.
 function hedgeCalc(p, odds, share = 1) {
@@ -509,14 +554,14 @@ function hedgeCalc(p, odds, share = 1) {
 }
 function ledgerSettleDue(l) {
   let n = 0;
-  const c = settings().commission / 100;
   for (const p of Object.values(l.positions)) {
     if (p.status !== 'OPEN') continue;
+    const c = (p.commission ?? settings().commission) / 100;
     const m = demoMatchById(p.matchId);
     if (!m || liveState(m).status !== 'FT') continue;
     const win = winsSelection(p.market, p.selection, m.final);
-    const gross = r2(p.legs.reduce((x, leg) => x + legPL(leg, win), 0));
-    const commission = gross > 0 ? r2(gross * c) : 0;
+    const gross = cents(p.legs.reduce((x, leg) => x + legPL(leg, win), 0));
+    const commission = gross > 0 ? cents(gross * c) : 0;
     p.status = 'SETTLED'; p.outcome = win ? 'WIN' : 'LOSE'; p.score = m.final.join('–'); p.net = r2(gross - commission); p.settledAt = new Date().toISOString();
     ledgerAppend(l, {type: 'SETTLE', position: p.id, net: p.net, gross, commission, text: `Regolata ${p.score}: ${win ? 'selezione vincente' : 'selezione perdente'}`});
     n++;
@@ -622,7 +667,9 @@ const LOCAL_TOOLS = {
 function num(v, label, min = -Infinity, max = Infinity) {
   const x = Number(String(v ?? '').trim().replace(',', '.'));
   if (String(v ?? '').trim() === '' || !Number.isFinite(x)) throw new Error(`${label}: valore obbligatorio.`);
-  if (x < min) throw new Error(`${label}: deve essere almeno ${nf(min, min % 1 ? 2 : 0)}.`);
-  if (x > max) throw new Error(`${label}: deve essere al massimo ${nf(max, max % 1 ? 2 : 0)}.`);
+  // Lower bounds like 1.0001 or 0.0001 stand for "strictly greater than"; say so instead of showing the epsilon.
+  const strict = min % 1 && String(min).length > 4;
+  if (x < min) throw new Error(strict ? `${label}: deve essere maggiore di ${nf(Math.floor(min), 0)}.` : `${label}: deve essere almeno ${nf(min, min % 1 ? 2 : 0)}.`);
+  if (x > max) throw new Error(max % 1 && String(max).length > 5 ? `${label}: deve essere minore di ${nf(Math.ceil(max), 0)}.` : `${label}: deve essere al massimo ${nf(max, max % 1 ? 2 : 0)}.`);
   return x;
 }

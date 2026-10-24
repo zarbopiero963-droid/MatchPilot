@@ -16,9 +16,15 @@ Dashboard, Calendario, Partite, Competizioni · Match Center · Live Board, Trad
 
 Ogni controllo interattivo ha un identificativo stabile (`data-control`, elenco in `src/specs.js`); Diagnostica e i test rifiutano controlli senza identificativo o non dichiarati.
 «Roadmap e copertura › Autotest» esegue nell’app 30 scenari con clic, input e verifica dei risultati.
-L’esito è CERTIFIED MOCK, cioè verificato su dati DEMO, mai CERTIFIED REAL. Da un file locale restano BLOCKED i 5 controlli che esistono solo con il server: REAL, conto del server, accedi ed esci.
+Per ogni controllo registra l’evidenza NONE → SEEN → ACTUATED → ASSERTED (azione seguita da una verifica riuscita). Il file non dichiara mai CERTIFIED MOCK né CERTIFIED REAL: la certificazione spetta alla Browser QA indipendente dell’app servita dal sito. Da un file locale restano BLOCKED i 6 controlli che esistono solo con il server: REAL, conto del server (2), accedi, esci, selettore PIT/NON_PIT.
+Gli xG generati nel browser sono sempre etichettati «xG DEMO».
 
 ## Sviluppo
 
 - Sorgenti in `src/`; `node webapp/build.mjs` rigenera `dist/matchpilot-webapp.html`.
 - Test: `node --test test/webapp-standalone.test.mjs` (Chromium reale; desktop, tablet e mobile; autotest completo).
+- Audit indipendente riproducibile: `node webapp/audit/gate.mjs` (DEMO) e `node webapp/audit/real.mjs` (REAL, PostgreSQL locale). Esiti e finding in [`audit/README.md`](audit/README.md).
+
+## Prototipo, non integrazione
+
+Questo file è un prototipo conservato su branch, non il sito ufficiale. L’integrazione in `src/web` spetta alla sessione UI ufficiale (roadmap, PR, Gate A/B). Requisito aperto: **ARCH-CSP non risolto**. Il file usa script e stili inline e non gira con la CSP del sito (`script-src`/`style-src` `'self'`). L’integrazione deve servirlo come file separati.

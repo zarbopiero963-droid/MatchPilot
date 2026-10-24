@@ -193,11 +193,20 @@ view({id: 'matches', title: 'Partite', phase: 'UI-03', issues: ['#3', '#30'], lo
     h('button', {class: 'btn', type: 'button', ctl: 'CTL-MATCHES-RESET', onclick: () => go('matches', {})}, 'Azzera')));
   const headNodes = [head('Partite', {sub: 'Ricerca avanzata con filtri combinati', chips: [chip(isReal() ? 'REAL' : 'DEMO')], issues: ['UI-03', '#30']}), dataStrip(isReal() ? 'REAL' : 'DEMO'), form];
   if (errors.length) return [...headNodes, h('div', {class: 'state error', role: 'alert', 'data-testid': 'matches-invalid'}, errors.join(' '))];
-  let rows = [];
+  let rows = [], truncated = false;
   if (isReal()) {
-    const q = {from, before: addDays(to, 1), competition: v('comp'), fav_min: v('fav_min'), fav_max: v('fav_max'), min_goals: v('goals_min'), max_goals: v('goals_max'), limit: 500};
+    const q = {from, before: addDays(to, 1), competition: v('comp'), fav_min: v('fav_min'), fav_max: v('fav_max'), min_goals: v('goals_min'), max_goals: v('goals_max'),
+      min_xg_total: v('xg_min'), result: {FT: 'FINAL', NS: 'NOT_STARTED'}[v('status')], limit: 500};
     if (v('team')) { const t = (await apiGet(`/api/v1/fpt/teams${qs({q: v('team')})}`)).data?.rows ?? []; if (!t.length) return [...headNodes, emptyState(`Nessuna squadra «${v('team')}».`)]; q.team = t[0].internal_team_id; }
-    rows = ((await apiGet(`/api/v1/fpt/search${qs(q)}`)).data?.rows ?? []).map(fromRealRow);
+    // Keyset pagination (MP-WEB-007): follow next_cursor up to a bound and say so when the result is cut.
+    const MAX_PAGES = 10;
+    for (let n = 0, cursor; n < MAX_PAGES; n++) {
+      const d = (await apiGet(`/api/v1/fpt/search${qs({...q, cursor})}`)).data;
+      rows.push(...(d?.rows ?? []).map(fromRealRow));
+      cursor = d?.next_cursor;
+      if (!cursor) break;
+      if (n === MAX_PAGES - 1) truncated = true;
+    }
   } else {
     for (let d = from; d <= to; d = addDays(d, 1)) rows.push(...demoDay(d).map(withState));
   }
@@ -214,18 +223,19 @@ view({id: 'matches', title: 'Partite', phase: 'UI-03', issues: ['#3', '#30'], lo
   const set = patch => updateParams('matches', params, patch);
   const sortTh = (k, text, cls = '') => h('th', {class: `sortable ${cls}`, 'aria-sort': sortKey === k ? (dir === 1 ? 'ascending' : 'descending') : 'none'},
     h('button', {type: 'button', ctl: 'CTL-MATCHES-SORT', 'data-key': k, onclick: () => set({sort: k, dir: sortKey === k && dir === 1 ? 'desc' : 'asc', page: 1})}, text, sortKey === k ? (dir === 1 ? ' ▲' : ' ▼') : ''));
-  const cols = ['Data', 'Partita', 'Campionato', 'Ris.', '1', 'X', '2', 'Fav.', 'xG'];
+  const cols = ['Data', 'Partita', 'Campionato', 'Ris.', '1', 'X', '2', 'Fav.', xgLab(isReal() ? 'REAL' : 'DEMO')];
   const csv = () => {
-    const lines = [['data', 'ora', 'campionato', 'casa', 'ospite', 'stato', 'gol_casa', 'gol_ospite', 'q1', 'qx', 'q2', 'xg_casa', 'xg_ospite'].join(';'),
+    const lines = [['data', 'ora', 'campionato', 'casa', 'ospite', 'stato', 'gol_casa', 'gol_ospite', 'q1', 'qx', 'q2', ...(isReal() ? ['xg_casa', 'xg_ospite'] : ['xg_casa_demo', 'xg_ospite_demo'])].join(';'),
       ...rows.map(m => [m.date, m.ko, m.comp.name, m.home, m.away, m.status, m.score?.[0] ?? '', m.score?.[1] ?? '', m.odds.h ?? '', m.odds.d ?? '', m.odds.a ?? '', m.xg[0] ?? '', m.xg[1] ?? ''].join(';'))];
     download(`matchpilot-partite-${from}-${to}.csv`, lines.join('\n'), 'text/csv');
     toast(`Esportate ${rows.length} partite`, 'ok');
   };
   return [...headNodes,
+    truncated ? h('div', {class: 'state partial', role: 'status', 'data-testid': 'matches-truncated'}, `Risultato troncato alle prime ${nint(rows.length)} partite lette dal server: restringi il periodo o i filtri.`) : null,
     h('section', {class: 'card', 'data-testid': 'matches-results', 'data-count': rows.length},
       h('h2', {}, `${nint(rows.length)} partite`, h('span', {class: 'right row'}, h('button', {class: 'btn sm', type: 'button', ctl: 'CTL-MATCHES-CSV', disabled: !rows.length, onclick: csv}, 'Esporta CSV'))),
       rows.length ? [h('div', {class: 'tablewrap'}, h('table', {class: 'cards'}, h('thead', {}, h('tr', {}, sortTh('date', 'Data'), sortTh('home', 'Partita'), sortTh('comp', 'Campionato'),
-        sortTh('goals', 'Ris.', 'n'), h('th', {class: 'n'}, '1'), h('th', {class: 'n'}, 'X'), h('th', {class: 'n'}, '2'), sortTh('fav', 'Fav.', 'n'), sortTh('xg', 'xG', 'n'))),
+        sortTh('goals', 'Ris.', 'n'), h('th', {class: 'n'}, '1'), h('th', {class: 'n'}, 'X'), h('th', {class: 'n'}, '2'), sortTh('fav', 'Fav.', 'n'), sortTh('xg', xgLab(isReal() ? 'REAL' : 'DEMO'), 'n'))),
       h('tbody', {}, shown.map(m => h('tr', {'data-match': m.id}, [
         h('td', {}, dayShort(m.date), ' ', h('span', {class: 'muted'}, m.ko)), h('td', {}, h('a', {href: href('match', {id: m.id}), ctl: 'CTL-MATCH-OPEN'}, `${m.home} – ${m.away}`)),
         h('td', {}, m.comp.name), h('td', {class: 'n'}, m.score ? scoreText(m) : STATUS_TEXT[m.status]), h('td', {class: 'n'}, odd(m.odds.h)), h('td', {class: 'n'}, odd(m.odds.d)), h('td', {class: 'n'}, odd(m.odds.a)),
@@ -322,7 +332,7 @@ view({id: 'match', title: 'Match Center', navAs: 'dashboard', hiddenFromSearch: 
       h('span', {class: 'tm r'}, h('b', {}, m.away), formChips(recent('away'), `Forma di ${m.away}`))),
     h('div', {class: 'odds'}, oddBox('1', prices.h), oddBox('X', prices.d), oddBox('2', prices.a), oddBox('Over 2,5', prices.o25), oddBox('Under 2,5', prices.u25), oddBox('Gol', prices.btts)),
     h('div', {class: 'row', style: {marginTop: '10px', justifyContent: 'space-between'}},
-      h('span', {class: 'small muted'}, 'Favorito ', h('b', {style: {color: 'var(--text)'}}, m.fav ? `${m.fav === 'HOME' ? m.home : m.away} ${odd(m.favOdds)}` : ND), ' · xG ', h('b', {style: {color: 'var(--text)'}}, isNum(m.xg[0]) ? `${nf(m.xg[0])} – ${nf(m.xg[1])}` : ND)),
+      h('span', {class: 'small muted'}, 'Favorito ', h('b', {style: {color: 'var(--text)'}}, m.fav ? `${m.fav === 'HOME' ? m.home : m.away} ${odd(m.favOdds)}` : ND), ` · ${xgLab(m.src)} `, h('b', {style: {color: 'var(--text)'}}, isNum(m.xg[0]) ? `${nf(m.xg[0])} – ${nf(m.xg[1])}` : ND)),
       h('div', {class: 'row'},
         spoil ? h('button', {class: 'btn sm', type: 'button', ctl: 'CTL-MC-REVEAL', onclick: () => set({reveal: 1})}, 'Mostra il risultato') : null,
         h('a', {class: 'btn sm', href: href('analysis', {match: m.id}), ctl: 'CTL-MC-ANALYSIS'}, 'Analisi completa'),
@@ -351,7 +361,7 @@ function mcOverview(a, set) {
   cards.push(h('section', {class: 'card', 'data-testid': 'mc-preview'}, h('h2', {}, 'Pre-partita: ultime 10 (casa/trasferta)'),
     H || A ? cmpRows(m, H, A) : emptyState('Statistiche non disponibili.'),
     h('div', {class: 'row', style: {marginTop: '10px'}}, h('button', {class: 'btn sm', type: 'button', ctl: 'CTL-MC-GOCOMPARE', onclick: () => set({tab: 'compare'})}, 'Confronto completo'),
-      isNum(m.xg[0]) ? h('a', {class: 'btn sm', href: href('tools', {tool: 'poisson', xg_home: m.xg[0], xg_away: m.xg[1], run: 1}), ctl: 'CTL-MC-TOOL-POISSON'}, 'Poisson dagli xG') : null,
+      isNum(m.xg[0]) ? h('a', {class: 'btn sm', href: href('tools', {tool: 'poisson', xg_home: m.xg[0], xg_away: m.xg[1], run: 1}), ctl: 'CTL-MC-TOOL-POISSON'}, `Poisson dagli ${xgLab(m.src)}`) : null,
       isNum(m.odds.h) ? h('a', {class: 'btn sm', href: href('tools', {tool: 'odds', odds: `${m.odds.h} ${m.odds.d} ${m.odds.a}`, run: 1}), ctl: 'CTL-MC-TOOL-ODDS'}, 'Margine 1X2') : null)));
   return h('div', {class: 'grid g2'}, cards);
 }
@@ -359,7 +369,7 @@ function cmpRows(m, H, A) {
   const rows = [['n', 'Partite', s => nint(s.n)], ['pWon', 'Vittorie', s => pct(s.pWon)], ['pDrawn', 'Pareggi', s => pct(s.pDrawn)], ['pLost', 'Sconfitte', s => pct(s.pLost)],
     ['gfAvg', 'Gol fatti a partita', s => nf(s.gfAvg)], ['gaAvg', 'Gol subiti a partita', s => nf(s.gaAvg)], ['pOver15', 'Over 1,5', s => pct(s.pOver15)], ['pOver25', 'Over 2,5', s => pct(s.pOver25)],
     ['pOver35', 'Over 3,5', s => pct(s.pOver35)], ['pBtts', 'Entrambe segnano', s => pct(s.pBtts)], ['pCs', 'Porta inviolata', s => pct(s.pCs)], ['pFts', 'Senza segnare', s => pct(s.pFts)],
-    ['xgfAvg', 'xG fatti a partita', s => nf(s.xgfAvg)], ['xgaAvg', 'xG subiti a partita', s => nf(s.xgaAvg)], ['pFirstGoal', 'Primo gol segnato', s => pct(s.pFirstGoal)]];
+    ['xgfAvg', `${xgLab(m.src)} fatti a partita`, s => nf(s.xgfAvg)], ['xgaAvg', `${xgLab(m.src)} subiti a partita`, s => nf(s.xgaAvg)], ['pFirstGoal', 'Primo gol segnato', s => pct(s.pFirstGoal)]];
   const higherIsBetter = new Set(['pWon', 'gfAvg', 'xgfAvg', 'pCs', 'pFirstGoal']);
   const lowerIsBetter = new Set(['pLost', 'gaAvg', 'xgaAvg', 'pFts']);
   return h('div', {'data-testid': 'cmp-rows'}, h('div', {class: 'cmp'}, h('b', {}, H ? m.home : ''), h('span', {class: 'l'}, ''), h('b', {style: {textAlign: 'right'}}, A ? m.away : '')),
@@ -377,7 +387,7 @@ function mcStats(m) {
     h('b', {class: 'mono'}, fmt(a)), h('div', {}, h('div', {class: 'small muted', style: {textAlign: 'center'}}, label), h('div', {class: 'bar2'}, h('i', {style: {width: `${a + b ? a / (a + b) * 100 : 50}%`}}), h('i', {style: {width: `${a + b ? b / (a + b) * 100 : 50}%`}}))),
     h('b', {class: 'mono', style: {textAlign: 'right'}}, fmt(b)));
   return [chip('DEMO'), h('section', {class: 'card', 'data-testid': 'mc-stats', style: {marginTop: '10px'}}, h('h2', {}, `Statistiche ${m.status === 'FT' ? 'finali' : `al ${m.minute}'`}`),
-    line('Possesso %', st.poss), line('Tiri', st.shots), line('Tiri in porta', st.sot), line('Attacchi pericolosi', st.da), line('Calci d’angolo', st.corners), line('Cartellini', st.cards), line('xG', st.xg, x => nf(x))),
+    line('Possesso %', st.poss), line('Tiri', st.shots), line('Tiri in porta', st.sot), line('Attacchi pericolosi', st.da), line('Calci d’angolo', st.corners), line('Cartellini', st.cards), line(xgLab('DEMO'), st.xg, x => nf(x))),
   h('section', {class: 'card'}, h('h2', {}, 'Momentum'), momentumChart(m, m.status === 'FT' ? 90 : m.minute))];
 }
 function momentumChart(m, upTo) {
@@ -440,7 +450,7 @@ function barChart(labels, series) {
 }
 function mcH2h(a) {
   const rows = a.h2h ?? [];
-  return h('section', {class: 'card', 'data-testid': 'mc-h2h'}, h('h2', {}, 'Precedenti'), rows.length ? h('div', {class: 'tablewrap'}, h('table', {}, h('thead', {}, h('tr', {}, ['Data', 'Partita', 'Risultato', 'xG'].map(x => h('th', {}, x)))),
+  return h('section', {class: 'card', 'data-testid': 'mc-h2h'}, h('h2', {}, 'Precedenti'), rows.length ? h('div', {class: 'tablewrap'}, h('table', {}, h('thead', {}, h('tr', {}, ['Data', 'Partita', 'Risultato', xgLab(rows.every(x => x.src === 'REAL') ? 'REAL' : 'DEMO')].map(x => h('th', {}, x)))),
     h('tbody', {}, rows.map(x => h('tr', {}, h('td', {}, dayShort(x.date)), h('td', {}, h('a', {href: href('match', {id: x.id}), ctl: 'CTL-MATCH-OPEN'}, `${x.home} – ${x.away}`)),
       h('td', {class: 'n'}, x.final ? `${x.final[0]}–${x.final[1]}` : ND), h('td', {class: 'n'}, isNum(x.xg?.[0]) ? `${nf(x.xg[0])} – ${nf(x.xg[1])}` : ND))))))
     : emptyState('Nessun precedente prima di questa data.'));
@@ -480,8 +490,11 @@ function tradeDialog(m, pre = {}) {
     const o = Number(oddsIn.value), s0 = Number(stakeIn.value);
     out.replaceChildren(o > 1 && s0 > 0
       ? h('dl', {class: 'kv'}, h('dt', {}, 'Responsabilità'), h('dd', {}, money(liabilityOf(side.value, o, s0))), h('dt', {}, 'Se la selezione vince'), h('dd', {}, signed(legPL({side: side.value, odds: o, stake: s0}, true))),
-        h('dt', {}, 'Se la selezione perde'), h('dd', {}, signed(legPL({side: side.value, odds: o, stake: s0}, false))), h('dt', {}, 'Disponibile'), h('dd', {}, money(st.available)))
+        h('dt', {}, 'Se la selezione perde'), h('dd', {}, signed(legPL({side: side.value, odds: o, stake: s0}, false))), h('dt', {}, 'Disponibile'), h('dd', {}, money(st.available)),
+        h('dt', {}, 'Commissione'), h('dd', {}, `${nf(settings().commission)}% (${settings().exchange})`))
       : h('span', {class: 'muted'}, 'Inserisci quota e puntata.'));
+    const lim = o > 1 && s0 > 0 ? ledgerLimits(l, {side: side.value, odds: o, stake: s0, profile: prof?.id}) : [];
+    if (lim.length) out.append(h('div', {class: 'state partial', 'data-testid': 'trade-limits', style: {marginTop: '8px'}}, `Bloccata dai limiti: ${lim.join('; ')}.`));
   };
   market.addEventListener('change', () => { fillSel(); evaluate(true); });
   sel.addEventListener('change', () => evaluate(true));

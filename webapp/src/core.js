@@ -89,8 +89,14 @@ const LOGO = () => s('svg', {width: 30, height: 30, viewBox: '0 0 32 32', 'aria-
 
 // ---------------------------------------------------------------- formatting (Italian; missing values are N/D, never 0)
 const isNum = v => typeof v === 'number' && Number.isFinite(v);
-const nf = (v, dp = 2) => isNum(v) ? v.toLocaleString('it-IT', {minimumFractionDigits: dp, maximumFractionDigits: dp}) : ND;
-const nint = v => isNum(v) ? v.toLocaleString('it-IT', {maximumFractionDigits: 0}) : ND;
+// Italian number format: thousands always grouped with a dot (1.275,00), decimal comma, fixed decimals (F-21).
+function nf(v, dp = 2) {
+  if (!isNum(v)) return ND;
+  const [int, dec] = Math.abs(v).toFixed(dp).split('.');
+  const neg = v < 0 && Number(Math.abs(v).toFixed(dp)) !== 0;
+  return `${neg ? '-' : ''}${int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}${dec ? `,${dec}` : ''}`;
+}
+const nint = v => isNum(v) ? nf(Math.round(v), 0) : ND;
 const pct = (p, dp = 1) => isNum(p) ? `${nf(p * 100, dp)}%` : ND;
 const odd = v => isNum(v) ? nf(v, 2) : ND;
 const money = v => isNum(v) ? `${v < 0 ? '−' : ''}${CURRENCY()} ${nf(Math.abs(v), 2)}` : ND;
@@ -98,6 +104,8 @@ const signed = v => isNum(v) ? `${v > 0 ? '+' : v < 0 ? '−' : ''}${nf(Math.abs
 const r2 = x => Math.round((x + Math.sign(x) * Number.EPSILON) * 100) / 100;
 const r4 = x => Math.round(x * 10000) / 10000;
 const floor2 = x => Math.floor(x * 100 + 1e-9) / 100;
+// Cents with ties to even, as the server's money (src/math/money.mjs, ROUNDING.HALF_EVEN): 0,625 → 0,62.
+const cents = x => { const v = x * 100, f = Math.floor(v), d = v - f; return (Math.abs(d - 0.5) < 1e-7 ? (f % 2 === 0 ? f : f + 1) : Math.round(v)) / 100; };
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const pad = n => String(n).padStart(2, '0');
 const isoDay = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -113,7 +121,9 @@ const WDAY = new Intl.DateTimeFormat('it-IT', {weekday: 'short'});
 const MONTH = new Intl.DateTimeFormat('it-IT', {month: 'long', year: 'numeric'});
 const dayLong = t => LONG.format(parseDay(t));
 const dayShort = t => SHORT.format(parseDay(t));
-const when = iso => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? ND : d.toLocaleString('it-IT', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}); };
+// Instants are shown in the time zone of the Impostazioni (F-08).
+const TZ = () => settings().timezone || 'Europe/Rome';
+const when = iso => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? ND : d.toLocaleString('it-IT', {timeZone: TZ(), day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}); };
 const ago = ms => ms < 60000 ? `${Math.round(ms / 1000)} s` : ms < 3600000 ? `${Math.round(ms / 60000)} min` : `${Math.round(ms / 3600000)} h`;
 const words = t => String(t ?? '').split(/[-_\s]+/).filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
 const esc = t => String(t);
@@ -138,8 +148,10 @@ const CURRENCY = () => ({EUR: '€', GBP: '£', USD: '$'})[settings().currency] 
 
 // ---------------------------------------------------------------- app state and data mode
 const APP = {mode: 'DEMO', realAvailable: false, real: null, booted: false};
-const MODE_TEXT = {REAL: 'REAL', DEMO: 'DEMO', UNAVAILABLE: 'NON DISPONIBILE'};
-const chip = (state, note) => h('span', {class: `chip ${state}`, title: note ?? (state === 'DEMO' ? 'Dati dimostrativi generati nel browser, deterministici' : state === 'REAL' ? 'Dati dall’API v1 di MatchPilot' : 'Funzione non disponibile in questo ambiente')}, MODE_TEXT[state] ?? state);
+const MODE_TEXT = {REAL: 'REAL', DEMO: 'DEMO', MIXED: 'REAL + DEMO', UNAVAILABLE: 'NON DISPONIBILE'};
+const chip = (state, note) => h('span', {class: `chip ${state}`, title: note ?? (state === 'DEMO' ? 'Dati dimostrativi generati nel browser, deterministici' : state === 'REAL' ? 'Dati dall’API v1 di MatchPilot' : state === 'MIXED' ? 'Parte dal server (REAL), parte da questo browser (DEMO)' : 'Funzione non disponibile in questo ambiente')}, MODE_TEXT[state] ?? state);
+// F-18: an xG not read from the server is synthetic (generated in the browser): it is always labelled DEMO.
+const xgLab = src => src === 'REAL' ? 'xG' : 'xG DEMO';
 const issueTag = (...ids) => h('span', {class: 'issue'}, ids.join(' '));
 function strip(state, text) {
   return h('div', {class: `strip ${state}`, 'data-state': state}, chip(state), h('span', {}, text));
@@ -269,6 +281,8 @@ async function render() {
       if (mine !== generation) return;
       host.replaceChildren(...[nodes].flat(Infinity).filter(Boolean));
       host.dataset.ready = String(mine);
+      // After a navigation the keyboard focus moves to the content (F-20); the first load keeps the page focus.
+      if (APP.booted && !$('#overlay') && !host.contains(document.activeElement)) host.focus({preventScroll: true});
       APP.lastRender = {view: v.id, ms: performance.now() - started};
     } catch (error) {
       if (mine !== generation) return;

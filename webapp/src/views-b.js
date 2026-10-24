@@ -35,7 +35,7 @@ view({id: 'live', title: 'Live Board', phase: 'UI-05', issues: ['#29', '#20'], l
     return h('article', {class: `lcard ${best?.state === 'ARMED' ? 'armed' : ''}`, 'data-match': m.id, 'data-fresh': m.fresh.state},
       h('div', {class: 'top'}, h('span', {}, m.comp.name), h('span', {class: `fresh ${m.fresh.state}`, title: `Ultimo aggiornamento del fornitore ${m.fresh.lag} s fa (DEMO)`}, FRESH_TEXT[m.fresh.state], ` · ${m.fresh.lag} s`)),
       h('div', {class: 'mt'}, h('span', {}, m.home), h('span', {class: 's'}, m.score[0]), h('span', {}, m.away), h('span', {class: 's'}, m.score[1])),
-      h('div', {class: 'row', style: {justifyContent: 'space-between'}}, statusChip(m), h('span', {class: 'xs muted'}, `xG ${nf(st.xg[0])} – ${nf(st.xg[1])}`)),
+      h('div', {class: 'row', style: {justifyContent: 'space-between'}}, statusChip(m), h('span', {class: 'xs muted'}, `${xgLab(m.src)} ${nf(st.xg[0])} – ${nf(st.xg[1])}`)),
       bar('Possesso %', st.poss), bar('Tiri (in porta)', st.sot), bar('Angoli', st.corners), bar('Attacchi pericolosi', st.da),
       m.live ? h('div', {class: 'odds', style: {gridTemplateColumns: 'repeat(4,minmax(0,1fr))'}}, oddBox('1', m.live.h, null, {prev: prev?.h}), oddBox('X', m.live.d, null, {prev: prev?.d}),
         oddBox('2', m.live.a, null, {prev: prev?.a}), oddBox('O 2,5', m.live.o25, 'Over 2,5', {prev: prev?.o25})) : null,
@@ -181,7 +181,7 @@ view({id: 'analysis', title: 'Analysis Hub', phase: 'UI-06', issues: ['#30'], lo
   const tableOf = (t, st) => st?.form?.length ? h('ul', {class: 'small', style: {margin: 0, paddingLeft: '18px'}}, st.form.map(f => h('li', {}, f.date ? `${dayShort(f.date)} · ` : '', f.text, ' ',
     h('span', {class: `fm ${f.result}`}, {W: 'V', D: 'N', L: 'P'}[f.result]), ' ', f.id && String(f.id).startsWith('demo:') ? h('a', {href: href('match', {id: f.id}), ctl: 'CTL-AN-MATCH'}, 'apri') : null)))
     : emptyState('Nessuna partita conclusa nel campione.');
-  const fake = {home: teamA, away: teamB ?? ''};
+  const fake = {home: teamA, away: teamB ?? '', src: isReal() ? 'REAL' : 'DEMO'};
   return [headN, match ? dataStrip(match.src) : dataStrip('DEMO'), picker,
     h('p', {class: 'small muted'}, `Campione: ${WIN_OPTS.find(([x]) => x === win)[1]} · ${venue === 'both' ? 'tutte le partite' : venue === 'home' ? 'solo in casa' : 'solo in trasferta'} · partite concluse prima del ${dayShort(before)}.`),
     h('div', {class: 'grid g2', 'data-testid': 'analysis'},
@@ -239,7 +239,7 @@ view({id: 'replay', title: 'Replay', phase: 'UI-06', issues: ['#24', '#25'], ren
     const p = now.live;
     oddsEl.replaceChildren(oddBox('1', p?.h), oddBox('X', p?.d), oddBox('2', p?.a), oddBox('O 2,5', p?.o25, 'Over 2,5'));
     const S = now.stats;
-    statsEl.replaceChildren(...[['Possesso %', S.poss], ['Tiri', S.shots], ['Tiri in porta', S.sot], ['Angoli', S.corners], ['Cartellini', S.cards], ['xG', S.xg.map(x => nf(x))]].flatMap(([k, [a, b]]) => [h('dt', {}, k), h('dd', {}, `${a} – ${b}`)]));
+    statsEl.replaceChildren(...[['Possesso %', S.poss], ['Tiri', S.shots], ['Tiri in porta', S.sot], ['Angoli', S.corners], ['Cartellini', S.cards], [xgLab(m.src), S.xg.map(x => nf(x))]].flatMap(([k, [a, b]]) => [h('dt', {}, k), h('dd', {}, `${a} – ${b}`)]));
     tl.replaceChildren(...m.events.filter(e => e.type !== 'CORNER' && (!st.hide || e.min <= st.minute)).map(e => h('div', {class: e.min > st.minute ? 'future' : ''}, h('span', {class: 'min'}, `${e.min}'`),
       h('span', {}, e.type === 'GOAL' ? '⚽' : e.type === 'RED' ? '🟥' : '🟨'), h('span', {}, e.side ? m.away : m.home))),
     ...st.entries.filter(e => e.minute <= st.minute).map(e => h('div', {style: {background: 'var(--lay-bg)'}}, h('span', {class: 'min'}, `${e.minute}'`), h('span', {}, '▶'), h('span', {}, `ENTRY ${e.d.name}: ${SIDE_TEXT[e.d.side]} ${selectionText(e.d.market, e.sel)} @ ${odd(e.price)}`))));

@@ -66,13 +66,16 @@ main{min-width:0;padding:22px 26px 60px;outline:none}
 .wrap{max-width:1240px;margin:0 auto}
 .foot{color:var(--muted);font-size:12.5px;margin-top:28px;border-top:1px solid var(--line);padding-top:12px}
 .bottombar{display:none}
+.skip{position:fixed;left:8px;top:-60px;z-index:100;background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:8px 14px;font-weight:800;cursor:pointer}
+.skip:focus{top:8px}
+.app{position:relative}
 .scrim{display:none}
 /* ---- Page head, strips, chips ---- */
 .phead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 16px;margin-bottom:14px}
 .phead .sub{color:var(--muted);font-size:13px;margin-top:4px}
 .crumbs{font-size:13px;color:var(--muted);margin-bottom:6px}
 .chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700;background:var(--surface-2);color:var(--ink-2);white-space:nowrap;border:1px solid transparent}
-.chip.REAL{color:var(--ok);background:var(--ok-bg)}.chip.DEMO{color:var(--accent);background:var(--accent-soft)}.chip.UNAVAILABLE{color:var(--muted);border-color:var(--line-2);background:transparent}
+.chip.REAL{color:var(--ok);background:var(--ok-bg)}.chip.DEMO{color:var(--accent);background:var(--accent-soft)}.chip.UNAVAILABLE{color:var(--muted);border-color:var(--line-2);background:transparent}.chip.MIXED{color:var(--accent);background:transparent;border-color:var(--accent)}
 .chip.ok{color:var(--ok);background:var(--ok-bg)}.chip.bad{color:var(--bad);background:var(--bad-bg)}.chip.warn{color:var(--warn);background:var(--warn-bg)}
 .chip.back{color:var(--back);background:var(--back-bg)}.chip.lay{color:var(--lay);background:var(--lay-bg)}.chip.info{color:var(--info);background:rgba(156,140,255,.14)}
 .chip.live{color:#fff;background:var(--bad)}
@@ -81,6 +84,7 @@ body.dev .issue{display:inline-block}
 .strip{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 12px;border-radius:10px;margin-bottom:14px;font-size:13px;border:1px solid var(--line);background:var(--panel)}
 .strip.DEMO{border-color:rgba(255,181,71,.4);background:rgba(255,181,71,.06)}
 .strip.UNAVAILABLE{border-style:dashed}
+.strip.MIXED{border-color:rgba(255,181,71,.4);border-style:dashed}
 /* ---- Cards, grids, tables ---- */
 .grid{display:grid;gap:14px}
 .g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}
@@ -405,8 +409,14 @@ const LOGO = () => s('svg', {width: 30, height: 30, viewBox: '0 0 32 32', 'aria-
 
 // ---------------------------------------------------------------- formatting (Italian; missing values are N/D, never 0)
 const isNum = v => typeof v === 'number' && Number.isFinite(v);
-const nf = (v, dp = 2) => isNum(v) ? v.toLocaleString('it-IT', {minimumFractionDigits: dp, maximumFractionDigits: dp}) : ND;
-const nint = v => isNum(v) ? v.toLocaleString('it-IT', {maximumFractionDigits: 0}) : ND;
+// Italian number format: thousands always grouped with a dot (1.275,00), decimal comma, fixed decimals (F-21).
+function nf(v, dp = 2) {
+  if (!isNum(v)) return ND;
+  const [int, dec] = Math.abs(v).toFixed(dp).split('.');
+  const neg = v < 0 && Number(Math.abs(v).toFixed(dp)) !== 0;
+  return `${neg ? '-' : ''}${int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}${dec ? `,${dec}` : ''}`;
+}
+const nint = v => isNum(v) ? nf(Math.round(v), 0) : ND;
 const pct = (p, dp = 1) => isNum(p) ? `${nf(p * 100, dp)}%` : ND;
 const odd = v => isNum(v) ? nf(v, 2) : ND;
 const money = v => isNum(v) ? `${v < 0 ? '−' : ''}${CURRENCY()} ${nf(Math.abs(v), 2)}` : ND;
@@ -414,6 +424,8 @@ const signed = v => isNum(v) ? `${v > 0 ? '+' : v < 0 ? '−' : ''}${nf(Math.abs
 const r2 = x => Math.round((x + Math.sign(x) * Number.EPSILON) * 100) / 100;
 const r4 = x => Math.round(x * 10000) / 10000;
 const floor2 = x => Math.floor(x * 100 + 1e-9) / 100;
+// Cents with ties to even, as the server's money (src/math/money.mjs, ROUNDING.HALF_EVEN): 0,625 → 0,62.
+const cents = x => { const v = x * 100, f = Math.floor(v), d = v - f; return (Math.abs(d - 0.5) < 1e-7 ? (f % 2 === 0 ? f : f + 1) : Math.round(v)) / 100; };
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const pad = n => String(n).padStart(2, '0');
 const isoDay = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -429,7 +441,9 @@ const WDAY = new Intl.DateTimeFormat('it-IT', {weekday: 'short'});
 const MONTH = new Intl.DateTimeFormat('it-IT', {month: 'long', year: 'numeric'});
 const dayLong = t => LONG.format(parseDay(t));
 const dayShort = t => SHORT.format(parseDay(t));
-const when = iso => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? ND : d.toLocaleString('it-IT', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}); };
+// Instants are shown in the time zone of the Impostazioni (F-08).
+const TZ = () => settings().timezone || 'Europe/Rome';
+const when = iso => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? ND : d.toLocaleString('it-IT', {timeZone: TZ(), day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}); };
 const ago = ms => ms < 60000 ? `${Math.round(ms / 1000)} s` : ms < 3600000 ? `${Math.round(ms / 60000)} min` : `${Math.round(ms / 3600000)} h`;
 const words = t => String(t ?? '').split(/[-_\s]+/).filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
 const esc = t => String(t);
@@ -454,8 +468,10 @@ const CURRENCY = () => ({EUR: '€', GBP: '£', USD: '$'})[settings().currency] 
 
 // ---------------------------------------------------------------- app state and data mode
 const APP = {mode: 'DEMO', realAvailable: false, real: null, booted: false};
-const MODE_TEXT = {REAL: 'REAL', DEMO: 'DEMO', UNAVAILABLE: 'NON DISPONIBILE'};
-const chip = (state, note) => h('span', {class: `chip ${state}`, title: note ?? (state === 'DEMO' ? 'Dati dimostrativi generati nel browser, deterministici' : state === 'REAL' ? 'Dati dall’API v1 di MatchPilot' : 'Funzione non disponibile in questo ambiente')}, MODE_TEXT[state] ?? state);
+const MODE_TEXT = {REAL: 'REAL', DEMO: 'DEMO', MIXED: 'REAL + DEMO', UNAVAILABLE: 'NON DISPONIBILE'};
+const chip = (state, note) => h('span', {class: `chip ${state}`, title: note ?? (state === 'DEMO' ? 'Dati dimostrativi generati nel browser, deterministici' : state === 'REAL' ? 'Dati dall’API v1 di MatchPilot' : state === 'MIXED' ? 'Parte dal server (REAL), parte da questo browser (DEMO)' : 'Funzione non disponibile in questo ambiente')}, MODE_TEXT[state] ?? state);
+// F-18: an xG not read from the server is synthetic (generated in the browser): it is always labelled DEMO.
+const xgLab = src => src === 'REAL' ? 'xG' : 'xG DEMO';
 const issueTag = (...ids) => h('span', {class: 'issue'}, ids.join(' '));
 function strip(state, text) {
   return h('div', {class: `strip ${state}`, 'data-state': state}, chip(state), h('span', {}, text));
@@ -585,6 +601,8 @@ async function render() {
       if (mine !== generation) return;
       host.replaceChildren(...[nodes].flat(Infinity).filter(Boolean));
       host.dataset.ready = String(mine);
+      // After a navigation the keyboard focus moves to the content (F-20); the first load keeps the page focus.
+      if (APP.booted && !$('#overlay') && !host.contains(document.activeElement)) host.focus({preventScroll: true});
       APP.lastRender = {view: v.id, ms: performance.now() - started};
     } catch (error) {
       if (mine !== generation) return;
@@ -1053,7 +1071,7 @@ function demoBacktest(def, cfg) {
   return {kind: 'BACKTEST', src: 'DEMO', def: JSON.parse(JSON.stringify(def)), cfg: {...cfg}, events, bets, won, lost: bets.length - won, skipped,
     staked: r2(staked), exposure: r2(exposure), plGross: r2(plGross), commission: r2(comm), plNet: r2(plNet), roi: exposure ? plNet / exposure : null,
     strike: bets.length ? won / bets.length : null, avgOdds: bets.length ? bets.reduce((x, b) => x + b.odds, 0) / bets.length : null,
-    maxDrawdown: r2(maxDd), finalCash: r2(cash), byMonth, curve, ranAt: new Date().toISOString()};
+    maxDrawdown: r2(maxDd), finalCash: r2(cash), byMonth, curve, pit: 'PIT', ranAt: new Date().toISOString()};
 }
 
 // ---------------------------------------------------------------- paper ledger (#99) — DEMO, append-only
@@ -1073,16 +1091,45 @@ function positionPL(p) {
   return {win: r2(win), lose: r2(lose), liability: r2(Math.max(0, -Math.min(win, lose)))};
 }
 function ledgerState(l) {
-  let cash = 0, realized = 0, commission = 0;
+  let cash = 0, realized = 0, commission = 0, allocated = 0;
   for (const e of l.entries) {
-    if (e.type === 'ALLOCATE') cash += e.amount;
+    if (e.type === 'ALLOCATE') { cash += e.amount; allocated += e.amount; }
+    if (e.type === 'RESET') { cash += e.delta; allocated += e.delta; }
     if (e.type === 'SETTLE') { cash += e.net; realized += e.net; commission += e.commission; }
   }
-  const open = Object.values(l.positions).filter(p => p.status === 'OPEN');
+  const all = Object.values(l.positions);
+  const open = all.filter(p => p.status === 'OPEN');
   const reserved = open.reduce((x, p) => x + positionPL(p).liability, 0);
-  const allocated = l.entries.filter(e => e.type === 'ALLOCATE').reduce((x, e) => x + e.amount, 0);
+  // Independent check: the settled positions themselves (not the SETTLE entries) must add up to the realized profit,
+  // and capital + realized must give the cash.
+  const fromPositions = all.filter(p => p.status === 'SETTLED').reduce((x, p) => x + p.net, 0);
+  const reconciled = Math.abs(fromPositions - realized) < 0.005 && Math.abs(allocated + realized - cash) < 0.005;
   return {cash: r2(cash), reserved: r2(reserved), available: r2(cash - reserved), realized: r2(realized), commission: r2(commission), open: open.length,
-    settled: Object.values(l.positions).filter(p => p.status === 'SETTLED').length, reconciled: Math.abs(allocated + realized - cash) < 0.005, entries: l.entries.length};
+    settled: all.filter(p => p.status === 'SETTLED').length, reconciled, fromPositions: r2(fromPositions), entries: l.entries.length, todayLoss: r2(ledgerTodayLoss(l))};
+}
+// Net loss of the positions settled today (Europe/Rome or the configured time zone), as a positive number.
+function ledgerTodayLoss(l) {
+  const day = d => new Date(d).toLocaleDateString('sv-SE', {timeZone: TZ()});
+  const today = day(nowMs());
+  const net = l.entries.filter(e => e.type === 'SETTLE' && day(e.at) === today).reduce((x, e) => x + e.net, 0);
+  return Math.max(0, -net);
+}
+// Every limit that applies to a new position: the settings (#95) and the caps of the profile in use (#96).
+function ledgerLimits(l, {side, odds, stake, profile}) {
+  const st = ledgerState(l), s = settings(), liab = liabilityOf(side, odds, stake);
+  const v = profile ? lib.profiles().find(p => p.id === profile)?.versions.at(-1) : null, caps = v?.caps ?? {};
+  const out = [];
+  if (s.min_stake && stake < s.min_stake) out.push(`puntata sotto il minimo delle impostazioni (${money(s.min_stake)})`);
+  if (s.max_stake && stake > s.max_stake) out.push(`puntata oltre il massimo delle impostazioni (${money(s.max_stake)})`);
+  if (s.max_liability && liab > s.max_liability) out.push(`responsabilità oltre il massimo delle impostazioni (${money(s.max_liability)})`);
+  if (s.max_open && st.open >= s.max_open) out.push(`già ${st.open} posizioni aperte (massimo ${s.max_open})`);
+  if (s.daily_loss && st.todayLoss >= s.daily_loss) out.push(`perdita di oggi ${money(st.todayLoss)}: raggiunto il limite giornaliero (${money(s.daily_loss)})`);
+  if (caps.max_stake && stake > caps.max_stake) out.push(`puntata oltre il tetto del profilo (${money(caps.max_stake)})`);
+  if (caps.max_liability && liab > caps.max_liability) out.push(`responsabilità oltre il tetto del profilo (${money(caps.max_liability)})`);
+  if (caps.min_odds && odds < caps.min_odds) out.push(`quota sotto il minimo del profilo (${odd(caps.min_odds)})`);
+  if (caps.max_odds && odds > caps.max_odds) out.push(`quota oltre il massimo del profilo (${odd(caps.max_odds)})`);
+  if (caps.max_open && st.open >= caps.max_open) out.push(`posizioni aperte oltre il massimo del profilo (${caps.max_open})`);
+  return out;
 }
 function ledgerOpen(l, {match, market, selection, side, odds, stake, profile}) {
   if (l.mode !== 'ACTIVE_OPERATIONAL') return {error: l.mode === 'ADVISORY_ONLY' ? 'Operatività ferma (STOP): la proposta resta un consiglio, niente viene registrato.' : 'Operatività in pausa: nessuna nuova posizione.'};
@@ -1090,9 +1137,11 @@ function ledgerOpen(l, {match, market, selection, side, odds, stake, profile}) {
   const st = ledgerState(l);
   const liab = liabilityOf(side, odds, stake);
   if (liab > st.available + 1e-9) return {error: `Capitale disponibile insufficiente: servono ${money(liab)}, disponibili ${money(st.available)}.`};
+  const limits = ledgerLimits(l, {side, odds, stake, profile});
+  if (limits.length) return {error: `Bloccata dai limiti: ${limits.join('; ')}.`};
   const id = `P${String(l.seq + 1).padStart(4, '0')}`;
   l.positions[id] = {id, matchId: match.id, label: `${match.home} – ${match.away}`, comp: match.comp.name, market, selection, side, legs: [{side, odds, stake, at: new Date().toISOString()}],
-    status: 'OPEN', openedAt: new Date().toISOString(), profile: profile ?? null};
+    status: 'OPEN', openedAt: new Date().toISOString(), profile: profile ?? null, commission: settings().commission};
   ledgerAppend(l, {type: 'OPEN', position: id, text: `${SIDE_TEXT[side]} ${selectionText(market, selection)} @ ${odd(odds)} · puntata ${money(stake)}`, reserve: r2(liab)});
   store.set('ledger', l);
   return {id};
@@ -1100,13 +1149,27 @@ function ledgerOpen(l, {match, market, selection, side, odds, stake, profile}) {
 function ledgerHedge(l, id, odds, share = 1) {
   const p = l.positions[id];
   if (!p || p.status !== 'OPEN') return {error: 'Posizione non aperta.'};
-  if (l.mode === 'PAUSED') return {error: 'Operatività in pausa.'};
+  if (l.mode === 'ARCHIVED') return {error: 'Conto archiviato.'};
+  if (!(odds > 1)) return {error: 'Quota non valida.'};
   const h = hedgeCalc(p, odds, share);
   if (!(h.stake > 0)) return {error: 'Niente da coprire.'};
+  const before = positionPL(p).liability, after = r2(Math.max(0, -Math.min(h.after.win, h.after.lose)));
+  // DEC-001: outside ACTIVE_OPERATIONAL a hedge is allowed only when it reduces the exposure.
+  if (l.mode !== 'ACTIVE_OPERATIONAL' && after > before - 0.005) return {error: `Operatività ${MODES[l.mode].toLowerCase()}: la copertura è ammessa solo se riduce l’esposizione (${money(before)} → ${money(after)}).`};
+  if (after - before > ledgerState(l).available + 1e-9) return {error: 'Capitale disponibile insufficiente per la copertura.'};
   p.legs.push({side: h.side, odds, stake: h.stake, at: new Date().toISOString()});
   ledgerAppend(l, {type: 'HEDGE', position: id, text: `Copertura ${SIDE_TEXT[h.side]} @ ${odd(odds)} · puntata ${money(h.stake)}`});
   store.set('ledger', l);
   return {ok: true, ...h};
+}
+// Reset (#99): never deletes history; appends a RESET entry that brings the cash to the new capital.
+function ledgerReset(l, amount) {
+  const st = ledgerState(l);
+  if (!(amount > 0)) return {error: 'Capitale non valido.'};
+  if (amount < st.reserved) return {error: `Il nuovo capitale non copre l’impegnato delle posizioni aperte (${money(st.reserved)}).`};
+  ledgerAppend(l, {type: 'RESET', amount, delta: r2(amount - st.cash), text: `Azzeramento: cassa ${money(st.cash)} → ${money(amount)} (storico conservato)`});
+  store.set('ledger', l);
+  return {ok: true};
 }
 // The opposite trade that equalises a position at a price (green-up); share < 1 covers part of it.
 function hedgeCalc(p, odds, share = 1) {
@@ -1121,14 +1184,14 @@ function hedgeCalc(p, odds, share = 1) {
 }
 function ledgerSettleDue(l) {
   let n = 0;
-  const c = settings().commission / 100;
   for (const p of Object.values(l.positions)) {
     if (p.status !== 'OPEN') continue;
+    const c = (p.commission ?? settings().commission) / 100;
     const m = demoMatchById(p.matchId);
     if (!m || liveState(m).status !== 'FT') continue;
     const win = winsSelection(p.market, p.selection, m.final);
-    const gross = r2(p.legs.reduce((x, leg) => x + legPL(leg, win), 0));
-    const commission = gross > 0 ? r2(gross * c) : 0;
+    const gross = cents(p.legs.reduce((x, leg) => x + legPL(leg, win), 0));
+    const commission = gross > 0 ? cents(gross * c) : 0;
     p.status = 'SETTLED'; p.outcome = win ? 'WIN' : 'LOSE'; p.score = m.final.join('–'); p.net = r2(gross - commission); p.settledAt = new Date().toISOString();
     ledgerAppend(l, {type: 'SETTLE', position: p.id, net: p.net, gross, commission, text: `Regolata ${p.score}: ${win ? 'selezione vincente' : 'selezione perdente'}`});
     n++;
@@ -1234,8 +1297,10 @@ const LOCAL_TOOLS = {
 function num(v, label, min = -Infinity, max = Infinity) {
   const x = Number(String(v ?? '').trim().replace(',', '.'));
   if (String(v ?? '').trim() === '' || !Number.isFinite(x)) throw new Error(`${label}: valore obbligatorio.`);
-  if (x < min) throw new Error(`${label}: deve essere almeno ${nf(min, min % 1 ? 2 : 0)}.`);
-  if (x > max) throw new Error(`${label}: deve essere al massimo ${nf(max, max % 1 ? 2 : 0)}.`);
+  // Lower bounds like 1.0001 or 0.0001 stand for "strictly greater than"; say so instead of showing the epsilon.
+  const strict = min % 1 && String(min).length > 4;
+  if (x < min) throw new Error(strict ? `${label}: deve essere maggiore di ${nf(Math.floor(min), 0)}.` : `${label}: deve essere almeno ${nf(min, min % 1 ? 2 : 0)}.`);
+  if (x > max) throw new Error(max % 1 && String(max).length > 5 ? `${label}: deve essere minore di ${nf(Math.ceil(max), 0)}.` : `${label}: deve essere al massimo ${nf(max, max % 1 ? 2 : 0)}.`);
   return x;
 }
 
@@ -1252,8 +1317,14 @@ async function apiGet(path, {timeout = 15000} = {}) {
   catch { throw new ApiFailure(0, 'NETWORK', 'rete non raggiungibile'); }
   finally { clearTimeout(t); }
   const body = await res.json().catch(() => null);
+  if (res.status === 401) goLogin();
   if (!res.ok) throw new ApiFailure(res.status, body?.error?.code, body?.error?.message);
   return body;
+}
+// A 401 means the owner session is missing or expired (F-05): go to the login page and come back here, as on main.
+function goLogin() {
+  if (APP.testing) return;
+  location.assign(`/login?next=${encodeURIComponent(location.pathname + location.hash)}`);
 }
 async function apiPost(path, data) {
   let res;
@@ -1263,9 +1334,15 @@ async function apiPost(path, data) {
   if (!res.ok) throw new ApiFailure(res.status, body?.error?.code, body?.error?.message);
   return {status: res.status, data: body?.data ?? null};
 }
+// REAL when this page is served by the MatchPilot server. A 401 is still the MatchPilot server, with the owner login
+// enforced: it is REAL and leads to the login page, never a silent switch to DEMO (F-04).
 async function detectReal() {
   if (!/^https?:$/.test(location.protocol)) return null;
-  try { const b = await apiGet('/api/v1/health', {timeout: 2500}); return b?.api_version === 'v1' ? b : null; } catch { return null; }
+  let res;
+  try { res = await fetch('/api/v1/health', {headers: {accept: 'application/json'}, credentials: 'same-origin'}); } catch { return null; }
+  if (res.status === 401) { const b = await res.json().catch(() => null); if (b?.api_version === 'v1' || b?.error) { goLogin(); return {authRequired: true}; } return null; }
+  const b = await res.json().catch(() => null);
+  return res.ok && b?.api_version === 'v1' ? b : null;
 }
 const isReal = () => APP.mode === 'REAL';
 const n0 = v => v === null || v === undefined || v === '' ? null : Number(v);
@@ -1327,7 +1404,7 @@ const REAL = {
     const {params, why} = toRealParams(def);
     if (!params) throw new ApiFailure(400, 'NOT_SUPPORTED_REAL', why);
     const q = {...params, from: cfg.from, to: cfg.to, stake: cfg.stake, commission: cfg.commission ? String(Number(cfg.commission) / 100) : undefined,
-      bankroll: cfg.mm_model ? cfg.bankroll : undefined, mm_model: cfg.mm_model || undefined, mm_value: cfg.mm_model ? cfg.mm_value : undefined, max_events: 1000};
+      bankroll: cfg.mm_model ? cfg.bankroll : undefined, mm_model: cfg.mm_model || undefined, mm_value: cfg.mm_model ? cfg.mm_value : undefined, max_events: 1000, pit_mode: cfg.pit_mode === 'NON_PIT_RESEARCH' ? 'NON_PIT_RESEARCH' : undefined};
     const b = await apiGet(`/api/v1/hist/backtest${qs(q)}`, {timeout: 60000});
     return {...fromRealReport(b.data, def, cfg), query: q};
   },
@@ -1364,7 +1441,7 @@ function fromRealReport(data, def, cfg) {
   return {kind: 'BACKTEST', src: 'REAL', def, cfg, events: rep.counts?.events ?? null, bets, won: m.won ?? 0, lost: m.lost ?? 0, skipped: rep.counts?.no_trade_by_reason ?? {},
     staked: n0(m.staked), exposure: n0(m.exposure), plGross: n0(m.rounded?.pl_gross), commission: n0(m.rounded?.commission), plNet: n0(m.rounded?.pl_net), roi: n0(m.rounded?.roi),
     strike: m.bets ? m.won / m.bets : null, avgOdds: bets.length ? bets.reduce((x, b) => x + b.odds, 0) / bets.length : null, maxDrawdown: n0(m.rounded?.max_drawdown),
-    finalCash: n0(rep.bankroll?.final_cash), byMonth: {}, curve, status: rep.status, certified: rep.certification?.certified ?? false, report_sha256: rep.report_sha256, ranAt: new Date().toISOString()};
+    finalCash: n0(rep.bankroll?.final_cash), byMonth: {}, curve, pit: data?.pit_mode ?? rep.config?.pit_mode ?? 'PIT', status: rep.status, certified: rep.certification?.certified ?? false, report_sha256: rep.report_sha256, ranAt: new Date().toISOString()};
 }
 // DEMO adapter with the same interface (synchronous data wrapped in promises, to keep one code path).
 const DEMO = {
@@ -1376,10 +1453,6 @@ const DATA = {day: d => (isReal() ? REAL : DEMO).day(d), analysis: id => (isReal
   competitions: () => (isReal() ? REAL : DEMO).competitions()};
 // Local libraries of the DEMO mode (strategies, saved simulations, MM profiles), in this browser only.
 const lib = {
-  strategies: () => store.get('strategies', []),
-  saveStrategies: list => store.set('strategies', list),
-  saved: () => store.get('saved', []),
-  setSaved: list => store.set('saved', list),
   profiles: () => store.get('profiles', null) ?? defaultProfiles(),
   setProfiles: list => store.set('profiles', list),
 };
@@ -1400,7 +1473,9 @@ function refusalText(e) {
 
 
 // ================================================================ shell (UI-02)
-const compFilter = () => store.get('compFilter', []);
+// The campionati filter is kept per data source: DEMO and REAL competitions have different ids (F-06).
+const FILTER_KEY = () => `compFilter.${APP.mode}`;
+const compFilter = () => store.get(FILTER_KEY(), []);
 const passesFilter = m => { const f = compFilter(); return !f.length || f.includes(m.comp.id); };
 const NAV_ICON = {dashboard: 'home', calendar: 'cal', matches: 'list', competitions: 'trophy', live: 'live', copilot: 'pilot', analysis: 'chart', replay: 'replay',
   strategies: 'rules', backtest: 'flask', paper: 'wallet', money: 'coins', tools: 'calc', settings: 'gear', session: 'user', diagnostics: 'pulse', coverage: 'check'};
@@ -1412,6 +1487,8 @@ function buildShell() {
   search.addEventListener('input', () => globalSearch(search));
   search.addEventListener('focus', () => { if (search.value.trim()) globalSearch(search); });
   search.addEventListener('keydown', e => searchKeys(e, search));
+  // «Salta al contenuto» (F-20): a button, because a link to #view would be read as a route by the hash router.
+  const skip = h('button', {class: 'skip', type: 'button', ctl: 'CTL-SKIP', onclick: () => $('#view').focus()}, 'Salta al contenuto');
   const top = h('header', {class: 'topbar'},
     h('button', {class: 'iconbtn burger', type: 'button', 'aria-label': 'Apri il menu', 'aria-expanded': 'false', ctl: 'CTL-NAV-BURGER', onclick: e => {
       const open = !document.body.classList.contains('navopen');
@@ -1439,10 +1516,10 @@ function buildShell() {
     [['dashboard', 'Oggi', 'CTL-BOT-DASH'], ['live', 'Live', 'CTL-BOT-LIVE'], ['strategies', 'Strategie', 'CTL-BOT-STRAT'], ['tools', 'Strumenti', 'CTL-BOT-TOOLS']]
       .map(([id, text, c]) => h('a', {href: href(id), 'data-nav': id, ctl: c}, icon(NAV_ICON[id], 20), text)),
     h('button', {type: 'button', ctl: 'CTL-BOT-MORE', 'aria-label': 'Tutte le sezioni', onclick: () => { document.body.classList.add('navopen'); $('.side a')?.focus(); }}, icon('grid', 20), 'Altro'));
-  const app = h('div', {class: 'app'}, top, side, h('div', {class: 'scrim', onclick: () => document.body.classList.remove('navopen')}),
+  const app = h('div', {class: 'app'}, skip, top, side, h('div', {class: 'scrim', onclick: () => document.body.classList.remove('navopen')}),
     h('main', {id: 'view', tabindex: '-1'}), bottom);
   $('#root').replaceChildren(app);
-  const tick = () => { const c = $('#clock'); if (c) { c.textContent = new Date(nowMs()).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit', second: '2-digit'}); c.title = APP.clockOffset && !isReal() ? 'Orologio DEMO spostato (Diagnostica)' : 'Ora locale'; c.classList.toggle('warn', !!APP.clockOffset && !isReal()); } };
+  const tick = () => { const c = $('#clock'); if (c) { c.textContent = new Date(nowMs()).toLocaleTimeString('it-IT', {timeZone: TZ(), hour: '2-digit', minute: '2-digit', second: '2-digit'}); c.title = APP.clockOffset && !isReal() ? 'Orologio DEMO spostato (Diagnostica)' : 'Ora locale'; c.classList.toggle('warn', !!APP.clockOffset && !isReal()); } };
   tick(); setInterval(tick, 1000);
   updateLiveCount(); setInterval(updateLiveCount, 30000);
   document.body.classList.toggle('dev', !!settings().show_issues);
@@ -1476,19 +1553,21 @@ function setMode(mode) {
   const b = $('#modebtn'); b.className = `mode ${mode}`; b.textContent = mode;
   closeMenus(); updateLiveCount(); toast(mode === 'REAL' ? 'Dati reali dall’API v1' : 'Dati dimostrativi (DEMO)'); render();
 }
-function filterMenu(btn) {
+async function filterMenu(btn) {
   const sel = new Set(compFilter());
-  const comps = COMPS;
-  const m = menuAt(btn, [h('div', {class: 'small', style: {padding: '6px 10px'}}, h('b', {}, 'Campionati mostrati'), h('div', {class: 'muted xs'}, 'Vale per Dashboard, Calendario, Partite e Live.')), h('hr'),
-    comps.map(c => h('label', {class: 'mi'}, h('span', {}, c.name, h('span', {class: 'muted xs'}, ` · ${c.country}`)),
+  let comps;
+  try { comps = await DATA.competitions(); } catch { toast('Elenco dei campionati non disponibile', 'bad'); return; }
+  const key = FILTER_KEY();
+  const m = menuAt(btn, [h('div', {class: 'small', style: {padding: '6px 10px'}}, h('b', {}, `Campionati mostrati (${APP.mode})`), h('div', {class: 'muted xs'}, 'Vale per Dashboard, Calendario, Partite e Live.')), h('hr'),
+    comps.length ? comps.map(c => h('label', {class: 'mi'}, h('span', {}, c.name, h('span', {class: 'muted xs'}, ` · ${c.country}`)),
       h('input', {type: 'checkbox', checked: !sel.size || sel.has(c.id), ctl: 'CTL-FILTER-COMP', 'data-comp': c.id, onchange: e => {
         const all = new Set(sel.size ? sel : comps.map(x => x.id));
         if (e.target.checked) all.add(c.id); else all.delete(c.id);
         if (!all.size) { e.target.checked = true; toast('Almeno un campionato deve restare selezionato', 'bad'); return; }
         sel.clear(); if (all.size < comps.length) all.forEach(x => sel.add(x));
-        store.set('compFilter', [...sel]); updateLiveCount(); render();
-      }}))),
-    h('hr'), h('button', {class: 'mi', type: 'button', ctl: 'CTL-FILTER-ALL', onclick: () => { store.set('compFilter', []); closeMenus(); updateLiveCount(); render(); toast('Tutti i campionati'); }}, 'Mostra tutti')]);
+        store.set(key, [...sel]); updateLiveCount(); render();
+      }}))) : h('div', {class: 'muted small', style: {padding: '6px 10px'}}, 'Nessun campionato nei dati.'),
+    h('hr'), h('button', {class: 'mi', type: 'button', ctl: 'CTL-FILTER-ALL', onclick: () => { store.set(key, []); closeMenus(); updateLiveCount(); render(); toast('Tutti i campionati'); }}, 'Mostra tutti')]);
   if (m) m.style.maxHeight = '70vh', m.style.overflow = 'auto';
 }
 function accountMenu(btn) {
@@ -1804,11 +1883,20 @@ view({id: 'matches', title: 'Partite', phase: 'UI-03', issues: ['#3', '#30'], lo
     h('button', {class: 'btn', type: 'button', ctl: 'CTL-MATCHES-RESET', onclick: () => go('matches', {})}, 'Azzera')));
   const headNodes = [head('Partite', {sub: 'Ricerca avanzata con filtri combinati', chips: [chip(isReal() ? 'REAL' : 'DEMO')], issues: ['UI-03', '#30']}), dataStrip(isReal() ? 'REAL' : 'DEMO'), form];
   if (errors.length) return [...headNodes, h('div', {class: 'state error', role: 'alert', 'data-testid': 'matches-invalid'}, errors.join(' '))];
-  let rows = [];
+  let rows = [], truncated = false;
   if (isReal()) {
-    const q = {from, before: addDays(to, 1), competition: v('comp'), fav_min: v('fav_min'), fav_max: v('fav_max'), min_goals: v('goals_min'), max_goals: v('goals_max'), limit: 500};
+    const q = {from, before: addDays(to, 1), competition: v('comp'), fav_min: v('fav_min'), fav_max: v('fav_max'), min_goals: v('goals_min'), max_goals: v('goals_max'),
+      min_xg_total: v('xg_min'), result: {FT: 'FINAL', NS: 'NOT_STARTED'}[v('status')], limit: 500};
     if (v('team')) { const t = (await apiGet(`/api/v1/fpt/teams${qs({q: v('team')})}`)).data?.rows ?? []; if (!t.length) return [...headNodes, emptyState(`Nessuna squadra «${v('team')}».`)]; q.team = t[0].internal_team_id; }
-    rows = ((await apiGet(`/api/v1/fpt/search${qs(q)}`)).data?.rows ?? []).map(fromRealRow);
+    // Keyset pagination (MP-WEB-007): follow next_cursor up to a bound and say so when the result is cut.
+    const MAX_PAGES = 10;
+    for (let n = 0, cursor; n < MAX_PAGES; n++) {
+      const d = (await apiGet(`/api/v1/fpt/search${qs({...q, cursor})}`)).data;
+      rows.push(...(d?.rows ?? []).map(fromRealRow));
+      cursor = d?.next_cursor;
+      if (!cursor) break;
+      if (n === MAX_PAGES - 1) truncated = true;
+    }
   } else {
     for (let d = from; d <= to; d = addDays(d, 1)) rows.push(...demoDay(d).map(withState));
   }
@@ -1825,18 +1913,19 @@ view({id: 'matches', title: 'Partite', phase: 'UI-03', issues: ['#3', '#30'], lo
   const set = patch => updateParams('matches', params, patch);
   const sortTh = (k, text, cls = '') => h('th', {class: `sortable ${cls}`, 'aria-sort': sortKey === k ? (dir === 1 ? 'ascending' : 'descending') : 'none'},
     h('button', {type: 'button', ctl: 'CTL-MATCHES-SORT', 'data-key': k, onclick: () => set({sort: k, dir: sortKey === k && dir === 1 ? 'desc' : 'asc', page: 1})}, text, sortKey === k ? (dir === 1 ? ' ▲' : ' ▼') : ''));
-  const cols = ['Data', 'Partita', 'Campionato', 'Ris.', '1', 'X', '2', 'Fav.', 'xG'];
+  const cols = ['Data', 'Partita', 'Campionato', 'Ris.', '1', 'X', '2', 'Fav.', xgLab(isReal() ? 'REAL' : 'DEMO')];
   const csv = () => {
-    const lines = [['data', 'ora', 'campionato', 'casa', 'ospite', 'stato', 'gol_casa', 'gol_ospite', 'q1', 'qx', 'q2', 'xg_casa', 'xg_ospite'].join(';'),
+    const lines = [['data', 'ora', 'campionato', 'casa', 'ospite', 'stato', 'gol_casa', 'gol_ospite', 'q1', 'qx', 'q2', ...(isReal() ? ['xg_casa', 'xg_ospite'] : ['xg_casa_demo', 'xg_ospite_demo'])].join(';'),
       ...rows.map(m => [m.date, m.ko, m.comp.name, m.home, m.away, m.status, m.score?.[0] ?? '', m.score?.[1] ?? '', m.odds.h ?? '', m.odds.d ?? '', m.odds.a ?? '', m.xg[0] ?? '', m.xg[1] ?? ''].join(';'))];
     download(`matchpilot-partite-${from}-${to}.csv`, lines.join('\n'), 'text/csv');
     toast(`Esportate ${rows.length} partite`, 'ok');
   };
   return [...headNodes,
+    truncated ? h('div', {class: 'state partial', role: 'status', 'data-testid': 'matches-truncated'}, `Risultato troncato alle prime ${nint(rows.length)} partite lette dal server: restringi il periodo o i filtri.`) : null,
     h('section', {class: 'card', 'data-testid': 'matches-results', 'data-count': rows.length},
       h('h2', {}, `${nint(rows.length)} partite`, h('span', {class: 'right row'}, h('button', {class: 'btn sm', type: 'button', ctl: 'CTL-MATCHES-CSV', disabled: !rows.length, onclick: csv}, 'Esporta CSV'))),
       rows.length ? [h('div', {class: 'tablewrap'}, h('table', {class: 'cards'}, h('thead', {}, h('tr', {}, sortTh('date', 'Data'), sortTh('home', 'Partita'), sortTh('comp', 'Campionato'),
-        sortTh('goals', 'Ris.', 'n'), h('th', {class: 'n'}, '1'), h('th', {class: 'n'}, 'X'), h('th', {class: 'n'}, '2'), sortTh('fav', 'Fav.', 'n'), sortTh('xg', 'xG', 'n'))),
+        sortTh('goals', 'Ris.', 'n'), h('th', {class: 'n'}, '1'), h('th', {class: 'n'}, 'X'), h('th', {class: 'n'}, '2'), sortTh('fav', 'Fav.', 'n'), sortTh('xg', xgLab(isReal() ? 'REAL' : 'DEMO'), 'n'))),
       h('tbody', {}, shown.map(m => h('tr', {'data-match': m.id}, [
         h('td', {}, dayShort(m.date), ' ', h('span', {class: 'muted'}, m.ko)), h('td', {}, h('a', {href: href('match', {id: m.id}), ctl: 'CTL-MATCH-OPEN'}, `${m.home} – ${m.away}`)),
         h('td', {}, m.comp.name), h('td', {class: 'n'}, m.score ? scoreText(m) : STATUS_TEXT[m.status]), h('td', {class: 'n'}, odd(m.odds.h)), h('td', {class: 'n'}, odd(m.odds.d)), h('td', {class: 'n'}, odd(m.odds.a)),
@@ -1933,7 +2022,7 @@ view({id: 'match', title: 'Match Center', navAs: 'dashboard', hiddenFromSearch: 
       h('span', {class: 'tm r'}, h('b', {}, m.away), formChips(recent('away'), `Forma di ${m.away}`))),
     h('div', {class: 'odds'}, oddBox('1', prices.h), oddBox('X', prices.d), oddBox('2', prices.a), oddBox('Over 2,5', prices.o25), oddBox('Under 2,5', prices.u25), oddBox('Gol', prices.btts)),
     h('div', {class: 'row', style: {marginTop: '10px', justifyContent: 'space-between'}},
-      h('span', {class: 'small muted'}, 'Favorito ', h('b', {style: {color: 'var(--text)'}}, m.fav ? `${m.fav === 'HOME' ? m.home : m.away} ${odd(m.favOdds)}` : ND), ' · xG ', h('b', {style: {color: 'var(--text)'}}, isNum(m.xg[0]) ? `${nf(m.xg[0])} – ${nf(m.xg[1])}` : ND)),
+      h('span', {class: 'small muted'}, 'Favorito ', h('b', {style: {color: 'var(--text)'}}, m.fav ? `${m.fav === 'HOME' ? m.home : m.away} ${odd(m.favOdds)}` : ND), ` · ${xgLab(m.src)} `, h('b', {style: {color: 'var(--text)'}}, isNum(m.xg[0]) ? `${nf(m.xg[0])} – ${nf(m.xg[1])}` : ND)),
       h('div', {class: 'row'},
         spoil ? h('button', {class: 'btn sm', type: 'button', ctl: 'CTL-MC-REVEAL', onclick: () => set({reveal: 1})}, 'Mostra il risultato') : null,
         h('a', {class: 'btn sm', href: href('analysis', {match: m.id}), ctl: 'CTL-MC-ANALYSIS'}, 'Analisi completa'),
@@ -1962,7 +2051,7 @@ function mcOverview(a, set) {
   cards.push(h('section', {class: 'card', 'data-testid': 'mc-preview'}, h('h2', {}, 'Pre-partita: ultime 10 (casa/trasferta)'),
     H || A ? cmpRows(m, H, A) : emptyState('Statistiche non disponibili.'),
     h('div', {class: 'row', style: {marginTop: '10px'}}, h('button', {class: 'btn sm', type: 'button', ctl: 'CTL-MC-GOCOMPARE', onclick: () => set({tab: 'compare'})}, 'Confronto completo'),
-      isNum(m.xg[0]) ? h('a', {class: 'btn sm', href: href('tools', {tool: 'poisson', xg_home: m.xg[0], xg_away: m.xg[1], run: 1}), ctl: 'CTL-MC-TOOL-POISSON'}, 'Poisson dagli xG') : null,
+      isNum(m.xg[0]) ? h('a', {class: 'btn sm', href: href('tools', {tool: 'poisson', xg_home: m.xg[0], xg_away: m.xg[1], run: 1}), ctl: 'CTL-MC-TOOL-POISSON'}, `Poisson dagli ${xgLab(m.src)}`) : null,
       isNum(m.odds.h) ? h('a', {class: 'btn sm', href: href('tools', {tool: 'odds', odds: `${m.odds.h} ${m.odds.d} ${m.odds.a}`, run: 1}), ctl: 'CTL-MC-TOOL-ODDS'}, 'Margine 1X2') : null)));
   return h('div', {class: 'grid g2'}, cards);
 }
@@ -1970,7 +2059,7 @@ function cmpRows(m, H, A) {
   const rows = [['n', 'Partite', s => nint(s.n)], ['pWon', 'Vittorie', s => pct(s.pWon)], ['pDrawn', 'Pareggi', s => pct(s.pDrawn)], ['pLost', 'Sconfitte', s => pct(s.pLost)],
     ['gfAvg', 'Gol fatti a partita', s => nf(s.gfAvg)], ['gaAvg', 'Gol subiti a partita', s => nf(s.gaAvg)], ['pOver15', 'Over 1,5', s => pct(s.pOver15)], ['pOver25', 'Over 2,5', s => pct(s.pOver25)],
     ['pOver35', 'Over 3,5', s => pct(s.pOver35)], ['pBtts', 'Entrambe segnano', s => pct(s.pBtts)], ['pCs', 'Porta inviolata', s => pct(s.pCs)], ['pFts', 'Senza segnare', s => pct(s.pFts)],
-    ['xgfAvg', 'xG fatti a partita', s => nf(s.xgfAvg)], ['xgaAvg', 'xG subiti a partita', s => nf(s.xgaAvg)], ['pFirstGoal', 'Primo gol segnato', s => pct(s.pFirstGoal)]];
+    ['xgfAvg', `${xgLab(m.src)} fatti a partita`, s => nf(s.xgfAvg)], ['xgaAvg', `${xgLab(m.src)} subiti a partita`, s => nf(s.xgaAvg)], ['pFirstGoal', 'Primo gol segnato', s => pct(s.pFirstGoal)]];
   const higherIsBetter = new Set(['pWon', 'gfAvg', 'xgfAvg', 'pCs', 'pFirstGoal']);
   const lowerIsBetter = new Set(['pLost', 'gaAvg', 'xgaAvg', 'pFts']);
   return h('div', {'data-testid': 'cmp-rows'}, h('div', {class: 'cmp'}, h('b', {}, H ? m.home : ''), h('span', {class: 'l'}, ''), h('b', {style: {textAlign: 'right'}}, A ? m.away : '')),
@@ -1988,7 +2077,7 @@ function mcStats(m) {
     h('b', {class: 'mono'}, fmt(a)), h('div', {}, h('div', {class: 'small muted', style: {textAlign: 'center'}}, label), h('div', {class: 'bar2'}, h('i', {style: {width: `${a + b ? a / (a + b) * 100 : 50}%`}}), h('i', {style: {width: `${a + b ? b / (a + b) * 100 : 50}%`}}))),
     h('b', {class: 'mono', style: {textAlign: 'right'}}, fmt(b)));
   return [chip('DEMO'), h('section', {class: 'card', 'data-testid': 'mc-stats', style: {marginTop: '10px'}}, h('h2', {}, `Statistiche ${m.status === 'FT' ? 'finali' : `al ${m.minute}'`}`),
-    line('Possesso %', st.poss), line('Tiri', st.shots), line('Tiri in porta', st.sot), line('Attacchi pericolosi', st.da), line('Calci d’angolo', st.corners), line('Cartellini', st.cards), line('xG', st.xg, x => nf(x))),
+    line('Possesso %', st.poss), line('Tiri', st.shots), line('Tiri in porta', st.sot), line('Attacchi pericolosi', st.da), line('Calci d’angolo', st.corners), line('Cartellini', st.cards), line(xgLab('DEMO'), st.xg, x => nf(x))),
   h('section', {class: 'card'}, h('h2', {}, 'Momentum'), momentumChart(m, m.status === 'FT' ? 90 : m.minute))];
 }
 function momentumChart(m, upTo) {
@@ -2051,7 +2140,7 @@ function barChart(labels, series) {
 }
 function mcH2h(a) {
   const rows = a.h2h ?? [];
-  return h('section', {class: 'card', 'data-testid': 'mc-h2h'}, h('h2', {}, 'Precedenti'), rows.length ? h('div', {class: 'tablewrap'}, h('table', {}, h('thead', {}, h('tr', {}, ['Data', 'Partita', 'Risultato', 'xG'].map(x => h('th', {}, x)))),
+  return h('section', {class: 'card', 'data-testid': 'mc-h2h'}, h('h2', {}, 'Precedenti'), rows.length ? h('div', {class: 'tablewrap'}, h('table', {}, h('thead', {}, h('tr', {}, ['Data', 'Partita', 'Risultato', xgLab(rows.every(x => x.src === 'REAL') ? 'REAL' : 'DEMO')].map(x => h('th', {}, x)))),
     h('tbody', {}, rows.map(x => h('tr', {}, h('td', {}, dayShort(x.date)), h('td', {}, h('a', {href: href('match', {id: x.id}), ctl: 'CTL-MATCH-OPEN'}, `${x.home} – ${x.away}`)),
       h('td', {class: 'n'}, x.final ? `${x.final[0]}–${x.final[1]}` : ND), h('td', {class: 'n'}, isNum(x.xg?.[0]) ? `${nf(x.xg[0])} – ${nf(x.xg[1])}` : ND))))))
     : emptyState('Nessun precedente prima di questa data.'));
@@ -2091,8 +2180,11 @@ function tradeDialog(m, pre = {}) {
     const o = Number(oddsIn.value), s0 = Number(stakeIn.value);
     out.replaceChildren(o > 1 && s0 > 0
       ? h('dl', {class: 'kv'}, h('dt', {}, 'Responsabilità'), h('dd', {}, money(liabilityOf(side.value, o, s0))), h('dt', {}, 'Se la selezione vince'), h('dd', {}, signed(legPL({side: side.value, odds: o, stake: s0}, true))),
-        h('dt', {}, 'Se la selezione perde'), h('dd', {}, signed(legPL({side: side.value, odds: o, stake: s0}, false))), h('dt', {}, 'Disponibile'), h('dd', {}, money(st.available)))
+        h('dt', {}, 'Se la selezione perde'), h('dd', {}, signed(legPL({side: side.value, odds: o, stake: s0}, false))), h('dt', {}, 'Disponibile'), h('dd', {}, money(st.available)),
+        h('dt', {}, 'Commissione'), h('dd', {}, `${nf(settings().commission)}% (${settings().exchange})`))
       : h('span', {class: 'muted'}, 'Inserisci quota e puntata.'));
+    const lim = o > 1 && s0 > 0 ? ledgerLimits(l, {side: side.value, odds: o, stake: s0, profile: prof?.id}) : [];
+    if (lim.length) out.append(h('div', {class: 'state partial', 'data-testid': 'trade-limits', style: {marginTop: '8px'}}, `Bloccata dai limiti: ${lim.join('; ')}.`));
   };
   market.addEventListener('change', () => { fillSel(); evaluate(true); });
   sel.addEventListener('change', () => evaluate(true));
@@ -2157,7 +2249,7 @@ view({id: 'live', title: 'Live Board', phase: 'UI-05', issues: ['#29', '#20'], l
     return h('article', {class: `lcard ${best?.state === 'ARMED' ? 'armed' : ''}`, 'data-match': m.id, 'data-fresh': m.fresh.state},
       h('div', {class: 'top'}, h('span', {}, m.comp.name), h('span', {class: `fresh ${m.fresh.state}`, title: `Ultimo aggiornamento del fornitore ${m.fresh.lag} s fa (DEMO)`}, FRESH_TEXT[m.fresh.state], ` · ${m.fresh.lag} s`)),
       h('div', {class: 'mt'}, h('span', {}, m.home), h('span', {class: 's'}, m.score[0]), h('span', {}, m.away), h('span', {class: 's'}, m.score[1])),
-      h('div', {class: 'row', style: {justifyContent: 'space-between'}}, statusChip(m), h('span', {class: 'xs muted'}, `xG ${nf(st.xg[0])} – ${nf(st.xg[1])}`)),
+      h('div', {class: 'row', style: {justifyContent: 'space-between'}}, statusChip(m), h('span', {class: 'xs muted'}, `${xgLab(m.src)} ${nf(st.xg[0])} – ${nf(st.xg[1])}`)),
       bar('Possesso %', st.poss), bar('Tiri (in porta)', st.sot), bar('Angoli', st.corners), bar('Attacchi pericolosi', st.da),
       m.live ? h('div', {class: 'odds', style: {gridTemplateColumns: 'repeat(4,minmax(0,1fr))'}}, oddBox('1', m.live.h, null, {prev: prev?.h}), oddBox('X', m.live.d, null, {prev: prev?.d}),
         oddBox('2', m.live.a, null, {prev: prev?.a}), oddBox('O 2,5', m.live.o25, 'Over 2,5', {prev: prev?.o25})) : null,
@@ -2303,7 +2395,7 @@ view({id: 'analysis', title: 'Analysis Hub', phase: 'UI-06', issues: ['#30'], lo
   const tableOf = (t, st) => st?.form?.length ? h('ul', {class: 'small', style: {margin: 0, paddingLeft: '18px'}}, st.form.map(f => h('li', {}, f.date ? `${dayShort(f.date)} · ` : '', f.text, ' ',
     h('span', {class: `fm ${f.result}`}, {W: 'V', D: 'N', L: 'P'}[f.result]), ' ', f.id && String(f.id).startsWith('demo:') ? h('a', {href: href('match', {id: f.id}), ctl: 'CTL-AN-MATCH'}, 'apri') : null)))
     : emptyState('Nessuna partita conclusa nel campione.');
-  const fake = {home: teamA, away: teamB ?? ''};
+  const fake = {home: teamA, away: teamB ?? '', src: isReal() ? 'REAL' : 'DEMO'};
   return [headN, match ? dataStrip(match.src) : dataStrip('DEMO'), picker,
     h('p', {class: 'small muted'}, `Campione: ${WIN_OPTS.find(([x]) => x === win)[1]} · ${venue === 'both' ? 'tutte le partite' : venue === 'home' ? 'solo in casa' : 'solo in trasferta'} · partite concluse prima del ${dayShort(before)}.`),
     h('div', {class: 'grid g2', 'data-testid': 'analysis'},
@@ -2361,7 +2453,7 @@ view({id: 'replay', title: 'Replay', phase: 'UI-06', issues: ['#24', '#25'], ren
     const p = now.live;
     oddsEl.replaceChildren(oddBox('1', p?.h), oddBox('X', p?.d), oddBox('2', p?.a), oddBox('O 2,5', p?.o25, 'Over 2,5'));
     const S = now.stats;
-    statsEl.replaceChildren(...[['Possesso %', S.poss], ['Tiri', S.shots], ['Tiri in porta', S.sot], ['Angoli', S.corners], ['Cartellini', S.cards], ['xG', S.xg.map(x => nf(x))]].flatMap(([k, [a, b]]) => [h('dt', {}, k), h('dd', {}, `${a} – ${b}`)]));
+    statsEl.replaceChildren(...[['Possesso %', S.poss], ['Tiri', S.shots], ['Tiri in porta', S.sot], ['Angoli', S.corners], ['Cartellini', S.cards], [xgLab(m.src), S.xg.map(x => nf(x))]].flatMap(([k, [a, b]]) => [h('dt', {}, k), h('dd', {}, `${a} – ${b}`)]));
     tl.replaceChildren(...m.events.filter(e => e.type !== 'CORNER' && (!st.hide || e.min <= st.minute)).map(e => h('div', {class: e.min > st.minute ? 'future' : ''}, h('span', {class: 'min'}, `${e.min}'`),
       h('span', {}, e.type === 'GOAL' ? '⚽' : e.type === 'RED' ? '🟥' : '🟨'), h('span', {}, e.side ? m.away : m.home))),
     ...st.entries.filter(e => e.minute <= st.minute).map(e => h('div', {style: {background: 'var(--lay-bg)'}}, h('span', {class: 'min'}, `${e.minute}'`), h('span', {}, '▶'), h('span', {}, `ENTRY ${e.d.name}: ${SIDE_TEXT[e.d.side]} ${selectionText(e.d.market, e.sel)} @ ${odd(e.price)}`))));
@@ -2422,7 +2514,13 @@ const defContent = d => JSON.stringify({name: d.name.trim(), market: d.market, s
   team: d.team?.trim() ?? '', venue: d.team?.trim() ? d.venue ?? 'ANY' : 'ANY', competitions: [...(d.competitions ?? [])].sort()});
 function saveDemoStrategy(def) {
   const list = lib.strategiesRaw();
-  const key = def.key || slugKey(def.name);
+  let key = def.key;
+  if (!key) {
+    // A new name whose slug is already taken by a different strategy gets its own key, never a version of the other one.
+    const base = slugKey(def.name), sameName = k => list.find(x => x.key === k)?.versions.at(-1)?.def.name.trim() === def.name.trim();
+    key = base;
+    for (let i = 2; list.some(x => x.key === key) && !sameName(key); i++) key = `${base.slice(0, 59)}-${i}`;
+  }
   const clean = JSON.parse(defContent(def));
   let s = list.find(x => x.key === key);
   if (!s) { s = {key, active: false, versions: []}; list.push(s); }
@@ -2446,7 +2544,7 @@ view({id: 'strategies', title: 'Strategy Lab', phase: 'UI-07', issues: ['#34', '
       const data = JSON.parse(await f.text());
       const arr = Array.isArray(data) ? data : [data];
       let n = 0, bad = 0;
-      for (const d of arr) { const def = {...BLANK_DEF, ...d}; if (defIssues(def).length) { bad++; continue; } saveDemoStrategy(def); n++; }
+      for (const d of arr) { const def = {...BLANK_DEF, conditions: [], ...d}; if (defIssues(def).length) { bad++; continue; } saveDemoStrategy(def); n++; }
       toast(`Importate ${n} strategie${bad ? `, ${bad} scartate perché non valide` : ''}`, bad && !n ? 'bad' : 'ok'); render();
     } catch { toast('File non valido: serve un JSON di strategie.', 'bad'); }
   }});
@@ -2620,7 +2718,8 @@ function btResult(res, {saveable = true, query = null} = {}) {
   const cols = ['Data', 'Partita', 'Operazione', 'Quota', 'Puntata', 'Risultato', 'Netto'];
   const shown = res.bets.slice((pg - 1) * size, pg * size);
   return [h('section', {class: 'card', 'data-testid': 'bt-result', 'data-bets': res.bets.length, 'data-src': res.src},
-    h('h2', {}, 'Risultato', chip(res.src), res.src === 'REAL' ? h('span', {class: 'chip warn'}, 'Non certificato') : h('span', {class: 'chip warn'}, 'Dati DEMO: non è una previsione di guadagno')),
+    h('h2', {}, 'Risultato', chip(res.src), h('span', {class: `chip ${(res.pit ?? 'PIT') === 'PIT' ? 'ok' : 'bad'}`, 'data-testid': 'bt-pit', title: (res.pit ?? 'PIT') === 'PIT' ? 'Point-in-time: solo dati noti al momento della decisione' : 'Usa prezzi acquisiti dopo la decisione: risultato esplorativo, non evidenza di redditività'},
+      (res.pit ?? 'PIT') === 'PIT' ? 'PIT' : 'NON_PIT'), res.src === 'REAL' ? h('span', {class: 'chip warn'}, 'Non certificato') : h('span', {class: 'chip warn'}, 'Dati DEMO: non è una previsione di guadagno')),
     h('div', {class: 'grid g4'}, kpi('Profitto netto', signed(res.plNet), `lordo ${signed(res.plGross)} · commissioni ${nf(res.commission)}`, {'data-kpi': 'pl'}),
       kpi('Operazioni', nint(res.bets.length), `${res.won} vinte · ${res.lost} perse`, {'data-kpi': 'bets'}), kpi('Rendimento sul rischio', pct(res.roi), `strike rate ${pct(res.strike)}`, {'data-kpi': 'roi'}),
       kpi('Massimo calo', nf(res.maxDrawdown), `quota media ${odd(res.avgOdds)}`, {'data-kpi': 'dd'})),
@@ -2671,14 +2770,17 @@ view({id: 'backtest', title: 'Simulazioni e backtest', phase: 'UI-08', issues: [
     h('label', {class: 'f'}, 'Capitale iniziale', h('input', {type: 'number', name: 'bankroll', step: '1', min: '1', value: v('bankroll') || st.bankroll, ctl: 'CTL-BT-BANK'})),
     h('label', {class: 'f'}, 'Gestione del capitale', h('select', {name: 'mm_model', ctl: 'CTL-BT-MM'}, h('option', {value: ''}, 'Puntata fissa'),
       MM_MODELS.filter(m => m.status === 'IMPLEMENTED').map(m => h('option', {value: m.id, selected: v('mm_model') === m.id}, m.name)))),
-    h('label', {class: 'f'}, 'Valore della gestione', h('input', {type: 'number', name: 'mm_value', step: '0.01', min: '0.01', value: v('mm_value'), ctl: 'CTL-BT-MMV', placeholder: 'es. 2 = 2%'}))),
+    h('label', {class: 'f'}, 'Valore della gestione', h('input', {type: 'number', name: 'mm_value', step: '0.01', min: '0.01', value: v('mm_value'), ctl: 'CTL-BT-MMV', placeholder: 'es. 2 = 2%'})),
+    // DEC-007: PIT is the default; NON_PIT_RESEARCH is an explicit, labelled research run of the server engine.
+    h('label', {class: 'f'}, 'Punto nel tempo', h('select', {name: 'pit_mode', ctl: 'CTL-BT-PIT', disabled: !isReal(), title: isReal() ? null : 'In DEMO la simulazione usa solo prezzi noti prima della decisione (PIT)'},
+      [['PIT', 'PIT: solo dati noti alla decisione'], ['NON_PIT_RESEARCH', 'NON_PIT: ricerca, non è evidenza']].map(([k, t]) => h('option', {value: k, selected: (v('pit_mode') || 'PIT') === k}, t))))),
   h('div', {class: 'row', style: {marginTop: '12px'}}, h('button', {class: 'btn pri', type: 'submit', ctl: 'CTL-BT-RUN', disabled: !stratOpts.length}, 'Avvia la simulazione'),
     h('a', {class: 'btn', href: href('strategies', {new: 1}), ctl: 'CTL-BT-NEWSTRAT'}, 'Nuova strategia')));
   if (!params.get('run')) return [headN, tabs, dataStrip(isReal() ? 'REAL' : 'DEMO', isReal() ? 'Motore reale /api/v1/hist/backtest (modalità rigorosa).' : 'Archivio DEMO: partite concluse generate nel browser.'), form,
     emptyState('Scegli strategia e periodo, poi avvia la simulazione.')];
   const def = cur === '__draft' ? draft : list.find(d => d.key === cur);
   if (!def) return [headN, tabs, form, h('div', {class: 'state error', role: 'alert'}, 'Strategia non trovata.')];
-  const cfg = {from: v('from'), to: v('to'), stake: v('stake') || st.default_stake, commission: v('commission') || '0', bankroll: v('bankroll') || st.bankroll, mm_model: v('mm_model'), mm_value: v('mm_value')};
+  const cfg = {from: v('from'), to: v('to'), stake: v('stake') || st.default_stake, commission: v('commission') || '0', bankroll: v('bankroll') || st.bankroll, mm_model: v('mm_model'), mm_value: v('mm_value'), pit_mode: isReal() ? v('pit_mode') || 'PIT' : 'PIT'};
   if (cfg.mm_model && !(Number(cfg.mm_value) > 0)) return [headN, tabs, form, h('div', {class: 'state error', role: 'alert', 'data-testid': 'bt-invalid'}, 'Valore della gestione: obbligatorio con un modello di gestione del capitale.')];
   let res;
   const runKey = JSON.stringify([def, cfg, isReal()]);
@@ -2795,7 +2897,7 @@ view({id: 'paper', title: 'Paper trading', phase: 'UI-09', issues: ['#99', '#96'
   strip('DEMO', 'Denaro simulato, conto in questo browser. Nessun ordine reale.'),
   h('div', {class: 'grid g4', style: {marginBottom: '14px'}, 'data-testid': 'paper-kpi'},
     kpi('Disponibile', money(st.available), `cassa ${money(st.cash)}`, {'data-kpi': 'available'}), kpi('Impegnato', money(st.reserved), `${st.open} posizioni aperte`, {'data-kpi': 'reserved'}),
-    kpi('Profitto realizzato', signed(st.realized), `commissioni ${nf(st.commission)}`, {'data-kpi': 'realized'}), kpi('Registro', st.reconciled ? 'In pari' : 'Da verificare', `${st.entries} movimenti`, {'data-kpi': 'reconciled'})),
+    kpi('Profitto realizzato', signed(st.realized), `commissioni ${nf(st.commission)}`, {'data-kpi': 'realized'}), kpi('Registro', st.reconciled ? 'In pari' : 'Da verificare', `${st.entries} movimenti · posizioni regolate ${signed(st.fromPositions)}`, {'data-kpi': 'reconciled'})),
   h('div', {class: 'grid g2'},
     h('section', {class: 'card', 'data-testid': 'paper-mode', 'data-mode': l.mode}, h('h2', {}, 'Operatività', h('span', {class: `right chip ${l.mode === 'ACTIVE_OPERATIONAL' ? 'ok' : 'warn'}`}, MODES[l.mode])),
       h('div', {class: 'row'}, modeBtn('ADVISORY_ONLY', 'STOP operazioni', 'CTL-PAPER-STOP', 'danger'), modeBtn('ACTIVE_OPERATIONAL', 'Riprendi', 'CTL-PAPER-RESUME'), modeBtn('PAUSED', 'Pausa', 'CTL-PAPER-PAUSE')),
@@ -2816,15 +2918,15 @@ view({id: 'paper', title: 'Paper trading', phase: 'UI-09', issues: ['#99', '#96'
     h('td', {}, p.id), h('td', {}, p.label), h('td', {}, `${SIDE_TEXT[p.side]} ${selectionText(p.market, p.selection)}`), h('td', {}, p.score), h('td', {class: `n ${p.net >= 0 ? 'ok' : 'bad'}`}, signed(p.net)))))))
     : emptyState('Nessuna posizione regolata.')),
   h('section', {class: 'card', 'data-testid': 'paper-ledger'}, h('h2', {}, 'Registro (append-only)', h('span', {class: 'right row'},
-    h('select', {ctl: 'CTL-PAPER-LEDGER-TYPE', 'aria-label': 'Tipo di movimento', onchange: e => go('paper', {ltype: e.target.value})}, [['', 'Tutti'], ['ALLOCATE', 'Capitale'], ['OPEN', 'Aperture'], ['HEDGE', 'Coperture'], ['SETTLE', 'Regolamenti'], ['MODE', 'Operatività']]
+    h('select', {ctl: 'CTL-PAPER-LEDGER-TYPE', 'aria-label': 'Tipo di movimento', onchange: e => go('paper', {ltype: e.target.value})}, [['', 'Tutti'], ['ALLOCATE', 'Capitale'], ['OPEN', 'Aperture'], ['HEDGE', 'Coperture'], ['SETTLE', 'Regolamenti'], ['MODE', 'Operatività'], ['RESET', 'Azzeramenti']]
       .map(([k, t]) => h('option', {value: k, selected: ltype === k}, t))),
     h('button', {class: 'btn sm', type: 'button', ctl: 'CTL-PAPER-CSV', onclick: () => download('matchpilot-registro.csv', ['seq;quando;tipo;descrizione;netto', ...l.entries.map(e => [e.seq, e.at, e.type, e.text, e.net ?? e.amount ?? ''].join(';'))].join('\n'), 'text/csv')}, 'Esporta CSV'),
     h('button', {class: 'btn sm danger', type: 'button', ctl: 'CTL-PAPER-RESET', onclick: async () => {
       const amount = await promptDialog('Azzera il conto simulato', 'Nuovo capitale iniziale', {value: String(settings().bankroll), ctlInput: 'CTL-PAPER-RESET-AMOUNT', ctlOk: 'CTL-PAPER-RESET-OK', ok: 'Azzera'});
       if (amount === null) return;
       const n = Number(amount.replace(',', '.'));
-      if (!(n > 0)) { toast('Capitale non valido', 'bad'); return; }
-      ledgerCreate(n); toast('Conto azzerato', 'ok'); render();
+      const r = ledgerReset(ledgerLoad(), n);
+      toast(r.error ?? 'Conto azzerato: storico conservato nel registro', r.error ? 'bad' : 'ok'); render();
     }}, 'Azzera conto'))),
   h('div', {class: 'tablewrap'}, h('table', {class: 'cards'}, h('thead', {}, h('tr', {}, ledCols.map(c => h('th', {}, c)))), h('tbody', {}, entries.slice(0, 50).map(e => h('tr', {'data-type': e.type}, [
     h('td', {}, String(e.seq)), h('td', {}, when(e.at)), h('td', {}, e.type), h('td', {}, e.text ?? ''), h('td', {class: 'n'}, e.net !== undefined ? signed(e.net) : e.amount !== undefined ? money(e.amount) : '')]
@@ -2882,9 +2984,10 @@ view({id: 'money', title: 'Money Management', phase: 'UI-09', issues: ['#96'], r
         h('dt', {}, 'Limiti intervenuti'), h('dd', {}, r.capsHit?.length ? r.capsHit.map(c => CAP_TEXT[c] ?? c).join(', ') : 'nessuno')),
       r.reasons?.length ? h('p', {class: 'small warn'}, r.reasons.join(' · ')) : null));
   };
-  return [head('Money Management', {sub: 'Modelli, profili con versioni immutabili, calcolo della puntata', chips: [chip(isReal() ? 'REAL' : 'DEMO')], issues: ['UI-09', '#96'],
+  return [head('Money Management', {sub: 'Modelli, profili con versioni immutabili, calcolo della puntata', chips: [chip(isReal() ? 'MIXED' : 'DEMO')], issues: ['UI-09', '#96'],
     actions: [h('button', {class: 'btn pri', type: 'button', ctl: 'CTL-MM-NEW', onclick: () => profileDialog(null)}, 'Nuovo profilo')]}),
-  strip('DEMO', 'Profili salvati in questo browser. I modelli utilizzabili sono i 4 con formula definita dall’owner; gli altri restano «da definire».'),
+  isReal() ? strip('MIXED', 'Provenienza mista: i profili sono salvati in questo browser (DEMO, l’API dei profili non esiste ancora); il calcolo della puntata è eseguito dal server (REAL, /api/v1/mm/stake).')
+    : strip('DEMO', 'Profili salvati in questo browser. I modelli utilizzabili sono i 4 con formula definita dall’owner; gli altri restano «da definire».'),
   h('section', {class: 'card', 'data-testid': 'mm-profiles'}, h('h2', {}, 'Profili', h('label', {class: 'right f inl small'}, 'Mostra archiviati',
     h('input', {type: 'checkbox', checked: showArchived, ctl: 'CTL-MM-SHOWARCH', onchange: e => go('money', {archived: e.target.checked ? 1 : ''})}))),
   visible.length ? h('div', {class: 'tablewrap'}, h('table', {class: 'cards'}, h('thead', {}, h('tr', {}, pcols.map(c => h('th', {}, c)))), h('tbody', {}, visible.map(p => {
@@ -2985,7 +3088,8 @@ const TOOL_OUT = {
     h('dt', {}, 'Se la selezione vince'), h('dd', {}, signed(r.win)), h('dt', {}, 'Se la selezione perde'), h('dd', {}, signed(r.lose)), h('dt', {}, 'Probabilità di pareggio'), h('dd', {}, pct(r.be, 2)))],
   hedge: r => [h('dl', {class: 'kv'}, h('dt', {}, 'Copertura'), h('dd', {'data-out': 'hedge'}, `${SIDE_TEXT[r.side]} ${nf(r.stake)}`), h('dt', {}, 'Responsabilità della copertura'), h('dd', {}, nf(r.liab)),
     h('dt', {}, 'Prima: vince / perde'), h('dd', {}, `${signed(r.before.win)} / ${signed(r.before.lose)}`), h('dt', {}, 'Dopo: vince / perde'), h('dd', {'data-out': 'after'}, `${signed(r.after.win)} / ${signed(r.after.lose)}`),
-    h('dt', {}, 'Cashout teorico'), h('dd', {}, signed(Math.min(r.after.win, r.after.lose)))), h('p', {class: 'notice'}, 'La disponibilità della quota sul mercato non è verificata.')],
+    ...(Math.abs(r.after.win - r.after.lose) < 0.01 ? [h('dt', {}, 'Cashout teorico'), h('dd', {'data-out': 'cashout'}, signed(Math.min(r.after.win, r.after.lose)))]
+      : [h('dt', {}, 'Cashout teorico'), h('dd', {'data-out': 'cashout'}, 'solo con copertura totale')])), h('p', {class: 'notice'}, 'La disponibilità della quota sul mercato non è verificata.')],
   dutching: r => [h('div', {class: 'tablewrap'}, h('table', {}, h('thead', {}, h('tr', {}, ['Quota', 'Puntata', 'Se vince'].map(x => h('th', {class: 'n'}, x)))),
     h('tbody', {}, r.rows.map(x => h('tr', {}, h('td', {class: 'n'}, odd(x.odds)), h('td', {class: 'n'}, nf(x.stake)), h('td', {class: `n ${x.win >= 0 ? 'ok' : 'bad'}`}, signed(x.win))))))),
     h('dl', {class: 'kv', style: {marginTop: '10px'}}, h('dt', {}, 'Puntata totale'), h('dd', {'data-out': 'placed'}, nf(r.placed)), h('dt', {}, 'Totale delle probabilità'), h('dd', {}, pct(r.book, 2)))],
@@ -3242,12 +3346,18 @@ const INTEGRATIONS = [
   ['Sessione', '/auth/session, /auth/logout', '—', '—', 'REAL.session', 'MATCHPILOT_AUTH=enforce', 'Accesso owner spento per default'],
   ['Assistente', '—', 'assistente AI (#44)', 'answer()', '—', 'Autorizzazione di un fornitore AI (costo)', 'Nessuna API AI autorizzata'],
 ];
-const RESULT_TEXT = {PASS: 'CERTIFIED MOCK', FAIL: 'FAIL', BLOCKED: 'BLOCKED', NOT_RUN: 'IMPLEMENTED'};
+// Evidence chain (MP-UI-HARD-GATES-01): NONE → SEEN (rendered) → ACTUATED (driven by a test) → ASSERTED (a check after it
+// passed). CERTIFIED MOCK needs the independent Browser QA of the served app: this file never claims it.
+const EVIDENCE_TEXT = {FAIL: 'FAIL', BLOCKED: 'BLOCKED', ASSERTED: 'ASSERTED', ACTUATED: 'ACTUATED', SEEN: 'SEEN', NONE: 'NONE'};
 function controlStates() {
   const at = readRaw('autotest');
   const res = at?.controls ?? {};
-  return [...SPECS.values()].map(sp => ({...sp, pr: prOf(sp.id), result: res[sp.id]?.result ?? 'NOT_RUN', tests: res[sp.id]?.tests ?? [], reason: res[sp.id]?.reason ?? null,
-    status: RESULT_TEXT[res[sp.id]?.result ?? 'NOT_RUN']}));
+  return [...SPECS.values()].map(sp => {
+    const r = res[sp.id], result = r?.result ?? 'NOT_RUN';
+    // Records from older builds carry no evidence level: count them as ACTUATED only.
+    const ev = result === 'FAIL' || result === 'BLOCKED' ? result : r?.evidence && r.evidence !== 'NONE' ? r.evidence : r && result === 'PASS' ? 'ACTUATED' : SEEN.has(sp.id) ? 'SEEN' : 'NONE';
+    return {...sp, pr: prOf(sp.id), result, state: ev, tests: r?.tests ?? [], assertedBy: r?.assertedBy ?? [], reason: r?.reason ?? null, status: EVIDENCE_TEXT[ev]};
+  });
 }
 function readRaw(k) { try { return JSON.parse(localStorage.getItem(`mp.${k}`)); } catch { return null; } }
 function writeRaw(k, v) { try { localStorage.setItem(`mp.${k}`, JSON.stringify(v)); } catch { /* storage unavailable */ } }
@@ -3256,23 +3366,22 @@ view({id: 'coverage', title: 'Roadmap e copertura', phase: 'UI-12', issues: ['#2
   const set = patch => updateParams('coverage', params, patch);
   const states = controlStates();
   const at = readRaw('autotest');
-  const pass = states.filter(c => c.result === 'PASS').length, total = states.length;
-  const byPhase = ph => { const xs = states.filter(c => c.phase === ph); return {n: xs.length, pass: xs.filter(c => c.result === 'PASS').length, fail: xs.filter(c => c.result === 'FAIL').length, blocked: xs.filter(c => c.result === 'BLOCKED').length}; };
+  const count = k => states.filter(c => c.state === k).length;
+  const pass = count('ASSERTED'), total = states.length;
+  const byPhase = ph => { const xs = states.filter(c => c.phase === ph); return {n: xs.length, pass: xs.filter(c => c.state === 'ASSERTED').length, fail: xs.filter(c => c.state === 'FAIL').length, blocked: xs.filter(c => c.state === 'BLOCKED').length}; };
   const prState = pr => {
     const xs = states.filter(c => c.pr === pr[0]);
-    if (pr[0] === 'MP-UI-PR-036') return pass === total && at ? 'CERTIFIED MOCK' : at ? 'IN PROGRESS' : 'IMPLEMENTED';
-    if (!xs.length) return 'IMPLEMENTED';
-    if (xs.some(c => c.result === 'FAIL')) return 'FAIL';
-    if (xs.every(c => c.result === 'PASS')) return 'CERTIFIED MOCK';
-    if (xs.every(c => c.result === 'PASS' || c.result === 'BLOCKED') && xs.some(c => c.result === 'PASS')) return 'TESTED';
-    return xs.some(c => c.result === 'PASS') ? 'TESTED' : 'IMPLEMENTED';
+    if (!xs.length) return at ? 'IN PROGRESS' : 'IMPLEMENTED';
+    if (xs.some(c => c.state === 'FAIL')) return 'FAIL';
+    if (xs.every(c => c.state === 'ASSERTED' || c.state === 'BLOCKED') && xs.some(c => c.state === 'ASSERTED')) return 'TESTED (DEMO)';
+    return xs.some(c => c.state === 'ASSERTED' || c.state === 'ACTUATED') ? 'IN PROGRESS' : 'IMPLEMENTED';
   };
   const tabs = tabsBar('CTL-COV-TAB', [['roadmap', 'Roadmap'], ['controls', 'Controlli'], ['matrix', 'Matrice'], ['integrations', 'Integrazioni'], ['autotest', 'Autotest']], tab, t => set({tab: t}), 'Sezioni');
   const summary = h('div', {class: 'grid g4', style: {marginBottom: '14px'}},
-    kpi('Controlli verificati', `${pass} / ${total}`, at ? `autotest del ${when(at.at)} (${at.mode})` : 'autotest non ancora eseguito', {'data-kpi': 'verified'}),
-    kpi('Completamento', total ? pct(pass / total) : ND, 'da controlli verificati, non da impressioni', {'data-kpi': 'percent'}),
-    kpi('Bloccati', nint(states.filter(c => c.result === 'BLOCKED').length), 'richiedono il server o dati reali'),
-    kpi('CERTIFIED REAL', '0', 'nessuna verifica su dati reali da questo file'));
+    kpi('ASSERTED', `${pass} / ${total}`, at ? `azione seguita da una verifica riuscita · autotest del ${when(at.at)} (${at.mode})` : 'autotest non ancora eseguito', {'data-kpi': 'verified'}),
+    kpi('ACTUATED · SEEN · NONE', `${count('ACTUATED')} · ${count('SEEN')} · ${count('NONE')}`, `azionati senza verifica · solo visti · nessuna evidenza${count('FAIL') ? ` · ${count('FAIL')} FAIL` : ''}`, {'data-kpi': 'levels'}),
+    kpi('Bloccati', nint(count('BLOCKED')), 'richiedono il server o dati reali'),
+    kpi('CERTIFIED MOCK · REAL', '0 · 0', 'la certificazione richiede la Browser QA indipendente sul server, non questo file', {'data-kpi': 'certified'}));
   let body;
   if (tab === 'roadmap') {
     body = [h('section', {class: 'card', 'data-testid': 'cov-phases'}, h('h2', {}, 'Fasi'), h('div', {class: 'tablewrap'}, h('table', {class: 'cards'}, h('thead', {}, h('tr', {}, ['Fase', 'Contenuto', 'Controlli', 'Verificati', 'Avanzamento'].map(x => h('th', {}, x)))),
@@ -3280,27 +3389,27 @@ view({id: 'coverage', title: 'Roadmap e copertura', phase: 'UI-12', issues: ['#2
         h('td', {class: 'n'}, b.n), h('td', {class: 'n'}, b.pass), h('td', {}, h('div', {class: 'progress', title: pct(b.n ? b.pass / b.n : 0)}, h('i', {style: {width: `${b.n ? b.pass / b.n * 100 : 0}%`}})))]
         .map((td, i) => (td.setAttribute('data-label', ['Fase', 'Contenuto', 'Controlli', 'Verificati', 'Avanzamento'][i]), td))); }))))),
     h('section', {class: 'card', 'data-testid': 'cov-prs'}, h('h2', {}, 'Registro delle unità (PR)'), h('div', {class: 'tablewrap'}, h('table', {class: 'cards matrix'}, h('thead', {}, h('tr', {}, ['ID', 'Fase', 'Titolo', 'Issue', 'Stato'].map(x => h('th', {}, x)))),
-      h('tbody', {}, PRS.map(pr => h('tr', {'data-pr': pr[0]}, [h('td', {class: 'mono'}, pr[0]), h('td', {}, pr[1]), h('td', {}, pr[2]), h('td', {}, pr[3].join(' ')), h('td', {}, h('span', {class: `chip ${prState(pr) === 'CERTIFIED MOCK' ? 'ok' : prState(pr) === 'FAIL' ? 'bad' : ''}`}, prState(pr)))]
+      h('tbody', {}, PRS.map(pr => h('tr', {'data-pr': pr[0]}, [h('td', {class: 'mono'}, pr[0]), h('td', {}, pr[1]), h('td', {}, pr[2]), h('td', {}, pr[3].join(' ')), h('td', {}, h('span', {class: `chip ${prState(pr) === 'TESTED (DEMO)' ? 'ok' : prState(pr) === 'FAIL' ? 'bad' : ''}`}, prState(pr)))]
         .map((td, i) => (td.setAttribute('data-label', ['ID', 'Fase', 'Titolo', 'Issue', 'Stato'][i]), td))))))),
-      h('p', {class: 'notice'}, 'Stati: NOT STARTED, IN PROGRESS, IMPLEMENTED, TESTED, CERTIFIED MOCK, CERTIFIED REAL, BLOCKED. CERTIFIED MOCK = verificato dall’autotest su dati DEMO; CERTIFIED REAL richiede la verifica sui dati reali.'))];
+      h('p', {class: 'notice'}, 'Stati: IMPLEMENTED, IN PROGRESS, TESTED (DEMO), FAIL. Evidenza per controllo: NONE → SEEN → ACTUATED → ASSERTED. CERTIFIED MOCK e CERTIFIED REAL non sono mai assegnati da questo file: richiedono la Browser QA indipendente sul server e, per REAL, i dati reali.'))];
   } else if (tab === 'controls' || tab === 'matrix') {
     const ph = params.get('phase') || '', st = params.get('state') || '', q = (params.get('q') || '').toLowerCase();
-    const rows = states.filter(c => (!ph || c.phase === ph) && (!st || c.result === st) && (!q || `${c.id} ${c.label} ${c.view}`.toLowerCase().includes(q)));
+    const rows = states.filter(c => (!ph || c.phase === ph) && (!st || c.state === st) && (!q || `${c.id} ${c.label} ${c.view}`.toLowerCase().includes(q)));
     const qIn = h('input', {type: 'search', value: params.get('q') || '', placeholder: 'Cerca un controllo', ctl: 'CTL-COV-Q', 'aria-label': 'Cerca un controllo'});
     qIn.addEventListener('change', () => set({q: qIn.value.trim()}));
     const filters = h('div', {class: 'card row', style: {marginBottom: '14px'}},
       h('label', {class: 'f inl'}, 'Fase', h('select', {ctl: 'CTL-COV-FILTER', onchange: e => set({phase: e.target.value})}, h('option', {value: ''}, 'Tutte'), PHASES.map(([id]) => h('option', {value: id, selected: ph === id}, id)))),
-      h('label', {class: 'f inl'}, 'Esito', h('select', {ctl: 'CTL-COV-STATE', onchange: e => set({state: e.target.value})}, [['', 'Tutti'], ['PASS', 'Verificati'], ['FAIL', 'Falliti'], ['BLOCKED', 'Bloccati'], ['NOT_RUN', 'Non eseguiti']].map(([v, t]) => h('option', {value: v, selected: st === v}, t)))),
+      h('label', {class: 'f inl'}, 'Esito', h('select', {ctl: 'CTL-COV-STATE', onchange: e => set({state: e.target.value})}, [['', 'Tutti'], ['ASSERTED', 'ASSERTED'], ['ACTUATED', 'ACTUATED'], ['SEEN', 'SEEN'], ['NONE', 'NONE'], ['FAIL', 'FAIL'], ['BLOCKED', 'BLOCKED']].map(([v, t]) => h('option', {value: v, selected: st === v}, t)))),
       qIn, h('span', {class: 'muted small'}, `${rows.length} controlli`));
     const cols = tab === 'controls' ? ['Controllo', 'Pagina', 'Descrizione', 'Fase', 'Stato', 'Test'] : ['Issue', 'Requisito', 'PR', 'Pagina', 'Componente', 'Controllo', 'Test', 'Esito', 'Evidenza'];
     body = [filters, h('section', {class: 'card', 'data-testid': tab === 'controls' ? 'cov-controls' : 'cov-matrix'}, h('div', {class: 'tablewrap'}, h('table', {class: 'cards matrix'}, h('thead', {}, h('tr', {}, cols.map(x => h('th', {}, x)))),
       h('tbody', {}, rows.map(c => {
-        const result = h('span', {class: c.result === 'PASS' ? 'pass' : c.result === 'FAIL' ? 'fail' : 'nt', title: c.reason ?? ''}, c.status);
+        const result = h('span', {class: c.state === 'ASSERTED' ? 'pass' : c.state === 'FAIL' ? 'fail' : 'nt', title: c.reason ?? (c.assertedBy.length ? `verificato da ${c.assertedBy.join(' ')}` : '')}, c.status);
         const cells = tab === 'controls'
           ? [h('td', {class: 'mono'}, c.id), h('td', {}, VIEWS.get(c.view)?.title ?? (c.view === 'shell' ? 'Shell' : c.view)), h('td', {}, c.label), h('td', {}, c.phase), h('td', {}, result), h('td', {class: 'mono xs'}, c.tests.join(' ') || '—')]
           : [h('td', {}, c.issues.join(' ')), h('td', {class: 'mono xs'}, `REQ-${c.id.slice(4)}`), h('td', {class: 'mono xs'}, c.pr), h('td', {}, VIEWS.get(c.view)?.title ?? 'Shell'), h('td', {}, c.kind),
-            h('td', {class: 'mono xs'}, c.id), h('td', {class: 'mono xs'}, c.tests.join(' ') || '—'), h('td', {}, result), h('td', {class: 'xs'}, at && c.result !== 'NOT_RUN' ? `autotest ${when(at.at)} · ${at.mode}${c.reason ? ` · ${c.reason}` : ''}` : '—')];
-        return h('tr', {'data-control-row': c.id, 'data-result': c.result}, cells.map((td, i) => (td.setAttribute('data-label', cols[i]), td)));
+            h('td', {class: 'mono xs'}, c.id), h('td', {class: 'mono xs'}, c.tests.join(' ') || '—'), h('td', {}, result), h('td', {class: 'xs'}, at && c.result !== 'NOT_RUN' ? `autotest ${when(at.at)} · ${at.mode}${c.assertedBy.length ? ` · asserito da ${c.assertedBy.join(' ')}` : ''}${c.reason ? ` · ${c.reason}` : ''}` : '—')];
+        return h('tr', {'data-control-row': c.id, 'data-result': c.state}, cells.map((td, i) => (td.setAttribute('data-label', cols[i]), td)));
       })))))];
   } else if (tab === 'integrations') {
     const cols = ['Componente', 'API esistente', 'API futura', 'Adapter DEMO', 'Adapter REAL', 'Condizione di attivazione', 'Blocker'];
@@ -3333,7 +3442,11 @@ async function settle() {
 }
 const isVisible = n => { const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).visibility !== 'hidden'; };
 class Tester {
-  constructor() { this.used = new Set(); }
+  // Evidence (MP-UI-HARD-GATES-01): a control is ACTUATED when the test drives it, ASSERTED only when a later check of
+  // the same scenario succeeds. Nothing here is CERTIFIED: that needs the independent Browser QA of the served app.
+  constructor() { this.used = new Set(); this.pending = new Set(); this.asserted = new Set(); }
+  touch(ctl) { this.used.add(ctl); this.pending.add(ctl); }
+  confirm() { for (const c of this.pending) this.asserted.add(c); this.pending.clear(); }
   find(ctl, {nth = 0, where = null, scope = document} = {}) {
     const all = $$(`[data-control="${ctl}"]`, scope).filter(x => !where || where(x));
     const vis = all.filter(isVisible);
@@ -3342,26 +3455,27 @@ class Tester {
     return n;
   }
   count(ctl) { return $$(`[data-control="${ctl}"]`).length; }
-  async click(ctl, opts) { const n = this.find(ctl, opts); if (n.disabled) throw new Error(`${ctl} è disabilitato`); n.scrollIntoView({block: 'nearest'}); n.click(); this.used.add(ctl); await settle(); return n; }
+  async click(ctl, opts) { const n = this.find(ctl, opts); if (n.disabled) throw new Error(`${ctl} è disabilitato`); n.scrollIntoView({block: 'nearest'}); n.click(); this.touch(ctl); await settle(); return n; }
   async value(ctl, v, opts) {
     const n = this.find(ctl, opts);
     if (n.disabled) throw new Error(`${ctl} è disabilitato`);
     n.focus(); n.value = v;
     n.dispatchEvent(new Event('input', {bubbles: true})); n.blur(); n.dispatchEvent(new Event('change', {bubbles: true}));
-    this.used.add(ctl); await settle(); return n;
+    this.touch(ctl); await settle(); return n;
   }
-  async check(ctl, on, opts) { const n = this.find(ctl, opts); if (n.checked !== on) n.click(); this.used.add(ctl); await settle(); return n; }
-  async key(ctl, key, opts) { const n = this.find(ctl, opts); n.dispatchEvent(new KeyboardEvent('keydown', {key, bubbles: true})); this.used.add(ctl); await settle(); }
+  async check(ctl, on, opts) { const n = this.find(ctl, opts); if (n.checked !== on) n.click(); this.touch(ctl); await settle(); return n; }
+  async key(ctl, key, opts) { const n = this.find(ctl, opts); n.dispatchEvent(new KeyboardEvent('keydown', {key, bubbles: true})); this.touch(ctl); await settle(); }
   async go(name, params = {}) { go(name, params); await settle(); }
-  async wait(fn, what, timeout = 5000) { const t0 = Date.now(); while (Date.now() - t0 < timeout) { try { if (fn()) return; } catch { /* retry */ } await sleep(40); } throw new Error(`attesa scaduta: ${what}`); }
-  ok(c, msg) { if (!c) throw new Error(msg); }
+  async wait(fn, what, timeout = 5000) { const t0 = Date.now(); while (Date.now() - t0 < timeout) { try { if (fn()) { this.confirm(); return; } } catch { /* retry */ } await sleep(40); } throw new Error(`attesa scaduta: ${what}`); }
+  ok(c, msg) { if (!c) throw new Error(msg); this.confirm(); }
   text(sel) { return ($(sel)?.textContent ?? '').replace(/\s+/g, ' ').trim(); }
   view() { return $('#view').dataset.view; }
   hash() { return location.hash; }
 }
 const firstDay = (from, dir, pred) => { for (let i = 0; i < 30; i++) { const d = addDays(from, dir * i); if (pred(d)) return d; } return from; };
 const BLOCKED_IN_FILE = {'CTL-MODE-REAL': 'Richiede la pagina servita dal server MatchPilot', 'CTL-PAPER-ACCOUNT': 'Solo REAL: lettura del conto dal server', 'CTL-PAPER-LOAD': 'Solo REAL: lettura del conto dal server',
-  'CTL-SESSION-LOGOUT': 'Solo REAL con accesso owner attivo', 'CTL-SESSION-LOGIN': 'Solo REAL con accesso owner attivo', 'CTL-COV-RUN': null};
+  'CTL-SESSION-LOGOUT': 'Solo REAL con accesso owner attivo', 'CTL-SESSION-LOGIN': 'Solo REAL con accesso owner attivo',
+  'CTL-BT-PIT': 'Solo REAL: la modalità NON_PIT è del motore del server', 'CTL-COV-RUN': null};
 const SCENARIOS = [
   ['T-NAV-01', 'Ogni voce della barra laterale apre la sua pagina', async t => {
     for (const [, ids] of NAV_GROUPS) for (const id of ids) { await t.click(NAV_CTL(id)); t.ok(t.view() === id, `${id}: aperta ${t.view()}`); t.ok($(`[data-nav="${id}"]`).getAttribute('aria-current') === 'page', `${id} non è evidenziata`); }
@@ -3385,13 +3499,14 @@ const SCENARIOS = [
     await t.click('CTL-GSEARCH-RESULT'); t.ok(['analysis', 'match', 'competitions'].includes(t.view()), `il risultato apre ${t.view()}`);
     await t.value('CTL-GSEARCH-INPUT', 'Calendario'); await t.key('CTL-GSEARCH-INPUT', 'ArrowDown'); await t.key('CTL-GSEARCH-INPUT', 'ArrowUp'); await t.key('CTL-GSEARCH-INPUT', 'Enter');
     t.ok(t.view() === 'calendar', 'Invio non apre il risultato');
+    await t.click('CTL-SKIP'); t.ok(document.activeElement === $('#view'), 'Salta al contenuto non porta il fuoco sulla pagina');
   }],
   ['T-NAV-05', 'Origine dei dati, filtro campionati, menu account', async t => {
     await t.click('CTL-TOP-MODE'); t.ok($('[data-control="CTL-MODE-REAL"]').disabled === !APP.realAvailable, 'REAL non rispetta la disponibilità');
     await t.click('CTL-MODE-DEMO'); t.ok(APP.mode === 'DEMO', 'modo non DEMO');
     await t.go('dashboard');
     await t.click('CTL-TOP-FILTER'); await t.check('CTL-FILTER-COMP', false, {nth: 0});
-    t.ok(compFilter().length === COMPS.length - 1, 'il filtro non esclude il campionato');
+    await t.wait(() => compFilter().length === COMPS.length - 1, 'il filtro non esclude il campionato');
     t.ok(!$$('.mrow .comp').some(x => x.textContent.startsWith(`${COMPS[0].name} `)), 'il campionato escluso è ancora visibile');
     await t.click('CTL-TOP-FILTER'); await t.click('CTL-FILTER-ALL'); t.ok(!compFilter().length, 'Mostra tutti non azzera');
     await t.click('CTL-TOP-ACCOUNT'); await t.click('CTL-ACC-ISSUES'); t.ok(document.body.classList.contains('dev'), 'le issue non compaiono');
@@ -3434,6 +3549,8 @@ const SCENARIOS = [
   }],
   ['T-MATCHES-01', 'Partite: filtri combinati, ordinamento, pagine, CSV, errori', async t => {
     await t.go('matches');
+    // F-18: in DEMO the synthetic xG is never shown as a bare (REAL-looking) «xG».
+    t.ok([...$$('[data-testid="matches-results"] th')].some(th => th.textContent.trim() === 'xG DEMO') && ![...$$('main th, main dt')].some(x => x.textContent.trim() === 'xG'), 'xG sintetico senza etichetta DEMO');
     await t.value('CTL-MATCHES-FROM', addDays(today(), -14)); await t.value('CTL-MATCHES-TO', addDays(today(), -1));
     await t.value('CTL-MATCHES-COMP', ''); await t.value('CTL-MATCHES-TEAM', ''); await t.value('CTL-MATCHES-STATUS', 'FT');
     await t.value('CTL-MATCHES-FAVMIN', '1.1'); await t.value('CTL-MATCHES-FAVMAX', '10'); await t.value('CTL-MATCHES-GMIN', '0'); await t.value('CTL-MATCHES-GMAX', '20');
@@ -3514,9 +3631,14 @@ const SCENARIOS = [
     const input = t.find('CTL-STRAT-IMPORT');
     const dt = new DataTransfer();
     dt.items.add(new File([JSON.stringify([{name: 'Banca pareggio live', market: 'MATCH_ODDS', selection: 'DRAW', side: 'LAY', phase: 'LIVE',
-      conditions: [{field: 'minute', op: 'between', a: 5, b: 80}, {field: 'goal_diff', op: 'between', a: 0, b: 0}]}, {name: ''}])], 'strategie.json', {type: 'application/json'}));
-    input.files = dt.files; input.dispatchEvent(new Event('change', {bubbles: true})); t.used.add('CTL-STRAT-IMPORT');
+      conditions: [{field: 'minute', op: 'between', a: 5, b: 80}, {field: 'goal_diff', op: 'between', a: 0, b: 0}]}, {name: ''},
+      {name: 'Banca pareggio live!', market: 'MATCH_ODDS', selection: 'HOME', side: 'BACK'}])], 'strategie.json', {type: 'application/json'}));
+    input.files = dt.files; input.dispatchEvent(new Event('change', {bubbles: true})); t.touch('CTL-STRAT-IMPORT');
     await t.wait(() => lib.strategies().some(d => d.key === 'banca-pareggio-live'), 'importazione');
+    // Same slug, different name: its own key, not a version of the other one; no conditions in the file means none.
+    const twin = lib.strategies().find(d => d.name === 'Banca pareggio live!');
+    t.ok(twin && twin.key === 'banca-pareggio-live-2' && twin.conditions.length === 0, `chiave o condizioni dell’import: ${twin?.key} ${twin?.conditions.length}`);
+    t.ok(lib.strategies().find(d => d.key === 'banca-pareggio-live').version === 1, 'l’import ha sovrascritto un’altra strategia');
     await settle();
     await t.click('CTL-STRAT-ACTIVE', {where: x => x.closest('[data-key="banca-pareggio-live"]')});
     await t.click('CTL-STRAT-BT', {where: x => x.closest('[data-key="favorito-pre"]')}); t.ok(t.view() === 'backtest' && t.hash().includes('strategy=favorito-pre'), 'link backtest');
@@ -3623,11 +3745,25 @@ const SCENARIOS = [
     await t.go('match', {id: ns.id}); await t.click('CTL-MC-TRADE'); await t.click('CTL-TRADE-CONFIRM'); t.ok(t.text('[data-dialog="trade"] .err').includes('STOP'), 'STOP non blocca');
     await t.click('CTL-DLG-CANCEL'); await t.go('paper');
     await t.click('CTL-PAPER-PAUSE'); await t.value('CTL-PAPER-REASON', 'pausa'); await t.click('CTL-PAPER-REASON-OK'); t.ok(ledgerLoad().mode === 'PAUSED', 'pausa');
+    // DEC-001: in pausa una copertura che riduce l’esposizione è ammessa.
+    const liab0 = positionPL(ledgerLoad().positions[pid]).liability;
+    await t.click('CTL-PAPER-HEDGE', {where: x => x.closest(`[data-position="${pid}"]`)}); await t.value('CTL-HEDGE-ODDS', '2.4'); await t.value('CTL-HEDGE-SHARE', '1'); await t.click('CTL-HEDGE-CONFIRM');
+    t.ok(ledgerLoad().positions[pid].legs.length === 3 && positionPL(ledgerLoad().positions[pid]).liability < liab0, `copertura in pausa: ${t.text('[data-dialog="hedge"] .err')}`);
     await t.click('CTL-PAPER-RESUME'); await t.value('CTL-PAPER-REASON', 'ripresa'); await t.click('CTL-PAPER-REASON-OK'); t.ok(ledgerLoad().mode === 'ACTIVE_OPERATIONAL', 'ripresa');
+    // Limiti delle impostazioni e del profilo applicati all’apertura.
+    const open0 = ledgerState(ledgerLoad()).open;
+    await t.go('match', {id: ns.id}); await t.click('CTL-MC-TRADE'); await t.value('CTL-TRADE-SIDE', 'BACK'); await t.value('CTL-TRADE-ODDS', '2'); await t.value('CTL-TRADE-STAKE', '120');
+    t.ok(t.text('[data-testid="trade-limits"]').includes('tetto del profilo') && t.text('[data-testid="trade-limits"]').includes('massimo delle impostazioni'), `anteprima dei limiti: ${t.text('[data-testid="trade-eval"]')}`);
+    await t.click('CTL-TRADE-CONFIRM'); t.ok(t.text('[data-dialog="trade"] .err').includes('Bloccata dai limiti') && ledgerState(ledgerLoad()).open === open0, 'i limiti non bloccano l’apertura');
+    await t.click('CTL-DLG-CANCEL'); await t.go('paper');
     await t.click('CTL-PAPER-SETTLE');
     await t.value('CTL-PAPER-LEDGER-TYPE', 'MODE'); t.ok($$('[data-testid="paper-ledger"] tbody tr').every(r => r.dataset.type === 'MODE'), 'filtro del registro');
     const d0 = APP.downloads.length; await t.click('CTL-PAPER-CSV'); t.ok(APP.downloads.length === d0 + 1, 'CSV');
-    await t.click('CTL-PAPER-RESET'); await t.value('CTL-PAPER-RESET-AMOUNT', '500'); await t.click('CTL-PAPER-RESET-OK'); t.ok(ledgerState(ledgerLoad()).available === 500, 'azzeramento');
+    const n0 = ledgerLoad().entries.length, p0 = Object.keys(ledgerLoad().positions).length;
+    await t.click('CTL-PAPER-RESET'); await t.value('CTL-PAPER-RESET-AMOUNT', '500'); await t.click('CTL-PAPER-RESET-OK');
+    const after = ledgerLoad(), sa = ledgerState(after);
+    t.ok(sa.cash === 500 && after.entries.length === n0 + 1 && after.entries.at(-1).type === 'RESET' && Object.keys(after.positions).length === p0 && sa.reconciled,
+      `azzeramento append-only: cassa ${sa.cash}, movimenti ${after.entries.length}/${n0 + 1}, in pari ${sa.reconciled}`);
     await t.click('CTL-PAPER-NEW'); t.ok(t.view() === 'dashboard', 'Nuova posizione');
   }],
   ['T-MM-01', 'Money Management: profili con versioni e calcolo', async t => {
@@ -3653,7 +3789,8 @@ const SCENARIOS = [
       await t.click('CTL-TOOL-RUN'); t.ok($(`[data-testid="tool-result"][data-tool="${tool}"]`), `${tool}: nessun risultato (${t.text('[data-testid="tool-error"]')})`);
     }
     await t.click('CTL-TOOL-TAB', {where: x => x.dataset.value === 'ev'}); await t.click('CTL-TOOL-RUN'); t.ok(t.text('[data-out="ev"]') === '+0,70', `EV ${t.text('[data-out="ev"]')}`);
-    await t.click('CTL-TOOL-TAB', {where: x => x.dataset.value === 'hedge'}); await t.click('CTL-TOOL-RUN'); t.ok(t.text('[data-out="after"]') === '+5,00 / +5,00', `copertura ${t.text('[data-out="after"]')}`);
+    await t.click('CTL-TOOL-TAB', {where: x => x.dataset.value === 'hedge'}); await t.click('CTL-TOOL-RUN'); t.ok(t.text('[data-out="after"]') === '+5,00 / +5,00' && t.text('[data-out="cashout"]') === '+5,00', `copertura ${t.text('[data-out="after"]')}`);
+    await t.value('CTL-TOOL-FIELD', '50', {where: x => x.dataset.field === 'share'}); await t.click('CTL-TOOL-RUN'); t.ok(t.text('[data-out="cashout"]') === 'solo con copertura totale', `cashout con copertura parziale: ${t.text('[data-out="cashout"]')}`);
     await t.value('CTL-TOOL-FIELD', '0.5', {where: x => x.dataset.field === 'odds'}); await t.click('CTL-TOOL-RUN'); t.ok($('[data-testid="tool-error"]'), 'quota non valida accettata');
     await t.click('CTL-TOOL-RESET'); t.ok(t.find('CTL-TOOL-FIELD', {where: x => x.dataset.field === 'odds'}).value === '3', 'valori di esempio');
   }],
@@ -3707,16 +3844,18 @@ async function runAutotest() {
     let error = null;
     try { closeDialog(); closeDrawer(); closeMenus(); await fn(t); } catch (e) { error = e.message; }
     closeDialog(); closeDrawer(); closeMenus();
-    results.push({id, title, result: error ? 'FAIL' : 'PASS', error, controls: [...t.used]});
+    results.push({id, title, result: error ? 'FAIL' : 'PASS', error, controls: [...t.used], asserted: [...t.asserted]});
     for (const c of t.used) {
-      const x = controls[c] ?? {result: 'PASS', tests: []};
+      const x = controls[c] ?? {result: 'PASS', evidence: 'ACTUATED', tests: [], assertedBy: []};
       x.tests.push(id);
+      if (t.asserted.has(c)) { x.evidence = 'ASSERTED'; x.assertedBy.push(id); }
       if (error) x.result = 'FAIL';
       controls[c] = x;
     }
   }
-  controls['CTL-COV-RUN'] = {result: 'PASS', tests: ['avvio manuale']};
-  for (const [c, why] of Object.entries(BLOCKED_IN_FILE)) if (why && !controls[c]) controls[c] = {result: 'BLOCKED', tests: [], reason: why};
+  // The control that starts the autotest cannot test itself: it stays ACTUATED (by the person who clicked it), never PASS.
+  controls['CTL-COV-RUN'] = {result: 'NOT_RUN', evidence: 'ACTUATED', tests: [], assertedBy: [], reason: 'Avvia l’autotest: non può verificare se stesso'};
+  for (const [c, why] of Object.entries(BLOCKED_IN_FILE)) if (why && !controls[c]) controls[c] = {result: 'BLOCKED', evidence: 'NONE', tests: [], assertedBy: [], reason: why};
   // Controls a scenario failed on before reaching them stay NOT_RUN; controls never rendered are listed by the test page.
   store.clearNs('mp.test.');
   NS = real.ns; APP.mode = real.mode; APP.clockOffset = real.offset; dayCache.clear();
@@ -3740,7 +3879,7 @@ window.MatchPilot = {runAutotest, specs: () => [...SPECS.values()], seen: () => 
 // [id, label]; grouped by view, phase and source issues. Every interactive element of the app carries one of these ids
 // (data-control); the autotest and Diagnostica refuse an element without id or with an undeclared one.
 const SPEC_GROUPS = [
-  ['shell', 'UI-02', ['#3'], [['CTL-NAV-BURGER', 'Apri/chiudi il menu (tablet e telefono)'], ['CTL-NAV-BRAND', 'Logo: torna alla Dashboard'],
+  ['shell', 'UI-02', ['#3'], [['CTL-SKIP', 'Salta al contenuto'], ['CTL-NAV-BURGER', 'Apri/chiudi il menu (tablet e telefono)'], ['CTL-NAV-BRAND', 'Logo: torna alla Dashboard'],
     ['CTL-GSEARCH-INPUT', 'Ricerca globale'], ['CTL-GSEARCH-RESULT', 'Risultato della ricerca globale'], ['CTL-TOP-MODE', 'Origine dei dati REAL/DEMO'], ['CTL-MODE-REAL', 'Usa i dati REAL'],
     ['CTL-MODE-DEMO', 'Usa i dati DEMO'], ['CTL-TOP-FILTER', 'Filtro campionati globale'], ['CTL-FILTER-COMP', 'Includi/escludi un campionato'], ['CTL-FILTER-ALL', 'Mostra tutti i campionati'],
     ['CTL-TOP-ACCOUNT', 'Menu account'], ['CTL-ACC-SETTINGS', 'Account › Impostazioni'], ['CTL-ACC-SESSION', 'Account › Sessione'], ['CTL-ACC-COVERAGE', 'Account › Roadmap e copertura'],
@@ -3779,7 +3918,7 @@ const SPEC_GROUPS = [
     ['CTL-COND-B', 'Condizione: secondo valore'], ['CTL-COND-DEL', 'Rimuovi la condizione'], ['CTL-STRAT-ADDCOND', 'Aggiungi condizione'], ['CTL-STRAT-SAVE', 'Salva la strategia'],
     ['CTL-STRAT-CANCEL', 'Annulla / torna allo Strategy Lab'], ['CTL-STRAT-TRYBT', 'Prova nel backtest'], ['CTL-STRAT-RESTORE', 'Ripristina una versione']]],
   ['backtest', 'UI-08', ['#34'], [['CTL-BT-TAB', 'Scheda delle simulazioni'], ['CTL-BT-STRAT', 'Strategia'], ['CTL-BT-FROM', 'Dal'], ['CTL-BT-TO', 'Al'], ['CTL-BT-STAKE', 'Puntata'], ['CTL-BT-COMM', 'Commissione'],
-    ['CTL-BT-BANK', 'Capitale iniziale'], ['CTL-BT-MM', 'Gestione del capitale'], ['CTL-BT-MMV', 'Valore della gestione'], ['CTL-BT-RUN', 'Avvia la simulazione'], ['CTL-BT-NEWSTRAT', 'Nuova strategia'],
+    ['CTL-BT-BANK', 'Capitale iniziale'], ['CTL-BT-MM', 'Gestione del capitale'], ['CTL-BT-MMV', 'Valore della gestione'], ['CTL-BT-PIT', 'Punto nel tempo (PIT/NON_PIT)'], ['CTL-BT-RUN', 'Avvia la simulazione'], ['CTL-BT-NEWSTRAT', 'Nuova strategia'],
     ['CTL-BT-PREV', 'Operazioni: pagina precedente'], ['CTL-BT-NEXT', 'Operazioni: pagina successiva'], ['CTL-BT-CSV', 'Esporta le operazioni'], ['CTL-BT-NAME', 'Nome della simulazione'],
     ['CTL-BT-SAVE', 'Salva la simulazione'], ['CTL-BT-OPEN-SAVED', 'Apri una simulazione salvata'], ['CTL-BT-DEL-SAVED', 'Elimina una simulazione salvata'],
     ['CTL-CMP-A', 'Confronto: strategia A'], ['CTL-CMP-B', 'Confronto: strategia B'], ['CTL-CMP-C', 'Confronto: strategia C'], ['CTL-CMP-FROM', 'Confronto: dal'], ['CTL-CMP-TO', 'Confronto: al'],

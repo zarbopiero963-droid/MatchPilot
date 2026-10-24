@@ -10,7 +10,13 @@ const defContent = d => JSON.stringify({name: d.name.trim(), market: d.market, s
   team: d.team?.trim() ?? '', venue: d.team?.trim() ? d.venue ?? 'ANY' : 'ANY', competitions: [...(d.competitions ?? [])].sort()});
 function saveDemoStrategy(def) {
   const list = lib.strategiesRaw();
-  const key = def.key || slugKey(def.name);
+  let key = def.key;
+  if (!key) {
+    // A new name whose slug is already taken by a different strategy gets its own key, never a version of the other one.
+    const base = slugKey(def.name), sameName = k => list.find(x => x.key === k)?.versions.at(-1)?.def.name.trim() === def.name.trim();
+    key = base;
+    for (let i = 2; list.some(x => x.key === key) && !sameName(key); i++) key = `${base.slice(0, 59)}-${i}`;
+  }
   const clean = JSON.parse(defContent(def));
   let s = list.find(x => x.key === key);
   if (!s) { s = {key, active: false, versions: []}; list.push(s); }
@@ -34,7 +40,7 @@ view({id: 'strategies', title: 'Strategy Lab', phase: 'UI-07', issues: ['#34', '
       const data = JSON.parse(await f.text());
       const arr = Array.isArray(data) ? data : [data];
       let n = 0, bad = 0;
-      for (const d of arr) { const def = {...BLANK_DEF, ...d}; if (defIssues(def).length) { bad++; continue; } saveDemoStrategy(def); n++; }
+      for (const d of arr) { const def = {...BLANK_DEF, conditions: [], ...d}; if (defIssues(def).length) { bad++; continue; } saveDemoStrategy(def); n++; }
       toast(`Importate ${n} strategie${bad ? `, ${bad} scartate perché non valide` : ''}`, bad && !n ? 'bad' : 'ok'); render();
     } catch { toast('File non valido: serve un JSON di strategie.', 'bad'); }
   }});
@@ -208,7 +214,8 @@ function btResult(res, {saveable = true, query = null} = {}) {
   const cols = ['Data', 'Partita', 'Operazione', 'Quota', 'Puntata', 'Risultato', 'Netto'];
   const shown = res.bets.slice((pg - 1) * size, pg * size);
   return [h('section', {class: 'card', 'data-testid': 'bt-result', 'data-bets': res.bets.length, 'data-src': res.src},
-    h('h2', {}, 'Risultato', chip(res.src), res.src === 'REAL' ? h('span', {class: 'chip warn'}, 'Non certificato') : h('span', {class: 'chip warn'}, 'Dati DEMO: non è una previsione di guadagno')),
+    h('h2', {}, 'Risultato', chip(res.src), h('span', {class: `chip ${(res.pit ?? 'PIT') === 'PIT' ? 'ok' : 'bad'}`, 'data-testid': 'bt-pit', title: (res.pit ?? 'PIT') === 'PIT' ? 'Point-in-time: solo dati noti al momento della decisione' : 'Usa prezzi acquisiti dopo la decisione: risultato esplorativo, non evidenza di redditività'},
+      (res.pit ?? 'PIT') === 'PIT' ? 'PIT' : 'NON_PIT'), res.src === 'REAL' ? h('span', {class: 'chip warn'}, 'Non certificato') : h('span', {class: 'chip warn'}, 'Dati DEMO: non è una previsione di guadagno')),
     h('div', {class: 'grid g4'}, kpi('Profitto netto', signed(res.plNet), `lordo ${signed(res.plGross)} · commissioni ${nf(res.commission)}`, {'data-kpi': 'pl'}),
       kpi('Operazioni', nint(res.bets.length), `${res.won} vinte · ${res.lost} perse`, {'data-kpi': 'bets'}), kpi('Rendimento sul rischio', pct(res.roi), `strike rate ${pct(res.strike)}`, {'data-kpi': 'roi'}),
       kpi('Massimo calo', nf(res.maxDrawdown), `quota media ${odd(res.avgOdds)}`, {'data-kpi': 'dd'})),
@@ -259,14 +266,17 @@ view({id: 'backtest', title: 'Simulazioni e backtest', phase: 'UI-08', issues: [
     h('label', {class: 'f'}, 'Capitale iniziale', h('input', {type: 'number', name: 'bankroll', step: '1', min: '1', value: v('bankroll') || st.bankroll, ctl: 'CTL-BT-BANK'})),
     h('label', {class: 'f'}, 'Gestione del capitale', h('select', {name: 'mm_model', ctl: 'CTL-BT-MM'}, h('option', {value: ''}, 'Puntata fissa'),
       MM_MODELS.filter(m => m.status === 'IMPLEMENTED').map(m => h('option', {value: m.id, selected: v('mm_model') === m.id}, m.name)))),
-    h('label', {class: 'f'}, 'Valore della gestione', h('input', {type: 'number', name: 'mm_value', step: '0.01', min: '0.01', value: v('mm_value'), ctl: 'CTL-BT-MMV', placeholder: 'es. 2 = 2%'}))),
+    h('label', {class: 'f'}, 'Valore della gestione', h('input', {type: 'number', name: 'mm_value', step: '0.01', min: '0.01', value: v('mm_value'), ctl: 'CTL-BT-MMV', placeholder: 'es. 2 = 2%'})),
+    // DEC-007: PIT is the default; NON_PIT_RESEARCH is an explicit, labelled research run of the server engine.
+    h('label', {class: 'f'}, 'Punto nel tempo', h('select', {name: 'pit_mode', ctl: 'CTL-BT-PIT', disabled: !isReal(), title: isReal() ? null : 'In DEMO la simulazione usa solo prezzi noti prima della decisione (PIT)'},
+      [['PIT', 'PIT: solo dati noti alla decisione'], ['NON_PIT_RESEARCH', 'NON_PIT: ricerca, non è evidenza']].map(([k, t]) => h('option', {value: k, selected: (v('pit_mode') || 'PIT') === k}, t))))),
   h('div', {class: 'row', style: {marginTop: '12px'}}, h('button', {class: 'btn pri', type: 'submit', ctl: 'CTL-BT-RUN', disabled: !stratOpts.length}, 'Avvia la simulazione'),
     h('a', {class: 'btn', href: href('strategies', {new: 1}), ctl: 'CTL-BT-NEWSTRAT'}, 'Nuova strategia')));
   if (!params.get('run')) return [headN, tabs, dataStrip(isReal() ? 'REAL' : 'DEMO', isReal() ? 'Motore reale /api/v1/hist/backtest (modalità rigorosa).' : 'Archivio DEMO: partite concluse generate nel browser.'), form,
     emptyState('Scegli strategia e periodo, poi avvia la simulazione.')];
   const def = cur === '__draft' ? draft : list.find(d => d.key === cur);
   if (!def) return [headN, tabs, form, h('div', {class: 'state error', role: 'alert'}, 'Strategia non trovata.')];
-  const cfg = {from: v('from'), to: v('to'), stake: v('stake') || st.default_stake, commission: v('commission') || '0', bankroll: v('bankroll') || st.bankroll, mm_model: v('mm_model'), mm_value: v('mm_value')};
+  const cfg = {from: v('from'), to: v('to'), stake: v('stake') || st.default_stake, commission: v('commission') || '0', bankroll: v('bankroll') || st.bankroll, mm_model: v('mm_model'), mm_value: v('mm_value'), pit_mode: isReal() ? v('pit_mode') || 'PIT' : 'PIT'};
   if (cfg.mm_model && !(Number(cfg.mm_value) > 0)) return [headN, tabs, form, h('div', {class: 'state error', role: 'alert', 'data-testid': 'bt-invalid'}, 'Valore della gestione: obbligatorio con un modello di gestione del capitale.')];
   let res;
   const runKey = JSON.stringify([def, cfg, isReal()]);
@@ -383,7 +393,7 @@ view({id: 'paper', title: 'Paper trading', phase: 'UI-09', issues: ['#99', '#96'
   strip('DEMO', 'Denaro simulato, conto in questo browser. Nessun ordine reale.'),
   h('div', {class: 'grid g4', style: {marginBottom: '14px'}, 'data-testid': 'paper-kpi'},
     kpi('Disponibile', money(st.available), `cassa ${money(st.cash)}`, {'data-kpi': 'available'}), kpi('Impegnato', money(st.reserved), `${st.open} posizioni aperte`, {'data-kpi': 'reserved'}),
-    kpi('Profitto realizzato', signed(st.realized), `commissioni ${nf(st.commission)}`, {'data-kpi': 'realized'}), kpi('Registro', st.reconciled ? 'In pari' : 'Da verificare', `${st.entries} movimenti`, {'data-kpi': 'reconciled'})),
+    kpi('Profitto realizzato', signed(st.realized), `commissioni ${nf(st.commission)}`, {'data-kpi': 'realized'}), kpi('Registro', st.reconciled ? 'In pari' : 'Da verificare', `${st.entries} movimenti · posizioni regolate ${signed(st.fromPositions)}`, {'data-kpi': 'reconciled'})),
   h('div', {class: 'grid g2'},
     h('section', {class: 'card', 'data-testid': 'paper-mode', 'data-mode': l.mode}, h('h2', {}, 'Operatività', h('span', {class: `right chip ${l.mode === 'ACTIVE_OPERATIONAL' ? 'ok' : 'warn'}`}, MODES[l.mode])),
       h('div', {class: 'row'}, modeBtn('ADVISORY_ONLY', 'STOP operazioni', 'CTL-PAPER-STOP', 'danger'), modeBtn('ACTIVE_OPERATIONAL', 'Riprendi', 'CTL-PAPER-RESUME'), modeBtn('PAUSED', 'Pausa', 'CTL-PAPER-PAUSE')),
@@ -404,15 +414,15 @@ view({id: 'paper', title: 'Paper trading', phase: 'UI-09', issues: ['#99', '#96'
     h('td', {}, p.id), h('td', {}, p.label), h('td', {}, `${SIDE_TEXT[p.side]} ${selectionText(p.market, p.selection)}`), h('td', {}, p.score), h('td', {class: `n ${p.net >= 0 ? 'ok' : 'bad'}`}, signed(p.net)))))))
     : emptyState('Nessuna posizione regolata.')),
   h('section', {class: 'card', 'data-testid': 'paper-ledger'}, h('h2', {}, 'Registro (append-only)', h('span', {class: 'right row'},
-    h('select', {ctl: 'CTL-PAPER-LEDGER-TYPE', 'aria-label': 'Tipo di movimento', onchange: e => go('paper', {ltype: e.target.value})}, [['', 'Tutti'], ['ALLOCATE', 'Capitale'], ['OPEN', 'Aperture'], ['HEDGE', 'Coperture'], ['SETTLE', 'Regolamenti'], ['MODE', 'Operatività']]
+    h('select', {ctl: 'CTL-PAPER-LEDGER-TYPE', 'aria-label': 'Tipo di movimento', onchange: e => go('paper', {ltype: e.target.value})}, [['', 'Tutti'], ['ALLOCATE', 'Capitale'], ['OPEN', 'Aperture'], ['HEDGE', 'Coperture'], ['SETTLE', 'Regolamenti'], ['MODE', 'Operatività'], ['RESET', 'Azzeramenti']]
       .map(([k, t]) => h('option', {value: k, selected: ltype === k}, t))),
     h('button', {class: 'btn sm', type: 'button', ctl: 'CTL-PAPER-CSV', onclick: () => download('matchpilot-registro.csv', ['seq;quando;tipo;descrizione;netto', ...l.entries.map(e => [e.seq, e.at, e.type, e.text, e.net ?? e.amount ?? ''].join(';'))].join('\n'), 'text/csv')}, 'Esporta CSV'),
     h('button', {class: 'btn sm danger', type: 'button', ctl: 'CTL-PAPER-RESET', onclick: async () => {
       const amount = await promptDialog('Azzera il conto simulato', 'Nuovo capitale iniziale', {value: String(settings().bankroll), ctlInput: 'CTL-PAPER-RESET-AMOUNT', ctlOk: 'CTL-PAPER-RESET-OK', ok: 'Azzera'});
       if (amount === null) return;
       const n = Number(amount.replace(',', '.'));
-      if (!(n > 0)) { toast('Capitale non valido', 'bad'); return; }
-      ledgerCreate(n); toast('Conto azzerato', 'ok'); render();
+      const r = ledgerReset(ledgerLoad(), n);
+      toast(r.error ?? 'Conto azzerato: storico conservato nel registro', r.error ? 'bad' : 'ok'); render();
     }}, 'Azzera conto'))),
   h('div', {class: 'tablewrap'}, h('table', {class: 'cards'}, h('thead', {}, h('tr', {}, ledCols.map(c => h('th', {}, c)))), h('tbody', {}, entries.slice(0, 50).map(e => h('tr', {'data-type': e.type}, [
     h('td', {}, String(e.seq)), h('td', {}, when(e.at)), h('td', {}, e.type), h('td', {}, e.text ?? ''), h('td', {class: 'n'}, e.net !== undefined ? signed(e.net) : e.amount !== undefined ? money(e.amount) : '')]
@@ -470,9 +480,10 @@ view({id: 'money', title: 'Money Management', phase: 'UI-09', issues: ['#96'], r
         h('dt', {}, 'Limiti intervenuti'), h('dd', {}, r.capsHit?.length ? r.capsHit.map(c => CAP_TEXT[c] ?? c).join(', ') : 'nessuno')),
       r.reasons?.length ? h('p', {class: 'small warn'}, r.reasons.join(' · ')) : null));
   };
-  return [head('Money Management', {sub: 'Modelli, profili con versioni immutabili, calcolo della puntata', chips: [chip(isReal() ? 'REAL' : 'DEMO')], issues: ['UI-09', '#96'],
+  return [head('Money Management', {sub: 'Modelli, profili con versioni immutabili, calcolo della puntata', chips: [chip(isReal() ? 'MIXED' : 'DEMO')], issues: ['UI-09', '#96'],
     actions: [h('button', {class: 'btn pri', type: 'button', ctl: 'CTL-MM-NEW', onclick: () => profileDialog(null)}, 'Nuovo profilo')]}),
-  strip('DEMO', 'Profili salvati in questo browser. I modelli utilizzabili sono i 4 con formula definita dall’owner; gli altri restano «da definire».'),
+  isReal() ? strip('MIXED', 'Provenienza mista: i profili sono salvati in questo browser (DEMO, l’API dei profili non esiste ancora); il calcolo della puntata è eseguito dal server (REAL, /api/v1/mm/stake).')
+    : strip('DEMO', 'Profili salvati in questo browser. I modelli utilizzabili sono i 4 con formula definita dall’owner; gli altri restano «da definire».'),
   h('section', {class: 'card', 'data-testid': 'mm-profiles'}, h('h2', {}, 'Profili', h('label', {class: 'right f inl small'}, 'Mostra archiviati',
     h('input', {type: 'checkbox', checked: showArchived, ctl: 'CTL-MM-SHOWARCH', onchange: e => go('money', {archived: e.target.checked ? 1 : ''})}))),
   visible.length ? h('div', {class: 'tablewrap'}, h('table', {class: 'cards'}, h('thead', {}, h('tr', {}, pcols.map(c => h('th', {}, c)))), h('tbody', {}, visible.map(p => {
@@ -573,7 +584,8 @@ const TOOL_OUT = {
     h('dt', {}, 'Se la selezione vince'), h('dd', {}, signed(r.win)), h('dt', {}, 'Se la selezione perde'), h('dd', {}, signed(r.lose)), h('dt', {}, 'Probabilità di pareggio'), h('dd', {}, pct(r.be, 2)))],
   hedge: r => [h('dl', {class: 'kv'}, h('dt', {}, 'Copertura'), h('dd', {'data-out': 'hedge'}, `${SIDE_TEXT[r.side]} ${nf(r.stake)}`), h('dt', {}, 'Responsabilità della copertura'), h('dd', {}, nf(r.liab)),
     h('dt', {}, 'Prima: vince / perde'), h('dd', {}, `${signed(r.before.win)} / ${signed(r.before.lose)}`), h('dt', {}, 'Dopo: vince / perde'), h('dd', {'data-out': 'after'}, `${signed(r.after.win)} / ${signed(r.after.lose)}`),
-    h('dt', {}, 'Cashout teorico'), h('dd', {}, signed(Math.min(r.after.win, r.after.lose)))), h('p', {class: 'notice'}, 'La disponibilità della quota sul mercato non è verificata.')],
+    ...(Math.abs(r.after.win - r.after.lose) < 0.01 ? [h('dt', {}, 'Cashout teorico'), h('dd', {'data-out': 'cashout'}, signed(Math.min(r.after.win, r.after.lose)))]
+      : [h('dt', {}, 'Cashout teorico'), h('dd', {'data-out': 'cashout'}, 'solo con copertura totale')])), h('p', {class: 'notice'}, 'La disponibilità della quota sul mercato non è verificata.')],
   dutching: r => [h('div', {class: 'tablewrap'}, h('table', {}, h('thead', {}, h('tr', {}, ['Quota', 'Puntata', 'Se vince'].map(x => h('th', {class: 'n'}, x)))),
     h('tbody', {}, r.rows.map(x => h('tr', {}, h('td', {class: 'n'}, odd(x.odds)), h('td', {class: 'n'}, nf(x.stake)), h('td', {class: `n ${x.win >= 0 ? 'ok' : 'bad'}`}, signed(x.win))))))),
     h('dl', {class: 'kv', style: {marginTop: '10px'}}, h('dt', {}, 'Puntata totale'), h('dd', {'data-out': 'placed'}, nf(r.placed)), h('dt', {}, 'Totale delle probabilità'), h('dd', {}, pct(r.book, 2)))],

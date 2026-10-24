@@ -1,6 +1,8 @@
 
 // ================================================================ shell (UI-02)
-const compFilter = () => store.get('compFilter', []);
+// The campionati filter is kept per data source: DEMO and REAL competitions have different ids (F-06).
+const FILTER_KEY = () => `compFilter.${APP.mode}`;
+const compFilter = () => store.get(FILTER_KEY(), []);
 const passesFilter = m => { const f = compFilter(); return !f.length || f.includes(m.comp.id); };
 const NAV_ICON = {dashboard: 'home', calendar: 'cal', matches: 'list', competitions: 'trophy', live: 'live', copilot: 'pilot', analysis: 'chart', replay: 'replay',
   strategies: 'rules', backtest: 'flask', paper: 'wallet', money: 'coins', tools: 'calc', settings: 'gear', session: 'user', diagnostics: 'pulse', coverage: 'check'};
@@ -12,6 +14,8 @@ function buildShell() {
   search.addEventListener('input', () => globalSearch(search));
   search.addEventListener('focus', () => { if (search.value.trim()) globalSearch(search); });
   search.addEventListener('keydown', e => searchKeys(e, search));
+  // «Salta al contenuto» (F-20): a button, because a link to #view would be read as a route by the hash router.
+  const skip = h('button', {class: 'skip', type: 'button', ctl: 'CTL-SKIP', onclick: () => $('#view').focus()}, 'Salta al contenuto');
   const top = h('header', {class: 'topbar'},
     h('button', {class: 'iconbtn burger', type: 'button', 'aria-label': 'Apri il menu', 'aria-expanded': 'false', ctl: 'CTL-NAV-BURGER', onclick: e => {
       const open = !document.body.classList.contains('navopen');
@@ -39,10 +43,10 @@ function buildShell() {
     [['dashboard', 'Oggi', 'CTL-BOT-DASH'], ['live', 'Live', 'CTL-BOT-LIVE'], ['strategies', 'Strategie', 'CTL-BOT-STRAT'], ['tools', 'Strumenti', 'CTL-BOT-TOOLS']]
       .map(([id, text, c]) => h('a', {href: href(id), 'data-nav': id, ctl: c}, icon(NAV_ICON[id], 20), text)),
     h('button', {type: 'button', ctl: 'CTL-BOT-MORE', 'aria-label': 'Tutte le sezioni', onclick: () => { document.body.classList.add('navopen'); $('.side a')?.focus(); }}, icon('grid', 20), 'Altro'));
-  const app = h('div', {class: 'app'}, top, side, h('div', {class: 'scrim', onclick: () => document.body.classList.remove('navopen')}),
+  const app = h('div', {class: 'app'}, skip, top, side, h('div', {class: 'scrim', onclick: () => document.body.classList.remove('navopen')}),
     h('main', {id: 'view', tabindex: '-1'}), bottom);
   $('#root').replaceChildren(app);
-  const tick = () => { const c = $('#clock'); if (c) { c.textContent = new Date(nowMs()).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit', second: '2-digit'}); c.title = APP.clockOffset && !isReal() ? 'Orologio DEMO spostato (Diagnostica)' : 'Ora locale'; c.classList.toggle('warn', !!APP.clockOffset && !isReal()); } };
+  const tick = () => { const c = $('#clock'); if (c) { c.textContent = new Date(nowMs()).toLocaleTimeString('it-IT', {timeZone: TZ(), hour: '2-digit', minute: '2-digit', second: '2-digit'}); c.title = APP.clockOffset && !isReal() ? 'Orologio DEMO spostato (Diagnostica)' : 'Ora locale'; c.classList.toggle('warn', !!APP.clockOffset && !isReal()); } };
   tick(); setInterval(tick, 1000);
   updateLiveCount(); setInterval(updateLiveCount, 30000);
   document.body.classList.toggle('dev', !!settings().show_issues);
@@ -76,19 +80,21 @@ function setMode(mode) {
   const b = $('#modebtn'); b.className = `mode ${mode}`; b.textContent = mode;
   closeMenus(); updateLiveCount(); toast(mode === 'REAL' ? 'Dati reali dall’API v1' : 'Dati dimostrativi (DEMO)'); render();
 }
-function filterMenu(btn) {
+async function filterMenu(btn) {
   const sel = new Set(compFilter());
-  const comps = COMPS;
-  const m = menuAt(btn, [h('div', {class: 'small', style: {padding: '6px 10px'}}, h('b', {}, 'Campionati mostrati'), h('div', {class: 'muted xs'}, 'Vale per Dashboard, Calendario, Partite e Live.')), h('hr'),
-    comps.map(c => h('label', {class: 'mi'}, h('span', {}, c.name, h('span', {class: 'muted xs'}, ` · ${c.country}`)),
+  let comps;
+  try { comps = await DATA.competitions(); } catch { toast('Elenco dei campionati non disponibile', 'bad'); return; }
+  const key = FILTER_KEY();
+  const m = menuAt(btn, [h('div', {class: 'small', style: {padding: '6px 10px'}}, h('b', {}, `Campionati mostrati (${APP.mode})`), h('div', {class: 'muted xs'}, 'Vale per Dashboard, Calendario, Partite e Live.')), h('hr'),
+    comps.length ? comps.map(c => h('label', {class: 'mi'}, h('span', {}, c.name, h('span', {class: 'muted xs'}, ` · ${c.country}`)),
       h('input', {type: 'checkbox', checked: !sel.size || sel.has(c.id), ctl: 'CTL-FILTER-COMP', 'data-comp': c.id, onchange: e => {
         const all = new Set(sel.size ? sel : comps.map(x => x.id));
         if (e.target.checked) all.add(c.id); else all.delete(c.id);
         if (!all.size) { e.target.checked = true; toast('Almeno un campionato deve restare selezionato', 'bad'); return; }
         sel.clear(); if (all.size < comps.length) all.forEach(x => sel.add(x));
-        store.set('compFilter', [...sel]); updateLiveCount(); render();
-      }}))),
-    h('hr'), h('button', {class: 'mi', type: 'button', ctl: 'CTL-FILTER-ALL', onclick: () => { store.set('compFilter', []); closeMenus(); updateLiveCount(); render(); toast('Tutti i campionati'); }}, 'Mostra tutti')]);
+        store.set(key, [...sel]); updateLiveCount(); render();
+      }}))) : h('div', {class: 'muted small', style: {padding: '6px 10px'}}, 'Nessun campionato nei dati.'),
+    h('hr'), h('button', {class: 'mi', type: 'button', ctl: 'CTL-FILTER-ALL', onclick: () => { store.set(key, []); closeMenus(); updateLiveCount(); render(); toast('Tutti i campionati'); }}, 'Mostra tutti')]);
   if (m) m.style.maxHeight = '70vh', m.style.overflow = 'auto';
 }
 function accountMenu(btn) {

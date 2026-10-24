@@ -3,7 +3,7 @@
 // [id, label]; grouped by view, phase and source issues. Every interactive element of the app carries one of these ids
 // (data-control); the autotest and Diagnostica refuse an element without id or with an undeclared one.
 const SPEC_GROUPS = [
-  ['shell', 'UI-02', ['#3'], [['CTL-NAV-BURGER', 'Apri/chiudi il menu (tablet e telefono)'], ['CTL-NAV-BRAND', 'Logo: torna alla Dashboard'],
+  ['shell', 'UI-02', ['#3'], [['CTL-SKIP', 'Salta al contenuto'], ['CTL-NAV-BURGER', 'Apri/chiudi il menu (tablet e telefono)'], ['CTL-NAV-BRAND', 'Logo: torna alla Dashboard'],
     ['CTL-GSEARCH-INPUT', 'Ricerca globale'], ['CTL-GSEARCH-RESULT', 'Risultato della ricerca globale'], ['CTL-TOP-MODE', 'Origine dei dati REAL/DEMO'], ['CTL-MODE-REAL', 'Usa i dati REAL'],
     ['CTL-MODE-DEMO', 'Usa i dati DEMO'], ['CTL-TOP-FILTER', 'Filtro campionati globale'], ['CTL-FILTER-COMP', 'Includi/escludi un campionato'], ['CTL-FILTER-ALL', 'Mostra tutti i campionati'],
     ['CTL-TOP-ACCOUNT', 'Menu account'], ['CTL-ACC-SETTINGS', 'Account › Impostazioni'], ['CTL-ACC-SESSION', 'Account › Sessione'], ['CTL-ACC-COVERAGE', 'Account › Roadmap e copertura'],
@@ -42,7 +42,7 @@ const SPEC_GROUPS = [
     ['CTL-COND-B', 'Condizione: secondo valore'], ['CTL-COND-DEL', 'Rimuovi la condizione'], ['CTL-STRAT-ADDCOND', 'Aggiungi condizione'], ['CTL-STRAT-SAVE', 'Salva la strategia'],
     ['CTL-STRAT-CANCEL', 'Annulla / torna allo Strategy Lab'], ['CTL-STRAT-TRYBT', 'Prova nel backtest'], ['CTL-STRAT-RESTORE', 'Ripristina una versione']]],
   ['backtest', 'UI-08', ['#34'], [['CTL-BT-TAB', 'Scheda delle simulazioni'], ['CTL-BT-STRAT', 'Strategia'], ['CTL-BT-FROM', 'Dal'], ['CTL-BT-TO', 'Al'], ['CTL-BT-STAKE', 'Puntata'], ['CTL-BT-COMM', 'Commissione'],
-    ['CTL-BT-BANK', 'Capitale iniziale'], ['CTL-BT-MM', 'Gestione del capitale'], ['CTL-BT-MMV', 'Valore della gestione'], ['CTL-BT-RUN', 'Avvia la simulazione'], ['CTL-BT-NEWSTRAT', 'Nuova strategia'],
+    ['CTL-BT-BANK', 'Capitale iniziale'], ['CTL-BT-MM', 'Gestione del capitale'], ['CTL-BT-MMV', 'Valore della gestione'], ['CTL-BT-PIT', 'Punto nel tempo (PIT/NON_PIT)'], ['CTL-BT-RUN', 'Avvia la simulazione'], ['CTL-BT-NEWSTRAT', 'Nuova strategia'],
     ['CTL-BT-PREV', 'Operazioni: pagina precedente'], ['CTL-BT-NEXT', 'Operazioni: pagina successiva'], ['CTL-BT-CSV', 'Esporta le operazioni'], ['CTL-BT-NAME', 'Nome della simulazione'],
     ['CTL-BT-SAVE', 'Salva la simulazione'], ['CTL-BT-OPEN-SAVED', 'Apri una simulazione salvata'], ['CTL-BT-DEL-SAVED', 'Elimina una simulazione salvata'],
     ['CTL-CMP-A', 'Confronto: strategia A'], ['CTL-CMP-B', 'Confronto: strategia B'], ['CTL-CMP-C', 'Confronto: strategia C'], ['CTL-CMP-FROM', 'Confronto: dal'], ['CTL-CMP-TO', 'Confronto: al'],

@@ -11,8 +11,14 @@ async function apiGet(path, {timeout = 15000} = {}) {
   catch { throw new ApiFailure(0, 'NETWORK', 'rete non raggiungibile'); }
   finally { clearTimeout(t); }
   const body = await res.json().catch(() => null);
+  if (res.status === 401) goLogin();
   if (!res.ok) throw new ApiFailure(res.status, body?.error?.code, body?.error?.message);
   return body;
+}
+// A 401 means the owner session is missing or expired (F-05): go to the login page and come back here, as on main.
+function goLogin() {
+  if (APP.testing) return;
+  location.assign(`/login?next=${encodeURIComponent(location.pathname + location.hash)}`);
 }
 async function apiPost(path, data) {
   let res;
@@ -22,9 +28,15 @@ async function apiPost(path, data) {
   if (!res.ok) throw new ApiFailure(res.status, body?.error?.code, body?.error?.message);
   return {status: res.status, data: body?.data ?? null};
 }
+// REAL when this page is served by the MatchPilot server. A 401 is still the MatchPilot server, with the owner login
+// enforced: it is REAL and leads to the login page, never a silent switch to DEMO (F-04).
 async function detectReal() {
   if (!/^https?:$/.test(location.protocol)) return null;
-  try { const b = await apiGet('/api/v1/health', {timeout: 2500}); return b?.api_version === 'v1' ? b : null; } catch { return null; }
+  let res;
+  try { res = await fetch('/api/v1/health', {headers: {accept: 'application/json'}, credentials: 'same-origin'}); } catch { return null; }
+  if (res.status === 401) { const b = await res.json().catch(() => null); if (b?.api_version === 'v1' || b?.error) { goLogin(); return {authRequired: true}; } return null; }
+  const b = await res.json().catch(() => null);
+  return res.ok && b?.api_version === 'v1' ? b : null;
 }
 const isReal = () => APP.mode === 'REAL';
 const n0 = v => v === null || v === undefined || v === '' ? null : Number(v);
@@ -86,7 +98,7 @@ const REAL = {
     const {params, why} = toRealParams(def);
     if (!params) throw new ApiFailure(400, 'NOT_SUPPORTED_REAL', why);
     const q = {...params, from: cfg.from, to: cfg.to, stake: cfg.stake, commission: cfg.commission ? String(Number(cfg.commission) / 100) : undefined,
-      bankroll: cfg.mm_model ? cfg.bankroll : undefined, mm_model: cfg.mm_model || undefined, mm_value: cfg.mm_model ? cfg.mm_value : undefined, max_events: 1000};
+      bankroll: cfg.mm_model ? cfg.bankroll : undefined, mm_model: cfg.mm_model || undefined, mm_value: cfg.mm_model ? cfg.mm_value : undefined, max_events: 1000, pit_mode: cfg.pit_mode === 'NON_PIT_RESEARCH' ? 'NON_PIT_RESEARCH' : undefined};
     const b = await apiGet(`/api/v1/hist/backtest${qs(q)}`, {timeout: 60000});
     return {...fromRealReport(b.data, def, cfg), query: q};
   },
@@ -123,7 +135,7 @@ function fromRealReport(data, def, cfg) {
   return {kind: 'BACKTEST', src: 'REAL', def, cfg, events: rep.counts?.events ?? null, bets, won: m.won ?? 0, lost: m.lost ?? 0, skipped: rep.counts?.no_trade_by_reason ?? {},
     staked: n0(m.staked), exposure: n0(m.exposure), plGross: n0(m.rounded?.pl_gross), commission: n0(m.rounded?.commission), plNet: n0(m.rounded?.pl_net), roi: n0(m.rounded?.roi),
     strike: m.bets ? m.won / m.bets : null, avgOdds: bets.length ? bets.reduce((x, b) => x + b.odds, 0) / bets.length : null, maxDrawdown: n0(m.rounded?.max_drawdown),
-    finalCash: n0(rep.bankroll?.final_cash), byMonth: {}, curve, status: rep.status, certified: rep.certification?.certified ?? false, report_sha256: rep.report_sha256, ranAt: new Date().toISOString()};
+    finalCash: n0(rep.bankroll?.final_cash), byMonth: {}, curve, pit: data?.pit_mode ?? rep.config?.pit_mode ?? 'PIT', status: rep.status, certified: rep.certification?.certified ?? false, report_sha256: rep.report_sha256, ranAt: new Date().toISOString()};
 }
 // DEMO adapter with the same interface (synchronous data wrapped in promises, to keep one code path).
 const DEMO = {
@@ -135,10 +147,6 @@ const DATA = {day: d => (isReal() ? REAL : DEMO).day(d), analysis: id => (isReal
   competitions: () => (isReal() ? REAL : DEMO).competitions()};
 // Local libraries of the DEMO mode (strategies, saved simulations, MM profiles), in this browser only.
 const lib = {
-  strategies: () => store.get('strategies', []),
-  saveStrategies: list => store.set('strategies', list),
-  saved: () => store.get('saved', []),
-  setSaved: list => store.set('saved', list),
   profiles: () => store.get('profiles', null) ?? defaultProfiles(),
   setProfiles: list => store.set('profiles', list),
 };

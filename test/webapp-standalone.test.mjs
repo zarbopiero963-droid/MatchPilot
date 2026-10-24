@@ -1,7 +1,7 @@
 // MP-UI-ROADMAP-01: the single-file MatchPilot web app (webapp/dist/matchpilot-webapp.html), opened as a local file in a
 // real Chromium. Every view renders at desktop, tablet and mobile sizes without console errors, horizontal scroll, raw
 // values or interactive elements without a declared control id; the built-in autotest then exercises every control and
-// must pass every scenario. DEMO data only: this is CERTIFIED MOCK evidence, never a real-data certification.
+// must pass every scenario. DEMO data only: the file records SEEN/ACTUATED/ASSERTED evidence, never CERTIFIED MOCK or REAL.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {existsSync} from 'node:fs';
@@ -46,7 +46,15 @@ test('the single-file web app renders every view and passes its built-in autotes
         const blocked = Object.entries(rec.controls).filter(([, x]) => x.result === 'BLOCKED').map(([id]) => id);
         const untested = specs.filter(id => !rec.controls[id]);
         assert.deepEqual(untested, [], 'every declared control is exercised or explicitly blocked');
-        assert.deepEqual(blocked.sort(), ['CTL-MODE-REAL', 'CTL-PAPER-ACCOUNT', 'CTL-PAPER-LOAD', 'CTL-SESSION-LOGIN', 'CTL-SESSION-LOGOUT'], 'only server-only controls are blocked');
+        assert.deepEqual(blocked.sort(), ['CTL-BT-PIT', 'CTL-MODE-REAL', 'CTL-PAPER-ACCOUNT', 'CTL-PAPER-LOAD', 'CTL-SESSION-LOGIN', 'CTL-SESSION-LOGOUT'], 'only server-only controls are blocked');
+        // The starter of the autotest cannot verify itself, and a PASS without a later check is only ACTUATED.
+        assert.equal(rec.controls['CTL-COV-RUN'].result, 'NOT_RUN');
+        for (const [id, x] of Object.entries(rec.controls)) {
+          assert.ok(['ASSERTED', 'ACTUATED', 'NONE'].includes(x.evidence), `${id}: evidence ${x.evidence}`);
+          if (x.evidence === 'ASSERTED') assert.ok(x.assertedBy.length > 0, `${id}: ASSERTED without a scenario`);
+        }
+        const levels = await page.evaluate(() => { location.hash = '#/coverage?tab=controls'; return new Promise(r => setTimeout(() => r(document.querySelector('[data-kpi="certified"]')?.textContent ?? ''), 500)); });
+        assert.match(levels, /0 · 0/, 'the file never claims CERTIFIED MOCK or REAL');
         assert.deepEqual(rec.unknownIds, [], 'no undeclared control id');
       }
       assert.deepEqual(problems, [], `console problems @${viewport.width}`);

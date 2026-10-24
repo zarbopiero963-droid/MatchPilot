@@ -205,12 +205,18 @@ const INTEGRATIONS = [
   ['Sessione', '/auth/session, /auth/logout', '—', '—', 'REAL.session', 'MATCHPILOT_AUTH=enforce', 'Accesso owner spento per default'],
   ['Assistente', '—', 'assistente AI (#44)', 'answer()', '—', 'Autorizzazione di un fornitore AI (costo)', 'Nessuna API AI autorizzata'],
 ];
-const RESULT_TEXT = {PASS: 'CERTIFIED MOCK', FAIL: 'FAIL', BLOCKED: 'BLOCKED', NOT_RUN: 'IMPLEMENTED'};
+// Evidence chain (MP-UI-HARD-GATES-01): NONE → SEEN (rendered) → ACTUATED (driven by a test) → ASSERTED (a check after it
+// passed). CERTIFIED MOCK needs the independent Browser QA of the served app: this file never claims it.
+const EVIDENCE_TEXT = {FAIL: 'FAIL', BLOCKED: 'BLOCKED', ASSERTED: 'ASSERTED', ACTUATED: 'ACTUATED', SEEN: 'SEEN', NONE: 'NONE'};
 function controlStates() {
   const at = readRaw('autotest');
   const res = at?.controls ?? {};
-  return [...SPECS.values()].map(sp => ({...sp, pr: prOf(sp.id), result: res[sp.id]?.result ?? 'NOT_RUN', tests: res[sp.id]?.tests ?? [], reason: res[sp.id]?.reason ?? null,
-    status: RESULT_TEXT[res[sp.id]?.result ?? 'NOT_RUN']}));
+  return [...SPECS.values()].map(sp => {
+    const r = res[sp.id], result = r?.result ?? 'NOT_RUN';
+    // Records from older builds carry no evidence level: count them as ACTUATED only.
+    const ev = result === 'FAIL' || result === 'BLOCKED' ? result : r?.evidence && r.evidence !== 'NONE' ? r.evidence : r && result === 'PASS' ? 'ACTUATED' : SEEN.has(sp.id) ? 'SEEN' : 'NONE';
+    return {...sp, pr: prOf(sp.id), result, state: ev, tests: r?.tests ?? [], assertedBy: r?.assertedBy ?? [], reason: r?.reason ?? null, status: EVIDENCE_TEXT[ev]};
+  });
 }
 function readRaw(k) { try { return JSON.parse(localStorage.getItem(`mp.${k}`)); } catch { return null; } }
 function writeRaw(k, v) { try { localStorage.setItem(`mp.${k}`, JSON.stringify(v)); } catch { /* storage unavailable */ } }
@@ -219,23 +225,22 @@ view({id: 'coverage', title: 'Roadmap e copertura', phase: 'UI-12', issues: ['#2
   const set = patch => updateParams('coverage', params, patch);
   const states = controlStates();
   const at = readRaw('autotest');
-  const pass = states.filter(c => c.result === 'PASS').length, total = states.length;
-  const byPhase = ph => { const xs = states.filter(c => c.phase === ph); return {n: xs.length, pass: xs.filter(c => c.result === 'PASS').length, fail: xs.filter(c => c.result === 'FAIL').length, blocked: xs.filter(c => c.result === 'BLOCKED').length}; };
+  const count = k => states.filter(c => c.state === k).length;
+  const pass = count('ASSERTED'), total = states.length;
+  const byPhase = ph => { const xs = states.filter(c => c.phase === ph); return {n: xs.length, pass: xs.filter(c => c.state === 'ASSERTED').length, fail: xs.filter(c => c.state === 'FAIL').length, blocked: xs.filter(c => c.state === 'BLOCKED').length}; };
   const prState = pr => {
     const xs = states.filter(c => c.pr === pr[0]);
-    if (pr[0] === 'MP-UI-PR-036') return pass === total && at ? 'CERTIFIED MOCK' : at ? 'IN PROGRESS' : 'IMPLEMENTED';
-    if (!xs.length) return 'IMPLEMENTED';
-    if (xs.some(c => c.result === 'FAIL')) return 'FAIL';
-    if (xs.every(c => c.result === 'PASS')) return 'CERTIFIED MOCK';
-    if (xs.every(c => c.result === 'PASS' || c.result === 'BLOCKED') && xs.some(c => c.result === 'PASS')) return 'TESTED';
-    return xs.some(c => c.result === 'PASS') ? 'TESTED' : 'IMPLEMENTED';
+    if (!xs.length) return at ? 'IN PROGRESS' : 'IMPLEMENTED';
+    if (xs.some(c => c.state === 'FAIL')) return 'FAIL';
+    if (xs.every(c => c.state === 'ASSERTED' || c.state === 'BLOCKED') && xs.some(c => c.state === 'ASSERTED')) return 'TESTED (DEMO)';
+    return xs.some(c => c.state === 'ASSERTED' || c.state === 'ACTUATED') ? 'IN PROGRESS' : 'IMPLEMENTED';
   };
   const tabs = tabsBar('CTL-COV-TAB', [['roadmap', 'Roadmap'], ['controls', 'Controlli'], ['matrix', 'Matrice'], ['integrations', 'Integrazioni'], ['autotest', 'Autotest']], tab, t => set({tab: t}), 'Sezioni');
   const summary = h('div', {class: 'grid g4', style: {marginBottom: '14px'}},
-    kpi('Controlli verificati', `${pass} / ${total}`, at ? `autotest del ${when(at.at)} (${at.mode})` : 'autotest non ancora eseguito', {'data-kpi': 'verified'}),
-    kpi('Completamento', total ? pct(pass / total) : ND, 'da controlli verificati, non da impressioni', {'data-kpi': 'percent'}),
-    kpi('Bloccati', nint(states.filter(c => c.result === 'BLOCKED').length), 'richiedono il server o dati reali'),
-    kpi('CERTIFIED REAL', '0', 'nessuna verifica su dati reali da questo file'));
+    kpi('ASSERTED', `${pass} / ${total}`, at ? `azione seguita da una verifica riuscita · autotest del ${when(at.at)} (${at.mode})` : 'autotest non ancora eseguito', {'data-kpi': 'verified'}),
+    kpi('ACTUATED · SEEN · NONE', `${count('ACTUATED')} · ${count('SEEN')} · ${count('NONE')}`, `azionati senza verifica · solo visti · nessuna evidenza${count('FAIL') ? ` · ${count('FAIL')} FAIL` : ''}`, {'data-kpi': 'levels'}),
+    kpi('Bloccati', nint(count('BLOCKED')), 'richiedono il server o dati reali'),
+    kpi('CERTIFIED MOCK · REAL', '0 · 0', 'la certificazione richiede la Browser QA indipendente sul server, non questo file', {'data-kpi': 'certified'}));
   let body;
   if (tab === 'roadmap') {
     body = [h('section', {class: 'card', 'data-testid': 'cov-phases'}, h('h2', {}, 'Fasi'), h('div', {class: 'tablewrap'}, h('table', {class: 'cards'}, h('thead', {}, h('tr', {}, ['Fase', 'Contenuto', 'Controlli', 'Verificati', 'Avanzamento'].map(x => h('th', {}, x)))),
@@ -243,27 +248,27 @@ view({id: 'coverage', title: 'Roadmap e copertura', phase: 'UI-12', issues: ['#2
         h('td', {class: 'n'}, b.n), h('td', {class: 'n'}, b.pass), h('td', {}, h('div', {class: 'progress', title: pct(b.n ? b.pass / b.n : 0)}, h('i', {style: {width: `${b.n ? b.pass / b.n * 100 : 0}%`}})))]
         .map((td, i) => (td.setAttribute('data-label', ['Fase', 'Contenuto', 'Controlli', 'Verificati', 'Avanzamento'][i]), td))); }))))),
     h('section', {class: 'card', 'data-testid': 'cov-prs'}, h('h2', {}, 'Registro delle unità (PR)'), h('div', {class: 'tablewrap'}, h('table', {class: 'cards matrix'}, h('thead', {}, h('tr', {}, ['ID', 'Fase', 'Titolo', 'Issue', 'Stato'].map(x => h('th', {}, x)))),
-      h('tbody', {}, PRS.map(pr => h('tr', {'data-pr': pr[0]}, [h('td', {class: 'mono'}, pr[0]), h('td', {}, pr[1]), h('td', {}, pr[2]), h('td', {}, pr[3].join(' ')), h('td', {}, h('span', {class: `chip ${prState(pr) === 'CERTIFIED MOCK' ? 'ok' : prState(pr) === 'FAIL' ? 'bad' : ''}`}, prState(pr)))]
+      h('tbody', {}, PRS.map(pr => h('tr', {'data-pr': pr[0]}, [h('td', {class: 'mono'}, pr[0]), h('td', {}, pr[1]), h('td', {}, pr[2]), h('td', {}, pr[3].join(' ')), h('td', {}, h('span', {class: `chip ${prState(pr) === 'TESTED (DEMO)' ? 'ok' : prState(pr) === 'FAIL' ? 'bad' : ''}`}, prState(pr)))]
         .map((td, i) => (td.setAttribute('data-label', ['ID', 'Fase', 'Titolo', 'Issue', 'Stato'][i]), td))))))),
-      h('p', {class: 'notice'}, 'Stati: NOT STARTED, IN PROGRESS, IMPLEMENTED, TESTED, CERTIFIED MOCK, CERTIFIED REAL, BLOCKED. CERTIFIED MOCK = verificato dall’autotest su dati DEMO; CERTIFIED REAL richiede la verifica sui dati reali.'))];
+      h('p', {class: 'notice'}, 'Stati: IMPLEMENTED, IN PROGRESS, TESTED (DEMO), FAIL. Evidenza per controllo: NONE → SEEN → ACTUATED → ASSERTED. CERTIFIED MOCK e CERTIFIED REAL non sono mai assegnati da questo file: richiedono la Browser QA indipendente sul server e, per REAL, i dati reali.'))];
   } else if (tab === 'controls' || tab === 'matrix') {
     const ph = params.get('phase') || '', st = params.get('state') || '', q = (params.get('q') || '').toLowerCase();
-    const rows = states.filter(c => (!ph || c.phase === ph) && (!st || c.result === st) && (!q || `${c.id} ${c.label} ${c.view}`.toLowerCase().includes(q)));
+    const rows = states.filter(c => (!ph || c.phase === ph) && (!st || c.state === st) && (!q || `${c.id} ${c.label} ${c.view}`.toLowerCase().includes(q)));
     const qIn = h('input', {type: 'search', value: params.get('q') || '', placeholder: 'Cerca un controllo', ctl: 'CTL-COV-Q', 'aria-label': 'Cerca un controllo'});
     qIn.addEventListener('change', () => set({q: qIn.value.trim()}));
     const filters = h('div', {class: 'card row', style: {marginBottom: '14px'}},
       h('label', {class: 'f inl'}, 'Fase', h('select', {ctl: 'CTL-COV-FILTER', onchange: e => set({phase: e.target.value})}, h('option', {value: ''}, 'Tutte'), PHASES.map(([id]) => h('option', {value: id, selected: ph === id}, id)))),
-      h('label', {class: 'f inl'}, 'Esito', h('select', {ctl: 'CTL-COV-STATE', onchange: e => set({state: e.target.value})}, [['', 'Tutti'], ['PASS', 'Verificati'], ['FAIL', 'Falliti'], ['BLOCKED', 'Bloccati'], ['NOT_RUN', 'Non eseguiti']].map(([v, t]) => h('option', {value: v, selected: st === v}, t)))),
+      h('label', {class: 'f inl'}, 'Esito', h('select', {ctl: 'CTL-COV-STATE', onchange: e => set({state: e.target.value})}, [['', 'Tutti'], ['ASSERTED', 'ASSERTED'], ['ACTUATED', 'ACTUATED'], ['SEEN', 'SEEN'], ['NONE', 'NONE'], ['FAIL', 'FAIL'], ['BLOCKED', 'BLOCKED']].map(([v, t]) => h('option', {value: v, selected: st === v}, t)))),
       qIn, h('span', {class: 'muted small'}, `${rows.length} controlli`));
     const cols = tab === 'controls' ? ['Controllo', 'Pagina', 'Descrizione', 'Fase', 'Stato', 'Test'] : ['Issue', 'Requisito', 'PR', 'Pagina', 'Componente', 'Controllo', 'Test', 'Esito', 'Evidenza'];
     body = [filters, h('section', {class: 'card', 'data-testid': tab === 'controls' ? 'cov-controls' : 'cov-matrix'}, h('div', {class: 'tablewrap'}, h('table', {class: 'cards matrix'}, h('thead', {}, h('tr', {}, cols.map(x => h('th', {}, x)))),
       h('tbody', {}, rows.map(c => {
-        const result = h('span', {class: c.result === 'PASS' ? 'pass' : c.result === 'FAIL' ? 'fail' : 'nt', title: c.reason ?? ''}, c.status);
+        const result = h('span', {class: c.state === 'ASSERTED' ? 'pass' : c.state === 'FAIL' ? 'fail' : 'nt', title: c.reason ?? (c.assertedBy.length ? `verificato da ${c.assertedBy.join(' ')}` : '')}, c.status);
         const cells = tab === 'controls'
           ? [h('td', {class: 'mono'}, c.id), h('td', {}, VIEWS.get(c.view)?.title ?? (c.view === 'shell' ? 'Shell' : c.view)), h('td', {}, c.label), h('td', {}, c.phase), h('td', {}, result), h('td', {class: 'mono xs'}, c.tests.join(' ') || '—')]
           : [h('td', {}, c.issues.join(' ')), h('td', {class: 'mono xs'}, `REQ-${c.id.slice(4)}`), h('td', {class: 'mono xs'}, c.pr), h('td', {}, VIEWS.get(c.view)?.title ?? 'Shell'), h('td', {}, c.kind),
-            h('td', {class: 'mono xs'}, c.id), h('td', {class: 'mono xs'}, c.tests.join(' ') || '—'), h('td', {}, result), h('td', {class: 'xs'}, at && c.result !== 'NOT_RUN' ? `autotest ${when(at.at)} · ${at.mode}${c.reason ? ` · ${c.reason}` : ''}` : '—')];
-        return h('tr', {'data-control-row': c.id, 'data-result': c.result}, cells.map((td, i) => (td.setAttribute('data-label', cols[i]), td)));
+            h('td', {class: 'mono xs'}, c.id), h('td', {class: 'mono xs'}, c.tests.join(' ') || '—'), h('td', {}, result), h('td', {class: 'xs'}, at && c.result !== 'NOT_RUN' ? `autotest ${when(at.at)} · ${at.mode}${c.assertedBy.length ? ` · asserito da ${c.assertedBy.join(' ')}` : ''}${c.reason ? ` · ${c.reason}` : ''}` : '—')];
+        return h('tr', {'data-control-row': c.id, 'data-result': c.state}, cells.map((td, i) => (td.setAttribute('data-label', cols[i]), td)));
       })))))];
   } else if (tab === 'integrations') {
     const cols = ['Componente', 'API esistente', 'API futura', 'Adapter DEMO', 'Adapter REAL', 'Condizione di attivazione', 'Blocker'];
@@ -296,7 +301,11 @@ async function settle() {
 }
 const isVisible = n => { const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).visibility !== 'hidden'; };
 class Tester {
-  constructor() { this.used = new Set(); }
+  // Evidence (MP-UI-HARD-GATES-01): a control is ACTUATED when the test drives it, ASSERTED only when a later check of
+  // the same scenario succeeds. Nothing here is CERTIFIED: that needs the independent Browser QA of the served app.
+  constructor() { this.used = new Set(); this.pending = new Set(); this.asserted = new Set(); }
+  touch(ctl) { this.used.add(ctl); this.pending.add(ctl); }
+  confirm() { for (const c of this.pending) this.asserted.add(c); this.pending.clear(); }
   find(ctl, {nth = 0, where = null, scope = document} = {}) {
     const all = $$(`[data-control="${ctl}"]`, scope).filter(x => !where || where(x));
     const vis = all.filter(isVisible);
@@ -305,26 +314,27 @@ class Tester {
     return n;
   }
   count(ctl) { return $$(`[data-control="${ctl}"]`).length; }
-  async click(ctl, opts) { const n = this.find(ctl, opts); if (n.disabled) throw new Error(`${ctl} è disabilitato`); n.scrollIntoView({block: 'nearest'}); n.click(); this.used.add(ctl); await settle(); return n; }
+  async click(ctl, opts) { const n = this.find(ctl, opts); if (n.disabled) throw new Error(`${ctl} è disabilitato`); n.scrollIntoView({block: 'nearest'}); n.click(); this.touch(ctl); await settle(); return n; }
   async value(ctl, v, opts) {
     const n = this.find(ctl, opts);
     if (n.disabled) throw new Error(`${ctl} è disabilitato`);
     n.focus(); n.value = v;
     n.dispatchEvent(new Event('input', {bubbles: true})); n.blur(); n.dispatchEvent(new Event('change', {bubbles: true}));
-    this.used.add(ctl); await settle(); return n;
+    this.touch(ctl); await settle(); return n;
   }
-  async check(ctl, on, opts) { const n = this.find(ctl, opts); if (n.checked !== on) n.click(); this.used.add(ctl); await settle(); return n; }
-  async key(ctl, key, opts) { const n = this.find(ctl, opts); n.dispatchEvent(new KeyboardEvent('keydown', {key, bubbles: true})); this.used.add(ctl); await settle(); }
+  async check(ctl, on, opts) { const n = this.find(ctl, opts); if (n.checked !== on) n.click(); this.touch(ctl); await settle(); return n; }
+  async key(ctl, key, opts) { const n = this.find(ctl, opts); n.dispatchEvent(new KeyboardEvent('keydown', {key, bubbles: true})); this.touch(ctl); await settle(); }
   async go(name, params = {}) { go(name, params); await settle(); }
-  async wait(fn, what, timeout = 5000) { const t0 = Date.now(); while (Date.now() - t0 < timeout) { try { if (fn()) return; } catch { /* retry */ } await sleep(40); } throw new Error(`attesa scaduta: ${what}`); }
-  ok(c, msg) { if (!c) throw new Error(msg); }
+  async wait(fn, what, timeout = 5000) { const t0 = Date.now(); while (Date.now() - t0 < timeout) { try { if (fn()) { this.confirm(); return; } } catch { /* retry */ } await sleep(40); } throw new Error(`attesa scaduta: ${what}`); }
+  ok(c, msg) { if (!c) throw new Error(msg); this.confirm(); }
   text(sel) { return ($(sel)?.textContent ?? '').replace(/\s+/g, ' ').trim(); }
   view() { return $('#view').dataset.view; }
   hash() { return location.hash; }
 }
 const firstDay = (from, dir, pred) => { for (let i = 0; i < 30; i++) { const d = addDays(from, dir * i); if (pred(d)) return d; } return from; };
 const BLOCKED_IN_FILE = {'CTL-MODE-REAL': 'Richiede la pagina servita dal server MatchPilot', 'CTL-PAPER-ACCOUNT': 'Solo REAL: lettura del conto dal server', 'CTL-PAPER-LOAD': 'Solo REAL: lettura del conto dal server',
-  'CTL-SESSION-LOGOUT': 'Solo REAL con accesso owner attivo', 'CTL-SESSION-LOGIN': 'Solo REAL con accesso owner attivo', 'CTL-COV-RUN': null};
+  'CTL-SESSION-LOGOUT': 'Solo REAL con accesso owner attivo', 'CTL-SESSION-LOGIN': 'Solo REAL con accesso owner attivo',
+  'CTL-BT-PIT': 'Solo REAL: la modalità NON_PIT è del motore del server', 'CTL-COV-RUN': null};
 const SCENARIOS = [
   ['T-NAV-01', 'Ogni voce della barra laterale apre la sua pagina', async t => {
     for (const [, ids] of NAV_GROUPS) for (const id of ids) { await t.click(NAV_CTL(id)); t.ok(t.view() === id, `${id}: aperta ${t.view()}`); t.ok($(`[data-nav="${id}"]`).getAttribute('aria-current') === 'page', `${id} non è evidenziata`); }
@@ -348,13 +358,14 @@ const SCENARIOS = [
     await t.click('CTL-GSEARCH-RESULT'); t.ok(['analysis', 'match', 'competitions'].includes(t.view()), `il risultato apre ${t.view()}`);
     await t.value('CTL-GSEARCH-INPUT', 'Calendario'); await t.key('CTL-GSEARCH-INPUT', 'ArrowDown'); await t.key('CTL-GSEARCH-INPUT', 'ArrowUp'); await t.key('CTL-GSEARCH-INPUT', 'Enter');
     t.ok(t.view() === 'calendar', 'Invio non apre il risultato');
+    await t.click('CTL-SKIP'); t.ok(document.activeElement === $('#view'), 'Salta al contenuto non porta il fuoco sulla pagina');
   }],
   ['T-NAV-05', 'Origine dei dati, filtro campionati, menu account', async t => {
     await t.click('CTL-TOP-MODE'); t.ok($('[data-control="CTL-MODE-REAL"]').disabled === !APP.realAvailable, 'REAL non rispetta la disponibilità');
     await t.click('CTL-MODE-DEMO'); t.ok(APP.mode === 'DEMO', 'modo non DEMO');
     await t.go('dashboard');
     await t.click('CTL-TOP-FILTER'); await t.check('CTL-FILTER-COMP', false, {nth: 0});
-    t.ok(compFilter().length === COMPS.length - 1, 'il filtro non esclude il campionato');
+    await t.wait(() => compFilter().length === COMPS.length - 1, 'il filtro non esclude il campionato');
     t.ok(!$$('.mrow .comp').some(x => x.textContent.startsWith(`${COMPS[0].name} `)), 'il campionato escluso è ancora visibile');
     await t.click('CTL-TOP-FILTER'); await t.click('CTL-FILTER-ALL'); t.ok(!compFilter().length, 'Mostra tutti non azzera');
     await t.click('CTL-TOP-ACCOUNT'); await t.click('CTL-ACC-ISSUES'); t.ok(document.body.classList.contains('dev'), 'le issue non compaiono');
@@ -397,6 +408,8 @@ const SCENARIOS = [
   }],
   ['T-MATCHES-01', 'Partite: filtri combinati, ordinamento, pagine, CSV, errori', async t => {
     await t.go('matches');
+    // F-18: in DEMO the synthetic xG is never shown as a bare (REAL-looking) «xG».
+    t.ok([...$$('[data-testid="matches-results"] th')].some(th => th.textContent.trim() === 'xG DEMO') && ![...$$('main th, main dt')].some(x => x.textContent.trim() === 'xG'), 'xG sintetico senza etichetta DEMO');
     await t.value('CTL-MATCHES-FROM', addDays(today(), -14)); await t.value('CTL-MATCHES-TO', addDays(today(), -1));
     await t.value('CTL-MATCHES-COMP', ''); await t.value('CTL-MATCHES-TEAM', ''); await t.value('CTL-MATCHES-STATUS', 'FT');
     await t.value('CTL-MATCHES-FAVMIN', '1.1'); await t.value('CTL-MATCHES-FAVMAX', '10'); await t.value('CTL-MATCHES-GMIN', '0'); await t.value('CTL-MATCHES-GMAX', '20');
@@ -477,9 +490,14 @@ const SCENARIOS = [
     const input = t.find('CTL-STRAT-IMPORT');
     const dt = new DataTransfer();
     dt.items.add(new File([JSON.stringify([{name: 'Banca pareggio live', market: 'MATCH_ODDS', selection: 'DRAW', side: 'LAY', phase: 'LIVE',
-      conditions: [{field: 'minute', op: 'between', a: 5, b: 80}, {field: 'goal_diff', op: 'between', a: 0, b: 0}]}, {name: ''}])], 'strategie.json', {type: 'application/json'}));
-    input.files = dt.files; input.dispatchEvent(new Event('change', {bubbles: true})); t.used.add('CTL-STRAT-IMPORT');
+      conditions: [{field: 'minute', op: 'between', a: 5, b: 80}, {field: 'goal_diff', op: 'between', a: 0, b: 0}]}, {name: ''},
+      {name: 'Banca pareggio live!', market: 'MATCH_ODDS', selection: 'HOME', side: 'BACK'}])], 'strategie.json', {type: 'application/json'}));
+    input.files = dt.files; input.dispatchEvent(new Event('change', {bubbles: true})); t.touch('CTL-STRAT-IMPORT');
     await t.wait(() => lib.strategies().some(d => d.key === 'banca-pareggio-live'), 'importazione');
+    // Same slug, different name: its own key, not a version of the other one; no conditions in the file means none.
+    const twin = lib.strategies().find(d => d.name === 'Banca pareggio live!');
+    t.ok(twin && twin.key === 'banca-pareggio-live-2' && twin.conditions.length === 0, `chiave o condizioni dell’import: ${twin?.key} ${twin?.conditions.length}`);
+    t.ok(lib.strategies().find(d => d.key === 'banca-pareggio-live').version === 1, 'l’import ha sovrascritto un’altra strategia');
     await settle();
     await t.click('CTL-STRAT-ACTIVE', {where: x => x.closest('[data-key="banca-pareggio-live"]')});
     await t.click('CTL-STRAT-BT', {where: x => x.closest('[data-key="favorito-pre"]')}); t.ok(t.view() === 'backtest' && t.hash().includes('strategy=favorito-pre'), 'link backtest');
@@ -586,11 +604,25 @@ const SCENARIOS = [
     await t.go('match', {id: ns.id}); await t.click('CTL-MC-TRADE'); await t.click('CTL-TRADE-CONFIRM'); t.ok(t.text('[data-dialog="trade"] .err').includes('STOP'), 'STOP non blocca');
     await t.click('CTL-DLG-CANCEL'); await t.go('paper');
     await t.click('CTL-PAPER-PAUSE'); await t.value('CTL-PAPER-REASON', 'pausa'); await t.click('CTL-PAPER-REASON-OK'); t.ok(ledgerLoad().mode === 'PAUSED', 'pausa');
+    // DEC-001: in pausa una copertura che riduce l’esposizione è ammessa.
+    const liab0 = positionPL(ledgerLoad().positions[pid]).liability;
+    await t.click('CTL-PAPER-HEDGE', {where: x => x.closest(`[data-position="${pid}"]`)}); await t.value('CTL-HEDGE-ODDS', '2.4'); await t.value('CTL-HEDGE-SHARE', '1'); await t.click('CTL-HEDGE-CONFIRM');
+    t.ok(ledgerLoad().positions[pid].legs.length === 3 && positionPL(ledgerLoad().positions[pid]).liability < liab0, `copertura in pausa: ${t.text('[data-dialog="hedge"] .err')}`);
     await t.click('CTL-PAPER-RESUME'); await t.value('CTL-PAPER-REASON', 'ripresa'); await t.click('CTL-PAPER-REASON-OK'); t.ok(ledgerLoad().mode === 'ACTIVE_OPERATIONAL', 'ripresa');
+    // Limiti delle impostazioni e del profilo applicati all’apertura.
+    const open0 = ledgerState(ledgerLoad()).open;
+    await t.go('match', {id: ns.id}); await t.click('CTL-MC-TRADE'); await t.value('CTL-TRADE-SIDE', 'BACK'); await t.value('CTL-TRADE-ODDS', '2'); await t.value('CTL-TRADE-STAKE', '120');
+    t.ok(t.text('[data-testid="trade-limits"]').includes('tetto del profilo') && t.text('[data-testid="trade-limits"]').includes('massimo delle impostazioni'), `anteprima dei limiti: ${t.text('[data-testid="trade-eval"]')}`);
+    await t.click('CTL-TRADE-CONFIRM'); t.ok(t.text('[data-dialog="trade"] .err').includes('Bloccata dai limiti') && ledgerState(ledgerLoad()).open === open0, 'i limiti non bloccano l’apertura');
+    await t.click('CTL-DLG-CANCEL'); await t.go('paper');
     await t.click('CTL-PAPER-SETTLE');
     await t.value('CTL-PAPER-LEDGER-TYPE', 'MODE'); t.ok($$('[data-testid="paper-ledger"] tbody tr').every(r => r.dataset.type === 'MODE'), 'filtro del registro');
     const d0 = APP.downloads.length; await t.click('CTL-PAPER-CSV'); t.ok(APP.downloads.length === d0 + 1, 'CSV');
-    await t.click('CTL-PAPER-RESET'); await t.value('CTL-PAPER-RESET-AMOUNT', '500'); await t.click('CTL-PAPER-RESET-OK'); t.ok(ledgerState(ledgerLoad()).available === 500, 'azzeramento');
+    const n0 = ledgerLoad().entries.length, p0 = Object.keys(ledgerLoad().positions).length;
+    await t.click('CTL-PAPER-RESET'); await t.value('CTL-PAPER-RESET-AMOUNT', '500'); await t.click('CTL-PAPER-RESET-OK');
+    const after = ledgerLoad(), sa = ledgerState(after);
+    t.ok(sa.cash === 500 && after.entries.length === n0 + 1 && after.entries.at(-1).type === 'RESET' && Object.keys(after.positions).length === p0 && sa.reconciled,
+      `azzeramento append-only: cassa ${sa.cash}, movimenti ${after.entries.length}/${n0 + 1}, in pari ${sa.reconciled}`);
     await t.click('CTL-PAPER-NEW'); t.ok(t.view() === 'dashboard', 'Nuova posizione');
   }],
   ['T-MM-01', 'Money Management: profili con versioni e calcolo', async t => {
@@ -616,7 +648,8 @@ const SCENARIOS = [
       await t.click('CTL-TOOL-RUN'); t.ok($(`[data-testid="tool-result"][data-tool="${tool}"]`), `${tool}: nessun risultato (${t.text('[data-testid="tool-error"]')})`);
     }
     await t.click('CTL-TOOL-TAB', {where: x => x.dataset.value === 'ev'}); await t.click('CTL-TOOL-RUN'); t.ok(t.text('[data-out="ev"]') === '+0,70', `EV ${t.text('[data-out="ev"]')}`);
-    await t.click('CTL-TOOL-TAB', {where: x => x.dataset.value === 'hedge'}); await t.click('CTL-TOOL-RUN'); t.ok(t.text('[data-out="after"]') === '+5,00 / +5,00', `copertura ${t.text('[data-out="after"]')}`);
+    await t.click('CTL-TOOL-TAB', {where: x => x.dataset.value === 'hedge'}); await t.click('CTL-TOOL-RUN'); t.ok(t.text('[data-out="after"]') === '+5,00 / +5,00' && t.text('[data-out="cashout"]') === '+5,00', `copertura ${t.text('[data-out="after"]')}`);
+    await t.value('CTL-TOOL-FIELD', '50', {where: x => x.dataset.field === 'share'}); await t.click('CTL-TOOL-RUN'); t.ok(t.text('[data-out="cashout"]') === 'solo con copertura totale', `cashout con copertura parziale: ${t.text('[data-out="cashout"]')}`);
     await t.value('CTL-TOOL-FIELD', '0.5', {where: x => x.dataset.field === 'odds'}); await t.click('CTL-TOOL-RUN'); t.ok($('[data-testid="tool-error"]'), 'quota non valida accettata');
     await t.click('CTL-TOOL-RESET'); t.ok(t.find('CTL-TOOL-FIELD', {where: x => x.dataset.field === 'odds'}).value === '3', 'valori di esempio');
   }],
@@ -670,16 +703,18 @@ async function runAutotest() {
     let error = null;
     try { closeDialog(); closeDrawer(); closeMenus(); await fn(t); } catch (e) { error = e.message; }
     closeDialog(); closeDrawer(); closeMenus();
-    results.push({id, title, result: error ? 'FAIL' : 'PASS', error, controls: [...t.used]});
+    results.push({id, title, result: error ? 'FAIL' : 'PASS', error, controls: [...t.used], asserted: [...t.asserted]});
     for (const c of t.used) {
-      const x = controls[c] ?? {result: 'PASS', tests: []};
+      const x = controls[c] ?? {result: 'PASS', evidence: 'ACTUATED', tests: [], assertedBy: []};
       x.tests.push(id);
+      if (t.asserted.has(c)) { x.evidence = 'ASSERTED'; x.assertedBy.push(id); }
       if (error) x.result = 'FAIL';
       controls[c] = x;
     }
   }
-  controls['CTL-COV-RUN'] = {result: 'PASS', tests: ['avvio manuale']};
-  for (const [c, why] of Object.entries(BLOCKED_IN_FILE)) if (why && !controls[c]) controls[c] = {result: 'BLOCKED', tests: [], reason: why};
+  // The control that starts the autotest cannot test itself: it stays ACTUATED (by the person who clicked it), never PASS.
+  controls['CTL-COV-RUN'] = {result: 'NOT_RUN', evidence: 'ACTUATED', tests: [], assertedBy: [], reason: 'Avvia l’autotest: non può verificare se stesso'};
+  for (const [c, why] of Object.entries(BLOCKED_IN_FILE)) if (why && !controls[c]) controls[c] = {result: 'BLOCKED', evidence: 'NONE', tests: [], assertedBy: [], reason: why};
   // Controls a scenario failed on before reaching them stay NOT_RUN; controls never rendered are listed by the test page.
   store.clearNs('mp.test.');
   NS = real.ns; APP.mode = real.mode; APP.clockOffset = real.offset; dayCache.clear();
