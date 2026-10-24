@@ -18,6 +18,7 @@ import { createEndpoints, handleV1, legacyInventory } from './api/v1.mjs';
 import { authConfig } from './auth/owner-auth.mjs';
 import { createAuthGate } from './auth/http.mjs';
 import { serveWeb } from './web/static.mjs';
+import { MAX_BODY_BYTES, PERSISTENCE_ROUTES, handlePersistence } from './api/persistence-api.mjs';
 
 const port = Number(process.env.PORT || 3000);
 
@@ -63,9 +64,47 @@ const app = http.createServer((req, res) => {
   });
 });
 
+// The request body as text for POST ({text: null} otherwise); past `limit` bytes reading stops and the body is reported
+// as too large, without buffering the rest.
+function readBody(req, limit) {
+  if (req.method !== 'POST') return Promise.resolve({text: null, tooLarge: false});
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    req.on('data', chunk => {
+      size += chunk.length;
+      if (size > limit) { req.pause(); resolve({text: null, tooLarge: true}); return; }
+      chunks.push(chunk);
+    });
+    req.on('end', () => { if (size <= limit) resolve({text: Buffer.concat(chunks).toString('utf8'), tooLarge: false}); });
+    req.on('error', reject);
+  });
+}
+
 function route(req, res, url) {
   // R-05: read-only web shell at / (static files; data comes from /api/v1 in the browser).
   if (serveWeb(req, res, url)) return;
+  // PERSIST-API-01: persistence routes (reads, and owner-only same-origin JSON writes; 503 until the schema exists).
+  if (Object.hasOwn(PERSISTENCE_ROUTES, url.pathname)) {
+    const runV1 = target => handleV1({method: 'GET', url: target}, {withClient, tc: TC_READERS, codeVersion: CODE_VERSION});
+    let cut = false;
+    readBody(req, MAX_BODY_BYTES).then(({text, tooLarge}) => {
+      cut = tooLarge;
+      return handlePersistence({method: req.method, url, headers: req.headers, rawBody: text, tooLarge},
+        {withClient, authEnforced: Boolean(authGate), session: req.authSession ?? null, runV1});
+    }).then(({status, body}) => {
+      // A body that was not read to the end leaves the connection unusable, whatever the answer (413, or a refusal of
+      // the gate): close it after the answer and drop the rest of the upload.
+      res.writeHead(status, {'Content-Type': 'application/json', ...(cut ? {Connection: 'close'} : {})});
+      res.end(JSON.stringify(body), () => { if (cut) req.destroy(); });
+    }).catch(error => {
+      if (req.aborted || error?.code === 'ECONNRESET') return; // the client went away: nothing to answer, nothing to log
+      console.error('MATCHPILOT_PERSISTENCE_API_ERROR', String(error?.message || error).replace(/postgres(?:ql)?:\/\/\S+/gi, 'postgres://[REDACTED]'));
+      if (!res.headersSent) res.writeHead(500, {'Content-Type': 'application/json'});
+      res.end();
+    });
+    return;
+  }
   if (url.pathname.startsWith('/api/v1/')) {
     handleV1({method: req.method, url}, {withClient, tc: TC_READERS, codeVersion: CODE_VERSION}).then(({status, body}) => {
       res.writeHead(status, {'Content-Type': 'application/json'});

@@ -1,0 +1,129 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261023T231042Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-23T23:10:42Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-AUTONOMOUS-AUTOMERGE-20261023",
+    "source": "owner mandate in Claude Code session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd (2026-10-23): autonomous development and auto-merge of roadmap PRs"
+  },
+  "task": "PERSIST-STORE-01",
+  "activity": "PR #237 auto-merged as 04c493f (squash, expectedHeadSha 05326c1); main CI and VPS deploy verified",
+  "issue": 99,
+  "pr": 237,
+  "branch": "persist-store-01",
+  "commit_sha": "05326c1b8f21a843c26b787da12f3a9134a876cc",
+  "tree_sha": "cf102701c6af00e2e63229e19746be541ae11e80",
+  "base_sha": "eb993ebd7cbf8d50a79c5012d36ef08e21c3fbe6",
+  "requirements": [],
+  "changes": [
+    "db/staged/030-persistence.sql",
+    "src/persistence/store.mjs",
+    "test/persistence-store.test.mjs",
+    "paper-ledger scope order",
+    "04c493f: squash merge of PR #237"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "0763d6d125faf9194cc8336187c1de87c152cd27",
+      "time": "2026-10-23T22:45:56Z",
+      "limits": [
+        "throwaway PostgreSQL 16 with the staged schema applied by the tests; not applied anywhere else"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 04c493f",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "04c493fea09f043c8c7ac4ff12d1d2a4875024e7",
+      "time": "2026-10-23T23:10:42Z",
+      "limits": [
+        "run 40037195908 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 04c493f (job log evidence)",
+      "result": "PASS",
+      "environment": "VPS via self-hosted runner, evidence from the job log only",
+      "commit": "04c493fea09f043c8c7ac4ff12d1d2a4875024e7",
+      "time": "2026-10-23T23:10:42Z",
+      "limits": [
+        "run 40037195919: guard rc=0 mode=enforce; DEPLOY_GATE_SHA_OK 04c493f; worker_restart=ok; result=OK health=200"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "SUCCESS",
+    "head_sha": "05326c1b8f21a843c26b787da12f3a9134a876cc"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "05326c1b8f21a843c26b787da12f3a9134a876cc",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/237#issuecomment-6376351243"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "DEC-002",
+    "DEC-013",
+    "MP-PERSISTENCE-232-NEXT-20261023",
+    "MP-FPT-PROVISIONAL-DEPRIORITIZATION-20261023"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI",
+      "VPS deploy"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "db/staged/030-persistence.sql",
+    "src/persistence/store.mjs",
+    "src/ledger/paper-ledger.mjs",
+    "branch:persist-store-01",
+    "pr:237"
+  ],
+  "stop_conditions": [
+    "merge only on a reviewed head with green CI and no open blocking finding",
+    "one development PR at a time"
+  ],
+  "state": "MERGED",
+  "next_action": "none for PERSIST-STORE-01",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261023T224556Z-agent-a-claude-code",
+  "merge_sha": "04c493fea09f043c8c7ac4ff12d1d2a4875024e7"
+}

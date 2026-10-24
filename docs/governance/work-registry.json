@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 195,
+  "revision": 197,
   "tasks": [
     {
       "id": "R-01",
@@ -1470,13 +1470,34 @@
       "pr": 237,
       "branch": "persist-store-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261023T224556Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261023T231042Z-agent-a-claude-code",
       "resources": [
         "db/staged/030-persistence.sql",
         "src/persistence/store.mjs",
         "src/ledger/paper-ledger.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "04c493fea09f043c8c7ac4ff12d1d2a4875024e7"
+    },
+    {
+      "id": "PERSIST-API-01",
+      "title": "PERSIST-API-01: persistence HTTP API (priority 4)",
+      "issue": 99,
+      "pr": 238,
+      "branch": "persist-api-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261024T080432Z-agent-a-claude-code",
+      "resources": [
+        "src/api/persistence-api.mjs",
+        "src/server.mjs"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
