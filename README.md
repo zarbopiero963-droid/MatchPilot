@@ -74,6 +74,8 @@ Tutte le route `/api/v1/*` sono in sola lettura. Leggono soltanto il database di
   - `/api/v1/health`, `/api/v1/providers`;
   - `/api/v1/fpt/*`, generati dal catalogo delle query FPT;
   - `/api/v1/tc/{discovery,schema-registry,mapping,prematch,prematch/match,historical,live}`.
+  - `/api/v1/tools/{odds,ev,kelly,position,hedge,dutching,poisson}` (#94), `/api/v1/mm/{models,stake}` (#96) e `/api/v1/markets/rules` (#100): calcoli e registri del server, senza database (WEB-APP-01, `src/api/tools.mjs`);
+  - persistenza (PERSIST-API-01): `/api/v1/strategies`, `/api/v1/backtests/saved` (senza `id` elenca le simulazioni salvate), `/api/v1/ledger/account`, `/api/v1/persistence/status`; scritture solo POST con sessione owner, 503 finché la migrazione non è autorizzata.
 - **Paginazione deterministica (R-06a):** `/api/v1/fpt/search` e `/api/v1/fpt/matches` restituiscono `data.next_cursor`. Per la pagina successiva lo si passa come `cursor`, insieme agli stessi filtri; `limit` può cambiare.
   - **Copertura:** le pagine coprono esattamente il risultato non paginato, nello stesso ordine e senza buchi né duplicati, anche con più partite nello stesso giorno o senza orario.
   - **Ordine:** search è per data decrescente e poi id; le partite del giorno sono per orario (senza orario per ultime) e poi id. L'ordine non dipende dalla collation del database.
@@ -112,7 +114,7 @@ The backend defaults to `MATCHPILOT_RUNTIME_MODE=offline`: cron, watchdog, recov
 
 ## Web shell (R-05)
 
-`/` serves a real, read-only website. It has three static files, a strict CSP and no inline code. Every value comes from the API v1, unrounded, with N/D for missing values and explicit loading, empty, partial and error states. Browser end-to-end tests (`playwright-core`, Chromium/Chrome) run on the real server in CI. See [`docs/web.md`](docs/web.md).
+`/` serves the real website. It has three static files, a strict CSP and no inline code. Every value comes from the API v1, with N/D for missing values and explicit loading, empty, partial and error states. Sections (WEB-APP-01, owner decision MP-FRONTEND-CLAUDE-DIRECT-E2E-01): Oggi, Live, Ricerca, Match Center, Strategie (rule builder, saved versioned strategies), Simulazione (run, compare, saved), Strumenti, Money, Portafoglio, Account and Dati; SaaS is excluded. The only writes are saving strategies and simulations, behind the owner session. Browser end-to-end tests (`playwright-core`, Chromium/Chrome) run on the real server in CI; the interaction inventory is [`docs/qa/ui-interactions.md`](docs/qa/ui-interactions.md). See [`docs/web.md`](docs/web.md).
 
 ## Owner login (R-04b)
 
