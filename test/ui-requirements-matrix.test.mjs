@@ -4,6 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 
 const read = path => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
 const matrix = read('docs/governance/ui-requirements-matrix.json');
@@ -88,7 +89,7 @@ test('the D12 decisions are registered, complete and tied to existing requiremen
   const indicators = d12.items.find(item => item.d12 === 3).resolves;
   assert.equal(indicators.length, 37);
   for (const id of indicators) {
-    assert.equal(byId.get(id).status, 'PENDING SPECIFICATION');
+    assert.equal(byId.get(id).status, 'SPECIFICATION PENDING');
     assert.match(byId.get(id).blocker, /\(D12-3\)$/, `${id}: the D12-3 blocker must be added to the earlier ones`);
   }
   assert.ok(byId.get('MP-REQ-UI-0478').blocker.includes('TotalCorner'), 'earlier blockers are kept');
@@ -96,4 +97,81 @@ test('the D12 decisions are registered, complete and tied to existing requiremen
   assert.equal(mandate?.status, 'IN_FORCE');
   assert.match(mandate.decision, /NO MERGE and NO DEPLOY/);
   assert.deepEqual(decisions.find(item => item.id === 'MP-AUTOMERGE-RESTORED-20261024').superseded_by, ['MP-OWNER-D12-IMPLEMENTATION-20261024']);
+});
+
+// MP-D12-49-REQUIREMENTS-GATE-01: the reclassification of the requirements that waited for a D12 decision.
+const VERIFIED = new Set(['TESTED', 'CERTIFIED CALCULATION', 'CERTIFIED MOCK', 'CERTIFIED REAL']);
+
+test('exactly 49 requirements that waited for a decision are reconciled one by one, never promoted to a verified state', () => {
+  const recon = matrix.d12_reconciliation;
+  assert.equal(new Set(recon.map(item => item.id)).size, recon.length, 'a requirement reconciled twice');
+  assert.equal(recon.filter(item => item.previous_status === 'DECISION REQUIRED').length, 49);
+  for (const item of recon) {
+    const row = byId.get(item.id);
+    assert.equal(item.previous_status, row.audit_status, `${item.id}: previous status differs from the audit`);
+    assert.equal(item.new_status, row.status, `${item.id}: new status differs from the matrix`);
+    assert.equal(item.decision_state, 'DECISION RESOLVED');
+    assert.ok(['NOT STARTED', 'BLOCKED', 'SPECIFICATION PENDING', 'IN PROGRESS'].includes(item.new_status), `${item.id}: ${item.new_status} needs evidence, not a ratification`);
+    assert.ok(ratification.includes(`| ${item.d12} | ${item.approved_behaviour} |`), `${item.id}: approved behaviour is not the ratification text`);
+    for (const key of ['requirement', 'reason', 'responsible_pr', 'implementation_evidence', 'test_evidence', 'open_dependencies', 'further_ratification']) {
+      assert.ok(String(item[key] ?? '').trim(), `${item.id}: no ${key}`);
+    }
+  }
+  // Two indicators (n. 35 and 36) were NOT STARTED: their change is motivated, not silent.
+  for (const item of recon.filter(entry => entry.previous_status !== 'DECISION REQUIRED')) assert.match(item.reason, /previously NOT STARTED: .*minimum N/);
+});
+
+test('no requirement id is lost or duplicated and every status change is listed with its reason', () => {
+  const ids = [...rows.map(row => row.id), ...matrix.superseded.map(item => item.id), ...matrix.aliases.map(item => item.id)].sort();
+  assert.equal(new Set(ids).size, ids.length, 'duplicate id across rows, superseded and aliases');
+  assert.equal(ids.length, matrix.baseline.audit_ids);
+  assert.equal(createHash('sha256').update(ids.join('\n')).digest('hex'), matrix.baseline.audit_ids_sha256, 'the id set differs from the audit baseline');
+  const changes = new Map(matrix.status_changes.map(item => [item.id, item]));
+  for (const row of rows) {
+    if (row.status === row.audit_status) { assert.ok(!changes.has(row.id), `${row.id}: listed change without change`); continue; }
+    const change = changes.get(row.id);
+    assert.ok(change && change.from === row.audit_status && change.to === row.status && change.reason.trim(), `${row.id}: unlisted change ${row.audit_status} -> ${row.status}`);
+    assert.ok(!VERIFIED.has(row.status), `${row.id}: promoted to ${row.status} without evidence`);
+  }
+  for (const row of rows) if (VERIFIED.has(row.status)) assert.equal(row.status, row.audit_status, `${row.id}: verified state not in the audit`);
+});
+
+test('the 37 indicators are candidates with visible formula dependencies, none presented as working', () => {
+  const indicators = rows.filter(row => row.indicator);
+  assert.equal(indicators.length, 37);
+  for (const row of indicators) {
+    const ind = row.indicator;
+    assert.equal(row.status, 'SPECIFICATION PENDING', row.id);
+    assert.equal(ind.owner_ratification, 'PENDING', row.id);
+    assert.match(ind.keep_merge_reject, /^NOT ASSESSED/, row.id);
+    assert.match(ind.technical_status, /^NOT IMPLEMENTED/, row.id);
+    assert.ok(ind.undefined_parameters.length, `${row.id}: undefined parameters hidden`);
+    assert.ok(ind.name && ind.data_availability && ind.pit, row.id);
+    if (ind.formula === 'missing') assert.equal(ind.formula_source, '—', row.id);
+    else assert.match(ind.formula_source, /#28/, row.id);
+  }
+  // #28 gives a conceptual formula only for n. 19, 35 and 36.
+  assert.deepEqual(indicators.filter(row => row.indicator.formula !== 'missing').map(row => row.indicator.name).sort(),
+    ['Fair Price Gap', 'Finishing Overperformance', 'Finishing Underperformance']);
+});
+
+test('no Money Management model of the catalog is left out of the roadmap (D12-8)', async () => {
+  const {REGISTRY} = await import('../src/mm/registry.mjs');
+  const models = d12.items.find(item => item.d12 === 8).mm_models;
+  assert.deepEqual(models.map(model => model.type_id), REGISTRY.map(model => model.type_id));
+  for (const model of models) {
+    assert.match(model.roadmap, /^in scope \(D12-8\)/, model.type_id);
+    assert.equal(model.specification, model.registry_status === 'IMPLEMENTED' ? 'SPECIFIED AND IMPLEMENTED (formula_version 1)' : 'SPECIFICATION PENDING', model.type_id);
+  }
+});
+
+test('the suspension of the automatic merge adds a stop, never removes a gate', () => {
+  const agents = readFileSync(new URL('../AGENTS.md', import.meta.url), 'utf8');
+  assert.match(agents, /Sospensione owner MP-OWNER-D12-IMPLEMENTATION-20261024/);
+  for (const gate of ['Gate A locale PASS', 'Gate B locale PASS', 'test obbligatori PASS', 'GitHub Actions verdi', 'branch protection soddisfatta',
+    'review indipendente APPROVED', 'nessun finding bloccante', 'Browser QA Gate PASS']) assert.ok(agents.includes(gate), `AGENTS §4 lost: ${gate}`);
+  const ci = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  for (const job of ['Fast checks', 'UI checks', 'PostgreSQL integration suite', 'Browser QA', 'CI gate']) assert.match(ci, new RegExp(`name: ${job}`), `CI lost the job ${job}`);
+  const deploy = readFileSync(new URL('../.github/workflows/deploy-vps.yml', import.meta.url), 'utf8');
+  assert.match(deploy, /name: Deploy gate/);
 });

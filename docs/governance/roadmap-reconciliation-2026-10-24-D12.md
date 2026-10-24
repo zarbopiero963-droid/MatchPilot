@@ -14,6 +14,8 @@ Queste fonti sono registrate in `docs/governance/owner-decisions.json`. La voce 
 - le dipendenze;
 - i dettagli ancora da specificare.
 
+La verifica atomica dei 49 requisiti, dei 37 indicatori e del catalogo Money Management (MP-D12-49-REQUIREMENTS-GATE-01) è in [`d12-requirements-gate-2026-10-24.md`](d12-requirements-gate-2026-10-24.md).
+
 Questo documento è un **riepilogo**. In caso di divergenza prevalgono il registro e il commento owner.
 
 ## Matrice dei requisiti
@@ -35,8 +37,8 @@ Questo documento è un **riepilogo**. In caso di divergenza prevalgono il regist
 - **Stati:** sono quelli verificati su main a `c110291`. Uno stato sale a TESTED o CERTIFIED solo con l'evidenza dei registri QA, mai per la ratifica.
 
 **Effetto della ratifica sugli stati.** I 49 requisiti in DECISION REQUIRED (35 indicatori e 14 altri) sono stati risolti così.
-- **37 indicatori → PENDING SPECIFICATION:** valutazione KEEP/MERGE/REJECT. Sono i 35 in DECISION REQUIRED più i n. 35 e 36, prima NOT STARTED.
-- **2 casi di regole di mercato → PENDING SPECIFICATION:** partite annullate e supplementari di coppa.
+- **37 indicatori → SPECIFICATION PENDING:** valutazione KEEP/MERGE/REJECT. Sono i 35 in DECISION REQUIRED più i n. 35 e 36, prima NOT STARTED.
+- **2 casi di regole di mercato → SPECIFICATION PENDING:** partite annullate e supplementari di coppa.
 - **3 requisiti → BLOCKED:**
   - certificazione REAL rinviata (D12-6);
   - AI spenta finché il costo non è autorizzato (D12-14), 2 requisiti.
