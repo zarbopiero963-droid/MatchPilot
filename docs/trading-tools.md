@@ -3,7 +3,7 @@
 Issue: #94 (Trading Tools Hub). Roadmap: #239 MP-UI-PR-005, R-12 (MATH-CORE-02..04, 06, 07 for the formulas, MATH-CORE-08 for the API). Owner decisions:
 - MP-UI-PROTOTYPE-INTEGRATION-01: the calculators are ported from the prototype `claude/matchpilot-web-app-wygcsn` and aligned to #94;
 - MP-UI-HARD-GATES-01;
-- MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01: feature `FEAT-TRADING-TOOLS` in [`qa/feature-certification.json`](qa/feature-certification.json), data `COMPUTED`: the real server computes from manual input. The level it can reach is `CERTIFIED CALCULATION` (MP-UI-CERT-CALC-01); its current state is the one in the register.
+- MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01: feature `FEAT-TRADING-TOOLS` in [`qa/feature-certification.json`](qa/feature-certification.json), data `COMPUTED`: the real server computes from manual input. State **CERTIFIED CALCULATION** (MP-UI-CERT-CALC-01), verified on commit `50cfd6b`. The perimeter is the seven manual calculators; the limits are in the register record. The gate re-checks it on every Browser QA run, so a changed contract, a lost test or a failed step makes it REGRESSED.
 
 ## Perimeter
 

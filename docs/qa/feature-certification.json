@@ -273,7 +273,8 @@
         94
       ],
       "prs": [
-        "MP-UI-PR-005"
+        "MP-UI-PR-005 (#244)",
+        "MP-UI-CERT-CALC-01 (#246)"
       ],
       "journeys": [
         "trading-tools"
@@ -298,9 +299,292 @@
         "Liquidità non disponibile: le puntate di copertura e dutching sono teoriche",
         "Nessun salvataggio dei calcoli (tool state model di #94)"
       ],
-      "next": "Valutazione per CERTIFIED CALCULATION (MP-UI-CERT-CALC-01) con il record completo; poi selettore partita e strumenti mancanti di #94.",
-      "state": "TESTED",
-      "certification": null,
+      "next": "Selettore partita LIVE/PRE-MATCH e strumenti mancanti di #94 (nuovo perimetro); certificazione hard su partite reali dopo R-02.",
+      "state": "CERTIFIED CALCULATION",
+      "certification": {
+        "level": "CERTIFIED CALCULATION",
+        "perimeter": "I sette calcolatori di #94 con inserimento manuale, calcolati dal server in Decimal e mostrati dalla pagina Strumenti su desktop e mobile: Margine delle quote, Stake e Kelly (TOOL 1), Valore atteso BACK (TOOL 2), Responsabilità LAY (TOOL 3), Copertura BACK→LAY e LAY→BACK (TOOL 4 e 5), Dutching BACK (TOOL 7), Poisson (TOOL 12). Certifica formule, arrotondamenti, input validi, invalidi e limite, contratto API, comportamento della pagina ed errori. Non certifica dati di mercato, partite, liquidità, previsioni, redditività né operazioni reali.",
+        "verified_commit": "50cfd6ba961d74bf856a75c43d38a99caa18206b",
+        "date": "2026-10-24",
+        "requirements": [
+          "MP-MTH-001",
+          "MP-WEB-011"
+        ],
+        "criteria": {
+          "completeness": [
+            {
+              "file": "docs/trading-tools.md"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "strumenti: inserimento manuale dichiarato, schede, nessun calcolo senza Calcola"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "odds: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "kelly: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "ev: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "liability: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "hedge: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "dutching: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "poisson: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            }
+          ],
+          "correctness": [
+            {
+              "test": "test/math-trading.test.mjs",
+              "name": "Kelly: the #94 golden vectors and its outputs"
+            },
+            {
+              "test": "test/math-trading.test.mjs",
+              "name": "Kelly: exact oracle and metamorphic doubling (2000 seeded cases)"
+            },
+            {
+              "test": "test/math-trading.test.mjs",
+              "name": "EV: exact oracle; EV is zero at the break-even probability (2000 seeded cases)"
+            },
+            {
+              "test": "test/math-trading.test.mjs",
+              "name": "Liability: #94 definitions, break-even and the bankroll warning"
+            },
+            {
+              "test": "test/math-trading.test.mjs",
+              "name": "Hedge: exact oracle per outcome, equalized within the cent rounding (2000 seeded cases)"
+            },
+            {
+              "test": "test/math-trading.test.mjs",
+              "name": "Dutching BACK: exact oracle, uniform payout before rounding, permutation (1000 seeded cases)"
+            },
+            {
+              "test": "test/math-trading.test.mjs",
+              "name": "Poisson: λ = 0, the #94 BTTS formula, lines, and an independent float oracle"
+            },
+            {
+              "file": "tools/qa/mutation-trading.mjs"
+            }
+          ],
+          "contracts": [
+            {
+              "test": "test/tools-api.test.mjs",
+              "name": "every tool answers in the v1 envelope with exact, rounded and display values, without the database"
+            },
+            {
+              "test": "test/tools-api.test.mjs",
+              "name": "the registry lists the tools as GET endpoints without database"
+            },
+            {
+              "test": "test/tools-api.test.mjs",
+              "name": "display values are rounded half-even to the cent, two decimals of percent and three of odds"
+            }
+          ],
+          "integration": [
+            {
+              "journey": "trading-tools",
+              "step": "odds: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "kelly: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "ev: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "liability: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "hedge: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "dutching: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "poisson: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            }
+          ],
+          "security": [
+            {
+              "test": "test/tools-api.test.mjs",
+              "name": "refusals are 400 and name the parameter; nothing else gets through"
+            }
+          ],
+          "financial": [
+            {
+              "test": "test/math-trading.test.mjs",
+              "name": "Kelly: caps (#94 stake_final = min(stake, max_stake, B·max_bankroll)) and rounding down to the cent"
+            },
+            {
+              "test": "test/math-trading.test.mjs",
+              "name": "EV: #94 definitions, with and without commission"
+            },
+            {
+              "test": "test/math-trading.test.mjs",
+              "name": "Hedge: #94 BACK → LAY and LAY → BACK, green pre-commission = B·(O_b/O_l − 1)"
+            },
+            {
+              "test": "test/math-trading.test.mjs",
+              "name": "Dutching BACK: #94 K, R, S_i and the rounded outcomes"
+            },
+            {
+              "test": "test/tools-api.test.mjs",
+              "name": "no upper limit on amounts beyond the parameter length (no arbitrary money limit)"
+            }
+          ]
+        },
+        "gate_a": {
+          "result": "PASS",
+          "evidence": [
+            {
+              "test": "test/math-trading.test.mjs",
+              "name": "Kelly: refusals name the field"
+            },
+            {
+              "test": "test/tools-api.test.mjs",
+              "name": "refusals are 400 and name the parameter; nothing else gets through"
+            },
+            {
+              "test": "test/tools-api.test.mjs",
+              "name": "the server signs the loss and gives no fair odds for a probability shown as zero"
+            },
+            {
+              "test": "test/math-trading.test.mjs",
+              "name": "Poisson: probabilities are non-negative, swapping the teams swaps 1 and 2 (200 seeded cases)"
+            },
+            {
+              "test": "test/math-trading.test.mjs",
+              "name": "the formulas are deterministic and serialize to JSON"
+            }
+          ]
+        },
+        "gate_b": {
+          "result": "PASS",
+          "evidence": [
+            {
+              "journey": "trading-tools",
+              "step": "strumenti: inserimento manuale dichiarato, schede, nessun calcolo senza Calcola"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "odds: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "kelly: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "ev: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "liability: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "hedge: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "dutching: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            },
+            {
+              "journey": "trading-tools",
+              "step": "poisson: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
+            }
+          ]
+        },
+        "fixtures": [
+          {
+            "test": "test/math-trading.test.mjs",
+            "name": "Kelly: exact oracle and metamorphic doubling (2000 seeded cases)"
+          },
+          {
+            "test": "test/math-trading.test.mjs",
+            "name": "EV: exact oracle; EV is zero at the break-even probability (2000 seeded cases)"
+          },
+          {
+            "test": "test/math-trading.test.mjs",
+            "name": "Hedge: exact oracle per outcome, equalized within the cent rounding (2000 seeded cases)"
+          },
+          {
+            "test": "test/math-trading.test.mjs",
+            "name": "Dutching BACK: exact oracle, uniform payout before rounding, permutation (1000 seeded cases)"
+          },
+          {
+            "test": "test/math-trading.test.mjs",
+            "name": "Poisson: λ = 0, the #94 BTTS formula, lines, and an independent float oracle"
+          }
+        ],
+        "results": [
+          {
+            "command": "npm test",
+            "result": "PASS",
+            "commit": "50cfd6ba961d74bf856a75c43d38a99caa18206b",
+            "detail": "702 pass, 0 fail, 1 skip (PostgreSQL 17, runs in CI)"
+          },
+          {
+            "command": "npm run qa:browser",
+            "result": "PASS",
+            "commit": "50cfd6ba961d74bf856a75c43d38a99caa18206b",
+            "detail": "20/20 journeys, verify-report ok with inventory and feature register"
+          },
+          {
+            "command": "node tools/qa/mutation-trading.mjs",
+            "result": "PASS",
+            "commit": "50cfd6ba961d74bf856a75c43d38a99caa18206b",
+            "detail": "25/25 mutants killed"
+          },
+          {
+            "command": "node tools/qa/visual.mjs --out ../vis-cert",
+            "result": "PASS",
+            "commit": "50cfd6ba961d74bf856a75c43d38a99caa18206b",
+            "detail": "60/60"
+          }
+        ],
+        "contracts": [
+          {
+            "module": "src/api/tools.mjs",
+            "export": "TOOLS_VERSION",
+            "version": "mp-tools-1"
+          }
+        ],
+        "limits": [
+          "Solo inserimento manuale: nessuna partita, quota dell'archivio o feed live (#94 TT-PR-02, selettore partita, non costruito)",
+          "Liquidità non disponibile: le puntate di copertura e dutching sono teoriche, non verificate come eseguibili",
+          "Nessun salvataggio dei calcoli (tool state model di #94)",
+          "Strumenti di #94 fuori perimetro: cash-out multi-posizione, Dutching LAY, arbitraggio, Each Way, Draw No Bet, progressioni (MATH-CORE-05 BLOCKED), esposizione, ottimizzatore delle commissioni",
+          "La certificazione hard di #94 su partite reali resta NOT VERIFIED nella matrice di certificabilità; MP-MTH-001 resta NOT_VERIFIED come requisito globale",
+          "Il controllo d'accesso (401 senza sessione con il login owner attivo), la ricarica dall'indirizzo e la gestione di errore del server e rete assente sono verificati dalla journey trading-tools, ma sono comportamenti dello strato v1 e della pagina comuni: la sicurezza certificata qui è la validazione lato server degli input"
+        ],
+        "independent_review": {
+          "verdict": "APPROVED",
+          "reviewed_sha": "50cfd6ba961d74bf856a75c43d38a99caa18206b",
+          "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/246#issuecomment-6384973417"
+        }
+      },
       "test_files": [
         "test/math-trading.test.mjs",
         "test/tools-api.test.mjs"
