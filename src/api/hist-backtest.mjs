@@ -36,6 +36,19 @@ export function definitionOf(input) {
   return {selection: input.selection, side: input.side, conditions};
 }
 
+// The request fields of a stored definition, the inverse of definitionOf (MP-UI-PR-006): what the Strategie page sends
+// back to the Simulazione or to a clone, so the page never converts a definition itself (MP-WEB-011). A definition the
+// request cannot express (more than one team, another market) has no fields: null.
+export function rulesOf(definition) {
+  const conditions = definition?.conditions ?? {};
+  if ((definition?.market ?? 'MATCH_ODDS') !== 'MATCH_ODDS' || (conditions.teams?.length ?? 0) > 1) return null;
+  const rules = {selection: definition.selection, side: definition.side};
+  for (const name of PRICE_CONDITIONS) if (conditions[name] !== undefined) rules[name] = String(conditions[name]);
+  if (conditions.teams?.length === 1) rules.team = conditions.teams[0];
+  if (conditions.venue !== undefined) rules.venue = conditions.venue;
+  return rules;
+}
+
 export function configOf(input) {
   const strategy = input.selection !== undefined ? {strategy_definition: definitionOf(input)} : {strategy: input.strategy ?? 'mp-ref-fav-back-1'};
   const config = {...strategy, bookmaker: FPT_BOOKMAKER, lead_minutes: 10, commission: input.commission ?? '0',

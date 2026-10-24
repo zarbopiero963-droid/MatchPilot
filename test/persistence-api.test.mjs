@@ -87,7 +87,7 @@ test('persistence API: 503 until the schema exists, refusals write nothing, then
     const call = (method, path, options) => handlePersistence(req(method, path, options), ctx);
 
     assert.equal(await handlePersistence(req('GET', '/api/v1/health'), ctx), null, 'other routes are not handled here');
-    assert.deepEqual((await call('GET', '/api/v1/persistence/status')).body.data, {available: false, writes_enabled: false, writes: 'owner session'});
+    assert.deepEqual((await call('GET', '/api/v1/persistence/status')).body.data, {available: false, writes_enabled: false, reads_enabled: false, writes: 'owner session'});
     assert.equal((await call('GET', '/api/v1/backtests/saved')).status, 503, 'the list too');
     assert.equal((await call('GET', '/api/v1/strategies')).status, 503);
     const strategy = {key: 'fav-home', name: 'Casa', definition: {selection: 'HOME', side: 'BACK'}};
@@ -100,6 +100,13 @@ test('persistence API: 503 until the schema exists, refusals write nothing, then
     const before = calls();
     assert.equal((await handlePersistence(req('POST', '/api/v1/strategies', {body: strategy}), {...ctx, authEnforced: false})).status, 403);
     assert.equal((await handlePersistence(req('POST', '/api/v1/strategies', {body: strategy}), {...ctx, session: null})).status, 401);
+    // The saved strategies are private also when auth is off (MP-UI-PR-006, #34 Strategy permissions, D12-18).
+    for (const path of ['/api/v1/strategies', '/api/v1/strategies?key=fav-home', '/api/v1/strategies?key=fav-home&version=1']) {
+      const off = await handlePersistence(req('GET', path), {...ctx, authEnforced: false, session: null});
+      assert.deepEqual([off.status, off.body.error.code], [403, 'READS_REQUIRE_AUTH'], path);
+      const anonymous = await handlePersistence(req('GET', path), {...ctx, session: null});
+      assert.deepEqual([anonymous.status, anonymous.body.error.code], [401, 'UNAUTHENTICATED'], path);
+    }
     assert.equal((await call('POST', '/api/v1/strategies', {body: strategy, headers: {...SAME_ORIGIN, 'sec-fetch-site': 'cross-site'}})).status, 403);
     assert.equal((await call('POST', '/api/v1/strategies', {body: strategy, headers: {...SAME_ORIGIN, 'content-type': 'text/plain'}})).status, 415);
     assert.equal((await call('POST', '/api/v1/strategies', {tooLarge: true})).status, 413);
@@ -116,7 +123,7 @@ test('persistence API: 503 until the schema exists, refusals write nothing, then
     assert.equal(calls(), before, 'no database access for any refusal');
 
     await applyStaged();
-    assert.equal((await call('GET', '/api/v1/persistence/status')).body.data.available, true);
+    assert.deepEqual((await call('GET', '/api/v1/persistence/status')).body.data, {available: true, writes_enabled: true, reads_enabled: true, writes: 'owner session'});
     const saved = await call('POST', '/api/v1/strategies', {body: strategy});
     assert.deepEqual([saved.status, saved.body.data.status, saved.body.data.version], [201, 'SAVED', 1]);
     const again = await call('POST', '/api/v1/strategies', {body: {...strategy, definition: {side: 'BACK', selection: 'HOME'}}});
@@ -144,6 +151,32 @@ test('persistence API: 503 until the schema exists, refusals write nothing, then
     const withTeam = await call('POST', '/api/v1/strategies', {body: {key: 'ajax-lay', name: 'Ajax in casa', rules: {selection: 'HOME', side: 'LAY', odds_max: '2.5', team: 'Ajax', venue: 'HOME'}}});
     assert.equal(withTeam.status, 201);
     assert.deepEqual((await call('GET', '/api/v1/strategies?key=ajax-lay')).body.data.strategy.definition.conditions, {odds_max: '2.5', teams: ['Ajax'], venue: 'HOME'});
+    // MP-UI-PR-006: the detail carries the request fields of the version and the history of the strategy.
+    const detail = (await call('GET', '/api/v1/strategies?key=ajax-lay')).body.data;
+    assert.deepEqual(detail.rules, {selection: 'HOME', side: 'LAY', odds_max: '2.5', team: 'Ajax', venue: 'HOME'});
+    assert.deepEqual(detail.versions.map(v => [v.version, v.name, v.superseded_at]), [[1, 'Ajax in casa', null]]);
+    const renamed = await call('POST', '/api/v1/strategies', {body: {key: 'ajax-lay', name: 'Ajax, banca in casa', rules: detail.rules}});
+    assert.deepEqual([renamed.status, renamed.body.data.version], [201, 2]);
+    const history = (await call('GET', '/api/v1/strategies?key=ajax-lay')).body.data;
+    assert.deepEqual(history.versions.map(v => [v.version, v.name, v.superseded_at === null]), [[1, 'Ajax in casa', false], [2, 'Ajax, banca in casa', true]]);
+    assert.equal(history.strategy.version, 2);
+    assert.deepEqual((await call('GET', '/api/v1/strategies?key=ajax-lay&version=1')).body.data.strategy.name, 'Ajax in casa');
+    // A definition the request cannot express (two teams) has no request fields: it cannot be reopened as a request.
+    const twoTeams = await call('POST', '/api/v1/strategies', {body: {key: 'derby', name: 'Derby', definition: {selection: 'HOME', side: 'BACK', conditions: {teams: ['Ajax', 'PSV']}}}});
+    assert.equal(twoTeams.status, 201);
+    assert.equal((await call('GET', '/api/v1/strategies?key=derby')).body.data.rules, null);
+    // A stored definition that no longer matches its hash: 500 DATA_CORRUPT, never shown, and the read transaction
+    // is closed (review #251 NB-2): no connection goes back to the pool inside it, and the next read still works.
+    await withClient(c => c.query(`INSERT INTO strategy_definitions(strategy_id, definition, definition_sha256, definition_version) VALUES('def:00000000000000aa', '{"selection":"HOME","side":"BACK"}', $1, 'mp-strategy-def-1')`, ['0'.repeat(64)]));
+    await withClient(c => c.query(`INSERT INTO strategy_versions(strategy_key, version, strategy_id, name) VALUES('broken', 1, 'def:00000000000000aa', 'Rotta')`));
+    const corrupt = await call('GET', '/api/v1/strategies?key=broken');
+    assert.deepEqual([corrupt.status, corrupt.body.error.code], [500, 'DATA_CORRUPT']);
+    // No connection is handed back to the pool with the read transaction still open: neither the one checked out next
+    // (it would still be read only) nor any other one of the pool.
+    const open = (await withClient(c => c.query(`SELECT current_setting('transaction_read_only') AS read_only, (SELECT count(*)::int FROM pg_stat_activity
+      WHERE datname = current_database() AND pid <> pg_backend_pid() AND state LIKE 'idle in transaction%') AS others`))).rows[0];
+    assert.deepEqual(open, {read_only: 'off', others: 0}, 'a read transaction was left open');
+    assert.equal((await call('GET', '/api/v1/strategies?key=derby')).status, 200);
     for (const [bad, status] of [[{key: 'x', name: 'x', rules: {selection: 'HOME', side: 'BACK'}, definition: {selection: 'HOME', side: 'BACK'}}, 400],
       [{key: 'x', name: 'x'}, 400], [{key: 'x', name: 'x', rules: {selection: 'HOME', side: 'BACK', stake: '5'}}, 400],
       [{key: 'x', name: 'x', rules: {selection: 'HOME', side: 2}}, 400], [{key: 'x', name: 'x', rules: {selection: 'NOPE', side: 'BACK'}}, 400]]) {
@@ -206,7 +239,7 @@ test('persistence API through the server: owner session + same origin to write; 
       assert.equal(refused.status, 403);
       assert.equal((await refused.json()).error.code, 'WRITES_REQUIRE_AUTH');
       const status = await (await fetch(`${off.base}/api/v1/persistence/status`)).json();
-      assert.deepEqual(status.data, {available: true, writes_enabled: false, writes: 'disabled (MATCHPILOT_AUTH is not enforce)'});
+      assert.deepEqual(status.data, {available: true, writes_enabled: false, reads_enabled: false, writes: 'disabled (MATCHPILOT_AUTH is not enforce)'});
       // A body over the limit: the write gate answers first (403), and the half-read connection is closed.
       const big = await fetch(`${off.base}/api/v1/strategies`, {method: 'POST', headers: {'content-type': 'application/json'}, body: 'x'.repeat(MAX_BODY_BYTES * 4)});
       assert.equal(big.status, 403);
@@ -245,5 +278,90 @@ test('persistence API through the server: owner session + same origin to write; 
       assert.equal(bad.status, 400, 'unknown backtest parameters are refused by the backtest itself');
       assert.ok(!on.output().includes(password), 'the password never reaches the log');
     } finally { await on.stop(); }
+  });
+});
+
+// The requirements of the Strategie page (MP-UI-PR-006), one test each: the matrix cites these tests by name, and a
+// test cited for a requirement carries its id in the title (test/ui-requirements-matrix.test.mjs).
+async function strategiesApi(t, name, body) {
+  await withSchema(t, name, async ({withClient, calls, applyStaged}) => {
+    const ctx = {withClient, authEnforced: true, session: OWNER, runV1: async () => assert.fail('no backtest here')};
+    const call = (method, path, options) => handlePersistence(req(method, path, options), ctx);
+    await body({call, ctx, calls, applyStaged, withClient});
+  });
+}
+
+test('MP-REQ-UI-0290: the list of saved strategies is 503 without the archive, then empty, then the current version of each key; reads_enabled says when it opens', {timeout: 120000}, async t => {
+  await strategiesApi(t, 'req0290', async ({call, ctx, applyStaged}) => {
+    const list = () => call('GET', '/api/v1/strategies');
+    assert.deepEqual([(await list()).status, (await list()).body.error.code], [503, 'UNAVAILABLE']);
+    const anonymous = await handlePersistence(req('GET', '/api/v1/strategies'), {...ctx, session: null});
+    assert.deepEqual([anonymous.status, anonymous.body.error.code], [401, 'UNAUTHENTICATED'], 'without a session: the login, not an empty list');
+    assert.equal((await call('GET', '/api/v1/persistence/status')).body.data.reads_enabled, false, 'no link while the archive is down');
+    await applyStaged();
+    assert.equal((await call('GET', '/api/v1/persistence/status')).body.data.reads_enabled, true);
+    assert.deepEqual((await list()).body.data.strategies, []);
+    for (const [key, name, side] of [['casa', 'Casa', 'BACK'], ['casa', 'Casa banca', 'LAY'], ['pari', 'Pari', 'BACK']]) {
+      assert.equal((await call('POST', '/api/v1/strategies', {body: {key, name, rules: {selection: key === 'pari' ? 'DRAW' : 'HOME', side}}})).status, 201);
+    }
+    assert.deepEqual((await list()).body.data.strategies.map(s => [s.key, s.version, s.name]), [['casa', 2, 'Casa banca'], ['pari', 1, 'Pari']]);
+  });
+});
+
+test('MP-REQ-UI-0291: a saved strategy opens at its current version or at version N, with its history and the request fields that reopen it', {timeout: 120000}, async t => {
+  await strategiesApi(t, 'req0291', async ({call, applyStaged, withClient}) => {
+    await applyStaged();
+    const v1 = {selection: 'HOME', side: 'LAY', odds_max: '2.5', team: 'Ajax', venue: 'HOME'};
+    const v2 = {...v1, odds_max: '2.4'};
+    await call('POST', '/api/v1/strategies', {body: {key: 'ajax', name: 'Ajax', rules: v1}});
+    await call('POST', '/api/v1/strategies', {body: {key: 'ajax', name: 'Ajax', rules: v2}});
+    const current = (await call('GET', '/api/v1/strategies?key=ajax')).body.data;
+    assert.deepEqual([current.strategy.version, current.rules], [2, v2], 'the current version reopens with its own rules');
+    const first = (await call('GET', '/api/v1/strategies?key=ajax&version=1')).body.data;
+    assert.deepEqual([first.strategy.version, first.rules, first.strategy.superseded_at === null], [1, v1, false]);
+    assert.deepEqual(first.versions.map(v => [v.version, v.superseded_at === null]), [[1, false], [2, true]], 'the same history from any version');
+    assert.deepEqual([(await call('GET', '/api/v1/strategies?key=ajax&version=3')).status, (await call('GET', '/api/v1/strategies?key=nope')).status], [404, 404]);
+    // The definition is checked against its hash when it opens: a stored definition that no longer matches is refused.
+    await withClient(c => c.query(`INSERT INTO strategy_definitions(strategy_id, definition, definition_sha256, definition_version) VALUES('def:00000000000000ab', '{"selection":"HOME","side":"BACK"}', $1, 'mp-strategy-def-1')`, ['0'.repeat(64)]));
+    await withClient(c => c.query(`INSERT INTO strategy_versions(strategy_key, version, strategy_id, name) VALUES('tampered', 1, 'def:00000000000000ab', 'Alterata')`));
+    const tampered = await call('GET', '/api/v1/strategies?key=tampered');
+    assert.deepEqual([tampered.status, tampered.body.error.code, JSON.stringify(tampered.body).includes('HOME')], [500, 'DATA_CORRUPT', false]);
+  });
+});
+
+test('MP-REQ-UI-0297: an earlier version saved again under its key becomes the next, current version; saving it again changes nothing', {timeout: 120000}, async t => {
+  await strategiesApi(t, 'req0297', async ({call, applyStaged}) => {
+    await applyStaged();
+    const v1 = {selection: 'HOME', side: 'BACK'};
+    await call('POST', '/api/v1/strategies', {body: {key: 'k', name: 'Uno', rules: v1}});
+    await call('POST', '/api/v1/strategies', {body: {key: 'k', name: 'Due', rules: {selection: 'AWAY', side: 'BACK'}}});
+    const earlier = (await call('GET', '/api/v1/strategies?key=k&version=1')).body.data;
+    const clone = await call('POST', '/api/v1/strategies', {body: {key: 'k', name: 'Uno di nuovo', rules: earlier.rules}});
+    assert.deepEqual([clone.status, clone.body.data.status, clone.body.data.version, clone.body.data.strategy_id], [201, 'SAVED', 3, earlier.strategy.strategy_id],
+      'the same definition, as the next version');
+    const now = (await call('GET', '/api/v1/strategies?key=k')).body.data;
+    assert.deepEqual([now.strategy.version, now.rules, now.versions.map(v => v.version)], [3, v1, [1, 2, 3]], 'it is current; every version stays');
+    const again = await call('POST', '/api/v1/strategies', {body: {key: 'k', name: 'Uno di nuovo', rules: earlier.rules}});
+    assert.deepEqual([again.status, again.body.data.status], [200, 'UNCHANGED']);
+    assert.equal((await call('GET', '/api/v1/strategies?key=k')).body.data.versions.length, 3);
+  });
+});
+
+test('MP-REQ-UI-0302: saved strategies are private: 403 READS_REQUIRE_AUTH with the owner login off, 401 without a session, before any database access', {timeout: 120000}, async t => {
+  await strategiesApi(t, 'req0302', async ({ctx, calls, applyStaged}) => {
+    await applyStaged();
+    await handlePersistence(req('POST', '/api/v1/strategies', {body: {key: 'k', name: 'Uno', rules: {selection: 'HOME', side: 'BACK'}}}), ctx);
+    const before = calls();
+    for (const path of ['/api/v1/strategies', '/api/v1/strategies?key=k', '/api/v1/strategies?key=k&version=1']) {
+      const off = await handlePersistence(req('GET', path), {...ctx, authEnforced: false, session: null});
+      assert.deepEqual([off.status, off.body.error.code], [403, 'READS_REQUIRE_AUTH'], path);
+      const offWithSession = await handlePersistence(req('GET', path), {...ctx, authEnforced: false});
+      assert.deepEqual([offWithSession.status, offWithSession.body.error.code], [403, 'READS_REQUIRE_AUTH'], `${path}: login off, whoever asks`);
+      const anonymous = await handlePersistence(req('GET', path), {...ctx, session: null});
+      assert.deepEqual([anonymous.status, anonymous.body.error.code], [401, 'UNAUTHENTICATED'], path);
+      assert.equal(JSON.stringify([off.body, anonymous.body]).includes('Uno'), false, 'nothing of the strategy in a refusal');
+    }
+    assert.equal(calls(), before, 'refused before the database');
+    assert.equal((await handlePersistence(req('GET', '/api/v1/strategies?key=k'), ctx)).status, 200, 'the owner reads it');
   });
 });

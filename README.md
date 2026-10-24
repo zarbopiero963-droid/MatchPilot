@@ -132,7 +132,7 @@ Il flusso prodotto è:
 
 **PRE-MATCH → LIVE VALIDATION → ENTRY → MANAGEMENT → EXIT → POST-MORTEM**
 
-## Roadmap canonica #97 — Backend / API-first, UI per ultima
+## Roadmap canonica #97 — Backend / API-first, UI incrementale (D12-19)
 
 L'ordine di lavoro non segue il numero delle issue: segue la issue **#97 — ROADMAP** (revisione owner del 06/10/2026). Riassunto, ownership e superfici tool: [`docs/integration-map.md`](docs/integration-map.md).
 
@@ -362,6 +362,8 @@ Esempi:
 - strategie custom create dall'utente.
 
 Ogni strategia deve avere versione, regole, parametri, campione, risultati, ROI, drawdown e intervallo di confidenza.
+
+**Stato sul sito (MP-UI-PR-006, #34):** la pagina «Strategie» (`#/strategies`, dalla Simulazione) elenca le strategie salvate, apre una versione con le regole in parole e lo storico, apre le regole in Simulazione, salva le regole modificate come versione successiva e clona una versione precedente come nuova versione corrente. Le strategie sono private: `GET /api/v1/strategies` richiede la sessione del proprietario anche con il login spento (403 `READS_REQUIRE_AUTH`). Verificato su PostgreSQL di test con lo schema staged; in produzione lo schema e il login non sono attivi, quindi la pagina dice che le strategie sono private o non disponibili. Rule Builder, Money Management della strategia e archiviazione hanno PR dedicate (#239).
 
 ## Principi non negoziabili
 

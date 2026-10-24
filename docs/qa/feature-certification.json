@@ -218,13 +218,13 @@
       "journeys": [
         "sim-save"
       ],
-      "data": "REAL",
+      "data": "UNAVAILABLE",
       "financial": false,
       "dependencies": [
         "schema di persistenza in produzione (#232)"
       ],
       "limits": [
-        "In produzione lo schema non è applicato: la pagina dice che i salvataggi non sono disponibili"
+        "In produzione lo schema non è applicato: la pagina dice che i salvataggi non sono disponibili; i dati delle prove sono salvataggi della Browser QA su un archivio usa e getta, non dati REAL"
       ],
       "next": "Verifica REAL dopo la migrazione autorizzata.",
       "state": "TESTED",
@@ -596,6 +596,48 @@
         "src/api/tools.mjs"
       ],
       "entry": "src/api/tools.mjs"
+    },
+    {
+      "id": "FEAT-STRATEGIES",
+      "name": "Strategie",
+      "perimeter": "Elenco delle strategie salvate, dettaglio di una versione con le regole in parole, storico delle versioni, apertura in Simulazione, modifica come versione successiva e clonazione di una versione precedente come nuova versione corrente; letture riservate al proprietario.",
+      "views": [
+        "strategies"
+      ],
+      "requirements": [
+        "MP-WEB-011"
+      ],
+      "ui_requirements": [
+        "MP-REQ-UI-0290",
+        "MP-REQ-UI-0291",
+        "MP-REQ-UI-0297",
+        "MP-REQ-UI-0302"
+      ],
+      "issues": [
+        34,
+        239
+      ],
+      "prs": [
+        251
+      ],
+      "journeys": [
+        "sim-save"
+      ],
+      "data": "UNAVAILABLE",
+      "financial": false,
+      "dependencies": [
+        "schema di persistenza in produzione (#232)",
+        "login del proprietario in produzione (D12)"
+      ],
+      "limits": [
+        "In produzione lo schema non è applicato e il login è spento: le strategie risultano private o non disponibili; i dati delle prove sono strategie salvate dalla Browser QA su un archivio usa e getta, non dati REAL",
+        "Archiviazione, rinomina, duplicazione su un nuovo codice e confronto fra versioni sono della PR MP-UI-PR-038-STRATLIFE",
+        "Il Rule Builder AND/OR/NOT è della PR MP-UI-PR-039-RULEDSL: le regole sono quelle della Simulazione «Personalizzata»",
+        "Una versione che la Simulazione non sa esprimere (per esempio più squadre) si consulta ma non si clona né si apre in Simulazione: la pagina lo dice"
+      ],
+      "next": "Verifica REAL dopo la migrazione e il login autorizzati.",
+      "state": "TESTED",
+      "certification": null
     }
   ]
 }

@@ -69,6 +69,9 @@ export const SCENES = [
   {id: 'strumenti', title: 'Strumenti: inserimento manuale e schede', path: () => '#/tools', ready: '[data-testid="tool-form"][data-tool="odds"]'},
   {id: 'strumenti-copertura', title: 'Strumenti: copertura calcolata dal server', path: () => '#/tools?tool=hedge&side=BACK&stake=10&odds=3&exit_odds=2%2C5&commission=5&run=1',
     ready: '[data-testid="tool-result"]', scroll: '[data-testid="tool-result"]'},
+  // MP-UI-PR-006: the QA server has no owner login, so the saved strategies are private: the real server refuses to read
+  // them (403 READS_REQUIRE_AUTH) and the page says so, on every viewport.
+  {id: 'strategie-private', title: 'Strategie: private senza accesso del proprietario', path: () => '#/strategies', ready: '[data-testid="strategies-unavailable"][data-code="READS_REQUIRE_AUTH"]'},
 ];
 
 // The matches the Match Center scenes open, chosen from the API of the QA archive: never a hard-coded id.

@@ -291,3 +291,58 @@ test('the runner refuses a non-empty output directory (PR #164 NB-5)', async t =
   writeFileSync(join(out, 'old.png'), 'x');
   await assert.rejects(runBrowserQa({out, headSha: HEAD}), /not empty/);
 });
+
+test('an expected HTTP 500 is accepted only in the step that provokes it (review #251, injected defects)', {timeout: 240000}, async t => {
+  const {runBrowserQa, allowHttpErrors} = await import('../tools/qa/browser-qa.mjs');
+  const out = mkdtempSync(join(tmpdir(), 'mp-qa-http500-'));
+  t.after(() => rmSync(out, {recursive: true, force: true}));
+  const PROBE = '/api/v1/qa-probe';
+  const STEP = 'errore 500 provocato';
+  // The page asks for the probe; the route answers 500, as a server defect would.
+  const probe = async page => {
+    await page.route(`**${PROBE}`, route => route.fulfill({status: 500, contentType: 'application/json', body: '{"api_version":"v1","error":{"code":"INTERNAL","message":"x"}}'}));
+    assert.equal(await page.evaluate(path => fetch(path).then(response => response.status), PROBE), 500);
+    await page.unroute(`**${PROBE}`);
+  };
+  const open = async (page, base) => { await page.goto(`${base}/#/search`); await page.waitForSelector('[data-testid="search-form"]'); };
+  const journey = (id, allowHttp, run) => ({id, surface: 'QA', title: id, allowHttp, run});
+  const bound = [{path: PROBE, status: 500, step: STEP}];
+  const journeys = [
+    journey('qa-500-in-its-step', bound, async ({page, base, step}) => {
+      await step('apertura', async () => open(page, base));
+      await step(STEP, async () => probe(page));
+    }),
+    // Defects: the same 500 in another step; an allowance for the whole journey; an allowance for a step that never runs.
+    journey('qa-500-other-step', bound, async ({page, base, step}) => {
+      await step('apertura', async () => { await open(page, base); await probe(page); });
+      await step(STEP, async () => open(page, base));
+    }),
+    journey('qa-500-whole-journey', [{path: PROBE, status: 500}], async ({page, base, step}) => {
+      await step(STEP, async () => { await open(page, base); await probe(page); });
+    }),
+    journey('qa-500-stale-step', [{path: PROBE, status: 500, step: 'passaggio che non esiste'}], async ({page, base, step}) => {
+      await step('apertura', async () => open(page, base));
+    }),
+  ];
+  assert.deepEqual(allowHttpErrors(journeys[2]), [`allowHttp ${PROBE} 500: a 500 is allowed only in the step that provokes it`]);
+  assert.deepEqual(allowHttpErrors(journeys[0]), []);
+  let report;
+  try {
+    report = await runBrowserQa({out, journeys, viewports: ['desktop'], headSha: HEAD});
+  } catch (error) {
+    if (!process.env.CI && /no Chromium|ECONNREFUSED/.test(String(error?.message))) return t.skip(String(error.message));
+    throw error;
+  }
+  const run = id => report.journeys.find(j => j.id === id);
+  assert.equal(run('qa-500-in-its-step').status, 'PASS', run('qa-500-in-its-step').reason);
+  assert.equal(run('qa-500-other-step').status, 'FAIL');
+  assert.equal(run('qa-500-other-step').reason, 'unexpected browser errors');
+  assert.deepEqual(run('qa-500-other-step').http_errors, [`500 ${PROBE}`]);
+  assert.equal(run('qa-500-whole-journey').status, 'FAIL');
+  assert.match(run('qa-500-whole-journey').reason, /journey declaration: .*a 500 is allowed only in the step that provokes it/);
+  assert.equal(run('qa-500-stale-step').status, 'FAIL');
+  assert.match(run('qa-500-stale-step').reason, /allowHttp bound to a step that did not run: 500 \/api\/v1\/qa-probe «passaggio che non esiste»/);
+  // Every journey of the suite declares its 500s step by step.
+  const {JOURNEYS} = await import('../tools/qa/journeys.mjs');
+  for (const declared of JOURNEYS) assert.deepEqual(allowHttpErrors(declared), [], declared.id);
+});

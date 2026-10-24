@@ -5,11 +5,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+import {requirementEvidenceErrors} from '../tools/qa/feature-certification.mjs';
 
 const read = path => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
 const matrix = read('docs/governance/ui-requirements-matrix.json');
 const decisions = read('docs/governance/owner-decisions.json').decisions;
 const features = read('docs/qa/feature-certification.json');
+const inventory = read('docs/qa/control-inventory.json');
 const rows = matrix.requirements;
 const byId = new Map(rows.map(row => [row.id, row]));
 const d12 = decisions.find(item => item.id === 'MP-UI-D12-DECISIONS-20261024');
@@ -135,9 +137,19 @@ test('no requirement id is lost or duplicated and every status change is listed 
     if (row.status === row.audit_status) { assert.ok(!changes.has(row.id), `${row.id}: listed change without change`); continue; }
     const change = changes.get(row.id);
     assert.ok(change && change.from === row.audit_status && change.to === row.status && change.reason.trim(), `${row.id}: unlisted change ${row.audit_status} -> ${row.status}`);
-    assert.ok(!VERIFIED.has(row.status), `${row.id}: promoted to ${row.status} without evidence`);
+    // A verified state reached after the audit names the PR that reached it and the test files that prove it; a
+    // certified state is never reached here (the feature register decides certifications).
+    if (VERIFIED.has(row.status)) {
+      assert.equal(row.status, 'TESTED', `${row.id}: ${row.status} is decided by the feature register, not by the matrix`);
+      assert.match(change.reason, /^MP-UI-PR-\d{3}/, `${row.id}: promoted to TESTED without the PR that did it`);
+      // The evidence is checked reference by reference (review #251): a test titled with the requirement, or a journey
+      // step with the controls it asserts; never a file cited as a whole.
+      assert.deepEqual(requirementEvidenceErrors(row.id, change.evidence_refs, {inventory}), [], `${row.id}: evidence`);
+      assert.equal(change.evidence, undefined, `${row.id}: evidence is evidence_refs, not a list of files`);
+      // The requirement belongs to the feature that implements it, in the feature register.
+      assert.equal(features.features.filter(feature => (feature.ui_requirements ?? []).includes(row.id)).length, 1, `${row.id}: not in exactly one feature`);
+    }
   }
-  for (const row of rows) if (VERIFIED.has(row.status)) assert.equal(row.status, row.audit_status, `${row.id}: verified state not in the audit`);
 });
 
 test('the 37 indicators are candidates with visible formula dependencies, none presented as working', () => {

@@ -2955,6 +2955,10 @@
         {
           "journey": "sim-save",
           "step": "strategia personalizzata salvata con le regole simulate, poi di nuovo: nessuna nuova versione"
+        },
+        {
+          "journey": "sim-save",
+          "step": "strategie: modifica dalla simulazione, salvata con lo stesso codice come versione successiva"
         }
       ]
     },
@@ -3018,6 +3022,216 @@
         {
           "journey": "sim-save",
           "step": "elenco dei salvati: le righe dell’API, apertura e ritorno alla simulazione"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SIM-STRATEGIES",
+      "view": "sim",
+      "kind": "link",
+      "label": "Strategie salvate",
+      "action": "apre l'elenco delle strategie salvate",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "strategie: elenco dalla simulazione, apertura e ritorno"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SIM-SAVE-STRATEGY-OPEN",
+      "view": "sim",
+      "kind": "link",
+      "label": "Apri la strategia",
+      "action": "apre la strategia appena salvata",
+      "api": "/api/v1/strategies",
+      "data": "UNAVAILABLE",
+      "issues": [
+        34
+      ],
+      "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "strategie: la strategia salvata si apre, regole in parole e versioni"
+        }
+      ]
+    },
+    {
+      "id": "CTL-STRAT-OPEN",
+      "view": "strategies",
+      "kind": "link",
+      "label": "Strategia (riga)",
+      "action": "apre la strategia: regole, versioni, clonazione",
+      "api": "/api/v1/strategies",
+      "data": "UNAVAILABLE",
+      "issues": [
+        34
+      ],
+      "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "strategie: elenco dalla simulazione, apertura e ritorno"
+        }
+      ]
+    },
+    {
+      "id": "CTL-STRAT-BACK-SIM",
+      "view": "strategies",
+      "kind": "link",
+      "label": "Torna alla simulazione",
+      "action": "apre la Simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "strategie: elenco dalla simulazione, apertura e ritorno"
+        }
+      ]
+    },
+    {
+      "id": "CTL-STRAT-BACK-LIST",
+      "view": "strategies",
+      "kind": "link",
+      "label": "Tutte le strategie",
+      "action": "torna all'elenco delle strategie",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "strategie: elenco dalla simulazione, apertura e ritorno"
+        }
+      ]
+    },
+    {
+      "id": "CTL-STRAT-VERSION",
+      "view": "strategies",
+      "kind": "link",
+      "label": "Versione precedente",
+      "action": "apre una versione precedente della strategia",
+      "api": "/api/v1/strategies",
+      "data": "UNAVAILABLE",
+      "issues": [
+        34
+      ],
+      "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "strategie: una nuova versione, la precedente resta e si apre"
+        }
+      ]
+    },
+    {
+      "id": "CTL-STRAT-SIMULATE",
+      "view": "strategies",
+      "kind": "link",
+      "label": "Apri in Simulazione",
+      "action": "apre la Simulazione con le regole della strategia (dalla versione corrente: codice e nome precompilati per salvarne la versione successiva)",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "strategie: apri in simulazione con le stesse regole"
+        },
+        {
+          "journey": "sim-save",
+          "step": "strategie: modifica dalla simulazione, salvata con lo stesso codice come versione successiva"
+        }
+      ]
+    },
+    {
+      "id": "CTL-STRAT-CLONE-NAME",
+      "view": "strategies",
+      "kind": "input",
+      "label": "Nome della nuova versione",
+      "action": "dà il nome alla versione clonata",
+      "api": null,
+      "data": "UNAVAILABLE",
+      "issues": [
+        34
+      ],
+      "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "strategie: la versione 1 clonata come nuova versione diventa corrente; di nuovo, nulla cambia"
+        }
+      ]
+    },
+    {
+      "id": "CTL-STRAT-CLONE",
+      "view": "strategies",
+      "kind": "button",
+      "label": "Clona come nuova versione",
+      "action": "salva le regole di una versione precedente come versione corrente",
+      "api": "/api/v1/strategies",
+      "data": "UNAVAILABLE",
+      "issues": [
+        34
+      ],
+      "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "strategie: la versione 1 clonata come nuova versione diventa corrente; di nuovo, nulla cambia"
+        }
+      ]
+    },
+    {
+      "id": "CTL-STRAT-CLONE-OPEN",
+      "view": "strategies",
+      "kind": "link",
+      "label": "Apri la versione corrente",
+      "action": "apre la versione corrente, quella clonata",
+      "api": "/api/v1/strategies",
+      "data": "UNAVAILABLE",
+      "issues": [
+        34
+      ],
+      "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "sim-save",
+          "step": "strategie: la versione 1 clonata come nuova versione diventa corrente; di nuovo, nulla cambia"
         }
       ]
     },

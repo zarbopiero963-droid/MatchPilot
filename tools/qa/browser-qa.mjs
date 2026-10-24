@@ -183,7 +183,19 @@ export async function startServer(schema, env = {}) {
 // A journey may declare a network failure it provokes on purpose (allowNetwork: [{path, error}]): that request failing
 // with that error, and its console line, are expected; any other failure still fails the journey.
 const allowedNetwork = (journey, url, error) => (journey.allowNetwork ?? []).some(rule => new URL(url).pathname === rule.path && rule.error === error);
-const allowedHttp = (journey, url, status) => (journey.allowHttp ?? []).some(rule => new URL(url).pathname === rule.path && rule.status === status);
+// An expected HTTP error may be bound to the one step that provokes it (`step`: its exact name): outside that step the
+// same status on the same path fails the journey. A 500 is a server defect, so its allowance must name the step
+// (review #251, MP-OWNER-UI006-FINAL-UI007-01).
+const allowedHttp = (journey, url, status, current) => (journey.allowHttp ?? []).some(rule => new URL(url).pathname === rule.path && rule.status === status
+  && (rule.step === undefined || rule.step === current));
+export function allowHttpErrors(journey) {
+  const errors = [];
+  for (const rule of journey.allowHttp ?? []) {
+    if (rule.step !== undefined && (typeof rule.step !== 'string' || !rule.step.trim())) errors.push(`allowHttp ${rule.path} ${rule.status}: step must be a step name`);
+    if (rule.status === 500 && rule.step === undefined) errors.push(`allowHttp ${rule.path} 500: a 500 is allowed only in the step that provokes it`);
+  }
+  return errors;
+}
 
 async function runJourney({browser, journey, viewportName, base, out, api, seed, owner, contextHook, knownControls}) {
   const tag = `${journey.id}-${viewportName}`;
@@ -197,7 +209,8 @@ async function runJourney({browser, journey, viewportName, base, out, api, seed,
   const page = await context.newPage();
   page.setDefaultTimeout(15000);
   const consoleErrors = [], pageErrors = [], httpErrors = [], requestFailures = [];
-  const allowedStatuses = new Set();
+  // Allowed responses by status: each one excuses one console line of that status, no more (review #251).
+  const allowedStatuses = new Map();
   const allowedFailures = new Set();
   page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text()); });
   page.on('pageerror', error => pageErrors.push(error.message));
@@ -208,13 +221,15 @@ async function runJourney({browser, journey, viewportName, base, out, api, seed,
   });
   page.on('response', response => {
     if (response.status() < 400) return;
-    if (allowedHttp(journey, response.url(), response.status())) allowedStatuses.add(response.status());
+    if (allowedHttp(journey, response.url(), response.status(), current)) allowedStatuses.set(response.status(), (allowedStatuses.get(response.status()) ?? 0) + 1);
     else httpErrors.push(`${response.status()} ${new URL(response.url()).pathname}`);
   });
   const steps = [];
   const started = Date.now();
   let status = 'PASS';
   let reason = null;
+  let current = null;
+  const ruleErrors = allowHttpErrors(journey);
   const shot = async name => {
     const file = `screenshots/${tag}-${String(steps.length + 1).padStart(2, '0')}-${name}.png`;
     await page.screenshot({path: join(out, file), fullPage: true});
@@ -241,8 +256,10 @@ async function runJourney({browser, journey, viewportName, base, out, api, seed,
     const slug = name.normalize('NFD').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase().slice(0, 40);
     actuated = new Set();
     assertions = [];
+    current = name;
     try {
       await fn();
+      await page.evaluate(() => 0); // the responses of the step are seen while it is still the current step
       const problems = await invariants(page, journey.allowRawText, knownControls);
       if (problems.length) throw new Error(`invariants: ${problems.join('; ')}`);
       const seen = await visibleControls(page); // also a round trip: every action of the step has reached the binding
@@ -254,17 +271,29 @@ async function runJourney({browser, journey, viewportName, base, out, api, seed,
       assertions = null;
       steps.push({name, status: 'FAIL', error: String(error?.message ?? error).slice(0, 2000), screenshot: await shot(`${slug}-failure`).catch(() => null), actuated: [...actuated].sort(), asserted: []});
       throw error;
+    } finally {
+      current = null;
     }
   };
   try {
+    if (ruleErrors.length) throw new Error(`journey declaration: ${ruleErrors.join('; ')}`);
     await journey.run({page, base, step, asserted, api, seed, owner});
   } catch (error) {
     status = 'FAIL';
     reason = String(error?.message ?? error).slice(0, 2000);
   }
+  // An allowance bound to a step that never ran is a stale declaration: it fails the journey, never silently.
+  const stale = (journey.allowHttp ?? []).filter(rule => rule.step !== undefined && !steps.some(s => s.name === rule.step));
+  if (status === 'PASS' && stale.length) {
+    status = 'FAIL';
+    reason = `allowHttp bound to a step that did not run: ${stale.map(rule => `${rule.status} ${rule.path} «${rule.step}»`).join('; ')}`;
+  }
   // Errors the journey did not expect fail it, even when every assertion passed.
-  const expectedConsole = text => [...allowedStatuses].some(code => text.includes(`status of ${code}`))
-    || [...allowedFailures].some(failure => text === `Failed to load resource: ${failure}`);
+  const expectedConsole = text => {
+    const code = [...allowedStatuses.keys()].find(status => allowedStatuses.get(status) > 0 && text.includes(`status of ${status}`));
+    if (code !== undefined) { allowedStatuses.set(code, allowedStatuses.get(code) - 1); return true; }
+    return [...allowedFailures].some(failure => text === `Failed to load resource: ${failure}`);
+  };
   const unexpectedConsole = consoleErrors.filter(text => !expectedConsole(text));
   if (status === 'PASS' && (unexpectedConsole.length || pageErrors.length || httpErrors.length || requestFailures.length)) {
     status = 'FAIL';

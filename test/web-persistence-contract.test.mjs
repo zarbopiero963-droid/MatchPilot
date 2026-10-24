@@ -11,10 +11,10 @@ import {seedQaArchive} from './helpers/fpt-seed.mjs';
 import {hashPassword} from '../src/auth/owner-auth.mjs';
 
 // The contract, as the page relies on it. `result` is the backtest result the real server produces for `params`.
-async function contract(adapter, {params, result, strategyId}) {
+async function contract(adapter, {params, result, strategyId, definition}) {
   // Every call below uses exactly the arguments the page passes (src/web/app.js simSave and savedView).
   const status = await adapter.status();
-  assert.deepEqual([status.ok, status.data.available, status.data.writes_enabled], [true, true, true]);
+  assert.deepEqual([status.ok, status.data.available, status.data.writes_enabled, status.data.reads_enabled], [true, true, true, true]);
   const empty = await adapter.listBacktests();
   assert.deepEqual([empty.ok, empty.data.backtests], [true, []]);
 
@@ -48,7 +48,23 @@ async function contract(adapter, {params, result, strategyId}) {
   assert.deepEqual([unchanged.status, unchanged.data.status, unchanged.data.version], [200, 'UNCHANGED', 1]);
   const renamed = await adapter.saveStrategy({key: 'ajax-casa', name: 'Ajax, banca in casa', rules});
   assert.deepEqual([renamed.data.status, renamed.data.version], ['SAVED', 2], 'a new name is a new version');
-  assert.deepEqual((await adapter.listStrategies()).data.strategies.map(s => [s.key, s.version, s.strategy_id]), [['ajax-casa', 2, strategyId]]);
+  assert.deepEqual((await adapter.listStrategies()).data.strategies.map(s => [s.key, s.version, s.strategy_id, s.name]), [['ajax-casa', 2, strategyId, 'Ajax, banca in casa']]);
+  // MP-UI-PR-006: the detail of a strategy, its history and the request fields of each version.
+  const current = await adapter.loadStrategy('ajax-casa');
+  assert.deepEqual([current.ok, current.data.strategy.version, current.data.strategy.name, current.data.strategy.strategy_id, current.data.strategy.superseded_at],
+    [true, 2, 'Ajax, banca in casa', strategyId, null]);
+  assert.deepEqual(current.data.strategy.definition, definition, 'the stored definition');
+  assert.deepEqual(current.data.rules, rules, 'the request fields to reopen it');
+  assert.deepEqual(current.data.versions.map(v => [v.version, v.name, v.strategy_id, v.superseded_at === null]),
+    [[1, 'Ajax in casa', strategyId, false], [2, 'Ajax, banca in casa', strategyId, true]]);
+  for (const v of current.data.versions) assert.match(v.created_at, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/);
+  assert.deepEqual(Object.keys(current.data.versions[0]).sort(), ['created_at', 'name', 'strategy_id', 'superseded_at', 'version']);
+  const older = await adapter.loadStrategy('ajax-casa', 1);
+  assert.deepEqual([older.data.strategy.version, older.data.strategy.name, older.data.rules], [1, 'Ajax in casa', rules]);
+  assert.deepEqual([(await adapter.loadStrategy('missing')).status, (await adapter.loadStrategy('missing')).code], [404, 'NOT_FOUND']);
+  assert.equal((await adapter.loadStrategy('Bad Key')).status, 400);
+  assert.equal((await adapter.loadStrategy('ajax-casa', 'x')).status, 400);
+  assert.equal((await adapter.loadStrategy('ajax-casa', 9)).status, 404);
   assert.equal((await adapter.saveStrategy({key: 'Not A Key', name: 'x', rules})).status, 400);
   const unknown = await adapter.saveStrategy({key: 'ajax-casa', name: 'x', rules: {...rules, stake: '5'}});
   assert.deepEqual([unknown.ok, unknown.status, unknown.code], [false, 400, 'UNKNOWN_FIELD']);
@@ -61,21 +77,25 @@ async function refusals(adapter, {params, expected}) {
   const status = await adapter.status();
   if (expected === 'unavailable') {
     // Production today: no persistence schema and no owner login. Reads 503; a write is refused by the login gate first.
-    assert.deepEqual([status.ok, status.data.available, status.data.writes_enabled], [true, false, false]);
+    assert.deepEqual([status.ok, status.data.available, status.data.writes_enabled, status.data.reads_enabled], [true, false, false, false]);
     const list = await adapter.listBacktests();
     assert.deepEqual([list.ok, list.status, list.code], [false, 503, 'UNAVAILABLE']);
     const save = await adapter.saveBacktest({name: 'x', params});
     assert.deepEqual([save.ok, save.status, save.code], [false, 403, 'WRITES_REQUIRE_AUTH']);
+    // The saved strategies are private: without the owner login nobody reads them (MP-UI-PR-006).
+    for (const read of [await adapter.listStrategies(), await adapter.loadStrategy('k')]) assert.deepEqual([read.ok, read.status, read.code], [false, 403, 'READS_REQUIRE_AUTH']);
   } else if (expected === 'no-session') {
     // Owner login enforced, no session: every call is refused by the auth gate.
-    for (const result of [status, await adapter.listBacktests(), await adapter.saveBacktest({name: 'x', params}), await adapter.saveStrategy({key: 'k', name: 'x', rules: {selection: 'HOME', side: 'BACK'}})]) {
+    for (const result of [status, await adapter.listBacktests(), await adapter.saveBacktest({name: 'x', params}), await adapter.saveStrategy({key: 'k', name: 'x', rules: {selection: 'HOME', side: 'BACK'}}),
+      await adapter.listStrategies(), await adapter.loadStrategy('k')]) {
       assert.deepEqual([result.ok, result.status, result.code], [false, 401, 'UNAUTHENTICATED']);
     }
   } else {
-    assert.deepEqual([status.data.available, status.data.writes_enabled], [true, false]);
+    assert.deepEqual([status.data.available, status.data.writes_enabled, status.data.reads_enabled], [true, false, false]);
     const refused = await adapter.saveBacktest({name: 'x', params});
     assert.deepEqual([refused.ok, refused.status, refused.code], [false, 403, 'WRITES_REQUIRE_AUTH']);
     assert.equal((await adapter.listBacktests()).ok, true, 'reads stay possible');
+    for (const read of [await adapter.listStrategies(), await adapter.loadStrategy('k')]) assert.deepEqual([read.ok, read.status, read.code], [false, 403, 'READS_REQUIRE_AUTH'], 'except the private strategies');
   }
 }
 
@@ -125,14 +145,26 @@ test('the real adapter and the mock satisfy the same persistence contract', {tim
   const browserFetch = (path, options) => fetch(path, {...options, headers: {...options.headers, cookie, origin: owner.base}});
   const backtest = async query => (await (await browserFetch(`${owner.base}/api/v1/hist/backtest?${new URLSearchParams(query)}`, {headers: {}})).json()).data;
   const result = await backtest(PARAMS);
-  const strategyId = (await backtest(RULES)).report.config.strategy;
+  const ruleRun = await backtest(RULES);
+  const strategyId = ruleRun.report.config.strategy;
+  // The definition the server derives, as the backtest reports it (data for the check, never computed here).
+  const definitionOfRules = async () => ruleRun.report.config.strategy_definition;
   assert.match(strategyId, /^def:[0-9a-f]{16}$/);
 
-  await t.test('real adapter, real server', () => contract(createPersistence({base: owner.base, fetch: browserFetch}), {params: PARAMS, result, strategyId}));
+  // The definition the server stores for the rules: read back after the real run, given to the mock as data.
+  let definition = null;
+  await t.test('real adapter, real server', async () => {
+    const real = createPersistence({base: owner.base, fetch: browserFetch});
+    await contract({...real, loadStrategy: async (key, version) => {
+      const answer = await real.loadStrategy(key, version);
+      if (answer.ok && definition === null) definition = answer.data.strategy.definition;
+      return answer;
+    }}, {params: PARAMS, result, strategyId, definition: (await definitionOfRules())});
+  });
   await t.test('real adapter, no session', () => refusals(createPersistence({base: owner.base}), {params: PARAMS, expected: 'no-session'}));
   const canonical = params => Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&');
-  const strategies = {[canonical({selection: 'HOME', side: 'LAY', odds_max: '2.5', team: 'Ajax', venue: 'HOME'})]: strategyId};
-  await t.test('memory mock', () => contract(createMemoryPersistence({results: {[canonical(PARAMS)]: result}, strategies}), {params: PARAMS, result, strategyId}));
+  const strategies = {[canonical({selection: 'HOME', side: 'LAY', odds_max: '2.5', team: 'Ajax', venue: 'HOME'})]: {strategy_id: strategyId, definition}};
+  await t.test('memory mock', () => contract(createMemoryPersistence({results: {[canonical(PARAMS)]: result}, strategies}), {params: PARAMS, result, strategyId, definition}));
   await t.test('memory mock refusals match the server', async () => {
     await refusals(createMemoryPersistence({schema: false, auth: false}), {params: PARAMS, expected: 'unavailable'});
     await refusals(createMemoryPersistence({auth: false, results: {[canonical(PARAMS)]: result}}), {params: PARAMS, expected: 'read-only'});

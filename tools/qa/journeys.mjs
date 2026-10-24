@@ -1356,7 +1356,8 @@ export const JOURNEYS = [
     // it off, as production does today, so its page offers no save. Each viewport saves its own result (a different
     // stake) and its own strategy key: the checks compare the list before and after, never an absolute count.
     id: 'sim-save', surface: 'Simulazione', title: 'Salvataggi: risultato e strategia salvati e riaperti, nessun duplicato, errori e accesso',
-    allowHttp: [{path: '/api/v1/persistence/status', status: 503}, {path: '/api/v1/backtests/saved', status: 503}, {path: '/api/v1/backtests/saved', status: 401}, {path: '/auth/logout', status: 500}],
+    allowHttp: [{path: '/api/v1/persistence/status', status: 503}, {path: '/api/v1/backtests/saved', status: 503}, {path: '/api/v1/backtests/saved', status: 401}, {path: '/auth/logout', status: 500, step: 'esci: la sessione si chiude e si torna all’accesso'},
+      {path: '/api/v1/strategies', status: 403}, {path: '/api/v1/strategies', status: 404}, {path: '/api/v1/strategies', status: 500, step: 'strategie: indirizzo non valido, inesistente, archivio non attivo, dati corrotti, permesso mancante, salvataggio spento, private senza accesso'}, {path: '/api/v1/strategies', status: 503}],
     async run({page, base, step, asserted, seed, owner}) {
       const phone = page.viewportSize().width <= 560;
       const stake = phone ? '11' : '10';
@@ -1523,9 +1524,204 @@ export const JOURNEYS = [
         await page.click('[data-testid="sim-save-strategy"] button[type="submit"]');
         await asserted('CTL-SIM-SAVE-STRATEGY', 'the same rules and name again change nothing: unchanged, still version 1', async () => {
           await page.waitForSelector('[data-testid="sim-save-strategy-outcome"][data-status="UNCHANGED"]');
-          assert.match(await page.textContent('[data-testid="sim-save-strategy-outcome"]'), /^Strategia già salvata con queste regole \(versione 1\)\.$/);
+          assert.equal(await page.textContent('[data-testid="sim-save-strategy-outcome"] [data-strategy]'), 'Strategia già salvata con queste regole (versione 1).');
+          assert.match(await page.getAttribute('[data-testid="sim-strategy-open"]', 'href'), new RegExp(`^#/strategies\\?key=${key}$`));
           assert.equal((await authed(`/api/v1/strategies?key=${key}`)).strategy.version, 1);
         });
+      });
+      // MP-UI-PR-006 (#34): the saved strategies — detail in words, versions, the way back to the Simulazione, a clone.
+      const stratKey = `qa-ajax-${phone ? 'telefono' : 'desktop'}`;
+      const rulesShown = async () => ({selection: (await page.textContent('[data-testid="strategy-rules"] [data-field="selection"]')).trim(),
+        side: (await page.textContent('[data-testid="strategy-rules"] [data-field="side"]')).trim(),
+        odds: (await page.textContent('[data-testid="strategy-rules"] [data-field="odds_range"]')).trim(),
+        teams: (await page.textContent('[data-testid="strategy-rules"] [data-field="teams"]')).trim(),
+        venue: (await page.textContent('[data-testid="strategy-rules"] [data-field="venue"]')).trim()});
+      const AJAX_SHOWN = {selection: 'Casa (1)', side: 'Banca', odds: 'fino a 2,5', teams: 'Ajax', venue: 'Solo in casa'};
+      await step('strategie: la strategia salvata si apre, regole in parole e versioni', async () => {
+        await page.click('[data-testid="sim-strategy-open"]');
+        await asserted('CTL-SIM-SAVE-STRATEGY-OPEN', 'the saved strategy opens: name, code, version and rules of the API, in words', async () => {
+          await titled(page, 'Ajax in casa, banca');
+          const api = await authed(`/api/v1/strategies?key=${stratKey}`);
+          assert.equal(await page.getAttribute('[data-testid="strategy-meta"]', 'data-strategy'), api.strategy.strategy_id);
+          assert.equal(await page.getAttribute('[data-testid="strategy-meta"]', 'data-version'), String(api.strategy.version));
+          assert.deepEqual(await rulesShown(), AJAX_SHOWN);
+          assert.deepEqual(await page.locator('[data-testid="strategy-versions"] tbody tr').evaluateAll(trs => trs.map(tr => Number(tr.dataset.version))), api.versions.map(v => v.version));
+          assert.equal(await page.getAttribute('nav a[data-view="sim"]', 'aria-current'), 'page', 'a section of Simulazione');
+        });
+      });
+      await step('strategie: una nuova versione, la precedente resta e si apre', async () => {
+        const before = await authed(`/api/v1/strategies?key=${stratKey}`);
+        const next = await page.request.post(`${owner.base}/api/v1/strategies`, {headers: {origin: owner.base, 'content-type': 'application/json'},
+          data: {key: stratKey, name: 'Ajax in casa, banca (rivista)', rules: before.rules}});
+        assert.equal(next.status(), 201, 'a new name is a new version');
+        await fresh(page, `${owner.base}/#/strategies?key=${stratKey}`);
+        await titled(page, 'Ajax in casa, banca (rivista)');
+        assert.equal(await page.getAttribute('[data-testid="strategy-meta"]', 'data-version'), '2');
+        await page.click('[data-testid="strategy-versions"] tr[data-version="1"] a');
+        await asserted('CTL-STRAT-VERSION', 'an earlier version opens as it was: its name, its number, superseded, the same rules', async () => {
+          await titled(page, 'Ajax in casa, banca');
+          assert.equal(await page.getAttribute('[data-testid="strategy-meta"]', 'data-version'), '1');
+          await page.waitForSelector('[data-testid="strategy-superseded"]');
+          assert.equal(await page.getAttribute('[data-testid="strategy-versions"] tr[data-version="1"]', 'aria-current'), 'true');
+          assert.deepEqual(await rulesShown(), AJAX_SHOWN);
+        });
+      });
+      await step('strategie: apri in simulazione con le stesse regole', async () => {
+        const rules = (await authed(`/api/v1/strategies?key=${stratKey}`)).rules;
+        await page.click('[data-testid="strategy-simulate"]');
+        await asserted('CTL-STRAT-SIMULATE', 'the Simulazione opens on the rules of the strategy, as the server gives them', async () => {
+          await titled(page, 'Simulazione');
+          await page.waitForSelector('[data-testid="sim-form"] select[name="competition"]');
+          assert.equal(await page.inputValue('select[name="strategy"]'), 'custom');
+          for (const name of ['selection', 'side', 'venue']) assert.equal(await page.inputValue(`select[name="${name}"]`), rules[name], name);
+          for (const name of ['odds_max', 'team']) assert.equal(await page.inputValue(`input[name="${name}"]`), rules[name], name);
+          assert.ok(await page.locator('[data-testid="sim-rules"]').isVisible(), 'the rules of a personalised strategy are shown');
+        });
+      });
+      await step('strategie: la versione 1 clonata come nuova versione diventa corrente; di nuovo, nulla cambia', async () => {
+        const first = await authed(`/api/v1/strategies?key=${stratKey}&version=1`);
+        const before = await authed(`/api/v1/strategies?key=${stratKey}`);
+        await fresh(page, `${owner.base}/#/strategies?key=${stratKey}`);
+        await page.waitForSelector('[data-testid="strategy-versions"]');
+        assert.equal(await page.locator('[data-testid="strategy-clone"]').count(), 0, 'the current version is not cloned onto itself');
+        await fresh(page, `${owner.base}/#/strategies?key=${stratKey}&version=1`);
+        await page.waitForSelector('[data-testid="strategy-clone-form"]');
+        assert.equal(await page.inputValue('[data-testid="strategy-clone-form"] input[name="name"]'), first.strategy.name, 'the name of the cloned version is proposed');
+        await page.fill('[data-testid="strategy-clone-form"] input[name="name"]', first.strategy.name);
+        await page.click('[data-testid="strategy-clone-form"] button[type="submit"]');
+        await asserted(['CTL-STRAT-CLONE-NAME', 'CTL-STRAT-CLONE'], 'version 1 becomes the next version of the same strategy: its definition and name, the history kept', async () => {
+          assert.equal(await outcomeOf('strategy-clone-form'), 'SAVED');
+          const after = await authed(`/api/v1/strategies?key=${stratKey}`);
+          assert.deepEqual([after.strategy.version, after.strategy.strategy_id, after.strategy.name], [before.strategy.version + 1, first.strategy.strategy_id, first.strategy.name]);
+          assert.deepEqual(after.rules, first.rules);
+          assert.deepEqual(after.versions.map(v => v.version), [...before.versions.map(v => v.version), before.strategy.version + 1]);
+          assert.equal(await page.textContent('[data-testid="strategy-clone-form-outcome"]'), `Versione ${after.strategy.version} creata con le regole della versione 1: è la versione corrente. Apri la versione corrente`);
+        });
+        await page.click('[data-testid="strategy-clone-open"]');
+        await asserted('CTL-STRAT-CLONE-OPEN', 'the link opens the current version, the clone', async () => {
+          await page.waitForSelector(`[data-testid="strategy-meta"][data-version="${before.strategy.version + 1}"]`);
+          assert.deepEqual(await rulesShown(), AJAX_SHOWN);
+        });
+        await fresh(page, `${owner.base}/#/strategies?key=${stratKey}&version=1`);
+        await page.waitForSelector('[data-testid="strategy-clone-form"]');
+        await page.click('[data-testid="strategy-clone-form"] button[type="submit"]');
+        await asserted('CTL-STRAT-CLONE', 'cloning again the rules and name the current version already has changes nothing, and says so', async () => {
+          assert.equal(await outcomeOf('strategy-clone-form'), 'UNCHANGED');
+          assert.match(await page.textContent('[data-testid="strategy-clone-form-outcome"]'), /^La versione corrente ha già queste regole e questo nome \(versione \d+\)\./);
+          assert.equal((await authed(`/api/v1/strategies?key=${stratKey}`)).strategy.version, before.strategy.version + 1);
+        });
+      });
+      await step('strategie: modifica dalla simulazione, salvata con lo stesso codice come versione successiva', async () => {
+        const before = await authed(`/api/v1/strategies?key=${stratKey}`);
+        await fresh(page, `${owner.base}/#/strategies?key=${stratKey}`);
+        await page.click('[data-testid="strategy-simulate"]');
+        await page.waitForSelector('[data-testid="sim-form"] select[name="competition"]');
+        await page.fill('[data-testid="sim-form"] input[name="from"]', custom.from);
+        await page.fill('[data-testid="sim-form"] input[name="to"]', custom.to);
+        await page.selectOption('[data-testid="sim-form"] select[name="pit_mode"]', custom.pit_mode);
+        await page.fill('[data-testid="sim-form"] input[name="odds_max"]', '2.4');
+        await page.click('[data-testid="sim-form"] button[type="submit"]');
+        await page.waitForSelector('[data-testid="sim-save-strategy"]');
+        await asserted('CTL-STRAT-SIMULATE', 'opened from the current version, the save form keeps the code and the name of the strategy', async () => {
+          assert.equal(await page.inputValue('[data-testid="sim-save-strategy"] input[name="key"]'), stratKey);
+          assert.equal(await page.inputValue('[data-testid="sim-save-strategy"] input[name="name"]'), before.strategy.name);
+        });
+        await page.click('[data-testid="sim-save-strategy"] button[type="submit"]');
+        await asserted('CTL-SIM-SAVE-STRATEGY', 'the changed rules, saved with the pre-filled code and name, are the next version of the same strategy; the earlier one stays in the history', async () => {
+          assert.equal(await outcomeOf('sim-save-strategy'), 'SAVED');
+          const after = await authed(`/api/v1/strategies?key=${stratKey}`);
+          assert.equal(after.strategy.version, before.strategy.version + 1);
+          assert.equal(after.rules.odds_max, '2.4');
+          assert.equal((await authed(`/api/v1/strategies?key=${stratKey}&version=${before.strategy.version}`)).rules.odds_max, before.rules.odds_max);
+        });
+      });
+      await step('strategie: elenco dalla simulazione, apertura e ritorno', async () => {
+        await fresh(page, `${owner.base}/#/sim`);
+        await titled(page, 'Simulazione');
+        await page.click('[data-testid="sim-strategies-link"]');
+        await asserted('CTL-SIM-STRATEGIES', 'the link opens the saved strategies, the same list as the API', async () => {
+          await titled(page, 'Strategie');
+          const api = (await authed('/api/v1/strategies')).strategies;
+          assert.deepEqual(await page.locator('[data-testid="strategies-list"] tbody tr').evaluateAll(trs => trs.map(tr => tr.dataset.key)), api.map(s => s.key));
+          assert.equal((await page.textContent(`[data-testid="strategies-list"] tr[data-key="${stratKey}"] [data-field="version"]`)).trim(), String(api.find(s => s.key === stratKey).version));
+        });
+        await page.click(`[data-testid="strategies-list"] tr[data-key="${stratKey}"] a`);
+        await asserted('CTL-STRAT-OPEN', 'a row opens its strategy at its current version (the one modified from the Simulazione)', async () => {
+          await page.waitForSelector(`[data-testid="strategy-meta"][data-key="${stratKey}"]`);
+          assert.deepEqual(await rulesShown(), {...AJAX_SHOWN, odds: 'fino a 2,4'});
+        });
+        await page.click('[data-control="CTL-STRAT-BACK-LIST"]');
+        await asserted('CTL-STRAT-BACK-LIST', 'back to the list of strategies', async () => {
+          await titled(page, 'Strategie');
+          await page.waitForSelector('[data-testid="strategies-list"]');
+        });
+        await page.click('[data-control="CTL-STRAT-BACK-SIM"]');
+        await asserted('CTL-STRAT-BACK-SIM', 'back to the Simulazione', async () => {
+          await titled(page, 'Simulazione');
+        });
+      });
+      await step('strategie: indirizzo non valido, inesistente, archivio non attivo, dati corrotti, permesso mancante, salvataggio spento, private senza accesso', async () => {
+        await fresh(page, `${owner.base}/#/strategies?key=Bad%20Key`);
+        await page.waitForSelector('[data-testid="strategy-invalid"]');
+        await fresh(page, `${owner.base}/#/strategies?key=qa-missing`);
+        await page.waitForSelector('[data-testid="strategy-error"][data-code="NOT_FOUND"]');
+        assert.equal(await page.textContent('[data-testid="strategy-error"]'), 'Questa strategia, o questa versione, non esiste.');
+        await page.route('**/api/v1/strategies', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
+        await fresh(page, `${owner.base}/#/strategies`);
+        await page.waitForSelector('[data-testid="strategies-unavailable"][data-code="UNAVAILABLE"]');
+        assert.match(await page.textContent('[data-testid="strategies-unavailable"]'), /^Non disponibile: l’archivio delle strategie non è ancora attivo\.$/);
+        assert.equal(await page.locator('[data-testid="strategies-list"]').count(), 0, 'no list is invented');
+        await page.unroute('**/api/v1/strategies');
+        // A stored strategy that fails its integrity check, and an account without the read permission: the page
+        // speaks of reading, not of saving, and shows nothing of the strategy (review #251 NB-1).
+        for (const [status, code, text] of [[500, 'DATA_CORRUPT', 'Dati della strategia non validi: non vengono mostrati.'],
+          [403, 'FORBIDDEN', 'Questo account non può consultare le strategie.']]) {
+          await page.route('**/api/v1/strategies?*', route => route.fulfill({status, contentType: 'application/json', body: JSON.stringify({api_version: 'v1', error: {code, message: code}})}));
+          await fresh(page, `${owner.base}/#/strategies?key=${stratKey}`);
+          await page.waitForSelector(`[data-testid="strategy-error"][data-code="${code}"]`);
+          assert.equal(await page.textContent('[data-testid="strategy-error"]'), text);
+          assert.equal(await page.locator('[data-testid="strategy-rules"]').count(), 0, 'nothing of the strategy is shown');
+          await page.unroute('**/api/v1/strategies?*');
+        }
+        // A version the request cannot express (two teams): shown in words, but neither opened in the Simulazione nor
+        // cloned, and the page says why (review #251 NB-3).
+        const twoTeams = {strategy_key: 'qa-derby', key: 'qa-derby', version: 1, strategy_id: 'def:00000000000000bb', name: 'Derby', created_at: '2026-10-01T10:00:00.000Z',
+          superseded_at: '2026-10-02T10:00:00.000Z', definition: {selection: 'HOME', side: 'BACK', conditions: {teams: ['Ajax', 'PSV']}}};
+        const derby = {strategy: twoTeams, rules: null, versions: [{version: 1, strategy_id: twoTeams.strategy_id, name: 'Derby', created_at: twoTeams.created_at, superseded_at: twoTeams.superseded_at},
+          {version: 2, strategy_id: 'def:00000000000000cc', name: 'Derby', created_at: twoTeams.superseded_at, superseded_at: null}]};
+        await page.route('**/api/v1/strategies?*', route => route.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({api_version: 'v1', data: derby})}));
+        // Saving is declared possible, so the only reason left not to clone is the rules themselves (not the archive's state).
+        await page.route('**/api/v1/persistence/status', route => route.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({api_version: 'v1', data: {available: true, writes_enabled: true, reads_enabled: true, writes: 'owner session'}})}));
+        await fresh(page, `${owner.base}/#/strategies?key=qa-derby&version=1`);
+        await page.waitForSelector('[data-testid="strategy-no-request"]');
+        assert.equal(await page.textContent('[data-testid="strategy-no-request"]'), 'Queste regole non si possono aprire in Simulazione: la simulazione accetta una sola squadra.');
+        assert.equal(await page.getAttribute('[data-testid="strategy-clone-unavailable"]', 'data-code'), 'NOT_A_REQUEST');
+        assert.deepEqual([await page.locator('[data-testid="strategy-simulate"]').count(), await page.locator('[data-testid="strategy-clone-form"]').count()], [0, 0]);
+        await page.unroute('**/api/v1/persistence/status');
+        await page.unroute('**/api/v1/strategies?*');
+        // A version whose rules can be cloned, while saving is off: the state says so, no button that cannot work (rule 13).
+        await page.route('**/api/v1/persistence/status', route => route.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({api_version: 'v1', data: {available: true, writes_enabled: false, reads_enabled: true, writes: 'disabled'}})}));
+        await fresh(page, `${owner.base}/#/strategies?key=${stratKey}&version=1`);
+        await page.waitForSelector('[data-testid="strategy-clone-unavailable"]');
+        assert.equal(await page.locator('[data-testid="strategy-clone-form"]').count(), 0);
+        await page.unroute('**/api/v1/persistence/status');
+        // The Simulazione links the saved strategies only where they open (MP-REQ-UI-0290): not without the owner login,
+        // not with the archive down; the rest of the page is unchanged.
+        await fresh(page, `${base}/#/sim`);
+        await page.waitForSelector('[data-testid="sim-compare-link"]');
+        assert.equal(await page.locator('[data-testid="sim-strategies-link"]').count(), 0, 'no link to strategies that cannot be read');
+        await page.route('**/api/v1/persistence/status', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
+        await fresh(page, `${owner.base}/#/sim`);
+        await page.waitForSelector('[data-testid="sim-compare-link"]');
+        assert.equal(await page.locator('[data-testid="sim-strategies-link"]').count(), 0, 'no link while the archive is down');
+        await page.unroute('**/api/v1/persistence/status');
+        // Without the owner login the saved strategies are private: the server refuses to read them and the page says so.
+        await fresh(page, `${base}/#/strategies`);
+        await page.waitForSelector('[data-testid="strategies-unavailable"][data-code="READS_REQUIRE_AUTH"]');
+        assert.equal(await page.textContent('[data-testid="strategies-unavailable"]'), 'Le strategie salvate sono private: si consultano solo con l’accesso del proprietario attivo.');
+        await fresh(page, `${base}/#/strategies?key=${stratKey}`);
+        await page.waitForSelector('[data-testid="strategy-error"][data-code="READS_REQUIRE_AUTH"]');
+        assert.equal(await page.locator('[data-testid="strategy-rules"]').count(), 0, 'nothing of the strategy is shown');
       });
       await step('sessione chiusa: la scrittura è rifiutata e detta, nulla viene salvato', async () => {
         const before = await saved();

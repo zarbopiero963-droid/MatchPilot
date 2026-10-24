@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 224,
+  "revision": 229,
   "tasks": [
     {
       "id": "R-01",
@@ -1683,9 +1683,9 @@
       "pr": 250,
       "branch": "gov-d12-ratification",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261024T200418Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261024T203521Z-agent-a-claude-code",
       "resources": [
         "file:AGENTS.md",
         "file:CLAUDE.md",
@@ -1698,6 +1698,35 @@
         "file:docs/governance/ui-requirements-matrix.json",
         "file:docs/integration-map.md",
         "file:test/ui-requirements-matrix.test.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "30142a8f5103f4cb7907a4f518f8b86711d1769f"
+    },
+    {
+      "id": "MP-UI-PR-006-STRAT",
+      "title": "MP-UI-PR-006: Strategie page",
+      "issue": 34,
+      "pr": 251,
+      "branch": "ui-pr-006",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261024T221207Z-agent-a-claude-code",
+      "resources": [
+        "file:src/web/app.js",
+        "file:src/web/persistence.js",
+        "file:src/api/persistence-api.mjs",
+        "file:src/api/hist-backtest.mjs",
+        "file:src/persistence/store.mjs",
+        "file:tools/qa/journeys.mjs",
+        "file:tools/qa/visual.mjs",
+        "file:docs/qa/control-inventory.json",
+        "file:docs/qa/feature-certification.json",
+        "file:docs/governance/ui-requirements-matrix.json"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",

@@ -4,7 +4,7 @@
 // evidence's, a changed contract, a missing Gate A/B, fixture, result, limit or independent review.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {CERT_FIELDS, checkFeatures, evidenceState, featureDigest, loadFeatures} from '../tools/qa/feature-certification.mjs';
+import {CERT_FIELDS, checkFeatures, evidenceState, featureDigest, loadFeatures, loadUiMatrix, requirementEvidenceErrors} from '../tools/qa/feature-certification.mjs';
 import {loadInventory} from '../tools/qa/control-inventory.mjs';
 
 const inventory = loadInventory();
@@ -200,4 +200,53 @@ test('structure: ids, duplicate ownership, unowned controls, BLOCKED without rea
   assert.ok(!alone.features.find(f => f.id === 'FEAT-TRADING-TOOLS').gaps.join('\n').includes('core.mjs is a shared module'), 'one entry: not shared by run');
   const both = checkFeatures({...listedOnly, features: [...others().filter(f => f.id !== 'FEAT-SAVED'), twin, tool]}, {inventory});
   assert.match(both.features.find(f => f.id === 'FEAT-TRADING-TOOLS').gaps.join('\n'), /sources: src\/math\/core.mjs is a shared module/, 'two entries run it: shared');
+});
+
+// Review #251: the data a feature declares agrees with its controls, and the UI requirements it implements are its own,
+// with the same data mode and evidence checked reference by reference.
+test('data: REAL needs REAL controls; controls that only reach an unavailable source declare UNAVAILABLE', () => {
+  const all = () => copy(register.features);
+  const withData = (id, data) => all().map(f => (f.id === id ? {...f, data} : f));
+  assert.match(errorsOf(withData('FEAT-STRATEGIES', 'REAL')).join('\n'), /FEAT-STRATEGIES: data REAL but no control shows REAL data \(declare UNAVAILABLE\)/);
+  assert.match(errorsOf(withData('FEAT-SAVED', 'REAL')).join('\n'), /FEAT-SAVED: data REAL but no control shows REAL data/);
+  assert.match(errorsOf(withData('FEAT-DAILY-BOARD', 'UNAVAILABLE')).join('\n'), /FEAT-DAILY-BOARD: data UNAVAILABLE needs UNAVAILABLE controls and no REAL or DEMO one/);
+  assert.match(errorsOf(withData('FEAT-DAILY-BOARD', 'DEMO')).join('\n'), /data DEMO but no control shows DEMO data/);
+  assert.deepEqual(errorsOf(all()), []);
+});
+
+test('ui_requirements: one feature each, same data mode, a TESTED one in a TESTED feature', () => {
+  const strategies = () => copy(register.features.find(f => f.id === 'FEAT-STRATEGIES'));
+  const rest = () => copy(register.features.filter(f => f.id !== 'FEAT-STRATEGIES' && f.id !== 'FEAT-SAVED'));
+  const saved = () => copy(register.features.find(f => f.id === 'FEAT-SAVED'));
+  assert.match(errorsOf([...rest(), strategies(), {...saved(), ui_requirements: ['MP-REQ-UI-0290']}]).join('\n'), /MP-REQ-UI-0290 is a requirement of (FEAT-STRATEGIES and FEAT-SAVED|FEAT-SAVED and FEAT-STRATEGIES)/);
+  assert.match(errorsOf([...rest(), saved(), {...strategies(), ui_requirements: ['MP-REQ-UI-9999']}]).join('\n'), /MP-REQ-UI-9999 is not a requirement of the UI matrix/);
+  // A row whose data mode is REAL does not belong to an UNAVAILABLE feature.
+  const realRow = loadUiMatrix().requirements.find(row => row.data_mode === 'REAL' && row.status !== 'TESTED');
+  assert.match(errorsOf([...rest(), saved(), {...strategies(), ui_requirements: [...strategies().ui_requirements, realRow.id]}]).join('\n'), new RegExp(`${realRow.id} has data REAL, the feature UNAVAILABLE`));
+  assert.match(errorsOf([...rest(), saved(), {...strategies(), state: 'IMPLEMENTED'}]).join('\n'), /MP-REQ-UI-0290 is TESTED in a feature declared IMPLEMENTED/);
+});
+
+test('requirement evidence: a test titled with the requirement or a journey step with asserted controls; never a generic one', () => {
+  const T = 'test/persistence-api.test.mjs';
+  const own = 'MP-REQ-UI-0302: saved strategies are private: 403 READS_REQUIRE_AUTH with the owner login off, 401 without a session, before any database access';
+  const proves = 'what this reference verifies';
+  const step = 'strategie: elenco dalla simulazione, apertura e ritorno';
+  const ok = id => requirementEvidenceErrors(id, [{test: T, name: own, proves}], {inventory});
+  assert.deepEqual(ok('MP-REQ-UI-0302'), []);
+  assert.match(ok('MP-REQ-UI-0290').join('\n'), /the test title does not carry MP-REQ-UI-0290/, 'another requirement\'s test');
+  assert.match(ok('MP-REQ-UI-030').join('\n'), /the test title does not carry MP-REQ-UI-030/, 'an id that is only a prefix of the title\'s id');
+  const generic = 'persistence API: the write gate refuses before any database access';
+  assert.match(requirementEvidenceErrors('MP-REQ-UI-0302', [{test: T, name: generic, proves}], {inventory}).join('\n'), /does not carry MP-REQ-UI-0302[\s\S]*supporting evidence only/);
+  assert.match(requirementEvidenceErrors('MP-REQ-UI-0302', [{test: T, name: 'MP-REQ-UI-0302: no such test', proves}], {inventory}).join('\n'), /no active test/);
+  assert.match(requirementEvidenceErrors('MP-REQ-UI-0302', [{test: T, name: own}], {inventory}).join('\n'), /proves must say what it verifies/);
+  assert.match(requirementEvidenceErrors('MP-REQ-UI-0302', [], {inventory}).join('\n'), /no evidence_refs/);
+  // A journey step: it exists, its controls are TESTED, and with a report each one is asserted in that step.
+  assert.deepEqual(requirementEvidenceErrors('MP-REQ-UI-0290', [{journey: 'sim-save', step, controls: ['CTL-STRAT-OPEN'], proves}], {inventory}), []);
+  assert.match(requirementEvidenceErrors('MP-REQ-UI-0290', [{journey: 'sim-save', step: 'no such step', controls: ['CTL-STRAT-OPEN'], proves}], {inventory}).join('\n'), /no step «no such step» in sim-save/);
+  const untested = inventory.controls.find(c => c.status !== 'TESTED').id;
+  assert.match(requirementEvidenceErrors('MP-REQ-UI-0290', [{journey: 'sim-save', step, controls: [untested], proves}], {inventory}).join('\n'), new RegExp(`${untested} is not TESTED`));
+  assert.match(requirementEvidenceErrors('MP-REQ-UI-0290', [{journey: 'sim-save', step, proves}], {inventory}).join('\n'), /supporting evidence only/, 'a step without controls supports, never proves alone');
+  const report = asserted => ({journeys: ['desktop', 'tablet', 'mobile'].map(viewport => ({id: 'sim-save', viewport, status: 'PASS', steps: [{name: step, status: 'PASS', asserted, assertions: [{}]}]}))});
+  assert.deepEqual(requirementEvidenceErrors('MP-REQ-UI-0290', [{journey: 'sim-save', step, controls: ['CTL-STRAT-OPEN'], proves}], {inventory, report: report(['CTL-STRAT-OPEN'])}), []);
+  assert.match(requirementEvidenceErrors('MP-REQ-UI-0290', [{journey: 'sim-save', step, controls: ['CTL-STRAT-OPEN'], proves}], {inventory, report: report([])}).join('\n'), /CTL-STRAT-OPEN not asserted in this step on desktop/);
 });

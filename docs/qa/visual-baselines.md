@@ -297,3 +297,26 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `strumenti-desktop.png` `0bdb169aa206602cf65d7468bd199f05421c53b05ccdb84ae1c5d761b80010fa`
   - `strumenti-mobile.png` `c58de44344fda5233b0510f5092ba546c4576f0b873504cd7b7e261738ce6315`
   - `strumenti-tablet.png` `0d3021bc1d8b956ca20af9afdc4ac66de8af1c22a83f9cb46cdf59adb265ac6a`
+
+## 2026-10-24 — MP-UI-PR-006: new scene strategie-private (the saved strategies are private without the owner login); the Simulazione gains the link «Strategie salvate»
+
+- Approval: owner authorization MP-OWNER-PR250-MERGE-UI006-01 (PR-006 scope)
+- Run: commit `fd3a99b1c502977164bcc147e1101cd98b8f8670`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `simulazione-desktop.png` `443185b46acb221e14896de8f8f940f6a9ea13e36ab591ce01133f92ddc00b5f`
+  - `simulazione-ricerca-mobile.png` `2dc81ab0fe6c29f528262d0c2a0795ac9263badd98c18c22eee093a8d611ec6f`
+  - `simulazione-tablet.png` `6fc4415093635185da779f65ef8ae641ee87be21c57a4744b3d9bb9fa6695a25`
+  - `strategie-private-desktop.png` `e5b8650518d2f20ce26f7c174d4a4086c877d24278e70b8b4e4d085a2e50b99b`
+  - `strategie-private-mobile.png` `451c6c362acb243aad9bcbaaffc8f441b6648a7ebfd2707c149da09daa010891`
+  - `strategie-private-tablet.png` `86a0737374540b77f868c37484b49fb75af892de61aee2fd7ba54824d74c3aac`
+
+## 2026-10-24 — PR #251 final hardening: the Simulazione links the saved strategies only when they can be read (MP-REQ-UI-0290); in the visual scene the archive is not readable, so the link is absent
+
+- Approval: MP-OWNER-UI006-FINAL-UI007-01
+- Run: commit `f2cc06fc21c01b62dda0f6666e0c2b350719c8df`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `simulazione-desktop.png` `ca5227501c8139a3868c0b011e1e7f54f4cf991e992b5041ae85ae8110cc4a4e`
+  - `simulazione-ricerca-mobile.png` `426db5e48038167af34f174a5acae7372ec3aae88e3c4e57916ab9374b1f31aa`
+  - `simulazione-tablet.png` `7befdc4ba62d943120c9fb8776e66b806df4c3f6603a011cd5b974b461a468a3`

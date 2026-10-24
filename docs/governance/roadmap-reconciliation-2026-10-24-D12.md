@@ -32,7 +32,8 @@ Questo documento è un **riepilogo**. In caso di divergenza prevalgono il regist
   - ogni PR citata sia nel registro;
   - nessuna riga dichiari una certificazione che `docs/qa/feature-certification.json` non contiene;
   - ogni decisione D12 punti a requisiti esistenti e riporti alla lettera il testo della ratifica;
-  - ogni destinazione sia una PR o una categoria ammessa, e ogni stato verificato citi un test.
+  - ogni destinazione sia una PR o una categoria ammessa, e ogni stato verificato citi un test;
+  - ogni requisito portato a TESTED da una PR della UI abbia le sue prove (`evidence_refs`), verificate una per una: un test attivo il cui titolo porta l'id del requisito, oppure un passaggio di un journey con i controlli che vi sono asseriti. Un file citato per intero non basta. Il requisito appartiene a una sola funzionalità del registro `docs/qa/feature-certification.json` (`ui_requirements`), con la stessa modalità dei dati (review della PR #251).
 - **Correzioni dalla review della PR #250:** 3 requisiti dichiarati TESTED o CERTIFIED CALCULATION senza un test che ne asserisca l'intero comportamento tornano IMPLEMENTED, con il motivo nell'evidenza (0631, 0641, 1042). Ad altri 13 è stata aggiunta l'evidenza del test esistente. I blocker che citano una decisione ora risolta da D12 sono annotati, senza cancellare il testo dell'audit, perché le altre dipendenze restano.
 - **Stati:** sono quelli verificati su main a `c110291`. Uno stato sale a TESTED o CERTIFIED solo con l'evidenza dei registri QA, mai per la ratifica.
 
