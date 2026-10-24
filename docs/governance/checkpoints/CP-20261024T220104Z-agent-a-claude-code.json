@@ -1,0 +1,180 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261024T220104Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-24T22:01:04Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-UI006-FINAL-UI007-01",
+    "source": "owner message to Claude Code, 2026-10-24 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): final hardening of PR #251, its merge when every gate passes, then the next UI PR without its merge"
+  },
+  "task": "MP-UI-PR-006-STRAT",
+  "activity": "MP-UI-PR-006 Strategie page (#34): list, detail, versions, modify as next version, clone a version, private reads; no merge without owner authorization",
+  "issue": 34,
+  "pr": 251,
+  "branch": "ui-pr-006",
+  "commit_sha": "4a3c4e0cb793333ab5af1d8ac8c692515ba22f06",
+  "tree_sha": "e75490c0d8db3a1acace1f2ce38959a0e2196643",
+  "base_sha": "30142a8f5103f4cb7907a4f518f8b86711d1769f",
+  "requirements": [
+    "MP-WEB-011"
+  ],
+  "changes": [
+    "Strategie page and API",
+    "tests and journeys",
+    "visual scene",
+    "mock v2026.10.24d",
+    "matrix and feature register",
+    "review #251 non-blocking findings NB-1..NB-4: read refusal texts, one read snapshot, declared clone limit, stricter matrix promotion gate",
+    "final hardening: FEAT-STRATEGIES ui_requirements and data UNAVAILABLE; requirement evidence checked reference by reference; HTTP 500 allowed only in its step; strategies link only when readable; visual baselines"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "4a3c4e0cb793333ab5af1d8ac8c692515ba22f06",
+      "time": "2026-10-24T22:01:04Z",
+      "limits": [
+        "724 tests, 723 pass, 1 skip (PostgreSQL 17, runs in CI); Browser QA 20/20; feature register with the report ok; visual 63/63 after the promotion of 3 baselines"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "4a3c4e0cb793333ab5af1d8ac8c692515ba22f06"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "context-separated same-model sub-agent review of the final head pending (DEC-004-R1)"
+  },
+  "findings": [
+    {
+      "id": "PR251-NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "read pages used save texts for FORBIDDEN and DATA_CORRUPT; read texts and journey checks"
+    },
+    {
+      "id": "PR251-NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "detail and history read in one REPEATABLE READ READ ONLY transaction; test fails if the ROLLBACK is removed"
+    },
+    {
+      "id": "PR251-NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "multi-team versions not clonable: declared in FEAT-STRATEGIES limits, journey check independent of the archive state"
+    },
+    {
+      "id": "PR251-NB-4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "matrix promotion gate: evidence_refs checked one by one (requirement-titled tests, journey steps with asserted controls)"
+    },
+    {
+      "id": "PR251-NB-5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "FEAT-STRATEGIES requirements and data: MP-WEB-011 and ui_requirements 0290/0291/0297/0302; data UNAVAILABLE (FEAT-SAVED too); register checks data against controls"
+    },
+    {
+      "id": "PR251-NB-6",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "«Strategie salvate» always visible was a false PASS of MP-REQ-UI-0290 «voce di menu solo quando la pagina funziona»: shown only when reads_enabled"
+    },
+    {
+      "id": "PR251-D-3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "HTTP 500 allowance across the whole sim-save journey: bound to its step, negative gate test; the /auth/logout 500 too"
+    },
+    {
+      "id": "PR251-T-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "«Backtest salvati» link shown also when the archive is down (the page then says unavailable): data mode and availability shown per area, MP-REQ-UI-1029 and MP-REQ-UI-1028, destination MP-UI-PR-007-FOUND"
+    },
+    {
+      "id": "PR251-T-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "403 and 503 of /api/v1/strategies still allowed for the whole sim-save journey (expected degraded states, not defects): step binding of every expected status with the browser negative matrix, MP-REQ-UI-1010, destination MP-UI-PR-007-FOUND"
+    },
+    {
+      "id": "PR251-T-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "README heading «UI incrementale (D12-19)» kept: it states the ratified D12-19 rule; no change"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-UI006-FINAL-UI007-01",
+    "MP-OWNER-PR250-MERGE-UI006-01",
+    "MP-OWNER-D12-IMPLEMENTATION-20261024",
+    "MP-UI-D12-DECISIONS-20261024",
+    "MP-UI-ROADMAP-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and final review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:src/web/app.js",
+    "file:src/web/persistence.js",
+    "file:src/api/persistence-api.mjs",
+    "file:src/api/hist-backtest.mjs",
+    "file:src/persistence/store.mjs",
+    "file:tools/qa/journeys.mjs",
+    "file:tools/qa/visual.mjs",
+    "file:docs/qa/control-inventory.json",
+    "file:docs/qa/feature-certification.json",
+    "file:docs/governance/ui-requirements-matrix.json",
+    "branch:ui-pr-006",
+    "pr:251"
+  ],
+  "stop_conditions": [
+    "no merge without explicit owner authorization (MP-OWNER-PR250-MERGE-UI006-01)",
+    "one development PR at a time"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and context-separated review of the final head of PR #251; merge only when every gate of MP-OWNER-UI006-FINAL-UI007-01 holds",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": "CP-20261024T210857Z-agent-a-claude-code"
+}
