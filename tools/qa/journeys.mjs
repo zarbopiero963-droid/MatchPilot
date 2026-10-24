@@ -1356,8 +1356,8 @@ export const JOURNEYS = [
     // it off, as production does today, so its page offers no save. Each viewport saves its own result (a different
     // stake) and its own strategy key: the checks compare the list before and after, never an absolute count.
     id: 'sim-save', surface: 'Simulazione', title: 'Salvataggi: risultato e strategia salvati e riaperti, nessun duplicato, errori e accesso',
-    allowHttp: [{path: '/api/v1/persistence/status', status: 503}, {path: '/api/v1/backtests/saved', status: 503}, {path: '/api/v1/backtests/saved', status: 401}, {path: '/auth/logout', status: 500},
-      {path: '/api/v1/strategies', status: 403}, {path: '/api/v1/strategies', status: 404}, {path: '/api/v1/strategies', status: 500}, {path: '/api/v1/strategies', status: 503}],
+    allowHttp: [{path: '/api/v1/persistence/status', status: 503}, {path: '/api/v1/backtests/saved', status: 503}, {path: '/api/v1/backtests/saved', status: 401}, {path: '/auth/logout', status: 500, step: 'esci: la sessione si chiude e si torna all’accesso'},
+      {path: '/api/v1/strategies', status: 403}, {path: '/api/v1/strategies', status: 404}, {path: '/api/v1/strategies', status: 500, step: 'strategie: indirizzo non valido, inesistente, archivio non attivo, dati corrotti, permesso mancante, salvataggio spento, private senza accesso'}, {path: '/api/v1/strategies', status: 503}],
     async run({page, base, step, asserted, seed, owner}) {
       const phone = page.viewportSize().width <= 560;
       const stake = phone ? '11' : '10';
@@ -1660,7 +1660,7 @@ export const JOURNEYS = [
           await titled(page, 'Simulazione');
         });
       });
-      await step('strategie: indirizzo non valido, inesistente, archivio non attivo, salvataggio spento, private senza accesso', async () => {
+      await step('strategie: indirizzo non valido, inesistente, archivio non attivo, dati corrotti, permesso mancante, salvataggio spento, private senza accesso', async () => {
         await fresh(page, `${owner.base}/#/strategies?key=Bad%20Key`);
         await page.waitForSelector('[data-testid="strategy-invalid"]');
         await fresh(page, `${owner.base}/#/strategies?key=qa-missing`);
@@ -1690,17 +1690,30 @@ export const JOURNEYS = [
         const derby = {strategy: twoTeams, rules: null, versions: [{version: 1, strategy_id: twoTeams.strategy_id, name: 'Derby', created_at: twoTeams.created_at, superseded_at: twoTeams.superseded_at},
           {version: 2, strategy_id: 'def:00000000000000cc', name: 'Derby', created_at: twoTeams.superseded_at, superseded_at: null}]};
         await page.route('**/api/v1/strategies?*', route => route.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({api_version: 'v1', data: derby})}));
+        // Saving is declared possible, so the only reason left not to clone is the rules themselves (not the archive's state).
+        await page.route('**/api/v1/persistence/status', route => route.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({api_version: 'v1', data: {available: true, writes_enabled: true, reads_enabled: true, writes: 'owner session'}})}));
         await fresh(page, `${owner.base}/#/strategies?key=qa-derby&version=1`);
         await page.waitForSelector('[data-testid="strategy-no-request"]');
         assert.equal(await page.textContent('[data-testid="strategy-no-request"]'), 'Queste regole non si possono aprire in Simulazione: la simulazione accetta una sola squadra.');
         assert.equal(await page.getAttribute('[data-testid="strategy-clone-unavailable"]', 'data-code'), 'NOT_A_REQUEST');
         assert.deepEqual([await page.locator('[data-testid="strategy-simulate"]').count(), await page.locator('[data-testid="strategy-clone-form"]').count()], [0, 0]);
+        await page.unroute('**/api/v1/persistence/status');
         await page.unroute('**/api/v1/strategies?*');
         // A version whose rules can be cloned, while saving is off: the state says so, no button that cannot work (rule 13).
-        await page.route('**/api/v1/persistence/status', route => route.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({api_version: 'v1', data: {available: true, writes_enabled: false, writes: 'disabled'}})}));
+        await page.route('**/api/v1/persistence/status', route => route.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({api_version: 'v1', data: {available: true, writes_enabled: false, reads_enabled: true, writes: 'disabled'}})}));
         await fresh(page, `${owner.base}/#/strategies?key=${stratKey}&version=1`);
         await page.waitForSelector('[data-testid="strategy-clone-unavailable"]');
         assert.equal(await page.locator('[data-testid="strategy-clone-form"]').count(), 0);
+        await page.unroute('**/api/v1/persistence/status');
+        // The Simulazione links the saved strategies only where they open (MP-REQ-UI-0290): not without the owner login,
+        // not with the archive down; the rest of the page is unchanged.
+        await fresh(page, `${base}/#/sim`);
+        await page.waitForSelector('[data-testid="sim-compare-link"]');
+        assert.equal(await page.locator('[data-testid="sim-strategies-link"]').count(), 0, 'no link to strategies that cannot be read');
+        await page.route('**/api/v1/persistence/status', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
+        await fresh(page, `${owner.base}/#/sim`);
+        await page.waitForSelector('[data-testid="sim-compare-link"]');
+        assert.equal(await page.locator('[data-testid="sim-strategies-link"]').count(), 0, 'no link while the archive is down');
         await page.unroute('**/api/v1/persistence/status');
         // Without the owner login the saved strategies are private: the server refuses to read them and the page says so.
         await fresh(page, `${base}/#/strategies`);

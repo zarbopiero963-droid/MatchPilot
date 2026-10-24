@@ -49,14 +49,15 @@ After **every step** the runner also checks, on the page as rendered:
 - After a journey change, `node tools/qa/control-inventory.mjs assertions qa-evidence/report.json` (and `actuations`, `sightings`) lists the steps where each control was asserted (actuated, seen) on every viewport, to update `evidence` and `exercised_by`.
 - `npm run ui:progress` computes the completion from statuses and evidence: seen, actuated and asserted counts; verified = `TESTED` or certified; `CERTIFIED MOCK` and `CERTIFIED REAL` apart (the latter impossible on the seeded QA archive).
 
-A journey fails on any JavaScript error, failed request or HTTP error ≥ 400 that it did not declare as expected. Expected errors are declared per journey and path (for example the 400 of a refused filter), and only the browser's console line for that status is then accepted: no false positive, no blanket allowance. A network failure a journey provokes on purpose is declared the same way (`allowNetwork: [{path, error}]`, MP-UI-PR-005): only that request failing with that error, and its console line, are accepted.
+A journey fails on any JavaScript error, failed request or HTTP error ≥ 400 that it did not declare as expected. Expected errors are declared per journey and path (for example the 400 of a refused filter), and only the browser's console line for that status is then accepted: no false positive, no blanket allowance. An expected error can be bound to the one step that provokes it (`allowHttp: [{path, status, step}]`, review #251): outside that step the same status on the same path fails the journey. A 500 is a server defect, so its allowance must name its step, and an allowance bound to a step that never ran fails the journey too (`test/browser-qa-gate.test.mjs` proves the three cases). A network failure a journey provokes on purpose is declared the same way (`allowNetwork: [{path, error}]`, MP-UI-PR-005): only that request failing with that error, and its console line, are accepted.
 
 ## Feature certification
 
 Owner decision MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01: certification is per feature, not per pull request. [`feature-certification.json`](feature-certification.json) (schema `mp-feature-certification-2`) lists the features a user recognizes, each with:
 - its perimeter, views and controls;
 - requirements, issues, PRs and journeys;
-- data: `REAL`, `DEMO`, `COMPUTED` (the real server computes from what the user types) or `NONE`;
+- data: `REAL`, `DEMO`, `COMPUTED` (the real server computes from what the user types), `UNAVAILABLE` (a real source the deployed app does not have yet, such as the persistence archive; no certified level) or `NONE`. The declaration agrees with the controls (review #251): `REAL` needs a `REAL` control, `DEMO` a `DEMO` one, and a feature whose controls only reach an unavailable source declares `UNAVAILABLE`;
+- `ui_requirements`: the ids of the 1,090-requirement matrix (`docs/governance/ui-requirements-matrix.json`) the feature implements. Each id belongs to one feature, with the same data mode; a `TESTED` one sits in a feature at least `TESTED`, and its `evidence_refs` are checked one by one (`requirementEvidenceErrors`): a test whose title carries the requirement id, or a journey step whose controls are `TESTED` and, with a report, asserted in that very step on every viewport. A step without controls is supporting evidence only;
 - whether it is financial;
 - dependencies, limits and the next activity;
 - its entry module (`entry`), source modules (`sources`) and test files (`test_files`):

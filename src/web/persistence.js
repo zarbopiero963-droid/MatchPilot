@@ -8,7 +8,7 @@
 // into a success. The contract is checked against both implementations by test/web-persistence-contract.test.mjs.
 
 export const PERSISTENCE_CONTRACT = Object.freeze({
-  status: 'GET /api/v1/persistence/status → {available, writes_enabled}',
+  status: 'GET /api/v1/persistence/status → {available, writes_enabled, reads_enabled}',
   listBacktests: 'GET /api/v1/backtests/saved → {backtests: [{backtest_id, kind, name, report_sha256, input_sha256, strategy_ids, created_at}]}',
   loadBacktest: 'GET /api/v1/backtests/saved?id → {backtest_id, kind, name, result, ...}',
   saveBacktest: 'POST /api/v1/backtests/saved {name, kind: BACKTEST, params} → 201 SAVED | 200 ALREADY_SAVED {backtest_id}',
@@ -63,7 +63,7 @@ export function createMemoryPersistence({results = {}, strategies: knownStrategi
   // The saved strategies are private (MP-UI-PR-006): with the login off nobody reads them, before any schema check.
   const strategyGate = () => (auth && !session ? fail(401, 'UNAUTHENTICATED') : !auth ? fail(403, 'READS_REQUIRE_AUTH') : !schema ? fail(503, 'UNAVAILABLE') : null);
   return {
-    status: async () => (auth && !session ? fail(401, 'UNAUTHENTICATED') : ok(200, {available: schema, writes_enabled: schema && auth})),
+    status: async () => (auth && !session ? fail(401, 'UNAUTHENTICATED') : ok(200, {available: schema, writes_enabled: schema && auth, reads_enabled: schema && auth})),
     listBacktests: async () => gate(false) ?? ok(200, {backtests: [...backtests].reverse().map(({result, response_text: _, params: __, ...meta}) => meta)}),
     loadBacktest: async id => {
       const refused = gate(false);

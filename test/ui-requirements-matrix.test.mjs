@@ -3,15 +3,15 @@
 // requirement claims a certification the QA registers do not hold.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {existsSync, readFileSync} from 'node:fs';
+import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+import {requirementEvidenceErrors} from '../tools/qa/feature-certification.mjs';
 
 const read = path => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
 const matrix = read('docs/governance/ui-requirements-matrix.json');
 const decisions = read('docs/governance/owner-decisions.json').decisions;
 const features = read('docs/qa/feature-certification.json');
 const inventory = read('docs/qa/control-inventory.json');
-const controls = new Map((inventory.controls ?? inventory).map(item => [item.id, item]));
 const rows = matrix.requirements;
 const byId = new Map(rows.map(row => [row.id, row]));
 const d12 = decisions.find(item => item.id === 'MP-UI-D12-DECISIONS-20261024');
@@ -142,20 +142,12 @@ test('no requirement id is lost or duplicated and every status change is listed 
     if (VERIFIED.has(row.status)) {
       assert.equal(row.status, 'TESTED', `${row.id}: ${row.status} is decided by the feature register, not by the matrix`);
       assert.match(change.reason, /^MP-UI-PR-\d{3}/, `${row.id}: promoted to TESTED without the PR that did it`);
-      assert.ok(change.evidence?.length, `${row.id}: promoted to TESTED without test files`);
-      for (const file of change.evidence) {
-        assert.ok(existsSync(new URL(`../${file}`, import.meta.url)), `${row.id}: ${file} does not exist`);
-        // Only test files count; any other existing file would let a promotion through without a test (review #251 NB-4).
-        assert.match(file, /^(test\/[a-z0-9-]+\.test\.mjs|tools\/qa\/journeys\.mjs)$/, `${row.id}: ${file} is not a test`);
-      }
-      // A Browser QA journey proves a requirement through the controls it acts on: each one named, and TESTED in the
-      // control inventory by that journey's assertions.
-      if (change.evidence.includes('tools/qa/journeys.mjs')) {
-        assert.ok(change.controls?.length, `${row.id}: a journey cited without the controls it proves`);
-        for (const id of change.controls) {
-          assert.equal(controls.get(id)?.status, 'TESTED', `${row.id}: ${id} is not TESTED in the control inventory`);
-        }
-      }
+      // The evidence is checked reference by reference (review #251): a test titled with the requirement, or a journey
+      // step with the controls it asserts; never a file cited as a whole.
+      assert.deepEqual(requirementEvidenceErrors(row.id, change.evidence_refs, {inventory}), [], `${row.id}: evidence`);
+      assert.equal(change.evidence, undefined, `${row.id}: evidence is evidence_refs, not a list of files`);
+      // The requirement belongs to the feature that implements it, in the feature register.
+      assert.equal(features.features.filter(feature => (feature.ui_requirements ?? []).includes(row.id)).length, 1, `${row.id}: not in exactly one feature`);
     }
   }
 });

@@ -43,11 +43,15 @@ export const FEATURES_SCHEMA = 'mp-feature-certification-2';
 export const FEATURE_STATES = Object.freeze(['NOT STARTED', 'IN DEVELOPMENT', 'IMPLEMENTED', 'TESTED', 'CERTIFIED MOCK', 'CERTIFIED REAL', 'CERTIFIED CALCULATION', 'BLOCKED', 'REGRESSED']);
 // The order of the evidence: a state is supported when the evidence reaches it. The three certified levels are peers.
 const RANK = {'NOT STARTED': 0, 'IN DEVELOPMENT': 1, IMPLEMENTED: 2, TESTED: 3, 'CERTIFIED MOCK': 4, 'CERTIFIED REAL': 4, 'CERTIFIED CALCULATION': 4};
-// The certified level each kind of data can reach (MP-UI-CERT-CALC-01); NONE (navigation only) has none yet.
+// The certified level each kind of data can reach (MP-UI-CERT-CALC-01); NONE (navigation only) has none yet, nor has
+// UNAVAILABLE (a real source the deployed app does not have yet: shown as unavailable, never as REAL).
 export const LEVEL_OF_DATA = Object.freeze({DEMO: 'CERTIFIED MOCK', REAL: 'CERTIFIED REAL', COMPUTED: 'CERTIFIED CALCULATION'});
 export const CERT_FIELDS = Object.freeze(['level', 'perimeter', 'verified_commit', 'verified_digest', 'date', 'requirements', 'criteria', 'gate_a', 'gate_b', 'fixtures', 'results', 'contracts', 'limits', 'independent_review']);
 const REQUIREMENTS_PATH = join(root, 'docs/governance/mp-pr-00/requirements.json');
-export const FEATURE_DATA = Object.freeze(['REAL', 'DEMO', 'COMPUTED', 'NONE']);
+export const FEATURE_DATA = Object.freeze(['REAL', 'DEMO', 'COMPUTED', 'UNAVAILABLE', 'NONE']);
+export const UI_MATRIX_PATH = join(root, 'docs/governance/ui-requirements-matrix.json');
+let uiMatrix = null;
+export const loadUiMatrix = () => (uiMatrix ??= JSON.parse(readFileSync(UI_MATRIX_PATH, 'utf8')));
 export const CRITERIA = Object.freeze(['completeness', 'correctness', 'contracts', 'integration', 'security', 'financial']);
 const ID = /^FEAT-[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
 const SHA = /^[0-9a-f]{40}$/;
@@ -305,12 +309,59 @@ export function evidenceState(feature, {inventory, report = null, journeys = jou
   return {state: cert.level, gaps: [], controls};
 }
 
+// The evidence of a UI requirement promoted to TESTED (docs/governance/ui-requirements-matrix.json, review #251): a list
+// of references, each saying what it proves, checked one by one:
+//   - {test, name}: an active test whose title carries the requirement id, so a generic test cannot be cited;
+//   - {journey, step, controls}: a step of a Browser QA journey; the controls it names are TESTED in the inventory and,
+//     with a report, asserted in that very step on every viewport;
+//   - {journey, step} without controls: the step exists and, with a report, passed; it is supporting evidence only.
+// At least one reference must be of the first two kinds.
+export function requirementEvidenceErrors(id, refs, {inventory, report = null, journeys = journeyStepTitles()}) {
+  if (!Array.isArray(refs) || !refs.length) return [`${id}: no evidence_refs`];
+  const errors = [];
+  let strong = 0;
+  for (const ref of refs) {
+    const at = `${id}: ${ref?.test ? `${ref.test} «${ref.name}»` : ref?.journey ? `${ref.journey} «${ref.step}»` : JSON.stringify(ref)}`;
+    if (typeof ref?.proves !== 'string' || ref.proves.trim().length < 12) errors.push(`${at}: proves must say what it verifies`);
+    if (ref?.test !== undefined) {
+      errors.push(...refErrors({test: ref.test, name: ref.name}, {journeys, report}).map(e => `${at}: ${e}`));
+      if (typeof ref.name !== 'string' || !ref.name.includes(id)) errors.push(`${at}: the test title does not carry ${id}`);
+      else strong++;
+    } else if (ref?.journey !== undefined) {
+      errors.push(...refErrors({journey: ref.journey, step: ref.step}, {journeys, report}).map(e => `${at}: ${e}`));
+      if (ref.controls === undefined) continue;
+      if (!Array.isArray(ref.controls) || !ref.controls.length) { errors.push(`${at}: controls must be a non-empty list`); continue; }
+      const known = new Map(inventory.controls.map(c => [c.id, c]));
+      for (const control of ref.controls) if (!EVIDENCED.includes(known.get(control)?.status)) errors.push(`${at}: ${control} is not TESTED in the control inventory`);
+      if (report) for (const viewport of REQUIRED_VIEWPORTS) {
+        const run = (report.journeys ?? []).find(r => r.id === ref.journey && r.viewport === viewport);
+        const step = (run?.steps ?? []).find(s => s.name === ref.step);
+        for (const control of ref.controls) if (!(step?.asserted ?? []).includes(control)) errors.push(`${at}: ${control} not asserted in this step on ${viewport}`);
+      }
+      strong++;
+    } else errors.push(`${at}: a reference is {test, name, proves} or {journey, step, controls?, proves}`);
+  }
+  if (!strong) errors.push(`${id}: supporting evidence only; cite a test titled with the requirement or a journey step with its asserted controls`);
+  return errors;
+}
+
+// The data a feature declares agrees with its controls (review #251): REAL needs a REAL control, DEMO a DEMO one, and a
+// feature whose controls only reach a source the app does not have yet declares UNAVAILABLE, never REAL.
+function dataErrors(feature, controls) {
+  const has = kind => controls.some(c => c.data === kind);
+  const at = feature.id;
+  if (feature.data === 'REAL' && !has('REAL')) return [`${at}: data REAL but no control shows REAL data${has('UNAVAILABLE') ? ' (declare UNAVAILABLE)' : ''}`];
+  if (feature.data === 'DEMO' && !has('DEMO')) return [`${at}: data DEMO but no control shows DEMO data`];
+  if (feature.data === 'UNAVAILABLE' && (!has('UNAVAILABLE') || has('REAL') || has('DEMO'))) return [`${at}: data UNAVAILABLE needs UNAVAILABLE controls and no REAL or DEMO one`];
+  return [];
+}
+
 // The register is valid and no declared state exceeds its evidence. Returns {errors, notes, features}.
 export function checkFeatures(register, {inventory, report = null, journeys = journeyStepTitles()} = {}) {
   const errors = [], notes = [], features = [];
   if (register?.schema !== FEATURES_SCHEMA) errors.push(`schema must be ${FEATURES_SCHEMA}`);
   if (!Array.isArray(register?.features) || !register.features.length) return {errors: [...errors, 'no features'], notes, features};
-  const seen = new Set(), owner = new Map(), testOwner = new Map();
+  const seen = new Set(), owner = new Map(), testOwner = new Map(), uiOwner = new Map();
   const listed = Array.isArray(register.shared_modules) ? register.shared_modules : [];
   // Besides the list, a module run by the entries of two features is shared too, mechanically (fourth review of the
   // gate): no future feature can claim the engine or the ledger another feature also runs.
@@ -330,7 +381,7 @@ export function checkFeatures(register, {inventory, report = null, journeys = jo
     if (!FEATURE_STATES.includes(feature.state)) { errors.push(`${at}: state must be one of ${FEATURE_STATES.join(', ')}`); continue; }
     if (!FEATURE_DATA.includes(feature.data)) errors.push(`${at}: data must be one of ${FEATURE_DATA.join(', ')}`);
     if (typeof feature.financial !== 'boolean') errors.push(`${at}: financial must be true or false`);
-    for (const key of ['views', 'controls', 'requirements', 'journeys', 'test_files', 'dependencies', 'limits']) if (feature[key] !== undefined && !Array.isArray(feature[key])) errors.push(`${at}: ${key} must be a list`);
+    for (const key of ['views', 'controls', 'requirements', 'ui_requirements', 'journeys', 'test_files', 'dependencies', 'limits']) if (feature[key] !== undefined && !Array.isArray(feature[key])) errors.push(`${at}: ${key} must be a list`);
     if (typeof feature.next !== 'string' || !feature.next.trim()) errors.push(`${at}: next (the next activity needed) is required`);
     // A test file is the evidence of one feature only (review of the gate, B1).
     for (const testFile of feature.test_files ?? []) {
@@ -348,6 +399,26 @@ export function checkFeatures(register, {inventory, report = null, journeys = jo
       testOwner.set(`entry:${feature.entry}`, feature.id);
     }
     const computed = evidenceState(feature, {inventory, report, journeys, shared});
+    errors.push(...dataErrors(feature, computed.controls));
+    // The UI requirements the feature implements (ids of the 1,090-requirement matrix): each in one feature, with the
+    // same data mode, and a TESTED one only in a feature at least TESTED, with its evidence checked.
+    if (feature.ui_requirements !== undefined) {
+      if (!Array.isArray(feature.ui_requirements)) errors.push(`${at}: ui_requirements must be a list`);
+      const matrix = loadUiMatrix();
+      const rows = new Map(matrix.requirements.map(row => [row.id, row]));
+      const changes = new Map(matrix.status_changes.map(change => [change.id, change]));
+      for (const id of feature.ui_requirements ?? []) {
+        const row = rows.get(id);
+        if (!row) { errors.push(`${at}: ${id} is not a requirement of the UI matrix`); continue; }
+        if (uiOwner.has(id)) errors.push(`${id} is a requirement of ${uiOwner.get(id)} and ${feature.id}`);
+        uiOwner.set(id, feature.id);
+        if (row.data_mode !== feature.data && !String(row.data_mode).startsWith(`${feature.data} `)) errors.push(`${at}: ${id} has data ${row.data_mode}, the feature ${feature.data}`);
+        if (row.status === 'TESTED') {
+          if (RANK[feature.state] === undefined || RANK[feature.state] < RANK.TESTED) errors.push(`${at}: ${id} is TESTED in a feature declared ${feature.state}`);
+          errors.push(...requirementEvidenceErrors(id, changes.get(id)?.evidence_refs, {inventory, report, journeys}).map(e => `${at}: ${e}`));
+        }
+      }
+    }
     for (const control of computed.controls) {
       if (owner.has(control.id) && owner.get(control.id) !== feature.id) errors.push(`${control.id} belongs to ${owner.get(control.id)} and ${feature.id}`);
       owner.set(control.id, feature.id);

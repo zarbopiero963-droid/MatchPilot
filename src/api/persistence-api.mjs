@@ -119,8 +119,10 @@ export async function handlePersistence({method, url, headers = {}, rawBody = nu
       case 'GET /api/v1/persistence/status': {
         queryOnly(url, []);
         const available = await withClient(client => persistenceAvailable(client));
-        // writes_enabled: what a page reads to offer a save at all (MP-UI-PR-003); `writes` keeps the operator's wording.
-        return ok(200, {available, writes_enabled: available && authEnforced, writes: authEnforced ? 'owner session' : 'disabled (MATCHPILOT_AUTH is not enforce)'});
+        // writes_enabled: what a page reads to offer a save at all (MP-UI-PR-003); reads_enabled: whether the saved
+        // strategies can be read (same owner session, strategyReadAllowed), so a page links them only when they open
+        // (MP-UI-PR-006, MP-REQ-UI-0290); `writes` keeps the operator's wording.
+        return ok(200, {available, writes_enabled: available && authEnforced, reads_enabled: available && authEnforced, writes: authEnforced ? 'owner session' : 'disabled (MATCHPILOT_AUTH is not enforce)'});
       }
       case 'GET /api/v1/strategies': {
         const refused = strategyReadAllowed({authEnforced, session});

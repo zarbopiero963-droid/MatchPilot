@@ -14,7 +14,7 @@ import {hashPassword} from '../src/auth/owner-auth.mjs';
 async function contract(adapter, {params, result, strategyId, definition}) {
   // Every call below uses exactly the arguments the page passes (src/web/app.js simSave and savedView).
   const status = await adapter.status();
-  assert.deepEqual([status.ok, status.data.available, status.data.writes_enabled], [true, true, true]);
+  assert.deepEqual([status.ok, status.data.available, status.data.writes_enabled, status.data.reads_enabled], [true, true, true, true]);
   const empty = await adapter.listBacktests();
   assert.deepEqual([empty.ok, empty.data.backtests], [true, []]);
 
@@ -77,7 +77,7 @@ async function refusals(adapter, {params, expected}) {
   const status = await adapter.status();
   if (expected === 'unavailable') {
     // Production today: no persistence schema and no owner login. Reads 503; a write is refused by the login gate first.
-    assert.deepEqual([status.ok, status.data.available, status.data.writes_enabled], [true, false, false]);
+    assert.deepEqual([status.ok, status.data.available, status.data.writes_enabled, status.data.reads_enabled], [true, false, false, false]);
     const list = await adapter.listBacktests();
     assert.deepEqual([list.ok, list.status, list.code], [false, 503, 'UNAVAILABLE']);
     const save = await adapter.saveBacktest({name: 'x', params});
@@ -91,7 +91,7 @@ async function refusals(adapter, {params, expected}) {
       assert.deepEqual([result.ok, result.status, result.code], [false, 401, 'UNAUTHENTICATED']);
     }
   } else {
-    assert.deepEqual([status.data.available, status.data.writes_enabled], [true, false]);
+    assert.deepEqual([status.data.available, status.data.writes_enabled, status.data.reads_enabled], [true, false, false]);
     const refused = await adapter.saveBacktest({name: 'x', params});
     assert.deepEqual([refused.ok, refused.status, refused.code], [false, 403, 'WRITES_REQUIRE_AUTH']);
     assert.equal((await adapter.listBacktests()).ok, true, 'reads stay possible');

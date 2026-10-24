@@ -989,6 +989,15 @@ function simBets(bets, events, total) {
       el('tbody', {}, rows))));
 }
 
+// The way to the saved strategies, only when that page can open them (MP-REQ-UI-0290 «voce di menu solo quando la pagina
+// funziona»): the archive is active and the strategies are readable. Otherwise no link, and no error here: the
+// Simulazione works without them.
+async function strategiesLink() {
+  const status = await persistence.status();
+  if (!status.ok || status.data?.reads_enabled !== true) return null;
+  return [' · ', el('a', {href: '#/strategies', 'data-testid': 'sim-strategies-link', 'data-control': 'CTL-SIM-STRATEGIES'}, 'Strategie salvate')];
+}
+
 async function simView(params) {
   const competitionsBody = await getJson('/api/v1/fpt/competitions').catch(error => {
     if (error?.code === 'UNAUTHENTICATED') throw error;
@@ -1001,7 +1010,7 @@ async function simView(params) {
     simForm(params, competitions),
     el('p', {class: 'meta'}, el('a', {href: compareHref(params), 'data-testid': 'sim-compare-link', 'data-control': 'CTL-SIM-COMPARE'}, 'Confronta più strategie sugli stessi dati'),
       ' · ', el('a', {href: '#/saved', 'data-testid': 'sim-saved-link', 'data-control': 'CTL-SIM-SAVED-LIST'}, 'Backtest salvati'),
-      ' · ', el('a', {href: '#/strategies', 'data-testid': 'sim-strategies-link', 'data-control': 'CTL-SIM-STRATEGIES'}, 'Strategie salvate'))];
+      await strategiesLink())];
   if (params.get('run') !== '1') return [...head, el('p', {class: 'state empty'}, 'Scegli il periodo e premi Simula.')];
   const api = {};
   for (const key of SIM_FIELDS) if (params.get(key)) api[key] = params.get(key);
