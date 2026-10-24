@@ -154,6 +154,10 @@ dl.compact{grid-template-columns:auto minmax(0,1fr);gap:2px 12px;font-size:14px}
 .search .fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:10px 16px;margin-bottom:12px}
 .search label{display:flex;flex-direction:column;gap:4px;color:var(--muted);font-size:14px}
 .search label.check{flex-direction:row;align-items:center;color:var(--text)}
+/* MP-UI-PR-003: the save forms of the simulation (one line of fields and the action, wrapping on a phone). */
+.save{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 16px;margin-top:12px}
+.save label{display:flex;flex-direction:column;gap:4px;color:var(--muted);font-size:14px;flex:1 1 220px}
+.save .state{flex-basis:100%;margin:0}
 [hidden]{display:none!important}
 fieldset>.fields{flex:1 1 100%;margin-bottom:4px}
 .rules{margin:0;padding-left:18px}

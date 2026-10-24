@@ -27,7 +27,7 @@ function dateOf(ApiError, name, value) {
 
 // The engine configuration of a request: defaults are the tests' (stake 1, commission 0), never a guessed market rate.
 // STRAT-CFG-01: `selection` turns the request into a configurable strategy (a strategy_definition the engine validates).
-const DEFINITION_PARAMS = ['selection', 'side', ...PRICE_CONDITIONS, 'team', 'venue'];
+export const DEFINITION_PARAMS = Object.freeze(['selection', 'side', ...PRICE_CONDITIONS, 'team', 'venue']);
 export function definitionOf(input) {
   const conditions = {};
   for (const name of PRICE_CONDITIONS) if (input[name] !== undefined) conditions[name] = input[name];

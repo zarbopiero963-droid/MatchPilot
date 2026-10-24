@@ -87,7 +87,8 @@ test('persistence API: 503 until the schema exists, refusals write nothing, then
     const call = (method, path, options) => handlePersistence(req(method, path, options), ctx);
 
     assert.equal(await handlePersistence(req('GET', '/api/v1/health'), ctx), null, 'other routes are not handled here');
-    assert.deepEqual((await call('GET', '/api/v1/persistence/status')).body.data, {available: false, writes: 'owner session'});
+    assert.deepEqual((await call('GET', '/api/v1/persistence/status')).body.data, {available: false, writes_enabled: false, writes: 'owner session'});
+    assert.equal((await call('GET', '/api/v1/backtests/saved')).status, 503, 'the list too');
     assert.equal((await call('GET', '/api/v1/strategies')).status, 503);
     const strategy = {key: 'fav-home', name: 'Casa', definition: {selection: 'HOME', side: 'BACK'}};
     assert.equal((await call('POST', '/api/v1/strategies', {body: strategy})).status, 503);
@@ -137,6 +138,23 @@ test('persistence API: 503 until the schema exists, refusals write nothing, then
     assert.deepEqual(loaded.body.data.result, result);
     assert.deepEqual(loaded.body.data.params, body.params);
     assert.equal((await call('GET', '/api/v1/backtests/saved?id=999')).status, 404);
+    // A strategy saved from the request fields of a backtest: the same definition, the same id, no new version.
+    const fromRules = await call('POST', '/api/v1/strategies', {body: {key: 'fav-home', name: 'Casa', rules: {selection: 'HOME', side: 'BACK'}}});
+    assert.deepEqual([fromRules.status, fromRules.body.data.status], [200, 'UNCHANGED']);
+    const withTeam = await call('POST', '/api/v1/strategies', {body: {key: 'ajax-lay', name: 'Ajax in casa', rules: {selection: 'HOME', side: 'LAY', odds_max: '2.5', team: 'Ajax', venue: 'HOME'}}});
+    assert.equal(withTeam.status, 201);
+    assert.deepEqual((await call('GET', '/api/v1/strategies?key=ajax-lay')).body.data.strategy.definition.conditions, {odds_max: '2.5', teams: ['Ajax'], venue: 'HOME'});
+    for (const [bad, status] of [[{key: 'x', name: 'x', rules: {selection: 'HOME', side: 'BACK'}, definition: {selection: 'HOME', side: 'BACK'}}, 400],
+      [{key: 'x', name: 'x'}, 400], [{key: 'x', name: 'x', rules: {selection: 'HOME', side: 'BACK', stake: '5'}}, 400],
+      [{key: 'x', name: 'x', rules: {selection: 'HOME', side: 2}}, 400], [{key: 'x', name: 'x', rules: {selection: 'NOPE', side: 'BACK'}}, 400]]) {
+      assert.equal((await call('POST', '/api/v1/strategies', {body: bad})).status, status, JSON.stringify(bad));
+    }
+    const list = await call('GET', '/api/v1/backtests/saved');
+    assert.deepEqual([list.status, list.body.data.backtests.map(b => b.backtest_id)], [200, [bt.body.data.backtest_id]]);
+    assert.equal(list.body.data.backtests[0].response, undefined, 'the list carries no response');
+    for (const bad of ['limit=0', 'limit=201', 'limit=x', `id=${bt.body.data.backtest_id}&limit=2`, 'other=1']) {
+      assert.equal((await call('GET', `/api/v1/backtests/saved?${bad}`)).status, 400, bad);
+    }
     assert.equal((await call('POST', '/api/v1/backtests/saved', {body: {...body, kind: 'OTHER'}})).status, 400);
     assert.equal((await call('POST', '/api/v1/backtests/saved', {body: {...body, params: {from: 1}}})).status, 400);
     // The backtest's own refusal comes back unchanged and nothing is saved.
@@ -188,7 +206,7 @@ test('persistence API through the server: owner session + same origin to write; 
       assert.equal(refused.status, 403);
       assert.equal((await refused.json()).error.code, 'WRITES_REQUIRE_AUTH');
       const status = await (await fetch(`${off.base}/api/v1/persistence/status`)).json();
-      assert.deepEqual(status.data, {available: true, writes: 'disabled (MATCHPILOT_AUTH is not enforce)'});
+      assert.deepEqual(status.data, {available: true, writes_enabled: false, writes: 'disabled (MATCHPILOT_AUTH is not enforce)'});
       // A body over the limit: the write gate answers first (403), and the half-read connection is closed.
       const big = await fetch(`${off.base}/api/v1/strategies`, {method: 'POST', headers: {'content-type': 'application/json'}, body: 'x'.repeat(MAX_BODY_BYTES * 4)});
       assert.equal(big.status, 403);

@@ -12,7 +12,7 @@
 // Usage: node tools/qa/browser-qa.mjs --out <dir> [--journeys id,id] [--viewports desktop,mobile]
 // Env:   FUTPYTHON_TEST_DATABASE_URL (local throwaway PostgreSQL only), MATCHPILOT_E2E_CHROME, QA_HEAD_SHA (PR head)
 import {execFileSync, spawn} from 'node:child_process';
-import {createHash} from 'node:crypto';
+import {createHash, randomBytes} from 'node:crypto';
 import {existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync} from 'node:fs';
 import {arch, platform, release} from 'node:os';
 import {join, relative, resolve} from 'node:path';
@@ -155,12 +155,12 @@ export function browserPath() {
   return BROWSERS.find(path => path && existsSync(path)) || null;
 }
 
-export async function startServer(schema) {
+export async function startServer(schema, env = {}) {
   const url = new URL(ROOT_URL);
   url.searchParams.set('options', `-c search_path=${schema}`);
   const child = spawn(process.execPath, ['src/server.mjs'], {
     cwd: root,
-    env: {PATH: process.env.PATH, PORT: '0', DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test'},
+    env: {PATH: process.env.PATH, PORT: '0', DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', ...env},
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = '';
@@ -182,7 +182,7 @@ export async function startServer(schema) {
 
 const allowedHttp = (journey, url, status) => (journey.allowHttp ?? []).some(rule => new URL(url).pathname === rule.path && rule.status === status);
 
-async function runJourney({browser, journey, viewportName, base, out, api, seed, contextHook, knownControls}) {
+async function runJourney({browser, journey, viewportName, base, out, api, seed, owner, contextHook, knownControls}) {
   const tag = `${journey.id}-${viewportName}`;
   const context = await browser.newContext({viewport: VIEWPORTS[viewportName]});
   let actuated = new Set();
@@ -252,7 +252,7 @@ async function runJourney({browser, journey, viewportName, base, out, api, seed,
     }
   };
   try {
-    await journey.run({page, base, step, asserted, api, seed});
+    await journey.run({page, base, step, asserted, api, seed, owner});
   } catch (error) {
     status = 'FAIL';
     reason = String(error?.message ?? error).slice(0, 2000);
@@ -305,10 +305,10 @@ export async function runBrowserQa({out, journeys = JOURNEYS, viewports = REQUIR
   mkdirSync(join(out, 'screenshots'), {recursive: true});
   mkdirSync(join(out, 'traces'), {recursive: true});
   const knownControls = inventoryIds(loadInventory());
-  return withQaEnvironment(async ({browser, server, seed, api, health, executablePath}) => {
+  return withQaEnvironment(async ({browser, server, seed, api, health, executablePath, owner}) => {
     const results = [];
     for (const journey of journeys) for (const viewport of viewports) {
-      results.push(await runJourney({browser, journey, viewportName: viewport, base: server.base, out, api, seed, contextHook, knownControls}));
+      results.push(await runJourney({browser, journey, viewportName: viewport, base: server.base, out, api, seed, owner, contextHook, knownControls}));
     }
     const {counts, verdict, missing} = computeVerdict(results);
     const files = Object.fromEntries(listFiles(out).filter(path => !path.endsWith('report.json'))
@@ -326,7 +326,8 @@ export async function runBrowserQa({out, journeys = JOURNEYS, viewports = REQUIR
       software: {package: pkg.name, version: pkg.version, code_version: health.meta?.code_version ?? null},
       dataset: {fixture: 'test/helpers/fpt-seed.mjs#seedQaArchive', ingestion: 'real FutPythonTrader path (CSV → storeDataset → facts)',
         competitions: [seed.eredivisie.competition, seed.laliga.competition], matches: seed.matches, busy_day: seed.busyDay,
-        fixture_sha256: sha256(readFileSync(join(root, 'test/helpers/fpt-seed.mjs'))), production_data: false},
+        fixture_sha256: sha256(readFileSync(join(root, 'test/helpers/fpt-seed.mjs'))), production_data: false,
+        persistence: 'staged schema db/staged/030-persistence.sql applied to the throwaway schema; a second server on it with MATCHPILOT_AUTH=enforce and a test owner'},
       required: {journeys: REQUIRED_JOURNEYS, viewports: REQUIRED_VIEWPORTS},
       journeys: results,
       counts,
@@ -340,6 +341,7 @@ export async function runBrowserQa({out, journeys = JOURNEYS, viewports = REQUIR
       limitations: [
         'QA archive is a seeded fixture through the real ingestion path, not the real archive (#40) nor production data',
         'accessibility checks are basic structural checks, not a full WCAG audit',
+        'saves are verified on the throwaway schema with the staged persistence schema; production has no persistence schema yet (503)',
       ],
       verdict,
       files,
@@ -351,6 +353,9 @@ export async function runBrowserQa({out, journeys = JOURNEYS, viewports = REQUIR
 
 // The QA environment shared by the deterministic gate and the exploratory crawler: a throwaway PostgreSQL schema, the
 // real server on it, the QA archive through the real ingestion path and a real Chromium. Always cleaned up.
+// MP-UI-PR-003: the staged persistence schema is applied to the same throwaway schema, and a second server runs on it
+// with the owner login enforced (`owner`: its base and a test owner, created for this run only), so a journey can save
+// for real; the first server keeps the login off, as production does today.
 export async function withQaEnvironment(fn, {browserEnv = null} = {}) {
   const executablePath = browserPath();
   if (!executablePath) throw new Error('no Chromium/Chrome (set MATCHPILOT_E2E_CHROME)');
@@ -361,13 +366,21 @@ export async function withQaEnvironment(fn, {browserEnv = null} = {}) {
   const admin = new pg.Client({connectionString: ROOT_URL, connectionTimeoutMillis: 5000});
   await admin.connect();
   const schema = `browser_qa_${process.pid}_${Date.now()}`;
-  let server, browser;
+  let server, browser, ownerServer;
   try {
     await admin.query(`CREATE SCHEMA ${schema}`);
     server = await startServer(schema);
     const client = new pg.Client({connectionString: server.url.toString()});
     await client.connect();
-    const seed = await seedQaArchive(client).finally(() => client.end());
+    const seed = await seedQaArchive(client).then(async result => {
+      await client.query(readFileSync(join(root, 'db/staged/030-persistence.sql'), 'utf8'));
+      return result;
+    }).finally(() => client.end());
+    const {hashPassword} = await import('../../src/auth/owner-auth.mjs');
+    const password = `qa-${randomBytes(18).toString('hex')}`;
+    ownerServer = await startServer(schema, {MATCHPILOT_AUTH: 'enforce', MATCHPILOT_OWNER_USERNAME: 'qa-owner',
+      MATCHPILOT_OWNER_PASSWORD_HASH: await hashPassword(password, {N: 1024})});
+    const owner = {base: ownerServer.base, username: 'qa-owner', password};
     const health = await (await fetch(`${server.base}/api/v1/health`)).json();
     const api = async path => {
       const response = await fetch(`${server.base}${path}`);
@@ -375,10 +388,11 @@ export async function withQaEnvironment(fn, {browserEnv = null} = {}) {
       return response.json();
     };
     browser = await chromium.launch({executablePath, args: ['--no-sandbox'], ...(browserEnv ? {env: {...process.env, ...browserEnv}} : {})});
-    return await fn({browser, server, seed, api, health, executablePath});
+    return await fn({browser, server, seed, api, health, executablePath, owner});
   } finally {
     await browser?.close().catch(() => {});
     await server?.stop().catch(() => {});
+    await ownerServer?.stop().catch(() => {});
     await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`).catch(() => {});
     await admin.end().catch(() => {});
   }

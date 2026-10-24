@@ -8,7 +8,7 @@ import {accountState, correctSettlement, createLedger, hedgePosition, openPositi
 import {runBacktest} from '../src/hist/engine.mjs';
 import {settleFromResult} from '../src/ledger/settlement.mjs';
 import {fromFutPythonTrader} from '../src/markets/outcomes.mjs';
-import {applyToLedger, createAccount, listStrategies, loadBacktest, loadLedger, loadStrategy, persistenceAvailable, saveBacktest, saveStrategy} from '../src/persistence/store.mjs';
+import {applyToLedger, createAccount, listBacktests, listStrategies, loadBacktest, loadLedger, loadStrategy, persistenceAvailable, saveBacktest, saveStrategy} from '../src/persistence/store.mjs';
 
 const STAGED = readFileSync(new URL('../db/staged/030-persistence.sql', import.meta.url), 'utf8');
 
@@ -266,6 +266,13 @@ test('persistence store: a saved backtest or comparison reloads byte-identical; 
     assert.equal(await code(saveBacktest(db, {name: 'Falso', responseText: JSON.stringify(forged)})), 'BAD_INPUT');
     assert.equal(await code(saveBacktest(db, {name: 'x', responseText: '{"nope":1}'})), 'BAD_INPUT');
     assert.equal(await loadBacktest(db, 999), null);
+    // The list: newest first, no response text, the limit respected and checked.
+    const listed = await listBacktests(db);
+    assert.deepEqual(listed.map(b => [b.backtest_id, b.kind, b.name]), [[savedCompare.backtest_id, 'COMPARE', 'Confronto'], [saved.backtest_id, 'BACKTEST', 'Prova']]);
+    assert.ok(listed.every(b => !('response' in b) && !('responseText' in b) && /^\d{4}-\d{2}-\d{2}T/.test(b.created_at)));
+    assert.deepEqual(listed[1].report_sha256, back.report_sha256);
+    assert.deepEqual((await listBacktests(db, {limit: 1})).map(b => b.backtest_id), [savedCompare.backtest_id]);
+    for (const limit of [0, 201, 1.5, '2']) assert.equal(await code(listBacktests(db, {limit})), 'BAD_INPUT', String(limit));
   });
 });
 

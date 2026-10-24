@@ -24,6 +24,7 @@ Required journeys (`tools/qa/journeys.mjs`):
 | `search` | all matches page by page, team + venue + data quality, competition + date range, xG filter, server validation error, unknown team, no result, venue without team, failed next page with retry |
 | `match-center` | opening from Oggi and search, every comparison figure, form, odds and source row equal to the API for each filter, PIT cutoff, empty history, invalid and unknown match |
 | `providers-endpoints` | data providers page, API registry equal to the API |
+| `sim-save` | MP-UI-PR-003: no save offered without the owner login or the archive of saves (stated in words); the owner login page; a result saved once even with a double click, the same report, the request and not the result sent; saved again → already saved; opened from the result and from «Backtest salvati» (the API list); a refused save (503) shown as such; a «Personalizzata» strategy saved with the simulated definition, then unchanged; a closed session refused. On the second server of the QA environment (owner login, staged persistence schema) |
 
 After **every step** the runner also checks, on the page as rendered:
 - no raw JavaScript value leaked (a text node that is exactly `null`/`undefined`/`NaN`, or `NaN` anywhere);

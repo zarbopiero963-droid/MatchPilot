@@ -2771,6 +2771,198 @@
           "step": "rotta sconosciuta"
         }
       ]
+    },
+    {
+      "id": "CTL-SIM-SAVED-LIST",
+      "view": "sim",
+      "kind": "link",
+      "label": "Backtest salvati",
+      "action": "apre l'elenco dei backtest salvati",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34,
+        99
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-SAVE-NAME",
+      "view": "sim",
+      "kind": "input",
+      "label": "Nome del risultato",
+      "action": "dà il nome al risultato da salvare",
+      "api": null,
+      "data": "UNAVAILABLE",
+      "issues": [
+        34,
+        99
+      ],
+      "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-SAVE",
+      "view": "sim",
+      "kind": "button",
+      "label": "Salva risultato",
+      "action": "salva il risultato: il server ripete la stessa simulazione e conserva ciò che produce",
+      "api": "/api/v1/backtests/saved",
+      "data": "UNAVAILABLE",
+      "issues": [
+        34,
+        99
+      ],
+      "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-SAVE-OPEN",
+      "view": "sim",
+      "kind": "link",
+      "label": "Apri il salvataggio",
+      "action": "apre il risultato salvato",
+      "api": "/api/v1/backtests/saved",
+      "data": "UNAVAILABLE",
+      "issues": [
+        34,
+        99
+      ],
+      "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-SAVE-STRATEGY-NAME",
+      "view": "sim",
+      "kind": "input",
+      "label": "Nome della strategia",
+      "action": "dà il nome alla strategia personalizzata",
+      "api": null,
+      "data": "UNAVAILABLE",
+      "issues": [
+        34
+      ],
+      "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-SAVE-STRATEGY-KEY",
+      "view": "sim",
+      "kind": "input",
+      "label": "Codice breve",
+      "action": "dà il codice stabile della strategia",
+      "api": null,
+      "data": "UNAVAILABLE",
+      "issues": [
+        34
+      ],
+      "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SIM-SAVE-STRATEGY",
+      "view": "sim",
+      "kind": "button",
+      "label": "Salva strategia",
+      "action": "salva le regole simulate come versione della strategia",
+      "api": "/api/v1/strategies",
+      "data": "UNAVAILABLE",
+      "issues": [
+        34
+      ],
+      "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SAVED-OPEN",
+      "view": "saved",
+      "kind": "link",
+      "label": "Backtest salvato (riga)",
+      "action": "apre il backtest salvato",
+      "api": "/api/v1/backtests/saved",
+      "data": "UNAVAILABLE",
+      "issues": [
+        34,
+        99
+      ],
+      "data_note": "real API, verified on the throwaway schema with the staged persistence schema; 503 in production until the owner-authorized migration",
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-SAVED-BACK-SIM",
+      "view": "saved",
+      "kind": "link",
+      "label": "Torna alla simulazione",
+      "action": "apre la Simulazione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        34
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-LOGIN-USERNAME",
+      "view": "login",
+      "kind": "input",
+      "label": "Utente",
+      "action": "nome dell'owner per l'accesso",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        23
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-LOGIN-PASSWORD",
+      "view": "login",
+      "kind": "input",
+      "label": "Password",
+      "action": "password dell'owner",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        23
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-LOGIN-SUBMIT",
+      "view": "login",
+      "kind": "button",
+      "label": "Accedi",
+      "action": "apre la sessione owner e torna alla pagina richiesta",
+      "api": "/auth/login",
+      "data": "REAL",
+      "issues": [
+        23
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
     }
   ]
 }

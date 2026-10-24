@@ -12,7 +12,8 @@
 // server-side source yet, and a mode declared by the client could bypass STOP. Only the account state is read.
 import {accountState} from '../ledger/paper-ledger.mjs';
 import {HistInputError} from '../hist/contract.mjs';
-import {PersistenceError, listStrategies, loadBacktest, loadLedger, loadStrategy, persistenceAvailable, saveBacktest, saveStrategy} from '../persistence/store.mjs';
+import {DEFINITION_PARAMS, definitionOf} from './hist-backtest.mjs';
+import {PersistenceError, listBacktests, listStrategies, loadBacktest, loadLedger, loadStrategy, persistenceAvailable, saveBacktest, saveStrategy} from '../persistence/store.mjs';
 import {authorize, sameOriginRequest} from '../auth/owner-auth.mjs';
 
 export const PERSISTENCE_ROUTES = Object.freeze({
@@ -108,7 +109,8 @@ export async function handlePersistence({method, url, headers = {}, rawBody = nu
       case 'GET /api/v1/persistence/status': {
         queryOnly(url, []);
         const available = await withClient(client => persistenceAvailable(client));
-        return ok(200, {available, writes: authEnforced ? 'owner session' : 'disabled (MATCHPILOT_AUTH is not enforce)'});
+        // writes_enabled: what a page reads to offer a save at all (MP-UI-PR-003); `writes` keeps the operator's wording.
+        return ok(200, {available, writes_enabled: available && authEnforced, writes: authEnforced ? 'owner session' : 'disabled (MATCHPILOT_AUTH is not enforce)'});
       }
       case 'GET /api/v1/strategies': {
         queryOnly(url, ['key', 'version']);
@@ -122,13 +124,31 @@ export async function handlePersistence({method, url, headers = {}, rawBody = nu
         return ok(200, {strategy});
       }
       case 'POST /api/v1/strategies': {
-        const {key, name, definition} = bodyFields(body, ['key', 'name', 'definition'], ['key', 'name', 'definition']);
+        // The rules come either as a definition or as `rules`, the request fields of a configurable backtest (selection,
+        // side, prices, team, venue as text): the server builds the definition the backtest itself would use, so a page
+        // saves exactly what it simulated and computes nothing (MP-WEB-011, MP-UI-PR-003).
+        const fields = bodyFields(body, ['key', 'name', 'definition', 'rules'], ['key', 'name']);
+        if ((fields.definition === undefined) === (fields.rules === undefined)) http(400, 'BAD_REQUEST', 'give either definition or rules');
+        let definition = fields.definition;
+        if (fields.rules !== undefined) {
+          const rules = fields.rules;
+          if (rules === null || typeof rules !== 'object' || Array.isArray(rules) || Object.values(rules).some(v => typeof v !== 'string')) http(400, 'BAD_REQUEST', 'rules must be an object of text values');
+          for (const name of Object.keys(rules)) if (!DEFINITION_PARAMS.includes(name)) http(400, 'UNKNOWN_FIELD', `unknown rule ${name}`);
+          definition = definitionOf(rules);
+        }
+        const {key, name} = fields;
         const saved = await withClient(client => saveStrategy(client, {key, name, definition}));
         return ok(saved.status === 'SAVED' ? 201 : 200, saved);
       }
       case 'GET /api/v1/backtests/saved': {
-        queryOnly(url, ['id']);
-        if (!url.searchParams.has('id')) http(400, 'BAD_REQUEST', 'id is required');
+        queryOnly(url, ['id', 'limit']);
+        // Without an id: the list of saved backtests, newest first, without their responses.
+        if (!url.searchParams.has('id')) {
+          const limit = url.searchParams.has('limit') ? positiveInt('limit', url.searchParams.get('limit')) : 50;
+          if (limit > 200) http(400, 'BAD_REQUEST', 'limit must be at most 200');
+          return ok(200, {backtests: await withClient(client => listBacktests(client, {limit}))});
+        }
+        if (url.searchParams.has('limit')) http(400, 'BAD_REQUEST', 'limit applies to the list, not to one backtest');
         const saved = await withClient(client => loadBacktest(client, positiveInt('id', url.searchParams.get('id'))));
         if (!saved) http(404, 'NOT_FOUND', 'no such saved backtest');
         // response_text is the stored text, byte for byte; `result` is the same value parsed.

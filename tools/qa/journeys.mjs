@@ -1317,6 +1317,199 @@ export const JOURNEYS = [
       });
     },
   },
+  {
+    // MP-UI-PR-003: saves of the simulation through the real persistence API, on the throwaway schema with the staged
+    // persistence schema. The second server (`owner`) enforces the owner login, as writes require; the first one keeps
+    // it off, as production does today, so its page offers no save. Each viewport saves its own result (a different
+    // stake) and its own strategy key: the checks compare the list before and after, never an absolute count.
+    id: 'sim-save', surface: 'Simulazione', title: 'Salvataggi: risultato e strategia salvati e riaperti, nessun duplicato, errori e accesso',
+    allowHttp: [{path: '/api/v1/persistence/status', status: 503}, {path: '/api/v1/backtests/saved', status: 503}, {path: '/api/v1/backtests/saved', status: 401}],
+    async run({page, base, step, asserted, seed, owner}) {
+      const phone = page.viewportSize().width <= 560;
+      const stake = phone ? '11' : '10';
+      const research = {from: '2024-08-01', to: '2024-08-31', competition: seed.eredivisie.competition, pit_mode: 'NON_PIT_RESEARCH', commission: '0.05', stake};
+      const custom = {from: '2024-08-01', to: '2024-08-31', pit_mode: 'NON_PIT_RESEARCH', strategy: 'custom', selection: 'HOME', side: 'LAY', odds_max: '2.5', team: 'Ajax', venue: 'HOME', stake};
+      const simAt = (at, query) => fresh(page, `${at}/#/sim?run=1&${new URLSearchParams(query)}`);
+      const authed = async path => {
+        const response = await page.request.get(`${owner.base}${path}`);
+        assert.equal(response.status(), 200, `${path}: ${response.status()}`);
+        return (await response.json()).data;
+      };
+      const saved = async () => (await authed('/api/v1/backtests/saved')).backtests;
+      const outcomeOf = async testid => {
+        await page.waitForFunction(id => !['PENDING', undefined].includes(document.querySelector(`[data-testid="${id}-outcome"]`)?.dataset.status), testid);
+        return page.getAttribute(`[data-testid="${testid}-outcome"]`, 'data-status');
+      };
+      await step('senza accesso del proprietario: nessun salvataggio offerto, archivio non attivo detto in chiaro', async () => {
+        await simAt(base, research);
+        await page.waitForSelector('[data-testid="sim-save-unavailable"]');
+        assert.equal(await page.getAttribute('[data-testid="sim-save-unavailable"]', 'data-code'), 'WRITES_DISABLED');
+        assert.match(await page.textContent('[data-testid="sim-save-unavailable"]'), /^Salvataggio non disponibile: serve l’accesso del proprietario\.$/);
+        assert.equal(await page.locator('[data-testid="sim-save-result"]').count(), 0, 'no save button that cannot work');
+        // As in production today, where the persistence schema is not applied.
+        await page.route('**/api/v1/persistence/status', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
+        await simAt(base, research);
+        await page.waitForSelector('[data-testid="sim-save-unavailable"][data-code="UNAVAILABLE"]');
+        assert.match(await page.textContent('[data-testid="sim-save-unavailable"]'), /l’archivio dei salvataggi non è ancora attivo/);
+        await page.unroute('**/api/v1/persistence/status');
+      });
+      await step('backtest salvati dalla simulazione: l’elenco dell’API, oppure non disponibile', async () => {
+        await fresh(page, `${base}/#/sim`);
+        await titled(page, 'Simulazione');
+        const expected = (await (await page.request.get(`${base}/api/v1/backtests/saved`)).json()).data.backtests;
+        await page.click('[data-testid="sim-saved-link"]');
+        await asserted('CTL-SIM-SAVED-LIST', 'the link opens the saved backtests, the same list as the API (or its empty state)', async () => {
+          await titled(page, 'Backtest salvati');
+          assert.equal(await page.getAttribute('nav a[data-view="sim"]', 'aria-current'), 'page', 'a section of Simulazione');
+          if (expected.length) assert.deepEqual(await page.locator('[data-testid="saved-list"] tbody tr').evaluateAll(trs => trs.map(tr => Number(tr.dataset.id))), expected.map(b => b.backtest_id));
+          else await page.waitForSelector('[data-testid="saved-empty"]');
+        });
+        await page.route('**/api/v1/backtests/saved', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
+        await fresh(page, `${base}/#/saved`);
+        await page.waitForSelector('[data-testid="saved-unavailable"]');
+        assert.match(await page.textContent('[data-testid="saved-unavailable"]'), /^Non disponibile: l’archivio dei salvataggi non è ancora attivo\.$/);
+        await page.unroute('**/api/v1/backtests/saved');
+      });
+      await step('accesso del proprietario dalla pagina di accesso', async () => {
+        await page.goto(`${owner.base}/login?next=${encodeURIComponent('/#/sim')}`);
+        await page.fill('input[name="username"]', owner.username);
+        await page.fill('input[name="password"]', owner.password);
+        await page.click('button[type="submit"]');
+        await asserted(['CTL-LOGIN-USERNAME', 'CTL-LOGIN-PASSWORD', 'CTL-LOGIN-SUBMIT'], 'the owner credentials open the simulation with an owner session', async () => {
+          await titled(page, 'Simulazione');
+          const session = await page.request.get(`${owner.base}/auth/session`);
+          assert.equal(session.status(), 200);
+          assert.equal((await session.json()).authenticated, true);
+        });
+      });
+      await step('salva il risultato: lo stesso report dell’API, una sola richiesta anche con il doppio click', async () => {
+        const before = await saved();
+        await simAt(owner.base, research);
+        await page.waitForSelector('[data-testid="sim-save-result"]');
+        const report = await page.getAttribute('[data-testid="sim-outcome"]', 'data-report');
+        const posts = [];
+        const listen = request => { if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/v1/backtests/saved') posts.push(request.postDataJSON()); };
+        page.on('request', listen);
+        await page.fill('input[name="name"]', `Eredivisie agosto ${stake}`);
+        await page.dblclick('[data-testid="sim-save-result"] button[type="submit"]');
+        await asserted(['CTL-SIM-SAVE-NAME', 'CTL-SIM-SAVE'], 'the result is saved once, with the name given and the report shown, from the request of the page', async () => {
+          assert.equal(await outcomeOf('sim-save-result'), 'SAVED');
+          await page.waitForLoadState('networkidle');
+          assert.equal(posts.length, 1, 'a double click sends one request');
+          assert.deepEqual(posts[0], {name: `Eredivisie agosto ${stake}`, kind: 'BACKTEST', params: research}, 'the page sends the request, not the result');
+          const after = await saved();
+          assert.equal(after.length, before.length + 1);
+          const id = Number(await page.getAttribute('[data-testid="sim-save-open"]', 'data-id'));
+          assert.deepEqual([after[0].backtest_id, after[0].name, after[0].kind, after[0].report_sha256], [id, `Eredivisie agosto ${stake}`, 'BACKTEST', [report]]);
+        });
+        page.off('request', listen);
+      });
+      await step('lo stesso risultato di nuovo: già salvato, poi aperto dal salvataggio', async () => {
+        const before = await saved();
+        const id = Number(await page.getAttribute('[data-testid="sim-save-open"]', 'data-id'));
+        await page.fill('input[name="name"]', `Eredivisie agosto ${stake} bis`);
+        await page.click('[data-testid="sim-save-result"] button[type="submit"]');
+        await asserted('CTL-SIM-SAVE', 'the same result again is not saved twice: already saved, the same record', async () => {
+          await page.waitForSelector('[data-testid="sim-save-result-outcome"][data-status="ALREADY_SAVED"]');
+          assert.equal(Number(await page.getAttribute('[data-testid="sim-save-open"]', 'data-id')), id);
+          assert.deepEqual((await saved()).map(b => b.backtest_id), before.map(b => b.backtest_id));
+        });
+        const report = await page.getAttribute('[data-testid="sim-outcome"]', 'data-report');
+        await page.click('[data-testid="sim-save-open"]');
+        await asserted('CTL-SIM-SAVE-OPEN', 'the saved record opens with its name and the same report, values as stored', async () => {
+          await titled(page, 'Backtest salvato');
+          assert.equal(Number(await page.getAttribute('[data-testid="saved-meta"]', 'data-id')), id);
+          assert.equal(await page.textContent('[data-field="saved_name"]'), `Eredivisie agosto ${stake}`);
+          assert.equal(await page.getAttribute('[data-testid="sim-outcome"]', 'data-report'), report);
+          const stored = await authed(`/api/v1/backtests/saved?id=${id}`);
+          const m = stored.result.report.metrics;
+          for (const [name, value] of [['bets', m.bets], ['pl_net', m.rounded.pl_net], ['roi', m.rounded.roi], ['staked', m.staked]]) {
+            assert.equal(await page.textContent(`[data-field="${name}"]`), shown(value), name);
+          }
+        });
+      });
+      await step('errore del server al salvataggio: messaggio, nessun falso successo, si può riprovare', async () => {
+        const before = await saved();
+        await simAt(owner.base, research);
+        await page.waitForSelector('[data-testid="sim-save-result"]');
+        await page.route('**/api/v1/backtests/saved', route => (route.request().method() === 'POST'
+          ? route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}) : route.continue()));
+        await page.fill('input[name="name"]', 'Tentativo');
+        await page.click('[data-testid="sim-save-result"] button[type="submit"]');
+        await asserted('CTL-SIM-SAVE', 'a refused save says so, links nothing and leaves the action usable', async () => {
+          assert.equal(await outcomeOf('sim-save-result'), 'UNAVAILABLE');
+          assert.match(await page.textContent('[data-testid="sim-save-result-outcome"]'), /^Salvataggio non disponibile in questo momento: riprova più tardi\.$/);
+          assert.equal(await page.getAttribute('[data-testid="sim-save-result-outcome"]', 'class'), 'state error');
+          assert.equal(await page.locator('[data-testid="sim-save-open"]').count(), 0);
+          assert.equal(await page.isEnabled('[data-testid="sim-save-result"] button[type="submit"]'), true);
+          assert.equal((await saved()).length, before.length);
+        });
+        await page.unroute('**/api/v1/backtests/saved');
+      });
+      await step('elenco dei salvati: le righe dell’API, apertura e ritorno alla simulazione', async () => {
+        const expected = await saved();
+        await fresh(page, `${owner.base}/#/sim`);
+        await titled(page, 'Simulazione');
+        await page.click('[data-testid="sim-saved-link"]');
+        await asserted('CTL-SIM-SAVED-LIST', 'the list shows the saved backtests of the API, newest first, with their names', async () => {
+          await page.waitForSelector('[data-testid="saved-list"]');
+          const rows = await page.locator('[data-testid="saved-list"] tbody tr').evaluateAll(trs => trs.map(tr => [Number(tr.dataset.id), tr.cells[0].textContent, tr.cells[1].textContent]));
+          assert.deepEqual(rows, expected.map(b => [b.backtest_id, b.name, b.kind === 'BACKTEST' ? 'Simulazione' : 'Confronto']));
+        });
+        await page.click(`[data-testid="saved-list"] tr[data-id="${expected[0].backtest_id}"] a`);
+        await asserted('CTL-SAVED-OPEN', 'a row opens that saved backtest', async () => {
+          await titled(page, 'Backtest salvato');
+          assert.equal(Number(await page.getAttribute('[data-testid="saved-meta"]', 'data-id')), expected[0].backtest_id);
+          assert.equal(await page.getAttribute('[data-testid="sim-outcome"]', 'data-report'), expected[0].report_sha256[0]);
+        });
+        await page.click('main a[href="#/sim"]');
+        await asserted('CTL-SAVED-BACK-SIM', 'the link brings back to the simulation form', async () => {
+          await titled(page, 'Simulazione');
+          await page.waitForSelector('[data-testid="sim-form"]');
+        });
+      });
+      await step('strategia personalizzata salvata con le regole simulate, poi di nuovo: nessuna nuova versione', async () => {
+        const key = `qa-ajax-${phone ? 'telefono' : 'desktop'}`;
+        await simAt(owner.base, custom);
+        await page.waitForSelector('[data-testid="sim-save-strategy"]');
+        const simulated = await page.getAttribute('[data-testid="sim-strategy"]', 'data-strategy');
+        assert.match(simulated, /^def:[0-9a-f]{16}$/);
+        await page.fill('[data-testid="sim-save-strategy"] input[name="name"]', 'Ajax in casa, banca');
+        await page.fill('[data-testid="sim-save-strategy"] input[name="key"]', key);
+        await page.click('[data-testid="sim-save-strategy"] button[type="submit"]');
+        await asserted(['CTL-SIM-SAVE-STRATEGY-NAME', 'CTL-SIM-SAVE-STRATEGY-KEY', 'CTL-SIM-SAVE-STRATEGY'], 'the strategy is saved as version 1 with the definition the backtest simulated', async () => {
+          assert.equal(await outcomeOf('sim-save-strategy'), 'SAVED');
+          assert.equal(await page.getAttribute('[data-testid="sim-save-strategy-outcome"] [data-strategy]', 'data-strategy'), simulated);
+          const stored = (await authed(`/api/v1/strategies?key=${key}`)).strategy;
+          assert.deepEqual([stored.version, stored.strategy_id, stored.name], [1, simulated, 'Ajax in casa, banca']);
+          assert.deepEqual(stored.definition.conditions, {odds_max: '2.5', teams: ['Ajax'], venue: 'HOME'});
+        });
+        await page.click('[data-testid="sim-save-strategy"] button[type="submit"]');
+        await asserted('CTL-SIM-SAVE-STRATEGY', 'the same rules and name again change nothing: unchanged, still version 1', async () => {
+          await page.waitForSelector('[data-testid="sim-save-strategy-outcome"][data-status="UNCHANGED"]');
+          assert.match(await page.textContent('[data-testid="sim-save-strategy-outcome"]'), /^Strategia già salvata con queste regole \(versione 1\)\.$/);
+          assert.equal((await authed(`/api/v1/strategies?key=${key}`)).strategy.version, 1);
+        });
+      });
+      await step('sessione chiusa: la scrittura è rifiutata e detta, nulla viene salvato', async () => {
+        const before = await saved();
+        await simAt(owner.base, {...research, commission: '0.02'});
+        await page.waitForSelector('[data-testid="sim-save-result"]');
+        const out = await page.request.post(`${owner.base}/auth/logout`, {headers: {origin: owner.base}});
+        assert.equal(out.status(), 204);
+        await page.fill('input[name="name"]', 'Dopo l’uscita');
+        await page.click('[data-testid="sim-save-result"] button[type="submit"]');
+        await asserted('CTL-SIM-SAVE', 'without a session the save is refused and the page says the access expired', async () => {
+          assert.equal(await outcomeOf('sim-save-result'), 'UNAUTHENTICATED');
+          assert.match(await page.textContent('[data-testid="sim-save-result-outcome"]'), /^Accesso scaduto: accedi di nuovo e riprova\.$/);
+        });
+        // Nothing was saved: read again with a new owner session.
+        const login = await page.request.post(`${owner.base}/auth/login`, {headers: {origin: owner.base}, data: {username: owner.username, password: owner.password}});
+        assert.equal(login.status(), 200);
+        assert.equal((await saved()).length, before.length);
+      });
+    },
+  },
 ];
 
 export const REQUIRED_JOURNEYS = JOURNEYS.map(journey => journey.id);

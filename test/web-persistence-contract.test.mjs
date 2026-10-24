@@ -1,0 +1,135 @@
+// MP-UI-PR-003 (MP-UI-HARD-GATES-01 §7): one contract, two adapters. The same checks run against the real adapter of
+// the page (src/web/persistence.js createPersistence) on the real server — owner login enforced, the staged persistence
+// schema on a throwaway PostgreSQL schema with the QA archive — and against the in-memory mock. Moving a page from the
+// mock to the real backend is then a change of adapter, verified by this file, never a rewrite.
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import test from 'node:test';
+import {ROOT_URL, startServer} from '../tools/qa/browser-qa.mjs';
+import {createMemoryPersistence, createPersistence} from '../src/web/persistence.js';
+import {seedQaArchive} from './helpers/fpt-seed.mjs';
+import {hashPassword} from '../src/auth/owner-auth.mjs';
+
+// The contract, as the page relies on it. `result` is the backtest result the real server produces for `params`.
+async function contract(adapter, {params, result, strategyId}) {
+  const status = await adapter.status();
+  assert.deepEqual([status.ok, status.data.available, status.data.writes_enabled], [true, true, true]);
+  const empty = await adapter.listBacktests();
+  assert.deepEqual([empty.ok, empty.data.backtests], [true, []]);
+
+  const first = await adapter.saveBacktest({name: 'Prova', params});
+  assert.deepEqual([first.ok, first.status, first.data.status, first.data.kind], [true, 201, 'SAVED', 'BACKTEST']);
+  assert.ok(Number.isInteger(first.data.backtest_id) && first.data.backtest_id > 0);
+  const again = await adapter.saveBacktest({name: 'Prova di nuovo', params});
+  assert.deepEqual([again.status, again.data.status, again.data.backtest_id], [200, 'ALREADY_SAVED', first.data.backtest_id], 'idempotent');
+
+  const list = await adapter.listBacktests();
+  assert.equal(list.data.backtests.length, 1);
+  const row = list.data.backtests[0];
+  assert.deepEqual([row.backtest_id, row.kind, row.name, row.report_sha256], [first.data.backtest_id, 'BACKTEST', 'Prova', [result.report.report_sha256]]);
+  assert.match(row.created_at, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/);
+  assert.equal(row.result, undefined, 'a list carries no result');
+
+  const loaded = await adapter.loadBacktest(first.data.backtest_id);
+  assert.deepEqual([loaded.ok, loaded.data.kind, loaded.data.name], [true, 'BACKTEST', 'Prova']);
+  assert.deepEqual(loaded.data.result, result, 'the stored result is the one the server produced');
+  assert.deepEqual([(await adapter.loadBacktest(999)).status, (await adapter.loadBacktest(999)).code], [404, 'NOT_FOUND']);
+  assert.equal((await adapter.loadBacktest('x')).status, 400);
+
+  for (const name of ['', '   ', 'x'.repeat(201)]) {
+    const refused = await adapter.saveBacktest({name, params});
+    assert.deepEqual([refused.ok, refused.status], [false, 400], JSON.stringify(name));
+  }
+  const rules = {selection: 'HOME', side: 'LAY', odds_max: '2.5', team: 'Ajax', venue: 'HOME'};
+  const strategy = await adapter.saveStrategy({key: 'ajax-casa', name: 'Ajax in casa', rules, strategyId});
+  assert.deepEqual([strategy.status, strategy.data.status, strategy.data.version, strategy.data.strategy_id], [201, 'SAVED', 1, strategyId]);
+  const unchanged = await adapter.saveStrategy({key: 'ajax-casa', name: 'Ajax in casa', rules, strategyId});
+  assert.deepEqual([unchanged.status, unchanged.data.status, unchanged.data.version], [200, 'UNCHANGED', 1]);
+  const renamed = await adapter.saveStrategy({key: 'ajax-casa', name: 'Ajax, banca in casa', rules, strategyId});
+  assert.deepEqual([renamed.data.status, renamed.data.version], ['SAVED', 2], 'a new name is a new version');
+  assert.deepEqual((await adapter.listStrategies()).data.strategies.map(s => [s.key, s.version, s.strategy_id]), [['ajax-casa', 2, strategyId]]);
+  assert.equal((await adapter.saveStrategy({key: 'Not A Key', name: 'x', rules, strategyId})).status, 400);
+}
+
+// The refusals the page shows, in the same shape from both adapters.
+async function refusals(adapter, {params, expected}) {
+  const status = await adapter.status();
+  if (expected === 'unavailable') {
+    // Production today: no persistence schema and no owner login. Reads 503; a write is refused by the login gate first.
+    assert.deepEqual([status.ok, status.data.available, status.data.writes_enabled], [true, false, false]);
+    const list = await adapter.listBacktests();
+    assert.deepEqual([list.ok, list.status, list.code], [false, 503, 'UNAVAILABLE']);
+    const save = await adapter.saveBacktest({name: 'x', params});
+    assert.deepEqual([save.ok, save.status, save.code], [false, 403, 'WRITES_REQUIRE_AUTH']);
+  } else {
+    assert.deepEqual([status.data.available, status.data.writes_enabled], [true, false]);
+    const refused = await adapter.saveBacktest({name: 'x', params});
+    assert.deepEqual([refused.ok, refused.status, refused.code], [false, 403, 'WRITES_REQUIRE_AUTH']);
+    assert.equal((await adapter.listBacktests()).ok, true, 'reads stay possible');
+  }
+}
+
+const PARAMS = {from: '2024-08-01', to: '2024-08-31', pit_mode: 'NON_PIT_RESEARCH', commission: '0.05', stake: '10'};
+const RULES = {from: '2024-08-01', to: '2024-08-31', pit_mode: 'NON_PIT_RESEARCH', selection: 'HOME', side: 'LAY', odds_max: '2.5', team: 'Ajax', venue: 'HOME'};
+
+test('the real adapter and the mock satisfy the same persistence contract', {timeout: 240000}, async t => {
+  const pg = (await import('pg')).default;
+  const admin = new pg.Client({connectionString: ROOT_URL, connectionTimeoutMillis: 3000});
+  try { await admin.connect(); }
+  catch (error) {
+    await admin.end().catch(() => {});
+    if (process.env.CI) throw error;
+    return t.skip(`needs local PostgreSQL: ${error.message}`);
+  }
+  assert.ok(['localhost', '127.0.0.1', '[::1]'].includes(new URL(ROOT_URL).hostname), 'local throwaway PostgreSQL only');
+  const schema = `web_contract_${process.pid}_${Date.now()}`;
+  const servers = [];
+  t.after(async () => {
+    for (const server of servers) await server.stop().catch(() => {});
+    await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`).catch(() => {});
+    await admin.end().catch(() => {});
+  });
+  await admin.query(`CREATE SCHEMA ${schema}`);
+  const open = await startServer(schema);
+  servers.push(open);
+  const url = new URL(ROOT_URL);
+  url.searchParams.set('options', `-c search_path=${schema}`);
+  const client = new pg.Client({connectionString: url.toString()});
+  await client.connect();
+  try { await seedQaArchive(client); } finally { await client.end(); }
+
+  // No persistence schema yet: what production answers today. Then the staged schema, as after the migration.
+  await refusals(createPersistence({base: open.base}), {params: PARAMS, expected: 'unavailable'});
+  const staged = new pg.Client({connectionString: url.toString()});
+  await staged.connect();
+  try { await staged.query(readFileSync(new URL('../db/staged/030-persistence.sql', import.meta.url), 'utf8')); } finally { await staged.end(); }
+  await refusals(createPersistence({base: open.base}), {params: PARAMS, expected: 'read-only'});
+
+  const password = 'contract owner password 2026';
+  const owner = await startServer(schema, {MATCHPILOT_AUTH: 'enforce', MATCHPILOT_OWNER_USERNAME: 'owner', MATCHPILOT_OWNER_PASSWORD_HASH: await hashPassword(password, {N: 1024})});
+  servers.push(owner);
+  const login = await fetch(`${owner.base}/auth/login`, {method: 'POST', headers: {'content-type': 'application/json', origin: owner.base}, body: JSON.stringify({username: 'owner', password})});
+  assert.equal(login.status, 200);
+  const cookie = /mp_session=[^;]+/.exec(login.headers.get('set-cookie'))[0];
+  // The browser sends the cookie and its origin; here the fetch does it.
+  const browserFetch = (path, options) => fetch(path, {...options, headers: {...options.headers, cookie, origin: owner.base}});
+  const backtest = async query => (await (await browserFetch(`${owner.base}/api/v1/hist/backtest?${new URLSearchParams(query)}`, {headers: {}})).json()).data;
+  const result = await backtest(PARAMS);
+  const strategyId = (await backtest(RULES)).report.config.strategy;
+  assert.match(strategyId, /^def:[0-9a-f]{16}$/);
+
+  await t.test('real adapter, real server', () => contract(createPersistence({base: owner.base, fetch: browserFetch}), {params: PARAMS, result, strategyId}));
+  const canonical = params => Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&');
+  await t.test('memory mock', () => contract(createMemoryPersistence({results: {[canonical(PARAMS)]: result}}), {params: PARAMS, result, strategyId}));
+  await t.test('memory mock refusals match the server', async () => {
+    await refusals(createMemoryPersistence({schema: false, auth: false}), {params: PARAMS, expected: 'unavailable'});
+    await refusals(createMemoryPersistence({auth: false, results: {[canonical(PARAMS)]: result}}), {params: PARAMS, expected: 'read-only'});
+  });
+  // A network failure is an error with its code, never a success.
+  await t.test('network failure', async () => {
+    const down = createPersistence({fetch: async () => { throw new Error('offline'); }});
+    assert.deepEqual(await down.status(), {ok: false, status: 0, code: 'NETWORK'});
+    const odd = createPersistence({fetch: async () => new Response('not json', {status: 200})});
+    assert.deepEqual(await odd.listBacktests(), {ok: false, status: 200, code: 'BAD_ENVELOPE'});
+  });
+});
