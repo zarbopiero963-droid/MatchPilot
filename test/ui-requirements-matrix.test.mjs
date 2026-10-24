@@ -126,6 +126,10 @@ test('no requirement id is lost or duplicated and every status change is listed 
   assert.equal(new Set(ids).size, ids.length, 'duplicate id across rows, superseded and aliases');
   assert.equal(ids.length, matrix.baseline.audit_ids);
   assert.equal(createHash('sha256').update(ids.join('\n')).digest('hex'), matrix.baseline.audit_ids_sha256, 'the id set differs from the audit baseline');
+  // Audit status and requirement text are anchored too: a promotion that rewrites audit_status, or a reworded
+  // requirement, changes this digest.
+  const snapshot = rows.map(row => `${row.id}\t${row.audit_status}\t${row.requirement}`).join('\n');
+  assert.equal(createHash('sha256').update(snapshot).digest('hex'), matrix.baseline.audit_rows_sha256, 'audit status or requirement text differs from the audit baseline');
   const changes = new Map(matrix.status_changes.map(item => [item.id, item]));
   for (const row of rows) {
     if (row.status === row.audit_status) { assert.ok(!changes.has(row.id), `${row.id}: listed change without change`); continue; }

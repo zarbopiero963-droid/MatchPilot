@@ -160,13 +160,14 @@ D12-3 autorizza formule tecniche proposte, analisi dei dati, valutazione KEEP/ME
 | 1022 | DECISION REQUIRED | IN PROGRESS | D12-19: decision resolved by the owner; implemented by this governance PR (documentation only) |
 | 1035 | DECISION REQUIRED | NOT STARTED | D12-5: decision resolved by the owner; the approved behaviour is specified enough to implement; no code yet |
 | 1042 | TESTED | IMPLEMENTED | review of PR #250: no test asserts the behaviour (see evidence) |
-| 1052 | TESTED | IMPLEMENTED | review of PR #250: no test asserts the behaviour (see evidence) |
 | 1055 | DECISION REQUIRED | NOT STARTED | D12-18: decision resolved by the owner; the approved behaviour is specified enough to implement; no code yet |
 | 1061 | DECISION REQUIRED | NOT STARTED | D12-7: decision resolved by the owner; the approved behaviour is specified enough to implement; no code yet |
 | 1089 | DECISION REQUIRED | NOT STARTED | D12-1: decision resolved by the owner; the approved behaviour is specified enough to implement; no code yet |
 | 1090 | DECISION REQUIRED | BLOCKED | D12-6: decision resolved by the owner; an authorization or external dependency still prevents implementation |
 
-Riepilogo: CERTIFIED CALCULATION → IMPLEMENTED: 2; DECISION REQUIRED → BLOCKED: 3; DECISION REQUIRED → IN PROGRESS: 1; DECISION REQUIRED → NOT STARTED: 8; DECISION REQUIRED → SPECIFICATION PENDING: 37; NOT STARTED → SPECIFICATION PENDING: 2; TESTED → IMPLEMENTED: 2. Nessuna transizione verso TESTED o CERTIFIED.
+Riepilogo: CERTIFIED CALCULATION → IMPLEMENTED: 2; DECISION REQUIRED → BLOCKED: 3; DECISION REQUIRED → IN PROGRESS: 1; DECISION REQUIRED → NOT STARTED: 8; DECISION REQUIRED → SPECIFICATION PENDING: 37; NOT STARTED → SPECIFICATION PENDING: 2; TESTED → IMPLEMENTED: 1. Nessuna transizione verso TESTED o CERTIFIED.
+
+**Note sui cambi.** 1022 è IN PROGRESS, stato di MP-UI-ROADMAP-01: lo realizza questa PR, documentale, e su main diventa effettivo solo dopo il merge autorizzato. 0631 e 0641 tornano IMPLEMENTED come requisiti singoli, mentre la funzionalità FEAT-TRADING-TOOLS resta CERTIFIED CALCULATION nel suo perimetro dichiarato (`docs/qa/feature-certification.json`): l'allineamento del perimetro o dei `limits` di quella certificazione è un'attività successiva (gate MP-UI-CERT-CALC-01), non modificata da questa PR.
 
 ## 4. Money Management (D12-8): catalogo completo
 
