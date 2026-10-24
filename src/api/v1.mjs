@@ -3,6 +3,7 @@
 // The API reads only MatchPilot's database: no provider call, no LIVE, no write.
 import {matchAnalysis, matchIdOf} from '../analysis/match-analysis.mjs';
 import {histBacktestEndpoint, histCompareEndpoint} from './hist-backtest.mjs';
+import {toolEndpoints} from './tools.mjs';
 import {MAX_CURSOR_LENGTH, QUERY_CATALOG, ROUTES as FPT_LEGACY_ROUTES, buildQuery, runQuery} from '../providers/futpython/query.mjs';
 
 export const API_VERSION = 'v1';
@@ -95,6 +96,8 @@ export function createEndpoints(tc) {
     // HIST-API-01: backtest over the stored FPT data, read only (src/api/hist-backtest.mjs).
     histBacktestEndpoint({param, integer, oneOf, instant, ApiError}),
     histCompareEndpoint({param, integer, oneOf, instant, ApiError}),
+    // MP-UI-PR-005 (#94): the Trading Tools, computed by the server from manual input, no database (src/api/tools.mjs).
+    ...toolEndpoints({param, oneOf, ApiError}),
     tcEndpoint('discovery', 'TotalCorner discovery report', {}, client => tc.discovery(client)),
     tcEndpoint('schema-registry', 'TotalCorner observed schema registry', {endpoint_family: param('endpoint family'), phase: param('phase'),
       limit: param(`integer 1–${TC_SCHEMA_REGISTRY_LIMIT.max}, default ${TC_SCHEMA_REGISTRY_LIMIT.default}`, false, integer('limit', 1, TC_SCHEMA_REGISTRY_LIMIT.max))},

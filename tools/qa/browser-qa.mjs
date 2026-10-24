@@ -180,6 +180,9 @@ export async function startServer(schema, env = {}) {
   return {base: `http://127.0.0.1:${port}`, url, stop};
 }
 
+// A journey may declare a network failure it provokes on purpose (allowNetwork: [{path, error}]): that request failing
+// with that error, and its console line, are expected; any other failure still fails the journey.
+const allowedNetwork = (journey, url, error) => (journey.allowNetwork ?? []).some(rule => new URL(url).pathname === rule.path && rule.error === error);
 const allowedHttp = (journey, url, status) => (journey.allowHttp ?? []).some(rule => new URL(url).pathname === rule.path && rule.status === status);
 
 async function runJourney({browser, journey, viewportName, base, out, api, seed, owner, contextHook, knownControls}) {
@@ -195,11 +198,13 @@ async function runJourney({browser, journey, viewportName, base, out, api, seed,
   page.setDefaultTimeout(15000);
   const consoleErrors = [], pageErrors = [], httpErrors = [], requestFailures = [];
   const allowedStatuses = new Set();
+  const allowedFailures = new Set();
   page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text()); });
   page.on('pageerror', error => pageErrors.push(error.message));
   page.on('requestfailed', request => {
     const failure = request.failure()?.errorText ?? 'failed';
-    if (failure !== 'net::ERR_ABORTED') requestFailures.push(`${request.method()} ${new URL(request.url()).pathname}: ${failure}`);
+    if (allowedNetwork(journey, request.url(), failure)) allowedFailures.add(failure);
+    else if (failure !== 'net::ERR_ABORTED') requestFailures.push(`${request.method()} ${new URL(request.url()).pathname}: ${failure}`);
   });
   page.on('response', response => {
     if (response.status() < 400) return;
@@ -258,7 +263,8 @@ async function runJourney({browser, journey, viewportName, base, out, api, seed,
     reason = String(error?.message ?? error).slice(0, 2000);
   }
   // Errors the journey did not expect fail it, even when every assertion passed.
-  const expectedConsole = text => [...allowedStatuses].some(code => text.includes(`status of ${code}`));
+  const expectedConsole = text => [...allowedStatuses].some(code => text.includes(`status of ${code}`))
+    || [...allowedFailures].some(failure => text === `Failed to load resource: ${failure}`);
   const unexpectedConsole = consoleErrors.filter(text => !expectedConsole(text));
   if (status === 'PASS' && (unexpectedConsole.length || pageErrors.length || httpErrors.length || requestFailures.length)) {
     status = 'FAIL';

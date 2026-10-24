@@ -1,0 +1,293 @@
+{
+  "schema": "mp-feature-certification-1",
+  "policy": "MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01",
+  "note": "Certification per feature (owner decision MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01). The state of each feature is computed from the evidence by tools/qa/feature-certification.mjs and checked by verify-report on every Browser QA run: a declared state above the evidence fails the gate (a lost certification must be declared REGRESSED). Every control of docs/qa/control-inventory.json belongs to exactly one feature.",
+  "features": [
+    {
+      "id": "FEAT-SHELL",
+      "name": "Navigazione e sessione",
+      "perimeter": "Menu, logo, pagina sconosciuta, Riprova comune, accesso owner e «Esci» (con il login owner attivo).",
+      "views": [
+        "shell",
+        "shared",
+        "login",
+        "notfound"
+      ],
+      "requirements": [
+        "MP-WEB-001",
+        "MP-WEB-015",
+        "MP-QAC-004"
+      ],
+      "issues": [
+        3,
+        23
+      ],
+      "prs": [
+        240,
+        241,
+        243
+      ],
+      "journeys": [
+        "general-navigation",
+        "sim-save"
+      ],
+      "data": "NONE",
+      "financial": false,
+      "dependencies": [],
+      "limits": [
+        "Impostazioni e permessi (SETTINGS-CORE-01, #95, #23) non costruiti"
+      ],
+      "next": "Asserire i controlli ancora ACTUATED o SEEN (elenco, Riprova degli elenchi).",
+      "state": "IMPLEMENTED",
+      "certification": null
+    },
+    {
+      "id": "FEAT-DAILY-BOARD",
+      "name": "Calendario (Oggi)",
+      "perimeter": "Partite del giorno dall'archivio FPT: striscia dei giorni, giorno prima/dopo, data scelta, apertura della partita.",
+      "views": [
+        "board"
+      ],
+      "requirements": [
+        "MP-WEB-002"
+      ],
+      "issues": [
+        3,
+        30
+      ],
+      "prs": [],
+      "journeys": [
+        "daily-board"
+      ],
+      "data": "REAL",
+      "financial": false,
+      "dependencies": [
+        "archivio FPT reale (R-02, #40)"
+      ],
+      "limits": [
+        "Certificazione su archivio reale R-02 (#40) non conclusa"
+      ],
+      "next": "ASSERTED per i controlli rimanenti; campagna REAL su archivio certificato.",
+      "state": "IMPLEMENTED",
+      "certification": null
+    },
+    {
+      "id": "FEAT-SEARCH",
+      "name": "Ricerca",
+      "perimeter": "Ricerca delle partite per squadra, campo, campionato, date, esito, quote, gol, con paginazione.",
+      "views": [
+        "search"
+      ],
+      "requirements": [
+        "MP-WEB-003"
+      ],
+      "issues": [
+        30
+      ],
+      "prs": [],
+      "journeys": [
+        "search"
+      ],
+      "data": "REAL",
+      "financial": false,
+      "dependencies": [
+        "archivio FPT reale (R-02, #40)"
+      ],
+      "limits": [
+        "Certificazione su archivio reale non conclusa"
+      ],
+      "next": "ASSERTED per i filtri rimanenti.",
+      "state": "IMPLEMENTED",
+      "certification": null
+    },
+    {
+      "id": "FEAT-MATCH-CENTER",
+      "name": "Match Center pre-partita",
+      "perimeter": "Analisi pre-partita di una partita archiviata: forma, filtri squadra/campione/campo, righe sorgente.",
+      "views": [
+        "match"
+      ],
+      "requirements": [
+        "MP-WEB-004"
+      ],
+      "issues": [
+        30
+      ],
+      "prs": [],
+      "journeys": [
+        "match-center"
+      ],
+      "data": "REAL",
+      "financial": false,
+      "dependencies": [
+        "query per le card C1–C22 (#30)"
+      ],
+      "limits": [
+        "Live, replay e partita finita non costruiti"
+      ],
+      "next": "ASSERTED per i controlli rimanenti.",
+      "state": "IMPLEMENTED",
+      "certification": null
+    },
+    {
+      "id": "FEAT-SIMULATION",
+      "name": "Simulazione (backtest)",
+      "perimeter": "Backtest sul server dei dati archiviati: modalità PIT e ricerca etichettata, strategie, capitale e gestione, salvataggio del risultato e della strategia.",
+      "views": [
+        "sim"
+      ],
+      "requirements": [
+        "MP-WEB-011"
+      ],
+      "issues": [
+        34,
+        96,
+        99
+      ],
+      "prs": [
+        242
+      ],
+      "journeys": [
+        "simulation",
+        "sim-save"
+      ],
+      "data": "REAL",
+      "financial": true,
+      "dependencies": [
+        "schema di persistenza in produzione (migrazione autorizzata dall'owner, #232) per i salvataggi"
+      ],
+      "limits": [
+        "Salvataggi non disponibili in produzione finché lo schema non è applicato",
+        "PIT su dati reali: niente da simulare per costruzione"
+      ],
+      "next": "ASSERTED per i parametri rimanenti.",
+      "state": "IMPLEMENTED",
+      "certification": null
+    },
+    {
+      "id": "FEAT-COMPARE",
+      "name": "Confronto di strategie",
+      "perimeter": "Confronto sul server di fino a tre configurazioni sugli stessi dati.",
+      "views": [
+        "compare"
+      ],
+      "requirements": [
+        "MP-WEB-011"
+      ],
+      "issues": [
+        34,
+        96
+      ],
+      "prs": [],
+      "journeys": [
+        "compare"
+      ],
+      "data": "REAL",
+      "financial": true,
+      "dependencies": [],
+      "limits": [
+        "Molti parametri delle configurazioni B e C senza ASSERTED"
+      ],
+      "next": "ASSERTED per i parametri rimanenti.",
+      "state": "IMPLEMENTED",
+      "certification": null
+    },
+    {
+      "id": "FEAT-SAVED",
+      "name": "Backtest salvati",
+      "perimeter": "Elenco e apertura dei backtest salvati dal proprietario.",
+      "views": [
+        "saved"
+      ],
+      "requirements": [],
+      "issues": [
+        34,
+        99
+      ],
+      "prs": [
+        242
+      ],
+      "journeys": [
+        "sim-save"
+      ],
+      "data": "REAL",
+      "financial": false,
+      "dependencies": [
+        "schema di persistenza in produzione (#232)"
+      ],
+      "limits": [
+        "In produzione lo schema non è applicato: la pagina dice che i salvataggi non sono disponibili"
+      ],
+      "next": "Verifica REAL dopo la migrazione autorizzata.",
+      "state": "TESTED",
+      "certification": null
+    },
+    {
+      "id": "FEAT-DATA",
+      "name": "Dati e diagnostica",
+      "perimeter": "Area tecnica: stato dei dati, fornitori, registro API, copertura.",
+      "views": [
+        "data"
+      ],
+      "requirements": [],
+      "issues": [
+        31
+      ],
+      "prs": [],
+      "journeys": [
+        "dashboard",
+        "providers-endpoints"
+      ],
+      "data": "REAL",
+      "financial": false,
+      "dependencies": [],
+      "limits": [
+        "La pagina /coverage non è nell'app (MP-UI-PR-006)"
+      ],
+      "next": "Copertura nell'app (MP-UI-PR-006).",
+      "state": "IMPLEMENTED",
+      "certification": null
+    },
+    {
+      "id": "FEAT-TRADING-TOOLS",
+      "name": "Trading Tools",
+      "perimeter": "Sette calcolatori di #94 con inserimento manuale, calcolati dal server in Decimal: Margine delle quote, Stake e Kelly (TOOL 1), Valore atteso (TOOL 2), Responsabilità (TOOL 3), Copertura BACK→LAY e LAY→BACK (TOOL 4 e 5), Dutching BACK (TOOL 7), Poisson (TOOL 12). Esclusi: selettore partita LIVE/PRE-MATCH, cash-out multi-posizione, Dutching LAY, arbitraggio, Each Way, Draw No Bet, progressioni, esposizione, ottimizzatore delle commissioni, salvataggio dei calcoli.",
+      "views": [
+        "tools"
+      ],
+      "requirements": [
+        "MP-MTH-001"
+      ],
+      "issues": [
+        94
+      ],
+      "prs": [],
+      "journeys": [
+        "trading-tools"
+      ],
+      "data": "COMPUTED",
+      "financial": true,
+      "tests": [
+        {
+          "test": "test/math-trading.test.mjs",
+          "name": "Kelly: exact oracle and metamorphic doubling (2000 seeded cases)"
+        },
+        {
+          "test": "test/tools-api.test.mjs",
+          "name": "every tool answers in the v1 envelope with exact, rounded and display values, without the database"
+        }
+      ],
+      "dependencies": [
+        "Math Core mp-math-core-1 (MATH-CORE-01)"
+      ],
+      "limits": [
+        "Solo inserimento manuale: nessuna partita, quota dell'archivio o feed live",
+        "Liquidità non disponibile: le puntate di copertura e dutching sono teoriche",
+        "Nessun salvataggio dei calcoli (tool state model di #94)"
+      ],
+      "next": "Certificazione del perimetro; poi selettore partita e strumenti mancanti di #94.",
+      "state": "TESTED",
+      "certification": null
+    }
+  ]
+}

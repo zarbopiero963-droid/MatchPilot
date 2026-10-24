@@ -65,6 +65,10 @@ export const SCENES = [
   {id: 'confronto', title: 'Confronto di strategie: tre configurazioni affiancate',
     path: () => '#/compare?run=1&from=2024-08-01&to=2024-08-31&pit_mode=NON_PIT_RESEARCH&a_strategy=mp-ref-fav-back-1&b_strategy=custom&b_selection=HOME&b_side=LAY&b_odds_max=2.5&c_strategy=mp-ref-fav-lay-1',
     ready: '[data-testid="cmp-table"] tbody tr', scroll: '[data-testid="cmp-outcome"]'},
+  // MP-UI-PR-005: the Trading Tools, manual input; the hedge result has the before/after table and the liquidity warning.
+  {id: 'strumenti', title: 'Strumenti: inserimento manuale e schede', path: () => '#/tools', ready: '[data-testid="tool-form"][data-tool="odds"]'},
+  {id: 'strumenti-copertura', title: 'Strumenti: copertura calcolata dal server', path: () => '#/tools?tool=hedge&side=BACK&stake=10&odds=3&exit_odds=2%2C5&commission=5&run=1',
+    ready: '[data-testid="tool-result"]', scroll: '[data-testid="tool-result"]'},
 ];
 
 // The matches the Match Center scenes open, chosen from the API of the QA archive: never a hard-coded id.
