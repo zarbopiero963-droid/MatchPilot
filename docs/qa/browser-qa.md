@@ -53,25 +53,36 @@ A journey fails on any JavaScript error, failed request or HTTP error ≥ 400 th
 
 ## Feature certification
 
-Owner decision MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01: certification is per feature, not per pull request. [`feature-certification.json`](feature-certification.json) (schema `mp-feature-certification-1`) lists the features a user recognizes, each with:
+Owner decision MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01: certification is per feature, not per pull request. [`feature-certification.json`](feature-certification.json) (schema `mp-feature-certification-2`) lists the features a user recognizes, each with:
 - its perimeter, views and controls;
 - requirements, issues, PRs and journeys;
 - data: `REAL`, `DEMO`, `COMPUTED` (the real server computes from what the user types) or `NONE`;
 - whether it is financial;
 - dependencies, limits and the next activity;
-- its state: `NOT STARTED`, `IN DEVELOPMENT`, `IMPLEMENTED`, `TESTED`, `CERTIFIED MOCK`, `CERTIFIED REAL`, `BLOCKED` or `REGRESSED`.
+- its test files (`test_files`): the only test files its evidence may cite;
+- its state: `NOT STARTED`, `IN DEVELOPMENT`, `IMPLEMENTED`, `TESTED`, `CERTIFIED MOCK`, `CERTIFIED REAL`, `CERTIFIED CALCULATION`, `BLOCKED` or `REGRESSED`.
 
 Every control of the inventory belongs to exactly one feature.
 
 `tools/qa/feature-certification.mjs` **computes** the state from the evidence; no agent declares it on its own word.
 - **IMPLEMENTED:** every control of the feature exists and is built.
 - **TESTED:** besides, every control is `TESTED` (`ASSERTED`), every test the feature names is active, and every journey it names passed on every viewport.
-- **CERTIFIED:** besides, a `certification` record with its level, the verified commit, the date and the exact perimeter.
-  - It needs evidence for each criterion of the policy — completeness, correctness, contracts, integration, security, financial — or N/A with a reason. A financial feature can never mark financial N/A.
-  - Each criterion rests on at least one active test or one step of the feature's own journeys; a document is only supplementary.
-  - Integration needs a step whose assertions passed on every viewport.
-  - The verified commit must be the report's head or one of its ancestors.
-- **Levels:** `CERTIFIED MOCK` is the level of DEMO data and `CERTIFIED REAL` the level of `REAL` data. A `COMPUTED` feature (the real server computing from what the user types) has no level until the owner decides one, so it stops at `TESTED`.
+- **CERTIFIED:** besides, a `certification` record (MP-UI-CERT-CALC-01) with every one of these fields, each checked:
+  - `level` and `perimeter`;
+  - `verified_commit` and `date`. The commit must be present in the clone (CI checks out the full history) and, with a report, be the report's head or one of its ancestors;
+  - `requirements`: ids that exist in `docs/governance/mp-pr-00/requirements.json`;
+  - `criteria`: evidence for completeness, correctness, contracts, integration, security and financial, or N/A with a reason. A financial feature can never mark financial N/A. Each criterion rests on at least one active test of the feature's own `test_files` or one step of its own journeys; a document only supplements them. Integration needs a step whose assertions passed on every viewport;
+  - `gate_a` (result PASS, test evidence) and `gate_b` (result PASS, Browser QA evidence);
+  - `fixtures`: the fixtures and independent vectors, at least one test;
+  - `results`: the test runs, all PASS on the verified commit;
+  - `contracts`: module, exported constant and version. The gate compares each with the constant in the code, so a changed contract voids the certification;
+  - `limits`, stated explicitly;
+  - `independent_review`: verdict APPROVED, the reviewed commit (containing the verified one) and the GitHub comment of the review.
+- **Levels** (MP-UI-CERT-CALC-01). They say what was certified, not how well:
+  - `CERTIFIED MOCK` for `DEMO` data;
+  - `CERTIFIED REAL` for `REAL` data;
+  - `CERTIFIED CALCULATION` for `COMPUTED` features: deterministic calculations on explicit input, by the real server. It implies no REAL feed, no prediction, no profitability and no real trading.
+  - A feature with `NONE` data has no certified level yet.
 
 A control `TESTED` does not certify its feature, and a merged PR certifies nothing.
 

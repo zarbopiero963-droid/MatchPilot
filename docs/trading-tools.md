@@ -3,7 +3,7 @@
 Issue: #94 (Trading Tools Hub). Roadmap: #239 MP-UI-PR-005, R-12 (MATH-CORE-02..04, 06, 07 for the formulas, MATH-CORE-08 for the API). Owner decisions:
 - MP-UI-PROTOTYPE-INTEGRATION-01: the calculators are ported from the prototype `claude/matchpilot-web-app-wygcsn` and aligned to #94;
 - MP-UI-HARD-GATES-01;
-- MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01: feature `FEAT-TRADING-TOOLS` in [`qa/feature-certification.json`](qa/feature-certification.json), state **TESTED**. Its data are `COMPUTED`: the real server computes from manual input. That kind of data has no certification level until the owner decides one.
+- MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01: feature `FEAT-TRADING-TOOLS` in [`qa/feature-certification.json`](qa/feature-certification.json), data `COMPUTED`: the real server computes from manual input. Its certification level is `CERTIFIED CALCULATION` (MP-UI-CERT-CALC-01); the register holds its current state.
 
 ## Perimeter
 

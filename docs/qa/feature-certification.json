@@ -1,7 +1,7 @@
 {
-  "schema": "mp-feature-certification-1",
+  "schema": "mp-feature-certification-2",
   "policy": "MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01",
-  "note": "Certification per feature (owner decision MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01). The state of each feature is computed from the evidence by tools/qa/feature-certification.mjs and checked by verify-report on every Browser QA run: a declared state above the evidence fails the gate (a lost certification must be declared REGRESSED). Every control of docs/qa/control-inventory.json belongs to exactly one feature.",
+  "note": "Certification per feature (owner decision MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01). The state of each feature is computed from the evidence by tools/qa/feature-certification.mjs and checked by verify-report on every Browser QA run: a declared state above the evidence fails the gate (a lost certification must be declared REGRESSED). Every control of docs/qa/control-inventory.json belongs to exactly one feature. Certified levels say what was certified, not how well (MP-UI-CERT-CALC-01): CERTIFIED MOCK for DEMO data, CERTIFIED REAL for REAL data, CERTIFIED CALCULATION for COMPUTED features.",
   "features": [
     {
       "id": "FEAT-SHELL",
@@ -290,9 +290,13 @@
         "Liquidità non disponibile: le puntate di copertura e dutching sono teoriche",
         "Nessun salvataggio dei calcoli (tool state model di #94)"
       ],
-      "next": "Decisione owner sul livello di certificazione di una funzionalità COMPUTED (calcolo del server su input manuale); poi selettore partita e strumenti mancanti di #94.",
+      "next": "Valutazione per CERTIFIED CALCULATION (MP-UI-CERT-CALC-01) con il record completo; poi selettore partita e strumenti mancanti di #94.",
       "state": "TESTED",
-      "certification": null
+      "certification": null,
+      "test_files": [
+        "test/math-trading.test.mjs",
+        "test/tools-api.test.mjs"
+      ]
     }
   ]
 }

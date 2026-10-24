@@ -61,7 +61,7 @@ Why «Visual conformity and states» is only a partial coverage: the baselines a
 
 The state of each feature of the web app (owner decision MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01) is in [`docs/qa/feature-certification.json`](../qa/feature-certification.json), computed from evidence by `tools/qa/feature-certification.mjs` and checked on every Browser QA run ([`docs/qa/browser-qa.md`](../qa/browser-qa.md#feature-certification)). It does not replace the two verdicts of this matrix:
 - a feature state covers its declared perimeter only;
-- a `COMPUTED` feature (for example the Trading Tools' manual calculators) has no certification level until the owner decides one: the register keeps it at `TESTED`, consistent with the verdicts here.
+- `CERTIFIED CALCULATION` (MP-UI-CERT-CALC-01) is the level of a `COMPUTED` feature, for example the Trading Tools' manual calculators. It certifies the calculation perimeter only: no real data, so the real-data verdict here is not changed by it.
 
 ## How a verdict changes
 
