@@ -1,0 +1,119 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261031T204337Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-31T20:43:37Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-SAFE-REGISTERS-20261031",
+    "source": "owner message to Claude Code, 2026-10-31 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): owner decision on PR #253 (merge at head 3afd943) and SAFE policy for register updates"
+  },
+  "task": "MP-UI-PR-011-SRCHX",
+  "activity": "MP-UI-PR-011-SRCHX: the Ricerca filters the search API already had (MP-REQ-UI-0249, 1053); SAFE PR, merge only when every gate holds",
+  "issue": 239,
+  "pr": null,
+  "branch": "ui-pr-011-srchx",
+  "commit_sha": "8f9c3b2a361eb5e37cefcac4459331ba0b04d53e",
+  "tree_sha": "7df05ec7dae5e6c41c6aae49ba918ffb5376b5f0",
+  "base_sha": "88387170cb282ef6e7f92fda5d2dac68a72e9ce6",
+  "requirements": [
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "Ricerca: favourite side, home price from/to, Over 2.5 price from/to, minimum total xG",
+    "search journey: five steps against the API",
+    "inventory 219/219 ASSERTED",
+    "matrix 1053 TESTED; 0249 stays PARTIAL (season)",
+    "mock v2026.10.31c",
+    "visual baselines of the Ricerca",
+    "MERGED checkpoint of PR #257"
+  ],
+  "tests": [
+    {
+      "command": "npm run qa:browser",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16, Chromium",
+      "commit": "e3d13a07434308a0ffeeafd0e8d269110e81e130",
+      "time": "2026-10-31T20:43:37Z",
+      "limits": [
+        "42/42; verify-report ok; feature register with the report ok; after the field reorder search and controls-coverage 6/6 again; visual 63/63 with the promoted baselines"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "8f9c3b2a361eb5e37cefcac4459331ba0b04d53e"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "review by an agent of a different model pending"
+  },
+  "findings": [
+    {
+      "id": "PR011-T-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "MP-REQ-UI-0249 stays PARTIAL: the season filter needs an API listing the season ids of a competition"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031",
+    "MP-OWNER-D12-IMPLEMENTATION-20261024"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:src/web/app.js",
+    "file:tools/qa/journeys.mjs",
+    "file:docs/qa/control-inventory.json",
+    "file:docs/qa/feature-certification.json",
+    "file:docs/governance/ui-requirements-matrix.json",
+    "file:docs/mockups/matchpilot-trading-os.html",
+    "file:test/visual/manifest.json"
+  ],
+  "stop_conditions": [
+    "merge only if SAFE and every gate holds",
+    "no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "PR, CI and review, then the SAFE merge if every gate holds",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}

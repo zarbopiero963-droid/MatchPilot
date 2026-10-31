@@ -6,7 +6,7 @@
 // (raw null/undefined/NaN, horizontal overflow, basic accessibility, truncated text, overlapping controls) and fails
 // on any JavaScript error, failed request or unexpected HTTP error.
 import assert from 'node:assert/strict';
-import {BADGES, httpErrorState} from '../../src/web/states.js';
+import {BADGES, httpErrorState, percentText} from '../../src/web/states.js';
 
 // Tablet 820 is required too (D12 decision 24/10, MP-REQ-UI-1003/1069): every journey passes on the three.
 export const VIEWPORTS = {desktop: {width: 1280, height: 800}, tablet: {width: 820, height: 1180}, mobile: {width: 390, height: 844}};
@@ -121,6 +121,7 @@ const matrixViews = ({day, matchId}) => [
   {name: 'Fornitori', hash: '#/providers', path: '/api/v1/providers'},
   {name: 'API', hash: '#/endpoints', path: '/api/v1/endpoints'},
   {name: 'Copertura', hash: '#/coverage', path: '/api/v1/fpt/coverage-competitions'},
+  {name: 'Cerca', hash: '#/find?q=Ajax', path: '/api/v1/fpt/teams'},
 ];
 const MATRIX_PATHS = matrixViews({day: '', matchId: ''}).map(view => view.path);
 const matrixStep = code => `matrice negativa: errore ${code} su ogni vista, stesso stato, codice conservato, Riprova`;
@@ -813,6 +814,57 @@ export const JOURNEYS = [
           assert.equal(await page.locator('.paged-foot .state.error').count(), 0);
         });
         await page.unroute(/\/api\/v1\/fpt\/search\?.*cursor=/);
+      });
+      // MP-UI-PR-011-SRCHX (MP-REQ-UI-0249): the filters the search API already had, now in the form.
+      const filtered = async (fill, controls, expectedParams, check, proves, {narrows = true} = {}) => {
+        await fresh(page, `${base}/#/search`);
+        await page.waitForSelector('[data-testid="search-form"]');
+        await fill();
+        const request = page.waitForRequest(r => new URL(r.url()).pathname === '/api/v1/fpt/search');
+        await page.click('[data-testid="search-form"] button[type="submit"]');
+        const sent = new URL((await request).url()).searchParams;
+        await asserted(controls, proves, async () => {
+          for (const [name, value] of Object.entries(expectedParams)) assert.equal(sent.get(name), value, name);
+          await outcomeShown(page, '[data-testid="search-outcome"]');
+          const expected = (await api(`/api/v1/fpt/search?${sent}`)).data.rows;
+          assert.ok(expected.length > 0, 'the QA archive has matches for this filter');
+          for (const row of expected) check(row);
+          const shown = await ids(page, '[data-testid="search-results"] tr');
+          assert.deepEqual(shown, expected.map(row => row.internal_match_id).slice(0, shown.length), 'the rows are the API answer, in its order');
+          const all = (await api(`/api/v1/fpt/search?${new URLSearchParams({limit: sent.get('limit')})}`)).data.rows;
+          if (narrows) assert.notDeepEqual(expected.map(row => row.internal_match_id), all.map(row => row.internal_match_id), 'the filter narrows the answer');
+        });
+      };
+      await step('filtri dell’API: lato del favorito', async () => {
+        // In the QA archive the home side is the favourite whenever its price is known.
+        await filtered(() => page.selectOption('select[name="fav_side"]', 'HOME'), ['CTL-SEARCH-FAV-SIDE'], {fav_side: 'HOME'},
+          row => assert.equal(row.favorite_side, 'HOME'), 'the favourite side reaches the API and every row has the home side as favourite');
+      });
+      await step('filtri dell’API: quota casa da/a', async () => {
+        await filtered(async () => { await page.fill('input[name="home_odd_min"]', '1.5'); await page.fill('input[name="home_odd_max"]', '2.5'); },
+          ['CTL-SEARCH-HOME-ODD-MIN', 'CTL-SEARCH-HOME-ODD-MAX'], {home_odd_min: '1.5', home_odd_max: '2.5'},
+          row => assert.ok(Number(row.odd_home) >= 1.5 && Number(row.odd_home) <= 2.5, `odd_home ${row.odd_home}`), 'the home price range reaches the API and every row is inside it');
+      });
+      await step('filtri dell’API: quota Over 2,5 da/a', async () => {
+        await filtered(async () => { await page.fill('input[name="over25_min"]', '1.5'); await page.fill('input[name="over25_max"]', '1.95'); },
+          ['CTL-SEARCH-OVER25-MIN', 'CTL-SEARCH-OVER25-MAX'], {over25_min: '1.5', over25_max: '1.95'},
+          row => assert.ok(Number(row.odd_over25) >= 1.5 && Number(row.odd_over25) <= 1.95, `odd_over25 ${row.odd_over25}`), 'the Over 2.5 price range reaches the API and every row is inside it',
+          {narrows: false});
+        // Every Over 2.5 price of the QA archive is 1.90: a range above it leaves nothing, and the page says so.
+        await fresh(page, `${base}/#/search?run=1&over25_min=1.95`);
+        await page.waitForSelector('[data-testid="search-empty"]');
+        assert.deepEqual((await api('/api/v1/fpt/search?over25_min=1.95')).data.rows, []);
+      });
+      await step('filtri dell’API: xG totali minimi', async () => {
+        await filtered(() => page.fill('input[name="min_xg_total"]', '2.5'), ['CTL-SEARCH-MIN-XG-TOTAL'], {min_xg_total: '2.5'},
+          row => assert.ok(Number(row.xg_home) + Number(row.xg_away) >= 2.5, `xG ${row.xg_home} + ${row.xg_away}`), 'the minimum total xG reaches the API and every row reaches it');
+      });
+      await step('filtri dell’API: valore rifiutato indicato sul campo', async () => {
+        await fresh(page, `${base}/#/search?run=1&over25_min=0.5`);
+        await page.waitForSelector('[data-testid="search-invalid"]');
+        assert.match(await page.textContent('[data-testid="search-invalid"]'), /Quota Over 2,5 da/);
+        assert.equal(await page.getAttribute('[data-testid="search-invalid"]', 'data-fields'), 'over25_min');
+        assert.equal(await page.inputValue('input[name="over25_min"]'), '0.5', 'the refused value stays in its field');
       });
     },
   },
@@ -2152,20 +2204,78 @@ export const JOURNEYS = [
     },
   },
   {
+    // MP-UI-PR-009-NAV (MP-REQ-UI-1038): the search of the shell, in the header of every view on desktop, tablet and
+    // mobile: squads from the API (exact name, any known spelling) with their matches in Ricerca, pages of the app.
+    id: 'global-search', surface: 'Tutte le viste', title: 'Cerca nell’intestazione: squadre dall’API e loro partite, pagine dell’app, nessun risultato',
+    async run({page, base, step, asserted, api}) {
+      const hash = () => page.evaluate(() => location.hash);
+      const team = (await api('/api/v1/fpt/teams?q=Ajax')).data.rows;
+      await step('cerca: dal campo in alto la squadra dell’API e le sue partite in Ricerca', async () => {
+        assert.equal(team.length, 1, 'the QA archive has one Ajax');
+        await fresh(page, `${base}/#/sim`);
+        await titled(page, 'Simulazione');
+        assert.ok(await page.isVisible('[data-testid="global-search"] input[name="q"]'), 'the field is in the header on this viewport');
+        await page.fill('[data-testid="global-search"] input[name="q"]', '  Ajax ');
+        const request = page.waitForRequest(r => new URL(r.url()).pathname === '/api/v1/fpt/teams');
+        await page.click('[data-testid="global-search"] button[type="submit"]');
+        const sent = new URL((await request).url()).searchParams;
+        await asserted(['CTL-NAV-FIND-INPUT', 'CTL-NAV-FIND'], 'the words typed reach the API and the page lists its squads', async () => {
+          assert.equal(sent.get('q'), 'Ajax');
+          await titled(page, 'Risultati per «Ajax»');
+          assert.equal(await hash(), '#/find?q=Ajax');
+          assert.deepEqual(await page.locator('[data-testid="find-teams"] li').evaluateAll(rows => rows.map(row => row.dataset.team)), team.map(row => row.internal_team_id));
+          assert.equal(await page.inputValue('[data-testid="global-search"] input[name="q"]'), 'Ajax', 'the field keeps the words');
+          assert.equal(await page.locator('nav.mainnav a[aria-current="page"]').count(), 0, 'no menu section claims the search');
+        });
+        const search = page.waitForRequest(r => new URL(r.url()).pathname === '/api/v1/fpt/search');
+        await page.click('[data-testid="find-teams"] a[data-control="CTL-FIND-TEAM"]');
+        const asked = new URL((await search).url()).searchParams;
+        await asserted('CTL-FIND-TEAM', 'a squad opens its matches in Ricerca, from the API', async () => {
+          assert.equal(asked.get('team'), team[0].internal_team_id);
+          await page.waitForSelector('[data-testid="search-results"] tr');
+          const expected = (await api(`/api/v1/fpt/search?${new URLSearchParams({team: team[0].internal_team_id, limit: asked.get('limit')})}`)).data.rows;
+          assert.ok(expected.length > 0);
+          assert.equal(await page.locator('[data-testid="search-results"] tr').count(), expected.length);
+          assert.equal(await page.getAttribute('nav a[data-view="search"]', 'aria-current'), 'page');
+        });
+      });
+      await step('cerca: le pagine dell’app per nome, senza accenti né maiuscole', async () => {
+        await fresh(page, `${base}/#/find?q=COPERTURA`);
+        await page.waitForSelector('[data-testid="find-pages"]');
+        assert.deepEqual(await page.locator('[data-testid="find-pages"] li').allTextContents(), ['Copertura']);
+        assert.equal(await page.locator('[data-testid="find-teams"] li').count(), 0, 'no squad is called Copertura');
+        await page.click('[data-testid="find-pages"] a[data-control="CTL-FIND-PAGE"]');
+        await asserted('CTL-FIND-PAGE', 'a page found opens in the app', async () => {
+          await titled(page, 'Copertura dei campionati');
+          assert.equal(await hash(), '#/coverage');
+        });
+        await fresh(page, `${base}/#/find?q=probabilit%C3%A0`);
+        await page.waitForSelector('[data-testid="find-pages"]');
+        assert.deepEqual(await page.locator('[data-testid="find-pages"] li').allTextContents(), ['Strumenti']);
+      });
+      await step('cerca: nessun risultato e campo vuoto, detti senza inventare', async () => {
+        await fresh(page, `${base}/#/find?q=zzqq`);
+        await page.waitForSelector('[data-testid="find-teams"] .state.empty');
+        assert.deepEqual((await api('/api/v1/fpt/teams?q=zzqq')).data.rows, []);
+        assert.equal(await page.locator('[data-testid="find-teams"] li').count(), 0);
+        assert.equal(await page.locator('[data-testid="find-pages"] li').count(), 0);
+        await page.fill('[data-testid="global-search"] input[name="q"]', '   ');
+        await page.click('[data-testid="global-search"] button[type="submit"]');
+        await page.waitForSelector('[data-testid="find-empty"]');
+        assert.equal(await hash(), '#/find');
+      });
+    },
+  },
+  {
     // MP-UI-PR-008-COV (MP-REQ-UI-1040): the coverage per competition inside the app, with a real filter and the seasons
     // of a competition; every value is the API's, shares shown as percentages without rounding.
     id: 'coverage', surface: 'Dati', title: 'Copertura nell’app: campionati, filtro per paese, stagioni di un campionato, errore',
-    allowHttp: [{path: '/api/v1/fpt/coverage-competitions', status: 503, step: 'copertura: archivio non raggiungibile, stato e Riprova'}],
+    allowHttp: [{path: '/api/v1/fpt/coverage-competitions', status: 503, step: 'copertura: archivio non raggiungibile, stato e Riprova'},
+      {path: '/api/v1/fpt/coverage-seasons', status: 503, step: 'copertura: stagioni non raggiungibili, stato senza stagioni inventate'}],
     async run({page, base, step, asserted, api}) {
-      // The text the page shows for a share of the API: the decimal point moved two places, no rounding.
-      const share = value => {
-        if (value == null) return 'N/D';
-        const [whole, frac = ''] = String(value).split('.');
-        const digits = `${whole}${frac.padEnd(2, '0')}`;
-        const int = digits.slice(0, whole.length + 2).replace(/^0+(?=\d)/, '');
-        const rest = digits.slice(whole.length + 2).replace(/0+$/, '');
-        return `${int}${rest ? `,${rest}` : ''}%`;
-      };
+      // The text the page shows for a share of the API: percentText (fixed vectors in test/ui-foundations.test.mjs).
+      const coverageHash = params => `#/coverage?${new URLSearchParams(params)}`;
+      const share = value => (percentText(value) === null ? 'N/D' : `${percentText(value).replace('.', ',')}%`);
       const listed = () => page.locator('[data-testid="coverage-list"] tbody tr').evaluateAll(rows => rows.map(row => row.dataset.competition));
       const all = (await api('/api/v1/fpt/coverage-competitions')).data.rows;
       await step('copertura: i campionati dell’API con stagioni, partite e quote', async () => {
@@ -2227,6 +2337,22 @@ export const JOURNEYS = [
         assert.equal((await page.textContent('.state.error p')).trim(), 'NON DISPONIBILE I dati non sono disponibili in questo momento.');
         assert.equal(await page.locator('[data-testid="coverage-list"]').count(), 0, 'no list is invented');
         await page.unroute('**/api/v1/fpt/coverage-competitions*');
+      });
+      await step('copertura: stagioni non raggiungibili, stato senza stagioni inventate', async () => {
+        const row = all[0];
+        await page.route('**/api/v1/fpt/coverage-seasons*', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
+        await fresh(page, `${base}/${coverageHash({country: row.country_slug, league: row.league_slug})}`);
+        await page.waitForSelector('.state.error[data-status="503"]');
+        assert.equal((await page.textContent('.state.error p')).trim(), 'NON DISPONIBILE I dati non sono disponibili in questo momento.');
+        assert.equal(await page.locator('[data-testid="coverage-seasons"]').count(), 0, 'no season is invented');
+        await page.unroute('**/api/v1/fpt/coverage-seasons*');
+      });
+      await step('copertura: un paese dell’indirizzo che l’archivio non ha resta scelto, con l’elenco vuoto', async () => {
+        await fresh(page, `${base}/${coverageHash({country: 'nowhere'})}`);
+        await page.waitForSelector('[data-testid="coverage-empty"]');
+        assert.equal(await page.inputValue('select[name="country"]'), 'nowhere', 'the filter says what the list is for');
+        assert.deepEqual((await api('/api/v1/fpt/coverage-competitions?country=nowhere')).data.rows, [], 'the API has no competition for it');
+        assert.equal(await page.locator('[data-testid="coverage-list"]').count(), 0);
       });
     },
   },

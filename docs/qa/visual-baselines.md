@@ -345,3 +345,78 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `simulazione-ricerca-desktop.png` `0c5ad3f6113d8325a66a78cfcf4abd1b7ceaab4f99fdae64e8147b1323ac7a7b`
   - `simulazione-ricerca-mobile.png` `6d3fceb7689094e310f31c611e968b1ae59801d7a33419d427c72a944948fde0`
   - `simulazione-ricerca-tablet.png` `363c1de2e9fdbaab9d4c288bce933926827a9f003c28d07e34282d89eb96788d`
+
+## 2026-10-31 — MP-UI-PR-009-NAV: search field «Cerca» in the header of every scene (own row on tablet and phone)
+
+- Approval: MP-UI-PR-009-NAV, MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031 (#239)
+- Run: commit `8c6508fc1a7ec6f35e1070d5d325404d127ab79f`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `confronto-mobile.png` `0755aa1cca122b43d7e6444f9d56ac6d363b25a8ca7321dbe1d77c24d2721be2`
+  - `confronto-tablet.png` `a1a31a476f8f6b3fb975dc90fd1747552ed7c5e265f6108b5d4e2de8ecc4ea27`
+  - `dati-desktop.png` `42bcbd26dde4c775d4778ac49456ae7dca1eb136b44d63f982f6edab36963396`
+  - `dati-mobile.png` `b00341d3b41bdd105c78fcb90eb77edae9808069ecf36ff572124e2bfce94d59`
+  - `dati-parziale-mobile.png` `d2b40e8b4891fcdb20ed2a321d70993cfb78590919e6b78c94854def42208d47`
+  - `dati-parziale-tablet.png` `b257e386c46d441f6902191e84f6f2e9adbcb0cce260a18076bd1cdaaf570668`
+  - `dati-tablet.png` `7362301ad40e6a79bf14113fa3062b7d52ae2b32ff2c4fa1a8e3159ce11e9298`
+  - `non-trovata-desktop.png` `76d7ea79ba2848e132e376e02091fafe317bf6c9fd08ded15bfa69bb954db838`
+  - `non-trovata-mobile.png` `8da334dd23405e4e87a6d1c3811690bdb79c1c09233558a8b3cba8bfcbbe6858`
+  - `non-trovata-tablet.png` `85ec255a27b673ed7cd2be187ef687ff2de2dc5558bfe7195bf837dcf99b9754`
+  - `oggi-caricamento-desktop.png` `7bf1291523be37f9e232af6b8515c87530a601af0a49c502aa6afbcefd8f1c1b`
+  - `oggi-caricamento-mobile.png` `cd78f3efcc859e0490bcf11b89bd1858a47b156be4cca37ffa2a9b54d41e8aee`
+  - `oggi-caricamento-tablet.png` `acd4271e21c354e641f762ba0138e3ee5f1b6cf8c7da2d4a0e66932bb1428ccf`
+  - `oggi-desktop.png` `ab1ee6897e0af2b240ce1a0f169e2ba6d0f24bcda8ce815f9ed6b69d73bf2828`
+  - `oggi-errore-desktop.png` `d7062e9b58a0a23112c7a5c2a201296a3b79e9f144ff30cf97380573f5668d19`
+  - `oggi-errore-mobile.png` `f470d728aec2beceb475717e9e322e725c6f8d142dd1b1f4144db2a0c6636928`
+  - `oggi-errore-tablet.png` `9c1f37ca1ee7f5fb6b41e53c9c5e2746116354817b297e46746e21d4471ab8ac`
+  - `oggi-mobile.png` `17eea685bb11bfa856bc4290e12192eca9b69263b10aff1e6848fbdb0c3399ca`
+  - `oggi-oggi-desktop.png` `91c37bc5370b4f03d6cc3357c17c1b6457556034ac63aa34962b2912feab1fa5`
+  - `oggi-oggi-mobile.png` `34bca3a7a2c637a53be5783d98eb2512c68ac5e800fdb20f8814fd619996be8d`
+  - `oggi-oggi-tablet.png` `af5811355b3e05fbe3cc7e8f8f39649ce8742ac336d8249f5d4bca069b95ce0a`
+  - `oggi-righe-mobile.png` `362cced55839edffe292d53ddade041ffe4a41850a25725ac7a332cadf20a375`
+  - `oggi-righe-tablet.png` `f3e600e14f93ee30e9dba61b74caf633da8159075c9826c0dfd6c625c4ae0933`
+  - `oggi-tablet.png` `8e953100b5c1cbf3aacc9e0fa120636b0f9223b420b2541f938204d720a6019d`
+  - `oggi-vuoto-desktop.png` `41274cc0c1a6388bc4b9ad102206803cc3c1633d3c6c0f322d323b8b1791f2f8`
+  - `oggi-vuoto-mobile.png` `4170e89f334f44ac8702899b5cb2b9cb651d3adabb74a58458013ef2aa08863e`
+  - `oggi-vuoto-tablet.png` `af1a8906237f70c0fe92bb8cb47f97b05cb6fd79f8b44117a46452be9c58fd78`
+  - `partita-confronto-mobile.png` `3d62b01304885dd3fd8150299760692360f48198e2c89b4f22e9bf61a5783763`
+  - `partita-confronto-tablet.png` `a6c37b6c38982d4ab6068d9b966a1d1fb880f043c5fd3630edb69a4c3dd4f94a`
+  - `partita-desktop.png` `5010865c3cccdc131b1b1759bcbf0138a748c8717ecbb2fdf5436668a1976d38`
+  - `partita-mobile.png` `cdafa984fddbc0ef1a46b8f86884c640236cc6fc9807156a93bd4a22a14e43ba`
+  - `partita-senza-storico-mobile.png` `232481a0eb43c3aae95ea66c5cd000aa5057d5ab8a8451816c61af015f0d7690`
+  - `partita-senza-storico-tablet.png` `650d3a17efc9b7392afaa4cb59a8e399ca4380a9a7b1160778c28e41d393a25b`
+  - `partita-tablet.png` `9ef07c92f7b1097df1a66f932624891814682d11faf803c239f8db4b4e34710c`
+  - `ricerca-desktop.png` `ad6b808509dff517f68b4c032852e0b25bf6633fe4c3a366417e1eb19707f1f7`
+  - `ricerca-filtro-rifiutato-desktop.png` `575c7d39eafdc3f9835b40e860d683170379043b0bfa341b4b8a3c3b8ff6eb60`
+  - `ricerca-filtro-rifiutato-mobile.png` `d885e8d6b2cbe280873352e5b2e11a965df59935c145c904b0cf602dd34a0dd9`
+  - `ricerca-filtro-rifiutato-tablet.png` `1dc3ac0bf905465dc884383525f1e9976ce9889919d6fed33c1964cbd029b33c`
+  - `ricerca-mobile.png` `d4598855fb666289a6fdee1b2e423e5878dc48acc306be48f5b78c569bf3fafe`
+  - `ricerca-risultati-mobile.png` `6d1c99c205ebb9b9cccd2c5a23a0ab8bf74ebc983db64abf8da1c74297643a50`
+  - `ricerca-risultati-tablet.png` `6dff3df278d9bdb7533e0b4fc05b7c3d30ca486c54e4b579d25b41991026aac5`
+  - `ricerca-tablet.png` `1af8140561d82fb59651586dfd16946a368d0bc50fb518e84e01c50438c9e68c`
+  - `simulazione-desktop.png` `3afba7afc8ae7d279c7fb104183341ed30b7e5bf13595c194d2d948a632c0372`
+  - `simulazione-mobile.png` `613f479836f00383f476291eea157873879d9ca8930bbc2960465829dbaa54a6`
+  - `simulazione-ricerca-mobile.png` `399e9c66cf6576fcf8ce1068defa4b54e015dbae21fd306bcd644c9d576353ea`
+  - `simulazione-ricerca-tablet.png` `d643072975aed93116dac0ce0e611553a22e173292a56d32ea5ccef273661d77`
+  - `simulazione-tablet.png` `45757229da9aa43f53c09bfa7bd6f3f8eec66a9c9108a45d06f4310924043e3d`
+  - `strategie-private-desktop.png` `42d9b57cc56b6bc940c1493428d0f789aaab27f84baa80a39b3b0a3f70dc80fe`
+  - `strategie-private-mobile.png` `4b3320a80cf88e180762ac3e0ab07fae03733f0a234b2b18457bf88d7aa611c5`
+  - `strategie-private-tablet.png` `c2e125956afddb393946d3fae6068b635cd85b4b13a547ed2a94fc6d0062db61`
+  - `strumenti-copertura-mobile.png` `7612f7230498a0d49a6ec580989895020df763ff48b1cb4cc69b574a4c99b42b`
+  - `strumenti-copertura-tablet.png` `be09de7897538b754574896ed07546259d1f5829839649921bc822955b4bda5d`
+  - `strumenti-desktop.png` `2a9d8276d22463a3cfc3218f860b7a052620d68e13103ec7bcc650c19aac5ba7`
+  - `strumenti-mobile.png` `03d528ffbad038a76e9ce0768acdce82265395e4fb1e36a2a7332c81357d28b6`
+  - `strumenti-tablet.png` `3270ff9e8733d304fdd52369e71b4b1e7c01f0aa7b5728311664e6ae1079b0ee`
+
+## 2026-10-31 — MP-UI-PR-011-SRCHX: the Ricerca form gains favourite side, home price, Over 2.5 price and minimum total xG
+
+- Approval: MP-UI-PR-011-SRCHX, MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031 (#239)
+- Run: commit `d162774376936b915cbb89cb854986febe95b59c`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `ricerca-desktop.png` `f5e2d83818db7700b8b4a91e4f09a2a2ff134df1a412840bcdc5ecb3694ce3b5`
+  - `ricerca-filtro-rifiutato-desktop.png` `45393bf1316c50506ad1c649994a1d1a92f0773b9d1f70ac51dc878bba813983`
+  - `ricerca-filtro-rifiutato-mobile.png` `8a4a10ce5ac56b2b776a2a7bb6bfcd77e68476526bd8c727693db681a7a5ef5b`
+  - `ricerca-filtro-rifiutato-tablet.png` `01427ac17d488fcad29fcc13853d45a13d1f6afb6af09fe6243349be4c89a779`
+  - `ricerca-mobile.png` `1368999593ff7a32e67ff528ab0a0cf883b436bc1016b1856a2e28ea8295ff8b`
+  - `ricerca-tablet.png` `3f99d555fb6d622deb4c9fa52b2f669a79b10ff05d8e3949427c5ec21307258b`

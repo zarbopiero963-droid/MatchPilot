@@ -1814,6 +1814,84 @@
       "merge_sha": "06a9596ba7c8f40154e2bc5e63244c2a1da2ef13"
     },
     {
+      "id": "MP-UI-PR-008-COV-FU",
+      "title": "MP-UI-PR-008-COV follow-up: review findings PR255-T-1..3",
+      "issue": 239,
+      "pr": 256,
+      "branch": "ui-pr-008-cov-fu",
+      "kind": "implementation",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T201026Z-agent-a-claude-code",
+      "resources": [
+        "file:src/web/app.js",
+        "file:src/web/states.js",
+        "file:tools/qa/journeys.mjs",
+        "file:test/ui-foundations.test.mjs",
+        "file:docs/qa/browser-qa.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "2f12c958f174817c3add056d47e007170359c056"
+    },
+    {
+      "id": "MP-UI-PR-009-NAV",
+      "title": "MP-UI-PR-009-NAV: search of the shell",
+      "issue": 239,
+      "pr": 257,
+      "branch": "ui-pr-009-nav",
+      "kind": "implementation",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T204316Z-agent-a-claude-code",
+      "resources": [
+        "file:src/web/app.js",
+        "file:src/web/index.html",
+        "file:src/web/app.css",
+        "file:tools/qa/journeys.mjs",
+        "file:test/ui-foundations.test.mjs",
+        "file:docs/qa/control-inventory.json",
+        "file:docs/qa/feature-certification.json",
+        "file:docs/governance/ui-requirements-matrix.json",
+        "file:docs/mockups/matchpilot-trading-os.html",
+        "file:test/visual/manifest.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "88387170cb282ef6e7f92fda5d2dac68a72e9ce6"
+    },
+    {
+      "id": "MP-UI-PR-011-SRCHX",
+      "title": "MP-UI-PR-011-SRCHX: Ricerca filters of the search API",
+      "issue": 239,
+      "pr": 258,
+      "branch": "ui-pr-011-srchx",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T204337Z-agent-a-claude-code",
+      "resources": [
+        "file:src/web/app.js",
+        "file:tools/qa/journeys.mjs",
+        "file:docs/qa/control-inventory.json",
+        "file:docs/qa/feature-certification.json",
+        "file:docs/governance/ui-requirements-matrix.json",
+        "file:docs/mockups/matchpilot-trading-os.html",
+        "file:test/visual/manifest.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": true
+    },
+    {
       "id": "MP-GOV-SAFE-AUTOMERGE-RULES",
       "title": "Governance: SAFE auto-merge rules in AGENTS.md and CLAUDE.md",
       "issue": 97,

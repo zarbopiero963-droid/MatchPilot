@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {BADGES, badgeSpec, httpErrorState, pitBadgeKind} from '../src/web/states.js';
+import {BADGES, badgeSpec, httpErrorState, percentText, pitBadgeKind} from '../src/web/states.js';
 import {allowHttpErrors, computeVerdict, unexpectedConsoleLines} from '../tools/qa/browser-qa.mjs';
 import {JOURNEYS, REQUIRED_JOURNEYS, REQUIRED_VIEWPORTS, VIEWPORTS} from '../tools/qa/journeys.mjs';
 
@@ -34,7 +34,7 @@ test('MP-REQ-UI-1043: one badge table, one component; every kind has its text an
   // The page renders every badge, N/D included, through badge(): no hand-made N/D or data-badge elsewhere.
   assert.equal((app.match(/'data-badge'/g) ?? []).length, 1, 'data-badge is set in badge() only');
   assert.doesNotMatch(app, /\}, ND\)/, 'no hand-made N/D element: badge(\'ND\') renders it');
-  assert.match(app, /import \{badgeSpec, httpErrorState, pitBadgeKind\} from '\.\/states\.js';/);
+  assert.match(app, /import \{badgeSpec, httpErrorState, percentText, pitBadgeKind\} from '\.\/states\.js';/);
 });
 
 test('MP-REQ-UI-1010 MP-REQ-UI-1043: one wording per HTTP status class, the same on every view', () => {
@@ -96,4 +96,38 @@ test('MP-REQ-UI-1028: every control of the inventory is ASSERTED by a journey st
   assert.deepEqual(weak, [], 'a control only seen or actuated is not verified: a new control needs an asserted step');
   assert.ok(inventory.controls.length >= 205);
   for (const id of ['controls-coverage', 'http-errors']) assert.ok(REQUIRED_JOURNEYS.includes(id), `${id} is a required journey`);
+});
+
+test('MP-REQ-UI-1040: a coverage share is shown as a percentage of its exact text, never rounded nor guessed', () => {
+  for (const [value, percent] of [['0.9950', '99.5'], ['1.0000', '100'], ['0.0000', '0'], ['0.0123', '1.23'], ['0.12345', '12.345'],
+    ['0.5', '50'], ['1', '100'], ['0.0001', '0.01'], [0, '0'], [1, '100']]) assert.equal(percentText(value), percent, String(value));
+  for (const value of [null, undefined, '', ' ', '-0.5', '0,5', '1e-3', 'NaN', '.5', '0.', {}, [], true]) assert.equal(percentText(value), null, String(value));
+  // The page renders the share through percentText and the N/D badge; the journey checks it against the same function.
+  assert.match(app, /const percent = percentText\(value\);\n  return percent === null \? badge\('ND'\)/);
+});
+
+const shell = readFileSync(new URL('../src/web/index.html', import.meta.url), 'utf8');
+
+test('MP-REQ-UI-1035: the menu is the one of the app, evolved incrementally (D12-5), and every entry opens a view of the app', () => {
+  const decisions = JSON.parse(readFileSync(new URL('../docs/governance/owner-decisions.json', import.meta.url), 'utf8')).decisions;
+  const d12 = decisions.find(item => item.id === 'MP-UI-D12-DECISIONS-20261024');
+  assert.equal(d12?.status, 'IN_FORCE');
+  assert.match(d12.decision, /\(5\) Evolve the \*\*actual application's menu\*\* incrementally/, 'Q5 is decided by D12-5');
+  const entries = [...shell.matchAll(/<a href="#\/([a-z]*)" data-view="([a-z]*)"/g)].map(match => [match[1], match[2]]);
+  assert.deepEqual(entries.map(([, view]) => view), ['', 'search', 'sim', 'tools', 'data'], 'the menu of the app, not the mock\'s');
+  for (const [href, view] of entries) {
+    assert.equal(href, view, `${view}: the link opens its own view`);
+    assert.match(app, new RegExp(`(^|[{,]\\s*)${view ? view : "''"}: \\['[^']+', [a-zA-Z]+View, '(user|technical)'\\]`, 'm'), `${view || 'Oggi'} is a view of the app`);
+  }
+});
+
+test('MP-REQ-UI-1038: the search of the shell is in the header of every view; squads come from the API, pages from the menu of the app', () => {
+  assert.match(shell, /<header class="top">[\s\S]*<form class="find" role="search"[^>]*data-testid="global-search"><input type="search" name="q"[^>]*data-control="CTL-NAV-FIND-INPUT"><button type="submit" data-control="CTL-NAV-FIND">Cerca<\/button><\/form>[\s\S]*<\/header>/);
+  assert.match(app, /const teams = \(await getJson\(`\/api\/v1\/fpt\/teams\?\$\{queryString\(\{q\}\)\}`\)\)\.data\?\.rows \?\? \[\];/, 'squads from the teams route');
+  // The pages a search can open are views of the app; no list of squads or matches lives in the browser.
+  const pages = app.slice(app.indexOf('const FIND_PAGES = ['), app.indexOf('const foldText'));
+  const hrefs = [...pages.matchAll(/\['#\/([a-z]*)'/g)].map(match => match[1]);
+  assert.equal(hrefs.length, 11);
+  for (const view of hrefs) assert.match(app, new RegExp(`(^|[{,]\\s*)${view ? view : "''"}: \\['`, 'm'), `#/${view} is a view`);
+  assert.doesNotMatch(pages, /internal_team_id|canonical_name|getJson/);
 });
