@@ -420,3 +420,16 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `ricerca-filtro-rifiutato-tablet.png` `01427ac17d488fcad29fcc13853d45a13d1f6afb6af09fe6243349be4c89a779`
   - `ricerca-mobile.png` `1368999593ff7a32e67ff528ab0a0cf883b436bc1016b1856a2e28ea8295ff8b`
   - `ricerca-tablet.png` `3f99d555fb6d622deb4c9fa52b2f669a79b10ff05d8e3949427c5ec21307258b`
+
+## 2026-10-31 — MP-UI-PR-011-SEASON: the Ricerca form gains the Stagione select; fields reordered so each from/to pair stays on one row
+
+- Approval: MP-UI-PR-011-SEASON, MP-OWNER-PR254-ROADMAP-20261031 (#239)
+- Run: commit `2d0ffe3b577041b0fac2bd18437867945e2d838a`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `ricerca-desktop.png` `03155752e620b967cfd09c64391ceec1b289712bd5a6d86de2401c6a8ab927ad`
+  - `ricerca-filtro-rifiutato-desktop.png` `cf7f15037e2ae902d7adb14ff1ff0b7a515302ef80255e2f69065d3db75b71ef`
+  - `ricerca-filtro-rifiutato-mobile.png` `9fe35c7e2e494b06b7ec04fe79be984eb85be2020c71be978b8e61704a1c7d41`
+  - `ricerca-filtro-rifiutato-tablet.png` `09cc9b41b016da01bf99cfa3e24f785a28c8c5a8b8ec577de739cf52d633b7da`
+  - `ricerca-mobile.png` `d4cdf0dbaaf9503be225ee9f9cd4ab72f14df3afb8f8089b425e5f26ace2d2a1`
+  - `ricerca-tablet.png` `1af4479030e3fcd99a5064de468a97d38294fa6eb2ec1fc4952b553580f5bfe0`
