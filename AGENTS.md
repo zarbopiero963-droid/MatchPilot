@@ -71,7 +71,31 @@ Il contratto prodotto si modifica solo con decisione owner registrata.
 
 ## 4. Review indipendente e auto-merge (MP-OWNER-AUTOMERGE-01, D2)
 
-> **Sospensione owner MP-OWNER-D12-IMPLEMENTATION-20261024 (24/10/2026), vigente:** l'auto-merge è sospeso. Nessun merge e nessun deploy senza un'autorizzazione owner esplicita, anche quando tutte le condizioni sotto sono soddisfatte. L'agente porta la PR fino a CI verde e review, poi si ferma. Le condizioni restano necessarie per qualunque merge autorizzato.
+> **Sospensione owner MP-OWNER-D12-IMPLEMENTATION-20261024 (24/10/2026): vigente, tranne per le PR SAFE** (MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031 e MP-OWNER-SAFE-REGISTERS-20261031, 31/10/2026).
+>
+> **Quando l'agente fa il merge (squash) senza chiedere.** Valgono le condizioni sotto e quelle del mandato:
+> - PR della roadmap, piccola e reversibile;
+> - nessun file critico;
+> - CI e review senza finding bloccanti;
+> - branch aggiornato e head verificato subito prima del merge;
+> - nessuna possibilità di deploy produttivo non autorizzato. Prima di ogni merge si verifica il meccanismo che oggi lo impedisce; un rifiuto precedente da solo non basta.
+>
+> **Aggiornamenti ordinari che restano SAFE:** matrice dei requisiti, registro delle funzionalità, checkpoint, evidenze e documentazione tecnica coerente con il codice, compresa la registrazione fedele di una decisione owner già approvata.
+> - Valgono se non cambiano il significato degli stati o i criteri di certificazione.
+> - Non introducono né ampliano decisioni o mandati.
+> - Non promuovono nulla a REAL o CERTIFIED senza evidenze e procedura.
+>
+> **PR MANUAL, che si fermano prima del merge con «AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER»:**
+> - autenticazione e segreti;
+> - sicurezza e workflow CI;
+> - database, provider e PIT;
+> - motore e logica finanziaria;
+> - deploy e VPS;
+> - costi;
+> - contratti API pubblici e certificazioni;
+> - modifiche normative ad AGENTS.md, CLAUDE.md e alle regole di auto-merge.
+>
+> Nessun deploy viene avviato dall'agente.
 
 > **Rettifica owner DEC-004-R1 (t122u, 22/10/2026) — prevale su questa sezione per la sola indipendenza della review.** La self-review dell'agente autore è consentita e sufficiente: si registra come "self-review" e non si presenta mai come indipendente. Non servono un secondo reviewer né nuove identità bot. Le approvazioni umane GitHub dei deploy (environment `vps-production`) restano obbligatorie e non si simulano. Il testo seguente resta per storia: dove chiede "review indipendente" va letto come self-review etichettata (SUPERSEDED da DEC-004-R1).
 
