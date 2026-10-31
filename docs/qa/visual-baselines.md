@@ -407,3 +407,16 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `strumenti-desktop.png` `2a9d8276d22463a3cfc3218f860b7a052620d68e13103ec7bcc650c19aac5ba7`
   - `strumenti-mobile.png` `03d528ffbad038a76e9ce0768acdce82265395e4fb1e36a2a7332c81357d28b6`
   - `strumenti-tablet.png` `3270ff9e8733d304fdd52369e71b4b1e7c01f0aa7b5728311664e6ae1079b0ee`
+
+## 2026-10-31 — MP-UI-PR-011-SRCHX: the Ricerca form gains favourite side, home price, Over 2.5 price and minimum total xG
+
+- Approval: MP-UI-PR-011-SRCHX, MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031 (#239)
+- Run: commit `d162774376936b915cbb89cb854986febe95b59c`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `ricerca-desktop.png` `f5e2d83818db7700b8b4a91e4f09a2a2ff134df1a412840bcdc5ecb3694ce3b5`
+  - `ricerca-filtro-rifiutato-desktop.png` `45393bf1316c50506ad1c649994a1d1a92f0773b9d1f70ac51dc878bba813983`
+  - `ricerca-filtro-rifiutato-mobile.png` `8a4a10ce5ac56b2b776a2a7bb6bfcd77e68476526bd8c727693db681a7a5ef5b`
+  - `ricerca-filtro-rifiutato-tablet.png` `01427ac17d488fcad29fcc13853d45a13d1f6afb6af09fe6243349be4c89a779`
+  - `ricerca-mobile.png` `1368999593ff7a32e67ff528ab0a0cf883b436bc1016b1856a2e28ea8295ff8b`
+  - `ricerca-tablet.png` `3f99d555fb6d622deb4c9fa52b2f669a79b10ff05d8e3949427c5ec21307258b`
