@@ -350,6 +350,27 @@ test('R-06b: dashboard, Daily Board and search render the stored matches exactly
           await page.waitForSelector('[data-testid="tile-coverage"] tbody tr');
           assert.equal(await page.textContent('[data-testid="tile-certification"] [data-field="unique_matches"]'), shown(providers.data.futpython_certification.unique_matches));
           assert.equal(await page.textContent('[data-testid="tile-certification"] [data-field="latest_backfill"]'), 'N/D');
+          // The phase gates shown are exactly the phase<N> keys of the API response, in numeric order (FE-48).
+          const apiPhases = Object.keys(providers.data.futpython_certification).filter(key => /^phase\d+$/.test(key))
+            .sort((a, b) => Number(a.slice(5)) - Number(b.slice(5))).map(key => `${key}_gate`);
+          assert.ok(apiPhases.length > 0);
+          assert.deepEqual(await page.$$eval('[data-testid="tile-certification"] [data-field$="_gate"]', nodes => nodes.map(node => node.dataset.field)), apiPhases);
+          // A phase the server adds (phase10) appears after phase6 in numeric order, one it drops (phase8) disappears:
+          // the list is the response's, not a fixed one in the page.
+          await page.route('**/api/v1/providers', async route => {
+            const response = await route.fetch();
+            const body = await response.json();
+            delete body.data.futpython_certification.phase8;
+            body.data.futpython_certification.phase10 = {gate: true};
+            await route.fulfill({response, body: JSON.stringify(body)});
+          });
+          await page.reload();
+          await page.waitForSelector('[data-testid="tile-coverage"] tbody tr');
+          const changed = await page.$$eval('[data-testid="tile-certification"] [data-field$="_gate"]', nodes => nodes.map(node => node.dataset.field));
+          assert.deepEqual(changed, [...apiPhases.filter(name => name !== 'phase8_gate'), 'phase10_gate']);
+          await page.unroute('**/api/v1/providers');
+          await page.reload();
+          await page.waitForSelector('[data-testid="tile-coverage"] tbody tr');
           assert.equal(await page.textContent('[data-testid="tile-coverage"] [data-field="matches"]'), shown(league.matches));
           assert.match(await page.textContent('[data-testid="tile-coverage"] tbody tr'), new RegExp(shown(league.odds_coverage)));
           assert.equal(await page.textContent('[data-testid="tile-tc-live"] [data-field="latest"]'), 'N/D', 'no live snapshot: N/D, not 0');
