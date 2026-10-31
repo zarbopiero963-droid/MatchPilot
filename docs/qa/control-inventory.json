@@ -886,9 +886,14 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "stagione: le stagioni del campionato dall’API e la ricerca di una stagione"
+        }
+      ]
     },
     {
       "id": "CTL-SEARCH-FROM",
