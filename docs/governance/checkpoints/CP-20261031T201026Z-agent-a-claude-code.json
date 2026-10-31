@@ -1,0 +1,169 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261031T201026Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-31T20:10:26Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-SAFE-REGISTERS-20261031",
+    "source": "owner message to Claude Code, 2026-10-31 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): owner decision on PR #253 (merge at head 3afd943) and SAFE policy for register updates"
+  },
+  "task": "MP-UI-PR-008-COV-FU",
+  "activity": "PR #256 merged as 2f12c95 (squash, SAFE auto-merge); main CI green; deploy-vps refused by mp-runner-guard (no deploy)",
+  "issue": 239,
+  "pr": 256,
+  "branch": "ui-pr-008-cov-fu",
+  "commit_sha": "dbfd72af9f83ebcbda63f672a26a903b1c240453",
+  "tree_sha": "1e5e4decd58ea04ff81ff4ba008dba1e43d9c6f4",
+  "base_sha": "06a9596ba7c8f40154e2bc5e63244c2a1da2ef13",
+  "requirements": [
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "percentText in states.js with fixed-vector unit test (PR255-T-1)",
+    "journey step: coverage-seasons 503 (PR255-T-2)",
+    "unknown country of the address stays chosen (PR255-T-3)",
+    "MERGED checkpoint of PR #255",
+    "Browser QA doc",
+    "2f12c95: squash merge of PR #256"
+  ],
+  "tests": [
+    {
+      "command": "browser-qa --journeys coverage,controls-coverage,general-navigation (desktop, tablet, mobile)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16, Chromium",
+      "commit": "ed2861595dd4bade7d6917698d16baec1504c2cd",
+      "time": "2026-10-31T19:30:56Z",
+      "limits": [
+        "9/9 runs; full Browser QA runs in CI"
+      ]
+    },
+    {
+      "command": "node --test test/ui-foundations.test.mjs",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22",
+      "commit": "ed2861595dd4bade7d6917698d16baec1504c2cd",
+      "time": "2026-10-31T19:30:56Z",
+      "limits": [
+        "8/8"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on PR #256 head dbfd72a",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "dbfd72af9f83ebcbda63f672a26a903b1c240453",
+      "time": "2026-10-31T20:10:26Z",
+      "limits": [
+        "run 41234973910 success"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 2f12c95",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "2f12c958f174817c3add056d47e007170359c056",
+      "time": "2026-10-31T20:10:26Z",
+      "limits": [
+        "run 41235904388 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 2f12c95",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "2f12c958f174817c3add056d47e007170359c056",
+      "time": "2026-10-31T20:10:26Z",
+      "limits": [
+        "run 41235904426: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41234973910,
+    "conclusion": "SUCCESS",
+    "head_sha": "dbfd72af9f83ebcbda63f672a26a903b1c240453"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "dbfd72af9f83ebcbda63f672a26a903b1c240453",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/256#issuecomment-6548300742; review by an agent of a different model on 8ab6267, confirmed on dbfd72a by the same reviewer (src, test, tools, docs/qa identical; only the REVIEW checkpoint pr field differs)"
+  },
+  "findings": [
+    {
+      "id": "PR255-T-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "Copertura is a user-area view among technical Dati tabs (intended: words, not codes); owner note, no change"
+    },
+    {
+      "id": "PR256-T-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "a country of the address in other casing adds an option to the filter (cosmetic, honest empty list)"
+    },
+    {
+      "id": "PR256-T-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "percentText does not enforce shares <= 1, as before (the API gives [0, 1])"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031",
+    "MP-OWNER-D12-IMPLEMENTATION-20261024",
+    "MP-UI-D12-DECISIONS-20261024"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:src/web/app.js",
+    "file:src/web/states.js",
+    "file:tools/qa/journeys.mjs",
+    "file:test/ui-foundations.test.mjs",
+    "file:docs/qa/browser-qa.md"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none for MP-UI-PR-008-COV-FU",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261031T193056Z-agent-a-claude-code",
+  "merge_sha": "2f12c958f174817c3add056d47e007170359c056"
+}

@@ -1820,9 +1820,9 @@
       "pr": 256,
       "branch": "ui-pr-008-cov-fu",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261031T193056Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261031T201026Z-agent-a-claude-code",
       "resources": [
         "file:src/web/app.js",
         "file:src/web/states.js",
@@ -1834,7 +1834,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "2f12c958f174817c3add056d47e007170359c056"
     }
   ]
 }
