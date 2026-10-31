@@ -6,7 +6,7 @@
 // (raw null/undefined/NaN, horizontal overflow, basic accessibility, truncated text, overlapping controls) and fails
 // on any JavaScript error, failed request or unexpected HTTP error.
 import assert from 'node:assert/strict';
-import {BADGES, httpErrorState} from '../../src/web/states.js';
+import {BADGES, httpErrorState, percentText} from '../../src/web/states.js';
 
 // Tablet 820 is required too (D12 decision 24/10, MP-REQ-UI-1003/1069): every journey passes on the three.
 export const VIEWPORTS = {desktop: {width: 1280, height: 800}, tablet: {width: 820, height: 1180}, mobile: {width: 390, height: 844}};
@@ -2155,17 +2155,12 @@ export const JOURNEYS = [
     // MP-UI-PR-008-COV (MP-REQ-UI-1040): the coverage per competition inside the app, with a real filter and the seasons
     // of a competition; every value is the API's, shares shown as percentages without rounding.
     id: 'coverage', surface: 'Dati', title: 'Copertura nell’app: campionati, filtro per paese, stagioni di un campionato, errore',
-    allowHttp: [{path: '/api/v1/fpt/coverage-competitions', status: 503, step: 'copertura: archivio non raggiungibile, stato e Riprova'}],
+    allowHttp: [{path: '/api/v1/fpt/coverage-competitions', status: 503, step: 'copertura: archivio non raggiungibile, stato e Riprova'},
+      {path: '/api/v1/fpt/coverage-seasons', status: 503, step: 'copertura: stagioni non raggiungibili, stato senza stagioni inventate'}],
     async run({page, base, step, asserted, api}) {
-      // The text the page shows for a share of the API: the decimal point moved two places, no rounding.
-      const share = value => {
-        if (value == null) return 'N/D';
-        const [whole, frac = ''] = String(value).split('.');
-        const digits = `${whole}${frac.padEnd(2, '0')}`;
-        const int = digits.slice(0, whole.length + 2).replace(/^0+(?=\d)/, '');
-        const rest = digits.slice(whole.length + 2).replace(/0+$/, '');
-        return `${int}${rest ? `,${rest}` : ''}%`;
-      };
+      // The text the page shows for a share of the API: percentText (fixed vectors in test/ui-foundations.test.mjs).
+      const coverageHash = params => `#/coverage?${new URLSearchParams(params)}`;
+      const share = value => (percentText(value) === null ? 'N/D' : `${percentText(value).replace('.', ',')}%`);
       const listed = () => page.locator('[data-testid="coverage-list"] tbody tr').evaluateAll(rows => rows.map(row => row.dataset.competition));
       const all = (await api('/api/v1/fpt/coverage-competitions')).data.rows;
       await step('copertura: i campionati dell’API con stagioni, partite e quote', async () => {
@@ -2227,6 +2222,22 @@ export const JOURNEYS = [
         assert.equal((await page.textContent('.state.error p')).trim(), 'NON DISPONIBILE I dati non sono disponibili in questo momento.');
         assert.equal(await page.locator('[data-testid="coverage-list"]').count(), 0, 'no list is invented');
         await page.unroute('**/api/v1/fpt/coverage-competitions*');
+      });
+      await step('copertura: stagioni non raggiungibili, stato senza stagioni inventate', async () => {
+        const row = all[0];
+        await page.route('**/api/v1/fpt/coverage-seasons*', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
+        await fresh(page, `${base}/${coverageHash({country: row.country_slug, league: row.league_slug})}`);
+        await page.waitForSelector('.state.error[data-status="503"]');
+        assert.equal((await page.textContent('.state.error p')).trim(), 'NON DISPONIBILE I dati non sono disponibili in questo momento.');
+        assert.equal(await page.locator('[data-testid="coverage-seasons"]').count(), 0, 'no season is invented');
+        await page.unroute('**/api/v1/fpt/coverage-seasons*');
+      });
+      await step('copertura: un paese dell’indirizzo che l’archivio non ha resta scelto, con l’elenco vuoto', async () => {
+        await fresh(page, `${base}/${coverageHash({country: 'nowhere'})}`);
+        await page.waitForSelector('[data-testid="coverage-empty"]');
+        assert.equal(await page.inputValue('select[name="country"]'), 'nowhere', 'the filter says what the list is for');
+        assert.deepEqual((await api('/api/v1/fpt/coverage-competitions?country=nowhere')).data.rows, [], 'the API has no competition for it');
+        assert.equal(await page.locator('[data-testid="coverage-list"]').count(), 0);
       });
     },
   },

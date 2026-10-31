@@ -1795,9 +1795,9 @@
       "pr": 255,
       "branch": "ui-pr-008-cov",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261031T190500Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261031T192000Z-agent-a-claude-code",
       "resources": [
         "file:src/web/app.js",
         "file:tools/qa/journeys.mjs",
@@ -1810,7 +1810,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "06a9596ba7c8f40154e2bc5e63244c2a1da2ef13"
     }
   ]
 }
