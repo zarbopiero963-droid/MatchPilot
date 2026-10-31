@@ -408,6 +408,12 @@ function tile(title, testid, route, settled, body) {
 
 const missingSection = what => el('p', {class: 'state partial', role: 'status'}, `N/D — la risposta non contiene ${what}.`);
 
+// The phase gates the certificate status reports (keys phase<N>, in numeric order): the page shows what the API
+// returns instead of a fixed list, so a phase added server-side appears without a page change (MP-PRODUCT-100, FE-48).
+function certPhases(cert) {
+  return Object.keys(cert).map(key => /^phase(\d+)$/.exec(key)).filter(Boolean).map(match => Number(match[1])).sort((a, b) => a - b);
+}
+
 async function dashboardView() {
   const keys = Object.keys(DASHBOARD);
   const results = await Promise.allSettled(keys.map(key => getJson(DASHBOARD[key])));
@@ -440,7 +446,7 @@ async function dashboardView() {
           field('Partite uniche', num(cert.unique_matches), 'unique_matches'), field('Versioni storiche', num(cert.historical_versions), 'historical_versions'),
           field('Snapshot', num(cert.snapshots), 'snapshots'), field('Dataset disponibili', num(cert.datasets?.available), 'datasets_available'),
           field('Ultimo backfill', renderValue(cert.latest_backfill ?? null), 'latest_backfill'),
-          ...[2, 3, 4, 5, 6, 8].flatMap(n => field(`Gate fase ${n}`, formatScalar(gate(cert[`phase${n}`]?.gate)), `phase${n}_gate`)));
+          ...certPhases(cert).flatMap(n => field(`Gate fase ${n}`, formatScalar(gate(cert[`phase${n}`]?.gate)), `phase${n}_gate`)));
       }),
       tile('TotalCorner storico', 'tile-tc-historical', DASHBOARD.historical, got.historical, data => el('dl', {},
         field('Partite', num(data?.matches?.matches), 'matches'), field('Campionati', num(data?.matches?.leagues), 'leagues'),
