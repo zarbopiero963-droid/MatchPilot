@@ -1771,15 +1771,37 @@
       "pr": 253,
       "branch": "ui-pr-008",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261031T171300Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261031T183500Z-agent-a-claude-code",
       "resources": [
         "file:tools/qa/journeys.mjs",
         "file:docs/qa/control-inventory.json",
         "file:docs/qa/feature-certification.json",
         "file:docs/governance/ui-requirements-matrix.json",
         "file:src/coverage-page.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "472c91b433d7435be772250316b5a9e0441f14a4"
+    },
+    {
+      "id": "MP-GOV-SAFE-AUTOMERGE-RULES",
+      "title": "Governance: SAFE auto-merge rules in AGENTS.md and CLAUDE.md",
+      "issue": 97,
+      "pr": 254,
+      "branch": "gov-safe-automerge",
+      "kind": "operations",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T184000Z-agent-a-claude-code",
+      "resources": [
+        "file:AGENTS.md",
+        "file:CLAUDE.md",
+        "file:docs/governance/owner-decisions.json"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
