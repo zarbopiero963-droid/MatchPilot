@@ -1913,6 +1913,26 @@
       },
       "pr_open": false,
       "merge_sha": "7f0896e6ea3e1b1a5d6bcc00f89cc320b0892e3e"
+    },
+    {
+      "id": "MP-PIT-TIMING-01",
+      "title": "MP-PIT-TIMING-01: explicit identity, unknown fields post-match",
+      "issue": 239,
+      "pr": null,
+      "branch": "pit-timing-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T224303Z-agent-a-claude-code",
+      "resources": [
+        "file:src/providers/futpython/schema.mjs",
+        "file:test/schema.test.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
