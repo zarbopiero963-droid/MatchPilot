@@ -1918,7 +1918,7 @@
       "id": "MP-UI-PR-010-BOARD-COMP",
       "title": "MP-UI-PR-010-BOARD-COMP: competition filter on Oggi",
       "issue": 239,
-      "pr": null,
+      "pr": 261,
       "branch": "ui-pr-010-board-comp",
       "kind": "implementation",
       "state": "REVIEW",
@@ -1938,7 +1938,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
