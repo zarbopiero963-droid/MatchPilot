@@ -9,6 +9,8 @@ test('coverage page lists leagues with seasons, matches, coverage and the FPT/TC
     matches: 2660, coverage_status: 'AVAILABLE', odds_coverage: '0.9950', xg_coverage: '0.5000', season_gaps: 0, seasons_in_onboarding: 0}],
   {country: '<script>'});
   assert.match(html, /<title>Data Coverage — Competizioni<\/title>/);
+  // An empty icon, as the web app: the browser asks no /favicon.ico, which the server does not serve (Browser QA, PR-007 follow-up).
+  assert.match(html, /<link rel="icon" href="data:,">/);
   assert.match(html, /href="\/coverage\?country=italy&amp;league=serie-a">serie-a<\/a>/);
   assert.match(html, /2019-2020<\/td><td>2026-2027/);
   assert.match(html, /7 \/ 8/);

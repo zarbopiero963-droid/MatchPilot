@@ -1,0 +1,190 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261031T164855Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-31T16:48:55Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-PR252-FINAL-GATE-01",
+    "source": "owner message to Claude Code, 2026-10-31 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): final gate and conditional merge of PR #252; merged by the owner account itself"
+  },
+  "task": "MP-UI-PR-007-FOUND",
+  "activity": "PR #252 merged as 7d5653f (squash) by the owner account at 2026-10-31T15:51:20Z; conditions verified afterwards; main CI green; deploy-vps refused by mp-runner-guard (no deploy)",
+  "issue": 239,
+  "pr": 252,
+  "branch": "ui-pr-007",
+  "commit_sha": "bf8780baf0bca8f29b8d5908db32e61c863fda71",
+  "tree_sha": "258bd391304b6d3075b88ce6359b9e6cb78cf149",
+  "base_sha": "03bd11a0002d6cc6cbf693438fd373ca1f3e6eb5",
+  "requirements": [
+    "MP-WEB-011",
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "error.fields in v1 refusals; pages read them (Strumenti excluded: certified)",
+    "src/web/states.js badges and HTTP states",
+    "tablet required viewport",
+    "http-errors journey",
+    "Browser QA gate: step-bound 5xx, in-flight wait, per-resource console lines, DEMO badge invariant",
+    "Confronto: every field asserted",
+    "matrix and register (cross-cutting requirements)",
+    "mock v2026.10.24e",
+    "visual baselines",
+    "review of 3dd8bf6 (APPROVED, 4 non-blocking): page defect not shown as a lost connection; pending requests named; honest limits in the matrix; README exceptions",
+    "7d5653f: squash merge of PR #252"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "dd3bc714325bcea243a7ad4bdb9badbf399cab4f",
+      "time": "2026-10-31T15:02:01Z",
+      "limits": [
+        "735 tests, 734 pass, 1 skip (PostgreSQL 17, runs in CI); Browser QA 33/33 on a clean tree at this commit, verify-report ok, feature register with the report ok; visual 63/63"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 7d5653f",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "7d5653f444f87c38288779d115c995def88c0664",
+      "time": "2026-10-31T16:48:55Z",
+      "limits": [
+        "run 41216828108 success (CI gate, Fast checks, PostgreSQL integration, Browser QA, Exploratory QA); merge tree equals head bf8780b"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 7d5653f",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "7d5653f444f87c38288779d115c995def88c0664",
+      "time": "2026-10-31T16:48:55Z",
+      "limits": [
+        "run 41216828024: Deploy gate success; job deploy refused by mp-runner-guard (REFUSED by runner-job-guard, mode=enforce) at Set up runner; mp-deploy skipped: no deploy (infrastructure item tracked separately, not fixed: no authorization)"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41212892960,
+    "conclusion": "SUCCESS",
+    "head_sha": "bf8780baf0bca8f29b8d5908db32e61c863fda71"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "bf8780baf0bca8f29b8d5908db32e61c863fda71",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/252#issuecomment-6545222837"
+  },
+  "findings": [
+    {
+      "id": "PR007-T-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "MP-REQ-UI-1046 PARTIAL: Strumenti still reads the refused field from its message; changing src/api/tools.mjs voids CERTIFIED CALCULATION, so it waits for a re-certification of Trading Tools"
+    },
+    {
+      "id": "PR007-T-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "MP-REQ-UI-1028 PARTIAL: 28 controls of other views are not yet ASSERTED (search, sim, match, board, shell, data)"
+    },
+    {
+      "id": "PR007-T-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "MP-REQ-UI-1029 and 1079 PARTIAL: no DEMO view exists; the data mode per area is not shown as a badge on REAL views"
+    },
+    {
+      "id": "PR252-F1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "a page defect (status 0, code CLIENT) was worded as a lost connection; now the page's own words, unit assertion"
+    },
+    {
+      "id": "PR252-F2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "shared v1 validation adds error.fields to Tools refusals too; noted in the 1046 reason, certified Tools module unchanged"
+    },
+    {
+      "id": "PR252-F3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "limits of the TESTED promotions 1010, 1043, 1045 written in their matrix reasons"
+    },
+    {
+      "id": "PR252-F4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "README names the pages with their own error states; steps list requests still pending after the wait"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-PR252-FINAL-GATE-01",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031",
+    "MP-OWNER-UI006-FINAL-UI007-01",
+    "MP-OWNER-D12-IMPLEMENTATION-20261024",
+    "MP-UI-D12-DECISIONS-20261024",
+    "MP-UI-ROADMAP-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:src/web/app.js",
+    "file:src/web/states.js",
+    "file:src/api/v1.mjs",
+    "file:src/api/hist-backtest.mjs",
+    "file:tools/qa/browser-qa.mjs",
+    "file:tools/qa/journeys.mjs",
+    "file:tools/qa/feature-certification.mjs",
+    "file:docs/qa/control-inventory.json",
+    "file:docs/qa/feature-certification.json",
+    "file:docs/governance/ui-requirements-matrix.json",
+    "branch:ui-pr-007",
+    "pr:252"
+  ],
+  "stop_conditions": [
+    "no merge of PR-007 (MP-OWNER-UI006-FINAL-UI007-01)",
+    "one development PR at a time",
+    "no deploy"
+  ],
+  "state": "MERGED",
+  "next_action": "none for MP-UI-PR-007-FOUND; residuals 1028 (follow-up PR), 1029/1079 (no DEMO page), 1044 (Q6 owner), 1046 (Tools re-certification)",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261031T150201Z-agent-a-claude-code",
+  "merge_sha": "7d5653f444f87c38288779d115c995def88c0664"
+}

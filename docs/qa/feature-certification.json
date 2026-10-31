@@ -13,6 +13,7 @@
   "cross_cutting_ui_requirements": [
     "MP-REQ-UI-1003",
     "MP-REQ-UI-1010",
+    "MP-REQ-UI-1028",
     "MP-REQ-UI-1032",
     "MP-REQ-UI-1043",
     "MP-REQ-UI-1045",
@@ -54,8 +55,8 @@
       "limits": [
         "Impostazioni e permessi (SETTINGS-CORE-01, #95, #23) non costruiti"
       ],
-      "next": "Asserire i controlli ancora ACTUATED o SEEN (elenco, Riprova degli elenchi).",
-      "state": "IMPLEMENTED",
+      "next": "Menu canonico e ricerca globale (MP-UI-PR-009-NAV).",
+      "state": "TESTED",
       "certification": null
     },
     {
@@ -84,8 +85,8 @@
       "limits": [
         "Certificazione su archivio reale R-02 (#40) non conclusa"
       ],
-      "next": "ASSERTED per i controlli rimanenti; campagna REAL su archivio certificato.",
-      "state": "IMPLEMENTED",
+      "next": "Campagna REAL su archivio certificato (R-02, #40); palinsesto avanzato (MP-UI-PR-010-BOARD).",
+      "state": "TESTED",
       "certification": null
     },
     {
@@ -113,8 +114,8 @@
       "limits": [
         "Certificazione su archivio reale non conclusa"
       ],
-      "next": "ASSERTED per i filtri rimanenti.",
-      "state": "IMPLEMENTED",
+      "next": "Campagna REAL su archivio certificato.",
+      "state": "TESTED",
       "certification": null
     },
     {
@@ -142,8 +143,8 @@
       "limits": [
         "Live, replay e partita finita non costruiti"
       ],
-      "next": "ASSERTED per i controlli rimanenti.",
-      "state": "IMPLEMENTED",
+      "next": "Card di #30 a gruppi con le proprie query backend (roadmap #239).",
+      "state": "TESTED",
       "certification": null
     },
     {
@@ -177,8 +178,8 @@
         "Salvataggi non disponibili in produzione finché lo schema non è applicato",
         "PIT su dati reali: niente da simulare per costruzione"
       ],
-      "next": "ASSERTED per i parametri rimanenti.",
-      "state": "IMPLEMENTED",
+      "next": "Verifica REAL dopo la migrazione autorizzata; controlli di backtest (MP-UI-PR-046-BTCTRL).",
+      "state": "TESTED",
       "certification": null
     },
     {
@@ -265,10 +266,10 @@
       "financial": false,
       "dependencies": [],
       "limits": [
-        "La pagina /coverage non è nell'app (MP-UI-PR-006)"
+        "La pagina /coverage non è nell'app: è una pagina del server, aperta dalla scheda Copertura (MP-UI-PR-008-COV)"
       ],
-      "next": "Copertura nell'app (MP-UI-PR-006).",
-      "state": "IMPLEMENTED",
+      "next": "Copertura nell'app (MP-UI-PR-008-COV).",
+      "state": "TESTED",
       "certification": null
     },
     {

@@ -272,6 +272,7 @@ Un'analisi pre-match deve poter essere ricostruita usando esclusivamente snapsho
 - I badge **DEMO**, **NON DISPONIBILE** e N/D sono un unico componente (`src/web/states.js`). Oggi nessuna pagina mostra dati DEMO; il gate verifica che, quando ce ne saranno, il badge sia visibile.
 - Ogni errore del server ha le stesse parole su ogni pagina, con il codice conservato e «Riprova». Fanno eccezione gli stati propri di alcune pagine: Simulazione e Confronto per il 429 (simulazione in corso), Confronto per il 414, i valori rifiutati (400) di Ricerca, Simulazione, Confronto e Strumenti.
 - La Browser QA gira su desktop, tablet e telefono, compresa la matrice negativa (401, 403, 404, 409, 414, 429, 500, 503, rete scaduta) su ogni vista con API.
+- Tutti i 205 controlli dell'inventario sono verificati da un passaggio con asserzioni (journey `controls-coverage`, MP-REQ-UI-1028); un controllo nuovo senza verifica fa fallire i test.
 - I testi brevi dei badge proposti in Q6 non sono approvati: il badge dice il suo tipo.
 
 ### Home / Daily Board
