@@ -1,0 +1,113 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261031T222850Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-31T22:28:50Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-PR254-ROADMAP-20261031",
+    "source": "owner message to Claude Code, 2026-10-31 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): merge of PR #254 and autonomous roadmap continuation"
+  },
+  "task": "MP-UI-PR-009-TEAMSEARCH",
+  "activity": "MP-UI-PR-009-TEAMSEARCH (MANUAL: public API contract): squads by part of the name for the search of the shell (/api/v1/fpt/team-search); merge reserved to the owner",
+  "issue": 239,
+  "pr": null,
+  "branch": "ui-pr-009-teamsearch",
+  "commit_sha": "60345fa8a067cdd3ea4f7595d6957fc427ea4acc",
+  "tree_sha": "fbe6b68babdd37a0bdf621ae9d0b6954254df6e3",
+  "base_sha": "7f0896e6ea3e1b1a5d6bcc00f89cc320b0892e3e",
+  "requirements": [
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "query teamNameSearch and route /api/fpt/team-search (+ v1)",
+    "Cerca uses it, fewer than 3 letters ask nothing",
+    "unit, PostgreSQL and journey tests",
+    "1038 reason without the exact-name limit",
+    "mock v2026.10.31f",
+    "owner mandate registered; MERGED checkpoint of PR #254"
+  ],
+  "tests": [
+    {
+      "command": "npm run qa:browser",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16, Chromium",
+      "commit": "60345fa8a067cdd3ea4f7595d6957fc427ea4acc",
+      "time": "2026-10-31T22:28:50Z",
+      "limits": [
+        "42/42; verify-report ok; feature register ok; inventory unchanged; PostgreSQL test of the query passes locally"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "60345fa8a067cdd3ea4f7595d6957fc427ea4acc"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "review by an agent of a different model pending; owner decision required (MANUAL)"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-OWNER-PR254-ROADMAP-20261031",
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and review"
+    ],
+    "not_started": [
+      "owner decision",
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:src/providers/futpython/query.mjs",
+    "file:src/api/v1.mjs",
+    "file:src/web/app.js",
+    "file:tools/qa/journeys.mjs",
+    "file:test/fpt-assistant-queries.test.mjs",
+    "file:test/ui-foundations.test.mjs",
+    "file:docs/governance/ui-requirements-matrix.json",
+    "file:docs/mockups/matchpilot-trading-os.html"
+  ],
+  "stop_conditions": [
+    "AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER",
+    "no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "owner review and manual merge",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}
