@@ -1942,7 +1942,7 @@
       "id": "TEST-ISO-01-PERSIST-API",
       "title": "TEST-ISO-01: persistence-api check isolated from parallel test files",
       "issue": 239,
-      "pr": null,
+      "pr": 267,
       "branch": "test-persist-isolation",
       "kind": "implementation",
       "state": "REVIEW",
@@ -1955,7 +1955,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
