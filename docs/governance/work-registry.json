@@ -1918,7 +1918,7 @@
       "id": "MP-GOV-D12-RECON-EVIDENCE",
       "title": "Governance: D12 reconciliation promotion with evidence (1035)",
       "issue": 239,
-      "pr": null,
+      "pr": 259,
       "branch": "gov-d12-recon-evidence",
       "kind": "operations",
       "state": "REVIEW",
@@ -1934,7 +1934,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
