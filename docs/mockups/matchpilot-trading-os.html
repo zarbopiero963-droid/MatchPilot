@@ -586,7 +586,7 @@ function renderNav() {
   $('#bottomnav').innerHTML = [['home', 'Oggi'], ['live', 'Live'], ['strategies', 'Strategie'], ['tools', 'Tools'], ['portfolio', 'Portafoglio'], ['data', 'Dati']].map(([k, l]) => `<button data-go="${k}" ${cur === k ? 'aria-current="page"' : ''}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>${l}</button>`).join('');
 }
 /* Striscia REAL / DEMO su ogni pagina (#97): il mock non certifica il backend. */
-const MOCK_VERSION = 'Mock UX v2026.10.24e';
+const MOCK_VERSION = 'Mock UX v2026.10.31a';
 function demoStrip(v) {
   const real = v === 'data';
   const txt = real ? 'Le sezioni marcate REAL arrivano dalle route pubbliche certificate MatchPilot (#12), lette il 06/10/2026 alle 08:01 UTC. Tutto il resto della pagina è DEMO.'
@@ -1988,7 +1988,7 @@ VIEWS.reports = el => {
 /* ---------- STATO DATI ---------- */
 const DT = { tab: 'overview' };
 VIEWS.data = el => {
-  el.innerHTML = `<div class="row between" style="margin-bottom:18px"><div><div class="eyebrow">Sistema</div><h1 class="title">Stato dati</h1></div><span class="pill info">REAL · route pubbliche MatchPilot · 6 ott, 08:01 UTC</span></div>
+  el.innerHTML = `<div class="row between" style="margin-bottom:18px"><div><div class="eyebrow">Sistema</div><h1 class="title">Stato dati</h1><div class="xs muted" style="margin-top:6px;max-width:640px" data-issue="#12 sito reale MP-UI-PR-008-COV">Sito reale (MP-UI-PR-008-COV): la scheda «Copertura» dei Dati apre la copertura dentro l'app (<code>#/coverage</code>): i campionati dell'archivio FutPythonTrader con stagioni, partite e quote di copertura, un filtro per paese che ricarica dal server, le stagioni di ogni campionato. La pagina /coverage del server resta solo tecnica. Nessuna sovrapposizione con TotalCorner, sospeso.</div></div><span class="pill info">REAL · route pubbliche MatchPilot · 6 ott, 08:01 UTC</span></div>
   <div class="tabs" style="margin-bottom:16px">${[['overview', 'Panoramica'], ['comp', 'Campionati'], ['recon', 'Riparazioni'], ['budget', 'Richieste API'], ['trial', 'Fonti in prova']].map(([k, l]) => `<button data-dt="${k}" aria-selected="${DT.tab === k}">${l}</button>`).join('')}</div><div id="dbody" class="stack" style="gap:16px"></div>`;
   el.addEventListener('click', e => { const t = e.target.closest('[data-dt]'); if (t) { DT.tab = t.dataset.dt; $$('[data-dt]').forEach(x => x.setAttribute('aria-selected', x === t)); drawData(); } const d = e.target.closest('#dbody [data-drill]'); if (d) drill(d.dataset.drill); });
   drawData();

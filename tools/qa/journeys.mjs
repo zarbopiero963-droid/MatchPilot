@@ -120,6 +120,7 @@ const matrixViews = ({day, matchId}) => [
   {name: 'Strumenti', hash: '#/tools?tool=odds&odds=2+3&run=1', path: '/api/v1/tools/odds'},
   {name: 'Fornitori', hash: '#/providers', path: '/api/v1/providers'},
   {name: 'API', hash: '#/endpoints', path: '/api/v1/endpoints'},
+  {name: 'Copertura', hash: '#/coverage', path: '/api/v1/fpt/coverage-competitions'},
 ];
 const MATRIX_PATHS = matrixViews({day: '', matchId: ''}).map(view => view.path);
 const matrixStep = code => `matrice negativa: errore ${code} su ogni vista, stesso stato, codice conservato, Riprova`;
@@ -239,7 +240,8 @@ export const JOURNEYS = [
             assert.equal(await page.getAttribute('main', 'data-area'), 'technical');
           });
         }
-        assert.equal(await page.getAttribute('[data-testid="data-tabs"] a:last-child', 'href'), '/coverage');
+        // Copertura is the last tab and a view of the app (MP-UI-PR-008-COV): the coverage journeys assert it.
+        assert.equal(await page.getAttribute('[data-testid="data-tabs"] a:last-child', 'href'), '#/coverage');
       });
       await step('indirizzo precedente della Daily Board: apre Oggi', async () => {
         await fresh(page, `${base}/#/board`);
@@ -1993,7 +1995,7 @@ export const JOURNEYS = [
     id: 'controls-coverage', surface: 'Tutte le viste', title: 'Controlli rimasti: logo, schede Dati, Oggi, Partita, filtri della Ricerca, parametri della Simulazione',
     async run({page, base, step, asserted, api, seed}) {
       const hash = () => page.evaluate(() => location.hash);
-      await step('logo e scheda Copertura: aprono Oggi e la pagina di copertura', async () => {
+      await step('logo e scheda Copertura: aprono Oggi e la copertura nell’app', async () => {
         await fresh(page, `${base}/#/search`);
         await titled(page, 'Ricerca partite');
         await page.click('a[data-control="CTL-NAV-BRAND"]');
@@ -2003,12 +2005,13 @@ export const JOURNEYS = [
         });
         await fresh(page, `${base}/#/data`);
         await titled(page, 'Stato dei dati');
-        await Promise.all([page.waitForURL(url => new URL(url).pathname === '/coverage'), page.click('a[data-control="CTL-DATA-TAB-COVERAGE"]')]);
-        await asserted('CTL-DATA-TAB-COVERAGE', 'the Copertura tab opens the coverage page of the server, and back returns to the data area', async () => {
-          assert.equal(new URL(page.url()).pathname, '/coverage');
-          assert.ok((await page.textContent('h1'))?.trim(), 'the coverage page has its title');
-          await page.goBack();
-          await titled(page, 'Stato dei dati');
+        await page.click('a[data-control="CTL-DATA-TAB-COVERAGE"]');
+        await asserted('CTL-DATA-TAB-COVERAGE', 'the Copertura tab opens the coverage inside the app, a tab of the data area, with the competitions of the API', async () => {
+          await titled(page, 'Copertura dei campionati');
+          assert.equal(await hash(), '#/coverage');
+          assert.equal(await page.getAttribute('[data-testid="data-tabs"] a[aria-current="page"]', 'data-control'), 'CTL-DATA-TAB-COVERAGE');
+          const expected = (await api('/api/v1/fpt/coverage-competitions')).data.rows.map(row => row.internal_competition_id);
+          assert.deepEqual(await page.locator('[data-testid="coverage-list"] tbody tr').evaluateAll(rows => rows.map(row => row.dataset.competition)), expected);
         });
       });
       await step('Oggi dal calendario e giorno vuoto: si torna a oggi e si apre l’area Dati', async () => {
@@ -2145,6 +2148,85 @@ export const JOURNEYS = [
           assert.equal(await page.locator('[data-testid="sim-outcome"]').count(), 0);
           assert.equal(await page.inputValue('select[name="strategy"]'), 'mp-ref-fav-back-1');
         });
+      });
+    },
+  },
+  {
+    // MP-UI-PR-008-COV (MP-REQ-UI-1040): the coverage per competition inside the app, with a real filter and the seasons
+    // of a competition; every value is the API's, shares shown as percentages without rounding.
+    id: 'coverage', surface: 'Dati', title: 'Copertura nell’app: campionati, filtro per paese, stagioni di un campionato, errore',
+    allowHttp: [{path: '/api/v1/fpt/coverage-competitions', status: 503, step: 'copertura: archivio non raggiungibile, stato e Riprova'}],
+    async run({page, base, step, asserted, api}) {
+      // The text the page shows for a share of the API: the decimal point moved two places, no rounding.
+      const share = value => {
+        if (value == null) return 'N/D';
+        const [whole, frac = ''] = String(value).split('.');
+        const digits = `${whole}${frac.padEnd(2, '0')}`;
+        const int = digits.slice(0, whole.length + 2).replace(/^0+(?=\d)/, '');
+        const rest = digits.slice(whole.length + 2).replace(/0+$/, '');
+        return `${int}${rest ? `,${rest}` : ''}%`;
+      };
+      const listed = () => page.locator('[data-testid="coverage-list"] tbody tr').evaluateAll(rows => rows.map(row => row.dataset.competition));
+      const all = (await api('/api/v1/fpt/coverage-competitions')).data.rows;
+      await step('copertura: i campionati dell’API con stagioni, partite e quote', async () => {
+        await fresh(page, `${base}/#/coverage`);
+        await page.waitForSelector('[data-testid="coverage-list"]');
+        assert.equal(await page.getAttribute('main', 'data-area'), 'user', 'no technical text');
+        assert.deepEqual(await listed(), all.map(row => row.internal_competition_id));
+        for (const row of all) {
+          const line = page.locator(`[data-testid="coverage-list"] tr[data-competition="${row.internal_competition_id}"]`);
+          assert.equal(await line.locator('[data-field="matches"]').textContent(), shown(row.matches));
+          assert.equal(await line.locator('[data-field="seasons"]').textContent(), `${row.seasons_with_data} su ${row.seasons_listed}`);
+          assert.equal(await line.locator('[data-field="odds_coverage"]').textContent(), share(row.odds_coverage));
+          assert.equal(await line.locator('[data-field="xg_coverage"]').textContent(), share(row.xg_coverage));
+        }
+      });
+      await step('copertura: il filtro per paese ricarica i campionati dal server', async () => {
+        const country = all[0].country_slug;
+        await page.selectOption('select[name="country"]', country);
+        const request = page.waitForRequest(r => new URL(r.url()).pathname === '/api/v1/fpt/coverage-competitions' && new URL(r.url()).searchParams.has('country'));
+        await page.click('[data-testid="coverage-filter"] button[type="submit"]');
+        const sent = new URL((await request).url()).searchParams;
+        await asserted(['CTL-COVERAGE-COUNTRY', 'CTL-COVERAGE-SHOW'], 'the country chosen reaches the server and the list is its answer', async () => {
+          assert.equal(sent.get('country'), country);
+          await page.waitForFunction(c => location.hash === `#/coverage?country=${c}`, country);
+          await page.waitForSelector('[data-testid="coverage-list"]');
+          const expected = (await api(`/api/v1/fpt/coverage-competitions?country=${country}`)).data.rows;
+          assert.ok(expected.length > 0 && expected.length <= all.length);
+          assert.deepEqual(await listed(), expected.map(row => row.internal_competition_id));
+          assert.equal(await page.inputValue('select[name="country"]'), country, 'the filter keeps its value');
+        });
+      });
+      await step('copertura: le stagioni di un campionato e il ritorno all’elenco', async () => {
+        const row = all[0];
+        await fresh(page, `${base}/#/coverage`);
+        await page.locator(`tr[data-competition="${row.internal_competition_id}"] a[data-control="CTL-COVERAGE-LEAGUE"]`).click();
+        await asserted('CTL-COVERAGE-LEAGUE', 'a competition opens its seasons, as the API gives them', async () => {
+          await page.waitForSelector('[data-testid="coverage-seasons"]');
+          const seasons = (await api(`/api/v1/fpt/coverage-seasons?country=${row.country_slug}&league=${row.league_slug}`)).data.rows;
+          assert.deepEqual(await page.locator('[data-testid="coverage-seasons"] tbody tr').evaluateAll(rows => rows.map(r => r.dataset.season)), seasons.map(s => s.season ?? ''));
+          for (const [i, season] of seasons.entries()) {
+            const line = page.locator('[data-testid="coverage-seasons"] tbody tr').nth(i);
+            assert.equal(await line.locator('[data-field="matches"]').textContent(), shown(season.matches));
+            assert.equal(await line.locator('[data-field="odds_coverage"]').textContent(), share(season.odds_coverage));
+            assert.equal(await line.locator('[data-field="gap"]').textContent(), season.gap ? 'sì' : 'no');
+          }
+          assert.equal(await page.getAttribute('nav.mainnav a[aria-current="page"]', 'data-view'), 'data', 'a section of Dati');
+        });
+        await page.click('a[data-control="CTL-COVERAGE-BACK"]');
+        await asserted('CTL-COVERAGE-BACK', 'back to the list of the competitions', async () => {
+          await page.waitForFunction(() => location.hash === '#/coverage');
+          await page.waitForSelector('[data-testid="coverage-list"]');
+          assert.deepEqual(await listed(), all.map(r => r.internal_competition_id));
+        });
+      });
+      await step('copertura: archivio non raggiungibile, stato e Riprova', async () => {
+        await page.route('**/api/v1/fpt/coverage-competitions*', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
+        await fresh(page, `${base}/#/coverage`);
+        await page.waitForSelector('.state.error[data-status="503"]');
+        assert.equal((await page.textContent('.state.error p')).trim(), 'NON DISPONIBILE I dati non sono disponibili in questo momento.');
+        assert.equal(await page.locator('[data-testid="coverage-list"]').count(), 0, 'no list is invented');
+        await page.unroute('**/api/v1/fpt/coverage-competitions*');
       });
     },
   },

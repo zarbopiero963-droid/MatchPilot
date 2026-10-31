@@ -1771,15 +1771,40 @@
       "pr": 253,
       "branch": "ui-pr-008",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261031T171300Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261031T183500Z-agent-a-claude-code",
       "resources": [
         "file:tools/qa/journeys.mjs",
         "file:docs/qa/control-inventory.json",
         "file:docs/qa/feature-certification.json",
         "file:docs/governance/ui-requirements-matrix.json",
         "file:src/coverage-page.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "472c91b433d7435be772250316b5a9e0441f14a4"
+    },
+    {
+      "id": "MP-UI-PR-008-COV",
+      "title": "MP-UI-PR-008-COV: coverage per competition in the app",
+      "issue": 239,
+      "pr": 255,
+      "branch": "ui-pr-008-cov",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T190500Z-agent-a-claude-code",
+      "resources": [
+        "file:src/web/app.js",
+        "file:tools/qa/journeys.mjs",
+        "file:docs/qa/control-inventory.json",
+        "file:docs/qa/feature-certification.json",
+        "file:docs/governance/ui-requirements-matrix.json",
+        "file:docs/mockups/matchpilot-trading-os.html"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
