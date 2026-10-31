@@ -802,11 +802,11 @@ function searchForm(params, competitions) {
     el('label', {}, 'Favorito ', select('fav_side', [['', 'Qualsiasi'], ['HOME', 'Casa'], ['AWAY', 'Trasferta'], ['EVEN', 'Quote pari']])),
     el('label', {}, 'Quota casa da ', input('home_odd_min', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
     el('label', {}, 'a ', input('home_odd_max', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
+    el('label', {}, 'xG totali da ', input('min_xg_total', {type: 'number', step: '0.1', min: '0', max: '20'})),
     el('label', {}, 'Quota Over 2,5 da ', input('over25_min', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
     el('label', {}, 'a ', input('over25_max', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
     el('label', {}, 'Gol totali da ', input('min_goals', {type: 'number', step: '1', min: '0', max: '30'})),
-    el('label', {}, 'a ', input('max_goals', {type: 'number', step: '1', min: '0', max: '30'})),
-    el('label', {}, 'xG totali da ', input('min_xg_total', {type: 'number', step: '0.1', min: '0', max: '20'}))),
+    el('label', {}, 'a ', input('max_goals', {type: 'number', step: '1', min: '0', max: '30'}))),
   el('fieldset', {}, el('legend', {}, 'Qualità dei dati'), check('with_odds', 'solo con quote 1X2 complete'), check('with_xg', 'solo con xG')),
   el('button', {type: 'submit', 'data-control': 'CTL-SEARCH-SUBMIT'}, 'Cerca'), ' ', el('a', {href: '#/search', 'data-control': 'CTL-SEARCH-RESET'}, 'Azzera'));
 }
