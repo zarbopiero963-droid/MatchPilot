@@ -270,7 +270,7 @@ Un'analisi pre-match deve poter essere ricostruita usando esclusivamente snapsho
 **Fondamenta (MP-UI-PR-007):**
 - I badge **PIT** / **NON PIT** compaiono sui risultati di Simulazione e Confronto e nel Match Center. Il Match Center è NON PIT perché il server dichiara `PIT_NOT_VERIFIED`.
 - I badge **DEMO**, **NON DISPONIBILE** e N/D sono un unico componente (`src/web/states.js`). Oggi nessuna pagina mostra dati DEMO; il gate verifica che, quando ce ne saranno, il badge sia visibile.
-- Ogni errore del server ha le stesse parole su ogni pagina, con il codice conservato e «Riprova».
+- Ogni errore del server ha le stesse parole su ogni pagina, con il codice conservato e «Riprova». Fanno eccezione gli stati propri di alcune pagine: Simulazione e Confronto per il 429 (simulazione in corso), Confronto per il 414, i valori rifiutati (400) di Ricerca, Simulazione, Confronto e Strumenti.
 - La Browser QA gira su desktop, tablet e telefono, compresa la matrice negativa (401, 403, 404, 409, 414, 429, 500, 503, rete scaduta) su ogni vista con API.
 - I testi brevi dei badge proposti in Q6 non sono approvati: il badge dice il suo tipo.
 

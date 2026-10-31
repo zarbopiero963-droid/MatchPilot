@@ -44,7 +44,9 @@ const HTTP_STATES = Object.freeze({
 });
 
 export function httpErrorState(status, code = null) {
-  if (code === 'NETWORK' || status === 0) return HTTP_STATES[0];
+  // Only a failed connection is a network state; a page defect (status 0, another code) is the page's (review #252 F1).
+  if (code === 'NETWORK') return HTTP_STATES[0];
+  if (status === 0) return {kind: 'client', text: 'La pagina non è riuscita a mostrare i dati.'};
   if (code === 'BAD_ENVELOPE') return {kind: 'server', text: 'Risposta del server non valida: i dati non sono stati caricati.'};
   if (Object.hasOwn(HTTP_STATES, status)) return HTTP_STATES[status];
   if (status >= 500) return HTTP_STATES[500];

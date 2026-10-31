@@ -295,12 +295,14 @@ async function runJourney({browser, journey, viewportName, base, out, api, seed,
       await fn();
       await page.evaluate(() => 0); // the responses of the step are seen while it is still the current step
       for (const until = Date.now() + 5000; inflight.size && Date.now() < until;) await new Promise(done => setTimeout(done, 50));
+      // Requests still running after the wait are named in the step, so a late answer is easy to trace (review #252 F4).
+      const pending = [...inflight].map(request => new URL(request.url()).pathname);
       const problems = await invariants(page, journey.allowRawText, knownControls);
       if (problems.length) throw new Error(`invariants: ${problems.join('; ')}`);
       const seen = await visibleControls(page); // also a round trip: every action of the step has reached the binding
       const done = assertions;
       assertions = null;
-      steps.push({name, status: 'PASS', screenshot: await shot(slug), actuated: [...actuated].sort(), seen,
+      steps.push({name, status: 'PASS', screenshot: await shot(slug), actuated: [...actuated].sort(), seen, ...(pending.length ? {pending} : {}),
         asserted: [...new Set(done.flatMap(a => a.controls))].sort(), assertions: done});
     } catch (error) {
       assertions = null;

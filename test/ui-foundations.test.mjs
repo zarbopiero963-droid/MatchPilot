@@ -42,6 +42,7 @@ test('MP-REQ-UI-1010 MP-REQ-UI-1043: one wording per HTTP status class, the same
   assert.equal(new Set(kinds).size, kinds.length, 'each status class has its own state');
   assert.equal(httpErrorState(0, 'NETWORK').text, 'Connessione non disponibile: i dati non sono stati caricati.');
   assert.equal(httpErrorState(200, 'NETWORK').kind, 'network');
+  assert.equal(httpErrorState(0, 'CLIENT').kind, 'client', 'a page defect is never shown as a lost connection');
   for (const status of [502, 503, 504]) assert.deepEqual([httpErrorState(status).kind, httpErrorState(status).badge], ['unavailable', 'UNAVAILABLE']);
   assert.equal(httpErrorState(418).kind, 'refused', 'an unknown 4xx is a refusal');
   assert.equal(httpErrorState(599).kind, 'server', 'an unknown 5xx is a server error');
