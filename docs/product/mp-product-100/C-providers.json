@@ -1,0 +1,920 @@
+[
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Catalog/docs page listing datasets",
+  "kind": "endpoint",
+  "raw_name": "GET /api-docs",
+  "normalized_name": "fpt_catalog",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "src/providers/futpython/catalog.mjs:62-79; docs/futpython-certification-2026-10-05.md:60-62 (1027 datasets, 56 countries, 185 leagues)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Season dataset CSV download",
+  "kind": "endpoint",
+  "raw_name": "GET /api/download/{country}/{league}/{season}",
+  "normalized_name": "fpt_raw_snapshots/fpt_match_versions",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "src/providers/futpython/catalog.mjs:20-27; client.mjs:45-50; docs/futpython-certification-2026-10-05.md:63-73 (615 AVAILABLE, 412 UNAVAILABLE_404)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Today/pre-match feed CSV",
+  "kind": "endpoint",
+  "raw_name": "GET /api/jogos-do-dia?date=&format=csv",
+  "normalized_name": "fpt_match_versions phase=PREMATCH",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "src/providers/futpython/client.mjs:58-64; docs/futpython-certification-2026-10-05.md:90,945 (24 prematch versions; today_country_unresolved 24)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Other provider endpoints beyond the three above",
+  "kind": "endpoint",
+  "raw_name": null,
+  "normalized_name": null,
+  "status": "NOT VERIFIED",
+  "evidence": "No copy of the provider /api-docs HTML in the repo; only the three routes above are referenced by code"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Live in-play feed",
+  "kind": "endpoint",
+  "raw_name": null,
+  "normalized_name": null,
+  "status": "NOT VERIFIED",
+  "evidence": "No live route in src/providers/futpython; docs/provider-trial-final-closure-2026-10-08.md:241 calls FPT \"not primary\" for live; no real response recorded"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Odds capture timestamp / opening-closing / movement",
+  "kind": "data",
+  "raw_name": null,
+  "normalized_name": null,
+  "status": "PROVIDER NOT SUPPORTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:1360 market_capture_time: quotes have no capture timestamp (PREMATCH_MARKET_UNTIMED)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Kick-off time zone",
+  "kind": "data",
+  "raw_name": "Date,Time",
+  "normalized_name": "kickoff_local_time (kickoff_utc NULL)",
+  "status": "PROVIDER NOT SUPPORTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:1359 PROVIDER_TZ_UNDOCUMENTED; 161801/161801 kickoff_tz_status"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Players / lineups / injuries",
+  "kind": "data",
+  "raw_name": null,
+  "normalized_name": null,
+  "status": "NOT VERIFIED",
+  "evidence": "No player/lineup family among the 10 families of 325 observed fields (docs/futpython-certification-2026-10-05.md:1208); no provider docs in repo to confirm provider-level absence"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Expected match count per season",
+  "kind": "data",
+  "raw_name": null,
+  "normalized_name": "expected_match_count NULL",
+  "status": "PROVIDER NOT SUPPORTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:1358"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Provider pagination",
+  "kind": "protocol",
+  "raw_name": null,
+  "normalized_name": null,
+  "status": "PROVIDER NOT SUPPORTED",
+  "evidence": "Whole-season CSV per request (client.mjs:45-50); no pagination parameters used. MatchPilot API cursors are internal (query.mjs ROUTES 738-760)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Rate/plan limits (provider side)",
+  "kind": "plan",
+  "raw_name": null,
+  "normalized_name": null,
+  "status": "NOT VERIFIED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:1361 provider_quota unknown; code caps FUTPYTHON_REQUESTS_PER_MINUTE=20, PER_DAY=2000, BACKFILL_PER_MINUTE=8 (src/providers/futpython/budget.mjs:12-14) are internal, not provider quota; README.md:872"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Terms of use / redistribution",
+  "kind": "licence",
+  "raw_name": null,
+  "normalized_name": null,
+  "status": "NOT VERIFIED",
+  "evidence": "No FPT terms, licence or redistribution clause anywhere in README/AGENTS/docs/governance (grep terms|licen|redistribut|ridistribu)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Field family identity: 11 observed fields; 9 typed in fpt_match_facts, 6 filterable in /api/fpt/search",
+  "kind": "field_family",
+  "raw_name": "Home,Away,Date,Time,League,Season,Round,Id,Match_ID,Country,Div (names from test/phase9-certificate.test.mjs:15)",
+  "normalized_name": "9 fact columns",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:1208 (family count); migrations/016-fpt-filter-registry-complete.sql:20-46 (typed); src/providers/futpython/query.mjs:530-556 (filters); payload exposed by /api/fpt/match query.mjs:838"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Field family goals: 4 observed fields; 2 typed in fpt_match_facts, 2 filterable in /api/fpt/search",
+  "kind": "field_family",
+  "raw_name": "Home_Score,Away_Score,Min_Goals_Home,Min_Goals_Away",
+  "normalized_name": "2 fact columns",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:1208 (family count); migrations/016-fpt-filter-registry-complete.sql:20-46 (typed); src/providers/futpython/query.mjs:530-556 (filters); payload exposed by /api/fpt/match query.mjs:838"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Field family expected_goals: 26 observed fields; 2 typed in fpt_match_facts, 2 filterable in /api/fpt/search",
+  "kind": "field_family",
+  "raw_name": "xG_Home_FT,xG_Away_FT typed; xGOT_Faced_Away_FT, Big_Chances_Home_2T etc payload-only",
+  "normalized_name": "2 fact columns",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:1208 (family count); migrations/016-fpt-filter-registry-complete.sql:20-46 (typed); src/providers/futpython/query.mjs:530-556 (filters); payload exposed by /api/fpt/match query.mjs:838"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Field family market: 188 observed fields; 12 typed in fpt_match_facts, 8 filterable in /api/fpt/search",
+  "kind": "field_family",
+  "raw_name": "1X2 (Odd_1/X/2_FT, Odd_H/D/A_FT), Over/Under 2.5 FT, BTTS_Yes typed; AH_*, EH_*, Odd_CS_*, CS_*, DC_*, Bookie_1X2_FT, Under_HT_0_5 etc payload-only",
+  "normalized_name": "12 fact columns",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:1208 (family count); migrations/016-fpt-filter-registry-complete.sql:20-46 (typed); src/providers/futpython/query.mjs:530-556 (filters); payload exposed by /api/fpt/match query.mjs:838"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Field family corners: 6 observed fields; 0 typed in fpt_match_facts, 0 filterable in /api/fpt/search",
+  "kind": "field_family",
+  "raw_name": "Corners_Home_FT,Corners_Away_HT,...",
+  "normalized_name": "0 fact columns",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:1208 (family count); migrations/016-fpt-filter-registry-complete.sql:20-46 (typed); src/providers/futpython/query.mjs:530-556 (filters); payload exposed by /api/fpt/match query.mjs:838"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Field family shooting: 28 observed fields; 0 typed in fpt_match_facts, 0 filterable in /api/fpt/search",
+  "kind": "field_family",
+  "raw_name": "Total_Shots_Home_FT,Hit_Woodwork_Away_FT,...",
+  "normalized_name": "0 fact columns",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:1208 (family count); migrations/016-fpt-filter-registry-complete.sql:20-46 (typed); src/providers/futpython/query.mjs:530-556 (filters); payload exposed by /api/fpt/match query.mjs:838"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Field family defense: 18 observed fields; 0 typed in fpt_match_facts, 0 filterable in /api/fpt/search",
+  "kind": "field_family",
+  "raw_name": "Goalkeeper_Saves_Home_HT,Goals_Prevented_Away_FT,Tackles_Pct_Home_FT,...",
+  "normalized_name": "0 fact columns",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:1208 (family count); migrations/016-fpt-filter-registry-complete.sql:20-46 (typed); src/providers/futpython/query.mjs:530-556 (filters); payload exposed by /api/fpt/match query.mjs:838"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Field family discipline: 24 observed fields; 0 typed in fpt_match_facts, 0 filterable in /api/fpt/search",
+  "kind": "field_family",
+  "raw_name": "Yellow_Cards_Home_FT,Free_Kicks_Away_FT,Offsides_Home_2T,...",
+  "normalized_name": "0 fact columns",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:1208 (family count); migrations/016-fpt-filter-registry-complete.sql:20-46 (typed); src/providers/futpython/query.mjs:530-556 (filters); payload exposed by /api/fpt/match query.mjs:838"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Field family possession_creation: 18 observed fields; 0 typed in fpt_match_facts, 0 filterable in /api/fpt/search",
+  "kind": "field_family",
+  "raw_name": "Possession_Home_FT,Through_Passes_Away_FT,Touches_Box_Home_FT,...",
+  "normalized_name": "0 fact columns",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:1208 (family count); migrations/016-fpt-filter-registry-complete.sql:20-46 (typed); src/providers/futpython/query.mjs:530-556 (filters); payload exposed by /api/fpt/match query.mjs:838"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Field family set_pieces: 2 observed fields; 0 typed in fpt_match_facts, 0 filterable in /api/fpt/search",
+  "kind": "field_family",
+  "raw_name": "Throw_Ins_Home_FT,Throw_Ins_Away_FT",
+  "normalized_name": "0 fact columns",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:1208 (family count); migrations/016-fpt-filter-registry-complete.sql:20-46 (typed); src/providers/futpython/query.mjs:530-556 (filters); payload exposed by /api/fpt/match query.mjs:838"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "Home",
+  "normalized_name": "home_team_id",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "Away",
+  "normalized_name": "away_team_id",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "Date",
+  "normalized_name": "match_date",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed raw field, no search filter",
+  "kind": "field",
+  "raw_name": "Time",
+  "normalized_name": "kickoff_local_time",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; no entry in SEARCH_FILTERS (query.mjs:530-556); column returned in facts rows"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed raw field, no search filter",
+  "kind": "field",
+  "raw_name": "Match_ID",
+  "normalized_name": "provider_match_id",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; no entry in SEARCH_FILTERS (query.mjs:530-556); column returned in facts rows"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed raw field, no search filter",
+  "kind": "field",
+  "raw_name": "Id",
+  "normalized_name": "provider_match_id",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; no entry in SEARCH_FILTERS (query.mjs:530-556); column returned in facts rows"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "League",
+  "normalized_name": "internal_competition_id",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "Country",
+  "normalized_name": "internal_competition_id",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "Season",
+  "normalized_name": "season_id",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "Home_Score",
+  "normalized_name": "home_score",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "Away_Score",
+  "normalized_name": "away_score",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "Odd_1_FT",
+  "normalized_name": "odd_home",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "Odd_H_FT",
+  "normalized_name": "odd_home",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "Odd_X_FT",
+  "normalized_name": "odd_draw",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "Odd_D_FT",
+  "normalized_name": "odd_draw",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "Odd_2_FT",
+  "normalized_name": "odd_away",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "Odd_A_FT",
+  "normalized_name": "odd_away",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "Over_FT_2_5",
+  "normalized_name": "odd_over25",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "Odd_Over25_FT",
+  "normalized_name": "odd_over25",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed raw field, no search filter",
+  "kind": "field",
+  "raw_name": "Under_FT_2_5",
+  "normalized_name": "odd_under25",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; no entry in SEARCH_FILTERS (query.mjs:530-556); column returned in facts rows"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed raw field, no search filter",
+  "kind": "field",
+  "raw_name": "Odd_Under25_FT",
+  "normalized_name": "odd_under25",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; no entry in SEARCH_FILTERS (query.mjs:530-556); column returned in facts rows"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed raw field, no search filter",
+  "kind": "field",
+  "raw_name": "BTTS_Yes",
+  "normalized_name": "odd_btts_yes",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; no entry in SEARCH_FILTERS (query.mjs:530-556); column returned in facts rows"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed raw field, no search filter",
+  "kind": "field",
+  "raw_name": "Odd_BTTS_Yes",
+  "normalized_name": "odd_btts_yes",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; no entry in SEARCH_FILTERS (query.mjs:530-556); column returned in facts rows"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "xG_Home_FT",
+  "normalized_name": "xg_home",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Typed + queryable raw field",
+  "kind": "field",
+  "raw_name": "xG_Away_FT",
+  "normalized_name": "xg_away",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "migrations/016-fpt-filter-registry-complete.sql:20-46; src/providers/futpython/query.mjs:530-556"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "AH_H_neg_0_5",
+  "normalized_name": "ah_h_neg_0_5",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "AH_Home_neg_1",
+  "normalized_name": "ah_home_neg_1",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "AH_A_pos_2_5",
+  "normalized_name": "ah_a_pos_2_5",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "AH_Away_pos_0_5",
+  "normalized_name": "ah_away_pos_0_5",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "EH_Home_1",
+  "normalized_name": "eh_home_1",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "EH_Away_neg_3",
+  "normalized_name": "eh_away_neg_3",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "EH_Draw_1",
+  "normalized_name": "eh_draw_1",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Odd_CS_0x0",
+  "normalized_name": "odd_cs_0x0",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "CS_1_1",
+  "normalized_name": "cs_1_1",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "DC_1X",
+  "normalized_name": "dc_1x",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Bookie_1X2_FT",
+  "normalized_name": "bookie_1x2_ft",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Under_HT_0_5",
+  "normalized_name": "under_ht_0_5",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Round",
+  "normalized_name": "round",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Div",
+  "normalized_name": "div",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Min_Goals_Home",
+  "normalized_name": "min_goals_home",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Min_Goals_Away",
+  "normalized_name": "min_goals_away",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Corners_Home_FT",
+  "normalized_name": "corners_home_ft",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Corners_Away_HT",
+  "normalized_name": "corners_away_ht",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Total_Shots_Home_FT",
+  "normalized_name": "total_shots_home_ft",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Hit_Woodwork_Away_FT",
+  "normalized_name": "hit_woodwork_away_ft",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Yellow_Cards_Home_FT",
+  "normalized_name": "yellow_cards_home_ft",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Free_Kicks_Away_FT",
+  "normalized_name": "free_kicks_away_ft",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Offsides_Home_2T",
+  "normalized_name": "offsides_home_2t",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Possession_Home_FT",
+  "normalized_name": "possession_home_ft",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Through_Passes_Away_FT",
+  "normalized_name": "through_passes_away_ft",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Touches_Box_Home_FT",
+  "normalized_name": "touches_box_home_ft",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Goalkeeper_Saves_Home_HT",
+  "normalized_name": "goalkeeper_saves_home_ht",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Goals_Prevented_Away_FT",
+  "normalized_name": "goals_prevented_away_ft",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Tackles_Pct_Home_FT",
+  "normalized_name": "tackles_pct_home_ft",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "xGOT_Faced_Away_FT",
+  "normalized_name": "xgot_faced_away_ft",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Big_Chances_Home_2T",
+  "normalized_name": "big_chances_home_2t",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Throw_Ins_Home_FT",
+  "normalized_name": "throw_ins_home_ft",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Raw field readable only via per-match payload",
+  "kind": "field",
+  "raw_name": "Throw_Ins_Away_FT",
+  "normalized_name": "throw_ins_away_ft",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Name cited in test/phase9-certificate.test.mjs:13-27 as a \"real FutPythonTrader header\"; stored in fpt_match_versions.payload; no fact column; readable via /api/fpt/match (src/providers/futpython/query.mjs:838); source=fpt_match_versions.payload (test/fpt-filter-registry.test.mjs:60)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Remaining raw fields (325 - 25 typed - 33 named above = 267) with real evidence but names NOT in repo",
+  "kind": "field",
+  "raw_name": null,
+  "normalized_name": null,
+  "status": "NOT VERIFIED",
+  "evidence": "Names live only in the Neon registry fpt_schema_fields; the certificate gives counts, not names (docs/futpython-certification-2026-10-05.md:907,1208)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Teams/identity resolution",
+  "kind": "entity",
+  "raw_name": "Home,Away",
+  "normalized_name": "fpt_teams/fpt_team_aliases",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:890,990 (2931 teams, 3324 aliases); provider team ids: 0 (with_provider_team_id=0)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Competition/season registry",
+  "kind": "entity",
+  "raw_name": "country/league/season",
+  "normalized_name": "fpt_competition_seasons",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:959-961 (185 competitions, 1027 seasons, 2020-2021..2026-2027)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Period split (FT/HT/2T suffixes)",
+  "kind": "data",
+  "raw_name": "*_FT,*_HT,*_2T",
+  "normalized_name": null,
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "Coverage rows for period dimension 1891 (docs/futpython-certification-2026-10-05.md:924 rows_per_dimension); field-level not typed"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Pre-match vs historical separation",
+  "kind": "data",
+  "raw_name": "phase PREMATCH|HISTORICAL",
+  "normalized_name": "phase",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:89-90 (161777 historical, 24 prematch versions); timing_class per field (query.mjs:720-735)"
+ },
+ {
+  "provider": "FutPythonTrader",
+  "capability": "Point-in-time known-matches",
+  "kind": "derived",
+  "raw_name": "acquired_at",
+  "normalized_name": "fpt_known_matches",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "docs/futpython-certification-2026-10-05.md:977-985 PASS (known_now 161777); hist-input.mjs header: prices acquired after kickoff, PIT run finds none; DEC-007 NON_PIT label NOT IMPLEMENTED"
+ },
+ {
+  "provider": "TotalCorner",
+  "capability": "match list today (upcoming/inplay/ended)",
+  "kind": "endpoint",
+  "raw_name": "GET /match/today?type=&columns=",
+  "normalized_name": "tc_raw_responses",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "src/jobs/totalcorner-discovery.mjs:86; totalcorner-live.mjs:101,145; README.md:937-940"
+ },
+ {
+  "provider": "TotalCorner",
+  "capability": "match schedule by date",
+  "kind": "endpoint",
+  "raw_name": "GET /match/schedule",
+  "normalized_name": "tc_raw_responses",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "README.md:939 discovery only"
+ },
+ {
+  "provider": "TotalCorner",
+  "capability": "match view/detail",
+  "kind": "endpoint",
+  "raw_name": "GET /match/view/{id}",
+  "normalized_name": "tc_live_snapshots",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "totalcorner-live.mjs:112; totalcorner-historical.mjs:131"
+ },
+ {
+  "provider": "TotalCorner",
+  "capability": "match odds lists (asian, goal, corner, 1x2, half variants, btts)",
+  "kind": "endpoint",
+  "raw_name": "GET /match/odds/{id}?columns=",
+  "normalized_name": "tc_market_snapshots",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "totalcorner-discovery.mjs:11,120; totalcorner-historical.mjs:132"
+ },
+ {
+  "provider": "TotalCorner",
+  "capability": "bookmaker odds (18 bookmakers: open/close/inplay/movement)",
+  "kind": "endpoint",
+  "raw_name": "GET /match/bookmaker_odds/{id}",
+  "normalized_name": "tc_market_snapshots",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "README.md:945-950 real run 08/10/2026: all 18 bookmakers returned; totalcorner-historical.mjs:133,146"
+ },
+ {
+  "provider": "TotalCorner",
+  "capability": "league schedule",
+  "kind": "endpoint",
+  "raw_name": "GET /league/schedule/{id}",
+  "normalized_name": "tc_competitions",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "totalcorner-historical.mjs:163"
+ },
+ {
+  "provider": "TotalCorner",
+  "capability": "league table (table, corner, card)",
+  "kind": "endpoint",
+  "raw_name": "GET /league/table/{id}",
+  "normalized_name": "tc_raw_responses",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "README.md:942 discovery only; no table consumer in src"
+ },
+ {
+  "provider": "TotalCorner",
+  "capability": "live stats columns: events, attacks, dangerousAttacks, shotOn, shotOff, possession, corners lines, userRemarks, btts",
+  "kind": "capability",
+  "raw_name": "list columns",
+  "normalized_name": "tc_live_snapshots",
+  "status": "PARTIALLY IMPLEMENTED",
+  "evidence": "totalcorner-discovery.mjs:10; stored as raw JSON snapshots; live collector NOT hard-verified (README:1000)"
+ },
+ {
+  "provider": "TotalCorner",
+  "capability": "Rate limit 5 req/10s observed; code 4/10s",
+  "kind": "capability",
+  "raw_name": "x-rate-limit-*",
+  "normalized_name": "n/a",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "src/providers/totalcorner/client.mjs:12-13,92; README.md:928"
+ },
+ {
+  "provider": "TotalCorner",
+  "capability": "Field census (1346 registry rows, run 1)",
+  "kind": "capability",
+  "raw_name": "schema",
+  "normalized_name": "tc_schema_registry",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "README.md:935,946; src/providers/totalcorner/schema.mjs"
+ },
+ {
+  "provider": "TotalCorner",
+  "capability": "FPT<->TC competition mapping: 92 VERIFIED / 708 TC leagues",
+  "kind": "capability",
+  "raw_name": "derived",
+  "normalized_name": "competition_mapping",
+  "status": "AVAILABLE AND IMPLEMENTED",
+  "evidence": "README.md:975-980"
+ },
+ {
+  "provider": "TotalCorner",
+  "capability": "Collectors suspended",
+  "kind": "capability",
+  "raw_name": "status",
+  "normalized_name": null,
+  "status": "SUSPENDED",
+  "evidence": "DEC-003 in docs/governance/owner-decisions.json:82 (\"TotalCorner rimane spento\"; implementation_status: TotalCorner off (#186))"
+ },
+ {
+  "provider": "TotalCorner",
+  "capability": "Terms / redistribution / plan tier",
+  "kind": "capability",
+  "raw_name": "licence",
+  "normalized_name": null,
+  "status": "NOT VERIFIED",
+  "evidence": "Not documented in repo"
+ },
+ {
+  "provider": "API-FOOTBALL",
+  "capability": "Any integration",
+  "kind": "provider",
+  "raw_name": null,
+  "normalized_name": null,
+  "status": "NOT VERIFIED",
+  "evidence": "Case-insensitive grep for api-football|apifootball|api_football|api-sports|apisports over whole repo (excl. .git,node_modules): 0 hits; not in owner-decisions.json, issues, governance, code, migrations. No authorization, no decision, no budget."
+ },
+ {
+  "provider": "BetsAPI",
+  "capability": "Core provider",
+  "kind": "provider",
+  "raw_name": null,
+  "normalized_name": null,
+  "status": "BENCHMARK ONLY",
+  "evidence": "docs/provider-trial-final-closure-2026-10-08.md:244-245,365 (not core, no purchase); docs/governance/issues/issue-3.md:56; AGENTS.md:290 (core use = OPEN owner decision); no src/ code references"
+ },
+ {
+  "provider": "BetsAPI",
+  "capability": "Trial archive: 821877 normalized odds obs, 401349 events, bookmakers Bet365/BWin/Betfair/SBOBET/1xBet",
+  "kind": "archive",
+  "raw_name": null,
+  "normalized_name": null,
+  "status": "ARCHIVED (outside repo)",
+  "evidence": "docs/provider-trial-final-closure-2026-10-08.md:165-182,216-232"
+ }
+]

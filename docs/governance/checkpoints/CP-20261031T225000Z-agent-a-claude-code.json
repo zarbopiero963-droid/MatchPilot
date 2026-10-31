@@ -1,0 +1,144 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261031T225000Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-31T22:50:00Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-PRODUCT-100",
+    "source": "owner message to Claude Code, 2026-10-31 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): MP-PRODUCT-100"
+  },
+  "task": "MP-PRODUCT-100-AUDIT",
+  "activity": "PR #262 merged as 7c95cff (squash, SAFE: documents only); main CI green; deploy-vps refused by mp-runner-guard (no deploy)",
+  "issue": 239,
+  "pr": 262,
+  "branch": "docs-mp-product-100",
+  "commit_sha": "7a2e82d46dccbec06b3ca0e43d066bb9eaa027a4",
+  "tree_sha": "1efc57c8e8366d61c538c16addddb2ed390a1453",
+  "base_sha": "7f0896e6ea3e1b1a5d6bcc00f89cc320b0892e3e",
+  "requirements": [],
+  "changes": [
+    "owner decisions MP-PRODUCT-100 and MP-OWNER-PR254-ROADMAP-20261031 registered",
+    "docs/product/mp-product-100 report A-G and appendices",
+    "README pointer",
+    "MERGED checkpoint of PR #254",
+    "review fixes: 16 search keys, ~18 filterable labelled approximate, backend counts, audit commit, outcome of the PR254 decision",
+    "7c95cff: squash merge of PR #262"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #262 head 7a2e82d",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "7a2e82d46dccbec06b3ca0e43d066bb9eaa027a4",
+      "time": "2026-10-31T22:50:00Z",
+      "limits": [
+        "run 41248800051 success (Fast checks, CI gate; UI and PostgreSQL jobs skipped by classification: documents only)"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 7c95cff",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "7c95cffaafa8495b7b70ad931edd662cbb11101c",
+      "time": "2026-10-31T22:50:00Z",
+      "limits": [
+        "run 41249705216 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 7c95cff",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "7c95cffaafa8495b7b70ad931edd662cbb11101c",
+      "time": "2026-10-31T22:50:00Z",
+      "limits": [
+        "run 41249705155: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41248800051,
+    "conclusion": "SUCCESS",
+    "head_sha": "7a2e82d46dccbec06b3ca0e43d066bb9eaa027a4"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "7a2e82d46dccbec06b3ca0e43d066bb9eaa027a4",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/262#issuecomment-6550187753"
+  },
+  "findings": [
+    {
+      "id": "P100-BE-08",
+      "severity": "BLOCKING",
+      "status": "TRACKED",
+      "summary": "fieldFamily marks unlisted post-match stats (Dribbles, Aerials, Blocks) PREMATCH_IDENTITY: latent PIT risk, fix MP-PIT-TIMING-01 (MANUAL) before any registry-driven filter"
+    },
+    {
+      "id": "P100-G-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "owner decisions needed: API-FOOTBALL perimeter, provider licences/redistribution, read-only census of fpt_schema_fields on the VPS"
+    }
+  ],
+  "owner_decisions": [
+    "MP-PRODUCT-100",
+    "MP-OWNER-PR254-ROADMAP-20261031",
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031"
+  ],
+  "progress": {
+    "done": [
+      "audit",
+      "provider inventory",
+      "architecture proposal",
+      "roadmap",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:docs/product/mp-product-100/README.md",
+    "file:docs/product/mp-product-100/A-frontend.md",
+    "file:docs/product/mp-product-100/B-backend.md",
+    "file:docs/product/mp-product-100/C-providers.md",
+    "file:docs/product/mp-product-100/C-providers.json"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261031T222531Z-agent-a-claude-code",
+  "merge_sha": "7c95cffaafa8495b7b70ad931edd662cbb11101c"
+}
