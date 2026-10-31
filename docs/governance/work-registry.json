@@ -1873,9 +1873,9 @@
       "pr": 258,
       "branch": "ui-pr-011-srchx",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261031T204337Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261031T211653Z-agent-a-claude-code",
       "resources": [
         "file:src/web/app.js",
         "file:tools/qa/journeys.mjs",
@@ -1884,6 +1884,28 @@
         "file:docs/governance/ui-requirements-matrix.json",
         "file:docs/mockups/matchpilot-trading-os.html",
         "file:test/visual/manifest.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "18b848434f494445db5a02740388f117994bdb44"
+    },
+    {
+      "id": "MP-GOV-SAFE-AUTOMERGE-RULES",
+      "title": "Governance: SAFE auto-merge rules in AGENTS.md and CLAUDE.md",
+      "issue": 97,
+      "pr": 254,
+      "branch": "gov-safe-automerge",
+      "kind": "operations",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T184000Z-agent-a-claude-code",
+      "resources": [
+        "file:AGENTS.md",
+        "file:CLAUDE.md",
+        "file:docs/governance/owner-decisions.json"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",

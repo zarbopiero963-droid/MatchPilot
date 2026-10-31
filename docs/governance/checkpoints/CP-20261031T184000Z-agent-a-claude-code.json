@@ -1,0 +1,104 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261031T184000Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-31T18:40:00Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-SAFE-REGISTERS-20261031",
+    "source": "owner message to Claude Code, 2026-10-31 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): owner decision on PR #253 (merge at head 3afd943) and SAFE policy for register updates"
+  },
+  "task": "MP-GOV-SAFE-AUTOMERGE-RULES",
+  "activity": "Governance text: AGENTS.md §4 and CLAUDE.md record the SAFE auto-merge exception and the SAFE register updates already decided by the owner; MANUAL PR, merge reserved to the owner",
+  "issue": 97,
+  "pr": 254,
+  "branch": "gov-safe-automerge",
+  "commit_sha": "33591846a17a61186d1567263611f3e9f3f4e4dd",
+  "tree_sha": "f2a63d395525fdcfa8e625265d017dca3ae09935",
+  "base_sha": "472c91b433d7435be772250316b5a9e0441f14a4",
+  "requirements": [],
+  "changes": [
+    "AGENTS.md §4: SAFE conditions, SAFE register updates, MANUAL categories",
+    "CLAUDE.md: the D12 suspension applies except to SAFE PRs",
+    "owner decision MP-OWNER-SAFE-REGISTERS-20261031 registered",
+    "MERGED checkpoint of PR #253"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/governance*.test.mjs and matrix tests",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22",
+      "commit": "33591846a17a61186d1567263611f3e9f3f4e4dd",
+      "time": "2026-10-31T18:40:00Z",
+      "limits": [
+        "CI Fast checks failed on drift: PR #254 had no registry task and PR #253 task was still REVIEW; fixed by this checkpoint"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41229824423,
+    "conclusion": "FAILURE",
+    "head_sha": "33591846a17a61186d1567263611f3e9f3f4e4dd"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "normative governance change: owner review required (MANUAL)"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031",
+    "MP-OWNER-D12-IMPLEMENTATION-20261024"
+  ],
+  "progress": {
+    "done": [
+      "text changes"
+    ],
+    "in_progress": [
+      "CI"
+    ],
+    "not_started": [
+      "owner review",
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:AGENTS.md",
+    "file:CLAUDE.md",
+    "file:docs/governance/owner-decisions.json"
+  ],
+  "stop_conditions": [
+    "AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER",
+    "no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "owner review and manual merge of PR #254",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}

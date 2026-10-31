@@ -21,7 +21,7 @@
   - review indipendente APPROVED sul head;
   - zero finding bloccanti.
 
-  L'auto-merge non autorizza deploy, costi, produzione né LIVE. **Oggi è sospeso** (MP-OWNER-D12-IMPLEMENTATION-20261024): nessun merge né deploy senza autorizzazione owner esplicita.
+  L'auto-merge non autorizza deploy, costi, produzione né LIVE. **Oggi vale solo per le PR SAFE** (MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031, MP-OWNER-SAFE-REGISTERS-20261031; vedi AGENTS §4). Le PR MANUAL, comprese le modifiche normative a questo file, ad AGENTS.md e alle regole di auto-merge, si fermano prima del merge. Nessun deploy avviato dall'agente.
 - **Issue** (AGENTS §5): **solo l'owner le chiude**. Si usa `Refs #N`; si pubblica `READY TO CLOSE — OWNER APPROVAL REQUIRED` solo a issue interamente certificata.
 - **Checkpoint e handoff** (AGENTS §6):
   - ogni ciclo lascia un checkpoint `mp-checkpoint-v3` in `docs/governance/checkpoints/`;
