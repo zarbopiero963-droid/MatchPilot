@@ -1959,6 +1959,27 @@
       "merge_sha": "e9559d5a1518fcb0025202f9800ce8d9fe691a2c"
     },
     {
+      "id": "MP-UI-SAFE-01-CERT-TILE",
+      "title": "MP-UI-SAFE-01: certification tile phases from the API (FE-48)",
+      "issue": 239,
+      "pr": 266,
+      "branch": "ui-safe-01-certtile",
+      "kind": "implementation",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T233000Z-agent-a-claude-code",
+      "resources": [
+        "file:src/web/app.js",
+        "file:test/web-e2e.test.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "01354f79f6af6b4af81e5e5d6df358032537fc82"
+    },
+    {
       "id": "MP-UI-PR-010-BOARD-COMP",
       "title": "MP-UI-PR-010-BOARD-COMP: competition filter on Oggi",
       "issue": 239,
