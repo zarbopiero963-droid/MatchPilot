@@ -876,6 +876,21 @@
       ]
     },
     {
+      "id": "CTL-SEARCH-SEASON",
+      "view": "search",
+      "kind": "select",
+      "label": "Stagione",
+      "action": "imposta il filtro della ricerca",
+      "api": "/api/v1/fpt/competition-seasons",
+      "data": "REAL",
+      "issues": [
+        30
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
       "id": "CTL-SEARCH-FROM",
       "view": "search",
       "kind": "input",

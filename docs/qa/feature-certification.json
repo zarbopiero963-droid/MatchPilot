@@ -118,10 +118,11 @@
       "limits": [
         "Certificazione su archivio reale non conclusa"
       ],
-      "next": "Filtro stagione quando un'API elenca le stagioni di un campionato; dimensioni di ricerca mancanti (MP-REQ-UI-0250, dati non normalizzati).",
+      "next": "Dimensioni di ricerca mancanti (MP-REQ-UI-0250, dati non normalizzati); ricerca squadre per parte del nome.",
       "state": "TESTED",
       "certification": null,
       "ui_requirements": [
+        "MP-REQ-UI-0249",
         "MP-REQ-UI-1053"
       ]
     },

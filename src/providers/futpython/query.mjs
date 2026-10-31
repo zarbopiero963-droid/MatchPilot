@@ -317,6 +317,16 @@ export const QUERIES = {
       LIMIT $5`,
     params: ['country', 'min_seasons', 'min_matches', 'min_odds_coverage', 'limit']
   },
+  // MP-UI-PR-011-SEASON (MP-REQ-UI-0249): the seasons of one competition that have stored matches, with the season id
+  // the search filter takes. Only seasons present in the facts; newest first.
+  competitionSeasons: {
+    sql: `SELECT season_id, season, count(*)::int AS matches, min(match_date) AS first_date, max(match_date) AS last_date
+      FROM fpt_match_facts
+      WHERE internal_competition_id = $1 AND season_id IS NOT NULL
+      GROUP BY season_id, season
+      ORDER BY season DESC, season_id`,
+    params: ['competition_id']
+  },
   // Drill-down of one league: every catalog season with its state, matches, coverage and gaps.
   coverageSeasons: {
     sql: `SELECT c.season, c.dataset_key, s.availability, s.classification, o.state AS onboarding_state,
@@ -707,6 +717,8 @@ export function buildQuery(name, input = {}, {now = new Date()} = {}) {
         intOf(input.min_seasons ?? 0, 'min_seasons', {min: 0, max: 100}),
         intOf(input.min_matches ?? 0, 'min_matches', {min: 0, max: 1000000}), odds, limitOf(input.limit, 500)]};
     }
+    case 'competitionSeasons':
+      return {name, sql: QUERIES.competitionSeasons.sql, values: [idOf(input.competition, 'competition_id')]};
     case 'coverageSeasons':
       return {name, sql: QUERIES.coverageSeasons.sql, values: [slugOf(input.country, 'country'), slugOf(input.league, 'league')]};
     case 'reconciliation':
@@ -749,6 +761,7 @@ export const ROUTES = {
   '/api/fpt/reconciliation': 'reconciliation',
   '/api/fpt/coverage-competitions': 'coverageCompetitions',
   '/api/fpt/coverage-seasons': 'coverageSeasons',
+  '/api/fpt/competition-seasons': 'competitionSeasons',
   '/api/fpt/away-matches': 'awayMatches',
   '/api/fpt/odds-range': 'favoriteOddsRange',
   '/api/fpt/search': 'searchMatches',
@@ -793,6 +806,8 @@ export const QUERY_CATALOG = [
     params: {country: 'slug opzionale', min_seasons: '0–100', min_matches: '0–1000000', min_odds_coverage: '0–1', limit: '1–500'}},
   {name: 'coverageSeasons', route: '/api/fpt/coverage-seasons', question: 'Stagioni di una lega con stato, partite, coverage e buchi',
     params: {country: 'slug', league: 'slug'}},
+  {name: 'competitionSeasons', route: '/api/fpt/competition-seasons', question: 'Stagioni di un campionato con partite, con l\'id stagione del filtro di ricerca',
+    params: {competition: 'id interno del campionato (fpt:competition:…)'}},
   {name: 'reconciliation', route: '/api/fpt/reconciliation', question: 'Gap dati rilevati, recuperati, irrecuperabili',
     params: {limit: '1–500'}}
 ].map(entry => ({

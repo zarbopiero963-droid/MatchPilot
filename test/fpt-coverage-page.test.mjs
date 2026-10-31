@@ -37,13 +37,19 @@ test('coverage queries bind every filter as a parameter and reject unsafe slugs'
   assert.deepEqual(q.values, ['italy', 3, 100, 0.9, 500]);
   assert.throws(() => buildQuery('coverageSeasons', {country: "italy'; drop", league: 'x'}), /slug/);
   assert.deepEqual(buildQuery('coverageSeasons', {country: 'Italy', league: 'serie-a'}).values, ['italy', 'serie-a']);
+  // MP-UI-PR-011-SEASON: the seasons of one competition take its internal id, bound as a parameter, never a slug.
+  const id = `fpt:competition:${'a'.repeat(32)}`;
+  assert.deepEqual(buildQuery('competitionSeasons', {competition: id}).values, [id]);
+  for (const bad of [undefined, '', 'serie-a', `fpt:competition:${'a'.repeat(31)}'`, `${id};drop`]) {
+    assert.throws(() => buildQuery('competitionSeasons', {competition: bad}), error => error.fields?.[0] === 'competition_id', String(bad));
+  }
 });
 
 const databaseUrl = process.env.FUTPYTHON_TEST_DATABASE_URL
   || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
 const SCHEMA = 'fpt_coverage_page_test';
 
-test('coverage queries answer from Postgres: league summary and season drill-down with gaps', {timeout: 60000}, async t => {
+test('MP-REQ-UI-0249 coverage queries answer from Postgres: league summary, season drill-down with gaps, the seasons of a competition', {timeout: 60000}, async t => {
   let pg;
   try {
     pg = (await import('pg')).default;
@@ -107,6 +113,18 @@ test('coverage queries answer from Postgres: league summary and season drill-dow
       const seasons = (await runQuery(client, 'coverageSeasons', {country: 'italy', league: 'serie-a'})).rows;
       assert.deepEqual(seasons.map(s => [s.season, s.matches, s.gap]),
         [['2021-2022', 0, true], ['2022-2023', 2, false], ['2023-2024', 1, false], ['2024-2025', 0, false]]);
+      // MP-UI-PR-011-SEASON (MP-REQ-UI-0249): the seasons with stored matches, newest first, with the id the search takes.
+      const competition = league.internal_competition_id;
+      const list = (await runQuery(client, 'competitionSeasons', {competition})).rows;
+      assert.deepEqual(list.map(s => [s.season, s.matches]), [['2023-2024', 1], ['2022-2023', 2]], 'only seasons with matches, no 404 or gap season');
+      for (const s of list) assert.match(s.season_id, /^fpt:season:[0-9a-f]{32}$/);
+      const older = (await runQuery(client, 'searchMatches', {competition, season: list[1].season_id})).rows;
+      assert.equal(older.length, 2);
+      assert.ok(older.every(row => row.season_id === list[1].season_id && row.season === '2022-2023'), 'the search keeps only that season');
+      const unknown = `fpt:season:${'0'.repeat(32)}`;
+      assert.deepEqual((await runQuery(client, 'searchMatches', {competition, season: unknown})).rows, [], 'an unknown season matches nothing');
+      const ligue = `fpt:competition:${'f'.repeat(32)}`;
+      assert.deepEqual((await runQuery(client, 'competitionSeasons', {competition: ligue})).rows, [], 'a competition without matches has no season');
     });
   } finally {
     await db.closePool();
