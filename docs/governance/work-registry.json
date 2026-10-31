@@ -1913,6 +1913,29 @@
       },
       "pr_open": false,
       "merge_sha": "7f0896e6ea3e1b1a5d6bcc00f89cc320b0892e3e"
+    },
+    {
+      "id": "MP-PRODUCT-100-AUDIT",
+      "title": "MP-PRODUCT-100: audit, provider inventory, architecture, roadmap",
+      "issue": 239,
+      "pr": null,
+      "branch": "docs-mp-product-100",
+      "kind": "audit",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T222531Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/product/mp-product-100/README.md",
+        "file:docs/product/mp-product-100/A-frontend.md",
+        "file:docs/product/mp-product-100/B-backend.md",
+        "file:docs/product/mp-product-100/C-providers.md",
+        "file:docs/product/mp-product-100/C-providers.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
