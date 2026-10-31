@@ -15,12 +15,14 @@ Rapporto di audit, gap analysis e roadmap (31/10/2026, base `main` 7f0896e).
 | Area | Punti | Arbitrari | Tecnici necessari | Decisioni owner | Demo | HIGH |
 |---|---:|---:|---:|---:|---:|---:|
 | Frontend (A) | 48 | 21 | 18 | 6 | 3 | 8 |
-| Backend (B) | 40 | ~20 | 12 | 9 | 3 | 9 |
+| Backend (B) | 40 | ~20 | ~12 | ~9 | ~3 | 7–8 |
+
+Nel backend alcune voci hanno una categoria mista, quindi i conteggi per categoria sono approssimati e la loro somma supera 40. La colonna HIGH conta 6 voci HIGH, 1 «HIGH (prodotto)» e 1 «LOW ora, HIGH alla riattivazione»: per questo è 7–8.
 
 **Le limitazioni più gravi, alla radice del problema segnalato dall'owner**
 
 1. **Mercati cablati nel layer normalizzato** (BE-01, BE-10). `fpt_match_facts` tipizza solo 6 prezzi: 1X2, Over/Under 2,5 e BTTS sì. Gli altri mercati restano solo nel payload: altre linee O/U, AH/EH, doppia chance, risultato esatto, primo tempo, BTTS no. Da qui derivano tutti i campi fissi delle pagine.
-2. **Filtri di ricerca cablati** (BE-02, FE-05/06/07). `SEARCH_FILTERS` ha 17 chiavi fisse. Il registro `fpt_filter_registry` dichiara già campi filtrabili e operatori per centinaia di colonne, ma la ricerca non lo legge. I campi «Quota Over 2,5», «Quota casa», «Quota favorito» e «xG totali» della pagina Ricerca vengono da qui.
+2. **Filtri di ricerca cablati** (BE-02, FE-05/06/07). `SEARCH_FILTERS` ha 16 chiavi fisse (più `team` e `before`, gestiti a parte). Il registro `fpt_filter_registry` dichiara già campi filtrabili e operatori per centinaia di colonne, ma la ricerca non lo legge. I campi «Quota Over 2,5», «Quota casa», «Quota favorito» e «xG totali» della pagina Ricerca vengono da qui.
 3. **Le pagine mostrano solo 1X2, Over 2,5 e BTTS sì** (FE-01/02/03, BE-12). Pagina Oggi, Match Center e Ricerca non mostrano mai il payload della partita: calci d'angolo, tiri, possesso, AH/EH, xG di dettaglio. Eppure `matchDetail` lo restituisce già.
 4. **Simulazione e strategie legate a MATCH_ODDS** (FE-09, BE-19, BE-20).
    - La simulazione accetta solo MATCH_ODDS, cinque selezioni, un bookmaker fisso e due strategie di riferimento.
@@ -56,7 +58,7 @@ Rapporto di audit, gap analysis e roadmap (31/10/2026, base `main` 7f0896e).
 **FutPythonTrader.** Fonte: certificato del 05/10/2026, `docs/futpython-certification-2026-10-05.md:907,1208` e `migrations/016`.
 - 325 campi osservati nei dati reali.
 - **25 tipizzati nel layer normalizzato: 7,7%.**
-- **18 filtrabili via API: 5,5%.**
+- **18 filtrabili via API: circa 5,5%.** È un conteggio approssimato, derivato a mano da `SEARCH_FILTERS` ([C-providers.md](C-providers.md), sezione della copertura), non dal certificato. Per esempio, le quote X e 2 sono filtrabili solo tramite `favorite_odd`, i gol solo come somma, e Under 2,5 e BTTS non hanno un filtro.
 - 325 su 325 leggibili, ma solo partita per partita (`/api/v1/fpt/match`).
 
 | Famiglia | Tipizzati / osservati |
@@ -158,7 +160,7 @@ Metriche iniziali, misurate su `main` 7f0896e, con gli obiettivi:
 | Metrica | Oggi | Obiettivo della roadmap |
 |---|---|---|
 | Campi FPT tipizzati sul totale osservato | 25 / 325 (7,7%) | 100% dei campi classificati (tipizzati o UNCLASSIFIED dichiarati) |
-| Campi FPT filtrabili via API | 18 / 325 (5,5%) | ogni campo con prova reale e momento noto |
+| Campi FPT filtrabili via API | circa 18 / 325 (circa 5,5%) | ogni campo con prova reale e momento noto |
 | Mercati usabili nella simulazione | 1 (MATCH_ODDS) | ogni `market_ref` con regola di regolamento |
 | Default arbitrari (A+B) | ~41 | 0, oppure documentati come tecnici o decisi dall'owner |
 | Campi post-partita marcati come pre-partita | almeno 5 (BE-08) | 0 |
