@@ -821,18 +821,18 @@ function searchForm(params, competitions, seasons = 'none') {
     el('label', {}, 'Stagione ', seasonSelect),
     el('label', {}, 'Dal ', input('from', {type: 'date'})),
     el('label', {}, 'Prima del ', input('before', {type: 'date'})),
+    // MP-UI-PR-011-SRCHX (MP-REQ-UI-0249): the filters the search API already supports.
     el('label', {}, 'Risultato ', select('result', [['', 'Qualsiasi'], ['FINAL', 'Finale'], ['NO_RESULT', 'Senza risultato'], ['NOT_STARTED', 'Non iniziata']])),
+    el('label', {}, 'Favorito ', select('fav_side', [['', 'Qualsiasi'], ['HOME', 'Casa'], ['AWAY', 'Trasferta'], ['EVEN', 'Quote pari']])),
     el('label', {}, 'Quota favorito da ', input('fav_min', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
     el('label', {}, 'a ', input('fav_max', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
-    // MP-UI-PR-011-SRCHX (MP-REQ-UI-0249): the filters the search API already supports.
-    el('label', {}, 'Favorito ', select('fav_side', [['', 'Qualsiasi'], ['HOME', 'Casa'], ['AWAY', 'Trasferta'], ['EVEN', 'Quote pari']])),
     el('label', {}, 'Quota casa da ', input('home_odd_min', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
     el('label', {}, 'a ', input('home_odd_max', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
-    el('label', {}, 'xG totali da ', input('min_xg_total', {type: 'number', step: '0.1', min: '0', max: '20'})),
     el('label', {}, 'Quota Over 2,5 da ', input('over25_min', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
     el('label', {}, 'a ', input('over25_max', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
     el('label', {}, 'Gol totali da ', input('min_goals', {type: 'number', step: '1', min: '0', max: '30'})),
-    el('label', {}, 'a ', input('max_goals', {type: 'number', step: '1', min: '0', max: '30'}))),
+    el('label', {}, 'a ', input('max_goals', {type: 'number', step: '1', min: '0', max: '30'})),
+    el('label', {}, 'xG totali da ', input('min_xg_total', {type: 'number', step: '0.1', min: '0', max: '20'}))),
   el('fieldset', {}, el('legend', {}, 'Qualità dei dati'), check('with_odds', 'solo con quote 1X2 complete'), check('with_xg', 'solo con xG')),
   el('button', {type: 'submit', 'data-control': 'CTL-SEARCH-SUBMIT'}, 'Cerca'), ' ', el('a', {href: '#/search', 'data-control': 'CTL-SEARCH-RESET'}, 'Azzera'));
 }
