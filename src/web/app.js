@@ -548,7 +548,7 @@ function pagedList({first, path, params, render, more: moreLabel, mine, list}) {
 // ---- Oggi: the Daily Board, home page (MP-WEB-002, D-2) ----
 
 const BOARD_PAGE = 24;
-const dayHref = date => `#/?${queryString({date})}`;
+const dayHref = (date, competition) => `#/?${queryString({date, competition})}`;
 
 // When the archive was last synchronised: the end of the last FutPythonTrader sync run, shown only when that run
 // completed (fully or in part) and carries a real time. Nothing is shown otherwise: no time is ever made up (UI-25).
@@ -580,36 +580,54 @@ function updatedLine(providers) {
 // it opens another day and derives no data value (MP-WEB-011).
 const STRIP_WEEKDAY = new Intl.DateTimeFormat('it-IT', {timeZone: 'UTC', weekday: 'short'});
 const STRIP_NUMBER = new Intl.DateTimeFormat('it-IT', {timeZone: 'UTC', day: 'numeric'});
-function dayStrip(date) {
+function dayStrip(date, competition) {
   const today = localToday();
   return el('nav', {class: 'dates', 'aria-label': 'Giorni vicini', 'data-testid': 'day-strip'}, [-3, -2, -1, 0, 1, 2, 3].map(shift => {
     const day = shiftDay(date, shift);
     const at = new Date(`${day}T00:00:00Z`);
-    return el('a', {href: dayHref(day), 'data-date': day, 'aria-current': shift === 0 ? 'date' : null, 'aria-label': dayText(day, LONG_DAY), 'data-control': 'CTL-BOARD-DAY'},
+    return el('a', {href: dayHref(day, competition), 'data-date': day, 'aria-current': shift === 0 ? 'date' : null, 'aria-label': dayText(day, LONG_DAY), 'data-control': 'CTL-BOARD-DAY'},
       el('small', {}, day === today ? 'Oggi' : STRIP_WEEKDAY.format(at)), el('b', {}, STRIP_NUMBER.format(at)));
   }));
 }
 
 async function boardView(params, mine) {
   const date = params.get('date') || localToday();
+  // MP-UI-PR-010-BOARD-COMP (MP-REQ-UI-1051): the day of one competition, filtered by the API; the choice travels with
+  // the day links. Without the list of competitions the filter is off and the page says so.
+  const competition = params.get('competition') || '';
+  // An invalid date is refused without any request (daily-board journey): the list is read only for a real day.
+  const competitionsBody = !validDate(date) ? {data: {rows: []}} : await getJson('/api/v1/fpt/competitions').catch(error => {
+    if (error?.code === 'UNAUTHENTICATED') throw error;
+    return null;
+  });
+  const competitions = Array.isArray(competitionsBody?.data?.rows) ? competitionsBody.data.rows : [];
+  const nameOfCompetition = id => {
+    const row = competitions.find(c => c.internal_competition_id === id);
+    return row ? `${words(row.country_slug ?? '')} · ${words(row.league_slug ?? '')}` : id;
+  };
   const picker = el('form', {class: 'controls', 'data-testid': 'board-controls', onsubmit: event => {
     event.preventDefault();
-    location.hash = dayHref(new FormData(event.target).get('date'));
+    const data = new FormData(event.target);
+    location.hash = dayHref(data.get('date'), data.get('competition'));
   }},
-  el('a', {href: validDate(date) ? dayHref(shiftDay(date, -1)) : '#/', 'data-action': 'prev', 'data-control': 'CTL-BOARD-PREV'}, '← Giorno prima'),
+  el('a', {href: validDate(date) ? dayHref(shiftDay(date, -1), competition) : '#/', 'data-action': 'prev', 'data-control': 'CTL-BOARD-PREV'}, '← Giorno prima'),
   el('label', {}, 'Giorno ', el('input', {type: 'date', name: 'date', value: validDate(date) ? date : '', required: true, 'data-control': 'CTL-BOARD-DATE'})),
+  el('label', {}, 'Campionato ', el('select', {name: 'competition', disabled: !competitionsBody, 'data-control': 'CTL-BOARD-COMPETITION'},
+    [['', competitionsBody ? 'Tutti' : 'Elenco non disponibile'], ...competitions.map(c => [c.internal_competition_id, nameOfCompetition(c.internal_competition_id)])]
+      .map(([v, text]) => el('option', {value: v, selected: v === competition}, text)))),
   el('button', {type: 'submit', 'data-control': 'CTL-BOARD-SHOW'}, 'Mostra'),
-  el('a', {href: validDate(date) ? dayHref(shiftDay(date, 1)) : '#/', 'data-action': 'next', 'data-control': 'CTL-BOARD-NEXT'}, 'Giorno dopo →'),
-  el('a', {href: dayHref(localToday()), 'data-action': 'today', 'data-control': 'CTL-BOARD-TODAY'}, 'Oggi'));
-  const head = [el('h1', {}, date === localToday() ? 'Oggi' : 'Partite del giorno'), validDate(date) ? dayStrip(date) : null, picker];
+  el('a', {href: validDate(date) ? dayHref(shiftDay(date, 1), competition) : '#/', 'data-action': 'next', 'data-control': 'CTL-BOARD-NEXT'}, 'Giorno dopo →'),
+  el('a', {href: dayHref(localToday(), competition), 'data-action': 'today', 'data-control': 'CTL-BOARD-TODAY'}, 'Oggi'));
+  const head = [el('h1', {}, date === localToday() ? 'Oggi' : 'Partite del giorno'), validDate(date) ? dayStrip(date, competition) : null, picker];
   if (!validDate(date)) return [...head, el('p', {class: 'state error', role: 'alert', 'data-date': date}, 'Data non valida: scegli un giorno dal calendario.')];
   const path = '/api/v1/fpt/matches';
-  const params2 = {date, limit: BOARD_PAGE};
+  const params2 = {date, competition, limit: BOARD_PAGE};
   const first = await getJson(`${path}?${queryString(params2)}`);
   const updated = updatedSlot(mine);
   const rows = first.data?.rows ?? [];
   if (rows.length === 0) {
-    return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'board-empty'}, `Nessuna partita ${dayText(date, LONG_DAY)}. `,
+    return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'board-empty'},
+      competition ? `Nessuna partita di ${nameOfCompetition(competition)} ${dayText(date, LONG_DAY)}. ` : `Nessuna partita ${dayText(date, LONG_DAY)}. `,
       'Fino a quale giorno arrivano i dati di ogni campionato lo trovi in ', el('a', {href: '#/data', 'data-control': 'CTL-BOARD-EMPTY-DATA'}, 'Dati'), '.'), updated];
   }
   // Kickoff order across competitions, as the API returns it; each card names its competition (PR #163 NB-3).

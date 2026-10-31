@@ -586,7 +586,7 @@ function renderNav() {
   $('#bottomnav').innerHTML = [['home', 'Oggi'], ['live', 'Live'], ['strategies', 'Strategie'], ['tools', 'Tools'], ['portfolio', 'Portafoglio'], ['data', 'Dati']].map(([k, l]) => `<button data-go="${k}" ${cur === k ? 'aria-current="page"' : ''}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>${l}</button>`).join('');
 }
 /* Striscia REAL / DEMO su ogni pagina (#97): il mock non certifica il backend. */
-const MOCK_VERSION = 'Mock UX v2026.10.31c';
+const MOCK_VERSION = 'Mock UX v2026.10.31e';
 function demoStrip(v) {
   const real = v === 'data';
   const txt = real ? 'Le sezioni marcate REAL arrivano dalle route pubbliche certificate MatchPilot (#12), lette il 06/10/2026 alle 08:01 UTC. Tutto il resto della pagina è DEMO.'
@@ -1288,7 +1288,7 @@ VIEWS.home = el => {
         <div class="dates" role="group" aria-label="Giorno">${days.map(([d, n]) => `<button aria-pressed="${n === 4}" data-day="${n}"><small>${n === 4 ? 'Oggi' : d}</small><b>${n}</b></button>`).join('')}</div>
         <div class="seg" role="group" aria-label="Stato">${[['ALL', 'Tutte'], ['LIVE', 'Live'], ['UPCOMING', 'In programma'], ['FT', 'Finite'], ['SIG', 'Con segnale']].map(([k, l]) => `<button data-hf="${k}" aria-pressed="${filt === k}">${l}</button>`).join('')}</div>
       </div>
-      <div class="xs muted" data-issue="#3 #30 sito reale R-06b">Sito reale (R-06b): la Daily Board legge le partite salvate di un giorno da <code>/api/v1/fpt/matches</code>, in ordine di orario con il campionato su ogni scheda, con orario e stato del fuso, risultato, quote 1X2 / Over 2,5 / BTTS, favorito e xG; N/D per ogni valore assente e "Carica altre partite" con il cursore. La Ricerca filtra squadra, sede, campionato, date, risultato, quota e lato del favorito, quota casa, quota Over 2,5, gol, xG totali minimi e qualità dei dati (quote 1X2 complete, xG) su <code>/api/v1/fpt/search</code> (MP-UI-PR-011-SRCHX); il filtro per stagione arriva quando un'API elenca le stagioni. Segnali, live, bankroll e strategie di questa pagina restano DEMO.</div>
+      <div class="xs muted" data-issue="#3 #30 sito reale R-06b">Sito reale (R-06b): la Daily Board legge le partite salvate di un giorno da <code>/api/v1/fpt/matches</code>, in ordine di orario con il campionato su ogni scheda, filtrabile per campionato dall'API (MP-UI-PR-010-BOARD-COMP), con orario e stato del fuso, risultato, quote 1X2 / Over 2,5 / BTTS, favorito e xG; N/D per ogni valore assente e "Carica altre partite" con il cursore. La Ricerca filtra squadra, sede, campionato, date, risultato, quota e lato del favorito, quota casa, quota Over 2,5, gol, xG totali minimi e qualità dei dati (quote 1X2 complete, xG) su <code>/api/v1/fpt/search</code> (MP-UI-PR-011-SRCHX); il filtro per stagione arriva quando un'API elenca le stagioni. Segnali, live, bankroll e strategie di questa pagina restano DEMO.</div>
       <div id="hlist" class="stack" style="gap:14px" data-issue="#3 Daily Board"></div>
     </section>
     <aside class="rail sticky stack">

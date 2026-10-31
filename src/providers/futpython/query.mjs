@@ -95,10 +95,10 @@ export const QUERIES = {
   matchesOnDate: {
     sql: `SELECT ${FACT_COLUMNS}
       FROM fpt_match_facts
-      WHERE match_date = $1::date
+      WHERE match_date = $1::date AND ($3::text IS NULL OR internal_competition_id = $3)
       ORDER BY COALESCE(kickoff_local_time, '~') COLLATE "C", internal_match_id COLLATE "C"
       LIMIT $2`,
-    params: ['date', 'limit']
+    params: ['date', 'limit', 'competition_id']
   },
   matchDetail: {
     sql: `SELECT f.internal_match_id, f.internal_competition_id, f.season_id, f.country_slug, f.league_slug, f.season,
@@ -681,13 +681,16 @@ export function buildQuery(name, input = {}, {now = new Date()} = {}) {
       ]};
     case 'matchesOnDate': {
       const date = isoDate(input.date, 'date');
+      // MP-UI-PR-010-BOARD-COMP (MP-REQ-UI-1051): an optional competition, by internal id, bound as a parameter; the
+      // cursor digest covers it, so a page of one competition never continues another.
+      const competition = idOf(input.competition, 'competition_id', {optional: true});
       const pageSize = limitOf(input.limit, 200);
       const after = decodeCursor(name, input);
       const page = {size: pageSize, input};
-      if (!after) return {name, sql: QUERIES.matchesOnDate.sql, values: [date, pageSize + 1], page};
-      return {name, page, values: [date, pageSize + 1, after.kickoff, after.id], sql: `SELECT ${FACT_COLUMNS}
+      if (!after) return {name, sql: QUERIES.matchesOnDate.sql, values: [date, pageSize + 1, competition], page};
+      return {name, page, values: [date, pageSize + 1, after.kickoff, after.id, competition], sql: `SELECT ${FACT_COLUMNS}
       FROM fpt_match_facts
-      WHERE match_date = $1::date
+      WHERE match_date = $1::date AND ($5::text IS NULL OR internal_competition_id = $5)
         AND (COALESCE(kickoff_local_time, '~') COLLATE "C", internal_match_id COLLATE "C") > ($3 COLLATE "C", $4 COLLATE "C")
       ORDER BY COALESCE(kickoff_local_time, '~') COLLATE "C", internal_match_id COLLATE "C"
       LIMIT $2`};
@@ -782,7 +785,7 @@ export const QUERY_CATALOG = [
   {name: 'teamSummary', route: '/api/fpt/team-summary', question: 'Bilancio V-N-P e gol di una squadra', params: {team: 'fpt:team:…', before: 'YYYY-MM-DD', season: 'opzionale'}},
   {name: 'headToHead', route: '/api/fpt/h2h', question: 'Scontri diretti', params: {team: 'fpt:team:…', opponent: 'fpt:team:…', before: 'YYYY-MM-DD'}},
   {name: 'competitionSeason', route: '/api/fpt/competition-season', question: 'Partite di una stagione', params: {competition: 'fpt:competition:…', season: 'fpt:season:…'}},
-  {name: 'matchesOnDate', route: '/api/fpt/matches', question: 'Partite di un giorno', params: {date: 'YYYY-MM-DD', limit: '1–500, default 200',
+  {name: 'matchesOnDate', route: '/api/fpt/matches', question: 'Partite di un giorno', params: {date: 'YYYY-MM-DD', competition: 'id interno del campionato, opzionale (fpt:competition:…)', limit: '1–500, default 200',
     cursor: 'next_cursor della pagina precedente (stesso giorno)'}},
   {name: 'matchDetail', route: '/api/fpt/match', question: 'Dettaglio partita con payload e timing di ogni campo', params: {id: 'fpt:hash:… | fpt:id:…'}},
   {name: 'competitions', route: '/api/fpt/competitions', question: 'Elenco competizioni e stagioni', params: {}},
