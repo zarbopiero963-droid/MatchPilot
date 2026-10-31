@@ -800,7 +800,8 @@ function searchForm(params, competitions, seasons = 'none') {
     const chosen = competitionSelect.value;
     fillSeasons(seasonSelect, chosen ? 'loading' : 'none');
     if (!chosen) return;
-    const rows = await seasonsOf(chosen);
+    // An expired session already sent the page to the login (getJson); here the select only stops waiting.
+    const rows = await seasonsOf(chosen).catch(() => 'unavailable');
     if (competitionSelect.value === chosen) fillSeasons(seasonSelect, rows);
   });
   return el('form', {class: 'card search', 'data-testid': 'search-form', onsubmit: event => {
