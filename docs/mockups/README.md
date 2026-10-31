@@ -3,9 +3,9 @@
 ## File corrente
 
 - File: [`matchpilot-trading-os.html`](matchpilot-trading-os.html), percorso stabile. Le versioni non cambiano nome: la storia è in git e in questo changelog.
-- Versione: **Mock UX v2026.10.31b**
+- Versione: **Mock UX v2026.10.31c**
 - Ultimo aggiornamento: 2026-10-31
-- SHA-256: `9356abd63db27d8a83f7bedb0ed836d4966049715c2182c9607303bf2b9b028e`
+- SHA-256: `5beb076c6167330d0b9ab47a1e865beb09dd7cf9280ce26c77cf5d317fbb9fa8`
 - Allineato a: roadmap #97 (revisione owner 06/10/2026)
 - Issue rappresentate: #12, #20, #23, #24, #25, #27, #28, #29, #30, #31, #32, #34, #40, #44, #45, #46, #87, #91, #94, #95, #96, #97, #98, #99, #100, #102
 
@@ -53,6 +53,10 @@ Il mock è un riferimento UX/prodotto **vivo**. Non è l'architettura e non cert
 - Il layout usa font Google; senza rete il menu desktop può tagliare l'ultima voce.
 
 ## Changelog
+
+### v2026.10.31c — Filtri della Ricerca (MP-UI-PR-011-SRCHX)
+
+- La nota del sito reale nella home elenca i filtri della Ricerca aggiunti: lato del favorito, quota casa, quota Over 2,5 e xG totali minimi, già supportati da `/api/v1/fpt/search`; il filtro per stagione arriva quando un'API elenca le stagioni.
 
 ### v2026.10.31b — Cerca nell'intestazione (MP-UI-PR-009-NAV)
 

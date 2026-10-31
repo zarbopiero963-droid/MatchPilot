@@ -765,9 +765,11 @@ async function matchView(params) {
 
 const SEARCH_PAGE = 25;
 // Form fields and the API parameters they map to. Values are checked by the server; the form only constrains types.
-const SEARCH_FIELDS = ['team_id', 'venue', 'competition', 'from', 'before', 'result', 'fav_min', 'fav_max', 'min_goals', 'max_goals', 'with_odds', 'with_xg'];
+const SEARCH_FIELDS = ['team_id', 'venue', 'competition', 'from', 'before', 'result', 'fav_min', 'fav_max', 'fav_side', 'home_odd_min', 'home_odd_max',
+  'over25_min', 'over25_max', 'min_goals', 'max_goals', 'min_xg_total', 'with_odds', 'with_xg'];
 const FIELD_LABELS = {team: 'Squadra', venue: 'Sede', competition: 'Campionato', from: 'Dal', before: 'Prima del', result: 'Risultato',
-  fav_min: 'Quota favorito da', fav_max: 'Quota favorito a', min_goals: 'Gol totali da', max_goals: 'Gol totali a'};
+  fav_min: 'Quota favorito da', fav_max: 'Quota favorito a', fav_side: 'Favorito', home_odd_min: 'Quota casa da', home_odd_max: 'Quota casa a',
+  over25_min: 'Quota Over 2,5 da', over25_max: 'Quota Over 2,5 a', min_goals: 'Gol totali da', max_goals: 'Gol totali a', min_xg_total: 'xG totali da'};
 
 function searchForm(params, competitions) {
   const value = name => params.get(name) ?? '';
@@ -796,8 +798,15 @@ function searchForm(params, competitions) {
     el('label', {}, 'Risultato ', select('result', [['', 'Qualsiasi'], ['FINAL', 'Finale'], ['NO_RESULT', 'Senza risultato'], ['NOT_STARTED', 'Non iniziata']])),
     el('label', {}, 'Quota favorito da ', input('fav_min', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
     el('label', {}, 'a ', input('fav_max', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
+    // MP-UI-PR-011-SRCHX (MP-REQ-UI-0249): the filters the search API already supports.
+    el('label', {}, 'Favorito ', select('fav_side', [['', 'Qualsiasi'], ['HOME', 'Casa'], ['AWAY', 'Trasferta'], ['EVEN', 'Quote pari']])),
+    el('label', {}, 'Quota casa da ', input('home_odd_min', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
+    el('label', {}, 'a ', input('home_odd_max', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
+    el('label', {}, 'Quota Over 2,5 da ', input('over25_min', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
+    el('label', {}, 'a ', input('over25_max', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
     el('label', {}, 'Gol totali da ', input('min_goals', {type: 'number', step: '1', min: '0', max: '30'})),
-    el('label', {}, 'a ', input('max_goals', {type: 'number', step: '1', min: '0', max: '30'}))),
+    el('label', {}, 'a ', input('max_goals', {type: 'number', step: '1', min: '0', max: '30'})),
+    el('label', {}, 'xG totali da ', input('min_xg_total', {type: 'number', step: '0.1', min: '0', max: '20'}))),
   el('fieldset', {}, el('legend', {}, 'Qualità dei dati'), check('with_odds', 'solo con quote 1X2 complete'), check('with_xg', 'solo con xG')),
   el('button', {type: 'submit', 'data-control': 'CTL-SEARCH-SUBMIT'}, 'Cerca'), ' ', el('a', {href: '#/search', 'data-control': 'CTL-SEARCH-RESET'}, 'Azzera'));
 }

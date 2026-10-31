@@ -815,6 +815,57 @@ export const JOURNEYS = [
         });
         await page.unroute(/\/api\/v1\/fpt\/search\?.*cursor=/);
       });
+      // MP-UI-PR-011-SRCHX (MP-REQ-UI-0249): the filters the search API already had, now in the form.
+      const filtered = async (fill, controls, expectedParams, check, proves, {narrows = true} = {}) => {
+        await fresh(page, `${base}/#/search`);
+        await page.waitForSelector('[data-testid="search-form"]');
+        await fill();
+        const request = page.waitForRequest(r => new URL(r.url()).pathname === '/api/v1/fpt/search');
+        await page.click('[data-testid="search-form"] button[type="submit"]');
+        const sent = new URL((await request).url()).searchParams;
+        await asserted(controls, proves, async () => {
+          for (const [name, value] of Object.entries(expectedParams)) assert.equal(sent.get(name), value, name);
+          await outcomeShown(page, '[data-testid="search-outcome"]');
+          const expected = (await api(`/api/v1/fpt/search?${sent}`)).data.rows;
+          assert.ok(expected.length > 0, 'the QA archive has matches for this filter');
+          for (const row of expected) check(row);
+          const shown = await ids(page, '[data-testid="search-results"] tr');
+          assert.deepEqual(shown, expected.map(row => row.internal_match_id).slice(0, shown.length), 'the rows are the API answer, in its order');
+          const all = (await api(`/api/v1/fpt/search?${new URLSearchParams({limit: sent.get('limit')})}`)).data.rows;
+          if (narrows) assert.notDeepEqual(expected.map(row => row.internal_match_id), all.map(row => row.internal_match_id), 'the filter narrows the answer');
+        });
+      };
+      await step('filtri dell’API: lato del favorito', async () => {
+        // In the QA archive the home side is the favourite whenever its price is known.
+        await filtered(() => page.selectOption('select[name="fav_side"]', 'HOME'), ['CTL-SEARCH-FAV-SIDE'], {fav_side: 'HOME'},
+          row => assert.equal(row.favorite_side, 'HOME'), 'the favourite side reaches the API and every row has the home side as favourite');
+      });
+      await step('filtri dell’API: quota casa da/a', async () => {
+        await filtered(async () => { await page.fill('input[name="home_odd_min"]', '1.5'); await page.fill('input[name="home_odd_max"]', '2.5'); },
+          ['CTL-SEARCH-HOME-ODD-MIN', 'CTL-SEARCH-HOME-ODD-MAX'], {home_odd_min: '1.5', home_odd_max: '2.5'},
+          row => assert.ok(Number(row.odd_home) >= 1.5 && Number(row.odd_home) <= 2.5, `odd_home ${row.odd_home}`), 'the home price range reaches the API and every row is inside it');
+      });
+      await step('filtri dell’API: quota Over 2,5 da/a', async () => {
+        await filtered(async () => { await page.fill('input[name="over25_min"]', '1.5'); await page.fill('input[name="over25_max"]', '1.95'); },
+          ['CTL-SEARCH-OVER25-MIN', 'CTL-SEARCH-OVER25-MAX'], {over25_min: '1.5', over25_max: '1.95'},
+          row => assert.ok(Number(row.odd_over25) >= 1.5 && Number(row.odd_over25) <= 1.95, `odd_over25 ${row.odd_over25}`), 'the Over 2.5 price range reaches the API and every row is inside it',
+          {narrows: false});
+        // Every Over 2.5 price of the QA archive is 1.90: a range above it leaves nothing, and the page says so.
+        await fresh(page, `${base}/#/search?run=1&over25_min=1.95`);
+        await page.waitForSelector('[data-testid="search-empty"]');
+        assert.deepEqual((await api('/api/v1/fpt/search?over25_min=1.95')).data.rows, []);
+      });
+      await step('filtri dell’API: xG totali minimi', async () => {
+        await filtered(() => page.fill('input[name="min_xg_total"]', '2.5'), ['CTL-SEARCH-MIN-XG-TOTAL'], {min_xg_total: '2.5'},
+          row => assert.ok(Number(row.xg_home) + Number(row.xg_away) >= 2.5, `xG ${row.xg_home} + ${row.xg_away}`), 'the minimum total xG reaches the API and every row reaches it');
+      });
+      await step('filtri dell’API: valore rifiutato indicato sul campo', async () => {
+        await fresh(page, `${base}/#/search?run=1&over25_min=0.5`);
+        await page.waitForSelector('[data-testid="search-invalid"]');
+        assert.match(await page.textContent('[data-testid="search-invalid"]'), /Quota Over 2,5 da/);
+        assert.equal(await page.getAttribute('[data-testid="search-invalid"]', 'data-fields'), 'over25_min');
+        assert.equal(await page.inputValue('input[name="over25_min"]'), '0.5', 'the refused value stays in its field');
+      });
     },
   },
   {
