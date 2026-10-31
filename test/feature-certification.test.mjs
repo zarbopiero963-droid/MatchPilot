@@ -145,7 +145,7 @@ test('with a report: integration rests on asserted steps; a squash merge keeps t
   const feature = certified();
   const steps = [MANUAL, KELLY];
   const run = (viewport, assertions) => ({id: 'trading-tools', viewport, status: 'PASS', steps: steps.map(name => ({name, assertions}))});
-  const report = (assertions, head) => ({head_sha: head, journeys: ['desktop', 'mobile'].map(v => run(v, assertions))});
+  const report = (assertions, head) => ({head_sha: head, journeys: ['desktop', 'tablet', 'mobile'].map(v => run(v, assertions))});
   const checked = [{controls: ['CTL-TOOLS-KELLY-SUBMIT'], description: 'checked'}];
   assert.match(evidenceState(feature, {inventory, report: report([], NEW)}).gaps.join('\n'), /integration needs a step with recorded assertions/);
   assert.equal(evidenceState(feature, {inventory, report: report(checked, NEW)}).state, 'CERTIFIED CALCULATION');

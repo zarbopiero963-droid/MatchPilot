@@ -16,12 +16,29 @@ export const HIST_BACKTEST_LIMITS = Object.freeze({maxDays: 366, maxEvents: 1000
 // The #96 models the API exposes, with the single parameter each one takes.
 const MM_PARAM = Object.freeze({FIXED_STAKE: 'stake', FIXED_LIABILITY: 'liability', PERCENT_BANKROLL: 'percent', LIABILITY_PERCENT_BANKROLL: 'percent'});
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
-const badRequest = (ApiError, message) => new ApiError('BAD_REQUEST', message);
+const badRequest = (ApiError, message, fields = []) => new ApiError('BAD_REQUEST', message, undefined, fields);
+
+// The request parameters an engine refusal is about (MP-REQ-UI-1046): its config paths (HistInputError.refers) read
+// back through configOf. The bookmaker and the lead time are the server's own: no parameter. A strategy parameter of a
+// comparison carries its configuration's prefix; the shared ones (period, commission, mode) never do.
+const SHARED_CONFIG = Object.freeze({'config.commission': 'commission', 'config.pit_mode': 'pit_mode', 'config.outcomes_as_of': 'outcomes_as_of'});
+export function requestFields(refers, prefix = '') {
+  const out = [];
+  for (const path of refers ?? []) {
+    if (Object.hasOwn(SHARED_CONFIG, path)) { out.push(SHARED_CONFIG[path]); continue; }
+    const def = /^config\.strategy_definition\.(selection|side|conditions\.(\w+))(?:\.|$)/.exec(path);
+    const own = def ? (def[2] === 'teams' ? 'team' : def[2] ?? def[1])
+      : {'config.strategy': 'strategy', 'config.stake': 'stake', 'config.bankroll': 'bankroll', 'config.money_management.model': 'mm_model',
+        'config.money_management.params': 'mm_value'}[path] ?? (/^config\.money_management\.params\./.test(path) ? 'mm_value' : null);
+    if (own) out.push(`${prefix}${own}`);
+  }
+  return [...new Set(out)];
+}
 
 function dateOf(ApiError, name, value) {
   // An impossible date (month 13, day 32) is an invalid Date: refused here, never a RangeError (PR #230 review R2-NB-2).
   const time = DATE.test(value) ? Date.parse(`${value}T00:00:00Z`) : NaN;
-  if (Number.isNaN(time) || new Date(time).toISOString().slice(0, 10) !== value) throw badRequest(ApiError, `${name} must be a date YYYY-MM-DD`);
+  if (Number.isNaN(time) || new Date(time).toISOString().slice(0, 10) !== value) throw badRequest(ApiError, `${name} must be a date YYYY-MM-DD`, [name]);
   return value;
 }
 
@@ -64,22 +81,22 @@ export function configOf(input) {
 function checkRequest(ApiError, input) {
   const from = dateOf(ApiError, 'from', input.from), to = dateOf(ApiError, 'to', input.to);
   const days = (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000;
-  if (days < 0 || days > HIST_BACKTEST_LIMITS.maxDays) throw badRequest(ApiError, `to must be from..from+${HIST_BACKTEST_LIMITS.maxDays} days`);
-  if (input.competition !== undefined && !/^fpt:competition:[0-9a-f]{32}$/.test(input.competition)) throw badRequest(ApiError, 'competition must be an fpt:competition id');
+  if (days < 0 || days > HIST_BACKTEST_LIMITS.maxDays) throw badRequest(ApiError, `to must be from..from+${HIST_BACKTEST_LIMITS.maxDays} days`, ['from', 'to']);
+  if (input.competition !== undefined && !/^fpt:competition:[0-9a-f]{32}$/.test(input.competition)) throw badRequest(ApiError, 'competition must be an fpt:competition id', ['competition']);
 }
 function checkStrategy(ApiError, input, prefix = '') {
   const n = name => `${prefix}${name}`;
-  if ((input.mm_model === undefined) !== (input.mm_value === undefined)) throw badRequest(ApiError, `${n('mm_model')} and ${n('mm_value')} go together`);
-  if (input.mm_model && input.stake !== undefined) throw badRequest(ApiError, `${n('stake')} is not used with ${n('mm_model')}`);
-  if (input.selection !== undefined && input.strategy !== undefined) throw badRequest(ApiError, `${n('strategy')} and ${n('selection')} are exclusive`);
+  if ((input.mm_model === undefined) !== (input.mm_value === undefined)) throw badRequest(ApiError, `${n('mm_model')} and ${n('mm_value')} go together`, [n('mm_model'), n('mm_value')]);
+  if (input.mm_model && input.stake !== undefined) throw badRequest(ApiError, `${n('stake')} is not used with ${n('mm_model')}`, [n('stake')]);
+  if (input.selection !== undefined && input.strategy !== undefined) throw badRequest(ApiError, `${n('strategy')} and ${n('selection')} are exclusive`, [n('strategy'), n('selection')]);
   if (input.selection === undefined) {
     const stray = DEFINITION_PARAMS.filter(name => input[name] !== undefined);
-    if (stray.length) throw badRequest(ApiError, `${stray.map(n).join(', ')} need ${n('selection')}`);
-  } else if (input.side === undefined) throw badRequest(ApiError, `${n('side')} is required with ${n('selection')}`);
+    if (stray.length) throw badRequest(ApiError, `${stray.map(n).join(', ')} need ${n('selection')}`, [...stray.map(n), n('selection')]);
+  } else if (input.side === undefined) throw badRequest(ApiError, `${n('side')} is required with ${n('selection')}`, [n('side')]);
   try { validateConfig(configOf(input)); }
   catch (error) {
     // The engine names config fields; a variant's refusal also names the variant's parameter prefix.
-    if (error instanceof HistInputError) throw badRequest(ApiError, prefix ? `${prefix.slice(0, -1)}: ${error.message}` : error.message);
+    if (error instanceof HistInputError) throw badRequest(ApiError, prefix ? `${prefix.slice(0, -1)}: ${error.message}` : error.message, requestFields(error.refers, prefix));
     throw error;
   }
 }
@@ -210,7 +227,7 @@ export function histCompareEndpoint({param, integer, oneOf, instant, ApiError}) 
       // The shared parameters are checked once, unprefixed (a wrong commission is not configuration A's).
       try { validateConfig(configOf(shared(input))); }
       catch (error) {
-        if (error instanceof HistInputError) throw badRequest(ApiError, error.message);
+        if (error instanceof HistInputError) throw badRequest(ApiError, error.message, requestFields(error.refers));
         throw error;
       }
       for (const key of keys) checkStrategy(ApiError, {...shared(input), ...variantInput(input, key)}, `${key}_`);

@@ -3,9 +3,9 @@
 ## File corrente
 
 - File: [`matchpilot-trading-os.html`](matchpilot-trading-os.html), percorso stabile. Le versioni non cambiano nome: la storia è in git e in questo changelog.
-- Versione: **Mock UX v2026.10.24d**
+- Versione: **Mock UX v2026.10.24e**
 - Ultimo aggiornamento: 2026-10-24
-- SHA-256: `9b84b4ad75cf4f07905e2e7904ff08781570ad7c75c6e06d25b96222301d90fe`
+- SHA-256: `c3a62faa81f7d14207273aaf9eb8ced2c9397715e8852e034675b2d3345c716b`
 - Allineato a: roadmap #97 (revisione owner 06/10/2026)
 - Issue rappresentate: #12, #20, #23, #24, #25, #27, #28, #29, #30, #31, #32, #34, #40, #44, #45, #46, #87, #91, #94, #95, #96, #97, #98, #99, #100, #102
 
@@ -53,6 +53,12 @@ Il mock è un riferimento UX/prodotto **vivo**. Non è l'architettura e non cert
 - Il layout usa font Google; senza rete il menu desktop può tagliare l'ultima voce.
 
 ## Changelog
+
+### v2026.10.24e — Fondamenta (MP-UI-PR-007)
+
+- Nella pagina Backtest una nota descrive le fondamenta del sito reale: badge PIT / NON PIT sui risultati e nel Match Center, componente unico per DEMO, NON DISPONIBILE e N/D, stesse parole per ogni errore del server su ogni pagina con codice e «Riprova», campo rifiutato indicato dal campo strutturato del server, collaudo su desktop, tablet e telefono.
+- I testi brevi dei badge proposti in Q6 (MP-REQ-UI-1044) non sono approvati: il badge dice il suo tipo.
+- Il backtest del mock resta DEMO.
 
 ### v2026.10.24d — Strategie (MP-UI-PR-006, #34)
 

@@ -11,7 +11,7 @@ What is certified, and how, is in [certification.md](certification.md) (QA-03).
 `node tools/qa/browser-qa.mjs --out <dir>` (`npm run qa:browser`):
 1. starts the real server (`src/server.mjs`, `PORT=0`, test mode) on a throwaway PostgreSQL schema (local or CI service, never production);
 2. loads the QA archive through the real FutPythonTrader ingestion path (`test/helpers/fpt-seed.mjs#seedQaArchive`): two competitions sharing dates, 86 matches, a day with 31 matches so the Daily Board must page;
-3. drives a real Chromium/Chrome (`playwright-core`, already a pinned dev dependency; no browser download) through every required journey on every required viewport (desktop 1280×800, mobile 390×844);
+3. drives a real Chromium/Chrome (`playwright-core`, already a pinned dev dependency; no browser download) through every required journey on every required viewport (desktop 1280×800, tablet 820×1180, mobile 390×844; tablet since MP-UI-PR-007, D12 decision 24/10);
 4. writes the evidence: `report.json`, a screenshot per step, a Playwright trace per journey and viewport, and the SHA-256 of every file.
 
 Required journeys (`tools/qa/journeys.mjs`):
@@ -49,7 +49,11 @@ After **every step** the runner also checks, on the page as rendered:
 - After a journey change, `node tools/qa/control-inventory.mjs assertions qa-evidence/report.json` (and `actuations`, `sightings`) lists the steps where each control was asserted (actuated, seen) on every viewport, to update `evidence` and `exercised_by`.
 - `npm run ui:progress` computes the completion from statuses and evidence: seen, actuated and asserted counts; verified = `TESTED` or certified; `CERTIFIED MOCK` and `CERTIFIED REAL` apart (the latter impossible on the seeded QA archive).
 
-A journey fails on any JavaScript error, failed request or HTTP error ≥ 400 that it did not declare as expected. Expected errors are declared per journey and path (for example the 400 of a refused filter), and only the browser's console line for that status is then accepted: no false positive, no blanket allowance. An expected error can be bound to the one step that provokes it (`allowHttp: [{path, status, step}]`, review #251): outside that step the same status on the same path fails the journey. A 500 is a server defect, so its allowance must name its step, and an allowance bound to a step that never ran fails the journey too (`test/browser-qa-gate.test.mjs` proves the three cases). A network failure a journey provokes on purpose is declared the same way (`allowNetwork: [{path, error}]`, MP-UI-PR-005): only that request failing with that error, and its console line, are accepted.
+The journey `http-errors` (MP-UI-PR-007) is the browser negative matrix: every view that reads the API (Oggi, Ricerca, Partita, Simulazione, Confronto, Strumenti, Fornitori, API) is opened with its request answered by 401, 403, 404, 409, 414, 429, 500, 503 and a network timeout in turn. The page must show the state of that status in the words of `src/web/states.js`, keep the code, offer «Riprova» (which reloads the view once the source answers), go to the login and back on a 401, and never show a blank page. A view with a state of its own (another run in progress, too many rules) shows that state.
+
+The invariants also check the shared badges (`src/web/states.js`): an area declared DEMO (`data-mode="DEMO"`, the view included) must show a visible DEMO badge, and every badge must show exactly the text of its kind.
+
+A journey fails on any JavaScript error, failed request or HTTP error ≥ 400 that it did not declare as expected. Expected errors are declared per journey and path (for example the 400 of a refused filter), and only the browser's console line for that status is then accepted: no false positive, no blanket allowance. An expected error can be bound to the one step that provokes it (`allowHttp: [{path, status, step}]`, review #251): outside that step the same status on the same path fails the journey. Every server error (5xx) must name its step, or the list of steps that provoke it (MP-UI-PR-007, review #251 T-2), and an allowance bound to a step that never ran fails the journey too (`test/browser-qa-gate.test.mjs` proves the cases). A step ends only once its requests have their answers (at most 5 seconds), so a late answer is judged in the step that asked for it. Each allowed response excuses exactly the console line the browser writes for that resource (same status, same path), never a line of another resource (`unexpectedConsoleLines`, tested in `test/ui-foundations.test.mjs`). The report lists the allowed responses with their step (`allowed_http`). A network failure a journey provokes on purpose is declared the same way (`allowNetwork: [{path, error}]`, MP-UI-PR-005): only that request failing with that error, and its console line, are accepted.
 
 ## Feature certification
 
@@ -58,6 +62,7 @@ Owner decision MP-UI-CONTINUOUS-FUNCTIONAL-CERTIFICATION-01: certification is pe
 - requirements, issues, PRs and journeys;
 - data: `REAL`, `DEMO`, `COMPUTED` (the real server computes from what the user types), `UNAVAILABLE` (a real source the deployed app does not have yet, such as the persistence archive; no certified level) or `NONE`. The declaration agrees with the controls (review #251): `REAL` needs a `REAL` control, `DEMO` a `DEMO` one, and a feature whose controls only reach an unavailable source declares `UNAVAILABLE`;
 - `ui_requirements`: the ids of the 1,090-requirement matrix (`docs/governance/ui-requirements-matrix.json`) the feature implements. Each id belongs to one feature, with the same data mode; a `TESTED` one sits in a feature at least `TESTED`, and its `evidence_refs` are checked one by one (`requirementEvidenceErrors`): a test whose title carries the requirement id, or a journey step whose controls are `TESTED` and, with a report, asserted in that very step on every viewport. A step without controls is supporting evidence only;
+- the register's `cross_cutting_ui_requirements` lists the foundations every view shares (viewports, badges, HTTP states, negative matrix; MP-UI-PR-007): each id is in no feature, and a `TESTED` one has its `evidence_refs` checked the same way;
 - whether it is financial;
 - dependencies, limits and the next activity;
 - its entry module (`entry`), source modules (`sources`) and test files (`test_files`):
@@ -138,7 +143,7 @@ After the journeys, the same job compares 15 approved views and states on deskto
 | Playwright | PARTIAL (`playwright-core` via `node:test`) | PASS (same library, runner and traces) |
 | Server start/stop, isolated QA PostgreSQL | PASS | PASS |
 | Fixtures through the real ingestion path | PASS (one league) | PASS (two leagues, busy day) |
-| Desktop and mobile | PASS | PASS |
+| Desktop and mobile (tablet since MP-UI-PR-007) | PASS | PASS |
 | Console and JS errors | PASS | PASS |
 | HTTP/API errors | PARTIAL (console only) | PASS (responses, failed requests, declared expectations) |
 | Screenshots | PARTIAL (on failure, not kept) | PASS (every step, kept) |

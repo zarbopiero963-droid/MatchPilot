@@ -103,7 +103,7 @@ test('the runner fails a real page that leaks a raw value, with evidence (delibe
   // The defect: the page renders missing values with String(value) instead of N/D.
   const contextHook = context => context.route('**/assets/app.js', async route => {
     const response = await route.fetch();
-    const body = (await response.text()).replace("if (missing) return el('span', {class: 'nd', title: 'Valore non disponibile'}, ND);", 'if (false) return null;');
+    const body = (await response.text()).replace("if (missing) return badge('ND');", 'if (false) return null;');
     await route.fulfill({response, body});
   });
   let report;
@@ -345,4 +345,41 @@ test('an expected HTTP 500 is accepted only in the step that provokes it (review
   // Every journey of the suite declares its 500s step by step.
   const {JOURNEYS} = await import('../tools/qa/journeys.mjs');
   for (const declared of JOURNEYS) assert.deepEqual(allowHttpErrors(declared), [], declared.id);
+});
+
+test('MP-REQ-UI-1043 MP-REQ-UI-1079: a DEMO area without a visible DEMO badge, or a badge with another text, fails the journey (injected defects)', {timeout: 240000}, async t => {
+  const {runBrowserQa} = await import('../tools/qa/browser-qa.mjs');
+  const out = mkdtempSync(join(tmpdir(), 'mp-qa-demo-'));
+  t.after(() => rmSync(out, {recursive: true, force: true}));
+  const open = async (page, base) => { await page.goto(`${base}/#/search`); await page.waitForSelector('[data-testid="search-form"]'); };
+  // The defects are written into the real page after it renders, as a DEMO view would show them.
+  const mark = (page, html) => page.evaluate(markup => {
+    const area = document.createElement('section');
+    area.dataset.mode = 'DEMO';
+    area.innerHTML = markup;
+    document.querySelector('main').append(area);
+  }, html);
+  const journey = (id, html) => ({id, surface: 'QA', title: id, run: async ({page, base, step}) => {
+    await step('vista DEMO', async () => { await open(page, base); await mark(page, html); });
+  }});
+  const journeys = [
+    journey('qa-demo-labelled', '<h2>Partite dimostrative</h2><span class="badge badge-demo" data-badge="DEMO" title="Dati dimostrativi.">DEMO</span>'),
+    journey('qa-demo-unlabelled', '<h2>Partite dimostrative</h2>'),
+    journey('qa-demo-hidden-badge', '<h2>Partite dimostrative</h2><span data-badge="DEMO" hidden>DEMO</span>'),
+    journey('qa-demo-wrong-text', '<h2>Partite dimostrative</h2><span data-badge="DEMO">Reale</span>'),
+  ];
+  let report;
+  try {
+    report = await runBrowserQa({out, journeys, viewports: ['desktop'], headSha: HEAD});
+  } catch (error) {
+    if (!process.env.CI && /no Chromium|ECONNREFUSED/.test(String(error?.message))) return t.skip(String(error.message));
+    throw error;
+  }
+  const run = id => report.journeys.find(j => j.id === id);
+  assert.equal(run('qa-demo-labelled').status, 'PASS', run('qa-demo-labelled').reason);
+  for (const [id, reason] of [['qa-demo-unlabelled', /DEMO data without a visible DEMO badge/], ['qa-demo-hidden-badge', /DEMO data without a visible DEMO badge/],
+    ['qa-demo-wrong-text', /badge DEMO shows "Reale"/]]) {
+    assert.equal(run(id).status, 'FAIL', id);
+    assert.match(run(id).reason, reason, id);
+  }
 });

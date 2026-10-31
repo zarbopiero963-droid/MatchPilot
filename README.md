@@ -68,7 +68,7 @@ Tutte le route `/api/v1/*` sono in sola lettura. Leggono soltanto il database di
 
 - **Registro machine-readable:** `GET /api/v1/endpoints` elenca ogni endpoint con lo schema dei parametri, la fonte e la route legacy che sostituisce, oltre all'inventario delle route legacy e ai codici di errore.
 - **Envelope:** ogni risposta ha la forma `{api_version, endpoint, data, meta}`. `meta` contiene `source`, `provenance` (provider, `upstream_calls: 0`, versioni dei dati), `as_of` (l'istante point-in-time effettivamente applicato dal lettore, `null` se l'endpoint non ne ha), `generated_at`, `code_version` e `coverage` (righe e limite applicato; `null` = default della query).
-- **Errori:** `{api_version, error: {code, message}}` con i codici `BAD_REQUEST`, `UNKNOWN_PARAMETER`, `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `URI_TOO_LONG`, `UNAVAILABLE` (database non raggiungibile o in errore) e `INTERNAL` (difetto del codice). Non espongono mai stack trace o dettagli interni.
+- **Errori:** `{api_version, error: {code, message, fields?}}` con i codici `BAD_REQUEST`, `UNKNOWN_PARAMETER`, `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `URI_TOO_LONG`, `UNAVAILABLE` (database non raggiungibile o in errore) e `INTERNAL` (difetto del codice). Non espongono mai stack trace o dettagli interni. `fields` (MP-UI-PR-007, MP-REQ-UI-1046) elenca i parametri della richiesta a cui si riferisce un rifiuto (per esempio `b_stake` nel confronto): le pagine indicano il campo da qui, senza leggere il messaggio. Fanno eccezione gli Strumenti di trading, che restano invariati finché la loro certificazione non viene rifatta.
 - **Validazione:** prima di accedere al database vengono rifiutati i parametri sconosciuti, ripetuti, troppo lunghi, mancanti se obbligatori o malformati. Valgono questi limiti: `limit` 1–500 sugli endpoint FPT e 1–5000 (default 2000) su `tc/schema-registry`; `as_of` è un istante ISO-8601 con fuso; `knowledge` è `provider` o `captured`; date e identificativi seguono il proprio formato. Nessun valore viene corretto in silenzio. I valori arrivano alle query solo come parametri bound.
 - **Endpoint:**
   - `/api/v1/health`, `/api/v1/providers`;
@@ -266,6 +266,13 @@ Un'analisi pre-match deve poter essere ricostruita usando esclusivamente snapsho
 ## Web app
 
 > La web app cresce in modo incrementale insieme ai backend necessari, una PR alla volta (D12-19, [`docs/governance/roadmap-reconciliation-2026-10-24-D12.md`](docs/governance/roadmap-reconciliation-2026-10-24-D12.md)). Consuma solo API del server e non contiene logica finanziaria autorevole. La roadmap UI è #239; il mock vivo in `docs/mockups/` è un riferimento UX e non certifica nulla.
+
+**Fondamenta (MP-UI-PR-007):**
+- I badge **PIT** / **NON PIT** compaiono sui risultati di Simulazione e Confronto e nel Match Center. Il Match Center è NON PIT perché il server dichiara `PIT_NOT_VERIFIED`.
+- I badge **DEMO**, **NON DISPONIBILE** e N/D sono un unico componente (`src/web/states.js`). Oggi nessuna pagina mostra dati DEMO; il gate verifica che, quando ce ne saranno, il badge sia visibile.
+- Ogni errore del server ha le stesse parole su ogni pagina, con il codice conservato e «Riprova». Fanno eccezione gli stati propri di alcune pagine: Simulazione e Confronto per il 429 (simulazione in corso), Confronto per il 414, i valori rifiutati (400) di Ricerca, Simulazione, Confronto e Strumenti.
+- La Browser QA gira su desktop, tablet e telefono, compresa la matrice negativa (401, 403, 404, 409, 414, 429, 500, 503, rete scaduta) su ogni vista con API.
+- I testi brevi dei badge proposti in Q6 non sono approvati: il badge dice il suo tipo.
 
 ### Home / Daily Board
 Card per tutte le partite disponibili con:

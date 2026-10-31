@@ -379,17 +379,20 @@ const ID_PATTERNS = {
   match_id: /^fpt:(hash|id):[A-Za-z0-9_-]{1,64}$/
 };
 
+// `fields` names the inputs the refusal is about (query-layer names; v1 maps them to its parameter names), so a page
+// marks the field without reading the message (MP-REQ-UI-1046).
 export class QueryInputError extends Error {
-  constructor(message) {
+  constructor(message, fields = []) {
     super(message);
     this.code = 'BAD_QUERY_INPUT';
+    this.fields = fields;
   }
 }
 
 function isoDate(value, name) {
   const s = String(value ?? '').trim();
   if (!realCalendarDate(s)) {
-    throw new QueryInputError(`${name} must be YYYY-MM-DD`);
+    throw new QueryInputError(`${name} must be YYYY-MM-DD`, [name]);
   }
   return s;
 }
@@ -397,20 +400,20 @@ function isoDate(value, name) {
 function idOf(value, name, {optional = false} = {}) {
   if (optional && (value == null || value === '')) return null;
   const s = String(value ?? '').trim();
-  if (!ID_PATTERNS[name].test(s)) throw new QueryInputError(`invalid ${name}`);
+  if (!ID_PATTERNS[name].test(s)) throw new QueryInputError(`invalid ${name}`, [name]);
   return s;
 }
 
 function slugOf(value, name) {
   const s = String(value ?? '').trim().toLowerCase();
-  if (!/^[a-z0-9-]{1,80}$/.test(s)) throw new QueryInputError(`${name} must be a catalog slug`);
+  if (!/^[a-z0-9-]{1,80}$/.test(s)) throw new QueryInputError(`${name} must be a catalog slug`, [name]);
   return s;
 }
 
 function limitOf(value, fallback = 50) {
   if (value == null || value === '') return fallback;
   const n = Number(value);
-  if (!Number.isInteger(n) || n < 1 || n > 500) throw new QueryInputError('limit must be an integer between 1 and 500');
+  if (!Number.isInteger(n) || n < 1 || n > 500) throw new QueryInputError('limit must be an integer between 1 and 500', ['limit']);
   return n;
 }
 
@@ -421,40 +424,40 @@ function todayUtc(now = new Date()) {
 function venueOf(value, fallback = 'both') {
   if (value == null || value === '') return fallback;
   const v = String(value).trim().toLowerCase();
-  if (!Object.hasOwn(TEAM_VENUE_SQL, v)) throw new QueryInputError('venue must be home, away or both');
+  if (!Object.hasOwn(TEAM_VENUE_SQL, v)) throw new QueryInputError('venue must be home, away or both', ['venue']);
   return v;
 }
 
 function priceOf(value, name, {optional = false} = {}) {
   if (optional && (value == null || value === '')) return null;
   const n = Number(String(value ?? '').replace(',', '.'));
-  if (!Number.isFinite(n) || n < 1.01 || n > 1000) throw new QueryInputError(`${name} must be a decimal price between 1.01 and 1000`);
+  if (!Number.isFinite(n) || n < 1.01 || n > 1000) throw new QueryInputError(`${name} must be a decimal price between 1.01 and 1000`, [name]);
   return n;
 }
 
 function intOf(value, name, {min = 0, max = 100, optional = false} = {}) {
   if (optional && (value == null || value === '')) return null;
   const n = Number(value);
-  if (!Number.isInteger(n) || n < min || n > max) throw new QueryInputError(`${name} must be an integer between ${min} and ${max}`);
+  if (!Number.isInteger(n) || n < min || n > max) throw new QueryInputError(`${name} must be an integer between ${min} and ${max}`, [name]);
   return n;
 }
 
 function ratioOf(value, name) {
   const n = Number(value);
-  if (!Number.isFinite(n) || n < 0 || n > 1) throw new QueryInputError(`${name} must be between 0 and 1`);
+  if (!Number.isFinite(n) || n < 0 || n > 1) throw new QueryInputError(`${name} must be between 0 and 1`, [name]);
   return n;
 }
 
 function fieldOf(value) {
   const s = String(value ?? '').trim();
-  if (!/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(s)) throw new QueryInputError('field must be a registry field name');
+  if (!/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(s)) throw new QueryInputError('field must be a registry field name', ['field']);
   return s;
 }
 
 function timestampOf(value, name) {
   const s = String(value ?? '').trim();
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/.test(s) || Number.isNaN(Date.parse(s))) {
-    throw new QueryInputError(`${name} must be an ISO-8601 timestamp with time zone`);
+    throw new QueryInputError(`${name} must be an ISO-8601 timestamp with time zone`, [name]);
   }
   return new Date(s).toISOString();
 }
@@ -507,7 +510,7 @@ function encodeCursor(name, input, row) {
 
 function decodeCursor(name, input) {
   if (input.cursor == null || input.cursor === '') return null;
-  const invalid = () => new QueryInputError('cursor is invalid for this query or these filters');
+  const invalid = () => new QueryInputError('cursor is invalid for this query or these filters', ['cursor']);
   const text = String(input.cursor);
   if (text.length > MAX_CURSOR_LENGTH || !/^[A-Za-z0-9_-]+$/.test(text)) throw invalid();
   let parts;
@@ -532,7 +535,7 @@ export const SEARCH_FILTERS = {
   fav_max: {parse: v => priceOf(v, 'fav_max'), sql: p => `favorite_odd <= ${p}`},
   fav_side: {parse: v => {
     const s = String(v).trim().toUpperCase();
-    if (!['HOME', 'AWAY', 'EVEN'].includes(s)) throw new QueryInputError('fav_side must be HOME, AWAY or EVEN');
+    if (!['HOME', 'AWAY', 'EVEN'].includes(s)) throw new QueryInputError('fav_side must be HOME, AWAY or EVEN', ['fav_side']);
     return s;
   }, sql: p => `favorite_side = ${p}`},
   home_odd_min: {parse: v => priceOf(v, 'home_odd_min'), sql: p => `odd_home >= ${p}`},
@@ -541,14 +544,14 @@ export const SEARCH_FILTERS = {
   over25_max: {parse: v => priceOf(v, 'over25_max'), sql: p => `odd_over25 <= ${p}`},
   result: {parse: v => {
     const s = String(v).trim().toUpperCase();
-    if (!['FINAL', 'NO_RESULT', 'NOT_STARTED'].includes(s)) throw new QueryInputError('result must be FINAL, NO_RESULT or NOT_STARTED');
+    if (!['FINAL', 'NO_RESULT', 'NOT_STARTED'].includes(s)) throw new QueryInputError('result must be FINAL, NO_RESULT or NOT_STARTED', ['result']);
     return s;
   }, sql: p => `result_status = ${p}`},
   min_goals: {parse: v => intOf(v, 'min_goals', {max: 30}), sql: p => `total_goals >= ${p}`},
   max_goals: {parse: v => intOf(v, 'max_goals', {max: 30}), sql: p => `total_goals <= ${p}`},
   min_xg_total: {parse: v => {
     const n = Number(v);
-    if (!Number.isFinite(n) || n < 0 || n > 20) throw new QueryInputError('min_xg_total must be between 0 and 20');
+    if (!Number.isFinite(n) || n < 0 || n > 20) throw new QueryInputError('min_xg_total must be between 0 and 20', ['min_xg_total']);
     return n;
   }, sql: p => `xg_home + xg_away >= ${p}`},
   // Data-quality dimensions (MP-WEB-007): only matches whose stored facts carry these values. A missing or placeholder
@@ -558,7 +561,7 @@ export const SEARCH_FILTERS = {
 };
 
 function flagOf(value, name) {
-  if (String(value).trim() !== 'true') throw new QueryInputError(`${name} must be true when present`);
+  if (String(value).trim() !== 'true') throw new QueryInputError(`${name} must be true when present`, [name]);
   return true;
 }
 
@@ -568,7 +571,7 @@ function buildSearch(name, input, {now}) {
   const applied = [];
   const bind = value => { values.push(value); return `$${values.length}`; };
   const phase = input.phase == null || input.phase === '' ? 'HISTORICAL' : String(input.phase).trim().toUpperCase();
-  if (!['HISTORICAL', 'PREMATCH'].includes(phase)) throw new QueryInputError('phase must be HISTORICAL or PREMATCH');
+  if (!['HISTORICAL', 'PREMATCH'].includes(phase)) throw new QueryInputError('phase must be HISTORICAL or PREMATCH', ['phase']);
   where.push(`phase = ${bind(phase)}`);
   const before = input.before ? isoDate(input.before, 'before') : todayUtc(now);
   where.push(`match_date < ${bind(before)}::date`);
@@ -580,7 +583,7 @@ function buildSearch(name, input, {now}) {
     where.push(TEAM_VENUE_SQL[venue].replaceAll('$1', p));
     applied.push('team', `venue:${venue}`);
   } else if (input.venue != null && input.venue !== '') {
-    throw new QueryInputError('venue needs team');
+    throw new QueryInputError('venue needs team', ['venue']);
   }
   for (const [key, filter] of Object.entries(SEARCH_FILTERS)) {
     if (input[key] == null || input[key] === '') continue;
@@ -589,7 +592,7 @@ function buildSearch(name, input, {now}) {
     applied.push(key);
   }
   if (input.fav_min != null && input.fav_max != null && Number(input.fav_min) > Number(input.fav_max)) {
-    throw new QueryInputError('fav_min must not exceed fav_max');
+    throw new QueryInputError('fav_min must not exceed fav_max', ['fav_min', 'fav_max']);
   }
   const after = decodeCursor(name, input);
   if (after) {
@@ -622,7 +625,7 @@ export function buildQuery(name, input = {}, {now = new Date()} = {}) {
   switch (name) {
     case 'teamSearch': {
       const normalized = normalizeTeamName(input.q);
-      if (!normalized) throw new QueryInputError('q is required');
+      if (!normalized) throw new QueryInputError('q is required', ['q']);
       return {name, sql: QUERIES.teamSearch.sql, values: [normalized]};
     }
     case 'teamMatches': {
@@ -632,7 +635,7 @@ export function buildQuery(name, input = {}, {now = new Date()} = {}) {
     case 'awayMatches':
       return {name, sql: teamMatchesSql('away'), values: [idOf(input.team, 'team_id'), before(), limitOf(input.limit, 20)], venue: 'away'};
     case 'favoriteOddsRange': {
-      if (input.min == null || input.max == null) throw new QueryInputError('min and max are required');
+      if (input.min == null || input.max == null) throw new QueryInputError('min and max are required', ['min', 'max']);
       const q = buildSearch(name, {
         competition: input.competition, season: input.season, before: input.before, limit: input.limit,
         fav_min: input.min, fav_max: input.max, fav_side: input.side && String(input.side).toLowerCase() !== 'any' ? input.side : undefined
@@ -644,7 +647,7 @@ export function buildQuery(name, input = {}, {now = new Date()} = {}) {
     case 'xgBySeason': {
       const hasTeam = input.team != null && input.team !== '';
       const hasCompetition = input.competition != null && input.competition !== '';
-      if (hasTeam === hasCompetition) throw new QueryInputError('pass exactly one of team or competition');
+      if (hasTeam === hasCompetition) throw new QueryInputError('pass exactly one of team or competition', ['team', 'competition']);
       return hasTeam
         ? {name, sql: QUERIES.xgByTeamSeason.sql, values: [idOf(input.team, 'team_id'), before()], scope: 'team'}
         : {name, sql: QUERIES.xgByCompetitionSeason.sql, values: [idOf(input.competition, 'competition_id'), before()], scope: 'competition'};

@@ -27,7 +27,7 @@ function bundle(t, mutate = () => {}) {
   const put = (path, content) => { writeFileSync(join(dir, path), content); files[path] = sha256(Buffer.from(content)); };
   const observations = [];
   const trails = [];
-  for (const viewport of ['desktop', 'mobile']) {
+  for (const viewport of ['desktop', 'tablet', 'mobile']) {
     for (const label of ['open', 'end']) {
       const file = `observations/01-${viewport}-${label}.json`;
       const screenshot = `observations/01-${viewport}-${label}.png`;
@@ -43,7 +43,7 @@ function bundle(t, mutate = () => {}) {
     steps: [{type: 'goto', url: '/#/'}, {type: 'button', query: 'main button', index: 0, text: 'x'}], screenshot: 'screenshots/01-desktop-finding-1.png',
     classification: 'UNTRIAGED', severity: 'UNTRIAGED', reproduced: true}];
   const report = {schema: 'mp-browser-explore-v1', head_sha: HEAD, tested_commit: COMMIT, working_tree_clean: true, restricted: false, generated_at: new Date().toISOString(),
-    seed: 1, actions_per_route: 5, viewports: ['desktop', 'mobile'], routes: ['/#/'], trails, totals: {actions: 10, action_errors: 0, findings: 1, reproduced: 1}, findings, observations, injected_defect: false,
+    seed: 1, actions_per_route: 5, viewports: ['desktop', 'tablet', 'mobile'], routes: ['/#/'], trails, totals: {actions: 15, action_errors: 0, findings: 1, reproduced: 1}, findings, observations, injected_defect: false,
     ai_review: {status: 'NOT_VERIFIED'}, files};
   mutate(report, dir);
   writeFileSync(join(dir, 'exploration.json'), JSON.stringify(report));
@@ -221,8 +221,8 @@ test('the same seed on the same site replays the same exploration, and its bundl
   const verified = verifyExploration(out, {expectedHead: report.head_sha, expectedCommit: report.tested_commit});
   assert.equal(report.restricted, true);
   assert.deepEqual(report.routes, ['/#/']);
-  // (A desktop-only test run also lacks the required mobile viewport.)
-  const expected = ['the run was restricted to some routes (test run): not valid evidence', 'required viewport mobile not explored'];
+  // (A desktop-only test run also lacks the required tablet and mobile viewports.)
+  const expected = ['the run was restricted to some routes (test run): not valid evidence', 'required viewport tablet not explored', 'required viewport mobile not explored'];
   if (!report.working_tree_clean) expected.unshift('the run was made on a modified working tree');
   assert.deepEqual(verified.errors, expected);
   for (const item of report.observations) assert.ok(existsSync(join(out, item.screenshot)) && existsSync(join(out, item.file)));

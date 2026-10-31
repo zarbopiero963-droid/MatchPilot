@@ -1,0 +1,141 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261024T234225Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-24T23:42:25Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-UI006-FINAL-UI007-01",
+    "source": "owner message to Claude Code, 2026-10-24 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): merge of PR #251 when every gate holds, then the next UI PR without its merge"
+  },
+  "task": "MP-UI-PR-007-FOUND",
+  "activity": "MP-UI-PR-007 Fondamenta (#239): shared badges and HTTP states, tablet viewport, browser negative matrix, structured error fields, every Confronto field asserted; no merge without owner authorization",
+  "issue": 239,
+  "pr": 252,
+  "branch": "ui-pr-007",
+  "commit_sha": "8dc1836c40f4ed4999ab250eb5319a67f8188c85",
+  "tree_sha": "3c4beccd4a73a587445b9b5242e8b65f5be38a90",
+  "base_sha": "03bd11a0002d6cc6cbf693438fd373ca1f3e6eb5",
+  "requirements": [
+    "MP-WEB-011",
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "error.fields in v1 refusals; pages read them (Strumenti excluded: certified)",
+    "src/web/states.js badges and HTTP states",
+    "tablet required viewport",
+    "http-errors journey",
+    "Browser QA gate: step-bound 5xx, in-flight wait, per-resource console lines, DEMO badge invariant",
+    "Confronto: every field asserted",
+    "matrix and register (cross-cutting requirements)",
+    "mock v2026.10.24e",
+    "visual baselines"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16",
+      "commit": "8dc1836c40f4ed4999ab250eb5319a67f8188c85",
+      "time": "2026-10-24T23:42:25Z",
+      "limits": [
+        "735 tests, 734 pass, 1 skip (PostgreSQL 17, runs in CI); Browser QA 33/33 on a clean tree at 0fe0afe (app code unchanged since); visual 63/63 after promoting 18 baselines"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "8dc1836c40f4ed4999ab250eb5319a67f8188c85"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "context-separated same-model sub-agent review pending (DEC-004-R1)"
+  },
+  "findings": [
+    {
+      "id": "PR007-T-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "MP-REQ-UI-1046 PARTIAL: Strumenti still reads the refused field from its message; changing src/api/tools.mjs voids CERTIFIED CALCULATION, so it waits for a re-certification of Trading Tools"
+    },
+    {
+      "id": "PR007-T-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "MP-REQ-UI-1028 PARTIAL: 28 controls of other views are not yet ASSERTED (search, sim, match, board, shell, data)"
+    },
+    {
+      "id": "PR007-T-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "MP-REQ-UI-1029 and 1079 PARTIAL: no DEMO view exists; the data mode per area is not shown as a badge on REAL views"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-UI006-FINAL-UI007-01",
+    "MP-OWNER-D12-IMPLEMENTATION-20261024",
+    "MP-UI-D12-DECISIONS-20261024",
+    "MP-UI-ROADMAP-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and final review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:src/web/app.js",
+    "file:src/web/states.js",
+    "file:src/api/v1.mjs",
+    "file:src/api/hist-backtest.mjs",
+    "file:tools/qa/browser-qa.mjs",
+    "file:tools/qa/journeys.mjs",
+    "file:tools/qa/feature-certification.mjs",
+    "file:docs/qa/control-inventory.json",
+    "file:docs/qa/feature-certification.json",
+    "file:docs/governance/ui-requirements-matrix.json",
+    "branch:ui-pr-007",
+    "pr:252"
+  ],
+  "stop_conditions": [
+    "no merge of PR-007 (MP-OWNER-UI006-FINAL-UI007-01)",
+    "one development PR at a time",
+    "no deploy"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and independent review on PR #252, then stop: merge only with explicit owner authorization",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}
