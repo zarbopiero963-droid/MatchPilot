@@ -53,6 +53,22 @@ export const QUERIES = {
       LIMIT 20`,
     params: ['normalized_name']
   },
+  // MP-UI-PR-009-TEAMSEARCH: squads whose name (any spelling the archive knows) contains the words typed, for the
+  // search of the shell. The exact match comes first, then names starting with the text, then the others; the
+  // normalized text holds only [a-z0-9], so strpos needs no escaping. teamSearch (exact) stays as it is.
+  teamNameSearch: {
+    sql: `SELECT t.internal_team_id, t.canonical_name, t.country_slug, t.competitions,
+        CASE min(CASE WHEN a.normalized_name = $1 THEN 0 WHEN starts_with(a.normalized_name, $1) THEN 1 ELSE 2 END)
+          WHEN 0 THEN 'exact' WHEN 1 THEN 'prefix' ELSE 'contains' END AS match_kind
+      FROM fpt_team_aliases a
+      JOIN fpt_teams t USING (internal_team_id)
+      WHERE strpos(a.normalized_name, $1) > 0
+      GROUP BY t.internal_team_id, t.canonical_name, t.country_slug, t.competitions
+      ORDER BY min(CASE WHEN a.normalized_name = $1 THEN 0 WHEN starts_with(a.normalized_name, $1) THEN 1 ELSE 2 END),
+        t.canonical_name, t.country_slug, t.internal_team_id
+      LIMIT $2`,
+    params: ['normalized_name', 'limit']
+  },
   teamMatches: {
     sql: teamMatchesSql('both'),
     params: ['team_id', 'before', 'limit', 'venue']
@@ -628,6 +644,14 @@ export function buildQuery(name, input = {}, {now = new Date()} = {}) {
       if (!normalized) throw new QueryInputError('q is required', ['q']);
       return {name, sql: QUERIES.teamSearch.sql, values: [normalized]};
     }
+    case 'teamNameSearch': {
+      const normalized = normalizeTeamName(input.q);
+      if (normalized.length < 3) throw new QueryInputError('q needs at least 3 letters or digits', ['q']);
+      if (normalized.length > 80) throw new QueryInputError('q is too long', ['q']);
+      const limit = limitOf(input.limit, 20);
+      if (limit > 50) throw new QueryInputError('limit must be an integer between 1 and 50', ['limit']);
+      return {name, sql: QUERIES.teamNameSearch.sql, values: [normalized, limit]};
+    }
     case 'teamMatches': {
       const venue = venueOf(input.venue);
       return {name, sql: teamMatchesSql(venue), values: [idOf(input.team, 'team_id'), before(), limitOf(input.limit)], venue};
@@ -737,6 +761,7 @@ export function presentPayload(payload, registryRows) {
 
 export const ROUTES = {
   '/api/fpt/teams': 'teamSearch',
+  '/api/fpt/team-search': 'teamNameSearch',
   '/api/fpt/team-matches': 'teamMatches',
   '/api/fpt/team-summary': 'teamSummary',
   '/api/fpt/h2h': 'headToHead',
@@ -762,6 +787,7 @@ export const ROUTES = {
 // Machine-readable description of every query, for MatchPilot Copilot (#44) and other DB-only callers.
 export const QUERY_CATALOG = [
   {name: 'teamSearch', route: '/api/fpt/teams', question: 'Quale squadra è "Ajax"?', params: {q: 'testo, obbligatorio'}},
+  {name: 'teamNameSearch', route: '/api/fpt/team-search', question: 'Quali squadre hanno "aja" nel nome?', params: {q: 'almeno 3 lettere o cifre', limit: '1–50, default 20'}},
   {name: 'teamMatches', route: '/api/fpt/team-matches', question: 'Ultime N partite di una squadra (casa, trasferta o entrambe)',
     params: {team: 'fpt:team:…', venue: 'home|away|both (default both)', before: 'YYYY-MM-DD, esclusa', limit: '1–500'}},
   {name: 'awayMatches', route: '/api/fpt/away-matches', question: 'Ultime 20 trasferte di una squadra',

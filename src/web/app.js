@@ -369,15 +369,18 @@ async function findView(params) {
   if (!q) return [title, el('p', {class: 'state empty', 'data-testid': 'find-empty'}, 'Scrivi il nome di una squadra o di una pagina nel campo Cerca in alto.')];
   const folded = foldText(q);
   const pages = FIND_PAGES.filter(([, label, keys]) => foldText(`${label} ${keys}`).includes(folded));
-  // A squad is found by its exact name, in any spelling the archive knows; its matches open in Ricerca.
-  const teams = (await getJson(`/api/v1/fpt/teams?${queryString({q})}`)).data?.rows ?? [];
+  // MP-UI-PR-009-TEAMSEARCH: a squad is found by part of its name, in any spelling the archive knows (the API compares
+  // letters and digits only, from 3 of them); its matches open in Ricerca. Shorter text asks for more, no request.
+  const key = q.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const teams = key.length >= 3 ? (await getJson(`/api/v1/fpt/team-search?${queryString({q})}`)).data?.rows ?? [] : null;
   const section = (testid, heading, items, empty) => el('section', {class: 'card', 'data-testid': testid}, el('h2', {}, `${heading} (${items.length})`),
     items.length ? el('ul', {}, items) : el('p', {class: 'state empty'}, empty));
   return [title,
+    teams === null ? el('p', {class: 'state empty', 'data-testid': 'find-short'}, 'Per cercare una squadra scrivi almeno 3 lettere o cifre del nome.') :
     section('find-teams', 'Squadre', teams.map(team => el('li', {'data-team': team.internal_team_id ?? ''},
       el('a', {href: `#/search?${queryString({team_id: team.internal_team_id, run: '1'})}`, 'data-control': 'CTL-FIND-TEAM'}, team.canonical_name ?? badge('ND')),
       ' · ', team.country_slug ? words(team.country_slug) : badge('ND'))),
-    'Nessuna squadra con questo nome nell’archivio: la ricerca usa il nome esatto, in qualunque grafia nota.'),
+    'Nessuna squadra nell’archivio ha queste lettere nel nome.'),
     section('find-pages', 'Pagine', pages.map(([href, label]) => el('li', {}, el('a', {href, 'data-control': 'CTL-FIND-PAGE'}, label))),
       'Nessuna pagina con questo nome.')];
 }

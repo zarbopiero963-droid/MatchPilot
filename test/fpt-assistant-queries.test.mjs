@@ -39,6 +39,17 @@ test('away matches, odds range and combined search build parameterized SQL only'
   assert.throws(() => buildQuery('searchMatches', {competition: "x' OR 1=1 --"}), QueryInputError);
 });
 
+test('MP-UI-PR-009-TEAMSEARCH: the search by part of a name needs 3 letters or digits and a limit up to 50', () => {
+  assert.deepEqual(buildQuery('teamNameSearch', {q: 'Ajà'}).values, ['aja', 20]);
+  assert.deepEqual(buildQuery('teamNameSearch', {q: 'Twente', limit: '50'}).values, ['twente', 50]);
+  assert.deepEqual(buildQuery('teamNameSearch', {q: "'; drop%"}).values, ['drop', 20], 'only letters and digits reach the SQL, as a parameter');
+  for (const q of [undefined, '', 'aj', ' a-j ', '%%%']) {
+    assert.throws(() => buildQuery('teamNameSearch', {q}), error => error.fields?.[0] === 'q', String(q));
+  }
+  assert.throws(() => buildQuery('teamNameSearch', {q: 'ajax', limit: '51'}), error => error.fields?.[0] === 'limit');
+  assert.throws(() => buildQuery('teamNameSearch', {q: 'a'.repeat(81)}), error => error.fields?.[0] === 'q');
+});
+
 test('xg by season, point in time and coverage validate their inputs', () => {
   assert.equal(buildQuery('xgBySeason', {team: TEAM}).scope, 'team');
   assert.equal(buildQuery('xgBySeason', {competition: COMP}).scope, 'competition');
@@ -185,6 +196,14 @@ test('assistant queries answer from Postgres with indexes and point-in-time', {t
       }
 
       const ajax = (await query.runQuery(client, 'teamSearch', {q: 'Ajax'})).rows[0].internal_team_id;
+      // MP-UI-PR-009-TEAMSEARCH: part of a name, any spelling; exact first, then prefix, then contains.
+      const byPart = async q => (await query.runQuery(client, 'teamNameSearch', {q})).rows.map(r => [r.canonical_name, r.match_kind]);
+      assert.deepEqual(await byPart('aja'), [['Ajax', 'prefix']]);
+      assert.deepEqual(await byPart('AJAX'), [['Ajax', 'exact']]);
+      assert.deepEqual(await byPart('ente'), [['Twente', 'contains']]);
+      assert.deepEqual((await byPart('tre')).map(([name]) => name), ['Utrecht'], 'Utrecht contains tre');
+      assert.deepEqual(await byPart('zzz'), [], 'no squad, no row');
+      assert.equal((await query.runQuery(client, 'teamNameSearch', {q: 'ajax'})).rows[0].internal_team_id, ajax, 'the same squad as the exact search');
       const away = await query.runQuery(client, 'awayMatches', {team: ajax, before: '2100-01-01', limit: 20});
       assert.equal(away.rows.length, 10, 'Ajax plays 5 away games per season');
       assert.ok(away.rows.every(r => r.away_team_id === ajax));

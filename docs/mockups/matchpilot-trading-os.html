@@ -452,7 +452,7 @@ table.mtx td, table.mtx th { text-align: center; padding: 5px 6px; font-family: 
     </button>
     <nav class="mainnav" id="mainnav" aria-label="Sezioni"></nav>
     <div class="hdr-r">
-      <div class="searchbox" data-issue="#239 sito reale MP-UI-PR-009-NAV" title="Sito reale (MP-UI-PR-009-NAV): il campo Cerca è nell'intestazione di ogni pagina; apre i risultati con le squadre dell'archivio (nome esatto, dall'API) e le loro partite in Ricerca, e le pagine dell'app con quel nome. Nel mock filtra solo la home DEMO."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8494A8" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" id="q" placeholder="Cerca squadra o campionato" aria-label="Cerca"></div>
+      <div class="searchbox" data-issue="#239 sito reale MP-UI-PR-009-NAV" title="Sito reale (MP-UI-PR-009-NAV): il campo Cerca è nell'intestazione di ogni pagina; apre i risultati con le squadre dell'archivio che hanno quelle lettere nel nome (almeno 3, dall'API) e le loro partite in Ricerca, e le pagine dell'app con quel nome. Nel mock filtra solo la home DEMO."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8494A8" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" id="q" placeholder="Cerca squadra o campionato" aria-label="Cerca"></div>
       <button class="iconbtn" id="askBtn" title="Chiedi all'assistente" aria-label="Assistente"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFB547" stroke-width="2"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></button>
       <button class="iconbtn" id="bellBtn" title="Notifiche" aria-label="Notifiche"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#C3CEDB" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><span class="badge">3</span></button>
       <button class="bank" data-go="money" title="Disponibile da #99 Settlement/Ledger · DEMO"><span class="l">Disponibile</span><span class="v" id="bankV">€ —</span></button>
@@ -586,7 +586,7 @@ function renderNav() {
   $('#bottomnav').innerHTML = [['home', 'Oggi'], ['live', 'Live'], ['strategies', 'Strategie'], ['tools', 'Tools'], ['portfolio', 'Portafoglio'], ['data', 'Dati']].map(([k, l]) => `<button data-go="${k}" ${cur === k ? 'aria-current="page"' : ''}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>${l}</button>`).join('');
 }
 /* Striscia REAL / DEMO su ogni pagina (#97): il mock non certifica il backend. */
-const MOCK_VERSION = 'Mock UX v2026.10.31c';
+const MOCK_VERSION = 'Mock UX v2026.10.31f';
 function demoStrip(v) {
   const real = v === 'data';
   const txt = real ? 'Le sezioni marcate REAL arrivano dalle route pubbliche certificate MatchPilot (#12), lette il 06/10/2026 alle 08:01 UTC. Tutto il resto della pagina è DEMO.'

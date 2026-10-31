@@ -56,8 +56,7 @@
       "financial": false,
       "dependencies": [],
       "limits": [
-        "Impostazioni e permessi (SETTINGS-CORE-01, #95, #23) non costruiti",
-        "La ricerca trova una squadra solo col nome esatto (in qualunque grafia nota): la ricerca per parte del nome richiede una nuova API"
+        "Impostazioni e permessi (SETTINGS-CORE-01, #95, #23) non costruiti"
       ],
       "next": "Voci di menu delle card successive solo con le loro pagine; Daily Board (MP-UI-PR-010-BOARD).",
       "state": "TESTED",
