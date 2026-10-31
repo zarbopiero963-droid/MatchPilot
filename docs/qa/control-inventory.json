@@ -144,9 +144,14 @@
       "issues": [
         3
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "global-search",
+          "step": "cerca: dal campo in alto la squadra dell’API e le sue partite in Ricerca"
+        }
+      ]
     },
     {
       "id": "CTL-NAV-FIND",
@@ -159,9 +164,14 @@
       "issues": [
         3
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "global-search",
+          "step": "cerca: dal campo in alto la squadra dell’API e le sue partite in Ricerca"
+        }
+      ]
     },
     {
       "id": "CTL-FIND-TEAM",
@@ -174,9 +184,14 @@
       "issues": [
         3
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "global-search",
+          "step": "cerca: dal campo in alto la squadra dell’API e le sue partite in Ricerca"
+        }
+      ]
     },
     {
       "id": "CTL-FIND-PAGE",
@@ -189,9 +204,14 @@
       "issues": [
         3
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "global-search",
+          "step": "cerca: le pagine dell’app per nome, senza accenti né maiuscole"
+        }
+      ]
     },
     {
       "id": "CTL-COMMON-RETRY",
