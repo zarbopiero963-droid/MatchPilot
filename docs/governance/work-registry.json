@@ -1915,6 +1915,30 @@
       "merge_sha": "7f0896e6ea3e1b1a5d6bcc00f89cc320b0892e3e"
     },
     {
+      "id": "MP-PRODUCT-100-AUDIT",
+      "title": "MP-PRODUCT-100: audit, provider inventory, architecture, roadmap",
+      "issue": 239,
+      "pr": 262,
+      "branch": "docs-mp-product-100",
+      "kind": "audit",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T225000Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/product/mp-product-100/README.md",
+        "file:docs/product/mp-product-100/A-frontend.md",
+        "file:docs/product/mp-product-100/B-backend.md",
+        "file:docs/product/mp-product-100/C-providers.md",
+        "file:docs/product/mp-product-100/C-providers.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "7c95cffaafa8495b7b70ad931edd662cbb11101c"
+    },
+    {
       "id": "MP-UI-PR-010-BOARD-COMP",
       "title": "MP-UI-PR-010-BOARD-COMP: competition filter on Oggi",
       "issue": 239,
