@@ -1939,6 +1939,26 @@
       "merge_sha": "7c95cffaafa8495b7b70ad931edd662cbb11101c"
     },
     {
+      "id": "TEST-ISO-01-PERSIST-API",
+      "title": "TEST-ISO-01: persistence-api check isolated from parallel test files",
+      "issue": 239,
+      "pr": 267,
+      "branch": "test-persist-isolation",
+      "kind": "implementation",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T231000Z-agent-a-claude-code",
+      "resources": [
+        "file:test/persistence-api.test.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "e9559d5a1518fcb0025202f9800ce8d9fe691a2c"
+    },
+    {
       "id": "MP-UI-PR-010-BOARD-COMP",
       "title": "MP-UI-PR-010-BOARD-COMP: competition filter on Oggi",
       "issue": 239,
