@@ -1918,7 +1918,7 @@
       "id": "MP-UI-PR-009-TEAMSEARCH",
       "title": "MP-UI-PR-009-TEAMSEARCH: squads by part of the name",
       "issue": 239,
-      "pr": null,
+      "pr": 264,
       "branch": "ui-pr-009-teamsearch",
       "kind": "implementation",
       "state": "REVIEW",
@@ -1938,7 +1938,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
