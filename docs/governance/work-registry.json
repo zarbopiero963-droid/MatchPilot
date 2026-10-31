@@ -1921,9 +1921,9 @@
       "pr": 262,
       "branch": "docs-mp-product-100",
       "kind": "audit",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261031T222531Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261031T225000Z-agent-a-claude-code",
       "resources": [
         "file:docs/product/mp-product-100/README.md",
         "file:docs/product/mp-product-100/A-frontend.md",
@@ -1935,7 +1935,28 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "7c95cffaafa8495b7b70ad931edd662cbb11101c"
+    },
+    {
+      "id": "MP-UI-SAFE-01-CERT-TILE",
+      "title": "MP-UI-SAFE-01: certification tile phases from the API (FE-48)",
+      "issue": 239,
+      "pr": null,
+      "branch": "ui-safe-01-certtile",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T225658Z-agent-a-claude-code",
+      "resources": [
+        "file:src/web/app.js",
+        "file:test/web-e2e.test.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
