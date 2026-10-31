@@ -1965,12 +1965,33 @@
       "pr": 266,
       "branch": "ui-safe-01-certtile",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261031T225658Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261031T233000Z-agent-a-claude-code",
       "resources": [
         "file:src/web/app.js",
         "file:test/web-e2e.test.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "01354f79f6af6b4af81e5e5d6df358032537fc82"
+    },
+    {
+      "id": "MP-PIT-TIMING-01",
+      "title": "MP-PIT-TIMING-01: explicit identity, unknown fields post-match",
+      "issue": 239,
+      "pr": 265,
+      "branch": "pit-timing-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T224303Z-agent-a-claude-code",
+      "resources": [
+        "file:src/providers/futpython/schema.mjs",
+        "file:test/schema.test.mjs"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
