@@ -1870,7 +1870,7 @@
       "id": "MP-UI-PR-011-SRCHX",
       "title": "MP-UI-PR-011-SRCHX: Ricerca filters of the search API",
       "issue": 239,
-      "pr": null,
+      "pr": 258,
       "branch": "ui-pr-011-srchx",
       "kind": "implementation",
       "state": "REVIEW",
@@ -1889,7 +1889,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
