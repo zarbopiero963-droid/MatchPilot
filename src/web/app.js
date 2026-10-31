@@ -371,7 +371,8 @@ async function findView(params) {
   const pages = FIND_PAGES.filter(([, label, keys]) => foldText(`${label} ${keys}`).includes(folded));
   // MP-UI-PR-009-TEAMSEARCH: a squad is found by part of its name, in any spelling the archive knows (the API compares
   // letters and digits only, from 3 of them); its matches open in Ricerca. Shorter text asks for more, no request.
-  const key = q.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  // The same folding as the server's normalizeTeamName (src/providers/futpython/teams.mjs), trailing «(ABC)» included.
+  const key = q.replace(/\s*\([A-Za-z]{3}\)\s*$/u, '').normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
   const teams = key.length >= 3 ? (await getJson(`/api/v1/fpt/team-search?${queryString({q})}`)).data?.rows ?? [] : null;
   const section = (testid, heading, items, empty) => el('section', {class: 'card', 'data-testid': testid}, el('h2', {}, `${heading} (${items.length})`),
     items.length ? el('ul', {}, items) : el('p', {class: 'state empty'}, empty));

@@ -2264,6 +2264,9 @@ export const JOURNEYS = [
         await fresh(page, `${base}/#/find?q=aj`);
         await page.waitForSelector('[data-testid="find-short"]');
         assert.deepEqual(asked, [], 'two letters ask nothing of the archive');
+        await fresh(page, `${base}/#/find?q=${encodeURIComponent('Ab (NED)')}`);
+        await page.waitForSelector('[data-testid="find-short"]');
+        assert.deepEqual(asked, [], 'a country suffix does not count: «Ab (NED)» is two letters for the server too');
         assert.equal(await page.locator('[data-testid="find-teams"]').count(), 0);
       });
       await step('cerca: nessun risultato e campo vuoto, detti senza inventare', async () => {
