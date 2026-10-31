@@ -1,0 +1,133 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261031T213500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-31T21:35:00Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-PR254-ROADMAP-20261031",
+    "source": "owner message to Claude Code, 2026-10-31 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): merge of PR #254 and autonomous roadmap continuation"
+  },
+  "task": "MP-GOV-SAFE-AUTOMERGE-RULES",
+  "activity": "PR #254 merged as 7f0896e (squash) on the owner's authorization; main CI green; deploy-vps refused by mp-runner-guard (no deploy)",
+  "issue": 97,
+  "pr": 254,
+  "branch": "gov-safe-automerge",
+  "commit_sha": "375703d0da0e25f8884ecdcbaca39e13d9294f92",
+  "tree_sha": "76a7cd898a544981f84defac5fbd11486b0cc1ad",
+  "base_sha": "472c91b433d7435be772250316b5a9e0441f14a4",
+  "requirements": [],
+  "changes": [
+    "AGENTS.md §4: SAFE conditions, SAFE register updates, MANUAL categories",
+    "CLAUDE.md: the D12 suspension applies except to SAFE PRs",
+    "owner decision MP-OWNER-SAFE-REGISTERS-20261031 registered",
+    "MERGED checkpoint of PR #253",
+    "main merged in; MERGED checkpoint of PR #258",
+    "AGENTS §4 lists the SAFE conditions and MANUAL categories of the decisions in full (review finding)",
+    "7f0896e: squash merge of PR #254"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #254 head 375703d",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "375703d0da0e25f8884ecdcbaca39e13d9294f92",
+      "time": "2026-10-31T21:35:00Z",
+      "limits": [
+        "run 41243226739 success (Fast checks, CI gate; UI and PostgreSQL jobs skipped by classification: documents only)"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 7f0896e",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "7f0896e6ea3e1b1a5d6bcc00f89cc320b0892e3e",
+      "time": "2026-10-31T21:35:00Z",
+      "limits": [
+        "run 41243432032 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 7f0896e",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "7f0896e6ea3e1b1a5d6bcc00f89cc320b0892e3e",
+      "time": "2026-10-31T21:35:00Z",
+      "limits": [
+        "run 41243432119: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41243226739,
+    "conclusion": "SUCCESS",
+    "head_sha": "375703d0da0e25f8884ecdcbaca39e13d9294f92"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "375703d0da0e25f8884ecdcbaca39e13d9294f92",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/254#issuecomment-6549322469"
+  },
+  "findings": [
+    {
+      "id": "PR254-F1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "the MANUAL list was a shortened paraphrase of the decision; now complete, the decision text prevails"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-PR254-ROADMAP-20261031",
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031"
+  ],
+  "progress": {
+    "done": [
+      "text changes",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:AGENTS.md",
+    "file:CLAUDE.md",
+    "file:docs/governance/owner-decisions.json"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261031T184000Z-agent-a-claude-code",
+  "merge_sha": "7f0896e6ea3e1b1a5d6bcc00f89cc320b0892e3e"
+}
