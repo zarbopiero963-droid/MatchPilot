@@ -1,0 +1,121 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261031T231000Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-31T23:10:00Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-PR254-ROADMAP-20261031",
+    "source": "owner message to Claude Code, 2026-10-31 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): autonomous roadmap continuation, SAFE auto-merge"
+  },
+  "task": "TEST-ISO-01-PERSIST-API",
+  "activity": "PR #267 merged as e9559d5 (squash, SAFE: test only); main CI green; deploy-vps refused by mp-runner-guard (no deploy)",
+  "issue": 239,
+  "pr": 267,
+  "branch": "test-persist-isolation",
+  "commit_sha": "0eabe24b37bddc437d732f7e637c91f857d86dce",
+  "tree_sha": "f464d0c471af9d181f34294dd195df006a072e95",
+  "base_sha": "7c95cffaafa8495b7b70ad931edd662cbb11101c",
+  "requirements": [],
+  "changes": [
+    "test/persistence-api.test.mjs: pool application_name = schema; check filtered on it and asserts it",
+    "MERGED checkpoint of PR #262",
+    "registry records PR #267",
+    "e9559d5: squash merge of PR #267"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #267 head 0eabe24",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "0eabe24b37bddc437d732f7e637c91f857d86dce",
+      "time": "2026-10-31T23:10:00Z",
+      "limits": [
+        "run 41250709486 success (Fast checks, PostgreSQL integration suite, CI gate)"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main e9559d5",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "e9559d5a1518fcb0025202f9800ce8d9fe691a2c",
+      "time": "2026-10-31T23:10:00Z",
+      "limits": [
+        "run 41251042268 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main e9559d5",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "e9559d5a1518fcb0025202f9800ce8d9fe691a2c",
+      "time": "2026-10-31T23:10:00Z",
+      "limits": [
+        "run 41251042253: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41250709486,
+    "conclusion": "SUCCESS",
+    "head_sha": "0eabe24b37bddc437d732f7e637c91f857d86dce"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "0eabe24b37bddc437d732f7e637c91f857d86dce",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/267#issuecomment-6550311965"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-OWNER-PR254-ROADMAP-20261031",
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031"
+  ],
+  "progress": {
+    "done": [
+      "fix",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:test/persistence-api.test.mjs"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261031T230029Z-agent-a-claude-code",
+  "merge_sha": "e9559d5a1518fcb0025202f9800ce8d9fe691a2c"
+}
