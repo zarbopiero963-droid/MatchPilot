@@ -281,7 +281,7 @@
       "kind": "link",
       "label": "Copertura",
       "action": "apre la scheda Copertura",
-      "api": "/coverage",
+      "api": "/api/v1/fpt/coverage-competitions",
       "data": "REAL",
       "issues": [
         31
@@ -314,6 +314,70 @@
           "step": "apertura dalla copertura in Dati"
         }
       ]
+    },
+    {
+      "id": "CTL-COVERAGE-COUNTRY",
+      "view": "coverage",
+      "kind": "select",
+      "label": "Paese",
+      "action": "sceglie il paese dei campionati",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        12,
+        31
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-COVERAGE-SHOW",
+      "view": "coverage",
+      "kind": "button",
+      "label": "Mostra",
+      "action": "ricarica i campionati del paese scelto",
+      "api": "/api/v1/fpt/coverage-competitions",
+      "data": "REAL",
+      "issues": [
+        12,
+        31
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-COVERAGE-LEAGUE",
+      "view": "coverage",
+      "kind": "link",
+      "label": "Campionato (riga)",
+      "action": "apre le stagioni del campionato",
+      "api": "/api/v1/fpt/coverage-seasons",
+      "data": "REAL",
+      "issues": [
+        12,
+        31
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-COVERAGE-BACK",
+      "view": "coverage",
+      "kind": "link",
+      "label": "Tutti i campionati",
+      "action": "torna all'elenco dei campionati",
+      "api": "/api/v1/fpt/coverage-competitions",
+      "data": "REAL",
+      "issues": [
+        12,
+        31
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
     },
     {
       "id": "CTL-BOARD-OPEN-MATCH",

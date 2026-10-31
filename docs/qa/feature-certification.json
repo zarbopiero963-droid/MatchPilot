@@ -251,24 +251,30 @@
       "name": "Dati e diagnostica",
       "perimeter": "Area tecnica: stato dei dati, fornitori, registro API, copertura.",
       "views": [
-        "data"
+        "data",
+        "coverage"
       ],
       "requirements": [],
+      "ui_requirements": [
+        "MP-REQ-UI-0257",
+        "MP-REQ-UI-1040"
+      ],
       "issues": [
         31
       ],
       "prs": [],
       "journeys": [
         "dashboard",
-        "providers-endpoints"
+        "providers-endpoints",
+        "coverage"
       ],
       "data": "REAL",
       "financial": false,
       "dependencies": [],
       "limits": [
-        "La pagina /coverage non è nell'app: è una pagina del server, aperta dalla scheda Copertura (MP-UI-PR-008-COV)"
+        "La copertura vive nell'app (#/coverage, MP-UI-PR-008-COV); la pagina /coverage del server resta solo tecnica, fuori dalla navigazione", "Nessuna sovrapposizione FutPythonTrader–TotalCorner mostrata: TotalCorner è sospeso"
       ],
-      "next": "Copertura nell'app (MP-UI-PR-008-COV).",
+      "next": "Campagna REAL su archivio certificato (R-02, #40).",
       "state": "TESTED",
       "certification": null
     },

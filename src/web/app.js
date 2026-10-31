@@ -283,9 +283,75 @@ const reasonText = error => `${error?.code ?? 'CLIENT'}${error?.message ? ` — 
 // ---- Dati: the technical area (MP-OWNER-UI-NO-RAW-TEXT-01 §3.7, V-B2) ----
 
 // The technical views share one section of the menu, «Dati», and a strip of tabs, as in the approved mockup.
-const DATA_TABS = [['data', 'Panoramica', '#/data'], ['providers', 'Fornitori', '#/providers'], ['endpoints', 'API', '#/endpoints'], [null, 'Copertura', '/coverage']];
+const DATA_TABS = [['data', 'Panoramica', '#/data'], ['providers', 'Fornitori', '#/providers'], ['endpoints', 'API', '#/endpoints'], ['coverage', 'Copertura', '#/coverage']];
 const dataTabs = current => el('nav', {class: 'tabs', 'aria-label': 'Sezioni dei dati', 'data-testid': 'data-tabs'},
   DATA_TABS.map(([view, text, href]) => el('a', {href, 'aria-current': view === current ? 'page' : null, 'data-control': ctl('DATA-TAB', view ?? 'coverage')}, text)));
+
+// ---- Copertura: the FutPythonTrader archive per competition, inside the app (MP-UI-PR-008-COV, MP-REQ-UI-1040) ----
+
+// A share of the API (exact decimal text, e.g. "0.9950") as a percentage: the decimal point moves two places on the
+// text itself, so nothing is rounded in the browser (MP-WEB-011).
+function shareText(value) {
+  const m = /^(\d+)(?:\.(\d+))?$/.exec(String(value ?? ''));
+  if (!m) return badge('ND');
+  const digits = `${m[1]}${(m[2] ?? '').padEnd(2, '0')}`;
+  const cut = m[1].length + 2;
+  const whole = digits.slice(0, cut).replace(/^0+(?=\d)/, '');
+  const rest = digits.slice(cut).replace(/0+$/, '');
+  return document.createTextNode(`${formatDecimalText(rest ? `${whole}.${rest}` : whole)}%`);
+}
+// The state of a competition or of a season, in words; the code stays in data-code and the tooltip.
+const COVERAGE_STATE = {AVAILABLE: 'Disponibile', ONBOARDING: 'In attivazione', ERROR: 'Errore del fornitore', UNAVAILABLE_404: 'Non pubblicata dal fornitore',
+  NO_DATA: 'Nessun dato', available: 'Disponibile', unavailable_404: 'Non pubblicata dal fornitore', error: 'Errore del fornitore'};
+const coverageState = value => (typeof value === 'string' && Object.hasOwn(COVERAGE_STATE, value)
+  ? el('span', {class: 'code', title: value, 'data-code': value}, COVERAGE_STATE[value]) : formatScalar(value));
+const coverageHref = params => `#/coverage${queryString(params) ? `?${queryString(params)}` : ''}`;
+// A table whose rows are {attrs, cells: [[content, cellAttrs?], …]}; on a phone each cell repeats its column title.
+const coverageTable = (columns, rows) => el('div', {class: 'tablewrap'}, el('table', {class: 'results'},
+  el('thead', {}, el('tr', {}, columns.map(text => el('th', {scope: 'col'}, text)))),
+  el('tbody', {}, rows.map(row => el('tr', row.attrs ?? {},
+    row.cells.map(([content, attrs = {}], i) => el('td', {'data-label': columns[i], ...attrs}, content)))))));
+
+async function coverageView(params) {
+  const country = (params.get('country') ?? '').trim();
+  const league = (params.get('league') ?? '').trim();
+  const backList = el('a', {href: '#/coverage', 'data-control': 'CTL-COVERAGE-BACK'}, 'Tutti i campionati');
+  if (league) {
+    const body = await getJson(`/api/v1/fpt/coverage-seasons?${queryString({country, league})}`);
+    const rows = Array.isArray(body.data?.rows) ? body.data.rows : [];
+    const title = el('h1', {}, `${words(country)} · ${words(league)}`);
+    if (!rows.length) return [title, dataTabs('coverage'), el('p', {class: 'state empty', role: 'status', 'data-testid': 'coverage-seasons-empty'}, 'Nessuna stagione in archivio per questo campionato.'), el('p', {class: 'meta'}, backList)];
+    return [title, dataTabs('coverage'),
+      el('section', {class: 'card', 'data-testid': 'coverage-seasons'}, el('h2', {}, `Stagioni (${rows.length})`),
+        coverageTable(['Stagione', 'Stato', 'Partite', 'Dal', 'Al', 'Con quote 1X2', 'Con xG', 'Buco'], rows.map(row => ({attrs: {'data-season': row.season ?? ''}, cells: [
+          [seasonOf(row.season)], [coverageState(row.availability)], [num(row.matches), {'data-field': 'matches'}], [calendarDay(row.first_date)], [calendarDay(row.last_date)],
+          [shareText(row.odds_coverage), {'data-field': 'odds_coverage'}], [shareText(row.xg_coverage), {'data-field': 'xg_coverage'}],
+          [row.gap ? el('span', {class: 'bad', 'data-field': 'gap'}, 'sì') : el('span', {'data-field': 'gap'}, 'no')]]})))),
+      el('p', {class: 'meta'}, backList)];
+  }
+  // The country filter is real: its choices are the countries of the archive, and a choice reloads the list from the
+  // server with that country (MP-REQ-UI-1027, no decorative select).
+  const all = await getJson('/api/v1/fpt/coverage-competitions');
+  const every = Array.isArray(all.data?.rows) ? all.data.rows : [];
+  const filtered = country ? await getJson(`/api/v1/fpt/coverage-competitions?${queryString({country})}`) : all;
+  const rows = Array.isArray(filtered.data?.rows) ? filtered.data.rows : [];
+  const countries = [...new Set(every.map(row => row.country_slug).filter(Boolean))].sort();
+  const filter = el('form', {class: 'controls', 'data-testid': 'coverage-filter', onsubmit: event => {
+    event.preventDefault();
+    location.hash = coverageHref({country: new FormData(event.target).get('country')});
+  }},
+  el('label', {}, 'Paese ', el('select', {name: 'country', 'data-control': 'CTL-COVERAGE-COUNTRY'},
+    [['', 'Tutti'], ...countries.map(slug => [slug, words(slug)])].map(([v, text]) => el('option', {value: v, selected: v === country}, text)))),
+  el('button', {type: 'submit', 'data-control': 'CTL-COVERAGE-SHOW'}, 'Mostra'));
+  const head = [el('h1', {}, 'Copertura dei campionati'), dataTabs('coverage'), filter];
+  if (!rows.length) return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'coverage-empty'}, 'Nessun campionato in archivio per questa scelta.')];
+  return [...head, el('section', {class: 'card', 'data-testid': 'coverage-list'}, el('h2', {}, `Campionati (${rows.length})`),
+    coverageTable(['Campionato', 'Stato', 'Stagioni con dati', 'Partite', 'Dal', 'Al', 'Con quote 1X2', 'Con xG'], rows.map(row => ({
+      attrs: {'data-competition': row.internal_competition_id ?? ''}, cells: [
+        [el('a', {href: coverageHref({country: row.country_slug, league: row.league_slug}), 'data-control': 'CTL-COVERAGE-LEAGUE'}, `${words(row.country_slug ?? '')} · ${words(row.league_slug ?? '')}`)],
+        [coverageState(row.coverage_status)], [[num(row.seasons_with_data), ' su ', num(row.seasons_listed)], {'data-field': 'seasons'}], [num(row.matches), {'data-field': 'matches'}],
+        [seasonOf(row.first_season)], [seasonOf(row.last_season)], [shareText(row.odds_coverage), {'data-field': 'odds_coverage'}], [shareText(row.xg_coverage), {'data-field': 'xg_coverage'}]]}))))];
+}
 
 // ---- Stato dei dati, formerly the Dashboard (MP-WEB-013) ----
 
@@ -1696,8 +1762,8 @@ const VIEWS = {'': ['la pagina', boardView, 'user'], board: ['la pagina', boardV
   match: ['la partita', matchView, 'user'],
   data: ['lo stato dei dati', dashboardView, 'technical'], providers: ['i fornitori dati', providersView, 'technical'],
   sim: ['la simulazione', simView, 'user'], tools: ['gli strumenti', toolsView, 'user'], compare: ['il confronto', compareView, 'user'], saved: ['i backtest salvati', savedView, 'user'], strategies: ['le strategie', strategiesView, 'user'],
-  endpoints: ['gli endpoint', endpointsView, 'technical']};
-const NAV_OF = {board: '', providers: 'data', endpoints: 'data', match: null, compare: 'sim', saved: 'sim', strategies: 'sim'};
+  endpoints: ['gli endpoint', endpointsView, 'technical'], coverage: ['la copertura', coverageView, 'user']};
+const NAV_OF = {board: '', providers: 'data', endpoints: 'data', coverage: 'data', match: null, compare: 'sim', saved: 'sim', strategies: 'sim'};
 
 let generation = 0;
 // Set by the search form: the next search render moves the focus to its outcome and scrolls it into view, so the result,
