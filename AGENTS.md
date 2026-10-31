@@ -73,27 +73,38 @@ Il contratto prodotto si modifica solo con decisione owner registrata.
 
 > **Sospensione owner MP-OWNER-D12-IMPLEMENTATION-20261024 (24/10/2026): vigente, tranne per le PR SAFE** (MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031 e MP-OWNER-SAFE-REGISTERS-20261031, 31/10/2026).
 >
-> **Quando l'agente fa il merge (squash) senza chiedere.** Valgono le condizioni sotto e quelle del mandato:
-> - PR della roadmap, piccola e reversibile;
-> - nessun file critico;
-> - CI e review senza finding bloccanti;
+> **Quando l'agente fa il merge (squash) senza chiedere.** Valgono tutte le condizioni sotto e tutte quelle del mandato; questo riassunto non le riduce:
+> - PR della roadmap, nel perimetro approvato, piccola, isolata e reversibile;
+> - nessun file critico, nessuna nuova dipendenza né servizio esterno;
+> - CI e controlli obbligatori verdi; review senza finding bloccanti e nessun thread bloccante aperto;
+> - nessuna decisione owner pendente coinvolta;
 > - branch aggiornato e head verificato subito prima del merge;
 > - nessuna possibilità di deploy produttivo non autorizzato. Prima di ogni merge si verifica il meccanismo che oggi lo impedisce; un rifiuto precedente da solo non basta.
 >
-> **Aggiornamenti ordinari che restano SAFE:** matrice dei requisiti, registro delle funzionalità, checkpoint, evidenze e documentazione tecnica coerente con il codice, compresa la registrazione fedele di una decisione owner già approvata.
-> - Valgono se non cambiano il significato degli stati o i criteri di certificazione.
-> - Non introducono né ampliano decisioni o mandati.
-> - Non promuovono nulla a REAL o CERTIFIED senza evidenze e procedura.
+> Una review di un sub-agente dello stesso modello si registra come tale (self-review, DEC-004-R1) e non si presenta come indipendente.
 >
-> **PR MANUAL, che si fermano prima del merge con «AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER»:**
-> - autenticazione e segreti;
-> - sicurezza e workflow CI;
-> - database, provider e PIT;
-> - motore e logica finanziaria;
-> - deploy e VPS;
-> - costi;
-> - contratti API pubblici e certificazioni;
-> - modifiche normative ad AGENTS.md, CLAUDE.md e alle regole di auto-merge.
+> **Aggiornamenti ordinari che restano SAFE:** matrice dei requisiti, registro delle funzionalità, checkpoint, evidenze e documentazione tecnica coerente con il codice, compresa la registrazione fedele di una decisione owner già approvata. Valgono se:
+> - non cambiano il significato degli stati o i criteri di certificazione;
+> - non introducono né ampliano decisioni o mandati;
+> - non promuovono nulla a REAL o CERTIFIED senza evidenze e procedura;
+> - non toccano workflow, sicurezza, infrastruttura o file critici;
+> - CI e review passano.
+>
+> **PR MANUAL, che si fermano prima del merge con «AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER».** L'elenco segue MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031 e prevale il testo della decisione:
+> - autenticazione, autorizzazione, sessioni o credenziali;
+> - segreti, token, certificati o chiavi API;
+> - sicurezza, governance, protezione dei branch o workflow CI, comprese le modifiche normative ad AGENTS.md, CLAUDE.md e alle regole di auto-merge;
+> - database di produzione, migrazioni, schema o integrità dei dati;
+> - raccolta dai provider, quote, storico, provenienza, PIT e backfill;
+> - motore decisionale, strategie operative o logica finanziaria;
+> - deploy, VPS, infrastruttura, rete o servizi;
+> - licenze, pagamenti, costi o servizi commerciali;
+> - contratti API pubblici o componenti condivisi di impatto significativo;
+> - certificazioni approvate o requisiti che richiedono una nuova decisione owner.
+>
+> Una modifica critica non si divide in PR dall'aspetto innocuo.
+>
+> **Restano vietati all'agente:** avviare deploy; modificare deploy-vps, il runner guard (che resta in enforce), la VPS, le variabili d'ambiente, le credenziali o i servizi; riattivare Render, Neon o TotalCorner; servizi a pagamento; segreti in log, PR o commenti.
 >
 > Nessun deploy viene avviato dall'agente.
 
