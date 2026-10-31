@@ -71,7 +71,14 @@ Il contratto prodotto si modifica solo con decisione owner registrata.
 
 ## 4. Review indipendente e auto-merge (MP-OWNER-AUTOMERGE-01, D2)
 
-> **Sospensione owner MP-OWNER-D12-IMPLEMENTATION-20261024 (24/10/2026), vigente:** l'auto-merge è sospeso. Nessun merge e nessun deploy senza un'autorizzazione owner esplicita, anche quando tutte le condizioni sotto sono soddisfatte. L'agente porta la PR fino a CI verde e review, poi si ferma. Le condizioni restano necessarie per qualunque merge autorizzato.
+> **Sospensione owner MP-OWNER-D12-IMPLEMENTATION-20261024 (24/10/2026), revocata per le sole PR SAFE da MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031 (31/10/2026):** l'agente fa il merge (squash) di una PR SAFE quando valgono tutte le condizioni sotto e quelle del mandato:
+> - PR della roadmap, piccola e reversibile;
+> - nessun file critico;
+> - review senza finding bloccanti;
+> - branch aggiornato e head verificato subito prima del merge;
+> - nessuna possibilità di deploy produttivo non autorizzato: si verifica prima di ogni merge che l'ultimo `deploy-vps` su main sia stato rifiutato dal runner guard.
+>
+> Le PR MANUAL (autenticazione, segreti, sicurezza, governance delle regole, workflow CI, database, provider e PIT, motore e logica finanziaria, deploy e VPS, costi, contratti API pubblici, certificazioni) si fermano prima del merge con «AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER». Nessun deploy avviato dall'agente.
 
 > **Rettifica owner DEC-004-R1 (t122u, 22/10/2026) — prevale su questa sezione per la sola indipendenza della review.** La self-review dell'agente autore è consentita e sufficiente: si registra come "self-review" e non si presenta mai come indipendente. Non servono un secondo reviewer né nuove identità bot. Le approvazioni umane GitHub dei deploy (environment `vps-production`) restano obbligatorie e non si simulano. Il testo seguente resta per storia: dove chiede "review indipendente" va letto come self-review etichettata (SUPERSEDED da DEC-004-R1).
 

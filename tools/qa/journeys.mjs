@@ -1988,6 +1988,167 @@ export const JOURNEYS = [
     },
   },
   {
+    // MP-UI-PR-007-FOUND follow-up (MP-REQ-UI-1028): the controls no earlier journey asserted. Each one is actuated and
+    // its result checked against the API or the page it must open; nothing is only seen.
+    id: 'controls-coverage', surface: 'Tutte le viste', title: 'Controlli rimasti: logo, schede Dati, Oggi, Partita, filtri della Ricerca, parametri della Simulazione',
+    async run({page, base, step, asserted, api, seed}) {
+      const hash = () => page.evaluate(() => location.hash);
+      await step('logo e scheda Copertura: aprono Oggi e la pagina di copertura', async () => {
+        await fresh(page, `${base}/#/search`);
+        await titled(page, 'Ricerca partite');
+        await page.click('a[data-control="CTL-NAV-BRAND"]');
+        await asserted('CTL-NAV-BRAND', 'the logo opens Oggi from any view', async () => {
+          await titled(page, 'Oggi');
+          assert.equal(await hash(), '#/');
+        });
+        await fresh(page, `${base}/#/data`);
+        await titled(page, 'Stato dei dati');
+        await Promise.all([page.waitForURL(url => new URL(url).pathname === '/coverage'), page.click('a[data-control="CTL-DATA-TAB-COVERAGE"]')]);
+        await asserted('CTL-DATA-TAB-COVERAGE', 'the Copertura tab opens the coverage page of the server, and back returns to the data area', async () => {
+          assert.equal(new URL(page.url()).pathname, '/coverage');
+          assert.ok((await page.textContent('h1'))?.trim(), 'the coverage page has its title');
+          await page.goBack();
+          await titled(page, 'Stato dei dati');
+        });
+      });
+      await step('Oggi dal calendario e giorno vuoto: si torna a oggi e si apre l’area Dati', async () => {
+        await fresh(page, `${base}/#/board?date=${seed.busyDay}`);
+        await page.waitForSelector('article.match');
+        const today = await page.evaluate(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; });
+        await page.click('a[data-control="CTL-BOARD-TODAY"]');
+        await asserted('CTL-BOARD-TODAY', 'the Oggi link of the calendar shows the current day', async () => {
+          await titled(page, 'Oggi');
+          assert.match(await hash(), new RegExp(`date=${today}`));
+        });
+        // The QA archive holds past seasons only: today has no match, and the empty day points to the data area.
+        await page.waitForSelector('[data-testid="board-empty"]');
+        await page.click('a[data-control="CTL-BOARD-EMPTY-DATA"]');
+        await asserted('CTL-BOARD-EMPTY-DATA', 'an empty day links to the data area, where the last day of each league is', async () => {
+          await titled(page, 'Stato dei dati');
+          assert.equal(await hash(), '#/data');
+        });
+      });
+      await step('Partita: forma recente, indirizzo non valido e partita assente riportano a Oggi o alla Ricerca', async () => {
+        const latest = (await api('/api/v1/fpt/search?limit=1')).data.rows[0];
+        await fresh(page, `${base}/#/match?id=${encodeURIComponent(latest.internal_match_id)}`);
+        await page.waitForSelector('a[data-control="CTL-MATCH-FORM-CHIP"]');
+        const chip = page.locator('a[data-control="CTL-MATCH-FORM-CHIP"]').first();
+        const target = new URLSearchParams((await chip.getAttribute('href')).split('?')[1]).get('id');
+        await chip.click();
+        await asserted('CTL-MATCH-FORM-CHIP', 'a chip of the recent form opens the Match Center of that match, as the API knows it', async () => {
+          await page.waitForFunction(id => new URLSearchParams(location.hash.split('?')[1]).get('id') === id && document.querySelector('[data-testid="match-hero"]'), target);
+          const other = (await api(`/api/v1/fpt/match-analysis?id=${encodeURIComponent(target)}`)).data.match;
+          assert.equal(await page.textContent('[data-testid="match-hero"] [data-field="home"]'), other.home_name);
+        });
+        for (const [control, title, expected] of [['CTL-MATCH-INVALID-BOARD', 'Oggi', '#/'], ['CTL-MATCH-INVALID-SEARCH', 'Ricerca partite', '#/search']]) {
+          await fresh(page, `${base}/#/match?id=non-valida`);
+          await page.waitForSelector('[data-testid="match-invalid"]');
+          await page.click(`a[data-control="${control}"]`);
+          await asserted(control, `an invalid match address leads to ${title}`, async () => {
+            await titled(page, title);
+            assert.equal(await hash(), expected);
+          });
+        }
+        await fresh(page, `${base}/#/match?id=${encodeURIComponent('fpt:hash:qa-assente')}`);
+        await page.click('a[data-control="CTL-MATCH-UNKNOWN-BOARD"]');
+        await asserted('CTL-MATCH-UNKNOWN-BOARD', 'a match the archive does not hold leads back to Oggi', async () => {
+          await titled(page, 'Oggi');
+          assert.equal(await hash(), '#/');
+        });
+      });
+      await step('Ricerca: esito, quota del favorito, gol massimi e xG arrivano all’API; data del risultato, squadra omonima e Azzera', async () => {
+        await fresh(page, `${base}/#/search`);
+        await page.waitForSelector('[data-testid="search-form"]');
+        await page.selectOption('select[name="result"]', 'FINAL');
+        await page.fill('input[name="fav_min"]', '1.5');
+        await page.fill('input[name="fav_max"]', '3');
+        await page.fill('input[name="max_goals"]', '5');
+        await page.check('input[name="with_xg"]');
+        const request = page.waitForRequest(r => new URL(r.url()).pathname === '/api/v1/fpt/search');
+        await page.click('[data-testid="search-form"] button[type="submit"]');
+        const sent = new URL((await request).url()).searchParams;
+        await asserted(['CTL-SEARCH-RESULT', 'CTL-SEARCH-FAV-MIN', 'CTL-SEARCH-FAV-MAX', 'CTL-SEARCH-MAX-GOALS', 'CTL-SEARCH-WITH-XG'],
+          'the filters reach the API with their values and the rows shown are the API\'s for that request', async () => {
+          assert.deepEqual(['result', 'fav_min', 'fav_max', 'max_goals', 'with_xg'].map(name => sent.get(name)), ['FINAL', '1.5', '3', '5', 'true']);
+          await outcomeShown(page, '[data-testid="search-outcome"]');
+          const expected = (await api(`/api/v1/fpt/search?${sent}`)).data.rows;
+          assert.ok(expected.length > 0, 'the QA archive has matches for these filters');
+          const shown = await ids(page, '[data-testid="search-results"] tr');
+          assert.ok(shown.length > 0);
+          assert.deepEqual(shown, expected.map(row => row.internal_match_id).slice(0, shown.length), 'the first page of the API, in its order');
+        });
+        const day = await page.locator('a[data-control="CTL-SEARCH-OPEN-DAY"]').first().getAttribute('href');
+        await page.locator('a[data-control="CTL-SEARCH-OPEN-DAY"]').first().click();
+        await asserted('CTL-SEARCH-OPEN-DAY', 'the date of a result opens the board of that day', async () => {
+          await page.waitForSelector('article.match');
+          assert.equal(await hash(), day);
+        });
+        await fresh(page, `${base}/#/search?run=1&fav_min=1.5&with_xg=true`);
+        await page.waitForSelector('[data-testid="search-form"]');
+        await page.click('a[data-control="CTL-SEARCH-RESET"]');
+        await asserted('CTL-SEARCH-RESET', 'Azzera empties the filters and shows no result', async () => {
+          await page.waitForFunction(() => location.hash === '#/search' && document.querySelector('input[name="fav_min"]')?.value === '');
+          assert.equal(await page.isChecked('input[name="with_xg"]'), false);
+          assert.equal(await page.locator('[data-testid="search-results"]').count(), 0);
+        });
+        // The QA archive has no homonyms: the teams answer is changed in the browser, the real team is the one chosen.
+        const ajax = (await api('/api/v1/fpt/teams?q=Ajax')).data.rows[0];
+        await page.route('**/api/v1/fpt/teams?*', async route => {
+          const response = await route.fetch();
+          const body = await response.json();
+          body.data.rows = [ajax, {...ajax, internal_team_id: `${ajax.internal_team_id}-twin`, country_slug: 'south-africa'}];
+          await route.fulfill({response, json: body});
+        });
+        await fresh(page, `${base}/#/search?run=1&team=Ajax`);
+        await page.waitForSelector('[data-testid="team-choice"]');
+        await page.locator('a[data-control="CTL-SEARCH-TEAM-CHOICE"]').first().click();
+        await asserted('CTL-SEARCH-TEAM-CHOICE', 'choosing one of the teams with the same name searches the matches of that team', async () => {
+          await page.waitForFunction(id => new URLSearchParams(location.hash.split('?')[1]).get('team_id') === id, ajax.internal_team_id);
+          await page.waitForSelector('[data-testid="search-results"] tr');
+          const expected = (await api(`/api/v1/fpt/search?team=${encodeURIComponent(ajax.internal_team_id)}`)).data.rows;
+          const shown = await ids(page, '[data-testid="search-results"] tr');
+          assert.ok(shown.length > 0);
+          assert.deepEqual(shown, expected.map(row => row.internal_match_id).slice(0, shown.length));
+        });
+        await page.unroute('**/api/v1/fpt/teams?*');
+      });
+      await step('Simulazione: partite massime, quote 1X2, capitale e gestione arrivano all’API; Azzera', async () => {
+        await fresh(page, `${base}/#/sim`);
+        await page.waitForSelector('[data-testid="sim-form"]');
+        await page.fill('input[name="from"]', '2024-08-01');
+        await page.fill('input[name="to"]', '2024-08-31');
+        await page.selectOption('select[name="pit_mode"]', 'NON_PIT_RESEARCH');
+        await page.selectOption('select[name="strategy"]', 'custom');
+        await page.selectOption('select[name="selection"]', 'HOME');
+        await page.selectOption('select[name="side"]', 'BACK');
+        const prices = {odds_min: '1.2', home_min: '1.1', home_max: '20', draw_min: '1.5', draw_max: '15', away_min: '1.1', away_max: '30'};
+        for (const [name, value] of Object.entries(prices)) await page.fill(`input[name="${name}"]`, value);
+        await page.fill('input[name="max_events"]', '200');
+        await page.fill('input[name="stake"]', '');
+        await page.fill('input[name="bankroll"]', '100');
+        await page.selectOption('select[name="mm_model"]', 'PERCENT_BANKROLL');
+        await page.fill('input[name="mm_value"]', '2');
+        const request = page.waitForRequest(r => new URL(r.url()).pathname === '/api/v1/hist/backtest');
+        await page.click('[data-testid="sim-form"] button[type="submit"]');
+        const sent = new URL((await request).url()).searchParams;
+        await asserted(['CTL-SIM-MAX-EVENTS', 'CTL-SIM-ODDS-MIN', 'CTL-SIM-HOME-MIN', 'CTL-SIM-HOME-MAX', 'CTL-SIM-DRAW-MIN', 'CTL-SIM-DRAW-MAX', 'CTL-SIM-AWAY-MIN', 'CTL-SIM-AWAY-MAX',
+          'CTL-SIM-BANKROLL', 'CTL-SIM-MM-MODEL', 'CTL-SIM-MM-VALUE'], 'each parameter reaches the API with its value and the result shown is the API\'s report for that request', async () => {
+          assert.deepEqual(Object.fromEntries(Object.keys({...prices, max_events: 1, bankroll: 1, mm_model: 1, mm_value: 1}).map(name => [name, sent.get(name)])),
+            {...prices, max_events: '200', bankroll: '100', mm_model: 'PERCENT_BANKROLL', mm_value: '2'});
+          await page.waitForSelector('[data-testid="sim-outcome"]');
+          const report = (await api(`/api/v1/hist/backtest?${sent}`)).data.report;
+          assert.equal(await page.getAttribute('[data-testid="sim-outcome"]', 'data-report'), report.report_sha256);
+        });
+        await page.click('a[data-control="CTL-SIM-RESET"]');
+        await asserted('CTL-SIM-RESET', 'Azzera brings the parameters back to their initial values and shows no result', async () => {
+          await page.waitForFunction(() => location.hash === '#/sim' && document.querySelector('input[name="bankroll"]')?.value === '');
+          assert.equal(await page.locator('[data-testid="sim-outcome"]').count(), 0);
+          assert.equal(await page.inputValue('select[name="strategy"]'), 'mp-ref-fav-back-1');
+        });
+      });
+    },
+  },
+  {
     id: 'http-errors', surface: 'Tutte le viste', title: 'Matrice negativa: 401, 403, 404, 409, 414, 429, 500, 503 e rete scaduta su ogni vista con API',
     // Every allowance is bound to the step that provokes it (review #251).
     allowHttp: Object.keys(MATRIX_CODES).flatMap(code => MATRIX_PATHS.map(path => ({path, status: Number(code), step: matrixStep(code)})))

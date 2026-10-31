@@ -16,7 +16,8 @@ label{display:flex;flex-direction:column;font-size:12px;color:#8494A8;gap:4px}in
 button{background:#FFB547;color:#1A1205;font-weight:700;border:0;border-radius:6px;padding:8px 14px}.muted{color:#8494A8}.warn{color:#FF9A4D}`;
 
 function page(title, body) {
-  return `<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">`
+  // An empty icon, as the web app declares it: no request for /favicon.ico, which the server does not serve (404).
+  return `<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,">`
     + `<title>${esc(title)}</title><style>${STYLE}</style></head><body><main>${body}</main></body></html>`;
 }
 
