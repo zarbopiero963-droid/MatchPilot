@@ -240,7 +240,8 @@ export const JOURNEYS = [
             assert.equal(await page.getAttribute('main', 'data-area'), 'technical');
           });
         }
-        assert.equal(await page.getAttribute('[data-testid="data-tabs"] a:last-child', 'href'), '/coverage');
+        // Copertura is the last tab and a view of the app (MP-UI-PR-008-COV): the coverage journeys assert it.
+        assert.equal(await page.getAttribute('[data-testid="data-tabs"] a:last-child', 'href'), '#/coverage');
       });
       await step('indirizzo precedente della Daily Board: apre Oggi', async () => {
         await fresh(page, `${base}/#/board`);

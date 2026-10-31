@@ -1,0 +1,147 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261031T183500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-31T18:35:00Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-SAFE-REGISTERS-20261031",
+    "source": "owner message to Claude Code, 2026-10-31 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): owner decision on PR #253 (merge at head 3afd943) and SAFE policy for register updates"
+  },
+  "task": "MP-UI-PR-007-FOUND-1028",
+  "activity": "PR #253 merged as 472c91b (squash) at 2026-10-31T18:28:00Z on the owner's decision; main CI green; deploy-vps refused by mp-runner-guard (no deploy)",
+  "issue": 239,
+  "pr": 253,
+  "branch": "ui-pr-008",
+  "commit_sha": "3afd943876340216339e3d6cf78e91d00c6382a4",
+  "tree_sha": "d91e5bd2d990df20232ab5321cc3b7ccf34a042a",
+  "base_sha": "7d5653f444f87c38288779d115c995def88c0664",
+  "requirements": [
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "journey controls-coverage (28 controls ASSERTED)",
+    "coverage page empty icon",
+    "control inventory 205/205 ASSERTED",
+    "six features TESTED",
+    "matrix 1028 TESTED",
+    "owner mandates registered",
+    "PR-007 MERGED checkpoint",
+    "472c91b: squash merge of PR #253"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #253 head 3afd943",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "3afd943876340216339e3d6cf78e91d00c6382a4",
+      "time": "2026-10-31T18:35:00Z",
+      "limits": [
+        "run 41223452994 success"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 472c91b",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "472c91b433d7435be772250316b5a9e0441f14a4",
+      "time": "2026-10-31T18:35:00Z",
+      "limits": [
+        "run 41229551001 success; merge tree equals head 3afd943"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 472c91b",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "472c91b433d7435be772250316b5a9e0441f14a4",
+      "time": "2026-10-31T18:35:00Z",
+      "limits": [
+        "run 41229550987: Deploy gate success; job deploy refused by mp-runner-guard (REFUSED by runner-job-guard, mode=enforce) at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41223452994,
+    "conclusion": "SUCCESS",
+    "head_sha": "3afd943876340216339e3d6cf78e91d00c6382a4"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "3afd943876340216339e3d6cf78e91d00c6382a4",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/253#issuecomment-6546752194"
+  },
+  "findings": [
+    {
+      "id": "PR253-T-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "AGENTS.md and CLAUDE.md still describe the D12 merge suspension without the SAFE exception of MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031: text update in a separate governance PR (manual merge); open as PR #254"
+    },
+    {
+      "id": "PR253-T-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "deploy-vps: the deploy job is refused by mp-runner-guard (enforce) at Set up runner on every merge; infrastructure item for a future authorized fix, not touched"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031",
+    "MP-OWNER-D12-IMPLEMENTATION-20261024",
+    "MP-UI-D12-DECISIONS-20261024"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:tools/qa/journeys.mjs",
+    "file:docs/qa/control-inventory.json",
+    "file:docs/qa/feature-certification.json",
+    "file:docs/governance/ui-requirements-matrix.json",
+    "file:src/coverage-page.mjs",
+    "branch:ui-pr-008",
+    "pr:253"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none for MP-UI-PR-007-FOUND-1028; residuals 1029/1079, 1044 (Q6 owner), 1046 (Tools re-certification)",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261031T171300Z-agent-a-claude-code",
+  "merge_sha": "472c91b433d7435be772250316b5a9e0441f14a4"
+}
