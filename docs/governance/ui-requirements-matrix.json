@@ -15,7 +15,7 @@
     "MP-UI-PR-006-STRAT": {"phase":"UI-07","note":"phase B of MP-OWNER-D12-IMPLEMENTATION-20261024; PR #251"},
     "MP-UI-PR-007-FOUND": {"phase":"UI-01","note":"phase C of MP-OWNER-D12-IMPLEMENTATION-20261024; developed under MP-OWNER-UI006-FINAL-UI007-01"},
     "MP-UI-PR-008-COV": {"phase":"UI-02","note":"coverage inside the app; UI only, the existing coverage API"},
-    "MP-UI-PR-009-NAV": {"phase":"UI-02","note":"search of the shell (1038); UI only, the existing teams API. 1035 waits: the D12 reconciliation gate keeps it unverified"},
+    "MP-UI-PR-009-NAV": {"phase":"UI-02","note":"search of the shell (1038); UI only, the existing teams API. 1035 TESTED after the evidence rule of MP-GOV-D12-RECON-EVIDENCE"},
     "MP-UI-PR-010-BOARD": {"phase":"UI-03"},
     "MP-UI-PR-011-SRCHX": {"phase":"UI-03","note":"the search filters the API already had; UI only. Season waits for an API listing season ids"},
     "MP-UI-PR-012-DATAQ": {"phase":"UI-03"},

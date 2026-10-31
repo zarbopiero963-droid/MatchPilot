@@ -115,13 +115,14 @@ function reconciledStatusErrors(item, row, change) {
   if (later.status !== row.status) errors.push(`${item.id}: promoted_after.status ${later.status} differs from the matrix ${row.status}`);
   if (later.status === item.new_status) errors.push(`${item.id}: promoted_after repeats the reconciled status`);
   if (!/^MP-UI-PR-\d{3}/.test(String(later.pr ?? ''))) errors.push(`${item.id}: promoted_after names no PR`);
+  else if (later.pr !== item.responsible_pr) errors.push(`${item.id}: promoted_after.pr ${later.pr} is not the responsible PR ${item.responsible_pr}`);
   if (!change || change.to !== row.status || !String(change.reason ?? '').startsWith(String(later.pr ?? '\u0000'))) errors.push(`${item.id}: the status change does not carry the PR of promoted_after`);
   if (VERIFIED.has(row.status) && !(change?.evidence_refs ?? []).length) errors.push(`${item.id}: promoted to ${row.status} without evidence_refs`);
   return errors;
 }
 
 test('a reconciled requirement moves past the D12 snapshot only with promoted_after, its PR and its evidence', () => {
-  const item = {id: 'X', new_status: 'NOT STARTED'};
+  const item = {id: 'X', new_status: 'NOT STARTED', responsible_pr: 'MP-UI-PR-009-NAV'};
   const tested = {status: 'TESTED'};
   const change = {to: 'TESTED', reason: 'MP-UI-PR-009-NAV: x', evidence_refs: [{test: 't', name: 'X', proves: 'p'}]};
   assert.deepEqual(reconciledStatusErrors(item, {status: 'NOT STARTED'}), []);
@@ -133,6 +134,8 @@ test('a reconciled requirement moves past the D12 snapshot only with promoted_af
   assert.deepEqual(reconciledStatusErrors({...promoted, promoted_after: {status: 'TESTED', pr: 'later'}}, tested, change),
     ['X: promoted_after names no PR', 'X: the status change does not carry the PR of promoted_after']);
   assert.deepEqual(reconciledStatusErrors(promoted, {status: 'PARTIAL'}, {...change, to: 'PARTIAL'}), ['X: promoted_after.status TESTED differs from the matrix PARTIAL']);
+  assert.deepEqual(reconciledStatusErrors({...promoted, promoted_after: {status: 'TESTED', pr: 'MP-UI-PR-010-BOARD'}}, tested, {...change, reason: 'MP-UI-PR-010-BOARD: x'}),
+    ['X: promoted_after.pr MP-UI-PR-010-BOARD is not the responsible PR MP-UI-PR-009-NAV'], 'the PR is the one the reconciliation named');
 });
 
 test('exactly 49 requirements that waited for a decision are reconciled one by one, never promoted to a verified state', () => {
