@@ -154,7 +154,11 @@ function reportFor(inv) {
 
 test('coverage: every claimed control was seen, actuated or asserted in each step it names, on every viewport', () => {
   const claimed = inventory.controls.filter(control => control.evidence !== 'NONE');
-  for (const level of ['SEEN', 'ASSERTED']) assert.ok(claimed.some(c => c.evidence === level), level);
+  assert.ok(claimed.some(c => c.evidence === 'ASSERTED'), 'ASSERTED');
+  // Since MP-REQ-UI-1028 every control is ASSERTED: the SEEN cases are checked on a copy where one control is only seen.
+  const seenInventory = structuredClone(inventory);
+  const seenControl = seenInventory.controls.find(c => c.evidence === 'ASSERTED');
+  Object.assign(seenControl, {evidence: 'SEEN', status: 'IMPLEMENTED'});
   const report = reportFor(inventory);
   assert.deepEqual(verifyCoverage(inventory, report, {journeys}), []);
   assert.equal(Object.keys(actuationsFrom(report, 'asserted')).length, claimed.filter(c => c.evidence === 'ASSERTED').length);
@@ -165,18 +169,22 @@ test('coverage: every claimed control was seen, actuated or asserted in each ste
     assert.match(verifyCoverage(inventory, forged).join(), pattern);
   };
   const assertedId = claimed.find(c => c.evidence === 'ASSERTED').id;
-  const seenId = claimed.find(c => c.evidence === 'SEEN').id;
+  const seenId = seenControl.id;
   const mobileSteps = r => r.journeys.filter(run => run.viewport === 'mobile').flatMap(run => run.steps);
   // A missing assertion on one viewport, an assertion without the action, an asserted id without a recorded assertion.
   forge(r => { for (const s of mobileSteps(r)) { s.asserted = s.asserted.filter(x => x !== assertedId); s.assertions = s.assertions.filter(a => !a.controls.includes(assertedId)); } }, /not asserted in .*\/mobile/);
   forge(r => { for (const s of mobileSteps(r)) s.actuated = s.actuated.filter(x => x !== assertedId); }, new RegExp(`${assertedId} asserted but not actuated`));
   forge(r => { for (const s of mobileSteps(r)) s.assertions = s.assertions.filter(a => !a.controls.includes(assertedId)); }, new RegExp(`${assertedId} asserted without a recorded assertion`));
   forge(r => { const s = mobileSteps(r).find(x => x.assertions.length); s.assertions[0].description = ''; }, /an assertion without a description/);
-  forge(r => { for (const s of mobileSteps(r)) s.seen = s.seen.filter(x => x !== seenId); }, /not seen in .*\/mobile/);
+  {
+    const forged = structuredClone(report);
+    for (const s of mobileSteps(forged)) s.seen = s.seen.filter(x => x !== seenId);
+    assert.match(verifyCoverage(seenInventory, forged).join(), /not seen in .*\/mobile/);
+  }
   forge(r => { r.journeys[0].steps.push({name: 'x', status: 'PASS', actuated: [], seen: ['CTL-NOT-INVENTORIED']}); }, /CTL-NOT-INVENTORIED not in the inventory/);
   // The evidence gate itself refuses a verified status without ASSERTED and every CERTIFIED REAL, not only the unit validator.
-  const promoted = structuredClone(inventory);
-  promoted.controls.find(c => c.evidence === 'SEEN').status = 'TESTED';
+  const promoted = structuredClone(seenInventory);
+  promoted.controls.find(c => c.id === seenId).status = 'TESTED';
   assert.match(verifyCoverage(promoted, report).join(), /TESTED needs ASSERTED evidence \(a verified result\), not SEEN/);
   const real = structuredClone(inventory);
   for (const c of real.controls) Object.assign(c, {status: 'CERTIFIED REAL', evidence: 'ASSERTED', data: 'REAL', exercised_by: c.exercised_by.length ? c.exercised_by : []});
