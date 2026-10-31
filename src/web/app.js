@@ -616,8 +616,8 @@ async function boardView(params, mine) {
     // A competition of the address that the list does not have (stale link, list unavailable) stays shown as chosen,
     // so the select always says which filter the day applies (review #261).
     [['', competitionsBody ? 'Tutti' : 'Elenco non disponibile'], ...competitions.map(c => [c.internal_competition_id, nameOfCompetition(c.internal_competition_id)]),
-      ...(competition && !competitions.some(c => c.internal_competition_id === competition) ? [[competition, competition]] : [])]
-      .map(([v, text]) => el('option', {value: v, selected: v === competition}, text)))),
+      ...(competition && !competitions.some(c => c.internal_competition_id === competition) ? [[competition, 'Campionato scelto (fuori elenco)']] : [])]
+      .map(([v, text]) => el('option', {value: v, selected: v === competition, title: v || null}, text)))),
   el('button', {type: 'submit', 'data-control': 'CTL-BOARD-SHOW'}, 'Mostra'),
   el('a', {href: validDate(date) ? dayHref(shiftDay(date, 1), competition) : '#/', 'data-action': 'next', 'data-control': 'CTL-BOARD-NEXT'}, 'Giorno dopo →'),
   el('a', {href: dayHref(localToday(), competition), 'data-action': 'today', 'data-control': 'CTL-BOARD-TODAY'}, 'Oggi'));
@@ -630,7 +630,7 @@ async function boardView(params, mine) {
   const rows = first.data?.rows ?? [];
   if (rows.length === 0) {
     return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'board-empty'},
-      competition ? `Nessuna partita di ${nameOfCompetition(competition)} ${dayText(date, LONG_DAY)}. ` : `Nessuna partita ${dayText(date, LONG_DAY)}. `,
+      competition ? `Nessuna partita ${competitions.some(c => c.internal_competition_id === competition) ? `di ${nameOfCompetition(competition)} ` : 'del campionato scelto '}${dayText(date, LONG_DAY)}. ` : `Nessuna partita ${dayText(date, LONG_DAY)}. `,
       'Fino a quale giorno arrivano i dati di ogni campionato lo trovi in ', el('a', {href: '#/data', 'data-control': 'CTL-BOARD-EMPTY-DATA'}, 'Dati'), '.'), updated];
   }
   // Kickoff order across competitions, as the API returns it; each card names its competition (PR #163 NB-3).
