@@ -3,9 +3,9 @@
 ## File corrente
 
 - File: [`matchpilot-trading-os.html`](matchpilot-trading-os.html), percorso stabile. Le versioni non cambiano nome: la storia è in git e in questo changelog.
-- Versione: **Mock UX v2026.10.31a**
+- Versione: **Mock UX v2026.10.31b**
 - Ultimo aggiornamento: 2026-10-31
-- SHA-256: `fef177757dfe653859e1ced1fd1ebadd0ae1ae14010908320c0ed70f09086fb4`
+- SHA-256: `9356abd63db27d8a83f7bedb0ed836d4966049715c2182c9607303bf2b9b028e`
 - Allineato a: roadmap #97 (revisione owner 06/10/2026)
 - Issue rappresentate: #12, #20, #23, #24, #25, #27, #28, #29, #30, #31, #32, #34, #40, #44, #45, #46, #87, #91, #94, #95, #96, #97, #98, #99, #100, #102
 
@@ -53,6 +53,10 @@ Il mock è un riferimento UX/prodotto **vivo**. Non è l'architettura e non cert
 - Il layout usa font Google; senza rete il menu desktop può tagliare l'ultima voce.
 
 ## Changelog
+
+### v2026.10.31b — Cerca nell'intestazione (MP-UI-PR-009-NAV)
+
+- Il campo di ricerca dell'intestazione dice cosa fa nel sito reale: è su ogni pagina e apre i risultati con le squadre dell'archivio (nome esatto, dall'API), le loro partite in Ricerca e le pagine dell'app con quel nome. Nel mock filtra solo la home DEMO.
 
 ### v2026.10.31a — Copertura nell'app (MP-UI-PR-008-COV)
 

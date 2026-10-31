@@ -349,6 +349,39 @@ async function coverageView(params) {
         [seasonOf(row.first_season)], [seasonOf(row.last_season)], [shareText(row.odds_coverage), {'data-field': 'odds_coverage'}], [shareText(row.xg_coverage), {'data-field': 'xg_coverage'}]]}))))];
 }
 
+// ---- Cerca: the search of the shell (MP-UI-PR-009-NAV, MP-REQ-UI-1038) ----
+
+// The pages of the app a search can open: the menu and its sections, with the words they are known by. They are the
+// app's own navigation, not data: the squads come from the API (/api/v1/fpt/teams), never from an index in the browser.
+const FIND_PAGES = [
+  ['#/', 'Oggi', 'oggi partite del giorno board'], ['#/search', 'Ricerca partite', 'ricerca partite filtri squadra quote'],
+  ['#/sim', 'Simulazione', 'simulazione backtest strategia'], ['#/compare', 'Confronto', 'confronto backtest configurazioni'],
+  ['#/saved', 'Backtest salvati', 'backtest salvati simulazioni salvate'], ['#/strategies', 'Strategie', 'strategie versioni'],
+  ['#/tools', 'Strumenti', 'strumenti calcolatori quote probabilita commissione'], ['#/data', 'Stato dei dati', 'dati stato archivio salute'],
+  ['#/providers', 'Fornitori', 'fornitori dati futpythontrader totalcorner'], ['#/endpoints', 'API', 'api endpoint'],
+  ['#/coverage', 'Copertura', 'copertura campionati stagioni archivio']];
+const foldText = text => String(text).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+const findHref = q => `#/find${queryString({q}) ? `?${queryString({q})}` : ''}`;
+
+async function findView(params) {
+  const q = (params.get('q') ?? '').trim();
+  const title = el('h1', {}, q ? `Risultati per «${q}»` : 'Cerca');
+  if (!q) return [title, el('p', {class: 'state empty', 'data-testid': 'find-empty'}, 'Scrivi il nome di una squadra o di una pagina nel campo Cerca in alto.')];
+  const folded = foldText(q);
+  const pages = FIND_PAGES.filter(([, label, keys]) => foldText(`${label} ${keys}`).includes(folded));
+  // A squad is found by its exact name, in any spelling the archive knows; its matches open in Ricerca.
+  const teams = (await getJson(`/api/v1/fpt/teams?${queryString({q})}`)).data?.rows ?? [];
+  const section = (testid, heading, items, empty) => el('section', {class: 'card', 'data-testid': testid}, el('h2', {}, `${heading} (${items.length})`),
+    items.length ? el('ul', {}, items) : el('p', {class: 'state empty'}, empty));
+  return [title,
+    section('find-teams', 'Squadre', teams.map(team => el('li', {'data-team': team.internal_team_id ?? ''},
+      el('a', {href: `#/search?${queryString({team_id: team.internal_team_id, run: '1'})}`, 'data-control': 'CTL-FIND-TEAM'}, team.canonical_name ?? badge('ND')),
+      ' · ', team.country_slug ? words(team.country_slug) : badge('ND'))),
+    'Nessuna squadra con questo nome nell’archivio: la ricerca usa il nome esatto, in qualunque grafia nota.'),
+    section('find-pages', 'Pagine', pages.map(([href, label]) => el('li', {}, el('a', {href, 'data-control': 'CTL-FIND-PAGE'}, label))),
+      'Nessuna pagina con questo nome.')];
+}
+
 // ---- Stato dei dati, formerly the Dashboard (MP-WEB-013) ----
 
 // Every tile reads one API route; a route that fails turns only its own tile into N/D with the reason (partial).
@@ -1758,8 +1791,8 @@ const VIEWS = {'': ['la pagina', boardView, 'user'], board: ['la pagina', boardV
   match: ['la partita', matchView, 'user'],
   data: ['lo stato dei dati', dashboardView, 'technical'], providers: ['i fornitori dati', providersView, 'technical'],
   sim: ['la simulazione', simView, 'user'], tools: ['gli strumenti', toolsView, 'user'], compare: ['il confronto', compareView, 'user'], saved: ['i backtest salvati', savedView, 'user'], strategies: ['le strategie', strategiesView, 'user'],
-  endpoints: ['gli endpoint', endpointsView, 'technical'], coverage: ['la copertura', coverageView, 'user']};
-const NAV_OF = {board: '', providers: 'data', endpoints: 'data', coverage: 'data', match: null, compare: 'sim', saved: 'sim', strategies: 'sim'};
+  endpoints: ['gli endpoint', endpointsView, 'technical'], coverage: ['la copertura', coverageView, 'user'], find: ['la ricerca', findView, 'user']};
+const NAV_OF = {board: '', providers: 'data', endpoints: 'data', coverage: 'data', match: null, compare: 'sim', saved: 'sim', strategies: 'sim', find: null};
 
 let generation = 0;
 // Set by the search form: the next search render moves the focus to its outcome and scrolls it into view, so the result,
@@ -1847,7 +1880,21 @@ document.querySelector('[data-testid="logout"]')?.addEventListener('click', asyn
   status.textContent = 'Uscita non riuscita: riprova'; // the role label stays as it is
 });
 
+// The search of the shell opens #/find with the words typed; on #/find the field shows them again.
+const findForm = document.querySelector('[data-testid="global-search"]');
+findForm?.addEventListener('submit', event => {
+  event.preventDefault();
+  const q = String(new FormData(findForm).get('q') ?? '').trim();
+  location.hash = findHref(q);
+});
+const syncFind = () => {
+  const input = findForm?.querySelector('input[name="q"]');
+  if (input && location.hash.replace(/^#\/?/, '').split('?')[0] === 'find') input.value = hashParams().get('q') ?? '';
+};
+
 showSession();
+window.addEventListener('hashchange', syncFind);
+syncFind();
 window.addEventListener('hashchange', render);
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render);
 else render();

@@ -105,3 +105,29 @@ test('MP-REQ-UI-1040: a coverage share is shown as a percentage of its exact tex
   // The page renders the share through percentText and the N/D badge; the journey checks it against the same function.
   assert.match(app, /const percent = percentText\(value\);\n  return percent === null \? badge\('ND'\)/);
 });
+
+const shell = readFileSync(new URL('../src/web/index.html', import.meta.url), 'utf8');
+
+test('MP-REQ-UI-1035: the menu is the one of the app, evolved incrementally (D12-5), and every entry opens a view of the app', () => {
+  const decisions = JSON.parse(readFileSync(new URL('../docs/governance/owner-decisions.json', import.meta.url), 'utf8')).decisions;
+  const d12 = decisions.find(item => item.id === 'MP-UI-D12-DECISIONS-20261024');
+  assert.equal(d12?.status, 'IN_FORCE');
+  assert.match(d12.decision, /\(5\) Evolve the \*\*actual application's menu\*\* incrementally/, 'Q5 is decided by D12-5');
+  const entries = [...shell.matchAll(/<a href="#\/([a-z]*)" data-view="([a-z]*)"/g)].map(match => [match[1], match[2]]);
+  assert.deepEqual(entries.map(([, view]) => view), ['', 'search', 'sim', 'tools', 'data'], 'the menu of the app, not the mock\'s');
+  for (const [href, view] of entries) {
+    assert.equal(href, view, `${view}: the link opens its own view`);
+    assert.match(app, new RegExp(`(^|[{,]\\s*)${view ? view : "''"}: \\['[^']+', [a-zA-Z]+View, '(user|technical)'\\]`, 'm'), `${view || 'Oggi'} is a view of the app`);
+  }
+});
+
+test('MP-REQ-UI-1038: the search of the shell is in the header of every view; squads come from the API, pages from the menu of the app', () => {
+  assert.match(shell, /<header class="top">[\s\S]*<form class="find" role="search"[^>]*data-testid="global-search"><input type="search" name="q"[^>]*data-control="CTL-NAV-FIND-INPUT"><button type="submit" data-control="CTL-NAV-FIND">Cerca<\/button><\/form>[\s\S]*<\/header>/);
+  assert.match(app, /const teams = \(await getJson\(`\/api\/v1\/fpt\/teams\?\$\{queryString\(\{q\}\)\}`\)\)\.data\?\.rows \?\? \[\];/, 'squads from the teams route');
+  // The pages a search can open are views of the app; no list of squads or matches lives in the browser.
+  const pages = app.slice(app.indexOf('const FIND_PAGES = ['), app.indexOf('const foldText'));
+  const hrefs = [...pages.matchAll(/\['#\/([a-z]*)'/g)].map(match => match[1]);
+  assert.equal(hrefs.length, 11);
+  for (const view of hrefs) assert.match(app, new RegExp(`(^|[{,]\\s*)${view ? view : "''"}: \\['`, 'm'), `#/${view} is a view`);
+  assert.doesNotMatch(pages, /internal_team_id|canonical_name|getJson/);
+});
