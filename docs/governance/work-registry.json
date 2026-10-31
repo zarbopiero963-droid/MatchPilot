@@ -1918,7 +1918,7 @@
       "id": "MP-PRODUCT-100-AUDIT",
       "title": "MP-PRODUCT-100: audit, provider inventory, architecture, roadmap",
       "issue": 239,
-      "pr": null,
+      "pr": 262,
       "branch": "docs-mp-product-100",
       "kind": "audit",
       "state": "REVIEW",
@@ -1935,7 +1935,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
