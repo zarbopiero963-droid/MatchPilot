@@ -1,0 +1,169 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261031T192000Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-31T19:20:00Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-SAFE-REGISTERS-20261031",
+    "source": "owner message to Claude Code, 2026-10-31 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): owner decision on PR #253 (merge at head 3afd943) and SAFE policy for register updates"
+  },
+  "task": "MP-UI-PR-008-COV",
+  "activity": "PR #255 merged as 06a9596 (squash, SAFE auto-merge) at 2026-10-31T19:13Z; main CI green; deploy-vps refused by mp-runner-guard (no deploy)",
+  "issue": 239,
+  "pr": 255,
+  "branch": "ui-pr-008-cov",
+  "commit_sha": "1fe602318c8cfacf2975b444723ff6c505fc6bb2",
+  "tree_sha": "89ea6880796106d841420a2bcdfab0ea9964d4ec",
+  "base_sha": "472c91b433d7435be772250316b5a9e0441f14a4",
+  "requirements": [
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "view #/coverage: competitions, country filter, seasons of a competition, exact shares",
+    "Dati tab Copertura opens the view",
+    "journey coverage (desktop, tablet, mobile, 503 state)",
+    "matrix 0257 and 1040 TESTED",
+    "inventory 209/209 ASSERTED",
+    "mock v2026.10.31a",
+    "MERGED checkpoint of PR #253",
+    "owner decision MP-OWNER-SAFE-REGISTERS-20261031 registered",
+    "06a9596: squash merge of PR #255"
+  ],
+  "tests": [
+    {
+      "command": "npm run qa:browser",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16, Chromium",
+      "commit": "e739e62b6542aefd8f0d3cf276bf79379cda5d69",
+      "time": "2026-10-31T19:05:00Z",
+      "limits": [
+        "39/39 runs; verify-report ok; feature register with the report ok; later commits are registers only"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on PR #255 head 1fe6023",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "1fe602318c8cfacf2975b444723ff6c505fc6bb2",
+      "time": "2026-10-31T19:20:00Z",
+      "limits": [
+        "run 41232054709 success"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 06a9596",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "06a9596ba7c8f40154e2bc5e63244c2a1da2ef13",
+      "time": "2026-10-31T19:20:00Z",
+      "limits": [
+        "run 41233168010 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 06a9596",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "06a9596ba7c8f40154e2bc5e63244c2a1da2ef13",
+      "time": "2026-10-31T19:20:00Z",
+      "limits": [
+        "run 41233168044: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41232054709,
+    "conclusion": "SUCCESS",
+    "head_sha": "1fe602318c8cfacf2975b444723ff6c505fc6bb2"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "1fe602318c8cfacf2975b444723ff6c505fc6bb2",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/255#issuecomment-6547932585"
+  },
+  "findings": [
+    {
+      "id": "PR255-T-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "coverage journey recomputes the shares with the same algorithm as shareText: add fixed vectors"
+    },
+    {
+      "id": "PR255-T-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "an error of coverage-seasons is not covered by a journey"
+    },
+    {
+      "id": "PR255-T-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "an unknown ?country= in the URL shows Tutti in the select with an empty list"
+    },
+    {
+      "id": "PR255-T-4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "Copertura is a user-area view among technical Dati tabs (intended: words, not codes); owner note, no change"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031",
+    "MP-OWNER-D12-IMPLEMENTATION-20261024",
+    "MP-UI-D12-DECISIONS-20261024"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:src/web/app.js",
+    "file:tools/qa/journeys.mjs",
+    "file:docs/qa/control-inventory.json",
+    "file:docs/qa/feature-certification.json",
+    "file:docs/governance/ui-requirements-matrix.json",
+    "file:docs/mockups/matchpilot-trading-os.html"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none for MP-UI-PR-008-COV; PR255-T-1..3 in the follow-up PR",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261031T190500Z-agent-a-claude-code",
+  "merge_sha": "06a9596ba7c8f40154e2bc5e63244c2a1da2ef13"
+}
