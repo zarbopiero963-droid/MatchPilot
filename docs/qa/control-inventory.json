@@ -575,9 +575,14 @@
         3,
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "daily-board",
+          "step": "campionato: le partite del giorno di un solo campionato, dall’API"
+        }
+      ]
     },
     {
       "id": "CTL-BOARD-SHOW",
