@@ -986,9 +986,14 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "filtri dell’API: lato del favorito"
+        }
+      ]
     },
     {
       "id": "CTL-SEARCH-HOME-ODD-MIN",
@@ -1001,9 +1006,14 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "filtri dell’API: quota casa da/a"
+        }
+      ]
     },
     {
       "id": "CTL-SEARCH-HOME-ODD-MAX",
@@ -1016,9 +1026,14 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "filtri dell’API: quota casa da/a"
+        }
+      ]
     },
     {
       "id": "CTL-SEARCH-OVER25-MIN",
@@ -1031,9 +1046,14 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "filtri dell’API: quota Over 2,5 da/a"
+        }
+      ]
     },
     {
       "id": "CTL-SEARCH-OVER25-MAX",
@@ -1046,9 +1066,14 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "filtri dell’API: quota Over 2,5 da/a"
+        }
+      ]
     },
     {
       "id": "CTL-SEARCH-MIN-GOALS",
@@ -1101,9 +1126,14 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "filtri dell’API: xG totali minimi"
+        }
+      ]
     },
     {
       "id": "CTL-SEARCH-WITH-ODDS",
