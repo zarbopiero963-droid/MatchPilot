@@ -104,14 +104,46 @@ test('the D12 decisions are registered, complete and tied to existing requiremen
 // MP-D12-49-REQUIREMENTS-GATE-01: the reclassification of the requirements that waited for a D12 decision.
 const VERIFIED = new Set(['TESTED', 'CERTIFIED CALCULATION', 'CERTIFIED MOCK', 'CERTIFIED REAL']);
 
+// The D12 reconciliation is a snapshot of the ratification: new_status is what the decision alone allowed, never a
+// verified state. A reconciled row may move on later only through evidence: the item names the state and the PR in
+// promoted_after, and the row's status change carries that PR and its evidence (checked reference by reference by the
+// next test). Without promoted_after the row keeps the reconciled status (MP-GOV-D12-RECON-EVIDENCE).
+function reconciledStatusErrors(item, row, change) {
+  const later = item.promoted_after;
+  if (!later) return item.new_status === row.status ? [] : [`${item.id}: new status differs from the matrix`];
+  const errors = [];
+  if (later.status !== row.status) errors.push(`${item.id}: promoted_after.status ${later.status} differs from the matrix ${row.status}`);
+  if (later.status === item.new_status) errors.push(`${item.id}: promoted_after repeats the reconciled status`);
+  if (!/^MP-UI-PR-\d{3}/.test(String(later.pr ?? ''))) errors.push(`${item.id}: promoted_after names no PR`);
+  if (!change || change.to !== row.status || !String(change.reason ?? '').startsWith(String(later.pr ?? '\u0000'))) errors.push(`${item.id}: the status change does not carry the PR of promoted_after`);
+  if (VERIFIED.has(row.status) && !(change?.evidence_refs ?? []).length) errors.push(`${item.id}: promoted to ${row.status} without evidence_refs`);
+  return errors;
+}
+
+test('a reconciled requirement moves past the D12 snapshot only with promoted_after, its PR and its evidence', () => {
+  const item = {id: 'X', new_status: 'NOT STARTED'};
+  const tested = {status: 'TESTED'};
+  const change = {to: 'TESTED', reason: 'MP-UI-PR-009-NAV: x', evidence_refs: [{test: 't', name: 'X', proves: 'p'}]};
+  assert.deepEqual(reconciledStatusErrors(item, {status: 'NOT STARTED'}), []);
+  assert.deepEqual(reconciledStatusErrors(item, tested, change), ['X: new status differs from the matrix'], 'no silent promotion');
+  const promoted = {...item, promoted_after: {status: 'TESTED', pr: 'MP-UI-PR-009-NAV'}};
+  assert.deepEqual(reconciledStatusErrors(promoted, tested, change), []);
+  assert.deepEqual(reconciledStatusErrors(promoted, tested, {...change, reason: 'D12-5: decided'}), ['X: the status change does not carry the PR of promoted_after']);
+  assert.deepEqual(reconciledStatusErrors(promoted, tested, {...change, evidence_refs: []}), ['X: promoted to TESTED without evidence_refs']);
+  assert.deepEqual(reconciledStatusErrors({...promoted, promoted_after: {status: 'TESTED', pr: 'later'}}, tested, change),
+    ['X: promoted_after names no PR', 'X: the status change does not carry the PR of promoted_after']);
+  assert.deepEqual(reconciledStatusErrors(promoted, {status: 'PARTIAL'}, {...change, to: 'PARTIAL'}), ['X: promoted_after.status TESTED differs from the matrix PARTIAL']);
+});
+
 test('exactly 49 requirements that waited for a decision are reconciled one by one, never promoted to a verified state', () => {
   const recon = matrix.d12_reconciliation;
+  const changes = new Map(matrix.status_changes.map(item => [item.id, item]));
   assert.equal(new Set(recon.map(item => item.id)).size, recon.length, 'a requirement reconciled twice');
   assert.equal(recon.filter(item => item.previous_status === 'DECISION REQUIRED').length, 49);
   for (const item of recon) {
     const row = byId.get(item.id);
     assert.equal(item.previous_status, row.audit_status, `${item.id}: previous status differs from the audit`);
-    assert.equal(item.new_status, row.status, `${item.id}: new status differs from the matrix`);
+    assert.deepEqual(reconciledStatusErrors(item, row, changes.get(item.id)), [], item.id);
     assert.equal(item.decision_state, 'DECISION RESOLVED');
     assert.ok(['NOT STARTED', 'BLOCKED', 'SPECIFICATION PENDING', 'IN PROGRESS'].includes(item.new_status), `${item.id}: ${item.new_status} needs evidence, not a ratification`);
     assert.ok(ratification.includes(`| ${item.d12} | ${item.approved_behaviour} |`), `${item.id}: approved behaviour is not the ratification text`);
