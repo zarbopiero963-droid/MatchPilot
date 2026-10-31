@@ -41,6 +41,9 @@ async function withSchema(t, name, body) {
   try {
     await root.query(`CREATE SCHEMA ${schema}`);
     dbUrl.searchParams.set('options', `-csearch_path=${schema}`);
+    // The connections of this test carry their own application_name, so a check on open transactions counts only them
+    // and not the sessions of the test files that run in parallel on the same database.
+    dbUrl.searchParams.set('application_name', schema);
     await runNode(['src/migrate.mjs'], {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test'});
     const pool = new pg.Pool({connectionString: dbUrl.toString(), max: 4});
     let calls = 0;
@@ -79,7 +82,7 @@ test('persistence API: the write gate refuses before any database access', () =>
 });
 
 test('persistence API: 503 until the schema exists, refusals write nothing, then save and read back', {timeout: 120000}, async t => {
-  await withSchema(t, 'flow', async ({withClient, calls, applyStaged}) => {
+  await withSchema(t, 'flow', async ({withClient, calls, applyStaged, schema}) => {
     let ran = 0;
     const result = {reader: {events: 1}, report: sealedReport(), events: [], totals: {bets: 1}};
     const runV1 = async target => { ran++; assert.equal(target.pathname, '/api/v1/hist/backtest'); return {status: 200, body: {api_version: 'v1', data: result}}; };
@@ -174,8 +177,9 @@ test('persistence API: 503 until the schema exists, refusals write nothing, then
     // No connection is handed back to the pool with the read transaction still open: neither the one checked out next
     // (it would still be read only) nor any other one of the pool.
     const open = (await withClient(c => c.query(`SELECT current_setting('transaction_read_only') AS read_only, (SELECT count(*)::int FROM pg_stat_activity
-      WHERE datname = current_database() AND pid <> pg_backend_pid() AND state LIKE 'idle in transaction%') AS others`))).rows[0];
-    assert.deepEqual(open, {read_only: 'off', others: 0}, 'a read transaction was left open');
+      WHERE datname = current_database() AND application_name = current_setting('application_name') AND pid <> pg_backend_pid()
+        AND state LIKE 'idle in transaction%') AS others, current_setting('application_name') AS app`))).rows[0];
+    assert.deepEqual(open, {read_only: 'off', others: 0, app: schema}, 'a read transaction was left open');
     assert.equal((await call('GET', '/api/v1/strategies?key=derby')).status, 200);
     for (const [bad, status] of [[{key: 'x', name: 'x', rules: {selection: 'HOME', side: 'BACK'}, definition: {selection: 'HOME', side: 'BACK'}}, 400],
       [{key: 'x', name: 'x'}, 400], [{key: 'x', name: 'x', rules: {selection: 'HOME', side: 'BACK', stake: '5'}}, 400],
