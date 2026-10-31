@@ -128,6 +128,8 @@ MatchPilot è una piattaforma web di **trading sportivo decisionale**, non un se
 
 ## Obiettivo
 
+**Regola di prodotto MP-PRODUCT-100 (owner, 31/10/2026):** zero limitazioni arbitrarie. Mercati, selezioni, linee, statistiche, campionati e bookmaker utilizzabili sono quelli realmente offerti dai provider autorizzati, attraverso un catalogo delle capacità e non campi scelti dagli sviluppatori. Audit, copertura dei provider (FPT: 25 campi tipizzati su 325 osservati, 18 filtrabili), architettura e roadmap: [docs/product/mp-product-100](docs/product/mp-product-100/README.md).
+
 Per ogni partita il prodotto deve raccogliere, normalizzare e mostrare in card **tutte le informazioni realmente disponibili da FutPythonTrader**, combinarle con i mercati pre-match di TotalCorner e, dopo il calcio d'inizio, usare TotalCorner come feed live per validare opportunità di trading.
 
 Il flusso prodotto è:
