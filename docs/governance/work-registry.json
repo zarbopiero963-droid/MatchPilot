@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 233,
+  "revision": 234,
   "tasks": [
     {
       "id": "R-01",
@@ -1763,6 +1763,29 @@
       },
       "pr_open": false,
       "merge_sha": "7d5653f444f87c38288779d115c995def88c0664"
+    },
+    {
+      "id": "MP-UI-PR-007-FOUND-1028",
+      "title": "MP-UI-PR-007 follow-up: controls coverage (1028)",
+      "issue": 239,
+      "pr": 253,
+      "branch": "ui-pr-008",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T171300Z-agent-a-claude-code",
+      "resources": [
+        "file:tools/qa/journeys.mjs",
+        "file:docs/qa/control-inventory.json",
+        "file:docs/qa/feature-certification.json",
+        "file:docs/governance/ui-requirements-matrix.json",
+        "file:src/coverage-page.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": true
     }
   ]
 }
