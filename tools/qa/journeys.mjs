@@ -641,6 +641,12 @@ export const JOURNEYS = [
         await page.waitForSelector('[data-testid="paged-list"] article.match');
         assert.equal(await page.isDisabled('[data-testid="board-controls"] select[name="competition"]'), true);
         assert.equal((await page.textContent('[data-testid="board-controls"] select[name="competition"]')).trim(), 'Elenco non disponibile');
+        const whole = (await api(`/api/v1/fpt/matches?date=${seed.busyDay}&limit=24`)).data.rows;
+        assert.deepEqual(await ids(page, '[data-testid="paged-list"] article.match'), whole.map(row => row.internal_match_id), 'the whole day, unfiltered');
+        // With a competition in the address the day stays filtered and the select says so, list or no list.
+        await fresh(page, `${base}/#/?date=${seed.busyDay}&competition=${encodeURIComponent(seed.eredivisie.competition)}`);
+        await page.waitForSelector('[data-testid="paged-list"] article.match');
+        assert.equal(await page.inputValue('[data-testid="board-controls"] select[name="competition"]'), seed.eredivisie.competition);
         await page.unroute('**/api/v1/fpt/competitions*');
       });
       await step('data non valida rifiutata senza richieste', async () => {

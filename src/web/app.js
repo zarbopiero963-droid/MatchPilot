@@ -613,7 +613,10 @@ async function boardView(params, mine) {
   el('a', {href: validDate(date) ? dayHref(shiftDay(date, -1), competition) : '#/', 'data-action': 'prev', 'data-control': 'CTL-BOARD-PREV'}, '← Giorno prima'),
   el('label', {}, 'Giorno ', el('input', {type: 'date', name: 'date', value: validDate(date) ? date : '', required: true, 'data-control': 'CTL-BOARD-DATE'})),
   el('label', {}, 'Campionato ', el('select', {name: 'competition', disabled: !competitionsBody, 'data-control': 'CTL-BOARD-COMPETITION'},
-    [['', competitionsBody ? 'Tutti' : 'Elenco non disponibile'], ...competitions.map(c => [c.internal_competition_id, nameOfCompetition(c.internal_competition_id)])]
+    // A competition of the address that the list does not have (stale link, list unavailable) stays shown as chosen,
+    // so the select always says which filter the day applies (review #261).
+    [['', competitionsBody ? 'Tutti' : 'Elenco non disponibile'], ...competitions.map(c => [c.internal_competition_id, nameOfCompetition(c.internal_competition_id)]),
+      ...(competition && !competitions.some(c => c.internal_competition_id === competition) ? [[competition, competition]] : [])]
       .map(([v, text]) => el('option', {value: v, selected: v === competition}, text)))),
   el('button', {type: 'submit', 'data-control': 'CTL-BOARD-SHOW'}, 'Mostra'),
   el('a', {href: validDate(date) ? dayHref(shiftDay(date, 1), competition) : '#/', 'data-action': 'next', 'data-control': 'CTL-BOARD-NEXT'}, 'Giorno dopo →'),
