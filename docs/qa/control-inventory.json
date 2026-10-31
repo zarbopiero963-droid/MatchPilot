@@ -134,6 +134,86 @@
       ]
     },
     {
+      "id": "CTL-NAV-FIND-INPUT",
+      "view": "shell",
+      "kind": "input",
+      "label": "Cerca squadre e pagine",
+      "action": "riceve il nome di una squadra o di una pagina",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        3
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "global-search",
+          "step": "cerca: dal campo in alto la squadra dell’API e le sue partite in Ricerca"
+        }
+      ]
+    },
+    {
+      "id": "CTL-NAV-FIND",
+      "view": "shell",
+      "kind": "button",
+      "label": "Cerca",
+      "action": "apre i risultati: squadre dall'API e pagine dell'app",
+      "api": "/api/v1/fpt/teams",
+      "data": "REAL",
+      "issues": [
+        3
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "global-search",
+          "step": "cerca: dal campo in alto la squadra dell’API e le sue partite in Ricerca"
+        }
+      ]
+    },
+    {
+      "id": "CTL-FIND-TEAM",
+      "view": "find",
+      "kind": "link",
+      "label": "Squadra (risultato)",
+      "action": "apre le partite della squadra in Ricerca",
+      "api": "/api/v1/fpt/search",
+      "data": "REAL",
+      "issues": [
+        3
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "global-search",
+          "step": "cerca: dal campo in alto la squadra dell’API e le sue partite in Ricerca"
+        }
+      ]
+    },
+    {
+      "id": "CTL-FIND-PAGE",
+      "view": "find",
+      "kind": "link",
+      "label": "Pagina (risultato)",
+      "action": "apre la pagina trovata",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        3
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "global-search",
+          "step": "cerca: le pagine dell’app per nome, senza accenti né maiuscole"
+        }
+      ]
+    },
+    {
       "id": "CTL-COMMON-RETRY",
       "view": "shared",
       "kind": "button",

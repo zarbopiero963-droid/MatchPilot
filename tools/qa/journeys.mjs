@@ -121,6 +121,7 @@ const matrixViews = ({day, matchId}) => [
   {name: 'Fornitori', hash: '#/providers', path: '/api/v1/providers'},
   {name: 'API', hash: '#/endpoints', path: '/api/v1/endpoints'},
   {name: 'Copertura', hash: '#/coverage', path: '/api/v1/fpt/coverage-competitions'},
+  {name: 'Cerca', hash: '#/find?q=Ajax', path: '/api/v1/fpt/teams'},
 ];
 const MATRIX_PATHS = matrixViews({day: '', matchId: ''}).map(view => view.path);
 const matrixStep = code => `matrice negativa: errore ${code} su ogni vista, stesso stato, codice conservato, Riprova`;
@@ -2148,6 +2149,69 @@ export const JOURNEYS = [
           assert.equal(await page.locator('[data-testid="sim-outcome"]').count(), 0);
           assert.equal(await page.inputValue('select[name="strategy"]'), 'mp-ref-fav-back-1');
         });
+      });
+    },
+  },
+  {
+    // MP-UI-PR-009-NAV (MP-REQ-UI-1038): the search of the shell, in the header of every view on desktop, tablet and
+    // mobile: squads from the API (exact name, any known spelling) with their matches in Ricerca, pages of the app.
+    id: 'global-search', surface: 'Tutte le viste', title: 'Cerca nell’intestazione: squadre dall’API e loro partite, pagine dell’app, nessun risultato',
+    async run({page, base, step, asserted, api}) {
+      const hash = () => page.evaluate(() => location.hash);
+      const team = (await api('/api/v1/fpt/teams?q=Ajax')).data.rows;
+      await step('cerca: dal campo in alto la squadra dell’API e le sue partite in Ricerca', async () => {
+        assert.equal(team.length, 1, 'the QA archive has one Ajax');
+        await fresh(page, `${base}/#/sim`);
+        await titled(page, 'Simulazione');
+        assert.ok(await page.isVisible('[data-testid="global-search"] input[name="q"]'), 'the field is in the header on this viewport');
+        await page.fill('[data-testid="global-search"] input[name="q"]', '  Ajax ');
+        const request = page.waitForRequest(r => new URL(r.url()).pathname === '/api/v1/fpt/teams');
+        await page.click('[data-testid="global-search"] button[type="submit"]');
+        const sent = new URL((await request).url()).searchParams;
+        await asserted(['CTL-NAV-FIND-INPUT', 'CTL-NAV-FIND'], 'the words typed reach the API and the page lists its squads', async () => {
+          assert.equal(sent.get('q'), 'Ajax');
+          await titled(page, 'Risultati per «Ajax»');
+          assert.equal(await hash(), '#/find?q=Ajax');
+          assert.deepEqual(await page.locator('[data-testid="find-teams"] li').evaluateAll(rows => rows.map(row => row.dataset.team)), team.map(row => row.internal_team_id));
+          assert.equal(await page.inputValue('[data-testid="global-search"] input[name="q"]'), 'Ajax', 'the field keeps the words');
+          assert.equal(await page.locator('nav.mainnav a[aria-current="page"]').count(), 0, 'no menu section claims the search');
+        });
+        const search = page.waitForRequest(r => new URL(r.url()).pathname === '/api/v1/fpt/search');
+        await page.click('[data-testid="find-teams"] a[data-control="CTL-FIND-TEAM"]');
+        const asked = new URL((await search).url()).searchParams;
+        await asserted('CTL-FIND-TEAM', 'a squad opens its matches in Ricerca, from the API', async () => {
+          assert.equal(asked.get('team'), team[0].internal_team_id);
+          await page.waitForSelector('[data-testid="search-results"] tr');
+          const expected = (await api(`/api/v1/fpt/search?${new URLSearchParams({team: team[0].internal_team_id, limit: asked.get('limit')})}`)).data.rows;
+          assert.ok(expected.length > 0);
+          assert.equal(await page.locator('[data-testid="search-results"] tr').count(), expected.length);
+          assert.equal(await page.getAttribute('nav a[data-view="search"]', 'aria-current'), 'page');
+        });
+      });
+      await step('cerca: le pagine dell’app per nome, senza accenti né maiuscole', async () => {
+        await fresh(page, `${base}/#/find?q=COPERTURA`);
+        await page.waitForSelector('[data-testid="find-pages"]');
+        assert.deepEqual(await page.locator('[data-testid="find-pages"] li').allTextContents(), ['Copertura']);
+        assert.equal(await page.locator('[data-testid="find-teams"] li').count(), 0, 'no squad is called Copertura');
+        await page.click('[data-testid="find-pages"] a[data-control="CTL-FIND-PAGE"]');
+        await asserted('CTL-FIND-PAGE', 'a page found opens in the app', async () => {
+          await titled(page, 'Copertura dei campionati');
+          assert.equal(await hash(), '#/coverage');
+        });
+        await fresh(page, `${base}/#/find?q=probabilit%C3%A0`);
+        await page.waitForSelector('[data-testid="find-pages"]');
+        assert.deepEqual(await page.locator('[data-testid="find-pages"] li').allTextContents(), ['Strumenti']);
+      });
+      await step('cerca: nessun risultato e campo vuoto, detti senza inventare', async () => {
+        await fresh(page, `${base}/#/find?q=zzqq`);
+        await page.waitForSelector('[data-testid="find-teams"] .state.empty');
+        assert.deepEqual((await api('/api/v1/fpt/teams?q=zzqq')).data.rows, []);
+        assert.equal(await page.locator('[data-testid="find-teams"] li').count(), 0);
+        assert.equal(await page.locator('[data-testid="find-pages"] li').count(), 0);
+        await page.fill('[data-testid="global-search"] input[name="q"]', '   ');
+        await page.click('[data-testid="global-search"] button[type="submit"]');
+        await page.waitForSelector('[data-testid="find-empty"]');
+        assert.equal(await hash(), '#/find');
       });
     },
   },

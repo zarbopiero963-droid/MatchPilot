@@ -1820,15 +1820,44 @@
       "pr": 256,
       "branch": "ui-pr-008-cov-fu",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261031T193056Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261031T201026Z-agent-a-claude-code",
       "resources": [
         "file:src/web/app.js",
         "file:src/web/states.js",
         "file:tools/qa/journeys.mjs",
         "file:test/ui-foundations.test.mjs",
         "file:docs/qa/browser-qa.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "2f12c958f174817c3add056d47e007170359c056"
+    },
+    {
+      "id": "MP-UI-PR-009-NAV",
+      "title": "MP-UI-PR-009-NAV: search of the shell",
+      "issue": 239,
+      "pr": 257,
+      "branch": "ui-pr-009-nav",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T201118Z-agent-a-claude-code",
+      "resources": [
+        "file:src/web/app.js",
+        "file:src/web/index.html",
+        "file:src/web/app.css",
+        "file:tools/qa/journeys.mjs",
+        "file:test/ui-foundations.test.mjs",
+        "file:docs/qa/control-inventory.json",
+        "file:docs/qa/feature-certification.json",
+        "file:docs/governance/ui-requirements-matrix.json",
+        "file:docs/mockups/matchpilot-trading-os.html",
+        "file:test/visual/manifest.json"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
