@@ -1,0 +1,168 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261031T211653Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-31T21:16:53Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-SAFE-REGISTERS-20261031",
+    "source": "owner message to Claude Code, 2026-10-31 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): owner decision on PR #253 (merge at head 3afd943) and SAFE policy for register updates"
+  },
+  "task": "MP-UI-PR-011-SRCHX",
+  "activity": "PR #258 merged as 18b8484 (squash, SAFE auto-merge); main CI green; deploy-vps refused by mp-runner-guard (no deploy)",
+  "issue": 239,
+  "pr": 258,
+  "branch": "ui-pr-011-srchx",
+  "commit_sha": "2cdf0668619f605aa324e01f3c816c8ef2ca6a01",
+  "tree_sha": "7df05ec7dae5e6c41c6aae49ba918ffb5376b5f0",
+  "base_sha": "88387170cb282ef6e7f92fda5d2dac68a72e9ce6",
+  "requirements": [
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "Ricerca: favourite side, home price from/to, Over 2.5 price from/to, minimum total xG",
+    "search journey: five steps against the API",
+    "inventory 219/219 ASSERTED",
+    "matrix 1053 TESTED; 0249 stays PARTIAL (season)",
+    "mock v2026.10.31c",
+    "visual baselines of the Ricerca",
+    "MERGED checkpoint of PR #257",
+    "18b8484: squash merge of PR #258"
+  ],
+  "tests": [
+    {
+      "command": "npm run qa:browser",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16, Chromium",
+      "commit": "e3d13a07434308a0ffeeafd0e8d269110e81e130",
+      "time": "2026-10-31T20:43:37Z",
+      "limits": [
+        "42/42; verify-report ok; feature register with the report ok; after the field reorder search and controls-coverage 6/6 again; visual 63/63 with the promoted baselines"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on PR #258 head 2cdf066",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "2cdf0668619f605aa324e01f3c816c8ef2ca6a01",
+      "time": "2026-10-31T21:16:53Z",
+      "limits": [
+        "run 41240507208 success"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 18b8484",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "18b848434f494445db5a02740388f117994bdb44",
+      "time": "2026-10-31T21:16:53Z",
+      "limits": [
+        "run 41241402147 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 18b8484",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "18b848434f494445db5a02740388f117994bdb44",
+      "time": "2026-10-31T21:16:53Z",
+      "limits": [
+        "run 41241402148: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41240507208,
+    "conclusion": "SUCCESS",
+    "head_sha": "2cdf0668619f605aa324e01f3c816c8ef2ca6a01"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "2cdf0668619f605aa324e01f3c816c8ef2ca6a01",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/258#issuecomment-6549050949"
+  },
+  "findings": [
+    {
+      "id": "PR011-T-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "MP-REQ-UI-0249 stays PARTIAL: the season filter needs an API listing the season ids of a competition"
+    },
+    {
+      "id": "PR258-T-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "1053 acceptance still reads «journey search 11 step» (now 16)"
+    },
+    {
+      "id": "PR258-T-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "fav_side: only HOME exercised in the UI (QA seed); AWAY and EVEN covered by the API tests"
+    },
+    {
+      "id": "PR258-T-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "over25_max: only the parameter is proven with the QA seed (Over 2.5 always 1.90)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031",
+    "MP-OWNER-D12-IMPLEMENTATION-20261024"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:src/web/app.js",
+    "file:tools/qa/journeys.mjs",
+    "file:docs/qa/control-inventory.json",
+    "file:docs/qa/feature-certification.json",
+    "file:docs/governance/ui-requirements-matrix.json",
+    "file:docs/mockups/matchpilot-trading-os.html",
+    "file:test/visual/manifest.json"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none for MP-UI-PR-011-SRCHX; season filter (0249) needs an API listing the season ids",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261031T204337Z-agent-a-claude-code",
+  "merge_sha": "18b848434f494445db5a02740388f117994bdb44"
+}

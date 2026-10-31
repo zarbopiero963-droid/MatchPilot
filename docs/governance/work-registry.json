@@ -1873,9 +1873,9 @@
       "pr": 258,
       "branch": "ui-pr-011-srchx",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261031T204337Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261031T211653Z-agent-a-claude-code",
       "resources": [
         "file:src/web/app.js",
         "file:tools/qa/journeys.mjs",
@@ -1889,7 +1889,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "18b848434f494445db5a02740388f117994bdb44"
     },
     {
       "id": "MP-GOV-SAFE-AUTOMERGE-RULES",
