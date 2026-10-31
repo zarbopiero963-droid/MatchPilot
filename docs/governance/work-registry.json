@@ -1942,7 +1942,7 @@
       "id": "MP-UI-SAFE-01-CERT-TILE",
       "title": "MP-UI-SAFE-01: certification tile phases from the API (FE-48)",
       "issue": 239,
-      "pr": null,
+      "pr": 266,
       "branch": "ui-safe-01-certtile",
       "kind": "implementation",
       "state": "REVIEW",
@@ -1956,7 +1956,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
