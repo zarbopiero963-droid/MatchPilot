@@ -1,0 +1,178 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261031T204316Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-31T20:43:16Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-SAFE-REGISTERS-20261031",
+    "source": "owner message to Claude Code, 2026-10-31 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): owner decision on PR #253 (merge at head 3afd943) and SAFE policy for register updates"
+  },
+  "task": "MP-UI-PR-009-NAV",
+  "activity": "PR #257 merged as 8838717 (squash, SAFE auto-merge); main CI green; deploy-vps refused by mp-runner-guard (no deploy)",
+  "issue": 239,
+  "pr": 257,
+  "branch": "ui-pr-009-nav",
+  "commit_sha": "9fe1e90b0009479ec5c252c60c4de45aff70e1f0",
+  "tree_sha": "715269116978adf6f208534d25727ad1b6b3bd56",
+  "base_sha": "2f12c958f174817c3add056d47e007170359c056",
+  "requirements": [
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "header field Cerca and view #/find (squads from /api/v1/fpt/teams, pages of the app)",
+    "journey global-search; Cerca in the negative matrix",
+    "inventory 213/213 ASSERTED",
+    "matrix 1038 TESTED (cross-cutting); 1035 stays NOT STARTED (D12 reconciliation gate)",
+    "mock v2026.10.31b",
+    "visual baselines with the header search",
+    "MERGED checkpoint of PR #256",
+    "8838717: squash merge of PR #257"
+  ],
+  "tests": [
+    {
+      "command": "npm run qa:browser",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, local PostgreSQL 16, Chromium",
+      "commit": "5b8a73853799d168cf73602203489715a9aea078",
+      "time": "2026-10-31T20:11:18Z",
+      "limits": [
+        "42/42; verify-report ok; feature register with the report ok; after the tablet CSS change global-search, general-navigation and controls-coverage 9/9 again; visual 63/63 with the promoted baselines"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on PR #257 head 9fe1e90",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "9fe1e90b0009479ec5c252c60c4de45aff70e1f0",
+      "time": "2026-10-31T20:43:16Z",
+      "limits": [
+        "run 41237861467 success"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 8838717",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "88387170cb282ef6e7f92fda5d2dac68a72e9ce6",
+      "time": "2026-10-31T20:43:16Z",
+      "limits": [
+        "run 41238833813 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 8838717",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "88387170cb282ef6e7f92fda5d2dac68a72e9ce6",
+      "time": "2026-10-31T20:43:16Z",
+      "limits": [
+        "run 41238833687: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41237861467,
+    "conclusion": "SUCCESS",
+    "head_sha": "9fe1e90b0009479ec5c252c60c4de45aff70e1f0"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "9fe1e90b0009479ec5c252c60c4de45aff70e1f0",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/257#issuecomment-6548700428"
+  },
+  "findings": [
+    {
+      "id": "PR009-T-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "MP-REQ-UI-1035: Q5 is decided by D12-5 and every menu entry opens a working view, but the D12 reconciliation gate keeps the row unverified; promoting it needs a governance change (owner)"
+    },
+    {
+      "id": "PR009-T-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the squad search is by exact name (any known spelling); a search by part of a name needs a new API (MANUAL)"
+    },
+    {
+      "id": "PR257-T-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "1038 promotion judged generous by the reviewer: matches are reached through the squad, not searched by name or date (limit stated in the matrix reason)"
+    },
+    {
+      "id": "PR257-T-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "submitting the same words again does not re-render (Riprova of the shared error state remains)"
+    },
+    {
+      "id": "PR257-T-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the header field keeps the typed words outside #/find (cosmetic)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031",
+    "MP-UI-D12-DECISIONS-20261024",
+    "MP-OWNER-D12-IMPLEMENTATION-20261024"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:src/web/app.js",
+    "file:src/web/index.html",
+    "file:src/web/app.css",
+    "file:tools/qa/journeys.mjs",
+    "file:test/ui-foundations.test.mjs",
+    "file:docs/qa/control-inventory.json",
+    "file:docs/qa/feature-certification.json",
+    "file:docs/governance/ui-requirements-matrix.json",
+    "file:docs/mockups/matchpilot-trading-os.html",
+    "file:test/visual/manifest.json"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none for MP-UI-PR-009-NAV; 1035 waits for an owner decision on the D12 reconciliation gate",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261031T201118Z-agent-a-claude-code",
+  "merge_sha": "88387170cb282ef6e7f92fda5d2dac68a72e9ce6"
+}

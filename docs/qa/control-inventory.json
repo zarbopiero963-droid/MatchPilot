@@ -976,6 +976,106 @@
       ]
     },
     {
+      "id": "CTL-SEARCH-FAV-SIDE",
+      "view": "search",
+      "kind": "select",
+      "label": "Lato del favorito",
+      "action": "imposta il filtro della ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "filtri dell’API: lato del favorito"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SEARCH-HOME-ODD-MIN",
+      "view": "search",
+      "kind": "input",
+      "label": "Quota casa minima",
+      "action": "imposta il filtro della ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "filtri dell’API: quota casa da/a"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SEARCH-HOME-ODD-MAX",
+      "view": "search",
+      "kind": "input",
+      "label": "Quota casa massima",
+      "action": "imposta il filtro della ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "filtri dell’API: quota casa da/a"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SEARCH-OVER25-MIN",
+      "view": "search",
+      "kind": "input",
+      "label": "Quota Over 2,5 minima",
+      "action": "imposta il filtro della ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "filtri dell’API: quota Over 2,5 da/a"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SEARCH-OVER25-MAX",
+      "view": "search",
+      "kind": "input",
+      "label": "Quota Over 2,5 massima",
+      "action": "imposta il filtro della ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "filtri dell’API: quota Over 2,5 da/a"
+        }
+      ]
+    },
+    {
       "id": "CTL-SEARCH-MIN-GOALS",
       "view": "search",
       "kind": "input",
@@ -1012,6 +1112,26 @@
         {
           "journey": "controls-coverage",
           "step": "Ricerca: esito, quota del favorito, gol massimi e xG arrivano all’API; data del risultato, squadra omonima e Azzera"
+        }
+      ]
+    },
+    {
+      "id": "CTL-SEARCH-MIN-XG-TOTAL",
+      "view": "search",
+      "kind": "input",
+      "label": "xG totali minimi",
+      "action": "imposta il filtro della ricerca",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "filtri dell’API: xG totali minimi"
         }
       ]
     },

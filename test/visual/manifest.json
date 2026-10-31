@@ -6,12 +6,12 @@
     "ratio": 0
   },
   "generated": {
-    "commit": "8c6508fc1a7ec6f35e1070d5d325404d127ab79f",
+    "commit": "d162774376936b915cbb89cb854986febe95b59c",
     "browser": "chromium 141.0.7390.37",
-    "date": "2026-10-31T20:09:29.857Z",
+    "date": "2026-10-31T20:41:17.947Z",
     "fixed_time": "2026-10-20T10:00:00+02:00",
-    "reason": "MP-UI-PR-009-NAV: search field «Cerca» in the header of every scene (own row on tablet and phone)",
-    "approval": "MP-UI-PR-009-NAV, MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031 (#239)"
+    "reason": "MP-UI-PR-011-SRCHX: the Ricerca form gains favourite side, home price, Over 2.5 price and minimum total xG",
+    "approval": "MP-UI-PR-011-SRCHX, MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031 (#239)"
   },
   "files": {
     "confronto-desktop.png": "b3aee8610c30c97f4541674021b803d730d99a38a855d86fb5399d7f7faae6ba",
@@ -53,15 +53,15 @@
     "partita-senza-storico-mobile.png": "232481a0eb43c3aae95ea66c5cd000aa5057d5ab8a8451816c61af015f0d7690",
     "partita-senza-storico-tablet.png": "650d3a17efc9b7392afaa4cb59a8e399ca4380a9a7b1160778c28e41d393a25b",
     "partita-tablet.png": "9ef07c92f7b1097df1a66f932624891814682d11faf803c239f8db4b4e34710c",
-    "ricerca-desktop.png": "ad6b808509dff517f68b4c032852e0b25bf6633fe4c3a366417e1eb19707f1f7",
-    "ricerca-filtro-rifiutato-desktop.png": "575c7d39eafdc3f9835b40e860d683170379043b0bfa341b4b8a3c3b8ff6eb60",
-    "ricerca-filtro-rifiutato-mobile.png": "d885e8d6b2cbe280873352e5b2e11a965df59935c145c904b0cf602dd34a0dd9",
-    "ricerca-filtro-rifiutato-tablet.png": "1dc3ac0bf905465dc884383525f1e9976ce9889919d6fed33c1964cbd029b33c",
-    "ricerca-mobile.png": "d4598855fb666289a6fdee1b2e423e5878dc48acc306be48f5b78c569bf3fafe",
+    "ricerca-desktop.png": "f5e2d83818db7700b8b4a91e4f09a2a2ff134df1a412840bcdc5ecb3694ce3b5",
+    "ricerca-filtro-rifiutato-desktop.png": "45393bf1316c50506ad1c649994a1d1a92f0773b9d1f70ac51dc878bba813983",
+    "ricerca-filtro-rifiutato-mobile.png": "8a4a10ce5ac56b2b776a2a7bb6bfcd77e68476526bd8c727693db681a7a5ef5b",
+    "ricerca-filtro-rifiutato-tablet.png": "01427ac17d488fcad29fcc13853d45a13d1f6afb6af09fe6243349be4c89a779",
+    "ricerca-mobile.png": "1368999593ff7a32e67ff528ab0a0cf883b436bc1016b1856a2e28ea8295ff8b",
     "ricerca-risultati-desktop.png": "6d520e32545629c3b56db6eee78056ca31a73b2f5c1cf0ef0065ab0ac556e9e0",
     "ricerca-risultati-mobile.png": "6d1c99c205ebb9b9cccd2c5a23a0ab8bf74ebc983db64abf8da1c74297643a50",
     "ricerca-risultati-tablet.png": "6dff3df278d9bdb7533e0b4fc05b7c3d30ca486c54e4b579d25b41991026aac5",
-    "ricerca-tablet.png": "1af8140561d82fb59651586dfd16946a368d0bc50fb518e84e01c50438c9e68c",
+    "ricerca-tablet.png": "3f99d555fb6d622deb4c9fa52b2f669a79b10ff05d8e3949427c5ec21307258b",
     "simulazione-desktop.png": "3afba7afc8ae7d279c7fb104183341ed30b7e5bf13595c194d2d948a632c0372",
     "simulazione-mobile.png": "613f479836f00383f476291eea157873879d9ca8930bbc2960465829dbaa54a6",
     "simulazione-ricerca-desktop.png": "0c5ad3f6113d8325a66a78cfcf4abd1b7ceaab4f99fdae64e8147b1323ac7a7b",
