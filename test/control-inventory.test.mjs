@@ -39,7 +39,7 @@ test('every literal data-control id of the page is in the inventory, and every i
     const end = rest.search(/^(?:async function|function|const|let) /m);
     return app.slice(start, end < 0 ? app.length : start + 1 + end);
   };
-  const fields = text => [...text.matchAll(/\b(?:select|input|check|price)\(\s*'([a-z_]+)'/g)].map(match => match[1]);
+  const fields = text => [...text.matchAll(/\b(?:select|input|check|price)\(\s*'([a-z][a-z0-9_]*)'/g)].map(match => match[1]);
   const cmpKeys = [...(/const CMP_KEYS = \[([^\]]*)\]/.exec(app)?.[1].matchAll(/'([a-z])'/g) ?? [])].map(match => match[1]);
   assert.deepEqual(cmpKeys, ['a', 'b', 'c']);
   const dataTabs = [.../const DATA_TABS = (\[.*\]);/.exec(app)[1].matchAll(/\[(?:'([a-z]+)'|null),/g)].map(match => match[1] ?? 'coverage');
