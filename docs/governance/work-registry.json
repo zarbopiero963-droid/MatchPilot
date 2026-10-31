@@ -1913,6 +1913,32 @@
       },
       "pr_open": false,
       "merge_sha": "7f0896e6ea3e1b1a5d6bcc00f89cc320b0892e3e"
+    },
+    {
+      "id": "MP-UI-PR-010-BOARD-COMP",
+      "title": "MP-UI-PR-010-BOARD-COMP: competition filter on Oggi",
+      "issue": 239,
+      "pr": null,
+      "branch": "ui-pr-010-board-comp",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T220929Z-agent-a-claude-code",
+      "resources": [
+        "file:src/providers/futpython/query.mjs",
+        "file:src/web/app.js",
+        "file:tools/qa/journeys.mjs",
+        "file:test/fpt-pagination.test.mjs",
+        "file:docs/qa/control-inventory.json",
+        "file:docs/governance/ui-requirements-matrix.json",
+        "file:docs/mockups/matchpilot-trading-os.html",
+        "file:test/visual/manifest.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
