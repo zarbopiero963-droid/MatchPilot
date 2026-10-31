@@ -1841,7 +1841,7 @@
       "id": "MP-UI-PR-009-NAV",
       "title": "MP-UI-PR-009-NAV: search of the shell",
       "issue": 239,
-      "pr": null,
+      "pr": 257,
       "branch": "ui-pr-009-nav",
       "kind": "implementation",
       "state": "REVIEW",
@@ -1863,7 +1863,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
