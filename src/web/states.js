@@ -53,3 +53,16 @@ export function httpErrorState(status, code = null) {
   if (status >= 400) return HTTP_STATES[400];
   return {kind: 'client', text: 'La pagina non è riuscita a mostrare i dati.'};
 }
+
+// MP-UI-PR-008-COV (MP-REQ-UI-1040, MP-WEB-011): a share of the API (exact decimal text in [0, 1], e.g. "0.9950") as a
+// percentage, still as decimal text with a dot ("99.5"): the decimal point moves two places on the text itself, so the
+// browser rounds nothing. Anything that is not such a text is null (the page shows N/D), never a guessed number.
+export function percentText(value) {
+  const m = /^(\d+)(?:\.(\d+))?$/.exec(typeof value === 'string' || typeof value === 'number' ? String(value) : '');
+  if (!m) return null;
+  const digits = `${m[1]}${(m[2] ?? '').padEnd(2, '0')}`;
+  const cut = m[1].length + 2;
+  const whole = digits.slice(0, cut).replace(/^0+(?=\d)/, '');
+  const rest = digits.slice(cut).replace(/0+$/, '');
+  return rest ? `${whole}.${rest}` : whole;
+}

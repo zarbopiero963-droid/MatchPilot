@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {BADGES, badgeSpec, httpErrorState, pitBadgeKind} from '../src/web/states.js';
+import {BADGES, badgeSpec, httpErrorState, percentText, pitBadgeKind} from '../src/web/states.js';
 import {allowHttpErrors, computeVerdict, unexpectedConsoleLines} from '../tools/qa/browser-qa.mjs';
 import {JOURNEYS, REQUIRED_JOURNEYS, REQUIRED_VIEWPORTS, VIEWPORTS} from '../tools/qa/journeys.mjs';
 
@@ -34,7 +34,7 @@ test('MP-REQ-UI-1043: one badge table, one component; every kind has its text an
   // The page renders every badge, N/D included, through badge(): no hand-made N/D or data-badge elsewhere.
   assert.equal((app.match(/'data-badge'/g) ?? []).length, 1, 'data-badge is set in badge() only');
   assert.doesNotMatch(app, /\}, ND\)/, 'no hand-made N/D element: badge(\'ND\') renders it');
-  assert.match(app, /import \{badgeSpec, httpErrorState, pitBadgeKind\} from '\.\/states\.js';/);
+  assert.match(app, /import \{badgeSpec, httpErrorState, percentText, pitBadgeKind\} from '\.\/states\.js';/);
 });
 
 test('MP-REQ-UI-1010 MP-REQ-UI-1043: one wording per HTTP status class, the same on every view', () => {
@@ -96,4 +96,12 @@ test('MP-REQ-UI-1028: every control of the inventory is ASSERTED by a journey st
   assert.deepEqual(weak, [], 'a control only seen or actuated is not verified: a new control needs an asserted step');
   assert.ok(inventory.controls.length >= 205);
   for (const id of ['controls-coverage', 'http-errors']) assert.ok(REQUIRED_JOURNEYS.includes(id), `${id} is a required journey`);
+});
+
+test('MP-REQ-UI-1040: a coverage share is shown as a percentage of its exact text, never rounded nor guessed', () => {
+  for (const [value, percent] of [['0.9950', '99.5'], ['1.0000', '100'], ['0.0000', '0'], ['0.0123', '1.23'], ['0.12345', '12.345'],
+    ['0.5', '50'], ['1', '100'], ['0.0001', '0.01'], [0, '0'], [1, '100']]) assert.equal(percentText(value), percent, String(value));
+  for (const value of [null, undefined, '', ' ', '-0.5', '0,5', '1e-3', 'NaN', '.5', '0.', {}, [], true]) assert.equal(percentText(value), null, String(value));
+  // The page renders the share through percentText and the N/D badge; the journey checks it against the same function.
+  assert.match(app, /const percent = percentText\(value\);\n  return percent === null \? badge\('ND'\)/);
 });

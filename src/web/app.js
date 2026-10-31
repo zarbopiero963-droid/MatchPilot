@@ -6,7 +6,7 @@
 // provenance stay in data-* attributes and tooltips, and in the technical views (docs/qa/ui-text-inventory.md).
 
 import {createPersistence} from './persistence.js';
-import {badgeSpec, httpErrorState, pitBadgeKind} from './states.js';
+import {badgeSpec, httpErrorState, percentText, pitBadgeKind} from './states.js';
 
 const ND = 'N/D';
 
@@ -292,13 +292,8 @@ const dataTabs = current => el('nav', {class: 'tabs', 'aria-label': 'Sezioni dei
 // A share of the API (exact decimal text, e.g. "0.9950") as a percentage: the decimal point moves two places on the
 // text itself, so nothing is rounded in the browser (MP-WEB-011).
 function shareText(value) {
-  const m = /^(\d+)(?:\.(\d+))?$/.exec(String(value ?? ''));
-  if (!m) return badge('ND');
-  const digits = `${m[1]}${(m[2] ?? '').padEnd(2, '0')}`;
-  const cut = m[1].length + 2;
-  const whole = digits.slice(0, cut).replace(/^0+(?=\d)/, '');
-  const rest = digits.slice(cut).replace(/0+$/, '');
-  return document.createTextNode(`${formatDecimalText(rest ? `${whole}.${rest}` : whole)}%`);
+  const percent = percentText(value);
+  return percent === null ? badge('ND') : document.createTextNode(`${formatDecimalText(percent)}%`);
 }
 // The state of a competition or of a season, in words; the code stays in data-code and the tooltip.
 const COVERAGE_STATE = {AVAILABLE: 'Disponibile', ONBOARDING: 'In attivazione', ERROR: 'Errore del fornitore', UNAVAILABLE_404: 'Non pubblicata dal fornitore',
@@ -335,7 +330,8 @@ async function coverageView(params) {
   const every = Array.isArray(all.data?.rows) ? all.data.rows : [];
   const filtered = country ? await getJson(`/api/v1/fpt/coverage-competitions?${queryString({country})}`) : all;
   const rows = Array.isArray(filtered.data?.rows) ? filtered.data.rows : [];
-  const countries = [...new Set(every.map(row => row.country_slug).filter(Boolean))].sort();
+  // A country of the address that the archive does not have stays chosen, so the filter says what the list is for.
+  const countries = [...new Set([...every.map(row => row.country_slug).filter(Boolean), ...(country ? [country] : [])])].sort();
   const filter = el('form', {class: 'controls', 'data-testid': 'coverage-filter', onsubmit: event => {
     event.preventDefault();
     location.hash = coverageHref({country: new FormData(event.target).get('country')});
