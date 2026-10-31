@@ -1,0 +1,124 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261031T233000Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-31T23:30:00Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-PRODUCT-100",
+    "source": "owner message to Claude Code, 2026-10-31 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): MP-PRODUCT-100"
+  },
+  "task": "MP-UI-SAFE-01-CERT-TILE",
+  "activity": "PR #266 merged as 01354f7 (squash, SAFE: UI on a merged API); main CI green; deploy-vps refused by mp-runner-guard (no deploy)",
+  "issue": 239,
+  "pr": 266,
+  "branch": "ui-safe-01-certtile",
+  "commit_sha": "652ec69327f32671cc879b2d23b04bb690e85af2",
+  "tree_sha": "655d0770c0aa8b7a7762bee7c406079c0f2c3dd2",
+  "base_sha": "7c95cffaafa8495b7b70ad931edd662cbb11101c",
+  "requirements": [],
+  "changes": [
+    "src/web/app.js: certPhases(cert) reads the phase<N> keys in numeric order",
+    "test/web-e2e.test.mjs: gates equal the API keys; routed phase10 added / phase8 removed is reflected",
+    "MERGED checkpoint of PR #262",
+    "registry records PR #266; main merged in (PRs #262, #267)",
+    "01354f7: squash merge of PR #266"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #266 head 652ec69",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "652ec69327f32671cc879b2d23b04bb690e85af2",
+      "time": "2026-10-31T23:30:00Z",
+      "limits": [
+        "run 41251337129 success (Fast checks, PostgreSQL integration suite, Browser QA, Exploratory QA, CI gate)"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 01354f7",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "01354f79f6af6b4af81e5e5d6df358032537fc82",
+      "time": "2026-10-31T23:30:00Z",
+      "limits": [
+        "run 41252442408 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 01354f7",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "01354f79f6af6b4af81e5e5d6df358032537fc82",
+      "time": "2026-10-31T23:30:00Z",
+      "limits": [
+        "run 41252442409: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41251337129,
+    "conclusion": "SUCCESS",
+    "head_sha": "652ec69327f32671cc879b2d23b04bb690e85af2"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "652ec69327f32671cc879b2d23b04bb690e85af2",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/266#issuecomment-6550279786"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-PRODUCT-100",
+    "MP-OWNER-PR254-ROADMAP-20261031",
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031"
+  ],
+  "progress": {
+    "done": [
+      "change and test",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:src/web/app.js",
+    "file:test/web-e2e.test.mjs"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261031T225658Z-agent-a-claude-code",
+  "merge_sha": "01354f79f6af6b4af81e5e5d6df358032537fc82"
+}
