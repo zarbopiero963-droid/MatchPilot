@@ -1899,9 +1899,9 @@
       "pr": 254,
       "branch": "gov-safe-automerge",
       "kind": "operations",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261031T184000Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261031T213500Z-agent-a-claude-code",
       "resources": [
         "file:AGENTS.md",
         "file:CLAUDE.md",
@@ -1911,7 +1911,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "7f0896e6ea3e1b1a5d6bcc00f89cc320b0892e3e"
     }
   ]
 }
