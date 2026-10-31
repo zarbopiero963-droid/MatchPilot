@@ -19,7 +19,7 @@
       "exercised_by": [
         {
           "journey": "controls-coverage",
-          "step": "logo e scheda Copertura: aprono Oggi e la pagina di copertura"
+          "step": "logo e scheda Copertura: aprono Oggi e la copertura nell’app"
         }
       ]
     },
@@ -291,7 +291,7 @@
       "exercised_by": [
         {
           "journey": "controls-coverage",
-          "step": "logo e scheda Copertura: aprono Oggi e la pagina di copertura"
+          "step": "logo e scheda Copertura: aprono Oggi e la copertura nell’app"
         }
       ]
     },
@@ -327,9 +327,14 @@
         12,
         31
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "coverage",
+          "step": "copertura: il filtro per paese ricarica i campionati dal server"
+        }
+      ]
     },
     {
       "id": "CTL-COVERAGE-SHOW",
@@ -343,9 +348,14 @@
         12,
         31
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "coverage",
+          "step": "copertura: il filtro per paese ricarica i campionati dal server"
+        }
+      ]
     },
     {
       "id": "CTL-COVERAGE-LEAGUE",
@@ -359,9 +369,14 @@
         12,
         31
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "coverage",
+          "step": "copertura: le stagioni di un campionato e il ritorno all’elenco"
+        }
+      ]
     },
     {
       "id": "CTL-COVERAGE-BACK",
@@ -375,9 +390,14 @@
         12,
         31
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "coverage",
+          "step": "copertura: le stagioni di un campionato e il ritorno all’elenco"
+        }
+      ]
     },
     {
       "id": "CTL-BOARD-OPEN-MATCH",
