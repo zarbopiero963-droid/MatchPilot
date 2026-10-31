@@ -14,12 +14,12 @@
       "issues": [
         3
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "general-navigation",
-          "step": "apertura del sito"
+          "journey": "controls-coverage",
+          "step": "logo e scheda Copertura: aprono Oggi e la pagina di copertura"
         }
       ]
     },
@@ -286,12 +286,12 @@
       "issues": [
         31
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "general-navigation",
-          "step": "menu: Stato dei dati"
+          "journey": "controls-coverage",
+          "step": "logo e scheda Copertura: aprono Oggi e la pagina di copertura"
         }
       ]
     },
@@ -457,12 +457,12 @@
         3,
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "general-navigation",
-          "step": "apertura del sito"
+          "journey": "controls-coverage",
+          "step": "Oggi dal calendario e giorno vuoto: si torna a oggi e si apre l’area Dati"
         }
       ]
     },
@@ -478,12 +478,12 @@
         3,
         31
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "general-navigation",
-          "step": "apertura del sito"
+          "journey": "controls-coverage",
+          "step": "Oggi dal calendario e giorno vuoto: si torna a oggi e si apre l’area Dati"
         }
       ]
     },
@@ -498,12 +498,12 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "match-center",
-          "step": "apertura dalla Daily Board"
+          "journey": "controls-coverage",
+          "step": "Partita: forma recente, indirizzo non valido e partita assente riportano a Oggi o alla Ricerca"
         }
       ]
     },
@@ -538,9 +538,14 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "controls-coverage",
+          "step": "Partita: forma recente, indirizzo non valido e partita assente riportano a Oggi o alla Ricerca"
+        }
+      ]
     },
     {
       "id": "CTL-MATCH-INVALID-SEARCH",
@@ -553,9 +558,14 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "controls-coverage",
+          "step": "Partita: forma recente, indirizzo non valido e partita assente riportano a Oggi o alla Ricerca"
+        }
+      ]
     },
     {
       "id": "CTL-MATCH-UNKNOWN-BOARD",
@@ -568,12 +578,12 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "match-center",
-          "step": "partita non valida o non trovata"
+          "journey": "controls-coverage",
+          "step": "Partita: forma recente, indirizzo non valido e partita assente riportano a Oggi o alla Ricerca"
         }
       ]
     },
@@ -752,12 +762,12 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "general-navigation",
-          "step": "menu: Ricerca partite"
+          "journey": "controls-coverage",
+          "step": "Ricerca: esito, quota del favorito, gol massimi e xG arrivano all’API; data del risultato, squadra omonima e Azzera"
         }
       ]
     },
@@ -772,12 +782,12 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "general-navigation",
-          "step": "menu: Ricerca partite"
+          "journey": "controls-coverage",
+          "step": "Ricerca: esito, quota del favorito, gol massimi e xG arrivano all’API; data del risultato, squadra omonima e Azzera"
         }
       ]
     },
@@ -792,12 +802,12 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "general-navigation",
-          "step": "menu: Ricerca partite"
+          "journey": "controls-coverage",
+          "step": "Ricerca: esito, quota del favorito, gol massimi e xG arrivano all’API; data del risultato, squadra omonima e Azzera"
         }
       ]
     },
@@ -832,12 +842,12 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "general-navigation",
-          "step": "menu: Ricerca partite"
+          "journey": "controls-coverage",
+          "step": "Ricerca: esito, quota del favorito, gol massimi e xG arrivano all’API; data del risultato, squadra omonima e Azzera"
         }
       ]
     },
@@ -872,12 +882,12 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "general-navigation",
-          "step": "menu: Ricerca partite"
+          "journey": "controls-coverage",
+          "step": "Ricerca: esito, quota del favorito, gol massimi e xG arrivano all’API; data del risultato, squadra omonima e Azzera"
         }
       ]
     },
@@ -924,12 +934,12 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "general-navigation",
-          "step": "menu: Ricerca partite"
+          "journey": "controls-coverage",
+          "step": "Ricerca: esito, quota del favorito, gol massimi e xG arrivano all’API; data del risultato, squadra omonima e Azzera"
         }
       ]
     },
@@ -944,12 +954,12 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "search",
-          "step": "tutte le partite, pagina dopo pagina, fino alla fine"
+          "journey": "controls-coverage",
+          "step": "Ricerca: esito, quota del favorito, gol massimi e xG arrivano all’API; data del risultato, squadra omonima e Azzera"
         }
       ]
     },
@@ -984,12 +994,12 @@
       "issues": [
         30
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "search",
-          "step": "più squadre con lo stesso nome: scelta leggibile"
+          "journey": "controls-coverage",
+          "step": "Ricerca: esito, quota del favorito, gol massimi e xG arrivano all’API; data del risultato, squadra omonima e Azzera"
         }
       ]
     },
@@ -1180,12 +1190,12 @@
         34,
         96
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "general-navigation",
-          "step": "menu: Simulazione"
+          "journey": "controls-coverage",
+          "step": "Simulazione: partite massime, quote 1X2, capitale e gestione arrivano all’API; Azzera"
         }
       ]
     },
@@ -1243,12 +1253,12 @@
         34,
         96
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "simulation",
-          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+          "journey": "controls-coverage",
+          "step": "Simulazione: partite massime, quote 1X2, capitale e gestione arrivano all’API; Azzera"
         }
       ]
     },
@@ -1285,12 +1295,12 @@
         34,
         96
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "simulation",
-          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+          "journey": "controls-coverage",
+          "step": "Simulazione: partite massime, quote 1X2, capitale e gestione arrivano all’API; Azzera"
         }
       ]
     },
@@ -1306,12 +1316,12 @@
         34,
         96
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "simulation",
-          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+          "journey": "controls-coverage",
+          "step": "Simulazione: partite massime, quote 1X2, capitale e gestione arrivano all’API; Azzera"
         }
       ]
     },
@@ -1327,12 +1337,12 @@
         34,
         96
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "simulation",
-          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+          "journey": "controls-coverage",
+          "step": "Simulazione: partite massime, quote 1X2, capitale e gestione arrivano all’API; Azzera"
         }
       ]
     },
@@ -1348,12 +1358,12 @@
         34,
         96
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "simulation",
-          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+          "journey": "controls-coverage",
+          "step": "Simulazione: partite massime, quote 1X2, capitale e gestione arrivano all’API; Azzera"
         }
       ]
     },
@@ -1369,12 +1379,12 @@
         34,
         96
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "simulation",
-          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+          "journey": "controls-coverage",
+          "step": "Simulazione: partite massime, quote 1X2, capitale e gestione arrivano all’API; Azzera"
         }
       ]
     },
@@ -1390,12 +1400,12 @@
         34,
         96
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "simulation",
-          "step": "strategia personalizzata: regole nel modulo, definizione registrata, valori e motivi uguali all’API"
+          "journey": "controls-coverage",
+          "step": "Simulazione: partite massime, quote 1X2, capitale e gestione arrivano all’API; Azzera"
         }
       ]
     },
@@ -1453,12 +1463,12 @@
         34,
         96
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "general-navigation",
-          "step": "menu: Simulazione"
+          "journey": "controls-coverage",
+          "step": "Simulazione: partite massime, quote 1X2, capitale e gestione arrivano all’API; Azzera"
         }
       ]
     },
@@ -1474,12 +1484,12 @@
         34,
         96
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "general-navigation",
-          "step": "menu: Simulazione"
+          "journey": "controls-coverage",
+          "step": "Simulazione: partite massime, quote 1X2, capitale e gestione arrivano all’API; Azzera"
         }
       ]
     },
@@ -1495,12 +1505,12 @@
         34,
         96
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "general-navigation",
-          "step": "menu: Simulazione"
+          "journey": "controls-coverage",
+          "step": "Simulazione: partite massime, quote 1X2, capitale e gestione arrivano all’API; Azzera"
         }
       ]
     },
@@ -1549,12 +1559,12 @@
       "issues": [
         34
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "SEEN",
+      "status": "TESTED",
+      "evidence": "ASSERTED",
       "exercised_by": [
         {
-          "journey": "general-navigation",
-          "step": "menu: Simulazione"
+          "journey": "controls-coverage",
+          "step": "Simulazione: partite massime, quote 1X2, capitale e gestione arrivano all’API; Azzera"
         }
       ]
     },

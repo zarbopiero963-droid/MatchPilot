@@ -243,8 +243,9 @@ test('requirement evidence: a test titled with the requirement or a journey step
   // A journey step: it exists, its controls are TESTED, and with a report each one is asserted in that step.
   assert.deepEqual(requirementEvidenceErrors('MP-REQ-UI-0290', [{journey: 'sim-save', step, controls: ['CTL-STRAT-OPEN'], proves}], {inventory}), []);
   assert.match(requirementEvidenceErrors('MP-REQ-UI-0290', [{journey: 'sim-save', step: 'no such step', controls: ['CTL-STRAT-OPEN'], proves}], {inventory}).join('\n'), /no step «no such step» in sim-save/);
-  const untested = inventory.controls.find(c => c.status !== 'TESTED').id;
-  assert.match(requirementEvidenceErrors('MP-REQ-UI-0290', [{journey: 'sim-save', step, controls: [untested], proves}], {inventory}).join('\n'), new RegExp(`${untested} is not TESTED`));
+  // A control the inventory does not hold as TESTED (a copy where one is only IMPLEMENTED) is refused.
+  const weaker = {...inventory, controls: inventory.controls.map(c => (c.id === 'CTL-STRAT-OPEN' ? {...c, status: 'IMPLEMENTED'} : c))};
+  assert.match(requirementEvidenceErrors('MP-REQ-UI-0290', [{journey: 'sim-save', step, controls: ['CTL-STRAT-OPEN'], proves}], {inventory: weaker}).join('\n'), /CTL-STRAT-OPEN is not TESTED/);
   assert.match(requirementEvidenceErrors('MP-REQ-UI-0290', [{journey: 'sim-save', step, proves}], {inventory}).join('\n'), /supporting evidence only/, 'a step without controls supports, never proves alone');
   const report = asserted => ({journeys: ['desktop', 'tablet', 'mobile'].map(viewport => ({id: 'sim-save', viewport, status: 'PASS', steps: [{name: step, status: 'PASS', asserted, assertions: [{}]}]}))});
   assert.deepEqual(requirementEvidenceErrors('MP-REQ-UI-0290', [{journey: 'sim-save', step, controls: ['CTL-STRAT-OPEN'], proves}], {inventory, report: report(['CTL-STRAT-OPEN'])}), []);

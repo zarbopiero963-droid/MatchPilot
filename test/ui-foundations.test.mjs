@@ -88,3 +88,12 @@ test('Browser QA: every 5xx allowance is bound to the step that provokes it, and
   assert.deepEqual(unexpectedConsoleLines([line(500, '/a')], allowed).length, 1, 'nor another status');
   assert.deepEqual(unexpectedConsoleLines([{text: 'Failed to load resource: net::ERR_TIMED_OUT', url: ''}], [], new Set(['net::ERR_TIMED_OUT'])), []);
 });
+
+test('MP-REQ-UI-1028: every control of the inventory is ASSERTED by a journey step, and the negative matrix is required', async () => {
+  const {loadInventory} = await import('../tools/qa/control-inventory.mjs');
+  const inventory = loadInventory();
+  const weak = inventory.controls.filter(control => control.status !== 'TESTED' || control.evidence !== 'ASSERTED').map(control => `${control.id} ${control.status}/${control.evidence}`);
+  assert.deepEqual(weak, [], 'a control only seen or actuated is not verified: a new control needs an asserted step');
+  assert.ok(inventory.controls.length >= 205);
+  for (const id of ['controls-coverage', 'http-errors']) assert.ok(REQUIRED_JOURNEYS.includes(id), `${id} is a required journey`);
+});
