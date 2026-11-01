@@ -209,6 +209,8 @@ Il mock è [`docs/mockups/matchpilot-trading-os.html`](docs/mockups/matchpilot-t
 
 **Catalogo delle capacità (MP-CAP-01a, MP-PRODUCT-100, #263).** `src/capabilities/catalog.mjs` descrive in modo indipendente dal provider ciò che un provider offre davvero: id stabile (`provider:tipo:nome originale`, il nome resta quello del provider), tipo, operatori ammessi, momento, copertura (nulla se sconosciuta, mai 0), stato dell'inventario e provenienza. Il momento usa solo le tre classi di MP-PIT-TIMING-01 e la sua regola vale per ogni provider: una statistica non è mai pre-partita. Uno stato «disponibile» senza evidenza è rifiutato. FutPythonTrader, dismesso come provider operativo, vi compare solo come storico. È un modulo senza route né database; la disponibilità per fase (storica, pre-partita, live) e l'endpoint in sola lettura sono MP-CAP-01b (MANUAL).
 
+**Riferimento di mercato (MP-MARKET-REF-01, #263).** `src/markets/market-ref.mjs` traduce un mercato e una selezione del provider in un riferimento MatchPilot (`market_type|periodo|squadra|selezione|linea`) tramite tabelle esplicite per id di mercato, costruite sui formati realmente osservati da API-FOOTBALL: nel prematch linea e lato sono nel testo, nel LIVE c'è un campo `handicap` e gli id sono diversi. Ciò che non è riconosciuto con certezza resta UNCLASSIFIED con i campi grezzi; mercati con nomi simili non vengono fusi. `settleable` è vero solo quando una regola #100 accetta esattamente quel mercato, quella selezione e quella linea.
+
 ### FutPythonTrader — motore statistico/pre-match
 Usare ogni campo disponibile e con copertura reale. Le famiglie includono, quando presenti:
 

@@ -2175,12 +2175,33 @@
       "pr": 271,
       "branch": "docs-mp-af-02b",
       "kind": "audit",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261101T151924Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261101T160155Z-agent-a-claude-code",
       "resources": [
         "file:docs/product/mp-263/api-football-verification-2026-11-01.md",
         "file:docs/product/mp-263/README.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "192c37c2d415fe11f65f6542e6614b028aff4b1c"
+    },
+    {
+      "id": "MP-MARKET-REF-01",
+      "title": "MP-MARKET-REF-01: market_ref parser",
+      "issue": 263,
+      "pr": 272,
+      "branch": "mp-market-ref",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261101T224901Z-agent-a-claude-code",
+      "resources": [
+        "file:src/markets/market-ref.mjs",
+        "file:test/market-ref.test.mjs"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
