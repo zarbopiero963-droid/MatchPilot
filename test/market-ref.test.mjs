@@ -58,7 +58,9 @@ test('MP-MARKET-REF-01 pre-match: line and side are read from the selection text
 
 test('MP-MARKET-REF-01 in-play: line from the handicap field, provider order normalised, markets never merged by name', () => {
   const pick = r => [r.market_type, r.selection, r.line];
-  assert.deepEqual(pick(live(36, 'Over', '3.75')), ['OVER_UNDER', 'OVER', '3.75']);
+  assert.deepEqual(pick(live(36, 'Over', '3.75')), ['GOAL_LINE', 'OVER', '3.75']);
+  // Over/Under Line (36) and Match Goals (25) are different markets in-play too: same side and line, different keys.
+  assert.notEqual(live(36, 'Over', '3.5').key, live(25, 'Over', '3.5').key);
   assert.deepEqual(pick(live(33, 'Away', '0.75')), ['ASIAN_HANDICAP', 'AWAY', '0.75']);
   assert.deepEqual(pick(live(72, 'Away or Draw')), ['DOUBLE_CHANCE', 'DRAW_AWAY', null], 'same reference as pre-match Draw/Away');
   assert.equal(live(72, 'Away or Draw').key, pre(12, 'Draw/Away').key);
@@ -103,4 +105,23 @@ test('MP-MARKET-REF-01 what is not recognised stays UNCLASSIFIED with the raw pr
   // Lines are kept as normalised decimal text, never as floats.
   assert.equal(pre(5, 'Over 2.50').line, '2.5');
   assert.equal(live(33, 'Home', '+0').line, '0');
+});
+
+test('MP-MARKET-REF-01 review: ambiguous, signed, oversized or malformed inputs are never guessed', () => {
+  const unclassified = [
+    // in-play Asian handicap: a line in the text must agree with the handicap field
+    live(33, 'Home -1', '-0.5'), live(33, 'Home foo', '-0.5'), live(33, 'Draw', '0'),
+    // Asian handicap has no Draw; over/under lines are never signed
+    pre(4, 'Draw -1'), pre(19, 'Draw -0.5'), pre(5, 'Over -2.5'), pre(5, 'Over +2.5'), live(25, 'Over', '-2.5'), live(20, 'Under', '-8'),
+    // lines are short decimal text: no huge numbers, no exponent, no excess precision
+    pre(5, 'Over 12345678901234567890.5'), pre(5, 'Over 1e3'), pre(5, 'Over 2.123456'), live(36, 'Over', '1e1'),
+    // bet ids are integers or plain digit strings only
+    pre('0x5', 'Over 2.5'), pre(' 5 ', 'Over 2.5'), pre(5.5, 'Over 2.5'), pre('5.0', 'Over 2.5'), pre(true, 'Home')
+  ];
+  for (const r of unclassified) assert.equal(r.status, 'UNCLASSIFIED', JSON.stringify(r.raw));
+  assert.deepEqual([live(33, 'Home -0.5', '-0.5').selection, live(33, 'Home -0.5', '-0.5').line], ['HOME', '-0.5'], 'agreeing line accepted');
+  assert.equal(pre('5', 'Over 2.5').status, 'PARSED', 'a plain digit string is a bet id');
+  for (const zero of ['-0', '+0.0', '0.00', '-0.0']) assert.equal(live(33, 'Home', zero).line, '0', zero);
+  assert.equal(pre(4, 'Home +0.50').line, '0.5');
+  assert.equal(pre(4, 'Home -0').line, '0');
 });
