@@ -18,14 +18,16 @@ L'inventario è ricavato dal codice e dalla configurazione versionata. Lo stato 
 |---|---|---|---|
 | `matchpilot-fpt-worker.service` | `infra/vps/systemd/` | `node src/worker.mjs`: cron FPT `17 */6 * * *` Europe/Rome, **data watchdog**, **alert operativi Telegram** | Watchdog e alert Telegram vivono nello stesso processo del cron FPT. Fermare il worker spegne anche la sorveglianza. |
 | `futpython-cron.mjs` | `src/jobs/` | sync incrementale FPT | Si disattiva già con `FUTPYTHON_CRON_ENABLED=false`, una variabile d'ambiente: richiede il GO owner. |
-| `data-watchdog.mjs` | `src/jobs/` | alert `SYNC_STALE` (critical) sulla sorgente `futpython` | A cron fermo segnalerebbe `SYNC_STALE` per sempre. Serve una modalità «sorgente dismessa». |
-| `matchpilot-fpt-liveness.timer`/`.service` | `infra/vps/systemd/` | `scripts/fpt-liveness-probe.mjs` ogni 30 minuti, alert `FPT_WORKER_LIVENESS` | Va fermato insieme al worker, altrimenti genera alert. |
-| `infra/vps/sbin/mp-deploy` | righe 292 e 311 | `systemctl restart matchpilot-fpt-worker.service` a ogni release | **Un restart riavvia anche un'unità fermata.** Ogni deploy successivo riaccenderebbe il worker. Va cambiato prima dell'arresto: è una modifica del sistema di deploy, MANUAL. |
-| `secrets/fpt.env` | VPS | credenziali FPT e chat Telegram (`TG_ENV` in `mp-deploy`) | La chat Telegram è condivisa: non va rimossa insieme alle credenziali FPT. |
+| `data-watchdog.mjs` | `src/jobs/` | alert sulla sorgente `futpython`: `SYNC_STALE` (critical), `DATASET_ERRORS`, `DATA_CONTENT_STALE`, budget, 429 e circuit breaker; **riconciliazione #31 con `catchup`, che avvia una sync di recupero** (`runFutpythonSync({kind: 'recovery'})`) | A cron fermo segnalerebbe `SYNC_STALE` e `DATA_CONTENT_STALE` per sempre. Inoltre **`FUTPYTHON_CRON_ENABLED=false` da solo non garantisce zero chiamate a FPT**: il watchdog vivo può ancora avviare la sync di recupero. Serve una modalità «sorgente dismessa» che spenga sia gli alert FPT sia il recupero. |
+| `matchpilot-fpt-liveness.timer`/`.service` | `infra/vps/systemd/` | `scripts/fpt-liveness-probe.mjs` ogni 30 minuti (salta 03:15–04:45): alert `FPT_WORKER_LIVENESS` e `FPT_PERSISTENT_ERRORS`, controlla anche `systemctl is-active` del worker | Va disattivato **prima** di cambiare il worker, altrimenti genera alert. |
+| `infra/vps/sbin/mp-deploy` | righe 293 e 311 | `systemctl restart matchpilot-fpt-worker.service` a ogni release e nel rollback | **Un restart avvia anche un'unità fermata o disabilitata (non mascherata).** Ogni deploy successivo riaccenderebbe il worker. Serve una guardia in `mp-deploy` oppure `systemctl mask`: è una modifica del sistema di deploy, MANUAL. |
+| `secrets/fpt.env` | VPS | credenziali FPT e chat Telegram (`TG_ENV` in `mp-deploy`, riga 76) | Token e chat Telegram sono letti anche dalle notifiche di `mp-deploy`: togliere il file o le sue righe romperebbe anche quelle. Si tolgono solo le credenziali FPT. |
+| `FUTPYTHON_BACKFILL_ON_START`, `FUTPYTHON_PHASE1_VERIFY_ON_START` | `src/background.mjs` | backfill e verifica all'avvio, spenti di default | La checklist della modalità dismessa verifica che restino `false`. |
+| `Restart=always` | `matchpilot-fpt-worker.service` | systemd riavvia il worker se termina | Il worker si ferma solo con `systemctl disable --now` (o resta acceso in modalità dismessa), mai con `kill`. |
 
 **Preflight dell'arresto, da approvare come un unico pacchetto GO owner:**
 1. Una PR di codice (MANUAL, perché tocca alerting e deploy):
-   - modalità `FUTPYTHON_RETIRED=true`, in cui il watchdog non segnala più `SYNC_STALE` per FPT ma continua a sorvegliare tutto il resto;
+   - modalità `FUTPYTHON_RETIRED=true`, in cui il watchdog non segnala più alcun alert della sorgente FPT (`SYNC_STALE`, `DATASET_ERRORS`, `DATA_CONTENT_STALE`, budget, 429, circuit), **non avvia più la sync di recupero** e continua a sorvegliare tutto il resto;
    - il worker può girare senza il cron FPT;
    - `mp-deploy` non riavvia un'unità disabilitata.
 2. Verifica in sola lettura sulla VPS:
@@ -35,9 +37,10 @@ L'inventario è ricavato dal codice e dalla configurazione versionata. Lo stato 
 3. Backup finale con checksum, registrato.
 4. Operazioni sulla VPS, solo dopo il GO:
    - `FUTPYTHON_CRON_ENABLED=false` oppure `FUTPYTHON_RETIRED=true`;
-   - `systemctl disable --now matchpilot-fpt-liveness.timer`;
-   - riavvio del worker in modalità dismessa.
-5. Verifica dopo l'arresto: nessuna chiamata a FPT, watchdog vivo, archivio integro.
+   - prima `systemctl disable --now matchpilot-fpt-liveness.timer`;
+   - poi il worker: riavvio in modalità dismessa (consigliato, il watchdog resta vivo) oppure `systemctl disable --now` più `mask`, se l'owner sceglie di fermarlo del tutto;
+   - verifica che `FUTPYTHON_BACKFILL_ON_START` e `FUTPYTHON_PHASE1_VERIFY_ON_START` restino `false`.
+5. Verifica dopo l'arresto: nessuna chiamata a FPT (né dal cron né dalla sync di recupero del watchdog, controllata nel `fpt_request_ledger`), watchdog vivo, notifiche Telegram di `mp-deploy` funzionanti, archivio integro.
 6. Rollback: riattivare la variabile e il timer. Nessun dato viene cancellato.
 
 ## 2. API-FOOTBALL: piano di verifica
@@ -92,7 +95,7 @@ Per questo l'inventario delle capacità resta **NOT VERIFIED**: niente viene des
 - **Alternativa che non richiede nuovi privilegi:** l'owner esegue sulla VPS questa query in sola lettura, sul database applicativo, e incolla il risultato senza credenziali:
 
 ```sql
-SELECT field_name, normalized_field, family, data_type, unique_rows_seen
+SELECT field_name, normalized_field, family, inferred_type, datasets_seen, rows_seen, nonempty_seen, unique_rows_seen
 FROM fpt_schema_fields ORDER BY field_name;
 ```
 
@@ -106,14 +109,15 @@ FROM fpt_schema_fields ORDER BY field_name;
 | # | PR | Classe | Dipende da |
 |---|---|---|---|
 | 1 | MP-263-PLAN: questo documento | SAFE | — |
-| 2 | MP-CAP-01a: modulo del catalogo delle capacità, puro e indipendente dal provider (id interno, provider, id originale, tipo, unità, operatori, momento, copertura, provenienza), con test; nessuna route | SAFE | #265 (mergiata) |
+| 2 | MP-CAP-01a: modulo del catalogo delle capacità, puro e indipendente dal provider (id interno, provider, id originale, tipo, unità, operatori, momento, copertura, provenienza), con test; nessuna route. Il momento riusa la classificazione MP-PIT-TIMING-01 senza nuove semantiche, altrimenti la PR è MANUAL | SAFE | #265 (mergiata) |
 | 3 | MP-CAP-01b: `/api/v1/capabilities` in sola lettura | MANUAL (nuovo contratto API) | 2 |
 | 4 | MP-FPT-RETIRE-01: modalità «sorgente dismessa» per watchdog e worker, `mp-deploy` senza riavvio delle unità disabilitate | MANUAL (alerting e deploy) | — |
 | 5 | MP-AF-01: client API-FOOTBALL con budget e limite di chiamate, mai attivo di default, test con fixture registrate | MANUAL (nuovo provider) | 2, chiave |
-| 6 | MP-AF-02: snapshot delle capacità dal piano reale (sezione 2) | SAFE dopo la 5 (documenti ed evidenze) | 5 |
+| 6 | MP-AF-02: esecuzione delle chiamate di verifica (sezione 2) | MANUAL (chiave, rete, quota) | 5 |
+| 6b | MP-AF-02b: file delle capacità risultante, come documento ed evidenza | SAFE | 6 |
 | 7 | MP-CAP-02: mercati, selezioni e quote dal catalogo | MANUAL (database) | 3, 6 |
 | 8 | MP-CAP-03: condizioni AND/OR guidate dal registro | MANUAL (contratto API) | 3, 7 |
-| 9 | MP-TC-BENCH-01: script e rapporto del benchmark | SAFE (analisi) | dati della sezione 3 |
+| 9 | MP-TC-BENCH-01: script e rapporto del benchmark | SAFE solo su dati già archiviati; una raccolta parallela richiede il GO di riattivazione TC | dati della sezione 3 |
 | 10 | Pacchetto operativo VPS: arresto FPT e collector API-FOOTBALL | GO owner unico | 4, 5 |
 
 Le funzioni già mergiate che leggono l'archivio FPT (Ricerca, Oggi, Match Center, Simulazione) restano sullo **storico congelato**. Non aggiungono acquisizioni e passeranno al catalogo con MP-CAP-01b e MP-CAP-02.
