@@ -2007,14 +2007,43 @@
       "pr": 259,
       "branch": "gov-d12-recon-evidence",
       "kind": "operations",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261031T212853Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261101T001500Z-agent-a-claude-code",
       "resources": [
         "file:test/ui-requirements-matrix.test.mjs",
         "file:docs/governance/ui-requirements-matrix.json",
         "file:docs/qa/feature-certification.json",
         "file:docs/governance/d12-requirements-gate-2026-10-24.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "c846afc25289fff681a258df17483e3e2d90b547"
+    },
+    {
+      "id": "MP-UI-PR-011-SEASON",
+      "title": "MP-UI-PR-011-SEASON: season filter of the Ricerca (competition-seasons endpoint)",
+      "issue": 239,
+      "pr": 260,
+      "branch": "ui-pr-011-season",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T214827Z-agent-a-claude-code",
+      "resources": [
+        "file:src/providers/futpython/query.mjs",
+        "file:src/api/v1.mjs",
+        "file:src/web/app.js",
+        "file:tools/qa/journeys.mjs",
+        "file:test/fpt-coverage-page.test.mjs",
+        "file:docs/qa/control-inventory.json",
+        "file:docs/qa/feature-certification.json",
+        "file:docs/governance/ui-requirements-matrix.json",
+        "file:docs/mockups/matchpilot-trading-os.html",
+        "file:test/visual/manifest.json"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",

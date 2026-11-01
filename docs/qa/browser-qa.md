@@ -53,7 +53,7 @@ The journey `controls-coverage` (MP-UI-PR-007 follow-up, MP-REQ-UI-1028) asserts
 
 The journey `coverage` (MP-UI-PR-008-COV) checks the coverage inside the app against the API: competitions with seasons, matches and shares (percentages without rounding), the country filter reloaded from the server, the seasons of a competition and the way back, the unavailable archive and unavailable seasons (503, nothing invented), and a country of the address the archive does not have (kept in the filter, empty list). The percentages come from `percentText` in `src/web/states.js`, whose fixed vectors are in `test/ui-foundations.test.mjs`.
 
-The journey `search` also checks the filters added by MP-UI-PR-011-SRCHX (favourite side, home and Over 2.5 price ranges, minimum total xG): each reaches the API, every row of the answer satisfies it and the rows shown are the API's; a refused value is named on its field.
+The journey `search` checks the season filter of MP-UI-PR-011-SEASON: disabled without a competition, the seasons listed are the API's, the chosen season reaches the search and every row is of it, an invalid id is named on its field, an unavailable list leaves the filter off. It also checks the filters added by MP-UI-PR-011-SRCHX (favourite side, home and Over 2.5 price ranges, minimum total xG): each reaches the API, every row of the answer satisfies it and the rows shown are the API's; a refused value is named on its field.
 
 The journey `global-search` (MP-UI-PR-009-NAV) checks the search of the header on every viewport: the words typed reach the teams API, the squads listed are its answer and a squad opens its matches from the search API; the pages of the app are found by name without accents or capitals; no result and an empty field are said as such.
 

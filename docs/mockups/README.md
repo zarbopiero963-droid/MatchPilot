@@ -3,9 +3,9 @@
 ## File corrente
 
 - File: [`matchpilot-trading-os.html`](matchpilot-trading-os.html), percorso stabile. Le versioni non cambiano nome: la storia è in git e in questo changelog.
-- Versione: **Mock UX v2026.10.31c**
+- Versione: **Mock UX v2026.10.31d**
 - Ultimo aggiornamento: 2026-10-31
-- SHA-256: `5beb076c6167330d0b9ab47a1e865beb09dd7cf9280ce26c77cf5d317fbb9fa8`
+- SHA-256: `caa35fbe92b412a2295cb29f40074689d07c9f564ce5a7292e2f61a6d656eb70`
 - Allineato a: roadmap #97 (revisione owner 06/10/2026)
 - Issue rappresentate: #12, #20, #23, #24, #25, #27, #28, #29, #30, #31, #32, #34, #40, #44, #45, #46, #87, #91, #94, #95, #96, #97, #98, #99, #100, #102
 
@@ -53,6 +53,10 @@ Il mock è un riferimento UX/prodotto **vivo**. Non è l'architettura e non cert
 - Il layout usa font Google; senza rete il menu desktop può tagliare l'ultima voce.
 
 ## Changelog
+
+### v2026.10.31d — Stagione nella Ricerca (MP-UI-PR-011-SEASON)
+
+- La nota del sito reale nella home dice che la Ricerca filtra anche la stagione del campionato scelto, elencata da `/api/v1/fpt/competition-seasons`.
 
 ### v2026.10.31c — Filtri della Ricerca (MP-UI-PR-011-SRCHX)
 

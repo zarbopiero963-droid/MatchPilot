@@ -279,7 +279,7 @@ Un'analisi pre-match deve poter essere ricostruita usando esclusivamente snapsho
 - Tutti i controlli dell'inventario sono verificati da un passaggio con asserzioni (journey `controls-coverage`, MP-REQ-UI-1028); un controllo nuovo senza verifica fa fallire i test.
 - **Copertura (MP-UI-PR-008-COV):** la scheda «Copertura» dei Dati apre `#/coverage` dentro l'app, con i campionati, il filtro per paese, le stagioni di ogni campionato e la copertura delle quote e degli xG come la dà l'API (`/api/v1/fpt/coverage-competitions`, `/api/v1/fpt/coverage-seasons`). La pagina `/coverage` del server resta solo tecnica.
 - **Cerca (MP-UI-PR-009-NAV):** il campo «Cerca» nell'intestazione di ogni pagina apre `#/find`: le squadre dell'archivio con quel nome (`/api/v1/fpt/teams`, nome esatto in qualunque grafia nota), ognuna con le sue partite in Ricerca, e le pagine dell'app con quel nome. La ricerca per parte del nome richiederebbe una nuova API e non c'è.
-- **Filtri della Ricerca (MP-UI-PR-011-SRCHX):** oltre a squadra, sede, campionato, date, risultato, quota del favorito, gol e qualità, la Ricerca filtra lato del favorito, quota casa da/a, quota Over 2,5 da/a e xG totali minimi, tutti già supportati da `/api/v1/fpt/search`. Il filtro per stagione manca: nessuna API elenca ancora le stagioni di un campionato.
+- **Filtri della Ricerca (MP-UI-PR-011-SRCHX):** oltre a squadra, sede, campionato, date, risultato, quota del favorito, gol e qualità, la Ricerca filtra lato del favorito, quota casa da/a, quota Over 2,5 da/a e xG totali minimi, tutti già supportati da `/api/v1/fpt/search`. La stagione (MP-UI-PR-011-SEASON) si sceglie dopo il campionato: le stagioni con partite arrivano da `/api/v1/fpt/competition-seasons?competition=…` (sola lettura, id stagione del filtro, dalla più recente); senza campionato o senza risposta il filtro resta spento e lo dice.
 - I testi brevi dei badge proposti in Q6 non sono approvati: il badge dice il suo tipo.
 
 ### Home / Daily Board
@@ -852,7 +852,7 @@ Filtri: paese, stagioni minime, partite minime, coverage quote minima.
 
 **Drill-down** `GET /coverage?country=<paese>&league=<lega>`: per ogni stagione disponibilità, classificazione, stato di onboarding, partite, prima e ultima partita, coverage quote e xG, numero di campi, ultimo download, e le stagioni non pubblicate segnate come buco.
 
-**Route JSON di sola lettura:** `GET /api/fpt/coverage-competitions` e `GET /api/fpt/coverage-seasons`. Gli slug sono validati e ogni filtro è un parametro SQL.
+**Route JSON di sola lettura:** `GET /api/fpt/coverage-competitions`, `GET /api/fpt/coverage-seasons` e `GET /api/fpt/competition-seasons` (stagioni con partite di un campionato, per id interno; v1 `/api/v1/fpt/competition-seasons`). Gli slug sono validati e ogni filtro è un parametro SQL.
 
 Limiti dichiarati nella pagina:
 - `COMPLETE/PARTIAL` non sono calcolabili, perché il provider non pubblica il numero atteso di partite;

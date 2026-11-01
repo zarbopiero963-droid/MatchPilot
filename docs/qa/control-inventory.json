@@ -876,6 +876,26 @@
       ]
     },
     {
+      "id": "CTL-SEARCH-SEASON",
+      "view": "search",
+      "kind": "select",
+      "label": "Stagione",
+      "action": "imposta il filtro della ricerca",
+      "api": "/api/v1/fpt/competition-seasons",
+      "data": "REAL",
+      "issues": [
+        30
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "search",
+          "step": "stagione: le stagioni del campionato dall’API e la ricerca di una stagione"
+        }
+      ]
+    },
+    {
       "id": "CTL-SEARCH-FROM",
       "view": "search",
       "kind": "input",
