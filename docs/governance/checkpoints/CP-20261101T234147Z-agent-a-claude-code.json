@@ -1,0 +1,137 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261101T234147Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-01T23:41:47Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-IMPL-20261101",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): implementation phase"
+  },
+  "task": "MP-CAP-01B",
+  "activity": "MP-CAP-01b: read-only capability catalog endpoint GET /api/v1/capabilities (authorized item 2)",
+  "issue": 263,
+  "pr": null,
+  "branch": "mp-cap-01b-endpoint",
+  "commit_sha": "2ea68539cd1b77d16ddba506e4029a60b9765db0",
+  "tree_sha": "05058ccadc875f5152ddd8206d450ce1cec22bbf",
+  "base_sha": "7f1a7779c30e0aef1bfdd5733395232306d0c371",
+  "requirements": [],
+  "changes": [
+    "src/api/capabilities-api.mjs",
+    "src/api/v1.mjs (registry entry; db may depend on the request)",
+    "src/capabilities/apifootball.mjs",
+    "src/capabilities/catalog.mjs (optional phases; in-play market refused)",
+    "test/capabilities-api.test.mjs",
+    "test/api-v1-postgres.test.mjs",
+    "README.md",
+    "package.json check entries"
+  ],
+  "tests": [
+    {
+      "command": "node --test",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22",
+      "commit": "2ea68539cd1b77d16ddba506e4029a60b9765db0",
+      "time": "2026-11-01T23:41:47Z",
+      "limits": [
+        "771 tests, 683 pass, 88 skipped (PostgreSQL), 0 fail; PostgreSQL assertion runs in CI"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "2ea68539cd1b77d16ddba506e4029a60b9765db0"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "2ea68539cd1b77d16ddba506e4029a60b9765db0",
+    "reference": "independent review by an agent of a different model: APPROVED on 3cdfd27 (4 non-blocking findings), re-review APPROVED on 2ea6853; record to be posted on the PR"
+  },
+  "findings": [
+    {
+      "id": "CAP01B-N1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "provider=apifootball opened a database connection: db now depends on the request"
+    },
+    {
+      "id": "CAP01B-N2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "bet id evidence: limit states the ids come from market_ref, not listed one by one in the report"
+    },
+    {
+      "id": "CAP01B-N3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "statistic value types: limit states they are as observed in the sample"
+    },
+    {
+      "id": "CAP01B-N4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "tests added for the no-database path and in-play statistics"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-IMPL-20261101",
+    "MP-AUTONOMY-01",
+    "MP-OWNER-GO-2026-11-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "independent review",
+      "review fixes",
+      "re-review"
+    ],
+    "in_progress": [
+      "CI"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:src/api/capabilities-api.mjs",
+    "file:src/capabilities/apifootball.mjs",
+    "file:src/capabilities/catalog.mjs"
+  ],
+  "stop_conditions": [
+    "merge only under the owner authorization and every gate",
+    "no deploy started by the agent",
+    "no provider call"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI, conditional merge",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": null
+}

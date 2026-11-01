@@ -2217,9 +2217,9 @@
       "pr": 273,
       "branch": "mp-af-01-client",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261101T231714Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261101T234146Z-agent-a-claude-code",
       "resources": [
         "file:src/providers/apifootball/client.mjs",
         "file:test/apifootball-client.test.mjs"
@@ -2228,7 +2228,29 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "7f1a7779c30e0aef1bfdd5733395232306d0c371"
+    },
+    {
+      "id": "MP-CAP-01B",
+      "title": "MP-CAP-01b: capability catalog endpoint",
+      "issue": 263,
+      "pr": null,
+      "branch": "mp-cap-01b-endpoint",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261101T234147Z-agent-a-claude-code",
+      "resources": [
+        "file:src/api/capabilities-api.mjs",
+        "file:src/capabilities/apifootball.mjs",
+        "file:src/capabilities/catalog.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
