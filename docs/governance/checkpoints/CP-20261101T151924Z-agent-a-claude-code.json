@@ -1,0 +1,109 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261101T151924Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-01T15:19:24Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-270-AF-20261101",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): API-FOOTBALL verification session"
+  },
+  "task": "MP-AF-02B-EVIDENCE",
+  "activity": "MP-AF-02b: evidence of the API-FOOTBALL verification (20 calls) recorded in the repository; SAFE documentation PR",
+  "issue": 263,
+  "pr": null,
+  "branch": "docs-mp-af-02b",
+  "commit_sha": "ca1015a3f42935bb4d4bb38619c7fdb8c9b859f5",
+  "tree_sha": "64617d265972fc87419c025d5dce7bc6cb19913f",
+  "base_sha": "319fc6f54e4864482415d37e8857e167d2c4cae1",
+  "requirements": [],
+  "changes": [
+    "docs/product/mp-263/api-football-verification-2026-11-01.md",
+    "plan section 2 updated",
+    "owner decision MP-OWNER-270-AF-20261101; MP-AUTONOMY-01 IN_FORCE",
+    "MERGED checkpoint of PR #270"
+  ],
+  "tests": [
+    {
+      "command": "node tools/governance/cli.mjs validate",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22",
+      "commit": "ca1015a3f42935bb4d4bb38619c7fdb8c9b859f5",
+      "time": "2026-11-01T15:19:24Z",
+      "limits": [
+        "documentation only; the 20 provider calls were made through the MCP connector before this commit, none by the repository code"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "ca1015a3f42935bb4d4bb38619c7fdb8c9b859f5"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "review by an agent of a different model pending"
+  },
+  "findings": [
+    {
+      "id": "AF-G1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "API-FOOTBALL has no odds for past seasons: the frozen FPT archive stays the historical odds source; MatchPilot must snapshot odds from now on"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-270-AF-20261101",
+    "MP-OWNER-GO-2026-11-01",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "evidence document"
+    ],
+    "in_progress": [
+      "CI and review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:docs/product/mp-263/api-football-verification-2026-11-01.md",
+    "file:docs/product/mp-263/README.md"
+  ],
+  "stop_conditions": [
+    "merge only if SAFE and every gate holds",
+    "no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and review, SAFE merge",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}

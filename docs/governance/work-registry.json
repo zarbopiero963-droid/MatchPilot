@@ -2167,6 +2167,26 @@
       },
       "pr_open": false,
       "merge_sha": "319fc6f54e4864482415d37e8857e167d2c4cae1"
+    },
+    {
+      "id": "MP-AF-02B-EVIDENCE",
+      "title": "MP-AF-02b: API-FOOTBALL verification evidence",
+      "issue": 263,
+      "pr": null,
+      "branch": "docs-mp-af-02b",
+      "kind": "audit",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261101T151924Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/product/mp-263/api-football-verification-2026-11-01.md",
+        "file:docs/product/mp-263/README.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
