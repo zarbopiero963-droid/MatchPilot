@@ -2214,7 +2214,7 @@
       "id": "MP-AF-01",
       "title": "MP-AF-01: API-FOOTBALL read-only client (budget, ledger, cache, retries)",
       "issue": 263,
-      "pr": null,
+      "pr": 273,
       "branch": "mp-af-01-client",
       "kind": "implementation",
       "state": "REVIEW",
@@ -2228,7 +2228,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
