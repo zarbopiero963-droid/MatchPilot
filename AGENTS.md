@@ -71,11 +71,13 @@ Il contratto prodotto si modifica solo con decisione owner registrata.
 
 ## 4. Review indipendente e auto-merge (MP-OWNER-AUTOMERGE-01, D2)
 
-> **Sospensione owner MP-OWNER-D12-IMPLEMENTATION-20261024 (24/10/2026): vigente, tranne per le PR SAFE** (MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031 e MP-OWNER-SAFE-REGISTERS-20261031, 31/10/2026).
+> **Sospensione owner MP-OWNER-D12-IMPLEMENTATION-20261024 (24/10/2026): vigente, tranne per le PR SAFE** (MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031 e MP-OWNER-SAFE-REGISTERS-20261031, 31/10/2026; classificazione per rischio effettivo MP-AUTONOMY-01, 01/11/2026).
+>
+> **Principio MP-AUTONOMY-01: autonomia massima per il lavoro reversibile e verificabile, approvazione owner per le operazioni ad alto impatto.** SAFE o MANUAL dipende dal rischio effettivo del diff, non dal nome del modulo toccato. Un file normalmente sensibile non basta a fermarsi: si verifica se il cambiamento è davvero critico. Il principio non serve ad aggirare restrizioni specifiche già approvate, e test verdi non rendono SAFE una modifica critica.
 >
 > **Quando l'agente fa il merge (squash) senza chiedere.** Valgono tutte le condizioni sotto e tutte quelle del mandato; questo riassunto non le riduce:
 > - PR della roadmap, nel perimetro approvato, piccola, isolata e reversibile;
-> - nessun file critico, nessuna nuova dipendenza né servizio esterno;
+> - nessun file critico per rischio effettivo (MP-AUTONOMY-01), nessuna nuova dipendenza né servizio esterno;
 > - CI e controlli obbligatori verdi; review senza finding bloccanti e nessun thread bloccante aperto;
 > - nessuna decisione owner pendente coinvolta;
 > - branch aggiornato e head verificato subito prima del merge;
@@ -90,17 +92,25 @@ Il contratto prodotto si modifica solo con decisione owner registrata.
 > - non toccano workflow, sicurezza, infrastruttura o file critici;
 > - CI e review passano.
 >
-> **PR MANUAL, che si fermano prima del merge con «AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER».** L'elenco segue MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031 e prevale il testo della decisione:
-> - autenticazione, autorizzazione, sessioni o credenziali;
-> - segreti, token, certificati o chiavi API;
-> - sicurezza, governance, protezione dei branch o workflow CI, comprese le modifiche normative ad AGENTS.md, CLAUDE.md e alle regole di auto-merge;
-> - database di produzione, migrazioni, schema o integrità dei dati;
-> - raccolta dai provider, quote, storico, provenienza, PIT e backfill;
-> - motore decisionale, strategie operative o logica finanziaria;
-> - deploy, VPS, infrastruttura, rete o servizi;
-> - licenze, pagamenti, costi o servizi commerciali;
-> - contratti API pubblici o componenti condivisi di impatto significativo;
-> - certificazioni approvate o requisiti che richiedono una nuova decisione owner.
+> **PR MANUAL, che si fermano prima del merge con «AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER».** Dal merge della PR che riconcilia MP-AUTONOMY-01 l'elenco segue quella decisione e prevale il testo della decisione. È MANUAL una modifica che introduce:
+> - cambiamenti incompatibili alle API pubbliche;
+> - modifiche distruttive o irreversibili al database;
+> - cambiamenti ai criteri di certificazione o all'integrità PIT;
+> - alterazioni delle formule finanziarie o della logica di rischio;
+> - modifiche ai controlli di sicurezza, autenticazione o autorizzazione;
+> - cambiamenti ai sistemi di deploy o ai runner guard;
+> - nuovi costi, abbonamenti o risorse a pagamento;
+> - attivazione o arresto di servizi produttivi;
+> - modifiche ai segreti o ai privilegi;
+> - decisioni di prodotto non ancora approvate.
+>
+> Restano MANUAL anche le modifiche normative ad AGENTS.md, CLAUDE.md e alle regole di auto-merge. Una PR che la governance vigente classifica MANUAL resta MANUAL fino a una modifica esplicita e approvata di quelle regole (MP-AUTONOMY-01): per questo restano MANUAL, finché l'owner non le declassa esplicitamente, anche le categorie dell'elenco precedente (MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031) non ripetute qui: raccolta dai provider, quote, storico, provenienza e backfill; licenze e pagamenti; contratti API pubblici e componenti condivisi di impatto significativo; certificazioni approvate e requisiti che richiedono una nuova decisione owner; database di produzione, migrazioni, schema e integrità dei dati; motore decisionale e strategie operative; deploy, VPS, infrastruttura, rete e servizi; workflow CI e protezione dei branch. Le PR MP-CAP-01/02/03 si dividono in modifiche atomiche: le parti SAFE procedono, quelle che toccano contratti pubblici, schema del database, semantica PIT o sicurezza vanno all'owner; nessuna PR mista SAFE/MANUAL e nessun mercato o filtro fisso come scorciatoia.
+>
+> **Blocker e richieste all'owner (MP-AUTONOMY-01).** Un'attività MANUAL non ferma lo sviluppo: si isola il blocker, lo si registra nella PR o nella issue, si prosegue con il lavoro SAFE indipendente senza toccare gli stessi file critici, e ci si ferma del tutto solo se non resta lavoro sicuro o se continuare violerebbe un gate. Le richieste all'owner sono brevi: PR o operazione, perché è MANUAL, CI e review, rischio concreto, alternative, rollback, raccomandazione, autorizzazione esatta. Le operazioni correlate si aggregano in una sola richiesta, senza nascondere i rischi specifici, e non si ripetono domande già risolte.
+>
+> **Operazioni sulla VPS (MP-AUTONOMY-01).**
+> - Autonome: analisi del codice, lettura di configurazioni non sensibili già accessibili, stato dei servizi tramite accessi in sola lettura già autorizzati, piani di arresto, migrazione e rollback, test locali e simulazioni isolate.
+> - Con un unico GO owner per un pacchetto operativo ben delimitato, preparato con un preflight completo: spegnimento dei processi FPT, collector API-FOOTBALL in produzione, riattivazione TotalCorner, modifiche a PostgreSQL produttivo, deploy, runner, credenziali, eliminazione di archivi.
 >
 > Una modifica critica non si divide in PR dall'aspetto innocuo.
 >

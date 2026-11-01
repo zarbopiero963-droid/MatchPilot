@@ -2133,12 +2133,33 @@
       "pr": 269,
       "branch": "mp-cap-01a-catalog",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261101T020326Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261101T022000Z-agent-a-claude-code",
       "resources": [
         "file:src/capabilities/catalog.mjs",
         "file:test/capabilities-catalog.test.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "e27353bbba56d4d3692fa027962575e1a329b9db"
+    },
+    {
+      "id": "MP-GOV-AUTONOMY-01",
+      "title": "MP-GOV-AUTONOMY-01: AGENTS/CLAUDE reconciled with MP-AUTONOMY-01 (MANUAL)",
+      "issue": 97,
+      "pr": 270,
+      "branch": "gov-autonomy-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261101T022811Z-agent-a-claude-code",
+      "resources": [
+        "file:AGENTS.md",
+        "file:CLAUDE.md"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
