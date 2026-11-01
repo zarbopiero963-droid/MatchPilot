@@ -2105,6 +2105,25 @@
       },
       "pr_open": false,
       "merge_sha": "b21586d1d891a5bb7fc63d2656e021c73570a59a"
+    },
+    {
+      "id": "MP-263-PLAN",
+      "title": "MP-263-PLAN: provider migration preparatory plan",
+      "issue": 263,
+      "pr": null,
+      "branch": "docs-mp-263-plan",
+      "kind": "audit",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261101T014841Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/product/mp-263/README.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
