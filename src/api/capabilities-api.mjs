@@ -56,8 +56,9 @@ export function capabilitiesEndpoint({param, oneOf}) {
       kind: param(`${KINDS.join(' | ')}`, false, oneOf('kind', KINDS)),
       status: param('one of the inventory statuses', false, oneOf('status', STATUSES))
     },
+    // API-FOOTBALL alone needs no database: no connection is opened, so it answers even when the database is down.
+    db: input => input.provider !== 'apifootball',
     read: async (client, input) => {
-      // API-FOOTBALL alone needs no database: the registry is read only when FutPythonTrader entries are asked for.
       const rows = input.provider === 'apifootball' ? null : (await client.query(FPT_CAPABILITY_SQL, [FPT_FIELDS_MAX + 1])).rows;
       return capabilityCatalog(rows, input);
     },

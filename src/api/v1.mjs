@@ -221,7 +221,8 @@ export async function handleV1({method, url}, {withClient, tc, codeVersion = 'un
     try {
     let data;
     if (endpoint.path === '/api/v1/endpoints') data = describe(endpoints);
-    else if (endpoint.db === false) data = await endpoint.read(null, input);
+    // `db` may depend on the request: false (or a function returning false) reads without a database connection.
+    else if ((typeof endpoint.db === 'function' ? endpoint.db(input) : endpoint.db) === false) data = await endpoint.read(null, input);
     else {
       let connected = false;
       try { data = await withClient(client => { connected = true; return endpoint.read(client, input); }); }

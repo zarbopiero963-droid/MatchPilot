@@ -103,3 +103,19 @@ test('MP-CAP-01b a corrupted registry is bounded and reported; a database failur
   assert.equal(failing.status, 503);
   assert.equal(failing.body.error.code, 'UNAVAILABLE');
 });
+
+test('MP-CAP-01b review: API-FOOTBALL alone answers without a database connection; evidence limits are explicit', async () => {
+  let connections = 0;
+  const deps = {withClient: async () => { connections += 1; const e = new Error('down'); e.code = 'ECONNREFUSED'; throw e; }, tc: {}, codeVersion: 'test'};
+  const call = path => handleV1({method: 'GET', url: new URL(`http://localhost${path}`)}, deps);
+  const af = await call('/api/v1/capabilities?provider=apifootball&kind=statistic');
+  assert.equal(af.status, 200);
+  assert.equal(connections, 0);
+  assert.ok(af.body.data.rows.length === 16 && af.body.data.rows.every(c => c.kind === 'statistic'));
+  assert.equal((await call('/api/v1/capabilities?provider=fpt')).status, 503);
+  assert.equal(connections, 1);
+  const caps = apiFootballCapabilities();
+  assert.ok(caps.filter(c => c.kind === 'market').every(c => c.limits.some(l => /does not list each id/.test(l))));
+  assert.ok(caps.filter(c => c.kind === 'statistic').every(c => c.limits.length === 5 && c.phases.includes('LIVE')));
+  assert.deepEqual(validateCapability(caps.find(c => c.provider_ref === 'Corner Kicks')), [], 'a statistic may be offered in play');
+});

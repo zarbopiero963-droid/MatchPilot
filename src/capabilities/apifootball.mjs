@@ -33,7 +33,7 @@ function statisticCapability([ref, valueType, unit = null, normalisation = null]
     provenance: {source: 'api-football verification 2026-11-01', evidence: [`${VERIFICATION_DOC}: /fixtures/statistics on a finished and on an in-play match`]},
     limits: [...COMMON_LIMITS, 'no provider timestamp: a value is known from MatchPilot acquisition time (mp-pit-v1)',
       'historical depth follows the per-season coverage flags (statistics from 2014 in the Premier League sample)',
-      ...(normalisation ? [normalisation] : [])]
+      normalisation ?? 'value type as observed in the 2026-11-01 sample (integer or numeric text); other forms stay unnormalised']
   };
 }
 
@@ -50,7 +50,8 @@ function prematchMarketCapability(betId, spec) {
     provenance: {source: 'api-football verification 2026-11-01', evidence: [`${VERIFICATION_DOC}: /odds on a not-started match (bookmaker 8)`]},
     limits: [...COMMON_LIMITS, 'odds history not guaranteed by the provider: MatchPilot snapshots from acquisition time on',
       'one provider update per fixture observed: not a certain closing price',
-      'line and side parsed from the selection text by market_ref; unrecognised selections stay UNCLASSIFIED']
+      'line and side parsed from the selection text by market_ref; unrecognised selections stay UNCLASSIFIED',
+      'bet id from the market_ref table, built on the 2026-11-01 /odds answer; the verification report counts the markets, it does not list each id']
   };
 }
 
