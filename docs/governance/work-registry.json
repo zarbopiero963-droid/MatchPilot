@@ -2151,7 +2151,7 @@
       "id": "MP-GOV-AUTONOMY-01",
       "title": "MP-GOV-AUTONOMY-01: AGENTS/CLAUDE reconciled with MP-AUTONOMY-01 (MANUAL)",
       "issue": 97,
-      "pr": null,
+      "pr": 270,
       "branch": "gov-autonomy-01",
       "kind": "implementation",
       "state": "REVIEW",
@@ -2165,7 +2165,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
