@@ -49,7 +49,7 @@ const oneOf = (name, values) => value => {
 
 // Parameters the query layer requires; the catalog describes them only in prose.
 const FPT_REQUIRED = {
-  teamSearch: ['q'], teamMatches: ['team'], awayMatches: ['team'], favoriteOddsRange: ['min', 'max'], teamMatchesAsOf: ['team', 'as_of'],
+  teamSearch: ['q'], teamNameSearch: ['q'], teamMatches: ['team'], awayMatches: ['team'], favoriteOddsRange: ['min', 'max'], teamMatchesAsOf: ['team', 'as_of'],
   leagueFieldCoverage: ['field'], leaguesWithCoverage: ['field'], teamSummary: ['team'], headToHead: ['team', 'opponent'],
   competitionSeason: ['competition', 'season'], matchesOnDate: ['date'], matchDetail: ['id'], coverageSeasons: ['country', 'league'], competitionSeasons: ['competition'],
 };

@@ -123,7 +123,7 @@ const matrixViews = ({day, matchId}) => [
   {name: 'Fornitori', hash: '#/providers', path: '/api/v1/providers'},
   {name: 'API', hash: '#/endpoints', path: '/api/v1/endpoints'},
   {name: 'Copertura', hash: '#/coverage', path: '/api/v1/fpt/coverage-competitions'},
-  {name: 'Cerca', hash: '#/find?q=Ajax', path: '/api/v1/fpt/teams'},
+  {name: 'Cerca', hash: '#/find?q=Ajax', path: '/api/v1/fpt/team-search'},
 ];
 const MATRIX_PATHS = matrixViews({day: '', matchId: ''}).map(view => view.path);
 const matrixStep = code => `matrice negativa: errore ${code} su ogni vista, stesso stato, codice conservato, Riprova`;
@@ -2301,14 +2301,14 @@ export const JOURNEYS = [
     id: 'global-search', surface: 'Tutte le viste', title: 'Cerca nell’intestazione: squadre dall’API e loro partite, pagine dell’app, nessun risultato',
     async run({page, base, step, asserted, api}) {
       const hash = () => page.evaluate(() => location.hash);
-      const team = (await api('/api/v1/fpt/teams?q=Ajax')).data.rows;
+      const team = (await api('/api/v1/fpt/team-search?q=Ajax')).data.rows;
       await step('cerca: dal campo in alto la squadra dell’API e le sue partite in Ricerca', async () => {
         assert.equal(team.length, 1, 'the QA archive has one Ajax');
         await fresh(page, `${base}/#/sim`);
         await titled(page, 'Simulazione');
         assert.ok(await page.isVisible('[data-testid="global-search"] input[name="q"]'), 'the field is in the header on this viewport');
         await page.fill('[data-testid="global-search"] input[name="q"]', '  Ajax ');
-        const request = page.waitForRequest(r => new URL(r.url()).pathname === '/api/v1/fpt/teams');
+        const request = page.waitForRequest(r => new URL(r.url()).pathname === '/api/v1/fpt/team-search');
         await page.click('[data-testid="global-search"] button[type="submit"]');
         const sent = new URL((await request).url()).searchParams;
         await asserted(['CTL-NAV-FIND-INPUT', 'CTL-NAV-FIND'], 'the words typed reach the API and the page lists its squads', async () => {
@@ -2345,10 +2345,26 @@ export const JOURNEYS = [
         await page.waitForSelector('[data-testid="find-pages"]');
         assert.deepEqual(await page.locator('[data-testid="find-pages"] li').allTextContents(), ['Strumenti']);
       });
+      await step('cerca: parte del nome, in qualunque grafia; meno di 3 lettere non interroga l’archivio', async () => {
+        const part = (await api('/api/v1/fpt/team-search?q=AJ%C3%80')).data.rows;
+        assert.deepEqual(part.map(row => [row.canonical_name, row.match_kind]), [['Ajax', 'prefix']], 'the API finds Ajax from «AJÀ»');
+        await fresh(page, `${base}/#/find?q=AJ%C3%80`);
+        await page.waitForSelector('[data-testid="find-teams"] li');
+        assert.deepEqual(await page.locator('[data-testid="find-teams"] li').evaluateAll(rows => rows.map(row => row.dataset.team)), part.map(row => row.internal_team_id));
+        const asked = [];
+        page.on('request', r => { if (new URL(r.url()).pathname.startsWith('/api/v1/fpt/team')) asked.push(r.url()); });
+        await fresh(page, `${base}/#/find?q=aj`);
+        await page.waitForSelector('[data-testid="find-short"]');
+        assert.deepEqual(asked, [], 'two letters ask nothing of the archive');
+        await fresh(page, `${base}/#/find?q=${encodeURIComponent('Ab (NED)')}`);
+        await page.waitForSelector('[data-testid="find-short"]');
+        assert.deepEqual(asked, [], 'a country suffix does not count: «Ab (NED)» is two letters for the server too');
+        assert.equal(await page.locator('[data-testid="find-teams"]').count(), 0);
+      });
       await step('cerca: nessun risultato e campo vuoto, detti senza inventare', async () => {
         await fresh(page, `${base}/#/find?q=zzqq`);
         await page.waitForSelector('[data-testid="find-teams"] .state.empty');
-        assert.deepEqual((await api('/api/v1/fpt/teams?q=zzqq')).data.rows, []);
+        assert.deepEqual((await api('/api/v1/fpt/team-search?q=zzqq')).data.rows, []);
         assert.equal(await page.locator('[data-testid="find-teams"] li').count(), 0);
         assert.equal(await page.locator('[data-testid="find-pages"] li').count(), 0);
         await page.fill('[data-testid="global-search"] input[name="q"]', '   ');

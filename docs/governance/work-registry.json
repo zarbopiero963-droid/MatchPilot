@@ -2059,9 +2059,9 @@
       "pr": 261,
       "branch": "ui-pr-010-board-comp",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261031T220929Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261101T010500Z-agent-a-claude-code",
       "resources": [
         "file:src/providers/futpython/query.mjs",
         "file:src/web/app.js",
@@ -2071,6 +2071,33 @@
         "file:docs/governance/ui-requirements-matrix.json",
         "file:docs/mockups/matchpilot-trading-os.html",
         "file:test/visual/manifest.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "5a038b05fb8c68c8f697864254a376ad731b1a5a"
+    },
+    {
+      "id": "MP-UI-PR-009-TEAMSEARCH",
+      "title": "MP-UI-PR-009-TEAMSEARCH: squads by part of the name",
+      "issue": 239,
+      "pr": 264,
+      "branch": "ui-pr-009-teamsearch",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261101T012357Z-agent-a-claude-code",
+      "resources": [
+        "file:src/providers/futpython/query.mjs",
+        "file:src/api/v1.mjs",
+        "file:src/web/app.js",
+        "file:tools/qa/journeys.mjs",
+        "file:test/fpt-assistant-queries.test.mjs",
+        "file:test/ui-foundations.test.mjs",
+        "file:docs/governance/ui-requirements-matrix.json",
+        "file:docs/mockups/matchpilot-trading-os.html"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",

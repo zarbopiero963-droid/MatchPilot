@@ -57,7 +57,7 @@ The journey `search` checks the season filter of MP-UI-PR-011-SEASON: disabled w
 
 The journey `daily-board` checks the competition filter of MP-UI-PR-010-BOARD-COMP: the competition reaches the API, the day shows only its matches in the API's order, the day links keep it, an empty day names the competition, an unavailable list leaves the filter off.
 
-The journey `global-search` (MP-UI-PR-009-NAV) checks the search of the header on every viewport: the words typed reach the teams API, the squads listed are its answer and a squad opens its matches from the search API; the pages of the app are found by name without accents or capitals; no result and an empty field are said as such.
+The journey `global-search` (MP-UI-PR-009-NAV) checks the search of the header on every viewport: the words typed reach the team-search API (part of a name, from 3 letters or digits; fewer make no request), the squads listed are its answer and a squad opens its matches from the search API; the pages of the app are found by name without accents or capitals; no result and an empty field are said as such.
 
 The journey `http-errors` (MP-UI-PR-007) is the browser negative matrix: every view that reads the API (Oggi, Ricerca, Partita, Simulazione, Confronto, Strumenti, Fornitori, API, Copertura, Cerca) is opened with its request answered by 401, 403, 404, 409, 414, 429, 500, 503 and a network timeout in turn. The page must show the state of that status in the words of `src/web/states.js`, keep the code, offer «Riprova» (which reloads the view once the source answers), go to the login and back on a 401, and never show a blank page. A view with a state of its own (another run in progress, too many rules) shows that state.
 
