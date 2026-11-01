@@ -1986,12 +1986,35 @@
       "pr": 265,
       "branch": "pit-timing-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261031T224303Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261031T235500Z-agent-a-claude-code",
       "resources": [
         "file:src/providers/futpython/schema.mjs",
         "file:test/schema.test.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "c53fc57c26dc3f69fed0a736d12517339fb2334f"
+    },
+    {
+      "id": "MP-GOV-D12-RECON-EVIDENCE",
+      "title": "Governance: D12 reconciliation promotion with evidence (1035)",
+      "issue": 239,
+      "pr": 259,
+      "branch": "gov-d12-recon-evidence",
+      "kind": "operations",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T212853Z-agent-a-claude-code",
+      "resources": [
+        "file:test/ui-requirements-matrix.test.mjs",
+        "file:docs/governance/ui-requirements-matrix.json",
+        "file:docs/qa/feature-certification.json",
+        "file:docs/governance/d12-requirements-gate-2026-10-24.md"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
