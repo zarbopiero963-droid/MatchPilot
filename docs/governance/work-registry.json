@@ -2198,7 +2198,7 @@
       "kind": "implementation",
       "state": "REVIEW",
       "lease": null,
-      "latest_checkpoint": "CP-20261101T160225Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261101T224901Z-agent-a-claude-code",
       "resources": [
         "file:src/markets/market-ref.mjs",
         "file:test/market-ref.test.mjs"
