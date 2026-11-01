@@ -3,9 +3,9 @@
 ## File corrente
 
 - File: [`matchpilot-trading-os.html`](matchpilot-trading-os.html), percorso stabile. Le versioni non cambiano nome: la storia è in git e in questo changelog.
-- Versione: **Mock UX v2026.10.31d**
+- Versione: **Mock UX v2026.10.31e**
 - Ultimo aggiornamento: 2026-10-31
-- SHA-256: `caa35fbe92b412a2295cb29f40074689d07c9f564ce5a7292e2f61a6d656eb70`
+- SHA-256: `8b66be59de0eb953cdd591978aebd78d6cd0977b30876301009f9002f1f5d9a1`
 - Allineato a: roadmap #97 (revisione owner 06/10/2026)
 - Issue rappresentate: #12, #20, #23, #24, #25, #27, #28, #29, #30, #31, #32, #34, #40, #44, #45, #46, #87, #91, #94, #95, #96, #97, #98, #99, #100, #102
 
@@ -53,6 +53,10 @@ Il mock è un riferimento UX/prodotto **vivo**. Non è l'architettura e non cert
 - Il layout usa font Google; senza rete il menu desktop può tagliare l'ultima voce.
 
 ## Changelog
+
+### v2026.10.31e — Campionato nella pagina Oggi (MP-UI-PR-010-BOARD-COMP)
+
+- La nota del sito reale nella home dice che la Daily Board si filtra per campionato dall'API.
 
 ### v2026.10.31d — Stagione nella Ricerca (MP-UI-PR-011-SEASON)
 

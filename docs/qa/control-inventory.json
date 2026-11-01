@@ -564,6 +564,27 @@
       ]
     },
     {
+      "id": "CTL-BOARD-COMPETITION",
+      "view": "board",
+      "kind": "select",
+      "label": "Campionato",
+      "action": "sceglie il campionato del giorno (filtrato dall'API)",
+      "api": "/api/v1/fpt/competitions",
+      "data": "REAL",
+      "issues": [
+        3,
+        30
+      ],
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "daily-board",
+          "step": "campionato: le partite del giorno di un solo campionato, dall’API"
+        }
+      ]
+    },
+    {
       "id": "CTL-BOARD-SHOW",
       "view": "board",
       "kind": "button",

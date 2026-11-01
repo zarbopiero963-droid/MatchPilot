@@ -433,3 +433,20 @@ baselines without such an entry (`node tools/qa/visual.mjs check-update`). Rules
   - `ricerca-filtro-rifiutato-tablet.png` `09cc9b41b016da01bf99cfa3e24f785a28c8c5a8b8ec577de739cf52d633b7da`
   - `ricerca-mobile.png` `d4cdf0dbaaf9503be225ee9f9cd4ab72f14df3afb8f8089b425e5f26ace2d2a1`
   - `ricerca-tablet.png` `1af4479030e3fcd99a5064de468a97d38294fa6eb2ec1fc4952b553580f5bfe0`
+
+## 2026-10-31 — MP-UI-PR-010-BOARD-COMP: the Oggi controls gain the Campionato select
+
+- Approval: MP-UI-PR-010-BOARD-COMP, MP-OWNER-PR254-ROADMAP-20261031 (#239)
+- Run: commit `5c6eebba800affdce9f6c4aeedd4f697f401623f`, chromium 141.0.7390.37
+- Thresholds: block 8, pixel 32, ratio 0
+- Baselines:
+  - `oggi-desktop.png` `00a3de6fa06bf11086f2306eca27b5ac83ec810514bd6bbe982dd44b14259530`
+  - `oggi-mobile.png` `c0a50ceef87bc23197b2c35e03d7aa15fda66b920d49ae0be2acc17b4fbc12d3`
+  - `oggi-oggi-desktop.png` `c8f736f0c7759ebe90ccfc898603982b9c3055d4a5cbfb720fd20fbb19c848fa`
+  - `oggi-oggi-mobile.png` `3a88e8c446db6475f6d6ec5abf2eca8e600cb5b85461365e4e26fc886b084cfa`
+  - `oggi-oggi-tablet.png` `38a4c5730e8d6bb92213c53f06481de3ce2c455362b5384b309ce68a9b9ff656`
+  - `oggi-righe-tablet.png` `9d01dac13412d78397345f471f5a2b84e0b9f7f8513ab5ab8cf5e5b0f6349431`
+  - `oggi-tablet.png` `9a8e3dd36d830565ee5c9c2b0d3e8796345dfa49a58569fac9a4cd4ea772a642`
+  - `oggi-vuoto-desktop.png` `9a9c85141a8fc2c8ae143599f0acbdd7e13e59485e38cc7aff0e71f79965f5f5`
+  - `oggi-vuoto-mobile.png` `0e0526be6555ab71926df63534acc7dcdea0146f04e21c55220ec6009519ab90`
+  - `oggi-vuoto-tablet.png` `18df1a7093305b822e637446daf8d0e2e1c116377eb4ee72c6ec5c5610e1a80b`

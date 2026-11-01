@@ -2030,9 +2030,9 @@
       "pr": 260,
       "branch": "ui-pr-011-season",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261031T214827Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261101T003500Z-agent-a-claude-code",
       "resources": [
         "file:src/providers/futpython/query.mjs",
         "file:src/api/v1.mjs",
@@ -2041,6 +2041,33 @@
         "file:test/fpt-coverage-page.test.mjs",
         "file:docs/qa/control-inventory.json",
         "file:docs/qa/feature-certification.json",
+        "file:docs/governance/ui-requirements-matrix.json",
+        "file:docs/mockups/matchpilot-trading-os.html",
+        "file:test/visual/manifest.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "a3ebdc932706d34f525fa21b1acbf3d1eee93aba"
+    },
+    {
+      "id": "MP-UI-PR-010-BOARD-COMP",
+      "title": "MP-UI-PR-010-BOARD-COMP: competition filter on Oggi",
+      "issue": 239,
+      "pr": 261,
+      "branch": "ui-pr-010-board-comp",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T220929Z-agent-a-claude-code",
+      "resources": [
+        "file:src/providers/futpython/query.mjs",
+        "file:src/web/app.js",
+        "file:tools/qa/journeys.mjs",
+        "file:test/fpt-pagination.test.mjs",
+        "file:docs/qa/control-inventory.json",
         "file:docs/governance/ui-requirements-matrix.json",
         "file:docs/mockups/matchpilot-trading-os.html",
         "file:test/visual/manifest.json"
