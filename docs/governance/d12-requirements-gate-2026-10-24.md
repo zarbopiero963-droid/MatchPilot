@@ -231,3 +231,24 @@ Nessuno stato è stato cambiato per effetto indiretto di una decisione. Le liste
 | Tracciabilità decisioni | registro owner-decisions | più la voce D12, la ratifica letterale e la matrice testata | no |
 | Sequenza UI | UI LAST (#97 voce 15, #104 regola 2) | UI incrementale insieme ai backend (D12-19); ownership e autorità del server invariate | no |
 
+
+## 7. Dopo la ratifica: promozione con evidenze (MP-GOV-D12-RECON-EVIDENCE, proposta MANUAL)
+
+La tabella del §1 fotografa la ratifica. `new_status` resta lo stato che la sola decisione consentiva e non è mai uno stato verificato.
+
+Il gate dei test, fino a questa proposta, imponeva che la riga della matrice restasse per sempre uguale a quella fotografia. Così un requisito deciso dall'owner e poi implementato non poteva salire nemmeno con le evidenze: è il caso di MP-REQ-UI-1035 (D12-5, menu dell'app).
+
+Con questa proposta una riga riconciliata può superare la fotografia solo se tutte e tre queste condizioni valgono:
+
+1. la voce di riconciliazione dichiara `promoted_after` con lo stato raggiunto e la PR (`MP-UI-PR-…`);
+2. lo `status_changes` della riga porta quella PR;
+3. lo stesso `status_changes` contiene gli `evidence_refs`, verificati riferimento per riferimento come per ogni promozione a TESTED.
+
+Senza `promoted_after` la riga resta allo stato riconciliato. La decisione D12 da sola non promuove mai nulla. `new_status` non cambia.
+
+Il primo uso è MP-REQ-UI-1035 → TESTED. Le evidenze sono:
+
+- il test `MP-REQ-UI-1035` di `test/ui-foundations.test.mjs`;
+- i passi «menu: …» del journey `general-navigation`.
+
+La modifica tocca il gate di governance, quindi il merge spetta all'owner.
