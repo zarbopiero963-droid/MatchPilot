@@ -2086,9 +2086,9 @@
       "pr": 264,
       "branch": "ui-pr-009-teamsearch",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261101T012357Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261101T014500Z-agent-a-claude-code",
       "resources": [
         "file:src/providers/futpython/query.mjs",
         "file:src/api/v1.mjs",
@@ -2103,7 +2103,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "b21586d1d891a5bb7fc63d2656e021c73570a59a"
     }
   ]
 }
