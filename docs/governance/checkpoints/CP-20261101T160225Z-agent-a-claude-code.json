@@ -1,0 +1,100 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261101T160225Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-01T16:02:25Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-IMPL-20261101",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): implementation phase"
+  },
+  "task": "MP-MARKET-REF-01",
+  "activity": "MP-MARKET-REF-01: pure market_ref parser on the observed API-FOOTBALL formats (authorized item 3)",
+  "issue": 263,
+  "pr": null,
+  "branch": "mp-market-ref",
+  "commit_sha": "36d4677c382efd0242544861e82ed949d529d613",
+  "tree_sha": "065dc05c461e6bffcf226f4ce8f3927f70c8ae35",
+  "base_sha": "192c37c2d415fe11f65f6542e6614b028aff4b1c",
+  "requirements": [],
+  "changes": [
+    "src/markets/market-ref.mjs",
+    "test/market-ref.test.mjs"
+  ],
+  "tests": [
+    {
+      "command": "node --test",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22",
+      "commit": "36d4677c382efd0242544861e82ed949d529d613",
+      "time": "2026-11-01T16:02:25Z",
+      "limits": [
+        "5/5 market-ref tests; pure module, no network"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "36d4677c382efd0242544861e82ed949d529d613"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "review by an agent of a different model pending"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-OWNER-IMPL-20261101",
+    "MP-AUTONOMY-01",
+    "MP-OWNER-GO-2026-11-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests"
+    ],
+    "in_progress": [
+      "CI and review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:src/markets/market-ref.mjs",
+    "file:test/market-ref.test.mjs"
+  ],
+  "stop_conditions": [
+    "merge only under the owner authorization and every gate",
+    "no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and review, conditional merge",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}
