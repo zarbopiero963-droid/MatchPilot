@@ -71,7 +71,9 @@ Il contratto prodotto si modifica solo con decisione owner registrata.
 
 ## 4. Review indipendente e auto-merge (MP-OWNER-AUTOMERGE-01, D2)
 
-> **Sospensione owner MP-OWNER-D12-IMPLEMENTATION-20261024 (24/10/2026): vigente, tranne per le PR SAFE** (MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031 e MP-OWNER-SAFE-REGISTERS-20261031, 31/10/2026).
+> **Sospensione owner MP-OWNER-D12-IMPLEMENTATION-20261024 (24/10/2026): vigente, tranne per le PR SAFE** (MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031 e MP-OWNER-SAFE-REGISTERS-20261031, 31/10/2026; classificazione per rischio effettivo MP-AUTONOMY-01, 01/11/2026).
+>
+> **Principio MP-AUTONOMY-01: autonomia massima per il lavoro reversibile e verificabile, approvazione owner per le operazioni ad alto impatto.** SAFE o MANUAL dipende dal rischio effettivo del diff, non dal nome del modulo toccato. Un file normalmente sensibile non basta a fermarsi: si verifica se il cambiamento è davvero critico. Il principio non serve ad aggirare restrizioni specifiche già approvate, e test verdi non rendono SAFE una modifica critica.
 >
 > **Quando l'agente fa il merge (squash) senza chiedere.** Valgono tutte le condizioni sotto e tutte quelle del mandato; questo riassunto non le riduce:
 > - PR della roadmap, nel perimetro approvato, piccola, isolata e reversibile;
@@ -90,17 +92,21 @@ Il contratto prodotto si modifica solo con decisione owner registrata.
 > - non toccano workflow, sicurezza, infrastruttura o file critici;
 > - CI e review passano.
 >
-> **PR MANUAL, che si fermano prima del merge con «AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER».** L'elenco segue MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031 e prevale il testo della decisione:
-> - autenticazione, autorizzazione, sessioni o credenziali;
-> - segreti, token, certificati o chiavi API;
-> - sicurezza, governance, protezione dei branch o workflow CI, comprese le modifiche normative ad AGENTS.md, CLAUDE.md e alle regole di auto-merge;
-> - database di produzione, migrazioni, schema o integrità dei dati;
-> - raccolta dai provider, quote, storico, provenienza, PIT e backfill;
-> - motore decisionale, strategie operative o logica finanziaria;
-> - deploy, VPS, infrastruttura, rete o servizi;
-> - licenze, pagamenti, costi o servizi commerciali;
-> - contratti API pubblici o componenti condivisi di impatto significativo;
-> - certificazioni approvate o requisiti che richiedono una nuova decisione owner.
+> **PR MANUAL, che si fermano prima del merge con «AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER».** L'elenco segue MP-AUTONOMY-01 e prevale il testo della decisione. È MANUAL una modifica che introduce:
+> - cambiamenti incompatibili alle API pubbliche;
+> - modifiche distruttive o irreversibili al database;
+> - cambiamenti ai criteri di certificazione o all'integrità PIT;
+> - alterazioni delle formule finanziarie o della logica di rischio;
+> - modifiche ai controlli di sicurezza, autenticazione o autorizzazione;
+> - cambiamenti ai sistemi di deploy o ai runner guard;
+> - nuovi costi, abbonamenti o risorse a pagamento;
+> - attivazione o arresto di servizi produttivi;
+> - modifiche ai segreti o ai privilegi;
+> - decisioni di prodotto non ancora approvate.
+>
+> Restano MANUAL anche le modifiche normative ad AGENTS.md, CLAUDE.md e alle regole di auto-merge. Le PR MP-CAP-01/02/03 si dividono in modifiche atomiche: le parti SAFE procedono, quelle che toccano contratti pubblici, schema del database, semantica PIT o sicurezza vanno all'owner; nessuna PR mista SAFE/MANUAL e nessun mercato o filtro fisso come scorciatoia.
+>
+> **Blocker e richieste all'owner (MP-AUTONOMY-01).** Un'attività MANUAL non ferma lo sviluppo: si isola il blocker, lo si registra nella PR o nella issue, si prosegue con il lavoro SAFE indipendente senza toccare gli stessi file critici, e ci si ferma del tutto solo se non resta lavoro sicuro o se continuare violerebbe un gate. Le richieste all'owner sono brevi: PR o operazione, perché è MANUAL, CI e review, rischio concreto, rollback, raccomandazione, autorizzazione esatta. Le operazioni correlate si aggregano in una sola richiesta, senza nascondere i rischi specifici, e non si ripetono domande già risolte. Sulla VPS sono autonome solo analisi, letture non sensibili già autorizzate, piani di arresto, migrazione e rollback, test locali e simulazioni isolate; spegnimenti, collector in produzione, riattivazione TotalCorner, modifiche a PostgreSQL produttivo, deploy, runner, credenziali ed eliminazione di archivi richiedono un unico GO owner per un pacchetto operativo ben delimitato.
 >
 > Una modifica critica non si divide in PR dall'aspetto innocuo.
 >
