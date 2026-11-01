@@ -65,7 +65,7 @@ La percentuale dei passaggi riusciti non c'è.
 - eventi;
 - quote pre-partita, con molti mercati e 10 bookmaker;
 - quote LIVE;
-- storico recente delle quote;
+- storico recente delle quote (una sola partita del giorno prima);
 - flag di copertura per stagione e competizione;
 - pronostici e statistiche aggregate.
 
@@ -81,7 +81,7 @@ La percentuale dei passaggi riusciti non c'è.
 1. **Tempi (PIT).** Statistiche ed eventi non hanno un timestamp del provider, e le quote hanno un solo `update` per partita. La disponibilità di un dato è quindi l'ora di acquisizione di MatchPilot, registrata con snapshot e deduplica secondo la policy `mp-pit-v1`. Vanno trattati come dati temporizzati anche:
    - `winner` durante la partita;
    - le formazioni, che escono tardi.
-2. **Storico delle quote.** Il provider dichiara di non avere quote per le stagioni passate. Di conseguenza:
+2. **Storico delle quote.** Il provider dichiara di non avere quote per le stagioni passate: è il flag `odds: false` per stagione, non provato con una chiamata `/odds` su una stagione passata. Se il flag è confermato:
    - l'archivio FPT congelato resta la sola fonte storica delle quote per i backtest;
    - da qui in avanti MatchPilot deve salvare da sé gli snapshot delle quote.
 
