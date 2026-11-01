@@ -207,7 +207,7 @@ Il mock è [`docs/mockups/matchpilot-trading-os.html`](docs/mockups/matchpilot-t
 
 ## Fonti dati
 
-**Catalogo delle capacità (MP-CAP-01a, MP-PRODUCT-100, #263).** `src/capabilities/catalog.mjs` descrive in modo indipendente dal provider ciò che un provider offre davvero: id stabile (`provider:tipo:nome originale`), tipo, operatori ammessi, momento (riusa MP-PIT-TIMING-01), disponibilità storica/pre-partita/live, copertura (nulla se sconosciuta, mai 0), stato dell'inventario e provenienza. La validazione rifiuta un valore post-partita, live o non classificato offerto prima della partita e uno stato «disponibile» senza evidenza. FutPythonTrader, dismesso come provider operativo, vi compare solo come storico. È un modulo senza route né database: l'endpoint in sola lettura è MP-CAP-01b (MANUAL).
+**Catalogo delle capacità (MP-CAP-01a, MP-PRODUCT-100, #263).** `src/capabilities/catalog.mjs` descrive in modo indipendente dal provider ciò che un provider offre davvero: id stabile (`provider:tipo:nome originale`, il nome resta quello del provider), tipo, operatori ammessi, momento, copertura (nulla se sconosciuta, mai 0), stato dell'inventario e provenienza. Il momento usa solo le tre classi di MP-PIT-TIMING-01 e la sua regola vale per ogni provider: una statistica non è mai pre-partita. Uno stato «disponibile» senza evidenza è rifiutato. FutPythonTrader, dismesso come provider operativo, vi compare solo come storico. È un modulo senza route né database; la disponibilità per fase (storica, pre-partita, live) e l'endpoint in sola lettura sono MP-CAP-01b (MANUAL).
 
 ### FutPythonTrader — motore statistico/pre-match
 Usare ogni campo disponibile e con copertura reale. Le famiglie includono, quando presenti:
