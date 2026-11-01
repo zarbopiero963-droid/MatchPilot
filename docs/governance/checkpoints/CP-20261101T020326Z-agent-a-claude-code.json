@@ -1,0 +1,111 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261101T020326Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-01T02:03:26Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-GO-2026-11-01",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): MP-PRODUCT-100 continuation, capability catalog"
+  },
+  "task": "MP-CAP-01A-CATALOG",
+  "activity": "MP-CAP-01a review findings fixed: timing vocabulary limited to MP-PIT-TIMING-01, availability and live left to MP-CAP-01b (MANUAL), robust catalog building",
+  "issue": 239,
+  "pr": 269,
+  "branch": "mp-cap-01a-catalog",
+  "commit_sha": "19e41ac7f5c20f5d9fd306f23c983fa98289eabe",
+  "tree_sha": "7db698c2de0ed6fd306e46fbe5cd069045b7bc59",
+  "base_sha": "b4afa13f0b9b765fd6b147dc90f5238c59117106",
+  "requirements": [],
+  "changes": [
+    "src/capabilities/catalog.mjs",
+    "test/capabilities-catalog.test.mjs",
+    "README: catalog paragraph",
+    "MERGED checkpoint of PR #268",
+    "review fixes B1, N1-N4, N7"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/capabilities-catalog.test.mjs",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22",
+      "commit": "19e41ac7f5c20f5d9fd306f23c983fa98289eabe",
+      "time": "2026-11-01T02:03:26Z",
+      "limits": [
+        "6/6; pure module, no database"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "19e41ac7f5c20f5d9fd306f23c983fa98289eabe"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "re-review by an agent of a different model pending"
+  },
+  "findings": [
+    {
+      "id": "PR269-B1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "new PIT vocabulary (LIVE, UNCLASSIFIED, per-phase availability) removed: only MP-PIT-TIMING-01 classes and rule"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-GO-2026-11-01",
+    "MP-PRODUCT-100",
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031"
+  ],
+  "progress": {
+    "done": [
+      "module and tests"
+    ],
+    "in_progress": [
+      "CI and review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:src/capabilities/catalog.mjs",
+    "file:test/capabilities-catalog.test.mjs"
+  ],
+  "stop_conditions": [
+    "merge only if SAFE and every gate holds",
+    "no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and review, SAFE merge; the read-only endpoint (01b) is MANUAL",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": "CP-20261101T015813Z-agent-a-claude-code"
+}
