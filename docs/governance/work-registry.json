@@ -2113,9 +2113,9 @@
       "pr": 268,
       "branch": "docs-mp-263-plan",
       "kind": "audit",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261101T014841Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261101T020500Z-agent-a-claude-code",
       "resources": [
         "file:docs/product/mp-263/README.md"
       ],
@@ -2123,7 +2123,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "b4afa13f0b9b765fd6b147dc90f5238c59117106"
     }
   ]
 }

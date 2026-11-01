@@ -1,0 +1,140 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261101T020500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-01T02:05:00Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-GO-2026-11-01",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): provider migration #263"
+  },
+  "task": "MP-263-PLAN",
+  "activity": "PR #268 merged as b4afa13 (squash, SAFE: documentation); review findings (read-only query columns, watchdog recovery sync, mp-deploy restart, classification) fixed before the merge",
+  "issue": 263,
+  "pr": 268,
+  "branch": "docs-mp-263-plan",
+  "commit_sha": "9a1909042481785d3a21b6029f8376b63a25fb9c",
+  "tree_sha": "b4463ab4813c1b45153e42fcf92ae9467e29ed03",
+  "base_sha": "b21586d1d891a5bb7fc63d2656e021c73570a59a",
+  "requirements": [],
+  "changes": [
+    "docs/product/mp-263/README.md",
+    "MERGED checkpoint of PR #264",
+    "review findings fixed in 9a19090",
+    "b4afa13: squash merge of PR #268"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #268 head 9a19090",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "9a1909042481785d3a21b6029f8376b63a25fb9c",
+      "time": "2026-11-01T02:05:00Z",
+      "limits": [
+        "run 41262786539 success (Fast checks, CI gate; UI and PostgreSQL jobs skipped by classification: documents only)"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main b4afa13",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "b4afa13f0b9b765fd6b147dc90f5238c59117106",
+      "time": "2026-11-01T02:05:00Z",
+      "limits": [
+        "run 41262931607 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main b4afa13",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "b4afa13f0b9b765fd6b147dc90f5238c59117106",
+      "time": "2026-11-01T02:05:00Z",
+      "limits": [
+        "run 41262931612: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41262786539,
+    "conclusion": "SUCCESS",
+    "head_sha": "9a1909042481785d3a21b6029f8376b63a25fb9c"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "9a1909042481785d3a21b6029f8376b63a25fb9c",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/268#issuecomment-6552002976"
+  },
+  "findings": [
+    {
+      "id": "MP263-B1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "API-FOOTBALL: no key in the environment and api-football.com / api-sports.io answer 403 from the container: capability inventory NOT VERIFIED"
+    },
+    {
+      "id": "MP263-B2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "no verified read-only access to the VPS database: fpt_schema_fields inventory not run; a read-only query is provided for the owner"
+    },
+    {
+      "id": "MP263-F1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "mp-deploy restarts matchpilot-fpt-worker on every release: a stopped worker would be restarted; fix (MANUAL) before the FPT shutdown"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-GO-2026-11-01",
+    "MP-AUTONOMY-01",
+    "MP-PRODUCT-100"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:docs/product/mp-263/README.md"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261101T014841Z-agent-a-claude-code",
+  "merge_sha": "b4afa13f0b9b765fd6b147dc90f5238c59117106"
+}
