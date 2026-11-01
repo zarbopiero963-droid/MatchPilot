@@ -1,0 +1,131 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261101T160155Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-01T16:01:55Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-270-AF-20261101",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): API-FOOTBALL verification session"
+  },
+  "task": "MP-AF-02B-EVIDENCE",
+  "activity": "PR #271 merged as 192c37c (squash, SAFE: documentation and registers)",
+  "issue": 263,
+  "pr": 271,
+  "branch": "docs-mp-af-02b",
+  "commit_sha": "b542a2383a909b2a9eeacf416efe62cfc44b5a5c",
+  "tree_sha": "d1bbbb0ddd20ab74c798dc7b6101c534db74c7a7",
+  "base_sha": "319fc6f54e4864482415d37e8857e167d2c4cae1",
+  "requirements": [],
+  "changes": [
+    "docs/product/mp-263/api-football-verification-2026-11-01.md",
+    "plan section 2 updated",
+    "owner decision MP-OWNER-270-AF-20261101; MP-AUTONOMY-01 IN_FORCE",
+    "MERGED checkpoint of PR #270",
+    "review nits applied",
+    "192c37c: squash merge of PR #271"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #271 head b542a23",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "b542a2383a909b2a9eeacf416efe62cfc44b5a5c",
+      "time": "2026-11-01T16:01:55Z",
+      "limits": [
+        "run 41321029851 success (Fast checks, CI gate; UI and PostgreSQL jobs skipped by classification: documents only)"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 192c37c",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "192c37c2d415fe11f65f6542e6614b028aff4b1c",
+      "time": "2026-11-01T16:01:55Z",
+      "limits": [
+        "run 41321237381 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 192c37c",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "192c37c2d415fe11f65f6542e6614b028aff4b1c",
+      "time": "2026-11-01T16:01:55Z",
+      "limits": [
+        "run 41321237384: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41321029851,
+    "conclusion": "SUCCESS",
+    "head_sha": "b542a2383a909b2a9eeacf416efe62cfc44b5a5c"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "b542a2383a909b2a9eeacf416efe62cfc44b5a5c",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/271#issuecomment-6559932796"
+  },
+  "findings": [
+    {
+      "id": "AF-G1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "API-FOOTBALL has no odds for past seasons: the frozen FPT archive stays the historical odds source; MatchPilot must snapshot odds from now on"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-270-AF-20261101",
+    "MP-OWNER-GO-2026-11-01",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:docs/product/mp-263/api-football-verification-2026-11-01.md",
+    "file:docs/product/mp-263/README.md"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261101T151924Z-agent-a-claude-code",
+  "merge_sha": "192c37c2d415fe11f65f6542e6614b028aff4b1c"
+}

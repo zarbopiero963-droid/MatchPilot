@@ -1,0 +1,138 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261101T224901Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-01T22:49:01Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-IMPL-20261101",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): implementation phase"
+  },
+  "task": "MP-MARKET-REF-01",
+  "activity": "MP-MARKET-REF-01: pure market_ref parser on the observed API-FOOTBALL formats (authorized item 3)",
+  "issue": 263,
+  "pr": 272,
+  "branch": "mp-market-ref",
+  "commit_sha": "9ae285eab5b709d5be9d3c7a96a465cc55e118e3",
+  "tree_sha": "2a2a40d36691427a7ef9b0a3ce1e80de6bac9fba",
+  "base_sha": "192c37c2d415fe11f65f6542e6614b028aff4b1c",
+  "requirements": [],
+  "changes": [
+    "src/markets/market-ref.mjs",
+    "test/market-ref.test.mjs"
+  ],
+  "tests": [
+    {
+      "command": "node --test",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22",
+      "commit": "9ae285eab5b709d5be9d3c7a96a465cc55e118e3",
+      "time": "2026-11-01T22:49:01Z",
+      "limits": [
+        "748 tests, 660 pass, 88 skipped (PostgreSQL), 0 fail; 6/6 market-ref tests; pure module, no network"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "9ae285eab5b709d5be9d3c7a96a465cc55e118e3"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "first review CHANGES REQUESTED on 7e37c5b (agent of a different model); re-review pending on the fix head"
+  },
+  "findings": [
+    {
+      "id": "PR272-B1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "in-play Asian handicap: a line in the value must agree with the handicap field, otherwise UNCLASSIFIED"
+    },
+    {
+      "id": "PR272-N1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "line text bounded to 3 integer digits and 4 decimals, read as text"
+    },
+    {
+      "id": "PR272-N2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "bet id: integer or plain digit string only"
+    },
+    {
+      "id": "PR272-N3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "over/under lines unsigned; Asian handicap without Draw"
+    },
+    {
+      "id": "PR272-N4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "live 36 kept as GOAL_LINE, not merged with live 25"
+    },
+    {
+      "id": "PR272-N6",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "HT/FT order documented as not proven; stays not settleable"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-IMPL-20261101",
+    "MP-AUTONOMY-01",
+    "MP-OWNER-GO-2026-11-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review fixes"
+    ],
+    "in_progress": [
+      "CI and re-review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:src/markets/market-ref.mjs",
+    "file:test/market-ref.test.mjs"
+  ],
+  "stop_conditions": [
+    "merge only under the owner authorization and every gate",
+    "no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and review, conditional merge",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": "CP-20261101T160225Z-agent-a-claude-code"
+}
