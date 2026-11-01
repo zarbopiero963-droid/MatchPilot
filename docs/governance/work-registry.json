@@ -2110,7 +2110,7 @@
       "id": "MP-263-PLAN",
       "title": "MP-263-PLAN: provider migration preparatory plan",
       "issue": 263,
-      "pr": null,
+      "pr": 268,
       "branch": "docs-mp-263-plan",
       "kind": "audit",
       "state": "REVIEW",
@@ -2123,7 +2123,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
