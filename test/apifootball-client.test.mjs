@@ -53,17 +53,21 @@ test('MP-AF-01 endpoint allowlist and parameter validation happen before any cal
   assert.deepEqual(canonicalRequest('/fixtures', {league: 39, date: '2026-11-01', season: undefined}),
     {endpoint: '/fixtures', family: 'fixtures', query: 'date=2026-11-01&league=39', path: '/fixtures?date=2026-11-01&league=39'});
   assert.equal(canonicalRequest('/odds', {fixture: 5, bookmaker: 8}).path, canonicalRequest('/odds', {bookmaker: '8', fixture: '5'}).path);
-  assert.equal(canonicalRequest('/fixtures', {timezone: 'Europe/Rome'}).query, 'timezone=Europe%2FRome');
+  assert.equal(canonicalRequest('/fixtures', {league: 39, timezone: 'Europe/Rome'}).query, 'league=39&timezone=Europe%2FRome');
   const h = harness();
   for (const [endpoint, params, code] of [
     ['/players', {}, 'ENDPOINT_NOT_ALLOWED'], ['/fixtures/../status', {}, 'ENDPOINT_NOT_ALLOWED'], ['toString', {}, 'ENDPOINT_NOT_ALLOWED'],
     ['/fixtures', {apikey: 'x'}, 'PARAM_INVALID'], ['/fixtures', {league: '39&live=all'}, 'PARAM_INVALID'], ['/fixtures', {league: -1}, 'PARAM_INVALID'],
-    ['/fixtures', {league: 1.5}, 'PARAM_INVALID'], ['/fixtures', {date: ' 2026-11-01'}, 'PARAM_INVALID'], ['/fixtures', {league: ''}, 'PARAM_INVALID'],
+    ['/fixtures', {league: 1.5}, 'PARAM_INVALID'], ['/fixtures', {live: 'all'}, 'PARAM_INVALID'], ['/fixtures', {}, 'PARAM_INVALID'],
+    ['/fixtures', {season: 2026}, 'PARAM_INVALID'], ['/odds', {bookmaker: 8}, 'PARAM_INVALID'], ['/odds/live', {}, 'PARAM_INVALID'], ['/predictions', {}, 'PARAM_INVALID'],
+    ['/fixtures', {__proto__: null, constructor: 'x'}, 'PARAM_INVALID'], ['__proto__', {}, 'ENDPOINT_NOT_ALLOWED'], ['constructor', {}, 'ENDPOINT_NOT_ALLOWED'],
+    [{toString: () => '/status'}, {}, 'ENDPOINT_NOT_ALLOWED'], ['/fixtures', {date: ' 2026-11-01'}, 'PARAM_INVALID'], ['/fixtures', {league: ''}, 'PARAM_INVALID'],
     ['/fixtures', {league: 'x'.repeat(81)}, 'PARAM_INVALID'], ['/fixtures', ['league'], 'PARAM_INVALID'], ['/status', {league: 39}, 'PARAM_INVALID']
   ]) await rejects(h.client.get(endpoint, params, {purpose: 'test'}), code);
   await rejects(h.client.get('/status', {}, {}), 'PARAM_INVALID');
   await rejects(h.client.get('/status', {}, {purpose: 'Bad Purpose'}), 'PARAM_INVALID');
   assert.equal(h.calls.length, 0);
+  assert.equal(canonicalRequest('/fixtures', {live: '39-135'}).path, '/fixtures?live=39-135', 'live by league ids is a precise scope');
   assert.ok(Object.keys(ENDPOINTS).every(e => e.startsWith('/') && !e.includes('?')));
 });
 
@@ -146,7 +150,7 @@ test('MP-AF-01 controlled retries: one retry after 5xx, network error or timeout
   }
   // HTTP 200 with a non-empty errors field is an error, counted, never retried.
   const e = harness({responses: [ok({errors: {requests: 'You have reached the request limit for the day'}, response: []}), ok()]});
-  await assert.rejects(e.client.get('/fixtures', {id: 1}, {purpose: 'p'}), err => err.code === 'PROVIDER_ERROR' && typeof err.provider_errors.requests === 'string');
+  await assert.rejects(e.client.get('/fixtures', {id: 1}, {purpose: 'p'}), err => err.code === 'PROVIDER_ERROR' && JSON.stringify(err.provider_error_names) === '["requests"]' && !JSON.stringify(err).includes('limit for the day'));
   assert.equal(e.calls.length, 1);
   assert.deepEqual([e.ledger.rows[0].outcome, e.ledger.rows[0].error], ['provider_error', 'provider errors: requests']);
   const f = harness({responses: [{status: 200, badJson: true}, ok()]});
@@ -157,7 +161,7 @@ test('MP-AF-01 controlled retries: one retry after 5xx, network error or timeout
 test('MP-AF-01 429: retried once only with a Retry-After within the limit; otherwise calls pause', async () => {
   const a = harness({responses: [{status: 429, headers: {'retry-after': '2'}}, ok()]});
   await a.client.get('/fixtures', {id: 1}, {purpose: 'p'});
-  assert.deepEqual(a.sleeps, [2000]);
+  assert.deepEqual(a.sleeps, [2250], 'Retry-After plus a small margin');
   assert.deepEqual(a.ledger.rows.map(r => r.outcome), ['rate_limited', 'ok']);
   const b = harness({responses: [{status: 429, headers: {'retry-after': '3600'}}, ok()]});
   await rejects(b.client.get('/fixtures', {id: 1}, {purpose: 'p'}), 'RATE_LIMITED');
@@ -198,4 +202,66 @@ test('MP-AF-01 helpers: quota headers and provider errors', () => {
   assert.deepEqual(providerErrors({errors: ['x']}), ['x']);
   assert.equal(providerErrors(null), null);
   assert.throws(() => createApiFootballClient({config: {enabled: false}}), /requires a request ledger/);
+});
+
+test('MP-AF-01 review: a stalled body times out, is counted and does not block the queue', async () => {
+  const config = apiFootballConfig(env({APIFOOTBALL_TIMEOUT_MS: '5'}));
+  const ledger = createMemoryLedger();
+  let n = 0;
+  const fetchImpl = async () => {
+    n += 1;
+    if (n <= 2) return {status: 200, headers: new Headers(), json: () => new Promise(() => {})};
+    return {status: 200, headers: new Headers(), json: async () => ({errors: [], results: 1, response: [1]})};
+  };
+  const client = createApiFootballClient({config, ledger, fetchImpl, sleep: async () => {}});
+  await rejects(client.get('/fixtures', {id: 1}, {purpose: 'p'}), 'TIMEOUT');
+  assert.deepEqual(ledger.rows.map(r => r.outcome), ['timeout', 'timeout']);
+  assert.equal((await client.get('/fixtures', {id: 2}, {purpose: 'p'})).results, 1, 'the next request still runs');
+});
+
+test('MP-AF-01 review: an enabled hand-built config without key or budgets fails closed', () => {
+  const ledger = createMemoryLedger();
+  for (const config of [{enabled: true}, {enabled: true, apiKey: KEY}, {enabled: true, apiKey: KEY, perDay: 5, perMinute: 1},
+    {enabled: true, apiKey: '', perDay: 5, perMinute: 1, timeoutMs: 10}, {enabled: true, apiKey: KEY, perDay: Infinity, perMinute: 1, timeoutMs: 10}]) {
+    assert.throws(() => createApiFootballClient({config, ledger}), err => err.code === 'NOT_CONFIGURED', JSON.stringify(config));
+  }
+});
+
+test('MP-AF-01 review: identical concurrent requests on a cold cache cost one call; cached results are copies', async () => {
+  const h = harness({responses: [ok(), ok()]});
+  const results = await Promise.all(Array.from({length: 10}, () => h.client.get('/leagues', {id: 39}, {purpose: 'catalog'})));
+  assert.equal(h.calls.length, 1);
+  assert.equal(results.filter(r => r.cacheHit).length, 9);
+  results[1].response.push('mutated');
+  const again = await h.client.get('/leagues', {id: 39}, {purpose: 'catalog'});
+  assert.deepEqual(again.response, [{id: 1}], 'a caller cannot corrupt the cache');
+});
+
+test('MP-AF-01 review: redirects are never followed; a ledger failure stops further calls', async () => {
+  const h = harness({responses: [ok()]});
+  await h.client.get('/fixtures', {id: 1}, {purpose: 'p'});
+  assert.equal(h.calls[0].init.redirect, 'error');
+  const config = apiFootballConfig(env());
+  let calls = 0;
+  const broken = {async insert() { throw new Error('db down'); }, async countSince() { return 0; }};
+  const fetchImpl = async () => { calls += 1; return {status: 200, headers: new Headers(), json: async () => ({errors: [], response: []})}; };
+  const client = createApiFootballClient({config, ledger: broken, fetchImpl, sleep: async () => {}});
+  await rejects(client.get('/fixtures', {id: 1}, {purpose: 'p'}), 'LEDGER_UNAVAILABLE');
+  await rejects(client.get('/fixtures', {id: 2}, {purpose: 'p'}), 'LEDGER_UNAVAILABLE');
+  assert.equal(calls, 1, 'no call after a request that could not be recorded');
+});
+
+test('MP-AF-01 review: Retry-After boundaries and an HTTP date; a 5xx with the minute counter at zero is not retried at once', async () => {
+  const at60 = harness({responses: [{status: 429, headers: {'retry-after': '60'}}, ok()]});
+  await at60.client.get('/fixtures', {id: 1}, {purpose: 'p'});
+  assert.equal(at60.calls.length, 2);
+  const at61 = harness({responses: [{status: 429, headers: {'retry-after': '61'}}, ok()]});
+  await rejects(at61.client.get('/fixtures', {id: 1}, {purpose: 'p'}), 'RATE_LIMITED');
+  assert.equal(at61.calls.length, 1);
+  const date = harness({responses: [{status: 429, headers: {'retry-after': new Date(T0 + 5000).toUTCString()}}, ok()]});
+  await date.client.get('/fixtures', {id: 1}, {purpose: 'p'});
+  assert.equal(date.calls.length, 2);
+  const zero = harness({responses: [{status: 503, headers: {'x-ratelimit-remaining': '0'}}, ok()]});
+  await rejects(zero.client.get('/fixtures', {id: 1}, {purpose: 'p'}), 'PROVIDER_QUOTA');
+  assert.equal(zero.calls.length, 1, 'the provider pause wins over the retry');
 });

@@ -6,7 +6,7 @@
 // - the provider key is shared with other clients, so the provider counters are not a reliable accounting: the budget is
 //   counted on the local ledger, and a provider counter at zero only ever stops calls (it never grants more);
 // - the provider can answer HTTP 200 with a non-empty `errors` field (plan limits, wrong parameters): that is an error;
-// - a broad query (live=all) can be too large: the caller asks for a precise scope, the allowlist keeps the parameters.
+// - a broad query (live=all) was refused as too large: /fixtures and /odds need a scope parameter and live=all is refused.
 //
 // The key is read only from the environment, sent only in the x-apisports-key header and never written to the ledger,
 // to errors or to results.
@@ -17,6 +17,7 @@ export const APIFOOTBALL_BASE_URL = 'https://v3.football.api-sports.io';
 
 // Endpoint allowlist: the read-only endpoints MatchPilot needs, each with the parameters it may send. Anything else is
 // refused before any network call.
+// scope: at least one of these parameters is required, so no request asks for everything at once.
 export const ENDPOINTS = Object.freeze({
   '/status': {family: 'status', params: []},
   '/timezone': {family: 'reference', params: []},
@@ -24,13 +25,14 @@ export const ENDPOINTS = Object.freeze({
   '/leagues': {family: 'reference', params: ['id', 'name', 'country', 'code', 'season', 'team', 'type', 'current', 'search', 'last']},
   '/leagues/seasons': {family: 'reference', params: []},
   '/teams': {family: 'reference', params: ['id', 'name', 'league', 'season', 'country', 'code', 'venue', 'search']},
-  '/fixtures': {family: 'fixtures', params: ['id', 'ids', 'live', 'date', 'league', 'season', 'team', 'last', 'next', 'from', 'to', 'round', 'status', 'venue', 'timezone']},
-  '/fixtures/statistics': {family: 'match', params: ['fixture', 'team', 'type', 'half']},
-  '/fixtures/events': {family: 'match', params: ['fixture', 'team', 'player', 'type']},
-  '/fixtures/lineups': {family: 'match', params: ['fixture', 'team', 'type', 'player']},
-  '/predictions': {family: 'match', params: ['fixture']},
-  '/odds': {family: 'odds', params: ['fixture', 'league', 'season', 'date', 'timezone', 'page', 'bookmaker', 'bet']},
-  '/odds/live': {family: 'live', params: ['fixture', 'league', 'bet']},
+  '/fixtures': {family: 'fixtures', params: ['id', 'ids', 'live', 'date', 'league', 'season', 'team', 'last', 'next', 'from', 'to', 'round', 'status', 'venue', 'timezone'],
+    scope: ['id', 'ids', 'live', 'date', 'league', 'team']},
+  '/fixtures/statistics': {family: 'match', params: ['fixture', 'team', 'type', 'half'], scope: ['fixture']},
+  '/fixtures/events': {family: 'match', params: ['fixture', 'team', 'player', 'type'], scope: ['fixture']},
+  '/fixtures/lineups': {family: 'match', params: ['fixture', 'team', 'type', 'player'], scope: ['fixture']},
+  '/predictions': {family: 'match', params: ['fixture'], scope: ['fixture']},
+  '/odds': {family: 'odds', params: ['fixture', 'league', 'season', 'date', 'timezone', 'page', 'bookmaker', 'bet'], scope: ['fixture', 'league', 'date']},
+  '/odds/live': {family: 'live', params: ['fixture', 'league', 'bet'], scope: ['fixture', 'league']},
   '/odds/bookmakers': {family: 'reference', params: ['id', 'search']},
   '/odds/bets': {family: 'reference', params: ['id', 'search']},
   '/odds/live/bets': {family: 'reference', params: ['id', 'search']}
@@ -82,7 +84,7 @@ const PARAM_VALUE = /^[A-Za-z0-9][A-Za-z0-9 _:./-]{0,79}$/;
 // The canonical query: allowlisted names only, sorted, values as validated text. The same request always has the same
 // text, which is the cache key and the ledger's params_hash input.
 export function canonicalRequest(endpoint, params = {}) {
-  const spec = Object.hasOwn(ENDPOINTS, endpoint) ? ENDPOINTS[endpoint] : null;
+  const spec = typeof endpoint === 'string' && Object.hasOwn(ENDPOINTS, endpoint) ? ENDPOINTS[endpoint] : null;
   if (!spec) throw new ApiFootballError('ENDPOINT_NOT_ALLOWED', `endpoint not allowed: ${String(endpoint).slice(0, 80)}`);
   if (!params || typeof params !== 'object' || Array.isArray(params)) throw new ApiFootballError('PARAM_INVALID', 'params must be an object');
   const entries = [];
@@ -91,7 +93,12 @@ export function canonicalRequest(endpoint, params = {}) {
     if (!spec.params.includes(name)) throw new ApiFootballError('PARAM_INVALID', `parameter ${String(name).slice(0, 40)} not allowed for ${endpoint}`);
     const text = typeof value === 'number' && Number.isInteger(value) && value >= 0 ? String(value) : typeof value === 'string' ? value : null;
     if (text === null || !PARAM_VALUE.test(text) || text !== text.trim()) throw new ApiFootballError('PARAM_INVALID', `parameter ${name} has an invalid value`);
+    // live=all asks for every match in play at once: refused as too large (2026-11-01). Live ids are "id" or "id-id".
+    if (name === 'live' && !/^\d{1,6}(?:-\d{1,6}){0,19}$/.test(text)) throw new ApiFootballError('PARAM_INVALID', 'live takes league ids, never all');
     entries.push([name, text]);
+  }
+  if (spec.scope && !entries.some(([name]) => spec.scope.includes(name))) {
+    throw new ApiFootballError('PARAM_INVALID', `${endpoint} needs one of ${spec.scope.join(', ')}`);
   }
   entries.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   const query = new URLSearchParams(entries).toString();
@@ -149,12 +156,20 @@ export function createApiFootballClient({
   baseUrl = APIFOOTBALL_BASE_URL
 } = {}) {
   if (!ledger || typeof ledger.insert !== 'function' || typeof ledger.countSince !== 'function') throw new Error('API-FOOTBALL client requires a request ledger');
+  // A hand-built config is checked like the environment one: an enabled client without a key or budgets fails closed.
+  const posInt = v => Number.isInteger(v) && v > 0;
+  if (config?.enabled === true && !(typeof config.apiKey === 'string' && config.apiKey.trim() && posInt(config.perDay) && posInt(config.perMinute) && posInt(config.timeoutMs))) {
+    throw new ApiFootballError('NOT_CONFIGURED', 'an enabled client needs apiKey, perDay, perMinute and timeoutMs');
+  }
   const cache = new Map();
+  const MAX_CACHE = 500;
+  let ledgerFailed = false; // a request that may have reached the provider but has no ledger row: stop, never undercount
   let blockedUntil = 0; // set when the provider itself reports a counter at zero or answers 429
   let chain = Promise.resolve(); // concurrency 1: budget check, call and ledger row happen one request at a time
 
   async function admit() {
     const t = now();
+    if (ledgerFailed) throw new ApiFootballError('LEDGER_UNAVAILABLE', 'a request could not be recorded; calls stopped');
     if (t < blockedUntil) throw new ApiFootballError('PROVIDER_QUOTA', 'provider reported its quota exhausted; calls paused', {retry_at: new Date(blockedUntil).toISOString()});
     if (await ledger.countSince(utcDayStart(t)) >= config.perDay) throw new ApiFootballError('BUDGET_DAY', 'dedicated daily budget used');
     if (await ledger.countSince(t - 60000) >= config.perMinute) throw new ApiFootballError('BUDGET_MINUTE', 'dedicated per-minute budget used');
@@ -165,46 +180,61 @@ export function createApiFootballClient({
     const started = now();
     const row = {at_ms: started, at: new Date(started).toISOString(), endpoint: req.endpoint, family: req.family, path: req.path,
       params_hash: paramsHash(req.path), purpose, attempt: n, outcome: null, status: null, latency_ms: null, quota: null, error: null};
+    const record = async entry => {
+      try { await ledger.insert(entry); } catch { ledgerFailed = true; throw new ApiFootballError('LEDGER_UNAVAILABLE', 'a request could not be recorded; calls stopped'); }
+    };
+    // The timeout covers the whole exchange, body included: a stalled body is aborted, never left hanging the queue.
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), config.timeoutMs);
+    let timedOut = false;
+    let timer;
+    const deadline = new Promise((_, reject) => { timer = setTimeout(() => { timedOut = true; controller.abort(); reject(new Error('timeout')); }, config.timeoutMs); });
+    const withDeadline = promise => Promise.race([promise, deadline]);
+    deadline.catch(() => {});
     let res;
     try {
-      res = await fetchImpl(`${baseUrl}${req.path}`, {method: 'GET', headers: {'x-apisports-key': config.apiKey, accept: 'application/json'}, signal: controller.signal});
-    } catch (error) {
+      // redirect: 'error': a redirect would carry the key header to another origin and make an unrecorded request.
+      res = await withDeadline(fetchImpl(`${baseUrl}${req.path}`, {method: 'GET', redirect: 'error', headers: {'x-apisports-key': config.apiKey, accept: 'application/json'}, signal: controller.signal}));
+    } catch {
       clearTimeout(timer);
-      const timeout = controller.signal.aborted;
-      await ledger.insert({...row, outcome: timeout ? 'timeout' : 'network_error', latency_ms: now() - started, error: timeout ? 'timeout' : 'network error'});
-      return {retry: true, error: new ApiFootballError(timeout ? 'TIMEOUT' : 'NETWORK', timeout ? 'request timed out' : 'network error')};
+      await record({...row, outcome: timedOut ? 'timeout' : 'network_error', latency_ms: now() - started, error: timedOut ? 'timeout' : 'network error'});
+      return {retry: true, error: new ApiFootballError(timedOut ? 'TIMEOUT' : 'NETWORK', timedOut ? 'request timed out' : 'network error')};
     }
-    clearTimeout(timer);
     const quota = quotaHeaders(res.headers);
     const t = now();
     if (quota.day_remaining === 0) blockedUntil = Math.max(blockedUntil, utcDayStart(t) + 86400000);
     if (quota.minute_remaining === 0) blockedUntil = Math.max(blockedUntil, t + 60000);
     const base = {...row, status: res.status, latency_ms: t - started, quota};
     if (res.status === 429) {
+      clearTimeout(timer);
       const wait = retryAfterMs(header(res.headers, 'retry-after'), t);
       blockedUntil = Math.max(blockedUntil, t + (wait ?? 60000));
-      await ledger.insert({...base, outcome: 'rate_limited', error: 'HTTP 429'});
+      await record({...base, outcome: 'rate_limited', error: 'HTTP 429'});
       return {retry: wait !== null && wait <= maxRetryWaitMs, waitMs: wait, error: new ApiFootballError('RATE_LIMITED', 'HTTP 429', {status: 429})};
     }
     if (res.status < 200 || res.status > 299) {
-      await ledger.insert({...base, outcome: 'http_error', error: `HTTP ${res.status}`});
+      clearTimeout(timer);
+      await record({...base, outcome: 'http_error', error: `HTTP ${res.status}`});
       return {retry: res.status >= 500, error: new ApiFootballError('HTTP_ERROR', `HTTP ${res.status}`, {status: res.status})};
     }
     let body;
-    try { body = await res.json(); } catch {
-      await ledger.insert({...base, outcome: 'http_error', error: 'invalid JSON'});
+    try { body = await withDeadline(res.json()); } catch {
+      clearTimeout(timer);
+      if (timedOut) {
+        await record({...base, outcome: 'timeout', latency_ms: now() - started, error: 'timeout reading the body'});
+        return {retry: true, error: new ApiFootballError('TIMEOUT', 'request timed out')};
+      }
+      await record({...base, outcome: 'http_error', error: 'invalid JSON'});
       return {retry: false, error: new ApiFootballError('INVALID_RESPONSE', 'response is not JSON', {status: res.status})};
     }
+    clearTimeout(timer);
     const errors = providerErrors(body);
     if (errors) {
-      // Error names only: a provider message may echo request details, never the key, but stays out of the ledger text.
+      // Error names only, in the ledger and in the error: the provider's own text never leaves the client.
       const names = Array.isArray(errors) ? errors.map((_, i) => String(i)) : Object.keys(errors).map(k => k.slice(0, 40));
-      await ledger.insert({...base, outcome: 'provider_error', error: `provider errors: ${names.join(',')}`});
-      return {retry: false, error: new ApiFootballError('PROVIDER_ERROR', 'the provider answered with errors', {status: res.status, provider_errors: errors})};
+      await record({...base, outcome: 'provider_error', error: `provider errors: ${names.join(',')}`});
+      return {retry: false, error: new ApiFootballError('PROVIDER_ERROR', 'the provider answered with errors', {status: res.status, provider_error_names: names})};
     }
-    await ledger.insert({...base, outcome: 'ok'});
+    await record({...base, outcome: 'ok'});
     return {result: {endpoint: req.endpoint, path: req.path, family: req.family, cacheHit: false, fetched_at: new Date(t).toISOString(), status: res.status, quota,
       results: Number.isInteger(body?.results) ? body.results : null, paging: body?.paging ?? null, response: body?.response ?? null}};
   }
@@ -215,7 +245,8 @@ export function createApiFootballClient({
     let out = await attempt(req, purpose, 1);
     if (out.result) return out.result;
     if (!out.retry) throw out.error;
-    await sleep(out.waitMs ?? 1000);
+    // A small margin past Retry-After, so a timer firing early does not meet the pause set by the 429 itself.
+    await sleep(out.waitMs === undefined || out.waitMs === null ? 1000 : out.waitMs + 250);
     out = await attempt(req, purpose, 2);
     if (out.result) return out.result;
     throw out.error;
@@ -227,13 +258,26 @@ export function createApiFootballClient({
       if (typeof purpose !== 'string' || !/^[a-z][a-z0-9_-]{0,39}$/.test(purpose)) throw new ApiFootballError('PARAM_INVALID', 'purpose is a lowercase slug');
       const req = canonicalRequest(endpoint, params);
       const ttl = (ttlSeconds[req.family] ?? 0) * 1000;
-      const hit = ttl > 0 ? cache.get(req.path) : null;
-      if (hit && now() - hit.at < ttl) return {...hit.result, cacheHit: true};
-      const task = chain.then(() => run(req, purpose));
+      const cached = () => {
+        const hit = ttl > 0 ? cache.get(req.path) : null;
+        return hit && now() - hit.at < ttl ? {...structuredClone(hit.result), cacheHit: true} : null;
+      };
+      const early = cached();
+      if (early) return early;
+      // The cache is checked again inside the queue: identical concurrent requests cost one call, not one each.
+      const task = chain.then(async () => {
+        const hit = cached();
+        if (hit) return hit;
+        const result = await run(req, purpose);
+        if (ttl > 0) {
+          for (const [path, entry] of cache) if (now() - entry.at >= (ttlSeconds[entry.family] ?? 0) * 1000) cache.delete(path);
+          while (cache.size >= MAX_CACHE) cache.delete(cache.keys().next().value);
+          cache.set(req.path, {at: now(), family: req.family, result: structuredClone(result)});
+        }
+        return result;
+      });
       chain = task.catch(() => {});
-      const result = await task;
-      if (ttl > 0) cache.set(req.path, {at: now(), result});
-      return result;
+      return task;
     }
   };
 }
