@@ -2125,6 +2125,26 @@
       },
       "pr_open": false,
       "merge_sha": "b4afa13f0b9b765fd6b147dc90f5238c59117106"
+    },
+    {
+      "id": "MP-CAP-01A-CATALOG",
+      "title": "MP-CAP-01a: provider-neutral capability catalog module",
+      "issue": 239,
+      "pr": null,
+      "branch": "mp-cap-01a",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261101T015628Z-agent-a-claude-code",
+      "resources": [
+        "file:src/capabilities/catalog.mjs",
+        "file:test/capabilities-catalog.test.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }

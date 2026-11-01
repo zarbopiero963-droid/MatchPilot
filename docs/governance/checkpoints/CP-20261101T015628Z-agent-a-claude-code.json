@@ -1,0 +1,103 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261101T015628Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-01T01:56:28Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-GO-2026-11-01",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): MP-PRODUCT-100 continuation, MP-CAP-01"
+  },
+  "task": "MP-CAP-01A-CATALOG",
+  "activity": "MP-CAP-01a: provider-neutral capability catalog module (schema, validation with the PIT rule, FPT adapter on MP-PIT-TIMING-01); pure module, no route, no database; SAFE",
+  "issue": 239,
+  "pr": null,
+  "branch": "mp-cap-01a",
+  "commit_sha": "5dba4cce7691257e73453153d83c74ddb74b9f67",
+  "tree_sha": "87db6f38f0ecbd167a912a288a6ce33110c75ac8",
+  "base_sha": "b4afa13f0b9b765fd6b147dc90f5238c59117106",
+  "requirements": [],
+  "changes": [
+    "src/capabilities/catalog.mjs",
+    "test/capabilities-catalog.test.mjs",
+    "README: catalog paragraph",
+    "MERGED checkpoint of PR #268"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/capabilities-catalog.test.mjs",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22",
+      "commit": "5dba4cce7691257e73453153d83c74ddb74b9f67",
+      "time": "2026-11-01T01:56:28Z",
+      "limits": [
+        "5/5; pure module, no database"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "5dba4cce7691257e73453153d83c74ddb74b9f67"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "review by an agent of a different model pending"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-OWNER-GO-2026-11-01",
+    "MP-PRODUCT-100",
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031"
+  ],
+  "progress": {
+    "done": [
+      "module and tests"
+    ],
+    "in_progress": [
+      "CI and review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:src/capabilities/catalog.mjs",
+    "file:test/capabilities-catalog.test.mjs"
+  ],
+  "stop_conditions": [
+    "merge only if SAFE and every gate holds",
+    "no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and review, SAFE merge; MP-CAP-01b endpoint is MANUAL",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}
