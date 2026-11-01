@@ -2130,7 +2130,7 @@
       "id": "MP-CAP-01A-CATALOG",
       "title": "MP-CAP-01a: provider-neutral capability catalog module",
       "issue": 239,
-      "pr": null,
+      "pr": 269,
       "branch": "mp-cap-01a-catalog",
       "kind": "implementation",
       "state": "REVIEW",
@@ -2144,7 +2144,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
