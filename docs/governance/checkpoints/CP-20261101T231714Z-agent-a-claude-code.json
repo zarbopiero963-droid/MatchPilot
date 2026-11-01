@@ -1,0 +1,168 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261101T231714Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-01T23:17:14Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-IMPL-20261101",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): implementation phase"
+  },
+  "task": "MP-AF-01",
+  "activity": "MP-AF-01: read-only API-FOOTBALL client with dedicated budget, request ledger, TTL cache and controlled retries (authorized item 1)",
+  "issue": 263,
+  "pr": null,
+  "branch": "mp-af-01-client",
+  "commit_sha": "464c0cf48c0c6dfd0a71db174698892a5cf643db",
+  "tree_sha": "b70a5aabaa0f308b2540f5c13cf9dceb84ec021b",
+  "base_sha": "192c37c2d415fe11f65f6542e6614b028aff4b1c",
+  "requirements": [],
+  "changes": [
+    "src/providers/apifootball/client.mjs",
+    "test/apifootball-client.test.mjs",
+    "docs/product/mp-263/README.md",
+    "package.json check entry"
+  ],
+  "tests": [
+    {
+      "command": "node --test",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22",
+      "commit": "464c0cf48c0c6dfd0a71db174698892a5cf643db",
+      "time": "2026-11-01T23:17:14Z",
+      "limits": [
+        "759 tests, 671 pass, 88 skipped (PostgreSQL), 0 fail; 17/17 API-FOOTBALL client tests with a fake fetch; no network, no provider quota"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "464c0cf48c0c6dfd0a71db174698892a5cf643db"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "464c0cf48c0c6dfd0a71db174698892a5cf643db",
+    "reference": "independent review by an agent of a different model: CHANGES REQUESTED on 42bfa3a, APPROVED on 464c0cf; record to be posted on the PR"
+  },
+  "findings": [
+    {
+      "id": "AF01-B1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "stalled response body froze the queue: the timeout now covers the body"
+    },
+    {
+      "id": "AF01-N2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "enabled hand-built config without key or budgets now fails closed"
+    },
+    {
+      "id": "AF01-N3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "identical concurrent requests on a cold cache cost one call"
+    },
+    {
+      "id": "AF01-N4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "scope parameter required; live=all refused"
+    },
+    {
+      "id": "AF01-N5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "redirects never followed (key header)"
+    },
+    {
+      "id": "AF01-N6",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "a ledger insert failure stops further calls"
+    },
+    {
+      "id": "AF01-N7",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "provider error text kept out of errors: names only"
+    },
+    {
+      "id": "AF01-N8",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "cache bounded, results cloned"
+    },
+    {
+      "id": "AF01-N9",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "Retry-After plus margin"
+    },
+    {
+      "id": "AF01-N10",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "endpoint must be a string"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-IMPL-20261101",
+    "MP-AUTONOMY-01",
+    "MP-OWNER-GO-2026-11-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "review fixes",
+      "independent review"
+    ],
+    "in_progress": [
+      "CI"
+    ],
+    "not_started": [
+      "merge",
+      "PostgreSQL ledger and odds snapshot migration (MP-CAP-02)"
+    ]
+  },
+  "resources": [
+    "file:src/providers/apifootball/client.mjs",
+    "file:test/apifootball-client.test.mjs"
+  ],
+  "stop_conditions": [
+    "merge only under the owner authorization and every gate",
+    "no deploy started by the agent",
+    "no real API call: fake fetch only"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI, conditional merge",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": null
+}

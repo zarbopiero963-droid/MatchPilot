@@ -2196,9 +2196,9 @@
       "pr": 272,
       "branch": "mp-market-ref",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261101T224901Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261101T231713Z-agent-a-claude-code",
       "resources": [
         "file:src/markets/market-ref.mjs",
         "file:test/market-ref.test.mjs"
@@ -2207,7 +2207,28 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "6861bc4fcec72bd37434d8ccdad2ebd15b7f1cfa"
+    },
+    {
+      "id": "MP-AF-01",
+      "title": "MP-AF-01: API-FOOTBALL read-only client (budget, ledger, cache, retries)",
+      "issue": 263,
+      "pr": null,
+      "branch": "mp-af-01-client",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261101T231714Z-agent-a-claude-code",
+      "resources": [
+        "file:src/providers/apifootball/client.mjs",
+        "file:test/apifootball-client.test.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
