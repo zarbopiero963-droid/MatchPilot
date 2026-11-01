@@ -1,0 +1,144 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261101T010500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-01T01:05:00Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-GO-2026-11-01",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): merge of the five MANUAL PRs"
+  },
+  "task": "MP-UI-PR-010-BOARD-COMP",
+  "activity": "PR #261 merged as 5a038b0 (squash, MANUAL merged on the owner authorization MP-OWNER-GO-2026-11-01 after the gates; competition list from the real coverage catalog)",
+  "issue": 239,
+  "pr": 261,
+  "branch": "ui-pr-010-board-comp",
+  "commit_sha": "dee0ad15b3d548bb0b2c8e8d7b19dab36770f371",
+  "tree_sha": "a3b6d47ece5987b59d12026d9dff5c27c8c59d91",
+  "base_sha": "7f0896e6ea3e1b1a5d6bcc00f89cc320b0892e3e",
+  "requirements": [
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "optional competition on matchesOnDate (first page and cursor page)",
+    "Oggi: Campionato select, day links keep it, empty day names it",
+    "PostgreSQL and journey tests",
+    "matrix 1051 PARTIAL",
+    "inventory 220/220 ASSERTED",
+    "mock v2026.10.31e",
+    "visual baselines of Oggi",
+    "owner mandate registered; MERGED checkpoint of PR #254",
+    "main merged in (PRs #259, #260, #262, #265, #266, #267); conflicts resolved by union, counts and mock SHA-256 recomputed",
+    "5a038b0: squash merge of PR #261"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #261 head dee0ad1",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "dee0ad15b3d548bb0b2c8e8d7b19dab36770f371",
+      "time": "2026-11-01T01:05:00Z",
+      "limits": [
+        "run 41257933831 success (Fast checks, PostgreSQL integration suite, Browser QA, Exploratory QA, CI gate)"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 5a038b0",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "5a038b05fb8c68c8f697864254a376ad731b1a5a",
+      "time": "2026-11-01T01:05:00Z",
+      "limits": [
+        "run 41259108488 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 5a038b0",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "5a038b05fb8c68c8f697864254a376ad731b1a5a",
+      "time": "2026-11-01T01:05:00Z",
+      "limits": [
+        "run 41259108636: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41257933831,
+    "conclusion": "SUCCESS",
+    "head_sha": "dee0ad15b3d548bb0b2c8e8d7b19dab36770f371"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "dee0ad15b3d548bb0b2c8e8d7b19dab36770f371",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/261#issuecomment-6551488640"
+  },
+  "findings": [
+    {
+      "id": "PR010C-T-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "MP-REQ-UI-1051 stays PARTIAL: multi-day calendar (future API) and a Competizioni menu page still missing"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-GO-2026-11-01",
+    "MP-OWNER-PR254-ROADMAP-20261031",
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:src/providers/futpython/query.mjs",
+    "file:src/web/app.js",
+    "file:tools/qa/journeys.mjs",
+    "file:test/fpt-pagination.test.mjs",
+    "file:docs/qa/control-inventory.json",
+    "file:docs/governance/ui-requirements-matrix.json",
+    "file:docs/mockups/matchpilot-trading-os.html",
+    "file:test/visual/manifest.json"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261031T220929Z-agent-a-claude-code",
+  "merge_sha": "5a038b05fb8c68c8f697864254a376ad731b1a5a"
+}

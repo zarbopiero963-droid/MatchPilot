@@ -51,7 +51,7 @@ const oneOf = (name, values) => value => {
 const FPT_REQUIRED = {
   teamSearch: ['q'], teamNameSearch: ['q'], teamMatches: ['team'], awayMatches: ['team'], favoriteOddsRange: ['min', 'max'], teamMatchesAsOf: ['team', 'as_of'],
   leagueFieldCoverage: ['field'], leaguesWithCoverage: ['field'], teamSummary: ['team'], headToHead: ['team', 'opponent'],
-  competitionSeason: ['competition', 'season'], matchesOnDate: ['date'], matchDetail: ['id'], coverageSeasons: ['country', 'league'],
+  competitionSeason: ['competition', 'season'], matchesOnDate: ['date'], matchDetail: ['id'], coverageSeasons: ['country', 'league'], competitionSeasons: ['competition'],
 };
 // The query layer names its SQL inputs; errors use the API parameter names instead.
 const FPT_INPUT_NAMES = {team_id: 'team', opponent_id: 'opponent', competition_id: 'competition', season_id: 'season', match_id: 'id', normalized_name: 'q'};

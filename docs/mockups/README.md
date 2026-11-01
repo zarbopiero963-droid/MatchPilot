@@ -5,7 +5,7 @@
 - File: [`matchpilot-trading-os.html`](matchpilot-trading-os.html), percorso stabile. Le versioni non cambiano nome: la storia è in git e in questo changelog.
 - Versione: **Mock UX v2026.10.31f**
 - Ultimo aggiornamento: 2026-10-31
-- SHA-256: `2f3834cb702d35420a80aff96778072af0c83fb8460ee6f34fb1c4f1021ed156`
+- SHA-256: `eba42b54f48baa9fb748ae2d10c1a653ba92de43fb79bca28096ac8e4bef8c0f`
 - Allineato a: roadmap #97 (revisione owner 06/10/2026)
 - Issue rappresentate: #12, #20, #23, #24, #25, #27, #28, #29, #30, #31, #32, #34, #40, #44, #45, #46, #87, #91, #94, #95, #96, #97, #98, #99, #100, #102
 
@@ -57,6 +57,14 @@ Il mock è un riferimento UX/prodotto **vivo**. Non è l'architettura e non cert
 ### v2026.10.31f — Squadre per parte del nome (MP-UI-PR-009-TEAMSEARCH)
 
 - Il campo Cerca del sito reale trova le squadre con quelle lettere nel nome (almeno 3, in qualunque grafia nota), da `/api/v1/fpt/team-search`.
+
+### v2026.10.31e — Campionato nella pagina Oggi (MP-UI-PR-010-BOARD-COMP)
+
+- La nota del sito reale nella home dice che la Daily Board si filtra per campionato dall'API.
+
+### v2026.10.31d — Stagione nella Ricerca (MP-UI-PR-011-SEASON)
+
+- La nota del sito reale nella home dice che la Ricerca filtra anche la stagione del campionato scelto, elencata da `/api/v1/fpt/competition-seasons`.
 
 ### v2026.10.31c — Filtri della Ricerca (MP-UI-PR-011-SRCHX)
 

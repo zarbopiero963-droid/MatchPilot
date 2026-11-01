@@ -1,0 +1,139 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261101T003500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-01T00:35:00Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-GO-2026-11-01",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): merge of the five MANUAL PRs"
+  },
+  "task": "MP-UI-PR-011-SEASON",
+  "activity": "PR #260 merged as a3ebdc9 (squash, MANUAL merged on the owner authorization MP-OWNER-GO-2026-11-01 after the gates; seasons read from the stored facts, no static list)",
+  "issue": 239,
+  "pr": 260,
+  "branch": "ui-pr-011-season",
+  "commit_sha": "a100a00b49ebe97453b39704267f4fe4cad1d35d",
+  "tree_sha": "c793497c85880aee41e7839c70e4e3c1544d0097",
+  "base_sha": "7f0896e6ea3e1b1a5d6bcc00f89cc320b0892e3e",
+  "requirements": [
+    "MP-QAC-004"
+  ],
+  "changes": [
+    "query competitionSeasons and route /api/fpt/competition-seasons (+ v1)",
+    "Ricerca: Stagione select loaded from the API",
+    "unit, PostgreSQL and journey tests",
+    "matrix 0249 TESTED",
+    "inventory 220/220 ASSERTED",
+    "mock v2026.10.31d",
+    "visual baselines",
+    "owner mandate registered; MERGED checkpoint of PR #254",
+    "main merged in (PRs #262, #265, #266, #267, #259); matrix counts recomputed after the merge",
+    "a3ebdc9: squash merge of PR #260"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #260 head a100a00",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "a100a00b49ebe97453b39704267f4fe4cad1d35d",
+      "time": "2026-11-01T00:35:00Z",
+      "limits": [
+        "run 41255868674 success (Fast checks, PostgreSQL integration suite, Browser QA, Exploratory QA, CI gate)"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main a3ebdc9",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "a3ebdc932706d34f525fa21b1acbf3d1eee93aba",
+      "time": "2026-11-01T00:35:00Z",
+      "limits": [
+        "run 41256713963 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main a3ebdc9",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "a3ebdc932706d34f525fa21b1acbf3d1eee93aba",
+      "time": "2026-11-01T00:35:00Z",
+      "limits": [
+        "run 41256714000: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41255868674,
+    "conclusion": "SUCCESS",
+    "head_sha": "a100a00b49ebe97453b39704267f4fe4cad1d35d"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "a100a00b49ebe97453b39704267f4fe4cad1d35d",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/260#issuecomment-6549787871"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-OWNER-GO-2026-11-01",
+    "MP-OWNER-PR254-ROADMAP-20261031",
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:src/providers/futpython/query.mjs",
+    "file:src/api/v1.mjs",
+    "file:src/web/app.js",
+    "file:tools/qa/journeys.mjs",
+    "file:test/fpt-coverage-page.test.mjs",
+    "file:docs/qa/control-inventory.json",
+    "file:docs/qa/feature-certification.json",
+    "file:docs/governance/ui-requirements-matrix.json",
+    "file:docs/mockups/matchpilot-trading-os.html",
+    "file:test/visual/manifest.json"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261031T214827Z-agent-a-claude-code",
+  "merge_sha": "a3ebdc932706d34f525fa21b1acbf3d1eee93aba"
+}

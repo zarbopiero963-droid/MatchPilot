@@ -103,6 +103,25 @@ test('matches of a day: kickoff order, missing kickoff last, every match once', 
   });
 });
 
+test('MP-REQ-UI-1051 matches of a day of one competition: filtered by the API, paginated within it, refused when invalid', {timeout: 120000}, async t => {
+  await withSeed(t, async (client, seed) => {
+    const {runQuery} = await import('../src/providers/futpython/query.mjs');
+    const date = seed.dates[0];
+    const all = (await runQuery(client, 'matchesOnDate', {date})).rows;
+    const mine = (await runQuery(client, 'matchesOnDate', {date, competition: seed.competition})).rows;
+    assert.deepEqual(mine.map(row => row.internal_match_id), all.filter(row => row.internal_competition_id === seed.competition).map(row => row.internal_match_id));
+    assert.ok(mine.length > 0);
+    assert.deepEqual((await runQuery(client, 'matchesOnDate', {date, competition: COMP})).rows, [], 'another competition has nothing that day');
+    const pages = await walk(runQuery, client, 'matchesOnDate', {date, competition: seed.competition, limit: 1});
+    assert.deepEqual(pages.flat(), mine.map(row => row.internal_match_id), 'pages stay inside the competition');
+    const cursor = (await runQuery(client, 'matchesOnDate', {date, competition: seed.competition, limit: 1})).next_cursor;
+    assert.throws(() => buildQuery('matchesOnDate', {date, limit: 1, cursor}), QueryInputError, 'a cursor of one competition does not continue the whole day');
+    for (const bad of ['serie-a', `${COMP}'`, 'fpt:competition:xyz']) {
+      assert.throws(() => buildQuery('matchesOnDate', {date, competition: bad}), error => error.fields?.[0] === 'competition_id', bad);
+    }
+  });
+});
+
 test('API v1 exposes cursor and next_cursor and answers 400 for a bad cursor', {timeout: 120000}, async t => {
   await withSeed(t, async (client, seed) => {
     const {handleV1} = await import('../src/api/v1.mjs');

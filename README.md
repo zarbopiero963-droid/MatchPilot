@@ -96,6 +96,8 @@ Il Math Core dei Trading Tools (#94) calcola in decimale a precisione fissa (Big
 
 ## Politica point-in-time (R-08, `mp-pit-v1`)
 
+**MP-PIT-TIMING-01 (MP-PRODUCT-100, audit BE-08):** la famiglia «identity», l'unica pre-partita insieme alle quote, è un elenco esplicito di 11 nomi (`IDENTITY_FIELDS` in `src/providers/futpython/schema.mjs`: data, ora, squadre, campionato, stagione, paese, divisione, giornata, id). Un campo che non è riconosciuto resta «unclassified», con momento post-partita: nessuna statistica come `Dribbles_Home_FT` può più risultare pre-partita. Il registro già salvato si riallinea solo con la rielaborazione registrata, eseguita dall'owner.
+
 Ogni record usato per rispondere a "che cosa si sapeva al tempo T" porta cinque tempi distinti (evento, dichiarato dal provider, acquisizione, disponibilità effettiva, decisione) e uno stato PIT. La disponibilità è il tempo di acquisizione. Un tempo mancante resta `null` e non viene mai inventato. Fusi orari e ora legale seguono una politica versionata e testata.
 
 - **Lettori:** la politica si applica a `tc/prematch/match` e a `fpt/team-matches-asof`.
@@ -277,7 +279,8 @@ Un'analisi pre-match deve poter essere ricostruita usando esclusivamente snapsho
 - Tutti i controlli dell'inventario sono verificati da un passaggio con asserzioni (journey `controls-coverage`, MP-REQ-UI-1028); un controllo nuovo senza verifica fa fallire i test.
 - **Copertura (MP-UI-PR-008-COV):** la scheda «Copertura» dei Dati apre `#/coverage` dentro l'app, con i campionati, il filtro per paese, le stagioni di ogni campionato e la copertura delle quote e degli xG come la dà l'API (`/api/v1/fpt/coverage-competitions`, `/api/v1/fpt/coverage-seasons`). La pagina `/coverage` del server resta solo tecnica.
 - **Cerca (MP-UI-PR-009-NAV):** il campo «Cerca» nell'intestazione di ogni pagina apre `#/find`: le squadre dell'archivio che hanno quelle lettere nel nome (`/api/v1/fpt/team-search?q=…`, almeno 3 lettere o cifre, in qualunque grafia nota; prima il nome esatto, poi l'inizio, poi il resto; MP-UI-PR-009-TEAMSEARCH), ognuna con le sue partite in Ricerca, e le pagine dell'app con quel nome. La Ricerca partite continua a risolvere la squadra col nome esatto (`/api/v1/fpt/teams`).
-- **Filtri della Ricerca (MP-UI-PR-011-SRCHX):** oltre a squadra, sede, campionato, date, risultato, quota del favorito, gol e qualità, la Ricerca filtra lato del favorito, quota casa da/a, quota Over 2,5 da/a e xG totali minimi, tutti già supportati da `/api/v1/fpt/search`. Il filtro per stagione manca: nessuna API elenca ancora le stagioni di un campionato.
+- **Filtri della Ricerca (MP-UI-PR-011-SRCHX):** oltre a squadra, sede, campionato, date, risultato, quota del favorito, gol e qualità, la Ricerca filtra lato del favorito, quota casa da/a, quota Over 2,5 da/a e xG totali minimi, tutti già supportati da `/api/v1/fpt/search`. La stagione (MP-UI-PR-011-SEASON) si sceglie dopo il campionato: le stagioni con partite arrivano da `/api/v1/fpt/competition-seasons?competition=…` (sola lettura, id stagione del filtro, dalla più recente); senza campionato o senza risposta il filtro resta spento e lo dice.
+- **Campionato nella pagina Oggi (MP-UI-PR-010-BOARD-COMP):** il menu «Campionato» filtra le partite del giorno dall'API (`/api/v1/fpt/matches?date=…&competition=<id interno>`, parametro opzionale, paginazione dentro il campionato); i link fra i giorni conservano la scelta; senza elenco dei campionati il filtro è spento e la pagina mostra il giorno intero.
 - I testi brevi dei badge proposti in Q6 non sono approvati: il badge dice il suo tipo.
 
 ### Home / Daily Board
@@ -850,7 +853,7 @@ Filtri: paese, stagioni minime, partite minime, coverage quote minima.
 
 **Drill-down** `GET /coverage?country=<paese>&league=<lega>`: per ogni stagione disponibilità, classificazione, stato di onboarding, partite, prima e ultima partita, coverage quote e xG, numero di campi, ultimo download, e le stagioni non pubblicate segnate come buco.
 
-**Route JSON di sola lettura:** `GET /api/fpt/coverage-competitions` e `GET /api/fpt/coverage-seasons`. Gli slug sono validati e ogni filtro è un parametro SQL.
+**Route JSON di sola lettura:** `GET /api/fpt/coverage-competitions`, `GET /api/fpt/coverage-seasons` e `GET /api/fpt/competition-seasons` (stagioni con partite di un campionato, per id interno; v1 `/api/v1/fpt/competition-seasons`). Gli slug sono validati e ogni filtro è un parametro SQL.
 
 Limiti dichiarati nella pagina:
 - `COMPLETE/PARTIAL` non sono calcolabili, perché il provider non pubblica il numero atteso di partite;

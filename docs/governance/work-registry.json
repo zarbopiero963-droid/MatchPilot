@@ -1980,6 +1980,106 @@
       "merge_sha": "01354f79f6af6b4af81e5e5d6df358032537fc82"
     },
     {
+      "id": "MP-PIT-TIMING-01",
+      "title": "MP-PIT-TIMING-01: explicit identity, unknown fields post-match",
+      "issue": 239,
+      "pr": 265,
+      "branch": "pit-timing-01",
+      "kind": "implementation",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261031T235500Z-agent-a-claude-code",
+      "resources": [
+        "file:src/providers/futpython/schema.mjs",
+        "file:test/schema.test.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "c53fc57c26dc3f69fed0a736d12517339fb2334f"
+    },
+    {
+      "id": "MP-GOV-D12-RECON-EVIDENCE",
+      "title": "Governance: D12 reconciliation promotion with evidence (1035)",
+      "issue": 239,
+      "pr": 259,
+      "branch": "gov-d12-recon-evidence",
+      "kind": "operations",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261101T001500Z-agent-a-claude-code",
+      "resources": [
+        "file:test/ui-requirements-matrix.test.mjs",
+        "file:docs/governance/ui-requirements-matrix.json",
+        "file:docs/qa/feature-certification.json",
+        "file:docs/governance/d12-requirements-gate-2026-10-24.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "c846afc25289fff681a258df17483e3e2d90b547"
+    },
+    {
+      "id": "MP-UI-PR-011-SEASON",
+      "title": "MP-UI-PR-011-SEASON: season filter of the Ricerca (competition-seasons endpoint)",
+      "issue": 239,
+      "pr": 260,
+      "branch": "ui-pr-011-season",
+      "kind": "implementation",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261101T003500Z-agent-a-claude-code",
+      "resources": [
+        "file:src/providers/futpython/query.mjs",
+        "file:src/api/v1.mjs",
+        "file:src/web/app.js",
+        "file:tools/qa/journeys.mjs",
+        "file:test/fpt-coverage-page.test.mjs",
+        "file:docs/qa/control-inventory.json",
+        "file:docs/qa/feature-certification.json",
+        "file:docs/governance/ui-requirements-matrix.json",
+        "file:docs/mockups/matchpilot-trading-os.html",
+        "file:test/visual/manifest.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "a3ebdc932706d34f525fa21b1acbf3d1eee93aba"
+    },
+    {
+      "id": "MP-UI-PR-010-BOARD-COMP",
+      "title": "MP-UI-PR-010-BOARD-COMP: competition filter on Oggi",
+      "issue": 239,
+      "pr": 261,
+      "branch": "ui-pr-010-board-comp",
+      "kind": "implementation",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261101T010500Z-agent-a-claude-code",
+      "resources": [
+        "file:src/providers/futpython/query.mjs",
+        "file:src/web/app.js",
+        "file:tools/qa/journeys.mjs",
+        "file:test/fpt-pagination.test.mjs",
+        "file:docs/qa/control-inventory.json",
+        "file:docs/governance/ui-requirements-matrix.json",
+        "file:docs/mockups/matchpilot-trading-os.html",
+        "file:test/visual/manifest.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "5a038b05fb8c68c8f697864254a376ad731b1a5a"
+    },
+    {
       "id": "MP-UI-PR-009-TEAMSEARCH",
       "title": "MP-UI-PR-009-TEAMSEARCH: squads by part of the name",
       "issue": 239,

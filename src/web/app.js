@@ -558,7 +558,7 @@ function pagedList({first, path, params, render, more: moreLabel, mine, list}) {
 // ---- Oggi: the Daily Board, home page (MP-WEB-002, D-2) ----
 
 const BOARD_PAGE = 24;
-const dayHref = date => `#/?${queryString({date})}`;
+const dayHref = (date, competition) => `#/?${queryString({date, competition})}`;
 
 // When the archive was last synchronised: the end of the last FutPythonTrader sync run, shown only when that run
 // completed (fully or in part) and carries a real time. Nothing is shown otherwise: no time is ever made up (UI-25).
@@ -590,36 +590,57 @@ function updatedLine(providers) {
 // it opens another day and derives no data value (MP-WEB-011).
 const STRIP_WEEKDAY = new Intl.DateTimeFormat('it-IT', {timeZone: 'UTC', weekday: 'short'});
 const STRIP_NUMBER = new Intl.DateTimeFormat('it-IT', {timeZone: 'UTC', day: 'numeric'});
-function dayStrip(date) {
+function dayStrip(date, competition) {
   const today = localToday();
   return el('nav', {class: 'dates', 'aria-label': 'Giorni vicini', 'data-testid': 'day-strip'}, [-3, -2, -1, 0, 1, 2, 3].map(shift => {
     const day = shiftDay(date, shift);
     const at = new Date(`${day}T00:00:00Z`);
-    return el('a', {href: dayHref(day), 'data-date': day, 'aria-current': shift === 0 ? 'date' : null, 'aria-label': dayText(day, LONG_DAY), 'data-control': 'CTL-BOARD-DAY'},
+    return el('a', {href: dayHref(day, competition), 'data-date': day, 'aria-current': shift === 0 ? 'date' : null, 'aria-label': dayText(day, LONG_DAY), 'data-control': 'CTL-BOARD-DAY'},
       el('small', {}, day === today ? 'Oggi' : STRIP_WEEKDAY.format(at)), el('b', {}, STRIP_NUMBER.format(at)));
   }));
 }
 
 async function boardView(params, mine) {
   const date = params.get('date') || localToday();
+  // MP-UI-PR-010-BOARD-COMP (MP-REQ-UI-1051): the day of one competition, filtered by the API; the choice travels with
+  // the day links. Without the list of competitions the filter is off and the page says so.
+  const competition = params.get('competition') || '';
+  // An invalid date is refused without any request (daily-board journey): the list is read only for a real day.
+  const competitionsBody = !validDate(date) ? {data: {rows: []}} : await getJson('/api/v1/fpt/competitions').catch(error => {
+    if (error?.code === 'UNAUTHENTICATED') throw error;
+    return null;
+  });
+  const competitions = Array.isArray(competitionsBody?.data?.rows) ? competitionsBody.data.rows : [];
+  const nameOfCompetition = id => {
+    const row = competitions.find(c => c.internal_competition_id === id);
+    return row ? `${words(row.country_slug ?? '')} · ${words(row.league_slug ?? '')}` : id;
+  };
   const picker = el('form', {class: 'controls', 'data-testid': 'board-controls', onsubmit: event => {
     event.preventDefault();
-    location.hash = dayHref(new FormData(event.target).get('date'));
+    const data = new FormData(event.target);
+    location.hash = dayHref(data.get('date'), data.get('competition'));
   }},
-  el('a', {href: validDate(date) ? dayHref(shiftDay(date, -1)) : '#/', 'data-action': 'prev', 'data-control': 'CTL-BOARD-PREV'}, '← Giorno prima'),
+  el('a', {href: validDate(date) ? dayHref(shiftDay(date, -1), competition) : '#/', 'data-action': 'prev', 'data-control': 'CTL-BOARD-PREV'}, '← Giorno prima'),
   el('label', {}, 'Giorno ', el('input', {type: 'date', name: 'date', value: validDate(date) ? date : '', required: true, 'data-control': 'CTL-BOARD-DATE'})),
+  el('label', {}, 'Campionato ', el('select', {name: 'competition', disabled: !competitionsBody, 'data-control': 'CTL-BOARD-COMPETITION'},
+    // A competition of the address that the list does not have (stale link, list unavailable) stays shown as chosen,
+    // so the select always says which filter the day applies (review #261).
+    [['', competitionsBody ? 'Tutti' : 'Elenco non disponibile'], ...competitions.map(c => [c.internal_competition_id, nameOfCompetition(c.internal_competition_id)]),
+      ...(competition && !competitions.some(c => c.internal_competition_id === competition) ? [[competition, 'Campionato scelto (fuori elenco)']] : [])]
+      .map(([v, text]) => el('option', {value: v, selected: v === competition, title: v || null}, text)))),
   el('button', {type: 'submit', 'data-control': 'CTL-BOARD-SHOW'}, 'Mostra'),
-  el('a', {href: validDate(date) ? dayHref(shiftDay(date, 1)) : '#/', 'data-action': 'next', 'data-control': 'CTL-BOARD-NEXT'}, 'Giorno dopo →'),
-  el('a', {href: dayHref(localToday()), 'data-action': 'today', 'data-control': 'CTL-BOARD-TODAY'}, 'Oggi'));
-  const head = [el('h1', {}, date === localToday() ? 'Oggi' : 'Partite del giorno'), validDate(date) ? dayStrip(date) : null, picker];
+  el('a', {href: validDate(date) ? dayHref(shiftDay(date, 1), competition) : '#/', 'data-action': 'next', 'data-control': 'CTL-BOARD-NEXT'}, 'Giorno dopo →'),
+  el('a', {href: dayHref(localToday(), competition), 'data-action': 'today', 'data-control': 'CTL-BOARD-TODAY'}, 'Oggi'));
+  const head = [el('h1', {}, date === localToday() ? 'Oggi' : 'Partite del giorno'), validDate(date) ? dayStrip(date, competition) : null, picker];
   if (!validDate(date)) return [...head, el('p', {class: 'state error', role: 'alert', 'data-date': date}, 'Data non valida: scegli un giorno dal calendario.')];
   const path = '/api/v1/fpt/matches';
-  const params2 = {date, limit: BOARD_PAGE};
+  const params2 = {date, competition, limit: BOARD_PAGE};
   const first = await getJson(`${path}?${queryString(params2)}`);
   const updated = updatedSlot(mine);
   const rows = first.data?.rows ?? [];
   if (rows.length === 0) {
-    return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'board-empty'}, `Nessuna partita ${dayText(date, LONG_DAY)}. `,
+    return [...head, el('p', {class: 'state empty', role: 'status', 'data-testid': 'board-empty'},
+      competition ? `Nessuna partita ${competitions.some(c => c.internal_competition_id === competition) ? `di ${nameOfCompetition(competition)} ` : 'del campionato scelto '}${dayText(date, LONG_DAY)}. ` : `Nessuna partita ${dayText(date, LONG_DAY)}. `,
       'Fino a quale giorno arrivano i dati di ogni campionato lo trovi in ', el('a', {href: '#/data', 'data-control': 'CTL-BOARD-EMPTY-DATA'}, 'Dati'), '.'), updated];
   }
   // Kickoff order across competitions, as the API returns it; each card names its competition (PR #163 NB-3).
@@ -775,18 +796,45 @@ async function matchView(params) {
 
 const SEARCH_PAGE = 25;
 // Form fields and the API parameters they map to. Values are checked by the server; the form only constrains types.
-const SEARCH_FIELDS = ['team_id', 'venue', 'competition', 'from', 'before', 'result', 'fav_min', 'fav_max', 'fav_side', 'home_odd_min', 'home_odd_max',
+const SEARCH_FIELDS = ['team_id', 'venue', 'competition', 'season', 'from', 'before', 'result', 'fav_min', 'fav_max', 'fav_side', 'home_odd_min', 'home_odd_max',
   'over25_min', 'over25_max', 'min_goals', 'max_goals', 'min_xg_total', 'with_odds', 'with_xg'];
-const FIELD_LABELS = {team: 'Squadra', venue: 'Sede', competition: 'Campionato', from: 'Dal', before: 'Prima del', result: 'Risultato',
+const FIELD_LABELS = {team: 'Squadra', venue: 'Sede', competition: 'Campionato', season: 'Stagione', from: 'Dal', before: 'Prima del', result: 'Risultato',
   fav_min: 'Quota favorito da', fav_max: 'Quota favorito a', fav_side: 'Favorito', home_odd_min: 'Quota casa da', home_odd_max: 'Quota casa a',
   over25_min: 'Quota Over 2,5 da', over25_max: 'Quota Over 2,5 a', min_goals: 'Gol totali da', max_goals: 'Gol totali a', min_xg_total: 'xG totali da'};
 
-function searchForm(params, competitions) {
+// MP-UI-PR-011-SEASON (MP-REQ-UI-0249): the seasons of the chosen competition come from the API with the id the search
+// takes; without a competition, or when they cannot be read, the select says so and stays disabled (never a guess).
+const SEASON_STATES = {none: 'Scegli prima un campionato', unavailable: 'Stagioni non disponibili', loading: 'Caricamento delle stagioni…'};
+function fillSeasons(select, seasons, chosen = '') {
+  const rows = Array.isArray(seasons) ? seasons : null;
+  select.disabled = !rows;
+  select.dataset.state = rows ? 'ready' : seasons;
+  select.replaceChildren(...(rows
+    ? [['', 'Tutte'], ...rows.map(row => [row.season_id, /^\d{4}-\d{4}$/.test(row.season ?? '') ? `${row.season.slice(0, 4)}/${row.season.slice(7)}` : String(row.season ?? ND)])]
+    : [['', SEASON_STATES[seasons]]]).map(([v, text]) => el('option', {value: v, selected: v === chosen}, text)));
+}
+const seasonsOf = competition => getJson(`/api/v1/fpt/competition-seasons?${queryString({competition})}`)
+  .then(body => (Array.isArray(body?.data?.rows) ? body.data.rows : 'unavailable'))
+  .catch(error => { if (error?.code === 'UNAUTHENTICATED') throw error; return 'unavailable'; });
+
+function searchForm(params, competitions, seasons = 'none') {
   const value = name => params.get(name) ?? '';
   const select = (name, options) => el('select', {name, 'data-control': ctl('SEARCH', name)}, options.map(([v, text]) => el('option', {value: v, selected: value(name) === v}, text)));
   const input = (name, attrs) => el('input', {name, value: value(name), 'data-control': ctl('SEARCH', name), ...attrs});
   const check = (name, text) => el('label', {class: 'check'}, el('input', {type: 'checkbox', name, value: 'true', checked: value(name) === 'true', 'data-control': ctl('SEARCH', name)}), ' ', text);
   const competitionOptions = [['', 'Tutte'], ...competitions.map(c => [c.internal_competition_id, `${words(c.country_slug ?? '')} · ${words(c.league_slug ?? '')}`])];
+  const seasonSelect = select('season', []);
+  fillSeasons(seasonSelect, seasons, value('season'));
+  const competitionSelect = select('competition', competitionOptions);
+  // Choosing another competition reloads its seasons from the API; a late answer for an earlier choice is dropped.
+  competitionSelect.addEventListener('change', async () => {
+    const chosen = competitionSelect.value;
+    fillSeasons(seasonSelect, chosen ? 'loading' : 'none');
+    if (!chosen) return;
+    // An expired session already sent the page to the login (getJson); here the select only stops waiting.
+    const rows = await seasonsOf(chosen).catch(() => 'unavailable');
+    if (competitionSelect.value === chosen) fillSeasons(seasonSelect, rows);
+  });
   return el('form', {class: 'card search', 'data-testid': 'search-form', onsubmit: event => {
     event.preventDefault();
     const data = new FormData(event.target);
@@ -801,22 +849,22 @@ function searchForm(params, competitions) {
   el('div', {class: 'fields'},
     el('label', {}, 'Squadra ', input('team', {type: 'search', placeholder: 'es. Ajax', autocomplete: 'off'})),
     el('label', {}, 'Sede ', select('venue', [['', 'Casa o trasferta'], ['home', 'Casa'], ['away', 'Trasferta']])),
-    el('label', {}, 'Campionato ', competitions.length ? select('competition', competitionOptions)
-      : badge('ND', {title: 'Nessun campionato disponibile'})),
+    el('label', {}, 'Campionato ', competitions.length ? competitionSelect : badge('ND', {title: 'Nessun campionato disponibile'})),
+    el('label', {}, 'Stagione ', seasonSelect),
     el('label', {}, 'Dal ', input('from', {type: 'date'})),
     el('label', {}, 'Prima del ', input('before', {type: 'date'})),
+    // MP-UI-PR-011-SRCHX (MP-REQ-UI-0249): the filters the search API already supports.
     el('label', {}, 'Risultato ', select('result', [['', 'Qualsiasi'], ['FINAL', 'Finale'], ['NO_RESULT', 'Senza risultato'], ['NOT_STARTED', 'Non iniziata']])),
+    el('label', {}, 'Favorito ', select('fav_side', [['', 'Qualsiasi'], ['HOME', 'Casa'], ['AWAY', 'Trasferta'], ['EVEN', 'Quote pari']])),
     el('label', {}, 'Quota favorito da ', input('fav_min', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
     el('label', {}, 'a ', input('fav_max', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
-    // MP-UI-PR-011-SRCHX (MP-REQ-UI-0249): the filters the search API already supports.
-    el('label', {}, 'Favorito ', select('fav_side', [['', 'Qualsiasi'], ['HOME', 'Casa'], ['AWAY', 'Trasferta'], ['EVEN', 'Quote pari']])),
     el('label', {}, 'Quota casa da ', input('home_odd_min', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
     el('label', {}, 'a ', input('home_odd_max', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
-    el('label', {}, 'xG totali da ', input('min_xg_total', {type: 'number', step: '0.1', min: '0', max: '20'})),
     el('label', {}, 'Quota Over 2,5 da ', input('over25_min', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
     el('label', {}, 'a ', input('over25_max', {type: 'number', step: '0.01', min: '1.01', max: '1000'})),
     el('label', {}, 'Gol totali da ', input('min_goals', {type: 'number', step: '1', min: '0', max: '30'})),
-    el('label', {}, 'a ', input('max_goals', {type: 'number', step: '1', min: '0', max: '30'}))),
+    el('label', {}, 'a ', input('max_goals', {type: 'number', step: '1', min: '0', max: '30'})),
+    el('label', {}, 'xG totali da ', input('min_xg_total', {type: 'number', step: '0.1', min: '0', max: '20'}))),
   el('fieldset', {}, el('legend', {}, 'Qualità dei dati'), check('with_odds', 'solo con quote 1X2 complete'), check('with_xg', 'solo con xG')),
   el('button', {type: 'submit', 'data-control': 'CTL-SEARCH-SUBMIT'}, 'Cerca'), ' ', el('a', {href: '#/search', 'data-control': 'CTL-SEARCH-RESET'}, 'Azzera'));
 }
@@ -854,7 +902,7 @@ async function searchView(params, mine) {
   const competitions = Array.isArray(competitionsBody?.data?.rows) ? competitionsBody.data.rows : [];
   const head = [el('h1', {}, 'Ricerca partite'),
     competitionsBody ? null : el('p', {class: 'state partial', role: 'status'}, 'Elenco dei campionati non disponibile: il filtro per campionato è disattivato.'),
-    searchForm(params, competitions)];
+    searchForm(params, competitions, params.get('competition') && competitionsBody ? await seasonsOf(params.get('competition')) : 'none')];
   if (params.get('run') !== '1') return [...head, el('p', {class: 'state empty'}, 'Imposta i filtri e premi Cerca.')];
 
   // A team name is resolved to its id by the API (exact name, any spelling the archive knows).

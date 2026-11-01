@@ -64,6 +64,8 @@ async function outcomeShown(page, selector) {
   // scrollIntoView aligns the outcome to the top edge; fractional font metrics may leave it a fraction of a pixel above (V-B3).
   assert.ok(state.top >= -1 && state.top < state.height - 20, `outcome on screen: top ${state.top}, viewport ${state.height}`);
 }
+// A calendar day shifted by whole days (YYYY-MM-DD, UTC arithmetic only).
+const shiftDayIso = (day, n) => new Date(Date.parse(`${day}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 const ids = async (page, selector) => page.locator(selector).evaluateAll(nodes => nodes.map(node => node.dataset.match));
 // Clicks "more" until the list ends, waiting for each page to arrive.
 async function loadAll(page, rows) {
@@ -363,6 +365,7 @@ export const JOURNEYS = [
   {
     id: 'daily-board', surface: 'Daily Board', title: 'Giorno con più campionati, paginazione, navigazione tra giorni, stati vuoti e data non valida',
     allowHttp: [{path: '/api/v1/fpt/matches', status: 503, step: 'errore dell’API: messaggio semplice, codice conservato, Riprova'},
+      {path: '/api/v1/fpt/competitions', status: 503, step: 'campionato: elenco dei campionati non disponibile, filtro spento e giorno intero'},
       {path: '/api/v1/providers', status: 503, step: 'un errore della route di aggiornamento non resta in memoria'}],
     async run({page, base, step, asserted, api, seed}) {
       const day = seed.busyDay;
@@ -601,6 +604,51 @@ export const JOURNEYS = [
           assert.equal(await page.locator('article.match').count(), 24);
         });
       });
+      // MP-UI-PR-010-BOARD-COMP (MP-REQ-UI-1051): the day of one competition, filtered by the API.
+      await step('campionato: le partite del giorno di un solo campionato, dall’API', async () => {
+        const day = seed.busyDay;
+        const all = (await api(`/api/v1/fpt/matches?date=${day}&limit=500`)).data.rows;
+        const competition = seed.eredivisie.competition;
+        assert.ok(new Set(all.map(row => row.internal_competition_id)).size > 1, 'the busy day has more than one competition');
+        await fresh(page, `${base}/#/?date=${day}`);
+        await page.waitForSelector('[data-testid="paged-list"] article.match');
+        await page.selectOption('[data-testid="board-controls"] select[name="competition"]', competition);
+        const request = page.waitForRequest(r => new URL(r.url()).pathname === '/api/v1/fpt/matches' && new URL(r.url()).searchParams.has('competition'));
+        await page.click('[data-testid="board-controls"] button[type="submit"]');
+        const sent = new URL((await request).url()).searchParams;
+        await asserted('CTL-BOARD-COMPETITION', 'the competition reaches the API and the day shows only its matches, in the order of the API', async () => {
+          assert.deepEqual([sent.get('date'), sent.get('competition')], [day, competition]);
+          await page.waitForFunction(c => new URLSearchParams(location.hash.split('?')[1]).get('competition') === c, competition);
+          await page.waitForSelector('[data-testid="paged-list"] article.match');
+          const expected = (await api(`/api/v1/fpt/matches?${sent}`)).data.rows;
+          assert.ok(expected.length > 0 && expected.length < all.length, 'the filter narrows the day');
+          assert.ok(expected.every(row => row.internal_competition_id === competition));
+          assert.deepEqual(await ids(page, '[data-testid="paged-list"] article.match'), expected.map(row => row.internal_match_id));
+          assert.equal(await page.inputValue('[data-testid="board-controls"] select[name="competition"]'), competition);
+          for (const link of ['a[data-action="prev"]', 'a[data-action="next"]', 'a[data-action="today"]', '[data-testid="day-strip"] a']) {
+            assert.equal(new URLSearchParams((await page.getAttribute(link, 'href')).split('?')[1]).get('competition'), competition, `${link} keeps the competition`);
+          }
+        });
+      });
+      await step('campionato: nessuna partita quel giorno, detto col suo nome', async () => {
+        await fresh(page, `${base}/#/?date=${shiftDayIso(seed.busyDay, -1)}&competition=${encodeURIComponent(seed.eredivisie.competition)}`);
+        await page.waitForSelector('[data-testid="board-empty"]');
+        assert.match(await page.textContent('[data-testid="board-empty"]'), /^Nessuna partita di Netherlands · Eredivisie /);
+      });
+      await step('campionato: elenco dei campionati non disponibile, filtro spento e giorno intero', async () => {
+        await page.route('**/api/v1/fpt/competitions*', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
+        await fresh(page, `${base}/#/?date=${seed.busyDay}`);
+        await page.waitForSelector('[data-testid="paged-list"] article.match');
+        assert.equal(await page.isDisabled('[data-testid="board-controls"] select[name="competition"]'), true);
+        assert.equal((await page.textContent('[data-testid="board-controls"] select[name="competition"]')).trim(), 'Elenco non disponibile');
+        const whole = (await api(`/api/v1/fpt/matches?date=${seed.busyDay}&limit=24`)).data.rows;
+        assert.deepEqual(await ids(page, '[data-testid="paged-list"] article.match'), whole.map(row => row.internal_match_id), 'the whole day, unfiltered');
+        // With a competition in the address the day stays filtered and the select says so, list or no list.
+        await fresh(page, `${base}/#/?date=${seed.busyDay}&competition=${encodeURIComponent(seed.eredivisie.competition)}`);
+        await page.waitForSelector('[data-testid="paged-list"] article.match');
+        assert.equal(await page.inputValue('[data-testid="board-controls"] select[name="competition"]'), seed.eredivisie.competition);
+        await page.unroute('**/api/v1/fpt/competitions*');
+      });
       await step('data non valida rifiutata senza richieste', async () => {
         const requests = [];
         const listen = request => { if (new URL(request.url()).pathname === '/api/v1/fpt/matches') requests.push(request.url()); };
@@ -616,7 +664,8 @@ export const JOURNEYS = [
   },
   {
     id: 'search', surface: 'Ricerca', title: 'Squadra, filtri singoli e combinati, date, qualità, paginazione, validazione',
-    allowHttp: [{path: '/api/v1/fpt/search', status: 400}, {path: '/api/v1/fpt/search', status: 503, step: 'pagina successiva in errore: le righe restano'}],
+    allowHttp: [{path: '/api/v1/fpt/search', status: 400}, {path: '/api/v1/fpt/search', status: 503, step: 'pagina successiva in errore: le righe restano'},
+      {path: '/api/v1/fpt/competition-seasons', status: 503, step: 'stagione: elenco delle stagioni non disponibile, filtro spento senza inventare'}],
     async run({page, base, step, asserted, api, seed}) {
       await step('tutte le partite, pagina dopo pagina, fino alla fine', async () => {
         const expected = (await api('/api/v1/fpt/search?limit=500')).data.rows;
@@ -814,6 +863,49 @@ export const JOURNEYS = [
           assert.equal(await page.locator('.paged-foot .state.error').count(), 0);
         });
         await page.unroute(/\/api\/v1\/fpt\/search\?.*cursor=/);
+      });
+      // MP-UI-PR-011-SEASON (MP-REQ-UI-0249): the season of a competition, listed by the API with the id the search takes.
+      await step('stagione: le stagioni del campionato dall’API e la ricerca di una stagione', async () => {
+        await fresh(page, `${base}/#/search`);
+        await page.waitForSelector('[data-testid="search-form"]');
+        assert.equal(await page.isDisabled('select[name="season"]'), true, 'no season without a competition');
+        assert.equal((await page.textContent('select[name="season"]')).trim(), 'Scegli prima un campionato');
+        const competition = seed.laliga.competition;
+        const seasons = (await api(`/api/v1/fpt/competition-seasons?competition=${encodeURIComponent(competition)}`)).data.rows;
+        assert.ok(seasons.length > 0, 'the QA archive has seasons for the competition');
+        const listed = page.waitForRequest(r => new URL(r.url()).pathname === '/api/v1/fpt/competition-seasons');
+        await page.selectOption('select[name="competition"]', competition);
+        assert.equal(new URL((await listed).url()).searchParams.get('competition'), competition);
+        await page.waitForFunction(() => document.querySelector('select[name="season"]')?.dataset.state === 'ready');
+        assert.deepEqual(await page.locator('select[name="season"] option').evaluateAll(options => options.map(o => o.value)), ['', ...seasons.map(s => s.season_id)]);
+        await page.selectOption('select[name="season"]', seasons[0].season_id);
+        const request = page.waitForRequest(r => new URL(r.url()).pathname === '/api/v1/fpt/search');
+        await page.click('[data-testid="search-form"] button[type="submit"]');
+        const sent = new URL((await request).url()).searchParams;
+        await asserted('CTL-SEARCH-SEASON', 'the season reaches the API with its competition and every row is of that season', async () => {
+          assert.deepEqual([sent.get('competition'), sent.get('season')], [competition, seasons[0].season_id]);
+          await outcomeShown(page, '[data-testid="search-outcome"]');
+          const expected = (await api(`/api/v1/fpt/search?${sent}`)).data.rows;
+          assert.ok(expected.length > 0);
+          assert.ok(expected.every(row => row.season_id === seasons[0].season_id));
+          assert.deepEqual(await ids(page, '[data-testid="search-results"] tr'), expected.map(row => row.internal_match_id).slice(0, 25));
+          assert.equal(await page.inputValue('select[name="season"]'), seasons[0].season_id, 'the chosen season stays after the search');
+        });
+      });
+      await step('stagione: id non valido indicato sul campo', async () => {
+        await fresh(page, `${base}/#/search?run=1&competition=${encodeURIComponent(seed.laliga.competition)}&season=nope`);
+        await page.waitForSelector('[data-testid="search-invalid"]');
+        assert.equal(await page.getAttribute('[data-testid="search-invalid"]', 'data-fields'), 'season');
+        assert.match(await page.textContent('[data-testid="search-invalid"]'), /Stagione/);
+      });
+      await step('stagione: elenco delle stagioni non disponibile, filtro spento senza inventare', async () => {
+        await page.route('**/api/v1/fpt/competition-seasons*', route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)}));
+        await fresh(page, `${base}/#/search?competition=${encodeURIComponent(seed.laliga.competition)}`);
+        await page.waitForSelector('[data-testid="search-form"]');
+        assert.equal(await page.isDisabled('select[name="season"]'), true);
+        assert.equal((await page.textContent('select[name="season"]')).trim(), 'Stagioni non disponibili');
+        assert.equal(await page.inputValue('select[name="competition"]'), seed.laliga.competition, 'the rest of the form works');
+        await page.unroute('**/api/v1/fpt/competition-seasons*');
       });
       // MP-UI-PR-011-SRCHX (MP-REQ-UI-0249): the filters the search API already had, now in the form.
       const filtered = async (fill, controls, expectedParams, check, proves, {narrows = true} = {}) => {
