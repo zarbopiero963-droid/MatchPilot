@@ -51,6 +51,8 @@ L'inventario è ricavato dal codice e dalla configurazione versionata. Lo stato 
 
 Per questo l'inventario delle capacità resta **NOT VERIFIED**: niente viene descritto a memoria.
 
+**Aggiornamento 01/11/2026.** I blocker sono stati superati con il connettore MCP API-FOOTBALL, su autorizzazione owner con un budget di 25 chiamate. La verifica reale (20 chiamate: piano Pro, 7500 chiamate al giorno) è in [`api-football-verification-2026-11-01.md`](api-football-verification-2026-11-01.md). Lì è anche il gap principale: il provider dichiara (flag `odds: false`, non provato con una chiamata) di non avere quote per le stagioni passate, quindi lo storico delle quote resta nell'archivio FPT e da qui in avanti MatchPilot salva i propri snapshot. Le capacità non incluse nel campione restano NOT VERIFIED.
+
 **Verifica proposta, senza spese e con budget di chiamate dichiarato:**
 
 | Passo | Chiamate | Cosa misura |
