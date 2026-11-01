@@ -1,0 +1,125 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261101T151902Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-01T15:19:02Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-270-AF-20261101",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): merge of PR #270"
+  },
+  "task": "MP-GOV-AUTONOMY-01",
+  "activity": "PR #270 merged as 319fc6f (squash, MANUAL merged on the owner authorization MP-OWNER-270-AF-20261101 after the gates)",
+  "issue": 97,
+  "pr": 270,
+  "branch": "gov-autonomy-01",
+  "commit_sha": "d800ed5daf73ae37fd510915b4ddba5025aa1519",
+  "tree_sha": "ebd08710dabbbbbc5b426b5709c48ee32e55aaa3",
+  "base_sha": "e27353bbba56d4d3692fa027962575e1a329b9db",
+  "requirements": [],
+  "changes": [
+    "AGENTS.md §4: MP-AUTONOMY-01 principle, MANUAL categories, MP-CAP split, blockers and owner requests, VPS operations",
+    "CLAUDE.md: SAFE/MANUAL by real risk",
+    "MERGED checkpoint of PR #269",
+    "review fixes (governance-in-force clause)",
+    "319fc6f: squash merge of PR #270"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #270 head d800ed5",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "d800ed5daf73ae37fd510915b4ddba5025aa1519",
+      "time": "2026-11-01T15:19:02Z",
+      "limits": [
+        "run 41265553700 success (Fast checks, CI gate; UI and PostgreSQL jobs skipped by classification: documents only)"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 319fc6f",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "319fc6f54e4864482415d37e8857e167d2c4cae1",
+      "time": "2026-11-01T15:19:02Z",
+      "limits": [
+        "run 41319793686 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 319fc6f",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "319fc6f54e4864482415d37e8857e167d2c4cae1",
+      "time": "2026-11-01T15:19:02Z",
+      "limits": [
+        "run 41319793685: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41265553700,
+    "conclusion": "SUCCESS",
+    "head_sha": "d800ed5daf73ae37fd510915b4ddba5025aa1519"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "d800ed5daf73ae37fd510915b4ddba5025aa1519",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/270#issuecomment-6552369271"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-OWNER-270-AF-20261101",
+    "MP-AUTONOMY-01",
+    "MP-OWNER-GO-2026-11-01",
+    "MP-OWNER-SAFE-REGISTERS-20261031",
+    "MP-OWNER-AUTONOMOUS-SAFE-AUTOMERGE-20261031"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:AGENTS.md",
+    "file:CLAUDE.md"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261101T022811Z-agent-a-claude-code",
+  "merge_sha": "319fc6f54e4864482415d37e8857e167d2c4cae1"
+}

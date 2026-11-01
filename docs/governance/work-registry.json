@@ -2154,9 +2154,9 @@
       "pr": 270,
       "branch": "gov-autonomy-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261101T022811Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261101T151902Z-agent-a-claude-code",
       "resources": [
         "file:AGENTS.md",
         "file:CLAUDE.md"
@@ -2165,7 +2165,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "319fc6f54e4864482415d37e8857e167d2c4cae1"
     }
   ]
 }
