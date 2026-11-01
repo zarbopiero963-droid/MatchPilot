@@ -1,0 +1,118 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261101T014841Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-01T01:48:41Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-GO-2026-11-01",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): provider migration #263"
+  },
+  "task": "MP-263-PLAN",
+  "activity": "MP-263-PLAN: preparatory plan of the provider migration (FPT retirement preflight, API-FOOTBALL verification, TotalCorner LIVE benchmark, fpt_schema_fields inventory, PR roadmap); SAFE documentation PR",
+  "issue": 263,
+  "pr": null,
+  "branch": "docs-mp-263-plan",
+  "commit_sha": "751513d741a851b005db63bd954f4ce34ff7bf58",
+  "tree_sha": "34817257cd50d9221284bc1b6dfb1a809fd18732",
+  "base_sha": "b21586d1d891a5bb7fc63d2656e021c73570a59a",
+  "requirements": [],
+  "changes": [
+    "docs/product/mp-263/README.md",
+    "MERGED checkpoint of PR #264"
+  ],
+  "tests": [
+    {
+      "command": "node tools/governance/cli.mjs validate",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22",
+      "commit": "751513d741a851b005db63bd954f4ce34ff7bf58",
+      "time": "2026-11-01T01:48:41Z",
+      "limits": [
+        "documentation only; no provider call, no VPS access"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "751513d741a851b005db63bd954f4ce34ff7bf58"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "review by an agent of a different model pending"
+  },
+  "findings": [
+    {
+      "id": "MP263-B1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "API-FOOTBALL: no key in the environment and api-football.com / api-sports.io answer 403 from the container: capability inventory NOT VERIFIED"
+    },
+    {
+      "id": "MP263-B2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "no verified read-only access to the VPS database: fpt_schema_fields inventory not run; a read-only query is provided for the owner"
+    },
+    {
+      "id": "MP263-F1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "mp-deploy restarts matchpilot-fpt-worker on every release: a stopped worker would be restarted; fix (MANUAL) before the FPT shutdown"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-GO-2026-11-01",
+    "MP-AUTONOMY-01",
+    "MP-PRODUCT-100"
+  ],
+  "progress": {
+    "done": [
+      "plan"
+    ],
+    "in_progress": [
+      "CI and review"
+    ],
+    "not_started": [
+      "merge"
+    ]
+  },
+  "resources": [
+    "file:docs/product/mp-263/README.md"
+  ],
+  "stop_conditions": [
+    "merge only if SAFE and every gate holds",
+    "no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and review, SAFE merge; then MP-CAP-01a",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}
