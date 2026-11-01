@@ -40,9 +40,12 @@ test('away matches, odds range and combined search build parameterized SQL only'
 });
 
 test('MP-UI-PR-009-TEAMSEARCH: the search by part of a name needs 3 letters or digits and a limit up to 50', () => {
-  assert.deepEqual(buildQuery('teamNameSearch', {q: 'Ajà'}).values, ['aja', 20]);
-  assert.deepEqual(buildQuery('teamNameSearch', {q: 'Twente', limit: '50'}).values, ['twente', 50]);
-  assert.deepEqual(buildQuery('teamNameSearch', {q: "'; drop%"}).values, ['drop', 20], 'only letters and digits reach the SQL, as a parameter');
+  assert.deepEqual(buildQuery('teamNameSearch', {q: 'Ajà'}).values, ['aja', 21, 0], 'one extra row tells whether another page exists');
+  assert.deepEqual(buildQuery('teamNameSearch', {q: 'Twente', limit: '50', offset: '100'}).values, ['twente', 51, 100]);
+  assert.deepEqual(buildQuery('teamNameSearch', {q: "'; drop%"}).values, ['drop', 21, 0], 'only letters and digits reach the SQL, as a parameter');
+  for (const offset of ['-1', '1.5', 'x', '10001']) {
+    assert.throws(() => buildQuery('teamNameSearch', {q: 'ajax', offset}), error => error.fields?.[0] === 'offset', offset);
+  }
   for (const q of [undefined, '', 'aj', ' a-j ', '%%%']) {
     assert.throws(() => buildQuery('teamNameSearch', {q}), error => error.fields?.[0] === 'q', String(q));
   }
@@ -204,6 +207,33 @@ test('assistant queries answer from Postgres with indexes and point-in-time', {t
       assert.deepEqual((await byPart('tre')).map(([name]) => name), ['Utrecht'], 'Utrecht contains tre');
       assert.deepEqual(await byPart('zzz'), [], 'no squad, no row');
       assert.equal((await query.runQuery(client, 'teamNameSearch', {q: 'ajax'})).rows[0].internal_team_id, ajax, 'the same squad as the exact search');
+      // Pagination (MP-OWNER-GO-2026-11-01 gate): five squads share «stella»; pages of 2 walk the whole ordered list without
+      // repeats or gaps, next_offset is null exactly on the last page, and one page holding everything has no next page.
+      // The squads live in a transaction rolled back at the end, so no other assertion sees them.
+      await client.query('BEGIN');
+      try {
+        for (const name of ['Stella A', 'Stella B', 'Stella C', 'Stella D', 'Stella E']) {
+          const id = `test:${name.slice(-1)}`;
+          await client.query(`INSERT INTO fpt_teams(internal_team_id, country_slug, competition_slug, canonical_name) VALUES ($1,'testland','testa',$2)`, [id, name]);
+          await client.query(`INSERT INTO fpt_team_aliases(internal_team_id, name, normalized_name, kind) VALUES ($1,$2,$3,'canonical')`, [id, name, name.toLowerCase().replace(/[^a-z0-9]/g, '')]);
+        }
+        const seen = [];
+        const offsets = [];
+        for (let offset = 0; offset !== null;) {
+          const page = await query.runQuery(client, 'teamNameSearch', {q: 'stella', limit: 2, offset});
+          assert.ok(page.rows.length <= 2);
+          seen.push(...page.rows.map(r => r.canonical_name));
+          offsets.push(page.next_offset);
+          offset = page.next_offset;
+        }
+        assert.deepEqual(seen, ['Stella A', 'Stella B', 'Stella C', 'Stella D', 'Stella E'], 'every squad once, in order');
+        assert.deepEqual(offsets, [2, 4, null]);
+        assert.equal((await query.runQuery(client, 'teamNameSearch', {q: 'stella', limit: 5})).next_offset, null, 'exactly one full page: no next page');
+        assert.equal((await query.runQuery(client, 'teamNameSearch', {q: 'stella', limit: 4})).next_offset, 4);
+        assert.deepEqual((await query.runQuery(client, 'teamNameSearch', {q: 'stella', offset: 9})).rows, [], 'past the end: no row');
+      } finally {
+        await client.query('ROLLBACK');
+      }
       const away = await query.runQuery(client, 'awayMatches', {team: ajax, before: '2100-01-01', limit: 20});
       assert.equal(away.rows.length, 10, 'Ajax plays 5 away games per season');
       assert.ok(away.rows.every(r => r.away_team_id === ajax));

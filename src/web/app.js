@@ -363,6 +363,19 @@ const FIND_PAGES = [
 const foldText = text => String(text).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 const findHref = q => `#/find${queryString({q}) ? `?${queryString({q})}` : ''}`;
 
+// Every page of the API's ordered list, so a long list is never cut: the next page starts at next_offset, null on the last
+// one; an offset that does not move forward stops the reading (never a loop on a wrong answer).
+async function teamPages(q) {
+  const rows = [];
+  for (let offset = 0; offset !== null;) {
+    const data = (await getJson(`/api/v1/fpt/team-search?${queryString({q, limit: '50', ...(offset ? {offset: String(offset)} : {})})}`)).data;
+    rows.push(...(data?.rows ?? []));
+    const next = data?.next_offset;
+    offset = Number.isInteger(next) && next > offset ? next : null;
+  }
+  return rows;
+}
+
 async function findView(params) {
   const q = (params.get('q') ?? '').trim();
   const title = el('h1', {}, q ? `Risultati per «${q}»` : 'Cerca');
@@ -373,7 +386,7 @@ async function findView(params) {
   // letters and digits only, from 3 of them); its matches open in Ricerca. Shorter text asks for more, no request.
   // The same folding as the server's normalizeTeamName (src/providers/futpython/teams.mjs), trailing «(ABC)» included.
   const key = q.replace(/\s*\([A-Za-z]{3}\)\s*$/u, '').normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
-  const teams = key.length >= 3 ? (await getJson(`/api/v1/fpt/team-search?${queryString({q})}`)).data?.rows ?? [] : null;
+  const teams = key.length >= 3 ? await teamPages(q) : null;
   const section = (testid, heading, items, empty) => el('section', {class: 'card', 'data-testid': testid}, el('h2', {}, `${heading} (${items.length})`),
     items.length ? el('ul', {}, items) : el('p', {class: 'state empty'}, empty));
   return [title,

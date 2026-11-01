@@ -123,7 +123,9 @@ test('MP-REQ-UI-1035: the menu is the one of the app, evolved incrementally (D12
 
 test('MP-REQ-UI-1038: the search of the shell is in the header of every view; squads come from the API, pages from the menu of the app', () => {
   assert.match(shell, /<header class="top">[\s\S]*<form class="find" role="search"[^>]*data-testid="global-search"><input type="search" name="q"[^>]*data-control="CTL-NAV-FIND-INPUT"><button type="submit" data-control="CTL-NAV-FIND">Cerca<\/button><\/form>[\s\S]*<\/header>/);
-  assert.match(app, /const teams = key\.length >= 3 \? \(await getJson\(`\/api\/v1\/fpt\/team-search\?\$\{queryString\(\{q\}\)\}`\)\)\.data\?\.rows \?\? \[\] : null;/, 'squads from the team-search route, from 3 letters or digits');
+  assert.match(app, /const teams = key\.length >= 3 \? await teamPages\(q\) : null;/, 'squads from the team-search route, from 3 letters or digits');
+  // Every page of the API list is read (next_offset until null), never only the first one.
+  assert.match(app, /async function teamPages\(q\) \{[\s\S]*?\/api\/v1\/fpt\/team-search\?[\s\S]*?next_offset[\s\S]*?next > offset \? next : null;/);
   // The pages a search can open are views of the app; no list of squads or matches lives in the browser.
   const pages = app.slice(app.indexOf('const FIND_PAGES = ['), app.indexOf('const foldText'));
   const hrefs = [...pages.matchAll(/\['#\/([a-z]*)'/g)].map(match => match[1]);
