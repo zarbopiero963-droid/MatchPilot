@@ -2172,7 +2172,7 @@
       "id": "MP-AF-02B-EVIDENCE",
       "title": "MP-AF-02b: API-FOOTBALL verification evidence",
       "issue": 263,
-      "pr": null,
+      "pr": 271,
       "branch": "docs-mp-af-02b",
       "kind": "audit",
       "state": "REVIEW",
@@ -2186,7 +2186,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
