@@ -19,10 +19,17 @@ export function mergeTypes(types) {
   return 'text';
 }
 
+// MP-PIT-TIMING-01 (MP-PRODUCT-100, audit BE-08): identity is an explicit list of exact names, the fields known before
+// kickoff. It matches the 11 identity fields of the certificate (2026-10-05) and the names the code reads. A name that
+// only contains «home», «away», «id», «time»… (Dribbles_Home_FT, Aerials_Won_Away_FT, Blocks_Home_FT) is not identity:
+// if no other family claims it, it stays unclassified, whose timing is post-match. Unknown is never pre-match.
+export const IDENTITY_FIELDS = Object.freeze(['date', 'time', 'home', 'away', 'league', 'season', 'country', 'div', 'round', 'match_id', 'id']);
+const IDENTITY = new Set(IDENTITY_FIELDS);
+
 export function fieldFamily(name) {
   const n = String(name).toLowerCase();
+  if (IDENTITY.has(n)) return 'identity';
   if (/^(ah|eh)_/.test(n)) return 'market';
-  if (/^(country|div)$/.test(n)) return 'identity';
   if (/throw_in/.test(n)) return 'set_pieces';
   if (/odd|bookie|asian|over_|under_|btts|dc_|cs_/.test(n)) return 'market';
   if (/xg|xgot|xa|big_chance/.test(n)) return 'expected_goals';
@@ -33,14 +40,13 @@ export function fieldFamily(name) {
   if (/foul|yellow|red|offside|free_kick/.test(n)) return 'discipline';
   if (/min_goal|goal|score/.test(n)) return 'goals';
   if (/_ht$|_2t$|half/.test(n)) return 'period_split';
-  if (/home|away|league|season|date|time|round|id/.test(n)) return 'identity';
   return 'unclassified';
 }
 
 export const TIMING_CLASSES = ['PREMATCH_IDENTITY', 'PREMATCH_MARKET_UNTIMED', 'POSTMATCH_OUTCOME'];
 
 // Identity is known before kickoff. Market prices are pre-kickoff, but FutPythonTrader does not
-// publish their capture time. Every other family describes the match result and is post-match.
+// publish their capture time. Every other family, unclassified included, describes the match or is unknown: post-match.
 export function fieldTiming(family) {
   if (family === 'identity') return 'PREMATCH_IDENTITY';
   if (family === 'market') return 'PREMATCH_MARKET_UNTIMED';
