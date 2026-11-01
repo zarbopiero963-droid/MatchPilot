@@ -99,6 +99,13 @@ test('API v1 serves real database content with the v1 envelope, matching the leg
     assert.equal(competitions.body.meta.coverage.rows, 0);
     assert.equal(competitions.body.meta.provenance.upstream_calls, 0);
 
+    // MP-CAP-01b: the capability SQL runs against the migrated schema.
+    const capabilities = await call('/api/v1/capabilities');
+    assert.equal(capabilities.status, 200);
+    assert.deepEqual(capabilities.body.data.errors, []);
+    assert.ok(capabilities.body.data.rows.length > 0);
+    assert.equal(capabilities.body.meta.provenance.upstream_calls, 0);
+
     const registry = await call('/api/v1/endpoints');
     assert.equal(registry.status, 200);
     assert.ok(registry.body.data.endpoints.length >= 30);

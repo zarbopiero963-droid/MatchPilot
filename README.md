@@ -71,7 +71,7 @@ Tutte le route `/api/v1/*` sono in sola lettura. Leggono soltanto il database di
 - **Errori:** `{api_version, error: {code, message, fields?}}` con i codici `BAD_REQUEST`, `UNKNOWN_PARAMETER`, `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `URI_TOO_LONG`, `UNAVAILABLE` (database non raggiungibile o in errore) e `INTERNAL` (difetto del codice). Non espongono mai stack trace o dettagli interni. `fields` (MP-UI-PR-007, MP-REQ-UI-1046) elenca i parametri della richiesta a cui si riferisce un rifiuto (per esempio `b_stake` nel confronto): le pagine indicano il campo da qui, senza leggere il messaggio. Fanno eccezione gli Strumenti di trading, che restano invariati finché la loro certificazione non viene rifatta.
 - **Validazione:** prima di accedere al database vengono rifiutati i parametri sconosciuti, ripetuti, troppo lunghi, mancanti se obbligatori o malformati. Valgono questi limiti: `limit` 1–500 sugli endpoint FPT e 1–5000 (default 2000) su `tc/schema-registry`; `as_of` è un istante ISO-8601 con fuso; `knowledge` è `provider` o `captured`; date e identificativi seguono il proprio formato. Nessun valore viene corretto in silenzio. I valori arrivano alle query solo come parametri bound.
 - **Endpoint:**
-  - `/api/v1/health`, `/api/v1/providers`;
+  - `/api/v1/health`, `/api/v1/providers`, `/api/v1/capabilities`;
   - `/api/v1/fpt/*`, generati dal catalogo delle query FPT;
   - `/api/v1/tc/{discovery,schema-registry,mapping,prematch,prematch/match,historical,live}`.
 - **Paginazione deterministica (R-06a):** `/api/v1/fpt/search` e `/api/v1/fpt/matches` restituiscono `data.next_cursor`. Per la pagina successiva lo si passa come `cursor`, insieme agli stessi filtri; `limit` può cambiare.
@@ -210,6 +210,14 @@ Il mock è [`docs/mockups/matchpilot-trading-os.html`](docs/mockups/matchpilot-t
 **Catalogo delle capacità (MP-CAP-01a, MP-PRODUCT-100, #263).** `src/capabilities/catalog.mjs` descrive in modo indipendente dal provider ciò che un provider offre davvero: id stabile (`provider:tipo:nome originale`, il nome resta quello del provider), tipo, operatori ammessi, momento, copertura (nulla se sconosciuta, mai 0), stato dell'inventario e provenienza. Il momento usa solo le tre classi di MP-PIT-TIMING-01 e la sua regola vale per ogni provider: una statistica non è mai pre-partita. Uno stato «disponibile» senza evidenza è rifiutato. FutPythonTrader, dismesso come provider operativo, vi compare solo come storico. È un modulo senza route né database; la disponibilità per fase (storica, pre-partita, live) e l'endpoint in sola lettura sono MP-CAP-01b (MANUAL).
 
 **Riferimento di mercato (MP-MARKET-REF-01, #263).** `src/markets/market-ref.mjs` traduce un mercato e una selezione del provider in un riferimento MatchPilot (`market_type|periodo|squadra|selezione|linea`) tramite tabelle esplicite per id di mercato, costruite sui formati realmente osservati da API-FOOTBALL: nel prematch linea e lato sono nel testo, nel LIVE c'è un campo `handicap` e gli id sono diversi. Ciò che non è riconosciuto con certezza resta UNCLASSIFIED con i campi grezzi; mercati con nomi simili non vengono fusi. `settleable` è vero solo quando una regola #100 accetta esattamente quel mercato, quella selezione e quella linea.
+
+**Catalogo delle capacità (MP-CAP-01b, #263).** `GET /api/v1/capabilities` elenca ciò che ogni provider offre davvero: campi, mercati e statistiche. Per ognuno riporta tipo, operatori, classe PIT, fasi (`HISTORICAL`, `PREMATCH`, `LIVE`), copertura misurata o `null`, stato, provenienza e limiti.
+
+- **FutPythonTrader:** una voce per ogni colonna del registro dello schema, solo come archivio storico.
+- **API-FOOTBALL:** solo le capacità osservate nella verifica reale del 01/11/2026, con stato AVAILABLE BUT NOT IMPLEMENTED finché un collector non le salva. Lo storico delle quote non è dichiarato come garantito dal provider.
+- **Quote LIVE:** restano in `deferred` con il motivo, perché MP-PIT-TIMING-01 non ha ancora una classe per i dati noti solo durante la partita.
+
+Filtri `provider`, `kind`, `status`. Nessuna chiamata ai provider e nessuna copertura dichiarata completa.
 
 ### FutPythonTrader — motore statistico/pre-match
 Usare ogni campo disponibile e con copertura reale. Le famiglie includono, quando presenti:
