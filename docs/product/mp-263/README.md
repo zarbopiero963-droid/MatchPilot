@@ -53,6 +53,25 @@ Per questo l'inventario delle capacità resta **NOT VERIFIED**: niente viene des
 
 **Aggiornamento 01/11/2026.** I blocker sono stati superati con il connettore MCP API-FOOTBALL, su autorizzazione owner con un budget di 25 chiamate. La verifica reale (20 chiamate: piano Pro, 7500 chiamate al giorno) è in [`api-football-verification-2026-11-01.md`](api-football-verification-2026-11-01.md). Lì è anche il gap principale: il provider dichiara (flag `odds: false`, non provato con una chiamata) di non avere quote per le stagioni passate, quindi lo storico delle quote resta nell'archivio FPT e da qui in avanti MatchPilot salva i propri snapshot. Le capacità non incluse nel campione restano NOT VERIFIED.
 
+**Client MP-AF-01** ([`src/providers/apifootball/client.mjs`](../../../src/providers/apifootball/client.mjs)). È un client in sola lettura che oggi nessun job o route usa.
+
+- **Attivazione.** È spento di default: si accende solo con `APIFOOTBALL_ENABLED=true`. Da acceso richiede:
+  - la chiave `APIFOOTBALL_KEY`, letta solo dall'ambiente e inviata solo nell'header `x-apisports-key`; non finisce mai nel registro, negli errori o nei risultati;
+  - un budget dedicato esplicito, `APIFOOTBALL_REQUESTS_PER_DAY` e `APIFOOTBALL_REQUESTS_PER_MINUTE`. Non c'è un valore predefinito: la quota Pro è condivisa con altri client e la sua ripartizione spetta all'owner.
+- **Endpoint e parametri.** Elenco chiuso di endpoint e parametri ammessi. La richiesta canonica è ordinata e il valore di ogni parametro viene validato. `/fixtures`, `/odds`, le quote LIVE e i dati di partita richiedono un parametro che delimiti la richiesta; `live=all` è rifiutato. I redirect non vengono seguiti, perché porterebbero la chiave verso un'altra origine.
+- **Errori del provider.** Escono dal client solo i nomi dei campi `errors`, mai il testo del provider.
+- **Budget.** Viene contato sul registro locale delle richieste prima di ogni chiamata di rete, per giorno UTC e per minuto, con una sola richiesta alla volta. Un contatore del provider a zero oppure un 429 sospendono le chiamate: i contatori del provider possono solo fermare le chiamate, mai concederne di più. Se una richiesta non può essere registrata nel registro, il client si ferma: nessuna chiamata resta non contata.
+- **Cache per famiglia di endpoint.** `status` e quote LIVE non vanno mai in cache. Richieste identiche simultanee costano una sola chiamata; la cache ha un limite di voci e restituisce copie.
+- **Timeout.** Copre l'intero scambio, corpo della risposta compreso.
+- **Tentativi.** Al massimo un nuovo tentativo, solo dopo:
+  - un 5xx;
+  - un errore di rete o un timeout;
+  - un 429 con `Retry-After` entro 60 secondi.
+
+  Dopo un 4xx o un campo `errors` non vuoto non si ritenta: anche con HTTP 200, `errors` non vuoto è un errore.
+- **Test.** Usano solo un `fetch` finto.
+- **Ancora da fare.** Il registro su PostgreSQL e la tabella degli snapshot delle quote arrivano con la loro migrazione (MP-CAP-02).
+
 **Verifica proposta, senza spese e con budget di chiamate dichiarato:**
 
 | Passo | Chiamate | Cosa misura |
