@@ -2193,7 +2193,7 @@
       "id": "MP-MARKET-REF-01",
       "title": "MP-MARKET-REF-01: market_ref parser",
       "issue": 263,
-      "pr": null,
+      "pr": 272,
       "branch": "mp-market-ref",
       "kind": "implementation",
       "state": "REVIEW",
@@ -2207,7 +2207,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
