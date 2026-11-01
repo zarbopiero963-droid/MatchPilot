@@ -2235,7 +2235,7 @@
       "id": "MP-CAP-01B",
       "title": "MP-CAP-01b: capability catalog endpoint",
       "issue": 263,
-      "pr": null,
+      "pr": 274,
       "branch": "mp-cap-01b-endpoint",
       "kind": "implementation",
       "state": "REVIEW",
@@ -2250,7 +2250,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
