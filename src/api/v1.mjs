@@ -4,6 +4,7 @@
 import {matchAnalysis, matchIdOf} from '../analysis/match-analysis.mjs';
 import {histBacktestEndpoint, histCompareEndpoint} from './hist-backtest.mjs';
 import {toolEndpoints} from './tools.mjs';
+import {capabilitiesEndpoint} from './capabilities-api.mjs';
 import {MAX_CURSOR_LENGTH, QUERY_CATALOG, ROUTES as FPT_LEGACY_ROUTES, buildQuery, runQuery} from '../providers/futpython/query.mjs';
 
 export const API_VERSION = 'v1';
@@ -91,6 +92,8 @@ export function createEndpoints(tc) {
     {path: '/api/v1/providers', source: 'MatchPilot', summary: 'Provider data health and FutPythonTrader certification state', params: {},
       read: async client => ({data_health: await tc.dataHealth(client), futpython_certification: await tc.fptCertification(client)}),
       provenance: () => ({source: 'database', upstream_calls: 0})},
+    // MP-CAP-01b (#263): the capability catalog, read only (src/api/capabilities-api.mjs).
+    capabilitiesEndpoint({param, oneOf}),
     ...FPT_ENDPOINTS,
     // R-07a: pre-match analysis of one stored match, computed by the server (src/analysis/match-analysis.mjs).
     {path: '/api/v1/fpt/match-analysis', source: 'FutPythonTrader',
@@ -218,7 +221,8 @@ export async function handleV1({method, url}, {withClient, tc, codeVersion = 'un
     try {
     let data;
     if (endpoint.path === '/api/v1/endpoints') data = describe(endpoints);
-    else if (endpoint.db === false) data = await endpoint.read(null, input);
+    // `db` may depend on the request: false (or a function returning false) reads without a database connection.
+    else if ((typeof endpoint.db === 'function' ? endpoint.db(input) : endpoint.db) === false) data = await endpoint.read(null, input);
     else {
       let connected = false;
       try { data = await withClient(client => { connected = true; return endpoint.read(client, input); }); }

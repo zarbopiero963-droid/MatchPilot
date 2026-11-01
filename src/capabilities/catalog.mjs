@@ -23,6 +23,11 @@ export const TIMINGS = TIMING_CLASSES;
 export const KINDS = Object.freeze(['identity', 'market', 'statistic']);
 const TIMING_OF_KIND = Object.freeze({identity: 'PREMATCH_IDENTITY', market: 'PREMATCH_MARKET_UNTIMED', statistic: 'POSTMATCH_OUTCOME'});
 
+// Where a provider offers a capability (MP-CAP-01b): historical archive, before kickoff, in play. A description of the
+// offer, not a PIT class: the timing above still decides when a value may be used. Optional; when present, a non-empty
+// subset. A market offered only in play is refused: MP-PIT-TIMING-01 has no class for it and it would read as pre-match.
+export const PHASES = Object.freeze(['HISTORICAL', 'PREMATCH', 'LIVE']);
+
 const COMPARE = ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'between'];
 const PRESENCE = ['is_null', 'not_null'];
 // Operators a value type supports. A capability may offer fewer, never others. An unknown type offers only presence.
@@ -68,6 +73,11 @@ export function validateCapability(c) {
   else if (KINDS.includes(c.kind) && c.timing !== TIMING_OF_KIND[c.kind]) errors.push(`${at}: a ${c.kind} has timing ${TIMING_OF_KIND[c.kind]}, not ${c.timing}`);
   if (c.coverage !== null && !(typeof c.coverage === 'number' && Number.isFinite(c.coverage) && c.coverage >= 0 && c.coverage <= 1)) {
     errors.push(`${at}: coverage is a ratio from 0 to 1, or null when unknown`);
+  }
+  if (c.phases !== undefined) {
+    if (!Array.isArray(c.phases) || !c.phases.length || !c.phases.every(p => PHASES.includes(p)) || new Set(c.phases).size !== c.phases.length) {
+      errors.push(`${at}: phases is a non-empty list of ${PHASES.join(', ')}`);
+    } else if (c.kind === 'market' && c.phases.includes('LIVE')) errors.push(`${at}: an in-play market has no MP-PIT-TIMING-01 class`);
   }
   if (!STATUSES.includes(c.status)) errors.push(`${at}: status must be one of the inventory statuses`);
   const p = c.provenance;
@@ -134,6 +144,7 @@ export function fptFieldCapability(row, {evidence = []} = {}) {
     timing,
     coverage: ratioOrNull(row?.coverage_ratio),
     status,
+    phases: ['HISTORICAL'],
     provenance: {source: 'fpt_schema_fields', evidence: seen ? [...evidence, `nonempty_seen=${Number(row.nonempty_seen)}`] : [...evidence]},
     limits: ['FutPythonTrader retired as operational provider: historical archive only']
   };
