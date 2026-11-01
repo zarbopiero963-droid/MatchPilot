@@ -96,6 +96,8 @@ Il Math Core dei Trading Tools (#94) calcola in decimale a precisione fissa (Big
 
 ## Politica point-in-time (R-08, `mp-pit-v1`)
 
+**MP-PIT-TIMING-01 (MP-PRODUCT-100, audit BE-08):** la famiglia «identity», l'unica pre-partita insieme alle quote, è un elenco esplicito di 11 nomi (`IDENTITY_FIELDS` in `src/providers/futpython/schema.mjs`: data, ora, squadre, campionato, stagione, paese, divisione, giornata, id). Un campo che non è riconosciuto resta «unclassified», con momento post-partita: nessuna statistica come `Dribbles_Home_FT` può più risultare pre-partita. Il registro già salvato si riallinea solo con la rielaborazione registrata, eseguita dall'owner.
+
 Ogni record usato per rispondere a "che cosa si sapeva al tempo T" porta cinque tempi distinti (evento, dichiarato dal provider, acquisizione, disponibilità effettiva, decisione) e uno stato PIT. La disponibilità è il tempo di acquisizione. Un tempo mancante resta `null` e non viene mai inventato. Fusi orari e ora legale seguono una politica versionata e testata.
 
 - **Lettori:** la politica si applica a `tc/prematch/match` e a `fpt/team-matches-asof`.

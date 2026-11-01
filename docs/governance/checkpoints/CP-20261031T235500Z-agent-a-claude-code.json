@@ -1,0 +1,132 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261031T235500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-10-31T23:55:00Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-GO-2026-11-01",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): merge of the five MANUAL PRs"
+  },
+  "task": "MP-PIT-TIMING-01",
+  "activity": "PR #265 merged as c53fc57 (squash, MANUAL merged on the owner authorization MP-OWNER-GO-2026-11-01 after the special PIT verification); main CI green; deploy-vps refused by mp-runner-guard (no deploy)",
+  "issue": 239,
+  "pr": 265,
+  "branch": "pit-timing-01",
+  "commit_sha": "530e8e52c8f5b181bfc6332ebd9a3a30f4086977",
+  "tree_sha": "69988a002d9bc0f2e338b2309958f8912ef3ea90",
+  "base_sha": "7f0896e6ea3e1b1a5d6bcc00f89cc320b0892e3e",
+  "requirements": [],
+  "changes": [
+    "IDENTITY_FIELDS and fieldFamily without the catch-all identity regex",
+    "tests",
+    "README PIT note",
+    "owner mandate registered; MERGED checkpoint of PR #254",
+    "main merged in (PRs #262, #266, #267)",
+    "special PIT verification posted",
+    "c53fc57: squash merge of PR #265"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #265 head 530e8e5",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "530e8e52c8f5b181bfc6332ebd9a3a30f4086977",
+      "time": "2026-10-31T23:55:00Z",
+      "limits": [
+        "run 41253287330 success (Fast checks, PostgreSQL integration suite, Browser QA, Exploratory QA, CI gate)"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main c53fc57",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "c53fc57c26dc3f69fed0a736d12517339fb2334f",
+      "time": "2026-10-31T23:55:00Z",
+      "limits": [
+        "run 41254205765 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main c53fc57",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "c53fc57c26dc3f69fed0a736d12517339fb2334f",
+      "time": "2026-10-31T23:55:00Z",
+      "limits": [
+        "run 41254205824: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41253287330,
+    "conclusion": "SUCCESS",
+    "head_sha": "530e8e52c8f5b181bfc6332ebd9a3a30f4086977"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "530e8e52c8f5b181bfc6332ebd9a3a30f4086977",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/265#issuecomment-6550784913"
+  },
+  "findings": [
+    {
+      "id": "PIT01-T-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the stored fpt_schema_fields / fpt_filter_registry keep the old classes until the recorded reprocess is applied by the owner"
+    }
+  ],
+  "owner_decisions": [
+    "MP-PRODUCT-100",
+    "MP-OWNER-PR254-ROADMAP-20261031"
+  ],
+  "progress": {
+    "done": [
+      "change and test",
+      "review",
+      "PIT verification",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:src/providers/futpython/schema.mjs",
+    "file:test/schema.test.mjs"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261031T224303Z-agent-a-claude-code",
+  "merge_sha": "c53fc57c26dc3f69fed0a736d12517339fb2334f"
+}
