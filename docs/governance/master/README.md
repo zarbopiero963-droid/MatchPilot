@@ -63,6 +63,9 @@ Il verificatore gira anche nella suite dei test (`test/master-registry.test.mjs`
 - ogni requisito ACTIVE abbia almeno una scheda;
 - ogni percorso di `code_paths`, `tests`, `certification_evidence` e `active_evidence` esista su disco, oppure sia un riferimento `origin/<ramo>:` di una PR aperta;
 - IMPLEMENTED significa **mergiato su main** (`merged: true`) con almeno un percorso di codice su main;
+  per i requisiti di governance il «codice» può essere la regola scritta su main (`AGENTS.md`, `owner-decisions.json`, template, documenti di procedura): IMPLEMENTED indica allora una regola in vigore, non una funzione del prodotto;
+- i percorsi non escono dal repository (`..` rifiutato) e un test è un file, non una cartella;
+- l'elenco `requirements` di ogni issue in `issues.json` coincide con i requisiti che citano quella issue;
 - un requisito con test `UNIT`, `INTEGRATION` o `BROWSER` abbia almeno un file di test su main;
 - un requisito certificato abbia test su main e un certificato (`certification_evidence`); `active: YES` abbia `active_evidence`; `deployed: YES` abbia `deploy_evidence`;
 - ogni scheda oltre IMPLEMENTING abbia `evidence_records` del tipo richiesto dal suo stato (`PR_HEAD`/`MERGE_COMMIT` per IMPLEMENTED, `TEST_REPORT`/`CI_RUN` per i test, `BROWSER_REPORT`, `HARD_REAL`, `MERGE_COMMIT`, `DEPLOY`, `OPERATIONAL`, `CERTIFICATE`); i tipi ammessi sono solo questi;

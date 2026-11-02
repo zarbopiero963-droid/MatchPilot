@@ -100,6 +100,11 @@ test('MP-MASTER-01 evidence rules: paths on disk, merged implementation, tests, 
   }
   const rs = clone(); const cs = rs.cards.find(x => x.state === 'NOT STARTED'); cs.state = 'HARD VERIFIED REAL'; cs.evidence_records = [{kind: 'TEST_REPORT', ref: 'simulated run'}];
   assert.ok(validate(rs, opts).some(e => e.includes('state HARD VERIFIED REAL without evidence records')));
+  const rd = clone(); rd.requirements[0].tests = ['test/']; rd.requirements[1].code_paths = ['../outside.mjs'];
+  assert.ok(validate(rd, opts).some(e => e.includes('is a directory, not a test file')));
+  assert.ok(validate(rd, opts).some(e => e.includes('leaves the repository')));
+  const ri = clone(); ri.issues.find(i => i.issue === 263).requirements.pop();
+  assert.ok(validate(ri, opts).some(e => e.includes('#263: issue requirement list differs')));
   const rk = clone(); rk.cards[0].evidence_records = [{kind: 'SCREENSHOT_OF_MOCK', ref: 'x'}];
   assert.ok(validate(rk, opts).some(e => e.includes('evidence record without a valid kind and ref')));
 });

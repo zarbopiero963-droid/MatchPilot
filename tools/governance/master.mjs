@@ -6,7 +6,7 @@
 //   node tools/governance/master.mjs render [--write]    docs/governance/master/roadmap.md from the registry
 //   node tools/governance/master.mjs issues-check <file> open issues (GitHub JSON list) without a MASTER link
 //   node tools/governance/master.mjs pr-check <file>     a PR body cites requirement or card ids, or declares none
-import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -112,6 +112,8 @@ export function validate(reg, {uiIds = null, pr00Ids = null, root = ROOT, checkF
       if (!p) { errors.push(`${at}: ${key} entry is not a path: ${ref}`); continue; }
       if (p.branch) { if (!openPrs.length) errors.push(`${at}: ${key} ${ref} points to a branch but in_open_pr is empty`); if (key !== 'code_paths' && key !== 'tests') errors.push(`${at}: ${key} must be on main`); }
       else if (checkFiles && !globExists(root, p.path)) errors.push(`${at}: ${key} ${p.path} does not exist on disk`);
+      if (p.path.split('/').includes('..')) errors.push(`${at}: ${key} ${p.path} leaves the repository`);
+      if (key === 'tests' && !p.branch && (p.path.endsWith('/') || (checkFiles && !p.path.includes('*') && existsSync(join(root, p.path)) && statSync(join(root, p.path)).isDirectory()))) errors.push(`${at}: tests ${p.path} is a directory, not a test file`);
     }
     if (r.status?.implementation === 'IMPLEMENTED' && !onMain(r.code_paths).length) errors.push(`${at}: IMPLEMENTED without code paths on main`);
     if (r.status?.implementation === 'IMPLEMENTED' && r.status?.merged !== true) errors.push(`${at}: IMPLEMENTED but not merged on main`);
@@ -137,6 +139,9 @@ export function validate(reg, {uiIds = null, pr00Ids = null, root = ROOT, checkF
     if ((c.state === 'CERTIFIED' || c.certification?.CERTIFIED) && !(c.evidence_records ?? []).length) errors.push(`${c.id}: CERTIFIED without evidence records`);
     if (c.certification?.['HARD VERIFIED REAL'] && !(c.evidence_records ?? []).some(e => e.kind === 'HARD_REAL')) errors.push(`${c.id}: HARD VERIFIED REAL without a real-test evidence record`);
   }
+  const byIssue = new Map();
+  for (const r of reg.requirements) byIssue.set(r.issue, [...(byIssue.get(r.issue) ?? []), r.id]);
+  for (const i of reg.issues) if ([...(i.requirements ?? [])].sort().join() !== [...(byIssue.get(i.issue) ?? [])].sort().join()) errors.push(`#${i.issue}: issue requirement list differs from the requirements of that issue`);
   for (const i of reg.issues) {
     if (!i.domain || !i.lifecycle) errors.push(`#${i.issue}: issue without domain or lifecycle`);
     if (!['OPEN', 'CLOSED'].includes(i.state)) errors.push(`#${i.issue}: state ${i.state}`);
