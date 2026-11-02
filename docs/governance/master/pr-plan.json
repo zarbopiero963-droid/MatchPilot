@@ -130,10 +130,11 @@
    "decision": "owner answers needed: (a) UI-incremental (MP-UI-ROADMAP-01 #239) supersedes the UI-last gate of #97 (0843/0899/0893); (b) scrypt accepted as robust hash vs Argon2id (0377); (c) perimeter rule with API-FOOTBALL primary and TC LIVE-only (0307); (d) DEC-001 resolves open point of 0675; (e) wording confirmation N-5 (1139); (f) FPT forensic audit still ACTIVE after retirement (1220)",
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "an owner answer that keeps D12/DEC-003/DEC-001 as they are would let (a), (b) and (d) close inside G4-01 without a separate PR",
+   "may_be_removed_by_decision": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-002): points a, c, d are closed in substance by MP-UI-D12-DECISIONS-20261024, MP-OWNER-GO-2026-11-01 and DEC-001; points b, e, f need explicit owner records; the PR disappears only if those records are made elsewhere",
    "source_ids": [
     "G4:G4-02"
-   ]
+   ],
+   "audit_classification": "OWNER DECISION REQUIRED"
   },
   {
    "id": "MP-PRP-003",
@@ -1078,11 +1079,12 @@
    "decision": null,
    "split_risk": "Real incremental-sync evidence (MP-REQ-0247) may be impossible with FPT retired: could require owner waiver (+1 only if re-split)",
    "merge_option": null,
-   "may_be_removed_by_decision": "Owner decision to accept the 2026-10 certification as final for retired FPT (could drop 0247 part)",
+   "may_be_removed_by_decision": "MANDATORY (audit 2026-11-02): integrity of the frozen FPT archive stays in scope; only the 0247 incremental-sync evidence could be waived by an explicit owner decision",
    "source_ids": [
     "G1:G1-16"
    ],
-   "note": "certification PR that also closes 7 requirement(s) not fully implemented on main: MP-REQ-0206, MP-REQ-0207, MP-REQ-0210, MP-REQ-0211, MP-REQ-0212, MP-REQ-0213…"
+   "note": "certification PR that also closes 7 requirement(s) not fully implemented on main: MP-REQ-0206, MP-REQ-0207, MP-REQ-0210, MP-REQ-0211, MP-REQ-0212, MP-REQ-0213…",
+   "audit_classification": "MANDATORY"
   },
   {
    "id": "MP-PRP-018",
@@ -1266,10 +1268,11 @@
    "decision": "Owner restatement of operating perimeter: DEC-003 (OWN-2026-10-06-SCOPE) vs MP-OWNER-GO-2026-11-01",
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "Owner decision dropping overlap as a goal (FPT retired, TC suspended)",
+   "may_be_removed_by_decision": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-021): the provider-overlap goal (DEC-003, OWN-2026-10-06-SCOPE) predates MP-OWNER-GO-2026-11-01; it disappears only if the owner drops it or restates the perimeter",
    "source_ids": [
     "G1:G1-21"
-   ]
+   ],
+   "audit_classification": "OWNER DECISION REQUIRED"
   },
   {
    "id": "MP-PRP-022",
@@ -1539,10 +1542,11 @@
    "decision": null,
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "Owner decision dropping TC after benchmark DROP verdict (MP-PROVIDERS-2026-10-31)",
+   "may_be_removed_by_decision": "DEFERABLE (audit 2026-11-02): TotalCorner is suspended and the recorded benchmark verdict is INSUFFICIENT EVIDENCE (docs/product/mp-263/totalcorner-benchmark-criteria.md), not DROP; only an explicit owner decision to drop TotalCorner removes it",
    "source_ids": [
     "G1:G1-26"
-   ]
+   ],
+   "audit_classification": "DEFERABLE"
   },
   {
    "id": "MP-PRP-027",
@@ -1580,13 +1584,14 @@
    "decision": "TC LIVE-only conditional candidate: benchmark verdict (G1-30) and owner GO (MP-PROVIDERS-2026-10-31, #182 suspension); benchmark verdict KEEP for TotalCorner (G4-31) and owner GO to restart TC; no TC spend authorised (D6)",
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "Benchmark verdict DROP for TotalCorner",
+   "may_be_removed_by_decision": "DEFERABLE (audit 2026-11-02): TotalCorner is suspended and the recorded benchmark verdict is INSUFFICIENT EVIDENCE (docs/product/mp-263/totalcorner-benchmark-criteria.md), not DROP; only an explicit owner decision to drop TotalCorner removes it",
    "absorbed": [
     "G4:G4-32 (TotalCorner residual hardening if verdict is KEEP: snapshot schema_version, circ)"
    ],
    "source_ids": [
     "G1:G1-27"
-   ]
+   ],
+   "audit_classification": "DEFERABLE"
   },
   {
    "id": "MP-PRP-028",
@@ -1624,11 +1629,12 @@
    "decision": "Benchmark verdict KEEP plus separate owner GO to enable TC LIVE (MP-PROVIDERS-2026-10-31; TC-OFF-01; MP-TC-012 BLOCKED)",
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "Owner decision DROP TC (benchmark INSUFFICIENT/NO)",
+   "may_be_removed_by_decision": "DEFERABLE (audit 2026-11-02): TotalCorner is suspended and the recorded benchmark verdict is INSUFFICIENT EVIDENCE (docs/product/mp-263/totalcorner-benchmark-criteria.md), not DROP; only an explicit owner decision to drop TotalCorner removes it",
    "source_ids": [
     "G1:G1-28"
    ],
-   "note": "certification PR that also closes 3 requirement(s) not fully implemented on main: MP-REQ-0312, MP-REQ-0328, MP-REQ-1020"
+   "note": "certification PR that also closes 3 requirement(s) not fully implemented on main: MP-REQ-0312, MP-REQ-0328, MP-REQ-1020",
+   "audit_classification": "DEFERABLE"
   },
   {
    "id": "MP-PRP-029",
@@ -1677,11 +1683,12 @@
    "decision": null,
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "Owner decision DROP TC",
+   "may_be_removed_by_decision": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-029): TotalCorner core certification on captured data; the TotalCorner OFF negative tests are a security control and stay in every scenario",
    "source_ids": [
     "G1:G1-29"
    ],
-   "note": "certification PR that also closes 2 requirement(s) not fully implemented on main: MP-REQ-1158, MP-REQ-1176"
+   "note": "certification PR that also closes 2 requirement(s) not fully implemented on main: MP-REQ-1158, MP-REQ-1176",
+   "audit_classification": "OWNER DECISION REQUIRED"
   },
   {
    "id": "MP-PRP-030",
@@ -2435,10 +2442,11 @@
    "decision": "OWNER-GO REQUIRED classification; FPT retired, owner may drop (MP-OWNER-GO-2026-11-01)",
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "Owner decision that the FPT certification endpoint is frozen/removed",
+   "may_be_removed_by_decision": "OPTIONAL (audit 2026-11-02): performance rewrite of the frozen FPT certification endpoint; it disappears if the owner freezes or retires that endpoint",
    "source_ids": [
     "G1:G1-52"
-   ]
+   ],
+   "audit_classification": "OPTIONAL"
   },
   {
    "id": "MP-PRP-048",
@@ -2631,10 +2639,11 @@
    "decision": "owner must specify formula, VOID/reset policy and test vectors (blocked_by in src/mm/registry.mjs)",
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "an owner decision to drop progressions from #94 scope would remove it",
+   "may_be_removed_by_decision": "MANDATORY (audit 2026-11-02): progression and owner-formula models are approved scope (MP-UI-D12-DECISIONS-20261024); it stays in the plan and only an owner decision changing that scope would remove it; blocked on the owner formulas",
    "source_ids": [
     "G2:G2-23"
-   ]
+   ],
+   "audit_classification": "MANDATORY"
   },
   {
    "id": "MP-PRP-053",
@@ -3150,7 +3159,6 @@
    "status_now": "PARTIAL",
    "depends_on": [
     "MP-PRP-049",
-    "MP-PRP-172",
     "MP-PRP-200",
     "MP-PRP-OPEN-280"
    ],
@@ -3856,10 +3864,11 @@
    "decision": "owner decision on MP-PROVIDERS-2026-10-31 conflict: stays an FPT + TotalCorner benchmark or is re-based on API-FOOTBALL (MP-REQ-0417 relation_ref)",
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "MP-PROVIDERS-2026-10-31 owner decision could re-scope or drop the FPT+TC benchmark",
+   "may_be_removed_by_decision": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-082): the #27 GOAT benchmark was defined on FPT+TC; with API-FOOTBALL primary (MP-OWNER-GO-2026-11-01) it must be re-based or dropped by the owner; MP-PROVIDERS-2026-10-31 is cited in issue comments but is not in owner-decisions.json",
    "source_ids": [
     "G2:G2-21"
-   ]
+   ],
+   "audit_classification": "OWNER DECISION REQUIRED"
   },
   {
    "id": "MP-PRP-083",
@@ -4613,11 +4622,12 @@
    "decision": "owner formulas for TARGET_PROFIT, RECOVERY_STAKE, RISK_BASED_STAKE (registry formula=null)",
    "split_risk": null,
    "merge_option": "MP-PRP-102",
-   "may_be_removed_by_decision": "owner decision not to adopt these models would remove it",
+   "may_be_removed_by_decision": "MANDATORY (audit 2026-11-02): progression and owner-formula models are approved scope (MP-UI-D12-DECISIONS-20261024); it stays in the plan and only an owner decision changing that scope would remove it; blocked on the owner formulas",
    "priority": "P1",
    "source_ids": [
     "G3:G3-17"
-   ]
+   ],
+   "audit_classification": "MANDATORY"
   },
   {
    "id": "MP-PRP-102",
@@ -4650,11 +4660,12 @@
    "decision": "owner advance/reset/variant rules (#94 TOOL 10) and CS Progressivo formula (do not invent)",
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "owner decision to exclude progression/martingale models would remove it",
+   "may_be_removed_by_decision": "MANDATORY (audit 2026-11-02): progression and owner-formula models are approved scope (MP-UI-D12-DECISIONS-20261024); it stays in the plan and only an owner decision changing that scope would remove it; blocked on the owner formulas",
    "priority": "P0",
    "source_ids": [
     "G3:G3-18"
-   ]
+   ],
+   "audit_classification": "MANDATORY"
   },
   {
    "id": "MP-PRP-103",
@@ -5178,11 +5189,12 @@
    "decision": "owner open question: VOID rule for annulled matches and extra time in cups (DEC-015 already fixes UNRESOLVED handling)",
    "split_risk": null,
    "merge_option": "MP-PRP-113",
-   "may_be_removed_by_decision": "owner decision confirming current UNRESOLVED-only behaviour would remove it",
+   "may_be_removed_by_decision": "MANDATORY (audit 2026-11-02): the VOID, postponed, abandoned and correction policy of market rules is approved scope (DEC-015, DEC-002); it stays in the plan",
    "priority": "P0",
    "source_ids": [
     "G3:G3-32"
-   ]
+   ],
+   "audit_classification": "MANDATORY"
   },
   {
    "id": "MP-PRP-116",
@@ -6217,10 +6229,11 @@
    "decision": "MP-OWNER-DECISIONS-D1-D9-20261018.D3 (#44 AI assistant outside v1 denominator) and AI budget authorization (new cost)",
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "MP-OWNER-DECISIONS-D1-D9-20261018.D3: #44 stays in the future register",
+   "may_be_removed_by_decision": "DEFERABLE (audit 2026-11-02): #44 is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and AI/conversational Copilot stays OFF pending cost authorization (MP-UI-D12-DECISIONS-20261024); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps advanced features in the global roadmap, so only an explicit owner deferral removes it",
    "source_ids": [
     "G4:G4-58"
-   ]
+   ],
+   "audit_classification": "DEFERABLE"
   },
   {
    "id": "MP-PRP-144",
@@ -6252,10 +6265,11 @@
    "decision": "MP-OWNER-DECISIONS-D1-D9-20261018.D3",
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "MP-OWNER-DECISIONS-D1-D9-20261018.D3: #44 stays in the future register",
+   "may_be_removed_by_decision": "DEFERABLE (audit 2026-11-02): #44 is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and AI/conversational Copilot stays OFF pending cost authorization (MP-UI-D12-DECISIONS-20261024); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps advanced features in the global roadmap, so only an explicit owner deferral removes it",
    "source_ids": [
     "G4:G4-59"
-   ]
+   ],
+   "audit_classification": "DEFERABLE"
   },
   {
    "id": "MP-PRP-145",
@@ -6287,10 +6301,11 @@
    "decision": "MP-OWNER-DECISIONS-D1-D9-20261018.D3",
    "split_risk": null,
    "merge_option": "MP-PRP-144",
-   "may_be_removed_by_decision": "MP-OWNER-DECISIONS-D1-D9-20261018.D3: #44 stays in the future register",
+   "may_be_removed_by_decision": "DEFERABLE (audit 2026-11-02): #44 is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and AI/conversational Copilot stays OFF pending cost authorization (MP-UI-D12-DECISIONS-20261024); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps advanced features in the global roadmap, so only an explicit owner deferral removes it",
    "source_ids": [
     "G4:G4-60"
-   ]
+   ],
+   "audit_classification": "DEFERABLE"
   },
   {
    "id": "MP-PRP-146",
@@ -6320,11 +6335,12 @@
    "decision": "MP-OWNER-DECISIONS-D1-D9-20261018.D3",
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "MP-OWNER-DECISIONS-D1-D9-20261018.D3: #44 stays in the future register",
+   "may_be_removed_by_decision": "DEFERABLE (audit 2026-11-02): #44 is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and AI/conversational Copilot stays OFF pending cost authorization (MP-UI-D12-DECISIONS-20261024); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps advanced features in the global roadmap, so only an explicit owner deferral removes it",
    "source_ids": [
     "G4:G4-61"
    ],
-   "note": "certification PR that also closes 2 requirement(s) not fully implemented on main: MP-REQ-0685, MP-REQ-0686"
+   "note": "certification PR that also closes 2 requirement(s) not fully implemented on main: MP-REQ-0685, MP-REQ-0686",
+   "audit_classification": "DEFERABLE"
   },
   {
    "id": "MP-PRP-147",
@@ -7530,6 +7546,7 @@
    "also_touches": [],
    "status_now": "PARTIAL",
    "depends_on": [
+    "MP-PRP-067",
     "MP-PRP-OPEN-285"
    ],
    "priority": "P2",
@@ -7718,7 +7735,7 @@
    "decision": null,
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "MP-OWNER-DECISIONS-D1-D9-20261018.D3: the natural-language assistant belongs to #44, kept in the future register",
+   "may_be_removed_by_decision": "DEFERABLE (audit 2026-11-02): #44 is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and AI/conversational Copilot stays OFF pending cost authorization (MP-UI-D12-DECISIONS-20261024); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps advanced features in the global roadmap, so only an explicit owner deferral removes it",
    "blocked_by": "#98 Operator API/MCP (A-104:MCP-CORE-01..03, group G4)",
    "external_dependencies": "#98 Operator API/MCP (A-104:MCP-CORE-01..03, group G4)",
    "ui_rows": [
@@ -7726,7 +7743,8 @@
    ],
    "source_ids": [
     "G5:G5-34"
-   ]
+   ],
+   "audit_classification": "DEFERABLE"
   },
   {
    "id": "MP-PRP-177",
@@ -10073,6 +10091,9 @@
    "also_touches": [],
    "status_now": "NOT_STARTED",
    "depends_on": [
+    "MP-PRP-108",
+    "MP-PRP-127",
+    "MP-PRP-128",
     "MP-PRP-230"
    ],
    "priority": "P3",
@@ -10151,7 +10172,9 @@
    ],
    "also_touches": [],
    "status_now": "NOT_STARTED",
-   "depends_on": [],
+   "depends_on": [
+    "MP-PRP-243"
+   ],
    "priority": "P3",
    "gate": "MANUAL",
    "tests": "Unit tests for new view helpers; Playwright browser QA in real Chrome with real clicks/typing (journeys assert on-screen values equal the API) on desktop, tablet 820 and mobile; visual baselines; accessibility and console-error checks; control-inventory entries ASSERTED; mock update answered YES (docs/mockups/matchpilot-trading-os.html + README)",
@@ -10163,13 +10186,14 @@
    "decision": "owner confirmation of scope for user/permission management beyond the single owner (AUTH-PR-04 UI declared historical; #46/D3 SaaS not approved); MP-CARD-016 stays deferred until then",
    "split_risk": "34 matrix rows (30 blocked): likely two PRs (+1)",
    "merge_option": null,
-   "may_be_removed_by_decision": "owner decision that Users & Permissions stays out of scope (single owner account only)",
+   "may_be_removed_by_decision": "DEFERABLE only for the owner Users & Permissions administration (230-B, audit 2026-11-02 and Codex review of PR #292); the own-session page, active-session listing and revocation (230-A) are mandatory",
    "blocked_by": "owner confirmation of scope for user/permission management beyond the single owner (AUTH-PR-04 UI declared historical; #46/D3 SaaS not approved); MP-CARD-016 stays deferred until then",
    "gate_reason": "security (authentication/authorization surface)",
    "ui_rows": [],
    "source_ids": [
     "G5:G5-93"
-   ]
+   ],
+   "audit_classification": "DEFERABLE (230-B only)"
   },
   {
    "id": "MP-PRP-231",
@@ -10278,13 +10302,14 @@
    "decision": "owner decision whether a build step is wanted at all (frontend is unbundled static files, no build step; comment 6012401944: pre-release hardening phase)",
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "owner decision that the unbundled frontend stays without a build step",
+   "may_be_removed_by_decision": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-233): build step for the frontend; if the owner keeps the unbundled frontend, the no-source-map and no-debug checks move to MP-PRP-240 and stay mandatory",
    "blocked_by": "owner decision whether a build step is wanted at all (frontend is unbundled static files, no build step; comment 6012401944: pre-release hardening phase)",
    "gate_reason": "build/deploy pipeline and CI change",
    "ui_rows": [],
    "source_ids": [
     "G5:G5-96"
-   ]
+   ],
+   "audit_classification": "OWNER DECISION REQUIRED"
   },
   {
    "id": "MP-PRP-234",
@@ -10587,10 +10612,11 @@
    "decision": null,
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "an owner decision that v1 ships with the baseline of G4-12 only would remove this PR",
+   "may_be_removed_by_decision": "DEFERABLE (audit 2026-11-02): advanced hardening beyond the security baseline of MP-PRP-042, which stays mandatory; only an explicit owner deferral removes it",
    "source_ids": [
     "G4:G4-13"
-   ]
+   ],
+   "audit_classification": "DEFERABLE"
   },
   {
    "id": "MP-PRP-241",
@@ -10766,10 +10792,11 @@
    "decision": "MP-OWNER-D12-OWNER-LOGIN-20261019 (owner-only v1): owner must confirm a second administrator is needed before MCP (registry next_action of 0369)",
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "owner confirms owner-only for v1 (D12): this PR is removed",
+   "may_be_removed_by_decision": "DEFERABLE (audit 2026-11-02): second administrator; v1 is owner-only (MP-OWNER-D12-OWNER-LOGIN-20261019); only an explicit owner deferral removes it",
    "source_ids": [
     "G4:G4-18"
-   ]
+   ],
+   "audit_classification": "DEFERABLE"
   },
   {
    "id": "MP-PRP-246",
@@ -10847,10 +10874,11 @@
    "decision": "owner activation of the SaaS track (\"Regola futura SaaS\" in #23, D3 future register); not authorized implicitly",
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "owner keeps SaaS in the future register (D3): the PR is removed from v1",
+   "may_be_removed_by_decision": "DEFERABLE (audit 2026-11-02): #46 SaaS/billing is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and gated by MP-PRODUCT-100 (no payments or subscriptions without an owner decision); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps it in the global roadmap, so only an explicit owner deferral removes it",
    "source_ids": [
     "G4:G4-20"
-   ]
+   ],
+   "audit_classification": "DEFERABLE"
   },
   {
    "id": "MP-PRP-248",
@@ -10887,10 +10915,11 @@
    "decision": "MP-OWNER-DECISIONS-D1-D9-20261018.D3 (#46 billing outside the v1 denominator, future register) and owner activation of SaaS",
    "split_risk": "feature gates/quotas (0704) may split from plans/lifecycle (+1)",
    "merge_option": null,
-   "may_be_removed_by_decision": "MP-OWNER-DECISIONS-D1-D9-20261018.D3: #46 stays in the future register",
+   "may_be_removed_by_decision": "DEFERABLE (audit 2026-11-02): #46 SaaS/billing is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and gated by MP-PRODUCT-100 (no payments or subscriptions without an owner decision); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps it in the global roadmap, so only an explicit owner deferral removes it",
    "source_ids": [
     "G4:G4-21"
-   ]
+   ],
+   "audit_classification": "DEFERABLE"
   },
   {
    "id": "MP-PRP-249",
@@ -10920,10 +10949,11 @@
    "decision": "MP-OWNER-DECISIONS-D1-D9-20261018.D3 and owner choice of payment provider (new cost)",
    "split_risk": null,
    "merge_option": "MP-PRP-248",
-   "may_be_removed_by_decision": "MP-OWNER-DECISIONS-D1-D9-20261018.D3: #46 stays in the future register",
+   "may_be_removed_by_decision": "DEFERABLE (audit 2026-11-02): #46 SaaS/billing is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and gated by MP-PRODUCT-100 (no payments or subscriptions without an owner decision); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps it in the global roadmap, so only an explicit owner deferral removes it",
    "source_ids": [
     "G4:G4-22"
-   ]
+   ],
+   "audit_classification": "DEFERABLE"
   },
   {
    "id": "MP-PRP-250",
@@ -10953,11 +10983,12 @@
    "decision": "MP-OWNER-DECISIONS-D1-D9-20261018.D3 (#46 future register)",
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "MP-OWNER-DECISIONS-D1-D9-20261018.D3: #46 stays in the future register",
+   "may_be_removed_by_decision": "DEFERABLE (audit 2026-11-02): #46 SaaS/billing is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and gated by MP-PRODUCT-100 (no payments or subscriptions without an owner decision); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps it in the global roadmap, so only an explicit owner deferral removes it",
    "source_ids": [
     "G4:G4-23"
    ],
-   "note": "certification PR that also closes 1 requirement(s) not fully implemented on main: MP-REQ-0708"
+   "note": "certification PR that also closes 1 requirement(s) not fully implemented on main: MP-REQ-0708",
+   "audit_classification": "DEFERABLE"
   },
   {
    "id": "MP-PRP-251",
@@ -11333,10 +11364,11 @@
    "decision": "Owner billing evidence and final-phase decision for PUBLIC to PRIVATE",
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "Owner decision to defer private transition",
+   "may_be_removed_by_decision": "MANDATORY (audit 2026-11-02): zero Actions spend evidence is required by OWN-2026-10-09-CI-ZERO-COST; only the timing of the private transition is an owner decision",
    "source_ids": [
     "G1:G1-51"
-   ]
+   ],
+   "audit_classification": "MANDATORY"
   },
   {
    "id": "MP-PRP-260",
@@ -15020,5 +15052,20 @@
    "completed_with_evidence": 33,
    "uncovered": []
   }
- }
+ },
+ "corrections_log": [
+  {
+   "date": "2026-11-02",
+   "mandate": "MP-ROADMAP-BASELINE-282-PREFLIGHT-01",
+   "changes": [
+    "removal reasons of the 27 removable PRs corrected and audit_classification added (counts unchanged: baseline 270, range 209-328)",
+    "dependency cycle 172->067->066->172 broken: 066 no longer depends on 172 (backend on UI), 172 depends on 067",
+    "228 depends on 127, 108, 128; 230 depends on 243"
+   ],
+   "sources": [
+    "https://github.com/zarbopiero963-droid/MatchPilot/issues/288#issuecomment-6583390410",
+    "docs/governance/master/audit/producer-analysis.json"
+   ]
+  }
+ ]
 }

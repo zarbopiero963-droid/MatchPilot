@@ -127,3 +127,30 @@ test('MP-PRCOUNT the ID-level reconciliation is up to date and rebuilds every co
   assert.equal(new Set(all).size, reg.cards.length);
   assert.equal(all.length, reg.cards.length);
 });
+
+test('MP-PRCOUNT no dependency cycle; removal reasons state the audit classification', async () => {
+  const { dependencyCycles } = await import('../tools/governance/pr-plan.mjs');
+  assert.deepEqual(dependencyCycles(plan), []);
+  // the former 172 -> 067 -> 066 -> 172 cycle is refused if reintroduced
+  const p1 = clone(); p1.planned_prs.find(p => p.id === 'MP-PRP-066').depends_on.push('MP-PRP-172');
+  assert.ok(fails(p1, 'dependency cycle'));
+  assert.ok(dependencyCycles(p1).some(c => c.includes('MP-PRP-066') && c.includes('MP-PRP-172')));
+  const p2 = clone(); const a = p2.planned_prs[0], b = p2.planned_prs[1]; a.depends_on = [...(a.depends_on ?? []), b.id]; b.depends_on = [...(b.depends_on ?? []), a.id];
+  assert.ok(fails(p2, 'dependency cycle'));
+  const removable = plan.planned_prs.filter(p => p.may_be_removed_by_decision);
+  assert.equal(removable.length, 27);
+  assert.ok(removable.every(p => p.audit_classification && p.may_be_removed_by_decision.startsWith(p.audit_classification.split(' ')[0])));
+  assert.ok(!removable.some(p => /DROP verdict|verdict DROP/.test(p.may_be_removed_by_decision)));
+  const p3 = clone(); const r = p3.planned_prs.find(p => p.audit_classification === 'MANDATORY'); r.may_be_removed_by_decision = 'owner may drop it';
+  assert.ok(fails(p3, 'does not state its audit classification'));
+  // the corrections keep the official baseline
+  assert.deepEqual([plan.counts.N, plan.counts.N_min, plan.counts.N_max], [270, 209, 328]);
+});
+
+test('MP-PRCOUNT the Codex audit package manifest matches the files it lists', async () => {
+  const { auditManifest, AUDIT_INPUTS } = await import('../tools/governance/pr-plan.mjs');
+  const stored = JSON.parse(readFileSync('docs/governance/master/audit/package-manifest.json', 'utf8'));
+  assert.deepEqual(stored, auditManifest());
+  assert.equal(Object.keys(stored.files).length, AUDIT_INPUTS.length);
+  assert.ok(Object.values(stored.files).every(h => /^[0-9a-f]{64}$/.test(h)));
+});

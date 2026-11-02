@@ -1,0 +1,113 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T174716Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T17:47:16Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-ROADMAP-BASELINE-282-PREFLIGHT-01",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-PRCOUNT-FIX-01",
+  "activity": "MP-PRCOUNT-FIX-01: corrected removal reasons and dependencies, cycle gate, decision cards, Codex package; review pending",
+  "issue": 288,
+  "pr": null,
+  "branch": "mp-prcount-fix-01",
+  "commit_sha": "15d01aef7f69b4d0b8af105977deb02e23161bc9",
+  "tree_sha": "5b8f9c34a4866ea2c36ecc3e9752cd76f21a8879",
+  "base_sha": "fc0bb95dd783b168b9198bbe61f3b9d2367f2373",
+  "requirements": [],
+  "changes": [
+    "docs/governance/master/pr-plan.json (reasons, dependencies)",
+    "tools/governance/pr-plan.mjs (cycle gate, manifest)",
+    "test/pr-plan.test.mjs (cycle, reasons, manifest)",
+    "docs/governance/master/audit/decision-cards.md (new)",
+    "docs/governance/master/audit/INDEPENDENT-AUDIT-PACKAGE.md (new)",
+    "docs/governance/master/audit/package-manifest.json (new)"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, docker postgres:17 on 127.0.0.1:5433",
+      "commit": "15d01aef7f69b4d0b8af105977deb02e23161bc9",
+      "time": "2026-11-02T17:47:16Z",
+      "limits": [
+        "registry/doc/validator change; pr-plan and master tests green; no network"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "15d01aef7f69b4d0b8af105977deb02e23161bc9"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "Codex code review requested on the PR"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-ROADMAP-BASELINE-282-PREFLIGHT-01",
+    "MP-ROADMAP-270-INDEPENDENT-FINAL-AUDIT-01",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "registry corrections",
+      "cycle gate and tests",
+      "decision cards",
+      "Codex package"
+    ],
+    "in_progress": [
+      "CI",
+      "independent review (Codex)"
+    ],
+    "not_started": [
+      "SAFE merge after review",
+      "full Codex analytic audit (needs Codex environment)"
+    ]
+  },
+  "resources": [
+    "file:docs/governance/master/pr-plan.json",
+    "file:tools/governance/pr-plan.mjs",
+    "file:test/pr-plan.test.mjs",
+    "file:docs/governance/master/audit/decision-cards.md",
+    "file:docs/governance/master/audit/INDEPENDENT-AUDIT-PACKAGE.md",
+    "file:docs/governance/master/audit/package-manifest.json"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent",
+    "merge only after green CI and review"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI; Codex review; SAFE merge with expectedHeadSha",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": null
+}
