@@ -53,9 +53,9 @@ test('MP-CAP-01b statuses follow the evidence: never implemented without a colle
   assert.ok(data.notes.some(n => /no capability claims a complete coverage/.test(n)));
 });
 
-test('MP-CAP-01b PIT: pre-match markets are PREMATCH, statistics never pre-match, in-play prices deferred', () => {
+test('MP-CAP-01b PIT: pre-match markets are PREMATCH, statistics never pre-match, in-play prices LIVE_ACQUIRED apart', () => {
   const af = apiFootballCapabilities();
-  const markets = af.filter(c => c.kind === 'market');
+  const markets = af.filter(c => c.kind === 'market' && c.timing !== 'LIVE_ACQUIRED');
   assert.deepEqual(markets.map(c => c.provider_ref).sort(), Object.keys(APIFOOTBALL_PREMATCH).map(id => `odds/bet:${id}`).sort());
   assert.ok(markets.every(c => c.timing === 'PREMATCH_MARKET_UNTIMED' && c.phases.join() === 'PREMATCH' && c.unit === 'decimal_odds'));
   assert.ok(markets.every(c => c.limits.some(l => /odds history not guaranteed by the provider/.test(l))), 'no provider odds history is claimed');
@@ -64,12 +64,17 @@ test('MP-CAP-01b PIT: pre-match markets are PREMATCH, statistics never pre-match
   assert.equal(stats.length, 16);
   assert.ok(stats.every(c => c.timing === 'POSTMATCH_OUTCOME'));
   assert.deepEqual(stats.find(c => c.provider_ref === 'Ball Possession').unit, 'percent');
-  const deferred = apiFootballDeferred();
-  assert.deepEqual(deferred.map(d => d.provider_ref).sort(), Object.keys(APIFOOTBALL_LIVE).map(id => `odds/live/bet:${id}`).sort());
-  assert.ok(deferred.every(d => /no MP-PIT-TIMING-01 class/.test(d.reason)));
+  assert.deepEqual(apiFootballDeferred(), [], 'MP-PIT-LIVE-01: nothing deferred any more');
+  const liveMarkets = af.filter(c => c.timing === 'LIVE_ACQUIRED');
+  assert.deepEqual(liveMarkets.map(c => c.provider_ref).sort(), Object.keys(APIFOOTBALL_LIVE).map(id => `odds/live/bet:${id}`).sort());
+  assert.ok(liveMarkets.every(c => c.kind === 'market' && c.phases.join() === 'LIVE' && c.limits.some(l => /only from MatchPilot acquisition time/.test(l))));
+  assert.ok(!liveMarkets.some(l => markets.some(p => p.id === l.id)), 'in-play ids never share an entry with pre-match ids');
   // The catalog itself refuses an in-play market and malformed phases.
   const live = {...markets[0], id: 'apifootball:market:odds/live/bet:36', provider_ref: 'odds/live/bet:36', phases: ['LIVE']};
-  assert.match(validateCapability(live).join('\n'), /an in-play market has no MP-PIT-TIMING-01 class/);
+  assert.match(validateCapability(live).join('\n'), /an in-play market must have timing LIVE_ACQUIRED/);
+  assert.match(validateCapability({...live, timing: 'LIVE_ACQUIRED', phases: ['PREMATCH', 'LIVE']}).join('\n'), /offered in play only/);
+  assert.match(validateCapability({...live, timing: 'LIVE_ACQUIRED', phases: undefined}).join('\n'), /must declare phases LIVE/);
+  assert.deepEqual(validateCapability({...live, timing: 'LIVE_ACQUIRED'}), []);
   for (const phases of [[], ['NOW'], ['PREMATCH', 'PREMATCH'], 'PREMATCH']) {
     assert.match(validateCapability({...markets[0], phases}).join('\n'), /phases is a non-empty list/, JSON.stringify(phases));
   }

@@ -3,7 +3,7 @@
 // returned is listed; nothing comes from the provider documentation alone. No collector stores these data yet, so the
 // status is AVAILABLE BUT NOT IMPLEMENTED, never AVAILABLE AND IMPLEMENTED, and nothing claims 100% coverage: the sample
 // was 20 calls on two competitions.
-import { capabilityId, OPERATORS_BY_TYPE } from './catalog.mjs';
+import { capabilityId, LIVE_TIMING, OPERATORS_BY_TYPE } from './catalog.mjs';
 import { APIFOOTBALL_LIVE, APIFOOTBALL_PREMATCH } from '../markets/market-ref.mjs';
 
 export const VERIFICATION_DOC = 'docs/product/mp-263/api-football-verification-2026-11-01.md';
@@ -55,19 +55,34 @@ function prematchMarketCapability(betId, spec) {
   };
 }
 
-// In-play markets are observed but not catalogued: MP-PIT-TIMING-01 has no class for a price known only during the
-// match, and a market entry would read as pre-match. They are listed apart, with the reason, until a live class exists.
+// In-play markets (MP-PIT-LIVE-01): timing LIVE_ACQUIRED, offered in play only. A price is usable only from the instant
+// MatchPilot acquired it (src/pit/phase.mjs), never by a decision taken before kickoff, and never to rebuild a moment that
+// was not observed. In-play ids differ from the pre-match ones: an in-play market is a separate capability, never the
+// same entry as a pre-match bet id.
+function liveMarketCapability(betId, spec) {
+  const ref = `odds/live/bet:${betId}`;
+  return {
+    id: capabilityId('apifootball', 'market', ref), provider: 'apifootball', kind: 'market', provider_ref: ref,
+    market_type: spec.market_type, period: spec.period, team: spec.team ?? null,
+    value_type: 'number', unit: 'decimal_odds', operators: [...OPERATORS_BY_TYPE.number], timing: LIVE_TIMING, coverage: null,
+    status: 'AVAILABLE BUT NOT IMPLEMENTED', phases: ['LIVE'],
+    provenance: {source: 'api-football verification 2026-11-01', evidence: [`${VERIFICATION_DOC}: /odds/live on an in-play match`]},
+    limits: [...COMMON_LIMITS, 'usable only from MatchPilot acquisition time (mp-pit-live-1); never in a decision before kickoff',
+      'no bookmaker named by the provider; suspended selections are flagged by the provider and are not prices',
+      'line from the structured handicap field, parsed by market_ref; unrecognised selections stay UNCLASSIFIED',
+      'bet id from the market_ref table, built on the 2026-11-01 /odds/live answer; the verification report counts the markets, it does not list each id']
+  };
+}
+
+// Nothing is deferred any more: kept for the API contract (an empty list).
 export function apiFootballDeferred() {
-  return Object.entries(APIFOOTBALL_LIVE).map(([betId, spec]) => ({
-    provider: 'apifootball', provider_ref: `odds/live/bet:${betId}`, market_type: spec.market_type, phases: ['LIVE'],
-    reason: 'in-play price: no MP-PIT-TIMING-01 class for data known only during the match',
-    evidence: [`${VERIFICATION_DOC}: /odds/live on an in-play match`]
-  }));
+  return [];
 }
 
 export function apiFootballCapabilities() {
   return [
     ...STATISTICS.map(statisticCapability),
-    ...Object.entries(APIFOOTBALL_PREMATCH).map(([betId, spec]) => prematchMarketCapability(betId, spec))
+    ...Object.entries(APIFOOTBALL_PREMATCH).map(([betId, spec]) => prematchMarketCapability(betId, spec)),
+    ...Object.entries(APIFOOTBALL_LIVE).map(([betId, spec]) => liveMarketCapability(betId, spec))
   ];
 }

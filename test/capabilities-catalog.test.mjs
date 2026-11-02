@@ -14,7 +14,8 @@ test('MP-CAP-01a a capability has a stable id, a known type, operators of that t
   assert.equal(capabilityId('fpt', 'statistic', 'Corners_Home_FT'), 'fpt:statistic:Corners_Home_FT');
   assert.deepEqual(validateCapability(valid()), []);
   assert.equal(STATUSES.length, 6);
-  assert.deepEqual(TIMINGS, TIMING_CLASSES, 'no timing vocabulary beyond MP-PIT-TIMING-01');
+  assert.deepEqual(TIMINGS, [...TIMING_CLASSES, 'LIVE_ACQUIRED'], 'MP-PIT-TIMING-01 plus the MP-PIT-LIVE-01 in-play class only');
+  assert.deepEqual(TIMING_CLASSES, ['PREMATCH_IDENTITY', 'PREMATCH_MARKET_UNTIMED', 'POSTMATCH_OUTCOME'], 'the FPT archive vocabulary (database CHECK) is unchanged');
   const bad = [
     [{provider: 'API Football'}, /provider must be a lowercase slug/],
     [{kind: 'odds'}, /kind must be one of/],
@@ -71,7 +72,7 @@ test('MP-CAP-01a the catalog is ordered, refuses duplicates and reports malforme
   assert.equal(catalog.version, 'mp-cap-1');
   assert.match(buildCatalog([a, a]).errors.join('\n'), /duplicate id/);
   assert.deepEqual(buildCatalog([a, valid({timing: 'POSTMATCH_OUTCOME', id: 'apifootball:market:x', provider_ref: 'x'})]).errors,
-    ['capability apifootball:market:x: a market has timing PREMATCH_MARKET_UNTIMED, not POSTMATCH_OUTCOME']);
+    ['capability apifootball:market:x: a market has timing PREMATCH_MARKET_UNTIMED or LIVE_ACQUIRED, not POSTMATCH_OUTCOME']);
   const broken = buildCatalog([null, null, valid({id: undefined}), valid({id: undefined})]);
   assert.ok(broken.errors.includes('capability must be an object'));
   assert.ok(broken.errors.some(e => /id is required/.test(e)));

@@ -4,9 +4,8 @@
 // list of markets. This module has no route, no database access and no consumer yet: the read-only endpoint is
 // MP-CAP-01b (a public API contract, MANUAL).
 //
-// No new PIT semantics: the timing vocabulary is exactly TIMING_CLASSES of MP-PIT-TIMING-01 (schema.mjs) and the only
-// rule is the one fieldTiming already applies (identity and market are known before kickoff, everything else is not).
-// Per-phase availability (historical, pre-match, live) and a live class are part of the MANUAL MP-CAP-01b contract.
+// Timing: TIMING_CLASSES of MP-PIT-TIMING-01 (schema.mjs) with the rule fieldTiming already applies (identity and market
+// are known before kickoff, everything else is not), plus LIVE_ACQUIRED for in-play markets (MP-PIT-LIVE-01).
 import { TIMING_CLASSES, fieldFamily, fieldTiming } from '../providers/futpython/schema.mjs';
 
 export const CAPABILITY_VERSION = 'mp-cap-1';
@@ -17,11 +16,17 @@ export const STATUSES = Object.freeze(['AVAILABLE AND IMPLEMENTED', 'AVAILABLE B
   'PLAN RESTRICTED', 'PROVIDER NOT SUPPORTED', 'NOT VERIFIED']);
 const EVIDENCED = new Set(['AVAILABLE AND IMPLEMENTED', 'AVAILABLE BUT NOT IMPLEMENTED', 'PARTIALLY IMPLEMENTED']);
 
-export const TIMINGS = TIMING_CLASSES;
+// MP-PIT-LIVE-01: the catalog adds one class to the MP-PIT-TIMING-01 vocabulary of the FPT archive (whose database CHECK
+// is unchanged): LIVE_ACQUIRED, a value known only during the match and only from MatchPilot's acquisition instant
+// (src/pit/phase.mjs). It is valid for in-play markets only, and never usable by a decision taken before kickoff.
+export const LIVE_TIMING = 'LIVE_ACQUIRED';
+export const TIMINGS = Object.freeze([...TIMING_CLASSES, LIVE_TIMING]);
 
 // The kind follows the family rule of MP-PIT-TIMING-01: identity and market are the pre-match kinds, statistic is not.
 export const KINDS = Object.freeze(['identity', 'market', 'statistic']);
 const TIMING_OF_KIND = Object.freeze({identity: 'PREMATCH_IDENTITY', market: 'PREMATCH_MARKET_UNTIMED', statistic: 'POSTMATCH_OUTCOME'});
+// The timings a kind may have: an in-play market is LIVE_ACQUIRED; nothing else changes.
+const TIMINGS_OF_KIND = Object.freeze({identity: ['PREMATCH_IDENTITY'], market: ['PREMATCH_MARKET_UNTIMED', LIVE_TIMING], statistic: ['POSTMATCH_OUTCOME']});
 
 // Where a provider offers a capability (MP-CAP-01b): historical archive, before kickoff, in play. A description of the
 // offer, not a PIT class: the timing above still decides when a value may be used. Optional; when present, a non-empty
@@ -70,14 +75,17 @@ export function validateCapability(c) {
   if (c.unit !== null && (typeof c.unit !== 'string' || !c.unit.trim())) errors.push(`${at}: unit is a text or null`);
   if (!TIMINGS.includes(c.timing)) errors.push(`${at}: timing must be one of ${TIMINGS.join(', ')}`);
   // The MP-PIT-TIMING-01 rule, for every provider: a statistic is never pre-match; identity and market keep their class.
-  else if (KINDS.includes(c.kind) && c.timing !== TIMING_OF_KIND[c.kind]) errors.push(`${at}: a ${c.kind} has timing ${TIMING_OF_KIND[c.kind]}, not ${c.timing}`);
+  else if (KINDS.includes(c.kind) && !TIMINGS_OF_KIND[c.kind].includes(c.timing)) errors.push(`${at}: a ${c.kind} has timing ${TIMINGS_OF_KIND[c.kind].join(' or ')}, not ${c.timing}`);
   if (c.coverage !== null && !(typeof c.coverage === 'number' && Number.isFinite(c.coverage) && c.coverage >= 0 && c.coverage <= 1)) {
     errors.push(`${at}: coverage is a ratio from 0 to 1, or null when unknown`);
   }
   if (c.phases !== undefined) {
     if (!Array.isArray(c.phases) || !c.phases.length || !c.phases.every(p => PHASES.includes(p)) || new Set(c.phases).size !== c.phases.length) {
       errors.push(`${at}: phases is a non-empty list of ${PHASES.join(', ')}`);
-    } else if (c.kind === 'market' && c.phases.includes('LIVE')) errors.push(`${at}: an in-play market has no MP-PIT-TIMING-01 class`);
+    } else if (c.kind === 'market' && c.timing === LIVE_TIMING && c.phases.join() !== 'LIVE') errors.push(`${at}: a LIVE_ACQUIRED market is offered in play only (phases LIVE)`);
+    else if (c.kind === 'market' && c.timing !== LIVE_TIMING && c.phases.includes('LIVE')) errors.push(`${at}: an in-play market must have timing LIVE_ACQUIRED`);
+  } else if (c.timing === LIVE_TIMING) {
+    errors.push(`${at}: a LIVE_ACQUIRED capability must declare phases LIVE`);
   }
   if (!STATUSES.includes(c.status)) errors.push(`${at}: status must be one of the inventory statuses`);
   const p = c.provenance;
