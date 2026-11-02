@@ -12,7 +12,7 @@ import {mkdtemp, rm, copyFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import test from 'node:test';
-import {MIGRATIONS_DIR, migrateArgs, migrationFiles, migrationsBefore} from './helpers/migrations.mjs';
+import {assertLocalTestDatabase, MIGRATIONS_DIR, migrateArgs, migrationFiles, migrationsBefore} from './helpers/migrations.mjs';
 
 const ROOT_URL = process.env.FUTPYTHON_TEST_DATABASE_URL || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
 const FILE_030 = '030-persistence.sql';
@@ -121,6 +121,7 @@ async function postgres(t) {
   const pg = (await import('pg')).default;
   const base = new URL(ROOT_URL);
   assert.ok(['localhost', '127.0.0.1', '[::1]'].includes(base.hostname), 'remote PostgreSQL is forbidden');
+  assertLocalTestDatabase(ROOT_URL);
   const admin = new pg.Client({connectionString: ROOT_URL, connectionTimeoutMillis: 2000});
   try { await admin.connect(); }
   catch (cause) {

@@ -11,7 +11,7 @@ import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import test from 'node:test';
 import {HASH_RULE, parseEvidence, verifyHistory} from '../src/migrate.mjs';
-import {MIGRATIONS_DIR, migrationFiles} from './helpers/migrations.mjs';
+import {assertLocalTestDatabase, MIGRATIONS_DIR, migrationFiles} from './helpers/migrations.mjs';
 
 const ROOT_URL = process.env.FUTPYTHON_TEST_DATABASE_URL || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
 const sha = text => createHash('sha256').update(text).digest('hex');
@@ -33,6 +33,14 @@ test('F2 verifyHistory: match, mismatch, missing, renamed, legacy and ambiguous 
   assert.deepEqual(codes({applied: [], ledger: new Map([row('001-a.sql', sha('old'), 'REVOKED')]), disk}), ['MIGRATION_CHECKSUM_MISMATCH'], 'a revoked file changed on disk');
   const bad = new Map([['001-a.sql', {filename: '001-a.sql', sha256: 'x', status: 'APPLIED', hash_rule: HASH_RULE, hash_origin: 'VERIFIED'}]]);
   assert.ok(codes({applied: ['001-a.sql'], ledger: bad, disk}).includes('MIGRATION_STATE_AMBIGUOUS'), 'a malformed row fails closed');
+});
+
+test('F2 test guard: a remote test database URL is refused before any connection or DDL (PR #298 review P1)', () => {
+  for (const url of ['postgres://u:p@db.example.com/x', 'postgres://u:p@ep-x.neon.tech/db', 'postgres://u:p@127.0.0.1/db?host=db.example.com', 'postgres://u:p@/db']) {
+    assert.throws(() => assertLocalTestDatabase(url, {}), /remote URL refused before any connection/, url);
+  }
+  assert.throws(() => assertLocalTestDatabase('postgres://u:p@127.0.0.1/db', {PGHOST: 'db.example.com'}), /remote URL refused/);
+  for (const url of ['postgres://u:p@127.0.0.1:5432/db', 'postgres://u:p@localhost/db', 'postgres://u:p@[::1]/db']) assert.equal(assertLocalTestDatabase(url, {}), url);
 });
 
 test('F2 evidence parser: sha256sum format only, no ambiguity', () => {
@@ -69,6 +77,7 @@ process.stdout.write(JSON.stringify(report));`;
 async function setup(t) {
   const pg = (await import('pg')).default;
   assert.ok(['localhost', '127.0.0.1', '[::1]'].includes(new URL(ROOT_URL).hostname), 'remote PostgreSQL is forbidden');
+  assertLocalTestDatabase(ROOT_URL);
   const admin = new pg.Client({connectionString: ROOT_URL, connectionTimeoutMillis: 2000});
   try { await admin.connect(); }
   catch (cause) {

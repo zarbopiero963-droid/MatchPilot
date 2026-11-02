@@ -4,6 +4,7 @@ import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { parseCsv } from '../src/lib/csv.mjs';
+import { assertLocalTestDatabase } from './helpers/migrations.mjs';
 
 const rootUrl = process.env.FUTPYTHON_TEST_DATABASE_URL
   || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
@@ -51,6 +52,8 @@ test('resume drill survives a real SIGTERM without duplicating the mirror', {tim
   let db;
   let migrate;
   let store;
+  // A remote URL is refused here, before any connection and any DDL (the drill creates and drops its schema).
+  assertLocalTestDatabase(rootUrl);
   try {
     const pg = (await import('pg')).default;
     const admin = new pg.Client({connectionString: rootUrl, connectionTimeoutMillis: 2000});
