@@ -1,0 +1,198 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T144800Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T14:48:00Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-NEXT-20261102",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-MASTER-01",
+  "activity": "MP-MASTER-01 re-review APPROVED at 5bf69f1 and delta review APPROVED at 61c67ff; follow-ups F1 (partial), F3, F4 and the issue requirement-list rule applied",
+  "issue": 263,
+  "pr": null,
+  "branch": "mp-master-roadmap-01",
+  "commit_sha": "61c67ff424fd95f17932f927df0a25d1687bb112",
+  "tree_sha": "2bf4776d3974580ff9a0b54e65199077d4592c1f",
+  "base_sha": "b6dc4cebfc8945e0bd780e0994f883e0f4e20d15",
+  "requirements": [],
+  "changes": [
+    "docs/governance/master/ new",
+    "tools/governance/master.mjs new",
+    "test/master-registry.test.mjs new",
+    "docs/governance/owner-decisions.json one entry",
+    "package.json scripts"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, docker postgres:17 on 127.0.0.1:5433",
+      "commit": "634f0e43ab818c902a259dd20efe9f034b586416",
+      "time": "2026-11-02T14:33:35Z",
+      "limits": [
+        "full suite 807/807 on PostgreSQL 17.11; registry validated; extraction by agents spot-checked by an independent review"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "61c67ff424fd95f17932f927df0a25d1687bb112"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "61c67ff424fd95f17932f927df0a25d1687bb112",
+    "reference": "independent subagent reviews (same model family: self-review): re-review APPROVED at 5bf69f1, delta review APPROVED at 61c67ff"
+  },
+  "findings": [
+    {
+      "id": "PR289-B1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "validator holes: paths on disk, tested/active/card-state evidence rules (fixed in 1c9f649)"
+    },
+    {
+      "id": "PR289-B2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "IMPLEMENTED with code only in open PRs or admitted gaps (fixed in 1c9f649)"
+    },
+    {
+      "id": "PR289-B3",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "COMPONENT certification without certificate evidence (fixed in 1c9f649)"
+    },
+    {
+      "id": "PR289-N1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "#263 comment 6579293583 VPS preflight not in the registry (fixed in 1c9f649)"
+    },
+    {
+      "id": "PR289-N2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "coverage coupled to external register row counts (fixed in 1c9f649)"
+    },
+    {
+      "id": "PR289-N4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "pr-check UI ids; issues-check word boundary (fixed in 1c9f649)"
+    },
+    {
+      "id": "PR289-N5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "README: issues-check not in CI (fixed in 1c9f649)"
+    },
+    {
+      "id": "PR289-N6",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "README: 49 issues include the MASTER (fixed in 1c9f649)"
+    },
+    {
+      "id": "PR289-N3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "boilerplate next_action entries (e.g. MP-REQ-0640) to refine per card; MP-REQ-0603 set PARTIAL"
+    },
+    {
+      "id": "PR289-RR-F1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "path rules: `..` refused, tests must be files (comma lists and anchors not parsed: tracked)"
+    },
+    {
+      "id": "PR289-RR-F2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "origin/<branch> refs not tied to a PR number; existence not checked in shallow CI clones"
+    },
+    {
+      "id": "PR289-RR-F3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "README: IMPLEMENTED for governance requirements means a written rule on main"
+    },
+    {
+      "id": "PR289-RR-F4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "specific evidence_required for MP-REQ-1355/1357/1358"
+    },
+    {
+      "id": "PR289-RR-F5",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "Codex P1/P2 findings on #281/#283/#285 fixed in those PRs; not separate requirements"
+    },
+    {
+      "id": "PR289-RR-F6",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "MP-REQ-0725/0749 COMPONENT via the Trading Tools certificate while PARTIAL: certificate covers the calculators, not DB persistence"
+    }
+  ],
+  "owner_decisions": [
+    "MP-NEXT-20261102",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "registry",
+      "validator",
+      "tests"
+    ],
+    "in_progress": [
+      "review",
+      "issue links"
+    ],
+    "not_started": [
+      "SAFE merge"
+    ]
+  },
+  "resources": [
+    "file:docs/governance/master/",
+    "file:tools/governance/master.mjs",
+    "file:test/master-registry.test.mjs",
+    "file:docs/governance/owner-decisions.json"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "independent review, CI; SAFE merge with expectedHeadSha",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": "CP-20261102T144320Z-agent-a-claude-code"
+}
