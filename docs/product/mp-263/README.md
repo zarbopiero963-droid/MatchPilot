@@ -108,6 +108,7 @@ Per questo l'inventario delle capacità resta **NOT VERIFIED**: niente viene des
 
   Nessun dato successivo al calcio d'inizio diventa una quota prematch.
 - **Schema:** `migrations/031-apifootball-odds-snapshots.sql` (MP-ODDS-MIG-01). Prima era staged in `db/staged/`. In produzione viene applicato solo con `MATCHPILOT_APPROVED_MIGRATIONS` e con l'`allow-migrations` di `mp-deploy`, entrambi decisi dall'owner. Preflight e rollback sono descritti in [`migration-031-preflight.md`](migration-031-preflight.md).
+- **Risposte grezze:** `migrations/033-apifootball-raw-responses.sql` (MP-AF-RAW-01, MANUAL, dipende dalla 031). Crea `af_raw_responses`, append-only, con il corpo esatto e lo SHA-256, e aggiunge `raw_id` agli snapshot. Rollback: `db/rollback/033-apifootball-raw-responses.down.sql`. Evidenze in [`evidence/af-raw-responses.md`](evidence/af-raw-responses.md).
   - Tabelle append-only, protette dal database.
   - Il database stesso rifiuta le righe prematch acquisite dopo il calcio d'inizio.
   - Deduplica:
