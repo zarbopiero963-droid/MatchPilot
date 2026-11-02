@@ -212,3 +212,11 @@ FROM fpt_schema_fields ORDER BY field_name;
 | 10 | Pacchetto operativo VPS: arresto FPT e collector API-FOOTBALL | GO owner unico | 4, 5 |
 
 Le funzioni già mergiate che leggono l'archivio FPT (Ricerca, Oggi, Match Center, Simulazione) restano sullo **storico congelato**. Non aggiungono acquisizioni e passeranno al catalogo con MP-CAP-01b e MP-CAP-02.
+
+## 6. Mandato MP-NEXT-20261102: documenti per l'owner (proposte, nessuna attivazione)
+- [`api-budget-proposal.md`](api-budget-proposal.md): ripartizione delle 1 500 chiamate al giorno, non attivata. Scadenza del piano Pro non verificata.
+- [`fpt-decommission-plan.md`](fpt-decommission-plan.md): inventario, backup, checksum, ripristinabilità, sequenza di arresto, controlli, rollback.
+- [`totalcorner-benchmark-criteria.md`](totalcorner-benchmark-criteria.md): mappatura dei campi, abbinamento, criteri, metriche, quattro soglie proposte, INSUFFICIENT EVIDENCE.
+- [`vps-preflight-2026-11-02.md`](vps-preflight-2026-11-02.md): non eseguito per assenza di accesso; checklist in sola lettura.
+- [`production-authorization-package.md`](production-authorization-package.md): le sette decisioni per la produzione, con l'ordine e i rollback.
+
