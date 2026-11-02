@@ -2339,6 +2339,26 @@
       },
       "pr_open": false,
       "merge_sha": "8d3198d58cdcfb960efaa6f2e8b3121a07f76232"
+    },
+    {
+      "id": "MP-NEXT-GOV-01",
+      "title": "MP-NEXT-20261102: mandate registration and PostgreSQL 17 evidence",
+      "issue": 263,
+      "pr": null,
+      "branch": "mp-gov-next-20261102",
+      "kind": "audit",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T100707Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/governance/owner-decisions.json",
+        "file:docs/product/mp-263/pg17-run-2026-11-02.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
