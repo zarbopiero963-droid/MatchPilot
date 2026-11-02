@@ -151,6 +151,17 @@ test('MP-AF-COLLECT-01 failures: provider errors skip the fixture, consecutive f
     openConnection: async () => ({}), saveSnapshots: async () => ({inserted: 0})});
   assert.equal((await disabledClient.runOnce()).stop_reason, 'DISABLED', 'collector on but client off: nothing is called');
   await assert.rejects(createPrematchCollector({config: prematchCollectorConfig(collectorEnv())}).runOnce(), err => err.code === 'NOT_CONFIGURED');
+  // review: a ledger that cannot be read stops the cycle with a reported reason, before any provider call.
+  for (const [failure, reason] of [[new SnapshotStoreError('SNAPSHOTS_UNAVAILABLE', 'x'), 'SNAPSHOTS_UNAVAILABLE'], [new Error('connection refused'), 'LEDGER_UNAVAILABLE']]) {
+    const broken = {...createMemoryLedger(), countSince: async () => { throw failure; }};
+    const b = harness({ledger: broken, routes: standard(many)});
+    const r = await b.collector.runOnce();
+    assert.deepEqual([r.status, r.stop_reason, b.calls.length], ['stopped', reason, 0]);
+  }
+  const ledger = createMemoryLedger();
+  const noInterval = harness({ledger: {...ledger, insert: ledger.insert, countSince: ledger.countSince, lastRequestAt: async () => { throw new Error('down'); }}, routes: standard(many)});
+  const r3 = await noInterval.collector.runOnce();
+  assert.deepEqual([r3.stop_reason, noInterval.calls.filter(u => u.includes('/odds')).length, r3.fixtures[0].outcome], ['LEDGER_UNAVAILABLE', 0, 'stopped_ledger']);
 });
 
 test('MP-AF-COLLECT-01 pages: at most maxPages per fixture, truncation reported; overlapping cycles are refused', async () => {
