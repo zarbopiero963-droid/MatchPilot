@@ -5915,6 +5915,9 @@
    "split_risk": null,
    "merge_option": null,
    "may_be_removed_by_decision": null,
+   "gate_notes": [
+    "G5:G5-72 was SAFE, this PR was MANUAL: merged as MANUAL (conservative)"
+   ],
    "absorbed": [
     "G5:G5-72 (Trading Copilot hard test (18 steps) and Definition of Done (#102))"
    ],
