@@ -15,7 +15,8 @@
       "docs/governance/ui-requirements-matrix.json (MP-REQ-UI, 1100)",
       "docs/governance/mp-pr-00/requirements.json (MP-PR-00, 139)",
       "docs/governance/owner-decisions.json"
-    ]
+    ],
+    "pr_plan": "docs/governance/master/pr-plan.json"
   },
   "open_prs_not_on_main": [
     280,
@@ -24,7 +25,16 @@
     283,
     285,
     286,
-    287
+    287,
+    290
   ],
-  "method": "estrazione atomica da corpo e commenti di tutte le 48 issue (6 lotti), confronto con il codice di main al base sha; le PR aperte sono tenute distinte; nessuna chiamata ai provider"
+  "method": "estrazione atomica da corpo e commenti di tutte le 48 issue (6 lotti), confronto con il codice di main al base sha; le PR aperte sono tenute distinte; nessuna chiamata ai provider",
+  "pr_plan": {
+    "N": 284,
+    "N_min": 219,
+    "N_max": 347,
+    "F_open_prs": 8,
+    "G_new_prs": 276,
+    "I_certification_only": 6
+  }
 }
