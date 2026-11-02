@@ -2260,13 +2260,34 @@
       "pr": 275,
       "branch": "mp-odds-snapshots",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T001037Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T004143Z-agent-a-claude-code",
       "resources": [
         "file:db/staged/031-apifootball-odds-snapshots.sql",
         "file:src/providers/apifootball/odds-snapshots.mjs",
         "file:src/providers/apifootball/store.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "2180f4decef13c239178c1040849bbc43a63f789"
+    },
+    {
+      "id": "MP-CAP-03",
+      "title": "MP-CAP-03: universal AND/OR/NOT conditions",
+      "issue": 263,
+      "pr": 276,
+      "branch": "mp-cap-03-conditions",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T004144Z-agent-a-claude-code",
+      "resources": [
+        "file:src/conditions/expression.mjs",
+        "file:test/conditions-expression.test.mjs"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
