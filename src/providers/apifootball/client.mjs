@@ -137,7 +137,15 @@ export function createMemoryLedger() {
   return {
     rows,
     async insert(row) { rows.push({...row}); },
-    async countSince(sinceMs) { return rows.filter(row => row.at_ms >= sinceMs && COUNTED.includes(row.outcome)).length; }
+    // purpose (optional): only the rows of that caller, for a caller's own budget inside the client's budget.
+    async countSince(sinceMs, {purpose} = {}) {
+      return rows.filter(row => row.at_ms >= sinceMs && COUNTED.includes(row.outcome) && (purpose === undefined || row.purpose === purpose)).length;
+    },
+    // The latest counted request for this exact canonical path since sinceMs, in ms, or null.
+    async lastRequestAt(path, sinceMs) {
+      const at = rows.filter(row => row.path === path && row.at_ms >= sinceMs && COUNTED.includes(row.outcome)).map(row => row.at_ms);
+      return at.length ? Math.max(...at) : null;
+    }
   };
 }
 
