@@ -1,0 +1,153 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [
+    "PR #296 (F1, base of this PR)"
+  ],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T231845Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T23:18:45Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd); registered on main by PR #295 (70ee74b), merged into this branch with git merge origin/main"
+  },
+  "task": "MP-MIG-CHECKSUMS-01",
+  "activity": "PR #298 (MANUAL): Codex P1 findings 4448795742 and 4448795749 fixed in 6cedfbf, threads resolved, Codex no major issues on 6cedfbf; own task under parallel_authorization after PR #301; merged F1 (with main c6b3b2e)",
+  "issue": 263,
+  "pr": 298,
+  "branch": "mp-mig-checksums-01",
+  "commit_sha": "81f0968fd1ffd0b1a666cc7dc2505fa15fb78924",
+  "tree_sha": "916eb2c869e912a44a7ce30f0e1c2f90954d4b7c",
+  "base_sha": "9018aea3a032b773fc3c915eb2c144098b4b0618",
+  "requirements": [],
+  "changes": [
+    "src/migrate.mjs (checksum register, verifyHistory, adoptLegacy, CLI verify/adopt)",
+    "db/rollback/030-persistence.down.sql (REVOKED)",
+    "test/migration-checksums.test.mjs",
+    "test/resume-drill.test.mjs (own schema, URL validated before DDL)",
+    "test/helpers/migrations.mjs (assertLocalTestDatabase)",
+    "README.md, docs/migration-checksums.md",
+    "docs/product/mp-263/evidence/mig-checksums.md"
+  ],
+  "tests": [
+    {
+      "command": "FUTPYTHON_TEST_DATABASE_URL=<local 5450> node --test (full suite)",
+      "result": "PASS",
+      "environment": "PostgreSQL 17.11 throwaway container",
+      "commit": "1108e50bf69e469e5a6ca371289002122f46782d",
+      "time": "2026-11-02T23:00:00Z",
+      "limits": [
+        "831/832 then resume-drill isolated and rerun PASS; 6cedfbf: checksum, 030, resume-drill files 12/12 PASS"
+      ]
+    },
+    {
+      "command": "node --test migration-checksums, 030, guard, hardening, persistence-store, persistence-api",
+      "result": "PASS",
+      "environment": "PostgreSQL 18.6 throwaway container",
+      "commit": "1108e50bf69e469e5a6ca371289002122f46782d",
+      "time": "2026-11-02T23:00:00Z",
+      "limits": [
+        "44/44 subset"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on PR #298 head 6cedfbf",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "6cedfbfc839dca6c730131c8695df09d5bc03d49",
+      "time": "2026-11-02T23:18:45Z",
+      "limits": [
+        "PostgreSQL suite and Fast checks success; the merged head is pending"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "81f0968fd1ffd0b1a666cc7dc2505fa15fb78924"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "6cedfbfc839dca6c730131c8695df09d5bc03d49",
+    "reference": "Codex code review (OpenAI, different model family) on 6cedfbf: no major issues after the two P1 fixes (https://github.com/zarbopiero963-droid/MatchPilot/pull/298)"
+  },
+  "findings": [
+    {
+      "id": "PR298-CODEX-P1-DDL",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "resume-drill DDL before the runtime-safety URL check: URL validated first (6cedfbf)"
+    },
+    {
+      "id": "PR298-CODEX-P1-README",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "README documents the register and the legacy adoption (6cedfbf)"
+    },
+    {
+      "id": "F2-LEGACY-ADOPTION",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "VPS database (001-029) refused at startup until an owner-authorized adoption"
+    }
+  ],
+  "owner_decisions": [
+    "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "local tests PG17/PG18",
+      "PR opened",
+      "review fixes"
+    ],
+    "in_progress": [
+      "CI on merged head"
+    ],
+    "not_started": [
+      "owner GO",
+      "merge"
+    ]
+  },
+  "resources": [
+    "branch:mp-mig-checksums-01",
+    "file:src/migrate.mjs",
+    "file:test/migration-checksums.test.mjs",
+    "file:docs/migration-checksums.md"
+  ],
+  "stop_conditions": [
+    "MANUAL: AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER",
+    "no merge, no production migration, no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "owner GO for the MANUAL merge after #296",
+  "resume_conditions": [
+    "owner GO for the MANUAL merge"
+  ],
+  "supersedes": null
+}

@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 255,
+  "revision": 259,
   "tasks": [
     {
       "id": "R-01",
@@ -2515,7 +2515,7 @@
       "kind": "audit",
       "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T224000Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T230845Z-agent-a-claude-code",
       "resources": [
         "file:docs/governance/owner-decisions.json"
       ],
@@ -2527,28 +2527,70 @@
       "merge_sha": "70ee74b31004983fa4060bb1f4daabe30386c036"
     },
     {
+      "id": "MP-OWNER-DEC-MIG-02",
+      "title": "Name the tasks the migration mandate already authorizes as parallel (parallel_tasks)",
+      "issue": 288,
+      "pr": 301,
+      "branch": "mp-owner-dec-mig-03",
+      "kind": "audit",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T231552Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/governance/owner-decisions.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "c6b3b2ef345109c8560fbfb629e05c6cad4e4f52"
+    },
+    {
       "id": "MP-MIG-030-PROMOTE-01",
-      "title": "F1-F3 migration fixes, one implementation activity in three stacked MANUAL PRs: F1 #296 (030 promotion), F2 #298 (checksum register), F3 (double authorization); this branch: F2",
+      "title": "F1: promote db/staged/030-persistence.sql to migrations/030-persistence.sql (byte-identical), rollback and historical-state tests",
+      "issue": 263,
+      "pr": 296,
+      "branch": "mp-mig-030-promote-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T231843Z-agent-a-claude-code",
+      "resources": [
+        "branch:mp-mig-030-promote-01",
+        "file:migrations/030-persistence.sql",
+        "file:db/rollback/030-persistence.down.sql",
+        "file:test/migration-030-promotion.test.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": true,
+      "parallel_authorization": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01"
+    },
+    {
+      "id": "MP-MIG-CHECKSUMS-01",
+      "title": "F2: persistent migration checksum register, blocking history verification, explicit legacy adoption (stacked on F1 #296)",
       "issue": 263,
       "pr": 298,
       "branch": "mp-mig-checksums-01",
       "kind": "implementation",
       "state": "REVIEW",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T225441Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T231845Z-agent-a-claude-code",
       "resources": [
-        "branch:mp-mig-030-promote-01",
         "branch:mp-mig-checksums-01",
         "file:src/migrate.mjs",
-        "file:migrations/030-persistence.sql",
-        "file:db/rollback/030-persistence.down.sql",
-        "file:test/migration-checksums.test.mjs"
+        "file:test/migration-checksums.test.mjs",
+        "file:docs/migration-checksums.md"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": true,
+      "parallel_authorization": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01"
     }
   ]
 }
