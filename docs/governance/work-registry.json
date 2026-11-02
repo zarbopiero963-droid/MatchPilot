@@ -2325,13 +2325,34 @@
       "pr": 278,
       "branch": "mp-tc-benchmark-prep",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T013519Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T020004Z-agent-a-claude-code",
       "resources": [
         "file:src/benchmark/live-benchmark.mjs",
         "file:src/benchmark/tc-export.mjs",
         "file:tools/benchmark/tc-af-live.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "8d3198d58cdcfb960efaa6f2e8b3121a07f76232"
+    },
+    {
+      "id": "MP-NEXT-GOV-01",
+      "title": "MP-NEXT-20261102: mandate registration and PostgreSQL 17 evidence",
+      "issue": 263,
+      "pr": 279,
+      "branch": "mp-gov-next-20261102",
+      "kind": "audit",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T100901Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/governance/owner-decisions.json",
+        "file:docs/product/mp-263/pg17-run-2026-11-02.md"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",

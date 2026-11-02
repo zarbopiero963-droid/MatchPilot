@@ -1,0 +1,103 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T100707Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T10:07:07Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-NEXT-20261102",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-NEXT-GOV-01",
+  "activity": "MP-NEXT-20261102: mandate registered, MP-OWNER-IMPL-20261101 closed, PostgreSQL 17 suite evidence, MERGED checkpoint of PR #278",
+  "issue": 263,
+  "pr": null,
+  "branch": "mp-gov-next-20261102",
+  "commit_sha": "00cf950575b0bec2a327c8eae8bd21e897c58187",
+  "tree_sha": "872b2e0141a8e691466fd4f55042e5b9eb12d98b",
+  "base_sha": "8d3198d58cdcfb960efaa6f2e8b3121a07f76232",
+  "requirements": [],
+  "changes": [
+    "docs/governance/owner-decisions.json (MP-NEXT-20261102 IN_FORCE; MP-OWNER-IMPL-20261101 COMPLETED)",
+    "docs/product/mp-263/pg17-run-2026-11-02.md",
+    "MERGED checkpoint of PR #278",
+    "work-registry"
+  ],
+  "tests": [
+    {
+      "command": "node --test (PostgreSQL 17.11 throwaway container)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, docker postgres:17 on 127.0.0.1:5433",
+      "commit": "8d3198d58cdcfb960efaa6f2e8b3121a07f76232",
+      "time": "2026-11-02T10:07:07Z",
+      "limits": [
+        "802 tests, 802 pass, 0 skipped, 0 fail on main 8d3198d; the PostgreSQL 17 independence test ran and passed; VPS PostgreSQL version not verified"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "00cf950575b0bec2a327c8eae8bd21e897c58187"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "independent review by an agent of a different model pending"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-NEXT-20261102",
+    "MP-OWNER-IMPL-20261101",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "mandate registered",
+      "PostgreSQL 17 run"
+    ],
+    "in_progress": [
+      "CI and review"
+    ],
+    "not_started": [
+      "SAFE merge"
+    ]
+  },
+  "resources": [
+    "file:docs/governance/owner-decisions.json",
+    "file:docs/product/mp-263/pg17-run-2026-11-02.md"
+  ],
+  "stop_conditions": [
+    "SAFE registers and documentation only",
+    "no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI, independent review, SAFE merge",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping only"
+  ],
+  "supersedes": null
+}
