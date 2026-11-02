@@ -2364,7 +2364,7 @@
       "id": "MP-AF-COLLECT-01",
       "title": "Collector PREMATCH API-FOOTBALL controllato, spento per default, senza scheduler (MANUAL)",
       "issue": 263,
-      "pr": null,
+      "pr": 283,
       "branch": "mp-prematch-collector-02",
       "kind": "implementation",
       "state": "REVIEW",
@@ -2381,7 +2381,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
