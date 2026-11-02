@@ -14,14 +14,18 @@
 // follow three-valued logic (Kleene). A record is selected only when the whole expression is TRUE, so NOT never turns
 // missing data into a match.
 //
-// PIT: pitViolations() lists the conditions a decision before kickoff may not use (MP-PIT-TIMING-01: only identity and
-// market capabilities are known before kickoff). No new timing class is introduced.
+// PIT: pitViolations() lists the conditions a decision may not use (PREMATCH, LIVE or POSTMATCH), with the timing classes of
+// MP-PIT-TIMING-01 and LIVE_ACQUIRED of MP-PIT-LIVE-01; in-play values also depend on each record's acquisition instant
+// (src/pit/phase.mjs).
 import { Decimal } from '../math/decimal.mjs';
 
 export const EXPRESSION_VERSION = 'mp-expr-1';
 export const LIMITS = Object.freeze({depth: 8, nodes: 200, children: 50, inValues: 100, text: 200});
 export const RESULTS = Object.freeze(['TRUE', 'FALSE', 'UNKNOWN']);
 const PREMATCH_TIMINGS = new Set(['PREMATCH_IDENTITY', 'PREMATCH_MARKET_UNTIMED']);
+// MP-PIT-LIVE-01: a decision during the match may also use in-play prices (LIVE_ACQUIRED), each only from its acquisition
+// instant (src/pit/phase.mjs usableAt); never post-match outcomes.
+const LIVE_TIMINGS = new Set([...PREMATCH_TIMINGS, 'LIVE_ACQUIRED']);
 
 export class ExpressionError extends Error {
   constructor(path, message) {
@@ -149,16 +153,24 @@ export function expressionFields(normalized) {
   return out;
 }
 
-// The conditions a decision taken before kickoff may not use: capabilities whose timing is not known before kickoff.
-// decision 'PREMATCH' allows identity and market capabilities only; 'POSTMATCH' (research on finished matches) allows
-// every timing. Unknown capabilities are reported too.
+// The conditions a decision may not use. 'PREMATCH' (before kickoff): identity and pre-match market capabilities only,
+// never an in-play price or a post-match outcome. 'LIVE' (during the match): those plus in-play prices, each usable only
+// from its acquisition instant; never a post-match outcome. 'POSTMATCH' (research on finished matches): every timing.
+// Unknown capabilities are reported for every point-in-time decision.
 export function pitViolations(normalized, catalog, {decision}) {
-  if (!['PREMATCH', 'POSTMATCH'].includes(decision)) throw new TypeError('decision must be PREMATCH or POSTMATCH');
-  if (decision === 'POSTMATCH') return [];
+  if (!['PREMATCH', 'LIVE', 'POSTMATCH'].includes(decision)) throw new TypeError('decision must be PREMATCH, LIVE or POSTMATCH');
   const caps = lookup(catalog);
+  if (decision === 'POSTMATCH') return expressionFields(normalized).filter(id => !caps.has(id))
+    .map(id => ({field: id, timing: null, reason: 'not in the catalog'}));
+  const allowed = decision === 'PREMATCH' ? PREMATCH_TIMINGS : LIVE_TIMINGS;
   return expressionFields(normalized)
-    .filter(id => !caps.has(id) || !PREMATCH_TIMINGS.has(caps.get(id).timing))
-    .map(id => ({field: id, timing: caps.get(id)?.timing ?? null, reason: 'not known before kickoff (MP-PIT-TIMING-01)'}));
+    .filter(id => !caps.has(id) || !allowed.has(caps.get(id).timing))
+    .map(id => {
+      const timing = caps.get(id)?.timing ?? null;
+      const reason = timing === null ? 'not in the catalog' : timing === 'LIVE_ACQUIRED' ? 'in-play price: not known before kickoff (MP-PIT-LIVE-01)'
+        : 'post-match outcome: not known before the end of the match (MP-PIT-TIMING-01)';
+      return {field: id, timing, reason};
+    });
 }
 
 // The PIT reading of an expression for a decision. violations: conditions that decision may not use. untimed:
@@ -169,7 +181,9 @@ export function pitReport(normalized, catalog, {decision}) {
   const violations = pitViolations(normalized, catalog, {decision});
   const caps = lookup(catalog);
   const untimed = expressionFields(normalized).filter(id => caps.get(id)?.timing === 'PREMATCH_MARKET_UNTIMED');
-  return {decision, violations, untimed, pit_verifiable: violations.length === 0 && untimed.length === 0};
+  // In-play prices allowed in a LIVE decision still depend on each record's acquisition instant: listed apart.
+  const acquisition_bound = expressionFields(normalized).filter(id => caps.get(id)?.timing === 'LIVE_ACQUIRED');
+  return {decision, violations, untimed, acquisition_bound, pit_verifiable: violations.length === 0 && untimed.length === 0};
 }
 
 // A record value read for comparison, or null when absent or unreadable (never guessed).

@@ -92,12 +92,12 @@ test('MP-CAP-03 PIT: a decision before kickoff cannot use post-match statistics'
   assert.deepEqual(pitViolations(n, catalog, {decision: 'PREMATCH'}).map(v => [v.field, v.timing]), [[G, 'POSTMATCH_OUTCOME'], ['apifootball:statistic:Corner Kicks', 'POSTMATCH_OUTCOME']]);
   assert.deepEqual(pitViolations(n, catalog, {decision: 'POSTMATCH'}), [], 'research on finished matches may use them');
   assert.deepEqual(pitViolations(norm({field: 'apifootball:market:odds/bet:5', op: 'gt', value: '1.9'}), catalog, {decision: 'PREMATCH'}), []);
-  assert.throws(() => pitViolations(n, catalog, {decision: 'LIVE'}), /PREMATCH or POSTMATCH/);
+  assert.throws(() => pitViolations(n, catalog, {decision: 'INPLAY'}), /PREMATCH, LIVE or POSTMATCH/);
 });
 
 test('MP-CAP-03 review: untimed prices are reported, impossible dates are UNKNOWN, unreadable values are not null-tested', () => {
   const n = norm({all: [{field: H, op: 'lte', value: '2'}, {field: L, op: 'eq', value: 'Serie A'}]});
-  assert.deepEqual(pitReport(n, catalog, {decision: 'PREMATCH'}), {decision: 'PREMATCH', violations: [], untimed: [H], pit_verifiable: false},
+  assert.deepEqual(pitReport(n, catalog, {decision: 'PREMATCH'}), {decision: 'PREMATCH', violations: [], untimed: [H], acquisition_bound: [], pit_verifiable: false},
     'no post-match field, but an archive price without capture time is never PIT verified');
   assert.equal(pitReport(norm({field: L, op: 'eq', value: 'Serie A'}), catalog, {decision: 'PREMATCH'}).pit_verifiable, true);
   assert.deepEqual(pitViolations(n, new Map(), {decision: 'PREMATCH'}).map(v => v.field), [H, L], 'fields missing from the catalog are violations');

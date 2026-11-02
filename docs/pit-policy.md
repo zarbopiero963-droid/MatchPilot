@@ -109,6 +109,56 @@ D4 requires an explicit, tested policy but does not fix these values. They are p
 - **TotalCorner match state:** `tc_matches` keeps only the latest state of each match, and an answer is PIT for it only when that state was last observed by the decision time. Making older decisions PIT needs a per-version history of the match state. That is a schema migration, which on an auto-deployed service would also write to the production database, so it requires owner authorisation (PROPOSAL).
 
 
+## MP-PIT-LIVE-01: fase temporale dei dati LIVE (MP-NEXT-20261102, priorità B)
+
+`src/pit/phase.mjs` (`mp-pit-live-1`) estende mp-pit-v1 senza modificarla. Per ogni record del provider separa:
+- ora del provider;
+- ora di acquisizione;
+- calcio d'inizio;
+- stato della partita;
+- provenienza;
+- id dello snapshot.
+
+**Fase del record**
+
+| Acquisizione rispetto al calcio d'inizio | Stato della partita | Fase |
+|---|---|---|
+| prima | non iniziata (`NS`, `TBD`) o assente | PREMATCH |
+| dal calcio d'inizio in poi | in corso (`1H`, `HT`, `2H`, `ET`, `BT`, `P`, `LIVE`, `INT`, `SUSP`) | LIVE |
+| dal calcio d'inizio in poi | finita (`FT`, `AET`, `PEN`) | POSTMATCH |
+| qualunque | qualsiasi altra combinazione | UNKNOWN, con il motivo |
+
+Ricadono in UNKNOWN:
+- una partita non iniziata dopo il calcio d'inizio previsto;
+- una partita in corso o finita prima del calcio d'inizio previsto;
+- uno stato assente dopo il calcio d'inizio;
+- uno stato non classificato (`PST`, `CANC`, ecc.);
+- un'ora mancante o illeggibile;
+- un'ora del provider successiva all'acquisizione oltre 5 minuti.
+
+**Disponibilità e uso.** Un record è disponibile **solo dall'ora di acquisizione di MatchPilot**: l'ora del provider non lo retrodata mai. Un record UNKNOWN non è mai utilizzabile. Per ogni tipo di decisione valgono questi limiti:
+
+| Decisione | Quando | Record utilizzabili |
+|---|---|---|
+| PREMATCH | strettamente prima del calcio d'inizio | solo PREMATCH |
+| LIVE | dal calcio d'inizio | PREMATCH e LIVE |
+| POSTMATCH (ricerca su partite finite) | dopo la partita | ogni fase nota |
+
+In ogni caso valgono solo i record acquisiti entro l'istante della decisione. `usableRecords` conta i record esclusi per motivo, invece di nasconderli.
+
+**Catalogo e condizioni**
+- Il catalogo aggiunge `LIVE_ACQUIRED` al vocabolario di MP-PIT-TIMING-01. Il vincolo CHECK dell'archivio FPT resta invariato.
+- `LIVE_ACQUIRED` vale solo per i mercati in gioco, con fase esclusiva `LIVE`. Un mercato prematch non può dichiarare la fase LIVE.
+- `pitViolations` accetta le decisioni PREMATCH, LIVE e POSTMATCH:
+  - PREMATCH rifiuta i prezzi in gioco e gli esiti post-partita;
+  - LIVE rifiuta gli esiti post-partita.
+- `pitReport` elenca a parte le condizioni legate all'ora di acquisizione (`acquisition_bound`).
+
+**Stato**
+- **IMPLEMENTATO e TESTATO** con test unitari e negativi di leakage (`test/pit-live.test.mjs`): replay di un backtest per minuto, nessun prezzo visibile prima della sua acquisizione.
+- **Non CERTIFICATO.** Nessun percorso reale acquisisce oggi dati LIVE: non c'è un collector LIVE. La certificazione richiede test sui percorsi reali di acquisizione e replay.
+
+
 ## DEC-002 (owner, 22/10/2026) — correzioni degli esiti
 
 Scelta A1, vincolante: feature e input solo osservabili al tempo T; l'esito finale può usare l'ultima versione FINAL validata disponibile alla data di esecuzione del backtest; versione dell'esito, provenienza e timestamp della correzione registrati; il report evidenzia gli esiti corretti dopo la prima FINAL; stessi dati e versioni fissate danno risultati identici. Nessuna seconda modalità certificata con feature ricostruite con informazioni future. Stato: NOT IMPLEMENTED / NOT VERIFIED (vedi `docs/governance/decisions-ratification-2026-10-22.md`).

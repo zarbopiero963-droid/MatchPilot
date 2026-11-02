@@ -215,7 +215,11 @@ Il mock è [`docs/mockups/matchpilot-trading-os.html`](docs/mockups/matchpilot-t
 
 - **FutPythonTrader:** una voce per ogni colonna del registro dello schema, solo come archivio storico.
 - **API-FOOTBALL:** solo le capacità osservate nella verifica reale del 01/11/2026, con stato AVAILABLE BUT NOT IMPLEMENTED finché un collector non le salva. Lo storico delle quote non è dichiarato come garantito dal provider.
-- **Quote LIVE:** restano in `deferred` con il motivo, perché MP-PIT-TIMING-01 non ha ancora una classe per i dati noti solo durante la partita.
+- **Quote LIVE (MP-PIT-LIVE-01):**
+  - sono voci proprie del catalogo, con classe `LIVE_ACQUIRED` e fase solo `LIVE`;
+  - si possono usare solo dal momento in cui MatchPilot le ha acquisite, mai in una decisione presa prima del calcio d'inizio;
+  - gli id LIVE restano distinti da quelli prematch;
+  - `deferred` resta nella risposta, ma è vuoto.
 
 Filtri `provider`, `kind`, `status`. Nessuna chiamata ai provider e nessuna copertura dichiarata completa.
 
