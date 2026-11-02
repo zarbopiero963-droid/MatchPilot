@@ -2488,9 +2488,9 @@
       "pr": 294,
       "branch": "mp-owner-decisions-final-01",
       "kind": "audit",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T221403Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T222500Z-agent-a-claude-code",
       "resources": [
         "file:docs/governance/owner-decisions.json",
         "file:docs/governance/master/pr-plan.json",
@@ -2503,7 +2503,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "bffc3d9afb81138fbb1240056427a3e9502eecba"
     }
   ]
 }
