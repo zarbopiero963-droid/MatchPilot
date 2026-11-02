@@ -67,7 +67,7 @@ test('MP-REQ-UI-1032: the PIT badge says PIT only for an explicit PIT; anything 
 
 test('MP-REQ-UI-1045: the views import no DEMO generator; the real adapter and the memory mock share one contract test', () => {
   const imports = [...app.matchAll(/^import .* from '([^']+)';$/gm)].map(match => match[1]);
-  assert.deepEqual(imports, ['./persistence.js', './states.js']);
+  assert.deepEqual(imports, ['./persistence.js', './states.js', './universal-search.js']);
   assert.doesNotMatch(app, /demo\.js|createDemo|Math\.random/);
   const contract = readFileSync(new URL('./web-persistence-contract.test.mjs', import.meta.url), 'utf8');
   assert.match(contract, /import \{createMemoryPersistence, createPersistence\} from '\.\.\/src\/web\/persistence\.js';/);
@@ -129,7 +129,7 @@ test('MP-REQ-UI-1038: the search of the shell is in the header of every view; sq
   // The pages a search can open are views of the app; no list of squads or matches lives in the browser.
   const pages = app.slice(app.indexOf('const FIND_PAGES = ['), app.indexOf('const foldText'));
   const hrefs = [...pages.matchAll(/\['#\/([a-z]*)'/g)].map(match => match[1]);
-  assert.equal(hrefs.length, 11);
+  assert.equal(hrefs.length, 12);
   for (const view of hrefs) assert.match(app, new RegExp(`(^|[{,]\\s*)${view ? view : "''"}: \\['`, 'm'), `#/${view} is a view`);
   assert.doesNotMatch(pages, /internal_team_id|canonical_name|getJson/);
 });

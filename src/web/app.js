@@ -7,6 +7,7 @@
 
 import {createPersistence} from './persistence.js';
 import {badgeSpec, httpErrorState, percentText, pitBadgeKind} from './states.js';
+import * as US from './universal-search.js';
 
 const ND = 'N/D';
 
@@ -354,7 +355,7 @@ async function coverageView(params) {
 // The pages of the app a search can open: the menu and its sections, with the words they are known by. They are the
 // app's own navigation, not data: the squads come from the API (/api/v1/fpt/teams), never from an index in the browser.
 const FIND_PAGES = [
-  ['#/', 'Oggi', 'oggi partite del giorno board'], ['#/search', 'Ricerca partite', 'ricerca partite filtri squadra quote'],
+  ['#/', 'Oggi', 'oggi partite del giorno board'], ['#/search', 'Ricerca partite', 'ricerca partite filtri squadra quote'], ['#/usearch', 'Ricerca universale', 'ricerca universale condizioni and or not catalogo capacita'],
   ['#/sim', 'Simulazione', 'simulazione backtest strategia'], ['#/compare', 'Confronto', 'confronto backtest configurazioni'],
   ['#/saved', 'Backtest salvati', 'backtest salvati simulazioni salvate'], ['#/strategies', 'Strategie', 'strategie versioni'],
   ['#/tools', 'Strumenti', 'strumenti calcolatori quote probabilita commissione'], ['#/data', 'Stato dei dati', 'dati stato archivio salute'],
@@ -1867,12 +1868,95 @@ async function toolsView(params) {
 // 'technical' view is where provenance and diagnostics belong. Every view declares one (V-B2). #/board, the former
 // address of the Daily Board, still opens it, and the menu item of each view is its section (NAV_OF).
 
+
+// ---- Universal search (MP-SEARCH-GUI-01, #263) ----
+// Reads the capability catalog and GET /api/v1/search only. The condition tree lives in the hash (tree=…), so the page
+// is shareable and survives a reload; nothing is pre-selected: no market, odd or filter is offered first.
+const usearchHref = params => `#/usearch?${queryString(params)}`;
+async function usearchView(params) {
+  const decision = US.DECISIONS.some(d => d.id === params.get('decision')) ? params.get('decision') : 'PREMATCH';
+  const [catalogBody, competitionsBody] = await Promise.all([
+    getJson('/api/v1/capabilities').catch(error => { if (error?.code === 'UNAUTHENTICATED') throw error; return null; }),
+    getJson('/api/v1/fpt/competitions').catch(error => { if (error?.code === 'UNAUTHENTICATED') throw error; return null; })]);
+  const caps = Array.isArray(catalogBody?.data?.capabilities) ? catalogBody.data.capabilities : Array.isArray(catalogBody?.data?.rows) ? catalogBody.data.rows : null;
+  const head = el('h1', {}, 'Ricerca universale');
+  if (!caps) return [head, el('p', {class: 'state error', role: 'alert', 'data-outcome': ''}, 'Catalogo delle capacità non disponibile: la ricerca è disattivata.')];
+  const model = US.catalogModel(caps, decision);
+  const tree = US.decodeTree(params.get('tree') ?? '');
+  const competitions = Array.isArray(competitionsBody?.data?.rows) ? competitionsBody.data.rows : [];
+  const competition = params.get('competition') ?? '';
+  const seasons = competition ? await seasonsOf(competition) : 'none';
+  const state = {decision, from: params.get('from') ?? '', to: params.get('to') ?? '', competition, season: params.get('season') ?? ''};
+  const go = (extra = {}) => { location.hash = usearchHref({...state, tree: US.encodeTree(tree), ...extra}); };
+  const fieldOptions = [el('option', {value: ''}, 'Scegli un campo'), ...model.groups.map(g => el('optgroup', {label: g.kind},
+    g.fields.map(f => el('option', {value: f.id, disabled: !f.usable, title: f.reason ?? ''}, f.usable ? f.label : `${f.label} — ${f.reason}`))))];
+  const byId = new Map(model.groups.flatMap(g => g.fields).map(f => [f.id, f]));
+  const renderNode = (node, parent, index) => {
+    const remove = parent ? el('button', {type: 'button', 'data-control': 'CTL-USEARCH-REMOVE', onclick: () => { parent.children.splice(index, 1); go(); }}, 'Rimuovi') : null;
+    const not = el('label', {class: 'check'}, el('input', {type: 'checkbox', checked: node.negate, 'data-control': 'CTL-USEARCH-NOT', onchange: e => { node.negate = e.target.checked; go(); }}), ' NOT');
+    if (node.type === 'cond') {
+      const f = byId.get(node.field);
+      return el('div', {class: 'us-cond', 'data-testid': 'us-cond'}, not,
+        el('select', {'data-control': 'CTL-USEARCH-FIELD', onchange: e => { node.field = e.target.value; node.op = ''; go(); }}, fieldOptions.map(o => o.cloneNode(true))),
+        el('select', {'data-control': 'CTL-USEARCH-OP', disabled: !f, onchange: e => { node.op = e.target.value; go(); }},
+          [el('option', {value: ''}, 'Operatore'), ...(f?.operators ?? []).map(op => el('option', {value: op, selected: node.op === op}, US.OP_LABELS[op] ?? op))]),
+        ['is_null', 'not_null'].includes(node.op) ? null : el('input', {value: node.value ?? '', placeholder: 'valore', 'data-control': 'CTL-USEARCH-VALUE', onchange: e => { node.value = e.target.value; go(); }}),
+        f && f.selections.length ? el('span', {class: 'meta'}, 'Selezioni: ', f.selections.join(', ')) : null, remove);
+    }
+    return el('fieldset', {class: 'us-group', 'data-testid': 'us-group'},
+      el('legend', {}, not, ' ', el('select', {'data-control': 'CTL-USEARCH-JOIN', onchange: e => { node.join = e.target.value; go(); }},
+        el('option', {value: 'all', selected: node.join === 'all'}, 'Tutte (AND)'), el('option', {value: 'any', selected: node.join === 'any'}, 'Almeno una (OR)'))),
+      ...node.children.map((c, i) => renderNode(c, node, i)),
+      el('div', {class: 'actions'},
+        el('button', {type: 'button', 'data-control': 'CTL-USEARCH-ADD-COND', onclick: () => { node.children.push(US.newCondition()); go(); }}, '+ Condizione'),
+        el('button', {type: 'button', 'data-control': 'CTL-USEARCH-ADD-GROUP', onclick: () => { node.children.push(US.newGroup()); go(); }}, '+ Gruppo'), remove));
+  };
+  // restore selected field values after cloning options
+  const builder = renderNode(tree, null, 0);
+  const condNodes = []; (function collect(n) { if (n.type === 'cond') condNodes.push(n); else n.children.forEach(collect); })(tree);
+  builder.querySelectorAll('select[data-control="CTL-USEARCH-FIELD"]').forEach((s, i) => { s.value = condNodes[i]?.field ?? ''; });
+  const phase = el('div', {class: 'us-phase', role: 'radiogroup', 'aria-label': 'Fase'}, US.DECISIONS.map(d => el('label', {class: 'check', title: d.note},
+    el('input', {type: 'radio', name: 'decision', value: d.id, checked: d.id === decision, disabled: !d.enabled, 'data-control': 'CTL-USEARCH-DECISION', onchange: () => { state.decision = d.id; go(); }}),
+    ' ', d.label, d.enabled ? '' : ' (non ancora implementata)')));
+  const window_ = el('form', {class: 'filters', onsubmit: e => {
+    e.preventDefault(); const fd = new FormData(e.target);
+    Object.assign(state, {from: fd.get('from'), to: fd.get('to'), competition: fd.get('competition') ?? '', season: fd.get('season') ?? ''});
+    revealOutcome = true; go({run: '1'}); }},
+    el('label', {}, 'Dal ', el('input', {type: 'date', name: 'from', value: state.from, required: true, 'data-control': 'CTL-USEARCH-FROM'})),
+    el('label', {}, 'Al ', el('input', {type: 'date', name: 'to', value: state.to, required: true, 'data-control': 'CTL-USEARCH-TO'})),
+    el('label', {}, 'Campionato ', el('select', {name: 'competition', 'data-control': 'CTL-USEARCH-COMPETITION', disabled: !competitionsBody, onchange: e => { state.competition = e.target.value; state.season = ''; go(); }},
+      [el('option', {value: ''}, 'Tutti'), ...competitions.map(c => el('option', {value: c.internal_competition_id, selected: c.internal_competition_id === competition}, c.name ?? c.canonical_name ?? c.internal_competition_id))])),
+    el('label', {}, 'Stagione ', el('select', {name: 'season', 'data-control': 'CTL-USEARCH-SEASON', disabled: !Array.isArray(seasons)},
+      [el('option', {value: ''}, 'Tutte'), ...(Array.isArray(seasons) ? seasons : []).map(r => el('option', {value: r.season_id, selected: r.season_id === state.season}, String(r.season ?? r.season_id)))])),
+    el('button', {type: 'submit', 'data-control': 'CTL-USEARCH-SUBMIT'}, 'Cerca'));
+  const summary = el('p', {class: 'meta', 'data-testid': 'us-catalog'}, `Campi utilizzabili: ${model.usable} su ${model.total} · non ancora implementati o non disponibili: ${model.not_implemented}`);
+  const out = [head, competitionsBody ? null : el('p', {class: 'state partial', role: 'status'}, 'Elenco dei campionati non disponibile.'), summary, phase, builder, window_];
+  if (params.get('run') !== '1') return [...out, el('p', {class: 'state empty'}, 'Costruisci le condizioni e premi Cerca.')];
+  const errors = US.validate(tree, model, decision);
+  if (errors.length) return [...out, el('ul', {class: 'state error', role: 'alert', 'data-outcome': ''}, errors.map(e => el('li', {}, `${e.path}: ${e.message}`)))];
+  let body;
+  try { body = await getJson(US.searchUrl({expr: US.toExpression(tree), decision, from: state.from, to: state.to, competition: state.competition, season: state.season, limit: 50})); }
+  catch (error) { if (error?.code === 'UNAUTHENTICATED') throw error; return [...out, errorState(error instanceof ApiFailure ? error : new ApiFailure(0, 'CLIENT', 'errore'), render)]; }
+  const s = US.outcomeSummary(body.data);
+  const rows = Array.isArray(body.data?.rows) ? body.data.rows : [];
+  const fields = Array.isArray(body.data?.fields) ? body.data.fields : [];
+  return [...out, el('section', {'data-outcome': '', 'data-testid': 'us-outcome'},
+    el('p', {}, `Corrispondenze: ${s.matches ?? ND} · non corrispondenti: ${s.not_matching ?? ND} · indeterminate per dati mancanti: ${s.unknown ?? ND} · partite valutate: ${s.scanned ?? ND}`),
+    s.truncated ? el('p', {class: 'state partial'}, 'Finestra troncata: restringi le date o il campionato.') : null,
+    s.pit ? el('p', {class: 'meta'}, 'PIT: ', s.pit === 'NON_PIT' ? 'ricerca storica (non PIT)' : 'non verificato (orari di acquisizione ignoti)') : null,
+    rows.length ? el('table', {class: 'grid'}, el('thead', {}, el('tr', {}, ['Data', 'Partita', ...fields.map(f => f.id)].map(t => el('th', {}, t)))),
+      el('tbody', {}, rows.map(r => el('tr', {}, el('td', {'data-label': 'Data'}, r.date ?? ND),
+        el('td', {'data-label': 'Partita'}, el('a', {href: matchHref(r.id), 'data-control': 'CTL-USEARCH-MATCH'}, `${r.home ?? ND} – ${r.away ?? ND}`)),
+        ...fields.map(f => { const v = US.displayValue(r.values?.[f.id]); return el('td', {'data-label': f.id, class: v.missing ? 'missing' : ''}, v.missing ? badge('ND') : v.text); })))))
+      : el('p', {class: 'state empty'}, 'Nessuna partita soddisfa le condizioni.'))];
+}
+
 const VIEWS = {'': ['la pagina', boardView, 'user'], board: ['la pagina', boardView, 'user'], search: ['la ricerca', searchView, 'user'],
   match: ['la partita', matchView, 'user'],
   data: ['lo stato dei dati', dashboardView, 'technical'], providers: ['i fornitori dati', providersView, 'technical'],
   sim: ['la simulazione', simView, 'user'], tools: ['gli strumenti', toolsView, 'user'], compare: ['il confronto', compareView, 'user'], saved: ['i backtest salvati', savedView, 'user'], strategies: ['le strategie', strategiesView, 'user'],
-  endpoints: ['gli endpoint', endpointsView, 'technical'], coverage: ['la copertura', coverageView, 'user'], find: ['la ricerca', findView, 'user']};
-const NAV_OF = {board: '', providers: 'data', endpoints: 'data', coverage: 'data', match: null, compare: 'sim', saved: 'sim', strategies: 'sim', find: null};
+  endpoints: ['gli endpoint', endpointsView, 'technical'], coverage: ['la copertura', coverageView, 'user'], find: ['la ricerca', findView, 'user'], usearch: ['la ricerca universale', usearchView, 'user']};
+const NAV_OF = {board: '', providers: 'data', endpoints: 'data', coverage: 'data', match: null, compare: 'sim', saved: 'sim', strategies: 'sim', find: null, usearch: 'search'};
 
 let generation = 0;
 // Set by the search form: the next search render moves the focus to its outcome and scrolls it into view, so the result,
@@ -1890,7 +1974,7 @@ async function render() {
   const name = location.hash.replace(/^#\/?/, '').split('?')[0];
   // The submit flag belongs to this render only: any navigation consumes it, so a search abandoned before its answer
   // never moves the focus later, when the page is opened again without a submit (PR #168 review NB-1).
-  const reveal = revealOutcome && (name === 'search' || name === 'sim' || name === 'compare' || name === 'tools');
+  const reveal = revealOutcome && (name === 'search' || name === 'usearch' || name === 'sim' || name === 'compare' || name === 'tools');
   revealOutcome = false;
   const [what, view, area] = Object.hasOwn(VIEWS, name) ? VIEWS[name] : [null, null, 'user'];
   const host = document.getElementById('view');

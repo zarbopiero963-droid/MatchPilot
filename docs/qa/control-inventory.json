@@ -4713,6 +4713,231 @@
           "step": "poisson: il risultato è quello del server, un campo errato è indicato, Azzera svuota"
         }
       ]
+    },
+    {
+      "id": "CTL-USEARCH-ADD-COND",
+      "view": "usearch",
+      "kind": "button",
+      "label": "+ Condizione",
+      "action": "aggiunge una condizione al gruppo",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        263
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-USEARCH-ADD-GROUP",
+      "view": "usearch",
+      "kind": "button",
+      "label": "+ Gruppo",
+      "action": "aggiunge un gruppo annidato",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        263
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-USEARCH-COMPETITION",
+      "view": "usearch",
+      "kind": "select",
+      "label": "Campionato",
+      "action": "filtra per campionato (elenco dinamico)",
+      "api": "/api/v1/fpt/competitions",
+      "data": "REAL",
+      "issues": [
+        263
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-USEARCH-DECISION",
+      "view": "usearch",
+      "kind": "checkbox",
+      "label": "Fase",
+      "action": "sceglie PREMATCH, LIVE (disattivata) o partite concluse",
+      "api": "/api/v1/capabilities",
+      "data": "REAL",
+      "issues": [
+        263
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-USEARCH-FIELD",
+      "view": "usearch",
+      "kind": "select",
+      "label": "Campo",
+      "action": "sceglie un campo dal catalogo delle capacità",
+      "api": "/api/v1/capabilities",
+      "data": "REAL",
+      "issues": [
+        263
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-USEARCH-FROM",
+      "view": "usearch",
+      "kind": "input",
+      "label": "Dal",
+      "action": "inizio finestra",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        263
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-USEARCH-TO",
+      "view": "usearch",
+      "kind": "input",
+      "label": "Al",
+      "action": "fine finestra",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        263
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-USEARCH-JOIN",
+      "view": "usearch",
+      "kind": "select",
+      "label": "AND/OR",
+      "action": "sceglie tutte (AND) o almeno una (OR)",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        263
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-USEARCH-MATCH",
+      "view": "usearch",
+      "kind": "link",
+      "label": "Partita",
+      "action": "apre la partita trovata",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        263
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-USEARCH-NOT",
+      "view": "usearch",
+      "kind": "checkbox",
+      "label": "NOT",
+      "action": "nega la condizione o il gruppo",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        263
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-USEARCH-OP",
+      "view": "usearch",
+      "kind": "select",
+      "label": "Operatore",
+      "action": "sceglie un operatore offerto dal campo",
+      "api": "/api/v1/capabilities",
+      "data": "REAL",
+      "issues": [
+        263
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-USEARCH-REMOVE",
+      "view": "usearch",
+      "kind": "button",
+      "label": "Rimuovi",
+      "action": "rimuove condizione o gruppo",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        263
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-USEARCH-SEASON",
+      "view": "usearch",
+      "kind": "select",
+      "label": "Stagione",
+      "action": "filtra per stagione (elenco dinamico)",
+      "api": "/api/v1/fpt/competition-seasons",
+      "data": "REAL",
+      "issues": [
+        263
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-USEARCH-SUBMIT",
+      "view": "usearch",
+      "kind": "button",
+      "label": "Cerca",
+      "action": "esegue GET /api/v1/search",
+      "api": "/api/v1/search",
+      "data": "REAL",
+      "issues": [
+        263
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
+    },
+    {
+      "id": "CTL-USEARCH-VALUE",
+      "view": "usearch",
+      "kind": "input",
+      "label": "Valore",
+      "action": "valore della condizione",
+      "api": null,
+      "data": "NONE",
+      "issues": [
+        263
+      ],
+      "status": "IMPLEMENTED",
+      "evidence": "NONE",
+      "exercised_by": []
     }
   ]
 }
