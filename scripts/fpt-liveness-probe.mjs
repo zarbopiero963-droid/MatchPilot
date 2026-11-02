@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { emitAlert, resolveAlert } from '../src/alerts.mjs';
 import { withClient, closePool } from '../src/db.mjs';
 import { classifyFreshness } from '../src/providers/futpython/freshness.mjs';
+import { fptRetired, RETIRED_RESOLUTION } from '../src/providers/futpython/retired.mjs';
 
 export function livenessVerdict(lastStartedAt, now = Date.now(), maxHours = 7) {
   const ageHours = lastStartedAt ? (now - new Date(lastStartedAt).getTime()) / 3600000 : Infinity;
@@ -38,7 +39,16 @@ export function livenessFindings({lastRun, heartbeatAt, workerActive, consecutiv
 }
 
 export async function probe(client, {now = Date.now(), maxHours = Number(process.env.FPT_LIVENESS_MAX_HOURS || 7), deliver,
-  workerActive} = {}) {
+  workerActive, retired = fptRetired()} = {}) {
+  // MP-FPT-RETIRE-01: a retired source has no cycles to miss. The FPT worker alerts are closed once with the reason and
+  // never raised again; the database outage report (below, in the entry point) keeps working.
+  if (retired) {
+    const options = deliver ? {deliver} : {};
+    for (const key of [{source: 'futpython', code: 'FPT_WORKER_LIVENESS', key: 'worker'}, {source: 'futpython', code: 'FPT_PERSISTENT_ERRORS', key: 'runs'}]) {
+      await resolveAlert(key, client, {...options, evidence: RETIRED_RESOLUTION});
+    }
+    return {probe: 'FPT_LIVENESS', retired: true, at: new Date(now).toISOString()};
+  }
   const r = (await client.query(`SELECT
       (SELECT row_to_json(x) FROM (SELECT run_id, status, started_at, finished_at FROM fpt_sync_runs ORDER BY started_at DESC LIMIT 1) x) AS last_run,
       (SELECT last_checked_at FROM data_watchdog_state WHERE source='futpython') AS heartbeat_at,

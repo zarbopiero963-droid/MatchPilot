@@ -1,6 +1,7 @@
 import { parseCsv } from '../../lib/csv.mjs';
 import { createRequestBudget, budgetConfig, safeProviderPath } from './budget.mjs';
 import { createPgLedger } from './ledger.mjs';
+import { fptRetired, FptRetiredError } from './retired.mjs';
 
 export { safeProviderPath };
 
@@ -31,7 +32,9 @@ export function setRequestBudgetForTests(next) {
   budget = next || null;
 }
 
+// MP-FPT-RETIRE-01: the single network entry point refuses every call when FutPythonTrader is retired.
 export async function requestProviderText(opts) {
+  if (fptRetired()) throw new FptRetiredError();
   return getRequestBudget().requestText(opts);
 }
 
