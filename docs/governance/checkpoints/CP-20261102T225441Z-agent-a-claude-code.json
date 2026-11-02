@@ -1,0 +1,151 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [
+    "PR #296 (F1, base of this PR)"
+  ],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T225441Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T22:54:41Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd); registered on main by PR #295 (70ee74b), merged into this branch with git merge origin/main"
+  },
+  "task": "MP-MIG-030-PROMOTE-01",
+  "activity": "PR #298 opened (MANUAL, stacked on F1 #296): persistent checksum register, blocking history verification, explicit legacy adoption; single implementation slot kept: the stack is one activity (F1 #296 REVIEW, Codex no major issues on 2ece7c2)",
+  "issue": 263,
+  "pr": 298,
+  "branch": "mp-mig-checksums-01",
+  "commit_sha": "6c442fa3a747bb4ea66c39041b1d7b81296cc666",
+  "tree_sha": "3fe040c985278171ba0a43d1c855d2b72e68f64a",
+  "base_sha": "2ece7c2477f7193c912f7b53fee045e870c370cd",
+  "requirements": [],
+  "changes": [
+    "src/migrate.mjs (schema_migration_ledger, schema_migration_events, verifyHistory, adoptLegacy, CLI verify/adopt)",
+    "db/rollback/030-persistence.down.sql (REVOKED in the same transaction)",
+    "test/migration-checksums.test.mjs",
+    "test/migration-guard.test.mjs, test/migration-hardening.test.mjs, test/migration-030-promotion.test.mjs (bookkeeping tables)",
+    "test/resume-drill.test.mjs (own throwaway schema)",
+    "docs/migration-checksums.md",
+    "docs/product/mp-263/evidence/mig-checksums.md"
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "result": "PASS",
+      "environment": "local Node v22.22.0",
+      "commit": "6c442fa3a747bb4ea66c39041b1d7b81296cc666",
+      "time": "2026-11-02T22:54:41Z",
+      "limits": [
+        "syntax check only"
+      ]
+    },
+    {
+      "command": "FUTPYTHON_TEST_DATABASE_URL=<local 5450> node --test (full suite)",
+      "result": "PASS",
+      "environment": "PostgreSQL 17.11 throwaway container",
+      "commit": "6c442fa3a747bb4ea66c39041b1d7b81296cc666",
+      "time": "2026-11-02T22:54:41Z",
+      "limits": [
+        "831/832 before the resume-drill isolation fix; resume-drill rerun PASS; full rerun on the final head pending in CI"
+      ]
+    },
+    {
+      "command": "node --test test/migration-checksums.test.mjs test/migration-030-promotion.test.mjs test/migration-guard.test.mjs test/migration-hardening.test.mjs test/persistence-store.test.mjs test/persistence-api.test.mjs",
+      "result": "PASS",
+      "environment": "PostgreSQL 18.6 throwaway container",
+      "commit": "6c442fa3a747bb4ea66c39041b1d7b81296cc666",
+      "time": "2026-11-02T22:54:41Z",
+      "limits": [
+        "44/44; subset"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "6c442fa3a747bb4ea66c39041b1d7b81296cc666"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reviewed_sha": null,
+    "reference": "no review yet"
+  },
+  "findings": [
+    {
+      "id": "F2",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "no checksum in the runner: persistent register and blocking verification implemented; open until owner merge and adoption GO"
+    },
+    {
+      "id": "F2-LEGACY-ADOPTION",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "a legacy database (VPS 001-029) is refused until an owner-authorized adoption; the deploy of F2 must follow the adoption"
+    }
+  ],
+  "owner_decisions": [
+    "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "F1 implementation and review",
+      "F2 implementation",
+      "local tests PG17/PG18",
+      "PR #298 opened"
+    ],
+    "in_progress": [
+      "review",
+      "CI"
+    ],
+    "not_started": [
+      "F3",
+      "owner GO",
+      "merge"
+    ]
+  },
+  "resources": [
+    "branch:mp-mig-030-promote-01",
+    "branch:mp-mig-checksums-01",
+    "file:src/migrate.mjs",
+    "file:migrations/030-persistence.sql",
+    "file:db/rollback/030-persistence.down.sql",
+    "file:test/migration-checksums.test.mjs"
+  ],
+  "stop_conditions": [
+    "MANUAL: AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER",
+    "no merge, no production migration, no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "Codex review and CI on #298; then F3 (mp-mig-gate-01) stacked on this branch",
+  "resume_conditions": [
+    "owner GO for the MANUAL merge"
+  ],
+  "supersedes": "CP-20261102T224357Z-agent-a-claude-code"
+}
