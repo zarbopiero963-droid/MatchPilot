@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 234,
+  "revision": 235,
   "tasks": [
     {
       "id": "R-01",
@@ -2394,14 +2394,19 @@
       "kind": "implementation",
       "state": "REVIEW",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T141341Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T143254Z-agent-a-claude-code",
       "resources": [
         "file:src/pit/phase.mjs",
         "file:src/capabilities/catalog.mjs",
         "file:src/capabilities/apifootball.mjs",
         "file:src/conditions/expression.mjs",
         "file:test/pit-live.test.mjs",
-        "file:docs/pit-policy.md"
+        "file:docs/pit-policy.md",
+        "file:README.md",
+        "file:package.json",
+        "file:test/capabilities-api.test.mjs",
+        "file:test/capabilities-catalog.test.mjs",
+        "file:test/conditions-expression.test.mjs"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
