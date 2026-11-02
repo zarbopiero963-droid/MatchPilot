@@ -19,7 +19,7 @@ Nessuno dei comandi elencati scrive, riavvia o legge segreti.
 | Versione PostgreSQL | Le unità FPT dipendono da `postgresql@18-staging.service`; `matchpilot-backup` usa `$MP_PG_MAJOR` | indizio, NON verificato. La migrazione 031 richiede PostgreSQL 14 o superiore ed è testata su 16 e 17, non su 18. |
 | Processi e timer FPT | `matchpilot-fpt-worker.service`, `matchpilot-fpt-liveness.timer`/`.service` | file pinnati in `infra/vps/SHA256SUMS` |
 | Deploy | `mp-deploy` v3.3 installato a mano (v3.4 proposta in #281) | pinnato |
-| Runner guard | `mp-runner-guard.sh` in enforce. Ogni deploy di questo mandato è stato rifiutato a "Set up runner". | osservato in CI |
+| Runner guard | `mp-runner-guard.sh` in enforce. Il deploy di main dopo la #279 (run 41426983861) è stato rifiutato a "Set up runner". | osservato in CI |
 | Backup | `matchpilot-backup`: dump, globals, configurazione, manifest SHA-256 | script pinnato, frequenza ignota |
 | Collector API-FOOTBALL | non esiste in produzione: #283 aperta, spenta, senza scheduler | certo dal codice |
 | Migrazioni | `migrate()` applica in produzione solo i file approvati; `mp-deploy` blocca le migrazioni nuove senza allow file | certo dal codice |
@@ -39,9 +39,10 @@ Nessuno dei comandi elencati scrive, riavvia o legge segreti.
 | 9 | Deploy | `sha256sum /usr/local/sbin/mp-deploy` confrontato con `infra/vps/SHA256SUMS` | coincide con v3.3 (o v3.4 dopo l'installazione) |
 | 10 | Runner guard | `sha256sum` dello script guard, più il log dell'ultimo rifiuto | enforce attivo |
 | 11 | Migrazioni applicate | `select filename from schema_migrations order by 1 desc limit 5` | 029 come ultima, 031 assente |
-| 12 | Approvazioni | `grep -c MATCHPILOT_APPROVED_MIGRATIONS` nel file env dell'app (solo il conteggio) | presenza registrata, senza valori |
+| 12 | Approvazioni | `grep -c '^MATCHPILOT_APPROVED_MIGRATIONS=' /etc/matchpilot/matchpilot.env` (file env dell'app; stampa solo il conteggio) | presenza registrata, senza valori |
 | 13 | Collector | `systemctl list-timers --all \| grep -i apifootball` | nessun risultato |
 | 14 | Dipendenze | `node --version`, `psql --version` | Node 22 come in CI |
+| 15 | Release in esercizio | `readlink -f /srv/mp-deploy/current` e `git_sha.txt` dell'ultimo backup | lo sha della release; dice se la #277 (modalità dismessa) e le PR successive sono in esercizio |
 
 ## Rollback
 Tutti i controlli sono in sola lettura, quindi non c'è nulla da ripristinare.

@@ -43,7 +43,7 @@ Le 27 tabelle:
 
 ## 3. Sequenza di arresto (dopo il GO, in quest'ordine)
 0. Prerequisiti:
-   - #277 è già in produzione, con il codice della modalità dismessa;
+   - la #277 (codice della modalità dismessa) deve essere in produzione. **NON verificato:** è su main, ma ogni deploy di main da allora è stato rifiutato da `mp-runner-guard` (per esempio il deploy di main `7a959e7`, run 41426983861). Prima serve quindi un deploy autorizzato, e va verificato lo sha della release in esercizio (preflight, controllo 15);
    - #281, cioè `mp-fpt-worker-restart` e `mp-deploy` v3.4, è **installata a mano dall'owner**: prima l'helper, poi `mp-deploy`.
 
    Senza la #281 ogni deploy riavvierebbe il worker.
@@ -70,5 +70,5 @@ Le 27 tabelle:
 Nessun dato è stato cancellato, quindi il rollback non richiede ripristini del database. Il ripristino dal dump del passo 2 serve solo in caso di danno, e anch'esso è una decisione owner.
 
 ## Rischi
-- Lo stato reale della VPS non è verificato: unità, versione di PostgreSQL, contenuto dei file env.
-- Prima dell'installazione della #281, ogni deploy riavvia il worker anche se è stato disabilitato, e annulla l'arresto.
+- Lo stato reale della VPS non è verificato: unità, versione di PostgreSQL, contenuto dei file env, release in esercizio (e quindi la presenza della #277).
+- Prima dell'installazione della #281, ogni deploy (con `mp-deploy` v3.3) riavvia il worker anche se è stato disabilitato, e annulla l'arresto. Con la #277 in esercizio il worker riparte in modalità dismessa; senza, riparte come sorgente attiva.

@@ -69,7 +69,7 @@ Gli attacchi e gli attacchi pericolosi sono **l'informazione incrementale** che 
 
 | Soglia | Valore proposto | Motivazione |
 |---|---|---|
-| `min_matched_matches` | **200** partite, in almeno 5 leghe | Con 200 partite una proporzione (per esempio la copertura di un campo) ha un margine al 95% di circa ±7 punti nel caso peggiore (p = 0,5). Con 5 leghe si evita che il verdetto rifletta un solo campionato. Sotto questa soglia il verdetto è INSUFFICIENT EVIDENCE. |
+| `min_matched_matches` | **200** partite, in almeno 5 leghe | Con 200 partite una proporzione (per esempio la copertura di un campo) ha un margine al 95% di circa ±7 punti nel caso peggiore (p = 0,5). Il margine vale per proporzioni a livello di partita: per la copertura per campo calcolata sugli snapshot, che sono raggruppati per partita, il margine è più largo. Con 5 leghe si evita che il verdetto rifletta un solo campionato. Sotto questa soglia il verdetto è INSUFFICIENT EVIDENCE. |
 | `max_median_interval_ms` | **90 000** (90 s) | Su un archivio deduplicato è la cadenza mediana dei cambiamenti. Con dati vivi che cambiano a ogni attacco, una mediana oltre 90 s indica che il feed non segue il gioco abbastanza da vicino per i filtri LIVE al minuto. |
 | `max_gap_ratio` | **0,05** | Al massimo il 5% degli intervalli durante il gioco con un buco oltre 5 minuti. Un buco di 5 minuti fa perdere una finestra decisionale intera, e oltre il 5% la serie non è affidabile per il backtest LIVE. |
 | `max_median_sighting_delay_ms` | **120 000** (2 min) | Il ritardo di avvistamento include circa 0–60 s di arrotondamento del minuto e il ritardo del calcio d'inizio. Oltre 2 minuti di mediana un evento (gol, cartellino) arriva troppo tardi per un'operazione LIVE. |

@@ -6,6 +6,8 @@
 
 Il GO deve essere esplicito e punto per punto. Il silenzio non è un'autorizzazione.
 
+I link a `migration-031-preflight.md` e `prematch-collector.md` puntano a file che arrivano con le PR #282 e #283. Finché quelle PR non sono mergiate, si leggono sui loro rami.
+
 ## Prerequisito comune
 Preflight VPS in sola lettura ([`vps-preflight-2026-11-02.md`](vps-preflight-2026-11-02.md)). Non è stato eseguito per mancanza di accesso, ed è **bloccante** per i punti 1, 4 e 5.
 
