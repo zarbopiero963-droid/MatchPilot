@@ -70,7 +70,29 @@ Per questo l'inventario delle capacità resta **NOT VERIFIED**: niente viene des
 
   Dopo un 4xx o un campo `errors` non vuoto non si ritenta: anche con HTTP 200, `errors` non vuoto è un errore.
 - **Test.** Usano solo un `fetch` finto.
-- **Ancora da fare.** Il registro su PostgreSQL e la tabella degli snapshot delle quote arrivano con la loro migrazione (MP-CAP-02).
+- **Registro su PostgreSQL** (`createPgRequestLedger` in `src/providers/apifootball/store.mjs`): stesse due operazioni del registro in memoria, sulla tabella staged `af_request_ledger`.
+
+**Snapshot delle quote prematch (MP-ODDS-SNAP-01).** Il provider non garantisce uno storico delle quote, quindi MatchPilot costruisce il proprio, uno snapshot alla volta, dal momento dell'acquisizione.
+- **Trasformazione** (`src/providers/apifootball/odds-snapshots.mjs`, funzione pura). Ogni selezione di una risposta `/odds` diventa una riga con:
+  - id e testi del provider così come arrivano;
+  - prezzo come testo decimale;
+  - lettura `market_ref`: ciò che non è riconosciuto resta UNCLASSIFIED;
+  - ora di acquisizione, `update` del provider, calcio d'inizio;
+  - hash della risposta.
+- **Righe rifiutate, mai corrette.** Viene scartata una riga:
+  - acquisita al calcio d'inizio o dopo;
+  - con `update` del provider al calcio d'inizio o dopo, oppure successivo all'acquisizione (tolleranza di 5 minuti);
+  - senza calcio d'inizio;
+  - con un prezzo che non è un decimale ≥ 1.
+
+  Nessun dato successivo al calcio d'inizio diventa una quota prematch.
+- **Schema staged** `db/staged/031-apifootball-odds-snapshots.sql`, fuori da `migrations/`: `migrate()` e il guard del deploy non lo vedono.
+  - Tabelle append-only, protette dal database.
+  - Il database stesso rifiuta le righe prematch acquisite dopo il calcio d'inizio.
+  - Deduplica: lo stesso prezzo della stessa selezione allo stesso `update` del provider è un solo snapshot.
+  - Diventa una migrazione solo con una PR autorizzata dall'owner.
+- **Lettura point-in-time** (`oddsAsOf`): per ogni selezione restituisce l'ultimo snapshot acquisito entro `as_of`, mai uno successivo. Dopo il calcio d'inizio restituisce l'ultimo prezzo visto prima del calcio d'inizio.
+- **Ancora da fare.** Nessun job o route usa ancora questi moduli. Un collector che chiama `/odds` con frequenza dichiarata richiede la migrazione e un GO operativo.
 
 **Verifica proposta, senza spese e con budget di chiamate dichiarato:**
 
