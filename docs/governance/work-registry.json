@@ -2359,6 +2359,29 @@
         "role": "Development Agent"
       },
       "pr_open": true
+    },
+    {
+      "id": "MP-AF-COLLECT-01",
+      "title": "Collector PREMATCH API-FOOTBALL controllato, spento per default, senza scheduler (MANUAL)",
+      "issue": 263,
+      "pr": null,
+      "branch": "mp-prematch-collector-02",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T105039Z-agent-a-claude-code",
+      "resources": [
+        "file:src/providers/apifootball/prematch-collector.mjs",
+        "file:src/providers/apifootball/client.mjs",
+        "file:src/providers/apifootball/store.mjs",
+        "file:test/apifootball-prematch-collector.test.mjs",
+        "file:docs/product/mp-263/prematch-collector.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
