@@ -212,6 +212,11 @@ test('MP-AF-COLLECT-01 on PostgreSQL: ledger budget and interval survive restart
     await runNode(['src/migrate.mjs'], {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test'});
     const pool = new pg.Pool({connectionString: dbUrl.toString(), max: 3});
     try {
+      // The 031 schema: migrate() applies it once it is in migrations/ (PR #282); while it is staged, the test applies the
+      // same idempotent file itself. Either way the tables exist only in this throwaway schema.
+      const {existsSync, readFileSync} = await import('node:fs');
+      const schemaFile = ['migrations/031-apifootball-odds-snapshots.sql', 'db/staged/031-apifootball-odds-snapshots.sql'].find(f => existsSync(f));
+      await pool.query(readFileSync(schemaFile, 'utf8'));
       const ledger = createPgRequestLedger(pool);
       const fixtures = [fixture(1, T0 + 2 * H), fixture(2, T0 + 4 * H)];
       const run = start => harness({ledger, start, routes: standard(fixtures), save: (c, rows) => saveOddsSnapshots(c, rows)});

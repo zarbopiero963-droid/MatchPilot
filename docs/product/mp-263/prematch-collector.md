@@ -1,6 +1,6 @@
 # Collector PREMATCH API-FOOTBALL (MP-AF-COLLECT-01, MP-NEXT-20261102 punto E)
 
-`src/providers/apifootball/prematch-collector.mjs` raccoglie le quote PREMATCH con il client API-FOOTBALL (MP-AF-01), il ledger PostgreSQL delle richieste e lo store degli snapshot (migrazione 031, PR #282).
+`src/providers/apifootball/prematch-collector.mjs` raccoglie le quote PREMATCH con il client API-FOOTBALL (MP-AF-01), il ledger PostgreSQL delle richieste e lo store degli snapshot (schema 031: oggi in `db/staged/`, la PR #282 lo porta in `migrations/`).
 
 **Stato: IMPLEMENTATO e TESTATO con fake. Non ATTIVO.**
 - È spento per default.
