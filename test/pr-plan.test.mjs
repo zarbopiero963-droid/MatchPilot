@@ -176,6 +176,11 @@ test('MP-OWNER-DECISIONS-FINAL DC-002 B and DC-021 B lose no requirement and sta
   assert.ok(fails(p1, 'lost in the merge') || fails(p1, 'active requirement without coverage'));
   const p2 = clone(); p2.withdrawn_by_owner[0].decision = 'MP-NOT-REGISTERED';
   assert.ok(fails(p2, 'unregistered owner decision'));
+  // an existing but unapproved proposal (status OPEN) does not authorize a withdrawal
+  const proposal = JSON.parse(readFileSync('docs/governance/owner-decisions.json', 'utf8')).decisions.find(d => d.status === 'OPEN');
+  assert.ok(proposal, 'the register holds at least one OPEN proposal');
+  const p2b = clone(); p2b.withdrawn_by_owner[0].decision = proposal.id;
+  assert.ok(fails(p2b, 'not an owner authorization in force'));
   const p3 = clone(); p3.planned_prs.push({...structuredClone(w['MP-PRP-021'].original), requirements: []});
   assert.ok(fails(p3, 'still in the working plan'));
   // DC-233 B: the frontend exposure checks are planned in a mandatory PR before the deferred build

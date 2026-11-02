@@ -160,9 +160,11 @@ export function planValidate(reg, plan, {uiIds = null} = {}) {
   }
   // Owner decisions applied to the plan (MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL): a withdrawn or merged PR
   // names a registered owner decision, loses no requirement, and never shows up again in the working plan.
-  const decisionIds = new Set(JSON.parse(readFileSync(join(ROOT, 'docs/governance/owner-decisions.json'), 'utf8')).decisions.map(d => d.id));
+  // Only an approved decision in force authorizes it: an OPEN proposal or a superseded entry does not (PR #294 review).
+  const decisions = new Map(JSON.parse(readFileSync(join(ROOT, 'docs/governance/owner-decisions.json'), 'utf8')).decisions.map(d => [d.id, d]));
   for (const w of plan.withdrawn_by_owner ?? []) {
-    if (!decisionIds.has(w.decision)) errors.push(`${w.id}: withdrawn by an unregistered owner decision ${w.decision}`);
+    if (!decisions.has(w.decision)) errors.push(`${w.id}: withdrawn by an unregistered owner decision ${w.decision}`);
+    else if (decisions.get(w.decision).status !== 'IN_FORCE') errors.push(`${w.id}: decision ${w.decision} is ${decisions.get(w.decision).status}, not an owner authorization in force`);
     if (prIds.has(w.id)) errors.push(`${w.id}: withdrawn by the owner but still in the working plan`);
     const target = w.merged_into && plan.planned_prs.find(x => x.id === w.merged_into);
     if (w.merged_into && !target) errors.push(`${w.id}: merged into unknown ${w.merged_into}`);

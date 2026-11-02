@@ -17,6 +17,6 @@
   "docs/governance/ui-requirements-matrix.json": "e22093b1c14bb9856dfd61e8778ffae12a0601d0f71cc1bb469979114ec6721b",
   "docs/governance/mp-pr-00/requirements.json": "b7632aa37d47817762b575b8ec4930cb9e7cc6b554f84c6f6e3b546d5e9e9bb7",
   "tools/governance/master.mjs": "3dedd30e7c8a353b249b250b8864b0bf3388dbc0d7120713b564d98c8bff5a97",
-  "tools/governance/pr-plan.mjs": "e469cf1802c47fa874a5b5c8d1d2e80a6724353a6880936f0f1413ec7d9e8436"
+  "tools/governance/pr-plan.mjs": "f2ba00fdb759bb6c5e68fd8973fa85b60bf15aec1f9c4c827df74729bc65dea5"
  }
 }
