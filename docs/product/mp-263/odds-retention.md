@@ -17,7 +17,7 @@ Stato: **PROPOSTA**. Nessuna applicazione in produzione senza autorizzazione own
 Con la deduplica (§4) il carico reale atteso è il 30–50 % dei valori sopra. Lo scenario ampio a 365 g supera il disco: **vietato** senza partizionamento + archiviazione fuori linea.
 
 ## 3. Frequenza di cattura (PREMATCH)
-Catture a T-24 h, T-6 h, T-1 h, T-15 min (4 per partita), solo per le competizioni attive. Una chiamata `odds?fixture=` restituisce tutti i bookmaker (paginata): il costo API è per partita × cattura × pagine, contato nel budget condiviso dello scheduler (PR scheduler).
+Catture a T-24 h, T-6 h, T-1 h, T-15 min (4 per partita), solo per le competizioni attive. Una chiamata `odds?fixture=` restituisce tutti i bookmaker (paginata): il costo API è per partita × cattura × pagine, contato nel budget condiviso dello scheduler (PR #287, §9).
 
 ## 4. Deduplica
 Si scrive una riga solo se `(fixture, bookmaker, bet, valore, handicap)` cambia quota rispetto all'ultima cattura, o se `provider_update_at` avanza. L'ultima cattura prima del calcio d'inizio è sempre conservata (chiusura) anche se invariata, per il PIT.
@@ -38,6 +38,28 @@ Si scrive una riga solo se `(fixture, bookmaker, bet, valore, handicap)` cambia 
 I dump notturni (03:30) includono le nuove tabelle; con oltre 1 GB di quote si passa a dump per partizione. Si conservano i SHA256SUMS esistenti; nessun backup o prova di ripristino viene eseguito sulla VPS senza autorizzazione.
 
 ## 8. Monitoraggio spazio e limiti di crescita
-- Allarme WARN con meno di 15 G liberi su `/`, CRIT con meno di 8 G: lo scheduler si ferma (stato STOPPED, nota "spazio").
-- Tetto: `af_odds_snapshots` ≤ 5 GB (configurabile); al superamento, stop delle catture, nessuna cancellazione automatica.
-- Metriche giornaliere: righe inserite, righe deduplicate, MB per giorno, budget usato.
+- Allarme WARN con meno di 15 G liberi su `/` (monitoraggio esterno, non nello scheduler). Sotto la soglia CRIT, 8 G per default (`MP_AF_MIN_FREE_DISK_MB=8192`, configurabile), lo scheduler non avvia la richiesta successiva: esecuzione `STOPPED`, `reason_code` `DISK_LOW`, nota con spazio libero e soglia. Se la misura dello spazio fallisce o non è un numero: `STOPPED` / `DISK_CHECK_FAILED` (fail-closed). Il controllo si ripete prima di ogni task.
+- Tetto: `af_odds_snapshots` ≤ 5 GB per default (`MP_AF_MAX_ODDS_TABLE_MB=5120`, configurabile, misurato con `pg_total_relation_size`). Al superamento: `STOPPED` / `TABLE_CAP`, stop delle catture, **nessuna cancellazione automatica**.
+- Con il tetto di 5 GB lo scenario ampio (~216 MB/g senza deduplica) si ferma dopo ~23 giorni; il medio (~21,6 MB/g) resta sotto il tetto per tutta la finestra calda di 90 g (~1,9 GB). Il tetto si alza solo con decisione owner dopo il partizionamento del §5.
+- Metriche giornaliere: righe inserite, righe deduplicate, MB per giorno, budget usato (`af_scheduler_budget`), esecuzioni e motivi di stop (`af_scheduler_runs`), decisioni per task (`af_scheduler_events`).
+
+## 9. Scheduler: parametri e garanzie (PR #287)
+Disattivato per default: parte solo con `MP_AF_SCHEDULER_ENABLED=1` (esattamente `1`) e `MP_AF_DAILY_BUDGET` esplicito. Ogni valore non intero decimale o fuori intervallo lascia lo scheduler disattivato (`CONFIG_INVALID`); da disattivato non apre il database e non chiama nulla. Non esiste alcun avvio automatico (nessun cron, nessun servizio, nessun import dal server).
+
+| Variabile | Default | Intervallo | Effetto |
+|---|---|---|---|
+| `MP_AF_DAILY_BUDGET` | — (obbligatorio) | 1–100 000 | tentativi al giorno UTC, condivisi tra istanze; abbassarlo ha effetto subito |
+| `MP_AF_MAX_REQUESTS_PER_RUN` | nessuno | 1–100 000 | quota per esecuzione (`RUN_QUOTA`) |
+| `MP_AF_MIN_INTERVAL_MS` | 1 000 | 100–600 000 | distanza minima tra due tentativi, retry compresi |
+| `MP_AF_REQUEST_TIMEOUT_MS` | 15 000 | 1 000–120 000 | timeout per tentativo (richiesta annullata) |
+| `MP_AF_MAX_RETRIES` | 2 | 0–5 | retry solo su errori transitori (5xx, rete, timeout) |
+| `MP_AF_RETRY_BASE_MS` | 2 000 | 100–60 000 | backoff `base × 2^(n−1)`, massimo 60 s |
+| `MP_AF_MIN_FREE_DISK_MB` | 8 192 | ≥ 1 | soglia CRIT del disco (§8) |
+| `MP_AF_MAX_ODDS_TABLE_MB` | 5 120 | ≥ 1 | tetto di `af_odds_snapshots` (§8) |
+| `MP_AF_DISK_PATH` | `/` | percorso assoluto | filesystem misurato |
+
+- Errori: 429 e quota del provider (`RATE_LIMITED`, `PROVIDER_QUOTA`, errore `requests`) → `STOPPED` / `PROVIDER_QUOTA` senza retry; 401/403, configurazione o ledger non disponibili, errori sconosciuti → `FAILED` / `PROVIDER_FATAL` senza retry; altri 4xx → task saltato (`SKIPPED` / `CLIENT_ERROR`) senza retry; transitori esauriti → `FAILED` / `PROVIDER_UNAVAILABLE`; errore del database o del budget → `FAILED` / `INTERNAL_ERROR`, nessuna richiesta successiva.
+- Ogni tentativo, retry compresi, è riservato nel budget prima della richiesta: in caso di crash il budget sovrastima, non sottostima.
+- Deduplica: una chiave di task completata in un giorno UTC (`af_scheduler_done`) non si ripete, nemmeno dopo un riavvio; le chiavi ripetute nello stesso run sono saltate.
+- Un solo esecutore: `pg_try_advisory_lock(2630032)` sulla sessione dedicata (un pool è rifiutato) e indice unico sullo stato `RUNNING`. Dopo un crash PostgreSQL rilascia il lock; il run rimasto `RUNNING` diventa `ABORTED` / `CRASH_RECOVERED` all'avvio successivo.
+- Il client API-FOOTBALL (`client.mjs`) ha già un proprio retry singolo e un proprio budget: nel collegamento reale (PR #283) i due livelli vanno coordinati (per esempio `MP_AF_MAX_RETRIES=0`), fuori da questa PR.
