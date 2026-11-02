@@ -72,7 +72,7 @@ test('migrate() in production mode applies only approved files on a real databas
     assert.ok(held.held.length >= 28 && held.held[0] === '001-futpython-mirror.sql');
     assert.ok(logs.some(line => line.startsWith('MIGRATIONS_PENDING_NOT_APPROVED ')));
     const tables = async () => (await admin.query(`SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema=$1`, [schema])).rows[0].n;
-    assert.equal(await tables(), 1, 'only schema_migrations exists: no production migration ran');
+    assert.equal(await tables(), 3, 'only the runner bookkeeping exists (schema_migrations, checksum register, events): no production migration ran');
 
     const one = await migrate({env: {...production, MATCHPILOT_APPROVED_MIGRATIONS: '001-futpython-mirror.sql, 999-typo.sql'}, log});
     assert.ok(logs.includes('MIGRATION_APPROVALS_NOT_PENDING {"unused":["999-typo.sql"]}'), 'a mistyped approval is reported');

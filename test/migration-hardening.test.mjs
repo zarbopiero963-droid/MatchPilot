@@ -286,7 +286,7 @@ test('MIG-GAP-02: a process killed mid-migration leaves no partial change, frees
       assert.equal(free, true, 'lock freed after the crash');
       await admin.query('SELECT pg_advisory_unlock($1::int4, hashtext($2))', [MIGRATION_LOCK_CLASS, schema]);
       const tables = (await admin.query('SELECT table_name FROM information_schema.tables WHERE table_schema=$1 ORDER BY 1', [schema])).rows.map(row => row.table_name);
-      assert.deepEqual(tables, ['crash_probe_ok', 'schema_migrations'], 'no partial table from the killed migration');
+      assert.deepEqual(tables, ['crash_probe_ok', 'schema_migration_events', 'schema_migration_ledger', 'schema_migrations'], 'no partial table from the killed migration');
       const before = (await admin.query(`SELECT filename FROM ${schema}.schema_migrations`)).rows.map(row => row.filename);
       assert.deepEqual(before, ['001-ok.sql']);
 
@@ -344,7 +344,7 @@ test('MIG-GAP-02: a connection cut mid-migration fails migrate() cleanly, with n
       assert.equal(run.ok, false, 'migrate() rejects');
       assert.equal(run.locksHeld, 0, 'lock freed with the connection, before the pool is closed');
       const tables = (await admin.query('SELECT table_name FROM information_schema.tables WHERE table_schema=$1 ORDER BY 1', [schema])).rows.map(row => row.table_name);
-      assert.deepEqual(tables, ['cut_probe_ok', 'schema_migrations'], 'the cut file rolled back');
+      assert.deepEqual(tables, ['cut_probe_ok', 'schema_migration_events', 'schema_migration_ledger', 'schema_migrations'], 'the cut file rolled back');
     });
   } finally {
     await rm(dir, {recursive: true, force: true});

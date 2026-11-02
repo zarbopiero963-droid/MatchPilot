@@ -99,7 +99,7 @@ function run(args, env) {
 async function fingerprint(client, schema) {
   const q = async (sql) => (await client.query(sql, [schema])).rows.map(row => JSON.stringify(row).split(`${schema}.`).join(''));
   return {
-    columns: await q(`SELECT table_name, column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_schema = $1 AND table_name <> 'schema_migrations' ORDER BY 1, 2`),
+    columns: await q(`SELECT table_name, column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_schema = $1 AND table_name NOT LIKE 'schema\\_migration%' ORDER BY 1, 2`),
     constraints: await q(`SELECT conrelid::regclass::text AS t, conname, pg_get_constraintdef(oid) AS d FROM pg_constraint WHERE connamespace = $1::regnamespace ORDER BY 1, 2`),
     indexes: await q(`SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = $1 ORDER BY 1`),
     triggers: await q(`SELECT tgname, pg_get_triggerdef(t.oid) AS d FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid WHERE c.relnamespace = $1::regnamespace AND NOT t.tgisinternal ORDER BY 1`),
@@ -107,9 +107,9 @@ async function fingerprint(client, schema) {
   };
 }
 
-// Content of every table except schema_migrations: one md5 per table over its rows in a stable order.
+// Content of every table except the runner's bookkeeping (schema_migrations and the checksum register): one md5 per table over its rows in a stable order.
 async function contents(client, schema) {
-  const tables = (await client.query(`SELECT table_name FROM information_schema.tables WHERE table_schema = $1 AND table_type = 'BASE TABLE' AND table_name <> 'schema_migrations' ORDER BY 1`, [schema])).rows.map(r => r.table_name);
+  const tables = (await client.query(`SELECT table_name FROM information_schema.tables WHERE table_schema = $1 AND table_type = 'BASE TABLE' AND table_name NOT LIKE 'schema\\_migration%' ORDER BY 1`, [schema])).rows.map(r => r.table_name);
   const out = {};
   for (const table of tables) {
     out[table] = (await client.query(`SELECT count(*)::int AS n, md5(coalesce(string_agg(r::text, '|' ORDER BY r::text), '')) AS h FROM ${schema}.${table} r`)).rows[0];
