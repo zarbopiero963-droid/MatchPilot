@@ -1,0 +1,148 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T103757Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T10:37:57Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-NEXT-20261102",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-ODDS-MIG-01",
+  "activity": "migration 031 promoted with rollback and preflight; production application stays owner-gated",
+  "issue": 263,
+  "pr": null,
+  "branch": "mp-odds-migration-031",
+  "commit_sha": "5752d90249c02a7e575b3da75f7b3b9b53cb7387",
+  "tree_sha": "2268e7388588f91e285cba0ff1ad7a7bd788d143",
+  "base_sha": "7a959e7b00279bf281194c6d404c0c394fa047b4",
+  "requirements": [],
+  "changes": [
+    "migrations/031-apifootball-odds-snapshots.sql moved from db/staged",
+    "db/rollback/031-apifootball-odds-snapshots.down.sql new",
+    "docs/product/mp-263/migration-031-preflight.md new",
+    "test/apifootball-odds-snapshots.test.mjs migration and rollback tests"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, docker postgres:17 on 127.0.0.1:5433",
+      "commit": "5752d90249c02a7e575b3da75f7b3b9b53cb7387",
+      "time": "2026-11-02T10:37:57Z",
+      "limits": [
+        "full suite 804/804 on PostgreSQL 17.11 (docker); migration not tested on the VPS PostgreSQL version (unverified, possibly 18)"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "5752d90249c02a7e575b3da75f7b3b9b53cb7387"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "5752d90249c02a7e575b3da75f7b3b9b53cb7387",
+    "reference": "independent review (Sonnet subagent, same model family: self-review) APPROVED at 9577920, re-review APPROVED at 5752d90"
+  },
+  "findings": [
+    {
+      "id": "MIG-NB-A",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "rollback guard failed on an already rolled-back schema: dynamic EXECUTE inside IF, re-run tested"
+    },
+    {
+      "id": "MIG-NB-B",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "row check and DROP not serialized: migrate() advisory lock plus ACCESS EXCLUSIVE table locks"
+    },
+    {
+      "id": "MIG-NB-C",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "unqualified names: confirm search_path first, stated in the script and in the preflight"
+    },
+    {
+      "id": "MIG-NB-F",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "measurement caveats, PostgreSQL 14 minimum and retention decision (about 250 GB/year worst case) added to the preflight"
+    },
+    {
+      "id": "MIG-NB-E",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "gating test models only 031 as pending"
+    },
+    {
+      "id": "MIG-R2-NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "a ledger-first writer could deadlock with the rollback; PostgreSQL aborts one side and the rollback fails closed"
+    },
+    {
+      "id": "MIG-R2-NB-3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "hand-run rollback has no lock_timeout; runtime lock conflict verified by hand, not by a test"
+    }
+  ],
+  "owner_decisions": [
+    "MP-NEXT-20261102",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "independent review"
+    ],
+    "in_progress": [
+      "CI"
+    ],
+    "not_started": [
+      "owner authorization and merge (MANUAL)"
+    ]
+  },
+  "resources": [
+    "file:migrations/031-apifootball-odds-snapshots.sql",
+    "file:db/rollback/031-apifootball-odds-snapshots.down.sql",
+    "file:docs/product/mp-263/migration-031-preflight.md",
+    "file:test/apifootball-odds-snapshots.test.mjs"
+  ],
+  "stop_conditions": [
+    "MANUAL: AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER",
+    "no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI; MANUAL: stops before merge, owner authorization required",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": null
+}
