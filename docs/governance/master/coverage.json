@@ -1,0 +1,105 @@
+{
+  "issues": {
+    "total": 49,
+    "open": 43,
+    "closed": 6,
+    "open_without_master_link": 42
+  },
+  "pull_requests": {
+    "total": 239,
+    "open": 7,
+    "merged": 229,
+    "closed_unmerged": 3
+  },
+  "requirements": {
+    "master_atomic": 1349,
+    "existing_registers": {
+      "ui_matrix": 1100,
+      "mp_pr_00": 139
+    },
+    "by_lifecycle": {
+      "ACTIVE": 1164,
+      "ARCHIVE_NO_ACTION": 56,
+      "DUPLICATE": 11,
+      "IDEA_NOT_APPROVED": 40,
+      "SUPERSEDED": 78
+    },
+    "by_relation": {
+      "COMPATIBLE": 1177,
+      "CONFLICT_OWNER_DECISION_REQUIRED": 9,
+      "DUPLICATE": 14,
+      "SUPERSEDED": 131,
+      "UNRESOLVED": 18
+    },
+    "active_by_implementation": {
+      "IMPLEMENTED": 201,
+      "NOT_IMPLEMENTED": 432,
+      "PARTIAL": 503,
+      "UNKNOWN": 28
+    },
+    "active_by_tested": {
+      "BROWSER": 37,
+      "INTEGRATION": 53,
+      "NONE": 489,
+      "UNIT": 534,
+      "UNKNOWN": 51
+    },
+    "active_by_certified": {
+      "COMPONENT": 66,
+      "NONE": 1058,
+      "UNKNOWN": 40
+    },
+    "active_merged": 683,
+    "active_in_open_pr": 89,
+    "active_deployed_verified": 0,
+    "active_operational": 4,
+    "active_blocked": 226,
+    "active_with_provider_gap": 299,
+    "active_without_evidence": 449,
+    "conflicts_owner_decision_required": 9,
+    "unresolved": 18,
+    "by_domain": {
+      "A": 234,
+      "B": 32,
+      "C": 20,
+      "D": 133,
+      "E": 99,
+      "F": 59,
+      "G": 57,
+      "GOV": 115,
+      "H": 55,
+      "I": 121,
+      "J": 78,
+      "K": 67,
+      "L": 94
+    }
+  },
+  "cards": {
+    "total": 376,
+    "by_origin": {
+      "existing": 258,
+      "new": 113,
+      "open_pr": 5
+    },
+    "by_phase": {
+      "P0": 27,
+      "P1": 5,
+      "P10": 1,
+      "P2": 46,
+      "P3": 13,
+      "P4": 22,
+      "P5": 45,
+      "P6": 22,
+      "P7": 165,
+      "P8": 18,
+      "P9": 12
+    },
+    "by_state": {
+      "BLOCKED": 106,
+      "IMPLEMENTED": 5,
+      "IMPLEMENTING": 196,
+      "NOT STARTED": 69
+    },
+    "certified": 0
+  }
+}
