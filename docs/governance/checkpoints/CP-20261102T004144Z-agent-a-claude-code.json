@@ -1,0 +1,139 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T004144Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T00:41:44Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-IMPL-20261101",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): implementation phase"
+  },
+  "task": "MP-CAP-03",
+  "activity": "MP-CAP-03: universal AND/OR/NOT conditions on the capability catalog (authorized item 5), pure module",
+  "issue": 263,
+  "pr": null,
+  "branch": "mp-cap-03-conditions",
+  "commit_sha": "e09e7451297444bca78d76fd0928439857d0d8ce",
+  "tree_sha": "7536e10d6d5f0afd172033f31c5de1340017557c",
+  "base_sha": "2180f4decef13c239178c1040849bbc43a63f789",
+  "requirements": [],
+  "changes": [
+    "src/conditions/expression.mjs",
+    "test/conditions-expression.test.mjs",
+    "README.md",
+    "package.json check entry"
+  ],
+  "tests": [
+    {
+      "command": "node --test",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, throwaway local PostgreSQL 16",
+      "commit": "e09e7451297444bca78d76fd0928439857d0d8ce",
+      "time": "2026-11-02T00:41:44Z",
+      "limits": [
+        "790 tests, 789 pass, 1 skipped (PostgreSQL 17 independence test), 0 fail"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "e09e7451297444bca78d76fd0928439857d0d8ce"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "e09e7451297444bca78d76fd0928439857d0d8ce",
+    "reference": "independent review by an agent of a different model: APPROVED on 0c96ada (non-blocking findings), re-review APPROVED on e09e745; record to be posted on the PR"
+  },
+  "findings": [
+    {
+      "id": "CAP03-N1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "untimed archive prices reported apart by pitReport: no violation is not PIT verified"
+    },
+    {
+      "id": "CAP03-N2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "is_null/not_null on a present but unreadable value is UNKNOWN"
+    },
+    {
+      "id": "CAP03-N3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "calendar-invalid instants refused, never rolled over"
+    },
+    {
+      "id": "CAP03-N4",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "sub-millisecond fractions collapse to milliseconds"
+    },
+    {
+      "id": "CAP03-N5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "date-only values documented as UNKNOWN"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-IMPL-20261101",
+    "MP-AUTONOMY-01",
+    "MP-OWNER-GO-2026-11-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "independent review",
+      "review fixes",
+      "re-review"
+    ],
+    "in_progress": [
+      "CI"
+    ],
+    "not_started": [
+      "merge",
+      "wiring into search and strategies (public contract, decision engine)"
+    ]
+  },
+  "resources": [
+    "file:src/conditions/expression.mjs",
+    "file:test/conditions-expression.test.mjs"
+  ],
+  "stop_conditions": [
+    "merge only under the owner authorization and every gate",
+    "no deploy started by the agent",
+    "no route or engine wiring in this PR"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI, conditional merge",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": null
+}
