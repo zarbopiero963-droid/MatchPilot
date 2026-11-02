@@ -1,0 +1,3131 @@
+[
+ {
+  "number": 5,
+  "title": "DATA-01: mirror completo FutPythonTrader e cron di sincronizzazione",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T14:33:36Z",
+  "head": "data/futpython-full-sync",
+  "issues": [],
+  "tasks": [
+   "DATA-01"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 7,
+  "title": "DATA-02: watchdog e notifiche anomalie FutPythonTrader",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T15:02:08Z",
+  "head": "data/watchdog-alerts",
+  "issues": [],
+  "tasks": [
+   "DATA-02"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 9,
+  "title": "DATA-03: Telegram outbound-only con whitelist chat e test one-shot",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T15:16:32Z",
+  "head": "data/telegram-outbound-only",
+  "issues": [],
+  "tasks": [
+   "DATA-03"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 11,
+  "title": "DATA-04: aggrega gli alert FutPython e sopprime i 404 iniziali",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T15:20:43Z",
+  "head": "data/alert-aggregation",
+  "issues": [],
+  "tasks": [
+   "DATA-04"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 13,
+  "title": "FPT-CERT P1: backfill storico completo e stato certificabile",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T15:28:12Z",
+  "head": "cert/fpt-phase1-backfill",
+  "issues": [],
+  "tasks": [
+   "FPT-CERT"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 14,
+  "title": "FPT-CERT P1 fix: riconcilia resume e run interrotti",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T15:33:02Z",
+  "head": "cert/fpt-phase1-reconcile",
+  "issues": [],
+  "tasks": [
+   "FPT-CERT"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 15,
+  "title": "FPT-CERT P1 perf: batch persistence per backfill reale",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T15:42:52Z",
+  "head": "cert/fpt-phase1-batching",
+  "issues": [],
+  "tasks": [
+   "FPT-CERT"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 16,
+  "title": "FPT-CERT P1 fix: contatori run certificabili",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T15:48:10Z",
+  "head": "cert/fpt-phase1-counters",
+  "issues": [],
+  "tasks": [
+   "FPT-CERT"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 17,
+  "title": "FPT-CERT P1 final: verifier reale e ledger di certificazione",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T15:53:18Z",
+  "head": "cert/fpt-phase1-close",
+  "issues": [],
+  "tasks": [
+   "FPT-CERT"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 18,
+  "title": "FPT-CERT P1 fix: catalogo storico completo per tutte le stagioni",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T16:00:00Z",
+  "head": "cert/fpt-phase1-full-catalog",
+  "issues": [],
+  "tasks": [
+   "FPT-CERT"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 19,
+  "title": "DOCS: sincronizza CLAUDE.md e AGENTS.md con FPT-CERT #12",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T17:06:27Z",
+  "head": "docs/sync-agent-contracts-fpt-cert",
+  "issues": [
+   12
+  ],
+  "tasks": [
+   "FPT-CERT"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 21,
+  "title": "DOCS: sincronizza contratti con TC-CERT #20",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T17:14:38Z",
+  "head": "docs/sync-totalcorner-cert-contract",
+  "issues": [
+   20
+  ],
+  "tasks": [
+   "TC-CERT"
+  ],
+  "domain_guess": "totalcorner"
+ },
+ {
+  "number": 22,
+  "title": "DOCS: owner gate per chiusura issue",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T17:26:13Z",
+  "head": "docs/issue-closure-owner-rule",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "docs"
+ },
+ {
+  "number": 26,
+  "title": "DOCS: trading-first contract, non betting-first",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T17:45:24Z",
+  "head": "docs/trading-first-contract",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "docs"
+ },
+ {
+  "number": 33,
+  "title": "DOCS: evidenza reale FASE 1 / FPT-PR-01",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T18:54:26Z",
+  "head": "cert/fpt-phase1-evidence",
+  "issues": [],
+  "tasks": [
+   "FPT-PR-01"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 35,
+  "title": "FIX: resume atomico e budget richieste FutPython",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T20:24:24Z",
+  "head": "cert/fpt-phase1-resume-budget",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 36,
+  "title": "FEAT: classificazione terminale del catalogo FutPython",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T20:46:22Z",
+  "head": "cert/fpt-phase2-classification",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 37,
+  "title": "FEAT: integrità snapshot e identità squadra FutPython",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T21:11:30Z",
+  "head": "cert/fpt-phase3-integrity",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 38,
+  "title": "FEAT: registry schema e lineage FutPython",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T21:26:16Z",
+  "head": "cert/fpt-phase4-schema",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 39,
+  "title": "FEAT: coverage multidimensionale FutPython",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T23:23:34Z",
+  "head": "cert/fpt-phase5-coverage",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 41,
+  "title": "FEAT: registry stagione e point-in-time FutPython",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T23:33:42Z",
+  "head": "cert/fpt-phase6-seasons",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 42,
+  "title": "FEAT: due sync incrementali FutPython",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T23:43:58Z",
+  "head": "cert/fpt-phase7-incremental",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 43,
+  "title": "FEAT: watchdog e Telegram FutPython",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-04T23:53:27Z",
+  "head": "cert/fpt-phase8-watchdog",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 47,
+  "title": "TEMP: persist provider trial snapshots to dedicated Neon schema",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T07:12:23Z",
+  "head": "temp/provider-trial-neon-persistence",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "persistence"
+ },
+ {
+  "number": 48,
+  "title": "FPT-PR-09: certificato finale e hard certification FutPythonTrader",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T08:51:58Z",
+  "head": "ccr-c1d65522-hubntx",
+  "issues": [],
+  "tasks": [
+   "FPT-PR-09"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 49,
+  "title": "FIX: gate del certificato FutPython (feed today vuoto, prova reale del ledger)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T09:00:09Z",
+  "head": "ccr-c1d65522-hubntx",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "ledger"
+ },
+ {
+  "number": 50,
+  "title": "TEMP: cumulative provider metrics and trial keep-alive support",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T09:09:40Z",
+  "head": "temp/provider-trial-anti-sleep-metrics",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 51,
+  "title": "TEMP: zero-cost self keepalive for provider trial",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T09:12:00Z",
+  "head": "temp/provider-trial-self-keepalive",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 52,
+  "title": "TEMP: external keepalive for provider trial",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T09:14:50Z",
+  "head": "temp/provider-trial-external-keepalive",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 53,
+  "title": "TEMP: prepare dormant BetsAPI Everything collector",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T10:03:08Z",
+  "head": "temp/betsapi-everything-ready",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 54,
+  "title": "TEMP: register all 51 documented BetsAPI calls",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T10:17:13Z",
+  "head": "temp/betsapi-all-documented-endpoints",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 55,
+  "title": "TEMP: probe all documented BetsAPI calls with real IDs",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T10:40:49Z",
+  "head": "temp/betsapi-full-catalog-cycle",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 56,
+  "title": "FIX: serialize BetsAPI full-catalog probes",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T10:44:40Z",
+  "head": "temp/betsapi-full-catalog-lock",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 57,
+  "title": "DOCS: certificato finale FutPythonTrader 2026-10-05 (FPT-PR-09)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T10:52:32Z",
+  "head": "ccr-c1d65522-hubntx",
+  "issues": [],
+  "tasks": [
+   "FPT-PR-09"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 58,
+  "title": "FIX: complete BetsAPI player endpoint discovery",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T10:49:26Z",
+  "head": "temp/betsapi-player-id-harvest",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 59,
+  "title": "TEMP: expose per-endpoint BetsAPI probe diagnostics",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T10:58:12Z",
+  "head": "temp/betsapi-full-probe-diagnostics",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 60,
+  "title": "FIX: harvest BetsAPI player IDs from team squad",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T11:03:21Z",
+  "head": "temp/betsapi-player-squad-fix",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 61,
+  "title": "FIX: retry transient BetsAPI probe failures once",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T11:15:25Z",
+  "head": "temp/betsapi-probe-transient-retry",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 62,
+  "title": "TEMP: reconcile sports leagues history and odds timelines",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T11:37:57Z",
+  "head": "temp/provider-trial-reconciliation",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "odds"
+ },
+ {
+  "number": 63,
+  "title": "FIX: normalize league census without fake events",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T11:41:50Z",
+  "head": "temp/reconciliation-league-shape-fix",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 64,
+  "title": "FIX: harden reconciliation odds and round-robin census",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T11:47:28Z",
+  "head": "temp/reconciliation-hardening",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "odds"
+ },
+ {
+  "number": 65,
+  "title": "FIX: reset derived odds v2 and verify opening closing view",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T11:53:21Z",
+  "head": "temp/reconciliation-odds-v2",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "odds"
+ },
+ {
+  "number": 66,
+  "title": "FIX: repair reconciliation filters and odds timeline routing",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T11:58:56Z",
+  "head": "temp/reconciliation-filter-fix",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "odds"
+ },
+ {
+  "number": 67,
+  "title": "FIX: protect reconciliation from BetsAPI rate limits",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T12:00:27Z",
+  "head": "temp/reconciliation-rate-limit-and-filters",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 68,
+  "title": "FIX: stabilize reconciliation SQL filters",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T12:07:01Z",
+  "head": "temp/reconciliation-filter-fix-v2",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 69,
+  "title": "FIX: parse BetsAPI odds timelines by market key",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T12:48:37Z",
+  "head": "temp/reconciliation-odds-v3-filters",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "odds"
+ },
+ {
+  "number": 70,
+  "title": "CERT: replay raw odds v3 and certify reconciliation",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T12:58:47Z",
+  "head": "temp/reconciliation-v3-certification",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "odds"
+ },
+ {
+  "number": 71,
+  "title": "FIX: make reconciliation raw replay non-blocking",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T13:02:39Z",
+  "head": "temp/reconciliation-replay-nonblocking",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 72,
+  "title": "CERT: finalize reconciliation classification gates",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T13:05:30Z",
+  "head": "temp/reconciliation-final-cert-fix",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 73,
+  "title": "FIX: normalize reconciliation certificate history-floor date",
+  "state": "closed",
+  "merged": false,
+  "merged_at": null,
+  "head": "temp/reconciliation-certificate-date-fix",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "backtest"
+ },
+ {
+  "number": 74,
+  "title": "DOCS: certify provider trial for passive collection",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T13:09:48Z",
+  "head": "temp/provider-trial-certified-passive",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "docs"
+ },
+ {
+  "number": 75,
+  "title": "DOCS: sync final provider trial reconciliation certificate",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T13:12:42Z",
+  "head": "temp/provider-trial-certification-doc",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "docs"
+ },
+ {
+  "number": 76,
+  "title": "FIX: persist BetsAPI rate budget and 429 hold across restarts",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T13:35:30Z",
+  "head": "temp/betsapi-persistent-rate-budget",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "persistence"
+ },
+ {
+  "number": 77,
+  "title": "FIX: replace certificate hardcoded gates with measurable controls",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T13:44:36Z",
+  "head": "temp/certificate-real-gates",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 78,
+  "title": "FIX: persist BetsAPI census progress across restarts",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T13:50:39Z",
+  "head": "temp/persist-census-progress",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "persistence"
+ },
+ {
+  "number": 79,
+  "title": "FIX: classify missing dimensions as unverified, not upstream",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T13:57:16Z",
+  "head": "temp/unknown-status-semantics",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 80,
+  "title": "AUDIT: split BetsAPI 429 and 5xx before/after persistent-rate fix",
+  "state": "closed",
+  "merged": false,
+  "merged_at": null,
+  "head": "temp/rate-audit-split",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "persistence"
+ },
+ {
+  "number": 81,
+  "title": "FPT-PR-09: query layer per l'assistente e gate di performance esteso (gap #12 n.1)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T15:03:28Z",
+  "head": "ccr-c1d65522-hubntx",
+  "issues": [
+   12
+  ],
+  "tasks": [
+   "FPT-PR-09"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 82,
+  "title": "FPT-PR-09: registry dei filtri completa — indexed, first_seen, last_seen (gap #12 n.2)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T15:17:17Z",
+  "head": "ccr-c1d65522-hubntx",
+  "issues": [
+   12
+  ],
+  "tasks": [
+   "FPT-PR-09"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 83,
+  "title": "FPT-PR-09: livelli di budget e rinvio del traffico non essenziale (gap #12 n.3)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T15:32:24Z",
+  "head": "ccr-c1d65522-hubntx",
+  "issues": [
+   12
+  ],
+  "tasks": [
+   "FPT-PR-09"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 84,
+  "title": "FIX: extend provider-trial keepalive through full 24h window",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T15:24:39Z",
+  "head": "fix/provider-trial-keepalive-window",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 85,
+  "title": "FIX: certify current provider-trial persistence health",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T15:28:07Z",
+  "head": "temp/trial-health-keepalive-cert-fix",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "persistence"
+ },
+ {
+  "number": 86,
+  "title": "FPT-PR-09: onboarding controllato di nuove leghe e stagioni (gap #12 n.4)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T16:23:33Z",
+  "head": "ccr-c1d65522-hubntx",
+  "issues": [
+   12
+  ],
+  "tasks": [
+   "FPT-PR-09"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 88,
+  "title": "FPT-PR-09: riconciliazione compatibile con #31 — checkpoint, ledger dei gap, recupero (gap #12 n.5)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T19:40:27Z",
+  "head": "ccr-c1d65522-hubntx",
+  "issues": [
+   12,
+   31
+  ],
+  "tasks": [
+   "FPT-PR-09"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 89,
+  "title": "FPT-PR-09: policy di versionamento parser/schema, raw append-only e rielaborazione registrata (gap #12 n.6)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T20:25:41Z",
+  "head": "ccr-c1d65522-hubntx",
+  "issues": [
+   12
+  ],
+  "tasks": [
+   "FPT-PR-09"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 90,
+  "title": "FPT-PR-09: pagina Data Coverage → Competizioni (gate catalogo #12)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T21:17:11Z",
+  "head": "ccr-c1d65522-hubntx",
+  "issues": [
+   12
+  ],
+  "tasks": [
+   "FPT-PR-09"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 92,
+  "title": "FPT-PR-09: certificato finale rigenerato (20/20) e checkpoint post_run con l'esito reale",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T22:37:26Z",
+  "head": "ccr-c1d65522-hubntx",
+  "issues": [],
+  "tasks": [
+   "FPT-PR-09"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 93,
+  "title": "DOCS: certificato FutPython rigenerato dal deploy di 6f83e2e (20/20)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-05T22:44:18Z",
+  "head": "ccr-c1d65522-hubntx",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "docs"
+ },
+ {
+  "number": 101,
+  "title": "DOCS: prototipo MatchPilot Trading OS aggiornato al 2026-10-06 (#94, #95, #96)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T08:38:03Z",
+  "head": "ccr-c1d65522-hubntx",
+  "issues": [
+   94,
+   95,
+   96
+  ],
+  "tasks": [],
+  "domain_guess": "docs"
+ },
+ {
+  "number": 103,
+  "title": "docs/mock: fully align MatchPilot UX with roadmap #97 and live trading architecture",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T09:16:54Z",
+  "head": "ccr-c1d65522-hubntx",
+  "issues": [
+   97
+  ],
+  "tasks": [],
+  "domain_guess": "docs"
+ },
+ {
+  "number": 105,
+  "title": "[PROVIDER-TRIAL] Final freeze/export endpoint for certified archive",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T10:52:16Z",
+  "head": "fix/provider-trial-final-export",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 106,
+  "title": "[PROVIDER-TRIAL] Add Basic Auth transport for final export",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T10:57:21Z",
+  "head": "fix/provider-trial-export-basic-auth",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 107,
+  "title": "[PROVIDER-TRIAL] Create immutable final freeze boundary on startup",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T11:08:40Z",
+  "head": "fix/provider-trial-freeze-on-start",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 108,
+  "title": "[PROVIDER-TRIAL] Wire final freeze hook into collector startup",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T11:10:23Z",
+  "head": "fix/provider-trial-freeze-hook-wire",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 109,
+  "title": "[PROVIDER-TRIAL] Force immutable final freeze on temporary branch",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T11:17:47Z",
+  "head": "fix/trial-final-freeze-force",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 110,
+  "title": "[PROVIDER-TRIAL] Audit frozen dataset counts",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T11:21:35Z",
+  "head": "fix/trial-freeze-counts-audit",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 111,
+  "title": "[PROVIDER-TRIAL] Deduplicate frozen dataset inventory",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T11:23:57Z",
+  "head": "fix/trial-dataset-inventory-dedup",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 112,
+  "title": "[PROVIDER-TRIAL] Export frozen trial datasets to files",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T11:32:34Z",
+  "head": "fix/trial-final-export-files",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 113,
+  "title": "[PROVIDER-TRIAL] Use dedicated DB pool for final export",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T11:35:48Z",
+  "head": "fix/trial-export-dedicated-db-pool",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 114,
+  "title": "[PROVIDER-TRIAL] Segregate ScoreTrend from final archive",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T12:36:29Z",
+  "head": "fix/trial-scoretrend-segregation",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 115,
+  "title": "[PROVIDER-TRIAL] Fix ScoreTrend segregation output directory",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T12:41:50Z",
+  "head": "fix/scoretrend-segregation-mkdir",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 116,
+  "title": "[PROVIDER-TRIAL] Export clean canonical layer without ScoreTrend",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T12:46:33Z",
+  "head": "fix/scoretrend-clean-canonical-export",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 117,
+  "title": "[PROVIDER-TRIAL] Build canonical Parquet and DuckDB analytics package",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T13:04:44Z",
+  "head": "feat/trial-duckdb-parquet-package",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 118,
+  "title": "[PROVIDER-TRIAL] Fix DuckDB coverage event_count cast",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T13:52:25Z",
+  "head": "fix/trial-duckdb-event-count-cast",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 119,
+  "title": "[PROVIDER-TRIAL] Lower DuckDB memory on Render",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T14:52:32Z",
+  "head": "fix/trial-duckdb-low-memory",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 120,
+  "title": "[PROVIDER-TRIAL] Add final archive secret scan",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T15:49:50Z",
+  "head": "fix/trial-final-secret-scan",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 121,
+  "title": "[PROVIDER-TRIAL] Stabilize final secret scan snapshot",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T16:46:06Z",
+  "head": "fix/trial-secret-scan-transient-files",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 122,
+  "title": "[PROVIDER-TRIAL] Finalize stable SHA-256 archive gate",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T17:41:25Z",
+  "head": "fix/trial-final-sha256",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 123,
+  "title": "[PROVIDER-TRIAL] Add final DB/export/manifest reconciliation gate",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-06T20:06:05Z",
+  "head": "fix/trial-final-reconciliation",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 124,
+  "title": "[PROVIDER-TRIAL] Deterministic keyset paging for every export dataset (#40 point 9)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-07T10:05:54Z",
+  "head": "fix/trial-deterministic-paging",
+  "issues": [
+   40
+  ],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 125,
+  "title": "docs/governance: align owner decisions and current state across #3 #97 #104",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-07T14:19:13Z",
+  "head": "docs/governance-alignment-2026-10-07",
+  "issues": [
+   3,
+   97,
+   104
+  ],
+  "tasks": [],
+  "domain_guess": "governance"
+ },
+ {
+  "number": 126,
+  "title": "[PROVIDER-TRIAL] Read-only regenerated archive, PIT closing and portable verified readback",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-07T16:37:30Z",
+  "head": "fix/provider-trial-regenerated-archive",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "pit"
+ },
+ {
+  "number": 127,
+  "title": "[PROVIDER-TRIAL] Bound regenerated statement timeout for real frozen export",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-07T20:26:55Z",
+  "head": "fix/provider-trial-regenerated-timeout",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 128,
+  "title": "[PROVIDER-TRIAL] Optimize regenerated PIT PostgreSQL plan",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-07T21:29:09Z",
+  "head": "fix/provider-trial-pit-postgres-plan",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "pit"
+ },
+ {
+  "number": 129,
+  "title": "[PROVIDER-TRIAL] Final closure report and retire keepalive",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-08T05:53:58Z",
+  "head": "docs/provider-trial-final-closure",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "provider-trial"
+ },
+ {
+  "number": 130,
+  "title": "[TC-CORE-01] TotalCorner provider contract, discovery and lossless raw retention (#20)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-08T10:09:18Z",
+  "head": "tc-core-01-discovery",
+  "issues": [
+   20
+  ],
+  "tasks": [
+   "TC-CORE-01"
+  ],
+  "domain_guess": "totalcorner"
+ },
+ {
+  "number": 131,
+  "title": "[TC-CORE-02] FPT ↔ TotalCorner competition mapping on real fixture overlap (#20)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-08T10:28:05Z",
+  "head": "tc-core-02-mapping",
+  "issues": [
+   20
+  ],
+  "tasks": [
+   "TC-CORE-02"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 133,
+  "title": "[TC-CORE-02] v2: same-category pairing and cache-first schedule pages (#20)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-08T11:09:18Z",
+  "head": "tc-core-02-categories",
+  "issues": [
+   20
+  ],
+  "tasks": [
+   "TC-CORE-02"
+  ],
+  "domain_guess": "totalcorner"
+ },
+ {
+  "number": 134,
+  "title": "[TC-CORE-03] Prematch markets, lines and point-in-time cutoff (#20)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-08T11:18:14Z",
+  "head": "tc-core-03-prematch",
+  "issues": [
+   20
+  ],
+  "tasks": [
+   "TC-CORE-03"
+  ],
+  "domain_guess": "totalcorner"
+ },
+ {
+  "number": 135,
+  "title": "[TC-CORE-03] Gate fuso provider: offset misurato, persistito e fail-closed (#20)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-08T13:40:26Z",
+  "head": "tc-core-03-tz-gate",
+  "issues": [
+   20
+  ],
+  "tasks": [
+   "TC-CORE-03"
+  ],
+  "domain_guess": "totalcorner"
+ },
+ {
+  "number": 136,
+  "title": "[TC-CORE-03] Gate fuso v2: stima dell'offset robusta agli outlier (#20)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-08T13:55:25Z",
+  "head": "tc-core-03-tz-robust",
+  "issues": [
+   20
+  ],
+  "tasks": [
+   "TC-CORE-03"
+  ],
+  "domain_guess": "totalcorner"
+ },
+ {
+  "number": 137,
+  "title": "[TC-CORE-03B] Resumable historical upstream backfill (#20)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-08T20:54:42Z",
+  "head": "tc-core-03b-historical-backfill",
+  "issues": [
+   20
+  ],
+  "tasks": [
+   "TC-CORE-03B"
+  ],
+  "domain_guess": "totalcorner"
+ },
+ {
+  "number": 138,
+  "title": "[TC-CORE-03B] Fix real league schedule envelope and rerun sample (#20)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-08T20:58:42Z",
+  "head": "tc-core-03b-schedule-shape-fix",
+  "issues": [
+   20
+  ],
+  "tasks": [
+   "TC-CORE-03B"
+  ],
+  "domain_guess": "totalcorner"
+ },
+ {
+  "number": 139,
+  "title": "[TC-CORE-03B] Stratify historical sample across seasons and real field aliases (#20)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-08T21:06:47Z",
+  "head": "tc-core-03b-stratified-history-fix",
+  "issues": [
+   20
+  ],
+  "tasks": [
+   "TC-CORE-03B"
+  ],
+  "domain_guess": "totalcorner"
+ },
+ {
+  "number": 140,
+  "title": "[TC-CORE-03B] Repair nested bookmaker movement audit from raw (#20)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-08T21:14:49Z",
+  "head": "tc-core-03b-movement-audit-fix",
+  "issues": [
+   20
+  ],
+  "tasks": [
+   "TC-CORE-03B"
+  ],
+  "domain_guess": "totalcorner"
+ },
+ {
+  "number": 141,
+  "title": "[TC-CORE-03B] Resume odds movement before membership expiry (#20)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-08T21:42:13Z",
+  "head": "tc-core-03b-movement-priority",
+  "issues": [
+   20
+  ],
+  "tasks": [
+   "TC-CORE-03B"
+  ],
+  "domain_guess": "odds"
+ },
+ {
+  "number": 142,
+  "title": "[TC-CORE-03B] Expose historical certification gates (#20)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-08T21:58:32Z",
+  "head": "tc-core-03b-cert-gates",
+  "issues": [
+   20
+  ],
+  "tasks": [
+   "TC-CORE-03B"
+  ],
+  "domain_guess": "totalcorner"
+ },
+ {
+  "number": 143,
+  "title": "[TC-CORE-04] Live collector for verified in-play matches (#20)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-08T22:37:42Z",
+  "head": "tc-core-04-live",
+  "issues": [
+   20
+  ],
+  "tasks": [
+   "TC-CORE-04"
+  ],
+  "domain_guess": "totalcorner"
+ },
+ {
+  "number": 145,
+  "title": "[TC-CORE-04] Lossless live + terminal recovery — live certification blocked",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-09T12:39:13Z",
+  "head": "tc-core-04-lossless-hash",
+  "issues": [],
+  "tasks": [
+   "TC-CORE-04"
+  ],
+  "domain_guess": "totalcorner"
+ },
+ {
+  "number": 146,
+  "title": "CI: selective zero-cost gate for GitHub Actions",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-09T13:17:24Z",
+  "head": "ci-selective-zero-cost",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 147,
+  "title": "Runtime: isolate backend from collectors",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-09T13:28:11Z",
+  "head": "backend-collector-isolation",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 148,
+  "title": "CI: certify independent PostgreSQL development",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-09T15:33:06Z",
+  "head": "postgres-independent-ci",
+  "issues": [],
+  "tasks": [],
+  "domain_guess": "other"
+ },
+ {
+  "number": 149,
+  "title": "MP-PR-00: establish Gate A atomic requirements inventory",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-18T19:45:01Z",
+  "head": "governance/mp-pr-00-atomic-requirements",
+  "issues": [],
+  "tasks": [
+   "MP-PR-00"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 151,
+  "title": "R-01: permanent governance, multi-agent checkpoints, handoff and closure guards",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-18T20:58:30Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "R-01"
+  ],
+  "domain_guess": "governance"
+ },
+ {
+  "number": 152,
+  "title": "R-02: read-only verification of the #40 archive metadata, R-01 review fixes",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-18T21:17:02Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [
+   40
+  ],
+  "tasks": [
+   "R-01",
+   "R-02"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 153,
+  "title": "R-03: read-only API v1 (endpoint registry, envelope, errors) + #152 review fixes",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-18T21:39:46Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [
+   152
+  ],
+  "tasks": [
+   "R-03"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 154,
+  "title": "R-08 (part 1): point-in-time policy mp-pit-v1 — five timestamps, time zone/DST rules, PIT labels",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-18T22:28:43Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "R-08"
+  ],
+  "domain_guess": "pit"
+ },
+ {
+  "number": 155,
+  "title": "R-08b: version availability for re-parsed FPT versions (MP-FPT-005)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-18T23:06:05Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "MP-FPT-005",
+   "R-08b"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 156,
+  "title": "R-12 (MATH-CORE-01): fixed-precision Decimal and common Math Core contracts",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T07:59:13Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "R-12"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 157,
+  "title": "R-04a: hold unapproved migrations in production mode (D13)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T08:43:01Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "R-04",
+   "R-04a"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 158,
+  "title": "MIG-GAP-01/02: migration hardening (real host check, cross-process migration lock)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T09:58:29Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "MIG-GAP-01",
+   "R-04-MIG"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 159,
+  "title": "R-04b: owner login (D12) — sessions, rate limit, audit; off by default, fail closed",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T10:19:05Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "R-04b"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 160,
+  "title": "R-04c: owner-login activation hardening (IPv6 /64 buckets, explicit proxy trust, spike alert)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T10:26:48Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "R-04c"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 161,
+  "title": "R-05: real read-only web shell, browser E2E lane, security headers",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T10:44:00Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "R-05"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 162,
+  "title": "R-06a: deterministic keyset pagination for match search and matches of a day",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T11:42:43Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "R-06a"
+  ],
+  "domain_guess": "search"
+ },
+ {
+  "number": 163,
+  "title": "R-06b: Dashboard, Daily Board e Ricerca sull'API v1",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T12:50:43Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "R-06b"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 164,
+  "title": "QA-01: Browser QA Gate deterministico — prove browser reali, verificate e obbligatorie per le modifiche web",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T13:27:21Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "QA-01"
+  ],
+  "domain_guess": "qa"
+ },
+ {
+  "number": 165,
+  "title": "QA-02: Browser QA esplorativo (livello B) — crawler deterministico e procedura di review AI verificata",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T14:33:35Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "QA-02"
+  ],
+  "domain_guess": "qa"
+ },
+ {
+  "number": 166,
+  "title": "QA-03: certificazione end-to-end del Browser QA e valutazione dell'agente AI esplorativo",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T17:32:45Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "QA-03"
+  ],
+  "domain_guess": "qa"
+ },
+ {
+  "number": 167,
+  "title": "EVIDENCE-01: evidenze permanenti degli audit (MP-OWNER-PERMANENT-EVIDENCE-01)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T16:38:39Z",
+  "head": "claude/permanent-evidence-01",
+  "issues": [],
+  "tasks": [
+   "EVIDENCE-01",
+   "MP-OWNER-PERMANENT-EVIDENCE-01"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 168,
+  "title": "V-A: correzione dei bug A-1 e A-2 dell'audit visuale, con test di regressione browser",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T18:15:36Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "V-A"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 169,
+  "title": "V-B1: nessun testo tecnico nelle viste utente (MP-OWNER-UI-NO-RAW-TEXT-01) — Daily Board, Ricerca, stati condivisi",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T19:33:46Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "MP-OWNER-UI-NO-RAW-TEXT-01",
+   "V-B1"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 170,
+  "title": "V-B2a: home «Oggi», menu Oggi · Ricerca · Dati, area tecnica con schede, barra mobile",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T21:39:31Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "V-B2a"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 171,
+  "title": "V-B2b: etichette italiane dell'albero Fornitori e note della review di #170",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T22:25:11Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [
+   170
+  ],
+  "tasks": [
+   "V-B2b"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 172,
+  "title": "V-B3: identità del mockup approvato — token, ambra #FFB547, logo, font locali con licenza",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-19T22:56:41Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "V-B3"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 173,
+  "title": "V-B4: Daily Board compatta e striscia dei giorni del mockup, risultati della ricerca come schede su telefono",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-20T05:53:28Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "V-B4"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 174,
+  "title": "QA-V: baseline visive versionate delle viste approvate, manifest SHA-256, soglie esplicite, CI bloccante",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-20T07:26:42Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "QA-V"
+  ],
+  "domain_guess": "qa"
+ },
+ {
+  "number": 175,
+  "title": "QA-V2: stati espliciti nelle baseline visive, matrice di certificabilità, riconciliazione V-B4/QA-V",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-20T08:49:25Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "QA-V",
+   "QA-V2",
+   "V-B4"
+  ],
+  "domain_guess": "qa"
+ },
+ {
+  "number": 176,
+  "title": "R-07a: Match Center, analisi pre-partita (primo lotto di #30)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-20T09:54:59Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [
+   30
+  ],
+  "tasks": [
+   "R-07a"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 177,
+  "title": "VPS-DEPLOY-01: deploy di main sulla VPS privata; nessun workflow di PR può usarne il runner",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-20T11:07:32Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "VPS-DEPLOY-01"
+  ],
+  "domain_guess": "deploy"
+ },
+ {
+  "number": 178,
+  "title": "HIST-01a: motore di backtest offline deterministico su fixture sintetiche (ammissione PIT, strategia di collaudo, settlement 1X2, report riproducibile)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T09:20:48Z",
+  "head": "ccr-e45875c0-5r0fnf",
+  "issues": [],
+  "tasks": [
+   "HIST-01a"
+  ],
+  "domain_guess": "backtest"
+ },
+ {
+  "number": 180,
+  "title": "MP-DEPLOY-APPROVAL — Mandatory Owner Approval Gate for VPS Deployments",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-21T16:32:21Z",
+  "head": "deploy-approval-01",
+  "issues": [],
+  "tasks": [
+   "DEPLOY-APPROVAL-01",
+   "MP-DEPLOY-APPROVAL"
+  ],
+  "domain_guess": "deploy"
+ },
+ {
+  "number": 181,
+  "title": "MP-GATE-S1S2-FIX — nessun codice sulla VPS senza approvazione owner; deploy solo della punta di main",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-21T19:50:39Z",
+  "head": "deploy-gate-final-01",
+  "issues": [],
+  "tasks": [
+   "DEPLOY-GATE-S1S2-01",
+   "MP-GATE-S1S2-FIX"
+  ],
+  "domain_guess": "deploy"
+ },
+ {
+  "number": 183,
+  "title": "GOV-RECON-01: riconciliazione governance R1–R7, checkpoint v3 e handoff indipendente dall'agente",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T08:28:22Z",
+  "head": "claude/gov-recon-01",
+  "issues": [],
+  "tasks": [
+   "GOV-RECON-01"
+  ],
+  "domain_guess": "governance"
+ },
+ {
+  "number": 184,
+  "title": "FUNC-RECOVERY-01: segnali FutPythonTrader simulati end-to-end (MP-VPS-FUNCTIONAL-RECOVERY-01)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T12:44:28Z",
+  "head": "functional/mp-vps-recovery-20261022",
+  "issues": [],
+  "tasks": [
+   "FUNC-RECOVERY-01",
+   "MP-VPS-FUNCTIONAL-RECOVERY-01"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 185,
+  "title": "TAKEOVER-01: registrazione takeover Grok, checkpoint MERGED #183/#184, riconciliazione registro (GR-T1, GR-T3)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T12:58:04Z",
+  "head": "governance/grok-takeover-20261022",
+  "issues": [
+   183,
+   184
+  ],
+  "tasks": [
+   "TAKEOVER-01"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 186,
+  "title": "TC-OFF-01: TotalCorner spento per configurazione esplicita (#20, #182)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T13:08:06Z",
+  "head": "tc-off-01",
+  "issues": [
+   20,
+   182
+  ],
+  "tasks": [
+   "TC-OFF-01"
+  ],
+  "domain_guess": "totalcorner"
+ },
+ {
+  "number": 187,
+  "title": "SIM-OUTBOX-01: messaggi Telegram simulati (mai inviati) per i segnali simulati",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T13:20:41Z",
+  "head": "sim-outbox-01",
+  "issues": [],
+  "tasks": [
+   "SIM-OUTBOX-01"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 188,
+  "title": "SIM-SCHEDULE-01: segnali simulati schedulabili (--date today|yesterday, Europe/Rome) (#182)",
+  "state": "closed",
+  "merged": false,
+  "merged_at": null,
+  "head": "sim-schedule-01",
+  "issues": [
+   182
+  ],
+  "tasks": [
+   "SIM-SCHEDULE-01"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 189,
+  "title": "SIM-OUTBOX-01: rimozione del codice di #187 (decisione owner t108u)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T13:49:58Z",
+  "head": "revert-sim-outbox-01",
+  "issues": [
+   187
+  ],
+  "tasks": [
+   "SIM-OUTBOX-01",
+   "t108u"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 190,
+  "title": "DEC-008: rimozione segnali simulati di #184 (FUNC-RECOVERY-01)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T16:03:35Z",
+  "head": "dec008-remove-sim-signals",
+  "issues": [
+   184
+  ],
+  "tasks": [
+   "DEC-008",
+   "DEC008-REMOVE-SIM",
+   "FUNC-RECOVERY-01"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 191,
+  "title": "GOV-DEC-14: registro decisioni owner DEC-001..014 + rettifica DEC-004-R1 (non unire prima del deploy)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T17:37:36Z",
+  "head": "gov/dec-001-014-ratification",
+  "issues": [],
+  "tasks": [
+   "DEC-001",
+   "DEC-004-R1",
+   "GOV-DEC-14"
+  ],
+  "domain_guess": "governance"
+ },
+ {
+  "number": 192,
+  "title": "MP-AUTODEPLOY-01: auto-deploy gated on merged PR + trusted pinned CI (self-review by the author agent)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T16:21:53Z",
+  "head": "auto-deploy-gates",
+  "issues": [],
+  "tasks": [
+   "AUTODEPLOY-01a",
+   "MP-AUTODEPLOY-01"
+  ],
+  "domain_guess": "deploy"
+ },
+ {
+  "number": 193,
+  "title": "MP-AUTODEPLOY-01: bounded retry of transient GitHub answers (self-review by the author agent)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T16:45:41Z",
+  "head": "guard-read-retry",
+  "issues": [],
+  "tasks": [
+   "AUTODEPLOY-01b",
+   "MP-AUTODEPLOY-01"
+  ],
+  "domain_guess": "deploy"
+ },
+ {
+  "number": 194,
+  "title": "MP-AUTODEPLOY-01: merge-proof fallback (closed PRs into main) when commits/{sha}/pulls returns 500",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T16:56:19Z",
+  "head": "merge-proof-fallback",
+  "issues": [],
+  "tasks": [
+   "AUTODEPLOY-01c",
+   "MP-AUTODEPLOY-01"
+  ],
+  "domain_guess": "deploy"
+ },
+ {
+  "number": 195,
+  "title": "FPT worker: graceful SIGTERM shutdown (src/worker.mjs)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T17:25:53Z",
+  "head": "worker-sigterm",
+  "issues": [],
+  "tasks": [
+   "FPT-WORKER-SIGTERM"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 197,
+  "title": "INFRA-VPS-01: versiona mp-deploy v3.3, runner guard e unit FPT worker (infra/vps)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T19:21:57Z",
+  "head": "feat/t129-infra-port",
+  "issues": [],
+  "tasks": [
+   "INFRA-VPS-01"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 198,
+  "title": "MM-LEDGER-01: paper ledger + Money Management STOP/ADVISORY_ONLY (DEC-001/DEC-013)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T19:30:10Z",
+  "head": "feat/t129-paper-ledger-mm",
+  "issues": [],
+  "tasks": [
+   "DEC-001",
+   "DEC-013",
+   "MM-LEDGER-01"
+  ],
+  "domain_guess": "ledger"
+ },
+ {
+  "number": 199,
+  "title": "fix(guard): bounded re-read of a run still reported queued (t130u)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T19:44:19Z",
+  "head": "fix/t130-guard-queued-race",
+  "issues": [],
+  "tasks": [
+   "GUARD-QUEUED-RACE",
+   "t130u"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 200,
+  "title": "FPT monitoring fixes from the t131u audit (7 fixes, RED→GREEN)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T20:12:04Z",
+  "head": "feat/t131-fpt-monitoring",
+  "issues": [],
+  "tasks": [
+   "FPT-MON-T131",
+   "t131u"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 201,
+  "title": "t132u: FPT hardening FIX-01..09",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T21:06:47Z",
+  "head": "feat/t132-fpt-hardening",
+  "issues": [],
+  "tasks": [
+   "FPT-FIX-01-09",
+   "t132u"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 202,
+  "title": "t136u: exact revert for the FPT gap reclassification (pre-requisite of the 412 prod apply)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T21:25:55Z",
+  "head": "fix/t136u-revert-exact",
+  "issues": [],
+  "tasks": [
+   "FPT-RECLASS-REVERT",
+   "t136u"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 203,
+  "title": "t138: FPT residuals — release SHA, post-cycle heartbeat, DB-down probe alert, Telegram delivery proof",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T22:48:54Z",
+  "head": "t138-fpt-residuals",
+  "issues": [],
+  "tasks": [
+   "FPT-RESIDUALS-T138",
+   "t138"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 204,
+  "title": "t139: backup + DR coverage check read /srv/mp-deploy/current (real release source)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T23:03:29Z",
+  "head": "t139-dr-release-source",
+  "issues": [],
+  "tasks": [
+   "DR-RELEASE-SOURCE",
+   "t139"
+  ],
+  "domain_guess": "deploy"
+ },
+ {
+  "number": 205,
+  "title": "t140: fix DR coverage check NameError introduced in #204",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T23:12:13Z",
+  "head": "t140-dr-check-fix",
+  "issues": [
+   204
+  ],
+  "tasks": [
+   "DR-CHECK-FIX",
+   "t140"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 206,
+  "title": "t141: failed alert delivery records its reason (alert 73 root-cause gap)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T23:24:59Z",
+  "head": "t141-alert-delivery-reason",
+  "issues": [],
+  "tasks": [
+   "ALERT-DELIVERY-REASON",
+   "t141"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 207,
+  "title": "MM-PR-01 (#96/#99): registry census, liability models, exposure/concurrency caps (no persistence)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-22T23:43:34Z",
+  "head": "mm-pr01-registry-liability",
+  "issues": [
+   96,
+   99
+  ],
+  "tasks": [
+   "MM-PR-01"
+  ],
+  "domain_guess": "money-management"
+ },
+ {
+  "number": 208,
+  "title": "MM-PR-02 (#96): per-scope exposure caps, min/max odds filters, reset capability flags (no persistence)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T00:01:35Z",
+  "head": "mm-pr02-scoped-exposure",
+  "issues": [
+   96
+  ],
+  "tasks": [
+   "MM-PR-02"
+  ],
+  "domain_guess": "odds"
+ },
+ {
+  "number": 209,
+  "title": "MARKET-CORE-01/02 (#100): versioned market rules registry + core football resolvers (pure, no persistence)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T00:18:28Z",
+  "head": "market-core-01-02",
+  "issues": [
+   100
+  ],
+  "tasks": [
+   "MARKET-CORE-01",
+   "MARKET-CORE-01-02"
+  ],
+  "domain_guess": "market"
+ },
+ {
+  "number": 210,
+  "title": "t145 (t138u): fix BUDGET_CRITICAL false positive (internal pacing ≠ provider budget)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T05:55:02Z",
+  "head": "t145-budget-critical-false-positive",
+  "issues": [],
+  "tasks": [
+   "BUDGET-CRITICAL-FP",
+   "t138u",
+   "t145"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 211,
+  "title": "GOV-SYNC-01 (#150): reconcile work registry with GitHub #189-#210",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T06:08:27Z",
+  "head": "gov-sync-01",
+  "issues": [
+   150,
+   189,
+   210
+  ],
+  "tasks": [
+   "GOV-SYNC-01"
+  ],
+  "domain_guess": "governance"
+ },
+ {
+  "number": 212,
+  "title": "GOV-DRIFT-01 (#150): CI drift check registry vs GitHub",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T06:17:32Z",
+  "head": "gov-drift-01",
+  "issues": [
+   150
+  ],
+  "tasks": [
+   "GOV-DRIFT-01"
+  ],
+  "domain_guess": "governance"
+ },
+ {
+  "number": 213,
+  "title": "GOV-RUNTIME-STATE-01 (#150): runtime state on GitHub",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T06:26:39Z",
+  "head": "gov-runtime-state-01",
+  "issues": [
+   150
+  ],
+  "tasks": [
+   "GOV-RUNTIME-STATE-01"
+  ],
+  "domain_guess": "governance"
+ },
+ {
+  "number": 214,
+  "title": "GOV-PROTOCOL-01 (#150): vendor-neutral protocol + takeover rule + negative tests",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T06:33:19Z",
+  "head": "gov-protocol-01",
+  "issues": [
+   150
+  ],
+  "tasks": [
+   "GOV-PROTOCOL-01"
+  ],
+  "domain_guess": "governance"
+ },
+ {
+  "number": 215,
+  "title": "HANDOFF-PREP-01 (#150): HANDOFF-TEST-01 HANDOFF READY",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T06:43:00Z",
+  "head": "handoff-prep-01",
+  "issues": [
+   150
+  ],
+  "tasks": [
+   "HANDOFF-PREP-01",
+   "HANDOFF-TEST-01"
+  ],
+  "domain_guess": "governance"
+ },
+ {
+  "number": 216,
+  "title": "HANDOFF-TEST-01 (#150): leg B by agent-b-claude-code (handoff IN, tests/docs, HANDOFF READY back to agent-g-grok)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T11:42:16Z",
+  "head": "handoff-test-01",
+  "issues": [
+   150
+  ],
+  "tasks": [
+   "HANDOFF-TEST-01"
+  ],
+  "domain_guess": "governance"
+ },
+ {
+  "number": 217,
+  "title": "MARKET-CORE-04 (#100): esiti simulati solo da FutPythonTrader/TotalCorner, non-finali UNRESOLVED, versioni e correzioni DEC-002",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T12:35:22Z",
+  "head": "market-core-04",
+  "issues": [
+   100
+  ],
+  "tasks": [
+   "DEC-002",
+   "MARKET-CORE-04"
+  ],
+  "domain_guess": "totalcorner"
+ },
+ {
+  "number": 219,
+  "title": "LEDGER-CORE-03 (#99): settlement del ledger dalle regole di mercato #100 e dalle versioni dei risultati (DEC-002)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T13:37:35Z",
+  "head": "ledger-core-03",
+  "issues": [
+   99,
+   100
+  ],
+  "tasks": [
+   "DEC-002",
+   "LEDGER-CORE-03"
+  ],
+  "domain_guess": "ledger"
+ },
+ {
+  "number": 220,
+  "title": "HIST-LINK-01: backtest settles on versioned results through #100, no VOID",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T15:07:12Z",
+  "head": "hist-link-01",
+  "issues": [
+   100
+  ],
+  "tasks": [
+   "HIST-LINK-01"
+  ],
+  "domain_guess": "backtest"
+ },
+ {
+  "number": 221,
+  "title": "HIST-LEDGER-01: every backtest bet is a paper-ledger position, the ledger is the only P/L path",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T15:29:16Z",
+  "head": "hist-ledger-01",
+  "issues": [],
+  "tasks": [
+   "HIST-LEDGER-01"
+  ],
+  "domain_guess": "backtest"
+ },
+ {
+  "number": 222,
+  "title": "HIST-LAY-01: LAY bets in the backtest through the same decision, ledger and settlement path",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T15:45:38Z",
+  "head": "hist-lay-01",
+  "issues": [],
+  "tasks": [
+   "HIST-LAY-01"
+  ],
+  "domain_guess": "backtest"
+ },
+ {
+  "number": 223,
+  "title": "HIST-PG-01: FutPythonTrader data from PostgreSQL into the backtest, labelled NON_PIT_RESEARCH mode",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T16:12:48Z",
+  "head": "hist-pg-01",
+  "issues": [],
+  "tasks": [
+   "HIST-PG-01"
+  ],
+  "domain_guess": "search"
+ },
+ {
+  "number": 224,
+  "title": "HIST-PG-TZFIX: FPT match dates never shift a day in Europe/Rome (fixes deploy 5db6b56 FAIL_TESTS)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T16:42:57Z",
+  "head": "hist-pg-tzfix",
+  "issues": [],
+  "tasks": [
+   "HIST-PG-TZFIX"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 226,
+  "title": "HIST-MM-01: bankroll and Money Management in the backtest, chronological settlement without look-ahead",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T17:05:43Z",
+  "head": "hist-mm-01",
+  "issues": [],
+  "tasks": [
+   "HIST-MM-01"
+  ],
+  "domain_guess": "backtest"
+ },
+ {
+  "number": 227,
+  "title": "HIST-API-01: GET /api/v1/hist/backtest over the stored FPT data (read only, bounded, labelled)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T17:30:15Z",
+  "head": "hist-api-01",
+  "issues": [],
+  "tasks": [
+   "HIST-API-01"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 228,
+  "title": "LEDGER-PERF-01: incremental paper-ledger replay (linear backtests), API limits raised",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T17:50:54Z",
+  "head": "ledger-perf-01",
+  "issues": [],
+  "tasks": [
+   "LEDGER-PERF-01"
+  ],
+  "domain_guess": "ledger"
+ },
+ {
+  "number": 229,
+  "title": "HIST-WEB-01: «Simulazione» web view over /api/v1/hist/backtest",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T18:16:40Z",
+  "head": "web-sim-01",
+  "issues": [],
+  "tasks": [
+   "HIST-WEB-01"
+  ],
+  "domain_guess": "backtest"
+ },
+ {
+  "number": 230,
+  "title": "STRAT-CFG-01: configurable strategies as validated, versioned definitions (engine, API, Simulazione)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T19:25:24Z",
+  "head": "next-unit-01",
+  "issues": [],
+  "tasks": [
+   "STRAT-CFG-01"
+  ],
+  "domain_guess": "strategy"
+ },
+ {
+  "number": 231,
+  "title": "STRAT-CMP-01: compare two or three strategy configurations on one read of the same data",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T19:50:54Z",
+  "head": "strat-cmp-01",
+  "issues": [],
+  "tasks": [
+   "STRAT-CMP-01"
+  ],
+  "domain_guess": "strategy"
+ },
+ {
+  "number": 232,
+  "title": "PERSIST-PLAN-01: plan of the additive persistence migration (priority 4), no migration applied",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T20:09:18Z",
+  "head": "persist-plan-01",
+  "issues": [],
+  "tasks": [
+   "PERSIST-PLAN-01"
+  ],
+  "domain_guess": "persistence"
+ },
+ {
+  "number": 233,
+  "title": "FPT-FACTS-GATE-01: matches no longer hidden or frozen in the facts by a dataset not yet ACTIVE",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T21:08:09Z",
+  "head": "fpt-facts-gate-01",
+  "issues": [],
+  "tasks": [
+   "FPT-FACTS-GATE-01"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 235,
+  "title": "PERSIST-PREFLIGHT-01: read-only VPS preflight and GO/NO-GO criteria for the persistence migration",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T21:35:44Z",
+  "head": "persist-preflight-01",
+  "issues": [],
+  "tasks": [
+   "PERSIST-PREFLIGHT-01"
+  ],
+  "domain_guess": "persistence"
+ },
+ {
+  "number": 236,
+  "title": "PERSIST-GONOGO-01: FPT facts recovery command, preflight facts section, GO/NO-GO report and runbook",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T22:33:56Z",
+  "head": "persist-gonogo-01",
+  "issues": [],
+  "tasks": [
+   "PERSIST-GONOGO-01"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 237,
+  "title": "PERSIST-STORE-01: staged persistence schema and store (paper ledger, strategies, saved backtests)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-23T23:01:08Z",
+  "head": "persist-store-01",
+  "issues": [],
+  "tasks": [
+   "PERSIST-STORE-01"
+  ],
+  "domain_guess": "ledger"
+ },
+ {
+  "number": 238,
+  "title": "PERSIST-API-01: persistence HTTP API — owner-only same-origin JSON writes, 503 until the schema exists",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-24T08:22:15Z",
+  "head": "persist-api-01",
+  "issues": [],
+  "tasks": [
+   "PERSIST-API-01"
+  ],
+  "domain_guess": "persistence"
+ },
+ {
+  "number": 240,
+  "title": "MP-UI-PR-001: control inventory and actuation evidence in the Browser QA gate",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-24T09:55:08Z",
+  "head": "ui-pr-001",
+  "issues": [],
+  "tasks": [
+   "MP-UI-PR-001"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 241,
+  "title": "MP-UI-PR-002: ASSERTED gate and Gate A/B certification rules",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-24T10:41:51Z",
+  "head": "ui-pr-002",
+  "issues": [],
+  "tasks": [
+   "MP-UI-PR-002"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 242,
+  "title": "MP-UI-PR-003: save results and strategies from the simulation",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-24T11:28:20Z",
+  "head": "ui-pr-003",
+  "issues": [],
+  "tasks": [
+   "MP-UI-PR-003"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 243,
+  "title": "MP-UI-PR-004: shell — owner session and «Esci», footer",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-24T12:15:34Z",
+  "head": "ui-pr-004",
+  "issues": [],
+  "tasks": [
+   "MP-UI-PR-004"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 244,
+  "title": "MP-UI-PR-005: Trading Tools (#94) and certification per feature",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-24T13:16:40Z",
+  "head": "ui-pr-005",
+  "issues": [
+   94
+  ],
+  "tasks": [
+   "MP-UI-PR-005"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 246,
+  "title": "MP-UI-CERT-CALC-01: CERTIFIED CALCULATION level and complete certification record",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-24T14:03:59Z",
+  "head": "ui-cert-calc-01",
+  "issues": [],
+  "tasks": [
+   "MP-UI-CERT-CALC-01"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 247,
+  "title": "MP-UI-CERT-CALC-01 hotfix: certification bound to the feature content (main red since 91b24bd)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-24T14:49:52Z",
+  "head": "fix-cert-squash",
+  "issues": [],
+  "tasks": [
+   "MP-UI-CERT-CALC-01",
+   "MP-UI-CERT-HOTFIX-01"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 250,
+  "title": "MP-UI-D12-DECISIONS-20261024: 19 D12 decisions registered, UI requirement matrix, roadmap reconciliation (phase A)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-24T20:14:04Z",
+  "head": "gov-d12-ratification",
+  "issues": [],
+  "tasks": [
+   "MP-UI-D12-DECISIONS-20261024",
+   "MP-UI-D12-GOV-01"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 251,
+  "title": "MP-UI-PR-006: Strategie page (#34) — list, detail, versions, modify as next version, clone a version, private reads",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-24T22:27:49Z",
+  "head": "ui-pr-006",
+  "issues": [
+   34
+  ],
+  "tasks": [
+   "MP-UI-PR-006",
+   "MP-UI-PR-006-STRAT"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 252,
+  "title": "MP-UI-PR-007 Fondamenta: badge condivisi, stati HTTP, tablet, matrice negativa, campi d'errore strutturati",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-31T15:51:20Z",
+  "head": "ui-pr-007",
+  "issues": [],
+  "tasks": [
+   "MP-UI-PR-007",
+   "MP-UI-PR-007-FOUND"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 253,
+  "title": "MP-UI-PR-007 follow-up: tutti i controlli verificati (MP-REQ-UI-1028), checkpoint MERGED della PR-007",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-31T18:28:00Z",
+  "head": "ui-pr-008",
+  "issues": [],
+  "tasks": [
+   "MP-REQ-UI-1028",
+   "MP-UI-PR-007",
+   "MP-UI-PR-007-FOUND-1028"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 254,
+  "title": "Governance: regole di auto-merge SAFE in AGENTS.md e CLAUDE.md (merge manuale)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-31T21:24:16Z",
+  "head": "gov-safe-automerge",
+  "issues": [],
+  "tasks": [
+   "MP-GOV-SAFE-AUTOMERGE-RULES"
+  ],
+  "domain_guess": "governance"
+ },
+ {
+  "number": 255,
+  "title": "MP-UI-PR-008-COV: copertura per campionato dentro l'app (#/coverage)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-31T19:13:06Z",
+  "head": "ui-pr-008-cov",
+  "issues": [],
+  "tasks": [
+   "MP-UI-PR-008-COV"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 256,
+  "title": "MP-UI-PR-008-COV follow-up: finding di review PR255-T-1..3, checkpoint MERGED #255",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-31T19:48:07Z",
+  "head": "ui-pr-008-cov-fu",
+  "issues": [
+   255
+  ],
+  "tasks": [
+   "MP-UI-PR-008-COV",
+   "MP-UI-PR-008-COV-FU"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 257,
+  "title": "MP-UI-PR-009-NAV: Cerca nell'intestazione (MP-REQ-UI-1038)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-31T20:25:22Z",
+  "head": "ui-pr-009-nav",
+  "issues": [],
+  "tasks": [
+   "MP-REQ-UI-1038",
+   "MP-UI-PR-009-NAV"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 258,
+  "title": "MP-UI-PR-011-SRCHX: filtri della Ricerca già supportati dall'API (MP-REQ-UI-0249, 1053)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-31T20:58:49Z",
+  "head": "ui-pr-011-srchx",
+  "issues": [],
+  "tasks": [
+   "MP-REQ-UI-0249",
+   "MP-UI-PR-011-SRCHX"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 259,
+  "title": "[MANUAL] Governance: promozione con evidenze dei requisiti riconciliati D12; MP-REQ-UI-1035 TESTED",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-01T00:08:45Z",
+  "head": "gov-d12-recon-evidence",
+  "issues": [],
+  "tasks": [
+   "MP-GOV-D12-RECON-EVIDENCE",
+   "MP-REQ-UI-1035"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 260,
+  "title": "[MANUAL] MP-UI-PR-011-SEASON: filtro stagione della Ricerca con endpoint competition-seasons (MP-REQ-UI-0249)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-01T00:25:49Z",
+  "head": "ui-pr-011-season",
+  "issues": [],
+  "tasks": [
+   "MP-REQ-UI-0249",
+   "MP-UI-PR-011-SEASON"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 261,
+  "title": "[MANUAL] MP-UI-PR-010-BOARD-COMP: filtro campionato nella pagina Oggi (MP-REQ-UI-1051)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-01T00:58:47Z",
+  "head": "ui-pr-010-board-comp",
+  "issues": [],
+  "tasks": [
+   "MP-REQ-UI-1051",
+   "MP-UI-PR-010-BOARD-COMP"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 262,
+  "title": "MP-PRODUCT-100: decisione owner, audit globale, inventario provider, architettura e roadmap",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-31T22:46:57Z",
+  "head": "docs-mp-product-100",
+  "issues": [],
+  "tasks": [
+   "MP-PRODUCT-100",
+   "MP-PRODUCT-100-AUDIT"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 264,
+  "title": "[MANUAL] MP-UI-PR-009-TEAMSEARCH: squadre per parte del nome nel campo Cerca",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-01T01:36:18Z",
+  "head": "ui-pr-009-teamsearch",
+  "issues": [],
+  "tasks": [
+   "MP-UI-PR-009-TEAMSEARCH"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 265,
+  "title": "[MANUAL] MP-PIT-TIMING-01: identità come elenco esplicito, nessun campo sconosciuto pre-partita (audit BE-08)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-31T23:50:44Z",
+  "head": "pit-timing-01",
+  "issues": [],
+  "tasks": [
+   "MP-PIT-TIMING-01"
+  ],
+  "domain_guess": "pit"
+ },
+ {
+  "number": 266,
+  "title": "MP-UI-SAFE-01: la tile certificazione legge le fasi dalla risposta API (FE-48)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-31T23:25:00Z",
+  "head": "ui-safe-01-certtile",
+  "issues": [],
+  "tasks": [
+   "MP-UI-SAFE-01",
+   "MP-UI-SAFE-01-CERT-TILE"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 267,
+  "title": "TEST-ISO-01: il controllo delle transazioni aperte in persistence-api conta solo le proprie connessioni",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-31T23:05:35Z",
+  "head": "test-persist-isolation",
+  "issues": [],
+  "tasks": [
+   "TEST-ISO-01",
+   "TEST-ISO-01-PERSIST-API"
+  ],
+  "domain_guess": "persistence"
+ },
+ {
+  "number": 268,
+  "title": "MP-263-PLAN: piano preparatorio della migrazione provider (#263)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-01T01:53:30Z",
+  "head": "docs-mp-263-plan",
+  "issues": [
+   263
+  ],
+  "tasks": [
+   "MP-263-PLAN"
+  ],
+  "domain_guess": "other"
+ },
+ {
+  "number": 269,
+  "title": "MP-CAP-01a: catalogo delle capacità indipendente dal provider (modulo puro, nessuna route)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-01T02:15:39Z",
+  "head": "mp-cap-01a-catalog",
+  "issues": [],
+  "tasks": [
+   "MP-CAP-01A-CATALOG",
+   "MP-CAP-01a"
+  ],
+  "domain_guess": "capabilities"
+ },
+ {
+  "number": 270,
+  "title": "MP-GOV-AUTONOMY-01: SAFE/MANUAL in base al rischio effettivo (MP-AUTONOMY-01) — MANUAL",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-01T15:09:40Z",
+  "head": "gov-autonomy-01",
+  "issues": [],
+  "tasks": [
+   "MP-AUTONOMY-01",
+   "MP-GOV-AUTONOMY-01"
+  ],
+  "domain_guess": "governance"
+ },
+ {
+  "number": 271,
+  "title": "MP-AF-02b: evidenze della verifica reale API-FOOTBALL (01/11/2026)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-01T15:26:29Z",
+  "head": "docs-mp-af-02b",
+  "issues": [],
+  "tasks": [
+   "MP-AF-02B-EVIDENCE",
+   "MP-AF-02b"
+  ],
+  "domain_guess": "provider-api-football"
+ },
+ {
+  "number": 272,
+  "title": "MP-MARKET-REF-01: parser market_ref puro sui formati API-FOOTBALL osservati",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-01T23:04:36Z",
+  "head": "mp-market-ref",
+  "issues": [],
+  "tasks": [
+   "MP-MARKET-REF-01"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 273,
+  "title": "MP-AF-01: client API-FOOTBALL in sola lettura (budget dedicato, registro, cache, tentativi controllati)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-01T23:29:56Z",
+  "head": "mp-af-01-client",
+  "issues": [],
+  "tasks": [
+   "MP-AF-01"
+  ],
+  "domain_guess": "provider-api-football"
+ },
+ {
+  "number": 274,
+  "title": "MP-CAP-01b: catalogo delle capacità in sola lettura (GET /api/v1/capabilities)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-01T23:56:43Z",
+  "head": "mp-cap-01b-endpoint",
+  "issues": [],
+  "tasks": [
+   "MP-CAP-01B",
+   "MP-CAP-01b"
+  ],
+  "domain_guess": "capabilities"
+ },
+ {
+  "number": 275,
+  "title": "MP-ODDS-SNAP-01: snapshot delle quote prematch e registro richieste API-FOOTBALL (schema staged, nessuna migrazione)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-02T00:26:22Z",
+  "head": "mp-odds-snapshots",
+  "issues": [],
+  "tasks": [
+   "MP-ODDS-SNAP-01"
+  ],
+  "domain_guess": "provider-api-football"
+ },
+ {
+  "number": 276,
+  "title": "MP-CAP-03: condizioni universali AND/OR/NOT sul catalogo delle capacità (modulo puro)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-02T00:56:01Z",
+  "head": "mp-cap-03-conditions",
+  "issues": [],
+  "tasks": [
+   "MP-CAP-03"
+  ],
+  "domain_guess": "capabilities"
+ },
+ {
+  "number": 277,
+  "title": "MP-FPT-RETIRE-01: modalità «FPT dismesso» nel codice applicativo (FUTPYTHON_RETIRED, spenta di default)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-02T01:22:23Z",
+  "head": "mp-fpt-retire-01",
+  "issues": [],
+  "tasks": [
+   "MP-FPT-RETIRE-01"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 278,
+  "title": "MP-TC-BENCH-01: strumenti riproducibili per il benchmark LIVE TotalCorner contro API-FOOTBALL (nessuna chiamata, nessun collector)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-02T01:47:48Z",
+  "head": "mp-tc-benchmark-prep",
+  "issues": [],
+  "tasks": [
+   "MP-TC-BENCH-01"
+  ],
+  "domain_guess": "provider-api-football"
+ },
+ {
+  "number": 279,
+  "title": "MP-NEXT-GOV-01: registrazione del mandato MP-NEXT-20261102, evidenza della suite su PostgreSQL 17, checkpoint MERGED della #278",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-02T10:12:56Z",
+  "head": "mp-gov-next-20261102",
+  "issues": [
+   278
+  ],
+  "tasks": [
+   "MP-NEXT-20261102",
+   "MP-NEXT-GOV-01"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 280,
+  "title": "MP-PIT-LIVE-01: fase temporale dei dati LIVE (PREMATCH/LIVE/POSTMATCH/UNKNOWN) e LIVE_ACQUIRED nel catalogo [MANUAL]",
+  "state": "open",
+  "merged": false,
+  "merged_at": null,
+  "head": "mp-pit-live-01",
+  "issues": [],
+  "tasks": [
+   "MP-PIT-LIVE-01"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 281,
+  "title": "MP-FPT-RETIRE-02: mp-deploy v3.4 riavvia il worker FPT solo tramite una guardia che rispetta la dismissione [MANUAL, proposta non installata]",
+  "state": "open",
+  "merged": false,
+  "merged_at": null,
+  "head": "mp-deploy-fpt-guard",
+  "issues": [],
+  "tasks": [
+   "MP-FPT-RETIRE-02"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 282,
+  "title": "MP-ODDS-MIG-01: migrazione 031 (snapshot quote API-FOOTBALL) da db/staged a migrations, con rollback e preflight — MANUAL",
+  "state": "open",
+  "merged": false,
+  "merged_at": null,
+  "head": "mp-odds-migration-031",
+  "issues": [],
+  "tasks": [
+   "MP-ODDS-MIG-01"
+  ],
+  "domain_guess": "provider-api-football"
+ },
+ {
+  "number": 283,
+  "title": "MP-AF-COLLECT-01: collector PREMATCH API-FOOTBALL controllato, spento per default e senza scheduler — MANUAL",
+  "state": "open",
+  "merged": false,
+  "merged_at": null,
+  "head": "mp-prematch-collector-02",
+  "issues": [],
+  "tasks": [
+   "MP-AF-COLLECT-01"
+  ],
+  "domain_guess": "provider-api-football"
+ },
+ {
+  "number": 284,
+  "title": "MP-NEXT-DOCS-01: budget API, piano di dismissione FPT, criteri TotalCorner, preflight VPS e pacchetto di autorizzazione (solo documenti)",
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-11-02T11:03:23Z",
+  "head": "mp-docs-next-20261102",
+  "issues": [],
+  "tasks": [
+   "MP-NEXT-DOCS-01"
+  ],
+  "domain_guess": "fpt"
+ },
+ {
+  "number": 285,
+  "title": "MP-SEARCH-01: ricerca universale AND/OR/NOT sul catalogo delle capacità (GET /api/v1/search) — MANUAL",
+  "state": "open",
+  "merged": false,
+  "merged_at": null,
+  "head": "mp-universal-search-01",
+  "issues": [],
+  "tasks": [
+   "MP-SEARCH-01"
+  ],
+  "domain_guess": "search"
+ },
+ {
+  "number": 286,
+  "title": "MP-SEARCH-GUI-01: interfaccia Ricerca universale (GET /api/v1/search + catalogo capacità) [DRAFT]",
+  "state": "open",
+  "merged": false,
+  "merged_at": null,
+  "head": "mp-universal-search-gui-01",
+  "issues": [],
+  "tasks": [
+   "MP-SEARCH-GUI-01"
+  ],
+  "domain_guess": "ui"
+ },
+ {
+  "number": 287,
+  "title": "MP-AF-SCHED-01: scheduler API-FOOTBALL (disattivato) + politica conservazione quote [DRAFT]",
+  "state": "open",
+  "merged": false,
+  "merged_at": null,
+  "head": "mp-af-scheduler-retention-01",
+  "issues": [],
+  "tasks": [
+   "MP-AF-SCHED-01"
+  ],
+  "domain_guess": "provider-api-football"
+ }
+]

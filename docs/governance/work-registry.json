@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 235,
+  "revision": 239,
   "tasks": [
     {
       "id": "R-01",
@@ -2413,6 +2413,29 @@
         "role": "Development Agent"
       },
       "pr_open": true
+    },
+    {
+      "id": "MP-MASTER-01",
+      "title": "Registro canonico della MASTER #288: requisiti atomici, schede PR, censimento, copertura, verificatore",
+      "issue": 263,
+      "pr": 289,
+      "branch": "mp-master-roadmap-01",
+      "kind": "audit",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T151505Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/governance/master/",
+        "file:tools/governance/master.mjs",
+        "file:test/master-registry.test.mjs",
+        "file:docs/governance/owner-decisions.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "1aebd02a45a2fef61bcbaf0c75ee29a150580b36"
     }
   ]
 }
