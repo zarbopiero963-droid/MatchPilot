@@ -10,7 +10,7 @@ Usare il runner per un'ispezione vorrebbe dire modificare workflow o runner, cos
 - (A) ciò che si ricava dal repository, marcato come tale;
 - (B) la checklist che l'owner, o un accesso in sola lettura autorizzato, deve eseguire prima del GO.
 
-Nessuno dei comandi elencati scrive, riavvia o legge segreti.
+Nessuno dei comandi elencati scrive o riavvia, e nessuno stampa segreti: i controlli 8 e 12 aprono file che contengono segreti, ma stampano solo una riga non segreta o un conteggio.
 
 ## A. Cosa dice il repository (non è lo stato reale della VPS)
 
