@@ -172,7 +172,7 @@ Ogni unità dell'intervallo è legata a una PR nominata nel campo `split_risk`, 
   - la scissione o il rifiuto delle 8 PR aperte;
   - lo sblocco delle 60 schede BLOCKED.
 - **La base `RULE_ENFORCED_BY_TEST` non dimostra il contenuto del test.** Il verificatore controlla che il test citato esista e appartenga al requisito; che il test asserisca davvero la regola si verifica in review.
-- **Gli accorpamenti fra gruppi sono registrati in `absorbed` delle PR riceventi**: 5 dalla riconciliazione, 14 dalla review indipendente del conteggio. Si tratta di lavoro pianificato due volte, non di riduzioni arbitrarie.
+- **Le righe di pianificazione duplicate sono registrate in `absorbed` delle PR riceventi**: 19 in tutto, 5 dalla riconciliazione e 14 dalla review del conteggio; 17 sono fra gruppi diversi, 2 interne a G5. Si tratta di lavoro pianificato due volte e unito prima del conteggio, non di riduzioni arbitrarie. Sono un oggetto diverso dalle schede assorbite (E) e non si sottraggono di nuovo (`pr-plan-reconciliation.json`, `prs.planning_rows_deduplicated`).
 
 **Tracciabilità di una PR senza requisiti propri** (prerequisiti backend, record di certificazione, gate finali): `serves` elenca i requisiti serviti oppure `ui_requirements` le righe `MP-REQ-UI` della matrice UI. Una PR senza nessuno dei due è rifiutata.
 
