@@ -99,6 +99,26 @@ export function validateErrata(errata, checkpoints) {
     else if (Date.parse(entry.not_after_utc) >= Date.parse(cp.timestamp_utc)) errors.push(`${at} not_after_utc must be earlier than the recorded time`);
     if (!SHA.test(entry.basis_commit || '')) errors.push(`${at} basis_commit must be a full SHA`);
   }
+  // A withdrawal resolves only a fork between two siblings of one task: the withdrawn checkpoint and its declared
+  // replacement supersede the same parent, the replacement is not itself withdrawn, nothing builds on the withdrawn
+  // one, and a reason and a reference are recorded. Nothing is deleted or rewritten.
+  const withdrawnIds = new Set();
+  for (const entry of errata.withdrawn || []) {
+    const at = `withdrawal ${entry?.id}`;
+    const cp = byId.get(entry?.id);
+    const replacement = byId.get(entry?.replaced_by);
+    if (!cp) { errors.push(`${at} names an unknown checkpoint`); continue; }
+    if (withdrawnIds.has(entry.id)) errors.push(`${at} is duplicated`);
+    withdrawnIds.add(entry.id);
+    if (!replacement) { errors.push(`${at} replaced_by ${entry?.replaced_by} is not a known checkpoint`); continue; }
+    if (replacement.id === cp.id) errors.push(`${at} cannot replace itself`);
+    if (replacement.task !== cp.task) errors.push(`${at} replacement belongs to another task`);
+    if ((replacement.supersedes ?? null) !== (cp.supersedes ?? null)) errors.push(`${at} replacement does not supersede the same parent`);
+    if ((errata.withdrawn || []).some(other => other.id === replacement.id)) errors.push(`${at} replacement is itself withdrawn`);
+    if (checkpoints.some(other => other.supersedes === cp.id)) errors.push(`${at} has successors and cannot be withdrawn`);
+    if (typeof entry.reason !== 'string' || entry.reason.trim().length < 20) errors.push(`${at} needs a reason`);
+    if (typeof entry.reference !== 'string' || !entry.reference.trim()) errors.push(`${at} needs a reference`);
+  }
   return errors;
 }
 
@@ -138,7 +158,13 @@ export function validateHistory(checkpoints, errata, history, {now = new Date()}
   return errors;
 }
 
-export const errataMap = errata => new Map((errata?.entries || []).map(entry => [entry.id, entry]));
+export const errataMap = errata => {
+  const map = new Map((errata?.entries || []).map(entry => [entry.id, entry]));
+  // Withdrawn checkpoints (MP-CP-WITHDRAW-01): an append-only file that was propagated and then replaced by a
+  // corrected sibling stays in history but no longer counts in its chain; see validateErrata for the conditions.
+  map.withdrawn = new Map((errata?.withdrawn || []).map(entry => [entry.id, entry]));
+  return map;
+};
 // The time a checkpoint can be trusted with: its recorded time, or the erratum bound when the recorded time is wrong.
 export const effectiveTime = (cp, errata = new Map()) => Date.parse(errata.get(cp.id)?.not_after_utc ?? cp.timestamp_utc);
 
@@ -407,7 +433,8 @@ export function handoffIn({checkpoints, registry, task: taskId, agentId, reality
 // Among checkpoints both under an erratum the recorded order is kept (their bounds can coincide); otherwise the
 // effective times are compared, so a correctly dated checkpoint can follow one recorded in the future.
 export function resolveLatest(checkpoints, task, {errata = new Map()} = {}) {
-  const own = checkpoints.filter(cp => cp.task === task);
+  const withdrawn = errata.withdrawn ?? new Map();
+  const own = checkpoints.filter(cp => cp.task === task && !withdrawn.has(cp.id));
   if (!own.length) return {latest: null, conflicts: []};
   const byId = new Map(own.map(cp => [cp.id, cp]));
   const conflicts = [];

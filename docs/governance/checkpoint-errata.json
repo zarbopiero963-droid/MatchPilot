@@ -118,5 +118,13 @@
       "not_after_utc": "2026-10-19T11:02:33Z",
       "basis_commit": "3730a04c1eb109a6be047357d9ecdaebc56e3c05"
     }
+  ],
+  "withdrawn": [
+    {
+      "id": "CP-20261102T224000Z-agent-a-claude-code",
+      "replaced_by": "CP-20261102T230845Z-agent-a-claude-code",
+      "reason": "MERGED checkpoint of PR #295 propagated to the open PR branches before it was corrected: its review attributed the Codex review of 6b6b098 to the merged head 03c5776. The corrected sibling CP-20261102T230845Z (main, PR #301) records the head as an explicit self-review. Both files stay in history; this one no longer counts in the chain of MP-OWNER-DEC-MIG-01.",
+      "reference": "PR #299 review comment 4448834908; PR #301"
+    }
   ]
 }

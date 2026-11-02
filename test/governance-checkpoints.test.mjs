@@ -320,3 +320,30 @@ test('errata and checkpoint times are checked against the real git history (PR #
   // Without git history only the clock check applies.
   assert.deepEqual(validateHistory([honest, future], {entries: [good]}, null, {now}), []);
 });
+
+test('MP-CP-WITHDRAW-01: a propagated checkpoint replaced by a corrected sibling can be withdrawn, under strict conditions', () => {
+  const a = makeCheckpoint();
+  const old = makeCheckpoint({id: 'CP-20261018T210000Z-agent-a', timestamp_utc: '2026-10-18T21:00:00Z', supersedes: a.id});
+  const fixed = makeCheckpoint({id: 'CP-20261018T211000Z-agent-a', timestamp_utc: '2026-10-18T21:10:00Z', supersedes: a.id});
+  // without a withdrawal the two siblings are a fork
+  assert.ok(resolveLatest([a, old, fixed], 'R-01').conflicts.some(e => e.startsWith('fork after')));
+  const file = {schema_version: 'mp-checkpoint-errata-v1', entries: [], withdrawn: [{id: old.id, replaced_by: fixed.id, reason: 'review attribution corrected in a sibling', reference: 'PR #301'}]};
+  assert.deepEqual(validateErrata(file, [a, old, fixed]), []);
+  const errata = errataMap(file);
+  assert.deepEqual(resolveLatest([a, old, fixed], 'R-01', {errata}).conflicts, []);
+  assert.equal(resolveLatest([a, old, fixed], 'R-01', {errata}).latest.id, fixed.id);
+  const bad = patch => validateErrata({...file, withdrawn: [{...file.withdrawn[0], ...patch}]}, [a, old, fixed]);
+  assert.ok(bad({id: 'CP-20261018T000000Z-x'}).some(e => e.includes('unknown checkpoint')));
+  assert.ok(bad({replaced_by: 'CP-20261018T000000Z-x'}).some(e => e.includes('not a known checkpoint')));
+  assert.ok(bad({replaced_by: old.id}).some(e => e.includes('cannot replace itself')));
+  assert.ok(bad({reason: 'x'}).some(e => e.includes('needs a reason')));
+  assert.ok(bad({reference: ''}).some(e => e.includes('needs a reference')));
+  // the replacement must be a sibling (same parent, same task)
+  const other = makeCheckpoint({id: 'CP-20261018T212000Z-agent-a', timestamp_utc: '2026-10-18T21:20:00Z', supersedes: old.id});
+  assert.ok(validateErrata({...file, withdrawn: [{...file.withdrawn[0], replaced_by: other.id}]}, [a, old, fixed, other]).some(e => e.includes('same parent')));
+  // a checkpoint that already has successors cannot be withdrawn
+  assert.ok(validateErrata(file, [a, old, fixed, other]).some(e => e.includes('has successors')));
+  const foreign = makeCheckpoint({id: 'CP-20261018T213000Z-agent-a', timestamp_utc: '2026-10-18T21:30:00Z', supersedes: a.id, task: 'R-02'});
+  assert.ok(validateErrata({...file, withdrawn: [{...file.withdrawn[0], replaced_by: foreign.id}]}, [a, old, fixed, foreign]).some(e => e.includes('another task')));
+  assert.ok(validateErrata({...file, withdrawn: [file.withdrawn[0], file.withdrawn[0]]}, [a, old, fixed]).some(e => e.includes('duplicated')));
+});
