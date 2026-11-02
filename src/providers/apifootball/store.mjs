@@ -146,43 +146,55 @@ export async function saveRawResponse(db, input) {
   if (!body) throw new SnapshotStoreError('RAW_INVALID', 'a raw answer needs its body bytes');
   const sha = createHash('sha256').update(body).digest('hex');
   if (raw.body_sha256 !== sha || raw.body_bytes !== body.length) throw new SnapshotStoreError('RAW_INVALID', 'raw body does not match its declared hash or size');
-  const result = await guarded(() => db.query(
-    `WITH ins AS (
-       INSERT INTO af_raw_responses (provider, request_id, endpoint, family, path, params_hash, request_params, purpose, requested_at, received_at,
+  const inserted = await guarded(() => db.query(
+    `INSERT INTO af_raw_responses (provider, request_id, endpoint, family, path, params_hash, request_params, purpose, requested_at, received_at,
          provider_date, content_type, http_status, outcome, body, body_exact, body_bytes, body_sha256, quota)
        VALUES ('api-football',$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
        ON CONFLICT ON CONSTRAINT af_raw_responses_dedupe DO NOTHING
-       RETURNING raw_id)
-     SELECT raw_id, true AS inserted FROM ins
-     UNION ALL
-     SELECT raw_id, false FROM af_raw_responses WHERE request_id = $1 AND body_sha256 = $17 AND NOT EXISTS (SELECT 1 FROM ins)`,
+       RETURNING raw_id`,
     [id, raw.endpoint, raw.family, raw.path, raw.params_hash, JSON.stringify(raw.params ?? {}), raw.purpose, raw.requested_at, raw.received_at,
       raw.provider_date == null ? null : String(raw.provider_date).slice(0, 100), raw.content_type == null ? null : String(raw.content_type).slice(0, 200),
       raw.http_status, raw.outcome, body, raw.body_exact === true, body.length, sha, raw.quota ? JSON.stringify(raw.quota) : null]));
-  const row = result.rows[0];
-  if (!row) throw new SnapshotStoreError('RAW_INVALID', 'raw answer neither stored nor found');
-  return {raw_id: Number(row.raw_id), inserted: row.inserted};
+  if (inserted.rows[0]) return {raw_id: Number(inserted.rows[0].raw_id), inserted: true};
+  // review (Codex P2): the conflicting row may belong to a writer that committed while this INSERT waited; a lookup in
+  // the same statement would use the snapshot taken before that commit and miss it. A new statement sees it.
+  const existing = await guarded(() => db.query('SELECT raw_id FROM af_raw_responses WHERE request_id = $1 AND body_sha256 = $2', [id, sha]));
+  if (!existing.rows[0]) throw new SnapshotStoreError('RAW_INVALID', 'raw answer neither stored nor found');
+  return {raw_id: Number(existing.rows[0].raw_id), inserted: false};
 }
 
 // Recovery after a crash between a raw answer and its snapshots: every successful /odds raw answer received since
 // `since` that no snapshot references is parsed again from its stored bytes and saved through saveOddsSnapshots, with
 // its original acquisition instant (received_at), request_id and raw_id. Idempotent: an answer whose snapshots exist, or
 // whose prices were all unchanged, writes nothing. `client` is a dedicated connection (saveOddsSnapshots needs one).
-export async function recoverRawOdds(client, {since, limit = 100} = {}) {
+// review (Codex P2): answers that legitimately produce no snapshot (empty, all rejected, all unchanged) never leave the
+// "no snapshot" set, so recovery pages forward by (received_at, raw_id) and reaches every answer since `since`, `limit`
+// rows per page. It returns `next`, the cursor of the last answer checked: passing it back as `after` resumes there.
+export async function recoverRawOdds(client, {since, after = null, limit = 100} = {}) {
   const at = since instanceof Date ? since.getTime() : Date.parse(since);
   if (!Number.isFinite(at) || !Number.isSafeInteger(limit) || limit < 1 || limit > 10000) throw new TypeError('since and a limit between 1 and 10000 are required');
-  const pending = await guarded(() => client.query(
-    `SELECT r.raw_id, r.request_id, r.received_at, r.body FROM af_raw_responses r
-      WHERE r.endpoint = '/odds' AND r.outcome = 'ok' AND r.received_at >= $1
-        AND NOT EXISTS (SELECT 1 FROM af_odds_snapshots s WHERE s.raw_id = r.raw_id)
-      ORDER BY r.received_at, r.raw_id LIMIT $2`, [new Date(at).toISOString(), limit]));
+  if (after !== null && !(after && Number.isSafeInteger(after.raw_id) && Number.isFinite(Date.parse(after.received_at)))) throw new TypeError('after is a cursor {received_at, raw_id} returned by recoverRawOdds');
+  let cursor = after;
+  let checked = 0;
   let inserted = 0;
   let rejected = 0;
-  for (const r of pending.rows) {
-    const body = JSON.parse(new TextDecoder('utf-8').decode(r.body));
-    const out = oddsSnapshotRows({response: body?.response}, {acquiredAt: r.received_at, requestId: Number(r.request_id), rawId: Number(r.raw_id)});
-    rejected += out.rejected.length;
-    if (out.rows.length) inserted += (await saveOddsSnapshots(client, out.rows)).inserted;
+  for (;;) {
+    const page = await guarded(() => client.query(
+      `SELECT r.raw_id, r.request_id, r.received_at, r.body FROM af_raw_responses r
+        WHERE r.endpoint = '/odds' AND r.outcome = 'ok' AND r.received_at >= $1
+          AND ($3::timestamptz IS NULL OR (r.received_at, r.raw_id) > ($3::timestamptz, $4::bigint))
+          AND NOT EXISTS (SELECT 1 FROM af_odds_snapshots s WHERE s.raw_id = r.raw_id)
+        ORDER BY r.received_at, r.raw_id LIMIT $2`,
+      [new Date(at).toISOString(), limit, cursor ? new Date(cursor.received_at).toISOString() : null, cursor ? cursor.raw_id : null]));
+    for (const r of page.rows) {
+      const body = JSON.parse(new TextDecoder('utf-8').decode(r.body));
+      const out = oddsSnapshotRows({response: body?.response}, {acquiredAt: r.received_at, requestId: Number(r.request_id), rawId: Number(r.raw_id)});
+      rejected += out.rejected.length;
+      if (out.rows.length) inserted += (await saveOddsSnapshots(client, out.rows)).inserted;
+      cursor = {received_at: new Date(r.received_at).toISOString(), raw_id: Number(r.raw_id)};
+    }
+    checked += page.rows.length;
+    if (page.rows.length < limit) break;
   }
-  return {raw_checked: pending.rows.length, inserted, rejected};
+  return {raw_checked: checked, inserted, rejected, next: cursor};
 }

@@ -216,12 +216,26 @@ test('MP-AF-RAW-01 PG: idempotent dedupe on request and sha256; a different body
     assert.deepEqual([c.inserted, c.raw_id], [false, a.raw_id], 'a cached result (Uint8Array body) is the same answer');
     const other = Buffer.from(oddsText(1, '2.20'));
     assert.equal(await code(saveRawResponse(pool, {...result.raw, body: other, body_bytes: other.length, body_sha256: sha(other)})), '23505');
-    // Concurrent writers of the same answer: one row.
+    // Concurrent writers of the same answer: one row, and every writer gets its raw_id.
     const r2 = await client.get('/odds', {fixture: 2}, {purpose: 'prematch-collector'});
-    const outs = await Promise.allSettled(Array.from({length: 4}, () => saveRawResponse(pool, r2)));
-    assert.ok(outs.some(o => o.status === 'fulfilled' && o.value.inserted));
+    const outs = await Promise.all(Array.from({length: 4}, () => saveRawResponse(pool, r2)));
+    assert.equal(new Set(outs.map(o => o.raw_id)).size, 1);
+    assert.equal(outs.filter(o => o.inserted).length, 1);
     assert.equal(await count(pool, 'SELECT count(*)::int AS n FROM af_raw_responses WHERE request_id = $1', [r2.request_id]), 1);
-    assert.equal(await count(pool, 'SELECT count(*)::int AS n FROM af_raw_responses'), 2);
+    // review (Codex P2 4448788063), deterministic race: the winner's insert is still uncommitted when the loser's
+    // INSERT ... ON CONFLICT starts; the loser waits, inserts nothing and must still return the winner's raw_id.
+    const r3 = await client.get('/odds', {fixture: 3}, {purpose: 'prematch-collector'});
+    const winner = await pool.connect();
+    try {
+      await winner.query('BEGIN');
+      const won = await saveRawResponse(winner, r3);
+      const loser = saveRawResponse(pool, r3);
+      await new Promise(r => setTimeout(r, 300));
+      await winner.query('COMMIT');
+      const lost = await loser;
+      assert.deepEqual([won.inserted, lost.inserted, lost.raw_id], [true, false, won.raw_id]);
+    } finally { winner.release(); }
+    assert.equal(await count(pool, 'SELECT count(*)::int AS n FROM af_raw_responses'), 3);
   });
 });
 
@@ -338,14 +352,38 @@ test('MP-AF-RAW-01 PG: crash between raw answer and snapshots (connection killed
       saveRawResponse: async result => { const c = await pool.connect(); c.on('error', () => {}); rawPid = (await c.query('SELECT pg_backend_pid() AS p')).rows[0].p;
         try { return await saveRawResponse(c, result); } finally { c.release(true); } },
       openConnection: () => pool.connect(), saveSnapshots: saveOddsSnapshots}).runOnce();
-    await waitLock(() => rawPid);
-    await root.query('SELECT pg_terminate_backend($1)', [rawPid]);
-    const r2 = await second;
-    await locker.query('ROLLBACK');
-    await locker.end();
+    let r2;
+    try {
+      await waitLock(() => rawPid);
+      await root.query('SELECT pg_terminate_backend($1)', [rawPid]);
+      r2 = await second;
+    } finally {
+      await locker.query('ROLLBACK').catch(() => {});
+      await locker.end().catch(() => {});
+    }
     assert.deepEqual([r2.stop_reason, r2.fixtures[0].outcome], ['RAW_STORE_FAILED', 'failed_raw_store']);
     assert.equal(await count(pool, 'SELECT count(*)::int AS n FROM af_raw_responses'), 1);
     assert.equal(await count(pool, 'SELECT count(*)::int AS n FROM af_odds_snapshots'), 3);
+    // review (Codex P2 4448788049): more than one page of raw answers that legitimately produce no snapshot (empty
+    // answers) must not hide a later recoverable one: recovery pages forward by (received_at, raw_id).
+    const emptyText = id => '{"get":"odds","parameters":{"fixture":"' + id + '"},"errors":[],"results":0,"paging":{"current":1,"total":1},"response":[]}';
+    let page = 0;
+    const lateClient = createApiFootballClient({config: apiFootballConfig({...clientEnv, APIFOOTBALL_REQUESTS_PER_DAY: '1000', APIFOOTBALL_REQUESTS_PER_MINUTE: '1000'}), ledger, sleep: async () => {}, now: () => clock,
+      fetchImpl: async u => { clock += 50; page += 1; const id = Number(new URL(u).searchParams.get('fixture')); return response(id === 900 ? oddsText(900) : emptyText(id)); }});
+    clock += 30 * 60000;
+    const lateSince = new Date(clock - 60000);
+    for (let id = 700; id < 705 + 100; id += 1) await saveRawResponse(pool, await lateClient.get('/odds', {fixture: id}, {purpose: 'prematch-collector'}));
+    await saveRawResponse(pool, await lateClient.get('/odds', {fixture: 900}, {purpose: 'prematch-collector'}));
+    const c2 = await pool.connect();
+    try {
+      const rec = await recoverRawOdds(c2, {since: lateSince, limit: 100});
+      assert.deepEqual([rec.raw_checked, rec.inserted], [106, 3], 'the recoverable answer after 105 empty ones is reached');
+      assert.equal(await count(pool, 'SELECT count(*)::int AS n FROM af_odds_snapshots WHERE fixture_id = 900'), 3);
+      const again = await recoverRawOdds(c2, {since: lateSince, limit: 100});
+      assert.equal(again.inserted, 0, 'idempotent');
+      const resumed = await recoverRawOdds(c2, {since: lateSince, after: rec.next, limit: 100});
+      assert.deepEqual([resumed.raw_checked, resumed.inserted], [0, 0], 'a caller can resume after the returned cursor');
+    } finally { c2.release(); }
   });
 });
 

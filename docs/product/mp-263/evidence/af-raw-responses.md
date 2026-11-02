@@ -43,6 +43,8 @@ Dopo la correzione lo stesso test passa (GREEN).
 | A11 | Lock: `ACCESS EXCLUSIVE` su `af_odds_snapshots` fino al commit, mai sul ledger. `lock_timeout` 5 s: con un lettore lungo la migrazione fallisce con 55P03 dopo circa 5 s e non lascia nulla | `PG: locks taken by migration 033…` | PASS | PASS |
 | A12 | Errore del provider (`errors` non vuoto) salvato come raw `provider_error`, mai normalizzato. Il corpo resta fuori dalla serializzazione dell'errore | `collector: no raw_id…`, `client raw record…` | PASS | PASS |
 | A13 | La chiave API non arriva mai nel record raw | `client raw record…` | PASS | PASS |
+| A15 | Review Codex P2 `4448788063`. Scritture concorrenti della stessa risposta: tutte ricevono lo stesso `raw_id`. Nella corsa deterministica il vincitore non ha ancora fatto commit quando parte l'insert del perdente, e il perdente ottiene comunque il `raw_id` del vincitore. Il lookup di ripiego è in uno statement successivo | `PG: idempotent dedupe…` (RED sul codice precedente: `RAW_INVALID`) | PASS | PASS |
+| A16 | Review Codex P2 `4448788049`. La recovery pagina in avanti per (`received_at`, `raw_id`): 105 risposte vuote senza snapshot non nascondono una risposta recuperabile successiva. Il cursore `next` / `after` permette di riprendere | `PG: crash between…` (RED sul codice precedente: 100 controllate, 0 inserite) | PASS | PASS |
 | A14 | Backup e restore con `pg_dump -Fc` e `pg_restore` della stessa versione del server | `af-raw-backup-restore.sh` (sotto) | PASS | PASS |
 
 ## Comandi e ambiente
@@ -121,6 +123,7 @@ Dopo il restore:
 ## Limiti dichiarati
 
 - Una **risposta grezza senza snapshot** è possibile e voluta. Il raw si salva e si committa prima della normalizzazione: se poi la scrittura degli snapshot fallisce, il ciclo si ferma con `STORE_FAILED` e `recoverRawOdds(conn, {since})` rigenera gli snapshot dai byte salvati. Uno **snapshot senza raw** invece è impossibile, perché lo impediscono la FK e il CHECK sulle righe nuove.
+- La recovery pagina in avanti e raggiunge ogni risposta da `since` in poi. Riparsa a ogni chiamata le risposte che legittimamente non producono snapshot: va limitata con `since` oppure ripresa con `after` (`next`).
 - La recovery non è automatica. Lo scheduler futuro (PR #287, draft) dovrà chiamarla prima di ogni ciclo, oppure l'owner la esegue a mano.
 - Se la connessione cade **durante** l'insert raw, quella risposta è persa. La chiamata resta contata nel ledger e il ciclo si ferma con `RAW_STORE_FAILED`, quindi non è una perdita silenziosa. Dopo l'intervallo minimo la partita si richiede di nuovo.
 - Le risposte `/fixtures` di scoperta non vengono salvate nel raw: non producono dati normalizzati. La tabella è comunque generica (`endpoint`, `family`).
