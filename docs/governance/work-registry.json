@@ -2359,6 +2359,30 @@
         "role": "Development Agent"
       },
       "pr_open": true
+    },
+    {
+      "id": "MP-FPT-RETIRE-02",
+      "title": "MP-FPT-RETIRE-02: mp-deploy FPT worker restart guard",
+      "issue": 263,
+      "pr": null,
+      "branch": "mp-deploy-fpt-guard",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T102700Z-agent-a-claude-code",
+      "resources": [
+        "file:infra/vps/sbin/mp-fpt-worker-restart",
+        "file:infra/vps/sbin/mp-deploy",
+        "file:infra/vps/SHA256SUMS",
+        "file:infra/vps/README.md",
+        "file:test/fpt-worker-restart.test.mjs",
+        "file:test/infra-vps.test.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
