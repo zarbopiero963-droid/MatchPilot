@@ -86,12 +86,14 @@ export function prematchCandidates(response, {now, leadHours, kickoffMarginMinut
   return {candidates: candidates.filter(c => !seen.has(c.fixture_id) && seen.add(c.fixture_id)).sort((a, b) => a.kickoff_ms - b.kickoff_ms || a.fixture_id - b.fixture_id), skipped};
 }
 
-// createPrematchCollector({config, client, ledger, openConnection, saveSnapshots, now})
+// createPrematchCollector({config, client, ledger, openConnection, saveSnapshots, saveRawResponse, now})
+//   saveRawResponse(result): persists the raw provider answer (path, fetched_at, response) before normalization; required,
+//   so the collector cannot run without a raw store (its PostgreSQL table comes with the raw schema, not yet migrated)
 //   client: createApiFootballClient(...) on the same ledger; ledger: countSince(ms, {purpose}) and lastRequestAt(path, ms)
 //   openConnection(): a dedicated pg client with release() (saveOddsSnapshots needs one, never a pool)
 //   saveSnapshots(connection, rows): saveOddsSnapshots
 // runOnce() -> {version, status: 'disabled'|'completed'|'stopped', stop_reason, calls, fixtures: [...], stored, skipped}
-export function createPrematchCollector({config = prematchCollectorConfig(), client, ledger, openConnection, saveSnapshots, now = Date.now} = {}) {
+export function createPrematchCollector({config = prematchCollectorConfig(), client, ledger, openConnection, saveSnapshots, saveRawResponse, now = Date.now} = {}) {
   let running = false;
   async function budgetLeft() {
     const t = now();
@@ -106,8 +108,8 @@ export function createPrematchCollector({config = prematchCollectorConfig(), cli
     async runOnce() {
       const report = {version: COLLECTOR_VERSION, status: 'disabled', stop_reason: null, calls: 0, fixtures: [], stored: 0, skipped: [], started_at: new Date(now()).toISOString()};
       if (!config?.enabled) return report;
-      if (!client || !ledger || typeof ledger.countSince !== 'function' || typeof ledger.lastRequestAt !== 'function' || typeof openConnection !== 'function' || typeof saveSnapshots !== 'function') {
-        throw new CollectorConfigError('collector needs client, ledger (countSince, lastRequestAt), openConnection and saveSnapshots');
+      if (!client || !ledger || typeof ledger.countSince !== 'function' || typeof ledger.lastRequestAt !== 'function' || typeof openConnection !== 'function' || typeof saveSnapshots !== 'function' || typeof saveRawResponse !== 'function') {
+        throw new CollectorConfigError('collector needs client, ledger (countSince, lastRequestAt), openConnection, saveSnapshots and saveRawResponse');
       }
       // One cycle at a time in this process: an overlapping call is refused, never queued.
       if (running) return {...report, status: 'stopped', stop_reason: 'ALREADY_RUNNING'};
@@ -160,10 +162,16 @@ export function createPrematchCollector({config = prematchCollectorConfig(), cli
           if (last !== null) { entry.outcome = 'skipped_recently_requested'; continue; }
           const rows = [];
           for (let page = 1; page <= config.maxPages; page += 1) {
+            // review (Codex): the kickoff margin is checked again before every page, not only before the first.
+            if (fixture.kickoff_ms - now() <= config.kickoffMarginMinutes * 60000) { entry.outcome = page === 1 ? 'skipped_kickoff_too_close' : 'pages_stopped_kickoff_too_close'; break; }
             const result = await call('/odds', page === 1 ? {fixture: fixture.fixture_id} : {fixture: fixture.fixture_id, page});
             if (!result) { entry.outcome = `stopped_${report.stop_reason}`; break; }
             if (result.error) { entry.outcome = `failed_${result.error}`; break; }
             entry.pages = page;
+            // review (Codex): the raw answer is persisted before any normalization, so fields outside the projection and
+            // rejected items are never lost and the snapshots can be reprocessed. A failure stops the cycle.
+            try { await saveRawResponse(result); }
+            catch { stop('RAW_STORE_FAILED'); entry.outcome = 'failed_raw_store'; break; }
             const {rows: pageRows, rejected} = oddsSnapshotsFromResult(result);
             rows.push(...pageRows);
             entry.rejected += rejected.length;

@@ -23,7 +23,7 @@ const oddsItem = (id, kickoffMs, {home = '2.10', update = new Date(T0 - 10 * 600
 const body = (response, paging = {current: 1, total: 1}) => ({errors: [], results: response.length, paging, response});
 
 // routes: (url) -> {status, body, headers} | {throw}
-function harness({routes, env = collectorEnv(), start = T0, ledger = createMemoryLedger(), save, latency = 50} = {}) {
+function harness({routes, env = collectorEnv(), start = T0, ledger = createMemoryLedger(), save, saveRaw, latency = 50} = {}) {
   let clock = start;
   const calls = [];
   const fetchImpl = async url => {
@@ -37,10 +37,12 @@ function harness({routes, env = collectorEnv(), start = T0, ledger = createMemor
   const client = createApiFootballClient({config: apiFootballConfig(clientEnv), ledger, fetchImpl, now: () => clock, sleep: async ms => { clock += ms; }});
   const saved = [];
   const released = [];
+  const raw = [];
   const collector = createPrematchCollector({config: prematchCollectorConfig(env), client, ledger, now: () => clock,
+    saveRawResponse: saveRaw ?? (async result => { raw.push({path: result.path, fetched_at: result.fetched_at, response: result.response}); }),
     openConnection: async () => ({release: () => released.push(1)}),
     saveSnapshots: save ?? (async (_c, rows) => { saved.push(...rows); return {inserted: rows.length, skipped: 0}; })});
-  return {collector, calls, saved, released, ledger, advance: ms => { clock += ms; }, now: () => clock};
+  return {collector, calls, saved, released, raw, ledger, advance: ms => { clock += ms; }, now: () => clock};
 }
 const standard = (fixtures, oddsFor = id => [oddsItem(id, fixtures.find(f => f.fixture.id === id).fixture.timestamp * 1000)]) => url => {
   if (url.pathname === '/fixtures') return {body: body(fixtures)};
@@ -148,7 +150,7 @@ test('MP-AF-COLLECT-01 failures: provider errors skip the fixture, consecutive f
   assert.deepEqual([r2.stop_reason, store.calls.filter(u => u.includes('/odds')).length, store.released.length], ['SNAPSHOTS_UNAVAILABLE', 1, 1]);
   const disabledClient = createPrematchCollector({config: prematchCollectorConfig(collectorEnv()), ledger: createMemoryLedger(), now: () => T0,
     client: createApiFootballClient({config: apiFootballConfig({}), ledger: createMemoryLedger(), fetchImpl: async () => { throw new Error('no'); }}),
-    openConnection: async () => ({}), saveSnapshots: async () => ({inserted: 0})});
+    openConnection: async () => ({}), saveSnapshots: async () => ({inserted: 0}), saveRawResponse: async () => {}});
   assert.equal((await disabledClient.runOnce()).stop_reason, 'DISABLED', 'collector on but client off: nothing is called');
   await assert.rejects(createPrematchCollector({config: prematchCollectorConfig(collectorEnv())}).runOnce(), err => err.code === 'NOT_CONFIGURED');
   // review: a ledger that cannot be read stops the cycle with a reported reason, before any provider call.
@@ -223,7 +225,7 @@ test('MP-AF-COLLECT-01 on PostgreSQL: ledger budget and interval survive restart
       const make = h => createPrematchCollector({config: prematchCollectorConfig(collectorEnv()), ledger, now: h.now,
         client: createApiFootballClient({config: apiFootballConfig(clientEnv), ledger, now: h.now, sleep: async () => {},
           fetchImpl: async url => { h.calls.push(url); const a = standard(fixtures)(new URL(url)); h.advance(50); return {status: 200, headers: new Headers(), json: async () => a.body}; }}),
-        openConnection: () => pool.connect(), saveSnapshots: saveOddsSnapshots});
+        openConnection: () => pool.connect(), saveSnapshots: saveOddsSnapshots, saveRawResponse: async () => {}});
       const h1 = run(T0);
       const r1 = await make(h1).runOnce();
       assert.deepEqual([r1.status, r1.stored], ['completed', 10]);
@@ -240,4 +242,24 @@ test('MP-AF-COLLECT-01 on PostgreSQL: ledger budget and interval survive restart
     await root.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
     await root.end();
   }
+});
+
+test('MP-AF-COLLECT-01 review (Codex): raw answers are kept before normalization; no raw store, no run; pages stop at the kickoff margin', async () => {
+  const f = fixture(1, T0 + 3 * H);
+  const h = harness({routes: standard([f])});
+  await h.collector.runOnce();
+  assert.equal(h.raw.length, 1);
+  assert.deepEqual([h.raw[0].path, typeof h.raw[0].fetched_at, h.raw[0].response[0].fixture.id], ['/odds?fixture=1', 'string', 1], 'the whole provider answer, unknown fields included');
+  const failing = harness({routes: standard([f]), saveRaw: async () => { throw new Error('disk full'); }});
+  const r = await failing.collector.runOnce();
+  assert.deepEqual([r.stop_reason, failing.saved.length], ['RAW_STORE_FAILED', 0], 'nothing normalized without its raw answer');
+  await assert.rejects(createPrematchCollector({config: prematchCollectorConfig(collectorEnv()), client: {}, ledger: createMemoryLedger(), openConnection: async () => ({}),
+    saveSnapshots: async () => ({inserted: 0})}).runOnce(), err => err.code === 'NOT_CONFIGURED');
+  // Each request takes 3 minutes: page 2 would start 4 minutes before kickoff, inside the 5-minute margin, so it is not requested.
+  const g = fixture(7, T0 + 10 * 60000);
+  const routes = url => url.pathname === '/fixtures' ? {body: body([g])} : {body: body([oddsItem(7, T0 + 10 * 60000)], {current: 1, total: 3})};
+  const p = harness({latency: 3 * 60000, env: collectorEnv({APIFOOTBALL_PREMATCH_MAX_PAGES: '3'}), routes});
+  const rp = await p.collector.runOnce();
+  assert.equal(p.calls.filter(u => u.includes('/odds')).length, 1, 'no page requested inside the kickoff margin');
+  assert.equal(rp.fixtures[0].outcome, 'pages_stopped_kickoff_too_close');
 });
