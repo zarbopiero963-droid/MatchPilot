@@ -125,6 +125,12 @@
       "replaced_by": "CP-20261102T230845Z-agent-a-claude-code",
       "reason": "MERGED checkpoint of PR #295 propagated to the open PR branches before it was corrected: its review attributed the Codex review of 6b6b098 to the merged head 03c5776. The corrected sibling CP-20261102T230845Z (main, PR #301) records the head as an explicit self-review. Both files stay in history; this one no longer counts in the chain of MP-OWNER-DEC-MIG-01.",
       "reference": "PR #299 review comment 4448834908; PR #301"
+    },
+    {
+      "id": "CP-20261102T232003Z-agent-a-claude-code",
+      "replaced_by": "CP-20261102T231552Z-agent-a-claude-code",
+      "reason": "Two MERGED checkpoints of PR #301 were written in parallel for MP-OWNER-DEC-MIG-02: this one (PR #302 branch) and CP-20261102T231552Z, already pushed on the F1/F2 branches. Both record the same merge (c6b3b2e) and the same Codex review of the merged head 389231c; this one is withdrawn so the chain stays linear.",
+      "reference": "PR #302"
     }
   ]
 }
