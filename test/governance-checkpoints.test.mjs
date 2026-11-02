@@ -9,6 +9,7 @@ import {checkpointHistory, realityFor, rewrittenCheckpoints} from '../tools/gove
 
 const SHA_A = 'a'.repeat(40);
 const SHA_T = 'b'.repeat(40);
+const SHA_B = 'c'.repeat(40);
 
 export function makeCheckpoint(overrides = {}) {
   return {
@@ -376,4 +377,20 @@ test('MP-CP-WITHDRAW-01 anti-bypass: circular, double and orphaning withdrawals 
   assert.deepEqual(conflicts, []);
   assert.equal(latest.id, y.id);
   assert.notEqual(latest.id, x.id);
+});
+
+test('MP-CP-WITHDRAW-01 anti-bypass: a withdrawal cannot choose between two different outcomes of a task (PR #302 review)', () => {
+  const a = makeCheckpoint();
+  const blocked = makeCheckpoint({id: 'CP-20261018T210000Z-agent-a', timestamp_utc: '2026-10-18T21:00:00Z', supersedes: a.id, state: 'BLOCKED', findings: [{id: 'F-1', severity: 'P1', status: 'OPEN', blocking: true}]});
+  const running = makeCheckpoint({id: 'CP-20261018T211000Z-agent-a', timestamp_utc: '2026-10-18T21:10:00Z', supersedes: a.id, commit_sha: SHA_B});
+  const entry = {id: blocked.id, replaced_by: running.id, reason: 'hide a blocking sibling behind a withdrawal', reference: 'unverified'};
+  const file = {schema_version: 'mp-checkpoint-errata-v1', entries: [], withdrawn: [entry]};
+  const errors = validateErrata(file, [a, blocked, running]);
+  assert.ok(errors.some(e => e.includes('different work') && e.includes('commit_sha') && e.includes('state')));
+  for (const [key, value] of [['pr', 999], ['branch', 'other'], ['tree_sha', SHA_B], ['base_sha', SHA_B], ['state', 'BLOCKED'], ['merge_sha', SHA_B]]) {
+    const sibling = makeCheckpoint({id: 'CP-20261018T212000Z-agent-a', timestamp_utc: '2026-10-18T21:20:00Z', supersedes: a.id, [key]: value});
+    const twin = makeCheckpoint({id: 'CP-20261018T213000Z-agent-a', timestamp_utc: '2026-10-18T21:30:00Z', supersedes: a.id});
+    const f = {...file, withdrawn: [{...entry, id: sibling.id, replaced_by: twin.id}]};
+    assert.ok(validateErrata(f, [a, sibling, twin]).some(e => e.includes('different work') && e.includes(key)), key);
+  }
 });

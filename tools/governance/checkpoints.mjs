@@ -83,6 +83,8 @@ export function validateEvidence(entry, where = 'evidence') {
 // The check below makes a checkpoint dated after its own validation fail, so new errata should not be needed.
 export const FUTURE_TOLERANCE_MS = 10 * 60e3;
 
+const SAME_WORK_FIELDS = ['pr', 'branch', 'commit_sha', 'tree_sha', 'base_sha', 'state', 'merge_sha'];
+
 export function validateErrata(errata, checkpoints) {
   const errors = [];
   if (errata?.schema_version !== 'mp-checkpoint-errata-v1') return ['checkpoint errata schema_version must be mp-checkpoint-errata-v1'];
@@ -99,8 +101,8 @@ export function validateErrata(errata, checkpoints) {
     else if (Date.parse(entry.not_after_utc) >= Date.parse(cp.timestamp_utc)) errors.push(`${at} not_after_utc must be earlier than the recorded time`);
     if (!SHA.test(entry.basis_commit || '')) errors.push(`${at} basis_commit must be a full SHA`);
   }
-  // A withdrawal resolves only a fork between two siblings of one task: the withdrawn checkpoint and its declared
-  // replacement supersede the same parent, the replacement is not itself withdrawn, nothing builds on the withdrawn
+  // A withdrawal resolves only a fork between two siblings of one task that record the same work: the withdrawn
+  // checkpoint and its declared replacement supersede the same parent, the replacement is not itself withdrawn, nothing builds on the withdrawn
   // one, and a reason and a reference are recorded. Nothing is deleted or rewritten.
   const withdrawnIds = new Set();
   for (const entry of errata.withdrawn || []) {
@@ -115,6 +117,10 @@ export function validateErrata(errata, checkpoints) {
     if (replacement.task !== cp.task) errors.push(`${at} replacement belongs to another task`);
     if (!cp.supersedes || !replacement.supersedes) errors.push(`${at} needs a common parent: a root checkpoint cannot be withdrawn or used as a replacement`);
     else if (replacement.supersedes !== cp.supersedes) errors.push(`${at} replacement does not supersede the same parent`);
+    // Only a corrected copy of the same work can be withdrawn (PR #302 review): both siblings must record the same PR,
+    // branch, commits, state and merge, so a withdrawal can never pick between two different outcomes of a task.
+    const differs = SAME_WORK_FIELDS.filter(key => (cp[key] ?? null) !== (replacement[key] ?? null));
+    if (differs.length) errors.push(`${at} replacement describes different work (${differs.join(', ')} differ): only a corrected copy of the same work can be withdrawn`);
     if ((errata.withdrawn || []).some(other => other.id === replacement.id)) errors.push(`${at} replacement is itself withdrawn`);
     if (checkpoints.some(other => other.supersedes === cp.id)) errors.push(`${at} has successors and cannot be withdrawn`);
     if (typeof entry.reason !== 'string' || entry.reason.trim().length < 20) errors.push(`${at} needs a reason`);

@@ -33,7 +33,12 @@ test('MP-CP-WITHDRAW-01 real case: both siblings stay in history, the corrected 
 test('MP-CP-WITHDRAW-01 real case: one MERGED head for MP-OWNER-DEC-MIG-02, reviewed on the merged commit', () => {
   const {latest, conflicts} = resolveLatest(checkpoints, 'MP-OWNER-DEC-MIG-02', {errata});
   assert.deepEqual(conflicts, []);
-  assert.equal(latest.id, 'CP-20261102T231552Z-agent-a-claude-code');
+  // the adopted CP-20261102T231552Z declared PASS while CI jobs were still running; its successor records the
+  // completed runs (PR #302 review), so the canonical head carries verified CI results
+  assert.equal(latest.id, 'CP-20261102T233544Z-agent-a-claude-code');
+  assert.equal(latest.supersedes, 'CP-20261102T231552Z-agent-a-claude-code');
   assert.equal(latest.state, 'MERGED');
   assert.equal(latest.review.reviewed_sha, latest.commit_sha);
+  assert.equal(latest.ci.run_id, 41543281345);
+  assert.ok(latest.tests.every(t => t.result === 'PASS' && t.limits.every(l => !/running/.test(l))));
 });
