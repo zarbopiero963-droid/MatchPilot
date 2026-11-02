@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 247,
+  "revision": 248,
   "tasks": [
     {
       "id": "R-01",
@@ -2460,12 +2460,12 @@
       "id": "MP-PRCOUNT-FIX-01",
       "title": "SAFE registry corrections of the residual PR plan, dependency-cycle gate, owner decision cards and Codex audit package",
       "issue": 288,
-      "pr": null,
+      "pr": 293,
       "branch": "mp-prcount-fix-01",
       "kind": "audit",
       "state": "REVIEW",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T174716Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T175503Z-agent-a-claude-code",
       "resources": [
         "file:docs/governance/master/pr-plan.json",
         "file:tools/governance/pr-plan.mjs",
@@ -2478,7 +2478,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
