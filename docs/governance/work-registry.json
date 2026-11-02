@@ -2364,7 +2364,7 @@
       "id": "MP-ODDS-MIG-01",
       "title": "Migrazione 031 snapshot quote API-FOOTBALL: da db/staged a migrations, rollback, preflight (MANUAL)",
       "issue": 263,
-      "pr": null,
+      "pr": 282,
       "branch": "mp-odds-migration-031",
       "kind": "implementation",
       "state": "REVIEW",
@@ -2380,7 +2380,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
