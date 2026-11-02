@@ -2360,6 +2360,29 @@
       },
       "pr_open": false,
       "merge_sha": "7a959e7b00279bf281194c6d404c0c394fa047b4"
+    },
+    {
+      "id": "MP-NEXT-DOCS-01",
+      "title": "Documenti per l owner: budget API, piano dismissione FPT, criteri TotalCorner, preflight VPS, pacchetto autorizzazione (SAFE)",
+      "issue": 263,
+      "pr": null,
+      "branch": "mp-docs-next-20261102",
+      "kind": "audit",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T105743Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/product/mp-263/api-budget-proposal.md",
+        "file:docs/product/mp-263/fpt-decommission-plan.md",
+        "file:docs/product/mp-263/totalcorner-benchmark-criteria.md",
+        "file:docs/product/mp-263/vps-preflight-2026-11-02.md",
+        "file:docs/product/mp-263/production-authorization-package.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
