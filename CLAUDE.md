@@ -11,7 +11,7 @@
    - la procedura [`docs/governance/HANDOFF.md`](docs/governance/HANDOFF.md).
 
    Gli agenti sono intercambiabili: nessun privilegio è legato al nome di Claude o di altri agenti (`MP-OWNER-AGENTS-INTERCHANGEABLE-01`).
-4. Roadmap canonica **#97**; requisiti e sequenza R-xx in `docs/governance/mp-pr-00/`.
+4. Roadmap canonica **#97**; requisiti e sequenza R-xx in `docs/governance/mp-pr-00/`. Indice operativo dei requisiti e delle schede PR: MASTER **#288** e `docs/governance/master/` (vedi AGENTS.md §0).
 
 ## Promemoria vincolanti, dettagliati in AGENTS.md
 

@@ -12,7 +12,7 @@ Ogni agente, prima di toccare il repository:
 1. Legge questo file e [CLAUDE.md](CLAUDE.md).
 2. Legge le decisioni owner vigenti in [`docs/governance/owner-decisions.json`](docs/governance/owner-decisions.json), stato `IN_FORCE`. È il registro canonico, con id, data, ambito, precedenza e riferimenti.
 3. Esegue `npm run governance:status` per vedere attività, lease, ultimo checkpoint, prossima azione e divergenze. Poi legge la issue assegnata.
-4. Controlla roadmap e dipendenze: **#97** è la roadmap canonica; #104 è il catalogo storico; `docs/governance/mp-pr-00/requirements.json → pr_registry` è la sequenza R-xx.
+4. Controlla roadmap e dipendenze: **#97** è la roadmap canonica; #104 è il catalogo storico; `docs/governance/mp-pr-00/requirements.json → pr_registry` è la sequenza R-xx. La **MASTER #288** e il registro [`docs/governance/master/`](docs/governance/master/README.md) sono l'indice operativo canonico dei requisiti, delle schede PR e del loro stato (MP-GLOBAL-RECONCILIATION-20261102). Non cambiano la gerarchia del §1.
 5. Verifica lo stato reale: branch, SHA, PR aperte, CI su GitHub.
 6. Identifica i blocker.
 7. Riprende dall'ultimo checkpoint **verificato** seguendo la procedura in [`docs/governance/HANDOFF.md`](docs/governance/HANDOFF.md) (`npm run governance:resume -- <task>`).
@@ -63,7 +63,7 @@ Il contratto prodotto si modifica solo con decisione owner registrata.
 - **Difetti:** RED → fix minimo → GREEN → regressione pertinente.
 
 **Regola pre-PR (#97):**
-1. dichiarare fase #97, issue (`Refs #N`), card #104 e ID requisiti;
+1. dichiarare fase #97, issue (`Refs #N`), card #104 e ID requisiti (`MP-REQ-####`, `MP-REQ-UI-####`, `MP-CARD-…` del registro MASTER #288, oppure `NO-NEW-REQUIREMENT: <motivo>`). Un requisito o una decisione nuovi si registrano in `docs/governance/master/` prima di essere considerati pianificati;
 2. identificare l'owner di dominio senza spostare logica;
 3. verificare la superficie tool/API;
 4. definire i test (automatici, matematici dove c'è matematica, hard);
