@@ -1,0 +1,22 @@
+{
+ "schema": "mp-audit-package-v1",
+ "files": {
+  "docs/governance/master/requirements.jsonl": "ef0da216f2f916fc0aa308ce74366da38501f9998ecfb3cbe6d48eaad271ac99",
+  "docs/governance/master/cards.jsonl": "c93b32deca347af1eac619e3511d60036ee783f1ac053b2c6fc7e791d8139345",
+  "docs/governance/master/issues.json": "3adfe79b84524dc2658e3d1200e1356883fd2772728dcbf43948cfafc170a285",
+  "docs/governance/master/prs.json": "c07afc37d0da96b7f8eaf9c3da3c41b5a89ef9c7712a0388867c4ed0f6d1648a",
+  "docs/governance/master/pr-plan.json": "45092ea3d344aeda7d9fe46abea7e0a9b331ef12dca83040528b14b5b00f9b51",
+  "docs/governance/master/pr-plan.md": "469b48ee24a3e510dc13a2cbefc06130f3623042bfdf1a44c765e4b948154a9f",
+  "docs/governance/master/pr-plan-reconciliation.json": "3c1056458c1d7571c1144c490fd250d7765baca833ccdc2b745de757b021c1ec",
+  "docs/governance/master/audit/baseline-270.json": "ee3f02d912856ded5bb29be84de162ca4c6f66aea1f065763814dd50107bacc6",
+  "docs/governance/master/audit/producer-analysis.json": "c41fed14ef6e005f81fb05b0418b080daedb63f3e90425a3a1b48771c7687afc",
+  "docs/governance/master/audit/decision-cards.md": "73967b6ddf881803bf7c05c295d7ba86592c2f8da81e1bcbdd58e570acda9ed1",
+  "docs/governance/master/audit/MP-ROADMAP-270-AUDIT.md": "7dd6344adb1d62175cc480182642d6000e81bf14f4ee10950e81ddbadaf2eb71",
+  "docs/governance/master/audit/INDEPENDENT-AUDIT-PACKAGE.md": "8a97a971a677c92de1ad728b4b6cec643f397aee2d2d47b8fdd17ad8349dae41",
+  "docs/governance/owner-decisions.json": "586715f7b8570ec4279d173ef35a94c7fe6e68ed0368e71ea876edc08e877b29",
+  "docs/governance/ui-requirements-matrix.json": "e22093b1c14bb9856dfd61e8778ffae12a0601d0f71cc1bb469979114ec6721b",
+  "docs/governance/mp-pr-00/requirements.json": "b7632aa37d47817762b575b8ec4930cb9e7cc6b554f84c6f6e3b546d5e9e9bb7",
+  "tools/governance/master.mjs": "3dedd30e7c8a353b249b250b8864b0bf3388dbc0d7120713b564d98c8bff5a97",
+  "tools/governance/pr-plan.mjs": "efe0da08c70b29c9cbfa2e8d9cf56404c83be9caf62cbc2ccd38815d77d9903e"
+ }
+}

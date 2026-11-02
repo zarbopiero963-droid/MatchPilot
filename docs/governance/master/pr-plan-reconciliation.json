@@ -2834,111 +2834,111 @@
   "removable_by_decision": [
    {
     "pr": "MP-PRP-002",
-    "reason": "an owner answer that keeps D12/DEC-003/DEC-001 as they are would let (a), (b) and (d) close inside G4-01 without a separate PR"
+    "reason": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-002): points a, c, d are closed in substance by MP-UI-D12-DECISIONS-20261024, MP-OWNER-GO-2026-11-01 and DEC-001; points b, e, f need explicit owner records; the PR disappears only if those records are made elsewhere"
    },
    {
     "pr": "MP-PRP-017",
-    "reason": "Owner decision to accept the 2026-10 certification as final for retired FPT (could drop 0247 part)"
+    "reason": "MANDATORY (audit 2026-11-02): integrity of the frozen FPT archive stays in scope; only the 0247 incremental-sync evidence could be waived by an explicit owner decision"
    },
    {
     "pr": "MP-PRP-021",
-    "reason": "Owner decision dropping overlap as a goal (FPT retired, TC suspended)"
+    "reason": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-021): the provider-overlap goal (DEC-003, OWN-2026-10-06-SCOPE) predates MP-OWNER-GO-2026-11-01; it disappears only if the owner drops it or restates the perimeter"
    },
    {
     "pr": "MP-PRP-026",
-    "reason": "Owner decision dropping TC after benchmark DROP verdict (MP-PROVIDERS-2026-10-31)"
+    "reason": "DEFERABLE (audit 2026-11-02): TotalCorner is suspended and the recorded benchmark verdict is INSUFFICIENT EVIDENCE (docs/product/mp-263/totalcorner-benchmark-criteria.md), not DROP; only an explicit owner decision to drop TotalCorner removes it"
    },
    {
     "pr": "MP-PRP-027",
-    "reason": "Benchmark verdict DROP for TotalCorner"
+    "reason": "DEFERABLE (audit 2026-11-02): TotalCorner is suspended and the recorded benchmark verdict is INSUFFICIENT EVIDENCE (docs/product/mp-263/totalcorner-benchmark-criteria.md), not DROP; only an explicit owner decision to drop TotalCorner removes it"
    },
    {
     "pr": "MP-PRP-028",
-    "reason": "Owner decision DROP TC (benchmark INSUFFICIENT/NO)"
+    "reason": "DEFERABLE (audit 2026-11-02): TotalCorner is suspended and the recorded benchmark verdict is INSUFFICIENT EVIDENCE (docs/product/mp-263/totalcorner-benchmark-criteria.md), not DROP; only an explicit owner decision to drop TotalCorner removes it"
    },
    {
     "pr": "MP-PRP-029",
-    "reason": "Owner decision DROP TC"
+    "reason": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-029): TotalCorner core certification on captured data; the TotalCorner OFF negative tests are a security control and stay in every scenario"
    },
    {
     "pr": "MP-PRP-047",
-    "reason": "Owner decision that the FPT certification endpoint is frozen/removed"
+    "reason": "OPTIONAL (audit 2026-11-02): performance rewrite of the frozen FPT certification endpoint; it disappears if the owner freezes or retires that endpoint"
    },
    {
     "pr": "MP-PRP-052",
-    "reason": "an owner decision to drop progressions from #94 scope would remove it"
+    "reason": "MANDATORY (audit 2026-11-02): progression and owner-formula models are approved scope (MP-UI-D12-DECISIONS-20261024); it stays in the plan and only an owner decision changing that scope would remove it; blocked on the owner formulas"
    },
    {
     "pr": "MP-PRP-082",
-    "reason": "MP-PROVIDERS-2026-10-31 owner decision could re-scope or drop the FPT+TC benchmark"
+    "reason": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-082): the #27 GOAT benchmark was defined on FPT+TC; with API-FOOTBALL primary (MP-OWNER-GO-2026-11-01) it must be re-based or dropped by the owner; MP-PROVIDERS-2026-10-31 is cited in issue comments but is not in owner-decisions.json"
    },
    {
     "pr": "MP-PRP-101",
-    "reason": "owner decision not to adopt these models would remove it"
+    "reason": "MANDATORY (audit 2026-11-02): progression and owner-formula models are approved scope (MP-UI-D12-DECISIONS-20261024); it stays in the plan and only an owner decision changing that scope would remove it; blocked on the owner formulas"
    },
    {
     "pr": "MP-PRP-102",
-    "reason": "owner decision to exclude progression/martingale models would remove it"
+    "reason": "MANDATORY (audit 2026-11-02): progression and owner-formula models are approved scope (MP-UI-D12-DECISIONS-20261024); it stays in the plan and only an owner decision changing that scope would remove it; blocked on the owner formulas"
    },
    {
     "pr": "MP-PRP-115",
-    "reason": "owner decision confirming current UNRESOLVED-only behaviour would remove it"
+    "reason": "MANDATORY (audit 2026-11-02): the VOID, postponed, abandoned and correction policy of market rules is approved scope (DEC-015, DEC-002); it stays in the plan"
    },
    {
     "pr": "MP-PRP-143",
-    "reason": "MP-OWNER-DECISIONS-D1-D9-20261018.D3: #44 stays in the future register"
+    "reason": "DEFERABLE (audit 2026-11-02): #44 is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and AI/conversational Copilot stays OFF pending cost authorization (MP-UI-D12-DECISIONS-20261024); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps advanced features in the global roadmap, so only an explicit owner deferral removes it"
    },
    {
     "pr": "MP-PRP-144",
-    "reason": "MP-OWNER-DECISIONS-D1-D9-20261018.D3: #44 stays in the future register"
+    "reason": "DEFERABLE (audit 2026-11-02): #44 is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and AI/conversational Copilot stays OFF pending cost authorization (MP-UI-D12-DECISIONS-20261024); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps advanced features in the global roadmap, so only an explicit owner deferral removes it"
    },
    {
     "pr": "MP-PRP-145",
-    "reason": "MP-OWNER-DECISIONS-D1-D9-20261018.D3: #44 stays in the future register"
+    "reason": "DEFERABLE (audit 2026-11-02): #44 is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and AI/conversational Copilot stays OFF pending cost authorization (MP-UI-D12-DECISIONS-20261024); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps advanced features in the global roadmap, so only an explicit owner deferral removes it"
    },
    {
     "pr": "MP-PRP-146",
-    "reason": "MP-OWNER-DECISIONS-D1-D9-20261018.D3: #44 stays in the future register"
+    "reason": "DEFERABLE (audit 2026-11-02): #44 is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and AI/conversational Copilot stays OFF pending cost authorization (MP-UI-D12-DECISIONS-20261024); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps advanced features in the global roadmap, so only an explicit owner deferral removes it"
    },
    {
     "pr": "MP-PRP-176",
-    "reason": "MP-OWNER-DECISIONS-D1-D9-20261018.D3: the natural-language assistant belongs to #44, kept in the future register"
+    "reason": "DEFERABLE (audit 2026-11-02): #44 is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and AI/conversational Copilot stays OFF pending cost authorization (MP-UI-D12-DECISIONS-20261024); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps advanced features in the global roadmap, so only an explicit owner deferral removes it"
    },
    {
     "pr": "MP-PRP-230",
-    "reason": "owner decision that Users & Permissions stays out of scope (single owner account only)"
+    "reason": "DEFERABLE only for the owner Users & Permissions administration (230-B, audit 2026-11-02 and Codex review of PR #292); the own-session page, active-session listing and revocation (230-A) are mandatory"
    },
    {
     "pr": "MP-PRP-233",
-    "reason": "owner decision that the unbundled frontend stays without a build step"
+    "reason": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-233): build step for the frontend; if the owner keeps the unbundled frontend, the no-source-map and no-debug checks move to MP-PRP-240 and stay mandatory"
    },
    {
     "pr": "MP-PRP-240",
-    "reason": "an owner decision that v1 ships with the baseline of G4-12 only would remove this PR"
+    "reason": "DEFERABLE (audit 2026-11-02): advanced hardening beyond the security baseline of MP-PRP-042, which stays mandatory; only an explicit owner deferral removes it"
    },
    {
     "pr": "MP-PRP-245",
-    "reason": "owner confirms owner-only for v1 (D12): this PR is removed"
+    "reason": "DEFERABLE (audit 2026-11-02): second administrator; v1 is owner-only (MP-OWNER-D12-OWNER-LOGIN-20261019); only an explicit owner deferral removes it"
    },
    {
     "pr": "MP-PRP-247",
-    "reason": "owner keeps SaaS in the future register (D3): the PR is removed from v1"
+    "reason": "DEFERABLE (audit 2026-11-02): #46 SaaS/billing is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and gated by MP-PRODUCT-100 (no payments or subscriptions without an owner decision); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps it in the global roadmap, so only an explicit owner deferral removes it"
    },
    {
     "pr": "MP-PRP-248",
-    "reason": "MP-OWNER-DECISIONS-D1-D9-20261018.D3: #46 stays in the future register"
+    "reason": "DEFERABLE (audit 2026-11-02): #46 SaaS/billing is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and gated by MP-PRODUCT-100 (no payments or subscriptions without an owner decision); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps it in the global roadmap, so only an explicit owner deferral removes it"
    },
    {
     "pr": "MP-PRP-249",
-    "reason": "MP-OWNER-DECISIONS-D1-D9-20261018.D3: #46 stays in the future register"
+    "reason": "DEFERABLE (audit 2026-11-02): #46 SaaS/billing is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and gated by MP-PRODUCT-100 (no payments or subscriptions without an owner decision); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps it in the global roadmap, so only an explicit owner deferral removes it"
    },
    {
     "pr": "MP-PRP-250",
-    "reason": "MP-OWNER-DECISIONS-D1-D9-20261018.D3: #46 stays in the future register"
+    "reason": "DEFERABLE (audit 2026-11-02): #46 SaaS/billing is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and gated by MP-PRODUCT-100 (no payments or subscriptions without an owner decision); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps it in the global roadmap, so only an explicit owner deferral removes it"
    },
    {
     "pr": "MP-PRP-259",
-    "reason": "Owner decision to defer private transition"
+    "reason": "MANDATORY (audit 2026-11-02): zero Actions spend evidence is required by OWN-2026-10-09-CI-ZERO-COST; only the timing of the private transition is an owner decision"
    }
   ],
   "merge_pairs": [
