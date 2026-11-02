@@ -30,11 +30,26 @@
   ],
   "method": "estrazione atomica da corpo e commenti di tutte le 48 issue (6 lotti), confronto con il codice di main al base sha; le PR aperte sono tenute distinte; nessuna chiamata ai provider",
   "pr_plan": {
-    "N": 270,
-    "N_min": 209,
-    "N_max": 328,
+    "N": 268,
+    "N_min": 212,
+    "N_max": 326,
     "F_open_prs": 8,
-    "G_new_prs": 262,
+    "G_new_prs": 260,
     "I_certification_only": 4
+  },
+  "pr_plan_status": {
+    "official_baseline": {
+      "N": 270,
+      "N_min": 209,
+      "N_max": 328,
+      "record": "docs/governance/master/audit/baseline-270.json"
+    },
+    "candidate": {
+      "N": 282,
+      "N_min": 249,
+      "N_max": 302,
+      "status": "NOT APPROVED"
+    },
+    "working_plan": "projection with owner decisions MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL applied; NOT an approved baseline"
   }
 }

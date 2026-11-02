@@ -1,0 +1,100 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T222431Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T22:24:31Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-OWNER-DEC-MIG-01",
+  "activity": "MP-OWNER-DEC-MIG-01: owner mandate F1=A, F2=A, F3=A, P1=A registered; review pending",
+  "issue": 288,
+  "pr": null,
+  "branch": "mp-owner-dec-mig-01",
+  "commit_sha": "743b9f569fd6f7d307cb5b894fa24b40f325ec48",
+  "tree_sha": "6761382a95faaa186f55415a3e39b63713abb5ab",
+  "base_sha": "bffc3d9afb81138fbb1240056427a3e9502eecba",
+  "requirements": [],
+  "changes": [
+    "docs/governance/owner-decisions.json (mandate registered)",
+    "docs/governance/master/audit/package-manifest.json (refreshed)"
+  ],
+  "tests": [
+    {
+      "command": "governance validate, pr-plan validate",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22",
+      "commit": "743b9f569fd6f7d307cb5b894fa24b40f325ec48",
+      "time": "2026-11-02T22:24:31Z",
+      "limits": [
+        "register entry only; no code"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "743b9f569fd6f7d307cb5b894fa24b40f325ec48"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "Codex code review requested on the PR"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "mandate registered"
+    ],
+    "in_progress": [
+      "CI",
+      "independent review (Codex)"
+    ],
+    "not_started": [
+      "SAFE merge after review"
+    ]
+  },
+  "resources": [
+    "file:docs/governance/owner-decisions.json"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent",
+    "merge only after green CI and review"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI; Codex review; SAFE merge with expectedHeadSha",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": null
+}
