@@ -1,0 +1,139 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T111359Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T11:13:59Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-NEXT-20261102",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-NEXT-DOCS-01",
+  "activity": "PR #284 merged as b6dc4ce (squash; SAFE under MP-NEXT-20261102: docs only)",
+  "issue": 263,
+  "pr": 284,
+  "branch": "mp-docs-next-20261102",
+  "commit_sha": "3bee738a63561c921809cc3c360462a43ad123e9",
+  "tree_sha": "a460aab8ab074ef95b22a146f385cdfb4b383f94",
+  "base_sha": "7a959e7b00279bf281194c6d404c0c394fa047b4",
+  "requirements": [],
+  "changes": [
+    "docs/product/mp-263/api-budget-proposal.md",
+    "docs/product/mp-263/fpt-decommission-plan.md",
+    "docs/product/mp-263/totalcorner-benchmark-criteria.md",
+    "docs/product/mp-263/vps-preflight-2026-11-02.md",
+    "docs/product/mp-263/production-authorization-package.md",
+    "b6dc4ce: squash merge of PR #284"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #284 head 3bee738",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "3bee738a63561c921809cc3c360462a43ad123e9",
+      "time": "2026-11-02T11:13:59Z",
+      "limits": [
+        "run 41433017615 success"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main b6dc4ce",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "b6dc4cebfc8945e0bd780e0994f883e0f4e20d15",
+      "time": "2026-11-02T11:13:59Z",
+      "limits": [
+        "run 41433688993 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main b6dc4ce",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "b6dc4cebfc8945e0bd780e0994f883e0f4e20d15",
+      "time": "2026-11-02T11:13:59Z",
+      "limits": [
+        "run 41433688956: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41433017615,
+    "conclusion": "SUCCESS",
+    "head_sha": "3bee738a63561c921809cc3c360462a43ad123e9"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "3bee738a63561c921809cc3c360462a43ad123e9",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/284#issuecomment-6575521549 (APPROVED on 615d8d2; later commits: wording nit and registers)"
+  },
+  "findings": [
+    {
+      "id": "DOCS-B1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "#277 stated as in production: now NOT verified, deploys refused, preflight check 15 added"
+    },
+    {
+      "id": "DOCS-N1-N4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "runnable check 12, cited run only, links to MANUAL PR files noted, clustering caveat"
+    }
+  ],
+  "owner_decisions": [
+    "MP-NEXT-20261102",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:docs/product/mp-263/api-budget-proposal.md",
+    "file:docs/product/mp-263/fpt-decommission-plan.md",
+    "file:docs/product/mp-263/totalcorner-benchmark-criteria.md",
+    "file:docs/product/mp-263/vps-preflight-2026-11-02.md",
+    "file:docs/product/mp-263/production-authorization-package.md"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261102T105743Z-agent-a-claude-code",
+  "merge_sha": "b6dc4cebfc8945e0bd780e0994f883e0f4e20d15"
+}
