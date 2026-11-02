@@ -8,9 +8,12 @@ import { spawn } from 'node:child_process';
 import { MAX_ROWS_PER_ANSWER, oddsSnapshotRows, oddsSnapshotsFromResult, payloadSha256 } from '../src/providers/apifootball/odds-snapshots.mjs';
 import { createPgRequestLedger, oddsAsOf, saveOddsSnapshots, SnapshotStoreError } from '../src/providers/apifootball/store.mjs';
 import { apiFootballConfig, createApiFootballClient } from '../src/providers/apifootball/client.mjs';
+import { linkedRows } from './helpers/apifootball-raw.mjs';
 
 const MIGRATION = readFileSync(new URL('../migrations/031-apifootball-odds-snapshots.sql', import.meta.url), 'utf8');
 const ROLLBACK = readFileSync(new URL('../db/rollback/031-apifootball-odds-snapshots.down.sql', import.meta.url), 'utf8');
+// Migration 033 (MP-AF-RAW-01) is applied by migrate() too and references 031: it is rolled back first.
+const ROLLBACK_033 = readFileSync(new URL('../db/rollback/033-apifootball-raw-responses.down.sql', import.meta.url), 'utf8');
 const KICKOFF = Date.UTC(2026, 10, 1, 17, 30);
 const answer = ({update = '2026-11-01T14:52:00+00:00', home = '2.10', over = '1.85', timestamp = KICKOFF / 1000} = {}) => ({response: [{
   fixture: {id: 1035001, timestamp, date: new Date(timestamp * 1000).toISOString()}, update,
@@ -108,19 +111,19 @@ test('MP-ODDS-MIG-01 migration: applied by migrate(), idempotent, append-only an
     assert.ok((await db.query("SELECT 1 FROM schema_migrations WHERE filename = '031-apifootball-odds-snapshots.sql'")).rowCount === 1, 'applied by migrate()');
     await db.query(MIGRATION);
     await db.query(MIGRATION);
-    const {rows} = oddsSnapshotRows(answer(), {acquiredAt: BEFORE});
+    const rows = await linkedRows(db, oddsSnapshotRows(answer(), {acquiredAt: BEFORE}).rows);
     assert.deepEqual(await saveOddsSnapshots(db, rows), {inserted: 6, skipped: 0});
     assert.deepEqual(await saveOddsSnapshots(db, rows), {inserted: 0, skipped: 6}, 'replaying the same acquisition writes nothing');
-    assert.deepEqual(await saveOddsSnapshots(db, oddsSnapshotRows(answer(), {acquiredAt: new Date(BEFORE.getTime() + 600000)}).rows), {inserted: 0, skipped: 6},
+    assert.deepEqual(await saveOddsSnapshots(db, await linkedRows(db, oddsSnapshotRows(answer(), {acquiredAt: new Date(BEFORE.getTime() + 600000)}).rows)), {inserted: 0, skipped: 6},
       'unchanged price at the same provider update: no new snapshot');
     assert.equal(await code(db.query('UPDATE af_odds_snapshots SET odd = 9')), 'P0001');
     assert.equal(await code(db.query('DELETE FROM af_odds_snapshots')), 'P0001');
     assert.equal(await code(db.query('TRUNCATE af_odds_snapshots')), 'P0001');
     // The database itself refuses a pre-match row acquired at kickoff, or an update after kickoff.
     const late = {...rows[0], acquired_at: new Date(KICKOFF).toISOString(), odd_text: '2.20'};
-    assert.equal(await code(saveOddsSnapshots(db, [late])), '23514');
+    assert.equal(await code(saveOddsSnapshots(db, await linkedRows(db, [late]))), '23514');
     const lateUpdate = {...rows[0], provider_update_at: new Date(KICKOFF).toISOString(), odd_text: '2.30'};
-    assert.equal(await code(saveOddsSnapshots(db, [lateUpdate])), '23514');
+    assert.equal(await code(saveOddsSnapshots(db, await linkedRows(db, [lateUpdate]))), '23514');
     assert.equal((await db.query('SELECT count(*)::int AS n FROM af_odds_snapshots')).rows[0].n, 6, 'a refused batch writes nothing');
     // Rollback never drops history: with rows it is refused and changes nothing.
     assert.equal(await code(db.query(ROLLBACK)), 'P0001');
@@ -137,9 +140,11 @@ test('MP-ODDS-MIG-01 rollback on empty tables removes exactly the migration; mig
   assert.deepEqual(planMigrations(pending, {production: true, approved: new Set(pending)}).apply, pending);
   assert.deepEqual(migrationPolicy({MATCHPILOT_RUNTIME_MODE: 'test'}).production, false);
   await withSchema(t, 'rollback', async (db, pg, url) => {
+    await db.query(ROLLBACK_033);
     await db.query(ROLLBACK);
     assert.equal((await db.query("SELECT to_regclass('af_odds_snapshots') AS t, to_regclass('af_request_ledger') AS l")).rows[0].t, null);
     assert.equal((await db.query("SELECT to_regprocedure('mp_af_append_only()') AS f")).rows[0].f, null);
+    assert.equal((await db.query("SELECT to_regclass('af_raw_responses') AS t")).rows[0].t, null);
     await db.query(ROLLBACK); // review: running it again on an already rolled-back schema is a no-op, not an error
     assert.equal((await db.query("SELECT count(*)::int AS n FROM schema_migrations WHERE filename = '031-apifootball-odds-snapshots.sql'")).rows[0].n, 0);
     await assert.rejects(saveOddsSnapshots(db, oddsSnapshotRows(answer(), {acquiredAt: BEFORE}).rows), err => err instanceof SnapshotStoreError && err.code === 'SNAPSHOTS_UNAVAILABLE');
@@ -154,8 +159,8 @@ test('MP-ODDS-SNAP-01 point in time: the last snapshot acquired at or before as_
   await withSchema(t, 'pit', async db => {
     const t1 = new Date(KICKOFF - 3 * 3600 * 1000);
     const t2 = new Date(KICKOFF - 3600 * 1000);
-    await saveOddsSnapshots(db, oddsSnapshotRows(answer({update: '2026-11-01T14:20:00+00:00'}), {acquiredAt: t1}).rows);
-    await saveOddsSnapshots(db, oddsSnapshotRows(answer({update: '2026-11-01T16:20:00+00:00', home: '2.30'}), {acquiredAt: t2}).rows);
+    await saveOddsSnapshots(db, await linkedRows(db, oddsSnapshotRows(answer({update: '2026-11-01T14:20:00+00:00'}), {acquiredAt: t1}).rows));
+    await saveOddsSnapshots(db, await linkedRows(db, oddsSnapshotRows(answer({update: '2026-11-01T16:20:00+00:00', home: '2.30'}), {acquiredAt: t2}).rows));
     const home = async asOf => (await oddsAsOf(db, {fixtureId: 1035001, asOf})).find(r => r.bet_id === 1 && r.value_text === 'Home')?.odd_text;
     assert.equal(await home(new Date(t1.getTime() - 1).toISOString()), undefined, 'nothing known before the first acquisition');
     assert.equal(await home(t1.toISOString()), '2.10');
@@ -184,7 +189,7 @@ test('MP-ODDS-SNAP-01 the PostgreSQL request ledger holds the client budget (fak
     assert.deepEqual([rows[0].endpoint, rows[0].family, rows[0].purpose, rows[0].outcome, rows[0].http_status, rows[0].quota.day_remaining],
       ['/odds', 'odds', 'prematch-odds', 'ok', 200, 7000]);
     assert.ok(!JSON.stringify(rows).includes('test-key-not-real'), 'the key never reaches the ledger');
-    const saved = await saveOddsSnapshots(db, oddsSnapshotRows(result, {acquiredAt: BEFORE}).rows);
+    const saved = await saveOddsSnapshots(db, await linkedRows(db, oddsSnapshotRows(result, {acquiredAt: BEFORE}).rows));
     assert.equal(saved.inserted, 6);
     assert.equal(await code(db.query('DELETE FROM af_request_ledger')), 'P0001');
   });
@@ -225,7 +230,7 @@ test('MP-ODDS-SNAP-01 review: a price that returns to an earlier value is a new 
         const body = answer({home, update});
         body.response[0].fixture.id = fixture;
         if (update === null) delete body.response[0].update;
-        await saveOddsSnapshots(db, oddsSnapshotRows(body, {acquiredAt: at(n)}).rows);
+        await saveOddsSnapshots(db, await linkedRows(db, oddsSnapshotRows(body, {acquiredAt: at(n)}).rows));
       }
       const history = (await db.query("SELECT odd_text FROM af_odds_snapshots WHERE fixture_id = $1 AND bet_id = 1 AND value_text = 'Home' ORDER BY acquired_at", [fixture])).rows.map(r => r.odd_text);
       assert.deepEqual(history, ['2.00', '2.10', '2.00'], `update ${update}: the return to 2.00 is kept, the unchanged repeat is not`);
@@ -239,11 +244,11 @@ test('MP-ODDS-SNAP-01 review: chunks of 500, a failing later chunk rolls back th
   await withSchema(t, 'chunks', async db => {
     const values = Array.from({length: 1200}, (_, i) => ({value: `Over ${i}.5`, odd: '2.00'}));
     const body = {response: [{...answer().response[0], bookmakers: [{id: 8, name: 'Bet365', bets: [{id: 5, name: 'Goals Over/Under', values}]}]}]};
-    const {rows} = oddsSnapshotRows(body, {acquiredAt: BEFORE});
+    const rows = await linkedRows(db, oddsSnapshotRows(body, {acquiredAt: BEFORE}).rows);
     assert.deepEqual(await saveOddsSnapshots(db, rows), {inserted: 1200, skipped: 0});
     const later = oddsSnapshotRows({response: [{...body.response[0], fixture: {...body.response[0].fixture, id: 1035009}}]}, {acquiredAt: BEFORE}).rows;
     later[1100] = {...later[1100], kickoff_at: BEFORE.toISOString()};
-    assert.equal(await code(saveOddsSnapshots(db, later)), '23514');
+    assert.equal(await code(saveOddsSnapshots(db, await linkedRows(db, later))), '23514');
     assert.equal((await db.query('SELECT count(*)::int AS n FROM af_odds_snapshots WHERE fixture_id = 1035009')).rows[0].n, 0, 'nothing of the failed batch stays');
     const ledger = createPgRequestLedger(db);
     const base = {at_ms: Date.now(), endpoint: '/odds', family: 'odds', path: '/odds?fixture=1', params_hash: 'a'.repeat(64), purpose: 'p', attempt: 1, latency_ms: 3, quota: null};

@@ -1,17 +1,21 @@
-// MP-ODDS-SNAP-01 (#263): PostgreSQL side of the API-FOOTBALL request ledger and of the pre-match odds snapshots. The
-// tables come from migrations/031-apifootball-odds-snapshots.sql, applied in production only with the owner's approval:
+// MP-ODDS-SNAP-01 (#263): PostgreSQL side of the API-FOOTBALL request ledger, of the raw answers (MP-AF-RAW-01) and of
+// the pre-match odds snapshots. The tables come from migrations/031-apifootball-odds-snapshots.sql and
+// migrations/033-apifootball-raw-responses.sql, applied in production only with the owner's approval:
 // until then every call fails with SNAPSHOTS_UNAVAILABLE and nothing is created on the fly.
 // No job, route or schedule uses this module yet.
+import { createHash } from 'node:crypto';
 import { COUNTED, paramsHash } from './client.mjs';
+import { oddsSnapshotRows } from './odds-snapshots.mjs';
 
 export class SnapshotStoreError extends Error {
   constructor(code, message) { super(message); this.name = 'SnapshotStoreError'; this.code = code; }
 }
 const UNDEFINED_TABLE = '42P01';
+const UNDEFINED_COLUMN = '42703'; // af_odds_snapshots without raw_id: migration 033 not applied
 async function guarded(run) {
   try { return await run(); }
   catch (error) {
-    if (error?.code === UNDEFINED_TABLE) throw new SnapshotStoreError('SNAPSHOTS_UNAVAILABLE', 'the API-FOOTBALL snapshot schema (migration 031) is not applied');
+    if (error?.code === UNDEFINED_TABLE || error?.code === UNDEFINED_COLUMN) throw new SnapshotStoreError('SNAPSHOTS_UNAVAILABLE', 'the API-FOOTBALL schema (migrations 031 and 033) is not applied');
     throw error;
   }
 }
@@ -49,7 +53,7 @@ export function createPgRequestLedger(db) {
 const COLUMNS = [['fixture_id', 'bigint'], ['kickoff_at', 'timestamptz'], ['acquired_at', 'timestamptz'], ['provider_update_at', 'timestamptz'],
   ['phase', 'text'], ['bookmaker_id', 'integer'], ['bookmaker_name', 'text'], ['bet_id', 'integer'], ['bet_name', 'text'], ['value_text', 'text'],
   ['handicap_text', 'text'], ['odd', 'numeric'], ['odd_text', 'text'], ['market_ref_status', 'text'], ['market_key', 'text'],
-  ['market_ref_version', 'text'], ['request_id', 'bigint'], ['payload_sha256', 'text']];
+  ['market_ref_version', 'text'], ['request_id', 'bigint'], ['payload_sha256', 'text'], ['raw_id', 'bigint']];
 const NAMES = COLUMNS.map(([name]) => name).join(',');
 
 // A row is written unless the previous snapshot of the same selection (the latest acquired before it) has the same
@@ -125,4 +129,60 @@ export async function oddsAsOf(db, {fixtureId, asOf}) {
       ORDER BY bookmaker_id, bet_id, value_text, handicap_text, acquired_at DESC, snapshot_id DESC`,
     [fixtureId, new Date(at).toISOString()]));
   return result.rows;
+}
+
+// MP-AF-RAW-01 (#263, P1 of PR #283, migration 033): the raw provider answer, stored before any normalization.
+// `input` is a client result (its `raw`) or a raw record itself (an ApiFootballError's `raw`, for provider errors).
+// One statement, committed on its own before the snapshots: a crash after it leaves a raw answer without snapshots,
+// which recoverRawOdds() replays; never a snapshot without its raw answer (foreign key and NOT VALID check).
+// Idempotent: the same answer (request_id, body_sha256) returns the raw_id already stored, with inserted false.
+// Fails closed: no request_id (a ledger that does not return it), no body bytes, a hash or size that does not match.
+export async function saveRawResponse(db, input) {
+  const raw = input?.raw ?? input;
+  const id = raw?.request_id;
+  if (!Number.isSafeInteger(id) || id <= 0) throw new SnapshotStoreError('RAW_INVALID', 'a raw answer needs the request_id of its ledger row (use the PostgreSQL ledger)');
+  // A cached client result carries a Uint8Array (structuredClone drops the Buffer prototype): same bytes.
+  const body = raw.body instanceof Uint8Array ? Buffer.from(raw.body.buffer, raw.body.byteOffset, raw.body.byteLength) : null;
+  if (!body) throw new SnapshotStoreError('RAW_INVALID', 'a raw answer needs its body bytes');
+  const sha = createHash('sha256').update(body).digest('hex');
+  if (raw.body_sha256 !== sha || raw.body_bytes !== body.length) throw new SnapshotStoreError('RAW_INVALID', 'raw body does not match its declared hash or size');
+  const result = await guarded(() => db.query(
+    `WITH ins AS (
+       INSERT INTO af_raw_responses (provider, request_id, endpoint, family, path, params_hash, request_params, purpose, requested_at, received_at,
+         provider_date, content_type, http_status, outcome, body, body_exact, body_bytes, body_sha256, quota)
+       VALUES ('api-football',$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+       ON CONFLICT ON CONSTRAINT af_raw_responses_dedupe DO NOTHING
+       RETURNING raw_id)
+     SELECT raw_id, true AS inserted FROM ins
+     UNION ALL
+     SELECT raw_id, false FROM af_raw_responses WHERE request_id = $1 AND body_sha256 = $17 AND NOT EXISTS (SELECT 1 FROM ins)`,
+    [id, raw.endpoint, raw.family, raw.path, raw.params_hash, JSON.stringify(raw.params ?? {}), raw.purpose, raw.requested_at, raw.received_at,
+      raw.provider_date == null ? null : String(raw.provider_date).slice(0, 100), raw.content_type == null ? null : String(raw.content_type).slice(0, 200),
+      raw.http_status, raw.outcome, body, raw.body_exact === true, body.length, sha, raw.quota ? JSON.stringify(raw.quota) : null]));
+  const row = result.rows[0];
+  if (!row) throw new SnapshotStoreError('RAW_INVALID', 'raw answer neither stored nor found');
+  return {raw_id: Number(row.raw_id), inserted: row.inserted};
+}
+
+// Recovery after a crash between a raw answer and its snapshots: every successful /odds raw answer received since
+// `since` that no snapshot references is parsed again from its stored bytes and saved through saveOddsSnapshots, with
+// its original acquisition instant (received_at), request_id and raw_id. Idempotent: an answer whose snapshots exist, or
+// whose prices were all unchanged, writes nothing. `client` is a dedicated connection (saveOddsSnapshots needs one).
+export async function recoverRawOdds(client, {since, limit = 100} = {}) {
+  const at = since instanceof Date ? since.getTime() : Date.parse(since);
+  if (!Number.isFinite(at) || !Number.isSafeInteger(limit) || limit < 1 || limit > 10000) throw new TypeError('since and a limit between 1 and 10000 are required');
+  const pending = await guarded(() => client.query(
+    `SELECT r.raw_id, r.request_id, r.received_at, r.body FROM af_raw_responses r
+      WHERE r.endpoint = '/odds' AND r.outcome = 'ok' AND r.received_at >= $1
+        AND NOT EXISTS (SELECT 1 FROM af_odds_snapshots s WHERE s.raw_id = r.raw_id)
+      ORDER BY r.received_at, r.raw_id LIMIT $2`, [new Date(at).toISOString(), limit]));
+  let inserted = 0;
+  let rejected = 0;
+  for (const r of pending.rows) {
+    const body = JSON.parse(new TextDecoder('utf-8').decode(r.body));
+    const out = oddsSnapshotRows({response: body?.response}, {acquiredAt: r.received_at, requestId: Number(r.request_id), rawId: Number(r.raw_id)});
+    rejected += out.rejected.length;
+    if (out.rows.length) inserted += (await saveOddsSnapshots(client, out.rows)).inserted;
+  }
+  return {raw_checked: pending.rows.length, inserted, rejected};
 }
