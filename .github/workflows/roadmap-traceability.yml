@@ -1,0 +1,78 @@
+# matchpilot-roadmap-traceability (MP-GLOBAL-RECONCILIATION-20261102, MASTER #288).
+# REPORT ONLY: every job ends green and reports problems as warnings and in the job summary.
+# It is not a required check; making it required needs an explicit owner decision.
+# GitHub cannot block the creation of an issue: unlinked issues are reported afterwards by the
+# daily scan (or a manual run), never prevented. The `issues` event is not used because the
+# repository workflow policy (scripts/workflow-policy.mjs) does not allow it.
+name: roadmap-traceability
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: roadmap-traceability-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  pr-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: PR cites requirement ids or declares NO-NEW-REQUIREMENT
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+          out=$(node tools/governance/master.mjs pr-check "$RUNNER_TEMP/pr-body.md") && rc=0 || rc=$?
+          echo "$out"
+          { echo '### roadmap-traceability: pr-check'; echo '```json'; echo "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          case "$out" in
+            '{"result":'*) [ "$rc" -eq 0 ] || echo "::warning title=roadmap-traceability::the PR body cites no valid MP-REQ/MP-CARD id and no NO-NEW-REQUIREMENT declaration (MASTER #288)" ;;
+            *) echo "::warning title=roadmap-traceability::pr-check crashed (rc=$rc); see the job log" ;;
+          esac
+          exit 0
+
+  orphan-scan:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Open issues without a MASTER link
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -o pipefail
+          if ! gh api --paginate "repos/${GITHUB_REPOSITORY}/issues?state=open&per_page=100" --jq '[.[] | {number, state, body, pull_request}]' | jq -s 'add' > "$RUNNER_TEMP/issues.json"; then
+            echo "::warning title=roadmap-traceability::the open-issue listing could not be read; no scan this run"
+            exit 0
+          fi
+          out=$(node tools/governance/master.mjs issues-check "$RUNNER_TEMP/issues.json") && rc=0 || rc=$?
+          echo "$out"
+          { echo '### roadmap-traceability: orphan scan'; echo '```json'; echo "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          case "$out" in
+            '{"result":'*) [ "$rc" -eq 0 ] || echo "::warning title=roadmap-traceability::open issues without a MASTER #288 link: $out" ;;
+            *) echo "::warning title=roadmap-traceability::issues-check crashed (rc=$rc); see the job log" ;;
+          esac
+          exit 0

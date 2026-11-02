@@ -16,7 +16,7 @@
   "docs/governance/owner-decisions.json": "178e0a503df5d0e4e5615a868efa8a3d333dfa9450c725e94f2220a4368ecb45",
   "docs/governance/ui-requirements-matrix.json": "e22093b1c14bb9856dfd61e8778ffae12a0601d0f71cc1bb469979114ec6721b",
   "docs/governance/mp-pr-00/requirements.json": "b7632aa37d47817762b575b8ec4930cb9e7cc6b554f84c6f6e3b546d5e9e9bb7",
-  "tools/governance/master.mjs": "3dedd30e7c8a353b249b250b8864b0bf3388dbc0d7120713b564d98c8bff5a97",
+  "tools/governance/master.mjs": "18dd9b2506da79892c0642ebb2333f37081debddb3cf8ff0b288335e983cb386",
   "tools/governance/pr-plan.mjs": "f2ba00fdb759bb6c5e68fd8973fa85b60bf15aec1f9c4c827df74729bc65dea5"
  }
 }

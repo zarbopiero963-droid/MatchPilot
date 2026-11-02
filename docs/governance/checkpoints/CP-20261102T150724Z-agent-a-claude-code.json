@@ -1,0 +1,126 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T150724Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T15:07:24Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-GLOBAL-RECONCILIATION-20261102",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-MASTER-02",
+  "activity": "MP-MASTER-02 implemented and reviewed: report-only roadmap-traceability workflow, MASTER #288 pointers; MANUAL (CI workflow and normative docs)",
+  "issue": 288,
+  "pr": null,
+  "branch": "mp-master-traceability-01",
+  "commit_sha": "8b23da2c820f17bcde95a67b307dc5f11db07bb3",
+  "tree_sha": "c5e0019361771a6fd984ae2bc001411a572af00e",
+  "base_sha": "1aebd02a45a2fef61bcbaf0c75ee29a150580b36",
+  "requirements": [],
+  "changes": [
+    ".github/workflows/roadmap-traceability.yml (new, report-only)",
+    "AGENTS.md (§0 step 4 and pre-PR rule: MASTER #288 pointer)",
+    "CLAUDE.md (quick entry: MASTER #288 pointer)",
+    ".github/pull_request_template.md (MASTER ids line)",
+    "docs/governance/master/README.md (workflow description)",
+    "tools/governance/master.mjs (issues-check rejects a non-array)"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, docker postgres:17 on 127.0.0.1:5433",
+      "commit": "8b23da2c820f17bcde95a67b307dc5f11db07bb3",
+      "time": "2026-11-02T15:07:24Z",
+      "limits": [
+        "full suite green on PostgreSQL 17; no network, no provider call"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "8b23da2c820f17bcde95a67b307dc5f11db07bb3"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "8b23da2c820f17bcde95a67b307dc5f11db07bb3",
+    "reference": "independent subagent review (same model family: self-review): APPROVED at 7b2da55, delta APPROVED at 8b23da2"
+  },
+  "findings": [
+    {
+      "id": "PR-TRACE-N1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "crash reported as a normal FAIL (fixed in 8b23da2)"
+    },
+    {
+      "id": "PR-TRACE-N2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "gh api failure masked without pipefail (fixed in 8b23da2)"
+    },
+    {
+      "id": "PR-TRACE-N3",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "validator output echoed unescaped in warnings: only ids and issue numbers, never free text"
+    }
+  ],
+  "owner_decisions": [
+    "MP-GLOBAL-RECONCILIATION-20261102",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "independent review"
+    ],
+    "in_progress": [
+      "CI"
+    ],
+    "not_started": [
+      "owner authorization and merge (MANUAL)"
+    ]
+  },
+  "resources": [
+    "file:.github/workflows/roadmap-traceability.yml",
+    "file:.github/pull_request_template.md",
+    "file:docs/governance/master/README.md",
+    "file:tools/governance/master.mjs"
+  ],
+  "stop_conditions": [
+    "MANUAL: AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER",
+    "no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI; MANUAL: stops before merge, owner authorization required",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": null
+}

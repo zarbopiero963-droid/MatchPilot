@@ -102,12 +102,15 @@ Ogni declassamento è annotato in `status.evidence_note`.
 
 Stato:
 - **Validazione del registro: attiva**, tramite la suite dei test in CI.
-- **Controllo delle PR** (`master.mjs pr-check`) e **controllo periodico delle issue** (`master.mjs issues-check`): implementati e testati. Il workflow che li esegue su GitHub (`.github/workflows/roadmap-traceability.yml`) è una modifica CI e quindi **MANUAL**: è nella PR di governance dedicata, in attesa del GO owner.
+- **Controllo delle PR** (`master.mjs pr-check`) e **controllo periodico delle issue** (`master.mjs issues-check`): implementati e testati. Li esegue su GitHub il workflow `.github/workflows/roadmap-traceability.yml`. È una modifica CI, quindi **MANUAL**, ed è attivo solo dopo il merge autorizzato dall'owner:
+  - `pr-check` gira a ogni apertura, modifica o push di una PR e legge il corpo della PR;
+  - `issues-check` gira ogni giorno (05:17 UTC) o a mano (`workflow_dispatch`) sull'elenco delle issue aperte;
+  - l'evento `issues` non è usato: la policy dei workflow (`scripts/workflow-policy.mjs`) non lo ammette, e questa PR non la modifica.
   - Il workflow è in sola segnalazione e non diventa un required check senza approvazione.
-  - `issues-check` non gira ancora in CI: si esegue a mano con l'elenco delle issue esportato da GitHub e fallisce se una issue aperta non ha il link alla MASTER.
+  - Prima del merge del workflow, `issues-check` si esegue a mano con l'elenco delle issue esportato da GitHub; fallisce se una issue aperta non ha il link alla MASTER.
   - `pr-check` verifica che gli ID citati esistano, compresi gli `MP-REQ-UI-####` della matrice UI.
 
-Limite tecnico dichiarato: GitHub non permette di bloccare la creazione di una issue. Le issue non collegate vengono segnalate a posteriori, da evento `issues` e da un controllo periodico, mai bloccate prima.
+Limite tecnico dichiarato: GitHub non permette di bloccare la creazione di una issue. Le issue non collegate vengono segnalate a posteriori dal controllo giornaliero, mai bloccate prima.
 
 ## Piano delle PR residue
 

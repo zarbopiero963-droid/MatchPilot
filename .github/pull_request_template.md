@@ -8,6 +8,7 @@
 - PR roadmap (R-xx in `docs/governance/mp-pr-00/requirements.json → pr_registry`):
 - Card #104 collegate:
 - Requisiti (ID):
+- Requisiti e schede della MASTER #288 (`MP-REQ-####`, `MP-REQ-UI-####`, `MP-CARD-…`) oppure `NO-NEW-REQUIREMENT: <motivo>`:
 - Decisioni owner applicabili (`docs/governance/owner-decisions.json`):
 
 ## Roadmap #97
