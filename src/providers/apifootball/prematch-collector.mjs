@@ -60,6 +60,9 @@ const isoDay = ms => new Date(ms).toISOString().slice(0, 10);
 // Errors that stop the whole cycle: budget, provider quota, ledger or schema unavailable, disabled or misconfigured client.
 const STOP_CODES = new Set(['BUDGET_DAY', 'BUDGET_MINUTE', 'PROVIDER_QUOTA', 'RATE_LIMITED', 'LEDGER_UNAVAILABLE', 'SNAPSHOTS_UNAVAILABLE', 'DISABLED', 'NOT_CONFIGURED']);
 
+// A ledger read that fails (schema missing, database down) stops the cycle before any call: no budget, no request.
+const ledgerStop = error => (error instanceof SnapshotStoreError || error?.code === 'SNAPSHOTS_UNAVAILABLE' ? 'SNAPSHOTS_UNAVAILABLE' : 'LEDGER_UNAVAILABLE');
+
 // Candidate fixtures from a /fixtures answer: not started (NS), known kickoff, inside the window. Anything else is
 // reported, never guessed (TBD has no reliable time, PST/CANC/ABD are not played, an in-play status is not pre-match).
 export function prematchCandidates(response, {now, leadHours, kickoffMarginMinutes}) {
@@ -115,7 +118,8 @@ export function createPrematchCollector({config = prematchCollectorConfig(), cli
       // Every provider call goes through here: collector budget and per-cycle cap first, then the client's own checks.
       const call = async (endpoint, params) => {
         if (report.calls >= config.maxCallsPerRun) { stop('MAX_CALLS_PER_RUN'); return null; }
-        const over = await budgetLeft();
+        let over;
+        try { over = await budgetLeft(); } catch (error) { stop(ledgerStop(error)); return null; }
         if (over) { stop(over); return null; }
         report.calls += 1;
         try {
@@ -150,7 +154,9 @@ export function createPrematchCollector({config = prematchCollectorConfig(), cli
           // Checked again right before the request: time passes during a cycle.
           if (fixture.kickoff_ms - now() <= config.kickoffMarginMinutes * 60000) { entry.outcome = 'skipped_kickoff_too_close'; continue; }
           const first = canonicalRequest('/odds', {fixture: fixture.fixture_id}).path;
-          const last = await ledger.lastRequestAt(first, now() - config.minIntervalMinutes * 60000);
+          let last;
+          try { last = await ledger.lastRequestAt(first, now() - config.minIntervalMinutes * 60000); }
+          catch (error) { entry.outcome = 'stopped_ledger'; stop(ledgerStop(error)); break; }
           if (last !== null) { entry.outcome = 'skipped_recently_requested'; continue; }
           const rows = [];
           for (let page = 1; page <= config.maxPages; page += 1) {

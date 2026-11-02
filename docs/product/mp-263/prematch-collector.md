@@ -31,7 +31,7 @@ Qualsiasi riga acquisita al calcio d'inizio o dopo viene rifiutata due volte: da
 | `MAX_CALLS_PER_RUN` | tetto di chiamate per ciclo |
 | `BUDGET_DAY` / `BUDGET_MINUTE` | budget del client esaurito: vale per tutte le finalità |
 | `PROVIDER_QUOTA` / `RATE_LIMITED` | contatore del provider a zero oppure HTTP 429 |
-| `LEDGER_UNAVAILABLE` / `SNAPSHOTS_UNAVAILABLE` / `STORE_FAILED` | ledger o schema non disponibili, oppure scrittura fallita |
+| `LEDGER_UNAVAILABLE` / `SNAPSHOTS_UNAVAILABLE` / `STORE_FAILED` | ledger o schema non disponibili, in scrittura dal client o in lettura dal collector (budget, intervallo), oppure scrittura degli snapshot fallita |
 | `CONSECUTIVE_FAILURES` | troppi errori di fila (errori del provider, HTTP, rete) |
 | `DISABLED` | collector acceso ma client spento: nessuna chiamata |
 | `ALREADY_RUNNING` | un ciclo è già in corso nel processo: il secondo viene rifiutato, non accodato |
@@ -56,6 +56,8 @@ Il client ha budget propri: `APIFOOTBALL_REQUESTS_PER_DAY` e `APIFOOTBALL_REQUES
 La proposta di budget del mandato (1 500 al giorno: 900 PREMATCH, 400 LIVE e benchmark, 200 controlli e margine) **non è attivata**. La scadenza del piano Pro (25/11/2026) **non è verificata**: serve una chiamata `/status`, non autorizzata.
 
 ## Limiti noti
+- **Retry del client.** Dopo un 5xx, un errore di rete, un timeout o un 429 con Retry-After, il client ripete la richiesta una volta con la stessa finalità. Il secondo tentativo è controllato solo dal budget del client, non da quello del collector. Il budget giornaliero o al minuto del collector può quindi essere superato di **al massimo una chiamata**; la chiamata successiva vede la riga in più e ferma il ciclo. `MAX_CALLS_PER_RUN` conta le richieste logiche, quindi in un ciclo le richieste HTTP reali possono arrivare al doppio nel caso peggiore. Nel dimensionare i budget va tenuto questo margine.
+- Client e collector devono usare **lo stesso ledger**: è un requisito di cablaggio per lo scheduler futuro.
 - `request_id` degli snapshot resta nullo: il client non restituisce l'id della riga del ledger. Il legame si ricostruisce con `acquired_at` e il percorso. La colonna ammette il nullo (migrazione 031).
 - La scoperta usa una richiesta `/fixtures` per lega a ogni ciclo, con cache del client di 60 s, ed entra nel budget del collector.
 - Il blocco `ALREADY_RUNNING` vale nel singolo processo. Con più processi servirebbe un lock nel database; lo scheduler, ancora da decidere, deve garantire un solo esecutore.
