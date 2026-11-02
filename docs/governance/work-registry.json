@@ -2279,7 +2279,7 @@
       "id": "MP-CAP-03",
       "title": "MP-CAP-03: universal AND/OR/NOT conditions",
       "issue": 263,
-      "pr": null,
+      "pr": 276,
       "branch": "mp-cap-03-conditions",
       "kind": "implementation",
       "state": "REVIEW",
@@ -2293,7 +2293,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
