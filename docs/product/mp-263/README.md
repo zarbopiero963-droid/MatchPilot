@@ -78,20 +78,29 @@ Per questo l'inventario delle capacità resta **NOT VERIFIED**: niente viene des
   - prezzo come testo decimale;
   - lettura `market_ref`: ciò che non è riconosciuto resta UNCLASSIFIED;
   - ora di acquisizione, `update` del provider, calcio d'inizio;
-  - hash della risposta.
+  - hash della risposta, che è la provenienza. `request_id` resta vuoto finché un collector non lega la riga alla richiesta: il registro restituisce l'id, ma il client non lo espone ancora.
+- **Da un risultato del client** (`oddsSnapshotsFromResult`): l'ora di acquisizione è il `fetched_at` del client, mai un orario scelto dal chiamante. Un risultato preso dalla cache non viene salvato di nuovo.
 - **Righe rifiutate, mai corrette.** Viene scartata una riga:
   - acquisita al calcio d'inizio o dopo;
   - con `update` del provider al calcio d'inizio o dopo, oppure successivo all'acquisizione (tolleranza di 5 minuti);
   - senza calcio d'inizio;
-  - con un prezzo che non è un decimale ≥ 1.
+  - con un prezzo che non è un decimale ≥ 1;
+  - con id fuori dall'intervallo della colonna o testi con caratteri NUL.
+
+  Le date valgono solo in formato ISO con fuso esplicito. Una risposta con più di 20 000 selezioni viene rifiutata per intero.
 
   Nessun dato successivo al calcio d'inizio diventa una quota prematch.
 - **Schema staged** `db/staged/031-apifootball-odds-snapshots.sql`, fuori da `migrations/`: `migrate()` e il guard del deploy non lo vedono.
   - Tabelle append-only, protette dal database.
   - Il database stesso rifiuta le righe prematch acquisite dopo il calcio d'inizio.
-  - Deduplica: lo stesso prezzo della stessa selezione allo stesso `update` del provider è un solo snapshot.
+  - Deduplica:
+    - un prezzo invariato rispetto allo snapshot precedente della stessa selezione (stesso prezzo e stesso `update`) non aggiunge righe;
+    - un prezzo cambiato è un nuovo snapshot, anche quando torna a un valore precedente;
+    - ripetere la stessa acquisizione non scrive nulla.
+
+    Un prezzo invariato resta quindi datato alla sua prima acquisizione.
   - Diventa una migrazione solo con una PR autorizzata dall'owner.
-- **Lettura point-in-time** (`oddsAsOf`): per ogni selezione restituisce l'ultimo snapshot acquisito entro `as_of`, mai uno successivo. Dopo il calcio d'inizio restituisce l'ultimo prezzo visto prima del calcio d'inizio.
+- **Lettura point-in-time** (`oddsAsOf`): per ogni selezione restituisce l'ultimo snapshot acquisito entro `as_of`, con `update` del provider non successivo a `as_of`, mai uno successivo. Dopo il calcio d'inizio restituisce l'ultimo prezzo visto prima del calcio d'inizio.
 - **Ancora da fare.** Nessun job o route usa ancora questi moduli. Un collector che chiama `/odds` con frequenza dichiarata richiede la migrazione e un GO operativo.
 
 **Verifica proposta, senza spese e con budget di chiamate dichiarato:**

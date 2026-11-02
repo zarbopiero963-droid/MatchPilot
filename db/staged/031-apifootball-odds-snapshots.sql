@@ -54,11 +54,13 @@ CREATE TABLE IF NOT EXISTS af_odds_snapshots (
   CONSTRAINT af_odds_snapshots_prematch_update CHECK (provider_update_at IS NULL OR provider_update_at < kickoff_at),
   -- The provider update cannot be later than the acquisition (a 5-minute clock tolerance).
   CONSTRAINT af_odds_snapshots_update_not_future CHECK (provider_update_at IS NULL OR provider_update_at <= acquired_at + interval '5 minutes'),
-  -- Deduplication: the same price for the same selection at the same provider update is one snapshot (the first
-  -- acquisition is kept). A changed price, or a new provider update, is a new snapshot.
-  CONSTRAINT af_odds_snapshots_dedup UNIQUE NULLS NOT DISTINCT (fixture_id, bookmaker_id, bet_id, value_text, handicap_text, provider_update_at, odd)
+  -- One snapshot per selection and acquisition: replaying the same acquisition writes nothing. Unchanged prices are
+  -- skipped by the writer against the previous snapshot of the same selection (store.mjs), never against the whole
+  -- history, so a price that returns to an earlier value is kept.
+  CONSTRAINT af_odds_snapshots_acquisition UNIQUE (fixture_id, bookmaker_id, bet_id, value_text, handicap_text, acquired_at)
 );
 CREATE INDEX IF NOT EXISTS af_odds_snapshots_fixture_idx ON af_odds_snapshots(fixture_id, acquired_at);
+CREATE INDEX IF NOT EXISTS af_odds_snapshots_selection_idx ON af_odds_snapshots(fixture_id, bookmaker_id, bet_id, value_text, handicap_text, acquired_at DESC);
 CREATE INDEX IF NOT EXISTS af_odds_snapshots_market_idx ON af_odds_snapshots(market_key, acquired_at) WHERE market_key IS NOT NULL;
 
 CREATE OR REPLACE FUNCTION mp_af_append_only()

@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
-import { oddsSnapshotRows, payloadSha256 } from '../src/providers/apifootball/odds-snapshots.mjs';
+import { MAX_ROWS_PER_ANSWER, oddsSnapshotRows, oddsSnapshotsFromResult, payloadSha256 } from '../src/providers/apifootball/odds-snapshots.mjs';
 import { createPgRequestLedger, oddsAsOf, saveOddsSnapshots, SnapshotStoreError } from '../src/providers/apifootball/store.mjs';
 import { apiFootballConfig, createApiFootballClient } from '../src/providers/apifootball/client.mjs';
 
@@ -41,7 +41,9 @@ test('MP-ODDS-SNAP-01 nothing after kickoff becomes a pre-match price; bad rows 
     [new Date(KICKOFF + 60000), answer(), /acquired at or after kickoff/],
     [BEFORE, answer({update: '2026-11-01T17:31:00+00:00'}), /provider update at or after kickoff/],
     [BEFORE, answer({update: '2026-11-01T15:40:00+00:00'}), /later than the acquisition/],
-    [BEFORE, answer({update: 'yesterday'}), /not a date/],
+    [BEFORE, answer({update: 'yesterday'}), /not an ISO instant with offset/],
+    [BEFORE, answer({update: 123}), /not an ISO instant with offset/],
+    [BEFORE, answer({update: '2026-11-01T14:52:00'}), /not an ISO instant with offset/],
     [BEFORE, answer({timestamp: null}), /kickoff unknown/]
   ]) {
     if (body.response[0].fixture.timestamp === null) body.response[0].fixture.date = 'n/a';
@@ -108,9 +110,10 @@ test('MP-ODDS-SNAP-01 schema: staged outside migrations/, idempotent, append-onl
     await db.query(STAGED);
     await db.query(STAGED);
     const {rows} = oddsSnapshotRows(answer(), {acquiredAt: BEFORE});
-    assert.deepEqual(await saveOddsSnapshots(db, rows), {inserted: 6, duplicates: 0});
-    assert.deepEqual(await saveOddsSnapshots(db, oddsSnapshotRows(answer(), {acquiredAt: new Date(BEFORE.getTime() + 600000)}).rows), {inserted: 0, duplicates: 6},
-      'same price at the same provider update: no new snapshot');
+    assert.deepEqual(await saveOddsSnapshots(db, rows), {inserted: 6, skipped: 0});
+    assert.deepEqual(await saveOddsSnapshots(db, rows), {inserted: 0, skipped: 6}, 'replaying the same acquisition writes nothing');
+    assert.deepEqual(await saveOddsSnapshots(db, oddsSnapshotRows(answer(), {acquiredAt: new Date(BEFORE.getTime() + 600000)}).rows), {inserted: 0, skipped: 6},
+      'unchanged price at the same provider update: no new snapshot');
     assert.equal(await code(db.query('UPDATE af_odds_snapshots SET odd = 9')), 'P0001');
     assert.equal(await code(db.query('DELETE FROM af_odds_snapshots')), 'P0001');
     assert.equal(await code(db.query('TRUNCATE af_odds_snapshots')), 'P0001');
@@ -162,3 +165,69 @@ test('MP-ODDS-SNAP-01 the PostgreSQL request ledger holds the client budget (fak
     assert.equal(await code(db.query('DELETE FROM af_request_ledger')), 'P0001');
   });
 });
+
+test('MP-ODDS-SNAP-01 review: ids beyond the column range and NUL characters are refused row by row, never the whole batch', () => {
+  const body = answer();
+  body.response[0].bookmakers.push({id: '9999999999', name: 'Big', bets: [{id: 1, name: 'Match Winner', values: [{value: 'Home', odd: '2.00'}]}]});
+  body.response[0].bookmakers.push({id: 9, name: 'Nul\u0000Book', bets: [{id: 1, name: 'Match Winner', values: [{value: 'Home', odd: '2.00'}]}]});
+  body.response[0].bookmakers[0].bets[0].values.push({value: 'Ho\u0000me', odd: '2.00'});
+  body.response[0].bookmakers[0].bets.push({id: 2147483648, name: 'x', values: [{value: 'Home', odd: '2.00'}]});
+  body.response[0].bookmakers[0].bets.push({id: 3, name: 'Second\u0000Half', values: [{value: 'Home', odd: '2.00'}]});
+  body.response[0].bookmakers[0].bets.push({id: 4, name: 'Handicap', values: 'not a list'});
+  const {rows, rejected} = oddsSnapshotRows(body, {acquiredAt: BEFORE});
+  assert.equal(rows.length, 6, 'the good selections stay');
+  assert.deepEqual(rejected.map(r => r.reason).sort(), ['bet id missing or out of range', 'bet name not storable', 'bookmaker id missing or out of range',
+    'bookmaker name not storable', 'selection text missing'].sort());
+  const big = {response: [{...answer().response[0], bookmakers: [{id: 8, name: 'B', bets: [{id: 5, name: 'G', values: Array.from({length: MAX_ROWS_PER_ANSWER + 1}, (_, i) => ({value: `Over ${i}.5`, odd: '2.00'}))}]}]}]};
+  const refused = oddsSnapshotRows(big, {acquiredAt: BEFORE});
+  assert.equal(refused.rows.length, 0);
+  assert.match(refused.rejected[0].reason, /refused whole/);
+});
+
+test('MP-ODDS-SNAP-01 review: from a client result the acquisition is the fetch instant; a cached result is not stored again', () => {
+  const result = {endpoint: '/odds', cacheHit: false, fetched_at: BEFORE.toISOString(), response: answer().response};
+  const {rows} = oddsSnapshotsFromResult(result, {requestId: 7});
+  assert.ok(rows.length === 6 && rows.every(r => r.acquired_at === BEFORE.toISOString() && r.request_id === 7));
+  assert.deepEqual(oddsSnapshotsFromResult({...result, cacheHit: true}).rows, []);
+  assert.throws(() => oddsSnapshotsFromResult({...result, endpoint: '/fixtures'}), /an \/odds client result is required/);
+});
+
+test('MP-ODDS-SNAP-01 review: a price that returns to an earlier value is a new snapshot (no update field, or a repeated one)', {timeout: 90000}, async t => {
+  await withSchema(t, 'revert', async db => {
+    for (const update of [null, '2026-11-01T11:00:00+00:00']) {
+      const fixture = update === null ? 1035001 : 1035002;
+      const at = n => new Date(KICKOFF - (5 - n) * 3600 * 1000);
+      for (const [n, home] of [[0, '2.00'], [1, '2.10'], [2, '2.00'], [3, '2.00']]) {
+        const body = answer({home, update});
+        body.response[0].fixture.id = fixture;
+        if (update === null) delete body.response[0].update;
+        await saveOddsSnapshots(db, oddsSnapshotRows(body, {acquiredAt: at(n)}).rows);
+      }
+      const history = (await db.query("SELECT odd_text FROM af_odds_snapshots WHERE fixture_id = $1 AND bet_id = 1 AND value_text = 'Home' ORDER BY acquired_at", [fixture])).rows.map(r => r.odd_text);
+      assert.deepEqual(history, ['2.00', '2.10', '2.00'], `update ${update}: the return to 2.00 is kept, the unchanged repeat is not`);
+      const last = (await oddsAsOf(db, {fixtureId: fixture, asOf: new Date(KICKOFF - 1000)})).find(r => r.bet_id === 1 && r.value_text === 'Home');
+      assert.equal(last.odd_text, '2.00', 'the reader gives the price really seen last');
+    }
+  });
+});
+
+test('MP-ODDS-SNAP-01 review: chunks of 500, a failing later chunk rolls back the earlier ones; long ledger errors are cut', {timeout: 90000}, async t => {
+  await withSchema(t, 'chunks', async db => {
+    const values = Array.from({length: 1200}, (_, i) => ({value: `Over ${i}.5`, odd: '2.00'}));
+    const body = {response: [{...answer().response[0], bookmakers: [{id: 8, name: 'Bet365', bets: [{id: 5, name: 'Goals Over/Under', values}]}]}]};
+    const {rows} = oddsSnapshotRows(body, {acquiredAt: BEFORE});
+    assert.deepEqual(await saveOddsSnapshots(db, rows), {inserted: 1200, skipped: 0});
+    const later = oddsSnapshotRows({response: [{...body.response[0], fixture: {...body.response[0].fixture, id: 1035009}}]}, {acquiredAt: BEFORE}).rows;
+    later[1100] = {...later[1100], kickoff_at: BEFORE.toISOString()};
+    assert.equal(await code(saveOddsSnapshots(db, later)), '23514');
+    assert.equal((await db.query('SELECT count(*)::int AS n FROM af_odds_snapshots WHERE fixture_id = 1035009')).rows[0].n, 0, 'nothing of the failed batch stays');
+    const ledger = createPgRequestLedger(db);
+    const base = {at_ms: Date.now(), endpoint: '/odds', family: 'odds', path: '/odds?fixture=1', params_hash: 'a'.repeat(64), purpose: 'p', attempt: 1, latency_ms: 3, quota: null};
+    for (const [outcome, status] of [['ok', 200], ['provider_error', 200], ['http_error', 503], ['rate_limited', 429], ['network_error', null], ['timeout', null]]) {
+      assert.ok(Number.isInteger(await ledger.insert({...base, outcome, status, error: `provider errors: ${Array.from({length: 12}, (_, i) => 'k'.repeat(39) + i).join(',')}`})));
+    }
+    assert.equal(await ledger.countSince(base.at_ms - 1000), 6);
+    assert.ok((await db.query('SELECT max(length(error)) AS n FROM af_request_ledger')).rows[0].n <= 200);
+  });
+});
+
