@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 249,
+  "revision": 253,
   "tasks": [
     {
       "id": "R-01",
@@ -2509,6 +2509,51 @@
       },
       "pr_open": false,
       "merge_sha": "e3bda686d5c858ce3138eaf128143b0eb5ab7228"
+    },
+    {
+      "id": "MP-OWNER-DEC-FINAL-01",
+      "title": "Owner decisions DC-002 B, DC-021 B, DC-029 A, DC-082 A, DC-233 B applied to the residual PR plan; official baseline 270 kept",
+      "issue": 288,
+      "pr": 294,
+      "branch": "mp-owner-decisions-final-01",
+      "kind": "audit",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T222500Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/governance/owner-decisions.json",
+        "file:docs/governance/master/pr-plan.json",
+        "file:docs/governance/master/requirements.jsonl",
+        "file:tools/governance/pr-plan.mjs",
+        "file:test/pr-plan.test.mjs",
+        "file:docs/governance/master/audit/decision-cards.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "bffc3d9afb81138fbb1240056427a3e9502eecba"
+    },
+    {
+      "id": "MP-OWNER-DEC-MIG-01",
+      "title": "Register owner mandate MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01 (F1=A, F2=A, F3=A, P1=A)",
+      "issue": 288,
+      "pr": 295,
+      "branch": "mp-owner-dec-mig-01",
+      "kind": "audit",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T224000Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/governance/owner-decisions.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "70ee74b31004983fa4060bb1f4daabe30386c036"
     }
   ]
 }
