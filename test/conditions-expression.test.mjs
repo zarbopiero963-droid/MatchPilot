@@ -2,7 +2,7 @@
 // (FPT archive columns via fptFieldCapability, observed API-FOOTBALL entries); records are synthetic test values.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluate, expressionFields, ExpressionError, filterRecords, LIMITS, normalizeExpression, pitViolations } from '../src/conditions/expression.mjs';
+import { evaluate, expressionFields, ExpressionError, filterRecords, LIMITS, normalizeExpression, pitReport, pitViolations } from '../src/conditions/expression.mjs';
 import { buildCatalog, fptFieldCapability } from '../src/capabilities/catalog.mjs';
 import { apiFootballCapabilities } from '../src/capabilities/apifootball.mjs';
 
@@ -94,3 +94,40 @@ test('MP-CAP-03 PIT: a decision before kickoff cannot use post-match statistics'
   assert.deepEqual(pitViolations(norm({field: 'apifootball:market:odds/bet:5', op: 'gt', value: '1.9'}), catalog, {decision: 'PREMATCH'}), []);
   assert.throws(() => pitViolations(n, catalog, {decision: 'LIVE'}), /PREMATCH or POSTMATCH/);
 });
+
+test('MP-CAP-03 review: untimed prices are reported, impossible dates are UNKNOWN, unreadable values are not null-tested', () => {
+  const n = norm({all: [{field: H, op: 'lte', value: '2'}, {field: L, op: 'eq', value: 'Serie A'}]});
+  assert.deepEqual(pitReport(n, catalog, {decision: 'PREMATCH'}), {decision: 'PREMATCH', violations: [], untimed: [H], pit_verifiable: false},
+    'no post-match field, but an archive price without capture time is never PIT verified');
+  assert.equal(pitReport(norm({field: L, op: 'eq', value: 'Serie A'}), catalog, {decision: 'PREMATCH'}).pit_verifiable, true);
+  assert.deepEqual(pitViolations(n, new Map(), {decision: 'PREMATCH'}).map(v => v.field), [H, L], 'fields missing from the catalog are violations');
+  for (const value of ['2026-02-30T00:00:00Z', '2026-11-01T24:00:00Z', '2026-13-01T00:00:00Z', '2026-11-01T10:60:00Z']) {
+    assert.throws(() => norm({field: D, op: 'gt', value}), /time zone/, value);
+    assert.equal(ev({field: D, op: 'gt', value: '2026-01-01T00:00:00Z'}, {[D]: value}), 'UNKNOWN', value);
+  }
+  assert.equal(ev({field: D, op: 'gt', value: '2026-01-01T00:00:00Z'}, {[D]: new Date('2026-02-01T00:00:00Z')}), 'TRUE', 'a Date value is read');
+  assert.equal(ev({field: D, op: 'gt', value: '2024-02-28T00:00:00Z'}, {[D]: '2024-02-29T12:00:00+01:00'}), 'TRUE', 'leap day');
+  // Truth table for presence: absent, null, unreadable, readable.
+  for (const [record, isNull, notNull] of [[{}, 'TRUE', 'FALSE'], [{[H]: null}, 'TRUE', 'FALSE'], [{[H]: 'n/a'}, 'UNKNOWN', 'UNKNOWN'], [{[H]: '1.9'}, 'FALSE', 'TRUE']]) {
+    assert.equal(ev({field: H, op: 'is_null'}, record), isNull, JSON.stringify(record));
+    assert.equal(ev({field: H, op: 'not_null'}, record), notNull, JSON.stringify(record));
+  }
+  // Boundaries, lists, case and integer forms.
+  assert.equal(ev({field: H, op: 'between', value: ['1.5', '2']}, {[H]: '1.50'}), 'TRUE');
+  assert.equal(ev({field: H, op: 'between', value: ['1.5', '2']}, {[H]: '2.00'}), 'TRUE');
+  assert.equal(ev({field: H, op: 'between', value: ['1.5', '2']}, {[H]: '2.0001'}), 'FALSE');
+  assert.equal(ev({field: L, op: 'in', value: ['Serie A']}, {[L]: 'Liga'}), 'FALSE');
+  assert.equal(ev({field: L, op: 'contains', value: 'serie'}, {[L]: 'Serie A'}), 'FALSE', 'contains is case-sensitive');
+  assert.equal(norm({field: G, op: 'eq', value: '+3'}).expression.value, '3');
+  assert.equal(norm({field: H, op: 'eq', value: '-999999999999999.999999999999'}).expression.value, '-999999999999999.999999999999');
+  // De Morgan with UNKNOWN: NOT(A AND B) = NOT A OR NOT B.
+  const rec = {[L]: 'Serie A'};
+  const a = {field: H, op: 'gt', value: '2'}, b = {field: L, op: 'eq', value: 'Serie A'};
+  assert.equal(ev({not: {all: [a, b]}}, rec), ev({any: [{not: a}, {not: b}]}, rec));
+  assert.equal(ev({not: {all: [a, b]}}, rec), 'UNKNOWN');
+  // A class instance or a null-prototype object is not an expression.
+  class X { constructor() { this.field = H; this.op = 'is_null'; } }
+  assert.throws(() => norm(new X()), /must be an object/);
+  assert.throws(() => norm(Object.assign(Object.create(null), {field: H, op: 'is_null'})), /must be an object/);
+});
+

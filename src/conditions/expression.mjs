@@ -35,6 +35,15 @@ export class ExpressionError extends Error {
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
 const DECIMAL = /^[+-]?\d{1,15}(\.\d{1,12})?$/;
 const ISO_WITH_OFFSET = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,6})?)?(Z|[+-]\d{2}:\d{2})$/;
+// A calendar check on the instant as written: 2026-02-30 or 24:00 are refused, never rolled over to another date.
+function validCalendar(text) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/.exec(text);
+  if (!m) return false;
+  const [y, mo, d, h, mi, se = '0'] = m.slice(1).map(Number);
+  const days = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+  return mo >= 1 && mo <= 12 && d >= 1 && d <= days && h <= 23 && mi <= 59 && se <= 59;
+}
+const isInstant = text => typeof text === 'string' && ISO_WITH_OFFSET.test(text) && validCalendar(text) && Number.isFinite(Date.parse(text));
 const printable = text => typeof text === 'string' && text.length <= LIMITS.text && !/[\p{Cc}\p{Cf}]/u.test(text);
 
 // The catalog as a lookup by id: a buildCatalog() result, a list of capabilities or a Map.
@@ -58,7 +67,7 @@ function scalar(valueType, value, path) {
     throw new ExpressionError(path, 'must be a decimal as text (e.g. "1.85") or an integer');
   }
   if (valueType === 'datetime') {
-    if (typeof value === 'string' && ISO_WITH_OFFSET.test(value) && Number.isFinite(Date.parse(value))) return new Date(value).toISOString();
+    if (isInstant(value)) return new Date(value).toISOString();
     throw new ExpressionError(path, 'must be an ISO-8601 instant with time zone');
   }
   if (valueType === 'boolean') {
@@ -152,6 +161,17 @@ export function pitViolations(normalized, catalog, {decision}) {
     .map(id => ({field: id, timing: caps.get(id)?.timing ?? null, reason: 'not known before kickoff (MP-PIT-TIMING-01)'}));
 }
 
+// The PIT reading of an expression for a decision. violations: conditions that decision may not use. untimed:
+// conditions on market prices whose capture time the provider does not publish (PREMATCH_MARKET_UNTIMED): allowed
+// before kickoff, but they cannot prove that the price was known at the decision time, so a decision that uses them is
+// never PIT_VERIFIED. An empty violations list means "no post-match field", not "PIT verified".
+export function pitReport(normalized, catalog, {decision}) {
+  const violations = pitViolations(normalized, catalog, {decision});
+  const caps = lookup(catalog);
+  const untimed = expressionFields(normalized).filter(id => caps.get(id)?.timing === 'PREMATCH_MARKET_UNTIMED');
+  return {decision, violations, untimed, pit_verifiable: violations.length === 0 && untimed.length === 0};
+}
+
 // A record value read for comparison, or null when absent or unreadable (never guessed).
 function read(valueType, value) {
   if (value === null || value === undefined) return null;
@@ -159,7 +179,7 @@ function read(valueType, value) {
     if (valueType === 'integer') return Number.isSafeInteger(value) ? String(value) : typeof value === 'string' && /^[+-]?\d{1,15}$/.test(value.trim()) ? Decimal.from(value.trim()).toString() : null;
     if (valueType === 'number') return Number.isSafeInteger(value) ? String(value) : typeof value === 'string' && DECIMAL.test(value.trim()) ? Decimal.from(value.trim()).toString() : null;
     if (valueType === 'datetime') {
-      const ms = value instanceof Date ? value.getTime() : typeof value === 'string' && ISO_WITH_OFFSET.test(value) ? Date.parse(value) : Number.NaN;
+      const ms = value instanceof Date ? value.getTime() : isInstant(value) ? Date.parse(value) : Number.NaN;
       return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
     }
     if (valueType === 'boolean') return typeof value === 'boolean' ? value : null;
@@ -176,9 +196,10 @@ function compare(valueType, a, b) {
 
 function condition(node, cap, record) {
   const present = Object.hasOwn(record, node.field) && record[node.field] !== null && record[node.field] !== undefined;
-  if (node.op === 'is_null') return present ? 'FALSE' : 'TRUE';
-  if (node.op === 'not_null') return present ? 'TRUE' : 'FALSE';
   const v = read(cap.value_type, present ? record[node.field] : null);
+  // A value that is present but unreadable is neither null nor a usable value: UNKNOWN for every operator.
+  if (node.op === 'is_null') return !present ? 'TRUE' : v === null ? 'UNKNOWN' : 'FALSE';
+  if (node.op === 'not_null') return !present ? 'FALSE' : v === null ? 'UNKNOWN' : 'TRUE';
   if (v === null) return 'UNKNOWN';
   const t = test => (test ? 'TRUE' : 'FALSE');
   switch (node.op) {

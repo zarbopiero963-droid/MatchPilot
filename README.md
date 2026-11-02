@@ -224,6 +224,9 @@ Filtri `provider`, `kind`, `status`. Nessuna chiamata ai provider e nessuna cope
 - **Validazione.** Ogni condizione nomina una capacità con il suo id stabile, usa un operatore offerto da quella capacità e ha un valore del suo tipo. I numeri sono decimali esatti, le date ISO con fuso. Profondità, nodi e liste sono limitati.
 - **Dati mancanti.** Una condizione su un dato assente o illeggibile vale UNKNOWN, mai FALSE né TRUE. E, O e NON seguono la logica a tre valori: un record è selezionato solo se l'espressione è TRUE, e i record esclusi per dati mancanti vengono contati, non nascosti.
 - **PIT.** `pitViolations` elenca le condizioni che una decisione prima del calcio d'inizio non può usare: le statistiche post-partita, secondo MP-PIT-TIMING-01. Nessuna nuova classe temporale.
+  - `pitReport` segnala a parte le quote senza ora di acquisizione (`PREMATCH_MARKET_UNTIMED`, come quelle dell'archivio FPT). Sono ammesse prima del calcio d'inizio, ma non provano che il prezzo fosse noto al momento della decisione.
+  - Nessuna violazione non significa PIT verificato.
+- **Formati.** Una data impossibile (30 febbraio, ore 24) vale UNKNOWN e non viene spostata a un altro giorno. Anche una data senza ora e senza fuso vale UNKNOWN. Un valore presente ma illeggibile vale UNKNOWN anche per `is_null` e `not_null`.
 
 ### FutPythonTrader — motore statistico/pre-match
 Usare ogni campo disponibile e con copertura reale. Le famiglie includono, quando presenti:
