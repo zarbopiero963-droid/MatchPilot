@@ -1,0 +1,101 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T222703Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T22:27:03Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-OWNER-DEC-MIG-01",
+  "activity": "MP-OWNER-DEC-MIG-01: Codex code review (different model family) on 6b6b098: no major issues",
+  "issue": 288,
+  "pr": 295,
+  "branch": "mp-owner-dec-mig-01",
+  "commit_sha": "6b6b098856d4224123d1029e8007d7f99b41d2c5",
+  "tree_sha": "7f13bd26ee88963e5c088ca7445fd30f07b896fe",
+  "base_sha": "bffc3d9afb81138fbb1240056427a3e9502eecba",
+  "requirements": [],
+  "changes": [
+    "docs/governance/owner-decisions.json (mandate registered)",
+    "docs/governance/master/audit/package-manifest.json (refreshed)"
+  ],
+  "tests": [
+    {
+      "command": "governance validate, pr-plan validate",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22",
+      "commit": "6b6b098856d4224123d1029e8007d7f99b41d2c5",
+      "time": "2026-11-02T22:24:31Z",
+      "limits": [
+        "register entry only; no code"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "6b6b098856d4224123d1029e8007d7f99b41d2c5"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "6b6b098856d4224123d1029e8007d7f99b41d2c5",
+    "reference": "Codex code review (OpenAI, different model family): https://github.com/zarbopiero963-droid/MatchPilot/pull/295#issuecomment-6590061686 (6b6b098, no major issues)"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "mandate registered",
+      "independent code review (Codex)"
+    ],
+    "in_progress": [
+      "CI"
+    ],
+    "not_started": [
+      "SAFE merge after review"
+    ]
+  },
+  "resources": [
+    "file:docs/governance/owner-decisions.json"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent",
+    "merge only after green CI and review"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI; SAFE merge with expectedHeadSha",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": "CP-20261102T222431Z-agent-a-claude-code"
+}

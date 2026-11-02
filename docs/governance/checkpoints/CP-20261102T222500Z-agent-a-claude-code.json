@@ -1,0 +1,143 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T222500Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T22:25:00Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-OWNER-DEC-FINAL-01",
+  "activity": "PR #294 merged as bffc3d9 (squash; SAFE: owner decisions DC-002 B, DC-021 B, DC-029 A, DC-082 A, DC-233 B applied to the plan; official baseline 270 unchanged)",
+  "issue": 288,
+  "pr": 294,
+  "branch": "mp-owner-decisions-final-01",
+  "commit_sha": "a131d083eb4fd2ceadc127962d0fc30a3fb526ba",
+  "tree_sha": "51c8868aa0cdd4926691a5cf3e5204fdd2b649d9",
+  "base_sha": "e3bda686d5c858ce3138eaf128143b0eb5ab7228",
+  "requirements": [],
+  "changes": [
+    "docs/governance/owner-decisions.json (mandate registered)",
+    "docs/governance/master/pr-plan.json (DC decisions applied, withdrawn_by_owner, baseline_status)",
+    "docs/governance/master/requirements.jsonl (0278, 0360, 0634 SUPERSEDED by owner decision)",
+    "tools/governance/pr-plan.mjs (withdrawal/merge gate, baseline header)",
+    "test/pr-plan.test.mjs (no requirement lost, official baseline unchanged)",
+    "docs/governance/master/audit/decision-cards.md (outcome, scrypt check)",
+    "bffc3d9: squash merge of PR #294"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #294 head a131d08",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "a131d083eb4fd2ceadc127962d0fc30a3fb526ba",
+      "time": "2026-11-02T22:25:00Z",
+      "limits": [
+        "run on a131d08 success"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main bffc3d9",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "bffc3d9afb81138fbb1240056427a3e9502eecba",
+      "time": "2026-11-02T22:25:00Z",
+      "limits": [
+        "run 41536449121 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main bffc3d9",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "bffc3d9afb81138fbb1240056427a3e9502eecba",
+      "time": "2026-11-02T22:25:00Z",
+      "limits": [
+        "run 41536449117: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41535495682,
+    "conclusion": "SUCCESS",
+    "head_sha": "a131d083eb4fd2ceadc127962d0fc30a3fb526ba"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "a131d083eb4fd2ceadc127962d0fc30a3fb526ba",
+    "reference": "Codex code review (OpenAI, different model family) on 59e673f: no major issues (https://github.com/zarbopiero963-droid/MatchPilot/pull/294#issuecomment-6589794666); a131d08 adds registers only"
+  },
+  "findings": [
+    {
+      "id": "SCRYPT-01",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "scrypt default cost N=2^15 (production minimum 2^14) below current OWASP N=2^17; dedicated PR proposed, production unchanged"
+    },
+    {
+      "id": "PR294-CODEX-P2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "withdrawal gate accepted OPEN proposals; only IN_FORCE decisions authorize now (59e673f)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+    "MP-ROADMAP-BASELINE-282-PREFLIGHT-01",
+    "MP-ROADMAP-270-INDEPENDENT-FINAL-AUDIT-01",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:docs/governance/owner-decisions.json",
+    "file:docs/governance/master/pr-plan.json",
+    "file:docs/governance/master/requirements.jsonl",
+    "file:tools/governance/pr-plan.mjs",
+    "file:test/pr-plan.test.mjs",
+    "file:docs/governance/master/audit/decision-cards.md"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261102T221403Z-agent-a-claude-code",
+  "merge_sha": "bffc3d9afb81138fbb1240056427a3e9502eecba"
+}
