@@ -238,7 +238,7 @@
   ],
   "requirement_count": 161,
   "notes": "Body is stale (07/10 status block, FPT+TC both core): superseded in part by MP-PROVIDERS-2026-10-31 (FPT discontinued, AF primary, TC LIVE-only candidate), VPS-only 21/10, MP-FRONTEND-CLAUDE-DIRECT-E2E-01, D1-D7 visual baseline. Contract (data/web/intelligence/backtest/DoD) remains the product requirement list. 19 comments read; comments 6026194935, 6381767139, 6549933998 read in full.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/3#issuecomment-6579738160"
  },
  {
   "issue": 4,
@@ -396,7 +396,7 @@
   ],
   "requirement_count": 63,
   "notes": "Body = FPT-CERT contract + merged blocks of #31 (budget, architecture, queryability, coverage registry) + rule engine (owned by #34). FPT retired 2026-11-01 (MP-OWNER-GO-2026-11-01): FPT-operational items ARCHIVE/SUPERSEDED, functional/provider-neutral items ACTIVE. Comment 6549934371 (MP-PROVIDERS-2026-10-31) is not registered as such in owner-decisions.json. 13/13 comments read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/12#issuecomment-6579739579"
  },
  {
   "issue": 20,
@@ -470,7 +470,7 @@
   ],
   "requirement_count": 62,
   "notes": "34 comments read in full. Code for TC-CORE-01..04 on main (PR 130-145) but TotalCorner suspended (#182, MATCHPILOT_TOTALCORNER gate) and reclassified LIVE-only conditional candidate by MP-PROVIDERS-2026-10-31 (FPT discontinued, API-FOOTBALL primary). READY TO CLOSE of 2026-10-09 annulled (D9). Body also hosts queryability, rule engine, coverage registry, API budget, architecture (copied into #29/#30).",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/20#issuecomment-6579740890"
  },
  {
   "issue": 23,
@@ -506,7 +506,7 @@
   ],
   "requirement_count": 24,
   "notes": "Owner login (R-04b) merged and default off; second admin/RBAC/users/audit extension/Users&Permissions UI not implemented and deferred (AUTH-CORE-01..04 in #104). Render references superseded by VPS. 5 comments read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/23#issuecomment-6579742231"
  },
  {
   "issue": 24,
@@ -531,7 +531,7 @@
   ],
   "requirement_count": 13,
   "notes": "5 comments read. No replay service on main. Backend REPLAY-CORE-01..03 (#104) only, UI deferred (#97); Replay+MM after #96/#99. Depends on captured live archive (TC suspended; AF live collector absent).",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/24#issuecomment-6579743455"
  },
  {
   "issue": 25,
@@ -553,7 +553,7 @@
   ],
   "requirement_count": 10,
   "notes": "3 comments read. Only QUERY-CORE-01 backend before UI; R-07a delivered pre-match analysis + match page (PIT_NOT_VERIFIED); final/live/market-movement/trading history missing.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/25#issuecomment-6579744467"
  },
  {
   "issue": 27,
@@ -572,7 +572,7 @@
   ],
   "requirement_count": 7,
   "notes": "2 comments read. Single BENCH-CORE-01 after #28 and certified data. No code. Data availability for 2026-10-04 doubtful (TC core capture began 2026-10-09; FPT retired). Drive folder not read. src/benchmark/live-benchmark.mjs is the TC-vs-API-FOOTBALL benchmark, not #27.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/27#issuecomment-6579745621"
  },
  {
   "issue": 28,
@@ -685,7 +685,7 @@
   ],
   "requirement_count": 101,
   "notes": "Open. 4 comments read. Only offline BACK/LAY/NO_TRADE strategy defs, hedge/EV math and paper ledger exist; no planner, live engine, signals, lifecycle, indicators. Embeds architecture (collector/DB/SSE), composable rule engine (expression.mjs on main, wiring in open PR #285) and 37-indicator catalogue (formulas not ratified, D12 item 3). Provider references to FPT/TC must be restated for API-FOOTBALL (gaps recorded).",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/28#issuecomment-6579758376"
  },
  {
   "issue": 29,
@@ -710,7 +710,7 @@
   ],
   "requirement_count": 13,
   "notes": "2 comments read. Final UI phase after #98; no WebSocket/SSE code on main; data-architecture section duplicates #20; example LAY 8.40/fair 6.90 edge +17.8% is SUPERSEDED (negative EV).",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/29#issuecomment-6579758966"
  },
  {
   "issue": 30,
@@ -733,7 +733,7 @@
   ],
   "requirement_count": 11,
   "notes": "5 comments read incl. R-06 progress (PR #162/#163). QUERY-CORE-02 partially delivered (Home/Away/Both x 5/10/20/season on FPT facts). Body also holds Queryability, Rule Engine and Coverage Registry sections duplicated from #20 (extracted once under #20 items).",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/30#issuecomment-6579759464"
  },
  {
   "issue": 31,
@@ -765,7 +765,7 @@
   ],
   "requirement_count": 20,
   "notes": "Reconciliation model; FPT dataset-level part implemented (019, reconciliation.mjs); live/prematch gap detection, UNRECOVERABLE_GAP window, drills, certification not implemented. Large body duplicates #12 blocks (budget/architecture/queryability/coverage): requirements recorded once, tagged also_in_issues. 2/2 comments read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/31#issuecomment-6579760032"
  },
  {
   "issue": 32,
@@ -808,7 +808,7 @@
   ],
   "requirement_count": 31,
   "notes": "Pre-release/advanced phase; baseline security split to #23. Includes API Budget/Request Economy and Provider->DB->Client architecture (provider names in body are retired/suspended; functional requirement kept, provider gaps for API-FOOTBALL recorded). 2 comments read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/32#issuecomment-6579760609"
  },
  {
   "issue": 34,
@@ -878,7 +878,7 @@
   ],
   "requirement_count": 58,
   "notes": "Open. 10 comments read. Strategy definition/backtest/compare/persistence code on main (persistence schema staged only, migration pending); live matcher, near-match, assignment, alerts, MM profile selector absent. Also contains Competition & Season Coverage Registry (domain A, FPT-only implemented) and 37-indicator catalogue duplicating #28.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/34#issuecomment-6579761039"
  },
  {
   "issue": 40,
@@ -912,7 +912,7 @@
   ],
   "requirement_count": 22,
   "notes": "BetsAPI trial executed and frozen (archive 498,614,829 B, 13 parts on Drive); 08/10 COMPLETED annulled by D9; per-part SHA/DuckDB portability verification BLOCKED (R-02, MP-ARC-002); issue OPEN. BetsAPI not a provider; role verdicts superseded by AF-main decision. 36/36 comments read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/40#issuecomment-6579761557"
  },
  {
   "issue": 44,
@@ -935,7 +935,7 @@
   ],
   "requirement_count": 11,
   "notes": "Future roadmap, after #98; nothing implemented. 4 comments read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/44#issuecomment-6579762103"
  },
  {
   "issue": 45,
@@ -959,7 +959,7 @@
   ],
   "requirement_count": 12,
   "notes": "Open but OUT OF SCOPE by MP-OWNER-EXCLUDE-REAL-EXECUTION-01 (2026-10-19). Historical future proposal; no implementation PRs; not a blocking gate.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/45#issuecomment-6579762680"
  },
  {
   "issue": 46,
@@ -981,7 +981,7 @@
   ],
   "requirement_count": 10,
   "notes": "Future roadmap, not blocking; nothing implemented; needs owner activation. 2 comments read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/46#issuecomment-6579763238"
  },
  {
   "issue": 87,
@@ -996,7 +996,7 @@
   ],
   "requirement_count": 3,
   "notes": "Superseded by #182 VPS-only decision (Render/Neon off). Only a VPS capacity measurement kernel survives. 2 comments read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/87#issuecomment-6579777421"
  },
  {
   "issue": 91,
@@ -1020,7 +1020,7 @@
   ],
   "requirement_count": 12,
   "notes": "WeWeb rejected by MP-FRONTEND-CLAUDE-DIRECT-E2E-01 (2026-10-24); the same comment imposes the mandatory browser E2E regime (active items). 2 comments read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/91#issuecomment-6579777937"
  },
  {
   "issue": 94,
@@ -1097,7 +1097,7 @@
   ],
   "requirement_count": 65,
   "notes": "Open. 10 comments read. Math Core on main: odds/overround/fair odds, Kelly, EV, liability, hedge both ways, dutching BACK, Poisson (oracle+property tests, CERTIFIED CALCULATION via PR #246 per ui matrix). Missing: dutching LAY, cashout solver, arbitrage, progressions, risk exposure, commission optimizer, each-way, DNB, stake constraints, netting, selector/tree/UI, calc persistence. Owner math baseline and 327-item catalogue classification recorded as requirements.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/94#issuecomment-6579778486"
  },
  {
   "issue": 95,
@@ -1122,7 +1122,7 @@
   ],
   "requirement_count": 13,
   "notes": "Open. 5 comments read. No account settings store/API on main; commission validator and per-run settings_snapshot_id only. Blocked on account/multiuser model and migrations.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/95#issuecomment-6579779091"
  },
  {
   "issue": 96,
@@ -1175,7 +1175,7 @@
   ],
   "requirement_count": 41,
   "notes": "Open. 9 comments read (several superseded by #99 split). In-memory pure MM engine on main: registry (4 of 16 models implemented), profile versions, operational mode STOP/RESUME, evaluate() with caps, sequence state; no persistence, CRUD, rule/filter engine, progression models, API. DEC-001, DEC-013 in force.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/96#issuecomment-6579779593"
  },
  {
   "issue": 97,
@@ -1266,7 +1266,7 @@
   ],
   "requirement_count": 79,
   "notes": "Canonical roadmap (D8). Potential conflict: UI-last gate vs later owner UI mandates (#239). 49 comments read (first 450-650 chars each; owner-decision comments read fully; review/mutation reports skimmed, they carry no new requirement).",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/97#issuecomment-6579780159"
  },
  {
   "issue": 98,
@@ -1296,7 +1296,7 @@
   ],
   "requirement_count": 18,
   "notes": "v1 read-only API + math tools + strategies/backtests persistence exist; no MCP, settings, MM, paper-trade, replay tools. ARCHIVE-FIRST directive (2026-10-19) recorded. 8 comments read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/98#issuecomment-6579780806"
  },
  {
   "issue": 99,
@@ -1329,7 +1329,7 @@
   ],
   "requirement_count": 21,
   "notes": "Open. 4 comments read. Pure in-memory paper ledger with idempotent settlement, reversal, market-rule settlement on main; DB schema staged (db/staged/030) not migrated; no API beyond account read, no real hard test.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/99#issuecomment-6579781309"
  },
  {
   "issue": 100,
@@ -1362,7 +1362,7 @@
   ],
   "requirement_count": 21,
   "notes": "Open. 2 comments read (1 non-empty). Rules v2 registry with 8 football markets, UNRESOLVED policy (DEC-015), versioned outcomes (DEC-002); Asian/dead-heat/corners/cards/next-goal absent; no VOID rule approved.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/100#issuecomment-6579781845"
  },
  {
   "issue": 102,
@@ -1394,7 +1394,7 @@
   ],
   "requirement_count": 20,
   "notes": "Open. 5 comments read. Not implemented; depends on #28, #96/#99 persistence, #98 operator API. Backend STOP/advisory primitives exist.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/102#issuecomment-6579782414"
  },
  {
   "issue": 104,
@@ -1496,7 +1496,7 @@
   ],
   "requirement_count": 90,
   "notes": "Historical catalogue: 82 cards generated from A-104-reconciliation.json (23/10) with deltas verified on b6dc4ce (math tools, persistence store, ledger settlement). 4 comments read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/104#issuecomment-6579783007"
  },
  {
   "issue": 132,
@@ -1515,7 +1515,7 @@
   ],
   "requirement_count": 7,
   "notes": "Tracking only; no action. 0 comments (none exist).",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/132#issuecomment-6579792902"
  },
  {
   "issue": 144,
@@ -1551,7 +1551,7 @@
   ],
   "requirement_count": 24,
   "notes": "PR-A/B/C certified and merged (#146-#148); Render/Neon suspended 2026-10-09 then excluded by VPS-only; remaining: level D manual workflow, final PRIVATE transition, measured zero spend. 18 comments read (first 900 chars; two owner requirement comments in full).",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/144#issuecomment-6579793426"
  },
  {
   "issue": 150,
@@ -1580,7 +1580,7 @@
   ],
   "requirement_count": 17,
   "notes": "R-01 merged (#151); real A->B handoff done 2026-10-18 (same tool, not different vendor); HANDOFF-TEST-01 return leg B->A not confirmed; #150 NOT CERTIFIED. 6 comments read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/150#issuecomment-6579793925"
  },
  {
   "issue": 179,
@@ -1624,7 +1624,7 @@
   ],
   "requirement_count": 32,
   "notes": "All 43 comments read (25 + 18); the middle of the v3.1 diff in comment 6326954704 skimmed, remainder of its body read. Staging/export/import/backups done on VPS (reports); cutover not authorised; DR coverage FAIL W44/W45; FPT part superseded by MP-PROVIDERS-2026-10-31.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/179#issuecomment-6579794502"
  },
  {
   "issue": 182,
@@ -1660,7 +1660,7 @@
   ],
   "requirement_count": 24,
   "notes": "Decision MP-VPS-ONLY-OPERATIONS-2026-10-21 in force; FPT/TC parts amended by MP-PROVIDERS-2026-10-31 (comment 6549935131), which is not yet in owner-decisions.json at main b6dc4ce. 2 comments read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/182#issuecomment-6579795084"
  },
  {
   "issue": 196,
@@ -1680,7 +1680,7 @@
   ],
   "requirement_count": 8,
   "notes": "Candidate only; nothing authorised. Supplier facts: LTP + Total Matched Volume only. 1/1 comment read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/196#issuecomment-6579795605"
  },
  {
   "issue": 218,
@@ -1698,7 +1698,7 @@
   ],
   "requirement_count": 6,
   "notes": "Candidate only; CSV analysis exploratory, not PIT. Body is cumulative (all owner updates are in the body).",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/218#issuecomment-6579796121"
  },
  {
   "issue": 225,
@@ -1724,7 +1724,7 @@
   ],
   "requirement_count": 14,
   "notes": "Read-only mandate for Grok, nothing delivered (none of the 8 FPT_* / 4 TOTALCORNER_* deliverables exist). Priority reduced by FPT retirement; FPT field dictionary is the input for the AF gap matrix; TC part feeds TC LIVE benchmark. 1/1 comment read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/225#issuecomment-6579796631"
  },
  {
   "issue": 234,
@@ -1748,7 +1748,7 @@
   ],
   "requirement_count": 12,
   "notes": "Discovery only; provider selection superseded by AF-main decision, admission criteria (PIT, licence, anti-leakage) stay valid; polx audit WAITING_FOR_GROK; owner must rotate exposed polx key (not verifiable). 8/8 comments read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/234#issuecomment-6579805295"
  },
  {
   "issue": 239,
@@ -1984,7 +1984,7 @@
    "caveat": "Matrix statuses are evidence states at its base commit and may lag main/PRs #262-#287; a status \"TESTED\" there is not certification. Body text is stale (e.g. PR-001 \"IN PROGRESS\" while matrix pr_register shows MERGED).",
    "blockers": "Q3 (Live/Replay DEMO resolved by D12-1), R-02 archive, persistence schema, auth off on VPS, post-deploy browser verification (no public URL)"
   },
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/239#issuecomment-6579805836"
  },
  {
   "issue": 245,
@@ -2000,7 +2000,7 @@
   ],
   "requirement_count": 4,
   "notes": "No action; functional gaps recorded as IDEA_NOT_APPROVED / AF items.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/245#issuecomment-6579806400"
  },
  {
   "issue": 248,
@@ -2022,7 +2022,7 @@
   ],
   "requirement_count": 10,
   "notes": "Own text: NO ACTION; but AF verification gates (AF-G1..G6) became active after MP-OWNER-GO-2026-11-01; partly executed on 2026-11-01 (20 calls, 2 leagues). 1/1 comment read.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/248#issuecomment-6579806976"
  },
  {
   "issue": 249,
@@ -2046,7 +2046,7 @@
   ],
   "requirement_count": 12,
   "notes": "Replacement decision effectively made (AF main, FPT retired); FR-01..FR-08 gap analysis/migration plan still to do; no comments.",
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/249#issuecomment-6579807431"
  },
  {
   "issue": 263,
@@ -2141,7 +2141,7 @@
    "discrepancy": "#287 retention doc cites VPS preflight figures (24G free, PG17 68MB) while main docs state the preflight was NOT executed",
    "blocked_on": "owner GO package (7 items), VPS read-only preflight, PG version of VPS, retention decision, TC thresholds/budget, plan expiry check"
   },
-  "master_link": null
+  "master_link": "https://github.com/zarbopiero963-droid/MatchPilot/issues/263#issuecomment-6579807908"
  },
  {
   "issue": 288,

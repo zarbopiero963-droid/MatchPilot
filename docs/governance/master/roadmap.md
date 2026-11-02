@@ -40,9 +40,9 @@ Ogni scheda elenca i requisiti (`requirements.jsonl`) e porta test, HARD TEST RE
 
 | Scheda | Titolo | Requisiti | Stato | GUI |
 |---|---|---|---|---|
-| MP-CARD-OPEN-280 | PR #280 — PIT LIVE: fasi temporali e LIVE_ACQUIRED | 30 | IMPLEMENTED | SÌ |
-| MP-CARD-OPEN-281 | PR #281 — mp-deploy v3.4 con guardia di dismissione FPT | 12 | IMPLEMENTED | NO |
-| MP-CARD-OPEN-282 | PR #282 — migrazione 031 snapshot quote | 23 | IMPLEMENTED | SÌ |
+| MP-CARD-OPEN-280 | PR #280 — PIT LIVE: fasi temporali e LIVE_ACQUIRED | 31 | IMPLEMENTED | SÌ |
+| MP-CARD-OPEN-281 | PR #281 — mp-deploy v3.4 con guardia di dismissione FPT | 13 | IMPLEMENTED | NO |
+| MP-CARD-OPEN-282 | PR #282 — migrazione 031 snapshot quote | 24 | IMPLEMENTED | SÌ |
 | MP-CARD-OPEN-283 | PR #283 — collector PREMATCH API-FOOTBALL | 26 | IMPLEMENTED | SÌ |
 | MP-CARD-OPEN-285 | PR #285 — ricerca universale API | 25 | IMPLEMENTED | SÌ |
 
@@ -69,7 +69,7 @@ Ogni scheda elenca i requisiti (`requirements.jsonl`) e porta test, HARD TEST RE
 | MP-CARD-102 | Dati calcistici — #248: AF-G1 endpoint contract/payload verification: 38 GET + /status (anagra (+4) | 5 | IMPLEMENTING | NO |
 | MP-CARD-105 | Dati calcistici — #249: FR-01 inventory of all FPT fields and dependencies actually used in Ma (+6) | 7 | IMPLEMENTING | NO |
 | MP-CARD-108 | Dati calcistici — #263: Field mapping and contracts FPT/TC to API-FOOTBALL (+15) | 16 | IMPLEMENTING | NO |
-| MP-CARD-111 | Mercati e quote — #263: Schema 031 staged: append-only snapshot and request tables with DB-enf (+2) | 3 | IMPLEMENTING | NO |
+| MP-CARD-111 | Mercati e quote — #263: Schema 031 staged: append-only snapshot and request tables with DB-enf (+2) | 5 | IMPLEMENTING | NO |
 | A-104:MARKET-CORE-01 | A-104:MARKET-CORE-01 (scheda esistente, docs/governance/audits/2026-10-23-ROADMAP-RECON/A-104-reconciliation.json) | 1 | IMPLEMENTING | NO |
 | A-104:MARKET-CORE-02 | A-104:MARKET-CORE-02 (scheda esistente, docs/governance/audits/2026-10-23-ROADMAP-RECON/A-104-reconciliation.json) | 1 | IMPLEMENTING | NO |
 | A-104:MARKET-CORE-03 | A-104:MARKET-CORE-03 (scheda esistente, docs/governance/audits/2026-10-23-ROADMAP-RECON/A-104-reconciliation.json) | 1 | NOT STARTED | NO |
@@ -427,7 +427,7 @@ Ogni scheda elenca i requisiti (`requirements.jsonl`) e porta test, HARD TEST RE
 | MP-CARD-085 | Infrastruttura — #179: Unauthorised rerun refused: reruns of pre-gate or attempt>1 runs must  (+1) | 2 | IMPLEMENTING | NO |
 | MP-CARD-089 | Infrastruttura — #182: All MatchPilot operations on the VPS (backend/API, local PostgreSQL, F (+8) | 9 | IMPLEMENTING | NO |
 | MP-CARD-103 | Infrastruttura — #248: AF plans, quotas and cost: Free 0 (100/day,10/min), Pro $19 (7,500/day | 1 | IMPLEMENTING | NO |
-| MP-CARD-107 | Infrastruttura — #263: Read-only inventory of FPT processes and VPS dependencies (+9) | 10 | IMPLEMENTING | NO |
+| MP-CARD-107 | Infrastruttura — #263: Read-only inventory of FPT processes and VPS dependencies (+9) | 14 | IMPLEMENTING | NO |
 
 ## P10 — Certificazione integrata e gate finale (1 schede)
 
