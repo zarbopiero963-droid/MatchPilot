@@ -2300,7 +2300,7 @@
       "id": "MP-FPT-RETIRE-01",
       "title": "MP-FPT-RETIRE-01: FutPythonTrader retired mode (application code)",
       "issue": 263,
-      "pr": null,
+      "pr": 277,
       "branch": "mp-fpt-retire-01",
       "kind": "implementation",
       "state": "REVIEW",
@@ -2315,7 +2315,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
