@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 237,
+  "revision": 240,
   "tasks": [
     {
       "id": "R-01",
@@ -2392,13 +2392,38 @@
       "pr": 289,
       "branch": "mp-master-roadmap-01",
       "kind": "audit",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T144800Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T151505Z-agent-a-claude-code",
       "resources": [
         "file:docs/governance/master/",
         "file:tools/governance/master.mjs",
         "file:test/master-registry.test.mjs",
+        "file:docs/governance/owner-decisions.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "1aebd02a45a2fef61bcbaf0c75ee29a150580b36"
+    },
+    {
+      "id": "MP-PRCOUNT-01",
+      "title": "Residual PR count of the MASTER: 376 cards reconciled, planned PR register and count gates",
+      "issue": 288,
+      "pr": 291,
+      "branch": "mp-master-prcount-01",
+      "kind": "audit",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T155915Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/governance/master/pr-plan.json",
+        "file:docs/governance/master/pr-plan.md",
+        "file:tools/governance/pr-plan.mjs",
+        "file:test/pr-plan.test.mjs",
+        "file:docs/governance/master/requirements.jsonl",
         "file:docs/governance/owner-decisions.json"
       ],
       "assignee": {
