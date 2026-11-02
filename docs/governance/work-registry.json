@@ -2409,6 +2409,28 @@
       "pr_open": true
     },
     {
+      "id": "MP-ODDS-MIG-01",
+      "title": "Migrazione 031 snapshot quote API-FOOTBALL: da db/staged a migrations, rollback, preflight (MANUAL)",
+      "issue": 263,
+      "pr": 282,
+      "branch": "mp-odds-migration-031",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T103757Z-agent-a-claude-code",
+      "resources": [
+        "file:migrations/031-apifootball-odds-snapshots.sql",
+        "file:db/rollback/031-apifootball-odds-snapshots.down.sql",
+        "file:docs/product/mp-263/migration-031-preflight.md",
+        "file:test/apifootball-odds-snapshots.test.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": true
+    },
+    {
       "id": "MP-MASTER-01",
       "title": "Registro canonico della MASTER #288: requisiti atomici, schede PR, censimento, copertura, verificatore",
       "issue": 263,

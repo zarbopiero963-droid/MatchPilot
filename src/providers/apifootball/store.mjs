@@ -1,6 +1,6 @@
 // MP-ODDS-SNAP-01 (#263): PostgreSQL side of the API-FOOTBALL request ledger and of the pre-match odds snapshots. The
-// tables are staged (db/staged/031-apifootball-odds-snapshots.sql) and exist only once an owner-authorized migration
-// applies them: until then every call fails with SNAPSHOTS_UNAVAILABLE and nothing is created on the fly.
+// tables come from migrations/031-apifootball-odds-snapshots.sql, applied in production only with the owner's approval:
+// until then every call fails with SNAPSHOTS_UNAVAILABLE and nothing is created on the fly.
 // No job, route or schedule uses this module yet.
 import { COUNTED, paramsHash } from './client.mjs';
 
@@ -11,7 +11,7 @@ const UNDEFINED_TABLE = '42P01';
 async function guarded(run) {
   try { return await run(); }
   catch (error) {
-    if (error?.code === UNDEFINED_TABLE) throw new SnapshotStoreError('SNAPSHOTS_UNAVAILABLE', 'the staged API-FOOTBALL schema is not applied');
+    if (error?.code === UNDEFINED_TABLE) throw new SnapshotStoreError('SNAPSHOTS_UNAVAILABLE', 'the API-FOOTBALL snapshot schema (migration 031) is not applied');
     throw error;
   }
 }

@@ -1,7 +1,9 @@
 -- MP-ODDS-SNAP-01 (#263, MP-OWNER-IMPL-20261101 "storico quote"): the API-FOOTBALL request ledger and the pre-match odds
 -- snapshots MatchPilot builds itself, from acquisition time on.
--- STAGED, NOT A MIGRATION: this file is outside migrations/, so neither migrate() nor the deploy guard sees it. It becomes a
--- migration only in a PR the owner authorizes (migrations and production schema are MANUAL, AGENTS.md section 4).
+-- MIGRATION (MP-ODDS-MIG-01, MP-NEXT-20261102 priority E), moved unchanged in substance from db/staged/ (PR #275). In
+-- production it is applied only when named in MATCHPILOT_APPROVED_MIGRATIONS (src/migrate.mjs) and allowed by mp-deploy
+-- (allow-migrations-<sha>): two explicit owner steps. Rollback: db/rollback/031-apifootball-odds-snapshots.down.sql,
+-- which refuses to run while the tables hold any row.
 -- Additive only: new tables, one function, triggers and indexes; nothing existing is changed. Both tables are
 -- append-only, enforced by the database.
 --
