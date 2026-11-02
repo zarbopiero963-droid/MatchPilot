@@ -28,30 +28,30 @@
       "UNRESOLVED": 18
     },
     "active_by_implementation": {
-      "IMPLEMENTED": 186,
-      "NOT_IMPLEMENTED": 438,
-      "PARTIAL": 521,
-      "UNKNOWN": 28
+      "IMPLEMENTED": 184,
+      "NOT_IMPLEMENTED": 437,
+      "PARTIAL": 526,
+      "UNKNOWN": 26
     },
     "active_by_tested": {
       "BROWSER": 30,
       "INTEGRATION": 42,
       "NONE": 504,
-      "UNIT": 413,
-      "UNKNOWN": 184
+      "UNIT": 415,
+      "UNKNOWN": 182
     },
     "active_by_certified": {
       "COMPONENT": 10,
       "NONE": 1067,
       "UNKNOWN": 96
     },
-    "active_merged": 683,
+    "active_merged": 686,
     "active_in_open_pr": 94,
     "active_deployed_verified": 0,
     "active_operational": 2,
     "active_blocked": 233,
     "active_with_provider_gap": 299,
-    "active_without_evidence_on_main": 465,
+    "active_without_evidence_on_main": 464,
     "active_with_open_pr_paths_only": 13,
     "conflicts_owner_decision_required": 10,
     "unresolved": 18,
