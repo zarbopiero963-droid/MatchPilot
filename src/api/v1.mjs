@@ -5,6 +5,7 @@ import {matchAnalysis, matchIdOf} from '../analysis/match-analysis.mjs';
 import {histBacktestEndpoint, histCompareEndpoint} from './hist-backtest.mjs';
 import {toolEndpoints} from './tools.mjs';
 import {capabilitiesEndpoint} from './capabilities-api.mjs';
+import {searchEndpoint} from './universal-search.mjs';
 import {MAX_CURSOR_LENGTH, QUERY_CATALOG, ROUTES as FPT_LEGACY_ROUTES, buildQuery, runQuery} from '../providers/futpython/query.mjs';
 
 export const API_VERSION = 'v1';
@@ -94,6 +95,8 @@ export function createEndpoints(tc) {
       provenance: () => ({source: 'database', upstream_calls: 0})},
     // MP-CAP-01b (#263): the capability catalog, read only (src/api/capabilities-api.mjs).
     capabilitiesEndpoint({param, oneOf}),
+    // MP-SEARCH-01 (#263): universal AND/OR/NOT search on the catalog fields (src/api/universal-search.mjs).
+    searchEndpoint({param, integer, oneOf, ApiError}),
     ...FPT_ENDPOINTS,
     // R-07a: pre-match analysis of one stored match, computed by the server (src/analysis/match-analysis.mjs).
     {path: '/api/v1/fpt/match-analysis', source: 'FutPythonTrader',
