@@ -43,6 +43,7 @@ PR impilata su F2 (#298) e F1 (#296). Gate **MANUAL**. Regole e procedura: [`doc
 | adozione legacy offline senza / con doppia autorizzazione | `ADOPT_NOT_AUTHORIZED` / adottata | PASS | PASS |
 | avvio offline del server con migrazione pendente non autorizzata | esce ≠ 0, `MIGRATION_NOT_AUTHORIZED`, niente `listening`, nessuna migrazione | PASS | PASS |
 | unit: manifest del repository valido e vuoto; decisione per caso | PASS | — | — |
+| approvazione scaduta seguita da una nuova; secondo ciclo rollback/riapplicazione con vecchie voci consumate/scadute nel manifest; nessuna idonea → tenuta; due idonee → `OWNER_APPROVAL_AMBIGUOUS` (review #300 P2) | selezione dell'unica voce idonea | PASS | PASS |
 
 ## Esecuzioni (2026-11-02, container usa-e-getta, Node v22.22.0, eseguite come root nel container: i test di
 proprietà usano un uid diverso da quello del processo)
@@ -50,8 +51,8 @@ proprietà usano un uid diverso da quello del processo)
 | Comando | PostgreSQL | Esito |
 |---|---|---|
 | `npm run check` | — | PASS |
-| suite completa `node --test` (→ 127.0.0.1:5450) | 17.11 | 841/841 PASS |
-| `node --test test/migration-gate.test.mjs test/migration-checksums.test.mjs test/migration-030-promotion.test.mjs test/migration-guard.test.mjs test/migration-hardening.test.mjs test/owner-auth.test.mjs test/persistence-store.test.mjs test/persistence-api.test.mjs test/resume-drill.test.mjs` (→ 127.0.0.1:5451) | 18.6 | 61/61 PASS |
+| suite completa `node --test` (→ 127.0.0.1:5450), head con la correzione P2 (e133bbb) e il merge di main c6b3b2e | 17.11 | 841/841 PASS |
+| `node --test test/migration-gate.test.mjs test/migration-checksums.test.mjs test/migration-030-promotion.test.mjs test/migration-guard.test.mjs test/migration-hardening.test.mjs test/owner-auth.test.mjs test/persistence-store.test.mjs test/persistence-api.test.mjs test/resume-drill.test.mjs test/web-persistence-contract.test.mjs` (→ 127.0.0.1:5451), stesso head | 18.6 | 67/67 PASS |
 
 ## Limiti
 
