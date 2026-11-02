@@ -352,3 +352,28 @@ test('MP-CP-WITHDRAW-01: a propagated checkpoint replaced by a corrected sibling
   assert.ok(validateErrata(rootFile, [a, root2]).some(e => e.includes('common parent')));
   assert.ok(validateErrata({...file, withdrawn: [{...file.withdrawn[0], replaced_by: root2.id}]}, [a, old, root2]).some(e => e.includes('common parent')));
 });
+
+test('MP-CP-WITHDRAW-01 anti-bypass: circular, double and orphaning withdrawals are refused; a withdrawn checkpoint is still validated', () => {
+  const a = makeCheckpoint();
+  const x = makeCheckpoint({id: 'CP-20261018T210000Z-agent-a', timestamp_utc: '2026-10-18T21:00:00Z', supersedes: a.id});
+  const y = makeCheckpoint({id: 'CP-20261018T211000Z-agent-a', timestamp_utc: '2026-10-18T21:10:00Z', supersedes: a.id});
+  const entry = (id, by) => ({id, replaced_by: by, reason: 'sibling replaced after a propagated correction', reference: 'PR #302'});
+  const file = withdrawn => ({schema_version: 'mp-checkpoint-errata-v1', entries: [], withdrawn});
+  // circular: each one withdrawn in favour of the other leaves no active checkpoint
+  const circular = validateErrata(file([entry(x.id, y.id), entry(y.id, x.id)]), [a, x, y]);
+  assert.ok(circular.filter(e => e.includes('replacement is itself withdrawn')).length === 2);
+  // withdrawing a checkpoint that is not part of a fork (no sibling with the same parent) is refused
+  const lone = makeCheckpoint({id: 'CP-20261018T212000Z-agent-a', timestamp_utc: '2026-10-18T21:20:00Z', supersedes: x.id});
+  assert.ok(validateErrata(file([entry(lone.id, y.id)]), [a, x, y, lone]).some(e => e.includes('same parent')));
+  // the parent of the fork (it has successors) cannot be withdrawn
+  assert.ok(validateErrata(file([entry(a.id, y.id)]), [a, x, y]).some(e => e.includes('common parent') || e.includes('has successors')));
+  // withdrawing never makes an invalid checkpoint acceptable: validateCheckpoint still runs on every file
+  const forged = makeCheckpoint({id: 'CP-20261018T213000Z-agent-a', timestamp_utc: '2026-10-18T21:30:00Z', supersedes: a.id, state: 'MERGED', review: {verdict: 'APPROVED', reviewed_sha: 'f'.repeat(40), reference: 'x'}});
+  assert.ok(validateCheckpoint(forged, {}).some(e => e.includes('review covers')));
+  // after a valid withdrawal the chain head is the replacement, never the withdrawn one
+  const errata = errataMap(file([entry(x.id, y.id)]));
+  const {latest, conflicts} = resolveLatest([a, x, y], 'R-01', {errata});
+  assert.deepEqual(conflicts, []);
+  assert.equal(latest.id, y.id);
+  assert.notEqual(latest.id, x.id);
+});
