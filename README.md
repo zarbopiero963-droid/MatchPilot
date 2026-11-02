@@ -72,6 +72,7 @@ Tutte le route `/api/v1/*` sono in sola lettura. Leggono soltanto il database di
 - **Validazione:** prima di accedere al database vengono rifiutati i parametri sconosciuti, ripetuti, troppo lunghi, mancanti se obbligatori o malformati. Valgono questi limiti: `limit` 1–500 sugli endpoint FPT e 1–5000 (default 2000) su `tc/schema-registry`; `as_of` è un istante ISO-8601 con fuso; `knowledge` è `provider` o `captured`; date e identificativi seguono il proprio formato. Nessun valore viene corretto in silenzio. I valori arrivano alle query solo come parametri bound.
 - **Endpoint:**
   - `/api/v1/health`, `/api/v1/providers`, `/api/v1/capabilities`;
+  - `/api/v1/search` (MP-SEARCH-01): ricerca universale AND/OR/NOT sui campi del catalogo;
   - `/api/v1/fpt/*`, generati dal catalogo delle query FPT;
   - `/api/v1/tc/{discovery,schema-registry,mapping,prematch,prematch/match,historical,live}`.
 - **Paginazione deterministica (R-06a):** `/api/v1/fpt/search` e `/api/v1/fpt/matches` restituiscono `data.next_cursor`. Per la pagina successiva lo si passa come `cursor`, insieme agli stessi filtri; `limit` può cambiare.
@@ -212,6 +213,13 @@ Il mock è [`docs/mockups/matchpilot-trading-os.html`](docs/mockups/matchpilot-t
 **Riferimento di mercato (MP-MARKET-REF-01, #263).** `src/markets/market-ref.mjs` traduce un mercato e una selezione del provider in un riferimento MatchPilot (`market_type|periodo|squadra|selezione|linea`) tramite tabelle esplicite per id di mercato, costruite sui formati realmente osservati da API-FOOTBALL: nel prematch linea e lato sono nel testo, nel LIVE c'è un campo `handicap` e gli id sono diversi. Ciò che non è riconosciuto con certezza resta UNCLASSIFIED con i campi grezzi; mercati con nomi simili non vengono fusi. `settleable` è vero solo quando una regola #100 accetta esattamente quel mercato, quella selezione e quella linea.
 
 **Catalogo delle capacità (MP-CAP-01b, #263).** `GET /api/v1/capabilities` elenca ciò che ogni provider offre davvero: campi, mercati e statistiche. Per ognuno riporta tipo, operatori, classe PIT, fasi (`HISTORICAL`, `PREMATCH`, `LIVE`), copertura misurata o `null`, stato, provenienza e limiti.
+
+**Ricerca universale (MP-SEARCH-01, #263).** `GET /api/v1/search?expr=…&decision=PREMATCH|POSTMATCH&from=…&to=…` applica condizioni AND/OR/NOT a qualunque campo del catalogo AVAILABLE AND IMPLEMENTED dell'archivio storico FPT.
+- Gli altri stati, e i campi data o booleani non ancora adattati, sono rifiutati con il motivo.
+- Un dato mancante non soddisfa mai una condizione.
+- `PREMATCH` rifiuta i campi di esito ed è sempre `PIT_NOT_VERIFIED`; `POSTMATCH` legge solo partite concluse ed è `NON_PIT`.
+- Finestra di al massimo 366 giorni, al massimo 5 000 partite lette.
+- Stato: IMPLEMENTATO e TESTATO come API (test con PostgreSQL); nessuna pagina GUI, non deployato, non certificato. Dettagli in [`docs/product/mp-263/universal-search.md`](docs/product/mp-263/universal-search.md).
 
 - **FutPythonTrader:** una voce per ogni colonna del registro dello schema, solo come archivio storico.
 - **API-FOOTBALL:** solo le capacità osservate nella verifica reale del 01/11/2026, con stato AVAILABLE BUT NOT IMPLEMENTED finché un collector non le salva. Lo storico delle quote non è dichiarato come garantito dal provider.

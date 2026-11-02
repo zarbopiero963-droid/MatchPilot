@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 252,
+  "revision": 253,
   "tasks": [
     {
       "id": "R-01",
@@ -2386,6 +2386,28 @@
       "merge_sha": "b6dc4cebfc8945e0bd780e0994f883e0f4e20d15"
     },
     {
+      "id": "MP-SEARCH-01",
+      "title": "Ricerca universale AND/OR/NOT sul catalogo delle capacità: GET /api/v1/search (MANUAL)",
+      "issue": 263,
+      "pr": 285,
+      "branch": "mp-universal-search-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T142122Z-agent-a-claude-code",
+      "resources": [
+        "file:src/api/universal-search.mjs",
+        "file:src/api/v1.mjs",
+        "file:test/universal-search.test.mjs",
+        "file:docs/product/mp-263/universal-search.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": true
+    },
+    {
       "id": "MP-MASTER-01",
       "title": "Registro canonico della MASTER #288: requisiti atomici, schede PR, censimento, copertura, verificatore",
       "issue": 263,
@@ -2513,9 +2535,9 @@
       "pr": 295,
       "branch": "mp-owner-dec-mig-01",
       "kind": "audit",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T222703Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T224000Z-agent-a-claude-code",
       "resources": [
         "file:docs/governance/owner-decisions.json"
       ],
@@ -2523,7 +2545,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "70ee74b31004983fa4060bb1f4daabe30386c036"
     }
   ]
 }
