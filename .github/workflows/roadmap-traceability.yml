@@ -42,7 +42,10 @@ jobs:
           out=$(node tools/governance/master.mjs pr-check "$RUNNER_TEMP/pr-body.md") && rc=0 || rc=$?
           echo "$out"
           { echo '### roadmap-traceability: pr-check'; echo '```json'; echo "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          if [ "$rc" -ne 0 ]; then echo "::warning title=roadmap-traceability::the PR body cites no valid MP-REQ/MP-CARD id and no NO-NEW-REQUIREMENT declaration (MASTER #288)"; fi
+          case "$out" in
+            '{"result":'*) [ "$rc" -eq 0 ] || echo "::warning title=roadmap-traceability::the PR body cites no valid MP-REQ/MP-CARD id and no NO-NEW-REQUIREMENT declaration (MASTER #288)" ;;
+            *) echo "::warning title=roadmap-traceability::pr-check crashed (rc=$rc); see the job log" ;;
+          esac
           exit 0
 
   orphan-scan:
@@ -60,9 +63,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api --paginate "repos/${GITHUB_REPOSITORY}/issues?state=open&per_page=100" --jq '[.[] | {number, state, body, pull_request}]' | jq -s 'add' > "$RUNNER_TEMP/issues.json"
+          set -o pipefail
+          if ! gh api --paginate "repos/${GITHUB_REPOSITORY}/issues?state=open&per_page=100" --jq '[.[] | {number, state, body, pull_request}]' | jq -s 'add' > "$RUNNER_TEMP/issues.json"; then
+            echo "::warning title=roadmap-traceability::the open-issue listing could not be read; no scan this run"
+            exit 0
+          fi
           out=$(node tools/governance/master.mjs issues-check "$RUNNER_TEMP/issues.json") && rc=0 || rc=$?
           echo "$out"
           { echo '### roadmap-traceability: orphan scan'; echo '```json'; echo "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          if [ "$rc" -ne 0 ]; then echo "::warning title=roadmap-traceability::open issues without a MASTER #288 link: $out"; fi
+          case "$out" in
+            '{"result":'*) [ "$rc" -eq 0 ] || echo "::warning title=roadmap-traceability::open issues without a MASTER #288 link: $out" ;;
+            *) echo "::warning title=roadmap-traceability::issues-check crashed (rc=$rc); see the job log" ;;
+          esac
           exit 0

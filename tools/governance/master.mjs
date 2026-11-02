@@ -204,7 +204,9 @@ function main() {
   } else if (cmd === 'render') {
     if (arg === '--write') writeFileSync(join(DIR, 'roadmap.md'), render(reg) + '\n'); else console.log(render(reg));
   } else if (cmd === 'issues-check') {
-    const orphans = issuesCheck(reg, JSON.parse(readFileSync(arg, 'utf8')));
+    const listing = JSON.parse(readFileSync(arg, 'utf8'));
+    if (!Array.isArray(listing)) throw new Error('issues-check: the listing is not a JSON array of issues');
+    const orphans = issuesCheck(reg, listing);
     console.log(JSON.stringify({result: orphans.length ? 'FAIL' : 'PASS', open_issues_without_master_link: orphans}));
     process.exitCode = orphans.length ? 1 : 0;
   } else if (cmd === 'pr-check') {
