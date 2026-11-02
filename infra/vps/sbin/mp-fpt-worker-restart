@@ -29,7 +29,8 @@ effective=""
 for f in $ENV_FILES; do
   [ -f "$f" ] && [ -r "$f" ] || continue
   v=$(sed -n 's/^[[:space:]]*FUTPYTHON_RETIRED[[:space:]]*=[[:space:]]*//p' "$f" | tail -1 | tr -d '"'"'"'\r' | sed 's/[[:space:]]*$//')
-  if grep -qE '^[[:space:]]*FUTPYTHON_RETIRED[[:space:]]*=' "$f"; then values="$values|$v"; effective="$v"; fi
+  # An empty value is a definition too ("<empty>"), so "true" in one file and "" in the other is inconsistent.
+  if grep -qE '^[[:space:]]*FUTPYTHON_RETIRED[[:space:]]*=' "$f"; then values="$values|${v:-<empty>}"; effective="$v"; fi
 done
 distinct=$(printf '%s' "$values" | tr '|' '\n' | sed '/^$/d' | sort -u | wc -l)
 if [ "$distinct" -gt 1 ]; then

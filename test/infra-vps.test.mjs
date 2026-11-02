@@ -17,9 +17,9 @@ test('SHA256SUMS matches every ported file (byte copy of the VPS)', () => {
   }
 });
 
-test('mp-deploy is the pinned v3.4 (d5d6c0bc…) and keeps its invariants', () => {
+test('mp-deploy is the pinned v3.4 (b98343df…) and keeps its invariants', () => {
   const s = read('sbin/mp-deploy');
-  assert.equal(sums.find(([, f]) => f === 'sbin/mp-deploy')[0].slice(0, 8), 'd5d6c0bc');
+  assert.equal(sums.find(([, f]) => f === 'sbin/mp-deploy')[0].slice(0, 8), 'b98343df');
   assert.match(s, /^umask 077$/m);
   assert.match(s, /go\+rX/);                                  // release readable by the matchpilot user
   assert.match(s, /tip_recheck=OK/);                           // tip of main re-checked under the lock

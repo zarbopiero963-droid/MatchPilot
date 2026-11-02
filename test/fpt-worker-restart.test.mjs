@@ -57,6 +57,12 @@ test('MP-FPT-RETIRE-02 inconsistent configuration between the env files: no rest
   assert.deepEqual(s.calls(), [], 'not even a state query');
 });
 
+test('MP-FPT-RETIRE-02 review: an empty value against true is inconsistent; a silent helper is a failure in mp-deploy', () => {
+  const s = sandbox({env: {'worker.env': 'FUTPYTHON_RETIRED=true\n', 'fpt.env': 'FUTPYTHON_RETIRED=\n'}});
+  assert.match(s.run().stdout, /worker_restart=skipped_inconsistent/);
+  assert.match(readFileSync('infra/vps/sbin/mp-deploy', 'utf8'), /worker_restart=FAILED reason=helper_no_output/);
+});
+
 test('MP-FPT-RETIRE-02 not retired: try-restart only when enabled and running; a stopped or disabled worker stays as it is', () => {
   const running = sandbox({env: {'fpt.env': 'FUTPYTHON_RETIRED=false\n'}});
   assert.match(running.run().stdout, /^phase=deploy worker_restart=ok$/m);

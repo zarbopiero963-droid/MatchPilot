@@ -36,7 +36,7 @@ BUILD_USER="${MP_BUILD_USER:-mpbuild}"
 TESTENV="${MP_TESTENV:-/etc/mp-deploy/test.env}"
 # v3.4: FPT worker restart guard (missing helper => no restart, never a bare restart)
 WORKER_RESTART="${MP_WORKER_RESTART:-/usr/local/libexec/mp-fpt-worker-restart}"
-worker_restart(){ if [ -x "$WORKER_RESTART" ] && [ ! -L "$WORKER_RESTART" ]; then "$WORKER_RESTART" "$1" 2>&1 | tail -1; else echo "phase=$1 worker_restart=skipped_helper_missing"; fi; }
+worker_restart(){ if [ -x "$WORKER_RESTART" ] && [ ! -L "$WORKER_RESTART" ]; then local out; out=$("$WORKER_RESTART" "$1" 2>&1 | tail -1); [ -n "$out" ] && echo "$out" || echo "phase=$1 worker_restart=FAILED reason=helper_no_output"; else echo "phase=$1 worker_restart=skipped_helper_missing"; fi; }
 SHA="${1:-}"
 
 [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "usage: mp-deploy <40-hex sha>" >&2; exit 2; }
