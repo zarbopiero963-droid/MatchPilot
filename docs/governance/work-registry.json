@@ -2257,7 +2257,7 @@
       "id": "MP-ODDS-SNAP-01",
       "title": "MP-ODDS-SNAP-01: staged pre-match odds snapshots and request ledger",
       "issue": 263,
-      "pr": null,
+      "pr": 275,
       "branch": "mp-odds-snapshots",
       "kind": "implementation",
       "state": "REVIEW",
@@ -2272,7 +2272,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
