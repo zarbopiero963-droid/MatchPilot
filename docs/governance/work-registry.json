@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 239,
+  "revision": 240,
   "tasks": [
     {
       "id": "R-01",
@@ -2412,7 +2412,7 @@
       "id": "MP-PRCOUNT-01",
       "title": "Residual PR count of the MASTER: 376 cards reconciled, planned PR register and count gates",
       "issue": 288,
-      "pr": null,
+      "pr": 291,
       "branch": "mp-master-prcount-01",
       "kind": "audit",
       "state": "REVIEW",
@@ -2430,7 +2430,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
