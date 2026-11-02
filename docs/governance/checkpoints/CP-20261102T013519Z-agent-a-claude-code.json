@@ -1,0 +1,149 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T013519Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T01:35:19Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-IMPL-20261101",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): implementation phase"
+  },
+  "task": "MP-TC-BENCH-01",
+  "activity": "MP-TC-BENCH-01: reproducible TotalCorner vs API-FOOTBALL LIVE benchmark tools (owner item: TotalCorner benchmark preparation)",
+  "issue": 263,
+  "pr": null,
+  "branch": "mp-tc-benchmark-prep",
+  "commit_sha": "4acc243905637a2bfa0abcebddfe78861a8b66f8",
+  "tree_sha": "b208d7dc4ce8a022626df1b3afb96fac300843d3",
+  "base_sha": "8d14ac070fd653fe97fdda0ddb5d332169040303",
+  "requirements": [],
+  "changes": [
+    "src/benchmark/live-benchmark.mjs",
+    "src/benchmark/tc-export.mjs",
+    "tools/benchmark/tc-af-live.mjs",
+    "test/live-benchmark.test.mjs",
+    "docs/product/mp-263/README.md",
+    "package.json check entries"
+  ],
+  "tests": [
+    {
+      "command": "node --test",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, throwaway local PostgreSQL 16",
+      "commit": "4acc243905637a2bfa0abcebddfe78861a8b66f8",
+      "time": "2026-11-02T01:35:19Z",
+      "limits": [
+        "802 tests, 801 pass, 1 skipped (PostgreSQL 17 independence test), 0 fail; synthetic series, no network"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "4acc243905637a2bfa0abcebddfe78861a8b66f8"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "4acc243905637a2bfa0abcebddfe78861a8b66f8",
+    "reference": "independent review by an agent of a different model: CHANGES REQUESTED on 3575f8d (4 blocking), APPROVED on 4acc243; record to be posted on the PR"
+  },
+  "findings": [
+    {
+      "id": "TCB-B1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "latency was not a lower bound: replaced by a documented sighting delay; 45+2 excluded, negatives counted"
+    },
+    {
+      "id": "TCB-B2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "intervals of a deduplicated archive are change cadence: flagged and never compared with raw polls; in-play only"
+    },
+    {
+      "id": "TCB-B3",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "non-Latin names normalized to empty and matched falsely: any script kept, names required"
+    },
+    {
+      "id": "TCB-B4",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "verdict possible without reference data: live data on both sides now required"
+    },
+    {
+      "id": "TCB-N-REF",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "a KEEP/DROP needs an AF archive with the same deduplication; the verdict tests the candidate's absolute metrics only, the reference's are reported"
+    },
+    {
+      "id": "TCB-N7",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "export is one json_agg row bounded by a 31-day window"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-IMPL-20261101",
+    "MP-AUTONOMY-01",
+    "MP-OWNER-GO-2026-11-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "independent review",
+      "review fixes",
+      "re-review"
+    ],
+    "in_progress": [
+      "CI"
+    ],
+    "not_started": [
+      "merge",
+      "owner: AF LIVE budget or parallel TC window, field mapping, thresholds"
+    ]
+  },
+  "resources": [
+    "file:src/benchmark/live-benchmark.mjs",
+    "file:src/benchmark/tc-export.mjs",
+    "file:tools/benchmark/tc-af-live.mjs"
+  ],
+  "stop_conditions": [
+    "merge only under the owner authorization and every gate",
+    "no deploy started by the agent",
+    "no provider call, no collector reactivated",
+    "verdict stays INSUFFICIENT EVIDENCE without overlapping data and owner thresholds"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI, conditional merge",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": null
+}

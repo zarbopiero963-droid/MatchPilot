@@ -1,0 +1,160 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T013518Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T01:35:18Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-IMPL-20261101",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): implementation phase"
+  },
+  "task": "MP-FPT-RETIRE-01",
+  "activity": "PR #277 merged as 8d14ac0 (squash; owner authorization MP-OWNER-IMPL-20261101 item 6); FUTPYTHON_RETIRED not set anywhere",
+  "issue": 263,
+  "pr": 277,
+  "branch": "mp-fpt-retire-01",
+  "commit_sha": "4214acfc1dcefe167d6de318726a8bfd2779de5e",
+  "tree_sha": "9e0df8c706817b03606f476817bf4b9a14c1d738",
+  "base_sha": "29140d6cc35c71adc86b691b2c819ff561386ac9",
+  "requirements": [],
+  "changes": [
+    "src/providers/futpython/retired.mjs",
+    "src/providers/futpython/client.mjs",
+    "src/jobs/futpython-sync.mjs",
+    "src/jobs/futpython-cron.mjs",
+    "src/background.mjs",
+    "src/jobs/data-watchdog.mjs",
+    "scripts/fpt-liveness-probe.mjs",
+    "test/fpt-retired.test.mjs",
+    "docs/product/mp-263/README.md",
+    "package.json check entry",
+    "review fixes 0e3d21d",
+    "merge of main #276 (package.json check line union)",
+    "8d14ac0: squash merge of PR #277"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #277 head 4214acf",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "4214acfc1dcefe167d6de318726a8bfd2779de5e",
+      "time": "2026-11-02T01:35:18Z",
+      "limits": [
+        "run 41371026633 success"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 8d14ac0",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "8d14ac070fd653fe97fdda0ddb5d332169040303",
+      "time": "2026-11-02T01:35:18Z",
+      "limits": [
+        "run 41372153630 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 8d14ac0",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "8d14ac070fd653fe97fdda0ddb5d332169040303",
+      "time": "2026-11-02T01:35:18Z",
+      "limits": [
+        "run 41372153616: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41371026633,
+    "conclusion": "SUCCESS",
+    "head_sha": "4214acfc1dcefe167d6de318726a8bfd2779de5e"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "4214acfc1dcefe167d6de318726a8bfd2779de5e",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/277#issuecomment-6566682728 (APPROVED on 0e3d21d; 0e3d21d..4214acf: main merge with package.json check union and registers only, verified with git diff --stat)"
+  },
+  "findings": [
+    {
+      "id": "RETIRE-N1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "retired watchdog retries pending closing notices"
+    },
+    {
+      "id": "RETIRE-N2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "retired heartbeat no longer sets last_success_at"
+    },
+    {
+      "id": "RETIRE-N4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "env-driven watchdog path and default path tested"
+    },
+    {
+      "id": "RETIRE-OPS",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "mp-deploy restarts a disabled worker unit; guard in the deploy system and the VPS variable need an operational owner GO"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-IMPL-20261101",
+    "MP-AUTONOMY-01",
+    "MP-OWNER-GO-2026-11-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": [
+      "operational GO: FUTPYTHON_RETIRED on the VPS, mp-deploy guard, liveness timer"
+    ]
+  },
+  "resources": [
+    "file:src/providers/futpython/retired.mjs",
+    "file:src/jobs/data-watchdog.mjs",
+    "file:scripts/fpt-liveness-probe.mjs"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent",
+    "operational retirement needs a separate owner GO"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261102T010927Z-agent-a-claude-code",
+  "merge_sha": "8d14ac070fd653fe97fdda0ddb5d332169040303"
+}

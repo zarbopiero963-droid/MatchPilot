@@ -2303,9 +2303,9 @@
       "pr": 277,
       "branch": "mp-fpt-retire-01",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T010927Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T013518Z-agent-a-claude-code",
       "resources": [
         "file:src/providers/futpython/retired.mjs",
         "file:src/jobs/data-watchdog.mjs",
@@ -2315,7 +2315,29 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "8d14ac070fd653fe97fdda0ddb5d332169040303"
+    },
+    {
+      "id": "MP-TC-BENCH-01",
+      "title": "MP-TC-BENCH-01: TotalCorner vs API-FOOTBALL LIVE benchmark tools",
+      "issue": 263,
+      "pr": null,
+      "branch": "mp-tc-benchmark-prep",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T013519Z-agent-a-claude-code",
+      "resources": [
+        "file:src/benchmark/live-benchmark.mjs",
+        "file:src/benchmark/tc-export.mjs",
+        "file:tools/benchmark/tc-af-live.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
