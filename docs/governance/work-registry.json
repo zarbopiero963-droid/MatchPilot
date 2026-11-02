@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 256,
+  "revision": 259,
   "tasks": [
     {
       "id": "R-01",
@@ -2555,7 +2555,7 @@
       "kind": "implementation",
       "state": "REVIEW",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T224357Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T231843Z-agent-a-claude-code",
       "resources": [
         "branch:mp-mig-030-promote-01",
         "file:migrations/030-persistence.sql",
@@ -2566,7 +2566,31 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": true,
+      "parallel_authorization": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01"
+    },
+    {
+      "id": "MP-MIG-CHECKSUMS-01",
+      "title": "F2: persistent migration checksum register, blocking history verification, explicit legacy adoption (stacked on F1 #296)",
+      "issue": 263,
+      "pr": 298,
+      "branch": "mp-mig-checksums-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T231845Z-agent-a-claude-code",
+      "resources": [
+        "branch:mp-mig-checksums-01",
+        "file:src/migrate.mjs",
+        "file:test/migration-checksums.test.mjs",
+        "file:docs/migration-checksums.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": true,
+      "parallel_authorization": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01"
     }
   ]
 }

@@ -4,9 +4,14 @@ import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { parseCsv } from '../src/lib/csv.mjs';
+import { assertLocalTestDatabase } from './helpers/migrations.mjs';
 
-const databaseUrl = process.env.FUTPYTHON_TEST_DATABASE_URL
+const rootUrl = process.env.FUTPYTHON_TEST_DATABASE_URL
   || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
+// Its own throwaway schema (MP-MIG-CHECKSUMS-01): the drill no longer migrates the public schema of the test database,
+// whose history may predate the checksum register of the runner (a persistent test database, as on the VPS).
+const SCHEMA = `resume_drill_${process.pid}`;
+const databaseUrl = (() => { const url = new URL(rootUrl); url.searchParams.set('options', `-c search_path=${SCHEMA}`); return url.toString(); })();
 
 function redact(value) {
   return String(value || '').replace(/api_key=[^&\s]+/gi, 'api_key=[REDACTED]').replace(/postgres(?:ql)?:\/\/\S+/gi, 'postgres://[REDACTED]');
@@ -44,11 +49,22 @@ function runNode(args, env) {
 }
 
 test('resume drill survives a real SIGTERM without duplicating the mirror', {timeout: 30000}, async t => {
-  process.env.DATABASE_URL = databaseUrl;
   let db;
   let migrate;
   let store;
+  // A remote URL is refused here, before any connection and any DDL (the drill creates and drops its schema).
+  assertLocalTestDatabase(rootUrl);
   try {
+    const pg = (await import('pg')).default;
+    const admin = new pg.Client({connectionString: rootUrl, connectionTimeoutMillis: 2000});
+    await admin.connect();
+    try { await admin.query(`DROP SCHEMA IF EXISTS ${SCHEMA} CASCADE`); await admin.query(`CREATE SCHEMA ${SCHEMA}`); } finally { await admin.end(); }
+    t.after(async () => {
+      const cleanup = new pg.Client({connectionString: rootUrl, connectionTimeoutMillis: 2000});
+      await cleanup.connect();
+      try { await cleanup.query(`DROP SCHEMA IF EXISTS ${SCHEMA} CASCADE`); } finally { await cleanup.end(); }
+    });
+    process.env.DATABASE_URL = databaseUrl;
     db = await import('../src/db.mjs');
     await db.withClient(client => client.query('SELECT 1'));
     migrate = await import('../src/migrate.mjs');

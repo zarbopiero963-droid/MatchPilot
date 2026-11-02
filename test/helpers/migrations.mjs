@@ -5,6 +5,7 @@ import {copyFile, mkdtemp, readdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
+import {isLocalDatabaseUrl} from '../../src/runtime-safety.mjs';
 
 export const MIGRATIONS_DIR = fileURLToPath(new URL('../../migrations/', import.meta.url));
 const RUNNER = pathToFileURL(fileURLToPath(new URL('../../src/migrate.mjs', import.meta.url))).href;
@@ -27,4 +28,11 @@ export function migrateArgs(dir) {
   return ['--input-type=module', '-e', `const {migrate} = await import(${JSON.stringify(RUNNER)});
 const {closePool} = await import(${JSON.stringify(DB)});
 try { await migrate({dir: ${JSON.stringify(dir)}, log: line => console.log(line)}); } finally { await closePool(); }`];
+}
+
+// The guard of every test that creates or drops schemas: the same host check as the runtime (runtime-safety), BEFORE any
+// connection, so a misconfigured FUTPYTHON_TEST_DATABASE_URL never receives a single DDL statement (PR #298 review P1).
+export function assertLocalTestDatabase(url, env = process.env) {
+  if (!isLocalDatabaseUrl(url, env)) throw new Error('the test database must be a local throwaway PostgreSQL (remote URL refused before any connection)');
+  return url;
 }

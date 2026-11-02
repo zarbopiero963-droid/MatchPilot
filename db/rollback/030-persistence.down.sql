@@ -2,8 +2,8 @@
 -- (PR #282). Run by hand only, with an owner GO, after a backup. It refuses to run while any persistence table holds a
 -- row: ledger entries, strategies and saved backtests are history and are never dropped by a rollback (export them
 -- first; restoring them is a separate decision). With empty tables it removes exactly what the migration created and
--- its schema_migrations row. Confirm the target schema first: names are unqualified and resolve through the
--- connection's search_path. Safe to run again on an already rolled-back schema (missing objects are skipped).
+-- its schema_migrations row, and marks its checksum register row REVOKED. Confirm the target schema first: names are
+-- unqualified and resolve through the connection's search_path. Safe to run again on an already rolled-back schema (missing objects are skipped).
 BEGIN;
 -- The advisory lock of migrate() (class MIGRATION_LOCK_CLASS 0x4d504d47 = 1297108295, key hashtext(current_schema())),
 -- so it never runs alongside a migrator; then exclusive table locks, so no insert lands between the check and the drop.
@@ -31,4 +31,18 @@ DROP FUNCTION IF EXISTS mp_strategy_versions_supersede_only();
 DROP FUNCTION IF EXISTS mp_paper_ledger_next_seq();
 DROP FUNCTION IF EXISTS mp_persistence_append_only();
 DELETE FROM schema_migrations WHERE filename = '030-persistence.sql';
+-- F2 (MP-MIG-CHECKSUMS-01): the checksum register keeps the row and marks it REVOKED, in the same transaction, so the
+-- runner sees a recorded rollback and never an ambiguous state. The hash is kept: a re-application must bring back the
+-- same bytes.
+DO $$
+BEGIN
+  IF to_regclass('schema_migration_ledger') IS NOT NULL THEN
+    UPDATE schema_migration_ledger SET status = 'REVOKED', revoked_at = now(), revoke_reason = 'db/rollback/030-persistence.down.sql'
+      WHERE filename = '030-persistence.sql' AND status = 'APPLIED';
+    IF FOUND THEN
+      INSERT INTO schema_migration_events(event, filename, detail) VALUES('REVOKED', '030-persistence.sql', 'db/rollback/030-persistence.down.sql');
+    END IF;
+  END IF;
+END
+$$;
 COMMIT;

@@ -1,0 +1,119 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T231843Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T23:18:43Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd); registered on main by PR #295 (70ee74b), merged into this branch with git merge origin/main"
+  },
+  "task": "MP-MIG-030-PROMOTE-01",
+  "activity": "Registry restructured after PR #301 (parallel_tasks): this task is F1 only again (PR #296); F2 and F3 have their own tasks MP-MIG-CHECKSUMS-01 and MP-MIG-GATE-01 under parallel_authorization; F1 merged with origin/main c6b3b2e; Codex no major issues on 2ece7c2",
+  "issue": 263,
+  "pr": 296,
+  "branch": "mp-mig-030-promote-01",
+  "commit_sha": "9018aea3a032b773fc3c915eb2c144098b4b0618",
+  "tree_sha": "28c14ff3d1dd0e4559253045829f89265cd5e152",
+  "base_sha": "c6b3b2ef345109c8560fbfb629e05c6cad4e4f52",
+  "requirements": [],
+  "changes": [
+    "registry: task back to PR #296 / branch mp-mig-030-promote-01, parallel_authorization MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #296 head 2ece7c2",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "2ece7c2477f7193c912f7b53fee045e870c370cd",
+      "time": "2026-11-02T23:00:00Z",
+      "limits": [
+        "all jobs success incl. Browser QA; head 9018aea (merge of main) pending"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "9018aea3a032b773fc3c915eb2c144098b4b0618"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "2ece7c2477f7193c912f7b53fee045e870c370cd",
+    "reference": "Codex code review (OpenAI, different model family) on 2ece7c2: no major issues (https://github.com/zarbopiero963-droid/MatchPilot/pull/296#issuecomment-6590422235); 9018aea adds the merge of main and registers only"
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "open until owner merge"
+    },
+    {
+      "id": "GOV-CP-FORK-224000",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "copied CP-20261102T224000Z forked from main's CP-20261102T230845Z; removed in the merge of main (validate PASS) but check-append-only flags the deletion: coordinator decision requested"
+    }
+  ],
+  "owner_decisions": [
+    "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "local tests PG17/PG18",
+      "PR opened",
+      "review"
+    ],
+    "in_progress": [
+      "CI on merged head"
+    ],
+    "not_started": [
+      "owner GO",
+      "merge"
+    ]
+  },
+  "resources": [
+    "branch:mp-mig-030-promote-01",
+    "file:migrations/030-persistence.sql",
+    "file:db/rollback/030-persistence.down.sql",
+    "file:test/migration-030-promotion.test.mjs"
+  ],
+  "stop_conditions": [
+    "MANUAL: AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER",
+    "no merge, no production migration, no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "owner GO for the MANUAL merge of #296",
+  "resume_conditions": [
+    "owner GO for the MANUAL merge"
+  ],
+  "supersedes": "CP-20261102T225441Z-agent-a-claude-code"
+}
