@@ -1,0 +1,152 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T155915Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T15:59:15Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-ROADMAP-PR-COUNT-FINAL-01",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-PRCOUNT-01",
+  "activity": "MP-PRCOUNT-01: 376 cards reconciled against main, 270 residual PRs (8 open, 262 new), range 209-328, count gates and tests",
+  "issue": 288,
+  "pr": null,
+  "branch": "mp-master-prcount-01",
+  "commit_sha": "d4348ad50d3de2105dbc6aface665e05a0bd4730",
+  "tree_sha": "9ff7d926c5383c5b2461556f5290b937fb2f2a16",
+  "base_sha": "1aebd02a45a2fef61bcbaf0c75ee29a150580b36",
+  "requirements": [],
+  "changes": [
+    "docs/governance/master/pr-plan.json (new)",
+    "docs/governance/master/pr-plan.md (generated)",
+    "tools/governance/pr-plan.mjs (new)",
+    "test/pr-plan.test.mjs (new)",
+    "docs/governance/master/requirements.jsonl (20 verified corrections)",
+    "docs/governance/owner-decisions.json (mandate)"
+  ],
+  "tests": [
+    {
+      "command": "node --test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, docker postgres:17 on 127.0.0.1:5433",
+      "commit": "d4348ad50d3de2105dbc6aface665e05a0bd4730",
+      "time": "2026-11-02T15:59:15Z",
+      "limits": [
+        "full suite green on PostgreSQL 17 (815/815 at 81b4d42); registry-only changes since; no network, no provider call"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "d4348ad50d3de2105dbc6aface665e05a0bd4730"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "d4348ad50d3de2105dbc6aface665e05a0bd4730",
+    "reference": "independent subagent review (same model family: self-review): CHANGES REQUESTED at 81b4d42, APPROVED at 6d6c047; later commit only adds a gate note"
+  },
+  "findings": [
+    {
+      "id": "PRC-08",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "14 cross-group semantic duplicates absorbed (N 284 -> 270)"
+    },
+    {
+      "id": "PRC-02",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "merge options mixing SAFE and MANUAL refused; Nmin recomputed"
+    },
+    {
+      "id": "PRC-01",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "README states the identities are bookkeeping"
+    },
+    {
+      "id": "PRC-03",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "README: range covers declared uncertainty only, exclusions listed"
+    },
+    {
+      "id": "PRC-04",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "RULE_ENFORCED_BY_TEST does not prove the test asserts the rule: checked in review"
+    },
+    {
+      "id": "PRC-05",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "MP-REQ-0189 completion withdrawn"
+    },
+    {
+      "id": "PRC-07",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "status_now PARTIAL where code exists on main"
+    }
+  ],
+  "owner_decisions": [
+    "MP-ROADMAP-PR-COUNT-FINAL-01",
+    "MP-GLOBAL-RECONCILIATION-20261102",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "independent review"
+    ],
+    "in_progress": [
+      "CI"
+    ],
+    "not_started": [
+      "owner authorization and merge (MANUAL)"
+    ]
+  },
+  "resources": [
+    "file:docs/governance/master/pr-plan.json",
+    "file:docs/governance/master/pr-plan.md",
+    "file:tools/governance/pr-plan.mjs",
+    "file:test/pr-plan.test.mjs",
+    "file:docs/governance/master/requirements.jsonl",
+    "file:docs/governance/owner-decisions.json"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI; SAFE merge with expectedHeadSha after CI green",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": null
+}

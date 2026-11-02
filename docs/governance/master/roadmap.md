@@ -233,7 +233,7 @@ Ogni scheda elenca i requisiti (`requirements.jsonl`) e porta test, HARD TEST RE
 | BENCH-CORE-01 | BENCH-CORE-01 (scheda esistente, docs/governance/ui-requirements-matrix.json) | 3 | NOT STARTED | SÌ |
 | CONSEGNATO su main (vedi evidenza) | CONSEGNATO su main (vedi evidenza) (scheda esistente, docs/governance/ui-requirements-matrix.json) | 24 | IMPLEMENTING | SÌ |
 | CONSEGNATO su main (vedi evidenza) + ogni nuova card | CONSEGNATO su main (vedi evidenza) + ogni nuova card (scheda esistente, docs/governance/ui-requirements-matrix.json) | 1 | IMPLEMENTING | SÌ |
-| ESCLUSO (#45, MP-OWNER-EXCLUDE-REAL-EXECUTION-01) | ESCLUSO (#45, MP-OWNER-EXCLUDE-REAL-EXECUTION-01) (scheda esistente, docs/governance/ui-requirements-matrix.json) | 2 | NOT STARTED | SÌ |
+| ESCLUSO (#45, MP-OWNER-EXCLUDE-REAL-EXECUTION-01) | ESCLUSO (#45, MP-OWNER-EXCLUDE-REAL-EXECUTION-01) (scheda esistente, docs/governance/ui-requirements-matrix.json) | 0 | NOT STARTED | SÌ |
 | ESCLUSO (#46 SaaS, non approvato) | ESCLUSO (#46 SaaS, non approvato) (scheda esistente, docs/governance/ui-requirements-matrix.json) | 0 | BLOCKED | SÌ |
 | HIST-01b (backend) + MP-UI-PR-046-BTCTRL | HIST-01b (backend) + MP-UI-PR-046-BTCTRL (scheda esistente, docs/governance/ui-requirements-matrix.json) | 0 | BLOCKED | SÌ |
 | LIVE-PR-01 | LIVE-PR-01 (scheda esistente, docs/governance/ui-requirements-matrix.json) | 10 | IMPLEMENTING | SÌ |
