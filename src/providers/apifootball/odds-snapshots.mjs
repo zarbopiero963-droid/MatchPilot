@@ -40,7 +40,9 @@ export const payloadSha256 = value => createHash('sha256').update(canonical(valu
 
 // body: the parsed /odds answer ({response: [...]}) or the client result ({response: [...]}).
 // Returns {rows, rejected}; rejected items carry a reason and the provider ids, never a guessed value.
-export function oddsSnapshotRows(body, {acquiredAt, requestId = null} = {}) {
+// rawId: af_raw_responses.raw_id of the answer the rows come from (migration 033, MP-AF-RAW-01); null only for callers
+// without a raw store, whose rows a database with migration 033 refuses.
+export function oddsSnapshotRows(body, {acquiredAt, requestId = null, rawId = null} = {}) {
   const acquired = acquiredAt instanceof Date ? acquiredAt.getTime() : Date.parse(acquiredAt);
   if (!Number.isFinite(acquired)) throw new TypeError('acquiredAt is required');
   const rows = [];
@@ -83,7 +85,7 @@ export function oddsSnapshotRows(body, {acquiredAt, requestId = null} = {}) {
             bookmaker_id: bookmakerId, bookmaker_name: bookmakerName, bet_id: betId, bet_name: betName,
             value_text: valueText, handicap_text: handicapText, odd_text: oddText,
             market_ref_status: ref.status, market_key: ref.status === 'PARSED' ? ref.key : null, market_ref_version: MARKET_REF_VERSION,
-            request_id: requestId, payload_sha256: hash
+            request_id: requestId, payload_sha256: hash, raw_id: rawId
           });
         }
       }
@@ -94,10 +96,10 @@ export function oddsSnapshotRows(body, {acquiredAt, requestId = null} = {}) {
 
 // From a client result (createApiFootballClient().get('/odds', ...)): the acquisition instant is the client's own
 // fetched_at, never a time the caller chooses, and a cached result is refused (its instant is the original fetch, and
-// storing it again would add nothing).
-export function oddsSnapshotsFromResult(result, {requestId = null} = {}) {
+// storing it again would add nothing). requestId defaults to the client's own ledger id for the answer (result.request_id).
+export function oddsSnapshotsFromResult(result, {requestId = result?.request_id ?? null, rawId = null} = {}) {
   if (!result || result.endpoint !== '/odds') throw new TypeError('an /odds client result is required');
   if (result.cacheHit) return {rows: [], rejected: [{reason: 'cached result: already stored at its original acquisition'}]};
-  return oddsSnapshotRows({response: result.response}, {acquiredAt: result.fetched_at, requestId});
+  return oddsSnapshotRows({response: result.response}, {acquiredAt: result.fetched_at, requestId, rawId});
 }
 

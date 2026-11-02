@@ -87,8 +87,10 @@ export function prematchCandidates(response, {now, leadHours, kickoffMarginMinut
 }
 
 // createPrematchCollector({config, client, ledger, openConnection, saveSnapshots, saveRawResponse, now})
-//   saveRawResponse(result): persists the raw provider answer (path, fetched_at, response) before normalization; required,
-//   so the collector cannot run without a raw store (its PostgreSQL table comes with the raw schema, not yet migrated)
+//   saveRawResponse(result): persists the raw provider answer before normalization and returns {raw_id}; required, so the
+//   collector cannot run without a raw store. In production: result => saveRawResponse(pool, result) from store.mjs
+//   (af_raw_responses, migration 033, MP-AF-RAW-01): the exact body (get, parameters, errors, paging, response, unknown
+//   fields), its SHA-256, the request and the timestamps. Every snapshot carries the returned raw_id.
 //   client: createApiFootballClient(...) on the same ledger; ledger: countSince(ms, {purpose}) and lastRequestAt(path, ms)
 //   openConnection(): a dedicated pg client with release() (saveOddsSnapshots needs one, never a pool)
 //   saveSnapshots(connection, rows): saveOddsSnapshots
@@ -132,7 +134,8 @@ export function createPrematchCollector({config = prematchCollectorConfig(), cli
           if (STOP_CODES.has(error?.code)) { stop(error.code); return null; }
           failures += 1;
           if (failures >= config.maxConsecutiveFailures) stop('CONSECUTIVE_FAILURES');
-          return {error: error?.code ?? 'ERROR'};
+          // A provider `errors` answer keeps its raw body (not enumerable on the error) for the raw store.
+          return {error: error?.code ?? 'ERROR', raw: error?.raw ?? null};
         }
       };
       try {
@@ -166,13 +169,21 @@ export function createPrematchCollector({config = prematchCollectorConfig(), cli
             if (fixture.kickoff_ms - now() <= config.kickoffMarginMinutes * 60000) { entry.outcome = page === 1 ? 'skipped_kickoff_too_close' : 'pages_stopped_kickoff_too_close'; break; }
             const result = await call('/odds', page === 1 ? {fixture: fixture.fixture_id} : {fixture: fixture.fixture_id, page});
             if (!result) { entry.outcome = `stopped_${report.stop_reason}`; break; }
-            if (result.error) { entry.outcome = `failed_${result.error}`; break; }
+            if (result.error) {
+              entry.outcome = `failed_${result.error}`;
+              // MP-AF-RAW-01: a provider error answer is history too (its `errors` field says why): kept, never normalized.
+              if (result.raw) { try { await saveRawResponse(result.raw); } catch { stop('RAW_STORE_FAILED'); entry.outcome = 'failed_raw_store'; } }
+              break;
+            }
             entry.pages = page;
-            // review (Codex): the raw answer is persisted before any normalization, so fields outside the projection and
-            // rejected items are never lost and the snapshots can be reprocessed. A failure stops the cycle.
-            try { await saveRawResponse(result); }
-            catch { stop('RAW_STORE_FAILED'); entry.outcome = 'failed_raw_store'; break; }
-            const {rows: pageRows, rejected} = oddsSnapshotsFromResult(result);
+            // review (Codex, P1 MP-AF-RAW-01): the raw answer is persisted before any normalization, so fields outside the
+            // projection and rejected items are never lost and the snapshots can be reprocessed; every snapshot names the
+            // raw answer it comes from. A failure, or a store that returns no raw_id, stops the cycle before normalizing.
+            let rawId;
+            try { rawId = (await saveRawResponse(result))?.raw_id; }
+            catch { rawId = null; }
+            if (!Number.isSafeInteger(rawId) || rawId <= 0) { stop('RAW_STORE_FAILED'); entry.outcome = 'failed_raw_store'; break; }
+            const {rows: pageRows, rejected} = oddsSnapshotsFromResult(result, {rawId});
             rows.push(...pageRows);
             entry.rejected += rejected.length;
             const total = Number.isInteger(result.paging?.total) ? result.paging.total : 1;

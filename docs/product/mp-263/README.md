@@ -107,7 +107,8 @@ Per questo l'inventario delle capacità resta **NOT VERIFIED**: niente viene des
   Le date valgono solo in formato ISO con fuso esplicito. Una risposta con più di 20 000 selezioni viene rifiutata per intero.
 
   Nessun dato successivo al calcio d'inizio diventa una quota prematch.
-- **Schema staged** `db/staged/031-apifootball-odds-snapshots.sql`, fuori da `migrations/`: `migrate()` e il guard del deploy non lo vedono.
+- **Schema:** `migrations/031-apifootball-odds-snapshots.sql` (MP-ODDS-MIG-01). Prima era staged in `db/staged/`. In produzione viene applicato solo con `MATCHPILOT_APPROVED_MIGRATIONS` e con l'`allow-migrations` di `mp-deploy`, entrambi decisi dall'owner. Preflight e rollback sono descritti in [`migration-031-preflight.md`](migration-031-preflight.md).
+- **Risposte grezze:** `migrations/033-apifootball-raw-responses.sql` (MP-AF-RAW-01, MANUAL, dipende dalla 031). Crea `af_raw_responses`, append-only, con il corpo esatto e lo SHA-256, e aggiunge `raw_id` agli snapshot. Rollback: `db/rollback/033-apifootball-raw-responses.down.sql`. Evidenze in [`evidence/af-raw-responses.md`](evidence/af-raw-responses.md).
   - Tabelle append-only, protette dal database.
   - Il database stesso rifiuta le righe prematch acquisite dopo il calcio d'inizio.
   - Deduplica:
@@ -116,7 +117,7 @@ Per questo l'inventario delle capacità resta **NOT VERIFIED**: niente viene des
     - ripetere la stessa acquisizione non scrive nulla.
 
     Un prezzo invariato resta quindi datato alla sua prima acquisizione.
-  - Diventa una migrazione solo con una PR autorizzata dall'owner.
+  - Il merge di questa migrazione richiede l'autorizzazione dell'owner (PR MANUAL); l'applicazione in produzione richiede altri due passi espliciti.
 - **Lettura point-in-time** (`oddsAsOf`): per ogni selezione restituisce l'ultimo snapshot acquisito entro `as_of`, con `update` del provider non successivo a `as_of`, mai uno successivo. Dopo il calcio d'inizio restituisce l'ultimo prezzo visto prima del calcio d'inizio.
 - **Collector PREMATCH** (MP-AF-COLLECT-01, [`prematch-collector.md`](prematch-collector.md)): cicli limitati con budget propri (giornaliero, al minuto e per ciclo), intervallo minimo per partita letto dal ledger, nessuna richiesta a ridosso del calcio d'inizio o dopo, arresto sicuro. **Spento per default, senza scheduler, mai attivato.**
 - **Ancora da fare.** Nessun job o route usa ancora questi moduli. Un collector che chiama `/odds` con frequenza dichiarata richiede la migrazione e un GO operativo.

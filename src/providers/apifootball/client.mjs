@@ -131,6 +131,35 @@ export function providerErrors(body) {
   return null;
 }
 
+// MP-AF-RAW-01 (P1 of PR #283): the provider body exactly as received, for the raw store. The bytes come from
+// arrayBuffer() (or text() as UTF-8) when the response offers it, so get, parameters, errors, paging and any field
+// unknown to MatchPilot are kept byte for byte; body_exact is false only when the response offers json() alone (some
+// test doubles), and then the body is the parsed value serialized again. Parsing strips a UTF-8 BOM like fetch's json().
+export const MAX_RAW_BODY_BYTES = 32 * 1024 * 1024;
+async function readBody(res) {
+  if (typeof res.arrayBuffer === 'function' || typeof res.text === 'function') {
+    const bytes = typeof res.arrayBuffer === 'function' ? Buffer.from(await res.arrayBuffer()) : Buffer.from(await res.text(), 'utf8');
+    const text = new TextDecoder('utf-8').decode(bytes);
+    return {bytes, exact: true, body: JSON.parse(text)};
+  }
+  const body = await res.json();
+  return {bytes: Buffer.from(JSON.stringify(body) ?? 'null', 'utf8'), exact: false, body};
+}
+
+// The raw record of one provider answer: self-contained (request, provenance, timestamps, bytes, hash, quota), so the
+// store needs nothing else. Timestamps are kept as observed: requested_at and received_at are MatchPilot's clock, the
+// provider's own Date header is copied verbatim (provider_date) and never rewritten.
+function rawRecord({req, purpose, requestId, startedMs, receivedMs, res, outcome, quota, bytes, exact}) {
+  return {
+    provider: 'api-football', request_id: requestId, endpoint: req.endpoint, family: req.family, path: req.path,
+    params: Object.fromEntries(new URLSearchParams(req.query)), params_hash: paramsHash(req.path), purpose,
+    requested_at: new Date(startedMs).toISOString(), received_at: new Date(receivedMs).toISOString(),
+    provider_date: header(res.headers, 'date'), content_type: header(res.headers, 'content-type'),
+    http_status: res.status, outcome, quota, body: bytes, body_exact: exact, body_bytes: bytes.length,
+    body_sha256: createHash('sha256').update(bytes).digest('hex')
+  };
+}
+
 // The local request ledger, in memory. A PostgreSQL ledger with the same two methods comes with its migration.
 export function createMemoryLedger() {
   const rows = [];
@@ -152,7 +181,8 @@ export function createMemoryLedger() {
 const utcDayStart = ms => { const d = new Date(ms); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); };
 
 // createApiFootballClient({config, ledger, fetchImpl, now, sleep, ttlSeconds, maxRetryWaitMs})
-// get(endpoint, params, {purpose}) -> {endpoint, path, family, cacheHit, fetched_at, status, quota, results, paging, response}
+// get(endpoint, params, {purpose}) -> {endpoint, path, family, cacheHit, fetched_at, status, quota, results, paging, response,
+//   request_id, raw}; raw is the provider answer as received (rawRecord), for the raw store (MP-AF-RAW-01)
 export function createApiFootballClient({
   config = apiFootballConfig(),
   ledger,
@@ -188,8 +218,11 @@ export function createApiFootballClient({
     const started = now();
     const row = {at_ms: started, at: new Date(started).toISOString(), endpoint: req.endpoint, family: req.family, path: req.path,
       params_hash: paramsHash(req.path), purpose, attempt: n, outcome: null, status: null, latency_ms: null, quota: null, error: null};
+    // Returns the ledger's request_id (the PostgreSQL ledger returns it; the memory ledger returns nothing: null).
     const record = async entry => {
-      try { await ledger.insert(entry); } catch { ledgerFailed = true; throw new ApiFootballError('LEDGER_UNAVAILABLE', 'a request could not be recorded; calls stopped'); }
+      let id;
+      try { id = await ledger.insert(entry); } catch { ledgerFailed = true; throw new ApiFootballError('LEDGER_UNAVAILABLE', 'a request could not be recorded; calls stopped'); }
+      return Number.isSafeInteger(id) && id > 0 ? id : null;
     };
     // The timeout covers the whole exchange, body included: a stalled body is aborted, never left hanging the queue.
     const controller = new AbortController();
@@ -225,7 +258,8 @@ export function createApiFootballClient({
       return {retry: res.status >= 500, error: new ApiFootballError('HTTP_ERROR', `HTTP ${res.status}`, {status: res.status})};
     }
     let body;
-    try { body = await withDeadline(res.json()); } catch {
+    let read;
+    try { read = await withDeadline(readBody(res)); body = read.body; } catch {
       clearTimeout(timer);
       if (timedOut) {
         await record({...base, outcome: 'timeout', latency_ms: now() - started, error: 'timeout reading the body'});
@@ -239,12 +273,16 @@ export function createApiFootballClient({
     if (errors) {
       // Error names only, in the ledger and in the error: the provider's own text never leaves the client.
       const names = Array.isArray(errors) ? errors.map((_, i) => String(i)) : Object.keys(errors).map(k => k.slice(0, 40));
-      await record({...base, outcome: 'provider_error', error: `provider errors: ${names.join(',')}`});
-      return {retry: false, error: new ApiFootballError('PROVIDER_ERROR', 'the provider answered with errors', {status: res.status, provider_error_names: names})};
+      const requestId = await record({...base, outcome: 'provider_error', error: `provider errors: ${names.join(',')}`});
+      const error = new ApiFootballError('PROVIDER_ERROR', 'the provider answered with errors', {status: res.status, provider_error_names: names});
+      // The raw answer rides on the error for the raw store, not enumerable: a logged or serialized error never carries it.
+      Object.defineProperty(error, 'raw', {value: rawRecord({req, purpose, requestId, startedMs: started, receivedMs: t, res, outcome: 'provider_error', quota, bytes: read.bytes, exact: read.exact}), enumerable: false});
+      return {retry: false, error};
     }
-    await record({...base, outcome: 'ok'});
+    const requestId = await record({...base, outcome: 'ok'});
     return {result: {endpoint: req.endpoint, path: req.path, family: req.family, cacheHit: false, fetched_at: new Date(t).toISOString(), status: res.status, quota,
-      results: Number.isInteger(body?.results) ? body.results : null, paging: body?.paging ?? null, response: body?.response ?? null}};
+      results: Number.isInteger(body?.results) ? body.results : null, paging: body?.paging ?? null, response: body?.response ?? null,
+      request_id: requestId, raw: rawRecord({req, purpose, requestId, startedMs: started, receivedMs: t, res, outcome: 'ok', quota, bytes: read.bytes, exact: read.exact})}};
   }
 
   async function run(req, purpose) {

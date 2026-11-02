@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { apiFootballConfig, createApiFootballClient, createMemoryLedger } from '../src/providers/apifootball/client.mjs';
 import { COLLECTOR_PURPOSE, createPrematchCollector, prematchCandidates, prematchCollectorConfig } from '../src/providers/apifootball/prematch-collector.mjs';
-import { createPgRequestLedger, oddsAsOf, saveOddsSnapshots, SnapshotStoreError } from '../src/providers/apifootball/store.mjs';
+import { createPgRequestLedger, oddsAsOf, saveOddsSnapshots, saveRawResponse, SnapshotStoreError } from '../src/providers/apifootball/store.mjs';
 
 const T0 = Date.UTC(2026, 10, 2, 9, 0, 0);
 const H = 3600000;
@@ -39,7 +39,7 @@ function harness({routes, env = collectorEnv(), start = T0, ledger = createMemor
   const released = [];
   const raw = [];
   const collector = createPrematchCollector({config: prematchCollectorConfig(env), client, ledger, now: () => clock,
-    saveRawResponse: saveRaw ?? (async result => { raw.push({path: result.path, fetched_at: result.fetched_at, response: result.response}); }),
+    saveRawResponse: saveRaw ?? (async result => { raw.push({path: result.path, fetched_at: result.fetched_at, response: result.response}); return {raw_id: raw.length}; }),
     openConnection: async () => ({release: () => released.push(1)}),
     saveSnapshots: save ?? (async (_c, rows) => { saved.push(...rows); return {inserted: rows.length, skipped: 0}; })});
   return {collector, calls, saved, released, raw, ledger, advance: ms => { clock += ms; }, now: () => clock};
@@ -225,7 +225,7 @@ test('MP-AF-COLLECT-01 on PostgreSQL: ledger budget and interval survive restart
       const make = h => createPrematchCollector({config: prematchCollectorConfig(collectorEnv()), ledger, now: h.now,
         client: createApiFootballClient({config: apiFootballConfig(clientEnv), ledger, now: h.now, sleep: async () => {},
           fetchImpl: async url => { h.calls.push(url); const a = standard(fixtures)(new URL(url)); h.advance(50); return {status: 200, headers: new Headers(), json: async () => a.body}; }}),
-        openConnection: () => pool.connect(), saveSnapshots: saveOddsSnapshots, saveRawResponse: async () => {}});
+        openConnection: () => pool.connect(), saveSnapshots: saveOddsSnapshots, saveRawResponse: result => saveRawResponse(pool, result)});
       const h1 = run(T0);
       const r1 = await make(h1).runOnce();
       assert.deepEqual([r1.status, r1.stored], ['completed', 10]);
@@ -237,6 +237,10 @@ test('MP-AF-COLLECT-01 on PostgreSQL: ledger budget and interval survive restart
       const asOf = await oddsAsOf(pool, {fixtureId: 1, asOf: new Date(T0 + H)});
       assert.equal(asOf.length, 5);
       assert.deepEqual(await oddsAsOf(pool, {fixtureId: 1, asOf: new Date(T0 - H)}), [], 'nothing before its acquisition');
+      // MP-AF-RAW-01: every snapshot names the raw answer it was parsed from, of the same request and instant.
+      const link = (await pool.query(`SELECT count(*)::int AS n, count(*) FILTER (WHERE r.request_id = s.request_id AND r.received_at = s.acquired_at)::int AS ok
+        FROM af_odds_snapshots s JOIN af_raw_responses r USING (raw_id)`)).rows[0];
+      assert.deepEqual(link, {n: 10, ok: 10});
     } finally { await pool.end(); }
   } finally {
     await root.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
