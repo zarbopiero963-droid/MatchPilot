@@ -2322,7 +2322,7 @@
       "id": "MP-TC-BENCH-01",
       "title": "MP-TC-BENCH-01: TotalCorner vs API-FOOTBALL LIVE benchmark tools",
       "issue": 263,
-      "pr": null,
+      "pr": 278,
       "branch": "mp-tc-benchmark-prep",
       "kind": "implementation",
       "state": "REVIEW",
@@ -2337,7 +2337,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
