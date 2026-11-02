@@ -1,0 +1,141 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T010927Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T01:09:27Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-IMPL-20261101",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): implementation phase"
+  },
+  "task": "MP-FPT-RETIRE-01",
+  "activity": "MP-FPT-RETIRE-01: FutPythonTrader retired mode in the application code (authorized item 6); FUTPYTHON_RETIRED off by default",
+  "issue": 263,
+  "pr": null,
+  "branch": "mp-fpt-retire-01",
+  "commit_sha": "0e3d21d3c28590a4981b18eded2170a51fd0c0c2",
+  "tree_sha": "62c21c4ccfc44000f5ca5d0758254e4f886f7452",
+  "base_sha": "2180f4decef13c239178c1040849bbc43a63f789",
+  "requirements": [],
+  "changes": [
+    "src/providers/futpython/retired.mjs",
+    "src/providers/futpython/client.mjs",
+    "src/jobs/futpython-sync.mjs",
+    "src/jobs/futpython-cron.mjs",
+    "src/background.mjs",
+    "src/jobs/data-watchdog.mjs",
+    "scripts/fpt-liveness-probe.mjs",
+    "test/fpt-retired.test.mjs",
+    "docs/product/mp-263/README.md",
+    "package.json check entry"
+  ],
+  "tests": [
+    {
+      "command": "node --test",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, throwaway local PostgreSQL 16",
+      "commit": "0e3d21d3c28590a4981b18eded2170a51fd0c0c2",
+      "time": "2026-11-02T01:09:27Z",
+      "limits": [
+        "796 tests, 795 pass, 1 skipped (PostgreSQL 17 independence test), 0 fail, after merging main"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "0e3d21d3c28590a4981b18eded2170a51fd0c0c2"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "0e3d21d3c28590a4981b18eded2170a51fd0c0c2",
+    "reference": "independent review by an agent of a different model: APPROVED on 9b1d40e (non-blocking findings), re-review APPROVED on 0e3d21d; record to be posted on the PR"
+  },
+  "findings": [
+    {
+      "id": "RETIRE-N1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "retired watchdog retries pending closing notices"
+    },
+    {
+      "id": "RETIRE-N2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "retired heartbeat no longer sets last_success_at"
+    },
+    {
+      "id": "RETIRE-N4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "env-driven watchdog path and default path tested"
+    },
+    {
+      "id": "RETIRE-OPS",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "mp-deploy restarts a disabled worker unit; guard in the deploy system and the VPS variable need an operational owner GO"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-IMPL-20261101",
+    "MP-AUTONOMY-01",
+    "MP-OWNER-GO-2026-11-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "independent review",
+      "review fixes",
+      "re-review"
+    ],
+    "in_progress": [
+      "CI"
+    ],
+    "not_started": [
+      "merge",
+      "operational GO: variable on the VPS, mp-deploy guard, liveness timer"
+    ]
+  },
+  "resources": [
+    "file:src/providers/futpython/retired.mjs",
+    "file:src/jobs/data-watchdog.mjs",
+    "file:scripts/fpt-liveness-probe.mjs"
+  ],
+  "stop_conditions": [
+    "merge only under the owner authorization and every gate",
+    "no deploy started by the agent",
+    "the variable is set nowhere: setting it on the VPS, the mp-deploy guard and stopping units need a separate operational owner GO",
+    "no data deleted"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI, conditional merge",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": null
+}
