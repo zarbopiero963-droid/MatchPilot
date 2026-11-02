@@ -108,3 +108,79 @@ Stato:
   - `pr-check` verifica che gli ID citati esistano, compresi gli `MP-REQ-UI-####` della matrice UI.
 
 Limite tecnico dichiarato: GitHub non permette di bloccare la creazione di una issue. Le issue non collegate vengono segnalate a posteriori, da evento `issues` e da un controllo periodico, mai bloccate prima.
+
+## Piano delle PR residue
+
+Il piano risponde al mandato owner MP-ROADMAP-PR-COUNT-FINAL-01 del 02/11/2026. È formato da:
+- `pr-plan.json`: registro;
+- `pr-plan.md`: tabella generata;
+- `tools/governance/pr-plan.mjs`: verificatore;
+- `test/pr-plan.test.mjs`: gate.
+
+Le 376 schede originali restano in `cards.jsonl` come storico. Il piano le collega alle PR residue (`MP-PRP-###`, oppure `MP-PRP-OPEN-<n>` per una PR già aperta).
+
+**Metodo.**
+- Le schede e i requisiti attivi sono divisi in 5 gruppi di dominio, e ogni requisito ha un solo gruppo proprietario.
+- Ogni gruppo è stato verificato contro `main` (`1aebd02`): file, test, PR mergiate e PR aperte.
+- I gruppi sono stati riuniti dal coordinatore. Il coordinatore ha:
+  - accorpato le PR duplicate tra gruppi, registrandole in `absorbed`;
+  - contato una sola volta ogni PR aperta;
+  - riportato a IMPLEMENTED_NOT_CERTIFIED le schede dichiarate COMPLETED senza certificato;
+  - riclassificato IMPL le PR di sola certificazione che contengono requisiti non completamente implementati su `main` (`cert_reclassified_to_impl`);
+  - applicato al registro, con annotazione, le correzioni di stato verificate.
+
+**Esiti di una scheda:** COMPLETED, IMPLEMENTED_NOT_CERTIFIED, PARTIAL, NOT_STARTED, OPEN_PR, DUPLICATE, SUPERSEDED, MERGE_CANDIDATE, BLOCKED.
+- Ogni scheda, tranne COMPLETED, SUPERSEDED e DUPLICATE, indica la PR che porta il suo lavoro residuo.
+- Una scheda DUPLICATE o SUPERSEDED cita il riferimento.
+- Una scheda con codice presente ma gate di certificazione mancanti non è mai COMPLETED.
+
+**Requisito completato.** Un requisito è completato solo se è implementato e mergiato, ha test su `main` e ha una di queste basi:
+- un certificato registrato (`CERTIFICATE`);
+- per una regola di processo, CI o governance, il test su `main` che la applica, citato nell'evidenza (`RULE_ENFORCED_BY_TEST`).
+
+Ogni altro requisito attivo è coperto da esattamente una PR residua.
+
+**Conteggi** (ricalcolati dal verificatore, mai scritti a mano):
+- `A = B + C + D + schede portate`, dove:
+  - B: completate;
+  - C: superate;
+  - D: duplicate.
+- `H = schede portate − E + S = F + G`, dove:
+  - E: schede assorbite in una PR che ne porta già un'altra;
+  - S: PR scorporate dalle epiche R-xx, senza una scheda propria;
+  - F: PR aperte;
+  - G: PR nuove.
+- `I`: PR di sola certificazione (codice già completo su `main`).
+- `J`: PR che dipendono da una decisione owner o da un GO.
+- `N = H`.
+- `Nmin = N − coppie accorpabili − PR eliminabili da una decisione owner`. Le PR eliminabili non vengono sottratte una seconda volta come coppie.
+- `Nmax = N + rischi di scissione`.
+
+Ogni unità dell'intervallo è legata a una PR nominata nel campo `split_risk`, `merge_option` o `may_be_removed_by_decision`.
+- Un'opzione di accorpamento fra una PR SAFE e una MANUAL è rifiutata.
+- Una PR assorbita da un'altra non porta un rischio di scissione inventato: eredita solo quello dichiarato.
+
+**Limiti dichiarati.**
+- **Le identità sui conteggi sono contabili.** `H = schede portate − E + S` vale per costruzione. I controlli sostanziali sono altri:
+  - ogni requisito attivo è coperto esattamente una volta;
+  - ogni scheda è collegata alla sua PR nei due sensi;
+  - nessuna PR è duplicata;
+  - nessun completamento è senza base.
+- **L'intervallo copre solo l'incertezza dichiarata** su PR nominate. Non comprende:
+  - il lavoro di correzione dopo un hard test o una certificazione falliti;
+  - le PR che una decisione owner potrebbe aggiungere: 84 PR dipendono da una decisione o da un GO;
+  - la scissione o il rifiuto delle 8 PR aperte;
+  - lo sblocco delle 60 schede BLOCKED.
+- **La base `RULE_ENFORCED_BY_TEST` non dimostra il contenuto del test.** Il verificatore controlla che il test citato esista e appartenga al requisito; che il test asserisca davvero la regola si verifica in review.
+- **Gli accorpamenti fra gruppi sono registrati in `absorbed` delle PR riceventi**: 5 dalla riconciliazione, 14 dalla review indipendente del conteggio. Si tratta di lavoro pianificato due volte, non di riduzioni arbitrarie.
+
+**Tracciabilità di una PR senza requisiti propri** (prerequisiti backend, record di certificazione, gate finali): `serves` elenca i requisiti serviti oppure `ui_requirements` le righe `MP-REQ-UI` della matrice UI. Una PR senza nessuno dei due è rifiutata.
+
+`npm run governance:pr-plan` verifica il piano. I test controllano:
+- requisiti attivi senza copertura o coperti due volte;
+- schede perse o ripetute;
+- accorpamenti non tracciabili nei due sensi;
+- ID e PR aperte duplicati;
+- coerenza dei totali e del riepilogo in `master.json`;
+- certificazioni e completamenti inventati;
+- motivi di incertezza vuoti.
