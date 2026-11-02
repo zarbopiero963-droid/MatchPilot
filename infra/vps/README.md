@@ -6,7 +6,8 @@ conserva la versione canonica per review, diff e disaster recovery.
 
 | File repo | Percorso VPS | Versione |
 |---|---|---|
-| `sbin/mp-deploy` | `/usr/local/sbin/mp-deploy` (root:root 0755) | v3.3 — umask/permessi go+rX, restart worker dopo deploy e rollback, tip_recheck |
+| `sbin/mp-deploy` | `/usr/local/sbin/mp-deploy` (root:root 0755) | v3.4 — umask e permessi go+rX, tip_recheck. **Proposta, non installata**: il worker FPT viene riavviato dopo deploy e rollback solo tramite `mp-fpt-worker-restart` (MP-FPT-RETIRE-02) |
+| `sbin/mp-fpt-worker-restart` | `/usr/local/libexec/mp-fpt-worker-restart` (root:root 0755) | v1 (**proposta, non installata**). Esegue `try-restart` del worker solo se l'unità è abilitata, attiva e non dismessa (`FUTPYTHON_RETIRED`). Non avvia mai un worker fermo e non tocca il timer di liveness |
 | `sbin/mp-runner-guard.sh` | `/usr/local/libexec/mp-runner-guard.sh` | v2 (v1 + runner-job-guard, enforce con `/etc/mp-deploy/runner-guard.enforce`) |
 | `sbin/mp-runner-guard-v1.sh` | `/usr/local/libexec/mp-runner-guard-v1.sh` | v1 |
 | `systemd/matchpilot-fpt-worker.service` | `/etc/systemd/system/matchpilot-fpt-worker.service` | `node src/worker.mjs`, TotalCorner off |

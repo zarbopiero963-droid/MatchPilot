@@ -1,5 +1,7 @@
 #!/bin/bash
-# mp-deploy <40-hex-sha> — MatchPilot deploy v3.2 t124u (MP-AUTODEPLOY-01: tip recheck before switch, signals ignored in the atomic part, Telegram outcome notice)
+# mp-deploy <40-hex-sha> — MatchPilot deploy v3.4 (MP-FPT-RETIRE-02: the FPT worker is restarted only through
+#   /usr/local/libexec/mp-fpt-worker-restart, which never starts a stopped, disabled or retired worker)
+# was: v3.2 t124u (MP-AUTODEPLOY-01: tip recheck before switch, signals ignored in the atomic part, Telegram outcome notice)
 # was: v3 (MP-VPS-OIDC-PREFLIGHT-01, ISOLATED BUILD, NOT INSTALLED)
 # = v2 (caf9233f) + OIDC authorization gate (docs/deploy-approval.md §3.4 of PR #180).
 # Token: GitHub Actions OIDC JWT on STDIN (never argv). Exit: 0 OK/ALREADY; 2 usage; 75 lock (nothing consumed);
@@ -32,6 +34,9 @@ LOCK="${MP_LOCK:-/run/lock/mp-deploy.lock}"
 KEEP=5
 BUILD_USER="${MP_BUILD_USER:-mpbuild}"
 TESTENV="${MP_TESTENV:-/etc/mp-deploy/test.env}"
+# v3.4: FPT worker restart guard (missing helper => no restart, never a bare restart)
+WORKER_RESTART="${MP_WORKER_RESTART:-/usr/local/libexec/mp-fpt-worker-restart}"
+worker_restart(){ if [ -x "$WORKER_RESTART" ] && [ ! -L "$WORKER_RESTART" ]; then "$WORKER_RESTART" "$1" 2>&1 | tail -1; else echo "phase=$1 worker_restart=skipped_helper_missing"; fi; }
 SHA="${1:-}"
 
 [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "usage: mp-deploy <40-hex sha>" >&2; exit 2; }
@@ -289,8 +294,9 @@ fi
 
 if health; then
   echo "$SHA" > "$STATE/deployed"
-  # v3.3 (t125u): the FPT worker runs from current too; restart it on the new release (graceful SIGTERM, PR #195)
-  if [ "${MP_SKIP_RESTART:-0}" != 1 ]; then systemctl restart matchpilot-fpt-worker.service && log "worker_restart=ok" || log "worker_restart=FAILED"; fi
+  # v3.3 (t125u): the FPT worker runs from current too; v3.4: restarted on the new release only when enabled, running
+  # and not retired (mp-fpt-worker-restart), so a retired or stopped worker is never brought back by a deploy
+  if [ "${MP_SKIP_RESTART:-0}" != 1 ]; then log "$(worker_restart deploy)"; fi
   if [ -d "$D/migrations" ]; then
     ( cd "$D/migrations" && sha256sum * 2>/dev/null | awk '{print $1, $2}' > "$LED.new" && mv "$LED.new" "$LED" )       || log "warn=migration_ledger_failed"
   fi
@@ -308,7 +314,7 @@ if [ -n "$PREV" ]; then
   ln -sfn "$PREV" "$CUR.new" && mv -T "$CUR.new" "$CUR"
   [ "${MP_SKIP_RESTART:-0}" != 1 ] && systemctl restart matchpilot-app.service
   health && R=ok || R=FAILED
-  [ "${MP_SKIP_RESTART:-0}" != 1 ] && { systemctl restart matchpilot-fpt-worker.service || R="$R,worker_restart_failed"; }
+  if [ "${MP_SKIP_RESTART:-0}" != 1 ]; then WR=$(worker_restart rollback); log "$WR"; case "$WR" in *worker_restart=FAILED*) R="$R,worker_restart_failed";; esac; fi
 else
   R=none
 fi

@@ -17,18 +17,21 @@ test('SHA256SUMS matches every ported file (byte copy of the VPS)', () => {
   }
 });
 
-test('mp-deploy is the pinned v3.3 (c45eab86…) and keeps its invariants', () => {
+test('mp-deploy is the pinned v3.4 (d5d6c0bc…) and keeps its invariants', () => {
   const s = read('sbin/mp-deploy');
-  assert.equal(sums.find(([, f]) => f === 'sbin/mp-deploy')[0].slice(0, 8), 'c45eab86');
+  assert.equal(sums.find(([, f]) => f === 'sbin/mp-deploy')[0].slice(0, 8), 'd5d6c0bc');
   assert.match(s, /^umask 077$/m);
   assert.match(s, /go\+rX/);                                  // release readable by the matchpilot user
   assert.match(s, /tip_recheck=OK/);                           // tip of main re-checked under the lock
-  assert.equal((s.match(/systemctl restart matchpilot-fpt-worker\.service/g) || []).length, 2); // deploy + rollback
+  // v3.4 (MP-FPT-RETIRE-02): no bare restart of the FPT worker; deploy and rollback go through the guard helper.
+  assert.equal((s.match(/systemctl restart matchpilot-fpt-worker\.service/g) || []).length, 0);
+  assert.equal((s.match(/worker_restart (deploy|rollback)/g) || []).length, 2);
+  assert.match(s, /worker_restart=skipped_helper_missing/);                // a missing helper never falls back to a restart
   assert.match(s, /token\.actions\.githubusercontent\.com/);   // OIDC authz kept
 });
 
 test('shell scripts are syntactically valid', () => {
-  for (const f of ['sbin/mp-deploy', 'sbin/mp-runner-guard.sh', 'sbin/mp-runner-guard-v1.sh']) {
+  for (const f of ['sbin/mp-deploy', 'sbin/mp-runner-guard.sh', 'sbin/mp-runner-guard-v1.sh', 'sbin/mp-fpt-worker-restart']) {
     const r = spawnSync('bash', ['-n', join(D, f)]);
     assert.equal(r.status, 0, f + ' ' + r.stderr);
   }
