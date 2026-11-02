@@ -1,0 +1,5 @@
+{
+  "schema": "mp-migration-approvals-v1",
+  "comment": "Owner approvals of migration operations (F3, MP-MIG-GATE-01, docs/migration-gate.md). Changed only by a MANUAL PR the owner merges. Each entry: id MA-..., operation apply|reapply|adopt, filename + sha256 of the exact bytes (plan_code for adopt), revocation_event for reapply, decision (IN_FORCE in docs/governance/owner-decisions.json), expires_at. Single use.",
+  "approvals": []
+}

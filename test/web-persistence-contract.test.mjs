@@ -137,7 +137,7 @@ test('the real adapter and the mock satisfy the same persistence contract', {tim
   try { await rollback.query(readFileSync(new URL('../db/rollback/030-persistence.down.sql', import.meta.url), 'utf8')); } finally { await rollback.end(); }
   await refusals(createPersistence({base: open.base}), {params: PARAMS, expected: 'unavailable'});
   const migrated = spawnSync(process.execPath, ['src/migrate.mjs'], {encoding: 'utf8',
-    env: {PATH: process.env.PATH, DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test'}});
+    env: {PATH: process.env.PATH, DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
   assert.equal(migrated.status, 0, migrated.stderr);
   assert.match(migrated.stdout, /MIGRATION_APPLIED 030-persistence\.sql/);
   await refusals(createPersistence({base: open.base}), {params: PARAMS, expected: 'read-only'});

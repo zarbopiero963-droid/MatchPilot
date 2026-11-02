@@ -74,7 +74,7 @@ test('MIG-GAP-01: migrate() refuses an overridden host before opening any connec
   try {
     const {migrate} = await import('../src/migrate.mjs');
     const started = Date.now();
-    await assert.rejects(migrate({env: {MATCHPILOT_RUNTIME_MODE: 'test'}, log: () => {}}), /rejects non-local DATABASE_URL/);
+    await assert.rejects(migrate({env: {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}, log: () => {}}), /rejects non-local DATABASE_URL/);
     assert.ok(Date.now() - started < 1000);
   } finally {
     if (saved === undefined) delete process.env.DATABASE_URL; else process.env.DATABASE_URL = saved;
@@ -176,7 +176,7 @@ test('MIG-GAP-02: concurrent migrate() processes apply every migration exactly o
   try {
     await withSchema(admin, 'concurrent', async schema => {
       const files = await migrationFiles();
-      const runs = await Promise.all(Array.from({length: 4}, () => runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test'})));
+      const runs = await Promise.all(Array.from({length: 4}, () => runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'})));
       for (const run of runs) assert.equal(run.ok, true, `${run.message || ''} ${run.stderr}`);
       const applied = runs.flatMap(run => run.result.applied);
       assert.deepEqual([...applied].sort(), files, 'each file applied by exactly one process');
@@ -186,7 +186,7 @@ test('MIG-GAP-02: concurrent migrate() processes apply every migration exactly o
   } finally { await admin.end(); }
 });
 
-test('MIG-GAP-02: concurrent production processes still apply only approved migrations', {timeout: 120000}, async t => {
+test('MIG-GAP-02: concurrent production processes without full authorization apply nothing (F3)', {timeout: 120000}, async t => {
   const admin = await adminClient(t);
   if (!admin) return;
   try {
@@ -194,11 +194,9 @@ test('MIG-GAP-02: concurrent production processes still apply only approved migr
       const [first] = await migrationFiles();
       const env = {MATCHPILOT_RUNTIME_MODE: 'production', MATCHPILOT_APPROVED_MIGRATIONS: first};
       const runs = await Promise.all(Array.from({length: 3}, () => runMigrateProcess(schema, env)));
-      for (const run of runs) assert.equal(run.ok, true, `${run.message || ''} ${run.stderr}`);
-      assert.deepEqual(runs.flatMap(run => run.result.applied), [first], 'only the approved file, once');
-      for (const run of runs) assert.ok(run.result.held.length > 0 && !run.result.held.includes(first));
+      for (const run of runs) assert.deepEqual([run.ok, run.code], [false, 'MIGRATION_NOT_AUTHORIZED'], `${run.message || ''} ${run.stderr}`);
       const rows = (await admin.query(`SELECT filename FROM ${schema}.schema_migrations`)).rows.map(row => row.filename);
-      assert.deepEqual(rows, [first], 'unapproved migrations stay unapplied');
+      assert.deepEqual(rows, [], 'a listed file without owner approval and technical token stays unapplied');
     });
   } finally { await admin.end(); }
 });
@@ -212,14 +210,14 @@ test('MIG-GAP-02: a held lock makes migrate() fail closed after the wait limit, 
       assert.ok(Number.isInteger(MIGRATION_LOCK_CLASS));
       await admin.query('SELECT pg_advisory_lock($1::int4, hashtext($2))', [MIGRATION_LOCK_CLASS, schema]);
       const started = Date.now();
-      const blocked = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_LOCK_TIMEOUT_MS: '700'});
+      const blocked = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema', MATCHPILOT_MIGRATION_LOCK_TIMEOUT_MS: '700'});
       assert.equal(blocked.ok, false);
       assert.equal(blocked.code, 'MIGRATION_LOCK_TIMEOUT');
       assert.ok(Date.now() - started < 30000);
       const tables = (await admin.query('SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema=$1', [schema])).rows[0].n;
       assert.equal(tables, 0, 'nothing touched while another holder had the lock');
       await admin.query('SELECT pg_advisory_unlock($1::int4, hashtext($2))', [MIGRATION_LOCK_CLASS, schema]);
-      const after = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_LOCK_TIMEOUT_MS: '700'});
+      const after = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema', MATCHPILOT_MIGRATION_LOCK_TIMEOUT_MS: '700'});
       assert.equal(after.ok, true, after.message);
     });
   } finally { await admin.end(); }
@@ -234,7 +232,7 @@ test('MIG-GAP-02: the lock is released after a failing migration; bad lock setti
     await writeFile(join(dir, '002-broken.sql'), 'CREATE TABLE lock_probe_broken(id int; -- syntax error');
     await withSchema(admin, 'lock_release', async schema => {
       const {MIGRATION_LOCK_CLASS} = await import('../src/migrate.mjs');
-      const failed = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test'}, {dir});
+      const failed = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}, {dir});
       assert.equal(failed.ok, false);
       const free = (await admin.query('SELECT pg_try_advisory_lock($1::int4, hashtext($2)) AS ok', [MIGRATION_LOCK_CLASS, schema])).rows[0].ok;
       assert.equal(free, true, 'lock released after the failure');
@@ -242,7 +240,7 @@ test('MIG-GAP-02: the lock is released after a failing migration; bad lock setti
       const rows = (await admin.query(`SELECT filename FROM ${schema}.schema_migrations`)).rows.map(row => row.filename);
       assert.deepEqual(rows, ['001-ok.sql'], 'the failing file rolled back');
       for (const bad of ['0', '-5', 'abc', '1.5']) {
-        const run = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_LOCK_TIMEOUT_MS: bad}, {dir});
+        const run = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema', MATCHPILOT_MIGRATION_LOCK_TIMEOUT_MS: bad}, {dir});
         assert.equal(run.ok, false, bad);
         assert.equal(run.code, 'BAD_MIGRATION_LOCK_TIMEOUT', bad);
       }
@@ -265,7 +263,7 @@ test('MIG-GAP-02: a process killed mid-migration leaves no partial change, frees
       const script = `const {migrate} = await import(${JSON.stringify(new URL('../src/migrate.mjs', import.meta.url).href)});
         await migrate({log: () => {}, dir: ${JSON.stringify(dir)}});`;
       const child = spawn(process.execPath, ['--input-type=module', '-e', script], {
-        env: {PATH: process.env.PATH, DATABASE_URL: schemaUrl(schema), MATCHPILOT_RUNTIME_MODE: 'test'}, cwd: resolve('.'), stdio: 'ignore',
+        env: {PATH: process.env.PATH, DATABASE_URL: schemaUrl(schema), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}, cwd: resolve('.'), stdio: 'ignore',
       });
       const exited = new Promise(done => child.on('close', done));
       // Wait until 002 is running (its sleep is visible in pg_stat_activity), then kill the process.
@@ -286,15 +284,15 @@ test('MIG-GAP-02: a process killed mid-migration leaves no partial change, frees
       assert.equal(free, true, 'lock freed after the crash');
       await admin.query('SELECT pg_advisory_unlock($1::int4, hashtext($2))', [MIGRATION_LOCK_CLASS, schema]);
       const tables = (await admin.query('SELECT table_name FROM information_schema.tables WHERE table_schema=$1 ORDER BY 1', [schema])).rows.map(row => row.table_name);
-      assert.deepEqual(tables, ['crash_probe_ok', 'schema_migration_events', 'schema_migration_ledger', 'schema_migrations'], 'no partial table from the killed migration');
+      assert.deepEqual(tables, ['crash_probe_ok', 'schema_migration_authorizations', 'schema_migration_events', 'schema_migration_ledger', 'schema_migrations'], 'no partial table from the killed migration');
       const before = (await admin.query(`SELECT filename FROM ${schema}.schema_migrations`)).rows.map(row => row.filename);
       assert.deepEqual(before, ['001-ok.sql']);
 
       await writeFile(join(dir, '002-slow.sql'), 'CREATE TABLE crash_probe_slow(id int);');
-      const restart = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test'}, {dir});
+      const restart = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}, {dir});
       assert.equal(restart.ok, true, restart.message);
       assert.deepEqual(restart.result.applied, ['002-slow.sql'], 'restart skips the applied file and resumes');
-      const again = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test'}, {dir});
+      const again = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}, {dir});
       assert.deepEqual(again.result, {applied: [], held: []}, 'nothing left to apply');
     });
   } finally {
@@ -310,7 +308,7 @@ test('MIG-GAP-02: a connection error fails migrate() without hanging or applying
   const out = await new Promise((done, fail) => {
     const child = spawn(process.execPath, ['--input-type=module', '-e', script], {
       // Port 1 on loopback: nothing listens, the connection is refused at once.
-      env: {PATH: process.env.PATH, DATABASE_URL: 'postgres://u:p@127.0.0.1:1/db', MATCHPILOT_RUNTIME_MODE: 'test'}, cwd: resolve('.'),
+      env: {PATH: process.env.PATH, DATABASE_URL: 'postgres://u:p@127.0.0.1:1/db', MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}, cwd: resolve('.'),
     });
     let text = '';
     child.stdout.on('data', chunk => { text += chunk; });
@@ -330,7 +328,7 @@ test('MIG-GAP-02: a connection cut mid-migration fails migrate() cleanly, with n
     await writeFile(join(dir, '002-slow.sql'), 'CREATE TABLE cut_probe_slow(id int); SELECT pg_sleep(30);');
     await withSchema(admin, 'cut', async schema => {
       const {MIGRATION_LOCK_CLASS} = await import('../src/migrate.mjs');
-      const running = runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test'}, {dir});
+      const running = runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}, {dir});
       let pid = null;
       const deadline = Date.now() + 30000;
       while (!pid && Date.now() < deadline) {
@@ -344,7 +342,7 @@ test('MIG-GAP-02: a connection cut mid-migration fails migrate() cleanly, with n
       assert.equal(run.ok, false, 'migrate() rejects');
       assert.equal(run.locksHeld, 0, 'lock freed with the connection, before the pool is closed');
       const tables = (await admin.query('SELECT table_name FROM information_schema.tables WHERE table_schema=$1 ORDER BY 1', [schema])).rows.map(row => row.table_name);
-      assert.deepEqual(tables, ['cut_probe_ok', 'schema_migration_events', 'schema_migration_ledger', 'schema_migrations'], 'the cut file rolled back');
+      assert.deepEqual(tables, ['cut_probe_ok', 'schema_migration_authorizations', 'schema_migration_events', 'schema_migration_ledger', 'schema_migrations'], 'the cut file rolled back');
     });
   } finally {
     await rm(dir, {recursive: true, force: true});
@@ -360,11 +358,11 @@ test('MIG-GAP-02: the lock is released even when a migration changes search_path
     await writeFile(join(dir, '001-path.sql'), "CREATE TABLE path_probe(id int); SELECT set_config('search_path', 'pg_catalog', false);");
     await withSchema(admin, 'path', async schema => {
       const {MIGRATION_LOCK_CLASS} = await import('../src/migrate.mjs');
-      const run = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test'}, {dir});
+      const run = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}, {dir});
       assert.equal(run.ok, true, run.message);
       assert.equal(run.locksHeld, 0, 'lock released under the key it was taken with, before the pool is closed');
     });
-    const missing = await runMigrateProcess(`missing_${process.pid}_${Date.now()}`, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_LOCK_TIMEOUT_MS: '500'}, {dir});
+    const missing = await runMigrateProcess(`missing_${process.pid}_${Date.now()}`, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema', MATCHPILOT_MIGRATION_LOCK_TIMEOUT_MS: '500'}, {dir});
     assert.equal(missing.ok, false);
     assert.equal(missing.code, 'MIGRATION_NO_SCHEMA');
   } finally {
@@ -381,7 +379,7 @@ test('MIG-GAP-02: a connection lost during the release step does not crash; an u
     await writeFile(join(dir, '001-ok.sql'), 'CREATE TABLE release_probe(id int);');
     await withSchema(admin, 'release', async schema => {
       for (const statement of ['RESET client_connection_check_interval', 'SELECT pg_advisory_unlock']) {
-        const run = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test'}, {dir, fault: {cutBefore: statement}});
+        const run = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}, {dir, fault: {cutBefore: statement}});
         assert.equal(run.exitCode, 0, `${statement}: process must not crash: ${run.stderr}`);
         assert.equal(run.locksHeld, 0, `${statement}: the lost connection holds no lock`);
       }
@@ -389,7 +387,7 @@ test('MIG-GAP-02: a connection lost during the release step does not crash; an u
       assert.deepEqual(rows, ['001-ok.sql'], 'the committed file stays recorded exactly once');
     });
     await withSchema(admin, 'unlock_report', async schema => {
-      const run = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test'}, {dir, fault: {unlockAllBefore: 'SELECT pg_advisory_unlock'}});
+      const run = await runMigrateProcess(schema, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}, {dir, fault: {unlockAllBefore: 'SELECT pg_advisory_unlock'}});
       assert.equal(run.exitCode, 0, run.stderr);
       assert.ok(run.logs.some(line => line.startsWith('MIGRATION_UNLOCK_FAILED ')), JSON.stringify(run.logs));
       assert.equal(run.locksHeld, 0);

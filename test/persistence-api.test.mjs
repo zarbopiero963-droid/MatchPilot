@@ -45,7 +45,7 @@ async function withSchema(t, name, body) {
     // The connections of this test carry their own application_name, so a check on open transactions counts only them
     // and not the sessions of the test files that run in parallel on the same database.
     dbUrl.searchParams.set('application_name', schema);
-    const env = {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test'};
+    const env = {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'};
     const before030 = await migrationsBefore('030');
     try { await runNode(migrateArgs(before030), env); } finally { await rm(before030, {recursive: true, force: true}); }
     const pool = new pg.Pool({connectionString: dbUrl.toString(), max: 4});
@@ -218,7 +218,7 @@ test('persistence API: 503 until the schema exists, refusals write nothing, then
 // ---- End to end through the real server ----
 async function startServer(dbUrl, env) {
   const child = spawn(process.execPath, ['src/server.mjs'], {
-    cwd: resolve('.'), env: {PATH: process.env.PATH, PORT: '0', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test', ...env},
+    cwd: resolve('.'), env: {PATH: process.env.PATH, PORT: '0', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema', ...env},
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = '';

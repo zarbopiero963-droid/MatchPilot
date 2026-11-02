@@ -71,7 +71,7 @@ test('MP-REQ-UI-0249 coverage queries answer from Postgres: league summary, seas
   const { runQuery, refreshNormalizedLayer } = await import('../src/providers/futpython/query.mjs');
   const { parseCsv } = await import('../src/lib/csv.mjs');
   try {
-    await migrate();
+    await migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
     await db.withClient(async client => {
       const add = async (season, text, availability = 'available') => {
         const key = `italy/serie-a/${season}`;

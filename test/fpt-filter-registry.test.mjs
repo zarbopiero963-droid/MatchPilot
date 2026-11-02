@@ -39,7 +39,7 @@ test('registry reads index usage from the catalog and keeps first/last seen', {t
   const query = await import('../src/providers/futpython/query.mjs');
   const { parseCsv } = await import('../src/lib/csv.mjs');
   try {
-    await migrate();
+    await migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
     await db.withClient(async client => {
       const text = 'Date,Time,Home,Away,Home_Score,Away_Score,Odd_1_FT,xG_Home_FT,Corners_Home_FT\n'
         + '2024-08-10,18:45,Ajax,PSV,2,1,2.10,1.4,6\n';

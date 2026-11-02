@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import http from 'node:http';
 import {createHash} from 'node:crypto';
-import {readdir} from 'node:fs/promises';
+import {readdir, rm} from 'node:fs/promises';
+import {MIGRATIONS_DIR, migrateArgs, migrationsBefore} from './helpers/migrations.mjs';
 import {resolve} from 'node:path';
 import test from 'node:test';
 import {
@@ -98,7 +99,7 @@ async function startServer(schema, env) {
   url.searchParams.set('options', `-c search_path=${schema}`);
   const child = spawn(process.execPath, ['src/server.mjs'], {
     cwd: resolve('.'),
-    env: {PATH: process.env.PATH, PORT: '0', DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', ...env},
+    env: {PATH: process.env.PATH, PORT: '0', DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema', ...env},
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = '';
@@ -114,6 +115,33 @@ async function startServer(schema, env) {
     output: () => output,
     stop: () => new Promise(done => { child.on('close', done); child.kill('SIGTERM'); }),
   };
+}
+
+// F3 (MP-MIG-GATE-01): a production server never applies an unauthorized migration and refuses to start with one
+// pending. The schema is prepared with the explicit TEST authorization (test mode, throwaway schema), then the
+// production server starts on it.
+function schemaEnv(schema) {
+  const url = new URL(ROOT_URL);
+  url.searchParams.set('options', `-c search_path=${schema}`);
+  return {PATH: process.env.PATH, DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'};
+}
+function runToExit(args, env) {
+  return new Promise((done, fail) => {
+    const child = spawn(process.execPath, args, {cwd: resolve('.'), env, stdio: ['ignore', 'pipe', 'pipe']});
+    let output = '';
+    child.stdout.on('data', chunk => { output += chunk; });
+    child.stderr.on('data', chunk => { output += chunk; });
+    const timer = setTimeout(() => child.kill('SIGKILL'), 30000);
+    child.once('error', fail);
+    child.once('exit', code => { clearTimeout(timer); done({code, output}); });
+  });
+}
+async function premigrate(schema, before = null) {
+  const dir = before ? await migrationsBefore(before) : MIGRATIONS_DIR;
+  try {
+    const run = await runToExit(migrateArgs(dir), schemaEnv(schema));
+    assert.equal(run.code, 0, run.output);
+  } finally { if (before) await rm(dir, {recursive: true, force: true}); }
 }
 
 async function withSchema(admin, label, fn) {
@@ -272,7 +300,7 @@ test('repeated failed logins are rate limited, even with the right password, and
   } finally { await admin.end(); }
 });
 
-test('auth stays off by default; misconfigured enforcement fails closed; a held auth migration blocks login in production', {timeout: 180000}, async t => {
+test('auth stays off by default; misconfigured enforcement fails closed; an unauthorized auth migration stops a production start', {timeout: 180000}, async t => {
   const admin = await adminClient(t);
   if (!admin) return;
   try {
@@ -297,27 +325,23 @@ test('auth stays off by default; misconfigured enforcement fails closed; a held 
         assert.ok(!server.output().includes(PASSWORD));
       } finally { await server.stop(); }
     });
-    // Production mode: every migration except the auth one is approved (D13), so its tables are missing. Auth is
-    // enforced by the owner but cannot work: it fails closed instead of opening the site.
+    // Production mode with the auth migration pending and not authorized (only the D13 list of the others, an
+    // environment variable): the server refuses to start (F3) instead of opening the site, and applies nothing.
     await withSchema(admin, 'prod', async schema => {
       const files = (await readdir(resolve('migrations'))).filter(file => file.endsWith('.sql')).sort();
       const authFile = files.find(file => /auth/.test(file));
       assert.ok(authFile, 'an auth migration exists');
-      const approved = files.filter(file => file !== authFile && file < authFile);
+      await premigrate(schema, authFile);
+      const approved = files.filter(file => file !== authFile);
       const hash = await hashPassword(PASSWORD); // production refuses low-cost hashes
-      const server = await startServer(schema, {
-        MATCHPILOT_RUNTIME_MODE: 'production', MATCHPILOT_APPROVED_MIGRATIONS: approved.join(','), MATCHPILOT_TRUST_PROXY: 'false',
-        MATCHPILOT_AUTH: 'enforce', MATCHPILOT_OWNER_USERNAME: 'owner', MATCHPILOT_OWNER_PASSWORD_HASH: hash,
-      });
-      try {
-        assert.match(server.output(), new RegExp(`MIGRATIONS_PENDING_NOT_APPROVED.*${authFile}`));
-        assert.equal((await fetch(`${server.base}/healthz`)).status, 200);
-        assert.equal((await fetch(`${server.base}/api/v1/health`)).status, 503);
-        assert.equal((await login(server.base, {username: 'owner', password: PASSWORD})).status, 503);
-        assert.match(server.output(), /AUTH_SCHEMA_MISSING/);
-        const tables = (await admin.query("SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema=$1 AND table_name LIKE 'auth_%'", [schema])).rows[0].n;
-        assert.equal(tables, 0, 'the held auth migration was not applied');
-      } finally { await server.stop(); }
+      const env = {...schemaEnv(schema), PORT: '0', MATCHPILOT_RUNTIME_MODE: 'production', MATCHPILOT_APPROVED_MIGRATIONS: approved.join(','), MATCHPILOT_TRUST_PROXY: 'false',
+        MATCHPILOT_AUTH: 'enforce', MATCHPILOT_OWNER_USERNAME: 'owner', MATCHPILOT_OWNER_PASSWORD_HASH: hash};
+      const run = await runToExit(['src/server.mjs'], env);
+      assert.notEqual(run.code, 0, 'the server does not start');
+      assert.match(run.output, new RegExp(`MIGRATIONS_NOT_AUTHORIZED.*${authFile}`));
+      assert.doesNotMatch(run.output, /listening on/);
+      const tables = (await admin.query("SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema=$1 AND table_name LIKE 'auth_%'", [schema])).rows[0].n;
+      assert.equal(tables, 0, 'the unauthorized auth migration was not applied');
     });
   } finally { await admin.end(); }
 });
@@ -392,6 +416,7 @@ test('production with the auth migration approved: login works and the cookie is
   try {
     await withSchema(admin, 'prod_ok', async schema => {
       const files = (await readdir(resolve('migrations'))).filter(file => file.endsWith('.sql')).sort();
+      await premigrate(schema); // every migration applied with authorization: nothing pending at the production start
       const hash = await hashPassword(PASSWORD);
       const server = await startServer(schema, {
         MATCHPILOT_RUNTIME_MODE: 'production', MATCHPILOT_APPROVED_MIGRATIONS: files.join(','), MATCHPILOT_TRUST_PROXY: 'false',

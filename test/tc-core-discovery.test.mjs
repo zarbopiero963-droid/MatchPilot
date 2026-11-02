@@ -174,7 +174,7 @@ test('discovery on Postgres: every endpoint family called, raw + ledger + regist
   const {createPgStore} = await import('../src/providers/totalcorner/client.mjs');
   const {runTcDiscovery} = await import('../src/jobs/totalcorner-discovery.mjs');
   try {
-    await migrate();
+    await migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
     const api = fakeApi();
     const tc = createTcClient({token: TOKEN, store: createPgStore(db.withClient), limiter: {acquire: async () => {}, pause() {}},
       fetchImpl: api.fetchImpl, sleep: async () => {}});

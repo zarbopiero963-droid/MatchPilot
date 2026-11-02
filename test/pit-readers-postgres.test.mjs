@@ -34,7 +34,7 @@ test('TotalCorner prematch answers carry per-row PIT status and a PIT label (MP-
     await root.query(`CREATE SCHEMA ${schema}`);
     const url = new URL(dbUrl);
     url.searchParams.set('options', `-csearch_path=${schema}`);
-    await runNode(['src/migrate.mjs'], {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_BACKGROUND_ENABLED: 'false'});
+    await runNode(['src/migrate.mjs'], {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema', MATCHPILOT_BACKGROUND_ENABLED: 'false'});
     await db.connect();
 
     const obs = await db.query(`INSERT INTO tc_tz_observations(observed_at,gate_version,status,samples,offset_minutes,configured_offset_minutes,agrees)

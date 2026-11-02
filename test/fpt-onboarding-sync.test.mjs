@@ -90,7 +90,7 @@ test('a simulated new league waits for the owner, a new season of an active leag
   };
   const q = (sql, values) => db.withClient(c => c.query(sql, values)).then(r => r.rows);
   try {
-    await migrate();
+    await migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
 
     // 1. First import on an empty database: the baseline.
     let run = await runNode(['src/jobs/futpython-sync.mjs', '--backfill'], env);

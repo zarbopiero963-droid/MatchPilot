@@ -77,7 +77,7 @@ test('resume drill survives a real SIGTERM without duplicating the mirror', {tim
   const keys = ['alpha/league/2024', 'beta/league/2024', 'gamma/league/2024', 'delta/league/2024'];
   const texts = Object.fromEntries(keys.map(key => [key, csvFor(key)]));
   try {
-    await migrate.migrate();
+    await migrate.migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
     await db.withClient(async client => {
       await client.query(`TRUNCATE TABLE
         fpt_match_versions, fpt_dataset_state, fpt_sync_runs, fpt_request_ledger,

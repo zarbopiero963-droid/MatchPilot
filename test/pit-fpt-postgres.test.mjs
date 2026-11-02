@@ -27,7 +27,7 @@ test('FPT team-matches-asof flags facts corrected after as_of (MP-PIT-002, MP-PI
     const teams = await import('../src/providers/futpython/teams.mjs');
     const query = await import('../src/providers/futpython/query.mjs');
     const {parseCsv} = await import('../src/lib/csv.mjs');
-    await migrate();
+    await migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
     await db.withClient(async c => {
       const H = ['Id', 'Date', 'Time', 'Home', 'Away', 'Home_Score', 'Away_Score', 'Odd_1_FT', 'Odd_X_FT', 'Odd_2_FT'];
       const csv = rows => H.join(',') + '\n' + rows.map(r => H.map(h => r[h] ?? '').join(',')).join('\n') + '\n';
@@ -146,7 +146,7 @@ test('a re-parsed version written into a later snapshot is not dated with that s
     const {reprocessRaw} = await import('../src/providers/futpython/reprocess.mjs');
     const {LINEAGE_VERSIONS} = await import('../src/providers/futpython/schema.mjs');
     const {parseCsv} = await import('../src/lib/csv.mjs');
-    await migrate();
+    await migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
     await db.withClient(async c => {
       const H = ['Id', 'Date', 'Time', 'Home', 'Away', 'Home_Score', 'Away_Score', 'Odd_1_FT', 'Odd_X_FT', 'Odd_2_FT'];
       const line = (r, extra) => H.map(h => r[h] ?? '').join(',') + (extra ? ',' + extra : '');
@@ -233,7 +233,7 @@ test('a re-parse reusing the ingest lineage cannot silently drop matches known a
     const query = await import('../src/providers/futpython/query.mjs');
     const {reprocessRaw} = await import('../src/providers/futpython/reprocess.mjs');
     const {parseCsv} = await import('../src/lib/csv.mjs');
-    await migrate();
+    await migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
     await db.withClient(async c => {
       const H = ['Id', 'Date', 'Time', 'Home', 'Away', 'Home_Score', 'Away_Score', 'Odd_1_FT', 'Odd_X_FT', 'Odd_2_FT'];
       const line = r => H.map(h => r[h] ?? '').join(',');
@@ -305,7 +305,7 @@ test('the short-snapshot repair is a recorded re-parse (MP-FPT-005)', {timeout: 
     const query = await import('../src/providers/futpython/query.mjs');
     const integrity = await import('../src/providers/futpython/integrity.mjs');
     const {parseCsv} = await import('../src/lib/csv.mjs');
-    await migrate();
+    await migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
     await db.withClient(async c => {
       const H = ['Id', 'Date', 'Time', 'Home', 'Away', 'Home_Score', 'Away_Score', 'Odd_1_FT', 'Odd_X_FT', 'Odd_2_FT'];
       const line = r => H.map(h => r[h] ?? '').join(',');

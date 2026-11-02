@@ -12,6 +12,7 @@ import {join, resolve} from 'node:path';
 import test from 'node:test';
 import {HASH_RULE, parseEvidence, verifyHistory} from '../src/migrate.mjs';
 import {assertLocalTestDatabase, MIGRATIONS_DIR, migrationFiles} from './helpers/migrations.mjs';
+import {approval, authzFixture, technicalToken} from './helpers/migration-authz.mjs';
 
 const ROOT_URL = process.env.FUTPYTHON_TEST_DATABASE_URL || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
 const sha = text => createHash('sha256').update(text).digest('hex');
@@ -95,7 +96,7 @@ async function setup(t) {
     schemas.push(schema);
     const url = new URL(ROOT_URL);
     url.searchParams.set('options', `-c search_path=${schema}`);
-    const env = {PATH: process.env.PATH, DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_CODE_VERSION: 'test-f2'};
+    const env = {PATH: process.env.PATH, DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema', MATCHPILOT_CODE_VERSION: 'test-f2'};
     const client = new pg.Client({connectionString: url.toString()});
     await client.connect();
     clients.push(client);
@@ -198,9 +199,15 @@ test('F2 on PostgreSQL: a legacy history is refused until an explicit, confirmed
   assert.deepEqual(rows.map(r => [r.filename, r.hash_origin, r.sha256]), [['001-a.sql', 'RECONSTRUCTED_FROM_EVIDENCE', sha(A)], ['002-b.sql', 'UNVERIFIABLE_LEGACY', sha(B)]]);
   assert.match(rows[0].evidence, /migrations\.sha256 sha256:[0-9a-f]{64}; authorized by MP-TEST-GO/);
   assert.match(rows[1].evidence, /not verifiable; authorized by MP-TEST-GO/);
-  // After adoption the runner verifies and applies the pending file; a later change of an adopted file is a mismatch.
-  const after = await s.run('migrate', {dir});
-  assert.deepEqual([after.ok, after.result?.applied], [true, ['003-c.sql']]);
+  // After adoption the runner verifies the history. The schema is no longer a throwaway one (it holds an adopted
+  // history), so the TEST authorization is refused (F3): the pending file needs the owner approval and the technical
+  // token; with them it is applied. A later change of an adopted file is a mismatch.
+  assert.equal((await s.run('migrate', {dir})).code, 'MIGRATION_NOT_AUTHORIZED');
+  const fixture = await authzFixture({approvals: [approval('MA-F2-ADOPTED-003', 'apply', '003-c.sql', sha(C))],
+    token: technicalToken([{operation: 'apply', filename: '003-c.sql', sha256: sha(C)}])});
+  t.after(fixture.cleanup);
+  const after = await s.run('migrate', {dir, authz: fixture.options});
+  assert.deepEqual([after.ok, after.result?.applied], [true, ['003-c.sql']], after.message);
   await writeFile(join(dir, '002-b.sql'), B + ' -- edited');
   assert.equal((await s.run('migrate', {dir})).code, 'MIGRATION_CHECKSUM_MISMATCH');
   assert.equal((await s.run('adoptLegacy', {...base, dir, plan: true})).code, 'MIGRATION_CHECKSUM_MISMATCH', 'adoption never hides another problem');
@@ -218,7 +225,7 @@ test('F2 on PostgreSQL: a populated database of the real migrations is adopted f
     FROM information_schema.tables t WHERE t.table_schema = current_schema() AND t.table_type = 'BASE TABLE' AND t.table_name NOT LIKE 'schema\\_migration%'`)).rows[0].d;
   const before = await digest();
   // The register is lost (a database migrated before F2): every applied row becomes legacy.
-  await s.client.query('DROP TABLE schema_migration_ledger, schema_migration_events');
+  await s.client.query('DROP TABLE schema_migration_ledger, schema_migration_events, schema_migration_authorizations');
   assert.equal((await s.run('migrate', {dir: MIGRATIONS_DIR})).code, 'MIGRATION_LEGACY_UNADOPTED');
   // The deploy ledger written by mp-deploy (`sha256sum *` in migrations/) is the evidence.
   const files = await migrationFiles();

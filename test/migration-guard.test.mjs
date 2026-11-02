@@ -28,7 +28,7 @@ test('the guard fails closed: unknown modes and non-local databases outside prod
     assert.throws(() => migrationPolicy({MATCHPILOT_RUNTIME_MODE: mode}), /Invalid MATCHPILOT_RUNTIME_MODE/);
   }
   const remote = 'postgres://user:pass@ep-example.neon.tech/db';
-  for (const env of [{}, {MATCHPILOT_RUNTIME_MODE: 'offline'}, {MATCHPILOT_RUNTIME_MODE: 'test'}]) {
+  for (const env of [{}, {MATCHPILOT_RUNTIME_MODE: 'offline'}, {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}]) {
     assert.throws(() => migrationPolicy({...env, DATABASE_URL: remote}), /rejects non-local DATABASE_URL/);
   }
   assert.equal(migrationPolicy({MATCHPILOT_RUNTIME_MODE: 'production', DATABASE_URL: remote}).production, true);
@@ -44,7 +44,7 @@ test('the guard fails closed: unknown modes and non-local databases outside prod
   }
 });
 
-test('migrate() in production mode applies only approved files on a real database', {timeout: 90000}, async t => {
+test('migrate() in production mode applies nothing without the owner and technical authorizations (F3)', {timeout: 90000}, async t => {
   const pg = (await import('pg')).default;
   const rootUrl = process.env.FUTPYTHON_TEST_DATABASE_URL || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
   const base = new URL(rootUrl);
@@ -67,24 +67,22 @@ test('migrate() in production mode applies only approved files on a real databas
     const logs = [];
     const log = line => logs.push(line);
     const production = {MATCHPILOT_RUNTIME_MODE: 'production'};
-    const held = await migrate({env: production, log});
-    assert.equal(held.applied.length, 0);
-    assert.ok(held.held.length >= 28 && held.held[0] === '001-futpython-mirror.sql');
-    assert.ok(logs.some(line => line.startsWith('MIGRATIONS_PENDING_NOT_APPROVED ')));
+    // F3 (MP-MIG-GATE-01): without the owner approval and the technical token nothing is applied and the run fails
+    // closed (the server does not start); the D13 list alone, an environment variable, is not an authorization.
     const tables = async () => (await admin.query(`SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema=$1`, [schema])).rows[0].n;
-    assert.equal(await tables(), 3, 'only the runner bookkeeping exists (schema_migrations, checksum register, events): no production migration ran');
-
-    const one = await migrate({env: {...production, MATCHPILOT_APPROVED_MIGRATIONS: '001-futpython-mirror.sql, 999-typo.sql'}, log});
-    assert.ok(logs.includes('MIGRATION_APPROVALS_NOT_PENDING {"unused":["999-typo.sql"]}'), 'a mistyped approval is reported');
-    assert.deepEqual(one.applied, ['001-futpython-mirror.sql']);
-    const recorded = (await admin.query(`SELECT filename FROM ${schema}.schema_migrations`)).rows.map(r => r.filename);
-    assert.deepEqual(recorded, ['001-futpython-mirror.sql']);
-
-    const rest = await migrate({env: {MATCHPILOT_RUNTIME_MODE: 'test'}, log});
+    await assert.rejects(migrate({env: production, log}), {code: 'MIGRATION_NOT_AUTHORIZED'});
+    assert.ok(logs.some(line => line.startsWith('MIGRATIONS_NOT_AUTHORIZED ')));
+    assert.equal(await tables(), 4, 'only the runner bookkeeping exists: no production migration ran');
+    await assert.rejects(migrate({env: {...production, MATCHPILOT_APPROVED_MIGRATIONS: '001-futpython-mirror.sql'}, log}), {code: 'MIGRATION_NOT_AUTHORIZED'});
+    assert.equal(await tables(), 4, 'one listed file among unauthorized ones: still nothing applied');
+    assert.deepEqual((await admin.query(`SELECT filename FROM ${schema}.schema_migrations`)).rows, []);
+    // The explicit TEST authorization works in test mode only, never in production.
+    await assert.rejects(migrate({env: {...production, MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}, log}), {code: 'MIGRATION_NOT_AUTHORIZED'});
+    const rest = await migrate({env: {MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}, log});
     assert.equal(rest.held.length, 0);
-    assert.equal(rest.applied.length, held.held.length - 1, 'test mode applies the remaining migrations');
+    assert.ok(rest.applied.length >= 30, 'test mode with the explicit test authorization applies every migration');
     const again = await migrate({env: production, log});
-    assert.deepEqual(again, {applied: [], held: []}, 'with nothing pending, production startup behaves as before');
+    assert.deepEqual(again, {applied: [], held: []}, 'with nothing pending, production startup needs no authorization');
   } finally {
     await db?.closePool?.().catch?.(() => {});
     try { await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`); }

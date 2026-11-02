@@ -97,7 +97,7 @@ test('PostgreSQL 17 independent migration, verified sample replay and API are de
     PATH: process.env.PATH,
     NODE_ENV: 'test',
     DATABASE_URL: dbUrl.toString(),
-    MATCHPILOT_RUNTIME_MODE: 'test',
+    MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema',
     MATCHPILOT_BACKGROUND_ENABLED: 'false',
   };
 
