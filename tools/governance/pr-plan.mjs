@@ -6,6 +6,7 @@
 //   node tools/governance/pr-plan.mjs counts            the counts A..J, N, Nmin, Nmax
 //   node tools/governance/pr-plan.mjs render [--write]  docs/governance/master/pr-plan.md from the plan
 import { readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { load, parsePathRef, PHASES } from './master.mjs';
@@ -55,6 +56,22 @@ export function planCounts(reg, plan) {
     requirements: {active: active.length, covered_by_pr: active.filter(r => prs.some(p => p.requirements.includes(r.id))).length,
       completed_with_evidence: plan.completed_requirements.length, uncovered: active.filter(r => !covered.has(r.id)).map(r => r.id)}
   };
+}
+
+export function dependencyCycles(plan) {
+  const deps = new Map(plan.planned_prs.map(p => [p.id, p.depends_on ?? []]));
+  const state = new Map(); const cycles = []; const stack = [];
+  const visit = id => {
+    state.set(id, 1); stack.push(id);
+    for (const d of deps.get(id) ?? []) {
+      if (!deps.has(d)) continue;
+      if (state.get(d) === 1) cycles.push([...stack.slice(stack.indexOf(d)), d]);
+      else if (!state.has(d)) visit(d);
+    }
+    stack.pop(); state.set(id, 2);
+  };
+  for (const id of deps.keys()) if (!state.has(id)) visit(id);
+  return cycles;
 }
 
 export function planValidate(reg, plan, {uiIds = null} = {}) {
@@ -123,6 +140,10 @@ export function planValidate(reg, plan, {uiIds = null} = {}) {
       if (p.kind === 'CERT' && (r.status.implementation !== 'IMPLEMENTED' || !onMain(r.code_paths).length)) errors.push(`${p.id}: CERT PR for ${id}, which is not implemented on main`);
     }
   }
+  // The dependency graph must be acyclic, or no execution order exists (MP-ROADMAP-BASELINE-282-PREFLIGHT-01).
+  for (const cycle of dependencyCycles(plan)) errors.push(`dependency cycle: ${cycle.join(' -> ')}`);
+  // A removable PR carries the audit classification of its removal clause.
+  for (const p of plan.planned_prs) if (p.may_be_removed_by_decision && p.audit_classification && !String(p.may_be_removed_by_decision).startsWith(String(p.audit_classification).split(' ')[0])) errors.push(`${p.id}: removal reason does not state its audit classification`);
   const openNums = plan.planned_prs.filter(p => p.kind === 'OPEN').map(p => p.open_pr);
   if (new Set(openNums).size !== openNums.length) errors.push('an open PR is counted twice');
   for (const r of reg.requirements) if (r.lifecycle === 'ACTIVE' && !primary.has(r.id)) errors.push(`${r.id}: active requirement without coverage`);
@@ -202,6 +223,17 @@ export function reconcile(reg, plan) {
   };
 }
 
+// Independent-audit package (MP-ROADMAP-BASELINE-282-PREFLIGHT-01): the inputs an auditor needs, with SHA-256
+// checksums, so the numbers can be rebuilt from exactly these bytes.
+export const AUDIT_INPUTS = ['docs/governance/master/requirements.jsonl', 'docs/governance/master/cards.jsonl', 'docs/governance/master/issues.json',
+  'docs/governance/master/prs.json', 'docs/governance/master/pr-plan.json', 'docs/governance/master/pr-plan.md', 'docs/governance/master/pr-plan-reconciliation.json',
+  'docs/governance/master/audit/baseline-270.json', 'docs/governance/master/audit/producer-analysis.json', 'docs/governance/master/audit/decision-cards.md',
+  'docs/governance/master/audit/MP-ROADMAP-270-AUDIT.md', 'docs/governance/master/audit/INDEPENDENT-AUDIT-PACKAGE.md', 'docs/governance/owner-decisions.json',
+  'docs/governance/ui-requirements-matrix.json', 'docs/governance/mp-pr-00/requirements.json', 'tools/governance/master.mjs', 'tools/governance/pr-plan.mjs'];
+export function auditManifest(root = ROOT) {
+  return {schema: 'mp-audit-package-v1', files: Object.fromEntries(AUDIT_INPUTS.map(f => [f, createHash('sha256').update(readFileSync(join(root, f))).digest('hex')]))};
+}
+
 const cell = s => String(s ?? '').replace(/\|/g, '/').replace(/\n/g, ' ');
 const joinIds = a => (a ?? []).join(', ');
 export function renderPlan(plan) {
@@ -247,6 +279,9 @@ function main() {
     else console.log(JSON.stringify(k, null, 2));
   } else if (cmd === 'render') {
     if (arg === '--write') writeFileSync(join(DIR, 'pr-plan.md'), renderPlan(plan) + '\n'); else console.log(renderPlan(plan));
+  } else if (cmd === 'manifest') {
+    const out = JSON.stringify(auditManifest(), null, 1) + '\n';
+    if (arg === '--write') writeFileSync(join(DIR, 'audit/package-manifest.json'), out); else process.stdout.write(out);
   } else if (cmd === 'reconcile') {
     const out = JSON.stringify(reconcile(reg, plan), null, 1) + '\n';
     if (arg === '--write') writeFileSync(join(DIR, 'pr-plan-reconciliation.json'), out); else process.stdout.write(out);

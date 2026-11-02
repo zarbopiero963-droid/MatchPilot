@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 245,
+  "revision": 248,
   "tasks": [
     {
       "id": "R-01",
@@ -2440,14 +2440,39 @@
       "pr": 292,
       "branch": "mp-prcount-audit-01",
       "kind": "audit",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T170836Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T171842Z-agent-a-claude-code",
       "resources": [
         "file:docs/governance/master/audit/baseline-270.json",
         "file:docs/governance/master/pr-plan-reconciliation.json",
         "file:tools/governance/pr-plan.mjs",
         "file:docs/governance/master/audit/MP-ROADMAP-270-AUDIT.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "fc0bb95dd783b168b9198bbe61f3b9d2367f2373"
+    },
+    {
+      "id": "MP-PRCOUNT-FIX-01",
+      "title": "SAFE registry corrections of the residual PR plan, dependency-cycle gate, owner decision cards and Codex audit package",
+      "issue": 288,
+      "pr": 293,
+      "branch": "mp-prcount-fix-01",
+      "kind": "audit",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T175503Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/governance/master/pr-plan.json",
+        "file:tools/governance/pr-plan.mjs",
+        "file:test/pr-plan.test.mjs",
+        "file:docs/governance/master/audit/decision-cards.md",
+        "file:docs/governance/master/audit/INDEPENDENT-AUDIT-PACKAGE.md",
+        "file:docs/governance/master/audit/package-manifest.json"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
