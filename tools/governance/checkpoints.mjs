@@ -83,6 +83,7 @@ export function validateEvidence(entry, where = 'evidence') {
 // The check below makes a checkpoint dated after its own validation fail, so new errata should not be needed.
 export const FUTURE_TOLERANCE_MS = 10 * 60e3;
 
+const canonicalJson = value => JSON.stringify(value, (key, item) => (item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b))) : item));
 const SAME_WORK_FIELDS = ['pr', 'branch', 'commit_sha', 'tree_sha', 'base_sha', 'state', 'merge_sha'];
 
 export function validateErrata(errata, checkpoints) {
@@ -129,6 +130,23 @@ export function validateErrata(errata, checkpoints) {
     // The authorization ledger reads every checkpoint file, withdrawn or not: a checkpoint that records an
     // authorization can never be withdrawn, so a withdrawal cannot hide or revive a GO (PR #302 peer review F3).
     if ((cp.authorizations || []).length) errors.push(`${at} records authorizations and cannot be withdrawn`);
+    // Nor can it hide resume conditions or open findings (PR #302 review): the replacement must carry the same
+    // handoff, and every finding not resolved in the withdrawn checkpoint must stay in the active chain, with the same
+    // severity: unresolved in the replacement itself, or recorded (possibly resolved later) by one of its descendants.
+    if (canonicalJson(cp.handoff ?? null) !== canonicalJson(replacement.handoff ?? null)) errors.push(`${at} replacement has a different handoff: pending verifications cannot be withdrawn`);
+    const descendants = [];
+    for (let frontier = [replacement.id]; frontier.length;) {
+      const next = checkpoints.filter(other => other.task === cp.task && frontier.includes(other.supersedes) && !descendants.includes(other));
+      descendants.push(...next);
+      frontier = next.map(other => other.id);
+    }
+    for (const finding of cp.findings || []) {
+      if (finding?.status === 'RESOLVED') continue;
+      const same = other => other?.id === finding?.id && other?.severity === finding?.severity;
+      const kept = (replacement.findings || []).some(other => same(other) && other.status !== 'RESOLVED')
+        || descendants.some(other => (other.findings || []).some(same));
+      if (!kept) errors.push(`${at} drops the unresolved finding ${finding?.id}`);
+    }
     if (typeof entry.reason !== 'string' || entry.reason.trim().length < 20) errors.push(`${at} needs a reason`);
     if (typeof entry.reference !== 'string' || !entry.reference.trim()) errors.push(`${at} needs a reference`);
   }

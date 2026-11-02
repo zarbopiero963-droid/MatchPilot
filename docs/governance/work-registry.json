@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 258,
+  "revision": 259,
   "tasks": [
     {
       "id": "R-01",
@@ -2535,7 +2535,7 @@
       "kind": "audit",
       "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T233544Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T235352Z-agent-a-claude-code",
       "resources": [
         "file:docs/governance/owner-decisions.json"
       ],

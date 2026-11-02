@@ -452,3 +452,43 @@ test('MP-CP-WITHDRAW-01: withdrawals are append-only, a later commit cannot remo
   const malformed = repo.commit(path, '{"withdrawn": {}}\n', 'malformed');
   assert.ok(rewrittenWithdrawals(repo.dir, restored, malformed).some(p => p.problem.includes('malformed')));
 });
+
+test('MP-CP-WITHDRAW-01 anti-bypass: a withdrawal keeps pending verifications and open findings (PR #302 review)', () => {
+  const a = makeCheckpoint();
+  const pending = {status: 'PENDING_VERIFICATION', from: 'agent-a', to: 'ANY', responsibilities: ['verify CI on the head']};
+  const x = makeCheckpoint({id: 'CP-20261018T210000Z-agent-a', timestamp_utc: '2026-10-18T21:00:00Z', supersedes: a.id, handoff: pending});
+  const y = makeCheckpoint({id: 'CP-20261018T211000Z-agent-a', timestamp_utc: '2026-10-18T21:10:00Z', supersedes: a.id, handoff: {status: 'NONE', from: null, to: null, responsibilities: []}});
+  const entry = {id: x.id, replaced_by: y.id, reason: 'sibling replaced after a propagated correction', reference: 'PR #302'};
+  const file = {schema_version: 'mp-checkpoint-errata-v1', entries: [], withdrawn: [entry]};
+  assert.ok(validateErrata(file, [a, x, y]).some(e => e.includes('different handoff')));
+  assert.deepEqual(validateErrata(file, [a, x, {...y, handoff: {...pending}}]), []);
+  const open = {id: 'F-1', severity: 'BLOCKING', status: 'OPEN', summary: 'open'};
+  const xf = {...x, handoff: y.handoff, findings: [open]};
+  assert.ok(validateErrata(file, [a, xf, y]).some(e => e.includes('drops the unresolved finding F-1')));
+  assert.ok(validateErrata(file, [a, xf, {...y, findings: [{...open, status: 'RESOLVED'}]}]).some(e => e.includes('F-1')));
+  assert.ok(validateErrata(file, [a, xf, {...y, findings: [{...open, severity: 'NON_BLOCKING'}]}]).some(e => e.includes('F-1')));
+  assert.deepEqual(validateErrata(file, [a, xf, {...y, findings: [open]}]), []);
+  // a descendant of the replacement may carry the finding forward, or record its later resolution
+  const later = makeCheckpoint({id: 'CP-20261018T212000Z-agent-a', timestamp_utc: '2026-10-18T21:20:00Z', supersedes: y.id, findings: [{...open, status: 'RESOLVED'}]});
+  assert.deepEqual(validateErrata(file, [a, xf, y, later]), []);
+  const unrelated = makeCheckpoint({...later, task: 'R-02'});
+  assert.ok(validateErrata(file, [a, xf, y, unrelated]).some(e => e.includes('F-1')));
+});
+
+test('MP-CP-WITHDRAW-01: a withdrawal inherited through a merged parent cannot be inverted (PR #302 review)', t => {
+  const repo = gitRepo();
+  t.after(repo.cleanup);
+  const path = 'docs/governance/checkpoint-errata.json';
+  const write = (withdrawn, message) => repo.commit(path, `${JSON.stringify({schema_version: 'mp-checkpoint-errata-v1', entries: [], withdrawn}, null, 2)}\n`, message);
+  const w1 = {id: 'CP-x', replaced_by: 'CP-y', reason: 'sibling replaced after a propagated correction', reference: 'PR #302'};
+  const fork = write([], 'before the withdrawal');
+  const base = write([w1], 'withdrawal on main');
+  // a branch that diverged before the withdrawal inverts it, then merges BASE as its second parent
+  repo.git('checkout', '-q', '-b', 'side', fork);
+  write([{...w1, id: 'CP-y', replaced_by: 'CP-x'}], 'inverted on the side branch');
+  repo.git('merge', '-q', '--no-ff', '--no-commit', '-s', 'ours', 'feature');
+  repo.git('commit', '-q', '-m', 'merge base keeping the inversion');
+  const head = repo.git('rev-parse', 'HEAD');
+  assert.ok(repo.git('rev-list', '--parents', '-n1', head).split(' ').includes(base), 'precondition: BASE is a merged parent');
+  assert.ok(rewrittenWithdrawals(repo.dir, base, head).some(p => p.problem === 'withdrawal CP-x removed'));
+});
