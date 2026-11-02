@@ -3,11 +3,11 @@
 ## File corrente
 
 - File: [`matchpilot-trading-os.html`](matchpilot-trading-os.html), percorso stabile. Le versioni non cambiano nome: la storia è in git e in questo changelog.
-- Versione: **Mock UX v2026.10.31f**
-- Ultimo aggiornamento: 2026-10-31
-- SHA-256: `eba42b54f48baa9fb748ae2d10c1a653ba92de43fb79bca28096ac8e4bef8c0f`
+- Versione: **Mock UX v2026.11.02**
+- Ultimo aggiornamento: 2026-11-02
+- SHA-256: `cf79e519c7d0615c15d52d343a0246faf2e119acca31c74e4cebb4aff366e083`
 - Allineato a: roadmap #97 (revisione owner 06/10/2026)
-- Issue rappresentate: #12, #20, #23, #24, #25, #27, #28, #29, #30, #31, #32, #34, #40, #44, #45, #46, #87, #91, #94, #95, #96, #97, #98, #99, #100, #102
+- Issue rappresentate: #12, #20, #23, #24, #25, #27, #28, #29, #30, #31, #32, #34, #40, #44, #45, #46, #87, #91, #94, #95, #96, #97, #98, #99, #100, #102, #263
 
 `test/mockup-alignment.test.mjs` fallisce se lo SHA-256 qui sopra non corrisponde al file. Ogni modifica al mock deve quindi aggiornare questo changelog.
 
@@ -53,6 +53,10 @@ Il mock è un riferimento UX/prodotto **vivo**. Non è l'architettura e non cert
 - Il layout usa font Google; senza rete il menu desktop può tagliare l'ultima voce.
 
 ## Changelog
+
+### v2026.11.02 — Ricerca universale (MP-SEARCH-GUI-01, #263)
+
+- La nota del sito reale nella home descrive la Ricerca universale (`#/usearch`): condizioni AND/OR/NOT annidate su qualunque campo del catalogo `/api/v1/capabilities`, ricerca su `/api/v1/search`, Live e campi non utilizzabili elencati con il motivo e non selezionabili, vere/false/indeterminate a parte, N/D, stato nell'indirizzo.
 
 ### v2026.10.31f — Squadre per parte del nome (MP-UI-PR-009-TEAMSEARCH)
 

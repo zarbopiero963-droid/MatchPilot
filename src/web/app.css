@@ -218,3 +218,13 @@ td[data-field="date"]{white-space:nowrap}
   table.results td{position:relative;border:0;padding:3px 0 3px 104px;min-height:24px}
   table.results td::before{content:attr(data-label);position:absolute;left:0;top:5px;width:96px;color:var(--muted);font-size:11px;font-weight:700;
     letter-spacing:.02em}}
+/* Ricerca universale (MP-SEARCH-GUI-01, Browser QA #286): a fieldset is as wide as its widest content by default, and a
+   select as wide as its longest option; both shrink to the page so a phone never scrolls sideways. */
+.us-phase{display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 0}
+.us-group{min-width:0;max-width:100%}
+.us-cond{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:1 1 100%;min-width:0}
+.us-cond select{min-width:0;flex:0 1 auto}
+.us-cond select[data-control="CTL-USEARCH-FIELD"]{flex:1 1 14rem}
+.us-group>.actions{display:flex;flex-wrap:wrap;gap:6px;flex:1 1 100%}
+form.filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 12px;margin:0 0 12px}
+form.filters select{min-width:0}

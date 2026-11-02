@@ -14,9 +14,9 @@ export const DECISIONS = Object.freeze([
 export const PREMATCH_TIMINGS = Object.freeze(['PREMATCH_IDENTITY', 'PREMATCH_MARKET_UNTIMED']);
 export const STATUS_LABELS = Object.freeze({
   'AVAILABLE AND IMPLEMENTED': 'Disponibile',
-  'AVAILABLE BUT NOT IMPLEMENTED': 'Disponibile dal fornitore, non ancora implementato',
+  'AVAILABLE BUT NOT IMPLEMENTED': 'Disponibile alla fonte, non ancora implementato',
   'PARTIALLY IMPLEMENTED': 'Implementato in parte',
-  'PLAN RESTRICTED': 'Escluso dal piano del fornitore',
+  'PLAN RESTRICTED': 'Escluso dal piano della fonte',
   'PROVIDER NOT SUPPORTED': 'Non fornito',
   'NOT VERIFIED': 'Non verificato'});
 export const OP_LABELS = Object.freeze({eq: '=', ne: '≠', gt: '>', gte: '≥', lt: '<', lte: '≤', in: 'uno tra', between: 'tra', is_null: 'mancante', not_null: 'presente', contains: 'contiene'});
@@ -28,7 +28,7 @@ export function catalogModel(capabilities, decision = 'PREMATCH') {
   const groups = new Map();
   for (const c of list) {
     const reason = unusableReason(c, decision);
-    const entry = {id: c.id, provider: c.provider ?? null, kind: c.kind, label: c.label ?? c.provider_ref ?? c.id, value_type: c.value_type,
+    const entry = {id: c.id, provider: c.provider ?? null, kind: c.kind, label: fieldLabel(c), value_type: c.value_type,
       operators: Array.isArray(c.operators) ? [...c.operators] : [], status: c.status,
       status_label: STATUS_LABELS[c.status] ?? 'Stato sconosciuto', timing: c.timing, usable: reason === null, reason,
       market: c.market ?? null, selections: Array.isArray(c.selections) ? [...c.selections] : []};
@@ -40,9 +40,21 @@ export function catalogModel(capabilities, decision = 'PREMATCH') {
     not_implemented: all.filter(f => f.status !== USABLE_STATUS).length, total: all.length};
 }
 
+// The name of a field as the page shows it, from the catalog itself (Browser QA #286: raw references such as
+// «odds/bet:45» or «Odd_1_FT» are not shown): the catalog label when it has one, else the market type and period in
+// words («Corners over under (FT)»), else the stored name with spaces («Odd 1 FT»). No market is named by the page.
+export function fieldLabel(c) {
+  if (typeof c.label === 'string' && c.label.trim()) return c.label.trim();
+  if (typeof c.market_type === 'string' && c.market_type.trim()) {
+    const text = c.market_type.trim().toLowerCase().split(/[_\s]+/).join(' ');
+    return `${text.charAt(0).toUpperCase()}${text.slice(1)}${c.period ? ` (${c.period})` : ''}`;
+  }
+  return String(c.provider_ref ?? c.id).replace(/_+/g, ' ').trim();
+}
+
 export const SEARCHABLE_PROVIDERS = Object.freeze(['fpt']);
 export function unusableReason(c, decision) {
-  if (c.provider && !SEARCHABLE_PROVIDERS.includes(c.provider)) return 'Fornitore non ancora ricercabile';
+  if (c.provider && !SEARCHABLE_PROVIDERS.includes(c.provider)) return 'Fonte non ancora collegata alla ricerca';
   if (c.status !== USABLE_STATUS) return STATUS_LABELS[c.status] ?? 'Stato sconosciuto';
   if (decision === 'PREMATCH' && !PREMATCH_TIMINGS.includes(c.timing)) return 'Non noto prima del calcio d\'inizio (PIT)';
   return null;
@@ -67,13 +79,19 @@ export function toExpression(node) {
   return wrapNot(kids.length === 1 && !node.negate ? kids[0] : {[node.join === 'any' ? 'any' : 'all']: kids}, node.negate);
 }
 
+// The page shows decimals with a comma (1,45), so a decimal is typed the same way: «1,45» is the decimal 1.45. A list
+// (in, between) is separated by «;», or by «,» when it has no «;» (Browser QA #286).
 export function parseValue(text, op) {
   const raw = String(text ?? '').trim();
-  if (op === 'in') return raw.split(',').map(s => s.trim()).filter(Boolean).map(scalarOf);
-  if (op === 'between') return raw.split(',').map(s => s.trim()).slice(0, 2).map(scalarOf);
+  const items = () => raw.split(raw.includes(';') ? ';' : ',').map(s => s.trim());
+  if (op === 'in') return items().filter(Boolean).map(scalarOf);
+  if (op === 'between') return items().slice(0, 2).map(scalarOf);
   return scalarOf(raw);
 }
-const scalarOf = s => (/^[+-]?\d+$/.test(s) && Number.isSafeInteger(Number(s)) ? Number(s) : /^(true|false)$/.test(s) ? s === 'true' : s);
+const scalarOf = s => (/^[+-]?\d+$/.test(s) && Number.isSafeInteger(Number(s)) ? Number(s) : /^(true|false)$/.test(s) ? s === 'true'
+  : /^[+-]?\d+,\d+$/.test(s) ? s.replace(',', '.') : s);
+// What the value field asks for, by operator.
+export const valueHint = op => (op === 'between' ? 'da; a' : op === 'in' ? 'valori separati da ;' : 'valore');
 
 // Client-side checks, in words, before calling the API. The API remains the authority and re-checks everything.
 export function validate(tree, model, decision) {

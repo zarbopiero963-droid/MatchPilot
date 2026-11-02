@@ -234,6 +234,10 @@
         {
           "journey": "http-errors",
           "step": "matrice negativa: errore 503 su ogni vista, stesso stato, codice conservato, Riprova"
+        },
+        {
+          "journey": "universal-search",
+          "step": "ricerca universale: catalogo o campionati non disponibili, nessun campo inventato, Riprova"
         }
       ]
     },
@@ -4725,9 +4729,14 @@
       "issues": [
         263
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "universal-search",
+          "step": "ricerca universale: aperta dal campo Cerca, campi dal catalogo dell’API, non utilizzabili con il motivo, Live disattivata"
+        }
+      ]
     },
     {
       "id": "CTL-USEARCH-ADD-GROUP",
@@ -4740,9 +4749,14 @@
       "issues": [
         263
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "universal-search",
+          "step": "ricerca universale: gruppi annidati AND/OR/NOT, virgola decimale, dati mancanti N/D e NOT di un gruppo"
+        }
+      ]
     },
     {
       "id": "CTL-USEARCH-COMPETITION",
@@ -4755,9 +4769,14 @@
       "issues": [
         263
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "universal-search",
+          "step": "ricerca universale: campionati e stagioni dall’API, inviati alla ricerca"
+        }
+      ]
     },
     {
       "id": "CTL-USEARCH-DECISION",
@@ -4770,9 +4789,14 @@
       "issues": [
         263
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "universal-search",
+          "step": "ricerca universale: fasi, campi solo post-partita rifiutati in Prematch con il motivo PIT, Live e capacità non implementate"
+        }
+      ]
     },
     {
       "id": "CTL-USEARCH-FIELD",
@@ -4785,9 +4809,14 @@
       "issues": [
         263
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "universal-search",
+          "step": "ricerca universale: aperta dal campo Cerca, campi dal catalogo dell’API, non utilizzabili con il motivo, Live disattivata"
+        }
+      ]
     },
     {
       "id": "CTL-USEARCH-FROM",
@@ -4800,9 +4829,14 @@
       "issues": [
         263
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "universal-search",
+          "step": "ricerca universale: una condizione, la finestra di date e la risposta dell’API con vere, false e indeterminate"
+        }
+      ]
     },
     {
       "id": "CTL-USEARCH-TO",
@@ -4815,9 +4849,14 @@
       "issues": [
         263
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "universal-search",
+          "step": "ricerca universale: una condizione, la finestra di date e la risposta dell’API con vere, false e indeterminate"
+        }
+      ]
     },
     {
       "id": "CTL-USEARCH-JOIN",
@@ -4830,9 +4869,14 @@
       "issues": [
         263
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "universal-search",
+          "step": "ricerca universale: gruppi annidati AND/OR/NOT, virgola decimale, dati mancanti N/D e NOT di un gruppo"
+        }
+      ]
     },
     {
       "id": "CTL-USEARCH-MATCH",
@@ -4845,9 +4889,14 @@
       "issues": [
         263
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "universal-search",
+          "step": "ricerca universale: una condizione, la finestra di date e la risposta dell’API con vere, false e indeterminate"
+        }
+      ]
     },
     {
       "id": "CTL-USEARCH-NOT",
@@ -4860,9 +4909,14 @@
       "issues": [
         263
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "universal-search",
+          "step": "ricerca universale: gruppi annidati AND/OR/NOT, virgola decimale, dati mancanti N/D e NOT di un gruppo"
+        }
+      ]
     },
     {
       "id": "CTL-USEARCH-OP",
@@ -4875,9 +4929,14 @@
       "issues": [
         263
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "universal-search",
+          "step": "ricerca universale: aperta dal campo Cerca, campi dal catalogo dell’API, non utilizzabili con il motivo, Live disattivata"
+        }
+      ]
     },
     {
       "id": "CTL-USEARCH-REMOVE",
@@ -4890,9 +4949,14 @@
       "issues": [
         263
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "universal-search",
+          "step": "ricerca universale: lo stato nell’indirizzo sopravvive al ricaricamento; Rimuovi; indirizzo rovinato senza filtri inventati"
+        }
+      ]
     },
     {
       "id": "CTL-USEARCH-SEASON",
@@ -4905,9 +4969,14 @@
       "issues": [
         263
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "universal-search",
+          "step": "ricerca universale: campionati e stagioni dall’API, inviati alla ricerca"
+        }
+      ]
     },
     {
       "id": "CTL-USEARCH-SUBMIT",
@@ -4920,9 +4989,14 @@
       "issues": [
         263
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "universal-search",
+          "step": "ricerca universale: una condizione, la finestra di date e la risposta dell’API con vere, false e indeterminate"
+        }
+      ]
     },
     {
       "id": "CTL-USEARCH-VALUE",
@@ -4935,9 +5009,14 @@
       "issues": [
         263
       ],
-      "status": "IMPLEMENTED",
-      "evidence": "NONE",
-      "exercised_by": []
+      "status": "TESTED",
+      "evidence": "ASSERTED",
+      "exercised_by": [
+        {
+          "journey": "universal-search",
+          "step": "ricerca universale: una condizione, la finestra di date e la risposta dell’API con vere, false e indeterminate"
+        }
+      ]
     }
   ]
 }

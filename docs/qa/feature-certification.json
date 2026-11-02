@@ -127,6 +127,39 @@
       ]
     },
     {
+      "id": "FEAT-UNIVERSAL-SEARCH",
+      "name": "Ricerca universale",
+      "perimeter": "Ricerca sull’archivio con condizioni AND/OR/NOT annidate su qualunque campo del catalogo delle capacità (GET /api/v1/capabilities, GET /api/v1/search): fasi Prematch e Partite concluse, Live mostrata e non selezionabile, campi non utilizzabili con il motivo (PIT, non implementati), stato nell’indirizzo, vere/false/indeterminate e N/D.",
+      "views": [
+        "usearch"
+      ],
+      "requirements": [],
+      "issues": [
+        263
+      ],
+      "prs": [
+        286
+      ],
+      "journeys": [
+        "universal-search"
+      ],
+      "data": "REAL",
+      "financial": false,
+      "dependencies": [
+        "catalogo delle capacità MP-CAP-01b",
+        "ricerca universale MP-SEARCH-01 (PR #285)",
+        "archivio FPT reale (R-02, #40)"
+      ],
+      "limits": [
+        "Verificata sull’archivio QA (fixture tramite il percorso reale di ingestione), non sull’archivio reale",
+        "Ricerca LIVE non implementata",
+        "Al massimo 50 righe per risposta, senza pagine successive"
+      ],
+      "next": "Paginazione dei risultati oltre le prime 50 corrispondenze; certificazione su archivio reale.",
+      "state": "TESTED",
+      "certification": null
+    },
+    {
       "id": "FEAT-MATCH-CENTER",
       "name": "Match Center pre-partita",
       "perimeter": "Analisi pre-partita di una partita archiviata: forma, filtri squadra/campione/campo, righe sorgente.",

@@ -129,6 +129,10 @@ const MATRIX_PATHS = matrixViews({day: '', matchId: ''}).map(view => view.path);
 const matrixStep = code => `matrice negativa: errore ${code} su ogni vista, stesso stato, codice conservato, Riprova`;
 const MATRIX_TIMEOUT_STEP = 'matrice negativa: rete scaduta su ogni vista, connessione non disponibile';
 const MATRIX_LOGIN_STEP = 'matrice negativa: sessione scaduta (401) su ogni vista, si va all’accesso e si torna alla pagina';
+// MP-SEARCH-GUI-01 (#263): the steps of the universal search that provoke API errors, bound to them (review #251).
+const US_STEP_REFUSED = 'ricerca universale: finestra rifiutata dall’API (400) e corretta, date mancanti, nessun risultato';
+const US_STEP_ERRORS = 'ricerca universale: errori dell’API 401-503 e rete scaduta, stessi stati, Riprova, finestra troncata';
+const US_STEP_SOURCES = 'ricerca universale: catalogo o campionati non disponibili, nessun campo inventato, Riprova';
 
 export const JOURNEYS = [
   {
@@ -2461,6 +2465,419 @@ export const JOURNEYS = [
         assert.equal(await page.inputValue('select[name="country"]'), 'nowhere', 'the filter says what the list is for');
         assert.deepEqual((await api('/api/v1/fpt/coverage-competitions?country=nowhere')).data.rows, [], 'the API has no competition for it');
         assert.equal(await page.locator('[data-testid="coverage-list"]').count(), 0);
+      });
+    },
+  },
+  {
+    // MP-SEARCH-GUI-01 (#263, PR #286): the universal search page on GET /api/v1/capabilities and GET /api/v1/search.
+    // Every field offered is the catalog's; conditions AND/OR/NOT nested in groups; the state lives in the address;
+    // TRUE, FALSE and UNKNOWN (missing data) apart; LIVE and the fields known only after kickoff are not selectable in
+    // Prematch, with their reason; the API errors and the way back.
+    id: 'universal-search', surface: 'Ricerca', title: 'Ricerca universale: catalogo, condizioni AND/OR/NOT annidate, indirizzo, fasi, PIT, N/D, errori, tastiera',
+    allowHttp: [{path: '/api/v1/search', status: 400, step: US_STEP_REFUSED},
+      ...Object.keys(MATRIX_CODES).map(code => ({path: '/api/v1/search', status: Number(code), step: US_STEP_ERRORS})),
+      {path: '/api/v1/search', status: 401, step: US_STEP_ERRORS},
+      {path: '/api/v1/capabilities', status: 503, step: US_STEP_SOURCES}, {path: '/api/v1/fpt/competitions', status: 503, step: US_STEP_SOURCES}],
+    allowNetwork: [{path: '/api/v1/search', error: 'net::ERR_TIMED_OUT'}],
+    async run({page, base, step, asserted, api, seed}) {
+      const F = {home: 'fpt:identity:Home', odd1: 'fpt:market:Odd_1_FT', oddX: 'fpt:market:Odd_X_FT', homeScore: 'fpt:statistic:Home_Score'};
+      const usable = row => row.provider === 'fpt' && row.status === 'AVAILABLE AND IMPLEMENTED';
+      const catalog = (await api('/api/v1/capabilities')).data.rows;
+      const competitions = (await api('/api/v1/fpt/competitions')).data.rows;
+      const windowAug = {from: '2024-08-01', to: '2024-08-31'};
+      const hashParams = async () => new URLSearchParams((await page.evaluate(() => location.hash)).split('?')[1] ?? '');
+      const treeNow = async () => JSON.parse((await hashParams()).get('tree'));
+      const open = async params => { await fresh(page, `${base}/#/usearch?${new URLSearchParams(params)}`); await titled(page, 'Ricerca universale'); };
+      // An edit re-renders the view: the old title is marked, and the step waits for the new one.
+      const rerender = async action => {
+        await page.evaluate(() => { document.querySelector('main h1').dataset.stale = '1'; });
+        await action();
+        await page.waitForFunction(() => { const h = document.querySelector('main h1'); return h && !h.dataset.stale && !document.querySelector('.state.loading'); });
+      };
+      const searches = [];
+      page.on('request', r => { if (new URL(r.url()).pathname === '/api/v1/search') searches.push(new URL(r.url()).searchParams); });
+      const submit = async () => {
+        const before = searches.length;
+        await rerender(() => page.click('[data-control="CTL-USEARCH-SUBMIT"]'));
+        return searches.length > before ? searches.at(-1) : null;
+      };
+      const apiAnswer = async sent => (await api(`/api/v1/search?${sent}`)).data;
+      const countsText = d => `Corrispondenze: ${shown(d.counts.TRUE)} · non corrispondenti: ${shown(d.counts.FALSE)} · indeterminate per dati mancanti: ${shown(d.counts.UNKNOWN)} · partite valutate: ${shown(d.scanned)}`;
+      const shownRows = () => page.locator('[data-testid="us-outcome"] tbody tr').evaluateAll(rows => rows.map(r => r.dataset.match));
+      const conds = () => page.locator('[data-testid="us-cond"]');
+      const fieldAt = i => page.locator('select[data-control="CTL-USEARCH-FIELD"]').nth(i);
+      const opAt = i => page.locator('select[data-control="CTL-USEARCH-OP"]').nth(i);
+      const valueAt = i => conds().nth(i).locator('input[data-control="CTL-USEARCH-VALUE"]');
+      const condition = async (i, field, op, value) => {
+        await rerender(() => fieldAt(i).selectOption(field));
+        await rerender(() => opAt(i).selectOption(op));
+        if (value !== undefined) { await valueAt(i).fill(value); await valueAt(i).press('Tab'); }
+      };
+
+      await step('ricerca universale: aperta dal campo Cerca, campi dal catalogo dell’API, non utilizzabili con il motivo, Live disattivata', async () => {
+        await fresh(page, `${base}/#/sim`);
+        await titled(page, 'Simulazione');
+        await page.fill('[data-testid="global-search"] input[name="q"]', 'ricerca universale');
+        await page.click('[data-testid="global-search"] button[type="submit"]');
+        await page.waitForSelector('[data-testid="find-pages"] li');
+        await page.locator('[data-testid="find-pages"] a[data-control="CTL-FIND-PAGE"]', {hasText: 'Ricerca universale'}).click();
+        await titled(page, 'Ricerca universale');
+        assert.equal(await page.evaluate(() => location.hash), '#/usearch');
+        assert.equal(await page.getAttribute('main', 'data-area'), 'user');
+        assert.equal(await page.getAttribute('nav a[data-view="search"]', 'aria-current'), 'page', 'a section of Ricerca');
+        // Nothing is chosen in advance: no condition, no field, no market.
+        assert.equal(await conds().count(), 0);
+        assert.equal(await page.textContent('main .state.empty'), 'Costruisci le condizioni e premi Cerca.');
+        const prematch = catalog.filter(row => usable(row) && ['PREMATCH_IDENTITY', 'PREMATCH_MARKET_UNTIMED'].includes(row.timing));
+        assert.equal(await page.textContent('[data-testid="us-catalog"]'),
+          `Campi utilizzabili: ${prematch.length} su ${catalog.length} · non ancora implementati o non disponibili: ${catalog.filter(row => row.status !== 'AVAILABLE AND IMPLEMENTED').length}`);
+        const phases = await page.locator('[data-control="CTL-USEARCH-DECISION"]').evaluateAll(list => list.map(i => [i.value, i.checked, i.disabled]));
+        assert.deepEqual(phases, [['PREMATCH', true, false], ['LIVE', false, true], ['POSTMATCH', false, false]], 'Live shown and not selectable');
+        assert.equal(await page.getAttribute('[role="radiogroup"]', 'aria-label'), 'Fase');
+        await rerender(() => page.click('[data-control="CTL-USEARCH-ADD-COND"]'));
+        await asserted('CTL-USEARCH-ADD-COND', 'a condition is added to the group and to the address, with no field chosen', async () => {
+          assert.equal(await conds().count(), 1);
+          assert.deepEqual(await treeNow(), {type: 'group', join: 'all', negate: false, children: [{type: 'cond', field: '', op: '', value: '', negate: false}]});
+          assert.equal(await fieldAt(0).inputValue(), '');
+          assert.equal(await opAt(0).isDisabled(), true, 'no operator before a field');
+        });
+        // The options are the catalog's, in its order; each one not usable in Prematch is disabled and says why.
+        const options = await fieldAt(0).locator('option:not([value=""])').evaluateAll(list => list.map(o => ({id: o.value, disabled: o.disabled, text: o.textContent})));
+        const byKind = [...new Set(catalog.map(row => row.kind))].flatMap(kind => catalog.filter(row => row.kind === kind));
+        assert.deepEqual(options.map(o => o.id), byKind.map(row => row.id));
+        for (const row of byKind) {
+          const option = options.find(o => o.id === row.id);
+          const reason = row.provider !== 'fpt' ? 'Fonte non ancora collegata alla ricerca' : !prematch.includes(row) ? 'Non noto prima del calcio d\'inizio (PIT)' : null;
+          assert.equal(option.disabled, reason !== null, `${row.id} selectable only when usable`);
+          if (reason) assert.ok(option.text.endsWith(` — ${reason}`), `${row.id}: ${option.text}`);
+        }
+        assert.ok(options.some(o => o.disabled && o.text.endsWith('Fonte non ancora collegata alla ricerca')), 'capabilities not implemented are listed, not selectable');
+        await rerender(() => fieldAt(0).selectOption(F.odd1));
+        await asserted('CTL-USEARCH-FIELD', 'the field chosen enters the address and offers exactly its catalog operators', async () => {
+          assert.equal((await treeNow()).children[0].field, F.odd1);
+          assert.equal(await fieldAt(0).inputValue(), F.odd1);
+          const ops = await opAt(0).locator('option:not([value=""])').evaluateAll(list => list.map(o => o.value));
+          assert.deepEqual(ops, catalog.find(row => row.id === F.odd1).operators);
+          assert.equal(await opAt(0).isDisabled(), false);
+        });
+        await rerender(() => opAt(0).selectOption('lt'));
+        await asserted('CTL-USEARCH-OP', 'the operator chosen enters the address', async () => {
+          assert.equal((await treeNow()).children[0].op, 'lt');
+          assert.equal(await opAt(0).inputValue(), 'lt');
+          assert.equal(await page.textContent('select[data-control="CTL-USEARCH-OP"] option:checked'), '<');
+        });
+      });
+
+      await step('ricerca universale: una condizione, la finestra di date e la risposta dell’API con vere, false e indeterminate', async () => {
+        await open({tree: JSON.stringify({type: 'group', join: 'all', negate: false, children: [{type: 'cond', field: F.odd1, op: 'lt', value: '', negate: false}]})});
+        await valueAt(0).fill('2');
+        await valueAt(0).press('Tab');
+        await page.fill('[data-control="CTL-USEARCH-FROM"]', windowAug.from);
+        await page.fill('[data-control="CTL-USEARCH-TO"]', windowAug.to);
+        const sent = await submit();
+        await asserted(['CTL-USEARCH-VALUE', 'CTL-USEARCH-FROM', 'CTL-USEARCH-TO', 'CTL-USEARCH-SUBMIT'], 'value and window reach GET /api/v1/search; TRUE, FALSE and UNKNOWN are the API counts, the rows its matches', async () => {
+          assert.ok(sent, 'a search request was sent');
+          assert.deepEqual(JSON.parse(sent.get('expr')), {field: F.odd1, op: 'lt', value: 2});
+          assert.deepEqual([sent.get('decision'), sent.get('from'), sent.get('to'), sent.get('competition'), sent.get('season')], ['PREMATCH', windowAug.from, windowAug.to, null, null]);
+          const answer = await apiAnswer(sent);
+          assert.ok(answer.counts.TRUE > 0 && answer.counts.FALSE > 0 && answer.counts.UNKNOWN > 0, 'the QA archive gives all three outcomes');
+          await outcomeShown(page, '[data-testid="us-outcome"]');
+          assert.equal(await page.textContent('[data-testid="us-outcome"] > p:first-child'), countsText(answer));
+          assert.deepEqual(await shownRows(), answer.rows.map(row => row.id));
+          assert.equal(answer.counts.TRUE, answer.rows.length);
+          assert.equal(await page.locator('[data-testid="us-shown"]').count(), 0, 'every match is shown: no note');
+          assert.equal(await page.textContent('[data-testid="us-outcome"] thead'), ['Data', 'Partita', 'Odd 1 FT'].join(''));
+          const first = answer.rows[0];
+          const cells = page.locator(`[data-testid="us-outcome"] tr[data-match="${first.id}"] td`);
+          assert.equal(await cells.nth(0).textContent(), first.date.split('-').reverse().join('/'));
+          assert.equal(await cells.nth(1).textContent(), `${first.home} – ${first.away}`);
+          assert.equal(await cells.nth(2).textContent(), shown(first.values[F.odd1]));
+          assert.equal(await page.textContent('[data-testid="us-outcome"] p.meta'), 'PIT: non verificato (orari di acquisizione ignoti)');
+          const params = await hashParams();
+          assert.deepEqual([params.get('from'), params.get('to'), params.get('run'), params.get('decision')], [windowAug.from, windowAug.to, '1', 'PREMATCH']);
+        });
+        await page.locator('[data-control="CTL-USEARCH-MATCH"]').first().click();
+        await asserted('CTL-USEARCH-MATCH', 'a match found opens its page', async () => {
+          const id = (await apiAnswer(sent)).rows[0].id;
+          await page.waitForFunction(() => location.hash.startsWith('#/match?'));
+          assert.equal(new URLSearchParams((await page.evaluate(() => location.hash)).split('?')[1]).get('id'), id);
+          await page.waitForSelector('main h1.board');
+        });
+      });
+
+      await step('ricerca universale: gruppi annidati AND/OR/NOT, virgola decimale, dati mancanti N/D e NOT di un gruppo', async () => {
+        await open(windowAug);
+        await rerender(() => page.click('[data-control="CTL-USEARCH-ADD-COND"]'));
+        await condition(0, F.oddX, 'gt', '1');
+        await rerender(() => page.click('[data-control="CTL-USEARCH-ADD-GROUP"]'));
+        const nested = page.locator('[data-testid="us-group"] [data-testid="us-group"]');
+        await rerender(() => nested.locator('select[data-control="CTL-USEARCH-JOIN"]').selectOption('any'));
+        await rerender(() => nested.locator('[data-control="CTL-USEARCH-ADD-COND"]').click());
+        await rerender(() => nested.locator('[data-control="CTL-USEARCH-ADD-COND"]').click());
+        await condition(1, F.odd1, 'lt', '1,6');
+        await condition(2, F.odd1, 'is_null');
+        assert.equal(await valueAt(2).count(), 0, 'no value field for «mancante»');
+        await rerender(() => page.locator('[data-testid="us-group"] > .actions [data-control="CTL-USEARCH-ADD-COND"]').last().click());
+        await condition(3, F.home, 'contains', 'Ajax');
+        await rerender(() => conds().nth(3).locator('[data-control="CTL-USEARCH-NOT"]').check());
+        const sent = await submit();
+        const expected = {all: [{field: F.oddX, op: 'gt', value: 1}, {any: [{field: F.odd1, op: 'lt', value: '1.6'}, {field: F.odd1, op: 'is_null'}]},
+          {not: {field: F.home, op: 'contains', value: 'Ajax'}}]};
+        let answer;
+        await asserted(['CTL-USEARCH-ADD-GROUP', 'CTL-USEARCH-JOIN', 'CTL-USEARCH-NOT'], 'a nested OR group and a negated condition reach the API as {all, any, not}; the rows are its answer, missing values N/D', async () => {
+          assert.deepEqual(JSON.parse(sent.get('expr')), expected);
+          assert.equal((await treeNow()).children[1].join, 'any');
+          answer = await apiAnswer(sent);
+          await page.waitForSelector('[data-testid="us-outcome"]');
+          assert.equal(await page.textContent('[data-testid="us-outcome"] > p:first-child'), countsText(answer));
+          assert.deepEqual(await shownRows(), answer.rows.map(row => row.id));
+          assert.ok(answer.rows.length > 0 && answer.rows.every(row => !row.home.includes('Ajax')), 'NOT keeps Ajax at home out');
+          const missing = answer.rows.filter(row => row.values[F.odd1] === undefined);
+          assert.ok(missing.length > 0, 'the QA archive has matches without the home price');
+          for (const row of missing) {
+            const cell = page.locator(`[data-testid="us-outcome"] tr[data-match="${row.id}"] td[data-field="${F.odd1}"]`);
+            assert.equal(await cell.locator('[data-badge="ND"]').count(), 1, 'a missing value is N/D, never 0 or blank');
+          }
+          for (const row of answer.rows.filter(r => r.values[F.odd1] !== undefined)) {
+            assert.ok(Number(row.values[F.odd1]) < 1.6);
+            assert.equal(await page.textContent(`[data-testid="us-outcome"] tr[data-match="${row.id}"] td[data-field="${F.odd1}"]`), shown(row.values[F.odd1]));
+          }
+        });
+        // NOT on the whole OR group: the other matches, still never a missing price read as a match.
+        await rerender(() => nested.locator('legend [data-control="CTL-USEARCH-NOT"]').check());
+        const negated = await submit();
+        const other = await apiAnswer(negated);
+        assert.deepEqual(JSON.parse(negated.get('expr')).all[1], {not: expected.all[1]});
+        assert.deepEqual(await shownRows(), other.rows.map(row => row.id));
+        assert.ok(other.rows.length > 0 && other.rows.every(row => !answer.rows.some(r => r.id === row.id)), 'the negated group selects other matches');
+        assert.ok(other.rows.every(row => Number(row.values[F.odd1]) >= 1.6), 'NOT of «missing» does not make a missing price a match');
+        assert.ok(other.counts.TRUE > other.rows.length, 'more matches than the rows of one answer');
+        assert.equal(await page.textContent('[data-testid="us-shown"]'), `Mostrate le prime ${shown(other.rows.length)} corrispondenze su ${shown(other.counts.TRUE)}: restringi le condizioni o le date per vederle tutte.`);
+      });
+
+      await step('ricerca universale: lo stato nell’indirizzo sopravvive al ricaricamento; Rimuovi; indirizzo rovinato senza filtri inventati', async () => {
+        const tree = {type: 'group', join: 'all', negate: false, children: [{type: 'cond', field: F.oddX, op: 'gt', value: '1', negate: false},
+          {type: 'group', join: 'any', negate: true, children: [{type: 'cond', field: F.home, op: 'contains', value: 'Ajax', negate: true}]}]};
+        await open({decision: 'PREMATCH', ...windowAug, competition: seed.eredivisie.competition, tree: JSON.stringify(tree), run: '1'});
+        await page.waitForSelector('[data-testid="us-outcome"]');
+        await page.reload();
+        await page.waitForSelector('[data-testid="us-outcome"]');
+        assert.equal(await fieldAt(0).inputValue(), F.oddX);
+        assert.equal(await fieldAt(1).inputValue(), F.home);
+        assert.equal(await valueAt(1).inputValue(), 'Ajax');
+        assert.equal(await page.locator('[data-testid="us-group"] [data-testid="us-group"] select[data-control="CTL-USEARCH-JOIN"]').inputValue(), 'any');
+        assert.deepEqual(await page.locator('[data-control="CTL-USEARCH-NOT"]').evaluateAll(list => list.map(i => i.checked)), [false, false, true, true]);
+        assert.equal(await page.inputValue('[data-control="CTL-USEARCH-FROM"]'), windowAug.from);
+        assert.equal(await page.inputValue('[data-control="CTL-USEARCH-COMPETITION"]'), seed.eredivisie.competition);
+        // Dates typed and not submitted are kept when the tree changes.
+        await page.fill('[data-control="CTL-USEARCH-TO"]', '2024-08-20');
+        await rerender(() => conds().nth(0).locator('[data-control="CTL-USEARCH-REMOVE"]').click());
+        await asserted('CTL-USEARCH-REMOVE', 'the condition removed leaves the tree and the address; the rest and the window stay', async () => {
+          const now = await treeNow();
+          assert.deepEqual(now, {...tree, children: [tree.children[1]]});
+          assert.equal(await conds().count(), 1);
+          assert.equal(await page.inputValue('[data-control="CTL-USEARCH-TO"]'), '2024-08-20', 'the date typed is kept');
+          assert.equal((await hashParams()).get('run'), null, 'the outcome of the earlier conditions is withdrawn');
+          assert.equal(await page.locator('[data-testid="us-outcome"]').count(), 0);
+          await page.waitForFunction(() => document.activeElement?.dataset?.control === 'CTL-USEARCH-ADD-COND', null, {timeout: 3000}).catch(() => null);
+          assert.equal(await page.evaluate(() => document.activeElement?.dataset.control), 'CTL-USEARCH-ADD-COND', 'the focus stays in the group');
+        });
+        for (const broken of ['{bad', JSON.stringify({type: 'group', join: 'xor', children: []})]) {
+          await open({tree: broken, run: '1', ...windowAug});
+          assert.equal(await conds().count(), 0, 'a broken address gives an empty group, never a default filter');
+          assert.equal(await page.textContent('main ul.state.error'), 'C: aggiungi almeno una condizione');
+        }
+      });
+
+      await step('ricerca universale: campionati e stagioni dall’API, inviati alla ricerca', async () => {
+        const league = competitions.find(c => c.internal_competition_id === seed.eredivisie.competition);
+        await open({tree: JSON.stringify({type: 'group', join: 'all', negate: false, children: [{type: 'cond', field: F.odd1, op: 'not_null', value: '', negate: false}]}), ...windowAug});
+        const listed = await page.locator('[data-control="CTL-USEARCH-COMPETITION"] option').evaluateAll(list => list.map(o => [o.value, o.textContent]));
+        assert.deepEqual(listed, [['', 'Tutti'], ...competitions.map(c => [c.internal_competition_id, `${words(c.country_slug)} · ${words(c.league_slug)}`])]);
+        assert.equal(await page.isDisabled('[data-control="CTL-USEARCH-SEASON"]'), true, 'no season without a competition');
+        await rerender(() => page.selectOption('[data-control="CTL-USEARCH-COMPETITION"]', league.internal_competition_id));
+        const seasons = (await api(`/api/v1/fpt/competition-seasons?competition=${encodeURIComponent(league.internal_competition_id)}`)).data.rows;
+        await asserted('CTL-USEARCH-COMPETITION', 'the competition enters the address and its seasons are the API’s', async () => {
+          assert.equal((await hashParams()).get('competition'), league.internal_competition_id);
+          assert.equal(await page.isDisabled('[data-control="CTL-USEARCH-SEASON"]'), false);
+          const options = await page.locator('[data-control="CTL-USEARCH-SEASON"] option').evaluateAll(list => list.map(o => [o.value, o.textContent]));
+          assert.deepEqual(options, [['', 'Tutte'], ...seasons.map(s => [s.season_id, seasonShown(s.season)])]);
+          assert.equal(await page.inputValue('[data-control="CTL-USEARCH-FROM"]'), windowAug.from, 'the window stays');
+        });
+        await page.selectOption('[data-control="CTL-USEARCH-SEASON"]', seasons[0].season_id);
+        const sent = await submit();
+        await asserted('CTL-USEARCH-SEASON', 'competition and season reach the search; the rows are the API’s for them', async () => {
+          assert.deepEqual([sent.get('competition'), sent.get('season')], [league.internal_competition_id, seasons[0].season_id]);
+          const answer = await apiAnswer(sent);
+          assert.equal(answer.scanned, seed.eredivisie.matches, 'only the competition is read');
+          assert.ok(answer.rows.every(row => row.competition === league.internal_competition_id && row.season === seasons[0].season_id));
+          assert.deepEqual(await shownRows(), answer.rows.map(row => row.id));
+          assert.equal(await page.inputValue('[data-control="CTL-USEARCH-SEASON"]'), seasons[0].season_id);
+        });
+      });
+
+      await step('ricerca universale: fasi, campi solo post-partita rifiutati in Prematch con il motivo PIT, Live e capacità non implementate', async () => {
+        const tree = {type: 'group', join: 'all', negate: false, children: [{type: 'cond', field: F.homeScore, op: 'gte', value: '3', negate: false}]};
+        await open({tree: JSON.stringify(tree), ...windowAug});
+        assert.equal(await fieldAt(0).locator(`option[value="${F.homeScore}"]`).evaluate(o => o.disabled), true);
+        const before = searches.length;
+        await page.click('[data-control="CTL-USEARCH-SUBMIT"]');
+        await page.waitForSelector('main ul.state.error');
+        assert.equal(await page.textContent('main ul.state.error'), 'C.1: campo non utilizzabile: Non noto prima del calcio d\'inizio (PIT)');
+        assert.equal(searches.length, before, 'refused in the page, no request');
+        await rerender(() => page.check('[data-control="CTL-USEARCH-DECISION"][value="POSTMATCH"]'));
+        await asserted('CTL-USEARCH-DECISION', 'Partite concluse makes the post-match fields usable and is sent as POSTMATCH, research not PIT', async () => {
+          assert.equal((await hashParams()).get('decision'), 'POSTMATCH');
+          assert.equal(await fieldAt(0).locator(`option[value="${F.homeScore}"]`).evaluate(o => o.disabled), false);
+          const sent = await submit();
+          assert.equal(sent.get('decision'), 'POSTMATCH');
+          const answer = await apiAnswer(sent);
+          assert.deepEqual(await shownRows(), answer.rows.map(row => row.id));
+          assert.ok(answer.rows.length > 0 && answer.rows.every(row => Number(row.values[F.homeScore]) >= 3));
+          assert.equal(await page.textContent('[data-testid="us-outcome"] p.meta'), 'PIT: ricerca storica (non PIT)');
+        });
+        // Live from the address: shown, refused in words, nothing asked of the API.
+        await open({decision: 'LIVE', tree: JSON.stringify(tree), ...windowAug, run: '1'});
+        assert.equal(await page.isDisabled('[data-control="CTL-USEARCH-DECISION"][value="LIVE"]'), true);
+        assert.match(await page.textContent('main ul.state.error'), /decision: fase Live: non ancora implementata nella ricerca/);
+        // A capability not implemented, forced through the address, is refused with its state.
+        const notImplemented = catalog.find(row => row.status !== 'AVAILABLE AND IMPLEMENTED');
+        await open({tree: JSON.stringify({...tree, children: [{type: 'cond', field: notImplemented.id, op: notImplemented.operators[0], value: '1', negate: false}]}), ...windowAug, run: '1'});
+        assert.equal(await page.textContent('main ul.state.error'), 'C.1: campo non utilizzabile: Fonte non ancora collegata alla ricerca');
+        await open({tree: JSON.stringify({...tree, children: [{type: 'cond', field: 'fpt:market:Nope', op: 'gt', value: '1', negate: false}]}), ...windowAug, run: '1'});
+        assert.equal(await page.textContent('main ul.state.error'), 'C.1: campo non presente nel catalogo');
+        assert.equal(searches.length, before + 1, 'only the Partite concluse search reached the API');
+      });
+
+      await step('ricerca universale: finestra rifiutata dall’API (400) e corretta, date mancanti, nessun risultato', async () => {
+        await open({tree: JSON.stringify({type: 'group', join: 'all', negate: false, children: [{type: 'cond', field: F.odd1, op: 'lt', value: '2', negate: false}]}),
+          from: '2023-01-01', to: '2024-08-31'});
+        const sent = await submit();
+        assert.equal(sent.get('from'), '2023-01-01');
+        await page.waitForSelector('main .state.error[data-status="400"]');
+        assert.equal((await page.textContent('main .state.error p')).trim(), httpErrorState(400, 'BAD_REQUEST').text);
+        assert.equal(await page.locator('[data-testid="us-outcome"]').count(), 0, 'no result is invented');
+        await page.fill('[data-control="CTL-USEARCH-FROM"]', windowAug.from);
+        const fixed = await submit();
+        assert.equal(fixed.get('from'), windowAug.from);
+        await page.waitForSelector('[data-testid="us-outcome"]');
+        assert.deepEqual(await shownRows(), (await apiAnswer(fixed)).rows.map(row => row.id), 'the corrected window searches again');
+        // Without dates the form is not sent at all.
+        await open({tree: JSON.stringify({type: 'group', join: 'all', negate: false, children: [{type: 'cond', field: F.odd1, op: 'lt', value: '2', negate: false}]})});
+        const count = searches.length;
+        await page.click('[data-control="CTL-USEARCH-SUBMIT"]');
+        assert.equal(await page.evaluate(() => document.querySelector('[data-control="CTL-USEARCH-FROM"]').matches(':invalid')), true);
+        assert.equal((await hashParams()).get('run'), null);
+        assert.equal(searches.length, count);
+        // Nothing found: said in words, with the counts.
+        await open({tree: JSON.stringify({type: 'group', join: 'all', negate: false, children: [{type: 'cond', field: F.home, op: 'contains', value: 'zzqq', negate: false}]}), ...windowAug, run: '1'});
+        await page.waitForSelector('[data-testid="us-outcome"]');
+        assert.equal(await page.textContent('[data-testid="us-outcome"] .state.empty'), 'Nessuna partita soddisfa le condizioni.');
+        assert.match(await page.textContent('[data-testid="us-outcome"] > p:first-child'), /^Corrispondenze: 0 · /);
+      });
+
+      await step('ricerca universale: errori dell’API 401-503 e rete scaduta, stessi stati, Riprova, finestra troncata', async () => {
+        const hash = `#/usearch?${new URLSearchParams({tree: JSON.stringify({type: 'group', join: 'all', negate: false, children: [{type: 'cond', field: F.odd1, op: 'lt', value: '2', negate: false}]}), ...windowAug, run: '1'})}`;
+        const own = url => url.pathname === '/api/v1/search';
+        for (const [code, errorCode] of Object.entries(MATRIX_CODES)) {
+          await page.route(own, route => route.fulfill({status: Number(code), contentType: 'application/json', body: JSON.stringify({api_version: 'v1', error: {code: errorCode, message: 'qa'}})}));
+          await fresh(page, `${base}/${hash}`);
+          await page.waitForSelector(`main .state.error[data-status="${code}"]`);
+          const state = httpErrorState(Number(code), errorCode);
+          assert.equal((await page.textContent('main .state.error p')).trim(), state.badge ? `${BADGES[state.badge].text} ${state.text}` : state.text, `${code}: the words of the status`);
+          assert.equal(await page.getAttribute('main .state.error', 'data-code'), errorCode);
+          assert.equal(await page.textContent('main h1'), 'Ricerca universale', 'the conditions stay on the page');
+          assert.equal(await conds().count(), 1);
+          await page.waitForLoadState('networkidle');
+          await page.unroute(own);
+        }
+        await page.route(own, route => route.abort('timedout'));
+        await fresh(page, `${base}/${hash}`);
+        await page.waitForSelector('main .state.error[data-code="NETWORK"]');
+        assert.equal((await page.textContent('main .state.error p')).trim(), httpErrorState(0, 'NETWORK').text);
+        await page.unroute(own);
+        // Riprova searches again once the API answers.
+        await page.click('main .state.error [data-control="CTL-COMMON-RETRY"]');
+        await page.waitForSelector('[data-testid="us-outcome"]');
+        assert.equal(await page.locator('main .state.error').count(), 0);
+        // An expired session goes to the login and comes back to the same search.
+        await page.route('**/login?*', route => route.fulfill({status: 200, contentType: 'text/html', body: '<!doctype html><html lang="it"><title>Accesso</title><link rel="icon" href="data:,"><main><h1>Accesso</h1></main></html>'}));
+        await page.route(own, route => route.fulfill({status: 401, contentType: 'application/json', body: JSON.stringify({api_version: 'v1', error: {code: 'UNAUTHENTICATED', message: 'qa'}})}));
+        await fresh(page, `${base}/${hash}`);
+        await page.waitForURL(/\/login\?next=/);
+        assert.equal(new URL(page.url()).searchParams.get('next'), `/${hash}`);
+        await page.unroute(own);
+        await page.unroute('**/login?*');
+        // A window cut by the scan limit is said (the API's own answer, marked truncated).
+        await page.route(own, async route => {
+          const response = await route.fetch();
+          const body = await response.json();
+          body.data.truncated = true;
+          await route.fulfill({response, body: JSON.stringify(body)});
+        });
+        await fresh(page, `${base}/${hash}`);
+        await page.waitForSelector('[data-testid="us-outcome"]');
+        assert.equal(await page.textContent('[data-testid="us-outcome"] .state.partial'), 'Finestra troncata: restringi le date o il campionato.');
+        await page.unroute(own);
+        await fresh(page, `${base}/#/`);
+        await page.waitForSelector('main h1');
+      });
+
+      await step('ricerca universale: catalogo o campionati non disponibili, nessun campo inventato, Riprova', async () => {
+        const unavailableRoute = route => route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify(unavailable)});
+        await page.route('**/api/v1/capabilities*', unavailableRoute);
+        await open({});
+        await page.waitForSelector('[data-testid="us-no-catalog"]');
+        assert.equal(await page.textContent('[data-testid="us-no-catalog"] p'), 'Catalogo delle capacità non disponibile: la ricerca è disattivata.');
+        assert.equal(await page.locator('[data-control="CTL-USEARCH-SUBMIT"]').count(), 0, 'no search without the catalog');
+        assert.equal(await page.locator('[data-control="CTL-USEARCH-FIELD"], [data-control="CTL-USEARCH-ADD-COND"]').count(), 0, 'no field invented');
+        await page.unroute('**/api/v1/capabilities*');
+        await rerender(() => page.click('[data-testid="us-no-catalog"] [data-control="CTL-COMMON-RETRY"]'));
+        await asserted('CTL-COMMON-RETRY', 'Riprova reads the catalog again and the search comes back', async () => {
+          assert.equal(await page.locator('[data-testid="us-no-catalog"]').count(), 0);
+          assert.equal(await page.locator('[data-control="CTL-USEARCH-ADD-COND"]').count(), 1);
+        });
+        await page.route('**/api/v1/fpt/competitions*', unavailableRoute);
+        await open({});
+        assert.equal(await page.textContent('main p.state.partial'), 'Elenco dei campionati non disponibile.');
+        assert.equal(await page.isDisabled('[data-control="CTL-USEARCH-COMPETITION"]'), true);
+        assert.equal(await page.locator('[data-control="CTL-USEARCH-ADD-COND"]').count(), 1, 'the search stays usable without the list');
+        await page.unroute('**/api/v1/fpt/competitions*');
+      });
+
+      await step('ricerca universale: con la sola tastiera, il focus resta sul controllo modificato, nomi accessibili', async () => {
+        await open(windowAug);
+        await page.focus('[data-control="CTL-USEARCH-ADD-COND"]');
+        await rerender(() => page.keyboard.press('Enter'));
+        const focused = async expected => {
+          await page.waitForFunction(id => document.activeElement?.dataset?.control === id, expected, {timeout: 3000}).catch(() => null);
+          return page.evaluate(() => document.activeElement?.dataset.control ?? document.activeElement?.tagName);
+        };
+        assert.equal(await focused('CTL-USEARCH-FIELD'), 'CTL-USEARCH-FIELD', 'the new condition’s field has the focus');
+        assert.deepEqual(await page.locator('[data-testid="us-cond"] select, [data-testid="us-cond"] input:not([type="checkbox"])').evaluateAll(list => list.map(e => e.getAttribute('aria-label'))), ['Campo', 'Operatore', 'Valore']);
+        assert.equal(await page.getAttribute('select[data-control="CTL-USEARCH-JOIN"]', 'aria-label'), 'Combinazione del gruppo');
+        const firstUsable = await fieldAt(0).locator('option:not([value=""]):not([disabled])').first().getAttribute('value');
+        await rerender(() => page.keyboard.press('ArrowDown'));
+        assert.equal(await fieldAt(0).inputValue(), firstUsable, 'the arrow chooses the first usable field, disabled ones skipped');
+        assert.equal(await focused('CTL-USEARCH-FIELD'), 'CTL-USEARCH-FIELD', 'the focus stays on the field after the new render');
+        await page.keyboard.press('Tab');
+        assert.equal(await focused('CTL-USEARCH-OP'), 'CTL-USEARCH-OP');
+        await rerender(() => page.keyboard.press('ArrowDown'));
+        assert.equal(await opAt(0).inputValue(), catalog.find(row => row.id === firstUsable).operators[0]);
+        assert.equal(await focused('CTL-USEARCH-OP'), 'CTL-USEARCH-OP');
+        await page.keyboard.press('Tab');
+        assert.equal(await focused('CTL-USEARCH-VALUE'), 'CTL-USEARCH-VALUE');
+        const typed = {text: 'Ajax', datetime: '2024-08-02', number: '2', integer: '2'}[catalog.find(row => row.id === firstUsable).value_type];
+        await page.keyboard.type(typed);
+        await page.keyboard.press('Tab');
+        assert.equal(await focused('CTL-USEARCH-REMOVE'), 'CTL-USEARCH-REMOVE', 'Tab moves on from the value');
+        assert.equal((await treeNow()).children[0].value, typed, 'the value is in the address');
+        await page.focus('[data-control="CTL-USEARCH-TO"]');
+        const before = searches.length;
+        await rerender(() => page.keyboard.press('Enter'));
+        assert.equal(searches.length, before + 1, 'Enter in the form sends the search');
+        assert.deepEqual(JSON.parse(searches.at(-1).get('expr')).field, firstUsable);
+        await outcomeShown(page, '[data-testid="us-outcome"]');
       });
     },
   },

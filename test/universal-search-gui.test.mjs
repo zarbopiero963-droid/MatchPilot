@@ -18,7 +18,7 @@ test('catalog order kept, nothing promoted; non-implemented and non-searchable s
   assert.deepEqual(m.groups[0].fields.map(f => f.id), ['fpt:market:odd_home', 'apifootball:market:1x2', 'fpt:market:corners']);
   const by = Object.fromEntries(m.groups.flatMap(g => g.fields).map(f => [f.id, f]));
   assert.equal(by['fpt:market:odd_home'].usable, true);
-  assert.equal(by['apifootball:market:1x2'].reason, 'Fornitore non ancora ricercabile');
+  assert.equal(by['apifootball:market:1x2'].reason, 'Fonte non ancora collegata alla ricerca');
   assert.equal(by['fpt:market:corners'].reason, 'Non verificato');
   assert.match(by['fpt:statistic:goals_home'].reason, /PIT/);
   assert.equal(US.catalogModel(caps, 'POSTMATCH').groups[1].fields[0].usable, true);
@@ -36,6 +36,29 @@ test('AND/OR/NOT tree becomes the API grammar and parses against the catalog', (
   assert.deepEqual(expr, {all: [{field: 'fpt:market:odd_home', op: 'between', value: ['1.5', '2.1']},
     {not: {any: [{field: 'fpt:identity:country', op: 'in', value: ['Italy', 'Spain']}, {not: {field: 'fpt:market:odd_home', op: 'is_null'}}]}}]});
   assert.doesNotThrow(() => parseExpression(expr, caps));
+});
+
+test('Browser QA #286: a decimal typed with a comma is a decimal; lists take «;» or «,»', () => {
+  assert.equal(US.parseValue('1,45', 'lt'), '1.45');
+  assert.equal(US.parseValue(' 2 ', 'gte'), 2);
+  assert.equal(US.parseValue('Ajax', 'contains'), 'Ajax');
+  assert.deepEqual(US.parseValue('1,5; 2,1', 'between'), ['1.5', '2.1']);
+  assert.deepEqual(US.parseValue('1.5, 2.1', 'between'), ['1.5', '2.1']);
+  assert.deepEqual(US.parseValue('Ajax; PSV', 'in'), ['Ajax', 'PSV']);
+  assert.deepEqual(parseExpression({field: 'fpt:market:odd_home', op: 'lt', value: US.parseValue('1,45', 'lt')}, caps).expression.value, '1.45');
+  assert.equal(US.valueHint('between'), 'da; a');
+  assert.equal(US.valueHint('lt'), 'valore');
+});
+
+test('Browser QA #286: field names come from the catalog in words, never a raw reference; no reason says «fornitore»', () => {
+  assert.equal(US.fieldLabel({id: 'fpt:market:Odd_1_FT', provider_ref: 'Odd_1_FT'}), 'Odd 1 FT');
+  assert.equal(US.fieldLabel({id: 'apifootball:market:odds/bet:45', provider_ref: 'odds/bet:45', market_type: 'CORNERS_OVER_UNDER', period: 'FT'}), 'Corners over under (FT)');
+  assert.equal(US.fieldLabel({id: 'x', provider_ref: 'Shots on Goal'}), 'Shots on Goal');
+  assert.equal(US.fieldLabel({id: 'x', label: ' Quota casa '}), 'Quota casa');
+  const m = US.catalogModel(caps, 'PREMATCH');
+  for (const f of m.groups.flatMap(g => g.fields)) {
+    assert.doesNotMatch(`${f.label} ${f.reason ?? ''} ${f.status_label}`, /fornitore|_|\//i);
+  }
 });
 
 test('empty groups and blank conditions are dropped; empty tree has no expression', () => {

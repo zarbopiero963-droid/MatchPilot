@@ -1873,6 +1873,9 @@ async function toolsView(params) {
 // Reads the capability catalog and GET /api/v1/search only. The condition tree lives in the hash (tree=…), so the page
 // is shareable and survives a reload; nothing is pre-selected: no market, odd or filter is offered first.
 const usearchHref = params => `#/usearch?${queryString(params)}`;
+// Every edit of the tree re-renders the view; the control the keyboard was on (or the one an edit creates) gets the focus
+// back, so a keyboard user never restarts from the top of the page (Browser QA #286).
+let usearchFocus = null;
 async function usearchView(params) {
   const decision = US.DECISIONS.some(d => d.id === params.get('decision')) ? params.get('decision') : 'PREMATCH';
   const [catalogBody, competitionsBody] = await Promise.all([
@@ -1880,36 +1883,72 @@ async function usearchView(params) {
     getJson('/api/v1/fpt/competitions').catch(error => { if (error?.code === 'UNAUTHENTICATED') throw error; return null; })]);
   const caps = Array.isArray(catalogBody?.data?.capabilities) ? catalogBody.data.capabilities : Array.isArray(catalogBody?.data?.rows) ? catalogBody.data.rows : null;
   const head = el('h1', {}, 'Ricerca universale');
-  if (!caps) return [head, el('p', {class: 'state error', role: 'alert', 'data-outcome': ''}, 'Catalogo delle capacità non disponibile: la ricerca è disattivata.')];
+  // Without the catalog nothing can be offered; «Riprova» reads it again, like every other failed source (Browser QA #286).
+  if (!caps) return [head, el('div', {class: 'state error', role: 'alert', 'data-outcome': '', 'data-testid': 'us-no-catalog'},
+    el('p', {}, 'Catalogo delle capacità non disponibile: la ricerca è disattivata.'),
+    el('button', {type: 'button', onclick: render, 'data-control': 'CTL-COMMON-RETRY'}, 'Riprova'))];
   const model = US.catalogModel(caps, decision);
   const tree = US.decodeTree(params.get('tree') ?? '');
   const competitions = Array.isArray(competitionsBody?.data?.rows) ? competitionsBody.data.rows : [];
   const competition = params.get('competition') ?? '';
   const seasons = competition ? await seasonsOf(competition) : 'none';
   const state = {decision, from: params.get('from') ?? '', to: params.get('to') ?? '', competition, season: params.get('season') ?? ''};
-  const go = (extra = {}) => { location.hash = usearchHref({...state, tree: US.encodeTree(tree), ...extra}); };
+  // The dates and the season typed but not yet submitted are kept when the tree changes (Browser QA #286).
+  let window_ = null;
+  const sync = () => {
+    if (!window_) return;
+    const fd = new FormData(window_);
+    Object.assign(state, {from: String(fd.get('from') ?? ''), to: String(fd.get('to') ?? ''), season: String(fd.get('season') ?? '')});
+  };
+  const focusOn = (control, node) => {
+    const list = [];
+    // In document order: a condition's field where it stands, a group's «+ Condizione» after its children.
+    (function walk(n) { if (n.type === 'group') n.children.forEach(walk); if ((control === 'CTL-USEARCH-FIELD') === (n.type === 'cond')) list.push(n); })(tree);
+    usearchFocus = {control, index: Math.max(0, list.indexOf(node))};
+  };
+  const keepFocus = () => {
+    const active = document.activeElement;
+    const control = active?.dataset?.control;
+    if (!control?.startsWith('CTL-USEARCH-')) return;
+    usearchFocus = {control, index: [...document.querySelectorAll(`#view [data-control="${control}"]`)].indexOf(active)};
+  };
+  // A value typed is saved in the address without a new render, so Tab moves on from the field; an outcome shown for
+  // the earlier value is withdrawn, never left beside the changed condition.
+  const keepValue = () => {
+    sync();
+    history.replaceState(null, '', usearchHref({...state, tree: US.encodeTree(tree)}));
+    if (!window_?.isConnected) return;
+    while (window_.nextSibling) window_.nextSibling.remove();
+    window_.after(el('p', {class: 'state empty'}, 'Costruisci le condizioni e premi Cerca.'));
+  };
+  const go = (extra = {}) => {
+    sync();
+    if (!usearchFocus) keepFocus();
+    const target = usearchHref({...state, tree: US.encodeTree(tree), ...extra});
+    if (location.hash === target) render(); else location.hash = target;
+  };
   const fieldOptions = [el('option', {value: ''}, 'Scegli un campo'), ...model.groups.map(g => el('optgroup', {label: g.kind},
     g.fields.map(f => el('option', {value: f.id, disabled: !f.usable, title: f.reason ?? ''}, f.usable ? f.label : `${f.label} — ${f.reason}`))))];
   const byId = new Map(model.groups.flatMap(g => g.fields).map(f => [f.id, f]));
   const renderNode = (node, parent, index) => {
-    const remove = parent ? el('button', {type: 'button', 'data-control': 'CTL-USEARCH-REMOVE', onclick: () => { parent.children.splice(index, 1); go(); }}, 'Rimuovi') : null;
+    const remove = parent ? el('button', {type: 'button', 'data-control': 'CTL-USEARCH-REMOVE', onclick: () => { parent.children.splice(index, 1); focusOn('CTL-USEARCH-ADD-COND', parent); go(); }}, 'Rimuovi') : null;
     const not = el('label', {class: 'check'}, el('input', {type: 'checkbox', checked: node.negate, 'data-control': 'CTL-USEARCH-NOT', onchange: e => { node.negate = e.target.checked; go(); }}), ' NOT');
     if (node.type === 'cond') {
       const f = byId.get(node.field);
       return el('div', {class: 'us-cond', 'data-testid': 'us-cond'}, not,
-        el('select', {'data-control': 'CTL-USEARCH-FIELD', onchange: e => { node.field = e.target.value; node.op = ''; go(); }}, fieldOptions.map(o => o.cloneNode(true))),
-        el('select', {'data-control': 'CTL-USEARCH-OP', disabled: !f, onchange: e => { node.op = e.target.value; go(); }},
+        el('select', {'data-control': 'CTL-USEARCH-FIELD', 'aria-label': 'Campo', onchange: e => { node.field = e.target.value; node.op = ''; go(); }}, fieldOptions.map(o => o.cloneNode(true))),
+        el('select', {'data-control': 'CTL-USEARCH-OP', 'aria-label': 'Operatore', disabled: !f, onchange: e => { node.op = e.target.value; go(); }},
           [el('option', {value: ''}, 'Operatore'), ...(f?.operators ?? []).map(op => el('option', {value: op, selected: node.op === op}, US.OP_LABELS[op] ?? op))]),
-        ['is_null', 'not_null'].includes(node.op) ? null : el('input', {value: node.value ?? '', placeholder: 'valore', 'data-control': 'CTL-USEARCH-VALUE', onchange: e => { node.value = e.target.value; go(); }}),
+        ['is_null', 'not_null'].includes(node.op) ? null : el('input', {value: node.value ?? '', placeholder: US.valueHint(node.op), 'aria-label': 'Valore', 'data-control': 'CTL-USEARCH-VALUE', onchange: e => { node.value = e.target.value; keepValue(); }}),
         f && f.selections.length ? el('span', {class: 'meta'}, 'Selezioni: ', f.selections.join(', ')) : null, remove);
     }
     return el('fieldset', {class: 'us-group', 'data-testid': 'us-group'},
-      el('legend', {}, not, ' ', el('select', {'data-control': 'CTL-USEARCH-JOIN', onchange: e => { node.join = e.target.value; go(); }},
+      el('legend', {}, not, ' ', el('select', {'data-control': 'CTL-USEARCH-JOIN', 'aria-label': 'Combinazione del gruppo', onchange: e => { node.join = e.target.value; go(); }},
         el('option', {value: 'all', selected: node.join === 'all'}, 'Tutte (AND)'), el('option', {value: 'any', selected: node.join === 'any'}, 'Almeno una (OR)'))),
       ...node.children.map((c, i) => renderNode(c, node, i)),
       el('div', {class: 'actions'},
-        el('button', {type: 'button', 'data-control': 'CTL-USEARCH-ADD-COND', onclick: () => { node.children.push(US.newCondition()); go(); }}, '+ Condizione'),
-        el('button', {type: 'button', 'data-control': 'CTL-USEARCH-ADD-GROUP', onclick: () => { node.children.push(US.newGroup()); go(); }}, '+ Gruppo'), remove));
+        el('button', {type: 'button', 'data-control': 'CTL-USEARCH-ADD-COND', onclick: () => { const added = US.newCondition(); node.children.push(added); focusOn('CTL-USEARCH-FIELD', added); go(); }}, '+ Condizione'),
+        el('button', {type: 'button', 'data-control': 'CTL-USEARCH-ADD-GROUP', onclick: () => { const added = US.newGroup(); node.children.push(added); focusOn('CTL-USEARCH-ADD-COND', added); go(); }}, '+ Gruppo'), remove));
   };
   // restore selected field values after cloning options
   const builder = renderNode(tree, null, 0);
@@ -1918,18 +1957,23 @@ async function usearchView(params) {
   const phase = el('div', {class: 'us-phase', role: 'radiogroup', 'aria-label': 'Fase'}, US.DECISIONS.map(d => el('label', {class: 'check', title: d.note},
     el('input', {type: 'radio', name: 'decision', value: d.id, checked: d.id === decision, disabled: !d.enabled, 'data-control': 'CTL-USEARCH-DECISION', onchange: () => { state.decision = d.id; go(); }}),
     ' ', d.label, d.enabled ? '' : ' (non ancora implementata)')));
-  const window_ = el('form', {class: 'filters', onsubmit: e => {
+  window_ = el('form', {class: 'filters', onsubmit: e => {
     e.preventDefault(); const fd = new FormData(e.target);
     Object.assign(state, {from: fd.get('from'), to: fd.get('to'), competition: fd.get('competition') ?? '', season: fd.get('season') ?? ''});
-    revealOutcome = true; go({run: '1'}); }},
+    revealOutcome = true; go({run: '1'}); usearchFocus = null; }},
     el('label', {}, 'Dal ', el('input', {type: 'date', name: 'from', value: state.from, required: true, 'data-control': 'CTL-USEARCH-FROM'})),
     el('label', {}, 'Al ', el('input', {type: 'date', name: 'to', value: state.to, required: true, 'data-control': 'CTL-USEARCH-TO'})),
-    el('label', {}, 'Campionato ', el('select', {name: 'competition', 'data-control': 'CTL-USEARCH-COMPETITION', disabled: !competitionsBody, onchange: e => { state.competition = e.target.value; state.season = ''; go(); }},
-      [el('option', {value: ''}, 'Tutti'), ...competitions.map(c => el('option', {value: c.internal_competition_id, selected: c.internal_competition_id === competition}, c.name ?? c.canonical_name ?? c.internal_competition_id))])),
+    el('label', {}, 'Campionato ', el('select', {name: 'competition', 'data-control': 'CTL-USEARCH-COMPETITION', disabled: !competitionsBody, onchange: e => { sync(); state.competition = e.target.value; go({season: ''}); }},
+      [el('option', {value: ''}, 'Tutti'), ...competitions.map(c => el('option', {value: c.internal_competition_id, selected: c.internal_competition_id === competition}, `${words(c.country_slug ?? '')} · ${words(c.league_slug ?? '')}`))])),
     el('label', {}, 'Stagione ', el('select', {name: 'season', 'data-control': 'CTL-USEARCH-SEASON', disabled: !Array.isArray(seasons)},
-      [el('option', {value: ''}, 'Tutte'), ...(Array.isArray(seasons) ? seasons : []).map(r => el('option', {value: r.season_id, selected: r.season_id === state.season}, String(r.season ?? r.season_id)))])),
+      [el('option', {value: ''}, 'Tutte'), ...(Array.isArray(seasons) ? seasons : []).map(r => el('option', {value: r.season_id, selected: r.season_id === state.season}, /^\d{4}-\d{4}$/.test(r.season ?? '') ? `${r.season.slice(0, 4)}/${r.season.slice(7)}` : String(r.season ?? ND)))])),
     el('button', {type: 'submit', 'data-control': 'CTL-USEARCH-SUBMIT'}, 'Cerca'));
   const summary = el('p', {class: 'meta', 'data-testid': 'us-catalog'}, `Campi utilizzabili: ${model.usable} su ${model.total} · non ancora implementati o non disponibili: ${model.not_implemented}`);
+  if (usearchFocus) {
+    const wanted = usearchFocus;
+    usearchFocus = null;
+    setTimeout(() => document.querySelectorAll(`#view [data-control="${wanted.control}"]`)[wanted.index]?.focus(), 0);
+  }
   const out = [head, competitionsBody ? null : el('p', {class: 'state partial', role: 'status'}, 'Elenco dei campionati non disponibile.'), summary, phase, builder, window_];
   if (params.get('run') !== '1') return [...out, el('p', {class: 'state empty'}, 'Costruisci le condizioni e premi Cerca.')];
   const errors = US.validate(tree, model, decision);
@@ -1943,11 +1987,14 @@ async function usearchView(params) {
   return [...out, el('section', {'data-outcome': '', 'data-testid': 'us-outcome'},
     el('p', {}, `Corrispondenze: ${s.matches ?? ND} · non corrispondenti: ${s.not_matching ?? ND} · indeterminate per dati mancanti: ${s.unknown ?? ND} · partite valutate: ${s.scanned ?? ND}`),
     s.truncated ? el('p', {class: 'state partial'}, 'Finestra troncata: restringi le date o il campionato.') : null,
+    // The API returns at most `limit` rows: fewer rows than matches are said, never read as all of them (Browser QA #286).
+    Number.isFinite(s.matches) && s.matches > rows.length ? el('p', {class: 'state partial', 'data-testid': 'us-shown'},
+      `Mostrate le prime ${formatNumber(rows.length)} corrispondenze su ${formatNumber(s.matches)}: restringi le condizioni o le date per vederle tutte.`) : null,
     s.pit ? el('p', {class: 'meta'}, 'PIT: ', s.pit === 'NON_PIT' ? 'ricerca storica (non PIT)' : 'non verificato (orari di acquisizione ignoti)') : null,
-    rows.length ? el('table', {class: 'grid'}, el('thead', {}, el('tr', {}, ['Data', 'Partita', ...fields.map(f => f.id)].map(t => el('th', {}, t)))),
-      el('tbody', {}, rows.map(r => el('tr', {}, el('td', {'data-label': 'Data'}, r.date ?? ND),
+    rows.length ? el('div', {class: 'tablewrap'}, el('table', {class: 'results'}, el('thead', {}, el('tr', {}, ['Data', 'Partita', ...fields.map(f => byId.get(f.id)?.label ?? f.id)].map(t => el('th', {}, t)))),
+      el('tbody', {}, rows.map(r => el('tr', {'data-match': r.id}, el('td', {'data-label': 'Data'}, calendarDay(r.date ?? '')),
         el('td', {'data-label': 'Partita'}, el('a', {href: matchHref(r.id), 'data-control': 'CTL-USEARCH-MATCH'}, `${r.home ?? ND} – ${r.away ?? ND}`)),
-        ...fields.map(f => { const v = US.displayValue(r.values?.[f.id]); return el('td', {'data-label': f.id, class: v.missing ? 'missing' : ''}, v.missing ? badge('ND') : v.text); })))))
+        ...fields.map(f => { const v = US.displayValue(r.values?.[f.id]); return el('td', {'data-label': byId.get(f.id)?.label ?? f.id, 'data-field': f.id, class: v.missing ? 'missing' : ''}, v.missing ? badge('ND') : formatDecimalText(v.text)); }))))))
       : el('p', {class: 'state empty'}, 'Nessuna partita soddisfa le condizioni.'))];
 }
 
