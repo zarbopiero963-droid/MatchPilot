@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 253,
+  "revision": 254,
   "tasks": [
     {
       "id": "R-01",
@@ -2530,12 +2530,12 @@
       "id": "MP-OWNER-DEC-MIG-02",
       "title": "Name the tasks the migration mandate already authorizes as parallel (parallel_tasks)",
       "issue": 288,
-      "pr": null,
+      "pr": 299,
       "branch": "mp-owner-dec-mig-02",
       "kind": "audit",
       "state": "REVIEW",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T230002Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T230541Z-agent-a-claude-code",
       "resources": [
         "file:docs/governance/owner-decisions.json"
       ],
@@ -2543,7 +2543,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
