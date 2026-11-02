@@ -158,6 +158,23 @@ export function planValidate(reg, plan, {uiIds = null} = {}) {
     if (!activeReqs.length && !/^docs\/qa\/feature-certification\.json#FEAT-/.test(c.ref ?? '')) errors.push(`${c.card}: COMPLETED with no requirement needs a registered certificate as its reference`);
     for (const id of card?.requirements ?? []) if (req.get(id)?.lifecycle === 'ACTIVE' && !completed.has(id)) errors.push(`${c.card}: COMPLETED but ${id} is not completed`);
   }
+  // Owner decisions applied to the plan (MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL): a withdrawn or merged PR
+  // names a registered owner decision, loses no requirement, and never shows up again in the working plan.
+  const decisionIds = new Set(JSON.parse(readFileSync(join(ROOT, 'docs/governance/owner-decisions.json'), 'utf8')).decisions.map(d => d.id));
+  for (const w of plan.withdrawn_by_owner ?? []) {
+    if (!decisionIds.has(w.decision)) errors.push(`${w.id}: withdrawn by an unregistered owner decision ${w.decision}`);
+    if (prIds.has(w.id)) errors.push(`${w.id}: withdrawn by the owner but still in the working plan`);
+    const target = w.merged_into && plan.planned_prs.find(x => x.id === w.merged_into);
+    if (w.merged_into && !target) errors.push(`${w.id}: merged into unknown ${w.merged_into}`);
+    for (const id of w.requirements ?? []) {
+      if (target) { if (!target.requirements.includes(id)) errors.push(`${w.id}: requirement ${id} lost in the merge into ${w.merged_into}`); continue; }
+      const r = req.get(id);
+      if (!r) errors.push(`${w.id}: unknown requirement ${id}`);
+      else if (r.lifecycle === 'ACTIVE' || r.owner_decision !== w.decision) errors.push(`${w.id}: requirement ${id} must stay in history as non-active with owner decision ${w.decision}`);
+    }
+  }
+  const bs = plan.baseline_status;
+  if (bs && bs.working_plan && bs.official && bs.official.N + bs.working_plan.delta_vs_official !== planCounts(reg, plan).N) errors.push('baseline_status: official N + delta differs from the working plan count');
   // Totals reconcile and match the stored counts.
   const k = planCounts(reg, plan);
   if (k.A_cards !== k.B_completed + k.C_superseded + k.D_duplicate + k.carried_cards) errors.push('cards do not reconcile: A != B + C + D + carried');
@@ -240,6 +257,7 @@ export function renderPlan(plan) {
   const k = plan.counts;
   const lines = ['# MatchPilot — PR residue (generato da `tools/governance/pr-plan.mjs render`, non modificare a mano)', '',
     `Verifica: ${plan.verified_at} su \`${plan.verified_at_sha.slice(0, 7)}\` · mandato ${plan.mandate}`, '',
+    ...(plan.baseline_status ? [`**Baseline ufficiale: ${plan.baseline_status.official.N}** (${plan.baseline_status.official.N_min}–${plan.baseline_status.official.N_max}) · candidata ${plan.baseline_status.candidate.N} (${plan.baseline_status.candidate.N_min}–${plan.baseline_status.candidate.N_max}) non approvata · piano di lavoro qui sotto: proiezione con le decisioni owner applicate (${plan.baseline_status.working_plan.decision}), NON una baseline approvata`, ''] : []),
     `**PR residue: ${k.N}** (intervallo giustificato ${k.N_min}–${k.N_max}) · aperte ${k.F_open_prs} · nuove ${k.G_new_prs} · solo certificazione ${k.I_certification_only} · dipendenti da decisioni owner ${k.J_decision_dependent}`, '',
     `Schede: ${k.A_cards} = completate ${k.B_completed} + superate ${k.C_superseded} + duplicate ${k.D_duplicate} + portate da PR ${k.carried_cards}; PR = ${k.carried_cards} − ${k.E_absorbed} assorbite + ${k.S_split_out} scorporate = ${k.H_total_prs}.`, '',
     `Requisiti attivi coperti: ${k.requirements.covered_by_pr + k.requirements.completed_with_evidence}/${k.requirements.active} (senza copertura: ${k.requirements.uncovered.length}).`, ''];
