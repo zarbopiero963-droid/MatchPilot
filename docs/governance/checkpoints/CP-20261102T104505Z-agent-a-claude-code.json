@@ -1,0 +1,137 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T104505Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T10:45:05Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-NEXT-20261102",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-NEXT-GOV-01",
+  "activity": "PR #279 merged as 7a959e7 (squash; SAFE under MP-NEXT-20261102: mandate registration, PG17 evidence, MERGED checkpoint of #278)",
+  "issue": 263,
+  "pr": 279,
+  "branch": "mp-gov-next-20261102",
+  "commit_sha": "dd57e9e5f2c17856758db0483a02c550460a9f83",
+  "tree_sha": "8ecf081727ba6829180ae3ebe61cc6d2073272c0",
+  "base_sha": "8d3198d58cdcfb960efaa6f2e8b3121a07f76232",
+  "requirements": [],
+  "changes": [
+    "docs/governance/owner-decisions.json (MP-NEXT-20261102 IN_FORCE; MP-OWNER-IMPL-20261101 COMPLETED)",
+    "docs/product/mp-263/pg17-run-2026-11-02.md",
+    "MERGED checkpoint of PR #278",
+    "work-registry",
+    "dd57e9e: review fixes (pyc restored, compact owner-decisions)",
+    "7a959e7: squash merge of PR #279"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #279 head dd57e9e",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "dd57e9e5f2c17856758db0483a02c550460a9f83",
+      "time": "2026-11-02T10:45:05Z",
+      "limits": [
+        "run 41426446263 success"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 7a959e7",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "7a959e7b00279bf281194c6d404c0c394fa047b4",
+      "time": "2026-11-02T10:45:05Z",
+      "limits": [
+        "run 41426983907 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 7a959e7",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "7a959e7b00279bf281194c6d404c0c394fa047b4",
+      "time": "2026-11-02T10:45:05Z",
+      "limits": [
+        "run 41426983861: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41426446263,
+    "conclusion": "SUCCESS",
+    "head_sha": "dd57e9e5f2c17856758db0483a02c550460a9f83"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "dd57e9e5f2c17856758db0483a02c550460a9f83",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/279#issuecomment-6574478587 (independent review APPROVED on 65739fa, re-review APPROVED on dd57e9e)"
+  },
+  "findings": [
+    {
+      "id": "GOV01-N1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "owner-decisions.json kept in its compact format"
+    },
+    {
+      "id": "GOV01-N2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "stray regenerated .pyc restored from main"
+    }
+  ],
+  "owner_decisions": [
+    "MP-NEXT-20261102",
+    "MP-OWNER-IMPL-20261101",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:docs/governance/owner-decisions.json",
+    "file:docs/product/mp-263/pg17-run-2026-11-02.md"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261102T100901Z-agent-a-claude-code",
+  "merge_sha": "7a959e7b00279bf281194c6d404c0c394fa047b4"
+}
