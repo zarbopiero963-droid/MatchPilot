@@ -124,3 +124,11 @@ test('MP-PIT-LIVE-01 review: an in-play condition is never PIT verified by the e
   assert.deepEqual(pitViolations(withUnknown, new Map(), {decision: 'POSTMATCH'}), [{field: 'apifootball:market:odds/bet:5', timing: null, reason: 'not in the catalog'}]);
 });
 
+
+test('MP-PIT-LIVE-01 review (Codex): an instant without seconds is valid; an impossible one is still refused', async () => {
+  const {classifyPhase} = await import('../src/pit/phase.mjs');
+  const r = classifyPhase({kickoff: '2026-11-02T17:30Z', acquiredAt: '2026-11-02T16:30Z', matchStatus: 'NS', provenance: 'test', snapshotId: 'x'});
+  assert.equal(r.phase, 'PREMATCH');
+  assert.equal(r.times.kickoff, '2026-11-02T17:30:00.000Z');
+  assert.equal(classifyPhase({kickoff: '2026-02-30T17:30Z', acquiredAt: '2026-11-02T16:30Z', matchStatus: 'NS'}).phase, 'UNKNOWN');
+});

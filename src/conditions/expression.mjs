@@ -43,7 +43,8 @@ const ISO_WITH_OFFSET = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,6})?)?(Z|[
 function validCalendar(text) {
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/.exec(text);
   if (!m) return false;
-  const [y, mo, d, h, mi, se = '0'] = m.slice(1).map(Number);
+  // An omitted seconds group is 0 (map(Number) would turn undefined into NaN and refuse a valid instant).
+  const [y, mo, d, h, mi, se] = m.slice(1).map(v => (v === undefined ? 0 : Number(v)));
   const days = new Date(Date.UTC(y, mo, 0)).getUTCDate();
   return mo >= 1 && mo <= 12 && d >= 1 && d <= days && h <= 23 && mi <= 59 && se <= 59;
 }

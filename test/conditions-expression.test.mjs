@@ -131,3 +131,13 @@ test('MP-CAP-03 review: untimed prices are reported, impossible dates are UNKNOW
   assert.throws(() => norm(Object.assign(Object.create(null), {field: H, op: 'is_null'})), /must be an object/);
 });
 
+
+test('MP-PIT-LIVE-01 review (Codex): a datetime value without seconds is accepted; an impossible date is refused', async () => {
+  const {fptFieldCapability, buildCatalog} = await import('../src/capabilities/catalog.mjs');
+  const {normalizeExpression: norm, evaluate: ev} = await import('../src/conditions/expression.mjs');
+  const caps = buildCatalog([fptFieldCapability({field_name: 'Kickoff_UTC', inferred_type: 'date_or_datetime', nonempty_seen: '5', filterable: true, coverage_ratio: null})]).capabilities;
+  const id = caps[0].id;
+  const n = norm({field: id, op: 'gte', value: '2026-11-02T17:30Z'}, caps);
+  assert.equal(ev(n, {[id]: '2026-11-02T18:00Z'}, caps), 'TRUE');
+  assert.throws(() => norm({field: id, op: 'gte', value: '2026-02-30T17:30Z'}, caps));
+});
