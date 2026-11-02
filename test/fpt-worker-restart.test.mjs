@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, readFileSync, chmodSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, chmodSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -95,12 +95,27 @@ test('MP-FPT-RETIRE-02 missing env files behave as not retired; other values are
   assert.equal(spawnSync('bash', [HELPER, 'start']).status, 2);
 });
 
-test('MP-FPT-RETIRE-02 under sudo the MP_ overrides are ignored', () => {
+test('MP-FPT-RETIRE-02 under sudo the MP_ overrides are ignored, and the host systemctl is never reached', () => {
   const s = sandbox({env: {'fpt.env': 'FUTPYTHON_RETIRED=true\n'}});
-  // With SUDO_USER set the helper drops MP_SYSTEMCTL and MP_FPT_ENV_FILES and falls back to the real paths; here the
-  // real env files do not exist and the real systemctl may not either, so the result is anything but a fake call.
-  s.run('deploy', {SUDO_USER: 'root'});
-  assert.deepEqual(s.calls(), [], 'the fake systemctl is not used under sudo');
+  // review (Codex P1): under SUDO_USER the helper falls back to the plain `systemctl` of PATH. A second fake named
+  // systemctl comes first in PATH, so the test can never reach the host's systemctl, whatever the privileges.
+  const shadow = join(s.dir, 'shadow');
+  mkdirSync(shadow);
+  writeFileSync(join(shadow, 'systemctl'), `#!/bin/bash\necho "$*" >> "${join(s.dir, 'shadow.log')}"\ncase "$1" in is-enabled) echo enabled ;; is-active) exit 0 ;; *) exit 0 ;; esac\n`);
+  chmodSync(join(shadow, 'systemctl'), 0o755);
+  const r = s.run('deploy', {SUDO_USER: 'root', PATH: `${shadow}:${process.env.PATH}`});
+  assert.deepEqual(s.calls(), [], 'the MP_SYSTEMCTL fake is not used under sudo');
+  const shadowCalls = existsSync(join(s.dir, 'shadow.log')) ? readFileSync(join(s.dir, 'shadow.log'), 'utf8').trim().split('\n') : [];
+  assert.ok(shadowCalls.length > 0 && shadowCalls.every(c => /^(is-enabled|is-active|try-restart) /.test(c)), 'only the PATH fake was called');
+  assert.match(r.stdout, /phase=deploy worker_restart=/);
+});
+
+test('MP-FPT-RETIRE-02 review: quoted values with inner spaces are trimmed like the application does', () => {
+  for (const v of ['" true "', "' true'", '"true "']) {
+    const s = sandbox({env: {'fpt.env': `FUTPYTHON_RETIRED=${v}\n`}});
+    assert.match(s.run().stdout, /worker_restart=skipped_retired/, v);
+    assert.ok(!s.calls().some(c => c.startsWith('try-restart')), v);
+  }
 });
 
 test('MP-FPT-RETIRE-02 mp-deploy v3.4 uses the guard for deploy and rollback and never falls back to a bare restart', () => {
