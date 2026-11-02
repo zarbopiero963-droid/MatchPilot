@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 242,
+  "revision": 243,
   "tasks": [
     {
       "id": "R-01",
@@ -2442,7 +2442,7 @@
       "kind": "audit",
       "state": "REVIEW",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T164442Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T165347Z-agent-a-claude-code",
       "resources": [
         "file:docs/governance/master/audit/baseline-270.json",
         "file:docs/governance/master/pr-plan-reconciliation.json",
