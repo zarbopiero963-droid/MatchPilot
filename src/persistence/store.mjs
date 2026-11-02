@@ -1,8 +1,9 @@
 // PERSIST-STORE-01 (priority 4, #99 #34): PostgreSQL persistence of the paper ledger, configurable strategies and saved
-// backtests, over the staged schema db/staged/030-persistence.sql. The tables are append-only (database triggers). The
-// paper ledger stays the pure module it is (src/ledger/paper-ledger.mjs): this store loads the entries, lets the ledger
-// function run on them, and appends the new entries and idempotency keys in the same transaction. Positions are never
-// stored: they are rebuilt by replay, so the entries remain the single source of truth.
+// backtests, over the schema of migrations/030-persistence.sql (promoted from db/staged, MP-MIG-030-PROMOTE-01). The
+// tables are append-only (database triggers). The paper ledger stays the pure module it is (src/ledger/paper-ledger.mjs):
+// this store loads the entries, lets the ledger function run on them, and appends the new entries and idempotency keys
+// in the same transaction. Positions are never stored: they are rebuilt by replay, so the entries remain the single
+// source of truth.
 // Until the schema is applied (an owner-authorized migration) every call fails with PERSISTENCE_UNAVAILABLE, which the
 // API maps to 503; nothing is created on the fly.
 import {canonicalJson, sha256} from '../hist/contract.mjs';

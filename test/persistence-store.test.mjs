@@ -1,8 +1,11 @@
-// PERSIST-STORE-01: the staged persistence schema (db/staged/030-persistence.sql) and its store, on a throwaway
-// PostgreSQL schema. The schema is applied here by the test only; migrate() never sees the staged file.
+// PERSIST-STORE-01: the persistence schema (migrations/030-persistence.sql, promoted from db/staged by
+// MP-MIG-030-PROMOTE-01) and its store, on a throwaway PostgreSQL schema. Without the schema the test database is
+// migrated up to 029 only, the state of a database before the promotion; the schema then comes from the real migrate().
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
-import {readFileSync, readdirSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import {rm} from 'node:fs/promises';
 import test from 'node:test';
 import {accountState, correctSettlement, createLedger, hedgePosition, openPosition, replay, settlePosition} from '../src/ledger/paper-ledger.mjs';
 import {runBacktest} from '../src/hist/engine.mjs';
@@ -10,7 +13,10 @@ import {settleFromResult} from '../src/ledger/settlement.mjs';
 import {fromFutPythonTrader} from '../src/markets/outcomes.mjs';
 import {applyToLedger, createAccount, listBacktests, listStrategies, loadBacktest, loadLedger, loadStrategy, persistenceAvailable, saveBacktest, saveStrategy} from '../src/persistence/store.mjs';
 
-const STAGED = readFileSync(new URL('../db/staged/030-persistence.sql', import.meta.url), 'utf8');
+import {migrateArgs, migrationsBefore} from './helpers/migrations.mjs';
+
+const MIGRATION_BYTES = readFileSync(new URL('../migrations/030-persistence.sql', import.meta.url));
+const MIGRATION = MIGRATION_BYTES.toString('utf8');
 
 function runNode(args, env) {
   return new Promise((resolve, reject) => {
@@ -39,12 +45,17 @@ async function withSchema(t, name, body, {staged = true} = {}) {
   try {
     await root.query(`CREATE SCHEMA ${schema}`);
     dbUrl.searchParams.set('options', `-csearch_path=${schema}`);
-    await runNode(['src/migrate.mjs'], {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test'});
+    const env = {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test'};
+    const migrateAll = () => runNode(['src/migrate.mjs'], env);
+    if (staged) await migrateAll();
+    else {
+      const before030 = await migrationsBefore('030');
+      try { await runNode(migrateArgs(before030), env); } finally { await rm(before030, {recursive: true, force: true}); }
+    }
     const connect = async () => { const c = new pg.Client({connectionString: dbUrl.toString()}); await c.connect(); return c; };
     const db = await connect();
     try {
-      if (staged) await db.query(STAGED);
-      await body(db, connect, schema);
+      await body(db, connect, schema, migrateAll);
     } finally { await db.end(); }
   } finally {
     await root.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
@@ -54,14 +65,15 @@ async function withSchema(t, name, body, {staged = true} = {}) {
 
 const code = async promise => { try { await promise; return 'OK'; } catch (error) { return error.code; } };
 
-test('persistence schema: staged outside migrations/, additive only, idempotent, append-only enforced by the database', {timeout: 90000}, async t => {
-  assert.ok(!readdirSync(new URL('../migrations/', import.meta.url)).some(f => /persistence/.test(f)), 'not a migration yet');
+test('persistence schema: migration 030, byte-identical to the reviewed staged file, additive only, idempotent, append-only enforced by the database', {timeout: 90000}, async t => {
+  // The promotion moved the reviewed file without changing a byte (sha256 recorded in docs/persistence-plan.md).
+  assert.equal(createHash('sha256').update(MIGRATION_BYTES).digest('hex'), 'b81e0ca4be76712c09e1556a53c112d779d8532f911c16684fa0e50671276999');
   // Additive only: every statement creates something; none drops, alters, deletes, updates, inserts or grants.
-  const code0 = STAGED.replace(/--.*$/gm, '');
+  const code0 = MIGRATION.replace(/--.*$/gm, '');
   assert.doesNotMatch(code0, /^\s*(DROP|ALTER|DELETE|TRUNCATE|UPDATE|INSERT|GRANT|REVOKE|COMMENT)\b/im, 'additive only');
   const statements = code0.split(/\$\$[\s\S]*?\$\$/).join('').split(';').map(x => x.trim()).filter(Boolean);
   for (const statement of statements) assert.match(statement, /^CREATE (TABLE IF NOT EXISTS|UNIQUE INDEX IF NOT EXISTS|OR REPLACE (FUNCTION|TRIGGER))\b/, statement.slice(0, 60));
-  await withSchema(t, 'schema', async (db, connect, schema) => {
+  await withSchema(t, 'schema', async (db, connect, schema, migrateAll) => {
     const catalog = async () => (await db.query(`SELECT table_name, column_name, data_type, is_nullable, column_default FROM information_schema.columns
       WHERE table_schema = $1 ORDER BY 1, 2`, [schema])).rows;
     const constraints = async () => (await db.query(`SELECT conrelid::regclass::text AS t, conname, pg_get_constraintdef(oid) AS d FROM pg_constraint
@@ -69,8 +81,9 @@ test('persistence schema: staged outside migrations/, additive only, idempotent,
     const before = {columns: await catalog(), constraints: await constraints()};
     assert.equal(await persistenceAvailable(db), false);
     assert.equal(await code(createAccount(db, {accountId: 'a', initialAllocation: '100', at: 't'})), 'PERSISTENCE_UNAVAILABLE');
-    await db.query(STAGED);
-    await db.query(STAGED); // idempotent
+    await migrateAll(); // the real runner applies 030 on the database migrated up to 029
+    await migrateAll(); // nothing left to apply
+    await db.query(MIGRATION); // the file itself is idempotent too (a database where it was already run by hand)
     assert.equal(await persistenceAvailable(db), true);
     const NEW = ['paper_ledger_entries', 'paper_ledger_keys', 'strategy_definitions', 'strategy_versions', 'saved_backtests'];
     const after = {columns: (await catalog()).filter(c => !NEW.includes(c.table_name)), constraints: (await constraints()).filter(c => !NEW.includes(c.t.split('.').at(-1)))};
