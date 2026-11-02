@@ -228,7 +228,7 @@ export function reconcile(reg, plan) {
 export const AUDIT_INPUTS = ['docs/governance/master/requirements.jsonl', 'docs/governance/master/cards.jsonl', 'docs/governance/master/issues.json',
   'docs/governance/master/prs.json', 'docs/governance/master/pr-plan.json', 'docs/governance/master/pr-plan.md', 'docs/governance/master/pr-plan-reconciliation.json',
   'docs/governance/master/audit/baseline-270.json', 'docs/governance/master/audit/producer-analysis.json', 'docs/governance/master/audit/decision-cards.md',
-  'docs/governance/master/audit/MP-ROADMAP-270-AUDIT.md', 'docs/governance/master/audit/CODEX-AUDIT-PACKAGE.md', 'docs/governance/owner-decisions.json',
+  'docs/governance/master/audit/MP-ROADMAP-270-AUDIT.md', 'docs/governance/master/audit/INDEPENDENT-AUDIT-PACKAGE.md', 'docs/governance/owner-decisions.json',
   'docs/governance/ui-requirements-matrix.json', 'docs/governance/mp-pr-00/requirements.json', 'tools/governance/master.mjs', 'tools/governance/pr-plan.mjs'];
 export function auditManifest(root = ROOT) {
   return {schema: 'mp-audit-package-v1', files: Object.fromEntries(AUDIT_INPUTS.map(f => [f, createHash('sha256').update(readFileSync(join(root, f))).digest('hex')]))};

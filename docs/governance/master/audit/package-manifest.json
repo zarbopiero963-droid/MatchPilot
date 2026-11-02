@@ -12,11 +12,11 @@
   "docs/governance/master/audit/producer-analysis.json": "c41fed14ef6e005f81fb05b0418b080daedb63f3e90425a3a1b48771c7687afc",
   "docs/governance/master/audit/decision-cards.md": "73967b6ddf881803bf7c05c295d7ba86592c2f8da81e1bcbdd58e570acda9ed1",
   "docs/governance/master/audit/MP-ROADMAP-270-AUDIT.md": "7dd6344adb1d62175cc480182642d6000e81bf14f4ee10950e81ddbadaf2eb71",
-  "docs/governance/master/audit/CODEX-AUDIT-PACKAGE.md": "d2d6d288401c22bb4486763cb05ab501590c438ea0a1ec4f998005745da81201",
-  "docs/governance/owner-decisions.json": "481fbdf635661c018c8445a7bc0378334a8e159604fd67259bbac31c620aff11",
+  "docs/governance/master/audit/INDEPENDENT-AUDIT-PACKAGE.md": "8a97a971a677c92de1ad728b4b6cec643f397aee2d2d47b8fdd17ad8349dae41",
+  "docs/governance/owner-decisions.json": "586715f7b8570ec4279d173ef35a94c7fe6e68ed0368e71ea876edc08e877b29",
   "docs/governance/ui-requirements-matrix.json": "e22093b1c14bb9856dfd61e8778ffae12a0601d0f71cc1bb469979114ec6721b",
   "docs/governance/mp-pr-00/requirements.json": "b7632aa37d47817762b575b8ec4930cb9e7cc6b554f84c6f6e3b546d5e9e9bb7",
   "tools/governance/master.mjs": "3dedd30e7c8a353b249b250b8864b0bf3388dbc0d7120713b564d98c8bff5a97",
-  "tools/governance/pr-plan.mjs": "f2fab5b7cc9831ebd618a422caba45257af745dabb6c651790781f0f8bfcbec4"
+  "tools/governance/pr-plan.mjs": "efe0da08c70b29c9cbfa2e8d9cf56404c83be9caf62cbc2ccd38815d77d9903e"
  }
 }

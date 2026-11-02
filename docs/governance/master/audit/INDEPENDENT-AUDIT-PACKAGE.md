@@ -77,7 +77,7 @@ L'audit **non è concluso** finché ognuna di queste categorie non è verificata
 
 > Audit indipendente in sola lettura del conteggio delle PR residue di MatchPilot.
 > - Non fare commit, push, PR, merge o deploy; non modificare dati; non chiamare provider esterni.
-> - Leggi `docs/governance/master/audit/CODEX-AUDIT-PACKAGE.md` e `MP-ROADMAP-270-AUDIT.md`.
+> - Leggi `docs/governance/master/audit/INDEPENDENT-AUDIT-PACKAGE.md` e `MP-ROADMAP-270-AUDIT.md`.
 > - Ricostruisci da zero le categorie 1–8, voce per voce, partendo da `cards.jsonl`, `requirements.jsonl`, `pr-plan.json` e dal codice di `main`.
 > - Rispondi con il formato A–G del protocollo: A, PASS / PASS WITH RESERVATIONS / FAIL; F, con `PR RESIDUE VERIFICATE`, `INTERVALLO`, `PR GIÀ APERTE`, `PR NUOVE`, `DECISIONI OWNER PENDENTI`; G, i finding con gravità P0–P3 ed evidenza file e riga.
 > - Dichiara esplicitamente le categorie che non hai potuto verificare.
