@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 253,
+  "revision": 254,
   "tasks": [
     {
       "id": "R-01",
@@ -2570,6 +2570,29 @@
       },
       "pr_open": false,
       "merge_sha": "70ee74b31004983fa4060bb1f4daabe30386c036"
+    },
+    {
+      "id": "MP-AF-RAW-01",
+      "title": "Migrazione MANUAL 033: risposte grezze API-FOOTBALL append-only e collegamento degli snapshot (correzione P1 della PR #283)",
+      "issue": 263,
+      "pr": 297,
+      "branch": "mp-af-raw-responses-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T225449Z-agent-a-claude-code",
+      "resources": [
+        "file:migrations/033-apifootball-raw-responses.sql",
+        "file:db/rollback/033-apifootball-raw-responses.down.sql",
+        "file:test/apifootball-raw-responses.test.mjs",
+        "file:test/helpers/apifootball-raw.mjs",
+        "file:docs/product/mp-263/evidence/af-raw-responses.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": true
     }
   ]
 }
