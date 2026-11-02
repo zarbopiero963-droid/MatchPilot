@@ -2389,7 +2389,7 @@
       "id": "MP-SEARCH-01",
       "title": "Ricerca universale AND/OR/NOT sul catalogo delle capacità: GET /api/v1/search (MANUAL)",
       "issue": 263,
-      "pr": null,
+      "pr": 285,
       "branch": "mp-universal-search-01",
       "kind": "implementation",
       "state": "REVIEW",
@@ -2405,7 +2405,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
