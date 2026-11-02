@@ -1,0 +1,167 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T020004Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T02:00:04Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-IMPL-20261101",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): implementation phase"
+  },
+  "task": "MP-TC-BENCH-01",
+  "activity": "PR #278 merged as 8d3198d (squash; owner authorization MP-OWNER-IMPL-20261101, TotalCorner benchmark preparation)",
+  "issue": 263,
+  "pr": 278,
+  "branch": "mp-tc-benchmark-prep",
+  "commit_sha": "7c72cc189497e695b6bab78f3328466152bd22c6",
+  "tree_sha": "6cc257b971b94c1f3b8d553fd2e22fbdc387e0a2",
+  "base_sha": "8d14ac070fd653fe97fdda0ddb5d332169040303",
+  "requirements": [],
+  "changes": [
+    "src/benchmark/live-benchmark.mjs",
+    "src/benchmark/tc-export.mjs",
+    "tools/benchmark/tc-af-live.mjs",
+    "test/live-benchmark.test.mjs",
+    "docs/product/mp-263/README.md",
+    "package.json check entries",
+    "review fixes 4acc243",
+    "8d3198d: squash merge of PR #278"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #278 head 7c72cc1",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "7c72cc189497e695b6bab78f3328466152bd22c6",
+      "time": "2026-11-02T02:00:04Z",
+      "limits": [
+        "run 41373330800 success"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 8d3198d",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "8d3198d58cdcfb960efaa6f2e8b3121a07f76232",
+      "time": "2026-11-02T02:00:04Z",
+      "limits": [
+        "run 41374329787 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 8d3198d",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "8d3198d58cdcfb960efaa6f2e8b3121a07f76232",
+      "time": "2026-11-02T02:00:04Z",
+      "limits": [
+        "run 41374329682: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41373330800,
+    "conclusion": "SUCCESS",
+    "head_sha": "7c72cc189497e695b6bab78f3328466152bd22c6"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "7c72cc189497e695b6bab78f3328466152bd22c6",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/278#issuecomment-6566994111 (APPROVED on 4acc243; 4acc243..7c72cc1 registers only, verified with git diff --stat)"
+  },
+  "findings": [
+    {
+      "id": "TCB-B1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "latency was not a lower bound: replaced by a documented sighting delay; 45+2 excluded, negatives counted"
+    },
+    {
+      "id": "TCB-B2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "intervals of a deduplicated archive are change cadence: flagged and never compared with raw polls; in-play only"
+    },
+    {
+      "id": "TCB-B3",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "non-Latin names normalized to empty and matched falsely: any script kept, names required"
+    },
+    {
+      "id": "TCB-B4",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "verdict possible without reference data: live data on both sides now required"
+    },
+    {
+      "id": "TCB-N-REF",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "a KEEP/DROP needs an AF archive with the same deduplication; the verdict tests the candidate's absolute metrics only, the reference's are reported"
+    },
+    {
+      "id": "TCB-N7",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "export is one json_agg row bounded by a 31-day window"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-IMPL-20261101",
+    "MP-AUTONOMY-01",
+    "MP-OWNER-GO-2026-11-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": [
+      "owner: AF LIVE budget or parallel TC window, field mapping, thresholds"
+    ]
+  },
+  "resources": [
+    "file:src/benchmark/live-benchmark.mjs",
+    "file:src/benchmark/tc-export.mjs",
+    "file:tools/benchmark/tc-af-live.mjs"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent",
+    "benchmark run needs owner budget or TC GO, field mapping and thresholds"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261102T013519Z-agent-a-claude-code",
+  "merge_sha": "8d3198d58cdcfb960efaa6f2e8b3121a07f76232"
+}

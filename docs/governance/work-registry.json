@@ -2325,9 +2325,9 @@
       "pr": 278,
       "branch": "mp-tc-benchmark-prep",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T013519Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T020004Z-agent-a-claude-code",
       "resources": [
         "file:src/benchmark/live-benchmark.mjs",
         "file:src/benchmark/tc-export.mjs",
@@ -2337,7 +2337,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "8d3198d58cdcfb960efaa6f2e8b3121a07f76232"
     }
   ]
 }
