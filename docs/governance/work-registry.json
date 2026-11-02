@@ -2359,6 +2359,30 @@
         "role": "Development Agent"
       },
       "pr_open": true
+    },
+    {
+      "id": "MP-PIT-LIVE-01",
+      "title": "MP-PIT-LIVE-01: LIVE time phase and LIVE_ACQUIRED",
+      "issue": 263,
+      "pr": null,
+      "branch": "mp-pit-live-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T102043Z-agent-a-claude-code",
+      "resources": [
+        "file:src/pit/phase.mjs",
+        "file:src/capabilities/catalog.mjs",
+        "file:src/capabilities/apifootball.mjs",
+        "file:src/conditions/expression.mjs",
+        "file:test/pit-live.test.mjs",
+        "file:docs/pit-policy.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
