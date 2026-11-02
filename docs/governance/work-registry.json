@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 248,
+  "revision": 249,
   "tasks": [
     {
       "id": "R-01",
@@ -2479,6 +2479,30 @@
         "role": "Development Agent"
       },
       "pr_open": true
+    },
+    {
+      "id": "MP-OWNER-DEC-FINAL-01",
+      "title": "Owner decisions DC-002 B, DC-021 B, DC-029 A, DC-082 A, DC-233 B applied to the residual PR plan; official baseline 270 kept",
+      "issue": 288,
+      "pr": null,
+      "branch": "mp-owner-decisions-final-01",
+      "kind": "audit",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T220709Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/governance/owner-decisions.json",
+        "file:docs/governance/master/pr-plan.json",
+        "file:docs/governance/master/requirements.jsonl",
+        "file:tools/governance/pr-plan.mjs",
+        "file:test/pr-plan.test.mjs",
+        "file:docs/governance/master/audit/decision-cards.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }

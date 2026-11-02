@@ -1,0 +1,119 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T220709Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T22:07:09Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-OWNER-DEC-FINAL-01",
+  "activity": "MP-OWNER-DEC-FINAL-01: owner decisions on the five cards applied to the working plan (projection 268); official baseline 270 unchanged; review pending",
+  "issue": 288,
+  "pr": null,
+  "branch": "mp-owner-decisions-final-01",
+  "commit_sha": "2f36169930d84250d2f244c53a47d94515b1b0ec",
+  "tree_sha": "d1fe930ec2c22a28c6fc6f9ea929776962587e4e",
+  "base_sha": "e3bda686d5c858ce3138eaf128143b0eb5ab7228",
+  "requirements": [],
+  "changes": [
+    "docs/governance/owner-decisions.json (mandate registered)",
+    "docs/governance/master/pr-plan.json (DC decisions applied, withdrawn_by_owner, baseline_status)",
+    "docs/governance/master/requirements.jsonl (0278, 0360, 0634 SUPERSEDED by owner decision)",
+    "tools/governance/pr-plan.mjs (withdrawal/merge gate, baseline header)",
+    "test/pr-plan.test.mjs (no requirement lost, official baseline unchanged)",
+    "docs/governance/master/audit/decision-cards.md (outcome, scrypt check)"
+  ],
+  "tests": [
+    {
+      "command": "pr-plan.mjs validate, master.mjs validate, governance validate, node --test test/pr-plan.test.mjs test/master-registry.test.mjs",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22",
+      "commit": "2f36169930d84250d2f244c53a47d94515b1b0ec",
+      "time": "2026-11-02T22:07:09Z",
+      "limits": [
+        "registry/doc/validator change; no runtime code; no network"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "2f36169930d84250d2f244c53a47d94515b1b0ec"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "Codex code review requested on the PR"
+  },
+  "findings": [
+    {
+      "id": "SCRYPT-01",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "scrypt default cost N=2^15 (production minimum 2^14) below current OWASP N=2^17; dedicated PR proposed, production unchanged"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+    "MP-ROADMAP-BASELINE-282-PREFLIGHT-01",
+    "MP-ROADMAP-270-INDEPENDENT-FINAL-AUDIT-01",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "mandate registered",
+      "decisions applied to plan",
+      "gates and tests"
+    ],
+    "in_progress": [
+      "CI",
+      "independent review (Codex)"
+    ],
+    "not_started": [
+      "SAFE merge after review"
+    ]
+  },
+  "resources": [
+    "file:docs/governance/owner-decisions.json",
+    "file:docs/governance/master/pr-plan.json",
+    "file:docs/governance/master/requirements.jsonl",
+    "file:tools/governance/pr-plan.mjs",
+    "file:test/pr-plan.test.mjs",
+    "file:docs/governance/master/audit/decision-cards.md"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent",
+    "merge only after green CI and review"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI; Codex review; SAFE merge with expectedHeadSha",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": null
+}
