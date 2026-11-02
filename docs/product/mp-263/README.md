@@ -158,6 +158,26 @@ Per questo l'inventario delle capacità resta **NOT VERIFIED**: niente viene des
 - **Rapporto:** riproducibile, con gli script e le query versionati e i numeri per campionato e per finestra.
 - **Verdetto:** KEEP / DROP / INSUFFICIENT EVIDENCE, con soglie proposte nel rapporto e approvate dall'owner. La decisione operativa resta all'owner.
 
+**Strumenti pronti (MP-TC-BENCH-01).** Nessuna chiamata ai provider, nessun collector riattivato.
+- **`src/benchmark/live-benchmark.mjs`** (funzioni pure):
+  - **Abbinamento:** squadre normalizzate e calcio d'inizio entro 15 minuti. È VERIFIED solo la coppia unica da entrambi i lati; le coppie ambigue e le partite non abbinate vengono riportate, mai forzate.
+  - **Metriche per provider**, ricavate solo dalle righe e solo sulle partite abbinate:
+    - copertura;
+    - campi e quota di dati mancanti per campo;
+    - freschezza (mediana e p90);
+    - buchi nelle serie;
+    - ritardo sugli eventi del primo tempo. È un limite inferiore, perché il minuto ha risoluzione di un minuto e non conta recuperi e intervallo;
+    - richieste, errori e risposte vuote.
+  - **Confronto tra campi dei due provider:** solo tramite una mappatura esplicita passata in ingresso, mai dedotta dai nomi.
+  - **Verdetto:** richiede tutte e quattro le soglie approvate (`min_matched_matches`, `max_median_freshness_ms`, `max_gap_ratio`, `max_median_latency_ms`). Senza soglie, o senza dati sufficienti, è INSUFFICIENT EVIDENCE con i motivi.
+- **`src/benchmark/tc-export.mjs`:** le serie TotalCorner dall'archivio (`tc_matches`, `tc_live_snapshots`, `tc_live_events`), in una transazione `READ ONLY` e in finestre di al massimo 31 giorni. I campi sono quelli del provider così come sono scritti.
+- **`tools/benchmark/tc-af-live.mjs`:** il rapporto riproducibile da file JSON esportati.
+- **Stato attuale.** Mancano snapshot LIVE di API-FOOTBALL archiviati: oggi non ci sono un collector LIVE né un budget autorizzato. Il verdetto resta quindi **INSUFFICIENT EVIDENCE**.
+- **Per eseguire il benchmark servono tre decisioni dell'owner:**
+  1. un budget di chiamate API-FOOTBALL LIVE su partite che TotalCorner ha già archiviato, oppure una finestra parallela con TotalCorner riattivato;
+  2. la mappatura dei campi;
+  3. le soglie.
+
 ## 4. Inventario dei 325 nomi di `fpt_schema_fields`
 
 - **Stato:** non eseguito. In questa sessione non esiste un accesso in sola lettura verificabile al database della VPS.
