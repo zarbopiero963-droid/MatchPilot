@@ -23,8 +23,8 @@
     "to": null,
     "responsibilities": []
   },
-  "id": "CP-20261102T224000Z-agent-a-claude-code",
-  "timestamp_utc": "2026-11-02T22:40:00Z",
+  "id": "CP-20261102T230845Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T23:08:45Z",
   "authorizations": [],
   "mandate": {
     "id": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
@@ -86,7 +86,7 @@
   "review": {
     "verdict": "APPROVED",
     "reviewed_sha": "03c5776e60baeb9581f8f328e13522597a0ec55d",
-    "reference": "Codex code review (OpenAI, different model family) on 6b6b098: no major issues (https://github.com/zarbopiero963-droid/MatchPilot/pull/295#issuecomment-6590061686); 03c5776 adds registers only"
+    "reference": "SELF-REVIEW (same model family, not independent) of 03c5776: `git diff 6b6b098..03c5776` touches only docs/governance/checkpoints/CP-20261102T222703Z-agent-a-claude-code.json and docs/governance/work-registry.json (registers). Independent code review: Codex (OpenAI, different model family) on 6b6b098 only, no major issues (https://github.com/zarbopiero963-droid/MatchPilot/pull/295#issuecomment-6590061686); it does not cover 03c5776."
   },
   "findings": [],
   "owner_decisions": [
