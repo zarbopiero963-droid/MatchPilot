@@ -2621,82 +2621,120 @@
    "MP-PRP-261",
    "MP-PRP-262"
   ],
-  "duplicates_absorbed_across_groups": [
+  "planning_rows_deduplicated": [
    {
     "into": "MP-PRP-020",
-    "absorbed": "G4:G4-30 (Provider-neutral league and season onboarding, coverage per season and field)"
+    "into_source": "G1:G1-20",
+    "deduplicated_row": "G4:G4-30 (Provider-neutral league and season onboarding, coverage per season and field)",
+    "cross_group": true
    },
    {
     "into": "MP-PRP-023",
-    "absorbed": "G5:G5-60 (Request economy: in-flight coalescing, cache-first with differentiated TTL, fres)"
+    "into_source": "G1:G1-23",
+    "deduplicated_row": "G5:G5-60 (Request economy: in-flight coalescing, cache-first with differentiated TTL, fres)",
+    "cross_group": true
    },
    {
     "into": "MP-PRP-023",
-    "absorbed": "G4:G4-25 (Provider-neutral request-budget governor for API-FOOTBALL: per-provider minute/d)"
+    "into_source": "G1:G1-23",
+    "deduplicated_row": "G4:G4-25 (Provider-neutral request-budget governor for API-FOOTBALL: per-provider minute/d)",
+    "cross_group": true
    },
    {
     "into": "MP-PRP-024",
-    "absorbed": "G5:G5-54 (Live fan-out and performance: single collector per match, N users not N provider)"
+    "into_source": "G1:G1-24",
+    "deduplicated_row": "G5:G5-54 (Live fan-out and performance: single collector per match, N users not N provider)",
+    "cross_group": true
    },
    {
     "into": "MP-PRP-027",
-    "absorbed": "G4:G4-32 (TotalCorner residual hardening if verdict is KEEP: snapshot schema_version, circ)"
+    "into_source": "G1:G1-27",
+    "deduplicated_row": "G4:G4-32 (TotalCorner residual hardening if verdict is KEEP: snapshot schema_version, circ)",
+    "cross_group": true
    },
    {
     "into": "MP-PRP-030",
-    "absorbed": "G4:G4-31 (TotalCorner LIVE-only benchmark verdict against API-FOOTBALL: gap audit folded i)"
+    "into_source": "G1:G1-30",
+    "deduplicated_row": "G4:G4-31 (TotalCorner LIVE-only benchmark verdict against API-FOOTBALL: gap audit folded i)",
+    "cross_group": true
    },
    {
     "into": "MP-PRP-040",
-    "absorbed": "G3:G3-11 (Automatic backfill after outage: live status check and gap fill (#31))"
+    "into_source": "G1:G1-40",
+    "deduplicated_row": "G3:G3-11 (Automatic backfill after outage: live status check and gap fill (#31))",
+    "cross_group": true
    },
    {
     "into": "MP-PRP-042",
-    "absorbed": "G4:G4-12 (Security baseline runtime: validated listen host (F1), general API rate limiting)"
+    "into_source": "G1:G1-42",
+    "deduplicated_row": "G4:G4-12 (Security baseline runtime: validated listen host (F1), general API rate limiting)",
+    "cross_group": true
    },
    {
     "into": "MP-PRP-066",
-    "absorbed": "G5:G5-31 (Rule types with temporal and rolling conditions: before/after, between minutes, )"
+    "into_source": "G2:G2-05",
+    "deduplicated_row": "G5:G5-31 (Rule types with temporal and rolling conditions: before/after, between minutes, )",
+    "cross_group": true
    },
    {
     "into": "MP-PRP-078",
-    "absorbed": "G5:G5-61 (Replay API: versioned read-only endpoint with validated match/time input and str)"
+    "into_source": "G2:G2-17",
+    "deduplicated_row": "G5:G5-61 (Replay API: versioned read-only endpoint with validated match/time input and str)",
+    "cross_group": true
    },
    {
     "into": "MP-PRP-081",
-    "absorbed": "G5:G5-09 (Finished Match Center backend contract (QUERY-CORE-01 continuation): final state)"
+    "into_source": "G2:G2-20",
+    "deduplicated_row": "G5:G5-09 (Finished Match Center backend contract (QUERY-CORE-01 continuation): final state)",
+    "cross_group": true
    },
    {
     "into": "MP-PRP-097",
-    "absorbed": "G4:G4-44 (Money Management persistence: account-level entities, versions, audit, snapshots)"
+    "into_source": "G3:G3-13",
+    "deduplicated_row": "G4:G4-44 (Money Management persistence: account-level entities, versions, audit, snapshots)",
+    "cross_group": true
    },
    {
     "into": "MP-PRP-108",
-    "absorbed": "G4:G4-41 (Settings API and tools: read/update with validation and propagation to Trading T)"
+    "into_source": "G3:G3-25",
+    "deduplicated_row": "G4:G4-41 (Settings API and tools: read/update with validation and propagation to Trading T)",
+    "cross_group": true
    },
    {
     "into": "MP-PRP-130",
-    "absorbed": "G3:G3-19 (MM API / tool surface (registry, profiles, evaluate))"
+    "into_source": "G4:G4-45",
+    "deduplicated_row": "G3:G3-19 (MM API / tool surface (registry, profiles, evaluate))",
+    "cross_group": true
    },
    {
     "into": "MP-PRP-132",
-    "absorbed": "G5:G5-66 (Trading Copilot pre-UI tool surface: operator tools (#98), TCOP-PR-01..09 order,)"
+    "into_source": "G4:G4-47",
+    "deduplicated_row": "G5:G5-66 (Trading Copilot pre-UI tool surface: operator tools (#98), TCOP-PR-01..09 order,)",
+    "cross_group": true
    },
    {
     "into": "MP-PRP-135",
-    "absorbed": "G5:G5-72 (Trading Copilot hard test (18 steps) and Definition of Done (#102))"
+    "into_source": "G4:G4-50",
+    "deduplicated_row": "G5:G5-72 (Trading Copilot hard test (18 steps) and Definition of Done (#102))",
+    "cross_group": true
    },
    {
     "into": "MP-PRP-151",
-    "absorbed": "G5:G5-99 (Match Center hard certification: 5 finished matches, >=3 VERIFIED leagues, prema)"
+    "into_source": "G5:G5-07",
+    "deduplicated_row": "G5:G5-99 (Match Center hard certification: 5 finished matches, >=3 VERIFIED leagues, prema)",
+    "cross_group": false
    },
    {
     "into": "MP-PRP-234",
-    "absorbed": "G5:G5-101 (Strategy hard test: create, rename, modify, new version, backtest, stake P/L, LA)"
+    "into_source": "G5:G5-97",
+    "deduplicated_row": "G5:G5-101 (Strategy hard test: create, rename, modify, new version, backtest, stake P/L, LA)",
+    "cross_group": false
    },
    {
     "into": "MP-PRP-253",
-    "absorbed": "G4:G4-64 (Final VPS deployment certification (S3/S4) and end-to-end smoke of the certified)"
+    "into_source": "G1:G1-45",
+    "deduplicated_row": "G4:G4-64 (Final VPS deployment certification (S3/S4) and end-to-end smoke of the certified)",
+    "cross_group": true
    }
   ],
   "certification_only": [

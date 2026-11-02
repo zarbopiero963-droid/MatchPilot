@@ -40,7 +40,7 @@ Più agenti dello stesso modello non sono un audit indipendente: le review già 
    - PR: `270 = (340 − 139) + 69 = 8 + 262`.
 
    Verificare per ID:
-   - i 19 duplicati assorbiti fra gruppi (`prs.duplicates_absorbed_across_groups`). Le loro schede sono passate alla PR gemella, quindi sono già dentro le 139 schede assorbite: non vanno sottratti una seconda volta;
+   - le 19 righe di pianificazione deduplicate (`prs.planning_rows_deduplicated`): lavoro pianificato due volte dai verificatori di gruppo, unito alla riga gemella **prima** del conteggio. 17 sono fra gruppi diversi, 2 interne a G5 (assorbite in 151 e 234). Non sono PR dell'inventario e non sono schede assorbite: sono un oggetto diverso dalle 139 schede assorbite (`absorbed_cards`). Sono già riflesse nelle 270 PR finali e non vanno sottratte di nuovo. Correzione dopo il finding P2 di Codex sulla PR #292;
    - le 69 PR senza scheda primaria (`prs.split_out`, con l'origine): 42 da epiche R-xx, 23 seconde PR di una scheda, 2 PR aperte, 2 prerequisiti o record di certificazione;
    - nessuna scheda scomparsa e nessuna PR contata due volte;
    - le 8 PR aperte, comprese #286 e #287;

@@ -178,7 +178,12 @@ export function reconcile(reg, plan) {
       split_out: splitOut, split_out_by_origin: count(splitOut, x => x.origin),
       open: plan.planned_prs.filter(p => p.kind === 'OPEN').map(p => ({pr: p.id, github: p.open_pr})),
       new: plan.planned_prs.filter(p => p.kind !== 'OPEN').map(p => p.id),
-      duplicates_absorbed_across_groups: plan.planned_prs.flatMap(p => (p.absorbed ?? []).map(a => ({into: p.id, absorbed: a}))),
+      // Planning rows deduplicated before the count (the same work planned twice by the group verifiers): they never
+      // became PRs of the inventory, so they are neither PRs nor card absorptions and must not be subtracted again.
+      planning_rows_deduplicated: plan.planned_prs.flatMap(p => (p.absorbed ?? []).map(a => {
+        const from = String(a).split(':')[0], into = String((p.source_ids ?? [])[0] ?? '').split(':')[0];
+        return {into: p.id, into_source: (p.source_ids ?? [])[0] ?? null, deduplicated_row: a, cross_group: Boolean(from && into && from !== into)};
+      })),
       certification_only: plan.planned_prs.filter(p => p.kind === 'CERT').map(p => p.id),
       decision_dependent: plan.planned_prs.filter(p => p.decision_dependent).map(p => p.id)
     },
