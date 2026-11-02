@@ -2,7 +2,7 @@
 // tables are staged (db/staged/031-apifootball-odds-snapshots.sql) and exist only once an owner-authorized migration
 // applies them: until then every call fails with SNAPSHOTS_UNAVAILABLE and nothing is created on the fly.
 // No job, route or schedule uses this module yet.
-import { COUNTED } from './client.mjs';
+import { COUNTED, paramsHash } from './client.mjs';
 
 export class SnapshotStoreError extends Error {
   constructor(code, message) { super(message); this.name = 'SnapshotStoreError'; this.code = code; }
@@ -30,11 +30,18 @@ export function createPgRequestLedger(db) {
           row.error == null ? null : String(row.error).slice(0, 200)]));
       return Number(result.rows[0].request_id);
     },
-    async countSince(sinceMs) {
+    async countSince(sinceMs, {purpose} = {}) {
       const result = await guarded(() => db.query(
-        'SELECT count(*)::int AS n FROM af_request_ledger WHERE requested_at >= $1 AND outcome = ANY($2::text[])',
-        [new Date(sinceMs).toISOString(), [...COUNTED]]));
+        'SELECT count(*)::int AS n FROM af_request_ledger WHERE requested_at >= $1 AND outcome = ANY($2::text[]) AND ($3::text IS NULL OR purpose = $3)',
+        [new Date(sinceMs).toISOString(), [...COUNTED], purpose ?? null]));
       return result.rows[0].n;
+    },
+    // The latest counted request for this exact canonical path since sinceMs (bounded window: uses the requested_at index).
+    async lastRequestAt(path, sinceMs) {
+      const result = await guarded(() => db.query(
+        'SELECT max(requested_at) AS at FROM af_request_ledger WHERE requested_at >= $1 AND params_hash = $2 AND path = $3 AND outcome = ANY($4::text[])',
+        [new Date(sinceMs).toISOString(), paramsHash(path), path, [...COUNTED]]));
+      return result.rows[0].at ? new Date(result.rows[0].at).getTime() : null;
     }
   };
 }

@@ -118,6 +118,7 @@ Per questo l'inventario delle capacità resta **NOT VERIFIED**: niente viene des
     Un prezzo invariato resta quindi datato alla sua prima acquisizione.
   - Diventa una migrazione solo con una PR autorizzata dall'owner.
 - **Lettura point-in-time** (`oddsAsOf`): per ogni selezione restituisce l'ultimo snapshot acquisito entro `as_of`, con `update` del provider non successivo a `as_of`, mai uno successivo. Dopo il calcio d'inizio restituisce l'ultimo prezzo visto prima del calcio d'inizio.
+- **Collector PREMATCH** (MP-AF-COLLECT-01, [`prematch-collector.md`](prematch-collector.md)): cicli limitati con budget propri (giornaliero, al minuto e per ciclo), intervallo minimo per partita letto dal ledger, nessuna richiesta a ridosso del calcio d'inizio o dopo, arresto sicuro. **Spento per default, senza scheduler, mai attivato.**
 - **Ancora da fare.** Nessun job o route usa ancora questi moduli. Un collector che chiama `/odds` con frequenza dichiarata richiede la migrazione e un GO operativo.
 
 **Verifica proposta, senza spese e con budget di chiamate dichiarato:**
