@@ -1,0 +1,5057 @@
+{
+ "cards": {
+  "total": 376,
+  "completed": [
+   "MP-UI-PR-005 (#244) e #246 (mergiate)"
+  ],
+  "superseded": [
+   "A-104:RECON-CORE-01",
+   "A-104:RECON-CORE-02",
+   "A-104:RECON-CORE-04",
+   "A-104:RECON-CORE-05",
+   "ESCLUSO (#45, MP-OWNER-EXCLUDE-REAL-EXECUTION-01)",
+   "ESCLUSO (#46 SaaS, non approvato)",
+   "MP-OWNER-D12-IMPLEMENTATION-20261024 phase A (this governance PR)",
+   "NESSUNA (proposta non approvata)",
+   "NESSUNA: capacità futura dichiarata da #96, non pianificabile senza decisione owner",
+   "NESSUNA: opzione futura di #34, mai attiva senza approvazione owner",
+   "decisione owner Q14, poi MP-UI-PR-078-CERT12",
+   "decisione owner Q3, poi MP-UI-PR-030-LIVE-DEMO"
+  ],
+  "duplicate": [
+   "MP-CARD-020",
+   "MP-CARD-077",
+   "#98 OPERATOR-API (MCP-CORE, #104)",
+   "LIVE-PR-03 (#29; con LIVE-PR-01…11)",
+   "LIVE-PR-09 (#29)",
+   "MCP-CORE-01..03 (#104)",
+   "MP-UI-PR-007-FOUND (badge condiviso)",
+   "R-09 (backend, prerequisito)",
+   "R-10 + MCP-CORE (#104)",
+   "STRAT-CORE-03",
+   "STRAT-CORE-05",
+   "STRAT-CORE-06",
+   "STRAT-CORE-07",
+   "TC-CORE-03",
+   "TRADE-CORE-01",
+   "TRADE-CORE-02",
+   "TRADE-CORE-03",
+   "TRADE-CORE-04",
+   "TRADE-CORE-05",
+   "TRADE-CORE-06",
+   "TRADE-CORE-07",
+   "TRADE-CORE-08",
+   "backend (MATH-CORE-08, R-10)"
+  ],
+  "carried": 340,
+  "carried_by_pr": {
+   "MP-PRP-001": [
+    "MP-CARD-012",
+    "MP-CARD-090",
+    "MP-CARD-095",
+    "MP-CARD-109",
+    "MP-PR-00:R-00"
+   ],
+   "MP-PRP-002": [
+    "MP-CARD-070",
+    "MP-CARD-083",
+    "MP-CARD-093"
+   ],
+   "MP-PRP-003": [
+    "MP-CARD-053",
+    "MP-PR-00:continuous"
+   ],
+   "MP-PRP-004": [
+    "MP-CARD-017",
+    "MP-CARD-045",
+    "MP-CARD-049",
+    "MP-CARD-101"
+   ],
+   "MP-PRP-006": [
+    "MP-CARD-021",
+    "MP-CARD-031",
+    "MP-CARD-034",
+    "MP-CARD-041",
+    "MP-CARD-057",
+    "MP-CARD-066",
+    "MP-CARD-073",
+    "MP-CARD-076",
+    "MP-CARD-080"
+   ],
+   "MP-PRP-007": [
+    "MP-CARD-088",
+    "MP-PR-00:R-01"
+   ],
+   "MP-PRP-012": [
+    "MP-PR-00:R-08"
+   ],
+   "MP-PRP-013": [
+    "MP-PR-00:R-02"
+   ],
+   "MP-PRP-014": [
+    "MP-CARD-092"
+   ],
+   "MP-PRP-015": [
+    "MP-CARD-105",
+    "MP-CARD-108"
+   ],
+   "MP-PRP-016": [
+    "MP-CARD-103"
+   ],
+   "MP-PRP-017": [
+    "MP-CARD-006",
+    "MP-PR-00:R-16"
+   ],
+   "MP-PRP-018": [
+    "MP-CARD-008"
+   ],
+   "MP-PRP-019": [
+    "MP-PR-00:R-17"
+   ],
+   "MP-PRP-020": [
+    "MP-CARD-042"
+   ],
+   "MP-PRP-023": [
+    "MP-CARD-010",
+    "MP-CARD-035",
+    "MP-CARD-009",
+    "TC-CORE-07"
+   ],
+   "MP-PRP-024": [
+    "MP-CARD-022",
+    "LIVE-PR-11",
+    "TC-CORE-04"
+   ],
+   "MP-PRP-026": [
+    "MP-CARD-013",
+    "A-104:TC-CORE-05",
+    "A-104:TC-CORE-06",
+    "A-104:TC-CORE-06B",
+    "MP-PR-00:R-15"
+   ],
+   "MP-PRP-027": [
+    "A-104:TC-CORE-07"
+   ],
+   "MP-PRP-028": [
+    "A-104:TC-CORE-04",
+    "A-104:TC-CORE-08"
+   ],
+   "MP-PRP-029": [
+    "MP-CARD-014",
+    "A-104:TC-CORE-01",
+    "A-104:TC-CORE-02",
+    "A-104:TC-CORE-03",
+    "A-104:TC-CORE-03B"
+   ],
+   "MP-PRP-030": [
+    "MP-CARD-091"
+   ],
+   "MP-PRP-031": [
+    "MP-CARD-102"
+   ],
+   "MP-PRP-033": [
+    "A-104:MARKET-CORE-03"
+   ],
+   "MP-PRP-034": [
+    "MP-CARD-078",
+    "MP-CARD-081",
+    "A-104:MARKET-CORE-01",
+    "A-104:MARKET-CORE-02",
+    "A-104:MARKET-CORE-04",
+    "A-104:MARKET-CORE-05"
+   ],
+   "MP-PRP-035": [
+    "MP-CARD-098"
+   ],
+   "MP-PRP-038": [
+    "MP-CARD-025",
+    "MP-CARD-046"
+   ],
+   "MP-PRP-039": [
+    "MP-CARD-027",
+    "MP-CARD-029"
+   ],
+   "MP-PRP-040": [
+    "A-104:RECON-CORE-03",
+    "MP-CARD-028"
+   ],
+   "MP-PRP-042": [
+    "MP-CARD-086"
+   ],
+   "MP-PRP-044": [
+    "MP-PR-00:R-06"
+   ],
+   "MP-PRP-045": [
+    "MP-CARD-094"
+   ],
+   "MP-PRP-046": [
+    "MP-CARD-097"
+   ],
+   "MP-PRP-047": [
+    "MP-CARD-087"
+   ],
+   "MP-PRP-048": [
+    "MP-CARD-110"
+   ],
+   "MP-PRP-049": [
+    "MP-CARD-011",
+    "MP-CARD-024"
+   ],
+   "MP-PRP-051": [
+    "A-104:MATH-CORE-03",
+    "A-104:MATH-CORE-04"
+   ],
+   "MP-PRP-052": [
+    "MP-CARD-054",
+    "A-104:MATH-CORE-05"
+   ],
+   "MP-PRP-053": [
+    "A-104:MATH-CORE-07"
+   ],
+   "MP-PRP-061": [
+    "A-104:MATH-CORE-06"
+   ],
+   "MP-PRP-062": [
+    "MP-CARD-001"
+   ],
+   "MP-PRP-063": [
+    "A-104:MATH-CORE-01",
+    "A-104:MATH-CORE-02"
+   ],
+   "MP-PRP-064": [
+    "A-104:MATH-CORE-08",
+    "MP-PR-00:R-12"
+   ],
+   "MP-PRP-066": [
+    "MP-UI-PR-041-RULETYPES"
+   ],
+   "MP-PRP-068": [
+    "MP-CARD-036",
+    "A-104:STRAT-CORE-01"
+   ],
+   "MP-PRP-069": [
+    "A-104:STRAT-CORE-02"
+   ],
+   "MP-PRP-071": [
+    "A-104:STRAT-CORE-03",
+    "MP-PR-00:R-14"
+   ],
+   "MP-PRP-072": [
+    "A-104:STRAT-CORE-04"
+   ],
+   "MP-PRP-073": [
+    "A-104:STRAT-CORE-05"
+   ],
+   "MP-PRP-075": [
+    "MP-CARD-037",
+    "A-104:STRAT-CORE-06"
+   ],
+   "MP-PRP-076": [
+    "MP-CARD-003"
+   ],
+   "MP-PRP-077": [
+    "A-104:REPLAY-CORE-01",
+    "MP-PR-00:R-09"
+   ],
+   "MP-PRP-078": [
+    "A-104:REPLAY-CORE-02",
+    "MP-PR-00:R-10",
+    "R-10 (backend, prerequisito)",
+    "REPLAY-CORE-01"
+   ],
+   "MP-PRP-079": [
+    "MP-CARD-065",
+    "A-104:REPLAY-CORE-03"
+   ],
+   "MP-PRP-080": [
+    "A-104:QUERY-CORE-02"
+   ],
+   "MP-PRP-081": [
+    "A-104:QUERY-CORE-01"
+   ],
+   "MP-PRP-082": [
+    "MP-CARD-018",
+    "A-104:BENCH-CORE-01"
+   ],
+   "MP-PRP-084": [
+    "A-104:STRAT-CORE-07"
+   ],
+   "MP-PRP-086": [
+    "MP-CARD-019",
+    "A-104:TRADE-CORE-01"
+   ],
+   "MP-PRP-087": [
+    "A-104:TRADE-CORE-02"
+   ],
+   "MP-PRP-088": [
+    "A-104:TRADE-CORE-03"
+   ],
+   "MP-PRP-089": [
+    "A-104:TRADE-CORE-04"
+   ],
+   "MP-PRP-090": [
+    "A-104:TRADE-CORE-05"
+   ],
+   "MP-PRP-091": [
+    "MP-CARD-056",
+    "MP-CARD-067",
+    "A-104:PAPER-CORE-01"
+   ],
+   "MP-PRP-092": [
+    "A-104:TRADE-CORE-06"
+   ],
+   "MP-PRP-093": [
+    "A-104:TRADE-CORE-07"
+   ],
+   "MP-PRP-094": [
+    "A-104:TRADE-CORE-08"
+   ],
+   "MP-PRP-096": [
+    "MP-CARD-030"
+   ],
+   "MP-PRP-097": [
+    "MP-CARD-068",
+    "A-104:MM-CORE-02",
+    "A-104:MM-CORE-04",
+    "MP-CARD-062"
+   ],
+   "MP-PRP-098": [
+    "MP-CARD-004",
+    "A-104:MM-CORE-03"
+   ],
+   "MP-PRP-099": [
+    "MP-CARD-055",
+    "A-104:MM-CORE-07"
+   ],
+   "MP-PRP-100": [
+    "MP-CARD-038",
+    "A-104:MM-CORE-05"
+   ],
+   "MP-PRP-102": [
+    "A-104:MM-CORE-06"
+   ],
+   "MP-PRP-103": [
+    "MP-CARD-063",
+    "MP-CARD-064",
+    "A-104:MM-CORE-01"
+   ],
+   "MP-PRP-104": [
+    "A-104:MM-INTEGRATION-01"
+   ],
+   "MP-PRP-105": [
+    "MP-CARD-005",
+    "A-104:LEDGER-CORE-01",
+    "A-104:LEDGER-CORE-05"
+   ],
+   "MP-PRP-106": [
+    "A-104:LEDGER-CORE-02"
+   ],
+   "MP-PRP-107": [
+    "A-104:LEDGER-CORE-04"
+   ],
+   "MP-PRP-108": [
+    "A-104:SETTINGS-CORE-02"
+   ],
+   "MP-PRP-109": [
+    "MP-CARD-058"
+   ],
+   "MP-PRP-110": [
+    "MP-CARD-044"
+   ],
+   "MP-PRP-111": [
+    "A-104:LEDGER-CORE-06"
+   ],
+   "MP-PRP-112": [
+    "MP-CARD-061",
+    "MP-CARD-074",
+    "A-104:LEDGER-CORE-03",
+    "A-104:LEDGER-CORE-07"
+   ],
+   "MP-PRP-113": [
+    "MP-PR-00:R-13"
+   ],
+   "MP-PRP-116": [
+    "MP-CARD-079"
+   ],
+   "MP-PRP-120": [
+    "MP-CARD-002",
+    "MP-CARD-023"
+   ],
+   "MP-PRP-123": [
+    "MP-CARD-039"
+   ],
+   "MP-PRP-125": [
+    "A-104:MCP-CORE-00",
+    "MP-PR-00:R-03"
+   ],
+   "MP-PRP-126": [
+    "MP-CARD-071"
+   ],
+   "MP-PRP-127": [
+    "MP-CARD-059",
+    "MP-CARD-060",
+    "A-104:SETTINGS-CORE-01"
+   ],
+   "MP-PRP-128": [
+    "A-104:SETTINGS-CORE-03"
+   ],
+   "MP-PRP-129": [
+    "A-104:SETTINGS-CORE-04"
+   ],
+   "MP-PRP-130": [
+    "A-104:MM-CORE-08"
+   ],
+   "MP-PRP-131": [
+    "MP-CARD-075"
+   ],
+   "MP-PRP-132": [
+    "A-104:TCOP-CORE-01",
+    "TCOP-CORE-01",
+    "TCOP-CORE-02",
+    "TCOP-CORE-03"
+   ],
+   "MP-PRP-133": [
+    "A-104:TCOP-CORE-02"
+   ],
+   "MP-PRP-134": [
+    "A-104:TCOP-CORE-03"
+   ],
+   "MP-PRP-135": [
+    "MP-CARD-069",
+    "A-104:TCOP-CORE-04"
+   ],
+   "MP-PRP-136": [
+    "A-104:MCP-CORE-01"
+   ],
+   "MP-PRP-137": [
+    "A-104:MCP-CORE-02"
+   ],
+   "MP-PRP-141": [
+    "A-104:MCP-CORE-03"
+   ],
+   "MP-PRP-143": [
+    "MP-CARD-048"
+   ],
+   "MP-PRP-147": [
+    "MP-CARD-052",
+    "MP-PR-00:R-05",
+    "MP-UI-PR-001 (#240, mergiata)",
+    "MP-UI-PR-001/002 (mergiate)",
+    "MP-UI-PR-007-FOUND",
+    "MP-UI-PR-077-A11Y"
+   ],
+   "MP-PRP-149": [
+    "MP-CARD-099"
+   ],
+   "MP-PRP-150": [
+    "STRAT-CORE-01"
+   ],
+   "MP-PRP-151": [
+    "CONSEGNATO su main (vedi evidenza)",
+    "MP-UI-PR-078-CERT12"
+   ],
+   "MP-PRP-152": [
+    "CONSEGNATO su main (vedi evidenza) + ogni nuova card"
+   ],
+   "MP-PRP-153": [
+    "MP-UI-PR-023-MCF-STATE"
+   ],
+   "MP-PRP-154": [
+    "MP-UI-PR-024-MCF-CARDS (con le PR #30 di UI-04)"
+   ],
+   "MP-PRP-155": [
+    "MP-PR-00:R-07"
+   ],
+   "MP-PRP-156": [
+    "MP-UI-PR-025-MCF-FINAL-STATS"
+   ],
+   "MP-PRP-157": [
+    "MP-UI-PR-026-MCF-MARKETS"
+   ],
+   "MP-PRP-158": [
+    "MP-UI-PR-027-MCF-TRADING-POSTMORTEM"
+   ],
+   "MP-PRP-159": [
+    "MP-UI-PR-028-MCF-EXPORT"
+   ],
+   "MP-PRP-160": [
+    "MP-UI-PR-022-MC-PLAN"
+   ],
+   "MP-PRP-161": [
+    "MP-UI-PR-013-FLOW",
+    "MP-UI-PR-013-FLOW (aggiornamento mock)",
+    "MP-UI-PR-013-FLOW (mock)",
+    "MP-UI-PR-013-FLOW + MP-UI-PR-006 Strategie"
+   ],
+   "MP-PRP-166": [
+    "MP-UI-PR-014-HUBSHELL",
+    "MP-UI-PR-015-HUBCORE"
+   ],
+   "MP-PRP-167": [
+    "MP-UI-PR-016-HUBFILTERS",
+    "MP-UI-PR-017-HUBDRILL"
+   ],
+   "MP-PRP-168": [
+    "MP-UI-PR-018-HUBMARKETS",
+    "MP-UI-PR-019-HUBADV",
+    "MP-UI-PR-021-HUBTRADE"
+   ],
+   "MP-PRP-169": [
+    "MP-UI-PR-020-PRESETS"
+   ],
+   "MP-PRP-171": [
+    "MP-CARD-043",
+    "MP-UI-PR-008-COV",
+    "MP-UI-PR-010-BOARD",
+    "MP-UI-PR-012-DATAQ",
+    "esistente + MP-UI-PR-010-BOARD per i controlli SEEN"
+   ],
+   "MP-PRP-172": [
+    "MP-UI-PR-039-RULEDSL"
+   ],
+   "MP-PRP-173": [
+    "MP-UI-PR-011-SRCHX",
+    "MP-UI-PR-040-RULEFIELDS"
+   ],
+   "MP-PRP-174": [
+    "MP-UI-PR-038-STRATLIFE"
+   ],
+   "MP-PRP-176": [
+    "MP-UI-PR-068-ASSIST"
+   ],
+   "MP-PRP-177": [
+    "MP-UI-PR-042-STRATMM"
+   ],
+   "MP-PRP-178": [
+    "MP-UI-PR-043-INDLIB (UI) · backend STRAT-CORE-06; calcolo live TRADE-CORE-03"
+   ],
+   "MP-PRP-186": [
+    "MP-CARD-026",
+    "MP-UI-PR-043-INDLIB",
+    "MP-UI-PR-044-IND-EXPLAIN"
+   ],
+   "MP-PRP-187": [
+    "MP-UI-PR-079-WATCHLIST"
+   ],
+   "MP-PRP-188": [
+    "LIVE-PR-01"
+   ],
+   "MP-PRP-189": [
+    "LIVE-PR-02",
+    "LIVE-PR-03",
+    "LIVE-PR-04",
+    "MP-UI-PR-029-LIVE-LAYOUT"
+   ],
+   "MP-PRP-190": [
+    "MP-UI-PR-030-LIVE-DEMO"
+   ],
+   "MP-PRP-191": [
+    "LIVE-PR-05",
+    "LIVE-PR-06"
+   ],
+   "MP-PRP-192": [
+    "LIVE-PR-07"
+   ],
+   "MP-PRP-193": [
+    "LIVE-PR-08"
+   ],
+   "MP-PRP-194": [
+    "LIVE-PR-09"
+   ],
+   "MP-PRP-195": [
+    "LIVE-PR-10"
+   ],
+   "MP-PRP-196": [
+    "LIVE-PR-12"
+   ],
+   "MP-PRP-197": [
+    "MP-UI-PR-031-LIVE-RAIL"
+   ],
+   "MP-PRP-198": [
+    "MP-UI-PR-032-LIVE-PRESSURE"
+   ],
+   "MP-PRP-199": [
+    "MP-UI-PR-033-LIVEMATCH"
+   ],
+   "MP-PRP-201": [
+    "MP-PR-00:R-11",
+    "MP-UI-PR-034-RPL-PLAYER"
+   ],
+   "MP-PRP-202": [
+    "MP-UI-PR-035-RPL-CHARTS-GAPS"
+   ],
+   "MP-PRP-203": [
+    "MP-UI-PR-036-RPL-MM"
+   ],
+   "MP-PRP-204": [
+    "MP-UI-PR-037-COP-REPLAY",
+    "REPLAY-CORE-03"
+   ],
+   "MP-PRP-205": [
+    "MP-UI-PR-069-COP-SHELL",
+    "MP-UI-PR-070-COP-PRE",
+    "TCOP-CORE-04"
+   ],
+   "MP-PRP-206": [
+    "MP-UI-PR-071-COP-LIVE",
+    "MP-UI-PR-072-COP-ENTRY"
+   ],
+   "MP-PRP-207": [
+    "MP-UI-PR-073-COP-POS",
+    "MP-UI-PR-074-COP-MGMT"
+   ],
+   "MP-PRP-208": [
+    "MP-UI-PR-075-COP-SET"
+   ],
+   "MP-PRP-209": [
+    "MP-UI-PR-076-COP-ASK"
+   ],
+   "MP-PRP-210": [
+    "MP-UI-PR-047-SIMMM",
+    "MP-UI-PR-047-SIMMM (Simulazione) + MP-UI-PR-048-MMREG (registro)"
+   ],
+   "MP-PRP-211": [
+    "MP-UI-PR-048-MMREG",
+    "MP-UI-PR-048-MMREG / MP-UI-PR-047-SIMMM"
+   ],
+   "MP-PRP-212": [
+    "MP-UI-PR-049-MKTRULES"
+   ],
+   "MP-PRP-213": [
+    "MP-UI-PR-050-CONTO"
+   ],
+   "MP-PRP-214": [
+    "MP-UI-PR-051-MMPROF",
+    "MP-UI-PR-051-MMPROF (editor) / MP-UI-PR-048-MMREG (decisione)"
+   ],
+   "MP-PRP-215": [
+    "MP-UI-PR-051-MMPROF / MP-UI-PR-052-OPMODE",
+    "MP-UI-PR-052-OPMODE"
+   ],
+   "MP-PRP-216": [
+    "MP-UI-PR-053-POSLEDGER"
+   ],
+   "MP-PRP-217": [
+    "MP-UI-PR-045-BTMETRICS"
+   ],
+   "MP-PRP-218": [
+    "HIST-01b (backend) + MP-UI-PR-046-BTCTRL",
+    "MP-UI-PR-046-BTCTRL"
+   ],
+   "MP-PRP-219": [
+    "MP-UI-PR-054-TT-TREE",
+    "MP-UI-PR-054-TT-TREE / MP-UI-PR-055-TT-PREMATCH-SELECTOR",
+    "MP-UI-PR-055-TT-PREMATCH-SELECTOR"
+   ],
+   "MP-PRP-220": [
+    "MP-UI-PR-056-TT-DUTCH-ARB"
+   ],
+   "MP-PRP-221": [
+    "MP-UI-PR-057-TT-EW-DNB"
+   ],
+   "MP-PRP-222": [
+    "MATH-CORE-07 (backend); PR UI non pianificata",
+    "MATH-CORE-07 / MP-MTH-002 (backend)",
+    "MP-UI-PR-005 (#244) + MP-UI-CERT-CALC-01 (#246)",
+    "MP-UI-PR-058-TT-CASHOUT-COMM"
+   ],
+   "MP-PRP-223": [
+    "MP-UI-PR-056-TT-DUTCH-ARB … MP-UI-PR-059-TT-RISK-NETTING",
+    "MP-UI-PR-059-TT-RISK-NETTING"
+   ],
+   "MP-PRP-224": [
+    "MP-UI-PR-060-TT-PROGRESSIONS"
+   ],
+   "MP-PRP-225": [
+    "MP-UI-PR-061-TT-CALC-STATE",
+    "MP-UI-PR-061-TT-CALC-STATE / MP-UI-PR-062-TT-PREPARE-MM"
+   ],
+   "MP-PRP-226": [
+    "MP-UI-PR-062-TT-PREPARE-MM"
+   ],
+   "MP-PRP-227": [
+    "MP-UI-PR-063-TT-LIVE"
+   ],
+   "MP-PRP-228": [
+    "MP-UI-PR-064-SETTINGS"
+   ],
+   "MP-PRP-229": [
+    "MP-UI-PR-065-COMMISSION",
+    "MP-UI-PR-065-COMMISSION / MP-UI-PR-047-SIMMM"
+   ],
+   "MP-PRP-230": [
+    "MP-CARD-016",
+    "MP-UI-PR-066-SESSION"
+   ],
+   "MP-PRP-231": [
+    "MP-UI-PR-067-APIREG"
+   ],
+   "MP-PRP-232": [
+    "BENCH-CORE-01"
+   ],
+   "MP-PRP-233": [
+    "MP-CARD-032"
+   ],
+   "MP-PRP-234": [
+    "MP-UI-PR-003 (#242, mergiata)",
+    "MP-UI-PR-004 (#243)",
+    "MP-UI-PR-004 (#243) + MP-UI-PR-066-SESSION",
+    "MP-UI-PR-004 (#243, mergiata)",
+    "MP-UI-PR-006-STRAT",
+    "MP-UI-PR-009-NAV",
+    "MP-UI-PR-078-CERT12 (hard test #34)"
+   ],
+   "MP-PRP-236": [
+    "MP-UI-PR-078-CERT12 (hard test #30)"
+   ],
+   "MP-PRP-237": [
+    "MP-UI-PR-078-CERT12 (matrice)"
+   ],
+   "MP-PRP-238": [
+    "MP-CARD-096"
+   ],
+   "MP-PRP-239": [
+    "MP-CARD-033"
+   ],
+   "MP-PRP-242": [
+    "MP-CARD-047"
+   ],
+   "MP-PRP-243": [
+    "MP-CARD-015",
+    "A-104:AUTH-CORE-02",
+    "MP-PR-00:R-04"
+   ],
+   "MP-PRP-244": [
+    "MP-CARD-072"
+   ],
+   "MP-PRP-245": [
+    "A-104:AUTH-CORE-03"
+   ],
+   "MP-PRP-246": [
+    "A-104:AUTH-CORE-01",
+    "A-104:AUTH-CORE-04"
+   ],
+   "MP-PRP-247": [
+    "MP-CARD-040"
+   ],
+   "MP-PRP-248": [
+    "MP-CARD-050"
+   ],
+   "MP-PRP-251": [
+    "MP-CARD-100",
+    "MP-CARD-104",
+    "MP-CARD-106"
+   ],
+   "MP-PRP-252": [
+    "MP-CARD-007"
+   ],
+   "MP-PRP-253": [
+    "MP-CARD-085"
+   ],
+   "MP-PRP-254": [
+    "MP-CARD-084"
+   ],
+   "MP-PRP-256": [
+    "MP-CARD-051"
+   ],
+   "MP-PRP-257": [
+    "MP-CARD-089"
+   ],
+   "MP-PRP-258": [
+    "MP-CARD-107"
+   ],
+   "MP-PRP-259": [
+    "MP-CARD-082"
+   ],
+   "MP-PRP-262": [
+    "MP-PR-00:R-18",
+    "MP-CARD-900"
+   ],
+   "MP-PRP-OPEN-280": [
+    "MP-CARD-OPEN-280"
+   ],
+   "MP-PRP-OPEN-281": [
+    "MP-CARD-OPEN-281"
+   ],
+   "MP-PRP-OPEN-282": [
+    "MP-CARD-111",
+    "MP-CARD-OPEN-282",
+    "MP-CARD-112"
+   ],
+   "MP-PRP-OPEN-283": [
+    "MP-CARD-OPEN-283"
+   ],
+   "MP-PRP-OPEN-285": [
+    "MP-CARD-OPEN-285"
+   ],
+   "MP-PRP-OPEN-286": [
+    "TRASVERSALE (regola di governance: vale per ogni PR, nessuna PR dedicata)"
+   ]
+  }
+ },
+ "prs": {
+  "total": 270,
+  "with_primary_card": 201,
+  "absorbed_cards": [
+   {
+    "card": "MP-PR-00:R-16",
+    "planned_pr": "MP-PRP-017",
+    "lead_card": "MP-CARD-006"
+   },
+   {
+    "card": "MP-CARD-035",
+    "planned_pr": "MP-PRP-023",
+    "lead_card": "MP-CARD-010"
+   },
+   {
+    "card": "MP-CARD-009",
+    "planned_pr": "MP-PRP-023",
+    "lead_card": "MP-CARD-010"
+   },
+   {
+    "card": "TC-CORE-07",
+    "planned_pr": "MP-PRP-023",
+    "lead_card": "MP-CARD-010"
+   },
+   {
+    "card": "A-104:TC-CORE-05",
+    "planned_pr": "MP-PRP-026",
+    "lead_card": "MP-CARD-013"
+   },
+   {
+    "card": "A-104:TC-CORE-06",
+    "planned_pr": "MP-PRP-026",
+    "lead_card": "MP-CARD-013"
+   },
+   {
+    "card": "A-104:TC-CORE-06B",
+    "planned_pr": "MP-PRP-026",
+    "lead_card": "MP-CARD-013"
+   },
+   {
+    "card": "MP-PR-00:R-15",
+    "planned_pr": "MP-PRP-026",
+    "lead_card": "MP-CARD-013"
+   },
+   {
+    "card": "A-104:TC-CORE-01",
+    "planned_pr": "MP-PRP-029",
+    "lead_card": "MP-CARD-014"
+   },
+   {
+    "card": "A-104:TC-CORE-02",
+    "planned_pr": "MP-PRP-029",
+    "lead_card": "MP-CARD-014"
+   },
+   {
+    "card": "A-104:TC-CORE-03",
+    "planned_pr": "MP-PRP-029",
+    "lead_card": "MP-CARD-014"
+   },
+   {
+    "card": "A-104:TC-CORE-03B",
+    "planned_pr": "MP-PRP-029",
+    "lead_card": "MP-CARD-014"
+   },
+   {
+    "card": "LIVE-PR-11",
+    "planned_pr": "MP-PRP-024",
+    "lead_card": "MP-CARD-022"
+   },
+   {
+    "card": "TC-CORE-04",
+    "planned_pr": "MP-PRP-024",
+    "lead_card": "MP-CARD-022"
+   },
+   {
+    "card": "MP-CARD-046",
+    "planned_pr": "MP-PRP-038",
+    "lead_card": "MP-CARD-025"
+   },
+   {
+    "card": "MP-CARD-029",
+    "planned_pr": "MP-PRP-039",
+    "lead_card": "MP-CARD-027"
+   },
+   {
+    "card": "MP-CARD-081",
+    "planned_pr": "MP-PRP-034",
+    "lead_card": "MP-CARD-078"
+   },
+   {
+    "card": "A-104:MARKET-CORE-01",
+    "planned_pr": "MP-PRP-034",
+    "lead_card": "MP-CARD-078"
+   },
+   {
+    "card": "A-104:MARKET-CORE-02",
+    "planned_pr": "MP-PRP-034",
+    "lead_card": "MP-CARD-078"
+   },
+   {
+    "card": "A-104:MARKET-CORE-04",
+    "planned_pr": "MP-PRP-034",
+    "lead_card": "MP-CARD-078"
+   },
+   {
+    "card": "A-104:MARKET-CORE-05",
+    "planned_pr": "MP-PRP-034",
+    "lead_card": "MP-CARD-078"
+   },
+   {
+    "card": "MP-CARD-108",
+    "planned_pr": "MP-PRP-015",
+    "lead_card": "MP-CARD-105"
+   },
+   {
+    "card": "MP-CARD-OPEN-282",
+    "planned_pr": "MP-PRP-OPEN-282",
+    "lead_card": "MP-CARD-111"
+   },
+   {
+    "card": "MP-CARD-112",
+    "planned_pr": "MP-PRP-OPEN-282",
+    "lead_card": "MP-CARD-111"
+   },
+   {
+    "card": "MP-CARD-028",
+    "planned_pr": "MP-PRP-040",
+    "lead_card": "A-104:RECON-CORE-03"
+   },
+   {
+    "card": "A-104:TC-CORE-08",
+    "planned_pr": "MP-PRP-028",
+    "lead_card": "A-104:TC-CORE-04"
+   },
+   {
+    "card": "MP-CARD-024",
+    "planned_pr": "MP-PRP-049",
+    "lead_card": "MP-CARD-011"
+   },
+   {
+    "card": "A-104:BENCH-CORE-01",
+    "planned_pr": "MP-PRP-082",
+    "lead_card": "MP-CARD-018"
+   },
+   {
+    "card": "A-104:STRAT-CORE-01",
+    "planned_pr": "MP-PRP-068",
+    "lead_card": "MP-CARD-036"
+   },
+   {
+    "card": "A-104:STRAT-CORE-06",
+    "planned_pr": "MP-PRP-075",
+    "lead_card": "MP-CARD-037"
+   },
+   {
+    "card": "A-104:MATH-CORE-05",
+    "planned_pr": "MP-PRP-052",
+    "lead_card": "MP-CARD-054"
+   },
+   {
+    "card": "A-104:REPLAY-CORE-03",
+    "planned_pr": "MP-PRP-079",
+    "lead_card": "MP-CARD-065"
+   },
+   {
+    "card": "A-104:MATH-CORE-02",
+    "planned_pr": "MP-PRP-063",
+    "lead_card": "A-104:MATH-CORE-01"
+   },
+   {
+    "card": "A-104:MATH-CORE-04",
+    "planned_pr": "MP-PRP-051",
+    "lead_card": "A-104:MATH-CORE-03"
+   },
+   {
+    "card": "MP-PR-00:R-12",
+    "planned_pr": "MP-PRP-064",
+    "lead_card": "A-104:MATH-CORE-08"
+   },
+   {
+    "card": "MP-PR-00:R-09",
+    "planned_pr": "MP-PRP-077",
+    "lead_card": "A-104:REPLAY-CORE-01"
+   },
+   {
+    "card": "MP-PR-00:R-10",
+    "planned_pr": "MP-PRP-078",
+    "lead_card": "A-104:REPLAY-CORE-02"
+   },
+   {
+    "card": "R-10 (backend, prerequisito)",
+    "planned_pr": "MP-PRP-078",
+    "lead_card": "A-104:REPLAY-CORE-02"
+   },
+   {
+    "card": "REPLAY-CORE-01",
+    "planned_pr": "MP-PRP-078",
+    "lead_card": "A-104:REPLAY-CORE-02"
+   },
+   {
+    "card": "MP-PR-00:R-14",
+    "planned_pr": "MP-PRP-071",
+    "lead_card": "A-104:STRAT-CORE-03"
+   },
+   {
+    "card": "A-104:MM-CORE-03",
+    "planned_pr": "MP-PRP-098",
+    "lead_card": "MP-CARD-004"
+   },
+   {
+    "card": "A-104:LEDGER-CORE-01",
+    "planned_pr": "MP-PRP-105",
+    "lead_card": "MP-CARD-005"
+   },
+   {
+    "card": "A-104:LEDGER-CORE-05",
+    "planned_pr": "MP-PRP-105",
+    "lead_card": "MP-CARD-005"
+   },
+   {
+    "card": "A-104:TRADE-CORE-01",
+    "planned_pr": "MP-PRP-086",
+    "lead_card": "MP-CARD-019"
+   },
+   {
+    "card": "A-104:MM-CORE-05",
+    "planned_pr": "MP-PRP-100",
+    "lead_card": "MP-CARD-038"
+   },
+   {
+    "card": "A-104:MM-CORE-07",
+    "planned_pr": "MP-PRP-099",
+    "lead_card": "MP-CARD-055"
+   },
+   {
+    "card": "MP-CARD-067",
+    "planned_pr": "MP-PRP-091",
+    "lead_card": "MP-CARD-056"
+   },
+   {
+    "card": "A-104:PAPER-CORE-01",
+    "planned_pr": "MP-PRP-091",
+    "lead_card": "MP-CARD-056"
+   },
+   {
+    "card": "MP-CARD-074",
+    "planned_pr": "MP-PRP-112",
+    "lead_card": "MP-CARD-061"
+   },
+   {
+    "card": "A-104:LEDGER-CORE-03",
+    "planned_pr": "MP-PRP-112",
+    "lead_card": "MP-CARD-061"
+   },
+   {
+    "card": "A-104:LEDGER-CORE-07",
+    "planned_pr": "MP-PRP-112",
+    "lead_card": "MP-CARD-061"
+   },
+   {
+    "card": "MP-CARD-064",
+    "planned_pr": "MP-PRP-103",
+    "lead_card": "MP-CARD-063"
+   },
+   {
+    "card": "A-104:MM-CORE-01",
+    "planned_pr": "MP-PRP-103",
+    "lead_card": "MP-CARD-063"
+   },
+   {
+    "card": "A-104:MM-CORE-02",
+    "planned_pr": "MP-PRP-097",
+    "lead_card": "MP-CARD-068"
+   },
+   {
+    "card": "A-104:MM-CORE-04",
+    "planned_pr": "MP-PRP-097",
+    "lead_card": "MP-CARD-068"
+   },
+   {
+    "card": "MP-CARD-062",
+    "planned_pr": "MP-PRP-097",
+    "lead_card": "MP-CARD-068"
+   },
+   {
+    "card": "MP-CARD-023",
+    "planned_pr": "MP-PRP-120",
+    "lead_card": "MP-CARD-002"
+   },
+   {
+    "card": "MP-CARD-090",
+    "planned_pr": "MP-PRP-001",
+    "lead_card": "MP-CARD-012"
+   },
+   {
+    "card": "MP-CARD-095",
+    "planned_pr": "MP-PRP-001",
+    "lead_card": "MP-CARD-012"
+   },
+   {
+    "card": "MP-CARD-109",
+    "planned_pr": "MP-PRP-001",
+    "lead_card": "MP-CARD-012"
+   },
+   {
+    "card": "MP-PR-00:R-00",
+    "planned_pr": "MP-PRP-001",
+    "lead_card": "MP-CARD-012"
+   },
+   {
+    "card": "A-104:AUTH-CORE-02",
+    "planned_pr": "MP-PRP-243",
+    "lead_card": "MP-CARD-015"
+   },
+   {
+    "card": "MP-PR-00:R-04",
+    "planned_pr": "MP-PRP-243",
+    "lead_card": "MP-CARD-015"
+   },
+   {
+    "card": "MP-CARD-045",
+    "planned_pr": "MP-PRP-004",
+    "lead_card": "MP-CARD-017"
+   },
+   {
+    "card": "MP-CARD-049",
+    "planned_pr": "MP-PRP-004",
+    "lead_card": "MP-CARD-017"
+   },
+   {
+    "card": "MP-CARD-101",
+    "planned_pr": "MP-PRP-004",
+    "lead_card": "MP-CARD-017"
+   },
+   {
+    "card": "MP-CARD-031",
+    "planned_pr": "MP-PRP-006",
+    "lead_card": "MP-CARD-021"
+   },
+   {
+    "card": "MP-CARD-034",
+    "planned_pr": "MP-PRP-006",
+    "lead_card": "MP-CARD-021"
+   },
+   {
+    "card": "MP-CARD-041",
+    "planned_pr": "MP-PRP-006",
+    "lead_card": "MP-CARD-021"
+   },
+   {
+    "card": "MP-CARD-057",
+    "planned_pr": "MP-PRP-006",
+    "lead_card": "MP-CARD-021"
+   },
+   {
+    "card": "MP-CARD-066",
+    "planned_pr": "MP-PRP-006",
+    "lead_card": "MP-CARD-021"
+   },
+   {
+    "card": "MP-CARD-073",
+    "planned_pr": "MP-PRP-006",
+    "lead_card": "MP-CARD-021"
+   },
+   {
+    "card": "MP-CARD-076",
+    "planned_pr": "MP-PRP-006",
+    "lead_card": "MP-CARD-021"
+   },
+   {
+    "card": "MP-CARD-080",
+    "planned_pr": "MP-PRP-006",
+    "lead_card": "MP-CARD-021"
+   },
+   {
+    "card": "MP-PR-00:continuous",
+    "planned_pr": "MP-PRP-003",
+    "lead_card": "MP-CARD-053"
+   },
+   {
+    "card": "MP-CARD-060",
+    "planned_pr": "MP-PRP-127",
+    "lead_card": "MP-CARD-059"
+   },
+   {
+    "card": "A-104:SETTINGS-CORE-01",
+    "planned_pr": "MP-PRP-127",
+    "lead_card": "MP-CARD-059"
+   },
+   {
+    "card": "A-104:TCOP-CORE-04",
+    "planned_pr": "MP-PRP-135",
+    "lead_card": "MP-CARD-069"
+   },
+   {
+    "card": "MP-CARD-083",
+    "planned_pr": "MP-PRP-002",
+    "lead_card": "MP-CARD-070"
+   },
+   {
+    "card": "MP-CARD-093",
+    "planned_pr": "MP-PRP-002",
+    "lead_card": "MP-CARD-070"
+   },
+   {
+    "card": "MP-PR-00:R-01",
+    "planned_pr": "MP-PRP-007",
+    "lead_card": "MP-CARD-088"
+   },
+   {
+    "card": "MP-CARD-104",
+    "planned_pr": "MP-PRP-251",
+    "lead_card": "MP-CARD-100"
+   },
+   {
+    "card": "MP-CARD-106",
+    "planned_pr": "MP-PRP-251",
+    "lead_card": "MP-CARD-100"
+   },
+   {
+    "card": "A-104:AUTH-CORE-04",
+    "planned_pr": "MP-PRP-246",
+    "lead_card": "A-104:AUTH-CORE-01"
+   },
+   {
+    "card": "MP-PR-00:R-03",
+    "planned_pr": "MP-PRP-125",
+    "lead_card": "A-104:MCP-CORE-00"
+   },
+   {
+    "card": "TCOP-CORE-01",
+    "planned_pr": "MP-PRP-132",
+    "lead_card": "A-104:TCOP-CORE-01"
+   },
+   {
+    "card": "TCOP-CORE-02",
+    "planned_pr": "MP-PRP-132",
+    "lead_card": "A-104:TCOP-CORE-01"
+   },
+   {
+    "card": "TCOP-CORE-03",
+    "planned_pr": "MP-PRP-132",
+    "lead_card": "A-104:TCOP-CORE-01"
+   },
+   {
+    "card": "MP-CARD-900",
+    "planned_pr": "MP-PRP-262",
+    "lead_card": "MP-PR-00:R-18"
+   },
+   {
+    "card": "MP-UI-PR-066-SESSION",
+    "planned_pr": "MP-PRP-230",
+    "lead_card": "MP-CARD-016"
+   },
+   {
+    "card": "MP-UI-PR-043-INDLIB",
+    "planned_pr": "MP-PRP-186",
+    "lead_card": "MP-CARD-026"
+   },
+   {
+    "card": "MP-UI-PR-044-IND-EXPLAIN",
+    "planned_pr": "MP-PRP-186",
+    "lead_card": "MP-CARD-026"
+   },
+   {
+    "card": "MP-UI-PR-008-COV",
+    "planned_pr": "MP-PRP-171",
+    "lead_card": "MP-CARD-043"
+   },
+   {
+    "card": "MP-UI-PR-010-BOARD",
+    "planned_pr": "MP-PRP-171",
+    "lead_card": "MP-CARD-043"
+   },
+   {
+    "card": "MP-UI-PR-012-DATAQ",
+    "planned_pr": "MP-PRP-171",
+    "lead_card": "MP-CARD-043"
+   },
+   {
+    "card": "esistente + MP-UI-PR-010-BOARD per i controlli SEEN",
+    "planned_pr": "MP-PRP-171",
+    "lead_card": "MP-CARD-043"
+   },
+   {
+    "card": "MP-PR-00:R-05",
+    "planned_pr": "MP-PRP-147",
+    "lead_card": "MP-CARD-052"
+   },
+   {
+    "card": "MP-UI-PR-001 (#240, mergiata)",
+    "planned_pr": "MP-PRP-147",
+    "lead_card": "MP-CARD-052"
+   },
+   {
+    "card": "MP-UI-PR-001/002 (mergiate)",
+    "planned_pr": "MP-PRP-147",
+    "lead_card": "MP-CARD-052"
+   },
+   {
+    "card": "MP-UI-PR-007-FOUND",
+    "planned_pr": "MP-PRP-147",
+    "lead_card": "MP-CARD-052"
+   },
+   {
+    "card": "MP-UI-PR-077-A11Y",
+    "planned_pr": "MP-PRP-147",
+    "lead_card": "MP-CARD-052"
+   },
+   {
+    "card": "MP-UI-PR-078-CERT12",
+    "planned_pr": "MP-PRP-151",
+    "lead_card": "CONSEGNATO su main (vedi evidenza)"
+   },
+   {
+    "card": "MP-UI-PR-046-BTCTRL",
+    "planned_pr": "MP-PRP-218",
+    "lead_card": "HIST-01b (backend) + MP-UI-PR-046-BTCTRL"
+   },
+   {
+    "card": "LIVE-PR-03",
+    "planned_pr": "MP-PRP-189",
+    "lead_card": "LIVE-PR-02"
+   },
+   {
+    "card": "LIVE-PR-04",
+    "planned_pr": "MP-PRP-189",
+    "lead_card": "LIVE-PR-02"
+   },
+   {
+    "card": "MP-UI-PR-029-LIVE-LAYOUT",
+    "planned_pr": "MP-PRP-189",
+    "lead_card": "LIVE-PR-02"
+   },
+   {
+    "card": "LIVE-PR-06",
+    "planned_pr": "MP-PRP-191",
+    "lead_card": "LIVE-PR-05"
+   },
+   {
+    "card": "MATH-CORE-07 / MP-MTH-002 (backend)",
+    "planned_pr": "MP-PRP-222",
+    "lead_card": "MATH-CORE-07 (backend); PR UI non pianificata"
+   },
+   {
+    "card": "MP-UI-PR-005 (#244) + MP-UI-CERT-CALC-01 (#246)",
+    "planned_pr": "MP-PRP-222",
+    "lead_card": "MATH-CORE-07 (backend); PR UI non pianificata"
+   },
+   {
+    "card": "MP-UI-PR-058-TT-CASHOUT-COMM",
+    "planned_pr": "MP-PRP-222",
+    "lead_card": "MATH-CORE-07 (backend); PR UI non pianificata"
+   },
+   {
+    "card": "MP-UI-PR-034-RPL-PLAYER",
+    "planned_pr": "MP-PRP-201",
+    "lead_card": "MP-PR-00:R-11"
+   },
+   {
+    "card": "MP-UI-PR-004 (#243)",
+    "planned_pr": "MP-PRP-234",
+    "lead_card": "MP-UI-PR-003 (#242, mergiata)"
+   },
+   {
+    "card": "MP-UI-PR-004 (#243) + MP-UI-PR-066-SESSION",
+    "planned_pr": "MP-PRP-234",
+    "lead_card": "MP-UI-PR-003 (#242, mergiata)"
+   },
+   {
+    "card": "MP-UI-PR-004 (#243, mergiata)",
+    "planned_pr": "MP-PRP-234",
+    "lead_card": "MP-UI-PR-003 (#242, mergiata)"
+   },
+   {
+    "card": "MP-UI-PR-006-STRAT",
+    "planned_pr": "MP-PRP-234",
+    "lead_card": "MP-UI-PR-003 (#242, mergiata)"
+   },
+   {
+    "card": "MP-UI-PR-009-NAV",
+    "planned_pr": "MP-PRP-234",
+    "lead_card": "MP-UI-PR-003 (#242, mergiata)"
+   },
+   {
+    "card": "MP-UI-PR-078-CERT12 (hard test #34)",
+    "planned_pr": "MP-PRP-234",
+    "lead_card": "MP-UI-PR-003 (#242, mergiata)"
+   },
+   {
+    "card": "MP-UI-PR-040-RULEFIELDS",
+    "planned_pr": "MP-PRP-173",
+    "lead_card": "MP-UI-PR-011-SRCHX"
+   },
+   {
+    "card": "MP-UI-PR-013-FLOW (aggiornamento mock)",
+    "planned_pr": "MP-PRP-161",
+    "lead_card": "MP-UI-PR-013-FLOW"
+   },
+   {
+    "card": "MP-UI-PR-013-FLOW (mock)",
+    "planned_pr": "MP-PRP-161",
+    "lead_card": "MP-UI-PR-013-FLOW"
+   },
+   {
+    "card": "MP-UI-PR-013-FLOW + MP-UI-PR-006 Strategie",
+    "planned_pr": "MP-PRP-161",
+    "lead_card": "MP-UI-PR-013-FLOW"
+   },
+   {
+    "card": "MP-UI-PR-015-HUBCORE",
+    "planned_pr": "MP-PRP-166",
+    "lead_card": "MP-UI-PR-014-HUBSHELL"
+   },
+   {
+    "card": "MP-UI-PR-017-HUBDRILL",
+    "planned_pr": "MP-PRP-167",
+    "lead_card": "MP-UI-PR-016-HUBFILTERS"
+   },
+   {
+    "card": "MP-UI-PR-019-HUBADV",
+    "planned_pr": "MP-PRP-168",
+    "lead_card": "MP-UI-PR-018-HUBMARKETS"
+   },
+   {
+    "card": "MP-UI-PR-021-HUBTRADE",
+    "planned_pr": "MP-PRP-168",
+    "lead_card": "MP-UI-PR-018-HUBMARKETS"
+   },
+   {
+    "card": "REPLAY-CORE-03",
+    "planned_pr": "MP-PRP-204",
+    "lead_card": "MP-UI-PR-037-COP-REPLAY"
+   },
+   {
+    "card": "MP-UI-PR-047-SIMMM (Simulazione) + MP-UI-PR-048-MMREG (registro)",
+    "planned_pr": "MP-PRP-210",
+    "lead_card": "MP-UI-PR-047-SIMMM"
+   },
+   {
+    "card": "MP-UI-PR-048-MMREG / MP-UI-PR-047-SIMMM",
+    "planned_pr": "MP-PRP-211",
+    "lead_card": "MP-UI-PR-048-MMREG"
+   },
+   {
+    "card": "MP-UI-PR-051-MMPROF (editor) / MP-UI-PR-048-MMREG (decisione)",
+    "planned_pr": "MP-PRP-214",
+    "lead_card": "MP-UI-PR-051-MMPROF"
+   },
+   {
+    "card": "MP-UI-PR-052-OPMODE",
+    "planned_pr": "MP-PRP-215",
+    "lead_card": "MP-UI-PR-051-MMPROF / MP-UI-PR-052-OPMODE"
+   },
+   {
+    "card": "MP-UI-PR-054-TT-TREE / MP-UI-PR-055-TT-PREMATCH-SELECTOR",
+    "planned_pr": "MP-PRP-219",
+    "lead_card": "MP-UI-PR-054-TT-TREE"
+   },
+   {
+    "card": "MP-UI-PR-055-TT-PREMATCH-SELECTOR",
+    "planned_pr": "MP-PRP-219",
+    "lead_card": "MP-UI-PR-054-TT-TREE"
+   },
+   {
+    "card": "MP-UI-PR-059-TT-RISK-NETTING",
+    "planned_pr": "MP-PRP-223",
+    "lead_card": "MP-UI-PR-056-TT-DUTCH-ARB … MP-UI-PR-059-TT-RISK-NETTING"
+   },
+   {
+    "card": "MP-UI-PR-061-TT-CALC-STATE / MP-UI-PR-062-TT-PREPARE-MM",
+    "planned_pr": "MP-PRP-225",
+    "lead_card": "MP-UI-PR-061-TT-CALC-STATE"
+   },
+   {
+    "card": "MP-UI-PR-065-COMMISSION / MP-UI-PR-047-SIMMM",
+    "planned_pr": "MP-PRP-229",
+    "lead_card": "MP-UI-PR-065-COMMISSION"
+   },
+   {
+    "card": "MP-UI-PR-070-COP-PRE",
+    "planned_pr": "MP-PRP-205",
+    "lead_card": "MP-UI-PR-069-COP-SHELL"
+   },
+   {
+    "card": "TCOP-CORE-04",
+    "planned_pr": "MP-PRP-205",
+    "lead_card": "MP-UI-PR-069-COP-SHELL"
+   },
+   {
+    "card": "MP-UI-PR-072-COP-ENTRY",
+    "planned_pr": "MP-PRP-206",
+    "lead_card": "MP-UI-PR-071-COP-LIVE"
+   },
+   {
+    "card": "MP-UI-PR-074-COP-MGMT",
+    "planned_pr": "MP-PRP-207",
+    "lead_card": "MP-UI-PR-073-COP-POS"
+   }
+  ],
+  "split_out": [
+   {
+    "pr": "MP-PRP-OPEN-290",
+    "origin": "OPEN_PR_WITHOUT_PRIMARY_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0903",
+     "MP-REQ-1088"
+    ]
+   },
+   {
+    "pr": "MP-PRP-005",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0046",
+     "MP-REQ-0049",
+     "MP-REQ-0842",
+     "MP-REQ-0895",
+     "MP-REQ-0896",
+     "MP-REQ-0897"
+    ]
+   },
+   {
+    "pr": "MP-PRP-008",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-1102",
+     "MP-REQ-1107",
+     "MP-REQ-1109",
+     "MP-REQ-1111",
+     "MP-REQ-1112",
+     "MP-REQ-0579"
+    ]
+   },
+   {
+    "pr": "MP-PRP-OPEN-287",
+    "origin": "OPEN_PR_WITHOUT_PRIMARY_CARD",
+    "cards": [
+     "MP-CARD-107",
+     "MP-CARD-111"
+    ],
+    "requirements": [
+     "MP-REQ-1298",
+     "MP-REQ-1309",
+     "MP-REQ-1357",
+     "MP-REQ-1358"
+    ]
+   },
+   {
+    "pr": "MP-PRP-009",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-CARD-108",
+     "MP-PR-00:R-08",
+     "MP-PR-00:R-16"
+    ],
+    "requirements": [
+     "MP-REQ-0074",
+     "MP-REQ-0208",
+     "MP-REQ-0209",
+     "MP-REQ-0263",
+     "MP-REQ-0341",
+     "MP-REQ-1292"
+    ]
+   },
+   {
+    "pr": "MP-PRP-010",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [
+     "MP-CARD-102",
+     "MP-CARD-108",
+     "MP-CARD-OPEN-280"
+    ],
+    "requirements": [
+     "MP-REQ-1264",
+     "MP-REQ-1293",
+     "MP-REQ-1314"
+    ]
+   },
+   {
+    "pr": "MP-PRP-011",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-PR-00:R-02",
+     "MP-PR-00:R-08"
+    ],
+    "requirements": [
+     "MP-REQ-0658",
+     "MP-REQ-0659",
+     "MP-REQ-0660",
+     "MP-REQ-1228",
+     "MP-REQ-0391"
+    ]
+   },
+   {
+    "pr": "MP-PRP-021",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-CARD-013",
+     "MP-PR-00:R-08"
+    ],
+    "requirements": [
+     "MP-REQ-0278",
+     "MP-REQ-0360",
+     "MP-REQ-0634"
+    ]
+   },
+   {
+    "pr": "MP-PRP-022",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "A-104:RECON-CORE-01",
+     "MP-PR-00:R-08",
+     "MP-PR-00:R-17"
+    ],
+    "requirements": [
+     "MP-REQ-0264",
+     "MP-REQ-0287",
+     "MP-REQ-0661",
+     "MP-REQ-0564",
+     "MP-REQ-1275"
+    ]
+   },
+   {
+    "pr": "MP-PRP-025",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-CARD-108",
+     "MP-CARD-OPEN-280",
+     "MP-PR-00:R-15",
+     "MP-PR-00:R-16"
+    ],
+    "requirements": [
+     "MP-REQ-0098",
+     "MP-REQ-0099",
+     "MP-REQ-0100",
+     "MP-REQ-0101",
+     "MP-REQ-0102",
+     "MP-REQ-0103",
+     "MP-REQ-0104",
+     "MP-REQ-0105",
+     "MP-REQ-0106",
+     "MP-REQ-0313",
+     "MP-REQ-0314",
+     "MP-REQ-1311",
+     "MP-REQ-1313"
+    ]
+   },
+   {
+    "pr": "MP-PRP-032",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-CARD-111",
+     "MP-CARD-OPEN-280",
+     "MP-CARD-OPEN-282",
+     "MP-CARD-OPEN-283",
+     "MP-PR-00:R-02",
+     "MP-PR-00:R-08"
+    ],
+    "requirements": [
+     "MP-REQ-0091",
+     "MP-REQ-0092",
+     "MP-REQ-0093",
+     "MP-REQ-0094",
+     "MP-REQ-0095",
+     "MP-REQ-0096",
+     "MP-REQ-0097",
+     "MP-REQ-0259",
+     "MP-REQ-0457",
+     "MP-REQ-1253",
+     "MP-REQ-1295",
+     "MP-REQ-0200",
+     "MP-REQ-0295",
+     "MP-REQ-1191",
+     "MP-REQ-1277",
+     "MP-REQ-1299"
+    ]
+   },
+   {
+    "pr": "MP-PRP-036",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-CARD-OPEN-280",
+     "MP-PR-00:R-15"
+    ],
+    "requirements": [
+     "MP-REQ-0567",
+     "MP-REQ-0922",
+     "MP-REQ-0266"
+    ]
+   },
+   {
+    "pr": "MP-PRP-037",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-CARD-OPEN-280",
+     "MP-PR-00:R-08",
+     "MP-PR-00:R-17"
+    ],
+    "requirements": [
+     "MP-REQ-0931",
+     "MP-REQ-0394"
+    ]
+   },
+   {
+    "pr": "MP-PRP-041",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "A-104:RECON-CORE-05",
+     "MP-PR-00:R-08",
+     "MP-PR-00:R-16",
+     "MP-PR-00:R-17"
+    ],
+    "requirements": [
+     "MP-REQ-0553",
+     "MP-REQ-0561",
+     "MP-REQ-0562",
+     "MP-REQ-0846"
+    ]
+   },
+   {
+    "pr": "MP-PRP-043",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-PR-00:R-17"
+    ],
+    "requirements": [
+     "MP-REQ-0164",
+     "MP-REQ-0565",
+     "MP-REQ-1103",
+     "MP-REQ-0844"
+    ]
+   },
+   {
+    "pr": "MP-PRP-050",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [
+     "MP-CARD-024"
+    ],
+    "requirements": [
+     "MP-REQ-0466"
+    ]
+   },
+   {
+    "pr": "MP-PRP-054",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-PR-00:R-12"
+    ],
+    "requirements": [
+     "MP-REQ-0766",
+     "MP-REQ-0767"
+    ]
+   },
+   {
+    "pr": "MP-PRP-055",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-PR-00:R-12"
+    ],
+    "requirements": [
+     "MP-REQ-0768",
+     "MP-REQ-0769"
+    ]
+   },
+   {
+    "pr": "MP-PRP-056",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-PR-00:R-12"
+    ],
+    "requirements": [
+     "MP-REQ-0770",
+     "MP-REQ-0771"
+    ]
+   },
+   {
+    "pr": "MP-PRP-057",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-PR-00:R-12"
+    ],
+    "requirements": [
+     "MP-REQ-0775",
+     "MP-REQ-0776"
+    ]
+   },
+   {
+    "pr": "MP-PRP-058",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-PR-00:R-12"
+    ],
+    "requirements": [
+     "MP-REQ-0777",
+     "MP-REQ-0778",
+     "MP-REQ-0783"
+    ]
+   },
+   {
+    "pr": "MP-PRP-059",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-PR-00:R-12",
+     "MP-PR-00:R-14"
+    ],
+    "requirements": [
+     "MP-REQ-0781",
+     "MP-REQ-0134",
+     "MP-REQ-0135",
+     "MP-REQ-0136"
+    ]
+   },
+   {
+    "pr": "MP-PRP-060",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-PR-00:R-12",
+     "MP-PR-00:R-14"
+    ],
+    "requirements": [
+     "MP-REQ-0782",
+     "MP-REQ-0784"
+    ]
+   },
+   {
+    "pr": "MP-PRP-065",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [
+     "MP-CARD-054"
+    ],
+    "requirements": [
+     "MP-REQ-0760"
+    ]
+   },
+   {
+    "pr": "MP-PRP-067",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-CARD-024",
+     "MP-PR-00:R-14",
+     "MP-CARD-003"
+    ],
+    "requirements": [
+     "MP-REQ-0474",
+     "MP-REQ-0470",
+     "MP-REQ-0473",
+     "MP-REQ-0145",
+     "MP-REQ-0146",
+     "MP-REQ-0147"
+    ]
+   },
+   {
+    "pr": "MP-PRP-070",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-PR-00:R-12",
+     "MP-PR-00:R-14",
+     "MP-CARD-036"
+    ],
+    "requirements": [
+     "MP-REQ-0150",
+     "MP-REQ-0151",
+     "MP-REQ-0152",
+     "MP-REQ-0153",
+     "MP-REQ-0607",
+     "MP-REQ-0608",
+     "MP-REQ-0622"
+    ]
+   },
+   {
+    "pr": "MP-PRP-074",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [
+     "MP-CARD-036"
+    ],
+    "requirements": [
+     "MP-REQ-0617",
+     "MP-REQ-0626",
+     "MP-REQ-0628"
+    ]
+   },
+   {
+    "pr": "MP-PRP-083",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-PR-00:R-14"
+    ],
+    "requirements": [
+     "MP-REQ-0137",
+     "MP-REQ-0434"
+    ]
+   },
+   {
+    "pr": "MP-PRP-085",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [
+     "MP-CARD-036",
+     "MP-PR-00:R-14"
+    ],
+    "requirements": [
+     "MP-REQ-0630",
+     "MP-REQ-0851",
+     "MP-REQ-0917"
+    ]
+   },
+   {
+    "pr": "MP-PRP-095",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [
+     "MP-CARD-020"
+    ],
+    "requirements": [
+     "MP-REQ-0452",
+     "MP-REQ-0453",
+     "MP-REQ-0852"
+    ]
+   },
+   {
+    "pr": "MP-PRP-101",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0603",
+     "MP-REQ-0812",
+     "MP-REQ-0813",
+     "MP-REQ-0814"
+    ]
+   },
+   {
+    "pr": "MP-PRP-114",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0969",
+     "MP-REQ-0970",
+     "MP-REQ-0972"
+    ]
+   },
+   {
+    "pr": "MP-PRP-115",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0976"
+    ]
+   },
+   {
+    "pr": "MP-PRP-117",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-1300"
+    ]
+   },
+   {
+    "pr": "MP-PRP-118",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0566",
+     "MP-REQ-0547",
+     "MP-REQ-0666"
+    ]
+   },
+   {
+    "pr": "MP-PRP-119",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0056",
+     "MP-REQ-0270",
+     "MP-REQ-1243"
+    ]
+   },
+   {
+    "pr": "MP-PRP-121",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0272",
+     "MP-REQ-0349",
+     "MP-REQ-0291",
+     "MP-REQ-0269",
+     "MP-REQ-0284",
+     "MP-REQ-0642"
+    ]
+   },
+   {
+    "pr": "MP-PRP-122",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0853"
+    ]
+   },
+   {
+    "pr": "MP-PRP-124",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0618"
+    ]
+   },
+   {
+    "pr": "MP-PRP-138",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0868",
+     "MP-REQ-0869",
+     "MP-REQ-0870",
+     "MP-REQ-0871",
+     "MP-REQ-0872",
+     "MP-REQ-0873",
+     "MP-REQ-0874",
+     "MP-REQ-0875"
+    ]
+   },
+   {
+    "pr": "MP-PRP-139",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0876",
+     "MP-REQ-0877",
+     "MP-REQ-0878",
+     "MP-REQ-0879",
+     "MP-REQ-0880",
+     "MP-REQ-0881"
+    ]
+   },
+   {
+    "pr": "MP-PRP-140",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0882",
+     "MP-REQ-0883",
+     "MP-REQ-0884",
+     "MP-REQ-0885",
+     "MP-REQ-0886",
+     "MP-REQ-0887",
+     "MP-REQ-0888"
+    ]
+   },
+   {
+    "pr": "MP-PRP-142",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0472"
+    ]
+   },
+   {
+    "pr": "MP-PRP-144",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0677",
+     "MP-REQ-0678",
+     "MP-REQ-0679"
+    ]
+   },
+   {
+    "pr": "MP-PRP-145",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0680",
+     "MP-REQ-0681",
+     "MP-REQ-0682",
+     "MP-REQ-0684"
+    ]
+   },
+   {
+    "pr": "MP-PRP-146",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0685",
+     "MP-REQ-0686"
+    ]
+   },
+   {
+    "pr": "MP-PRP-148",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0195",
+     "MP-REQ-0721"
+    ]
+   },
+   {
+    "pr": "MP-PRP-162",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0534",
+     "MP-REQ-0535"
+    ]
+   },
+   {
+    "pr": "MP-PRP-163",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0078",
+     "MP-REQ-0079",
+     "MP-REQ-0080",
+     "MP-REQ-0081",
+     "MP-REQ-0082",
+     "MP-REQ-0083"
+    ]
+   },
+   {
+    "pr": "MP-PRP-164",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0077",
+     "MP-REQ-0084",
+     "MP-REQ-0085",
+     "MP-REQ-0086"
+    ]
+   },
+   {
+    "pr": "MP-PRP-165",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0088",
+     "MP-REQ-0089",
+     "MP-REQ-0090"
+    ]
+   },
+   {
+    "pr": "MP-PRP-170",
+    "origin": "PREREQUISITE_OR_CERT_RECORD",
+    "cards": [],
+    "requirements": []
+   },
+   {
+    "pr": "MP-PRP-175",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0358",
+     "MP-REQ-1333"
+    ]
+   },
+   {
+    "pr": "MP-PRP-179",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0483",
+     "MP-REQ-0484",
+     "MP-REQ-0485",
+     "MP-REQ-0486",
+     "MP-REQ-0487"
+    ]
+   },
+   {
+    "pr": "MP-PRP-180",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0488",
+     "MP-REQ-0489",
+     "MP-REQ-0490",
+     "MP-REQ-0491",
+     "MP-REQ-0492"
+    ]
+   },
+   {
+    "pr": "MP-PRP-181",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0493",
+     "MP-REQ-0494",
+     "MP-REQ-0495",
+     "MP-REQ-0496",
+     "MP-REQ-0497"
+    ]
+   },
+   {
+    "pr": "MP-PRP-182",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0498",
+     "MP-REQ-0499",
+     "MP-REQ-0500",
+     "MP-REQ-0501",
+     "MP-REQ-0502",
+     "MP-REQ-0503",
+     "MP-REQ-0504"
+    ]
+   },
+   {
+    "pr": "MP-PRP-183",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0505",
+     "MP-REQ-0506",
+     "MP-REQ-0507",
+     "MP-REQ-0508",
+     "MP-REQ-0509"
+    ]
+   },
+   {
+    "pr": "MP-PRP-184",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0510",
+     "MP-REQ-0511",
+     "MP-REQ-0512",
+     "MP-REQ-0513",
+     "MP-REQ-0514",
+     "MP-REQ-0515",
+     "MP-REQ-0516"
+    ]
+   },
+   {
+    "pr": "MP-PRP-185",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0517",
+     "MP-REQ-0518",
+     "MP-REQ-0519"
+    ]
+   },
+   {
+    "pr": "MP-PRP-200",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0345",
+     "MP-REQ-0347",
+     "MP-REQ-0551"
+    ]
+   },
+   {
+    "pr": "MP-PRP-235",
+    "origin": "PREREQUISITE_OR_CERT_RECORD",
+    "cards": [],
+    "requirements": []
+   },
+   {
+    "pr": "MP-PRP-240",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0892"
+    ]
+   },
+   {
+    "pr": "MP-PRP-241",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0580"
+    ]
+   },
+   {
+    "pr": "MP-PRP-249",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0700",
+     "MP-REQ-0701"
+    ]
+   },
+   {
+    "pr": "MP-PRP-250",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0708"
+    ]
+   },
+   {
+    "pr": "MP-PRP-255",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [
+     "MP-CARD-084",
+     "MP-CARD-085",
+     "MP-CARD-107"
+    ],
+    "requirements": [
+     "MP-REQ-1146",
+     "MP-REQ-1147",
+     "MP-REQ-1148",
+     "MP-REQ-1149",
+     "MP-REQ-1150",
+     "MP-REQ-1152",
+     "MP-REQ-1170",
+     "MP-REQ-1352",
+     "MP-REQ-1353"
+    ]
+   },
+   {
+    "pr": "MP-PRP-260",
+    "origin": "SECONDARY_PR_OF_A_CARD",
+    "cards": [
+     "MP-CARD-084"
+    ],
+    "requirements": [
+     "MP-REQ-1160"
+    ]
+   },
+   {
+    "pr": "MP-PRP-261",
+    "origin": "EPIC_DECOMPOSITION",
+    "cards": [],
+    "requirements": [
+     "MP-REQ-0399",
+     "MP-REQ-0160"
+    ]
+   }
+  ],
+  "split_out_by_origin": {
+   "OPEN_PR_WITHOUT_PRIMARY_CARD": 2,
+   "EPIC_DECOMPOSITION": 42,
+   "SECONDARY_PR_OF_A_CARD": 23,
+   "PREREQUISITE_OR_CERT_RECORD": 2
+  },
+  "open": [
+   {
+    "pr": "MP-PRP-OPEN-290",
+    "github": 290
+   },
+   {
+    "pr": "MP-PRP-OPEN-280",
+    "github": 280
+   },
+   {
+    "pr": "MP-PRP-OPEN-281",
+    "github": 281
+   },
+   {
+    "pr": "MP-PRP-OPEN-282",
+    "github": 282
+   },
+   {
+    "pr": "MP-PRP-OPEN-283",
+    "github": 283
+   },
+   {
+    "pr": "MP-PRP-OPEN-285",
+    "github": 285
+   },
+   {
+    "pr": "MP-PRP-OPEN-286",
+    "github": 286
+   },
+   {
+    "pr": "MP-PRP-OPEN-287",
+    "github": 287
+   }
+  ],
+  "new": [
+   "MP-PRP-001",
+   "MP-PRP-002",
+   "MP-PRP-003",
+   "MP-PRP-004",
+   "MP-PRP-005",
+   "MP-PRP-006",
+   "MP-PRP-007",
+   "MP-PRP-008",
+   "MP-PRP-009",
+   "MP-PRP-010",
+   "MP-PRP-011",
+   "MP-PRP-012",
+   "MP-PRP-013",
+   "MP-PRP-014",
+   "MP-PRP-015",
+   "MP-PRP-016",
+   "MP-PRP-017",
+   "MP-PRP-018",
+   "MP-PRP-019",
+   "MP-PRP-020",
+   "MP-PRP-021",
+   "MP-PRP-022",
+   "MP-PRP-023",
+   "MP-PRP-024",
+   "MP-PRP-025",
+   "MP-PRP-026",
+   "MP-PRP-027",
+   "MP-PRP-028",
+   "MP-PRP-029",
+   "MP-PRP-030",
+   "MP-PRP-031",
+   "MP-PRP-032",
+   "MP-PRP-033",
+   "MP-PRP-034",
+   "MP-PRP-035",
+   "MP-PRP-036",
+   "MP-PRP-037",
+   "MP-PRP-038",
+   "MP-PRP-039",
+   "MP-PRP-040",
+   "MP-PRP-041",
+   "MP-PRP-042",
+   "MP-PRP-043",
+   "MP-PRP-044",
+   "MP-PRP-045",
+   "MP-PRP-046",
+   "MP-PRP-047",
+   "MP-PRP-048",
+   "MP-PRP-049",
+   "MP-PRP-050",
+   "MP-PRP-051",
+   "MP-PRP-052",
+   "MP-PRP-053",
+   "MP-PRP-054",
+   "MP-PRP-055",
+   "MP-PRP-056",
+   "MP-PRP-057",
+   "MP-PRP-058",
+   "MP-PRP-059",
+   "MP-PRP-060",
+   "MP-PRP-061",
+   "MP-PRP-062",
+   "MP-PRP-063",
+   "MP-PRP-064",
+   "MP-PRP-065",
+   "MP-PRP-066",
+   "MP-PRP-067",
+   "MP-PRP-068",
+   "MP-PRP-069",
+   "MP-PRP-070",
+   "MP-PRP-071",
+   "MP-PRP-072",
+   "MP-PRP-073",
+   "MP-PRP-074",
+   "MP-PRP-075",
+   "MP-PRP-076",
+   "MP-PRP-077",
+   "MP-PRP-078",
+   "MP-PRP-079",
+   "MP-PRP-080",
+   "MP-PRP-081",
+   "MP-PRP-082",
+   "MP-PRP-083",
+   "MP-PRP-084",
+   "MP-PRP-085",
+   "MP-PRP-086",
+   "MP-PRP-087",
+   "MP-PRP-088",
+   "MP-PRP-089",
+   "MP-PRP-090",
+   "MP-PRP-091",
+   "MP-PRP-092",
+   "MP-PRP-093",
+   "MP-PRP-094",
+   "MP-PRP-095",
+   "MP-PRP-096",
+   "MP-PRP-097",
+   "MP-PRP-098",
+   "MP-PRP-099",
+   "MP-PRP-100",
+   "MP-PRP-101",
+   "MP-PRP-102",
+   "MP-PRP-103",
+   "MP-PRP-104",
+   "MP-PRP-105",
+   "MP-PRP-106",
+   "MP-PRP-107",
+   "MP-PRP-108",
+   "MP-PRP-109",
+   "MP-PRP-110",
+   "MP-PRP-111",
+   "MP-PRP-112",
+   "MP-PRP-113",
+   "MP-PRP-114",
+   "MP-PRP-115",
+   "MP-PRP-116",
+   "MP-PRP-117",
+   "MP-PRP-118",
+   "MP-PRP-119",
+   "MP-PRP-120",
+   "MP-PRP-121",
+   "MP-PRP-122",
+   "MP-PRP-123",
+   "MP-PRP-124",
+   "MP-PRP-125",
+   "MP-PRP-126",
+   "MP-PRP-127",
+   "MP-PRP-128",
+   "MP-PRP-129",
+   "MP-PRP-130",
+   "MP-PRP-131",
+   "MP-PRP-132",
+   "MP-PRP-133",
+   "MP-PRP-134",
+   "MP-PRP-135",
+   "MP-PRP-136",
+   "MP-PRP-137",
+   "MP-PRP-138",
+   "MP-PRP-139",
+   "MP-PRP-140",
+   "MP-PRP-141",
+   "MP-PRP-142",
+   "MP-PRP-143",
+   "MP-PRP-144",
+   "MP-PRP-145",
+   "MP-PRP-146",
+   "MP-PRP-147",
+   "MP-PRP-148",
+   "MP-PRP-149",
+   "MP-PRP-150",
+   "MP-PRP-151",
+   "MP-PRP-152",
+   "MP-PRP-153",
+   "MP-PRP-154",
+   "MP-PRP-155",
+   "MP-PRP-156",
+   "MP-PRP-157",
+   "MP-PRP-158",
+   "MP-PRP-159",
+   "MP-PRP-160",
+   "MP-PRP-161",
+   "MP-PRP-162",
+   "MP-PRP-163",
+   "MP-PRP-164",
+   "MP-PRP-165",
+   "MP-PRP-166",
+   "MP-PRP-167",
+   "MP-PRP-168",
+   "MP-PRP-169",
+   "MP-PRP-170",
+   "MP-PRP-171",
+   "MP-PRP-172",
+   "MP-PRP-173",
+   "MP-PRP-174",
+   "MP-PRP-175",
+   "MP-PRP-176",
+   "MP-PRP-177",
+   "MP-PRP-178",
+   "MP-PRP-179",
+   "MP-PRP-180",
+   "MP-PRP-181",
+   "MP-PRP-182",
+   "MP-PRP-183",
+   "MP-PRP-184",
+   "MP-PRP-185",
+   "MP-PRP-186",
+   "MP-PRP-187",
+   "MP-PRP-188",
+   "MP-PRP-189",
+   "MP-PRP-190",
+   "MP-PRP-191",
+   "MP-PRP-192",
+   "MP-PRP-193",
+   "MP-PRP-194",
+   "MP-PRP-195",
+   "MP-PRP-196",
+   "MP-PRP-197",
+   "MP-PRP-198",
+   "MP-PRP-199",
+   "MP-PRP-200",
+   "MP-PRP-201",
+   "MP-PRP-202",
+   "MP-PRP-203",
+   "MP-PRP-204",
+   "MP-PRP-205",
+   "MP-PRP-206",
+   "MP-PRP-207",
+   "MP-PRP-208",
+   "MP-PRP-209",
+   "MP-PRP-210",
+   "MP-PRP-211",
+   "MP-PRP-212",
+   "MP-PRP-213",
+   "MP-PRP-214",
+   "MP-PRP-215",
+   "MP-PRP-216",
+   "MP-PRP-217",
+   "MP-PRP-218",
+   "MP-PRP-219",
+   "MP-PRP-220",
+   "MP-PRP-221",
+   "MP-PRP-222",
+   "MP-PRP-223",
+   "MP-PRP-224",
+   "MP-PRP-225",
+   "MP-PRP-226",
+   "MP-PRP-227",
+   "MP-PRP-228",
+   "MP-PRP-229",
+   "MP-PRP-230",
+   "MP-PRP-231",
+   "MP-PRP-232",
+   "MP-PRP-233",
+   "MP-PRP-234",
+   "MP-PRP-235",
+   "MP-PRP-236",
+   "MP-PRP-237",
+   "MP-PRP-238",
+   "MP-PRP-239",
+   "MP-PRP-240",
+   "MP-PRP-241",
+   "MP-PRP-242",
+   "MP-PRP-243",
+   "MP-PRP-244",
+   "MP-PRP-245",
+   "MP-PRP-246",
+   "MP-PRP-247",
+   "MP-PRP-248",
+   "MP-PRP-249",
+   "MP-PRP-250",
+   "MP-PRP-251",
+   "MP-PRP-252",
+   "MP-PRP-253",
+   "MP-PRP-254",
+   "MP-PRP-255",
+   "MP-PRP-256",
+   "MP-PRP-257",
+   "MP-PRP-258",
+   "MP-PRP-259",
+   "MP-PRP-260",
+   "MP-PRP-261",
+   "MP-PRP-262"
+  ],
+  "planning_rows_deduplicated": [
+   {
+    "into": "MP-PRP-020",
+    "into_source": "G1:G1-20",
+    "deduplicated_row": "G4:G4-30 (Provider-neutral league and season onboarding, coverage per season and field)",
+    "cross_group": true
+   },
+   {
+    "into": "MP-PRP-023",
+    "into_source": "G1:G1-23",
+    "deduplicated_row": "G5:G5-60 (Request economy: in-flight coalescing, cache-first with differentiated TTL, fres)",
+    "cross_group": true
+   },
+   {
+    "into": "MP-PRP-023",
+    "into_source": "G1:G1-23",
+    "deduplicated_row": "G4:G4-25 (Provider-neutral request-budget governor for API-FOOTBALL: per-provider minute/d)",
+    "cross_group": true
+   },
+   {
+    "into": "MP-PRP-024",
+    "into_source": "G1:G1-24",
+    "deduplicated_row": "G5:G5-54 (Live fan-out and performance: single collector per match, N users not N provider)",
+    "cross_group": true
+   },
+   {
+    "into": "MP-PRP-027",
+    "into_source": "G1:G1-27",
+    "deduplicated_row": "G4:G4-32 (TotalCorner residual hardening if verdict is KEEP: snapshot schema_version, circ)",
+    "cross_group": true
+   },
+   {
+    "into": "MP-PRP-030",
+    "into_source": "G1:G1-30",
+    "deduplicated_row": "G4:G4-31 (TotalCorner LIVE-only benchmark verdict against API-FOOTBALL: gap audit folded i)",
+    "cross_group": true
+   },
+   {
+    "into": "MP-PRP-040",
+    "into_source": "G1:G1-40",
+    "deduplicated_row": "G3:G3-11 (Automatic backfill after outage: live status check and gap fill (#31))",
+    "cross_group": true
+   },
+   {
+    "into": "MP-PRP-042",
+    "into_source": "G1:G1-42",
+    "deduplicated_row": "G4:G4-12 (Security baseline runtime: validated listen host (F1), general API rate limiting)",
+    "cross_group": true
+   },
+   {
+    "into": "MP-PRP-066",
+    "into_source": "G2:G2-05",
+    "deduplicated_row": "G5:G5-31 (Rule types with temporal and rolling conditions: before/after, between minutes, )",
+    "cross_group": true
+   },
+   {
+    "into": "MP-PRP-078",
+    "into_source": "G2:G2-17",
+    "deduplicated_row": "G5:G5-61 (Replay API: versioned read-only endpoint with validated match/time input and str)",
+    "cross_group": true
+   },
+   {
+    "into": "MP-PRP-081",
+    "into_source": "G2:G2-20",
+    "deduplicated_row": "G5:G5-09 (Finished Match Center backend contract (QUERY-CORE-01 continuation): final state)",
+    "cross_group": true
+   },
+   {
+    "into": "MP-PRP-097",
+    "into_source": "G3:G3-13",
+    "deduplicated_row": "G4:G4-44 (Money Management persistence: account-level entities, versions, audit, snapshots)",
+    "cross_group": true
+   },
+   {
+    "into": "MP-PRP-108",
+    "into_source": "G3:G3-25",
+    "deduplicated_row": "G4:G4-41 (Settings API and tools: read/update with validation and propagation to Trading T)",
+    "cross_group": true
+   },
+   {
+    "into": "MP-PRP-130",
+    "into_source": "G4:G4-45",
+    "deduplicated_row": "G3:G3-19 (MM API / tool surface (registry, profiles, evaluate))",
+    "cross_group": true
+   },
+   {
+    "into": "MP-PRP-132",
+    "into_source": "G4:G4-47",
+    "deduplicated_row": "G5:G5-66 (Trading Copilot pre-UI tool surface: operator tools (#98), TCOP-PR-01..09 order,)",
+    "cross_group": true
+   },
+   {
+    "into": "MP-PRP-135",
+    "into_source": "G4:G4-50",
+    "deduplicated_row": "G5:G5-72 (Trading Copilot hard test (18 steps) and Definition of Done (#102))",
+    "cross_group": true
+   },
+   {
+    "into": "MP-PRP-151",
+    "into_source": "G5:G5-07",
+    "deduplicated_row": "G5:G5-99 (Match Center hard certification: 5 finished matches, >=3 VERIFIED leagues, prema)",
+    "cross_group": false
+   },
+   {
+    "into": "MP-PRP-234",
+    "into_source": "G5:G5-97",
+    "deduplicated_row": "G5:G5-101 (Strategy hard test: create, rename, modify, new version, backtest, stake P/L, LA)",
+    "cross_group": false
+   },
+   {
+    "into": "MP-PRP-253",
+    "into_source": "G1:G1-45",
+    "deduplicated_row": "G4:G4-64 (Final VPS deployment certification (S3/S4) and end-to-end smoke of the certified)",
+    "cross_group": true
+   }
+  ],
+  "certification_only": [
+   "MP-PRP-234",
+   "MP-PRP-235",
+   "MP-PRP-242",
+   "MP-PRP-262"
+  ],
+  "decision_dependent": [
+   "MP-PRP-002",
+   "MP-PRP-OPEN-280",
+   "MP-PRP-OPEN-281",
+   "MP-PRP-OPEN-282",
+   "MP-PRP-OPEN-283",
+   "MP-PRP-OPEN-285",
+   "MP-PRP-OPEN-286",
+   "MP-PRP-OPEN-287",
+   "MP-PRP-010",
+   "MP-PRP-013",
+   "MP-PRP-014",
+   "MP-PRP-016",
+   "MP-PRP-019",
+   "MP-PRP-021",
+   "MP-PRP-023",
+   "MP-PRP-024",
+   "MP-PRP-025",
+   "MP-PRP-027",
+   "MP-PRP-028",
+   "MP-PRP-030",
+   "MP-PRP-031",
+   "MP-PRP-032",
+   "MP-PRP-035",
+   "MP-PRP-040",
+   "MP-PRP-041",
+   "MP-PRP-045",
+   "MP-PRP-047",
+   "MP-PRP-048",
+   "MP-PRP-052",
+   "MP-PRP-062",
+   "MP-PRP-065",
+   "MP-PRP-068",
+   "MP-PRP-072",
+   "MP-PRP-073",
+   "MP-PRP-082",
+   "MP-PRP-085",
+   "MP-PRP-095",
+   "MP-PRP-098",
+   "MP-PRP-099",
+   "MP-PRP-100",
+   "MP-PRP-101",
+   "MP-PRP-102",
+   "MP-PRP-115",
+   "MP-PRP-122",
+   "MP-PRP-132",
+   "MP-PRP-133",
+   "MP-PRP-134",
+   "MP-PRP-135",
+   "MP-PRP-143",
+   "MP-PRP-144",
+   "MP-PRP-145",
+   "MP-PRP-146",
+   "MP-PRP-179",
+   "MP-PRP-180",
+   "MP-PRP-181",
+   "MP-PRP-182",
+   "MP-PRP-183",
+   "MP-PRP-184",
+   "MP-PRP-185",
+   "MP-PRP-186",
+   "MP-PRP-187",
+   "MP-PRP-196",
+   "MP-PRP-198",
+   "MP-PRP-224",
+   "MP-PRP-230",
+   "MP-PRP-232",
+   "MP-PRP-233",
+   "MP-PRP-238",
+   "MP-PRP-242",
+   "MP-PRP-245",
+   "MP-PRP-246",
+   "MP-PRP-247",
+   "MP-PRP-248",
+   "MP-PRP-249",
+   "MP-PRP-250",
+   "MP-PRP-251",
+   "MP-PRP-253",
+   "MP-PRP-254",
+   "MP-PRP-255",
+   "MP-PRP-256",
+   "MP-PRP-257",
+   "MP-PRP-258",
+   "MP-PRP-259",
+   "MP-PRP-261"
+  ]
+ },
+ "uncertainty": {
+  "removable_by_decision": [
+   {
+    "pr": "MP-PRP-002",
+    "reason": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-002): points a, c, d are closed in substance by MP-UI-D12-DECISIONS-20261024, MP-OWNER-GO-2026-11-01 and DEC-001; points b, e, f need explicit owner records; the PR disappears only if those records are made elsewhere"
+   },
+   {
+    "pr": "MP-PRP-017",
+    "reason": "MANDATORY (audit 2026-11-02): integrity of the frozen FPT archive stays in scope; only the 0247 incremental-sync evidence could be waived by an explicit owner decision"
+   },
+   {
+    "pr": "MP-PRP-021",
+    "reason": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-021): the provider-overlap goal (DEC-003, OWN-2026-10-06-SCOPE) predates MP-OWNER-GO-2026-11-01; it disappears only if the owner drops it or restates the perimeter"
+   },
+   {
+    "pr": "MP-PRP-026",
+    "reason": "DEFERABLE (audit 2026-11-02): TotalCorner is suspended and the recorded benchmark verdict is INSUFFICIENT EVIDENCE (docs/product/mp-263/totalcorner-benchmark-criteria.md), not DROP; only an explicit owner decision to drop TotalCorner removes it"
+   },
+   {
+    "pr": "MP-PRP-027",
+    "reason": "DEFERABLE (audit 2026-11-02): TotalCorner is suspended and the recorded benchmark verdict is INSUFFICIENT EVIDENCE (docs/product/mp-263/totalcorner-benchmark-criteria.md), not DROP; only an explicit owner decision to drop TotalCorner removes it"
+   },
+   {
+    "pr": "MP-PRP-028",
+    "reason": "DEFERABLE (audit 2026-11-02): TotalCorner is suspended and the recorded benchmark verdict is INSUFFICIENT EVIDENCE (docs/product/mp-263/totalcorner-benchmark-criteria.md), not DROP; only an explicit owner decision to drop TotalCorner removes it"
+   },
+   {
+    "pr": "MP-PRP-029",
+    "reason": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-029): TotalCorner core certification on captured data; the TotalCorner OFF negative tests are a security control and stay in every scenario"
+   },
+   {
+    "pr": "MP-PRP-047",
+    "reason": "OPTIONAL (audit 2026-11-02): performance rewrite of the frozen FPT certification endpoint; it disappears if the owner freezes or retires that endpoint"
+   },
+   {
+    "pr": "MP-PRP-052",
+    "reason": "MANDATORY (audit 2026-11-02): progression and owner-formula models are approved scope (MP-UI-D12-DECISIONS-20261024); it stays in the plan and only an owner decision changing that scope would remove it; blocked on the owner formulas"
+   },
+   {
+    "pr": "MP-PRP-082",
+    "reason": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-082): the #27 GOAT benchmark was defined on FPT+TC; with API-FOOTBALL primary (MP-OWNER-GO-2026-11-01) it must be re-based or dropped by the owner; MP-PROVIDERS-2026-10-31 is cited in issue comments but is not in owner-decisions.json"
+   },
+   {
+    "pr": "MP-PRP-101",
+    "reason": "MANDATORY (audit 2026-11-02): progression and owner-formula models are approved scope (MP-UI-D12-DECISIONS-20261024); it stays in the plan and only an owner decision changing that scope would remove it; blocked on the owner formulas"
+   },
+   {
+    "pr": "MP-PRP-102",
+    "reason": "MANDATORY (audit 2026-11-02): progression and owner-formula models are approved scope (MP-UI-D12-DECISIONS-20261024); it stays in the plan and only an owner decision changing that scope would remove it; blocked on the owner formulas"
+   },
+   {
+    "pr": "MP-PRP-115",
+    "reason": "MANDATORY (audit 2026-11-02): the VOID, postponed, abandoned and correction policy of market rules is approved scope (DEC-015, DEC-002); it stays in the plan"
+   },
+   {
+    "pr": "MP-PRP-143",
+    "reason": "DEFERABLE (audit 2026-11-02): #44 is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and AI/conversational Copilot stays OFF pending cost authorization (MP-UI-D12-DECISIONS-20261024); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps advanced features in the global roadmap, so only an explicit owner deferral removes it"
+   },
+   {
+    "pr": "MP-PRP-144",
+    "reason": "DEFERABLE (audit 2026-11-02): #44 is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and AI/conversational Copilot stays OFF pending cost authorization (MP-UI-D12-DECISIONS-20261024); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps advanced features in the global roadmap, so only an explicit owner deferral removes it"
+   },
+   {
+    "pr": "MP-PRP-145",
+    "reason": "DEFERABLE (audit 2026-11-02): #44 is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and AI/conversational Copilot stays OFF pending cost authorization (MP-UI-D12-DECISIONS-20261024); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps advanced features in the global roadmap, so only an explicit owner deferral removes it"
+   },
+   {
+    "pr": "MP-PRP-146",
+    "reason": "DEFERABLE (audit 2026-11-02): #44 is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and AI/conversational Copilot stays OFF pending cost authorization (MP-UI-D12-DECISIONS-20261024); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps advanced features in the global roadmap, so only an explicit owner deferral removes it"
+   },
+   {
+    "pr": "MP-PRP-176",
+    "reason": "DEFERABLE (audit 2026-11-02): #44 is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and AI/conversational Copilot stays OFF pending cost authorization (MP-UI-D12-DECISIONS-20261024); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps advanced features in the global roadmap, so only an explicit owner deferral removes it"
+   },
+   {
+    "pr": "MP-PRP-230",
+    "reason": "DEFERABLE only for the owner Users & Permissions administration (230-B, audit 2026-11-02 and Codex review of PR #292); the own-session page, active-session listing and revocation (230-A) are mandatory"
+   },
+   {
+    "pr": "MP-PRP-233",
+    "reason": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-233): build step for the frontend; if the owner keeps the unbundled frontend, the no-source-map and no-debug checks move to MP-PRP-240 and stay mandatory"
+   },
+   {
+    "pr": "MP-PRP-240",
+    "reason": "DEFERABLE (audit 2026-11-02): advanced hardening beyond the security baseline of MP-PRP-042, which stays mandatory; only an explicit owner deferral removes it"
+   },
+   {
+    "pr": "MP-PRP-245",
+    "reason": "DEFERABLE (audit 2026-11-02): second administrator; v1 is owner-only (MP-OWNER-D12-OWNER-LOGIN-20261019); only an explicit owner deferral removes it"
+   },
+   {
+    "pr": "MP-PRP-247",
+    "reason": "DEFERABLE (audit 2026-11-02): #46 SaaS/billing is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and gated by MP-PRODUCT-100 (no payments or subscriptions without an owner decision); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps it in the global roadmap, so only an explicit owner deferral removes it"
+   },
+   {
+    "pr": "MP-PRP-248",
+    "reason": "DEFERABLE (audit 2026-11-02): #46 SaaS/billing is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and gated by MP-PRODUCT-100 (no payments or subscriptions without an owner decision); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps it in the global roadmap, so only an explicit owner deferral removes it"
+   },
+   {
+    "pr": "MP-PRP-249",
+    "reason": "DEFERABLE (audit 2026-11-02): #46 SaaS/billing is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and gated by MP-PRODUCT-100 (no payments or subscriptions without an owner decision); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps it in the global roadmap, so only an explicit owner deferral removes it"
+   },
+   {
+    "pr": "MP-PRP-250",
+    "reason": "DEFERABLE (audit 2026-11-02): #46 SaaS/billing is outside the v1 requirement denominator (future register MP-FUT-* in docs/governance/mp-pr-00) and gated by MP-PRODUCT-100 (no payments or subscriptions without an owner decision); MP-OWNER-DECISIONS-D1-D9-20261018.D3 keeps it in the global roadmap, so only an explicit owner deferral removes it"
+   },
+   {
+    "pr": "MP-PRP-259",
+    "reason": "MANDATORY (audit 2026-11-02): zero Actions spend evidence is required by OWN-2026-10-09-CI-ZERO-COST; only the timing of the private transition is an owner decision"
+   }
+  ],
+  "merge_pairs": [
+   "MP-PRP-003+MP-PRP-004",
+   "MP-PRP-005+MP-PRP-006",
+   "MP-PRP-014+MP-PRP-015",
+   "MP-PRP-016+MP-PRP-045",
+   "MP-PRP-024+MP-PRP-025",
+   "MP-PRP-039+MP-PRP-040",
+   "MP-PRP-055+MP-PRP-056",
+   "MP-PRP-067+MP-PRP-068",
+   "MP-PRP-067+MP-PRP-075",
+   "MP-PRP-081+MP-PRP-122",
+   "MP-PRP-108+MP-PRP-128",
+   "MP-PRP-113+MP-PRP-114",
+   "MP-PRP-123+MP-PRP-124",
+   "MP-PRP-132+MP-PRP-133",
+   "MP-PRP-138+MP-PRP-139",
+   "MP-PRP-149+MP-PRP-150",
+   "MP-PRP-151+MP-PRP-234",
+   "MP-PRP-151+MP-PRP-236",
+   "MP-PRP-154+MP-PRP-155",
+   "MP-PRP-156+MP-PRP-157",
+   "MP-PRP-163+MP-PRP-164",
+   "MP-PRP-166+MP-PRP-167",
+   "MP-PRP-179+MP-PRP-180",
+   "MP-PRP-181+MP-PRP-182",
+   "MP-PRP-183+MP-PRP-184",
+   "MP-PRP-201+MP-PRP-202",
+   "MP-PRP-205+MP-PRP-206",
+   "MP-PRP-206+MP-PRP-207",
+   "MP-PRP-217+MP-PRP-218",
+   "MP-PRP-220+MP-PRP-221",
+   "MP-PRP-225+MP-PRP-226",
+   "MP-PRP-234+MP-PRP-235",
+   "MP-PRP-236+MP-PRP-237",
+   "MP-PRP-243+MP-PRP-244"
+  ],
+  "split_risks": [
+   {
+    "pr": "MP-PRP-006",
+    "extra": 1,
+    "reason": "the 12 checklists may exceed 1,500 lines of data; then one PR for closure checklists and one for the PR-card split registry (+1)"
+   },
+   {
+    "pr": "MP-PRP-008",
+    "extra": 1,
+    "reason": "the SBOM step and the level D workflow are two independent workflow changes (+1)"
+   },
+   {
+    "pr": "MP-PRP-OPEN-285",
+    "extra": 1,
+    "reason": "MP-REQ-0276 (competition and season coverage registry per provider) and MP-REQ-1302 (dynamic markets end to end) may keep residual work after #285 merges (AF coverage ingestion is G2-02)"
+   },
+   {
+    "pr": "MP-PRP-009",
+    "extra": 1,
+    "reason": "Generic raw table plus normalizer plus text-number units may exceed 1,500 lines: split migration from normalizer (+1)"
+   },
+   {
+    "pr": "MP-PRP-017",
+    "extra": 1,
+    "reason": "Real incremental-sync evidence (MP-REQ-0247) may be impossible with FPT retired: could require owner waiver (+1 only if re-split)"
+   },
+   {
+    "pr": "MP-PRP-020",
+    "extra": 1,
+    "reason": "Registry plus onboarding pipeline may exceed 1,500 lines: split registry from onboarding (+1)"
+   },
+   {
+    "pr": "MP-PRP-023",
+    "extra": 1,
+    "reason": "(from G4:G4-25) freshness policy (0262) and 429/circuit breaker (0254) are separable (+1)"
+   },
+   {
+    "pr": "MP-PRP-024",
+    "extra": 1,
+    "reason": "Live PR must be re-scoped if AF live=all response is too large (PROVIDER_RESPONSE_TOO_LARGE)"
+   },
+   {
+    "pr": "MP-PRP-036",
+    "extra": 1,
+    "reason": "Public contract plus live filtering may be two PRs (+1)"
+   },
+   {
+    "pr": "MP-PRP-038",
+    "extra": 1,
+    "reason": "Rule-to-SQL translator may be separate (+1)"
+   },
+   {
+    "pr": "MP-PRP-039",
+    "extra": 1,
+    "reason": "Prematch and periodic layers could split (+1)"
+   },
+   {
+    "pr": "MP-PRP-046",
+    "extra": 2,
+    "reason": "Audit findings count unknown: likely several more PRs (+2)"
+   },
+   {
+    "pr": "MP-PRP-049",
+    "extra": 1,
+    "reason": "temporal and delta operators (before, after, last N minutes, increased by, crossed) may need their own PR  with G2-05"
+   },
+   {
+    "pr": "MP-PRP-051",
+    "extra": 1,
+    "reason": "each-way and solver could be separated from hedge/arbitrage if the diff exceeds 1500 lines"
+   },
+   {
+    "pr": "MP-PRP-053",
+    "extra": 1,
+    "reason": "models 1-25 and 26-35 are two catalogue blocks: split if the diff exceeds 1500 lines"
+   },
+   {
+    "pr": "MP-PRP-058",
+    "extra": 1,
+    "reason": "three catalogue blocks, may split into engines and consistency"
+   },
+   {
+    "pr": "MP-PRP-060",
+    "extra": 1,
+    "reason": "feature evaluation (0782) and the promotion gate (0784) are separable"
+   },
+   {
+    "pr": "MP-PRP-066",
+    "extra": 1,
+    "reason": "live windows need the #280 LIVE phase classification: if #280 changes the contract, one more PR may be needed"
+   },
+   {
+    "pr": "MP-PRP-067",
+    "extra": 1,
+    "reason": "unifying src/conditions/expression.mjs and src/hist/strategy-def.mjs may need a migration PR separate from the rule types"
+   },
+   {
+    "pr": "MP-PRP-070",
+    "extra": 1,
+    "reason": "confidence intervals and dutching backtest could be a second PR if the engine diff exceeds 1500 lines"
+   },
+   {
+    "pr": "MP-PRP-072",
+    "extra": 1,
+    "reason": "the job queue (MP-REQ-0061, Parquet/DuckDB analytics) may need its own PR"
+   },
+   {
+    "pr": "MP-PRP-076",
+    "extra": 1,
+    "reason": "five distinct strategies: one PR per strategy if formulas are ratified at different times"
+   },
+   {
+    "pr": "MP-PRP-089",
+    "extra": 1,
+    "reason": "three engines plus four dutching allocation modes may exceed 1,500 changed lines: split dutching from BACK/LAY (+1)"
+   },
+   {
+    "pr": "MP-PRP-094",
+    "extra": 1,
+    "reason": "tool surface for MCP plus REST may be two PRs (+1)"
+   },
+   {
+    "pr": "MP-PRP-097",
+    "extra": 1,
+    "reason": "(from G4:G4-44) operational-state/sequence-state entities may split from profile/rule/filter entities (+1)"
+   },
+   {
+    "pr": "MP-PRP-098",
+    "extra": 1,
+    "reason": "owner rule definitions for loss/drawdown/cooldown may be a follow-up PR (+1)"
+   },
+   {
+    "pr": "MP-PRP-103",
+    "extra": 1,
+    "reason": "progression and owner-formula models may be certified in a second PR if owner decisions land late (+1)"
+   },
+   {
+    "pr": "MP-PRP-105",
+    "extra": 1,
+    "reason": "numbering with staged 031 (OPEN-282) may force a renumber PR (+1)"
+   },
+   {
+    "pr": "MP-PRP-106",
+    "extra": 1,
+    "reason": "order/fill entities and 15 states may be separate PRs (+1)"
+   },
+   {
+    "pr": "MP-PRP-113",
+    "extra": 1,
+    "reason": "Asian handicap and dead heat could be two PRs (+1)"
+   },
+   {
+    "pr": "MP-PRP-118",
+    "extra": 1,
+    "reason": "coverage semantics (0666) touch DB views shared with G4-30 (+1)"
+   },
+   {
+    "pr": "MP-PRP-120",
+    "extra": 1,
+    "reason": "SSE/WebSocket fan-out and the cache-first read path are independent changes (+1)"
+   },
+   {
+    "pr": "MP-PRP-121",
+    "extra": 1,
+    "reason": "coverage-question endpoints (0284, 0642) and the perf gate are separable (+1)"
+   },
+   {
+    "pr": "MP-PRP-125",
+    "extra": 1,
+    "reason": "idempotency convention and account-authorization binding are separable (+1)"
+   },
+   {
+    "pr": "MP-PRP-131",
+    "extra": 1,
+    "reason": "mutation tools (open/settle/reverse) and read tools (positions/equity/reconciliation) are separable (+1)"
+   },
+   {
+    "pr": "MP-PRP-138",
+    "extra": 1,
+    "reason": "steps 3 and 4 (live, replay) depend on other groups and may be certified later (+1)"
+   },
+   {
+    "pr": "MP-PRP-147",
+    "extra": 1,
+    "reason": "MP-UI-PR-077-A11Y may need fixes in many pages (each page a11y defect is code, not only tests): if the a11y fixes exceed about 1,500 lines they split off a dedicated A11Y PR (+1)"
+   },
+   {
+    "pr": "MP-PRP-152",
+    "extra": 1,
+    "reason": "If AF fixture history is too shallow the 10/20 windows become N/D-only and a separate backfill PR is needed (+1, in G1)"
+   },
+   {
+    "pr": "MP-PRP-154",
+    "extra": 1,
+    "reason": "Strengths/Weaknesses (MP-REQ-0126) needs a generated-from-data rule set: if it needs its own backend contract it splits off (+1)"
+   },
+   {
+    "pr": "MP-PRP-155",
+    "extra": 1,
+    "reason": "nine cards plus journeys may exceed 1,500 lines (+1)"
+   },
+   {
+    "pr": "MP-PRP-163",
+    "extra": 1,
+    "reason": "AF statistics may not be stored yet for enough fixtures: a collector extension would be a G1 PR (+1)"
+   },
+   {
+    "pr": "MP-PRP-166",
+    "extra": 1,
+    "reason": "shell plus 12 core cards may exceed 1,500 lines (+1)"
+   },
+   {
+    "pr": "MP-PRP-168",
+    "extra": 1,
+    "reason": "19 matrix rows across 12+ cards: may split advanced vs market cards (+1)"
+   },
+   {
+    "pr": "MP-PRP-172",
+    "extra": 1,
+    "reason": "unifying hist/strategy-def with the expression format (MP-REQ-0351) may need a backend PR (+1)"
+   },
+   {
+    "pr": "MP-PRP-189",
+    "extra": 1,
+    "reason": "layout+client+clock (18 matrix rows) may exceed 1,500 lines (+1)"
+   },
+   {
+    "pr": "MP-PRP-201",
+    "extra": 1,
+    "reason": "20 matrix rows: controls plus timeline may exceed 1,500 lines (+1)"
+   },
+   {
+    "pr": "MP-PRP-205",
+    "extra": 1,
+    "reason": "shell and PREMATCH could be two PRs if the panel framework is large (+1)"
+   },
+   {
+    "pr": "MP-PRP-212",
+    "extra": 1,
+    "reason": "27 matrix rows may split (+1)"
+   },
+   {
+    "pr": "MP-PRP-214",
+    "extra": 1,
+    "reason": "63 matrix rows (editor, filters, limits, overrides, persistence): realistically two or three PRs (+1/+2)"
+   },
+   {
+    "pr": "MP-PRP-216",
+    "extra": 1,
+    "reason": "53 matrix rows (29 blocked): two PRs likely (+1)"
+   },
+   {
+    "pr": "MP-PRP-219",
+    "extra": 1,
+    "reason": "shell plus selector with prefill (14 matrix rows) could split (+1)"
+   },
+   {
+    "pr": "MP-PRP-222",
+    "extra": 1,
+    "reason": "five solvers may need two PRs (+1)"
+   },
+   {
+    "pr": "MP-PRP-228",
+    "extra": 1,
+    "reason": "38 matrix rows (all blocked): likely two or three PRs (+1/+2)"
+   },
+   {
+    "pr": "MP-PRP-230",
+    "extra": 1,
+    "reason": "34 matrix rows (30 blocked): likely two PRs (+1)"
+   },
+   {
+    "pr": "MP-PRP-238",
+    "extra": 1,
+    "reason": "VPS infra changes (1168) and GitHub settings (1169) are independent GO items (+1)"
+   },
+   {
+    "pr": "MP-PRP-243",
+    "extra": 1,
+    "reason": "schema migration and the permission-catalogue UI/API could be separate PRs (+1)"
+   },
+   {
+    "pr": "MP-PRP-248",
+    "extra": 1,
+    "reason": "feature gates/quotas (0704) may split from plans/lifecycle (+1)"
+   }
+  ]
+ },
+ "requirements": {
+  "active": 1173,
+  "completed": [
+   {
+    "id": "MP-REQ-0726",
+    "basis": "CERTIFICATE"
+   },
+   {
+    "id": "MP-REQ-0045",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-0165",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-0166",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-0330",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-0402",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-0898",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-0900",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-0906",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1091",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1119",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1123",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1124",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1125",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1126",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1127",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1128",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1129",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1130",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1131",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1133",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1134",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1135",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1136",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1104",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1108",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1110",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1113",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-1120",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-0381",
+    "basis": "RULE_ENFORCED_BY_TEST"
+   },
+   {
+    "id": "MP-REQ-0728",
+    "basis": "CERTIFICATE"
+   },
+   {
+    "id": "MP-REQ-0729",
+    "basis": "CERTIFICATE"
+   },
+   {
+    "id": "MP-REQ-0732",
+    "basis": "CERTIFICATE"
+   }
+  ],
+  "by_pr": {
+   "MP-PRP-OPEN-290": [
+    "MP-REQ-0903",
+    "MP-REQ-1088"
+   ],
+   "MP-PRP-001": [
+    "MP-REQ-0186",
+    "MP-REQ-0204",
+    "MP-REQ-0298",
+    "MP-REQ-0336",
+    "MP-REQ-1189",
+    "MP-REQ-1194",
+    "MP-REQ-1287",
+    "MP-REQ-1188",
+    "MP-REQ-1232",
+    "MP-REQ-1346",
+    "MP-REQ-0184",
+    "MP-REQ-0904",
+    "MP-REQ-0939",
+    "MP-REQ-1284",
+    "MP-REQ-1085",
+    "MP-REQ-1187"
+   ],
+   "MP-PRP-002": [
+    "MP-REQ-0307",
+    "MP-REQ-0377",
+    "MP-REQ-0843",
+    "MP-REQ-0899",
+    "MP-REQ-0893",
+    "MP-REQ-0675",
+    "MP-REQ-1139",
+    "MP-REQ-1220"
+   ],
+   "MP-PRP-003": [
+    "MP-REQ-0302",
+    "MP-REQ-0401",
+    "MP-REQ-0481",
+    "MP-REQ-0722",
+    "MP-REQ-0913",
+    "MP-REQ-1179",
+    "MP-REQ-1180",
+    "MP-REQ-1285",
+    "MP-REQ-1343",
+    "MP-REQ-1347",
+    "MP-REQ-1348"
+   ],
+   "MP-PRP-004": [
+    "MP-REQ-0054",
+    "MP-REQ-0308",
+    "MP-REQ-0655",
+    "MP-REQ-0662",
+    "MP-REQ-0697",
+    "MP-REQ-0384",
+    "MP-REQ-0573",
+    "MP-REQ-0169",
+    "MP-REQ-0652",
+    "MP-REQ-1247",
+    "MP-REQ-1248",
+    "MP-REQ-0938",
+    "MP-REQ-0180",
+    "MP-REQ-0047"
+   ],
+   "MP-PRP-005": [
+    "MP-REQ-0046",
+    "MP-REQ-0049",
+    "MP-REQ-0842",
+    "MP-REQ-0895",
+    "MP-REQ-0896",
+    "MP-REQ-0897"
+   ],
+   "MP-PRP-006": [
+    "MP-REQ-0385",
+    "MP-REQ-0454",
+    "MP-REQ-0480",
+    "MP-REQ-0581",
+    "MP-REQ-0631",
+    "MP-REQ-0788",
+    "MP-REQ-0841",
+    "MP-REQ-0935",
+    "MP-REQ-0958",
+    "MP-REQ-0980",
+    "MP-REQ-0563",
+    "MP-REQ-0786",
+    "MP-REQ-0800"
+   ],
+   "MP-PRP-007": [
+    "MP-REQ-1132",
+    "MP-REQ-1137",
+    "MP-REQ-1171"
+   ],
+   "MP-PRP-008": [
+    "MP-REQ-1102",
+    "MP-REQ-1107",
+    "MP-REQ-1109",
+    "MP-REQ-1111",
+    "MP-REQ-1112",
+    "MP-REQ-0579"
+   ],
+   "MP-PRP-OPEN-280": [
+    "MP-REQ-1338",
+    "MP-REQ-1339",
+    "MP-REQ-1340",
+    "MP-REQ-0297",
+    "MP-REQ-0335",
+    "MP-REQ-1288",
+    "MP-REQ-0937",
+    "MP-REQ-1193"
+   ],
+   "MP-PRP-OPEN-281": [
+    "MP-REQ-1317",
+    "MP-REQ-1318",
+    "MP-REQ-1319",
+    "MP-REQ-1166"
+   ],
+   "MP-PRP-OPEN-282": [
+    "MP-REQ-1297",
+    "MP-REQ-1354",
+    "MP-REQ-0201",
+    "MP-REQ-0252",
+    "MP-REQ-0588",
+    "MP-REQ-1296",
+    "MP-REQ-0063",
+    "MP-REQ-1303"
+   ],
+   "MP-PRP-OPEN-283": [
+    "MP-REQ-1308",
+    "MP-REQ-0583",
+    "MP-REQ-0587",
+    "MP-REQ-0591",
+    "MP-REQ-1304",
+    "MP-REQ-0593",
+    "MP-REQ-0057",
+    "MP-REQ-0310"
+   ],
+   "MP-PRP-OPEN-285": [
+    "MP-REQ-0265",
+    "MP-REQ-0203",
+    "MP-REQ-0276",
+    "MP-REQ-0348",
+    "MP-REQ-0463",
+    "MP-REQ-0867",
+    "MP-REQ-1236",
+    "MP-REQ-1302",
+    "MP-REQ-1331",
+    "MP-REQ-1334",
+    "MP-REQ-1337",
+    "MP-REQ-0342",
+    "MP-REQ-0350",
+    "MP-REQ-0356",
+    "MP-REQ-1240",
+    "MP-REQ-1332"
+   ],
+   "MP-PRP-OPEN-286": [
+    "MP-REQ-1336",
+    "MP-REQ-1349"
+   ],
+   "MP-PRP-OPEN-287": [
+    "MP-REQ-1298",
+    "MP-REQ-1309",
+    "MP-REQ-1357",
+    "MP-REQ-1358"
+   ],
+   "MP-PRP-009": [
+    "MP-REQ-0074",
+    "MP-REQ-0208",
+    "MP-REQ-0209",
+    "MP-REQ-0263",
+    "MP-REQ-0341",
+    "MP-REQ-1292"
+   ],
+   "MP-PRP-010": [
+    "MP-REQ-1264",
+    "MP-REQ-1293",
+    "MP-REQ-1314"
+   ],
+   "MP-PRP-011": [
+    "MP-REQ-0658",
+    "MP-REQ-0659",
+    "MP-REQ-0660",
+    "MP-REQ-1228",
+    "MP-REQ-0391"
+   ],
+   "MP-PRP-012": [
+    "MP-REQ-0067",
+    "MP-REQ-0148",
+    "MP-REQ-0159",
+    "MP-REQ-0289",
+    "MP-REQ-1237",
+    "MP-REQ-1239",
+    "MP-REQ-1259"
+   ],
+   "MP-PRP-013": [
+    "MP-REQ-0657",
+    "MP-REQ-0664",
+    "MP-REQ-0669",
+    "MP-REQ-0663",
+    "MP-REQ-0673",
+    "MP-REQ-0909",
+    "MP-REQ-1114",
+    "MP-REQ-1177",
+    "MP-REQ-0332"
+   ],
+   "MP-PRP-014": [
+    "MP-REQ-0936",
+    "MP-REQ-1210",
+    "MP-REQ-1211",
+    "MP-REQ-1212",
+    "MP-REQ-1213",
+    "MP-REQ-1214",
+    "MP-REQ-1215",
+    "MP-REQ-1216",
+    "MP-REQ-1217",
+    "MP-REQ-1218",
+    "MP-REQ-1219",
+    "MP-REQ-1249",
+    "MP-REQ-0158",
+    "MP-REQ-0072"
+   ],
+   "MP-PRP-015": [
+    "MP-REQ-1266",
+    "MP-REQ-1267",
+    "MP-REQ-1269",
+    "MP-REQ-1270",
+    "MP-REQ-1271",
+    "MP-REQ-1272",
+    "MP-REQ-1282",
+    "MP-REQ-1291",
+    "MP-REQ-1315",
+    "MP-REQ-1316"
+   ],
+   "MP-PRP-016": [
+    "MP-REQ-0205",
+    "MP-REQ-1195",
+    "MP-REQ-1273",
+    "MP-REQ-1355",
+    "MP-REQ-1356",
+    "MP-REQ-1262",
+    "MP-REQ-1307",
+    "MP-REQ-1310"
+   ],
+   "MP-PRP-017": [
+    "MP-REQ-0070",
+    "MP-REQ-0071",
+    "MP-REQ-0206",
+    "MP-REQ-0207",
+    "MP-REQ-0210",
+    "MP-REQ-0211",
+    "MP-REQ-0212",
+    "MP-REQ-0213",
+    "MP-REQ-0215",
+    "MP-REQ-0217",
+    "MP-REQ-0218",
+    "MP-REQ-0219",
+    "MP-REQ-0247",
+    "MP-REQ-0290",
+    "MP-REQ-0292",
+    "MP-REQ-0456",
+    "MP-REQ-0288",
+    "MP-REQ-1322",
+    "MP-REQ-1294"
+   ],
+   "MP-PRP-018": [
+    "MP-REQ-0242",
+    "MP-REQ-0243",
+    "MP-REQ-0244",
+    "MP-REQ-0246",
+    "MP-REQ-0277",
+    "MP-REQ-0281",
+    "MP-REQ-0361",
+    "MP-REQ-0245"
+   ],
+   "MP-PRP-019": [
+    "MP-REQ-0221",
+    "MP-REQ-0222",
+    "MP-REQ-0223",
+    "MP-REQ-0224",
+    "MP-REQ-0225",
+    "MP-REQ-0226",
+    "MP-REQ-0227",
+    "MP-REQ-0228",
+    "MP-REQ-0229",
+    "MP-REQ-0230",
+    "MP-REQ-0233",
+    "MP-REQ-0234",
+    "MP-REQ-0235",
+    "MP-REQ-0237",
+    "MP-REQ-0238",
+    "MP-REQ-0239",
+    "MP-REQ-0240",
+    "MP-REQ-1153",
+    "MP-REQ-1175"
+   ],
+   "MP-PRP-020": [
+    "MP-REQ-0632",
+    "MP-REQ-0633",
+    "MP-REQ-0635",
+    "MP-REQ-0637",
+    "MP-REQ-0638",
+    "MP-REQ-0639",
+    "MP-REQ-0640",
+    "MP-REQ-0644",
+    "MP-REQ-0359",
+    "MP-REQ-0286",
+    "MP-REQ-0280",
+    "MP-REQ-0362",
+    "MP-REQ-0282",
+    "MP-REQ-0073"
+   ],
+   "MP-PRP-021": [
+    "MP-REQ-0278",
+    "MP-REQ-0360",
+    "MP-REQ-0634"
+   ],
+   "MP-PRP-022": [
+    "MP-REQ-0264",
+    "MP-REQ-0287",
+    "MP-REQ-0661",
+    "MP-REQ-0564",
+    "MP-REQ-1275"
+   ],
+   "MP-PRP-023": [
+    "MP-REQ-0253",
+    "MP-REQ-0257",
+    "MP-REQ-0325",
+    "MP-REQ-0584",
+    "MP-REQ-0589",
+    "MP-REQ-0590",
+    "MP-REQ-0592",
+    "MP-REQ-0461",
+    "MP-REQ-0249",
+    "MP-REQ-0250",
+    "MP-REQ-0258",
+    "MP-REQ-0339",
+    "MP-REQ-0251",
+    "MP-REQ-0254",
+    "MP-REQ-0255",
+    "MP-REQ-0256",
+    "MP-REQ-0262"
+   ],
+   "MP-PRP-024": [
+    "MP-REQ-0260",
+    "MP-REQ-0261",
+    "MP-REQ-0340",
+    "MP-REQ-0458",
+    "MP-REQ-0459",
+    "MP-REQ-0462",
+    "MP-REQ-0586",
+    "MP-REQ-1312",
+    "MP-REQ-0059",
+    "MP-REQ-0338"
+   ],
+   "MP-PRP-025": [
+    "MP-REQ-0098",
+    "MP-REQ-0099",
+    "MP-REQ-0100",
+    "MP-REQ-0101",
+    "MP-REQ-0102",
+    "MP-REQ-0103",
+    "MP-REQ-0104",
+    "MP-REQ-0105",
+    "MP-REQ-0106",
+    "MP-REQ-0313",
+    "MP-REQ-0314",
+    "MP-REQ-1311",
+    "MP-REQ-1313"
+   ],
+   "MP-PRP-026": [
+    "MP-REQ-1016",
+    "MP-REQ-1017",
+    "MP-REQ-1018",
+    "MP-REQ-0318",
+    "MP-REQ-0319",
+    "MP-REQ-0320",
+    "MP-REQ-0327",
+    "MP-REQ-0317"
+   ],
+   "MP-PRP-027": [
+    "MP-REQ-1019",
+    "MP-REQ-0326",
+    "MP-REQ-0315",
+    "MP-REQ-0316",
+    "MP-REQ-0321",
+    "MP-REQ-0324"
+   ],
+   "MP-PRP-028": [
+    "MP-REQ-1015",
+    "MP-REQ-0312",
+    "MP-REQ-0328",
+    "MP-REQ-1020"
+   ],
+   "MP-PRP-029": [
+    "MP-REQ-1011",
+    "MP-REQ-1012",
+    "MP-REQ-1013",
+    "MP-REQ-1014",
+    "MP-REQ-0304",
+    "MP-REQ-0305",
+    "MP-REQ-0309",
+    "MP-REQ-0311",
+    "MP-REQ-1158",
+    "MP-REQ-1176",
+    "MP-REQ-0333",
+    "MP-REQ-0306"
+   ],
+   "MP-PRP-030": [
+    "MP-REQ-0334",
+    "MP-REQ-1192",
+    "MP-REQ-1221",
+    "MP-REQ-1222",
+    "MP-REQ-1223",
+    "MP-REQ-1276",
+    "MP-REQ-1323",
+    "MP-REQ-1324",
+    "MP-REQ-1325",
+    "MP-REQ-1326",
+    "MP-REQ-1327",
+    "MP-REQ-1328",
+    "MP-REQ-1329",
+    "MP-REQ-1258",
+    "MP-REQ-0202",
+    "MP-REQ-0296",
+    "MP-REQ-0322",
+    "MP-REQ-0323",
+    "MP-REQ-0329",
+    "MP-REQ-1279",
+    "MP-REQ-1330"
+   ],
+   "MP-PRP-031": [
+    "MP-REQ-1255",
+    "MP-REQ-1256",
+    "MP-REQ-1257",
+    "MP-REQ-1260",
+    "MP-REQ-1261",
+    "MP-REQ-1305"
+   ],
+   "MP-PRP-032": [
+    "MP-REQ-0091",
+    "MP-REQ-0092",
+    "MP-REQ-0093",
+    "MP-REQ-0094",
+    "MP-REQ-0095",
+    "MP-REQ-0096",
+    "MP-REQ-0097",
+    "MP-REQ-0259",
+    "MP-REQ-0457",
+    "MP-REQ-1253",
+    "MP-REQ-1295",
+    "MP-REQ-0200",
+    "MP-REQ-0295",
+    "MP-REQ-1191",
+    "MP-REQ-1277",
+    "MP-REQ-1299"
+   ],
+   "MP-PRP-033": [
+    "MP-REQ-1046"
+   ],
+   "MP-PRP-034": [
+    "MP-REQ-1048",
+    "MP-REQ-0977",
+    "MP-REQ-0981",
+    "MP-REQ-1044",
+    "MP-REQ-1045",
+    "MP-REQ-1047"
+   ],
+   "MP-PRP-035": [
+    "MP-REQ-1241",
+    "MP-REQ-1242",
+    "MP-REQ-1301"
+   ],
+   "MP-PRP-036": [
+    "MP-REQ-0567",
+    "MP-REQ-0922",
+    "MP-REQ-0266"
+   ],
+   "MP-PRP-037": [
+    "MP-REQ-0931",
+    "MP-REQ-0394"
+   ],
+   "MP-PRP-038": [
+    "MP-REQ-0267",
+    "MP-REQ-0346",
+    "MP-REQ-0477",
+    "MP-REQ-0268",
+    "MP-REQ-0667"
+   ],
+   "MP-PRP-039": [
+    "MP-REQ-0545",
+    "MP-REQ-0546",
+    "MP-REQ-0550",
+    "MP-REQ-0555",
+    "MP-REQ-0556",
+    "MP-REQ-0549",
+    "MP-REQ-0554"
+   ],
+   "MP-PRP-040": [
+    "MP-REQ-1023",
+    "MP-REQ-0552"
+   ],
+   "MP-PRP-041": [
+    "MP-REQ-0553",
+    "MP-REQ-0561",
+    "MP-REQ-0562",
+    "MP-REQ-0846"
+   ],
+   "MP-PRP-042": [
+    "MP-REQ-0366",
+    "MP-REQ-0568",
+    "MP-REQ-0569",
+    "MP-REQ-0571",
+    "MP-REQ-0576",
+    "MP-REQ-0578",
+    "MP-REQ-0582",
+    "MP-REQ-1159"
+   ],
+   "MP-PRP-043": [
+    "MP-REQ-0164",
+    "MP-REQ-0565",
+    "MP-REQ-1103",
+    "MP-REQ-0844"
+   ],
+   "MP-PRP-044": [
+    "MP-REQ-0170",
+    "MP-REQ-0171",
+    "MP-REQ-0172",
+    "MP-REQ-0173",
+    "MP-REQ-0174",
+    "MP-REQ-0175",
+    "MP-REQ-0176",
+    "MP-REQ-0910",
+    "MP-REQ-0163"
+   ],
+   "MP-PRP-045": [
+    "MP-REQ-1229",
+    "MP-REQ-1230"
+   ],
+   "MP-PRP-046": [
+    "MP-REQ-1238",
+    "MP-REQ-1250"
+   ],
+   "MP-PRP-047": [
+    "MP-REQ-1161"
+   ],
+   "MP-PRP-048": [
+    "MP-REQ-1290"
+   ],
+   "MP-PRP-049": [
+    "MP-REQ-0271",
+    "MP-REQ-0464",
+    "MP-REQ-0465",
+    "MP-REQ-0467",
+    "MP-REQ-0475",
+    "MP-REQ-0479"
+   ],
+   "MP-PRP-050": [
+    "MP-REQ-0466"
+   ],
+   "MP-PRP-051": [
+    "MP-REQ-0746",
+    "MP-REQ-0857",
+    "MP-REQ-0858",
+    "MP-REQ-0859",
+    "MP-REQ-0862",
+    "MP-REQ-1030",
+    "MP-REQ-1031"
+   ],
+   "MP-PRP-052": [
+    "MP-REQ-0739",
+    "MP-REQ-0740",
+    "MP-REQ-0861",
+    "MP-REQ-1032"
+   ],
+   "MP-PRP-053": [
+    "MP-REQ-0743",
+    "MP-REQ-0763",
+    "MP-REQ-0764",
+    "MP-REQ-0765",
+    "MP-REQ-1034"
+   ],
+   "MP-PRP-054": [
+    "MP-REQ-0766",
+    "MP-REQ-0767"
+   ],
+   "MP-PRP-055": [
+    "MP-REQ-0768",
+    "MP-REQ-0769"
+   ],
+   "MP-PRP-056": [
+    "MP-REQ-0770",
+    "MP-REQ-0771"
+   ],
+   "MP-PRP-057": [
+    "MP-REQ-0775",
+    "MP-REQ-0776"
+   ],
+   "MP-PRP-058": [
+    "MP-REQ-0777",
+    "MP-REQ-0778",
+    "MP-REQ-0783"
+   ],
+   "MP-PRP-059": [
+    "MP-REQ-0781",
+    "MP-REQ-0134",
+    "MP-REQ-0135",
+    "MP-REQ-0136"
+   ],
+   "MP-PRP-060": [
+    "MP-REQ-0782",
+    "MP-REQ-0784"
+   ],
+   "MP-PRP-061": [
+    "MP-REQ-0780",
+    "MP-REQ-0439",
+    "MP-REQ-1033"
+   ],
+   "MP-PRP-062": [
+    "MP-REQ-0058"
+   ],
+   "MP-PRP-063": [
+    "MP-REQ-0069",
+    "MP-REQ-0133",
+    "MP-REQ-0674",
+    "MP-REQ-0724",
+    "MP-REQ-0758",
+    "MP-REQ-0854",
+    "MP-REQ-0855",
+    "MP-REQ-0856",
+    "MP-REQ-0860",
+    "MP-REQ-0863",
+    "MP-REQ-0950",
+    "MP-REQ-1029",
+    "MP-REQ-1028"
+   ],
+   "MP-PRP-064": [
+    "MP-REQ-0759",
+    "MP-REQ-0761",
+    "MP-REQ-0864",
+    "MP-REQ-1035"
+   ],
+   "MP-PRP-065": [
+    "MP-REQ-0760"
+   ],
+   "MP-PRP-066": [
+    "MP-REQ-0468",
+    "MP-REQ-0469",
+    "MP-REQ-0344",
+    "MP-REQ-0352"
+   ],
+   "MP-PRP-067": [
+    "MP-REQ-0474",
+    "MP-REQ-0470",
+    "MP-REQ-0473",
+    "MP-REQ-0145",
+    "MP-REQ-0146",
+    "MP-REQ-0147"
+   ],
+   "MP-PRP-068": [
+    "MP-REQ-0138",
+    "MP-REQ-0596",
+    "MP-REQ-0597",
+    "MP-REQ-0598",
+    "MP-REQ-0599",
+    "MP-REQ-0620",
+    "MP-REQ-1057"
+   ],
+   "MP-PRP-069": [
+    "MP-REQ-0600",
+    "MP-REQ-0621",
+    "MP-REQ-1058"
+   ],
+   "MP-PRP-070": [
+    "MP-REQ-0150",
+    "MP-REQ-0151",
+    "MP-REQ-0152",
+    "MP-REQ-0153",
+    "MP-REQ-0607",
+    "MP-REQ-0608",
+    "MP-REQ-0622"
+   ],
+   "MP-PRP-071": [
+    "MP-REQ-0149",
+    "MP-REQ-0162",
+    "MP-REQ-0283",
+    "MP-REQ-0641",
+    "MP-REQ-0430",
+    "MP-REQ-0476",
+    "MP-REQ-0609",
+    "MP-REQ-0914",
+    "MP-REQ-1059"
+   ],
+   "MP-PRP-072": [
+    "MP-REQ-0061",
+    "MP-REQ-0066",
+    "MP-REQ-0161",
+    "MP-REQ-0610",
+    "MP-REQ-0611",
+    "MP-REQ-0612",
+    "MP-REQ-0623",
+    "MP-REQ-0624",
+    "MP-REQ-0629",
+    "MP-REQ-1060"
+   ],
+   "MP-PRP-073": [
+    "MP-REQ-0613",
+    "MP-REQ-0614",
+    "MP-REQ-0615",
+    "MP-REQ-0625",
+    "MP-REQ-0627",
+    "MP-REQ-1061"
+   ],
+   "MP-PRP-074": [
+    "MP-REQ-0617",
+    "MP-REQ-0626",
+    "MP-REQ-0628"
+   ],
+   "MP-PRP-075": [
+    "MP-REQ-0645",
+    "MP-REQ-1062"
+   ],
+   "MP-PRP-076": [
+    "MP-REQ-0139",
+    "MP-REQ-0140",
+    "MP-REQ-0141",
+    "MP-REQ-0142",
+    "MP-REQ-0143"
+   ],
+   "MP-PRP-077": [
+    "MP-REQ-0390",
+    "MP-REQ-0392",
+    "MP-REQ-0393",
+    "MP-REQ-0558",
+    "MP-REQ-0847",
+    "MP-REQ-1026"
+   ],
+   "MP-PRP-078": [
+    "MP-REQ-0396",
+    "MP-REQ-0901",
+    "MP-REQ-1027",
+    "MP-REQ-0395"
+   ],
+   "MP-PRP-079": [
+    "MP-REQ-0832",
+    "MP-REQ-1073"
+   ],
+   "MP-PRP-080": [
+    "MP-REQ-1075",
+    "MP-REQ-0536"
+   ],
+   "MP-PRP-081": [
+    "MP-REQ-1074",
+    "MP-REQ-0403"
+   ],
+   "MP-PRP-082": [
+    "MP-REQ-0415",
+    "MP-REQ-0416",
+    "MP-REQ-0417",
+    "MP-REQ-1076"
+   ],
+   "MP-PRP-083": [
+    "MP-REQ-0137",
+    "MP-REQ-0434"
+   ],
+   "MP-PRP-084": [
+    "MP-REQ-0925",
+    "MP-REQ-1063"
+   ],
+   "MP-PRP-085": [
+    "MP-REQ-0630",
+    "MP-REQ-0851",
+    "MP-REQ-0917"
+   ],
+   "MP-PRP-086": [
+    "MP-REQ-0420",
+    "MP-REQ-0421",
+    "MP-REQ-0435",
+    "MP-REQ-0436",
+    "MP-REQ-0442",
+    "MP-REQ-1064"
+   ],
+   "MP-PRP-087": [
+    "MP-REQ-0422",
+    "MP-REQ-0423",
+    "MP-REQ-0424",
+    "MP-REQ-0425",
+    "MP-REQ-0443",
+    "MP-REQ-1065"
+   ],
+   "MP-PRP-088": [
+    "MP-REQ-0426",
+    "MP-REQ-0427",
+    "MP-REQ-0428",
+    "MP-REQ-0429",
+    "MP-REQ-0444",
+    "MP-REQ-1066"
+   ],
+   "MP-PRP-089": [
+    "MP-REQ-0431",
+    "MP-REQ-0432",
+    "MP-REQ-0433",
+    "MP-REQ-0445",
+    "MP-REQ-0446",
+    "MP-REQ-0447",
+    "MP-REQ-0604",
+    "MP-REQ-1067"
+   ],
+   "MP-PRP-090": [
+    "MP-REQ-0437",
+    "MP-REQ-0440",
+    "MP-REQ-0448",
+    "MP-REQ-1068"
+   ],
+   "MP-PRP-091": [
+    "MP-REQ-0756",
+    "MP-REQ-0902",
+    "MP-REQ-0960",
+    "MP-REQ-1056"
+   ],
+   "MP-PRP-092": [
+    "MP-REQ-0438",
+    "MP-REQ-0449",
+    "MP-REQ-1069"
+   ],
+   "MP-PRP-093": [
+    "MP-REQ-0441",
+    "MP-REQ-0451",
+    "MP-REQ-1070"
+   ],
+   "MP-PRP-094": [
+    "MP-REQ-1071"
+   ],
+   "MP-PRP-095": [
+    "MP-REQ-0452",
+    "MP-REQ-0453",
+    "MP-REQ-0852"
+   ],
+   "MP-PRP-096": [
+    "MP-REQ-0557"
+   ],
+   "MP-PRP-097": [
+    "MP-REQ-0606",
+    "MP-REQ-0820",
+    "MP-REQ-0822",
+    "MP-REQ-0865",
+    "MP-REQ-1037",
+    "MP-REQ-1039",
+    "MP-REQ-0803",
+    "MP-REQ-0833"
+   ],
+   "MP-PRP-098": [
+    "MP-REQ-0155",
+    "MP-REQ-0823",
+    "MP-REQ-0824",
+    "MP-REQ-0825",
+    "MP-REQ-0826",
+    "MP-REQ-1038"
+   ],
+   "MP-PRP-099": [
+    "MP-REQ-0450",
+    "MP-REQ-0742",
+    "MP-REQ-0748",
+    "MP-REQ-0817",
+    "MP-REQ-0829",
+    "MP-REQ-1042"
+   ],
+   "MP-PRP-100": [
+    "MP-REQ-0605",
+    "MP-REQ-0811",
+    "MP-REQ-0818",
+    "MP-REQ-0831",
+    "MP-REQ-1040"
+   ],
+   "MP-PRP-101": [
+    "MP-REQ-0603",
+    "MP-REQ-0812",
+    "MP-REQ-0813",
+    "MP-REQ-0814"
+   ],
+   "MP-PRP-102": [
+    "MP-REQ-0815",
+    "MP-REQ-0816",
+    "MP-REQ-0830",
+    "MP-REQ-1041"
+   ],
+   "MP-PRP-103": [
+    "MP-REQ-0601",
+    "MP-REQ-0602",
+    "MP-REQ-0804",
+    "MP-REQ-0805",
+    "MP-REQ-0806",
+    "MP-REQ-0807",
+    "MP-REQ-0808",
+    "MP-REQ-0809",
+    "MP-REQ-0810",
+    "MP-REQ-0827",
+    "MP-REQ-0838",
+    "MP-REQ-0839",
+    "MP-REQ-1036"
+   ],
+   "MP-PRP-104": [
+    "MP-REQ-0840",
+    "MP-REQ-1072"
+   ],
+   "MP-PRP-105": [
+    "MP-REQ-0156",
+    "MP-REQ-0943",
+    "MP-REQ-0945",
+    "MP-REQ-0949",
+    "MP-REQ-0954",
+    "MP-REQ-1049",
+    "MP-REQ-1053"
+   ],
+   "MP-PRP-106": [
+    "MP-REQ-0828",
+    "MP-REQ-0941",
+    "MP-REQ-0942",
+    "MP-REQ-0944",
+    "MP-REQ-1050"
+   ],
+   "MP-PRP-107": [
+    "MP-REQ-0951",
+    "MP-REQ-0974",
+    "MP-REQ-1052"
+   ],
+   "MP-PRP-108": [
+    "MP-REQ-0182",
+    "MP-REQ-0790",
+    "MP-REQ-0845",
+    "MP-REQ-1008",
+    "MP-REQ-0923"
+   ],
+   "MP-PRP-109": [
+    "MP-REQ-0791",
+    "MP-REQ-0792",
+    "MP-REQ-0947"
+   ],
+   "MP-PRP-110": [
+    "MP-REQ-0651",
+    "MP-REQ-0948",
+    "MP-REQ-0956"
+   ],
+   "MP-PRP-111": [
+    "MP-REQ-0837",
+    "MP-REQ-0978",
+    "MP-REQ-1054"
+   ],
+   "MP-PRP-112": [
+    "MP-REQ-0802",
+    "MP-REQ-0836",
+    "MP-REQ-0850",
+    "MP-REQ-0940",
+    "MP-REQ-0946",
+    "MP-REQ-0952",
+    "MP-REQ-0955",
+    "MP-REQ-0957",
+    "MP-REQ-1051",
+    "MP-REQ-1055"
+   ],
+   "MP-PRP-113": [
+    "MP-REQ-0964",
+    "MP-REQ-0967",
+    "MP-REQ-0968",
+    "MP-REQ-0975"
+   ],
+   "MP-PRP-114": [
+    "MP-REQ-0969",
+    "MP-REQ-0970",
+    "MP-REQ-0972"
+   ],
+   "MP-PRP-115": [
+    "MP-REQ-0976"
+   ],
+   "MP-PRP-116": [
+    "MP-REQ-0849",
+    "MP-REQ-0961",
+    "MP-REQ-0962",
+    "MP-REQ-0963",
+    "MP-REQ-0965",
+    "MP-REQ-0966",
+    "MP-REQ-0971",
+    "MP-REQ-0973",
+    "MP-REQ-0979"
+   ],
+   "MP-PRP-117": [
+    "MP-REQ-1300"
+   ],
+   "MP-PRP-118": [
+    "MP-REQ-0566",
+    "MP-REQ-0547",
+    "MP-REQ-0666"
+   ],
+   "MP-PRP-119": [
+    "MP-REQ-0056",
+    "MP-REQ-0270",
+    "MP-REQ-1243"
+   ],
+   "MP-PRP-120": [
+    "MP-REQ-0060",
+    "MP-REQ-0455",
+    "MP-REQ-0460"
+   ],
+   "MP-PRP-121": [
+    "MP-REQ-0272",
+    "MP-REQ-0349",
+    "MP-REQ-0291",
+    "MP-REQ-0269",
+    "MP-REQ-0284",
+    "MP-REQ-0642"
+   ],
+   "MP-PRP-122": [
+    "MP-REQ-0853"
+   ],
+   "MP-PRP-123": [
+    "MP-REQ-0643",
+    "MP-REQ-0299"
+   ],
+   "MP-PRP-124": [
+    "MP-REQ-0618"
+   ],
+   "MP-PRP-125": [
+    "MP-REQ-0928",
+    "MP-REQ-1006"
+   ],
+   "MP-PRP-126": [
+    "MP-REQ-0929"
+   ],
+   "MP-PRP-127": [
+    "MP-REQ-1007",
+    "MP-REQ-0793",
+    "MP-REQ-0798",
+    "MP-REQ-0799"
+   ],
+   "MP-PRP-128": [
+    "MP-REQ-1009",
+    "MP-REQ-0795",
+    "MP-REQ-0796"
+   ],
+   "MP-PRP-129": [
+    "MP-REQ-1010",
+    "MP-REQ-0797",
+    "MP-REQ-0801"
+   ],
+   "MP-PRP-130": [
+    "MP-REQ-0924",
+    "MP-REQ-0930",
+    "MP-REQ-1043"
+   ],
+   "MP-PRP-131": [
+    "MP-REQ-0926",
+    "MP-REQ-0953",
+    "MP-REQ-0959"
+   ],
+   "MP-PRP-132": [
+    "MP-REQ-1077",
+    "MP-REQ-0997",
+    "MP-REQ-0999",
+    "MP-REQ-1001"
+   ],
+   "MP-PRP-133": [
+    "MP-REQ-1078"
+   ],
+   "MP-PRP-134": [
+    "MP-REQ-1079"
+   ],
+   "MP-PRP-135": [
+    "MP-REQ-1080",
+    "MP-REQ-0889",
+    "MP-REQ-0998",
+    "MP-REQ-1000"
+   ],
+   "MP-PRP-136": [
+    "MP-REQ-1081",
+    "MP-REQ-0866",
+    "MP-REQ-0927"
+   ],
+   "MP-PRP-137": [
+    "MP-REQ-1082"
+   ],
+   "MP-PRP-138": [
+    "MP-REQ-0868",
+    "MP-REQ-0869",
+    "MP-REQ-0870",
+    "MP-REQ-0871",
+    "MP-REQ-0872",
+    "MP-REQ-0873",
+    "MP-REQ-0874",
+    "MP-REQ-0875"
+   ],
+   "MP-PRP-139": [
+    "MP-REQ-0876",
+    "MP-REQ-0877",
+    "MP-REQ-0878",
+    "MP-REQ-0879",
+    "MP-REQ-0880",
+    "MP-REQ-0881"
+   ],
+   "MP-PRP-140": [
+    "MP-REQ-0882",
+    "MP-REQ-0883",
+    "MP-REQ-0884",
+    "MP-REQ-0885",
+    "MP-REQ-0886",
+    "MP-REQ-0887",
+    "MP-REQ-0888"
+   ],
+   "MP-PRP-141": [
+    "MP-REQ-1083",
+    "MP-REQ-0934",
+    "MP-REQ-0933",
+    "MP-REQ-1289"
+   ],
+   "MP-PRP-142": [
+    "MP-REQ-0472"
+   ],
+   "MP-PRP-143": [
+    "MP-REQ-0676",
+    "MP-REQ-0683"
+   ],
+   "MP-PRP-144": [
+    "MP-REQ-0677",
+    "MP-REQ-0678",
+    "MP-REQ-0679"
+   ],
+   "MP-PRP-145": [
+    "MP-REQ-0680",
+    "MP-REQ-0681",
+    "MP-REQ-0682",
+    "MP-REQ-0684"
+   ],
+   "MP-PRP-146": [
+    "MP-REQ-0685",
+    "MP-REQ-0686"
+   ],
+   "MP-PRP-147": [
+    "MP-REQ-0190",
+    "MP-REQ-0191",
+    "MP-REQ-0192",
+    "MP-REQ-0193",
+    "MP-REQ-0194",
+    "MP-REQ-0197",
+    "MP-REQ-0716",
+    "MP-REQ-0717",
+    "MP-REQ-0718",
+    "MP-REQ-0719",
+    "MP-REQ-0720",
+    "MP-REQ-1115",
+    "MP-REQ-0189",
+    "MP-REQ-0196",
+    "MP-REQ-0715"
+   ],
+   "MP-PRP-148": [
+    "MP-REQ-0195",
+    "MP-REQ-0721"
+   ],
+   "MP-PRP-149": [
+    "MP-REQ-1244"
+   ],
+   "MP-PRP-150": [
+    "MP-REQ-1335"
+   ],
+   "MP-PRP-151": [
+    "MP-REQ-0107",
+    "MP-REQ-0110",
+    "MP-REQ-0111",
+    "MP-REQ-0123",
+    "MP-REQ-0411"
+   ],
+   "MP-PRP-152": [
+    "MP-REQ-0075",
+    "MP-REQ-0076",
+    "MP-REQ-0087",
+    "MP-REQ-0404",
+    "MP-REQ-0409"
+   ],
+   "MP-PRP-153": [
+    "MP-REQ-0108"
+   ],
+   "MP-PRP-154": [
+    "MP-REQ-0109",
+    "MP-REQ-0112",
+    "MP-REQ-0122",
+    "MP-REQ-0124",
+    "MP-REQ-0125",
+    "MP-REQ-0126",
+    "MP-REQ-0127"
+   ],
+   "MP-PRP-155": [
+    "MP-REQ-0113",
+    "MP-REQ-0114",
+    "MP-REQ-0115",
+    "MP-REQ-0116",
+    "MP-REQ-0117",
+    "MP-REQ-0118",
+    "MP-REQ-0119",
+    "MP-REQ-0120",
+    "MP-REQ-0121",
+    "MP-REQ-0412"
+   ],
+   "MP-PRP-156": [
+    "MP-REQ-0405",
+    "MP-REQ-0406"
+   ],
+   "MP-PRP-157": [
+    "MP-REQ-0129",
+    "MP-REQ-0407"
+   ],
+   "MP-PRP-158": [
+    "MP-REQ-0130",
+    "MP-REQ-0131",
+    "MP-REQ-0408"
+   ],
+   "MP-PRP-159": [
+    "MP-REQ-0410"
+   ],
+   "MP-PRP-162": [
+    "MP-REQ-0534",
+    "MP-REQ-0535"
+   ],
+   "MP-PRP-163": [
+    "MP-REQ-0078",
+    "MP-REQ-0079",
+    "MP-REQ-0080",
+    "MP-REQ-0081",
+    "MP-REQ-0082",
+    "MP-REQ-0083"
+   ],
+   "MP-PRP-164": [
+    "MP-REQ-0077",
+    "MP-REQ-0084",
+    "MP-REQ-0085",
+    "MP-REQ-0086"
+   ],
+   "MP-PRP-165": [
+    "MP-REQ-0088",
+    "MP-REQ-0089",
+    "MP-REQ-0090"
+   ],
+   "MP-PRP-166": [
+    "MP-REQ-0128",
+    "MP-REQ-0540"
+   ],
+   "MP-PRP-167": [
+    "MP-REQ-0537",
+    "MP-REQ-0538"
+   ],
+   "MP-PRP-168": [
+    "MP-REQ-0541"
+   ],
+   "MP-PRP-169": [
+    "MP-REQ-0539"
+   ],
+   "MP-PRP-171": [
+    "MP-REQ-0279",
+    "MP-REQ-0365",
+    "MP-REQ-0636"
+   ],
+   "MP-PRP-172": [
+    "MP-REQ-0144",
+    "MP-REQ-0351",
+    "MP-REQ-0355",
+    "MP-REQ-0471"
+   ],
+   "MP-PRP-173": [
+    "MP-REQ-0343",
+    "MP-REQ-0353",
+    "MP-REQ-0363"
+   ],
+   "MP-PRP-174": [
+    "MP-REQ-0354"
+   ],
+   "MP-PRP-175": [
+    "MP-REQ-0358",
+    "MP-REQ-1333"
+   ],
+   "MP-PRP-176": [
+    "MP-REQ-0357",
+    "MP-REQ-0478"
+   ],
+   "MP-PRP-177": [
+    "MP-REQ-0154",
+    "MP-REQ-0183",
+    "MP-REQ-0848"
+   ],
+   "MP-PRP-178": [
+    "MP-REQ-0482",
+    "MP-REQ-0647"
+   ],
+   "MP-PRP-179": [
+    "MP-REQ-0483",
+    "MP-REQ-0484",
+    "MP-REQ-0485",
+    "MP-REQ-0486",
+    "MP-REQ-0487"
+   ],
+   "MP-PRP-180": [
+    "MP-REQ-0488",
+    "MP-REQ-0489",
+    "MP-REQ-0490",
+    "MP-REQ-0491",
+    "MP-REQ-0492"
+   ],
+   "MP-PRP-181": [
+    "MP-REQ-0493",
+    "MP-REQ-0494",
+    "MP-REQ-0495",
+    "MP-REQ-0496",
+    "MP-REQ-0497"
+   ],
+   "MP-PRP-182": [
+    "MP-REQ-0498",
+    "MP-REQ-0499",
+    "MP-REQ-0500",
+    "MP-REQ-0501",
+    "MP-REQ-0502",
+    "MP-REQ-0503",
+    "MP-REQ-0504"
+   ],
+   "MP-PRP-183": [
+    "MP-REQ-0505",
+    "MP-REQ-0506",
+    "MP-REQ-0507",
+    "MP-REQ-0508",
+    "MP-REQ-0509"
+   ],
+   "MP-PRP-184": [
+    "MP-REQ-0510",
+    "MP-REQ-0511",
+    "MP-REQ-0512",
+    "MP-REQ-0513",
+    "MP-REQ-0514",
+    "MP-REQ-0515",
+    "MP-REQ-0516"
+   ],
+   "MP-PRP-185": [
+    "MP-REQ-0517",
+    "MP-REQ-0518",
+    "MP-REQ-0519"
+   ],
+   "MP-PRP-186": [
+    "MP-REQ-0520",
+    "MP-REQ-0646"
+   ],
+   "MP-PRP-187": [
+    "MP-REQ-0616"
+   ],
+   "MP-PRP-188": [
+    "MP-REQ-0521",
+    "MP-REQ-0574",
+    "MP-REQ-0337"
+   ],
+   "MP-PRP-189": [
+    "MP-REQ-0522",
+    "MP-REQ-0524"
+   ],
+   "MP-PRP-192": [
+    "MP-REQ-0528"
+   ],
+   "MP-PRP-193": [
+    "MP-REQ-0526",
+    "MP-REQ-0559"
+   ],
+   "MP-PRP-194": [
+    "MP-REQ-0529"
+   ],
+   "MP-PRP-195": [
+    "MP-REQ-0523",
+    "MP-REQ-0525"
+   ],
+   "MP-PRP-196": [
+    "MP-REQ-0530",
+    "MP-REQ-0532"
+   ],
+   "MP-PRP-197": [
+    "MP-REQ-1246"
+   ],
+   "MP-PRP-198": [
+    "MP-REQ-0527",
+    "MP-REQ-1268"
+   ],
+   "MP-PRP-200": [
+    "MP-REQ-0345",
+    "MP-REQ-0347",
+    "MP-REQ-0551"
+   ],
+   "MP-PRP-201": [
+    "MP-REQ-0397"
+   ],
+   "MP-PRP-203": [
+    "MP-REQ-0398"
+   ],
+   "MP-PRP-204": [
+    "MP-REQ-0996"
+   ],
+   "MP-PRP-205": [
+    "MP-REQ-0982",
+    "MP-REQ-0983",
+    "MP-REQ-0994"
+   ],
+   "MP-PRP-206": [
+    "MP-REQ-0984",
+    "MP-REQ-0985"
+   ],
+   "MP-PRP-207": [
+    "MP-REQ-0986",
+    "MP-REQ-0987",
+    "MP-REQ-0988",
+    "MP-REQ-0989",
+    "MP-REQ-0990"
+   ],
+   "MP-PRP-208": [
+    "MP-REQ-0991",
+    "MP-REQ-0157"
+   ],
+   "MP-PRP-209": [
+    "MP-REQ-0992",
+    "MP-REQ-0993"
+   ],
+   "MP-PRP-210": [
+    "MP-REQ-0650"
+   ],
+   "MP-PRP-211": [
+    "MP-REQ-0834"
+   ],
+   "MP-PRP-214": [
+    "MP-REQ-0819"
+   ],
+   "MP-PRP-215": [
+    "MP-REQ-0821",
+    "MP-REQ-0995"
+   ],
+   "MP-PRP-219": [
+    "MP-REQ-0750",
+    "MP-REQ-0751",
+    "MP-REQ-0752",
+    "MP-REQ-0753",
+    "MP-REQ-0755"
+   ],
+   "MP-PRP-220": [
+    "MP-REQ-0734",
+    "MP-REQ-0735",
+    "MP-REQ-0736"
+   ],
+   "MP-PRP-222": [
+    "MP-REQ-0727",
+    "MP-REQ-0731",
+    "MP-REQ-0733",
+    "MP-REQ-0744",
+    "MP-REQ-0747"
+   ],
+   "MP-PRP-223": [
+    "MP-REQ-0762"
+   ],
+   "MP-PRP-224": [
+    "MP-REQ-0737",
+    "MP-REQ-0738",
+    "MP-REQ-0741"
+   ],
+   "MP-PRP-225": [
+    "MP-REQ-0725",
+    "MP-REQ-0749",
+    "MP-REQ-0754"
+   ],
+   "MP-PRP-226": [
+    "MP-REQ-0730"
+   ],
+   "MP-PRP-227": [
+    "MP-REQ-0757"
+   ],
+   "MP-PRP-228": [
+    "MP-REQ-0789",
+    "MP-REQ-0794"
+   ],
+   "MP-PRP-229": [
+    "MP-REQ-0132"
+   ],
+   "MP-PRP-230": [
+    "MP-REQ-0372"
+   ],
+   "MP-PRP-232": [
+    "MP-REQ-0413",
+    "MP-REQ-0414",
+    "MP-REQ-0418"
+   ],
+   "MP-PRP-233": [
+    "MP-REQ-0570"
+   ],
+   "MP-PRP-236": [
+    "MP-REQ-0542"
+   ],
+   "MP-PRP-237": [
+    "MP-REQ-0919"
+   ],
+   "MP-PRP-238": [
+    "MP-REQ-1234",
+    "MP-REQ-1105",
+    "MP-REQ-1117",
+    "MP-REQ-1168",
+    "MP-REQ-1169",
+    "MP-REQ-1172",
+    "MP-REQ-1286"
+   ],
+   "MP-PRP-239": [
+    "MP-REQ-0216",
+    "MP-REQ-0231",
+    "MP-REQ-0236",
+    "MP-REQ-0577"
+   ],
+   "MP-PRP-240": [
+    "MP-REQ-0892"
+   ],
+   "MP-PRP-241": [
+    "MP-REQ-0580"
+   ],
+   "MP-PRP-242": [
+    "MP-REQ-0668"
+   ],
+   "MP-PRP-243": [
+    "MP-REQ-1003",
+    "MP-REQ-0367",
+    "MP-REQ-0368",
+    "MP-REQ-0370",
+    "MP-REQ-0371",
+    "MP-REQ-0374",
+    "MP-REQ-0575"
+   ],
+   "MP-PRP-244": [
+    "MP-REQ-0378",
+    "MP-REQ-0375",
+    "MP-REQ-0932"
+   ],
+   "MP-PRP-245": [
+    "MP-REQ-1004",
+    "MP-REQ-0369"
+   ],
+   "MP-PRP-246": [
+    "MP-REQ-1005",
+    "MP-REQ-0383",
+    "MP-REQ-1002",
+    "MP-REQ-0379",
+    "MP-REQ-0376",
+    "MP-REQ-0380",
+    "MP-REQ-0387",
+    "MP-REQ-0907"
+   ],
+   "MP-PRP-247": [
+    "MP-REQ-0373",
+    "MP-REQ-0382",
+    "MP-REQ-0619",
+    "MP-REQ-0572"
+   ],
+   "MP-PRP-248": [
+    "MP-REQ-0699",
+    "MP-REQ-0702",
+    "MP-REQ-0703",
+    "MP-REQ-0704",
+    "MP-REQ-0705",
+    "MP-REQ-0706",
+    "MP-REQ-0707"
+   ],
+   "MP-PRP-249": [
+    "MP-REQ-0700",
+    "MP-REQ-0701"
+   ],
+   "MP-PRP-250": [
+    "MP-REQ-0708"
+   ],
+   "MP-PRP-251": [
+    "MP-REQ-1245",
+    "MP-REQ-1263",
+    "MP-REQ-1274"
+   ],
+   "MP-PRP-252": [
+    "MP-REQ-0232",
+    "MP-REQ-0285",
+    "MP-REQ-0364",
+    "MP-REQ-0560"
+   ],
+   "MP-PRP-253": [
+    "MP-REQ-1163",
+    "MP-REQ-1164",
+    "MP-REQ-1167",
+    "MP-REQ-0915",
+    "MP-REQ-1183",
+    "MP-REQ-1162"
+   ],
+   "MP-PRP-254": [
+    "MP-REQ-1140",
+    "MP-REQ-1141",
+    "MP-REQ-1142",
+    "MP-REQ-1143",
+    "MP-REQ-1144",
+    "MP-REQ-1145",
+    "MP-REQ-1151",
+    "MP-REQ-1154",
+    "MP-REQ-1155",
+    "MP-REQ-1178",
+    "MP-REQ-1184"
+   ],
+   "MP-PRP-255": [
+    "MP-REQ-1146",
+    "MP-REQ-1147",
+    "MP-REQ-1148",
+    "MP-REQ-1149",
+    "MP-REQ-1150",
+    "MP-REQ-1152",
+    "MP-REQ-1170",
+    "MP-REQ-1352",
+    "MP-REQ-1353"
+   ],
+   "MP-PRP-256": [
+    "MP-REQ-1182",
+    "MP-REQ-0711",
+    "MP-REQ-1344",
+    "MP-REQ-1084",
+    "MP-REQ-0187",
+    "MP-REQ-0916",
+    "MP-REQ-0912",
+    "MP-REQ-1181",
+    "MP-REQ-1342"
+   ],
+   "MP-PRP-257": [
+    "MP-REQ-1350",
+    "MP-REQ-1173",
+    "MP-REQ-1185"
+   ],
+   "MP-PRP-258": [
+    "MP-REQ-0198",
+    "MP-REQ-0199",
+    "MP-REQ-0294",
+    "MP-REQ-1190",
+    "MP-REQ-1278",
+    "MP-REQ-1280",
+    "MP-REQ-1281",
+    "MP-REQ-1320",
+    "MP-REQ-1321",
+    "MP-REQ-1351"
+   ],
+   "MP-PRP-259": [
+    "MP-REQ-1099",
+    "MP-REQ-1100",
+    "MP-REQ-1116"
+   ],
+   "MP-PRP-260": [
+    "MP-REQ-1160"
+   ],
+   "MP-PRP-261": [
+    "MP-REQ-0399",
+    "MP-REQ-0160"
+   ]
+  }
+ },
+ "identities": {
+  "cards": "376 = 1 + 12 + 23 + 340",
+  "prs": "270 = 201 PRs with a primary card (340 carried cards - 139 absorbed) + 69 PRs without a primary card"
+ }
+}

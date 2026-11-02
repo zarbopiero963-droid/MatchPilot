@@ -1,0 +1,25 @@
+{
+  "schema": "mp-roadmap-baseline-v1",
+  "mandate": "MP-ROADMAP-270-INDEPENDENT-FINAL-AUDIT-01",
+  "decided_by": "owner",
+  "frozen_at_utc": "2026-11-02T16:41:43Z",
+  "main_sha": "7008cc31a51c8e94c754cda42634849322c7c9b0",
+  "pr_291_head_sha": "a93b3fc9c210f599232ba81808e587ab7d29d13c",
+  "pr_291_merge_sha": "7008cc31a51c8e94c754cda42634849322c7c9b0",
+  "registry_schema": "mp-pr-plan-v1",
+  "sha256": {
+    "docs/governance/master/pr-plan.json": "388751f21e9fdb4fe3942dcc8162a7cbd90f19f2581fdaa7885cfb9878109e50",
+    "docs/governance/master/pr-plan.md": "f24b49cfef40edadc60766277aad4e9d387492abb79ba00e69e4d78496c2cc8d",
+    "docs/governance/master/requirements.jsonl": "788b6aff185165f048981f0cf3776d66fbc86d566fb5b54b5ca0e8b5b4aa7c73",
+    "docs/governance/master/cards.jsonl": "c93b32deca347af1eac619e3511d60036ee783f1ac053b2c6fc7e791d8139345",
+    "tools/governance/pr-plan.mjs": "7ded60038be153004d018fbcd36afd0d88fa000dfc3c4e73a18b2a9571e905d1"
+  },
+  "values": {"cards": 376, "N": 270, "open_prs": 8, "new_prs": 262, "N_min": 209, "N_max": 328, "active_requirements_covered": "1173/1173",
+    "safe": 113, "manual": 157, "decision_dependent": 84, "removable_by_decision": 27, "split_risks": 58, "merge_pairs": 34},
+  "formula": {"cards": "376 = 1 completed + 12 superseded + 23 duplicate + 340 carried",
+    "prs": "270 = (340 carried - 139 absorbed) + 69 PRs without a primary card = 8 open + 262 new",
+    "range": "N_min = 270 - 34 merge pairs (same gate) - 27 removable by owner decision = 209; N_max = 270 + 58 declared split risks = 328"},
+  "statement": "270 is the official planning baseline, not a certification of the final number of PRs",
+  "independent_verification": "PENDING",
+  "master_record": "https://github.com/zarbopiero963-droid/MatchPilot/issues/288#issuecomment-6582698873"
+}

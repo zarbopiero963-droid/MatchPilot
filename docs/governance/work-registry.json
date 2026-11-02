@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 234,
+  "revision": 248,
   "tasks": [
     {
       "id": "R-01",
@@ -2368,15 +2368,111 @@
       "pr": 284,
       "branch": "mp-docs-next-20261102",
       "kind": "audit",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T105743Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T111359Z-agent-a-claude-code",
       "resources": [
         "file:docs/product/mp-263/api-budget-proposal.md",
         "file:docs/product/mp-263/fpt-decommission-plan.md",
         "file:docs/product/mp-263/totalcorner-benchmark-criteria.md",
         "file:docs/product/mp-263/vps-preflight-2026-11-02.md",
         "file:docs/product/mp-263/production-authorization-package.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "b6dc4cebfc8945e0bd780e0994f883e0f4e20d15"
+    },
+    {
+      "id": "MP-MASTER-01",
+      "title": "Registro canonico della MASTER #288: requisiti atomici, schede PR, censimento, copertura, verificatore",
+      "issue": 263,
+      "pr": 289,
+      "branch": "mp-master-roadmap-01",
+      "kind": "audit",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T151505Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/governance/master/",
+        "file:tools/governance/master.mjs",
+        "file:test/master-registry.test.mjs",
+        "file:docs/governance/owner-decisions.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "1aebd02a45a2fef61bcbaf0c75ee29a150580b36"
+    },
+    {
+      "id": "MP-PRCOUNT-01",
+      "title": "Residual PR count of the MASTER: 376 cards reconciled, planned PR register and count gates",
+      "issue": 288,
+      "pr": 291,
+      "branch": "mp-master-prcount-01",
+      "kind": "audit",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T162816Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/governance/master/pr-plan.json",
+        "file:docs/governance/master/pr-plan.md",
+        "file:tools/governance/pr-plan.mjs",
+        "file:test/pr-plan.test.mjs",
+        "file:docs/governance/master/requirements.jsonl",
+        "file:docs/governance/owner-decisions.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "7008cc31a51c8e94c754cda42634849322c7c9b0"
+    },
+    {
+      "id": "MP-PRCOUNT-AUDIT-01",
+      "title": "Baseline 270 freeze, ID-level reconciliation and independent audit of the residual PR count",
+      "issue": 288,
+      "pr": 292,
+      "branch": "mp-prcount-audit-01",
+      "kind": "audit",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T171842Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/governance/master/audit/baseline-270.json",
+        "file:docs/governance/master/pr-plan-reconciliation.json",
+        "file:tools/governance/pr-plan.mjs",
+        "file:docs/governance/master/audit/MP-ROADMAP-270-AUDIT.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "fc0bb95dd783b168b9198bbe61f3b9d2367f2373"
+    },
+    {
+      "id": "MP-PRCOUNT-FIX-01",
+      "title": "SAFE registry corrections of the residual PR plan, dependency-cycle gate, owner decision cards and Codex audit package",
+      "issue": 288,
+      "pr": 293,
+      "branch": "mp-prcount-fix-01",
+      "kind": "audit",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T175503Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/governance/master/pr-plan.json",
+        "file:tools/governance/pr-plan.mjs",
+        "file:test/pr-plan.test.mjs",
+        "file:docs/governance/master/audit/decision-cards.md",
+        "file:docs/governance/master/audit/INDEPENDENT-AUDIT-PACKAGE.md",
+        "file:docs/governance/master/audit/package-manifest.json"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",

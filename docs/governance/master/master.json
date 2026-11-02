@@ -1,0 +1,40 @@
+{
+  "schema_version": "mp-master-1",
+  "master_issue": 288,
+  "mandate": "MP-GLOBAL-RECONCILIATION-20261102 + addendum MP-GLOBAL-ROADMAP (owner, 2026-11-02)",
+  "reconciled_base_sha": "b6dc4cebfc8945e0bd780e0994f883e0f4e20d15",
+  "reconciled_at": "2026-11-02",
+  "registers": {
+    "requirements": "docs/governance/master/requirements.jsonl",
+    "cards": "docs/governance/master/cards.jsonl",
+    "issues": "docs/governance/master/issues.json",
+    "prs": "docs/governance/master/prs.json",
+    "coverage": "docs/governance/master/coverage.json",
+    "roadmap": "docs/governance/master/roadmap.md",
+    "reused": [
+      "docs/governance/ui-requirements-matrix.json (MP-REQ-UI, 1100)",
+      "docs/governance/mp-pr-00/requirements.json (MP-PR-00, 139)",
+      "docs/governance/owner-decisions.json"
+    ],
+    "pr_plan": "docs/governance/master/pr-plan.json"
+  },
+  "open_prs_not_on_main": [
+    280,
+    281,
+    282,
+    283,
+    285,
+    286,
+    287,
+    290
+  ],
+  "method": "estrazione atomica da corpo e commenti di tutte le 48 issue (6 lotti), confronto con il codice di main al base sha; le PR aperte sono tenute distinte; nessuna chiamata ai provider",
+  "pr_plan": {
+    "N": 270,
+    "N_min": 209,
+    "N_max": 328,
+    "F_open_prs": 8,
+    "G_new_prs": 262,
+    "I_certification_only": 4
+  }
+}
