@@ -2368,9 +2368,9 @@
       "pr": 284,
       "branch": "mp-docs-next-20261102",
       "kind": "audit",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T105743Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T111359Z-agent-a-claude-code",
       "resources": [
         "file:docs/product/mp-263/api-budget-proposal.md",
         "file:docs/product/mp-263/fpt-decommission-plan.md",
@@ -2382,7 +2382,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "b6dc4cebfc8945e0bd780e0994f883e0f4e20d15"
     }
   ]
 }
