@@ -10,7 +10,7 @@
 
 | Punto | Esito | Evidenza |
 |---|---|---|
-| Versione PostgreSQL | testata su **17.11** (container locale) e **16** (istanza locale, PR #275). La CI usa `postgres:17`. **La VPS non è verificata.** L'unità del worker FPT dipende da `postgresql@18-staging.service`: se la produzione è su PostgreSQL 18, va testata prima del GO. | `docs/product/mp-263/pg17-run-2026-11-02.md`, `infra/vps/systemd/matchpilot-fpt-worker.service` |
+| Versione PostgreSQL | minimo **14** (`CREATE OR REPLACE TRIGGER`). Testata su **17.11** (container locale) e **16** (istanza locale, PR #275). La CI usa `postgres:17`. **La VPS non è verificata.** L'unità del worker FPT dipende da `postgresql@18-staging.service`: se la produzione è su PostgreSQL 18, va testata prima del GO. | `docs/product/mp-263/pg17-run-2026-11-02.md`, `infra/vps/systemd/matchpilot-fpt-worker.service` |
 | Compatibilità dello schema | solo aggiunte: 2 tabelle (`af_request_ledger`, `af_odds_snapshots`), 1 funzione, trigger e indici, tutti con prefisso `af_` o `mp_af_`. Nessuna tabella esistente viene toccata. | file della migrazione |
 | Vincoli PIT | il database rifiuta una riga prematch acquisita al calcio d'inizio o dopo, oppure con `update` del provider al calcio d'inizio o dopo o successivo all'acquisizione oltre 5 minuti. | test `MP-ODDS-MIG-01 migration` |
 | Indici | `(fixture_id, acquired_at)`, selezione con `acquired_at DESC`, `(market_key, acquired_at)` parziale. La lettura point-in-time usa l'indice. | piano `EXPLAIN` qui sotto |
@@ -19,8 +19,8 @@
 | Idempotenza | `CREATE … IF NOT EXISTS`, `CREATE OR REPLACE`: rieseguire il file non cambia nulla. `migrate()` lo registra in `schema_migrations`. | test (doppia esecuzione) |
 | Append-only | `UPDATE`, `DELETE` e `TRUNCATE` vengono rifiutati dal database. | test |
 | Prestazioni | vedi la tabella qui sotto | misura locale |
-| Impatto sugli archivi esistenti | nessuno: nessuna tabella FPT, TotalCorner o di persistenza viene modificata o letta. | file della migrazione, test di rollback |
-| Rollback | `db/rollback/031-apifootball-odds-snapshots.down.sql`: rifiuta di eseguire se una delle due tabelle contiene righe, perché lo storico non si cancella mai con un rollback. Con tabelle vuote rimuove esattamente ciò che la migrazione ha creato e la sua riga in `schema_migrations`. La migrazione si può poi riapplicare. | test `MP-ODDS-MIG-01 rollback` |
+| Impatto sugli archivi esistenti | nessuno: nessuna tabella FPT, TotalCorner o di persistenza viene modificata o letta. | soprattutto il file della migrazione, che solo aggiunge; il test di rollback controlla una tabella FPT |
+| Rollback | `db/rollback/031-apifootball-odds-snapshots.down.sql`: prende il lock consultivo di `migrate()` e un lock esclusivo sulle due tabelle prima del controllo, così nessun inserimento arriva tra controllo e `DROP`. Si può rieseguire su uno schema già ripulito. I nomi non sono qualificati: prima si conferma lo schema (`search_path`). Rifiuta di eseguire se una delle due tabelle contiene righe, perché lo storico non si cancella mai con un rollback. Con tabelle vuote rimuove esattamente ciò che la migrazione ha creato e la sua riga in `schema_migrations`. La migrazione si può poi riapplicare. | test `MP-ODDS-MIG-01 rollback` |
 
 ## Prestazioni (misura locale, PostgreSQL 17.11, container, nessun tuning)
 
@@ -36,9 +36,18 @@ Carico: 100 partite × 10 bookmaker × 100 selezioni × 5 acquisizioni, con tutt
 
 **Stima per il budget proposto.** Con 900 chiamate prematch al giorno, se ogni chiamata restituisce al massimo circa 1 800 selezioni (il massimo osservato è 1 777 per un bookmaker), il carico resta nell'ordine di 1,6 milioni di righe offerte al giorno. Le righe davvero scritte sono di meno, perché i prezzi invariati vengono saltati. In MB è circa 700 MB al giorno nel caso peggiore.
 
+Limiti della misura:
+- righe sintetiche con nomi brevi e uniformi: le righe reali possono essere più grandi;
+- la profondità degli indici cresce con la tabella, quindi il costo per riga sale;
+- la lettura da 21 ms è su circa 500 000 righe, una piccola frazione di pochi giorni di raccolta;
+- 5 acquisizioni per partita sono molte meno di una giornata reale di polling.
+
+**Ritenzione: decisione owner necessaria prima del collector.** Le tabelle sono append-only (`DELETE` e `TRUNCATE` rifiutati) e il rollback funziona solo a tabelle vuote. Nel caso peggiore la crescita è circa 700 MB al giorno, cioè circa 250 GB all'anno. Oggi non esiste un piano di ritenzione, archiviazione o partizionamento. Va deciso prima di accendere il collector.
+
 È una stima, non una misura sulla VPS. La crescita dello spazio va verificata nel preflight della VPS e nel monitoraggio dopo il GO.
 
 ## Ancora da fare prima del GO
 - Versione PostgreSQL della VPS e prova della migrazione su quella versione.
 - Spazio disco e backup prima dell'applicazione.
+- Piano di ritenzione o partizionamento (decisione owner).
 - Il collector prematch (PR separata) resta spento fino al suo GO.

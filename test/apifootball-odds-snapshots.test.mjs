@@ -140,6 +140,8 @@ test('MP-ODDS-MIG-01 rollback on empty tables removes exactly the migration; mig
     await db.query(ROLLBACK);
     assert.equal((await db.query("SELECT to_regclass('af_odds_snapshots') AS t, to_regclass('af_request_ledger') AS l")).rows[0].t, null);
     assert.equal((await db.query("SELECT to_regprocedure('mp_af_append_only()') AS f")).rows[0].f, null);
+    await db.query(ROLLBACK); // review: running it again on an already rolled-back schema is a no-op, not an error
+    assert.equal((await db.query("SELECT count(*)::int AS n FROM schema_migrations WHERE filename = '031-apifootball-odds-snapshots.sql'")).rows[0].n, 0);
     await assert.rejects(saveOddsSnapshots(db, oddsSnapshotRows(answer(), {acquiredAt: BEFORE}).rows), err => err instanceof SnapshotStoreError && err.code === 'SNAPSHOTS_UNAVAILABLE');
     // Other tables are untouched: the FPT and persistence schema created by migrate() still exist.
     assert.notEqual((await db.query("SELECT to_regclass('fpt_schema_fields') AS t")).rows[0].t, null);
@@ -253,3 +255,9 @@ test('MP-ODDS-SNAP-01 review: chunks of 500, a failing later chunk rolls back th
   });
 });
 
+
+test('MP-ODDS-MIG-01 review: the rollback takes the migrate() advisory lock (same class and key)', async () => {
+  const {MIGRATION_LOCK_CLASS} = await import('../src/migrate.mjs');
+  assert.match(ROLLBACK, new RegExp(`pg_advisory_xact_lock\\(${MIGRATION_LOCK_CLASS}, hashtext\\(current_schema\\(\\)\\)\\)`));
+  assert.match(ROLLBACK, /LOCK TABLE af_odds_snapshots IN ACCESS EXCLUSIVE MODE[\s\S]*SELECT EXISTS/);
+});
