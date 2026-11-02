@@ -14,7 +14,7 @@ rollback, adozione legacy (F2) — richiede **due autorizzazioni indipendenti**:
 | Chi la scrive | una PR MANUAL che solo l'owner fa mergiare | root sulla macchina che esegue, dopo il GO |
 | Vincolo | operazione + `filename` + `sha256` dei byte esatti (`plan_code` per l'adozione; `revocation_event` per la ri-applicazione), decisione owner `IN_FORCE` del registro, `expires_at` | `release_sha` = commit del codice in esecuzione (cartella `releases/<sha>` di mp-deploy o HEAD git; mai una variabile d'ambiente), `nonce` ≥ 32 hex, validità ≤ 24 h, elenco esatto delle operazioni |
 | Sicurezza del file | — | file regolare, non symlink, proprietario uid 0, non scrivibile da gruppo/altri; cartella con le stesse proprietà; fuori dall'albero della release |
-| Uso | una sola volta (id registrato) | una sola volta: ogni uso registrato, il token chiuso a fine esecuzione e il file rimosso se il processo può farlo |
+| Uso | una sola volta (id registrato); fra le voci per lo stesso contenuto vale l'unica **idonea** (non scaduta, non consumata, legata alla revoca giusta): le voci storiche non oscurano un nuovo GO; nessuna o più di una idonea → rifiuto | una sola volta: ogni uso registrato, il token chiuso a fine esecuzione e il file rimosso se il processo può farlo |
 
 Le due non sono soddisfacibili dallo stesso meccanismo: schemi diversi (`mp-migration-approvals-v1`,
 `mp-migration-technical-authz-v1`), ciascun loader rifiuta l'altro, posizioni separate (il token dentro la release è

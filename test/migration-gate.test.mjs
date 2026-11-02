@@ -39,6 +39,12 @@ test('F3 unit: the repository manifest is valid and holds no approval; a manifes
   assert.deepEqual(reasons({approvals: [{...ok, expires_at: '2020-01-01T00:00:00Z'}], token}), ['OWNER_APPROVAL_EXPIRED']);
   assert.deepEqual(reasons({approvals: [ok], token, consumed: {...none, approvals: new Set(['MA-UNIT-1'])}}), ['OWNER_APPROVAL_CONSUMED']);
   assert.deepEqual(reasons({approvals: [ok], token, consumed: {...none, closedNonces: new Set([token.nonce])}}), ['TECHNICAL_AUTHORIZATION_CONSUMED']);
+  // PR #300 review P2: an old entry never shadows a new valid GO; two valid entries are ambiguous; none valid is refused.
+  const expired = {...ok, id: 'MA-UNIT-0', expires_at: '2020-01-01T00:00:00Z'};
+  assert.equal(reasons({approvals: [expired, ok], token}), undefined, 'expired entry followed by a new one');
+  assert.equal(reasons({approvals: [ok, {...ok, id: 'MA-UNIT-2'}], token, consumed: {...none, approvals: new Set(['MA-UNIT-1'])}}), undefined, 'consumed entry followed by a new one');
+  assert.deepEqual(reasons({approvals: [ok, {...ok, id: 'MA-UNIT-2'}], token}), ['OWNER_APPROVAL_AMBIGUOUS']);
+  assert.deepEqual(reasons({approvals: [expired, {...ok, id: 'MA-UNIT-3'}], token, consumed: {...none, approvals: new Set(['MA-UNIT-3'])}}), ['OWNER_APPROVAL_EXPIRED', 'OWNER_APPROVAL_CONSUMED'], 'no eligible entry');
   assert.deepEqual(reasons({approvals: [{...ok, sha256: sha(B)}], token: {...token, operations: [{...token.operations[0], sha256: sha(B)}]}}), ['OWNER_APPROVAL_MISSING', 'TECHNICAL_AUTHORIZATION_NOT_FOR_THIS_OPERATION'], 'other bytes');
 });
 
@@ -148,6 +154,15 @@ test('F3 on PostgreSQL: expired, other release, other bytes and reused authoriza
   const good = [approval('MA-G-2', 'apply', '001-a.sql', sha(A))];
   const expiredOwner = await env.fixture({approvals: [{...good[0], expires_at: '2020-01-01T00:00:00Z'}], token: tokenFor([['001-a.sql', A]])});
   assert.match((await s.run({authz: expiredOwner.options})).message, /OWNER_APPROVAL_EXPIRED/);
+  // An expired entry followed by a new GO in the same manifest: the new one is selected (PR #300 review P2); applied on
+  // a separate schema so the cases below still start from nothing.
+  const renewed = await env.make({'001-a.sql': A});
+  const renewal = await env.fixture({approvals: [{...good[0], id: 'MA-G-2-OLD', expires_at: '2020-01-01T00:00:00Z'}, {...good[0], id: 'MA-G-2-NEW'}], token: tokenFor([['001-a.sql', A]])});
+  const renewedRun = await renewed.run({authz: renewal.options});
+  assert.deepEqual([renewedRun.ok, renewedRun.result?.applied], [true, ['001-a.sql']], renewedRun.message);
+  assert.equal((await authzRows(renewed.client))[0].owner_approval_id, 'MA-G-2-NEW');
+  const twoValid = await env.fixture({approvals: [{...good[0], id: 'MA-G-2-X'}, {...good[0], id: 'MA-G-2-Y'}], token: tokenFor([['001-a.sql', A]])});
+  assert.match((await s.run({authz: twoValid.options})).message, /OWNER_APPROVAL_AMBIGUOUS/, 'two eligible GOs for one operation: refused');
   const expiredToken = await env.fixture({approvals: good, token: tokenFor([['001-a.sql', A]], {issued_at: '2020-01-01T00:00:00Z', expires_at: '2020-01-01T01:00:00Z'})});
   assert.equal((await s.run({authz: expiredToken.options})).code, 'TOKEN_EXPIRED');
   const longToken = await env.fixture({approvals: good, token: tokenFor([['001-a.sql', A]], {expires_at: new Date(Date.now() + 48 * 3600e3).toISOString()})});
@@ -258,6 +273,24 @@ test('F3 on PostgreSQL: after a rollback the migration stays REVOKED across rest
   const back = await s.run({authz: f.options});
   assert.deepEqual([back.ok, back.result?.applied], [true, ['002-b.sql', '003-c.sql']], back.message);
   assert.equal((await s.client.query(`SELECT status FROM schema_migration_ledger WHERE filename = '002-b.sql'`)).rows[0].status, 'APPLIED');
+
+  // Second rollback/re-application cycle (PR #300 review P2): the manifest keeps the history (the consumed R4 bound to
+  // the first revocation, an expired entry); a new reapply GO for the second revocation is selected, not shadowed.
+  await s.client.query(`BEGIN; DROP TABLE g_b; DELETE FROM schema_migrations WHERE filename = '002-b.sql';
+    UPDATE schema_migration_ledger SET status = 'REVOKED', revoked_at = now(), revoke_reason = 'second rollback' WHERE filename = '002-b.sql';
+    INSERT INTO schema_migration_events(event, filename, detail) VALUES('REVOKED', '002-b.sql', 'second rollback'); COMMIT;`);
+  const second = (await s.client.query(`SELECT max(event_id)::int AS id FROM schema_migration_events WHERE event = 'REVOKED'`)).rows[0].id;
+  const history = [approval('MA-G-R4', 'reapply', '002-b.sql', sha(B), {revocation_event: revocation}),
+    approval('MA-G-R5', 'reapply', '002-b.sql', sha(B), {revocation_event: second, expires_at: '2020-01-01T00:00:00Z'})];
+  await f.setApprovals(history);
+  await f.setToken(technicalToken([reapply]));
+  const none = await s.run({authz: f.options});
+  assert.deepEqual([none.ok, none.result?.held], [true, ['002-b.sql']], 'no eligible approval: held, refused');
+  assert.ok(none.logs.some(line => line.includes('OWNER_APPROVAL_CONSUMED') && line.includes('OWNER_APPROVAL_EXPIRED')), none.logs.join('\n'));
+  await f.setApprovals([...history, approval('MA-G-R6', 'reapply', '002-b.sql', sha(B), {revocation_event: second})]);
+  const again = await s.run({authz: f.options});
+  assert.deepEqual([again.ok, again.result?.applied], [true, ['002-b.sql']], again.message);
+  assert.equal((await authzRows(s.client)).filter(r => r.owner_approval_id === 'MA-G-R6').length, 1);
 });
 
 test('F3 on PostgreSQL: unsafe filesystem permissions and the TEST authorization outside a throwaway schema are refused', {timeout: 240000}, async t => {

@@ -116,13 +116,20 @@ export function decide({ops, mode, env, testAllowed, approvals, token, consumed,
   for (const op of ops) {
     if (mode === 'test' && testAllowed) { granted.push({...op, origin: 'TEST', approval: null, token: null}); continue; }
     const reasons = [];
-    const approval = approvals.find(entry => matches(entry, op));
-    if (!approval) reasons.push('OWNER_APPROVAL_MISSING');
-    else {
-      if (time(approval.expires_at) <= now) reasons.push('OWNER_APPROVAL_EXPIRED');
-      if (consumed.approvals.has(approval.id)) reasons.push('OWNER_APPROVAL_CONSUMED');
-      if (op.operation === 'reapply' && approval.revocation_event !== op.revocationEvent) reasons.push('OWNER_APPROVAL_FOR_ANOTHER_REVOCATION');
-    }
+    // Every entry for this content is judged on all eligibility rules, so an old entry (expired, consumed, or bound to
+    // an earlier revocation) never shadows a new GO (PR #300 review P2). Exactly one eligible entry is required: none
+    // is a refusal with the reasons of the candidates, two or more is ambiguous and refused too (fail closed).
+    const candidates = approvals.filter(entry => matches(entry, op));
+    const problemsOf = entry => [
+      ...(time(entry.expires_at) <= now ? ['OWNER_APPROVAL_EXPIRED'] : []),
+      ...(consumed.approvals.has(entry.id) ? ['OWNER_APPROVAL_CONSUMED'] : []),
+      ...(op.operation === 'reapply' && entry.revocation_event !== op.revocationEvent ? ['OWNER_APPROVAL_FOR_ANOTHER_REVOCATION'] : []),
+    ];
+    const eligible = candidates.filter(entry => !problemsOf(entry).length);
+    const approval = eligible.length === 1 ? eligible[0] : null;
+    if (!candidates.length) reasons.push('OWNER_APPROVAL_MISSING');
+    else if (eligible.length > 1) reasons.push('OWNER_APPROVAL_AMBIGUOUS');
+    else if (!eligible.length) reasons.push(...new Set(candidates.flatMap(problemsOf)));
     if (!token) reasons.push('TECHNICAL_AUTHORIZATION_MISSING');
     else if (consumed.closedNonces.has(token.nonce) || consumed.uses.has(`${token.nonce}|${op.file ?? op.planCode}|${op.operation}`)) reasons.push('TECHNICAL_AUTHORIZATION_CONSUMED');
     else if (!token.operations.some(entry => matches(entry, op))) reasons.push('TECHNICAL_AUTHORIZATION_NOT_FOR_THIS_OPERATION');
