@@ -93,3 +93,17 @@ test('MP-FPT-RETIRE-01 retired liveness probe: no worker alert, no FPT read', as
   assert.ok(!client.sql.some(s => /INSERT INTO data_alerts|fpt_sync_runs/.test(s)));
   assert.equal(client.sql.filter(s => s.startsWith('UPDATE data_alerts SET resolved_at=now()')).length, 2);
 });
+
+test('MP-FPT-RETIRE-01 review: the environment drives the watchdog; the heartbeat never claims a fresh sync; default unchanged', async () => {
+  const retired = recordingClient();
+  await withEnv({FUTPYTHON_RETIRED: 'true'}, () => checkDataWatchdog({client: retired, deliver: async () => ({ok: true})}));
+  assert.ok(!retired.sql.some(s => /fpt_sync_runs/.test(s)), 'env-driven retired path');
+  const upsert = retired.sql.find(s => s.startsWith('INSERT INTO data_watchdog_state'));
+  assert.match(upsert, /VALUES\('futpython',now\(\),NULL,NULL/);
+  assert.doesNotMatch(upsert, /DO UPDATE SET[^;]*last_success_at/, 'last_success_at untouched');
+  // Without the variable the watchdog reads the FPT pipeline as before.
+  const active = recordingClient();
+  await withEnv({FUTPYTHON_RETIRED: 'false'}, () => checkDataWatchdog({client: active, deliver: async () => ({ok: true})}).catch(() => null));
+  assert.ok(active.sql.some(s => /FROM fpt_sync_runs/.test(s)), 'default path unchanged');
+});
+

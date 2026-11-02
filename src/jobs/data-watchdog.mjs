@@ -100,10 +100,14 @@ async function retiredCheck(client, options) {
     const r = await resolveAlert(key, client, {...(options.deliver ? {deliver: options.deliver} : {}), evidence: RETIRED_RESOLUTION});
     if (r?.resolved) resolved.push(key.code);
   }
+  // A closing notice that could not be delivered is retried here, as in the normal cycle.
+  try { await retryPendingResolutions(client, options.deliver ? {deliver: options.deliver} : {}); }
+  catch (error) { console.error('DATA_ALERT_RESOLUTION_RETRY_ERROR', String(error?.message || error)); }
+  // Heartbeat only: last_success_at is not touched, a retired source is not reported as freshly synced.
   await client.query(
     `INSERT INTO data_watchdog_state(source,last_checked_at,last_success_at,last_run_id,meta)
-     VALUES('futpython',now(),now(),NULL,$1::jsonb)
-     ON CONFLICT(source) DO UPDATE SET last_checked_at=now(), last_success_at=now(), meta=$1::jsonb`,
+     VALUES('futpython',now(),NULL,NULL,$1::jsonb)
+     ON CONFLICT(source) DO UPDATE SET last_checked_at=now(), meta=$1::jsonb`,
     [JSON.stringify({retired: true, resolved})]);
   return {status: 'retired', retired: true, resolved, reconciliation: null};
 }
