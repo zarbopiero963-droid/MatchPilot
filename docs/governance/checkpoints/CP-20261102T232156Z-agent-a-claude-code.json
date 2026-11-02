@@ -1,0 +1,151 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [
+    "PR #298 (F2, base of this PR)",
+    "PR #296 (F1)"
+  ],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T232156Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T23:21:56Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd); registered on main by PR #295 (70ee74b), merged into this branch with git merge origin/main"
+  },
+  "task": "MP-MIG-GATE-01",
+  "activity": "PR #300 (MANUAL): double authorization implemented; Codex P2 4448898100 (approval selection) fixed in e133bbb, thread resolved, Codex no major issues on e133bbb; merged F2 (F1 + main c6b3b2e)",
+  "issue": 263,
+  "pr": 300,
+  "branch": "mp-mig-gate-01",
+  "commit_sha": "1f885eca27634a86839fa667d2dbd32ff2257056",
+  "tree_sha": "26df7149f564f68a1d8cc94f0e55b0a8f75e870b",
+  "base_sha": "27969e417b20929be9b540e7739290322eeb5025",
+  "requirements": [],
+  "changes": [
+    "src/migration-authz.mjs (new)",
+    "src/migrate.mjs (gate in every mode, schema_migration_authorizations, revoked held, token closed)",
+    "db/migration-approvals.json (empty)",
+    "package.json (check)",
+    "test/migration-gate.test.mjs",
+    "test/helpers/migration-authz.mjs",
+    "tests: explicit TEST authorization at every runner call and test server",
+    "docs/migration-gate.md, docs/runtime-isolation.md, README.md",
+    "docs/product/mp-263/evidence/mig-gate.md"
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "result": "PASS",
+      "environment": "local Node v22.22.0",
+      "commit": "1f885eca27634a86839fa667d2dbd32ff2257056",
+      "time": "2026-11-02T23:21:56Z",
+      "limits": [
+        "syntax"
+      ]
+    },
+    {
+      "command": "FUTPYTHON_TEST_DATABASE_URL=<local 5450> node --test (full suite)",
+      "result": "PASS",
+      "environment": "PostgreSQL 17.11 throwaway container",
+      "commit": "7c7fbdb0f5bbe2286d9210c0564893e05b12d54c",
+      "time": "2026-11-02T23:21:56Z",
+      "limits": [
+        "841/841"
+      ]
+    },
+    {
+      "command": "node --test migration-gate, checksums, 030, guard, hardening, owner-auth, persistence-store, persistence-api, resume-drill, web-persistence-contract",
+      "result": "PASS",
+      "environment": "PostgreSQL 18.6 throwaway container",
+      "commit": "7c7fbdb0f5bbe2286d9210c0564893e05b12d54c",
+      "time": "2026-11-02T23:21:56Z",
+      "limits": [
+        "67/67 subset"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "1f885eca27634a86839fa667d2dbd32ff2257056"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "e133bbb38f67ee6e57f8d9c1bee2217ed9173666",
+    "reference": "Codex code review (OpenAI, different model family) on e133bbb: no major issues after the P2 fix (https://github.com/zarbopiero963-droid/MatchPilot/pull/300); later commits are merges of F2/main, evidence and registers"
+  },
+  "findings": [
+    {
+      "id": "PR300-CODEX-P2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "an old manifest entry shadowed a new GO: the single eligible approval is selected, none or several eligible refused (e133bbb)"
+    },
+    {
+      "id": "F3-031-DOWN",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "the 031 down of PR #282 must record REVOKED (snippet in docs/migration-gate.md); without it the state is ambiguous and fails closed"
+    }
+  ],
+  "owner_decisions": [
+    "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "security tests PG17/PG18",
+      "PR opened",
+      "review fix"
+    ],
+    "in_progress": [
+      "CI"
+    ],
+    "not_started": [
+      "owner GO",
+      "merge"
+    ]
+  },
+  "resources": [
+    "branch:mp-mig-gate-01",
+    "file:src/migration-authz.mjs",
+    "file:db/migration-approvals.json",
+    "file:test/migration-gate.test.mjs",
+    "file:docs/migration-gate.md"
+  ],
+  "stop_conditions": [
+    "MANUAL: AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER",
+    "no merge, no production migration, no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "owner GO for the MANUAL merges in order #296, #298, #300; then the owner approval/token/adoption operations described in docs/migration-gate.md",
+  "resume_conditions": [
+    "owner GO for the MANUAL merge"
+  ],
+  "supersedes": null
+}

@@ -172,7 +172,7 @@ export async function startServer(schema, env = {}) {
   url.searchParams.set('options', `-c search_path=${schema}`);
   const child = spawn(process.execPath, ['src/server.mjs'], {
     cwd: root,
-    env: {PATH: process.env.PATH, PORT: '0', DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', ...env},
+    env: {PATH: process.env.PATH, PORT: '0', DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema', ...env},
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = '';

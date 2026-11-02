@@ -121,7 +121,7 @@ test('real backend starts in test mode with PostgreSQL and performs no hidden ba
     ...process.env,
     PORT: '0',
     DATABASE_URL: dbUrl.toString(),
-    MATCHPILOT_RUNTIME_MODE: 'test',
+    MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema',
     MATCHPILOT_BACKGROUND_ENABLED: 'true',
     FUTPYTHON_API_KEY: 'must-not-be-used',
     FUTPYTHON_BASE_URL: trapUrl,

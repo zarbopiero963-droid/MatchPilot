@@ -165,7 +165,7 @@ test('assistant queries answer from Postgres with indexes and point-in-time', {t
   const query = await import('../src/providers/futpython/query.mjs');
   const { parseCsv } = await import('../src/lib/csv.mjs');
   try {
-    await migrate();
+    await migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
     await db.withClient(async client => {
       const seasons = [['2023-2024', 2023, false, '2024-06-01T00:00:00Z'], ['2024-2025', 2024, true, '2025-06-01T00:00:00Z']];
       for (const [season, year, withXg, acquired] of seasons) {

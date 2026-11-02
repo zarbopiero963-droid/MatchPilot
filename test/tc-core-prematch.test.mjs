@@ -124,7 +124,7 @@ test('prematch collector on Postgres: verified-only, snapshots before kickoff, d
   const {createPgStore, createTcClient} = await import('../src/providers/totalcorner/client.mjs');
   const {runPrematchCycle, runPrematchRawReplay, tcPrematchMatch, tcPrematchReport} = await import('../src/jobs/totalcorner-prematch.mjs');
   try {
-    await migrate();
+    await migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
     await db.withClient(async c => {
       for (const [slug, id] of [['liga-2', '515'], ['serie-a', '129'], ['premier', '1']]) {
         await c.query(`INSERT INTO competition_mapping(internal_competition_id,country,futpython_country_slug,futpython_league_slug,totalcorner_league_id,

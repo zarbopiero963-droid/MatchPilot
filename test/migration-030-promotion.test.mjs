@@ -139,7 +139,7 @@ async function postgres(t) {
     schemas.push(schema);
     const url = new URL(ROOT_URL);
     url.searchParams.set('options', `-c search_path=${schema}`);
-    const env = {PATH: process.env.PATH, DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test'};
+    const env = {PATH: process.env.PATH, DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'};
     const client = new pg.Client({connectionString: url.toString()});
     await client.connect();
     return {schema, env, client, migrate: dir => run(migrateArgs(dir), env)};

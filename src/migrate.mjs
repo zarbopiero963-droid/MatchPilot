@@ -1,25 +1,26 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, unlinkSync } from 'node:fs';
 import { readFile, readdir } from 'node:fs/promises';
 import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getPool, closePool } from './db.mjs';
-import { assertRuntimeSafety } from './runtime-safety.mjs';
+import { assertRuntimeSafety, runtimeMode } from './runtime-safety.mjs';
+import { AuthzError, DEFAULT_AUTHZ_DIR, TEST_AUTHORIZATION_VALUE, decide, loadOwnerApprovals, loadTechnicalToken } from './migration-authz.mjs';
 
-// Owner decision D13 (MP-OWNER-D13-MIGRATIONS-AUTODEPLOY-20261019): a migration never reaches the production database
-// by itself. render.yaml deploys every merge and the server migrates at startup, so in production mode a pending
-// migration is applied only when the owner lists its exact file name in MATCHPILOT_APPROVED_MIGRATIONS (comma
-// separated), after backup, compatibility check and recovery plan. Offline and test modes migrate their isolated local
-// databases as before. The guard fails closed: an unknown mode is refused, and offline/test refuse a non-local database
-// (src/runtime-safety.mjs), so a job or `npm run migrate` against production cannot bypass it.
+// Owner decision D13 (MP-OWNER-D13-MIGRATIONS-AUTODEPLOY-20261019): in production mode a pending migration is applied
+// only when the owner lists its exact file name in MATCHPILOT_APPROVED_MIGRATIONS (comma separated). Since F3
+// (MP-MIG-GATE-01) that list is only an extra condition of production mode: in EVERY mode (offline included) a pending
+// migration needs the owner approval of db/migration-approvals.json and the technical token of the release
+// (src/migration-authz.mjs), and a start with an unauthorized pending migration fails closed without applying anything.
+// The guard still refuses an unknown mode, and offline/test refuse a non-local database (src/runtime-safety.mjs).
 export function migrationPolicy(env = process.env) {
   const production = assertRuntimeSafety(env).mode === 'production';
   const approved = new Set(String(env.MATCHPILOT_APPROVED_MIGRATIONS || '').split(',').map(name => name.trim()).filter(Boolean));
   return {production, approved};
 }
 
-// Pending migrations run in file order. In production the run stops at the first pending file that is not approved:
-// a later approved file is never applied ahead of an earlier unapproved one.
+// The D13 planning of production mode, kept as a pure function: a later listed file is never applied ahead of an
+// earlier unlisted one. migrate() itself refuses the whole run instead (F3).
 export function planMigrations(pending, policy) {
   if (!policy.production) return {apply: pending, held: []};
   const firstHeld = pending.findIndex(file => !policy.approved.has(file));
@@ -140,7 +141,28 @@ async function ensureBookkeeping(client, schema) {
     code_version text,
     detail text CHECK (detail IS NULL OR length(detail) <= 2000)
   )`);
-  return {migrations: q('schema_migrations'), ledger: q('schema_migration_ledger'), events: q('schema_migration_events')};
+  // F3: every authorization used (owner approval + technical token, or the TEST authorization), recorded in the
+  // transaction of the operation it allowed. The unique indexes make a consumed approval or token unusable.
+  await client.query(`CREATE TABLE IF NOT EXISTS ${q('schema_migration_authorizations')}(
+    authz_id bigserial PRIMARY KEY,
+    at timestamptz NOT NULL DEFAULT now(),
+    operation text NOT NULL CHECK (operation IN ('apply','reapply','adopt','close')),
+    filename text,
+    plan_code text,
+    sha256 text,
+    origin text NOT NULL CHECK (origin IN ('OWNER_AND_TECHNICAL','TEST')),
+    mode text NOT NULL CHECK (mode IN ('offline','test','production')),
+    release_sha text,
+    owner_approval_id text,
+    owner_decision text,
+    manifest_sha256 text,
+    token_nonce text,
+    token_sha256 text,
+    CHECK (origin = 'TEST' OR (token_nonce IS NOT NULL AND (operation = 'close' OR owner_approval_id IS NOT NULL)))
+  )`);
+  await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS schema_migration_authz_approval_once ON ${q('schema_migration_authorizations')}(owner_approval_id) WHERE owner_approval_id IS NOT NULL`);
+  await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS schema_migration_authz_token_once ON ${q('schema_migration_authorizations')}(token_nonce, coalesce(filename, plan_code, ''), operation) WHERE token_nonce IS NOT NULL`);
+  return {migrations: q('schema_migrations'), ledger: q('schema_migration_ledger'), events: q('schema_migration_events'), authz: q('schema_migration_authorizations')};
 }
 
 // The files of `dir` with the hash of their exact bytes; the bytes are kept so the runner executes what it hashed.
@@ -262,10 +284,81 @@ async function withMigrationLock(env, log, fn) {
   }
 }
 
-export async function migrate({env = process.env, log = console.log, dir = resolve('migrations'), verifyOnly = false} = {}) {
+// ---- F3: double authorization (src/migration-authz.mjs), in every mode ----
+// `authz` is for tests only (programmatic, never read from the environment): paths, token owner uid, release sha, clock.
+function authzSettings(env, mode, authz = {}) {
+  return {
+    approvalsPath: authz.approvalsPath ?? resolve(REPO_ROOT, 'db/migration-approvals.json'),
+    decisionsPath: authz.decisionsPath ?? resolve(REPO_ROOT, 'docs/governance/owner-decisions.json'),
+    dir: authz.dir ?? (env.MATCHPILOT_MIGRATION_AUTHZ_DIR || DEFAULT_AUTHZ_DIR),
+    ownerUid: authz.ownerUid ?? (mode === 'test' && typeof process.getuid === 'function' ? process.getuid() : 0),
+    releaseSha: authz.releaseSha ?? releaseSha(),
+    repoRoot: authz.repoRoot ?? REPO_ROOT,
+    now: authz.now ?? Date.now(),
+  };
+}
+
+async function recordEvent(client, tables, event, file, detail, version, log) {
+  try {
+    await client.query(`INSERT INTO ${tables.events}(event, filename, code_version, detail) VALUES($1, $2, $3, $4)`, [event, file ?? null, version, String(detail).slice(0, 2000)]);
+  } catch (error) { log('MIGRATION_EVENT_NOT_RECORDED ' + JSON.stringify({reason: String(error?.message || error)})); }
+}
+
+// Decides the authorization of `ops` and returns {granted, refused, settings, approvals}. An unusable manifest or token
+// is recorded and thrown: everything is refused (fail closed).
+async function authorizeOps({client, tables, scope, env, mode, ops, authz, version, log}) {
+  const settings = authzSettings(env, mode, authz);
+  let testAllowed = false;
+  if (mode === 'test' && env.MATCHPILOT_MIGRATION_TEST_AUTHORIZATION === TEST_AUTHORIZATION_VALUE) {
+    const real = (await client.query(`SELECT count(*)::int AS n FROM ${tables.authz} WHERE origin <> 'TEST'`)).rows[0].n;
+    const adopted = (await client.query(`SELECT count(*)::int AS n FROM ${tables.ledger} WHERE hash_origin <> 'VERIFIED'`)).rows[0].n;
+    testAllowed = scope.schema !== 'public' && real === 0 && adopted === 0;
+    if (!testAllowed) log('MIGRATION_TEST_AUTHORIZATION_REFUSED ' + JSON.stringify({schema: scope.schema, real, adopted}));
+  }
+  let approvals = {approvals: [], manifestSha256: null};
+  let token = null;
+  if (!testAllowed) {
+    try {
+      approvals = loadOwnerApprovals(settings);
+      token = loadTechnicalToken(settings);
+    } catch (error) {
+      if (!(error instanceof AuthzError)) throw error;
+      await recordEvent(client, tables, error.code, null, error.message, version, log);
+      throw new MigrationError(error.code, error.message);
+    }
+  }
+  const rows = (await client.query(`SELECT operation, filename, plan_code, owner_approval_id, token_nonce FROM ${tables.authz}`)).rows;
+  const consumed = {
+    approvals: new Set(rows.map(r => r.owner_approval_id).filter(Boolean)),
+    closedNonces: new Set(rows.filter(r => r.operation === 'close').map(r => r.token_nonce)),
+    uses: new Set(rows.filter(r => r.token_nonce).map(r => `${r.token_nonce}|${r.filename ?? r.plan_code}|${r.operation}`)),
+  };
+  const {granted, refused} = decide({ops, mode, env, testAllowed, approvals: approvals.approvals, token, consumed, now: settings.now});
+  return {granted, refused, settings, approvals, token};
+}
+
+async function recordUse(client, tables, grant, mode, settings, approvals) {
+  await client.query(`INSERT INTO ${tables.authz}(operation, filename, plan_code, sha256, origin, mode, release_sha, owner_approval_id, owner_decision,
+    manifest_sha256, token_nonce, token_sha256) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+  [grant.operation, grant.file ?? null, grant.planCode ?? null, grant.sha256 ?? null, grant.origin, mode, settings.releaseSha ?? null,
+    grant.approval?.id ?? null, grant.approval?.decision ?? null, grant.origin === 'TEST' ? null : approvals.manifestSha256,
+    grant.token?.nonce ?? null, grant.token?.tokenSha256 ?? null]);
+}
+
+// A token that authorized something is closed once the run succeeded: never usable again, even for an operation it
+// listed and that did not run. The file is removed when this process may; otherwise the database record suffices.
+async function closeToken(client, tables, token, mode, settings, log) {
+  await client.query(`INSERT INTO ${tables.authz}(operation, origin, mode, release_sha, token_nonce, token_sha256) VALUES('close', 'OWNER_AND_TECHNICAL', $1, $2, $3, $4)`,
+    [mode, settings.releaseSha, token.nonce, token.tokenSha256]);
+  try { unlinkSync(token.path); log('MIGRATION_TOKEN_CONSUMED ' + JSON.stringify({removed: true})); }
+  catch (error) { log('MIGRATION_TOKEN_CONSUMED ' + JSON.stringify({removed: false, reason: error.code || String(error.message)})); }
+}
+
+export async function migrate({env = process.env, log = console.log, dir = resolve('migrations'), verifyOnly = false, authz} = {}) {
   // Fail closed before any database work. The pool always connects to process.env.DATABASE_URL, so that is the URL
   // the host check must see.
-  const policy = migrationPolicy({...env, DATABASE_URL: process.env.DATABASE_URL});
+  migrationPolicy({...env, DATABASE_URL: process.env.DATABASE_URL});
+  const mode = runtimeMode(env);
   migrationLockTimeout(env);
   const disk = await readMigrations(dir);
   const version = codeVersion(env);
@@ -273,15 +366,37 @@ export async function migrate({env = process.env, log = console.log, dir = resol
     const tables = await ensureBookkeeping(client, scope.schema);
     const {applied, ledger} = await loadState(client, tables);
     const {problems, pending} = verifyHistory({applied: applied.map(r => r.filename), ledger, disk});
+    // An authorization recorded for a file the register does not know is a state nobody can explain.
+    const orphans = (await client.query(`SELECT DISTINCT a.filename FROM ${tables.authz} a LEFT JOIN ${tables.ledger} l ON l.filename = a.filename
+      WHERE a.operation IN ('apply','reapply') AND l.filename IS NULL`)).rows;
+    for (const {filename} of orphans) problems.push({code: 'MIGRATION_STATE_AMBIGUOUS', file: filename, detail: 'authorization recorded without a register row'});
     await failOnProblems(client, tables, problems, version, log);
     if (verifyOnly) return {applied: [], held: pending, verified: applied.length};
-    const {apply, held} = planMigrations(pending, policy);
-    if (held.length) log('MIGRATIONS_PENDING_NOT_APPROVED ' + JSON.stringify({held}));
-    const unused = policy.production ? [...policy.approved].filter(name => !pending.includes(name)) : [];
-    if (unused.length) log('MIGRATION_APPROVALS_NOT_PENDING ' + JSON.stringify({unused}));
-    for (const file of apply) {
+    if (!pending.length) return {applied: [], held: []};
+
+    const revocationEvents = new Map((await client.query(`SELECT filename, max(event_id)::int AS id FROM ${tables.events} WHERE event = 'REVOKED' GROUP BY filename`)).rows.map(r => [r.filename, r.id]));
+    const ops = pending.map(file => ({file, sha256: disk.get(file).sha256, operation: ledger.get(file)?.status === 'REVOKED' ? 'reapply' : 'apply',
+      revocationEvent: revocationEvents.get(file) ?? null}));
+    const {granted, refused, settings, approvals, token} = await authorizeOps({client, tables, scope, env, mode, ops, authz, version, log});
+    // A revoked migration stays revoked: without its own re-application authorization it is held, never applied, and
+    // the start goes on. Any other pending file without both authorizations stops everything, before anything runs.
+    const held = refused.filter(op => op.operation === 'reapply');
+    const blocked = refused.filter(op => op.operation !== 'reapply');
+    for (const op of held) log('MIGRATION_REVOKED_HELD ' + JSON.stringify({file: op.file, reasons: op.reasons}));
+    if (blocked.length) {
+      for (const op of blocked) await recordEvent(client, tables, 'MIGRATION_NOT_AUTHORIZED', op.file, op.reasons.join(','), version, log);
+      log('MIGRATIONS_NOT_AUTHORIZED ' + JSON.stringify({mode, refused: blocked.map(op => ({file: op.file, operation: op.operation, reasons: op.reasons}))}));
+      throw new MigrationError('MIGRATION_NOT_AUTHORIZED', `${blocked.length} pending migration(s) without owner and technical authorization (${blocked.map(op => `${op.file}: ${op.reasons.join(',')}`).join('; ')}); nothing applied`);
+    }
+    const firstHeld = held.map(op => op.file).sort()[0];
+    if (firstHeld && granted.some(op => op.file > firstHeld)) {
+      throw new MigrationError('MIGRATION_ORDER_BLOCKED', `${firstHeld} is revoked and held; a later migration is not applied ahead of it; nothing applied`);
+    }
+    const apply = granted.map(op => op.file);
+    for (const grant of granted) {
+      const file = grant.file;
       const {bytes, sha256} = disk.get(file);
-      const revoked = ledger.get(file)?.status === 'REVOKED';
+      const revoked = grant.operation === 'reapply';
       await client.query('BEGIN');
       try {
         await client.query(bytes.toString('utf8'));
@@ -294,8 +409,9 @@ export async function migrate({env = process.env, log = console.log, dir = resol
           await client.query(`INSERT INTO ${tables.ledger}(filename, sha256, hash_rule, hash_origin, status, applied_at, code_version)
             VALUES($1, $2, $3, 'VERIFIED', 'APPLIED', now(), $4)`, [file, sha256, HASH_RULE, version]);
         }
-        await client.query(`INSERT INTO ${tables.events}(event, filename, actual_sha256, code_version) VALUES($1, $2, $3, $4)`,
-          [revoked ? 'REAPPLIED' : 'APPLIED', file, sha256, version]);
+        await recordUse(client, tables, grant, mode, settings, approvals);
+        await client.query(`INSERT INTO ${tables.events}(event, filename, actual_sha256, code_version, detail) VALUES($1, $2, $3, $4, $5)`,
+          [revoked ? 'REAPPLIED' : 'APPLIED', file, sha256, version, grant.origin === 'TEST' ? 'TEST authorization' : `${grant.approval.id}; token ${grant.token.nonce.slice(0, 12)}`]);
         await client.query('COMMIT');
         log('MIGRATION_APPLIED ' + file);
       } catch (e) {
@@ -303,7 +419,8 @@ export async function migrate({env = process.env, log = console.log, dir = resol
         throw e;
       }
     }
-    return {applied: apply, held};
+    if (token && granted.some(op => op.origin === 'OWNER_AND_TECHNICAL')) await closeToken(client, tables, token, mode, settings, log);
+    return {applied: apply, held: held.map(op => op.file)};
   });
 }
 
@@ -330,8 +447,9 @@ export function parseEvidence(text) {
 }
 
 export async function adoptLegacy({env = process.env, log = console.log, dir = resolve('migrations'), evidence = null, evidenceLabel = null,
-  allowUnverifiable = false, confirm = null, authorizedBy = null, plan = false} = {}) {
+  allowUnverifiable = false, confirm = null, authorizedBy = null, plan = false, authz} = {}) {
   migrationPolicy({...env, DATABASE_URL: process.env.DATABASE_URL});
+  const mode = runtimeMode(env);
   const disk = await readMigrations(dir);
   const version = codeVersion(env);
   const evidenceMap = evidence === null ? new Map() : parseEvidence(evidence);
@@ -358,8 +476,18 @@ export async function adoptLegacy({env = process.env, log = console.log, dir = r
     if (plan || !items.length) return {plan: true, code, items, schema: scope.schema};
     if (confirm !== code) throw new MigrationError('ADOPT_CONFIRMATION_MISMATCH', 'the confirmation code does not match the current plan: run the plan again');
     if (!/^[A-Z][A-Z0-9-]{2,99}$/.test(String(authorizedBy || ''))) throw new MigrationError('ADOPT_AUTHORIZATION_REQUIRED', 'authorizedBy must name the owner decision that authorizes this adoption');
+    // F3: the adoption of this exact plan needs the owner approval (operation adopt, plan_code) and the technical token.
+    const {granted, refused, settings, approvals, token} = await authorizeOps({client, tables, scope, env, mode, ops: [{operation: 'adopt', planCode: code}], authz, version, log});
+    if (refused.length) {
+      await recordEvent(client, tables, 'MIGRATION_NOT_AUTHORIZED', null, `adopt ${code}: ${refused[0].reasons.join(',')}`, version, log);
+      throw new MigrationError('ADOPT_NOT_AUTHORIZED', `adoption ${code} without owner and technical authorization: ${refused[0].reasons.join(',')}`);
+    }
+    if (granted[0].origin !== 'TEST' && granted[0].approval.decision !== authorizedBy) {
+      throw new MigrationError('ADOPT_AUTHORIZATION_REQUIRED', `authorizedBy ${authorizedBy} is not the decision of the owner approval ${granted[0].approval.id}`);
+    }
     await client.query('BEGIN');
     try {
+      await recordUse(client, tables, granted[0], mode, settings, approvals);
       for (const item of items) {
         const note = item.origin === 'RECONSTRUCTED_FROM_EVIDENCE'
           ? `reconstructed: ${evidenceRef}; authorized by ${authorizedBy}`
@@ -374,6 +502,7 @@ export async function adoptLegacy({env = process.env, log = console.log, dir = r
       await client.query('ROLLBACK');
       throw error;
     }
+    if (token && granted[0].origin === 'OWNER_AND_TECHNICAL') await closeToken(client, tables, token, mode, settings, log);
     log('MIGRATION_LEGACY_ADOPTED ' + JSON.stringify({count: items.length, authorizedBy}));
     return {plan: false, code, items, schema: scope.schema};
   });

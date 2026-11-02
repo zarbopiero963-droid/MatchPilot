@@ -40,7 +40,7 @@ test('a parser change is reprocessed from the raw: dry run, apply, idempotent re
   const { parseCsv } = await import('../src/lib/csv.mjs');
   const { fullRawSweep, reprocessingSection } = await import('../src/futpython-certificate.mjs');
   try {
-    await migrate();
+    await migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
     await db.withClient(async client => {
       // The provider pads one team name with a trailing space; parser v1 keeps it verbatim.
       const text = 'Date,Time,Home,Away,Home_Score,Away_Score\n2024-08-10,18:45,Ajax ,PSV,2,1\n2024-08-17,18:45,PSV,Twente,0,0\n';
@@ -139,7 +139,7 @@ test('reprocessing apply is atomic, diffs keep version ids across snapshots, and
   const { parseCsv } = await import('../src/lib/csv.mjs');
   const { fullRawSweep, reprocessingSection } = await import('../src/futpython-certificate.mjs');
   try {
-    await migrate();
+    await migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
     await db.withClient(async client => {
       const put = async (key, text, at) => {
         const [country, league, season] = key.split('/');

@@ -112,7 +112,7 @@ test('mapping on Postgres: paginated schedules, persisted states with evidence, 
   const {createPgStore, createTcClient} = await import('../src/providers/totalcorner/client.mjs');
   const {runTcMapping} = await import('../src/jobs/totalcorner-mapping.mjs');
   try {
-    await migrate();
+    await migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
     await db.withClient(async c => {
       for (const l of fptLeagues) {
         await c.query(`INSERT INTO fpt_competition_season(dataset_key,internal_competition_id,country_slug,league_slug,canonical_league_name,season,match_count,

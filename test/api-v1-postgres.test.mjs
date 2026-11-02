@@ -39,7 +39,7 @@ test('API v1 serves real database content with the v1 envelope, matching the leg
   try {
     await root.query(`CREATE SCHEMA ${schema}`);
     dbUrl.searchParams.set('options', `-csearch_path=${schema}`);
-    const env = {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_BACKGROUND_ENABLED: 'false'};
+    const env = {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema', MATCHPILOT_BACKGROUND_ENABLED: 'false'};
     await runNode(['src/migrate.mjs'], env);
 
     const fixture = JSON.parse(await readFile(new URL('./fixtures/independent-historical-sample.json', import.meta.url), 'utf8'));

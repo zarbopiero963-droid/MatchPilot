@@ -45,7 +45,7 @@ async function withSchema(t, name, body, {staged = true} = {}) {
   try {
     await root.query(`CREATE SCHEMA ${schema}`);
     dbUrl.searchParams.set('options', `-csearch_path=${schema}`);
-    const env = {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test'};
+    const env = {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'};
     const migrateAll = () => runNode(['src/migrate.mjs'], env);
     if (staged) await migrateAll();
     else {

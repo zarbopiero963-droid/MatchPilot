@@ -37,7 +37,7 @@ test('production with auth enforced requires an explicit MATCHPILOT_TRUST_PROXY;
   assert.equal(keyed.state, 'ready');
   assert.ok(!JSON.stringify(keyed).includes('k'.repeat(32)) || keyed.auditKey === 'k'.repeat(32));
   // Outside production the proxy setting keeps its default (off).
-  assert.equal(authConfig({...base, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_OWNER_PASSWORD_HASH: await hashPassword(PASSWORD, FAST)}).state, 'ready');
+  assert.equal(authConfig({...base, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema', MATCHPILOT_OWNER_PASSWORD_HASH: await hashPassword(PASSWORD, FAST)}).state, 'ready');
 });
 
 const ROOT_URL = process.env.FUTPYTHON_TEST_DATABASE_URL || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
@@ -63,7 +63,7 @@ async function startServer(schema, env) {
   url.searchParams.set('options', `-c search_path=${schema}`);
   const child = spawn(process.execPath, ['src/server.mjs'], {
     cwd: resolve('.'),
-    env: {PATH: process.env.PATH, PORT: '0', DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', ...env},
+    env: {PATH: process.env.PATH, PORT: '0', DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema', ...env},
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = '';

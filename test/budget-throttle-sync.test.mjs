@@ -48,7 +48,7 @@ test('a real incremental sync under CONSERVE and CRITICAL defers traffic instead
   const year = new Date().getUTCFullYear();
   const current = `alpha/league/${year}`;
   try {
-    await migrate();
+    await migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
     const env = {
       PATH: process.env.PATH, HOME: process.env.HOME, DATABASE_URL: url.toString(),
       FUTPYTHON_API_KEY: 'budget-test-key', FUTPYTHON_BASE_URL: `http://127.0.0.1:${server.address().port}`,

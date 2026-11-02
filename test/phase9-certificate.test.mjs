@@ -313,7 +313,7 @@ test('normalized layer, team links, raw sweep and query answers on a real Postgr
   const cert = await import('../src/futpython-certificate.mjs');
   const { parseCsv } = await import('../src/lib/csv.mjs');
   try {
-    await migrate();
+    await migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
     await db.withClient(async client => {
       const datasets = [
         ['netherlands', 'eredivisie', '2024', [

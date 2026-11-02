@@ -79,7 +79,7 @@ test('reconciliation detects lost and stale data, recovers it through the normal
     (SELECT count(*)::int FROM fpt_match_versions WHERE phase='HISTORICAL') AS versions,
     (SELECT count(*)::int FROM fpt_match_facts WHERE phase='HISTORICAL') AS facts`))[0];
   try {
-    await migrate();
+    await migrate({env: {...process.env, MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'}});
     let run = await runSync(['--backfill'], env);
     assert.equal(run.code, 0, run.out);
     run = await runSync([], env);

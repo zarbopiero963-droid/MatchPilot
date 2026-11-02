@@ -89,7 +89,7 @@ async function withSchema(t, name, body, {staged = true} = {}) {
   try {
     await root.query(`CREATE SCHEMA ${schema}`);
     dbUrl.searchParams.set('options', `-csearch_path=${schema}`);
-    await runNode(['src/migrate.mjs'], {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test'});
+    await runNode(['src/migrate.mjs'], {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test', MATCHPILOT_MIGRATION_TEST_AUTHORIZATION: 'throwaway-schema'});
     const db = new pg.Client({connectionString: dbUrl.toString()});
     await db.connect();
     try {
