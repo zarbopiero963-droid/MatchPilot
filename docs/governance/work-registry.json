@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 237,
+  "revision": 239,
   "tasks": [
     {
       "id": "R-01",
@@ -2392,9 +2392,9 @@
       "pr": 289,
       "branch": "mp-master-roadmap-01",
       "kind": "audit",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T144800Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T151505Z-agent-a-claude-code",
       "resources": [
         "file:docs/governance/master/",
         "file:tools/governance/master.mjs",
@@ -2405,7 +2405,30 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "1aebd02a45a2fef61bcbaf0c75ee29a150580b36"
+    },
+    {
+      "id": "MP-MASTER-02",
+      "title": "MASTER #288 traceability: report-only workflow, canonical pointers in AGENTS.md, CLAUDE.md and the PR template",
+      "issue": 288,
+      "pr": null,
+      "branch": "mp-master-traceability-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T150724Z-agent-a-claude-code",
+      "resources": [
+        "file:.github/workflows/roadmap-traceability.yml",
+        "file:.github/pull_request_template.md",
+        "file:docs/governance/master/README.md",
+        "file:tools/governance/master.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
