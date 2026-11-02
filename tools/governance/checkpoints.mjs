@@ -113,7 +113,8 @@ export function validateErrata(errata, checkpoints) {
     if (!replacement) { errors.push(`${at} replaced_by ${entry?.replaced_by} is not a known checkpoint`); continue; }
     if (replacement.id === cp.id) errors.push(`${at} cannot replace itself`);
     if (replacement.task !== cp.task) errors.push(`${at} replacement belongs to another task`);
-    if ((replacement.supersedes ?? null) !== (cp.supersedes ?? null)) errors.push(`${at} replacement does not supersede the same parent`);
+    if (!cp.supersedes || !replacement.supersedes) errors.push(`${at} needs a common parent: a root checkpoint cannot be withdrawn or used as a replacement`);
+    else if (replacement.supersedes !== cp.supersedes) errors.push(`${at} replacement does not supersede the same parent`);
     if ((errata.withdrawn || []).some(other => other.id === replacement.id)) errors.push(`${at} replacement is itself withdrawn`);
     if (checkpoints.some(other => other.supersedes === cp.id)) errors.push(`${at} has successors and cannot be withdrawn`);
     if (typeof entry.reason !== 'string' || entry.reason.trim().length < 20) errors.push(`${at} needs a reason`);

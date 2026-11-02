@@ -346,4 +346,9 @@ test('MP-CP-WITHDRAW-01: a propagated checkpoint replaced by a corrected sibling
   const foreign = makeCheckpoint({id: 'CP-20261018T213000Z-agent-a', timestamp_utc: '2026-10-18T21:30:00Z', supersedes: a.id, task: 'R-02'});
   assert.ok(validateErrata({...file, withdrawn: [{...file.withdrawn[0], replaced_by: foreign.id}]}, [a, old, fixed, foreign]).some(e => e.includes('another task')));
   assert.ok(validateErrata({...file, withdrawn: [file.withdrawn[0], file.withdrawn[0]]}, [a, old, fixed]).some(e => e.includes('duplicated')));
+  // two roots are not siblings: withdrawing one root to hide "multiple roots" is refused (PR #302 review)
+  const root2 = makeCheckpoint({id: 'CP-20261018T214000Z-agent-a', timestamp_utc: '2026-10-18T21:40:00Z', supersedes: null});
+  const rootFile = {...file, withdrawn: [{...file.withdrawn[0], id: a.id, replaced_by: root2.id}]};
+  assert.ok(validateErrata(rootFile, [a, root2]).some(e => e.includes('common parent')));
+  assert.ok(validateErrata({...file, withdrawn: [{...file.withdrawn[0], replaced_by: root2.id}]}, [a, old, root2]).some(e => e.includes('common parent')));
 });
