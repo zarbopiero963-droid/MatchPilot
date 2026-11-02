@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 252,
+  "revision": 254,
   "tasks": [
     {
       "id": "R-01",
@@ -2513,11 +2513,34 @@
       "pr": 295,
       "branch": "mp-owner-dec-mig-01",
       "kind": "audit",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T222703Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T224000Z-agent-a-claude-code",
       "resources": [
         "file:docs/governance/owner-decisions.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "70ee74b31004983fa4060bb1f4daabe30386c036"
+    },
+    {
+      "id": "MP-MIG-030-PROMOTE-01",
+      "title": "F1: promote db/staged/030-persistence.sql to migrations/030-persistence.sql (byte-identical), rollback and historical-state tests",
+      "issue": 263,
+      "pr": 296,
+      "branch": "mp-mig-030-promote-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T224357Z-agent-a-claude-code",
+      "resources": [
+        "branch:mp-mig-030-promote-01",
+        "file:migrations/030-persistence.sql",
+        "file:db/rollback/030-persistence.down.sql",
+        "file:test/migration-030-promotion.test.mjs"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",

@@ -1,0 +1,141 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T224357Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T22:43:57Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd); registered on main by PR #295 (70ee74b), merged into this branch with git merge origin/main"
+  },
+  "task": "MP-MIG-030-PROMOTE-01",
+  "activity": "PR #296 opened (MANUAL): 030 promoted byte-identical, rollback file, order/dependency/historical-state tests on PG17 and PG18; review and CI pending",
+  "issue": 263,
+  "pr": 296,
+  "branch": "mp-mig-030-promote-01",
+  "commit_sha": "59bc5c87ce456c53662ff264fab8cb59a039e3d2",
+  "tree_sha": "0c8bbbdd677f7e06a1ec65804e4cc14b436d7a5d",
+  "base_sha": "70ee74b31004983fa4060bb1f4daabe30386c036",
+  "requirements": [],
+  "changes": [
+    "migrations/030-persistence.sql (renamed from db/staged, sha256 b81e0ca4...6999)",
+    "db/rollback/030-persistence.down.sql",
+    "test/migration-030-promotion.test.mjs",
+    "test/helpers/migrations.mjs",
+    "test/persistence-store.test.mjs, test/persistence-api.test.mjs, test/web-persistence-contract.test.mjs, test/postgres-independence.test.mjs",
+    "tools/qa/browser-qa.mjs",
+    "src/persistence/store.mjs (comment)",
+    "docs/governance/master/requirements.jsonl, audit/package-manifest.json",
+    "docs/product/mp-263/evidence/mig-030-promotion.md"
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "result": "PASS",
+      "environment": "local Node v22.22.0",
+      "commit": "59bc5c87ce456c53662ff264fab8cb59a039e3d2",
+      "time": "2026-11-02T22:43:57Z",
+      "limits": [
+        "syntax check only"
+      ]
+    },
+    {
+      "command": "FUTPYTHON_TEST_DATABASE_URL=<local 5450> node --test (full suite)",
+      "result": "PASS",
+      "environment": "PostgreSQL 17.11 throwaway container",
+      "commit": "6316667a13dbd1cd0607cb2ab17b005c81aabb68",
+      "time": "2026-11-02T22:43:57Z",
+      "limits": [
+        "824/825; the one failure (master-registry code_paths) fixed in 59bc5c8 and rechecked with test/master-registry + test/pr-plan 17/17"
+      ]
+    },
+    {
+      "command": "node --test test/migration-030-promotion.test.mjs test/persistence-*.test.mjs test/migration-guard.test.mjs test/migration-hardening.test.mjs",
+      "result": "PASS",
+      "environment": "PostgreSQL 18.6 throwaway container",
+      "commit": "59bc5c87ce456c53662ff264fab8cb59a039e3d2",
+      "time": "2026-11-02T22:43:57Z",
+      "limits": [
+        "37/37; subset, not the full suite"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "59bc5c87ce456c53662ff264fab8cb59a039e3d2"
+  },
+  "gate_a": "PASS",
+  "gate_b": "NOT_VERIFIED",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reviewed_sha": null,
+    "reference": "no review yet"
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "NON_BLOCKING",
+      "status": "OPEN",
+      "summary": "030 staged while 031 moves to migrations: 030 promoted in order 030->031; both orders verified to give the same schema; open until owner merge"
+    }
+  ],
+  "owner_decisions": [
+    "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "local tests PG17/PG18",
+      "PR opened"
+    ],
+    "in_progress": [
+      "review",
+      "CI"
+    ],
+    "not_started": [
+      "owner GO",
+      "merge"
+    ]
+  },
+  "resources": [
+    "branch:mp-mig-030-promote-01",
+    "file:migrations/030-persistence.sql",
+    "file:db/rollback/030-persistence.down.sql",
+    "file:test/migration-030-promotion.test.mjs"
+  ],
+  "stop_conditions": [
+    "MANUAL: AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER",
+    "no merge, no production migration, no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "wait for the Codex review and CI on #296, fix verified findings; then F2 (mp-mig-checksums-01) stacked on this branch",
+  "resume_conditions": [
+    "owner GO for the MANUAL merge"
+  ],
+  "supersedes": null
+}
