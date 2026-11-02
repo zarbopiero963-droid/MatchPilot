@@ -2364,7 +2364,7 @@
       "id": "MP-FPT-RETIRE-02",
       "title": "MP-FPT-RETIRE-02: mp-deploy FPT worker restart guard",
       "issue": 263,
-      "pr": null,
+      "pr": 281,
       "branch": "mp-deploy-fpt-guard",
       "kind": "implementation",
       "state": "REVIEW",
@@ -2382,7 +2382,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
