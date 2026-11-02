@@ -1,0 +1,102 @@
+{
+  "issues": {
+    "total": 49,
+    "open": 43,
+    "closed": 6,
+    "open_without_master_link": 0
+  },
+  "pull_requests": {
+    "total": 239,
+    "open": 7,
+    "merged": 229,
+    "closed_unmerged": 3
+  },
+  "requirements": {
+    "master_atomic": 1358,
+    "by_lifecycle": {
+      "ACTIVE": 1173,
+      "ARCHIVE_NO_ACTION": 56,
+      "DUPLICATE": 11,
+      "IDEA_NOT_APPROVED": 40,
+      "SUPERSEDED": 78
+    },
+    "by_relation": {
+      "COMPATIBLE": 1185,
+      "CONFLICT_OWNER_DECISION_REQUIRED": 10,
+      "DUPLICATE": 14,
+      "SUPERSEDED": 131,
+      "UNRESOLVED": 18
+    },
+    "active_by_implementation": {
+      "IMPLEMENTED": 186,
+      "NOT_IMPLEMENTED": 438,
+      "PARTIAL": 521,
+      "UNKNOWN": 28
+    },
+    "active_by_tested": {
+      "BROWSER": 30,
+      "INTEGRATION": 42,
+      "NONE": 504,
+      "UNIT": 413,
+      "UNKNOWN": 184
+    },
+    "active_by_certified": {
+      "COMPONENT": 10,
+      "NONE": 1067,
+      "UNKNOWN": 96
+    },
+    "active_merged": 683,
+    "active_in_open_pr": 94,
+    "active_deployed_verified": 0,
+    "active_operational": 2,
+    "active_blocked": 233,
+    "active_with_provider_gap": 299,
+    "active_without_evidence_on_main": 465,
+    "active_with_open_pr_paths_only": 13,
+    "conflicts_owner_decision_required": 10,
+    "unresolved": 18,
+    "by_domain": {
+      "A": 234,
+      "B": 33,
+      "C": 20,
+      "D": 133,
+      "E": 99,
+      "F": 59,
+      "G": 57,
+      "GOV": 117,
+      "H": 55,
+      "I": 121,
+      "J": 78,
+      "K": 67,
+      "L": 100
+    }
+  },
+  "cards": {
+    "total": 376,
+    "by_origin": {
+      "existing": 258,
+      "new": 113,
+      "open_pr": 5
+    },
+    "by_phase": {
+      "P0": 27,
+      "P1": 5,
+      "P10": 1,
+      "P2": 46,
+      "P3": 13,
+      "P4": 22,
+      "P5": 45,
+      "P6": 22,
+      "P7": 165,
+      "P8": 18,
+      "P9": 12
+    },
+    "by_state": {
+      "BLOCKED": 106,
+      "IMPLEMENTED": 5,
+      "IMPLEMENTING": 196,
+      "NOT STARTED": 69
+    },
+    "certified": 0
+  }
+}
