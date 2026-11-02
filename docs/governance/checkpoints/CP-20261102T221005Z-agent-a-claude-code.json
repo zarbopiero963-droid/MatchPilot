@@ -1,0 +1,145 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T221005Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T22:10:05Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-NEXT-20261102",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-AF-SCHED-01",
+  "activity": "PR #287 (draft by another agent) completed under the owner mandate MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL section 11 (hardening and isolated tests of the scheduler), recorded here under MP-NEXT-20261102 because that mandate is not yet in the owner-decision register: main merged, scheduler hardened, real PostgreSQL 17/18 tests added",
+  "issue": 263,
+  "pr": 287,
+  "branch": "mp-af-scheduler-retention-01",
+  "commit_sha": "60df47d68e4f68a2e690cca6b51d1f7545d1caef",
+  "tree_sha": "6db6768ee14ecb062c342d9d9c254587a8ebb8c8",
+  "base_sha": "e3bda686d5c858ce3138eaf128143b0eb5ab7228",
+  "requirements": [],
+  "changes": [
+    "src/providers/apifootball/scheduler.mjs: strict fail-closed config, rate limiting, per-attempt timeout, bounded retry with backoff on transient errors only, disk and odds-table checks, per-day dedup, persisted decisions, pool refused",
+    "db/staged/032-af-scheduler.sql: af_scheduler_done, af_scheduler_events, reason_code, tasks_done, integrity CHECKs (staged, not in migrations/)",
+    "test/af-scheduler.test.mjs: logic and negative tests on an in-memory fake",
+    "test/af-scheduler-postgres.test.mjs (new): real PostgreSQL tests, skipped without FUTPYTHON_TEST_DATABASE_URL",
+    "docs/product/mp-263/odds-retention.md: thresholds and parameters aligned with the code",
+    "merge of origin/main e3bda68 (package.json check script)"
+  ],
+  "tests": [
+    {
+      "command": "FUTPYTHON_TEST_DATABASE_URL=<local docker PG17> npm test (full suite)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22.22.0, docker postgres:17 (17.11) on 127.0.0.1:5443",
+      "commit": "60df47d68e4f68a2e690cca6b51d1f7545d1caef",
+      "time": "2026-11-02T22:10:05Z",
+      "limits": [
+        "842/842 pass, 0 skipped; fake fetchOne only, no provider call; scheduler never activated"
+      ]
+    },
+    {
+      "command": "FUTPYTHON_TEST_DATABASE_URL=<local docker PG18> node --test test/af-scheduler.test.mjs test/af-scheduler-postgres.test.mjs (x3)",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22.22.0, docker postgres:18 (18.6) on 127.0.0.1:5444",
+      "commit": "60df47d68e4f68a2e690cca6b51d1f7545d1caef",
+      "time": "2026-11-02T22:10:05Z",
+      "limits": [
+        "22/22 pass in each of 3 runs; PG17 also 3 runs 22/22"
+      ]
+    },
+    {
+      "command": "npm run check",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22.22.0",
+      "commit": "60df47d68e4f68a2e690cca6b51d1f7545d1caef",
+      "time": "2026-11-02T22:10:05Z",
+      "limits": [
+        "syntax only"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "60df47d68e4f68a2e690cca6b51d1f7545d1caef"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT REQUESTED",
+    "reviewed_sha": null,
+    "reference": "no independent review yet; MANUAL PR, stays draft"
+  },
+  "findings": [
+    {
+      "id": "SCHED-NB-1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "client.mjs has its own single retry and budget: when fetchOne is wired to the client (PR #283) the two retry levels must be coordinated (e.g. MP_AF_MAX_RETRIES=0)"
+    },
+    {
+      "id": "SCHED-NB-2",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "fetchOne wiring, entry point and process supervision are out of scope: no CLI, cron or service starts the scheduler"
+    }
+  ],
+  "owner_decisions": [
+    "MP-NEXT-20261102",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "main merge",
+      "hardening and tests",
+      "real PostgreSQL 17 and 18 tests"
+    ],
+    "in_progress": [
+      "CI"
+    ],
+    "not_started": [
+      "independent review",
+      "owner authorization and merge (MANUAL)"
+    ]
+  },
+  "resources": [
+    "file:src/providers/apifootball/scheduler.mjs",
+    "file:db/staged/032-af-scheduler.sql",
+    "file:test/af-scheduler.test.mjs",
+    "file:test/af-scheduler-postgres.test.mjs",
+    "file:docs/product/mp-263/odds-retention.md"
+  ],
+  "stop_conditions": [
+    "MANUAL: AUTO-MERGE DISABILITATO — RICHIEDE AUTORIZZAZIONE MANUALE OWNER",
+    "PR stays draft",
+    "no deploy started by the agent",
+    "scheduler stays OFF: no activation, no real API-FOOTBALL call"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI; independent review; MANUAL: stops before merge, owner authorization required",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": null
+}
