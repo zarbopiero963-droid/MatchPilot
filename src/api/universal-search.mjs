@@ -16,7 +16,9 @@ import { capabilityCatalog, FPT_CAPABILITY_SQL, FPT_FIELDS_MAX } from './capabil
 import { ExpressionError, expressionFields, filterRecords, normalizeExpression, pitReport } from '../conditions/expression.mjs';
 
 export const SEARCH_VERSION = 'mp-search-1';
-export const MAX_EXPR_LENGTH = 1800; // inside the 2048-character query string of v1
+// The parameter limit; the effective cap is the 2048-character query string of v1, so after URL encoding an expression
+// holds roughly 600-700 characters of raw JSON.
+export const MAX_EXPR_LENGTH = 1800;
 export const MAX_SCAN = 5000;
 export const MAX_WINDOW_DAYS = 366;
 export const USABLE_STATUS = 'AVAILABLE AND IMPLEMENTED';
@@ -25,7 +27,7 @@ export const DECISIONS = Object.freeze(['PREMATCH', 'POSTMATCH']);
 export const MISSING_RULES_SQL = `SELECT field_name, missing_tokens, zero_is_missing FROM fpt_filter_registry WHERE field_name = ANY($1::text[])`;
 // Only the payload keys the expression uses leave the database. Newest matches first; one row more than the scan limit
 // tells that the window was truncated.
-export const SEARCH_SQL = `SELECT f.internal_match_id, f.match_date, f.kickoff_utc, f.internal_competition_id, f.season_id,
+export const SEARCH_SQL = `SELECT f.internal_match_id, f.match_date::text AS match_date, f.kickoff_utc, f.internal_competition_id, f.season_id,
     f.home_name, f.away_name, f.result_status, f.phase,
     (SELECT coalesce(jsonb_object_agg(k, v.payload -> k), '{}'::jsonb) FROM unnest($1::text[]) AS k WHERE v.payload ? k) AS fields
   FROM fpt_match_facts f
@@ -49,6 +51,15 @@ export function parseExpressionParam(text, ApiError) {
   try { value = JSON.parse(text); } catch { throw new ApiError('BAD_REQUEST', 'expr must be a JSON expression', undefined, ['expr']); }
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new ApiError('BAD_REQUEST', 'expr must be a JSON object', undefined, ['expr']);
   return value;
+}
+
+// The registry defaults (migrations 014/016): used for every field, and the only rule when the registry has no row for
+// it (not refreshed yet), so a missing value never fails open.
+export const DEFAULT_MISSING_TOKENS = Object.freeze(['', 'null', 'undefined', 'nan', 'na', 'n/a', '-']);
+export function missingRule(cap, row) {
+  const tokens = [...new Set([...DEFAULT_MISSING_TOKENS, ...(Array.isArray(row?.missing_tokens) ? row.missing_tokens.map(t => String(t).trim().toLowerCase()) : [])])];
+  const zeroDefault = cap.kind === 'market' && (cap.value_type === 'integer' || cap.value_type === 'number');
+  return {missing_tokens: tokens, zero_is_missing: row ? row.zero_is_missing === true || zeroDefault : zeroDefault, from_registry: Boolean(row)};
 }
 
 // A stored text value as the expression reads it, or null when the registry says it is missing. Values stay text: the
@@ -87,12 +98,13 @@ export function universalSearch({catalogRows, missingRules = [], rows = null, in
   }
   if (rows === null) return {normalized, fields, pit, providerRefs: fields.map(c => c.provider_ref)};
   const rules = new Map(missingRules.map(r => [r.field_name, r]));
+  const effective = new Map(fields.map(c => [c.id, missingRule(c, rules.get(c.provider_ref))]));
   const truncated = rows.length > scanLimit;
   const scanned = rows.slice(0, scanLimit);
   const records = scanned.map(row => {
     const record = {};
     for (const c of fields) {
-      const value = storedValue(row.fields?.[c.provider_ref], rules.get(c.provider_ref));
+      const value = storedValue(row.fields?.[c.provider_ref], effective.get(c.id));
       if (value !== null) record[c.id] = value;
     }
     return {row, record};
@@ -100,7 +112,7 @@ export function universalSearch({catalogRows, missingRules = [], rows = null, in
   const {selected, counts} = filterRecords(normalized, records.map(r => r.record), caps);
   const chosen = new Set(selected);
   const matches = records.filter(r => chosen.has(r.record)).slice(0, input.limit).map(({row, record}) => ({
-    id: row.internal_match_id, date: row.match_date instanceof Date ? row.match_date.toISOString().slice(0, 10) : row.match_date,
+    id: row.internal_match_id, date: row.match_date ?? null, // a calendar date as text from SQL: no time-zone shift
     kickoff_utc: row.kickoff_utc instanceof Date ? row.kickoff_utc.toISOString() : row.kickoff_utc ?? null,
     competition: row.internal_competition_id, season: row.season_id, home: row.home_name, away: row.away_name,
     result_status: row.result_status, values: record
@@ -110,8 +122,10 @@ export function universalSearch({catalogRows, missingRules = [], rows = null, in
     expression: normalized,
     decision: input.decision,
     fields: fields.map(c => ({id: c.id, provider_ref: c.provider_ref, kind: c.kind, value_type: c.value_type, timing: c.timing, status: c.status, coverage: c.coverage,
-      missing_rule: rules.has(c.provider_ref) ? {tokens: rules.get(c.provider_ref).missing_tokens, zero_is_missing: rules.get(c.provider_ref).zero_is_missing} : null})),
-    pit: {...pit, label: pit.pit_verifiable ? 'NO_POSTMATCH_FIELD_AND_TIMED' : input.decision === 'PREMATCH' ? 'NOT_PIT_VERIFIED' : 'RESEARCH_POSTMATCH'},
+      missing_rule: {tokens: effective.get(c.id).missing_tokens, zero_is_missing: effective.get(c.id).zero_is_missing, from_registry: effective.get(c.id).from_registry}})),
+    // The PIT vocabulary of src/pit/policy.mjs: an archive search is never PIT_VERIFIED (capture times unknown); POSTMATCH
+    // research is NON_PIT.
+    pit: {...pit, label: input.decision === 'PREMATCH' ? 'PIT_NOT_VERIFIED' : 'NON_PIT'},
     window: {from: input.from, to: input.to, competition: input.competition ?? null, season: input.season ?? null},
     scanned: scanned.length,
     truncated,

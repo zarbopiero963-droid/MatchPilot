@@ -51,7 +51,7 @@ test('MP-SEARCH-01 end to end: AND, OR and NOT on catalog fields; only TRUE matc
   // Match 2 is FALSE OR UNKNOWN (no draw price) = UNKNOWN: three-valued logic, never a guess. 3, 4 and 5 lack readable values.
   assert.deepEqual(d.counts, {TRUE: 2, FALSE: 0, UNKNOWN: 4});
   assert.deepEqual(d.rows[0].values, {[C]: '7', [H]: '1.80'});
-  assert.equal(d.pit.label, 'RESEARCH_POSTMATCH');
+  assert.equal(d.pit.label, 'NON_PIT');
   assert.equal(d.truncated, false);
   assert.deepEqual(h.calls.map(c => c.sql), [FPT_CAPABILITY_SQL, MISSING_RULES_SQL, SEARCH_SQL]);
   assert.deepEqual(h.calls[2].values, [['Corners_Home_FT', 'Odd_1_FT', 'Odd_X_FT'], '2025-01-01', '2025-06-30', null, null, 5001], 'only the used payload keys, bounded scan');
@@ -73,7 +73,7 @@ test('MP-SEARCH-01 PIT: PREMATCH refuses post-kickoff fields before reading any 
   assert.deepEqual(h.calls.map(c => c.sql), [FPT_CAPABILITY_SQL], 'no match read after a refusal');
   const ok = await harness().get({field: H, op: 'lt', value: '2'}, `${W}&decision=PREMATCH`);
   assert.equal(ok.status, 200);
-  assert.deepEqual([ok.body.data.pit.pit_verifiable, ok.body.data.pit.label, ok.body.data.pit.untimed], [false, 'NOT_PIT_VERIFIED', [H]]);
+  assert.deepEqual([ok.body.data.pit.pit_verifiable, ok.body.data.pit.label, ok.body.data.pit.untimed], [false, 'PIT_NOT_VERIFIED', [H]]);
 });
 
 test('MP-SEARCH-01 field states: only AVAILABLE AND IMPLEMENTED fields search; the others are refused with their state', async () => {
@@ -139,6 +139,14 @@ test('MP-SEARCH-01 bounded scan reports truncation; stored values follow the reg
   assert.equal(storedValue('0', {missing_tokens: [], zero_is_missing: false}), '0');
   assert.equal(storedValue('', null), null);
   assert.equal(storedValue({a: 1}, null), null);
+  // review B1: with no registry row the registry defaults still apply (tokens; zero is missing for numeric markets).
+  const noRow = universalSearch({catalogRows: CATALOG, missingRules: [], rows: [match(1, {Odd_X_FT: '0.00'}), match(2, {Odd_X_FT: 'NaN'}), match(3, {Odd_X_FT: '1.5'})],
+    input: {expr: {field: X, op: 'lt', value: '2'}, decision: 'POSTMATCH', from: 'a', to: 'b', limit: 10}, ApiError: class extends Error {}});
+  assert.deepEqual([noRow.rows.map(r => r.id), noRow.counts], [['fpt:id:3'], {TRUE: 1, FALSE: 0, UNKNOWN: 2}]);
+  assert.deepEqual(noRow.fields[0].missing_rule.from_registry, false);
+  const stat = universalSearch({catalogRows: CATALOG, missingRules: [], rows: [match(1, {Corners_Home_FT: '0'}), match(2, {Corners_Home_FT: '-'})],
+    input: {expr: {field: C, op: 'lt', value: 1}, decision: 'POSTMATCH', from: 'a', to: 'b', limit: 10}, ApiError: class extends Error {}});
+  assert.deepEqual(stat.rows.map(r => r.id), ['fpt:id:1'], 'zero corners is a real value; a dash is missing');
 });
 
 function runNode(args, env) {
@@ -168,6 +176,17 @@ test('MP-SEARCH-01 the pinned SQL runs on the real schema (PostgreSQL)', {timeou
     try {
       assert.ok(Array.isArray((await db.query(MISSING_RULES_SQL, [['Odd_1_FT']])).rows));
       assert.deepEqual((await db.query(SEARCH_SQL, [['Odd_1_FT'], '2025-01-01', '2025-06-30', null, null, 10])).rows, []);
+      // review B2/N7: one seeded match; the date comes back as the calendar date whatever the process time zone.
+      const snap = await db.query(`INSERT INTO fpt_raw_snapshots (dataset_key, source_kind, provider_path, sha256, row_count, headers, payload_gzip)
+        VALUES ('it-a', 'dataset', '/x', repeat('a', 64), 1, '["Odd_1_FT"]'::jsonb, '\\x00'::bytea) RETURNING snapshot_id`);
+      const sid = snap.rows[0].snapshot_id;
+      const v = await db.query(`INSERT INTO fpt_match_versions (match_key, dataset_key, snapshot_id, acquired_at, match_date, phase, payload, payload_sha256)
+        VALUES ('k1', 'it-a', $1, now(), '2025-03-01', 'HISTORICAL', $2::jsonb, repeat('b', 64)) RETURNING version_id`, [sid, JSON.stringify({Odd_1_FT: '1.80', 'a,b"c': 'x'})]);
+      await db.query(`INSERT INTO fpt_match_facts (internal_match_id, match_key, version_id, snapshot_id, dataset_key, phase, acquired_at, match_date, kickoff_tz_status,
+        result_status, source_provider, parser_version, schema_version, transform_version, facts_version)
+        VALUES ('fpt:id:1', 'k1', $1, $2, 'it-a', 'HISTORICAL', now(), '2025-03-01', 'UNKNOWN', 'FINAL', 'futpython', 'p', 's', 't', 'f')`, [v.rows[0].version_id, sid]);
+      const rows = (await db.query(SEARCH_SQL, [['Odd_1_FT', 'a,b"c', 'Missing'], '2025-01-01', '2025-06-30', null, null, 10])).rows;
+      assert.deepEqual([rows.length, rows[0].match_date, rows[0].fields], [1, '2025-03-01', {Odd_1_FT: '1.80', 'a,b"c': 'x'}], 'calendar date as text, only the asked keys');
       const plan = await db.query(`EXPLAIN ${SEARCH_SQL}`, [['Odd_1_FT'], '2025-01-01', '2025-06-30', 'x', null, 10]);
       assert.ok(plan.rows.length > 0);
     } finally { await db.end(); }
