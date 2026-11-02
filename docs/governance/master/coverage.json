@@ -14,11 +14,11 @@
   "requirements": {
     "master_atomic": 1358,
     "by_lifecycle": {
-      "ACTIVE": 1173,
+      "ACTIVE": 1170,
       "ARCHIVE_NO_ACTION": 56,
       "DUPLICATE": 11,
       "IDEA_NOT_APPROVED": 40,
-      "SUPERSEDED": 78
+      "SUPERSEDED": 81
     },
     "by_relation": {
       "COMPATIBLE": 1185,
@@ -29,34 +29,34 @@
     },
     "active_by_implementation": {
       "IMPLEMENTED": 184,
-      "NOT_IMPLEMENTED": 437,
-      "PARTIAL": 526,
+      "NOT_IMPLEMENTED": 436,
+      "PARTIAL": 524,
       "UNKNOWN": 26
     },
     "active_by_tested": {
       "BROWSER": 30,
       "INTEGRATION": 42,
-      "NONE": 504,
+      "NONE": 503,
       "UNIT": 415,
-      "UNKNOWN": 182
+      "UNKNOWN": 180
     },
     "active_by_certified": {
       "COMPONENT": 10,
-      "NONE": 1067,
+      "NONE": 1064,
       "UNKNOWN": 96
     },
-    "active_merged": 686,
+    "active_merged": 684,
     "active_in_open_pr": 94,
     "active_deployed_verified": 0,
     "active_operational": 2,
     "active_blocked": 233,
-    "active_with_provider_gap": 299,
-    "active_without_evidence_on_main": 464,
+    "active_with_provider_gap": 296,
+    "active_without_evidence_on_main": 463,
     "active_with_open_pr_paths_only": 13,
     "conflicts_owner_decision_required": 10,
     "unresolved": 18,
     "by_domain": {
-      "A": 234,
+      "A": 231,
       "B": 33,
       "C": 20,
       "D": 133,

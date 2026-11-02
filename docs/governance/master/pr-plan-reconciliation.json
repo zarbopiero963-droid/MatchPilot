@@ -47,15 +47,13 @@
   "carried_by_pr": {
    "MP-PRP-001": [
     "MP-CARD-012",
+    "MP-CARD-070",
+    "MP-CARD-083",
     "MP-CARD-090",
+    "MP-CARD-093",
     "MP-CARD-095",
     "MP-CARD-109",
     "MP-PR-00:R-00"
-   ],
-   "MP-PRP-002": [
-    "MP-CARD-070",
-    "MP-CARD-083",
-    "MP-CARD-093"
    ],
    "MP-PRP-003": [
     "MP-CARD-053",
@@ -790,8 +788,8 @@
   }
  },
  "prs": {
-  "total": 270,
-  "with_primary_card": 201,
+  "total": 268,
+  "with_primary_card": 200,
   "absorbed_cards": [
    {
     "card": "MP-PR-00:R-16",
@@ -1079,7 +1077,22 @@
     "lead_card": "MP-CARD-002"
    },
    {
+    "card": "MP-CARD-070",
+    "planned_pr": "MP-PRP-001",
+    "lead_card": "MP-CARD-012"
+   },
+   {
+    "card": "MP-CARD-083",
+    "planned_pr": "MP-PRP-001",
+    "lead_card": "MP-CARD-012"
+   },
+   {
     "card": "MP-CARD-090",
+    "planned_pr": "MP-PRP-001",
+    "lead_card": "MP-CARD-012"
+   },
+   {
+    "card": "MP-CARD-093",
     "planned_pr": "MP-PRP-001",
     "lead_card": "MP-CARD-012"
    },
@@ -1182,16 +1195,6 @@
     "card": "A-104:TCOP-CORE-04",
     "planned_pr": "MP-PRP-135",
     "lead_card": "MP-CARD-069"
-   },
-   {
-    "card": "MP-CARD-083",
-    "planned_pr": "MP-PRP-002",
-    "lead_card": "MP-CARD-070"
-   },
-   {
-    "card": "MP-CARD-093",
-    "planned_pr": "MP-PRP-002",
-    "lead_card": "MP-CARD-070"
    },
    {
     "card": "MP-PR-00:R-01",
@@ -1583,19 +1586,6 @@
      "MP-REQ-0660",
      "MP-REQ-1228",
      "MP-REQ-0391"
-    ]
-   },
-   {
-    "pr": "MP-PRP-021",
-    "origin": "EPIC_DECOMPOSITION",
-    "cards": [
-     "MP-CARD-013",
-     "MP-PR-00:R-08"
-    ],
-    "requirements": [
-     "MP-REQ-0278",
-     "MP-REQ-0360",
-     "MP-REQ-0634"
     ]
    },
    {
@@ -2319,7 +2309,7 @@
   ],
   "split_out_by_origin": {
    "OPEN_PR_WITHOUT_PRIMARY_CARD": 2,
-   "EPIC_DECOMPOSITION": 42,
+   "EPIC_DECOMPOSITION": 41,
    "SECONDARY_PR_OF_A_CARD": 23,
    "PREREQUISITE_OR_CERT_RECORD": 2
   },
@@ -2359,7 +2349,6 @@
   ],
   "new": [
    "MP-PRP-001",
-   "MP-PRP-002",
    "MP-PRP-003",
    "MP-PRP-004",
    "MP-PRP-005",
@@ -2378,7 +2367,6 @@
    "MP-PRP-018",
    "MP-PRP-019",
    "MP-PRP-020",
-   "MP-PRP-021",
    "MP-PRP-022",
    "MP-PRP-023",
    "MP-PRP-024",
@@ -2623,6 +2611,12 @@
   ],
   "planning_rows_deduplicated": [
    {
+    "into": "MP-PRP-001",
+    "into_source": "G4:G4-01",
+    "deduplicated_row": "MP-PRP-002 (owner decision MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL, DC-002 option B): owner-decision ratification batch; all 8 requirements (MP-REQ-0307, 0377, 0843, 0899, 0893, 0675, 1139, 1220) and cards MP-CARD-070, 083, 093 moved here; answers already given: (b) scrypt, (e) EXPLICIT source rule, (f) FPT forensic audit KEEP",
+    "cross_group": true
+   },
+   {
     "into": "MP-PRP-020",
     "into_source": "G1:G1-20",
     "deduplicated_row": "G4:G4-30 (Provider-neutral league and season onboarding, coverage per season and field)",
@@ -2744,7 +2738,6 @@
    "MP-PRP-262"
   ],
   "decision_dependent": [
-   "MP-PRP-002",
    "MP-PRP-OPEN-280",
    "MP-PRP-OPEN-281",
    "MP-PRP-OPEN-282",
@@ -2757,7 +2750,6 @@
    "MP-PRP-014",
    "MP-PRP-016",
    "MP-PRP-019",
-   "MP-PRP-021",
    "MP-PRP-023",
    "MP-PRP-024",
    "MP-PRP-025",
@@ -2778,7 +2770,6 @@
    "MP-PRP-068",
    "MP-PRP-072",
    "MP-PRP-073",
-   "MP-PRP-082",
    "MP-PRP-085",
    "MP-PRP-095",
    "MP-PRP-098",
@@ -2810,7 +2801,6 @@
    "MP-PRP-224",
    "MP-PRP-230",
    "MP-PRP-232",
-   "MP-PRP-233",
    "MP-PRP-238",
    "MP-PRP-242",
    "MP-PRP-245",
@@ -2833,16 +2823,8 @@
  "uncertainty": {
   "removable_by_decision": [
    {
-    "pr": "MP-PRP-002",
-    "reason": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-002): points a, c, d are closed in substance by MP-UI-D12-DECISIONS-20261024, MP-OWNER-GO-2026-11-01 and DEC-001; points b, e, f need explicit owner records; the PR disappears only if those records are made elsewhere"
-   },
-   {
     "pr": "MP-PRP-017",
     "reason": "MANDATORY (audit 2026-11-02): integrity of the frozen FPT archive stays in scope; only the 0247 incremental-sync evidence could be waived by an explicit owner decision"
-   },
-   {
-    "pr": "MP-PRP-021",
-    "reason": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-021): the provider-overlap goal (DEC-003, OWN-2026-10-06-SCOPE) predates MP-OWNER-GO-2026-11-01; it disappears only if the owner drops it or restates the perimeter"
    },
    {
     "pr": "MP-PRP-026",
@@ -2857,20 +2839,12 @@
     "reason": "DEFERABLE (audit 2026-11-02): TotalCorner is suspended and the recorded benchmark verdict is INSUFFICIENT EVIDENCE (docs/product/mp-263/totalcorner-benchmark-criteria.md), not DROP; only an explicit owner decision to drop TotalCorner removes it"
    },
    {
-    "pr": "MP-PRP-029",
-    "reason": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-029): TotalCorner core certification on captured data; the TotalCorner OFF negative tests are a security control and stay in every scenario"
-   },
-   {
     "pr": "MP-PRP-047",
     "reason": "OPTIONAL (audit 2026-11-02): performance rewrite of the frozen FPT certification endpoint; it disappears if the owner freezes or retires that endpoint"
    },
    {
     "pr": "MP-PRP-052",
     "reason": "MANDATORY (audit 2026-11-02): progression and owner-formula models are approved scope (MP-UI-D12-DECISIONS-20261024); it stays in the plan and only an owner decision changing that scope would remove it; blocked on the owner formulas"
-   },
-   {
-    "pr": "MP-PRP-082",
-    "reason": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-082): the #27 GOAT benchmark was defined on FPT+TC; with API-FOOTBALL primary (MP-OWNER-GO-2026-11-01) it must be re-based or dropped by the owner; MP-PROVIDERS-2026-10-31 is cited in issue comments but is not in owner-decisions.json"
    },
    {
     "pr": "MP-PRP-101",
@@ -2907,10 +2881,6 @@
    {
     "pr": "MP-PRP-230",
     "reason": "DEFERABLE only for the owner Users & Permissions administration (230-B, audit 2026-11-02 and Codex review of PR #292); the own-session page, active-session listing and revocation (230-A) are mandatory"
-   },
-   {
-    "pr": "MP-PRP-233",
-    "reason": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-233): build step for the frontend; if the owner keeps the unbundled frontend, the no-source-map and no-debug checks move to MP-PRP-240 and stay mandatory"
    },
    {
     "pr": "MP-PRP-240",
@@ -3266,7 +3236,7 @@
   ]
  },
  "requirements": {
-  "active": 1173,
+  "active": 1170,
   "completed": [
    {
     "id": "MP-REQ-0726",
@@ -3422,9 +3392,7 @@
     "MP-REQ-0939",
     "MP-REQ-1284",
     "MP-REQ-1085",
-    "MP-REQ-1187"
-   ],
-   "MP-PRP-002": [
+    "MP-REQ-1187",
     "MP-REQ-0307",
     "MP-REQ-0377",
     "MP-REQ-0843",
@@ -3708,11 +3676,6 @@
     "MP-REQ-0362",
     "MP-REQ-0282",
     "MP-REQ-0073"
-   ],
-   "MP-PRP-021": [
-    "MP-REQ-0278",
-    "MP-REQ-0360",
-    "MP-REQ-0634"
    ],
    "MP-PRP-022": [
     "MP-REQ-0264",
@@ -5052,6 +5015,6 @@
  },
  "identities": {
   "cards": "376 = 1 + 12 + 23 + 340",
-  "prs": "270 = 201 PRs with a primary card (340 carried cards - 139 absorbed) + 69 PRs without a primary card"
+  "prs": "268 = 200 PRs with a primary card (340 carried cards - 140 absorbed) + 68 PRs without a primary card"
  }
 }

@@ -134,3 +134,42 @@ Decisioni coinvolte:
 Se l'owner sceglie tutte le opzioni che riducono il conteggio (DC-002 B, DC-021 B, DC-029 B con i test spostati, DC-082 C, DC-233 A), il totale scende al massimo di **−5**, da 270 a 265, oppure da 282 a 277 sulla candidata.
 
 Con le raccomandazioni (DC-002 B se possibile, altrimenti A; tutte le altre come raccomandato) l'effetto è **0 o −1**.
+
+---
+
+## Esito: decisioni owner del 02/11/2026 (MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL)
+
+| Scheda | Decisione | Effetto sul piano di lavoro |
+|---|---|---|
+| DC-002 | **B**: accorpata nella MP-PRP-001 | 8 requisiti e 3 schede spostati nella 001, nessuno perso; −1 |
+| DC-021 | **B**: rinuncia alla PR autonoma di sovrapposizione | MP-REQ-0278, 0360 e 0634 restano nello storico come SUPERSEDED con la decisione owner, mai dichiarati implementati, testati o certificati; i controlli PIT e di provenienza restano nelle loro PR (071, 079, PIT); −1 |
+| DC-029 | **A**: PR ridotta, TotalCorner resta OFF | test negativi OFF, nessuna riattivazione dopo crash o restart, nessuna chiamata, nessuna cancellazione, nessuna credenziale nei log; certificazione del core rinviata; 0 |
+| DC-082 | **A**: benchmark mantenuto e ribasato su API-FOOTBALL | GOOD / BAD / NO TRADE / UNVERIFIED, dopo replay, backtest e trading engine (dipende da 071, 079, 073, 094); 0 |
+| DC-233 | **B**: build rinviata all'hardening pre-rilascio | i controlli nessuna source map / nessun dato sensibile / nessun debug passano subito in MP-PRP-042; responsive, regressione e sicurezza frontend restano in MP-PRP-147; 0 |
+
+**Risposte ai punti aperti della ex 002:**
+- (b) scrypt confermato;
+- (e) regola EXPLICIT: senza fonte owner verificabile una decisione resta OWNER_DECISION_REQUIRED;
+- (f) audit forense FPT: KEEP.
+
+**Verifica del codice scrypt** (`src/auth/owner-auth.mjs` su `main` e3bda68): CONFORME ai requisiti del mandato.
+- Il formato `scrypt$N$r$p$salt$key` memorizza i parametri.
+- Il salt è casuale da 16 byte per password.
+- Il confronto usa `timingSafeEqual`.
+- In produzione il costo non può scendere sotto N 2^14 (`MIN_PRODUCTION_N`).
+- Un decoy dà tempi uguali anche per un nome utente sconosciuto.
+- C'è un limite ai tentativi falliti per client, con riserva atomica.
+- L'audit usa identificativi HMAC, mai la password.
+- I test sono in `test/owner-auth.test.mjs` e `test/owner-auth-hardening.test.mjs`.
+
+**Finding SCRYPT-01 (P3, non bloccante).** Il costo predefinito per i nuovi hash è N=2^15, r=8, p=1, cioè circa 32 MiB. Il minimo in produzione è 2^14. Entrambi sono sotto la raccomandazione OWASP corrente, N=2^17.
+- **Correzione proposta, in una PR dedicata:** alzare il default per i soli nuovi hash. Gli hash esistenti restano verificabili perché i parametri sono salvati nell'hash, quindi nessun account viene invalidato. Valutare anche di alzare il minimo di produzione dopo la rotazione della password owner.
+- **Questo mandato non cambia l'algoritmo né i parametri in produzione.**
+
+**Conteggio.**
+- La baseline ufficiale resta **270 (209–328)**.
+- Il piano di lavoro con le decisioni applicate è una proiezione, **non una baseline approvata**: **268** (intervallo 212–326).
+- La candidata passerebbe da 282 a 280.
+- Nessuna doppia sottrazione:
+  - la coppia 001+002 era già esclusa dal conteggio degli accorpamenti, perché la 002 era eliminabile;
+  - le PR eliminabili scendono da 27 a 22, perché 002 e 021 escono e 029, 082 e 233 sono state decise come mantenute.
