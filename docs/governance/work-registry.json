@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 259,
+  "revision": 260,
   "tasks": [
     {
       "id": "R-01",
@@ -2584,6 +2584,30 @@
         "file:src/migrate.mjs",
         "file:test/migration-checksums.test.mjs",
         "file:docs/migration-checksums.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": true,
+      "parallel_authorization": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01"
+    },
+    {
+      "id": "MP-MIG-GATE-01",
+      "title": "F3: double authorization (owner manifest + root technical token) of migrations in every mode, persistent revocation after rollback (stacked on F2 #298)",
+      "issue": 263,
+      "pr": 300,
+      "branch": "mp-mig-gate-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T232156Z-agent-a-claude-code",
+      "resources": [
+        "branch:mp-mig-gate-01",
+        "file:src/migration-authz.mjs",
+        "file:db/migration-approvals.json",
+        "file:test/migration-gate.test.mjs",
+        "file:docs/migration-gate.md"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
