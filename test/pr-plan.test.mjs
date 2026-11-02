@@ -106,3 +106,24 @@ test('MP-PRCOUNT the range is explained by named PRs only', () => {
   const p1 = clone(); p1.planned_prs.find(p => !p.merge_option).merge_option = 'MP-PRP-999';
   assert.ok(fails(p1, 'merge option MP-PRP-999 unknown'));
 });
+
+test('MP-PRCOUNT the ID-level reconciliation is up to date and rebuilds every count from ids', async () => {
+  const { reconcile } = await import('../tools/governance/pr-plan.mjs');
+  const r = reconcile(reg, plan);
+  assert.equal(readFileSync('docs/governance/master/pr-plan-reconciliation.json', 'utf8'), JSON.stringify(r, null, 1) + '\n');
+  const k = plan.counts;
+  assert.equal(r.cards.completed.length + r.cards.superseded.length + r.cards.duplicate.length + r.cards.carried, k.A_cards);
+  assert.equal(Object.values(r.cards.carried_by_pr).flat().length, k.carried_cards);
+  assert.equal(r.prs.absorbed_cards.length, k.E_absorbed);
+  assert.equal(r.prs.with_primary_card + r.prs.split_out.length, k.H_total_prs);
+  assert.equal(r.prs.split_out.length, k.S_split_out);
+  assert.equal(r.prs.open.length + r.prs.new.length, k.H_total_prs);
+  assert.equal(new Set(r.prs.open.map(o => o.github)).size, k.F_open_prs);
+  assert.equal(r.uncertainty.merge_pairs.length, k.uncertainty.merge_pairs);
+  assert.equal(r.uncertainty.removable_by_decision.length, k.uncertainty.removable_by_decision);
+  assert.equal(r.uncertainty.split_risks.reduce((s, x) => s + x.extra, 0), k.uncertainty.split_risks);
+  // every card appears exactly once across the four buckets
+  const all = [...r.cards.completed, ...r.cards.superseded, ...r.cards.duplicate, ...Object.values(r.cards.carried_by_pr).flat()];
+  assert.equal(new Set(all).size, reg.cards.length);
+  assert.equal(all.length, reg.cards.length);
+});
