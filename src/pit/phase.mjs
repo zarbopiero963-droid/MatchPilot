@@ -33,9 +33,16 @@ const groupOf = status => {
 };
 
 const ISO_WITH_OFFSET = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,6})?)?(Z|[+-]\d{2}:\d{2})$/;
+// Calendar check on the instant as written: 2026-02-30 or 24:00 are unreadable, never rolled over to another date.
+function validCalendar(text) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/.exec(text);
+  if (!m) return false;
+  const [y, mo, d, h, mi, se = 0] = m.slice(1).map(Number);
+  return mo >= 1 && mo <= 12 && d >= 1 && d <= new Date(Date.UTC(y, mo, 0)).getUTCDate() && h <= 23 && mi <= 59 && se <= 59;
+}
 function ms(value) {
   if (value instanceof Date) return Number.isFinite(value.getTime()) ? value.getTime() : null;
-  return typeof value === 'string' && ISO_WITH_OFFSET.test(value) && Number.isFinite(Date.parse(value)) ? Date.parse(value) : null;
+  return typeof value === 'string' && ISO_WITH_OFFSET.test(value) && validCalendar(value) && Number.isFinite(Date.parse(value)) ? Date.parse(value) : null;
 }
 const iso = v => (v === null ? null : new Date(v).toISOString());
 
@@ -74,12 +81,22 @@ export function classifyPhase(input = {}) {
 }
 
 // Whether a decision taken at decisionTime may use a classified record. Returns {usable, reason}.
-export function usableAt(classified, {decision, decisionTime, kickoff}) {
+// - The record is re-classified from its own times and status: an edited or hand-built object whose phase does not follow
+//   from them is refused (RECORD_INCONSISTENT).
+// - The kickoff is the record's own; a caller kickoff that differs from it is refused (KICKOFF_MISMATCH), so a decision
+//   can never be relabelled with another kickoff.
+// - A POSTMATCH decision (research on a finished match) needs matchFinishedAt, the observed instant at which MatchPilot
+//   acquired the finished status, and is taken at or after it; otherwise it is refused (MATCH_END_UNKNOWN).
+export function usableAt(classified, {decision, decisionTime, kickoff, matchFinishedAt} = {}) {
   if (!DECISIONS.includes(decision)) throw new TypeError(`decision must be one of ${DECISIONS.join(', ')}`);
   const at = ms(decisionTime);
-  const ko = ms(kickoff ?? classified?.times?.kickoff ?? null);
   if (at === null) return {usable: false, reason: 'DECISION_TIME_UNKNOWN'};
   if (!classified || classified.phase === 'UNKNOWN') return {usable: false, reason: 'PHASE_UNKNOWN'};
+  const again = classifyPhase({kickoff: classified.times?.kickoff ?? null, acquiredAt: classified.times?.acquired_at ?? null,
+    providerTime: classified.times?.provider_time ?? null, matchStatus: classified.match_status});
+  if (again.phase !== classified.phase || again.times.available_from !== classified.times?.available_from) return {usable: false, reason: 'RECORD_INCONSISTENT'};
+  const ko = ms(classified.times.kickoff);
+  if (kickoff !== undefined && kickoff !== null && ms(kickoff) !== ko) return {usable: false, reason: 'KICKOFF_MISMATCH'};
   const available = ms(classified.times?.available_from ?? null);
   if (available === null) return {usable: false, reason: 'AVAILABILITY_UNKNOWN'};
   if (available > at) return {usable: false, reason: 'NOT_AVAILABLE_AT_DECISION'};
@@ -92,6 +109,9 @@ export function usableAt(classified, {decision, decisionTime, kickoff}) {
     if (at < ko) return {usable: false, reason: 'LIVE_DECISION_BEFORE_KICKOFF'};
     return ['PREMATCH', 'LIVE'].includes(classified.phase) ? {usable: true, reason: null} : {usable: false, reason: 'POSTMATCH_DATA_IN_LIVE_DECISION'};
   }
+  const end = ms(matchFinishedAt ?? null);
+  if (end === null || end < ko) return {usable: false, reason: 'MATCH_END_UNKNOWN'};
+  if (at < end) return {usable: false, reason: 'POSTMATCH_DECISION_BEFORE_MATCH_END'};
   return {usable: true, reason: null};
 }
 

@@ -47,12 +47,12 @@ test('MP-PIT-LIVE-01 a record is never back-dated: availability is the acquisiti
   // A provider time later than the acquisition (beyond tolerance) is inconsistent: UNKNOWN, unusable.
   const late = rec(20, '1H', {providerTime: t(30)});
   assert.deepEqual([late.phase, late.reasons], ['UNKNOWN', ['PROVIDER_TIME_AFTER_ACQUISITION']]);
-  assert.equal(usableAt(late, {decision: 'POSTMATCH', decisionTime: t(200)}).usable, false);
+  assert.equal(usableAt(late, {decision: 'POSTMATCH', decisionTime: t(200), matchFinishedAt: t(110)}).usable, false);
 });
 
 test('MP-PIT-LIVE-01 leakage: no in-play or post-match record in a pre-match decision, no post-match record in play', () => {
   const pre = rec(-30, 'NS'), live = rec(10, '1H'), post = rec(110, 'FT'), unknown = rec(5, 'NS');
-  const at = (decision, min) => [pre, live, post, unknown].map(r => usableAt(r, {decision, decisionTime: t(min)}));
+  const at = (decision, min) => [pre, live, post, unknown].map(r => usableAt(r, {decision, decisionTime: t(min), matchFinishedAt: t(110)}));
   assert.deepEqual(at('PREMATCH', -10).map(r => r.usable), [true, false, false, false]);
   assert.deepEqual(at('PREMATCH', -10).map(r => r.reason), [null, 'NOT_AVAILABLE_AT_DECISION', 'NOT_AVAILABLE_AT_DECISION', 'PHASE_UNKNOWN']);
   // Even a later decision labelled PREMATCH is refused: a pre-match decision is before kickoff by definition.
@@ -88,3 +88,39 @@ test('MP-PIT-LIVE-01 catalog and conditions: in-play prices are LIVE_ACQUIRED, r
   const report = pitReport(expr, catalog, {decision: 'LIVE'});
   assert.deepEqual([report.acquisition_bound, report.pit_verifiable], [['apifootball:market:odds/live/bet:36'], false]);
 });
+
+test('MP-PIT-LIVE-01 review: no relabelling, no edited records, POSTMATCH only after the observed end, no impossible dates', () => {
+  const pre = rec(-60, 'NS');
+  // A caller kickoff different from the record's own is refused, so a decision cannot be moved past the real kickoff.
+  assert.deepEqual(usableAt(pre, {decision: 'PREMATCH', decisionTime: t(60), kickoff: t(120)}), {usable: false, reason: 'KICKOFF_MISMATCH'});
+  assert.deepEqual(usableAt(pre, {decision: 'LIVE', decisionTime: t(-30), kickoff: t(-45)}), {usable: false, reason: 'KICKOFF_MISMATCH'});
+  assert.deepEqual(usableAt(pre, {decision: 'PREMATCH', decisionTime: t(-10), kickoff: KO}), {usable: true, reason: null}, 'the same kickoff is accepted');
+  // An edited or hand-built record is refused.
+  const live = rec(10, '1H');
+  assert.deepEqual(usableAt({...live, phase: 'PREMATCH'}, {decision: 'PREMATCH', decisionTime: t(-5)}).reason, 'RECORD_INCONSISTENT');
+  assert.deepEqual(usableAt({...pre, times: {...pre.times, available_from: t(-90)}}, {decision: 'PREMATCH', decisionTime: t(-80)}).reason, 'RECORD_INCONSISTENT');
+  // POSTMATCH needs the observed end of the match, and comes after it.
+  const post = rec(110, 'FT');
+  assert.deepEqual(usableAt(post, {decision: 'POSTMATCH', decisionTime: t(200)}), {usable: false, reason: 'MATCH_END_UNKNOWN'});
+  assert.deepEqual(usableAt(live, {decision: 'POSTMATCH', decisionTime: t(30), matchFinishedAt: t(110)}), {usable: false, reason: 'POSTMATCH_DECISION_BEFORE_MATCH_END'});
+  assert.deepEqual(usableAt(live, {decision: 'POSTMATCH', decisionTime: t(120), matchFinishedAt: t(110)}), {usable: true, reason: null});
+  assert.deepEqual(usableAt(live, {decision: 'POSTMATCH', decisionTime: t(120), matchFinishedAt: t(-5)}).reason, 'MATCH_END_UNKNOWN', 'an end before kickoff is not an end');
+  // Impossible dates are unreadable; Date objects and statuses with spaces are read.
+  for (const v of ['2026-02-30T10:00:00Z', '2026-11-02T24:00:00Z', '2026-13-01T10:00:00Z']) assert.equal(classifyPhase({kickoff: v, acquiredAt: t(-10), matchStatus: 'NS'}).phase, 'UNKNOWN', v);
+  assert.equal(classifyPhase({kickoff: new Date(KO), acquiredAt: new Date(t(110)), matchStatus: ' ft '}).phase, 'POSTMATCH');
+  // Provider time exactly at the tolerance is accepted; one millisecond beyond is not.
+  assert.equal(rec(20, '1H', {providerTime: t(25)}).phase, 'LIVE');
+  assert.equal(classifyPhase({kickoff: KO, acquiredAt: t(20), matchStatus: '1H', providerTime: new Date(Date.parse(t(25)) + 1).toISOString()}).phase, 'UNKNOWN');
+  // A LIVE decision exactly at kickoff may use pre-match data.
+  assert.deepEqual(usableAt(pre, {decision: 'LIVE', decisionTime: KO}), {usable: true, reason: null});
+});
+
+test('MP-PIT-LIVE-01 review: an in-play condition is never PIT verified by the expression alone; POSTMATCH reports unknown fields', () => {
+  const catalog = buildCatalog(apiFootballCapabilities());
+  const onlyLive = normalizeExpression({field: 'apifootball:market:odds/live/bet:36', op: 'lte', value: '1.9'}, catalog);
+  const r = pitReport(onlyLive, catalog, {decision: 'LIVE'});
+  assert.deepEqual([r.violations, r.untimed, r.acquisition_bound, r.pit_verifiable], [[], [], ['apifootball:market:odds/live/bet:36'], false]);
+  const withUnknown = normalizeExpression({field: 'apifootball:market:odds/bet:5', op: 'gt', value: '1.5'}, catalog);
+  assert.deepEqual(pitViolations(withUnknown, new Map(), {decision: 'POSTMATCH'}), [{field: 'apifootball:market:odds/bet:5', timing: null, reason: 'not in the catalog'}]);
+});
+

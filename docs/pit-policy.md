@@ -146,6 +146,13 @@ Ricadono in UNKNOWN:
 
 In ogni caso valgono solo i record acquisiti entro l'istante della decisione. `usableRecords` conta i record esclusi per motivo, invece di nasconderli.
 
+**Regole aggiuntive di `usableAt`**
+- Il calcio d'inizio è quello del record. Un calcio d'inizio diverso passato dal chiamante viene rifiutato (`KICKOFF_MISMATCH`): una decisione non si può rietichettare.
+- Il record viene riclassificato dai suoi stessi orari e stato. Un oggetto modificato o costruito a mano viene rifiutato (`RECORD_INCONSISTENT`).
+- Una decisione POSTMATCH richiede `matchFinishedAt`, cioè l'istante osservato in cui MatchPilot ha acquisito lo stato di partita finita, e deve essere presa a quell'istante o dopo. Altrimenti viene rifiutata.
+- Le date impossibili (30 febbraio, ore 24) sono illeggibili, quindi la fase è UNKNOWN.
+- `pitReport` restituisce `pit_verifiable: true` solo se nessuna condizione dipende da una quota senza orario o dall'ora di acquisizione di un record. Una condizione in gioco è PIT solo record per record, mai per la sola espressione.
+
 **Catalogo e condizioni**
 - Il catalogo aggiunge `LIVE_ACQUIRED` al vocabolario di MP-PIT-TIMING-01. Il vincolo CHECK dell'archivio FPT resta invariato.
 - `LIVE_ACQUIRED` vale solo per i mercati in gioco, con fase esclusiva `LIVE`. Un mercato prematch non può dichiarare la fase LIVE.

@@ -183,7 +183,10 @@ export function pitReport(normalized, catalog, {decision}) {
   const untimed = expressionFields(normalized).filter(id => caps.get(id)?.timing === 'PREMATCH_MARKET_UNTIMED');
   // In-play prices allowed in a LIVE decision still depend on each record's acquisition instant: listed apart.
   const acquisition_bound = expressionFields(normalized).filter(id => caps.get(id)?.timing === 'LIVE_ACQUIRED');
-  return {decision, violations, untimed, acquisition_bound, pit_verifiable: violations.length === 0 && untimed.length === 0};
+  // pit_verifiable is true only when nothing depends on an untimed price or on a per-record acquisition instant: an in-play
+  // condition can be PIT only record by record (src/pit/phase.mjs), never by the expression alone.
+  return {decision, violations, untimed, acquisition_bound,
+    pit_verifiable: violations.length === 0 && untimed.length === 0 && acquisition_bound.length === 0};
 }
 
 // A record value read for comparison, or null when absent or unreadable (never guessed).
