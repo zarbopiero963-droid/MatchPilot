@@ -5,7 +5,7 @@ import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {commentMarker, errataMap, loadCheckpoints, planComment, reconcile, resolveLatest, validateCheckpoint, validateErrata, validateEvidence, validateHistory, writeCheckpoint} from '../tools/governance/checkpoints.mjs';
-import {checkpointHistory, realityFor, rewrittenCheckpoints} from '../tools/governance/git.mjs';
+import {checkpointHistory, realityFor, rewrittenCheckpoints, rewrittenWithdrawals} from '../tools/governance/git.mjs';
 
 const SHA_A = 'a'.repeat(40);
 const SHA_T = 'b'.repeat(40);
@@ -367,7 +367,9 @@ test('MP-CP-WITHDRAW-01 anti-bypass: circular, double and orphaning withdrawals 
   const lone = makeCheckpoint({id: 'CP-20261018T212000Z-agent-a', timestamp_utc: '2026-10-18T21:20:00Z', supersedes: x.id});
   assert.ok(validateErrata(file([entry(lone.id, y.id)]), [a, x, y, lone]).some(e => e.includes('same parent')));
   // the parent of the fork (it has successors) cannot be withdrawn
-  assert.ok(validateErrata(file([entry(a.id, y.id)]), [a, x, y]).some(e => e.includes('common parent') || e.includes('has successors')));
+  const parentErrors = validateErrata(file([entry(a.id, y.id)]), [a, x, y]);
+  assert.ok(parentErrors.some(e => e.includes('common parent')));
+  assert.ok(parentErrors.some(e => e.includes('has successors')));
   // withdrawing never makes an invalid checkpoint acceptable: validateCheckpoint still runs on every file
   const forged = makeCheckpoint({id: 'CP-20261018T213000Z-agent-a', timestamp_utc: '2026-10-18T21:30:00Z', supersedes: a.id, state: 'MERGED', review: {verdict: 'APPROVED', reviewed_sha: 'f'.repeat(40), reference: 'x'}});
   assert.ok(validateCheckpoint(forged, {}).some(e => e.includes('review covers')));
@@ -393,4 +395,60 @@ test('MP-CP-WITHDRAW-01 anti-bypass: a withdrawal cannot choose between two diff
     const f = {...file, withdrawn: [{...entry, id: sibling.id, replaced_by: twin.id}]};
     assert.ok(validateErrata(f, [a, sibling, twin]).some(e => e.includes('different work') && e.includes(key)), key);
   }
+});
+
+test('MP-CP-WITHDRAW-01 anti-bypass (PR #302 peer review): malformed lists, authorizations, unvalidated withdrawals, three siblings', () => {
+  const a = makeCheckpoint();
+  const x = makeCheckpoint({id: 'CP-20261018T210000Z-agent-a', timestamp_utc: '2026-10-18T21:00:00Z', supersedes: a.id});
+  const y = makeCheckpoint({id: 'CP-20261018T211000Z-agent-a', timestamp_utc: '2026-10-18T21:10:00Z', supersedes: a.id});
+  const z = makeCheckpoint({id: 'CP-20261018T212000Z-agent-a', timestamp_utc: '2026-10-18T21:20:00Z', supersedes: a.id});
+  const entry = (id, by) => ({id, replaced_by: by, reason: 'sibling replaced after a propagated correction', reference: 'PR #302'});
+  const file = withdrawn => ({schema_version: 'mp-checkpoint-errata-v1', entries: [], withdrawn});
+  // F6: malformed shapes are validation errors, never exceptions, and errataMap ignores them
+  assert.deepEqual(validateErrata(file({id: x.id}), [a, x, y]), ['checkpoint errata withdrawn must be a list']);
+  assert.deepEqual(validateErrata(file('x'), [a, x, y]), ['checkpoint errata withdrawn must be a list']);
+  assert.ok(validateErrata(file([null]), [a, x, y]).some(e => e.includes('must be an object')));
+  assert.ok(validateErrata(file(['x']), [a, x, y]).some(e => e.includes('must be an object')));
+  for (const bad of [{id: x.id}, 'x', [null], ['x']]) assert.equal(errataMap(file(bad)).withdrawn.size, 0);
+  // F3: a checkpoint that records an authorization cannot be withdrawn
+  const authorized = {...x, authorizations: [{id: 'GO-1', status: 'VALID', scope: {task: 'R-01', action: 'merge'}}]};
+  assert.ok(validateErrata(file([entry(x.id, y.id)]), [a, authorized, y]).some(e => e.includes('records authorizations')));
+  // F7: resolveLatest never falls back silently to the parent when the withdrawal has no active sibling
+  const lone = makeCheckpoint({id: 'CP-20261018T213000Z-agent-a', timestamp_utc: '2026-10-18T21:30:00Z', supersedes: a.id});
+  const silent = resolveLatest([a, lone], 'R-01', {errata: errataMap(file([entry(lone.id, 'CP-20261018T000000Z-x')]))});
+  assert.ok(silent.conflicts.some(e => e.includes('has no active sibling')));
+  const both = resolveLatest([a, x, y], 'R-01', {errata: errataMap(file([entry(x.id, y.id), entry(y.id, x.id)]))});
+  assert.ok(both.conflicts.filter(e => e.includes('has no active sibling')).length === 2);
+  // three siblings: withdrawing one leaves a fork, withdrawing two in favour of the third resolves it
+  assert.ok(resolveLatest([a, x, y, z], 'R-01', {errata: errataMap(file([entry(x.id, z.id)]))}).conflicts.some(e => e.startsWith('fork after')));
+  const two = file([entry(x.id, z.id), entry(y.id, z.id)]);
+  assert.deepEqual(validateErrata(two, [a, x, y, z]), []);
+  const resolved = resolveLatest([a, x, y, z], 'R-01', {errata: errataMap(two)});
+  assert.deepEqual(resolved.conflicts, []);
+  assert.equal(resolved.latest.id, z.id);
+});
+
+test('MP-CP-WITHDRAW-01: withdrawals are append-only, a later commit cannot remove, invert or edit one (PR #302 peer review F1)', t => {
+  const repo = gitRepo();
+  t.after(repo.cleanup);
+  const path = 'docs/governance/checkpoint-errata.json';
+  const write = (withdrawn, message) => repo.commit(path, `${JSON.stringify({schema_version: 'mp-checkpoint-errata-v1', entries: [], withdrawn}, null, 2)}\n`, message);
+  const w1 = {id: 'CP-x', replaced_by: 'CP-y', reason: 'sibling replaced after a propagated correction', reference: 'PR #302'};
+  const base = repo.commit('README.md', 'base\n', 'base');
+  const added = write([w1], 'add withdrawal');
+  assert.deepEqual(rewrittenWithdrawals(repo.dir, base, added), [], 'adding a withdrawal (also where the file is new) is allowed');
+  const more = write([w1, {...w1, id: 'CP-z'}], 'add another');
+  assert.deepEqual(rewrittenWithdrawals(repo.dir, added, more), []);
+  const edited = write([{...w1, reason: 'a different reason, written after the fact'}, {...w1, id: 'CP-z'}], 'edit');
+  assert.deepEqual(rewrittenWithdrawals(repo.dir, more, edited).map(p => p.problem), ['withdrawal CP-x changed']);
+  repo.git('reset', '-q', '--hard', more);
+  const inverted = write([{...w1, id: 'CP-y', replaced_by: 'CP-x'}, {...w1, id: 'CP-z'}], 'invert the winner');
+  assert.deepEqual(rewrittenWithdrawals(repo.dir, more, inverted).map(p => p.problem), ['withdrawal CP-x removed']);
+  repo.git('reset', '-q', '--hard', more);
+  // removed then restored inside the range is still detected commit by commit
+  const removed = write([{...w1, id: 'CP-z'}], 'remove');
+  const restored = write([w1, {...w1, id: 'CP-z'}], 'restore');
+  assert.ok(rewrittenWithdrawals(repo.dir, more, restored).some(p => p.problem === 'withdrawal CP-x removed' && p.commit === removed));
+  const malformed = repo.commit(path, '{"withdrawn": {}}\n', 'malformed');
+  assert.ok(rewrittenWithdrawals(repo.dir, restored, malformed).some(p => p.problem.includes('malformed')));
 });

@@ -100,3 +100,34 @@ export function realityFor(cwd, cp) {
     treeSha: branchHead === cp.commit_sha ? treeOf(cwd, branchHead) : null,
   };
 }
+
+// Withdrawals are append-only too (PR #302 peer review F1): along the first-parent chain of BASE..HEAD, every
+// withdrawal present in a commit's first parent must still be present, unchanged, in the commit. A withdrawal can be
+// added, never removed, inverted or edited after the fact. Returns the problems, or null when history is unavailable.
+export function rewrittenWithdrawals(cwd, base, head, path = 'docs/governance/checkpoint-errata.json') {
+  const chain = git(cwd, ['rev-list', '--first-parent', '--reverse', `${base}..${head}`]);
+  if (chain === null) return null;
+  const read = sha => {
+    const exists = git(cwd, ['cat-file', '-e', `${sha}:${path}`]) !== null;
+    if (!exists) return [];
+    const text = git(cwd, ['show', `${sha}:${path}`]);
+    if (text === null) return null;
+    try { const list = JSON.parse(text).withdrawn ?? []; return Array.isArray(list) ? list : undefined; } catch { return undefined; }
+  };
+  const problems = [];
+  for (const sha of chain.split('\n').filter(Boolean)) {
+    const parent = git(cwd, ['rev-parse', '--verify', '--quiet', `${sha}^1`]);
+    if (parent === null) continue;
+    const before = read(parent);
+    const after = read(sha);
+    if (before === null || after === null) return null;
+    if (before === undefined) continue;
+    if (after === undefined) { problems.push({commit: sha, problem: `${path} withdrawn is malformed`}); continue; }
+    for (const entry of before) {
+      const same = after.find(other => other?.id === entry?.id);
+      if (!same) problems.push({commit: sha, problem: `withdrawal ${entry?.id} removed`});
+      else if (JSON.stringify(same) !== JSON.stringify(entry)) problems.push({commit: sha, problem: `withdrawal ${entry?.id} changed`});
+    }
+  }
+  return problems;
+}

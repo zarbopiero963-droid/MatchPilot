@@ -105,7 +105,10 @@ export function validateErrata(errata, checkpoints) {
   // checkpoint and its declared replacement supersede the same parent, the replacement is not itself withdrawn, nothing builds on the withdrawn
   // one, and a reason and a reference are recorded. Nothing is deleted or rewritten.
   const withdrawnIds = new Set();
-  for (const entry of errata.withdrawn || []) {
+  if (errata.withdrawn !== undefined && !Array.isArray(errata.withdrawn)) return [...errors, 'checkpoint errata withdrawn must be a list'];
+  const list = errata.withdrawn || [];
+  for (const entry of list) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) { errors.push(`withdrawal ${JSON.stringify(entry)} must be an object`); continue; }
     const at = `withdrawal ${entry?.id}`;
     const cp = byId.get(entry?.id);
     const replacement = byId.get(entry?.replaced_by);
@@ -121,8 +124,11 @@ export function validateErrata(errata, checkpoints) {
     // branch, commits, state and merge, so a withdrawal can never pick between two different outcomes of a task.
     const differs = SAME_WORK_FIELDS.filter(key => (cp[key] ?? null) !== (replacement[key] ?? null));
     if (differs.length) errors.push(`${at} replacement describes different work (${differs.join(', ')} differ): only a corrected copy of the same work can be withdrawn`);
-    if ((errata.withdrawn || []).some(other => other.id === replacement.id)) errors.push(`${at} replacement is itself withdrawn`);
+    if (list.some(other => other?.id === replacement.id)) errors.push(`${at} replacement is itself withdrawn`);
     if (checkpoints.some(other => other.supersedes === cp.id)) errors.push(`${at} has successors and cannot be withdrawn`);
+    // The authorization ledger reads every checkpoint file, withdrawn or not: a checkpoint that records an
+    // authorization can never be withdrawn, so a withdrawal cannot hide or revive a GO (PR #302 peer review F3).
+    if ((cp.authorizations || []).length) errors.push(`${at} records authorizations and cannot be withdrawn`);
     if (typeof entry.reason !== 'string' || entry.reason.trim().length < 20) errors.push(`${at} needs a reason`);
     if (typeof entry.reference !== 'string' || !entry.reference.trim()) errors.push(`${at} needs a reference`);
   }
@@ -169,7 +175,9 @@ export const errataMap = errata => {
   const map = new Map((errata?.entries || []).map(entry => [entry.id, entry]));
   // Withdrawn checkpoints (MP-CP-WITHDRAW-01): an append-only file that was propagated and then replaced by a
   // corrected sibling stays in history but no longer counts in its chain; see validateErrata for the conditions.
-  map.withdrawn = new Map((errata?.withdrawn || []).map(entry => [entry.id, entry]));
+  // A malformed list contributes nothing here; validateErrata reports it.
+  const list = Array.isArray(errata?.withdrawn) ? errata.withdrawn : [];
+  map.withdrawn = new Map(list.filter(entry => entry && typeof entry === 'object' && typeof entry.id === 'string').map(entry => [entry.id, entry]));
   return map;
 };
 // The time a checkpoint can be trusted with: its recorded time, or the erratum bound when the recorded time is wrong.
@@ -442,9 +450,16 @@ export function handoffIn({checkpoints, registry, task: taskId, agentId, reality
 export function resolveLatest(checkpoints, task, {errata = new Map()} = {}) {
   const withdrawn = errata.withdrawn ?? new Map();
   const own = checkpoints.filter(cp => cp.task === task && !withdrawn.has(cp.id));
-  if (!own.length) return {latest: null, conflicts: []};
-  const byId = new Map(own.map(cp => [cp.id, cp]));
   const conflicts = [];
+  // A withdrawal is applied only towards an active sibling of the same task: otherwise the chain would silently fall
+  // back to an older checkpoint, even where validateErrata is not run (PR #302 peer review F7).
+  for (const cp of checkpoints) {
+    if (cp.task !== task || !withdrawn.has(cp.id)) continue;
+    const by = withdrawn.get(cp.id).replaced_by;
+    if (!own.some(other => other.id === by && other.supersedes === cp.supersedes)) conflicts.push(`withdrawal of ${cp.id} has no active sibling ${by} in ${task}`);
+  }
+  if (!own.length) return {latest: null, conflicts};
+  const byId = new Map(own.map(cp => [cp.id, cp]));
   const children = new Map();
   for (const cp of own) {
     if (cp.supersedes === null) continue;
