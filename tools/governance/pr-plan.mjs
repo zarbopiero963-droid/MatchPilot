@@ -148,6 +148,55 @@ export function planValidate(reg, plan, {uiIds = null} = {}) {
   return errors;
 }
 
+// ID-level reconciliation of the counts (MP-ROADMAP-270-INDEPENDENT-FINAL-AUDIT-01): every number of planCounts is
+// expanded into the ids that make it, so an auditor can rebuild it without trusting the totals.
+export function reconcile(reg, plan) {
+  const req = new Map(reg.requirements.map(r => [r.id, r]));
+  const disp = plan.card_dispositions;
+  const ids = d => disp.filter(c => c.disposition === d).map(c => c.card);
+  const carried = disp.filter(c => !NO_PR.has(c.disposition));
+  const byPr = new Map();
+  for (const c of carried) byPr.set(c.planned_pr, [...(byPr.get(c.planned_pr) ?? []), c.card]);
+  const absorbedCards = [...byPr.entries()].flatMap(([pr, cards]) => cards.slice(1).map(card => ({card, planned_pr: pr, lead_card: cards[0]})));
+  const origin = p => {
+    if (p.kind === 'OPEN') return 'OPEN_PR_WITHOUT_PRIMARY_CARD';
+    const cards = new Set([...p.cards, ...p.requirements.flatMap(r => req.get(r)?.cards ?? [])]);
+    if ([...cards].some(c => c.startsWith('MP-PR-00:'))) return 'EPIC_DECOMPOSITION';
+    if (cards.size) return 'SECONDARY_PR_OF_A_CARD';
+    return 'PREREQUISITE_OR_CERT_RECORD';
+  };
+  const splitOut = plan.planned_prs.filter(p => !byPr.has(p.id)).map(p => ({pr: p.id, origin: origin(p), cards: p.cards, requirements: p.requirements}));
+  const removable = new Set(plan.planned_prs.filter(p => p.may_be_removed_by_decision).map(p => p.id));
+  const pairs = [...new Set(plan.planned_prs.filter(p => p.merge_option && !removable.has(p.id) && !removable.has(p.merge_option)).map(p => [p.id, p.merge_option].sort().join('+')))].sort();
+  const count = (list, f) => list.reduce((acc, x) => { acc[f(x)] = (acc[f(x)] ?? 0) + 1; return acc; }, {});
+  return {
+    cards: {total: disp.length, completed: ids('COMPLETED'), superseded: ids('SUPERSEDED'), duplicate: ids('DUPLICATE'), carried: carried.length,
+      carried_by_pr: Object.fromEntries([...byPr.entries()].sort(([a], [b]) => (a < b ? -1 : 1)))},
+    prs: {
+      total: plan.planned_prs.length,
+      with_primary_card: byPr.size, absorbed_cards: absorbedCards,
+      split_out: splitOut, split_out_by_origin: count(splitOut, x => x.origin),
+      open: plan.planned_prs.filter(p => p.kind === 'OPEN').map(p => ({pr: p.id, github: p.open_pr})),
+      new: plan.planned_prs.filter(p => p.kind !== 'OPEN').map(p => p.id),
+      duplicates_absorbed_across_groups: plan.planned_prs.flatMap(p => (p.absorbed ?? []).map(a => ({into: p.id, absorbed: a}))),
+      certification_only: plan.planned_prs.filter(p => p.kind === 'CERT').map(p => p.id),
+      decision_dependent: plan.planned_prs.filter(p => p.decision_dependent).map(p => p.id)
+    },
+    uncertainty: {
+      removable_by_decision: plan.planned_prs.filter(p => p.may_be_removed_by_decision).map(p => ({pr: p.id, reason: p.may_be_removed_by_decision})),
+      merge_pairs: pairs,
+      split_risks: plan.planned_prs.filter(p => p.split_risk).map(p => ({pr: p.id, extra: p.split_extra ?? 1, reason: p.split_risk}))
+    },
+    requirements: {active: reg.requirements.filter(r => r.lifecycle === 'ACTIVE').length,
+      completed: plan.completed_requirements.map(c => ({id: c.id, basis: c.basis})),
+      by_pr: Object.fromEntries(plan.planned_prs.filter(p => p.requirements.length).map(p => [p.id, p.requirements]))},
+    identities: {
+      cards: `${disp.length} = ${ids('COMPLETED').length} + ${ids('SUPERSEDED').length} + ${ids('DUPLICATE').length} + ${carried.length}`,
+      prs: `${plan.planned_prs.length} = ${byPr.size} PRs with a primary card (${carried.length} carried cards - ${absorbedCards.length} absorbed) + ${splitOut.length} PRs without a primary card`
+    }
+  };
+}
+
 const cell = s => String(s ?? '').replace(/\|/g, '/').replace(/\n/g, ' ');
 const joinIds = a => (a ?? []).join(', ');
 export function renderPlan(plan) {
@@ -184,6 +233,7 @@ function main() {
     const uiIds = new Set(JSON.parse(readFileSync(join(ROOT, 'docs/governance/ui-requirements-matrix.json'), 'utf8')).requirements.map(r => r.id));
     const errors = planValidate(reg, plan, {uiIds});
     if (readFileSync(join(DIR, 'pr-plan.md'), 'utf8') !== renderPlan(plan) + '\n') errors.push('pr-plan.md is stale: run pr-plan.mjs render --write');
+    if (readFileSync(join(DIR, 'pr-plan-reconciliation.json'), 'utf8') !== JSON.stringify(reconcile(reg, plan), null, 1) + '\n') errors.push('pr-plan-reconciliation.json is stale: run pr-plan.mjs reconcile --write');
     console.log(JSON.stringify({result: errors.length ? 'FAIL' : 'PASS', error_count: errors.length, errors: errors.slice(0, 60)}, null, 2));
     process.exitCode = errors.length ? 1 : 0;
   } else if (cmd === 'counts') {
@@ -192,6 +242,9 @@ function main() {
     else console.log(JSON.stringify(k, null, 2));
   } else if (cmd === 'render') {
     if (arg === '--write') writeFileSync(join(DIR, 'pr-plan.md'), renderPlan(plan) + '\n'); else console.log(renderPlan(plan));
-  } else { console.error('usage: pr-plan.mjs validate | counts [--write] | render [--write]'); process.exitCode = 2; }
+  } else if (cmd === 'reconcile') {
+    const out = JSON.stringify(reconcile(reg, plan), null, 1) + '\n';
+    if (arg === '--write') writeFileSync(join(DIR, 'pr-plan-reconciliation.json'), out); else process.stdout.write(out);
+  } else { console.error('usage: pr-plan.mjs validate | counts [--write] | render [--write] | reconcile [--write]'); process.exitCode = 2; }
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();
