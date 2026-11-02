@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 254,
+  "revision": 255,
   "tasks": [
     {
       "id": "R-01",
@@ -2545,6 +2545,28 @@
       },
       "pr_open": false,
       "merge_sha": "c6b3b2ef345109c8560fbfb629e05c6cad4e4f52"
+    },
+    {
+      "id": "MP-CP-WITHDRAW-01",
+      "title": "Explicit, validated withdrawal of a propagated checkpoint replaced by a corrected sibling",
+      "issue": 288,
+      "pr": null,
+      "branch": "mp-cp-withdraw-01",
+      "kind": "audit",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T232027Z-agent-a-claude-code",
+      "resources": [
+        "file:tools/governance/checkpoints.mjs",
+        "file:test/governance-checkpoints.test.mjs",
+        "file:docs/governance/checkpoint-errata.json",
+        "file:docs/governance/checkpoints/CP-20261102T224000Z-agent-a-claude-code.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
