@@ -1,17 +1,22 @@
 // MP-TC-BENCH-01: TotalCorner LIVE series for the benchmark, read from the archive only (tc_matches, tc_live_snapshots,
 // tc_live_events). The query runs in a READ ONLY transaction: it cannot write, and it calls no provider. Snapshot
 // fields are the scalar top-level keys of the stored payload, as the provider wrote them; only the identity keys the
-// collector itself uses (id, l_id, status) are left out. No field is renamed or interpreted here.
+// collector itself uses (id, l_id, status) are left out; a payload that is not an object gives no fields. No field is
+// renamed or interpreted here. The collector stores a snapshot only when its payload hash changes, so the series are
+// marked deduplicated: their intervals are the cadence of changes, not of polls. No request counts exist in the
+// archive per match, so none are invented (requests stays absent).
 export const TC_SERIES_SQL = `
 SELECT coalesce(json_agg(series ORDER BY kickoff, match_id), '[]'::json) AS series FROM (
   SELECT m.match_id, m.kickoff_utc AS kickoff, json_build_object(
     'provider', 'totalcorner',
+    'deduplicated', true,
     'match', json_build_object('id', m.match_id, 'league', m.league_id,
       'kickoff', to_char(m.kickoff_utc AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'home', m.home, 'away', m.away),
     'snapshots', (SELECT coalesce(json_agg(json_build_object(
         'acquired_at', to_char(s.acquired_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
         'minute', s.minute,
-        'fields', (SELECT coalesce(jsonb_object_agg(e.k, e.v), '{}'::jsonb) FROM jsonb_each(s.payload) AS e(k, v)
+        'fields', (SELECT coalesce(jsonb_object_agg(e.k, e.v), '{}'::jsonb)
+                   FROM jsonb_each(CASE WHEN jsonb_typeof(s.payload) = 'object' THEN s.payload ELSE '{}'::jsonb END) AS e(k, v)
                    WHERE jsonb_typeof(e.v) IN ('string', 'number', 'boolean') AND e.k NOT IN ('id', 'l_id', 'status')))
         ORDER BY s.acquired_at, s.snapshot_id), '[]'::json)
       FROM tc_live_snapshots s WHERE s.match_id = m.match_id),

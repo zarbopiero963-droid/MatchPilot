@@ -9,6 +9,7 @@
 // The TotalCorner series come from the archive with exportTcSeries (src/benchmark/tc-export.mjs, READ ONLY transaction).
 // The API-FOOTBALL series need archived LIVE snapshots, which do not exist yet (no LIVE collector, no authorized budget).
 import { readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { benchmarkReport } from '../../src/benchmark/live-benchmark.mjs';
 
 export function parseArgs(argv) {
@@ -16,6 +17,7 @@ export function parseArgs(argv) {
   for (let i = 0; i < argv.length; i += 2) {
     const name = argv[i];
     if (!['--candidate', '--reference', '--mapping', '--thresholds'].includes(name) || argv[i + 1] === undefined) throw new Error(`usage: --candidate F --reference F [--mapping F] [--thresholds F] (bad ${name})`);
+    if (Object.hasOwn(out, name.slice(2))) throw new Error(`${name} given twice`);
     out[name.slice(2)] = argv[i + 1];
   }
   if (!out.candidate || !out.reference) throw new Error('--candidate and --reference are required');
@@ -26,10 +28,12 @@ export function run(args, read = path => JSON.parse(readFileSync(path, 'utf8')))
   const candidate = read(args.candidate);
   const reference = read(args.reference);
   if (!Array.isArray(candidate) || !Array.isArray(reference)) throw new Error('candidate and reference must be arrays of series');
-  return benchmarkReport({candidate, reference, mapping: args.mapping ? read(args.mapping) : {}, thresholds: args.thresholds ? read(args.thresholds) : null});
+  const object = (value, name) => { if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${name} must be a JSON object`); return value; };
+  return benchmarkReport({candidate, reference, mapping: args.mapping ? object(read(args.mapping), 'mapping') : {},
+    thresholds: args.thresholds ? object(read(args.thresholds), 'thresholds') : null});
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try { console.log(JSON.stringify(run(parseArgs(process.argv.slice(2))), null, 2)); }
   catch (error) { console.error(String(error?.message || error)); process.exitCode = 1; }
 }

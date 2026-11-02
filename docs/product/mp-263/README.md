@@ -160,16 +160,18 @@ Per questo l'inventario delle capacità resta **NOT VERIFIED**: niente viene des
 
 **Strumenti pronti (MP-TC-BENCH-01).** Nessuna chiamata ai provider, nessun collector riattivato.
 - **`src/benchmark/live-benchmark.mjs`** (funzioni pure):
-  - **Abbinamento:** squadre normalizzate e calcio d'inizio entro 15 minuti. È VERIFIED solo la coppia unica da entrambi i lati; le coppie ambigue e le partite non abbinate vengono riportate, mai forzate.
-  - **Metriche per provider**, ricavate solo dalle righe e solo sulle partite abbinate:
+  - **Abbinamento.** I nomi delle squadre sono normalizzati in qualunque alfabeto e non vuoti, e nessun token di club viene tolto: «Club America» resta distinto da «America». Il calcio d'inizio deve cadere entro 15 minuti. È VERIFIED solo la coppia unica da entrambi i lati. Coppie ambigue, casa/trasferta invertite e partite non abbinate vengono riportate, mai forzate; id duplicati vengono rifiutati.
+  - **Metriche per provider.** Sono ricavate solo dalle righe e solo sulle partite abbinate:
     - copertura;
-    - campi e quota di dati mancanti per campo;
-    - freschezza (mediana e p90);
+    - campi con valori presenti, vuoti e assenti;
+    - intervallo tra righe salvate (mediana e p90 a rango più vicino), solo dentro la partita: dopo il calcio d'inizio, con minuto leggibile, senza l'intervallo a cavallo della pausa;
     - buchi nelle serie;
-    - ritardo sugli eventi del primo tempo. È un limite inferiore, perché il minuto ha risoluzione di un minuto e non conta recuperi e intervallo;
-    - richieste, errori e risposte vuote.
+    - **ritardo di avvistamento** degli eventi del primo tempo.
+  - **Attenzione: il ritardo di avvistamento non è la latenza del provider.** È il tempo tra il minuto nominale (calcio d'inizio previsto + minuto) e il primo avvistamento in archivio. Un calcio d'inizio in ritardo e il minuto arrotondato per difetto lo gonfiano. I valori negativi vengono contati, i minuti come «45+2» esclusi.
+  - **Richieste.** Contate solo se presenti nei dati, altrimenti `null`.
   - **Confronto tra campi dei due provider:** solo tramite una mappatura esplicita passata in ingresso, mai dedotta dai nomi.
-  - **Verdetto:** richiede tutte e quattro le soglie approvate (`min_matched_matches`, `max_median_freshness_ms`, `max_gap_ratio`, `max_median_latency_ms`). Senza soglie, o senza dati sufficienti, è INSUFFICIENT EVIDENCE con i motivi.
+  - **Archivio deduplicato.** TotalCorner salva uno snapshot solo quando il payload cambia, quindi i suoi intervalli misurano la cadenza dei cambiamenti, non dei polling. Non vengono mai confrontati con serie non deduplicate.
+  - **Verdetto.** Richiede tutte e quattro le soglie approvate: `min_matched_matches`, `max_median_interval_ms`, `max_gap_ratio` e `max_median_sighting_delay_ms`. Le partite abbinate devono avere dati LIVE su entrambi i lati e le metriche devono essere confrontabili. Altrimenti il verdetto è INSUFFICIENT EVIDENCE, con i motivi.
 - **`src/benchmark/tc-export.mjs`:** le serie TotalCorner dall'archivio (`tc_matches`, `tc_live_snapshots`, `tc_live_events`), in una transazione `READ ONLY` e in finestre di al massimo 31 giorni. I campi sono quelli del provider così come sono scritti.
 - **`tools/benchmark/tc-af-live.mjs`:** il rapporto riproducibile da file JSON esportati.
 - **Stato attuale.** Mancano snapshot LIVE di API-FOOTBALL archiviati: oggi non ci sono un collector LIVE né un budget autorizzato. Il verdetto resta quindi **INSUFFICIENT EVIDENCE**.
