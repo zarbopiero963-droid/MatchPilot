@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 242,
+  "revision": 247,
   "tasks": [
     {
       "id": "R-01",
@@ -2461,6 +2461,29 @@
       },
       "pr_open": false,
       "merge_sha": "7008cc31a51c8e94c754cda42634849322c7c9b0"
+    },
+    {
+      "id": "MP-PRCOUNT-AUDIT-01",
+      "title": "Baseline 270 freeze, ID-level reconciliation and independent audit of the residual PR count",
+      "issue": 288,
+      "pr": 292,
+      "branch": "mp-prcount-audit-01",
+      "kind": "audit",
+      "state": "MERGED",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T171842Z-agent-a-claude-code",
+      "resources": [
+        "file:docs/governance/master/audit/baseline-270.json",
+        "file:docs/governance/master/pr-plan-reconciliation.json",
+        "file:tools/governance/pr-plan.mjs",
+        "file:docs/governance/master/audit/MP-ROADMAP-270-AUDIT.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "fc0bb95dd783b168b9198bbe61f3b9d2367f2373"
     }
   ]
 }
