@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 248,
+  "revision": 249,
   "tasks": [
     {
       "id": "R-01",
@@ -2463,9 +2463,9 @@
       "pr": 293,
       "branch": "mp-prcount-fix-01",
       "kind": "audit",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T175503Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T180730Z-agent-a-claude-code",
       "resources": [
         "file:docs/governance/master/pr-plan.json",
         "file:tools/governance/pr-plan.mjs",
@@ -2473,6 +2473,30 @@
         "file:docs/governance/master/audit/decision-cards.md",
         "file:docs/governance/master/audit/INDEPENDENT-AUDIT-PACKAGE.md",
         "file:docs/governance/master/audit/package-manifest.json"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "e3bda686d5c858ce3138eaf128143b0eb5ab7228"
+    },
+    {
+      "id": "MP-AF-SCHED-01",
+      "title": "Scheduler API-FOOTBALL disattivato per default: hardening, test PostgreSQL reali e politica di conservazione quote (MANUAL)",
+      "issue": 263,
+      "pr": 287,
+      "branch": "mp-af-scheduler-retention-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T221005Z-agent-a-claude-code",
+      "resources": [
+        "file:src/providers/apifootball/scheduler.mjs",
+        "file:db/staged/032-af-scheduler.sql",
+        "file:test/af-scheduler.test.mjs",
+        "file:test/af-scheduler-postgres.test.mjs",
+        "file:docs/product/mp-263/odds-retention.md"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",
