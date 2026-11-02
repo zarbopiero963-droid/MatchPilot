@@ -219,6 +219,12 @@ Il mock è [`docs/mockups/matchpilot-trading-os.html`](docs/mockups/matchpilot-t
 
 Filtri `provider`, `kind`, `status`. Nessuna chiamata ai provider e nessuna copertura dichiarata completa.
 
+**Condizioni universali (MP-CAP-03, #263).** `src/conditions/expression.mjs` costruisce filtri con `all` (E), `any` (O) e `not` (NON) sui campi del catalogo delle capacità, al posto di un elenco fisso di mercati o filtri. Modulo puro, senza route e senza consumatori per ora.
+
+- **Validazione.** Ogni condizione nomina una capacità con il suo id stabile, usa un operatore offerto da quella capacità e ha un valore del suo tipo. I numeri sono decimali esatti, le date ISO con fuso. Profondità, nodi e liste sono limitati.
+- **Dati mancanti.** Una condizione su un dato assente o illeggibile vale UNKNOWN, mai FALSE né TRUE. E, O e NON seguono la logica a tre valori: un record è selezionato solo se l'espressione è TRUE, e i record esclusi per dati mancanti vengono contati, non nascosti.
+- **PIT.** `pitViolations` elenca le condizioni che una decisione prima del calcio d'inizio non può usare: le statistiche post-partita, secondo MP-PIT-TIMING-01. Nessuna nuova classe temporale.
+
 ### FutPythonTrader — motore statistico/pre-match
 Usare ogni campo disponibile e con copertura reale. Le famiglie includono, quando presenti:
 
