@@ -2394,7 +2394,7 @@
       "kind": "implementation",
       "state": "REVIEW",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T102043Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T141341Z-agent-a-claude-code",
       "resources": [
         "file:src/pit/phase.mjs",
         "file:src/capabilities/catalog.mjs",
