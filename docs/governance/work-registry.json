@@ -2238,13 +2238,35 @@
       "pr": 274,
       "branch": "mp-cap-01b-endpoint",
       "kind": "implementation",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261101T234147Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T001036Z-agent-a-claude-code",
       "resources": [
         "file:src/api/capabilities-api.mjs",
         "file:src/capabilities/apifootball.mjs",
         "file:src/capabilities/catalog.mjs"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false,
+      "merge_sha": "ca910880ccd3f60199160f8cbec427e33a61216d"
+    },
+    {
+      "id": "MP-ODDS-SNAP-01",
+      "title": "MP-ODDS-SNAP-01: staged pre-match odds snapshots and request ledger",
+      "issue": 263,
+      "pr": 275,
+      "branch": "mp-odds-snapshots",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T001037Z-agent-a-claude-code",
+      "resources": [
+        "file:db/staged/031-apifootball-odds-snapshots.sql",
+        "file:src/providers/apifootball/odds-snapshots.mjs",
+        "file:src/providers/apifootball/store.mjs"
       ],
       "assignee": {
         "agent": "agent-a-claude-code",

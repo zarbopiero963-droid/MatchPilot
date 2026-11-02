@@ -1,0 +1,168 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T001037Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T00:10:37Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-IMPL-20261101",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): implementation phase"
+  },
+  "task": "MP-ODDS-SNAP-01",
+  "activity": "MP-ODDS-SNAP-01: staged pre-match odds snapshots and API-FOOTBALL request ledger (owner item: odds history preparation)",
+  "issue": 263,
+  "pr": null,
+  "branch": "mp-odds-snapshots",
+  "commit_sha": "c120a4b575a5bc5fba9fddf2f73b8ad4bd28ccf4",
+  "tree_sha": "c6caf9b0674897962a838f7c9b8f08b916e8b935",
+  "base_sha": "ca910880ccd3f60199160f8cbec427e33a61216d",
+  "requirements": [],
+  "changes": [
+    "db/staged/031-apifootball-odds-snapshots.sql",
+    "src/providers/apifootball/odds-snapshots.mjs",
+    "src/providers/apifootball/store.mjs",
+    "test/apifootball-odds-snapshots.test.mjs",
+    "docs/product/mp-263/README.md",
+    "package.json check entries"
+  ],
+  "tests": [
+    {
+      "command": "node --test",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22, throwaway local PostgreSQL 16",
+      "commit": "c120a4b575a5bc5fba9fddf2f73b8ad4bd28ccf4",
+      "time": "2026-11-02T00:10:37Z",
+      "limits": [
+        "785 tests, 784 pass, 1 skipped (PostgreSQL 17 independence test), 0 fail; synthetic /odds answers, fake fetch, no network"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "c120a4b575a5bc5fba9fddf2f73b8ad4bd28ccf4"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "c120a4b575a5bc5fba9fddf2f73b8ad4bd28ccf4",
+    "reference": "independent review by an agent of a different model: CHANGES REQUESTED on 4904f50 (3 blocking), APPROVED on c120a4b; record to be posted on the PR"
+  },
+  "findings": [
+    {
+      "id": "SNAP-B1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "global price dedup lost a price returning to an earlier value: now compared with the previous snapshot of the selection only"
+    },
+    {
+      "id": "SNAP-B2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "one unstorable value (int4 overflow, NUL) aborted the whole batch: refused row by row"
+    },
+    {
+      "id": "SNAP-B3",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "a long provider error list violated the ledger CHECK and disabled the client: error cut to 200"
+    },
+    {
+      "id": "SNAP-N1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "request_id stays null until a collector links it; provenance via payload_sha256"
+    },
+    {
+      "id": "SNAP-N2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "acquisition instant from the client fetched_at; cached results not stored again"
+    },
+    {
+      "id": "SNAP-N3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "ISO instants with offset only"
+    },
+    {
+      "id": "SNAP-N4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "PIT reader also bounds the provider update"
+    },
+    {
+      "id": "SNAP-N5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "answers above 20000 selections refused whole"
+    },
+    {
+      "id": "SNAP-N6",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "an unchanged price stays dated to its first acquisition; an out-of-order backfill is not re-compared forward (no collector yet)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-IMPL-20261101",
+    "MP-AUTONOMY-01",
+    "MP-OWNER-GO-2026-11-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation and tests",
+      "independent review",
+      "review fixes",
+      "re-review"
+    ],
+    "in_progress": [
+      "CI"
+    ],
+    "not_started": [
+      "merge",
+      "owner-authorized migration of the staged schema",
+      "collector with declared frequency (operational GO)"
+    ]
+  },
+  "resources": [
+    "file:db/staged/031-apifootball-odds-snapshots.sql",
+    "file:src/providers/apifootball/odds-snapshots.mjs",
+    "file:src/providers/apifootball/store.mjs"
+  ],
+  "stop_conditions": [
+    "merge only under the owner authorization and every gate",
+    "no deploy started by the agent",
+    "staged schema only: moving it to migrations/ needs a separate owner authorization",
+    "no collector, no provider call"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI, conditional merge",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": null
+}

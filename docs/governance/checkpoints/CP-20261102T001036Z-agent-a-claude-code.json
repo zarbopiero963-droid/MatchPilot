@@ -1,0 +1,154 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T001036Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T00:10:36Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-IMPL-20261101",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): implementation phase"
+  },
+  "task": "MP-CAP-01B",
+  "activity": "PR #274 merged as ca91088 (squash; owner authorization MP-OWNER-IMPL-20261101 item 2)",
+  "issue": 263,
+  "pr": 274,
+  "branch": "mp-cap-01b-endpoint",
+  "commit_sha": "1d1ddbabd2cc3517b5b15047ac0a634c3c9f56f4",
+  "tree_sha": "072117ab61bc61b62c66021edacc8e07c8433267",
+  "base_sha": "7f1a7779c30e0aef1bfdd5733395232306d0c371",
+  "requirements": [],
+  "changes": [
+    "src/api/capabilities-api.mjs",
+    "src/api/v1.mjs (registry entry; db may depend on the request)",
+    "src/capabilities/apifootball.mjs",
+    "src/capabilities/catalog.mjs (optional phases; in-play market refused)",
+    "test/capabilities-api.test.mjs",
+    "test/api-v1-postgres.test.mjs",
+    "README.md",
+    "package.json check entries",
+    "review fixes 2ea6853",
+    "ca91088: squash merge of PR #274"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #274 head 1d1ddba",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "1d1ddbabd2cc3517b5b15047ac0a634c3c9f56f4",
+      "time": "2026-11-02T00:10:36Z",
+      "limits": [
+        "run 41363486646 success"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main ca91088",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "ca910880ccd3f60199160f8cbec427e33a61216d",
+      "time": "2026-11-02T00:10:36Z",
+      "limits": [
+        "run 41364549440 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main ca91088",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "ca910880ccd3f60199160f8cbec427e33a61216d",
+      "time": "2026-11-02T00:10:36Z",
+      "limits": [
+        "run 41364549391: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41363486646,
+    "conclusion": "SUCCESS",
+    "head_sha": "1d1ddbabd2cc3517b5b15047ac0a634c3c9f56f4"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "1d1ddbabd2cc3517b5b15047ac0a634c3c9f56f4",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/274#issuecomment-6565662473 (APPROVED on 2ea6853; 2ea6853..1d1ddba registers only, verified with git diff --stat)"
+  },
+  "findings": [
+    {
+      "id": "CAP01B-N1",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "provider=apifootball opened a database connection: db now depends on the request"
+    },
+    {
+      "id": "CAP01B-N2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "bet id evidence: limit states the ids come from market_ref, not listed one by one in the report"
+    },
+    {
+      "id": "CAP01B-N3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "statistic value types: limit states they are as observed in the sample"
+    },
+    {
+      "id": "CAP01B-N4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "tests added for the no-database path and in-play statistics"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-IMPL-20261101",
+    "MP-AUTONOMY-01",
+    "MP-OWNER-GO-2026-11-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:src/api/capabilities-api.mjs",
+    "file:src/capabilities/apifootball.mjs",
+    "file:src/capabilities/catalog.mjs"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261101T234147Z-agent-a-claude-code",
+  "merge_sha": "ca910880ccd3f60199160f8cbec427e33a61216d"
+}
