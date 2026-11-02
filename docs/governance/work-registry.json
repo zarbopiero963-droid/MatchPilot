@@ -2364,7 +2364,7 @@
       "id": "MP-PIT-LIVE-01",
       "title": "MP-PIT-LIVE-01: LIVE time phase and LIVE_ACQUIRED",
       "issue": 263,
-      "pr": null,
+      "pr": 280,
       "branch": "mp-pit-live-01",
       "kind": "implementation",
       "state": "REVIEW",
@@ -2382,7 +2382,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
