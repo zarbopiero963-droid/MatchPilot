@@ -103,6 +103,7 @@ Ogni record usato per rispondere a "che cosa si sapeva al tempo T" porta cinque 
 - **Lettori:** la politica si applica a `tc/prematch/match` e a `fpt/team-matches-asof`.
 - **Etichetta:** la risposta porta l'etichetta `PIT_VERIFIED` o `NON_PIT`, anche in `meta.pit` dell'API v1.
 - **Documentazione:** [`docs/pit-policy.md`](docs/pit-policy.md).
+- **Fase dei dati LIVE (MP-PIT-LIVE-01):** [`src/pit/phase.mjs`](src/pit/phase.mjs), con PREMATCH, LIVE, POSTMATCH e UNKNOWN, e disponibilità dall'acquisizione.
 
 ## Continuous integration
 
@@ -207,7 +208,7 @@ Il mock è [`docs/mockups/matchpilot-trading-os.html`](docs/mockups/matchpilot-t
 
 ## Fonti dati
 
-**Catalogo delle capacità (MP-CAP-01a, MP-PRODUCT-100, #263).** `src/capabilities/catalog.mjs` descrive in modo indipendente dal provider ciò che un provider offre davvero: id stabile (`provider:tipo:nome originale`, il nome resta quello del provider), tipo, operatori ammessi, momento, copertura (nulla se sconosciuta, mai 0), stato dell'inventario e provenienza. Il momento usa solo le tre classi di MP-PIT-TIMING-01 e la sua regola vale per ogni provider: una statistica non è mai pre-partita. Uno stato «disponibile» senza evidenza è rifiutato. FutPythonTrader, dismesso come provider operativo, vi compare solo come storico. È un modulo senza route né database; la disponibilità per fase (storica, pre-partita, live) e l'endpoint in sola lettura sono MP-CAP-01b (MANUAL).
+**Catalogo delle capacità (MP-CAP-01a, MP-PRODUCT-100, #263).** `src/capabilities/catalog.mjs` descrive in modo indipendente dal provider ciò che un provider offre davvero: id stabile (`provider:tipo:nome originale`, il nome resta quello del provider), tipo, operatori ammessi, momento, copertura (nulla se sconosciuta, mai 0), stato dell'inventario e provenienza. Il momento usa le tre classi di MP-PIT-TIMING-01 più `LIVE_ACQUIRED` (MP-PIT-LIVE-01, solo prezzi in gioco, disponibili dall'acquisizione) e la regola vale per ogni provider: una statistica non è mai pre-partita. Uno stato «disponibile» senza evidenza è rifiutato. FutPythonTrader, dismesso come provider operativo, vi compare solo come storico. È un modulo senza route né database; la disponibilità per fase (storica, pre-partita, live) e l'endpoint in sola lettura sono MP-CAP-01b (MANUAL).
 
 **Riferimento di mercato (MP-MARKET-REF-01, #263).** `src/markets/market-ref.mjs` traduce un mercato e una selezione del provider in un riferimento MatchPilot (`market_type|periodo|squadra|selezione|linea`) tramite tabelle esplicite per id di mercato, costruite sui formati realmente osservati da API-FOOTBALL: nel prematch linea e lato sono nel testo, nel LIVE c'è un campo `handicap` e gli id sono diversi. Ciò che non è riconosciuto con certezza resta UNCLASSIFIED con i campi grezzi; mercati con nomi simili non vengono fusi. `settleable` è vero solo quando una regola #100 accetta esattamente quel mercato, quella selezione e quella linea.
 
@@ -227,7 +228,10 @@ Filtri `provider`, `kind`, `status`. Nessuna chiamata ai provider e nessuna cope
 
 - **Validazione.** Ogni condizione nomina una capacità con il suo id stabile, usa un operatore offerto da quella capacità e ha un valore del suo tipo. I numeri sono decimali esatti, le date ISO con fuso. Profondità, nodi e liste sono limitati.
 - **Dati mancanti.** Una condizione su un dato assente o illeggibile vale UNKNOWN, mai FALSE né TRUE. E, O e NON seguono la logica a tre valori: un record è selezionato solo se l'espressione è TRUE, e i record esclusi per dati mancanti vengono contati, non nascosti.
-- **PIT.** `pitViolations` elenca le condizioni che una decisione prima del calcio d'inizio non può usare: le statistiche post-partita, secondo MP-PIT-TIMING-01. Nessuna nuova classe temporale.
+- **PIT.** `pitViolations` accetta le decisioni `PREMATCH`, `LIVE` e `POSTMATCH`.
+  - `PREMATCH` rifiuta i prezzi in gioco (`LIVE_ACQUIRED`) e le statistiche post-partita.
+  - `LIVE` rifiuta le statistiche post-partita.
+  - `pitReport` elenca a parte `untimed` e `acquisition_bound`; in entrambi i casi `pit_verifiable` è false.
   - `pitReport` segnala a parte le quote senza ora di acquisizione (`PREMATCH_MARKET_UNTIMED`, come quelle dell'archivio FPT). Sono ammesse prima del calcio d'inizio, ma non provano che il prezzo fosse noto al momento della decisione.
   - Nessuna violazione non significa PIT verificato.
 - **Formati.** Una data impossibile (30 febbraio, ore 24) vale UNKNOWN e non viene spostata a un altro giorno. Anche una data senza ora e senza fuso vale UNKNOWN. Un valore presente ma illeggibile vale UNKNOWN anche per `is_null` e `not_null`.
