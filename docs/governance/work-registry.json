@@ -2384,6 +2384,28 @@
       },
       "pr_open": false,
       "merge_sha": "b6dc4cebfc8945e0bd780e0994f883e0f4e20d15"
+    },
+    {
+      "id": "MP-SEARCH-01",
+      "title": "Ricerca universale AND/OR/NOT sul catalogo delle capacità: GET /api/v1/search (MANUAL)",
+      "issue": 263,
+      "pr": null,
+      "branch": "mp-universal-search-01",
+      "kind": "implementation",
+      "state": "REVIEW",
+      "lease": null,
+      "latest_checkpoint": "CP-20261102T111705Z-agent-a-claude-code",
+      "resources": [
+        "file:src/api/universal-search.mjs",
+        "file:src/api/v1.mjs",
+        "file:test/universal-search.test.mjs",
+        "file:docs/product/mp-263/universal-search.md"
+      ],
+      "assignee": {
+        "agent": "agent-a-claude-code",
+        "role": "Development Agent"
+      },
+      "pr_open": false
     }
   ]
 }
