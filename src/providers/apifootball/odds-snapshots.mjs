@@ -25,7 +25,7 @@ const positiveInt = (value, max = Number.MAX_SAFE_INTEGER) => {
 const clean = value => typeof value === 'string' && !value.includes('\u0000');
 const text = (value, max) => (clean(value) && value.trim() && value.length <= max ? value : null);
 
-function kickoffOf(fixture) {
+export function kickoffOf(fixture) {
   if (Number.isSafeInteger(fixture?.timestamp) && fixture.timestamp > 0) return fixture.timestamp * 1000;
   return instant(fixture?.date);
 }
