@@ -17,6 +17,7 @@ const FILES = {
   '/assets/app.js': ['app.js', 'text/javascript; charset=utf-8'],
   '/assets/persistence.js': ['persistence.js', 'text/javascript; charset=utf-8'],
   '/assets/states.js': ['states.js', 'text/javascript; charset=utf-8'],
+  '/assets/universal-search.js': ['universal-search.js', 'text/javascript; charset=utf-8'],
   '/assets/app.css': ['app.css', 'text/css; charset=utf-8'],
   ...Object.fromEntries(['manrope-latin-wght', 'barlow-condensed-latin-700', 'barlow-condensed-latin-800', 'jetbrains-mono-latin-wght']
     .map(name => [`/assets/fonts/${name}.woff2`, [`fonts/${name}.woff2`, 'font/woff2']])),
