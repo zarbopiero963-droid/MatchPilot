@@ -2349,7 +2349,7 @@
       "kind": "audit",
       "state": "REVIEW",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T100707Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T100901Z-agent-a-claude-code",
       "resources": [
         "file:docs/governance/owner-decisions.json",
         "file:docs/product/mp-263/pg17-run-2026-11-02.md"
