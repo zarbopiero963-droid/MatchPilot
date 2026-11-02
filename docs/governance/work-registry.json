@@ -2347,9 +2347,9 @@
       "pr": 279,
       "branch": "mp-gov-next-20261102",
       "kind": "audit",
-      "state": "REVIEW",
+      "state": "MERGED",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T100901Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261102T104505Z-agent-a-claude-code",
       "resources": [
         "file:docs/governance/owner-decisions.json",
         "file:docs/product/mp-263/pg17-run-2026-11-02.md"
@@ -2358,7 +2358,8 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": true
+      "pr_open": false,
+      "merge_sha": "7a959e7b00279bf281194c6d404c0c394fa047b4"
     }
   ]
 }
