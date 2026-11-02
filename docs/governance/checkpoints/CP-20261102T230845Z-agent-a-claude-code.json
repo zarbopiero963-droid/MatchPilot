@@ -1,0 +1,120 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T230845Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T23:08:45Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-OWNER-DEC-MIG-01",
+  "activity": "PR #295 merged as 70ee74b (squash; SAFE: owner mandate F1=A, F2=A, F3=A, P1=A registered; MERGED checkpoint of #294)",
+  "issue": 288,
+  "pr": 295,
+  "branch": "mp-owner-dec-mig-01",
+  "commit_sha": "03c5776e60baeb9581f8f328e13522597a0ec55d",
+  "tree_sha": "0e10a3af0c1c97d943a5818d7a73ebc1126c752b",
+  "base_sha": "bffc3d9afb81138fbb1240056427a3e9502eecba",
+  "requirements": [],
+  "changes": [
+    "docs/governance/owner-decisions.json (mandate registered)",
+    "docs/governance/master/audit/package-manifest.json (refreshed)",
+    "70ee74b: squash merge of PR #295"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #295 head 03c5776",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "03c5776e60baeb9581f8f328e13522597a0ec55d",
+      "time": "2026-11-02T22:40:00Z",
+      "limits": [
+        "run 41537387430 success"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 70ee74b",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "70ee74b31004983fa4060bb1f4daabe30386c036",
+      "time": "2026-11-02T22:40:00Z",
+      "limits": [
+        "run 41537865195 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 70ee74b",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "70ee74b31004983fa4060bb1f4daabe30386c036",
+      "time": "2026-11-02T22:40:00Z",
+      "limits": [
+        "run 41537865167: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41537387430,
+    "conclusion": "SUCCESS",
+    "head_sha": "03c5776e60baeb9581f8f328e13522597a0ec55d"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "03c5776e60baeb9581f8f328e13522597a0ec55d",
+    "reference": "SELF-REVIEW (same model family, not independent) of 03c5776: `git diff 6b6b098..03c5776` touches only docs/governance/checkpoints/CP-20261102T222703Z-agent-a-claude-code.json and docs/governance/work-registry.json (registers). Independent code review: Codex (OpenAI, different model family) on 6b6b098 only, no major issues (https://github.com/zarbopiero963-droid/MatchPilot/pull/295#issuecomment-6590061686); it does not cover 03c5776."
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": []
+  },
+  "resources": [
+    "file:docs/governance/owner-decisions.json"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261102T222703Z-agent-a-claude-code",
+  "merge_sha": "70ee74b31004983fa4060bb1f4daabe30386c036"
+}
