@@ -1,6 +1,7 @@
 import { Cron } from 'croner';
 import { runFutpythonSync } from './futpython-sync.mjs';
 import { logEvent } from '../log.mjs';
+import { fptRetired } from '../providers/futpython/retired.mjs';
 
 let job;
 
@@ -11,6 +12,7 @@ export async function afterCycle(trigger) {
 }
 
 export function startFutpythonCron() {
+  if (fptRetired()) { logEvent('FUTPYTHON_CRON_RETIRED', {setting: 'FUTPYTHON_RETIRED=true'}); return null; }
   if (process.env.FUTPYTHON_CRON_ENABLED === 'false') return null;
   if (!process.env.FUTPYTHON_API_KEY || !process.env.DATABASE_URL) return null;
 

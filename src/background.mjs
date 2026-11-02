@@ -9,6 +9,7 @@ import { maybeStartTcLive, stopTcLive } from './jobs/totalcorner-live.mjs';
 import { maybeStartTcMapping } from './jobs/totalcorner-mapping.mjs';
 import { maybeStartTcPrematch, stopTcPrematch } from './jobs/totalcorner-prematch.mjs';
 import { redactSecrets } from './providers/totalcorner/client.mjs';
+import { fptRetired } from './providers/futpython/retired.mjs';
 
 // Re-exported for existing callers; the checks live in src/runtime-safety.mjs, which imports no application module,
 // so migrate() can use them too.
@@ -59,7 +60,10 @@ export async function startBackgroundServices({env = process.env, log = console.
     .then(result => log('TELEGRAM_OUTBOUND_ONLY ' + JSON.stringify({status: result?.status || 'configured'})))
     .catch(cause => error('TELEGRAM_SETUP_ERROR', String(cause?.message || cause).replace(/bot\d+:[A-Za-z0-9_-]+/g, 'bot[REDACTED]')));
 
-  if (env.FUTPYTHON_PHASE1_VERIFY_ON_START === 'true') {
+  // MP-FPT-RETIRE-01: with FutPythonTrader retired, the start-up jobs that call it never run, whatever their own flags.
+  const retired = fptRetired(env);
+  log('FUTPYTHON_' + (retired ? 'RETIRED' : 'ACTIVE') + ' ' + JSON.stringify({setting: env.FUTPYTHON_RETIRED ?? null}));
+  if (env.FUTPYTHON_PHASE1_VERIFY_ON_START === 'true' && !retired) {
     services.runPhase1Verification()
       .then(result => log('FUTPYTHON_PHASE1_VERIFY_ON_START ' + JSON.stringify({status: result.status, checks: result.checks, failed: result.failed})))
       .catch(cause => error('FUTPYTHON_PHASE1_VERIFY_ERROR', String(cause?.message || cause).replace(/api_key=[^&\s]+/gi, 'api_key=[REDACTED]')));
@@ -71,7 +75,7 @@ export async function startBackgroundServices({env = process.env, log = console.
   log('TOTALCORNER_' + (totalcorner ? 'ON' : 'OFF') + ' ' + JSON.stringify({setting: env.MATCHPILOT_TOTALCORNER ?? null}));
   if (totalcorner) await startTotalCorner(services, error);
 
-  if (env.FUTPYTHON_BACKFILL_ON_START === 'true') {
+  if (env.FUTPYTHON_BACKFILL_ON_START === 'true' && !retired) {
     services.runFutpythonSync({kind: 'backfill', mode: 'backfill'})
       .catch(cause => error('FUTPYTHON_BACKFILL_ERROR', String(cause?.message || cause).replace(/api_key=[^&\s]+/gi, 'api_key=[REDACTED]')));
   }

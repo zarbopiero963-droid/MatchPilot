@@ -3,6 +3,7 @@ import { emitAlert, resolveAlert, readContentFreshness, retryPendingResolutions 
 import { classifyFreshness, readFreshnessFacts } from '../providers/futpython/freshness.mjs';
 import { budgetConfig, budgetPressure, countsTowardCircuit } from '../providers/futpython/budget.mjs';
 import { reconcileFpt } from '../providers/futpython/reconciliation.mjs';
+import { FPT_ALERT_KEYS, fptRetired, RETIRED_RESOLUTION } from '../providers/futpython/retired.mjs';
 
 let timer;
 
@@ -91,8 +92,29 @@ export async function evaluateProviderAlerts(client, {deliver, limits, circuitFa
   return {level, recent429, circuitOpen, pacing};
 }
 
+// MP-FPT-RETIRE-01: with FutPythonTrader retired, the watchdog raises no FPT alert, closes the open ones once with the
+// reason, runs no reconciliation and no recovery sync, and keeps its heartbeat (the liveness probe reads it).
+async function retiredCheck(client, options) {
+  const resolved = [];
+  for (const key of FPT_ALERT_KEYS) {
+    const r = await resolveAlert(key, client, {...(options.deliver ? {deliver: options.deliver} : {}), evidence: RETIRED_RESOLUTION});
+    if (r?.resolved) resolved.push(key.code);
+  }
+  // A closing notice that could not be delivered is retried here, as in the normal cycle.
+  try { await retryPendingResolutions(client, options.deliver ? {deliver: options.deliver} : {}); }
+  catch (error) { console.error('DATA_ALERT_RESOLUTION_RETRY_ERROR', String(error?.message || error)); }
+  // Heartbeat only: last_success_at is not touched, a retired source is not reported as freshly synced.
+  await client.query(
+    `INSERT INTO data_watchdog_state(source,last_checked_at,last_success_at,last_run_id,meta)
+     VALUES('futpython',now(),NULL,NULL,$1::jsonb)
+     ON CONFLICT(source) DO UPDATE SET last_checked_at=now(), meta=$1::jsonb`,
+    [JSON.stringify({retired: true, resolved})]);
+  return {status: 'retired', retired: true, resolved, reconciliation: null};
+}
+
 export async function checkDataWatchdog(options = {}) {
   const run = async client => {
+    if (options.retired ?? fptRetired()) return retiredCheck(client, options);
     const staleHours = Number(options.staleHours ?? process.env.FUTPYTHON_STALE_HOURS ?? 8);
     const last = await client.query(
       `SELECT run_id,status,started_at,finished_at
@@ -206,7 +228,8 @@ export function startDataWatchdog() {
   if (process.env.DATA_WATCHDOG_ENABLED === 'false') return;
   const intervalMs = Number(process.env.DATA_WATCHDOG_INTERVAL_MS || 3600000);
   // A skipped incremental sync is caught up in this process, behind the same advisory lock and budget.
-  const catchup = () => import('./futpython-sync.mjs').then(m => m.runFutpythonSync({kind: 'recovery', mode: 'incremental'}));
+  // MP-FPT-RETIRE-01: no recovery sync at all when FutPythonTrader is retired (runFutpythonSync refuses it too).
+  const catchup = fptRetired() ? null : () => import('./futpython-sync.mjs').then(m => m.runFutpythonSync({kind: 'recovery', mode: 'incremental'}));
   // Single-flight: a post-cycle trigger and the hourly timer never run checks concurrently (a call while busy is a no-op).
   let busy = null;
   const cycle = phase => busy ? Promise.resolve(null) : (busy = checkOnce(phase).finally(() => { busy = null; }));

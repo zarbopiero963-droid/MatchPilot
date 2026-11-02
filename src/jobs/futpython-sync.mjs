@@ -1,4 +1,5 @@
 import { logEvent } from '../log.mjs';
+import { fptRetired } from '../providers/futpython/retired.mjs';
 import { randomUUID } from 'node:crypto';
 import { withClient, closePool } from '../db.mjs';
 import { migrate } from '../migrate.mjs';
@@ -450,6 +451,7 @@ async function refreshFinalCounts(client, stats) {
 }
 
 export async function runFutpythonSync({kind = 'manual', mode = 'incremental'} = {}) {
+  if (fptRetired()) return {status: 'skipped', reason: 'retired'};
   if (!process.env.FUTPYTHON_API_KEY?.trim()) return {status: 'skipped', reason: 'missing_key'};
   if (!process.env.DATABASE_URL?.trim()) return {status: 'skipped', reason: 'missing_database'};
   installInterruptHandlers();

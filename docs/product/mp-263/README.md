@@ -25,6 +25,23 @@ L'inventario è ricavato dal codice e dalla configurazione versionata. Lo stato 
 | `FUTPYTHON_BACKFILL_ON_START`, `FUTPYTHON_PHASE1_VERIFY_ON_START` | `src/background.mjs` | backfill e verifica all'avvio, spenti di default | La checklist della modalità dismessa verifica che restino `false`. |
 | `Restart=always` | `matchpilot-fpt-worker.service` | systemd riavvia il worker se termina | Il worker si ferma solo con `systemctl disable --now` (o resta acceso in modalità dismessa), mai con `kill`. |
 
+**Modalità dismessa nel codice (MP-FPT-RETIRE-01).** `FUTPYTHON_RETIRED=true` (`src/providers/futpython/retired.mjs`) è spenta di default: senza la variabile non cambia nulla. Da accesa:
+- **nessuna chiamata a FPT:**
+  - l'unico punto d'uscita di rete, `requestProviderText`, rifiuta ogni chiamata (`FPT_RETIRED`);
+  - `runFutpythonSync` non parte, compresa la sync di recupero;
+  - il cron non si avvia;
+  - il backfill e la verifica all'avvio non partono, qualunque siano i loro flag;
+- **nessun alert FPT:**
+  - il watchdog non legge la pipeline FPT e non esegue riconciliazione né recupero;
+  - chiude una sola volta gli alert FPT aperti, con il motivo;
+  - mantiene il heartbeat;
+- **sonda di liveness:** non segnala più il worker FPT, ma continua a segnalare un database irraggiungibile;
+- **nessun dato cancellato:** archivio e provenienza restano intatti.
+
+Il punto 1 qui sotto è quindi pronto per la parte di codice applicativo. Restano fuori da questa modifica, e richiedono il GO dell'owner, due cose:
+- la guardia in `infra/vps/sbin/mp-deploy`, che non deve riavviare un'unità disabilitata (sistema di deploy);
+- l'impostazione della variabile sulla VPS.
+
 **Preflight dell'arresto, da approvare come un unico pacchetto GO owner:**
 1. Una PR di codice (MANUAL, perché tocca alerting e deploy):
    - modalità `FUTPYTHON_RETIRED=true`, in cui il watchdog non segnala più alcun alert della sorgente FPT (`SYNC_STALE`, `DATASET_ERRORS`, `DATA_CONTENT_STALE`, budget, 429, circuit), **non avvia più la sync di recupero** e continua a sorvegliare tutto il resto;
