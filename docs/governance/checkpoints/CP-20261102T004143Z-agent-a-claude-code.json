@@ -1,0 +1,186 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T004143Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T00:41:43Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-OWNER-IMPL-20261101",
+    "source": "owner message to Claude Code, 2026-11-01 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd): implementation phase"
+  },
+  "task": "MP-ODDS-SNAP-01",
+  "activity": "PR #275 merged as 2180f4d (squash; owner authorization MP-OWNER-IMPL-20261101, odds history preparation; schema stays staged)",
+  "issue": 263,
+  "pr": 275,
+  "branch": "mp-odds-snapshots",
+  "commit_sha": "8477506012d752f57861308eba32d34a5fe738a9",
+  "tree_sha": "830656580da3f4741713ec7c2f953ad777ff4f04",
+  "base_sha": "ca910880ccd3f60199160f8cbec427e33a61216d",
+  "requirements": [],
+  "changes": [
+    "db/staged/031-apifootball-odds-snapshots.sql",
+    "src/providers/apifootball/odds-snapshots.mjs",
+    "src/providers/apifootball/store.mjs",
+    "test/apifootball-odds-snapshots.test.mjs",
+    "docs/product/mp-263/README.md",
+    "package.json check entries",
+    "review fixes c120a4b",
+    "2180f4d: squash merge of PR #275"
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions CI on PR #275 head 8477506",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "8477506012d752f57861308eba32d34a5fe738a9",
+      "time": "2026-11-02T00:41:43Z",
+      "limits": [
+        "run 41365821632 success"
+      ]
+    },
+    {
+      "command": "GitHub Actions CI on main 2180f4d",
+      "result": "PASS",
+      "environment": "GitHub Actions",
+      "commit": "2180f4decef13c239178c1040849bbc43a63f789",
+      "time": "2026-11-02T00:41:43Z",
+      "limits": [
+        "run 41367153568 success"
+      ]
+    },
+    {
+      "command": "deploy-vps on main 2180f4d",
+      "result": "FAIL",
+      "environment": "GitHub Actions + self-hosted runner matchpilot-vps",
+      "commit": "2180f4decef13c239178c1040849bbc43a63f789",
+      "time": "2026-11-02T00:41:43Z",
+      "limits": [
+        "run 41367153536: Deploy gate success; job deploy refused by mp-runner-guard at Set up runner; mp-deploy skipped: no deploy"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": 41365821632,
+    "conclusion": "SUCCESS",
+    "head_sha": "8477506012d752f57861308eba32d34a5fe738a9"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "8477506012d752f57861308eba32d34a5fe738a9",
+    "reference": "https://github.com/zarbopiero963-droid/MatchPilot/pull/275#issuecomment-6565974424 (APPROVED on c120a4b; c120a4b..8477506 registers only, verified with git diff --stat)"
+  },
+  "findings": [
+    {
+      "id": "SNAP-B1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "global price dedup lost a price returning to an earlier value: now compared with the previous snapshot of the selection only"
+    },
+    {
+      "id": "SNAP-B2",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "one unstorable value (int4 overflow, NUL) aborted the whole batch: refused row by row"
+    },
+    {
+      "id": "SNAP-B3",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "a long provider error list violated the ledger CHECK and disabled the client: error cut to 200"
+    },
+    {
+      "id": "SNAP-N1",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "request_id stays null until a collector links it; provenance via payload_sha256"
+    },
+    {
+      "id": "SNAP-N2",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "acquisition instant from the client fetched_at; cached results not stored again"
+    },
+    {
+      "id": "SNAP-N3",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "ISO instants with offset only"
+    },
+    {
+      "id": "SNAP-N4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "PIT reader also bounds the provider update"
+    },
+    {
+      "id": "SNAP-N5",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "answers above 20000 selections refused whole"
+    },
+    {
+      "id": "SNAP-N6",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "an unchanged price stays dated to its first acquisition; an out-of-order backfill is not re-compared forward (no collector yet)"
+    }
+  ],
+  "owner_decisions": [
+    "MP-OWNER-IMPL-20261101",
+    "MP-AUTONOMY-01",
+    "MP-OWNER-GO-2026-11-01"
+  ],
+  "progress": {
+    "done": [
+      "implementation",
+      "review",
+      "merge",
+      "main CI"
+    ],
+    "in_progress": [],
+    "not_started": [
+      "owner-authorized migration of the staged schema",
+      "collector with declared frequency (operational GO)"
+    ]
+  },
+  "resources": [
+    "file:db/staged/031-apifootball-odds-snapshots.sql",
+    "file:src/providers/apifootball/odds-snapshots.mjs",
+    "file:src/providers/apifootball/store.mjs"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent",
+    "staged schema: migration needs a separate owner authorization"
+  ],
+  "state": "MERGED",
+  "next_action": "none",
+  "resume_conditions": [
+    "none: merged"
+  ],
+  "supersedes": "CP-20261102T001037Z-agent-a-claude-code",
+  "merge_sha": "2180f4decef13c239178c1040849bbc43a63f789"
+}
