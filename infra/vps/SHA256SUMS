@@ -1,4 +1,5 @@
-c45eab86f7b5fea2aa5b8fa42adc9e427f87782d577767d0db1d933ce47b1069  sbin/mp-deploy
+b98343df4a098426c6c895a7d29f13475fbf8c609bf459d4f228908349444045  sbin/mp-deploy
+1242cb8f26a5ea6d187539e335803eccc931238def7646621029d8a25cce7ea0  sbin/mp-fpt-worker-restart
 6e32cfff5fee207b735022fd9dde542fd94ef55fc42f7a6b885f33b0b649e5a6  sbin/mp-runner-guard-v1.sh
 a1b45b38a333f1f7788fc9c2f0d8296fbeeb7382c60d80abfb16012633e2d61e  sbin/mp-runner-guard.sh
 86f05a18c2d85bab91e864874b1418660f482ad5407b0978650de0f57e345f67  systemd/matchpilot-fpt-liveness.service

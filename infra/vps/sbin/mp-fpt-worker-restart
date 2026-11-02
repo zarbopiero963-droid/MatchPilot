@@ -1,0 +1,62 @@
+#!/bin/bash
+# mp-fpt-worker-restart <deploy|rollback> — v1 (MP-FPT-RETIRE-02, MP-NEXT-20261102 priority D).
+# Called by mp-deploy v3.4 after a release switch instead of a bare "systemctl restart" of the FPT worker, which also
+# started a stopped or disabled (not masked) unit and so undid a retirement at every deploy.
+#   - FUTPYTHON_RETIRED=true (effective value of the worker EnvironmentFiles, the last file wins as in systemd), or
+#     definitions that disagree between the files: no restart at all (worker_restart=skipped_retired / _inconsistent).
+#   - unit not enabled (disabled, masked, static, missing): no restart (worker_restart=skipped_not_enabled).
+#   - enabled but not running: not started (worker_restart=skipped_not_active); a stopped worker stays stopped.
+#   - enabled and running: try-restart onto the new release (worker_restart=ok | worker_restart=FAILED, exit 1).
+# Only the FUTPYTHON_RETIRED line of the env files is read; nothing else is printed. One result line on stdout.
+# It never enables, disables, starts or stops the liveness timer: with the source retired it only warns when the timer
+# is still active (the probe itself is silent in retired mode, PR #277); stopping it is an owner-authorized operation.
+set -uo pipefail
+umask 077
+# Under sudo no environment override is honoured (same rule as mp-deploy).
+if [ -n "${SUDO_USER:-}${SUDO_UID:-}${SUDO_COMMAND:-}" ]; then
+  for v in $(compgen -e | grep -E '^MP_'); do unset "$v"; done
+fi
+PHASE="${1:-}"
+case "$PHASE" in deploy|rollback) ;; *) echo "usage: mp-fpt-worker-restart <deploy|rollback>" >&2; exit 2 ;; esac
+SYSTEMCTL="${MP_SYSTEMCTL:-systemctl}"
+UNIT="matchpilot-fpt-worker.service"
+TIMER="matchpilot-fpt-liveness.timer"
+# Same order as the unit's EnvironmentFile lines: worker.env, then fpt.env (a later definition overrides).
+ENV_FILES="${MP_FPT_ENV_FILES:-/srv/matchpilot/secrets/worker.env /srv/matchpilot/secrets/fpt.env}"
+
+values=""
+effective=""
+for f in $ENV_FILES; do
+  [ -f "$f" ] && [ -r "$f" ] || continue
+  v=$(sed -n 's/^[[:space:]]*FUTPYTHON_RETIRED[[:space:]]*=[[:space:]]*//p' "$f" | tail -1 | tr -d '"'"'"'\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+  # An empty value is a definition too ("<empty>"), so "true" in one file and "" in the other is inconsistent.
+  if grep -qE '^[[:space:]]*FUTPYTHON_RETIRED[[:space:]]*=' "$f"; then values="$values|${v:-<empty>}"; effective="$v"; fi
+done
+distinct=$(printf '%s' "$values" | tr '|' '\n' | sed '/^$/d' | sort -u | wc -l)
+if [ "$distinct" -gt 1 ]; then
+  echo "phase=$PHASE worker_restart=skipped_inconsistent warn=FUTPYTHON_RETIRED_differs_between_env_files"
+  exit 0
+fi
+if [ "$effective" = "true" ]; then
+  if "$SYSTEMCTL" is-active --quiet "$TIMER" 2>/dev/null; then
+    echo "phase=$PHASE worker_restart=skipped_retired warn=liveness_timer_active_while_retired"
+  else
+    echo "phase=$PHASE worker_restart=skipped_retired"
+  fi
+  exit 0
+fi
+state=$("$SYSTEMCTL" is-enabled "$UNIT" 2>/dev/null | head -1)
+if [ "$state" != "enabled" ]; then
+  echo "phase=$PHASE worker_restart=skipped_not_enabled unit_state=${state:-unknown}"
+  exit 0
+fi
+if ! "$SYSTEMCTL" is-active --quiet "$UNIT" 2>/dev/null; then
+  echo "phase=$PHASE worker_restart=skipped_not_active"
+  exit 0
+fi
+if "$SYSTEMCTL" try-restart "$UNIT" 2>/dev/null; then
+  echo "phase=$PHASE worker_restart=ok"
+  exit 0
+fi
+echo "phase=$PHASE worker_restart=FAILED"
+exit 1
