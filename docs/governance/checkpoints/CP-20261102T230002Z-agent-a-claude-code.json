@@ -1,0 +1,98 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T230002Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T23:00:02Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-OWNER-DEC-MIG-02",
+  "activity": "MP-OWNER-DEC-MIG-02: parallel_tasks named on the migration mandate; review pending",
+  "issue": 288,
+  "pr": null,
+  "branch": "mp-owner-dec-mig-02",
+  "commit_sha": "989650d20a12de4903873e0a39fff58c0b3b7d8e",
+  "tree_sha": "ca829889690ef18ba682cd45f0ec3806fb302196",
+  "base_sha": "70ee74b31004983fa4060bb1f4daabe30386c036",
+  "requirements": [],
+  "changes": [
+    "docs/governance/owner-decisions.json (parallel_tasks on the mandate entry)"
+  ],
+  "tests": [
+    {
+      "command": "governance validate",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22",
+      "commit": "989650d20a12de4903873e0a39fff58c0b3b7d8e",
+      "time": "2026-11-02T23:00:02Z",
+      "limits": [
+        "register annotation only"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "989650d20a12de4903873e0a39fff58c0b3b7d8e"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "Codex code review requested on the PR"
+  },
+  "findings": [],
+  "owner_decisions": [
+    "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "annotation"
+    ],
+    "in_progress": [
+      "CI",
+      "independent review (Codex)"
+    ],
+    "not_started": [
+      "SAFE merge after review"
+    ]
+  },
+  "resources": [
+    "file:docs/governance/owner-decisions.json"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent",
+    "merge only after green CI and review"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI; Codex review; SAFE merge with expectedHeadSha",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": null
+}
