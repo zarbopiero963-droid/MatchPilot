@@ -2344,7 +2344,7 @@
       "id": "MP-NEXT-GOV-01",
       "title": "MP-NEXT-20261102: mandate registration and PostgreSQL 17 evidence",
       "issue": 263,
-      "pr": null,
+      "pr": 279,
       "branch": "mp-gov-next-20261102",
       "kind": "audit",
       "state": "REVIEW",
@@ -2358,7 +2358,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
