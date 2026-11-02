@@ -23,6 +23,7 @@ export const MAX_SCAN = 5000;
 export const MAX_WINDOW_DAYS = 366;
 export const USABLE_STATUS = 'AVAILABLE AND IMPLEMENTED';
 export const DECISIONS = Object.freeze(['PREMATCH', 'POSTMATCH']);
+export const SEARCHABLE_TYPES = new Set(['integer', 'number', 'text']);
 
 export const MISSING_RULES_SQL = `SELECT field_name, missing_tokens, zero_is_missing FROM fpt_filter_registry WHERE field_name = ANY($1::text[])`;
 // Only the payload keys the expression uses leave the database. Newest matches first; one row more than the scan limit
@@ -35,6 +36,7 @@ export const SEARCH_SQL = `SELECT f.internal_match_id, f.match_date::text AS mat
   WHERE f.match_date >= $2::date AND f.match_date <= $3::date
     AND ($4::text IS NULL OR f.internal_competition_id = $4)
     AND ($5::text IS NULL OR f.season_id = $5)
+    AND ($7::boolean IS NOT TRUE OR f.result_status = 'FINAL')
   ORDER BY f.match_date DESC, f.internal_match_id
   LIMIT $6`;
 
@@ -90,6 +92,14 @@ export function universalSearch({catalogRows, missingRules = [], rows = null, in
   if (refused.length) {
     throw new ApiError('BAD_REQUEST', `fields not usable in a search: ${refused.map(c => `${c.id} (${c.status})`).join(', ')}`,
       {fields: refused.map(c => ({id: c.id, status: c.status}))}, ['expr']);
+  }
+  // review (Codex): archive dates are calendar text ("2025-03-01") and booleans are CSV text, while the engine compares
+  // instants with a time zone and native booleans. Until a type adaptation with explicit semantics exists, these fields
+  // are refused with the reason instead of being accepted and never matching.
+  const unadapted = fields.filter(c => !SEARCHABLE_TYPES.has(c.value_type));
+  if (unadapted.length) {
+    throw new ApiError('BAD_REQUEST', `fields whose stored type is not adapted for search yet: ${unadapted.map(c => `${c.id} (${c.value_type})`).join(', ')}`,
+      {fields: unadapted.map(c => ({id: c.id, value_type: c.value_type, reason: 'TYPE_ADAPTATION_MISSING'}))}, ['expr']);
   }
   const pit = pitReport(normalized, caps, {decision: input.decision});
   if (pit.violations.length) {
@@ -168,7 +178,7 @@ export function searchEndpoint({param, integer, oneOf, ApiError}) {
       // Refusals (unknown field, unusable state, PIT) come before any match is read.
       try { plan = universalSearch({catalogRows, input, ApiError}); } catch (error) { if (error instanceof ApiError) return {refused: error}; throw error; }
       const missingRules = (await client.query(MISSING_RULES_SQL, [plan.providerRefs])).rows;
-      const rows = (await client.query(SEARCH_SQL, [plan.providerRefs, input.from, input.to, input.competition ?? null, input.season ?? null, MAX_SCAN + 1])).rows;
+      const rows = (await client.query(SEARCH_SQL, [plan.providerRefs, input.from, input.to, input.competition ?? null, input.season ?? null, MAX_SCAN + 1, input.decision === 'POSTMATCH'])).rows;
       return {catalogRows, missingRules, rows};
     },
     compute: (fetched, input) => {

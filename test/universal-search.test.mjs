@@ -13,7 +13,9 @@ const CATALOG = [
   {field_name: 'Odd_X_FT', inferred_type: 'number', nonempty_seen: '200', filterable: true, coverage_ratio: '0.80'},
   {field_name: 'Over_FT_2_5', inferred_type: 'number', nonempty_seen: '200', filterable: true, coverage_ratio: '0.80'},
   {field_name: 'Referee', inferred_type: 'text', nonempty_seen: '0', filterable: false, coverage_ratio: null},
-  {field_name: 'Stadium', inferred_type: 'text', nonempty_seen: '50', filterable: false, coverage_ratio: '0.10'}
+  {field_name: 'Stadium', inferred_type: 'text', nonempty_seen: '50', filterable: false, coverage_ratio: '0.10'},
+  {field_name: 'Date', inferred_type: 'date_or_datetime', nonempty_seen: '200', filterable: true, coverage_ratio: '1'},
+  {field_name: 'Is_Derby', inferred_type: 'boolean', nonempty_seen: '20', filterable: true, coverage_ratio: '0.1'}
 ];
 const RULES = [{field_name: 'Corners_Home_FT', missing_tokens: ['-', 'NA'], zero_is_missing: false}, {field_name: 'Odd_1_FT', missing_tokens: ['-'], zero_is_missing: true}];
 const match = (id, fields) => ({internal_match_id: `fpt:id:${id}`, match_date: '2025-03-01', kickoff_utc: null, internal_competition_id: 'fpt:competition:it-a',
@@ -54,7 +56,7 @@ test('MP-SEARCH-01 end to end: AND, OR and NOT on catalog fields; only TRUE matc
   assert.equal(d.pit.label, 'NON_PIT');
   assert.equal(d.truncated, false);
   assert.deepEqual(h.calls.map(c => c.sql), [FPT_CAPABILITY_SQL, MISSING_RULES_SQL, SEARCH_SQL]);
-  assert.deepEqual(h.calls[2].values, [['Corners_Home_FT', 'Odd_1_FT', 'Odd_X_FT'], '2025-01-01', '2025-06-30', null, null, 5001], 'only the used payload keys, bounded scan');
+  assert.deepEqual(h.calls[2].values, [['Corners_Home_FT', 'Odd_1_FT', 'Odd_X_FT'], '2025-01-01', '2025-06-30', null, null, 5001, true], 'only the used payload keys, bounded scan, finished matches only for POSTMATCH');
   assert.equal(r.body.meta.provenance.upstream_calls, 0);
   // NOT never turns missing data into a match.
   const not = await harness().get({not: {field: C, op: 'gte', value: 5}}, `${W}&decision=POSTMATCH`);
@@ -175,7 +177,7 @@ test('MP-SEARCH-01 the pinned SQL runs on the real schema (PostgreSQL)', {timeou
     await db.connect();
     try {
       assert.ok(Array.isArray((await db.query(MISSING_RULES_SQL, [['Odd_1_FT']])).rows));
-      assert.deepEqual((await db.query(SEARCH_SQL, [['Odd_1_FT'], '2025-01-01', '2025-06-30', null, null, 10])).rows, []);
+      assert.deepEqual((await db.query(SEARCH_SQL, [['Odd_1_FT'], '2025-01-01', '2025-06-30', null, null, 10, false])).rows, []);
       // review B2/N7: one seeded match; the date comes back as the calendar date whatever the process time zone.
       const snap = await db.query(`INSERT INTO fpt_raw_snapshots (dataset_key, source_kind, provider_path, sha256, row_count, headers, payload_gzip)
         VALUES ('it-a', 'dataset', '/x', repeat('a', 64), 1, '["Odd_1_FT"]'::jsonb, '\\x00'::bytea) RETURNING snapshot_id`);
@@ -185,13 +187,35 @@ test('MP-SEARCH-01 the pinned SQL runs on the real schema (PostgreSQL)', {timeou
       await db.query(`INSERT INTO fpt_match_facts (internal_match_id, match_key, version_id, snapshot_id, dataset_key, phase, acquired_at, match_date, kickoff_tz_status,
         result_status, source_provider, parser_version, schema_version, transform_version, facts_version)
         VALUES ('fpt:id:1', 'k1', $1, $2, 'it-a', 'HISTORICAL', now(), '2025-03-01', 'UNKNOWN', 'FINAL', 'futpython', 'p', 's', 't', 'f')`, [v.rows[0].version_id, sid]);
-      const rows = (await db.query(SEARCH_SQL, [['Odd_1_FT', 'a,b"c', 'Missing'], '2025-01-01', '2025-06-30', null, null, 10])).rows;
+      const rows = (await db.query(SEARCH_SQL, [['Odd_1_FT', 'a,b"c', 'Missing'], '2025-01-01', '2025-06-30', null, null, 10, true])).rows;
       assert.deepEqual([rows.length, rows[0].match_date, rows[0].fields], [1, '2025-03-01', {Odd_1_FT: '1.80', 'a,b"c': 'x'}], 'calendar date as text, only the asked keys');
-      const plan = await db.query(`EXPLAIN ${SEARCH_SQL}`, [['Odd_1_FT'], '2025-01-01', '2025-06-30', 'x', null, 10]);
+      // review (Codex): a not started match is excluded from POSTMATCH research, kept for PREMATCH.
+      const v2 = await db.query(`INSERT INTO fpt_match_versions (match_key, dataset_key, snapshot_id, acquired_at, match_date, phase, payload, payload_sha256)
+        VALUES ('k2', 'it-a', $1, now(), '2025-03-02', 'PREMATCH', '{"Odd_1_FT":"1.50"}'::jsonb, repeat('c', 64)) RETURNING version_id`, [sid]);
+      await db.query(`INSERT INTO fpt_match_facts (internal_match_id, match_key, version_id, snapshot_id, dataset_key, phase, acquired_at, match_date, kickoff_tz_status,
+        result_status, source_provider, parser_version, schema_version, transform_version, facts_version)
+        VALUES ('fpt:id:2', 'k2', $1, $2, 'it-a', 'PREMATCH', now(), '2025-03-02', 'UNKNOWN', 'NOT_STARTED', 'futpython', 'p', 's', 't', 'f')`, [v2.rows[0].version_id, sid]);
+      const post = (await db.query(SEARCH_SQL, [['Odd_1_FT'], '2025-01-01', '2025-06-30', null, null, 10, true])).rows.map(r => r.internal_match_id);
+      const pre = (await db.query(SEARCH_SQL, [['Odd_1_FT'], '2025-01-01', '2025-06-30', null, null, 10, false])).rows.map(r => r.internal_match_id);
+      assert.deepEqual([post, pre.sort()], [['fpt:id:1'], ['fpt:id:1', 'fpt:id:2']]);
+      const plan = await db.query(`EXPLAIN ${SEARCH_SQL}`, [['Odd_1_FT'], '2025-01-01', '2025-06-30', 'x', null, 10, true]);
       assert.ok(plan.rows.length > 0);
     } finally { await db.end(); }
   } finally {
     await root.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
     await root.end();
   }
+});
+
+test('MP-SEARCH-01 review (Codex): date and boolean fields are refused until their stored text is adapted; PREMATCH decisions do not filter on result', async () => {
+  for (const [field, type] of [['fpt:identity:Date', 'datetime'], ['fpt:statistic:Is_Derby', 'boolean']]) {
+    const h = harness();
+    const r = await h.get({field, op: 'is_null'}, `${W}&decision=POSTMATCH`);
+    assert.equal(r.status, 400, field);
+    assert.match(r.body.error.message, new RegExp(`not adapted for search yet: .*\\(${type}\\)`), field);
+    assert.equal(h.calls.length, 1, 'no match read');
+  }
+  const h = harness();
+  await h.get({field: H, op: 'lt', value: '2'}, `${W}&decision=PREMATCH`);
+  assert.equal(h.calls[2].values[6], false, 'PREMATCH includes not yet finished matches');
 });

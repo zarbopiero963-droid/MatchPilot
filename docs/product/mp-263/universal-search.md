@@ -27,6 +27,8 @@
   - `PREMATCH` rifiuta i campi di esito, prima di leggere qualsiasi partita.
   - Le quote d'archivio non hanno l'orario di cattura, quindi la risposta è sempre `PIT_NOT_VERIFIED`: nessuna ricerca sull'archivio è certificata PIT.
   - `POSTMATCH` è etichettata `NON_PIT`, come nel vocabolario di `src/pit/policy.mjs`.
+- **Tipi.** I campi data (testo di calendario nell'archivio) e booleani (testo CSV) vengono rifiutati con `TYPE_ADAPTATION_MISSING`, invece di essere accettati e non trovare mai nulla. L'adattamento, con una semantica esplicita di data di calendario, è un lavoro successivo.
+- **POSTMATCH** legge solo le partite concluse (`result_status = FINAL`).
 - **Limiti.** Al massimo 5 000 partite lette per finestra, le più recenti. Se la finestra ne contiene di più, `truncated: true` e una nota chiedono di restringere le date.
 - **Sola lettura.** Nessuna chiamata a provider. Escono dal database solo i campi usati dall'espressione.
 
