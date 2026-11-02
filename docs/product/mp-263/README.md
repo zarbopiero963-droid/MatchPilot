@@ -107,7 +107,7 @@ Per questo l'inventario delle capacità resta **NOT VERIFIED**: niente viene des
   Le date valgono solo in formato ISO con fuso esplicito. Una risposta con più di 20 000 selezioni viene rifiutata per intero.
 
   Nessun dato successivo al calcio d'inizio diventa una quota prematch.
-- **Schema staged** `db/staged/031-apifootball-odds-snapshots.sql`, fuori da `migrations/`: `migrate()` e il guard del deploy non lo vedono.
+- **Schema:** `migrations/031-apifootball-odds-snapshots.sql` (MP-ODDS-MIG-01). Prima era staged in `db/staged/`. In produzione viene applicato solo con `MATCHPILOT_APPROVED_MIGRATIONS` e con l'`allow-migrations` di `mp-deploy`, entrambi decisi dall'owner. Preflight e rollback sono descritti in [`migration-031-preflight.md`](migration-031-preflight.md).
   - Tabelle append-only, protette dal database.
   - Il database stesso rifiuta le righe prematch acquisite dopo il calcio d'inizio.
   - Deduplica:
@@ -116,7 +116,7 @@ Per questo l'inventario delle capacità resta **NOT VERIFIED**: niente viene des
     - ripetere la stessa acquisizione non scrive nulla.
 
     Un prezzo invariato resta quindi datato alla sua prima acquisizione.
-  - Diventa una migrazione solo con una PR autorizzata dall'owner.
+  - Il merge di questa migrazione richiede l'autorizzazione dell'owner (PR MANUAL); l'applicazione in produzione richiede altri due passi espliciti.
 - **Lettura point-in-time** (`oddsAsOf`): per ogni selezione restituisce l'ultimo snapshot acquisito entro `as_of`, con `update` del provider non successivo a `as_of`, mai uno successivo. Dopo il calcio d'inizio restituisce l'ultimo prezzo visto prima del calcio d'inizio.
 - **Ancora da fare.** Nessun job o route usa ancora questi moduli. Un collector che chiama `/odds` con frequenza dichiarata richiede la migrazione e un GO operativo.
 

@@ -1,6 +1,6 @@
 // MP-ODDS-SNAP-01: pre-match odds snapshots. The answers below are synthetic, in the /odds shape observed on 2026-11-01
 // (fixture, update, bookmakers[].bets[].values[] with value and odd as text); the prices are invented test values.
-// The staged schema is applied to a throwaway PostgreSQL schema by the test only; migrate() never sees it.
+// migrate() applies migrations/031 to a throwaway PostgreSQL schema; production needs the owner's approval (MP-ODDS-MIG-01).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -9,7 +9,8 @@ import { MAX_ROWS_PER_ANSWER, oddsSnapshotRows, oddsSnapshotsFromResult, payload
 import { createPgRequestLedger, oddsAsOf, saveOddsSnapshots, SnapshotStoreError } from '../src/providers/apifootball/store.mjs';
 import { apiFootballConfig, createApiFootballClient } from '../src/providers/apifootball/client.mjs';
 
-const STAGED = readFileSync(new URL('../db/staged/031-apifootball-odds-snapshots.sql', import.meta.url), 'utf8');
+const MIGRATION = readFileSync(new URL('../migrations/031-apifootball-odds-snapshots.sql', import.meta.url), 'utf8');
+const ROLLBACK = readFileSync(new URL('../db/rollback/031-apifootball-odds-snapshots.down.sql', import.meta.url), 'utf8');
 const KICKOFF = Date.UTC(2026, 10, 1, 17, 30);
 const answer = ({update = '2026-11-01T14:52:00+00:00', home = '2.10', over = '1.85', timestamp = KICKOFF / 1000} = {}) => ({response: [{
   fixture: {id: 1035001, timestamp, date: new Date(timestamp * 1000).toISOString()}, update,
@@ -73,7 +74,7 @@ function runNode(args, env) {
   });
 }
 
-async function withSchema(t, name, body, {staged = true} = {}) {
+async function withSchema(t, name, body) {
   const pg = (await import('pg')).default;
   const rootUrl = process.env.FUTPYTHON_TEST_DATABASE_URL || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
   const dbUrl = new URL(rootUrl);
@@ -93,8 +94,7 @@ async function withSchema(t, name, body, {staged = true} = {}) {
     const db = new pg.Client({connectionString: dbUrl.toString()});
     await db.connect();
     try {
-      if (staged) await db.query(STAGED);
-      await body(db, pg);
+      await body(db, pg, dbUrl.toString());
     } finally { await db.end(); }
   } finally {
     await root.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
@@ -103,12 +103,11 @@ async function withSchema(t, name, body, {staged = true} = {}) {
 }
 const code = async promise => { try { await promise; return 'OK'; } catch (error) { return error.code; } };
 
-test('MP-ODDS-SNAP-01 schema: staged outside migrations/, idempotent, append-only and PIT enforced by the database', {timeout: 90000}, async t => {
+test('MP-ODDS-MIG-01 migration: applied by migrate(), idempotent, append-only and PIT enforced by the database; rollback refuses data', {timeout: 90000}, async t => {
   await withSchema(t, 'schema', async db => {
-    assert.equal((await db.query("SELECT to_regclass('af_odds_snapshots') AS t")).rows[0].t, null, 'migrate() does not apply the staged file');
-    await assert.rejects(saveOddsSnapshots(db, oddsSnapshotRows(answer(), {acquiredAt: BEFORE}).rows), err => err instanceof SnapshotStoreError && err.code === 'SNAPSHOTS_UNAVAILABLE');
-    await db.query(STAGED);
-    await db.query(STAGED);
+    assert.ok((await db.query("SELECT 1 FROM schema_migrations WHERE filename = '031-apifootball-odds-snapshots.sql'")).rowCount === 1, 'applied by migrate()');
+    await db.query(MIGRATION);
+    await db.query(MIGRATION);
     const {rows} = oddsSnapshotRows(answer(), {acquiredAt: BEFORE});
     assert.deepEqual(await saveOddsSnapshots(db, rows), {inserted: 6, skipped: 0});
     assert.deepEqual(await saveOddsSnapshots(db, rows), {inserted: 0, skipped: 6}, 'replaying the same acquisition writes nothing');
@@ -123,7 +122,30 @@ test('MP-ODDS-SNAP-01 schema: staged outside migrations/, idempotent, append-onl
     const lateUpdate = {...rows[0], provider_update_at: new Date(KICKOFF).toISOString(), odd_text: '2.30'};
     assert.equal(await code(saveOddsSnapshots(db, [lateUpdate])), '23514');
     assert.equal((await db.query('SELECT count(*)::int AS n FROM af_odds_snapshots')).rows[0].n, 6, 'a refused batch writes nothing');
-  }, {staged: false});
+    // Rollback never drops history: with rows it is refused and changes nothing.
+    assert.equal(await code(db.query(ROLLBACK)), 'P0001');
+    await db.query('ROLLBACK').catch(() => {});
+    assert.equal((await db.query('SELECT count(*)::int AS n FROM af_odds_snapshots')).rows[0].n, 6);
+    assert.equal((await db.query("SELECT count(*)::int AS n FROM schema_migrations WHERE filename = '031-apifootball-odds-snapshots.sql'")).rows[0].n, 1);
+  });
+});
+
+test('MP-ODDS-MIG-01 rollback on empty tables removes exactly the migration; migrate() applies it again; production holds it without approval', {timeout: 90000}, async t => {
+  const {migrationPolicy, planMigrations} = await import('../src/migrate.mjs');
+  const pending = ['031-apifootball-odds-snapshots.sql'];
+  assert.deepEqual(planMigrations(pending, {production: true, approved: new Set()}), {apply: [], held: pending}, 'not applied in production without approval');
+  assert.deepEqual(planMigrations(pending, {production: true, approved: new Set(pending)}).apply, pending);
+  assert.deepEqual(migrationPolicy({MATCHPILOT_RUNTIME_MODE: 'test'}).production, false);
+  await withSchema(t, 'rollback', async (db, pg, url) => {
+    await db.query(ROLLBACK);
+    assert.equal((await db.query("SELECT to_regclass('af_odds_snapshots') AS t, to_regclass('af_request_ledger') AS l")).rows[0].t, null);
+    assert.equal((await db.query("SELECT to_regprocedure('mp_af_append_only()') AS f")).rows[0].f, null);
+    await assert.rejects(saveOddsSnapshots(db, oddsSnapshotRows(answer(), {acquiredAt: BEFORE}).rows), err => err instanceof SnapshotStoreError && err.code === 'SNAPSHOTS_UNAVAILABLE');
+    // Other tables are untouched: the FPT and persistence schema created by migrate() still exist.
+    assert.notEqual((await db.query("SELECT to_regclass('fpt_schema_fields') AS t")).rows[0].t, null);
+    await runNode(['src/migrate.mjs'], {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: url, MATCHPILOT_RUNTIME_MODE: 'test'});
+    assert.notEqual((await db.query("SELECT to_regclass('af_odds_snapshots') AS t")).rows[0].t, null, 'applied again after the rollback');
+  });
 });
 
 test('MP-ODDS-SNAP-01 point in time: the last snapshot acquired at or before as_of, never a later one', {timeout: 90000}, async t => {
