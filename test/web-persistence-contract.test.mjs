@@ -1,8 +1,9 @@
 // MP-UI-PR-003 (MP-UI-HARD-GATES-01 §7): one contract, two adapters. The same checks run against the real adapter of
-// the page (src/web/persistence.js createPersistence) on the real server — owner login enforced, the staged persistence
-// schema on a throwaway PostgreSQL schema with the QA archive — and against the in-memory mock. Moving a page from the
+// the page (src/web/persistence.js createPersistence) on the real server — owner login enforced, the persistence
+// schema (migrations/030-persistence.sql) on a throwaway PostgreSQL schema with the QA archive — and against the in-memory mock. Moving a page from the
 // mock to the real backend is then a change of adapter, verified by this file, never a rewrite.
 import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {ROOT_URL, startServer} from '../tools/qa/browser-qa.mjs';
@@ -128,11 +129,17 @@ test('the real adapter and the mock satisfy the same persistence contract', {tim
   await client.connect();
   try { await seedQaArchive(client); } finally { await client.end(); }
 
-  // No persistence schema yet: what production answers today. Then the staged schema, as after the migration.
+  // The server applied every migration at startup, 030 included. Its rollback (db/rollback/030-persistence.down.sql, empty
+  // tables) gives the state of a database without the persistence schema: what production answers before the migration.
+  // Then the real runner applies 030 again, as the authorized upgrade does.
+  const rollback = new pg.Client({connectionString: url.toString()});
+  await rollback.connect();
+  try { await rollback.query(readFileSync(new URL('../db/rollback/030-persistence.down.sql', import.meta.url), 'utf8')); } finally { await rollback.end(); }
   await refusals(createPersistence({base: open.base}), {params: PARAMS, expected: 'unavailable'});
-  const staged = new pg.Client({connectionString: url.toString()});
-  await staged.connect();
-  try { await staged.query(readFileSync(new URL('../db/staged/030-persistence.sql', import.meta.url), 'utf8')); } finally { await staged.end(); }
+  const migrated = spawnSync(process.execPath, ['src/migrate.mjs'], {encoding: 'utf8',
+    env: {PATH: process.env.PATH, DATABASE_URL: url.toString(), MATCHPILOT_RUNTIME_MODE: 'test'}});
+  assert.equal(migrated.status, 0, migrated.stderr);
+  assert.match(migrated.stdout, /MIGRATION_APPLIED 030-persistence\.sql/);
   await refusals(createPersistence({base: open.base}), {params: PARAMS, expected: 'read-only'});
 
   const password = 'contract owner password 2026';

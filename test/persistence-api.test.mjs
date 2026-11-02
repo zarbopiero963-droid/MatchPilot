@@ -1,16 +1,17 @@
-// PERSIST-API-01: the persistence routes. Handler tests on a throwaway PostgreSQL schema (the staged schema is applied by
-// the test only), then end to end through the real server with owner auth enforced and with auth off.
+// PERSIST-API-01: the persistence routes. Handler tests on a throwaway PostgreSQL schema migrated up to 029 (the state
+// before migrations/030-persistence.sql); `applyStaged` then runs the real migrate() on every migration, as the upgrade
+// of a deployed database does. Then end to end through the real server with owner auth enforced and with auth off.
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
-import {readFileSync} from 'node:fs';
+import {rm} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import test from 'node:test';
 import {MAX_BODY_BYTES, handlePersistence, writeAllowed} from '../src/api/persistence-api.mjs';
 import {hashPassword} from '../src/auth/owner-auth.mjs';
 import {runBacktest} from '../src/hist/engine.mjs';
 import {createAccount} from '../src/persistence/store.mjs';
+import {migrateArgs, migrationsBefore} from './helpers/migrations.mjs';
 
-const STAGED = readFileSync(new URL('../db/staged/030-persistence.sql', import.meta.url), 'utf8');
 const ROOT_URL = process.env.FUTPYTHON_TEST_DATABASE_URL || 'postgres://matchpilot:matchpilot_local_test@127.0.0.1:5432/matchpilot_fpt';
 const OWNER = {principalId: 'owner', roles: ['owner']};
 const SAME_ORIGIN = {'content-type': 'application/json', 'sec-fetch-site': 'same-origin', host: 'mp.local'};
@@ -44,11 +45,13 @@ async function withSchema(t, name, body) {
     // The connections of this test carry their own application_name, so a check on open transactions counts only them
     // and not the sessions of the test files that run in parallel on the same database.
     dbUrl.searchParams.set('application_name', schema);
-    await runNode(['src/migrate.mjs'], {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test'});
+    const env = {PATH: process.env.PATH, NODE_ENV: 'test', DATABASE_URL: dbUrl.toString(), MATCHPILOT_RUNTIME_MODE: 'test'};
+    const before030 = await migrationsBefore('030');
+    try { await runNode(migrateArgs(before030), env); } finally { await rm(before030, {recursive: true, force: true}); }
     const pool = new pg.Pool({connectionString: dbUrl.toString(), max: 4});
     let calls = 0;
     const withClient = async fn => { calls++; const c = await pool.connect(); try { return await fn(c); } finally { c.release(); } };
-    try { await body({withClient, calls: () => calls, applyStaged: () => withClient(c => c.query(STAGED)), dbUrl, schema}); }
+    try { await body({withClient, calls: () => calls, applyStaged: () => runNode(['src/migrate.mjs'], env), dbUrl, schema}); }
     finally { await pool.end(); }
   } finally {
     await root.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);

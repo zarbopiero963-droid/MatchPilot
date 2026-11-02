@@ -394,7 +394,7 @@ export async function runBrowserQa({out, journeys = JOURNEYS, viewports = REQUIR
       dataset: {fixture: 'test/helpers/fpt-seed.mjs#seedQaArchive', ingestion: 'real FutPythonTrader path (CSV → storeDataset → facts)',
         competitions: [seed.eredivisie.competition, seed.laliga.competition], matches: seed.matches, busy_day: seed.busyDay,
         fixture_sha256: sha256(readFileSync(join(root, 'test/helpers/fpt-seed.mjs'))), production_data: false,
-        persistence: 'staged schema db/staged/030-persistence.sql applied to the throwaway schema; a second server on it with MATCHPILOT_AUTH=enforce and a test owner'},
+        persistence: 'persistence schema migrations/030-persistence.sql applied by migrate() at server start on the throwaway schema; a second server on it with MATCHPILOT_AUTH=enforce and a test owner'},
       required: {journeys: REQUIRED_JOURNEYS, viewports: REQUIRED_VIEWPORTS},
       journeys: results,
       counts,
@@ -408,7 +408,7 @@ export async function runBrowserQa({out, journeys = JOURNEYS, viewports = REQUIR
       limitations: [
         'QA archive is a seeded fixture through the real ingestion path, not the real archive (#40) nor production data',
         'accessibility checks are basic structural checks, not a full WCAG audit',
-        'saves are verified on the throwaway schema with the staged persistence schema; production has no persistence schema yet (503)',
+        'saves are verified on the throwaway schema with the persistence schema of migration 030; a production database without that migration applied answers 503',
         'the sim-save traces contain the test owner password and session of this run (login request, cookie header): generated per run, valid only on the local server and schema destroyed at its end; no real credential is ever used',
       ],
       verdict,
@@ -421,8 +421,8 @@ export async function runBrowserQa({out, journeys = JOURNEYS, viewports = REQUIR
 
 // The QA environment shared by the deterministic gate and the exploratory crawler: a throwaway PostgreSQL schema, the
 // real server on it, the QA archive through the real ingestion path and a real Chromium. Always cleaned up.
-// MP-UI-PR-003: the staged persistence schema is applied to the same throwaway schema, and a second server runs on it
-// with the owner login enforced (`owner`: its base and a test owner, created for this run only), so a journey can save
+// MP-UI-PR-003: the persistence schema (migration 030, applied by migrate() at server start) is on the same throwaway
+// schema, and a second server runs on it with the owner login enforced (`owner`: its base and a test owner, created for this run only), so a journey can save
 // for real; the first server keeps the login off, as production does today. The Playwright traces of that journey record
 // the login request and the session cookie: the password is random per run and both die with the server and the schema
 // at the end of the run (review #242 NB-1); a real credential must never be used here.
@@ -442,10 +442,8 @@ export async function withQaEnvironment(fn, {browserEnv = null} = {}) {
     server = await startServer(schema);
     const client = new pg.Client({connectionString: server.url.toString()});
     await client.connect();
-    const seed = await seedQaArchive(client).then(async result => {
-      await client.query(readFileSync(join(root, 'db/staged/030-persistence.sql'), 'utf8'));
-      return result;
-    }).finally(() => client.end());
+    // The persistence schema (migrations/030-persistence.sql) was applied by migrate() when the server started.
+    const seed = await seedQaArchive(client).finally(() => client.end());
     const {hashPassword} = await import('../../src/auth/owner-auth.mjs');
     const password = `qa-${randomBytes(18).toString('hex')}`;
     ownerServer = await startServer(schema, {MATCHPILOT_AUTH: 'enforce', MATCHPILOT_OWNER_USERNAME: 'qa-owner',
