@@ -138,13 +138,16 @@ test('MP-PRCOUNT no dependency cycle; removal reasons state the audit classifica
   const p2 = clone(); const a = p2.planned_prs[0], b = p2.planned_prs[1]; a.depends_on = [...(a.depends_on ?? []), b.id]; b.depends_on = [...(b.depends_on ?? []), a.id];
   assert.ok(fails(p2, 'dependency cycle'));
   const removable = plan.planned_prs.filter(p => p.may_be_removed_by_decision);
-  assert.equal(removable.length, 27);
+  assert.equal(removable.length, 22);
   assert.ok(removable.every(p => p.audit_classification && p.may_be_removed_by_decision.startsWith(p.audit_classification.split(' ')[0])));
   assert.ok(!removable.some(p => /DROP verdict|verdict DROP/.test(p.may_be_removed_by_decision)));
   const p3 = clone(); const r = p3.planned_prs.find(p => p.audit_classification === 'MANDATORY'); r.may_be_removed_by_decision = 'owner may drop it';
   assert.ok(fails(p3, 'does not state its audit classification'));
-  // the corrections keep the official baseline
-  assert.deepEqual([plan.counts.N, plan.counts.N_min, plan.counts.N_max], [270, 209, 328]);
+  // the official baseline is unchanged; the working plan is a projection with the owner decisions applied
+  const baseline = JSON.parse(readFileSync('docs/governance/master/audit/baseline-270.json', 'utf8')).values;
+  assert.deepEqual([baseline.N, baseline.N_min, baseline.N_max], [270, 209, 328]);
+  assert.deepEqual(plan.baseline_status.official, {N: 270, N_min: 209, N_max: 328, record: 'docs/governance/master/audit/baseline-270.json', status: 'OFFICIAL (owner)'});
+  assert.equal(plan.counts.N, 268);
 });
 
 test('MP-PRCOUNT the Codex audit package manifest matches the files it lists', async () => {
@@ -153,4 +156,35 @@ test('MP-PRCOUNT the Codex audit package manifest matches the files it lists', a
   assert.deepEqual(stored, auditManifest());
   assert.equal(Object.keys(stored.files).length, AUDIT_INPUTS.length);
   assert.ok(Object.values(stored.files).every(h => /^[0-9a-f]{64}$/.test(h)));
+});
+
+test('MP-OWNER-DECISIONS-FINAL DC-002 B and DC-021 B lose no requirement and stay traceable', () => {
+  const MID = 'MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL';
+  const ids = new Set(plan.planned_prs.map(p => p.id));
+  assert.ok(!ids.has('MP-PRP-002') && !ids.has('MP-PRP-021'));
+  const w = Object.fromEntries(plan.withdrawn_by_owner.map(x => [x.id, x]));
+  const p001 = plan.planned_prs.find(p => p.id === 'MP-PRP-001');
+  for (const id of w['MP-PRP-002'].original.requirements) assert.ok(p001.requirements.includes(id), id);
+  for (const c of w['MP-PRP-002'].original.cards) assert.ok(p001.cards.includes(c), c);
+  for (const id of w['MP-PRP-021'].requirements) {
+    const r = reg.requirements.find(x => x.id === id);
+    assert.equal(r.lifecycle, 'SUPERSEDED'); assert.equal(r.owner_decision, MID);
+    assert.equal(r.status.certified, 'NONE');
+  }
+  // a requirement dropped in a merge, or a withdrawal without a registered decision, is refused
+  const p1 = clone(); p1.planned_prs.find(p => p.id === 'MP-PRP-001').requirements.pop();
+  assert.ok(fails(p1, 'lost in the merge') || fails(p1, 'active requirement without coverage'));
+  const p2 = clone(); p2.withdrawn_by_owner[0].decision = 'MP-NOT-REGISTERED';
+  assert.ok(fails(p2, 'unregistered owner decision'));
+  // an existing but unapproved proposal (status OPEN) does not authorize a withdrawal
+  const proposal = JSON.parse(readFileSync('docs/governance/owner-decisions.json', 'utf8')).decisions.find(d => d.status === 'OPEN');
+  assert.ok(proposal, 'the register holds at least one OPEN proposal');
+  const p2b = clone(); p2b.withdrawn_by_owner[0].decision = proposal.id;
+  assert.ok(fails(p2b, 'not an owner authorization in force'));
+  const p3 = clone(); p3.planned_prs.push({...structuredClone(w['MP-PRP-021'].original), requirements: []});
+  assert.ok(fails(p3, 'still in the working plan'));
+  // DC-233 B: the frontend exposure checks are planned in a mandatory PR before the deferred build
+  assert.match(plan.planned_prs.find(p => p.id === 'MP-PRP-042').tests, /no \*\.map served/);
+  // DC-029 A: the TotalCorner OFF safety tests stay mandatory
+  assert.match(plan.planned_prs.find(p => p.id === 'MP-PRP-029').done_when, /off by default/);
 });

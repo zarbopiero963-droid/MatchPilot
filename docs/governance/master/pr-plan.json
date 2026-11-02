@@ -38,7 +38,7 @@
   },
   {
    "id": "MP-PRP-001",
-   "title": "Governance: register MP-PROVIDERS-2026-10-31 and reconcile canonical docs (owner-decisions.json, AGENTS/README cross-references, #3/#12/#20/#97/#104/#182 supersession notes, roadmap table)",
+   "title": "Governance: register MP-PROVIDERS-2026-10-31 and reconcile canonical docs (owner-decisions.json, AGENTS/README cross-references, #3/#12/#20/#97/#104/#182 supersession notes, roadmap table); plus the owner-decision ratification batch of former MP-PRP-002 (scrypt, explicit-source rule, FPT forensic audit KEEP, UI-incremental vs UI-last, perimeter, DEC-001)",
    "domain": "GOV",
    "phase": "P0",
    "kind": "IMPL",
@@ -48,7 +48,10 @@
     "MP-CARD-090",
     "MP-CARD-095",
     "MP-CARD-109",
-    "MP-PR-00:R-00"
+    "MP-PR-00:R-00",
+    "MP-CARD-070",
+    "MP-CARD-083",
+    "MP-CARD-093"
    ],
    "requirements": [
     "MP-REQ-0186",
@@ -66,45 +69,7 @@
     "MP-REQ-0939",
     "MP-REQ-1284",
     "MP-REQ-1085",
-    "MP-REQ-1187"
-   ],
-   "also_touches": [
-    "MP-CARD-070"
-   ],
-   "status_now": "PARTIAL",
-   "depends_on": [
-    "MP-PRP-OPEN-281",
-    "MP-PRP-OPEN-282"
-   ],
-   "priority": "P0",
-   "gate": "MANUAL",
-   "tests": "extend test/governance-docs.test.mjs and test/requirements-inventory.test.mjs: entry MP-PROVIDERS-2026-10-31 present and MP-FPT-PROVISIONAL-DEPRIORITIZATION-20261023 marked SUPERSEDED; no canonical doc keeps FPT-on/TC-paused text; docs/product/mp-263/README.md section 5 roadmap table matches merged PRs; governance:validate green",
-   "hard_real": "n/a: normative documentation only; consistency is machine-checked against the register and the merged PR list",
-   "browser_qa": "n/a",
-   "certification": "none: documentary reconciliation, no component certified",
-   "done_when": "owner-decisions.json carries MP-PROVIDERS-2026-10-31 with supersession links; D3 scope restated with API-FOOTBALL; #182 acceptance bullets reformulated; risks of the 2026-11-02 preflight recorded with owner and rollback; README section 5 reconciled; PR stops before merge (MANUAL: normative docs)",
-   "decision_dependent": false,
-   "decision": null,
-   "split_risk": null,
-   "merge_option": "MP-PRP-002",
-   "may_be_removed_by_decision": null,
-   "source_ids": [
-    "G4:G4-01"
-   ]
-  },
-  {
-   "id": "MP-PRP-002",
-   "title": "Governance: owner-decision ratification batch (perimeter AF/TC, scrypt as robust hash, UI-incremental vs UI-last, open decisions list, owner wording of transcribed decisions, FPT forensic audit status)",
-   "domain": "GOV",
-   "phase": "P0",
-   "kind": "IMPL",
-   "open_pr": null,
-   "cards": [
-    "MP-CARD-070",
-    "MP-CARD-083",
-    "MP-CARD-093"
-   ],
-   "requirements": [
+    "MP-REQ-1187",
     "MP-REQ-0307",
     "MP-REQ-0377",
     "MP-REQ-0843",
@@ -117,24 +82,27 @@
    "also_touches": [],
    "status_now": "PARTIAL",
    "depends_on": [
-    "MP-PRP-001"
+    "MP-PRP-OPEN-281",
+    "MP-PRP-OPEN-282"
    ],
-   "priority": "P1",
+   "priority": "P0",
    "gate": "MANUAL",
-   "tests": "registry validation tests for each new entry (supersession links, scope, date); governance:validate",
-   "hard_real": "n/a: owner decisions, no runtime behaviour",
+   "tests": "extend test/governance-docs.test.mjs and test/requirements-inventory.test.mjs: entry MP-PROVIDERS-2026-10-31 present and MP-FPT-PROVISIONAL-DEPRIORITIZATION-20261023 marked SUPERSEDED; no canonical doc keeps FPT-on/TC-paused text; docs/product/mp-263/README.md section 5 roadmap table matches merged PRs; governance:validate green; registry validation for each ratified entry (supersession links, scope, date, verifiable owner source)",
+   "hard_real": "n/a: normative documentation only; consistency is machine-checked against the register and the merged PR list",
    "browser_qa": "n/a",
-   "certification": "none: decision records",
-   "done_when": "each of the eight points has an explicit owner answer recorded in owner-decisions.json (or is explicitly kept OPEN with owner confirmation); relation CONFLICT_OWNER_DECISION_REQUIRED / UNRESOLVED cleared in the MASTER registry",
-   "decision_dependent": true,
-   "decision": "owner answers needed: (a) UI-incremental (MP-UI-ROADMAP-01 #239) supersedes the UI-last gate of #97 (0843/0899/0893); (b) scrypt accepted as robust hash vs Argon2id (0377); (c) perimeter rule with API-FOOTBALL primary and TC LIVE-only (0307); (d) DEC-001 resolves open point of 0675; (e) wording confirmation N-5 (1139); (f) FPT forensic audit still ACTIVE after retirement (1220)",
+   "certification": "none: documentary reconciliation, no component certified",
+   "done_when": "owner-decisions.json carries MP-PROVIDERS-2026-10-31 with supersession links; D3 scope restated with API-FOOTBALL; #182 acceptance bullets reformulated; risks of the 2026-11-02 preflight recorded with owner and rollback; README section 5 reconciled; PR stops before merge (MANUAL: normative docs); former MP-PRP-002: each of its 8 requirements carries the owner answer recorded in MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL (b scrypt, e EXPLICIT, f KEEP) or an explicit OWNER_DECISION_REQUIRED status when no verifiable owner source exists (EXPLICIT rule), and the CONFLICT_OWNER_DECISION_REQUIRED / UNRESOLVED relations are cleared only where an owner source exists",
+   "decision_dependent": false,
+   "decision": null,
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-002): points a, c, d are closed in substance by MP-UI-D12-DECISIONS-20261024, MP-OWNER-GO-2026-11-01 and DEC-001; points b, e, f need explicit owner records; the PR disappears only if those records are made elsewhere",
+   "may_be_removed_by_decision": null,
    "source_ids": [
-    "G4:G4-02"
+    "G4:G4-01"
    ],
-   "audit_classification": "OWNER DECISION REQUIRED"
+   "absorbed": [
+    "MP-PRP-002 (owner decision MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL, DC-002 option B): owner-decision ratification batch; all 8 requirements (MP-REQ-0307, 0377, 0843, 0899, 0893, 0675, 1139, 1220) and cards MP-CARD-070, 083, 093 moved here; answers already given: (b) scrypt, (e) EXPLICIT source rule, (f) FPT forensic audit KEEP"
+   ]
   },
   {
    "id": "MP-PRP-003",
@@ -1237,44 +1205,6 @@
    ]
   },
   {
-   "id": "MP-PRP-021",
-   "title": "Provider-pair overlap period and first/last season perimeter (AF x frozen FPT archive, AF x TC)",
-   "domain": "A",
-   "phase": "P2",
-   "kind": "IMPL",
-   "open_pr": null,
-   "cards": [
-    "MP-CARD-013",
-    "MP-PR-00:R-08"
-   ],
-   "requirements": [
-    "MP-REQ-0278",
-    "MP-REQ-0360",
-    "MP-REQ-0634"
-   ],
-   "also_touches": [],
-   "status_now": "PARTIAL",
-   "depends_on": [
-    "MP-PRP-020"
-   ],
-   "priority": "P2",
-   "gate": "SAFE",
-   "tests": "unit: overlap = max(starts)..min(ends) per provider pair",
-   "hard_real": "n/a: computed from registry",
-   "browser_qa": "n/a",
-   "certification": "COMPONENT",
-   "done_when": "overlap computed per provider pair from registry for the perimeter the owner restates",
-   "decision_dependent": true,
-   "decision": "Owner restatement of operating perimeter: DEC-003 (OWN-2026-10-06-SCOPE) vs MP-OWNER-GO-2026-11-01",
-   "split_risk": null,
-   "merge_option": null,
-   "may_be_removed_by_decision": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-021): the provider-overlap goal (DEC-003, OWN-2026-10-06-SCOPE) predates MP-OWNER-GO-2026-11-01; it disappears only if the owner drops it or restates the perimeter",
-   "source_ids": [
-    "G1:G1-21"
-   ],
-   "audit_classification": "OWNER DECISION REQUIRED"
-  },
-  {
    "id": "MP-PRP-022",
    "title": "Canonical identity and persistent mapping AF teams/competitions/fixtures with FPT archive and TC",
    "domain": "A",
@@ -1638,7 +1568,7 @@
   },
   {
    "id": "MP-PRP-029",
-   "title": "TotalCorner core (discovery, mapping, prematch, historical) certification on captured data plus OFF negative tests",
+   "title": "TotalCorner OFF safety PR (reduced, DC-029 A): collector-OFF negative tests, no involuntary activation or unauthorized calls, no deletion, no credentials in logs/ledgers, no reactivation after crash or restart; core certification deferred",
    "domain": "A",
    "phase": "P2",
    "kind": "IMPL",
@@ -1674,21 +1604,22 @@
    "depends_on": [],
    "priority": "P2",
    "gate": "SAFE",
-   "tests": "tc-core-* tests on PG17; negative test TOTALCORNER_*_ENABLED defaults off; no retention job",
-   "hard_real": "Real: archive-level checks on captured TC data, no TC call (TC suspended)",
+   "tests": "negative tests on PG17: TOTALCORNER_*_ENABLED default off, restart/crash does not reactivate, no outbound call (stubbed transport), no delete statements, log/ledger token scan; TC-CORE certification deferred",
+   "hard_real": "Real: archive-level checks on captured TC data only (no TC call; TC suspended)",
    "browser_qa": "n/a",
    "certification": "COMPONENT",
-   "done_when": "TC-CORE-01..04 evidenced against captured archive (timezone proof limits stated), negative test proves collectors off by default, no deletion code",
+   "done_when": "negative tests prove TOTALCORNER_* collectors off by default and not reactivated after crash/restart; no TotalCorner call without authorization; historical TC data kept and no deletion code; no credentials in logs and ledgers (0305); TC-CORE-01..04 certification on captured data is DEFERRED (owner decision DC-029 A) and never declared certified",
    "decision_dependent": false,
    "decision": null,
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-029): TotalCorner core certification on captured data; the TotalCorner OFF negative tests are a security control and stay in every scenario",
+   "may_be_removed_by_decision": null,
    "source_ids": [
     "G1:G1-29"
    ],
    "note": "certification PR that also closes 2 requirement(s) not fully implemented on main: MP-REQ-1158, MP-REQ-1176",
-   "audit_classification": "OWNER DECISION REQUIRED"
+   "audit_classification": "MANDATORY (owner DC-029 A)",
+   "owner_decision": "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL DC-029 option A (kept, reduced; TotalCorner stays OFF)"
   },
   {
    "id": "MP-PRP-030",
@@ -2250,11 +2181,11 @@
    "depends_on": [],
    "priority": "P1",
    "gate": "MANUAL",
-   "tests": "unit: sanitizer, headers HSTS/CSP/Permissions-Policy app-wide, per-user/IP limiter, /api/fpt and /api/tc exposure",
+   "tests": "unit: sanitizer, headers HSTS/CSP/Permissions-Policy app-wide, per-user/IP limiter, /api/fpt and /api/tc exposure; frontend exposure checks reassigned from MP-PRP-233 (owner DC-233 B): no *.map served and no sourceMappingURL in served assets, no secrets or sensitive data in served static files, no unauthorized debug output (console/debug endpoints) in production mode",
    "hard_real": "Real: header inspection and log scan on running instance (VPS)",
    "browser_qa": "n/a",
    "certification": "COMPONENT",
-   "done_when": "one shared sanitizer for api_key/token/bearer; app-wide security headers; limiter beyond login; legacy /api/fpt and /api/tc routes gated; env-only owner credentials proven",
+   "done_when": "one shared sanitizer for api_key/token/bearer; app-wide security headers; limiter beyond login; legacy /api/fpt and /api/tc routes gated; env-only owner credentials proven; served frontend has no source maps, no sensitive data and no debug output (negative tests, reassigned from MP-PRP-233)",
    "decision_dependent": false,
    "decision": null,
    "split_risk": null,
@@ -3832,7 +3763,7 @@
   },
   {
    "id": "MP-PRP-082",
-   "title": "GOAT benchmark on certified data and engine (#27)",
+   "title": "GOAT benchmark (#27) re-based on API-FOOTBALL and the frozen historical archive: GOOD TRADE / BAD TRADE / NO TRADE / UNVERIFIED",
    "domain": "E",
    "phase": "P4",
    "kind": "IMPL",
@@ -3851,24 +3782,27 @@
    "status_now": "NOT_STARTED",
    "depends_on": [
     "MP-PRP-071",
-    "MP-PRP-079"
+    "MP-PRP-073",
+    "MP-PRP-079",
+    "MP-PRP-094"
    ],
    "priority": "P3",
    "gate": "MANUAL",
-   "tests": "unit tests: ex-ante trading decision quality as primary metric, benchmark table with GOOD TRADE / BAD TRADE / NO TRADE verdicts, certification gates",
+   "tests": "unit + reproducibility tests: ex-ante decision quality as primary metric; verdicts GOOD TRADE / BAD TRADE / NO TRADE / UNVERIFIED; no temporal contamination (PIT); simulation separated from real results; explicit UNVERIFIED on insufficient data; results traced to code SHA and dataset checksum",
    "hard_real": "benchmark on certified data: depends on certified provider data",
    "browser_qa": "n/a",
    "certification": "INTEGRATION",
-   "done_when": "benchmark table produced reproducibly on certified data with the anti-betting rule",
-   "decision_dependent": true,
-   "decision": "owner decision on MP-PROVIDERS-2026-10-31 conflict: stays an FPT + TotalCorner benchmark or is re-based on API-FOOTBALL (MP-REQ-0417 relation_ref)",
+   "done_when": "benchmark table reproducible on API-FOOTBALL data and the frozen archive, traced to code versions and datasets; no quality claim without the benchmark; runs only after replay, backtest and trading engine",
+   "decision_dependent": false,
+   "decision": null,
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-082): the #27 GOAT benchmark was defined on FPT+TC; with API-FOOTBALL primary (MP-OWNER-GO-2026-11-01) it must be re-based or dropped by the owner; MP-PROVIDERS-2026-10-31 is cited in issue comments but is not in owner-decisions.json",
+   "may_be_removed_by_decision": null,
    "source_ids": [
     "G2:G2-21"
    ],
-   "audit_classification": "OWNER DECISION REQUIRED"
+   "audit_classification": "MANDATORY (owner DC-082 A)",
+   "owner_decision": "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL DC-082 option A (kept, re-based on API-FOOTBALL)"
   },
   {
    "id": "MP-PRP-083",
@@ -6399,7 +6333,7 @@
    "depends_on": [],
    "priority": "P1",
    "gate": "SAFE",
-   "tests": "Unit tests for new view helpers; Playwright browser QA in real Chrome with real clicks/typing (journeys assert on-screen values equal the API) on desktop, tablet 820 and mobile; visual baselines; accessibility and console-error checks; control-inventory entries ASSERTED; mock update answered YES (docs/mockups/matchpilot-trading-os.html + README)",
+   "tests": "Unit tests for new view helpers; Playwright browser QA in real Chrome with real clicks/typing (journeys assert on-screen values equal the API) on desktop, tablet 820 and mobile; visual baselines; accessibility and console-error checks; control-inventory entries ASSERTED; mock update answered YES (docs/mockups/matchpilot-trading-os.html + README); responsive, regression and frontend-security journeys kept mandatory independently of the deferred build (owner DC-233 B)",
    "hard_real": "n/a: browser/QA tooling certified on seeded deterministic data by owner rule (MP-OWNER-BROWSER-QA-HARD-GATE-01); no real provider involved",
    "browser_qa": "yes: every route/page/state/control in docs/qa/control-inventory.json has an ASSERTED journey step or an explicit reason; keyboard/label/role/foc",
    "certification": "COMPONENT",
@@ -10297,19 +10231,19 @@
    "hard_real": "n/a: build tooling; Browser QA on the built output",
    "browser_qa": "yes: required journeys run on the changed workflow",
    "certification": "none: build tooling",
-   "done_when": "build step for src/web with no public source maps and stripped debug, or recorded decision that the unbundled static frontend stays; Browser QA runs on the built artifact",
-   "decision_dependent": true,
-   "decision": "owner decision whether a build step is wanted at all (frontend is unbundled static files, no build step; comment 6012401944: pre-release hardening phase)",
+   "done_when": "at the pre-release hardening phase: build step for src/web with no public source maps and stripped debug, Browser QA on the built artifact; the security checks (no source maps served, no sensitive data, no debug output) are already enforced by MP-PRP-042 and MP-PRP-147 before that",
+   "decision_dependent": false,
+   "decision": null,
    "split_risk": null,
    "merge_option": null,
-   "may_be_removed_by_decision": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-233): build step for the frontend; if the owner keeps the unbundled frontend, the no-source-map and no-debug checks move to MP-PRP-240 and stay mandatory",
-   "blocked_by": "owner decision whether a build step is wanted at all (frontend is unbundled static files, no build step; comment 6012401944: pre-release hardening phase)",
+   "may_be_removed_by_decision": null,
    "gate_reason": "build/deploy pipeline and CI change",
    "ui_rows": [],
    "source_ids": [
     "G5:G5-96"
    ],
-   "audit_classification": "OWNER DECISION REQUIRED"
+   "audit_classification": "DEFERRED TO PRE-RELEASE HARDENING (owner DC-233 B)",
+   "owner_decision": "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL DC-233 option B (build deferred to pre-release hardening; no bundler now)"
   },
   {
    "id": "MP-PRP-234",
@@ -12838,7 +12772,7 @@
   {
    "card": "MP-CARD-070",
    "disposition": "PARTIAL",
-   "planned_pr": "MP-PRP-002",
+   "planned_pr": "MP-PRP-001",
    "ref": "0904 -> GOVREC; owner confirmation on UI-incremental vs UI-last",
    "evidence": "2 reqs (2 owned, 0 COMPLETED); registry state IMPLEMENTING; code_paths/tests of owned reqs ls-checked at 1aebd02 (all present)",
    "group": "G4"
@@ -12894,7 +12828,7 @@
   {
    "card": "MP-CARD-083",
    "disposition": "NOT_STARTED",
-   "planned_pr": "MP-PRP-002",
+   "planned_pr": "MP-PRP-001",
    "ref": "owner wording confirmation of 7 transcribed decisions",
    "evidence": "1 reqs (1 owned, 0 COMPLETED); registry state NOT STARTED; code_paths/tests of owned reqs ls-checked at 1aebd02 (all present)",
    "group": "G4"
@@ -12926,7 +12860,7 @@
   {
    "card": "MP-CARD-093",
    "disposition": "NOT_STARTED",
-   "planned_pr": "MP-PRP-002",
+   "planned_pr": "MP-PRP-001",
    "ref": "owner to confirm whether the FPT forensic audit stays active after retirement",
    "evidence": "1 reqs (1 owned, 0 COMPLETED); registry state NOT STARTED; code_paths/tests of owned reqs ls-checked at 1aebd02 (all present)",
    "group": "G4"
@@ -15001,20 +14935,20 @@
   "C_superseded": 12,
   "D_duplicate": 23,
   "carried_cards": 340,
-  "E_absorbed": 139,
-  "S_split_out": 69,
+  "E_absorbed": 140,
+  "S_split_out": 68,
   "F_open_prs": 8,
-  "G_new_prs": 262,
-  "H_total_prs": 270,
+  "G_new_prs": 260,
+  "H_total_prs": 268,
   "I_certification_only": 4,
   "I2_certification_led_closing_gaps": 42,
-  "J_decision_dependent": 84,
-  "N": 270,
-  "N_min": 209,
-  "N_max": 328,
+  "J_decision_dependent": 80,
+  "N": 268,
+  "N_min": 212,
+  "N_max": 326,
   "uncertainty": {
    "merge_pairs": 34,
-   "removable_by_decision": 27,
+   "removable_by_decision": 22,
    "split_risks": 58
   },
   "by_disposition": {
@@ -15029,14 +14963,14 @@
    "BLOCKED": 60
   },
   "by_kind": {
-   "IMPL": 258,
+   "IMPL": 256,
    "CERT": 4,
    "OPEN": 8
   },
   "by_phase": {
-   "P0": 9,
+   "P0": 8,
    "P1": 7,
-   "P2": 38,
+   "P2": 37,
    "P3": 19,
    "P4": 20,
    "P5": 32,
@@ -15047,8 +14981,8 @@
    "P10": 2
   },
   "requirements": {
-   "active": 1173,
-   "covered_by_pr": 1140,
+   "active": 1170,
+   "covered_by_pr": 1137,
    "completed_with_evidence": 33,
    "uncovered": []
   }
@@ -15066,6 +15000,167 @@
     "https://github.com/zarbopiero963-droid/MatchPilot/issues/288#issuecomment-6583390410",
     "docs/governance/master/audit/producer-analysis.json"
    ]
+  },
+  {
+   "date": "2026-11-02",
+   "mandate": "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+   "changes": [
+    "DC-002 B: MP-PRP-002 merged into MP-PRP-001 (8 requirements and 3 cards moved; 001+002 merge pair no longer counted)",
+    "DC-021 B: MP-PRP-021 withdrawn from the working plan; MP-REQ-0278, 0360, 0634 lifecycle SUPERSEDED by the owner decision (kept in history, never implemented/tested/certified); recorded in withdrawn_by_owner",
+    "DC-029 A: MP-PRP-029 reduced to the TotalCorner OFF safety tests; core certification deferred",
+    "DC-082 A: MP-PRP-082 re-based on API-FOOTBALL, depends on trading engine PRs 094 and 073",
+    "DC-233 B: MP-PRP-233 deferred to pre-release hardening; source-map/sensitive-data/debug checks reassigned to MP-PRP-042, responsive/regression/frontend-security journeys kept in MP-PRP-147",
+    "official baseline unchanged: 270 (209-328) in audit/baseline-270.json; the working plan count is a projection, not an approved baseline"
+   ],
+   "sources": [
+    "docs/governance/owner-decisions.json#MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+    "https://github.com/zarbopiero963-droid/MatchPilot/issues/288"
+   ]
   }
- ]
+ ],
+ "withdrawn_by_owner": [
+  {
+   "id": "MP-PRP-021",
+   "title": "Provider-pair overlap period and first/last season perimeter (AF x frozen FPT archive, AF x TC)",
+   "decision": "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+   "card": "DC-021 option B",
+   "requirements": [
+    "MP-REQ-0278",
+    "MP-REQ-0360",
+    "MP-REQ-0634"
+   ],
+   "cards": [
+    "MP-CARD-013",
+    "MP-PR-00:R-08"
+   ],
+   "reason": "the owner no longer requires the provider-overlap computation as a standalone roadmap goal; requirements kept in history with lifecycle SUPERSEDED (never implemented, tested or certified); TotalCorner not reactivated",
+   "controls_kept": "temporal-integrity and provenance controls of replay, PIT and backtest are not part of 021 and stay with their own PRs (MP-PRP-071 no-leakage proof, MP-PRP-079 replay/backtest certification, PIT policy PRs); no safety or correctness control depended on 021",
+   "original": {
+    "id": "MP-PRP-021",
+    "title": "Provider-pair overlap period and first/last season perimeter (AF x frozen FPT archive, AF x TC)",
+    "domain": "A",
+    "phase": "P2",
+    "kind": "IMPL",
+    "open_pr": null,
+    "cards": [
+     "MP-CARD-013",
+     "MP-PR-00:R-08"
+    ],
+    "requirements": [
+     "MP-REQ-0278",
+     "MP-REQ-0360",
+     "MP-REQ-0634"
+    ],
+    "also_touches": [],
+    "status_now": "PARTIAL",
+    "depends_on": [
+     "MP-PRP-020"
+    ],
+    "priority": "P2",
+    "gate": "SAFE",
+    "tests": "unit: overlap = max(starts)..min(ends) per provider pair",
+    "hard_real": "n/a: computed from registry",
+    "browser_qa": "n/a",
+    "certification": "COMPONENT",
+    "done_when": "overlap computed per provider pair from registry for the perimeter the owner restates",
+    "decision_dependent": true,
+    "decision": "Owner restatement of operating perimeter: DEC-003 (OWN-2026-10-06-SCOPE) vs MP-OWNER-GO-2026-11-01",
+    "split_risk": null,
+    "merge_option": null,
+    "may_be_removed_by_decision": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-021): the provider-overlap goal (DEC-003, OWN-2026-10-06-SCOPE) predates MP-OWNER-GO-2026-11-01; it disappears only if the owner drops it or restates the perimeter",
+    "source_ids": [
+     "G1:G1-21"
+    ],
+    "audit_classification": "OWNER DECISION REQUIRED"
+   }
+  },
+  {
+   "id": "MP-PRP-002",
+   "title": "Governance: owner-decision ratification batch (perimeter AF/TC, scrypt as robust hash, UI-incremental vs UI-last, open decisions list, owner wording of transcribed decisions, FPT forensic audit status)",
+   "decision": "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+   "card": "DC-002 option B",
+   "merged_into": "MP-PRP-001",
+   "requirements": [
+    "MP-REQ-0307",
+    "MP-REQ-0377",
+    "MP-REQ-0843",
+    "MP-REQ-0899",
+    "MP-REQ-0893",
+    "MP-REQ-0675",
+    "MP-REQ-1139",
+    "MP-REQ-1220"
+   ],
+   "cards": [
+    "MP-CARD-070",
+    "MP-CARD-083",
+    "MP-CARD-093"
+   ],
+   "reason": "merged into MP-PRP-001 by owner decision; every requirement and card moved to MP-PRP-001",
+   "original": {
+    "id": "MP-PRP-002",
+    "title": "Governance: owner-decision ratification batch (perimeter AF/TC, scrypt as robust hash, UI-incremental vs UI-last, open decisions list, owner wording of transcribed decisions, FPT forensic audit status)",
+    "domain": "GOV",
+    "phase": "P0",
+    "kind": "IMPL",
+    "open_pr": null,
+    "cards": [
+     "MP-CARD-070",
+     "MP-CARD-083",
+     "MP-CARD-093"
+    ],
+    "requirements": [
+     "MP-REQ-0307",
+     "MP-REQ-0377",
+     "MP-REQ-0843",
+     "MP-REQ-0899",
+     "MP-REQ-0893",
+     "MP-REQ-0675",
+     "MP-REQ-1139",
+     "MP-REQ-1220"
+    ],
+    "also_touches": [],
+    "status_now": "PARTIAL",
+    "depends_on": [
+     "MP-PRP-001"
+    ],
+    "priority": "P1",
+    "gate": "MANUAL",
+    "tests": "registry validation tests for each new entry (supersession links, scope, date); governance:validate",
+    "hard_real": "n/a: owner decisions, no runtime behaviour",
+    "browser_qa": "n/a",
+    "certification": "none: decision records",
+    "done_when": "each of the eight points has an explicit owner answer recorded in owner-decisions.json (or is explicitly kept OPEN with owner confirmation); relation CONFLICT_OWNER_DECISION_REQUIRED / UNRESOLVED cleared in the MASTER registry",
+    "decision_dependent": true,
+    "decision": "owner answers needed: (a) UI-incremental (MP-UI-ROADMAP-01 #239) supersedes the UI-last gate of #97 (0843/0899/0893); (b) scrypt accepted as robust hash vs Argon2id (0377); (c) perimeter rule with API-FOOTBALL primary and TC LIVE-only (0307); (d) DEC-001 resolves open point of 0675; (e) wording confirmation N-5 (1139); (f) FPT forensic audit still ACTIVE after retirement (1220)",
+    "split_risk": null,
+    "merge_option": null,
+    "may_be_removed_by_decision": "OWNER DECISION REQUIRED (audit 2026-11-02, decision card DC-002): points a, c, d are closed in substance by MP-UI-D12-DECISIONS-20261024, MP-OWNER-GO-2026-11-01 and DEC-001; points b, e, f need explicit owner records; the PR disappears only if those records are made elsewhere",
+    "source_ids": [
+     "G4:G4-02"
+    ],
+    "audit_classification": "OWNER DECISION REQUIRED"
+   }
+  }
+ ],
+ "baseline_status": {
+  "official": {
+   "N": 270,
+   "N_min": 209,
+   "N_max": 328,
+   "record": "docs/governance/master/audit/baseline-270.json",
+   "status": "OFFICIAL (owner)"
+  },
+  "candidate": {
+   "N": 282,
+   "N_min": 249,
+   "N_max": 302,
+   "status": "CANDIDATE, NOT APPROVED"
+  },
+  "working_plan": {
+   "status": "PROJECTION WITH OWNER DECISIONS APPLIED, NOT AN APPROVED BASELINE",
+   "decision": "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL",
+   "delta_vs_official": -2,
+   "candidate_projection": 280
+  }
+ }
 }
