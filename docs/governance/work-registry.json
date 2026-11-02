@@ -2365,7 +2365,7 @@
       "id": "MP-NEXT-DOCS-01",
       "title": "Documenti per l owner: budget API, piano dismissione FPT, criteri TotalCorner, preflight VPS, pacchetto autorizzazione (SAFE)",
       "issue": 263,
-      "pr": null,
+      "pr": 284,
       "branch": "mp-docs-next-20261102",
       "kind": "audit",
       "state": "REVIEW",
@@ -2382,7 +2382,7 @@
         "agent": "agent-a-claude-code",
         "role": "Development Agent"
       },
-      "pr_open": false
+      "pr_open": true
     }
   ]
 }
