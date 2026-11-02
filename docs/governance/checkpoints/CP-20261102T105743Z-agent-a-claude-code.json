@@ -1,0 +1,119 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T105743Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T10:57:43Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-NEXT-20261102",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-NEXT-DOCS-01",
+  "activity": "docs-only package for owner decisions, nothing activated",
+  "issue": 263,
+  "pr": null,
+  "branch": "mp-docs-next-20261102",
+  "commit_sha": "9008d9fcc6abade8bccc05948419d9e68c2ed9ec",
+  "tree_sha": "82a17eef7ede37a582082388e5a2151c2090e605",
+  "base_sha": "7a959e7b00279bf281194c6d404c0c394fa047b4",
+  "requirements": [],
+  "changes": [
+    "docs/product/mp-263/api-budget-proposal.md",
+    "docs/product/mp-263/fpt-decommission-plan.md",
+    "docs/product/mp-263/totalcorner-benchmark-criteria.md",
+    "docs/product/mp-263/vps-preflight-2026-11-02.md",
+    "docs/product/mp-263/production-authorization-package.md"
+  ],
+  "tests": [
+    {
+      "command": "node tools/governance/cli.mjs validate; check-append-only",
+      "result": "PASS",
+      "environment": "Claude Code cloud container",
+      "commit": "9008d9fcc6abade8bccc05948419d9e68c2ed9ec",
+      "time": "2026-11-02T10:57:43Z",
+      "limits": [
+        "docs only, no code"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "9008d9fcc6abade8bccc05948419d9e68c2ed9ec"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "APPROVED",
+    "reviewed_sha": "615d8d24b73c421f5f3e69781342eca61e0ec6d8",
+    "reference": "independent review (Sonnet subagent, a different model) CHANGES REQUESTED at e369dad (B1: #277 in production unverified), APPROVED at 615d8d2; wording nit after review"
+  },
+  "findings": [
+    {
+      "id": "DOCS-B1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "#277 stated as in production: now NOT verified, deploys refused, preflight check 15 added"
+    },
+    {
+      "id": "DOCS-N1-N4",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "runnable check 12, cited run only, links to MANUAL PR files noted, clustering caveat"
+    }
+  ],
+  "owner_decisions": [
+    "MP-NEXT-20261102",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "documents",
+      "independent review"
+    ],
+    "in_progress": [
+      "CI"
+    ],
+    "not_started": [
+      "SAFE merge"
+    ]
+  },
+  "resources": [
+    "file:docs/product/mp-263/api-budget-proposal.md",
+    "file:docs/product/mp-263/fpt-decommission-plan.md",
+    "file:docs/product/mp-263/totalcorner-benchmark-criteria.md",
+    "file:docs/product/mp-263/vps-preflight-2026-11-02.md",
+    "file:docs/product/mp-263/production-authorization-package.md"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI; SAFE: merge with expectedHeadSha when CI is green",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": null
+}
