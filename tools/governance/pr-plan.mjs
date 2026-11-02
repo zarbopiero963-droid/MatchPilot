@@ -106,6 +106,8 @@ export function planValidate(reg, plan, {uiIds = null} = {}) {
     for (const k of ['split_risk', 'may_be_removed_by_decision', 'decision']) if (typeof p[k] === 'string' && /^\s*(none|n\/a|null)\b/i.test(p[k])) errors.push(`${p.id}: ${k} is not a reason: ${p[k]}`);
     for (const d of p.depends_on ?? []) if (!prIds.has(d)) errors.push(`${p.id}: unknown dependency ${d}`);
     if (p.merge_option && !prIds.has(p.merge_option)) errors.push(`${p.id}: merge option ${p.merge_option} unknown`);
+    const other = plan.planned_prs.find(x => x.id === p.merge_option);
+    if (other && other.gate !== p.gate) errors.push(`${p.id}: merge option ${p.merge_option} mixes SAFE and MANUAL`);
     if (p.split_extra !== undefined && (!p.split_risk || !Number.isInteger(p.split_extra) || p.split_extra < 1)) errors.push(`${p.id}: split_extra without a split risk`);
     for (const c of p.cards) if (!cardIds.has(c)) errors.push(`${p.id}: unknown card ${c}`);
     // A PR with no requirement of its own (a backend prerequisite or a certification record) names what it serves.
@@ -131,6 +133,8 @@ export function planValidate(reg, plan, {uiIds = null} = {}) {
   }
   for (const c of plan.card_dispositions) if (c.disposition === 'COMPLETED') {
     const card = reg.cards.find(x => x.id === c.card);
+    const activeReqs = (card?.requirements ?? []).filter(id => req.get(id)?.lifecycle === 'ACTIVE');
+    if (!activeReqs.length && !/^docs\/qa\/feature-certification\.json#FEAT-/.test(c.ref ?? '')) errors.push(`${c.card}: COMPLETED with no requirement needs a registered certificate as its reference`);
     for (const id of card?.requirements ?? []) if (req.get(id)?.lifecycle === 'ACTIVE' && !completed.has(id)) errors.push(`${c.card}: COMPLETED but ${id} is not completed`);
   }
   // Totals reconcile and match the stored counts.

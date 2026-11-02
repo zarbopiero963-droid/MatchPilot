@@ -30,11 +30,11 @@
   ],
   "method": "estrazione atomica da corpo e commenti di tutte le 48 issue (6 lotti), confronto con il codice di main al base sha; le PR aperte sono tenute distinte; nessuna chiamata ai provider",
   "pr_plan": {
-    "N": 284,
-    "N_min": 219,
-    "N_max": 347,
+    "N": 270,
+    "N_min": 209,
+    "N_max": 328,
     "F_open_prs": 8,
-    "G_new_prs": 276,
-    "I_certification_only": 6
+    "G_new_prs": 262,
+    "I_certification_only": 4
   }
 }

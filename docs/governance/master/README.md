@@ -157,6 +157,22 @@ Ogni altro requisito attivo è coperto da esattamente una PR residua.
 - `Nmax = N + rischi di scissione`.
 
 Ogni unità dell'intervallo è legata a una PR nominata nel campo `split_risk`, `merge_option` o `may_be_removed_by_decision`.
+- Un'opzione di accorpamento fra una PR SAFE e una MANUAL è rifiutata.
+- Una PR assorbita da un'altra non porta un rischio di scissione inventato: eredita solo quello dichiarato.
+
+**Limiti dichiarati.**
+- **Le identità sui conteggi sono contabili.** `H = schede portate − E + S` vale per costruzione. I controlli sostanziali sono altri:
+  - ogni requisito attivo è coperto esattamente una volta;
+  - ogni scheda è collegata alla sua PR nei due sensi;
+  - nessuna PR è duplicata;
+  - nessun completamento è senza base.
+- **L'intervallo copre solo l'incertezza dichiarata** su PR nominate. Non comprende:
+  - il lavoro di correzione dopo un hard test o una certificazione falliti;
+  - le PR che una decisione owner potrebbe aggiungere: 84 PR dipendono da una decisione o da un GO;
+  - la scissione o il rifiuto delle 8 PR aperte;
+  - lo sblocco delle 60 schede BLOCKED.
+- **La base `RULE_ENFORCED_BY_TEST` non dimostra il contenuto del test.** Il verificatore controlla che il test citato esista e appartenga al requisito; che il test asserisca davvero la regola si verifica in review.
+- **Gli accorpamenti fra gruppi sono registrati in `absorbed` delle PR riceventi**: 5 dalla riconciliazione, 14 dalla review indipendente del conteggio. Si tratta di lavoro pianificato due volte, non di riduzioni arbitrarie.
 
 **Tracciabilità di una PR senza requisiti propri** (prerequisiti backend, record di certificazione, gate finali): `serves` elenca i requisiti serviti oppure `ui_requirements` le righe `MP-REQ-UI` della matrice UI. Una PR senza nessuno dei due è rifiutata.
 
