@@ -1,0 +1,208 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [
+    "PR #282 (migration 031, merged into this branch: af_request_ledger, af_odds_snapshots, mp_af_append_only)",
+    "PR #283 (base branch mp-prematch-collector-02)"
+  ],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T231557Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T23:15:57Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "source": "owner mandate registered on main by PR #295 (70ee74b), merged into this branch through origin/mp-prematch-collector-02 578bfb7 (git merge, no rebase)"
+  },
+  "task": "MP-AF-RAW-01",
+  "activity": "PR #297: Codex P2 findings 4448788063 (dedupe lookup in a later statement) and 4448788049 (recovery pages forward) fixed in 2601822, RED then GREEN on PG17/PG18, threads answered and resolved, new Codex review requested; origin/main c6b3b2e merged (PR #301: parallel_tasks on MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01); parallel_authorization set on MP-AF-RAW-01, MP-ODDS-MIG-01, MP-AF-COLLECT-01; requirements MP-REQ-1308, MP-REQ-0209, MP-REQ-0219, MP-REQ-0074, MP-REQ-0063, MP-REQ-0201 (MASTER #288 register)",
+  "issue": 263,
+  "pr": 297,
+  "branch": "mp-af-raw-responses-01",
+  "commit_sha": "2601822b44de2904541db2db667670806af21905",
+  "tree_sha": "5f9b823d6ef62e06e484f582ef836c605b017ce1",
+  "base_sha": "578bfb764d930f5a434ab74e6245ac05362fd7f3",
+  "requirements": [],
+  "changes": [
+    "migrations/033-apifootball-raw-responses.sql (new, MANUAL)",
+    "db/rollback/033-apifootball-raw-responses.down.sql (new)",
+    "src/providers/apifootball/client.mjs (exact body bytes, raw record, request_id)",
+    "src/providers/apifootball/store.mjs (saveRawResponse, recoverRawOdds, raw_id)",
+    "src/providers/apifootball/odds-snapshots.mjs (raw_id)",
+    "src/providers/apifootball/prematch-collector.mjs (raw_id required, provider_error raw)",
+    "test/apifootball-raw-responses.test.mjs, test/helpers/apifootball-raw.mjs (new); 031, collector and independence tests adapted",
+    "docs/product/mp-263/evidence/af-raw-responses.md, af-raw-backup-restore.sh, af-raw-backup-seed.mjs (new); prematch-collector.md, README.md"
+  ],
+  "tests": [
+    {
+      "command": "node --test test/apifootball-raw-responses.test.mjs (RED test) on 58185f9 (#283 head 7f0bc4b + 031)",
+      "result": "FAIL",
+      "environment": "local Node 22, no database needed",
+      "commit": "58185f99168ee436a057c47d4c99d741275c4106",
+      "time": "2026-11-02T22:25:00Z",
+      "limits": [
+        "expected RED: 'the client result carries the raw answer'"
+      ]
+    },
+    {
+      "command": "FUTPYTHON_TEST_DATABASE_URL=...127.0.0.1:5452 node --test test/apifootball-raw-responses.test.mjs",
+      "result": "PASS",
+      "environment": "throwaway docker postgres:17 (17.11)",
+      "commit": "dfb4a520defa8863a44549e50b97c112c660ac65",
+      "time": "2026-11-02T22:46:00Z",
+      "limits": [
+        "11/11; fake fetch only",
+        "code identical at 2207be0 (later commits are merges of parent branches and docs)"
+      ]
+    },
+    {
+      "command": "FUTPYTHON_TEST_DATABASE_URL=...127.0.0.1:5453 node --test test/apifootball-raw-responses.test.mjs",
+      "result": "PASS",
+      "environment": "throwaway docker mirror.gcr.io/library/postgres:18 (18.6)",
+      "commit": "dfb4a520defa8863a44549e50b97c112c660ac65",
+      "time": "2026-11-02T22:47:00Z",
+      "limits": [
+        "11/11; fake fetch only"
+      ]
+    },
+    {
+      "command": "node --test test/apifootball-raw-responses.test.mjs test/apifootball-odds-snapshots.test.mjs test/apifootball-prematch-collector.test.mjs (PG17 and PG18)",
+      "result": "PASS",
+      "environment": "throwaway docker postgres 17.11 and 18.6",
+      "commit": "c2c81f721b585fdb7f01581832b34532716f0f89",
+      "time": "2026-11-02T22:35:00Z",
+      "limits": [
+        "22/22 on each"
+      ]
+    },
+    {
+      "command": "bash docs/product/mp-263/evidence/af-raw-backup-restore.sh mpraw17 5452 / mpraw18 5453",
+      "result": "PASS",
+      "environment": "pg_dump/pg_restore 17.11 and 18.6 inside the containers",
+      "commit": "dfb4a520defa8863a44549e50b97c112c660ac65",
+      "time": "2026-11-02T22:50:00Z",
+      "limits": [
+        "IDENTICAL counts, sha, body md5, NOT VALID constraints, triggers"
+      ]
+    },
+    {
+      "command": "npm run check",
+      "result": "PASS",
+      "environment": "local Node 22",
+      "commit": "dfb4a520defa8863a44549e50b97c112c660ac65",
+      "time": "2026-11-02T22:48:00Z",
+      "limits": []
+    },
+    {
+      "command": "FUTPYTHON_TEST_DATABASE_URL=...127.0.0.1:5452 / 5453 node --test test/apifootball-raw-responses.test.mjs (with the Codex P2 regression tests)",
+      "result": "PASS",
+      "environment": "throwaway docker postgres 17.11 and 18.6",
+      "commit": "2601822b44de2904541db2db667670806af21905",
+      "time": "2026-11-02T23:15:57Z",
+      "limits": [
+        "11/11 on each; both new assertions RED on the previous store.mjs"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "2601822b44de2904541db2db667670806af21905"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "Codex code review requested on PR #297 at 2601822"
+  },
+  "findings": [
+    {
+      "id": "CODEX-P2-4448788063",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "concurrent dedupe lookup: fixed in 2601822"
+    },
+    {
+      "id": "CODEX-P2-4448788049",
+      "severity": "NON_BLOCKING",
+      "status": "RESOLVED",
+      "summary": "recovery stuck behind answers without snapshots: fixed in 2601822"
+    },
+    {
+      "id": "GOV-STACK-01",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "more than one active implementation task: resolved by owner parallel_tasks (PR #301, c6b3b2e) and parallel_authorization in the registry"
+    },
+    {
+      "id": "P1-283-4443372780",
+      "severity": "BLOCKING",
+      "status": "OPEN",
+      "summary": "P1 of PR #283: fix prepared in #297, stays OPEN/BLOCKING until integrated into #283 and tested there"
+    }
+  ],
+  "owner_decisions": [
+    "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "MP-OWNER-DECISIONS-ROADMAP-RELEASE-20261102-FINAL"
+  ],
+  "progress": {
+    "done": [
+      "analysis",
+      "RED test",
+      "migration 033 and rollback",
+      "implementation",
+      "PG17/PG18 tests",
+      "backup/restore",
+      "evidence",
+      "PR opened"
+    ],
+    "in_progress": [
+      "CI",
+      "Codex review"
+    ],
+    "not_started": [
+      "integration into #283",
+      "owner GO"
+    ]
+  },
+  "resources": [
+    "file:migrations/033-apifootball-raw-responses.sql",
+    "file:db/rollback/033-apifootball-raw-responses.down.sql",
+    "file:test/apifootball-raw-responses.test.mjs"
+  ],
+  "stop_conditions": [
+    "no merge (MANUAL)",
+    "no migration outside throwaway containers",
+    "no deploy",
+    "collector and scheduler off",
+    "no provider call",
+    "no real credentials",
+    "no spending"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI and Codex review on the new head; owner GO for MANUAL merge into #283",
+  "resume_conditions": [
+    "review findings addressed",
+    "owner GO"
+  ],
+  "supersedes": "CP-20261102T225449Z-agent-a-claude-code"
+}

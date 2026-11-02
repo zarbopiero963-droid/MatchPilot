@@ -1,0 +1,112 @@
+{
+  "schema_version": "mp-checkpoint-v3",
+  "agent": {
+    "id": "agent-a-claude-code",
+    "role": "Development Agent",
+    "session": "https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd"
+  },
+  "repository": "zarbopiero963-droid/MatchPilot",
+  "worktree": {
+    "clean": true
+  },
+  "external_commands": [],
+  "artifacts": [],
+  "costs": {
+    "incurred": "none",
+    "authorized": "none"
+  },
+  "vps": null,
+  "dependencies": [],
+  "handoff": {
+    "status": "NONE",
+    "from": null,
+    "to": null,
+    "responsibilities": []
+  },
+  "id": "CP-20261102T230917Z-agent-a-claude-code",
+  "timestamp_utc": "2026-11-02T23:09:17Z",
+  "authorizations": [],
+  "mandate": {
+    "id": "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "source": "owner message to Claude Code, 2026-11-02 (session https://claude.ai/code/session_01YSsco5dhGuxe1dM8ET2yyd)"
+  },
+  "task": "MP-OWNER-DEC-MIG-02",
+  "activity": "MP-OWNER-DEC-MIG-02: parallel_tasks named on the migration mandate; re-opened on a clean branch after PR #299 (append-only check: a checkpoint was rewritten there); review pending",
+  "issue": 288,
+  "pr": null,
+  "branch": "mp-owner-dec-mig-03",
+  "commit_sha": "426b410ec4e7f9d5bff82ec796f0ee830d75ab16",
+  "tree_sha": "0288b293f29783df9f10ce0fcbb376a0b5904d97",
+  "base_sha": "70ee74b31004983fa4060bb1f4daabe30386c036",
+  "requirements": [],
+  "changes": [
+    "docs/governance/owner-decisions.json (parallel_tasks on the mandate entry)",
+    "docs/governance/checkpoints/CP-20261102T230845Z-agent-a-claude-code.json (MERGED #295, head as self-review)"
+  ],
+  "tests": [
+    {
+      "command": "governance validate, drift, check-append-only",
+      "result": "PASS",
+      "environment": "Claude Code cloud container, Node 22",
+      "commit": "426b410ec4e7f9d5bff82ec796f0ee830d75ab16",
+      "time": "2026-11-02T23:09:17Z",
+      "limits": [
+        "register annotation only"
+      ]
+    }
+  ],
+  "ci": {
+    "run_id": null,
+    "conclusion": "PENDING",
+    "head_sha": "426b410ec4e7f9d5bff82ec796f0ee830d75ab16"
+  },
+  "gate_a": "PASS",
+  "gate_b": "PASS",
+  "review": {
+    "verdict": "NOT VERIFIED",
+    "reference": "Codex review of the identical content on PR #299 (22d3ec9: no major issues, https://github.com/zarbopiero963-droid/MatchPilot/pull/299#issuecomment-6590741747) does not cover this commit; new Codex review requested"
+  },
+  "findings": [
+    {
+      "id": "PR299-CODEX-P1",
+      "severity": "BLOCKING",
+      "status": "RESOLVED",
+      "summary": "MERGED checkpoint attributed the Codex review of 6b6b098 to the merged head 03c5776; head recorded as explicit self-review"
+    },
+    {
+      "id": "PROC-MERGED-REVIEWED-SHA",
+      "severity": "NON_BLOCKING",
+      "status": "TRACKED",
+      "summary": "earlier MERGED checkpoints on main (append-only) attribute a reviewed SHA to a later registers-only head; generator fixed"
+    }
+  ],
+  "owner_decisions": [
+    "MP-MIGRATIONS-030-031-AND-API-FOOTBALL-P1-FIX-01",
+    "MP-AUTONOMY-01"
+  ],
+  "progress": {
+    "done": [
+      "annotation"
+    ],
+    "in_progress": [
+      "CI",
+      "independent review (Codex)"
+    ],
+    "not_started": [
+      "SAFE merge after review"
+    ]
+  },
+  "resources": [
+    "file:docs/governance/owner-decisions.json"
+  ],
+  "stop_conditions": [
+    "no deploy started by the agent",
+    "merge only after green CI and review"
+  ],
+  "state": "REVIEW",
+  "next_action": "CI; Codex review; SAFE merge with expectedHeadSha",
+  "resume_conditions": [
+    "branch head equals commit_sha or later commits are bookkeeping or main merges only"
+  ],
+  "supersedes": null
+}
