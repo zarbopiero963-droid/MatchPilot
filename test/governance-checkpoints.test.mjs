@@ -5,10 +5,11 @@ import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {commentMarker, errataMap, loadCheckpoints, planComment, reconcile, resolveLatest, validateCheckpoint, validateErrata, validateEvidence, validateHistory, writeCheckpoint} from '../tools/governance/checkpoints.mjs';
-import {checkpointHistory, realityFor, rewrittenCheckpoints} from '../tools/governance/git.mjs';
+import {checkpointHistory, realityFor, rewrittenCheckpoints, rewrittenWithdrawals} from '../tools/governance/git.mjs';
 
 const SHA_A = 'a'.repeat(40);
 const SHA_T = 'b'.repeat(40);
+const SHA_B = 'c'.repeat(40);
 
 export function makeCheckpoint(overrides = {}) {
   return {
@@ -319,4 +320,202 @@ test('errata and checkpoint times are checked against the real git history (PR #
   assert.deepEqual(validateHistory([honest, amended], {entries: []}, checkpointHistory(repo.dir), {now}), []);
   // Without git history only the clock check applies.
   assert.deepEqual(validateHistory([honest, future], {entries: [good]}, null, {now}), []);
+});
+
+test('MP-CP-WITHDRAW-01: a propagated checkpoint replaced by a corrected sibling can be withdrawn, under strict conditions', () => {
+  const a = makeCheckpoint();
+  const old = makeCheckpoint({id: 'CP-20261018T210000Z-agent-a', timestamp_utc: '2026-10-18T21:00:00Z', supersedes: a.id});
+  const fixed = makeCheckpoint({id: 'CP-20261018T211000Z-agent-a', timestamp_utc: '2026-10-18T21:10:00Z', supersedes: a.id});
+  // without a withdrawal the two siblings are a fork
+  assert.ok(resolveLatest([a, old, fixed], 'R-01').conflicts.some(e => e.startsWith('fork after')));
+  const file = {schema_version: 'mp-checkpoint-errata-v1', entries: [], withdrawn: [{id: old.id, replaced_by: fixed.id, reason: 'review attribution corrected in a sibling', reference: 'PR #301'}]};
+  assert.deepEqual(validateErrata(file, [a, old, fixed]), []);
+  const errata = errataMap(file);
+  assert.deepEqual(resolveLatest([a, old, fixed], 'R-01', {errata}).conflicts, []);
+  assert.equal(resolveLatest([a, old, fixed], 'R-01', {errata}).latest.id, fixed.id);
+  const bad = patch => validateErrata({...file, withdrawn: [{...file.withdrawn[0], ...patch}]}, [a, old, fixed]);
+  assert.ok(bad({id: 'CP-20261018T000000Z-x'}).some(e => e.includes('unknown checkpoint')));
+  assert.ok(bad({replaced_by: 'CP-20261018T000000Z-x'}).some(e => e.includes('not a known checkpoint')));
+  assert.ok(bad({replaced_by: old.id}).some(e => e.includes('cannot replace itself')));
+  assert.ok(bad({reason: 'x'}).some(e => e.includes('needs a reason')));
+  assert.ok(bad({reference: ''}).some(e => e.includes('needs a reference')));
+  // the replacement must be a sibling (same parent, same task)
+  const other = makeCheckpoint({id: 'CP-20261018T212000Z-agent-a', timestamp_utc: '2026-10-18T21:20:00Z', supersedes: old.id});
+  assert.ok(validateErrata({...file, withdrawn: [{...file.withdrawn[0], replaced_by: other.id}]}, [a, old, fixed, other]).some(e => e.includes('same parent')));
+  // a checkpoint that already has successors cannot be withdrawn
+  assert.ok(validateErrata(file, [a, old, fixed, other]).some(e => e.includes('has successors')));
+  const foreign = makeCheckpoint({id: 'CP-20261018T213000Z-agent-a', timestamp_utc: '2026-10-18T21:30:00Z', supersedes: a.id, task: 'R-02'});
+  assert.ok(validateErrata({...file, withdrawn: [{...file.withdrawn[0], replaced_by: foreign.id}]}, [a, old, fixed, foreign]).some(e => e.includes('another task')));
+  assert.ok(validateErrata({...file, withdrawn: [file.withdrawn[0], file.withdrawn[0]]}, [a, old, fixed]).some(e => e.includes('duplicated')));
+  // two roots are not siblings: withdrawing one root to hide "multiple roots" is refused (PR #302 review)
+  const root2 = makeCheckpoint({id: 'CP-20261018T214000Z-agent-a', timestamp_utc: '2026-10-18T21:40:00Z', supersedes: null});
+  const rootFile = {...file, withdrawn: [{...file.withdrawn[0], id: a.id, replaced_by: root2.id}]};
+  assert.ok(validateErrata(rootFile, [a, root2]).some(e => e.includes('common parent')));
+  assert.ok(validateErrata({...file, withdrawn: [{...file.withdrawn[0], replaced_by: root2.id}]}, [a, old, root2]).some(e => e.includes('common parent')));
+});
+
+test('MP-CP-WITHDRAW-01 anti-bypass: circular, double and orphaning withdrawals are refused; a withdrawn checkpoint is still validated', () => {
+  const a = makeCheckpoint();
+  const x = makeCheckpoint({id: 'CP-20261018T210000Z-agent-a', timestamp_utc: '2026-10-18T21:00:00Z', supersedes: a.id});
+  const y = makeCheckpoint({id: 'CP-20261018T211000Z-agent-a', timestamp_utc: '2026-10-18T21:10:00Z', supersedes: a.id});
+  const entry = (id, by) => ({id, replaced_by: by, reason: 'sibling replaced after a propagated correction', reference: 'PR #302'});
+  const file = withdrawn => ({schema_version: 'mp-checkpoint-errata-v1', entries: [], withdrawn});
+  // circular: each one withdrawn in favour of the other leaves no active checkpoint
+  const circular = validateErrata(file([entry(x.id, y.id), entry(y.id, x.id)]), [a, x, y]);
+  assert.ok(circular.filter(e => e.includes('replacement is itself withdrawn')).length === 2);
+  // withdrawing a checkpoint that is not part of a fork (no sibling with the same parent) is refused
+  const lone = makeCheckpoint({id: 'CP-20261018T212000Z-agent-a', timestamp_utc: '2026-10-18T21:20:00Z', supersedes: x.id});
+  assert.ok(validateErrata(file([entry(lone.id, y.id)]), [a, x, y, lone]).some(e => e.includes('same parent')));
+  // the parent of the fork (it has successors) cannot be withdrawn
+  const parentErrors = validateErrata(file([entry(a.id, y.id)]), [a, x, y]);
+  assert.ok(parentErrors.some(e => e.includes('common parent')));
+  assert.ok(parentErrors.some(e => e.includes('has successors')));
+  // withdrawing never makes an invalid checkpoint acceptable: validateCheckpoint still runs on every file
+  const forged = makeCheckpoint({id: 'CP-20261018T213000Z-agent-a', timestamp_utc: '2026-10-18T21:30:00Z', supersedes: a.id, state: 'MERGED', review: {verdict: 'APPROVED', reviewed_sha: 'f'.repeat(40), reference: 'x'}});
+  assert.ok(validateCheckpoint(forged, {}).some(e => e.includes('review covers')));
+  // after a valid withdrawal the chain head is the replacement, never the withdrawn one
+  const errata = errataMap(file([entry(x.id, y.id)]));
+  const {latest, conflicts} = resolveLatest([a, x, y], 'R-01', {errata});
+  assert.deepEqual(conflicts, []);
+  assert.equal(latest.id, y.id);
+  assert.notEqual(latest.id, x.id);
+});
+
+test('MP-CP-WITHDRAW-01 anti-bypass: a withdrawal cannot choose between two different outcomes of a task (PR #302 review)', () => {
+  const a = makeCheckpoint();
+  const blocked = makeCheckpoint({id: 'CP-20261018T210000Z-agent-a', timestamp_utc: '2026-10-18T21:00:00Z', supersedes: a.id, state: 'BLOCKED', findings: [{id: 'F-1', severity: 'P1', status: 'OPEN', blocking: true}]});
+  const running = makeCheckpoint({id: 'CP-20261018T211000Z-agent-a', timestamp_utc: '2026-10-18T21:10:00Z', supersedes: a.id, commit_sha: SHA_B});
+  const entry = {id: blocked.id, replaced_by: running.id, reason: 'hide a blocking sibling behind a withdrawal', reference: 'unverified'};
+  const file = {schema_version: 'mp-checkpoint-errata-v1', entries: [], withdrawn: [entry]};
+  const errors = validateErrata(file, [a, blocked, running]);
+  assert.ok(errors.some(e => e.includes('different work') && e.includes('commit_sha') && e.includes('state')));
+  for (const [key, value] of [['pr', 999], ['branch', 'other'], ['tree_sha', SHA_B], ['base_sha', SHA_B], ['state', 'BLOCKED'], ['merge_sha', SHA_B]]) {
+    const sibling = makeCheckpoint({id: 'CP-20261018T212000Z-agent-a', timestamp_utc: '2026-10-18T21:20:00Z', supersedes: a.id, [key]: value});
+    const twin = makeCheckpoint({id: 'CP-20261018T213000Z-agent-a', timestamp_utc: '2026-10-18T21:30:00Z', supersedes: a.id});
+    const f = {...file, withdrawn: [{...entry, id: sibling.id, replaced_by: twin.id}]};
+    assert.ok(validateErrata(f, [a, sibling, twin]).some(e => e.includes('different work') && e.includes(key)), key);
+  }
+});
+
+test('MP-CP-WITHDRAW-01 anti-bypass (PR #302 peer review): malformed lists, authorizations, unvalidated withdrawals, three siblings', () => {
+  const a = makeCheckpoint();
+  const x = makeCheckpoint({id: 'CP-20261018T210000Z-agent-a', timestamp_utc: '2026-10-18T21:00:00Z', supersedes: a.id});
+  const y = makeCheckpoint({id: 'CP-20261018T211000Z-agent-a', timestamp_utc: '2026-10-18T21:10:00Z', supersedes: a.id});
+  const z = makeCheckpoint({id: 'CP-20261018T212000Z-agent-a', timestamp_utc: '2026-10-18T21:20:00Z', supersedes: a.id});
+  const entry = (id, by) => ({id, replaced_by: by, reason: 'sibling replaced after a propagated correction', reference: 'PR #302'});
+  const file = withdrawn => ({schema_version: 'mp-checkpoint-errata-v1', entries: [], withdrawn});
+  // F6: malformed shapes are validation errors, never exceptions, and errataMap ignores them
+  assert.deepEqual(validateErrata(file({id: x.id}), [a, x, y]), ['checkpoint errata withdrawn must be a list']);
+  assert.deepEqual(validateErrata(file('x'), [a, x, y]), ['checkpoint errata withdrawn must be a list']);
+  assert.ok(validateErrata(file([null]), [a, x, y]).some(e => e.includes('must be an object')));
+  assert.ok(validateErrata(file(['x']), [a, x, y]).some(e => e.includes('must be an object')));
+  for (const bad of [{id: x.id}, 'x', [null], ['x']]) assert.equal(errataMap(file(bad)).withdrawn.size, 0);
+  // F3: a checkpoint that records an authorization cannot be withdrawn
+  const authorized = {...x, authorizations: [{id: 'GO-1', status: 'VALID', scope: {task: 'R-01', action: 'merge'}}]};
+  assert.ok(validateErrata(file([entry(x.id, y.id)]), [a, authorized, y]).some(e => e.includes('records authorizations')));
+  // F7: resolveLatest never falls back silently to the parent when the withdrawal has no active sibling
+  const lone = makeCheckpoint({id: 'CP-20261018T213000Z-agent-a', timestamp_utc: '2026-10-18T21:30:00Z', supersedes: a.id});
+  const silent = resolveLatest([a, lone], 'R-01', {errata: errataMap(file([entry(lone.id, 'CP-20261018T000000Z-x')]))});
+  assert.ok(silent.conflicts.some(e => e.includes('has no active sibling')));
+  const both = resolveLatest([a, x, y], 'R-01', {errata: errataMap(file([entry(x.id, y.id), entry(y.id, x.id)]))});
+  assert.ok(both.conflicts.filter(e => e.includes('has no active sibling')).length === 2);
+  // three siblings: withdrawing one leaves a fork, withdrawing two in favour of the third resolves it
+  assert.ok(resolveLatest([a, x, y, z], 'R-01', {errata: errataMap(file([entry(x.id, z.id)]))}).conflicts.some(e => e.startsWith('fork after')));
+  const two = file([entry(x.id, z.id), entry(y.id, z.id)]);
+  assert.deepEqual(validateErrata(two, [a, x, y, z]), []);
+  const resolved = resolveLatest([a, x, y, z], 'R-01', {errata: errataMap(two)});
+  assert.deepEqual(resolved.conflicts, []);
+  assert.equal(resolved.latest.id, z.id);
+});
+
+test('MP-CP-WITHDRAW-01: withdrawals are append-only, a later commit cannot remove, invert or edit one (PR #302 peer review F1)', t => {
+  const repo = gitRepo();
+  t.after(repo.cleanup);
+  const path = 'docs/governance/checkpoint-errata.json';
+  const write = (withdrawn, message) => repo.commit(path, `${JSON.stringify({schema_version: 'mp-checkpoint-errata-v1', entries: [], withdrawn}, null, 2)}\n`, message);
+  const w1 = {id: 'CP-x', replaced_by: 'CP-y', reason: 'sibling replaced after a propagated correction', reference: 'PR #302'};
+  const base = repo.commit('README.md', 'base\n', 'base');
+  const added = write([w1], 'add withdrawal');
+  assert.deepEqual(rewrittenWithdrawals(repo.dir, base, added), [], 'adding a withdrawal (also where the file is new) is allowed');
+  const more = write([w1, {...w1, id: 'CP-z'}], 'add another');
+  assert.deepEqual(rewrittenWithdrawals(repo.dir, added, more), []);
+  const edited = write([{...w1, reason: 'a different reason, written after the fact'}, {...w1, id: 'CP-z'}], 'edit');
+  assert.deepEqual(rewrittenWithdrawals(repo.dir, more, edited).map(p => p.problem), ['withdrawal CP-x changed']);
+  repo.git('reset', '-q', '--hard', more);
+  const inverted = write([{...w1, id: 'CP-y', replaced_by: 'CP-x'}, {...w1, id: 'CP-z'}], 'invert the winner');
+  assert.deepEqual(rewrittenWithdrawals(repo.dir, more, inverted).map(p => p.problem), ['withdrawal CP-x removed']);
+  repo.git('reset', '-q', '--hard', more);
+  // removed then restored inside the range is still detected commit by commit
+  const removed = write([{...w1, id: 'CP-z'}], 'remove');
+  const restored = write([w1, {...w1, id: 'CP-z'}], 'restore');
+  assert.ok(rewrittenWithdrawals(repo.dir, more, restored).some(p => p.problem === 'withdrawal CP-x removed' && p.commit === removed));
+  const malformed = repo.commit(path, '{"withdrawn": {}}\n', 'malformed');
+  assert.ok(rewrittenWithdrawals(repo.dir, restored, malformed).some(p => p.problem.includes('malformed')));
+});
+
+test('MP-CP-WITHDRAW-01 anti-bypass: a withdrawal keeps pending verifications and open findings (PR #302 review)', () => {
+  const a = makeCheckpoint();
+  const pending = {status: 'PENDING_VERIFICATION', from: 'agent-a', to: 'ANY', responsibilities: ['verify CI on the head']};
+  const x = makeCheckpoint({id: 'CP-20261018T210000Z-agent-a', timestamp_utc: '2026-10-18T21:00:00Z', supersedes: a.id, handoff: pending});
+  const y = makeCheckpoint({id: 'CP-20261018T211000Z-agent-a', timestamp_utc: '2026-10-18T21:10:00Z', supersedes: a.id, handoff: {status: 'NONE', from: null, to: null, responsibilities: []}});
+  const entry = {id: x.id, replaced_by: y.id, reason: 'sibling replaced after a propagated correction', reference: 'PR #302'};
+  const file = {schema_version: 'mp-checkpoint-errata-v1', entries: [], withdrawn: [entry]};
+  assert.ok(validateErrata(file, [a, x, y]).some(e => e.includes('different handoff')));
+  assert.deepEqual(validateErrata(file, [a, x, {...y, handoff: {...pending}}]), []);
+  const open = {id: 'F-1', severity: 'BLOCKING', status: 'OPEN', summary: 'open'};
+  const xf = {...x, handoff: y.handoff, findings: [open]};
+  assert.ok(validateErrata(file, [a, xf, y]).some(e => e.includes('drops the unresolved finding F-1')));
+  assert.ok(validateErrata(file, [a, xf, {...y, findings: [{...open, status: 'RESOLVED'}]}]).some(e => e.includes('F-1')));
+  assert.ok(validateErrata(file, [a, xf, {...y, findings: [{...open, severity: 'NON_BLOCKING'}]}]).some(e => e.includes('F-1')));
+  assert.deepEqual(validateErrata(file, [a, xf, {...y, findings: [open]}]), []);
+  // a descendant of the replacement may carry the finding forward, or record its later resolution
+  const later = makeCheckpoint({id: 'CP-20261018T212000Z-agent-a', timestamp_utc: '2026-10-18T21:20:00Z', supersedes: y.id, findings: [{...open, status: 'RESOLVED'}]});
+  assert.deepEqual(validateErrata(file, [a, xf, y, later]), []);
+  const unrelated = makeCheckpoint({...later, task: 'R-02'});
+  assert.ok(validateErrata(file, [a, xf, y, unrelated]).some(e => e.includes('F-1')));
+});
+
+test('MP-CP-WITHDRAW-01: a withdrawal inherited through a merged parent cannot be inverted (PR #302 review)', t => {
+  const repo = gitRepo();
+  t.after(repo.cleanup);
+  const path = 'docs/governance/checkpoint-errata.json';
+  const write = (withdrawn, message) => repo.commit(path, `${JSON.stringify({schema_version: 'mp-checkpoint-errata-v1', entries: [], withdrawn}, null, 2)}\n`, message);
+  const w1 = {id: 'CP-x', replaced_by: 'CP-y', reason: 'sibling replaced after a propagated correction', reference: 'PR #302'};
+  const fork = write([], 'before the withdrawal');
+  const base = write([w1], 'withdrawal on main');
+  // a branch that diverged before the withdrawal inverts it, then merges BASE as its second parent
+  repo.git('checkout', '-q', '-b', 'side', fork);
+  write([{...w1, id: 'CP-y', replaced_by: 'CP-x'}], 'inverted on the side branch');
+  repo.git('merge', '-q', '--no-ff', '--no-commit', '-s', 'ours', 'feature');
+  repo.git('commit', '-q', '-m', 'merge base keeping the inversion');
+  const head = repo.git('rev-parse', 'HEAD');
+  assert.ok(repo.git('rev-list', '--parents', '-n1', head).split(' ').includes(base), 'precondition: BASE is a merged parent');
+  assert.ok(rewrittenWithdrawals(repo.dir, base, head).some(p => p.problem === 'withdrawal CP-x removed'));
+});
+
+test('MP-CP-WITHDRAW-01 anti-bypass: the replacement equals the withdrawn checkpoint except bounded descriptive fields (PR #302 review)', () => {
+  const a = makeCheckpoint();
+  const x = makeCheckpoint({id: 'CP-20261018T210000Z-agent-a', timestamp_utc: '2026-10-18T21:00:00Z', supersedes: a.id, resources: ['file:a', 'vps:host'], review: {verdict: 'APPROVED', reviewed_sha: SHA_A, reference: 'wrong attribution'}, ci: {run_id: null, conclusion: 'SUCCESS', head_sha: SHA_A}, owner_decisions: ['D-1']});
+  const y = {...x, id: 'CP-20261018T211000Z-agent-a', timestamp_utc: '2026-10-18T21:10:00Z', activity: 'corrected', review: {...x.review, reference: 'SELF-REVIEW corrected'}, ci: {...x.ci, run_id: 42}, owner_decisions: ['D-1', 'D-2'], progress: {done: ['x'], in_progress: [], not_started: []}};
+  const entry = {id: x.id, replaced_by: y.id, reason: 'sibling replaced after a propagated correction', reference: 'PR #302'};
+  const file = {schema_version: 'mp-checkpoint-errata-v1', entries: [], withdrawn: [entry]};
+  const check = replacement => validateErrata(file, [a, x, {...y, ...replacement}]);
+  assert.deepEqual(check({}), [], 'descriptive corrections are allowed');
+  // a resource, a stop condition, a resume condition or any other substantive field cannot be dropped or changed
+  for (const [key, value] of [['resources', ['file:a']], ['stop_conditions', []], ['resume_conditions', []], ['next_action', 'other'], ['dependencies', ['X']], ['requirements', []], ['gate_b', 'PASS'], ['agent', {id: 'agent-b', role: 'Development Agent'}], ['new_field', true]]) {
+    assert.ok(check({[key]: value}).some(e => e.includes('different work') && e.includes(key)), key);
+  }
+  assert.ok(check({review: {...x.review, verdict: 'NOT VERIFIED'}}).some(e => e.includes('review verdict')));
+  assert.ok(check({review: {...x.review, reviewed_sha: SHA_B}}).some(e => e.includes('review verdict')));
+  assert.ok(check({ci: {...x.ci, conclusion: 'FAILURE'}}).some(e => e.includes('CI conclusion')));
+  assert.ok(check({owner_decisions: ['D-2']}).some(e => e.includes('drops the owner decision D-1')));
+  const failing = {command: 'node --test', result: 'FAIL', environment: 'local', commit: SHA_A, time: '2026-10-18T20:59:00Z', limits: []};
+  const xf = {...x, tests: [failing]};
+  assert.ok(validateErrata(file, [a, xf, {...y, tests: [{...failing, result: 'PASS'}]}]).some(e => e.includes('non-PASS test')));
+  assert.ok(validateErrata(file, [a, xf, {...y, tests: []}]).some(e => e.includes('non-PASS test')));
+  assert.deepEqual(validateErrata(file, [a, xf, {...y, tests: [failing]}]), []);
+  // a descendant may carry the non-PASS result forward unchanged, never improved
+  const later = makeCheckpoint({id: 'CP-20261018T212000Z-agent-a', timestamp_utc: '2026-10-18T21:20:00Z', supersedes: y.id, tests: [failing]});
+  assert.deepEqual(validateErrata(file, [a, xf, {...y, tests: []}, later]), []);
+  assert.ok(validateErrata(file, [a, xf, {...y, tests: []}, {...later, tests: [{...failing, result: 'PASS'}]}]).some(e => e.includes('non-PASS test')));
 });

@@ -11,7 +11,7 @@
 //                             repository state is validated first; exit 2 if not
 //   scan-closing [files...]   reject auto-closing references in files, PR_TITLE/PR_BODY and BASE_SHA..HEAD_SHA commits
 //   merge-gate <file.json>    evaluate MP-OWNER-AUTOMERGE-01 for a merge input filled from GitHub facts
-//   check-append-only         fail if BASE_SHA..HEAD_SHA modifies or deletes an existing checkpoint
+//   check-append-only         fail if BASE_SHA..HEAD_SHA modifies or deletes an existing checkpoint or withdrawal
 import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
@@ -19,7 +19,7 @@ import {checkAuthorization, errataMap, handoffIn, loadCheckpoints, reconcile, re
 import {readPullRequest} from './github.mjs';
 import {validateRegistry} from './registry.mjs';
 import {evaluateMergeGate, findClosingReferences} from './policy.mjs';
-import {checkpointHistory, commitMessages, realityFor, rewrittenCheckpoints} from './git.mjs';
+import {checkpointHistory, commitMessages, realityFor, rewrittenCheckpoints, rewrittenWithdrawals} from './git.mjs';
 import {loadDecisions, loadInventory, validateDecisions} from '../validate-requirements.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -163,6 +163,9 @@ async function main([command, ...args]) {
     const rewritten = rewrittenCheckpoints(root, base, head);
     if (rewritten === null) { console.error(JSON.stringify({result: 'FAIL', error: `history ${base}..${head} unavailable (fail closed)`})); return 1; }
     if (rewritten.length) { console.error(JSON.stringify({result: 'FAIL', rewritten_checkpoints: rewritten}, null, 2)); return 1; }
+    const withdrawals = rewrittenWithdrawals(root, base, head);
+    if (withdrawals === null) { console.error(JSON.stringify({result: 'FAIL', error: `errata history ${base}..${head} unavailable (fail closed)`})); return 1; }
+    if (withdrawals.length) { console.error(JSON.stringify({result: 'FAIL', rewritten_withdrawals: withdrawals}, null, 2)); return 1; }
     console.log(JSON.stringify({result: 'PASS'}));
     return 0;
   }

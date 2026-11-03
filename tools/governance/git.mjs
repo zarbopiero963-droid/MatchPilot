@@ -100,3 +100,48 @@ export function realityFor(cwd, cp) {
     treeSha: branchHead === cp.commit_sha ? treeOf(cwd, branchHead) : null,
   };
 }
+
+// Withdrawals are append-only too (PR #302 reviews): every withdrawal present in any parent of a commit in
+// BASE..HEAD, first parent or merged one, must still be present, unchanged, in that commit, and every withdrawal of BASE
+// must be present, unchanged, in HEAD. A withdrawal can be added, never removed, inverted or edited after the fact,
+// whatever the merge topology. Returns the problems, or null when history is unavailable.
+export function rewrittenWithdrawals(cwd, base, head, path = 'docs/governance/checkpoint-errata.json') {
+  const chain = git(cwd, ['rev-list', '--parents', '--reverse', `${base}..${head}`]);
+  if (chain === null) return null;
+  const cache = new Map();
+  const read = sha => {
+    if (cache.has(sha)) return cache.get(sha);
+    let value = [];
+    if (git(cwd, ['cat-file', '-e', `${sha}:${path}`]) !== null) {
+      const text = git(cwd, ['show', `${sha}:${path}`]);
+      if (text === null) value = null;
+      else try { const list = JSON.parse(text).withdrawn ?? []; value = Array.isArray(list) ? list : undefined; } catch { value = undefined; }
+    }
+    cache.set(sha, value);
+    return value;
+  };
+  const problems = [];
+  const compare = (from, to) => {
+    const before = read(from);
+    const after = read(to);
+    if (before === null || after === null) return false;
+    if (before === undefined) return true;
+    if (after === undefined) { problems.push({commit: to, problem: `${path} withdrawn is malformed`}); return true; }
+    for (const entry of before) {
+      const same = after.find(other => other?.id === entry?.id);
+      if (!same) problems.push({commit: to, problem: `withdrawal ${entry?.id} removed`});
+      else if (JSON.stringify(same) !== JSON.stringify(entry)) problems.push({commit: to, problem: `withdrawal ${entry?.id} changed`});
+    }
+    return true;
+  };
+  for (const line of chain.split('\n').filter(Boolean)) {
+    const [sha, ...parents] = line.split(' ');
+    for (const parent of parents) if (!compare(parent, sha)) return null;
+  }
+  const baseSha = git(cwd, ['rev-parse', '--verify', '--quiet', `${base}^{commit}`]);
+  const headSha = git(cwd, ['rev-parse', '--verify', '--quiet', `${head}^{commit}`]);
+  if (baseSha === null || headSha === null) return null;
+  if (!compare(baseSha, headSha)) return null;
+  const seen = new Set();
+  return problems.filter(item => { const key = `${item.commit} ${item.problem}`; if (seen.has(key)) return false; seen.add(key); return true; });
+}

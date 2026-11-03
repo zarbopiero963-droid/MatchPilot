@@ -83,6 +83,13 @@ export function validateEvidence(entry, where = 'evidence') {
 // The check below makes a checkpoint dated after its own validation fail, so new errata should not be needed.
 export const FUTURE_TOLERANCE_MS = 10 * 60e3;
 
+const canonicalJson = value => JSON.stringify(value, (key, item) => (item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b))) : item));
+// A withdrawal corrects how a moment was recorded, never what happened (PR #302 reviews). Deny by default: every field
+// of the replacement must equal the withdrawn checkpoint, except these descriptive ones, each with its own bound
+// (see validateErrata): the review may change only its reference, CI only its run id, a non-PASS test can never be
+// dropped or improved, owner decisions may only be added, unresolved findings stay in the active chain.
+const CORRECTABLE_FIELDS = new Set(['id', 'timestamp_utc', 'activity', 'changes', 'progress', 'review', 'ci', 'tests', 'owner_decisions', 'findings']);
+
 export function validateErrata(errata, checkpoints) {
   const errors = [];
   if (errata?.schema_version !== 'mp-checkpoint-errata-v1') return ['checkpoint errata schema_version must be mp-checkpoint-errata-v1'];
@@ -98,6 +105,67 @@ export function validateErrata(errata, checkpoints) {
     if (!validIso(entry.not_after_utc)) errors.push(`${at} not_after_utc must be ISO UTC`);
     else if (Date.parse(entry.not_after_utc) >= Date.parse(cp.timestamp_utc)) errors.push(`${at} not_after_utc must be earlier than the recorded time`);
     if (!SHA.test(entry.basis_commit || '')) errors.push(`${at} basis_commit must be a full SHA`);
+  }
+  // A withdrawal resolves only a fork between two siblings of one task that record the same work: the withdrawn
+  // checkpoint and its declared replacement supersede the same parent, the replacement is not itself withdrawn, nothing builds on the withdrawn
+  // one, and a reason and a reference are recorded. Nothing is deleted or rewritten.
+  const withdrawnIds = new Set();
+  if (errata.withdrawn !== undefined && !Array.isArray(errata.withdrawn)) return [...errors, 'checkpoint errata withdrawn must be a list'];
+  const list = errata.withdrawn || [];
+  for (const entry of list) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) { errors.push(`withdrawal ${JSON.stringify(entry)} must be an object`); continue; }
+    const at = `withdrawal ${entry?.id}`;
+    const cp = byId.get(entry?.id);
+    const replacement = byId.get(entry?.replaced_by);
+    if (!cp) { errors.push(`${at} names an unknown checkpoint`); continue; }
+    if (withdrawnIds.has(entry.id)) errors.push(`${at} is duplicated`);
+    withdrawnIds.add(entry.id);
+    if (!replacement) { errors.push(`${at} replaced_by ${entry?.replaced_by} is not a known checkpoint`); continue; }
+    if (replacement.id === cp.id) errors.push(`${at} cannot replace itself`);
+    if (replacement.task !== cp.task) errors.push(`${at} replacement belongs to another task`);
+    if (!cp.supersedes || !replacement.supersedes) errors.push(`${at} needs a common parent: a root checkpoint cannot be withdrawn or used as a replacement`);
+    else if (replacement.supersedes !== cp.supersedes) errors.push(`${at} replacement does not supersede the same parent`);
+    // Only a corrected copy of the same work can be withdrawn (PR #302 review): both siblings must record the same PR,
+    // branch, commits, state and merge, so a withdrawal can never pick between two different outcomes of a task.
+    const keys = [...new Set([...Object.keys(cp), ...Object.keys(replacement)])].filter(key => !CORRECTABLE_FIELDS.has(key)).sort();
+    const differs = keys.filter(key => canonicalJson(cp[key] ?? null) !== canonicalJson(replacement[key] ?? null));
+    if (differs.length) errors.push(`${at} replacement describes different work (${differs.join(', ')} differ): only a corrected copy of the same work can be withdrawn`);
+    const reviewOf = item => ({verdict: item.review?.verdict ?? null, reviewed_sha: item.review?.reviewed_sha ?? null});
+    if (canonicalJson(reviewOf(cp)) !== canonicalJson(reviewOf(replacement))) errors.push(`${at} replacement changes the review verdict or reviewed_sha: only the reference can be corrected`);
+    const ciOf = item => ({conclusion: item.ci?.conclusion ?? null, head_sha: item.ci?.head_sha ?? null});
+    if (canonicalJson(ciOf(cp)) !== canonicalJson(ciOf(replacement))) errors.push(`${at} replacement changes the CI conclusion or head: only the run id can be corrected`);
+    const decisions = new Set(replacement.owner_decisions || []);
+    for (const id of cp.owner_decisions || []) if (!decisions.has(id)) errors.push(`${at} drops the owner decision ${id}`);
+    if (list.some(other => other?.id === replacement.id)) errors.push(`${at} replacement is itself withdrawn`);
+    if (checkpoints.some(other => other.supersedes === cp.id)) errors.push(`${at} has successors and cannot be withdrawn`);
+    // The authorization ledger reads every checkpoint file, withdrawn or not: a checkpoint that records an
+    // authorization can never be withdrawn, so a withdrawal cannot hide or revive a GO (PR #302 peer review F3).
+    if ((cp.authorizations || []).length) errors.push(`${at} records authorizations and cannot be withdrawn`);
+    // Nor can it hide resume conditions or open findings (PR #302 review): the replacement must carry the same
+    // handoff, and every finding not resolved in the withdrawn checkpoint must stay in the active chain, with the same
+    // severity: unresolved in the replacement itself, or recorded (possibly resolved later) by one of its descendants.
+    if (canonicalJson(cp.handoff ?? null) !== canonicalJson(replacement.handoff ?? null)) errors.push(`${at} replacement has a different handoff: pending verifications cannot be withdrawn`);
+    const descendants = [];
+    for (let frontier = [replacement.id]; frontier.length;) {
+      const next = checkpoints.filter(other => other.task === cp.task && frontier.includes(other.supersedes) && !descendants.includes(other));
+      descendants.push(...next);
+      frontier = next.map(other => other.id);
+    }
+    // A non-PASS test result stays in the active chain unchanged: in the replacement or in one of its descendants.
+    for (const result of cp.tests || []) {
+      if (result?.result === 'PASS') continue;
+      const same = other => canonicalJson(other) === canonicalJson(result);
+      if (![replacement, ...descendants].some(other => (other.tests || []).some(same))) errors.push(`${at} drops or changes the non-PASS test ${result?.command}`);
+    }
+    for (const finding of cp.findings || []) {
+      if (finding?.status === 'RESOLVED') continue;
+      const same = other => other?.id === finding?.id && other?.severity === finding?.severity;
+      const kept = (replacement.findings || []).some(other => same(other) && other.status !== 'RESOLVED')
+        || descendants.some(other => (other.findings || []).some(same));
+      if (!kept) errors.push(`${at} drops the unresolved finding ${finding?.id}`);
+    }
+    if (typeof entry.reason !== 'string' || entry.reason.trim().length < 20) errors.push(`${at} needs a reason`);
+    if (typeof entry.reference !== 'string' || !entry.reference.trim()) errors.push(`${at} needs a reference`);
   }
   return errors;
 }
@@ -138,7 +206,15 @@ export function validateHistory(checkpoints, errata, history, {now = new Date()}
   return errors;
 }
 
-export const errataMap = errata => new Map((errata?.entries || []).map(entry => [entry.id, entry]));
+export const errataMap = errata => {
+  const map = new Map((errata?.entries || []).map(entry => [entry.id, entry]));
+  // Withdrawn checkpoints (MP-CP-WITHDRAW-01): an append-only file that was propagated and then replaced by a
+  // corrected sibling stays in history but no longer counts in its chain; see validateErrata for the conditions.
+  // A malformed list contributes nothing here; validateErrata reports it.
+  const list = Array.isArray(errata?.withdrawn) ? errata.withdrawn : [];
+  map.withdrawn = new Map(list.filter(entry => entry && typeof entry === 'object' && typeof entry.id === 'string').map(entry => [entry.id, entry]));
+  return map;
+};
 // The time a checkpoint can be trusted with: its recorded time, or the erratum bound when the recorded time is wrong.
 export const effectiveTime = (cp, errata = new Map()) => Date.parse(errata.get(cp.id)?.not_after_utc ?? cp.timestamp_utc);
 
@@ -407,10 +483,18 @@ export function handoffIn({checkpoints, registry, task: taskId, agentId, reality
 // Among checkpoints both under an erratum the recorded order is kept (their bounds can coincide); otherwise the
 // effective times are compared, so a correctly dated checkpoint can follow one recorded in the future.
 export function resolveLatest(checkpoints, task, {errata = new Map()} = {}) {
-  const own = checkpoints.filter(cp => cp.task === task);
-  if (!own.length) return {latest: null, conflicts: []};
-  const byId = new Map(own.map(cp => [cp.id, cp]));
+  const withdrawn = errata.withdrawn ?? new Map();
+  const own = checkpoints.filter(cp => cp.task === task && !withdrawn.has(cp.id));
   const conflicts = [];
+  // A withdrawal is applied only towards an active sibling of the same task: otherwise the chain would silently fall
+  // back to an older checkpoint, even where validateErrata is not run (PR #302 peer review F7).
+  for (const cp of checkpoints) {
+    if (cp.task !== task || !withdrawn.has(cp.id)) continue;
+    const by = withdrawn.get(cp.id).replaced_by;
+    if (!own.some(other => other.id === by && other.supersedes === cp.supersedes)) conflicts.push(`withdrawal of ${cp.id} has no active sibling ${by} in ${task}`);
+  }
+  if (!own.length) return {latest: null, conflicts};
+  const byId = new Map(own.map(cp => [cp.id, cp]));
   const children = new Map();
   for (const cp of own) {
     if (cp.supersedes === null) continue;
