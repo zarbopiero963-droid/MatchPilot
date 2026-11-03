@@ -1,6 +1,6 @@
 {
   "schema_version": "mp-work-registry-v1",
-  "revision": 261,
+  "revision": 262,
   "tasks": [
     {
       "id": "R-01",
@@ -2555,7 +2555,7 @@
       "kind": "audit",
       "state": "REVIEW",
       "lease": null,
-      "latest_checkpoint": "CP-20261102T235438Z-agent-a-claude-code",
+      "latest_checkpoint": "CP-20261103T000102Z-agent-a-claude-code",
       "resources": [
         "file:tools/governance/checkpoints.mjs",
         "file:test/governance-checkpoints.test.mjs",
