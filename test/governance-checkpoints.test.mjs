@@ -492,3 +492,30 @@ test('MP-CP-WITHDRAW-01: a withdrawal inherited through a merged parent cannot b
   assert.ok(repo.git('rev-list', '--parents', '-n1', head).split(' ').includes(base), 'precondition: BASE is a merged parent');
   assert.ok(rewrittenWithdrawals(repo.dir, base, head).some(p => p.problem === 'withdrawal CP-x removed'));
 });
+
+test('MP-CP-WITHDRAW-01 anti-bypass: the replacement equals the withdrawn checkpoint except bounded descriptive fields (PR #302 review)', () => {
+  const a = makeCheckpoint();
+  const x = makeCheckpoint({id: 'CP-20261018T210000Z-agent-a', timestamp_utc: '2026-10-18T21:00:00Z', supersedes: a.id, resources: ['file:a', 'vps:host'], review: {verdict: 'APPROVED', reviewed_sha: SHA_A, reference: 'wrong attribution'}, ci: {run_id: null, conclusion: 'SUCCESS', head_sha: SHA_A}, owner_decisions: ['D-1']});
+  const y = {...x, id: 'CP-20261018T211000Z-agent-a', timestamp_utc: '2026-10-18T21:10:00Z', activity: 'corrected', review: {...x.review, reference: 'SELF-REVIEW corrected'}, ci: {...x.ci, run_id: 42}, owner_decisions: ['D-1', 'D-2'], progress: {done: ['x'], in_progress: [], not_started: []}};
+  const entry = {id: x.id, replaced_by: y.id, reason: 'sibling replaced after a propagated correction', reference: 'PR #302'};
+  const file = {schema_version: 'mp-checkpoint-errata-v1', entries: [], withdrawn: [entry]};
+  const check = replacement => validateErrata(file, [a, x, {...y, ...replacement}]);
+  assert.deepEqual(check({}), [], 'descriptive corrections are allowed');
+  // a resource, a stop condition, a resume condition or any other substantive field cannot be dropped or changed
+  for (const [key, value] of [['resources', ['file:a']], ['stop_conditions', []], ['resume_conditions', []], ['next_action', 'other'], ['dependencies', ['X']], ['requirements', []], ['gate_b', 'PASS'], ['agent', {id: 'agent-b', role: 'Development Agent'}], ['new_field', true]]) {
+    assert.ok(check({[key]: value}).some(e => e.includes('different work') && e.includes(key)), key);
+  }
+  assert.ok(check({review: {...x.review, verdict: 'NOT VERIFIED'}}).some(e => e.includes('review verdict')));
+  assert.ok(check({review: {...x.review, reviewed_sha: SHA_B}}).some(e => e.includes('review verdict')));
+  assert.ok(check({ci: {...x.ci, conclusion: 'FAILURE'}}).some(e => e.includes('CI conclusion')));
+  assert.ok(check({owner_decisions: ['D-2']}).some(e => e.includes('drops the owner decision D-1')));
+  const failing = {command: 'node --test', result: 'FAIL', environment: 'local', commit: SHA_A, time: '2026-10-18T20:59:00Z', limits: []};
+  const xf = {...x, tests: [failing]};
+  assert.ok(validateErrata(file, [a, xf, {...y, tests: [{...failing, result: 'PASS'}]}]).some(e => e.includes('non-PASS test')));
+  assert.ok(validateErrata(file, [a, xf, {...y, tests: []}]).some(e => e.includes('non-PASS test')));
+  assert.deepEqual(validateErrata(file, [a, xf, {...y, tests: [failing]}]), []);
+  // a descendant may carry the non-PASS result forward unchanged, never improved
+  const later = makeCheckpoint({id: 'CP-20261018T212000Z-agent-a', timestamp_utc: '2026-10-18T21:20:00Z', supersedes: y.id, tests: [failing]});
+  assert.deepEqual(validateErrata(file, [a, xf, {...y, tests: []}, later]), []);
+  assert.ok(validateErrata(file, [a, xf, {...y, tests: []}, {...later, tests: [{...failing, result: 'PASS'}]}]).some(e => e.includes('non-PASS test')));
+});

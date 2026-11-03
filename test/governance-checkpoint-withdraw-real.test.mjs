@@ -35,13 +35,17 @@ test('MP-CP-WITHDRAW-01 real case: one MERGED head for MP-OWNER-DEC-MIG-02, revi
   assert.deepEqual(conflicts, []);
   // the adopted CP-20261102T231552Z declared PASS while CI jobs were still running; its successor records the
   // completed runs (PR #302 review), so the canonical head carries verified CI results
-  assert.equal(latest.id, 'CP-20261102T235352Z-agent-a-claude-code');
-  assert.equal(latest.supersedes, 'CP-20261102T233544Z-agent-a-claude-code');
-  assert.equal(checkpoints.find(cp => cp.id === latest.supersedes).supersedes, 'CP-20261102T231552Z-agent-a-claude-code');
+  assert.equal(latest.id, 'CP-20261102T235930Z-agent-a-claude-code');
+  assert.equal(latest.supersedes, 'CP-20261102T235352Z-agent-a-claude-code');
+  const chain = [];
+  for (let cp = latest; cp; cp = checkpoints.find(other => other.id === cp.supersedes)) chain.push(cp.id);
+  assert.ok(chain.includes('CP-20261102T233544Z-agent-a-claude-code') && chain.includes('CP-20261102T231552Z-agent-a-claude-code'));
+  // the refused deploy is recorded as it happened (FAIL), as in the withdrawn checkpoint
+  assert.ok(latest.tests.some(t => t.command.startsWith('deploy-vps') && t.result === 'FAIL'));
   // the tracked finding of the withdrawn CP-20261102T232003Z stays in the active chain
   assert.ok(latest.findings.some(f => f.id === 'PROC-MERGED-REVIEWED-SHA' && f.status === 'TRACKED'));
   assert.equal(latest.state, 'MERGED');
   assert.equal(latest.review.reviewed_sha, latest.commit_sha);
   assert.equal(latest.ci.run_id, 41543281345);
-  assert.ok(latest.tests.every(t => t.result === 'PASS' && t.limits.every(l => !/running/.test(l))));
+  assert.ok(latest.tests.every(t => t.limits.every(l => !/running/.test(l))));
 });

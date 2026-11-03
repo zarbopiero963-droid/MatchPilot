@@ -84,7 +84,11 @@ export function validateEvidence(entry, where = 'evidence') {
 export const FUTURE_TOLERANCE_MS = 10 * 60e3;
 
 const canonicalJson = value => JSON.stringify(value, (key, item) => (item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b))) : item));
-const SAME_WORK_FIELDS = ['pr', 'branch', 'commit_sha', 'tree_sha', 'base_sha', 'state', 'merge_sha'];
+// A withdrawal corrects how a moment was recorded, never what happened (PR #302 reviews). Deny by default: every field
+// of the replacement must equal the withdrawn checkpoint, except these descriptive ones, each with its own bound
+// (see validateErrata): the review may change only its reference, CI only its run id, a non-PASS test can never be
+// dropped or improved, owner decisions may only be added, unresolved findings stay in the active chain.
+const CORRECTABLE_FIELDS = new Set(['id', 'timestamp_utc', 'activity', 'changes', 'progress', 'review', 'ci', 'tests', 'owner_decisions', 'findings']);
 
 export function validateErrata(errata, checkpoints) {
   const errors = [];
@@ -123,8 +127,15 @@ export function validateErrata(errata, checkpoints) {
     else if (replacement.supersedes !== cp.supersedes) errors.push(`${at} replacement does not supersede the same parent`);
     // Only a corrected copy of the same work can be withdrawn (PR #302 review): both siblings must record the same PR,
     // branch, commits, state and merge, so a withdrawal can never pick between two different outcomes of a task.
-    const differs = SAME_WORK_FIELDS.filter(key => (cp[key] ?? null) !== (replacement[key] ?? null));
+    const keys = [...new Set([...Object.keys(cp), ...Object.keys(replacement)])].filter(key => !CORRECTABLE_FIELDS.has(key)).sort();
+    const differs = keys.filter(key => canonicalJson(cp[key] ?? null) !== canonicalJson(replacement[key] ?? null));
     if (differs.length) errors.push(`${at} replacement describes different work (${differs.join(', ')} differ): only a corrected copy of the same work can be withdrawn`);
+    const reviewOf = item => ({verdict: item.review?.verdict ?? null, reviewed_sha: item.review?.reviewed_sha ?? null});
+    if (canonicalJson(reviewOf(cp)) !== canonicalJson(reviewOf(replacement))) errors.push(`${at} replacement changes the review verdict or reviewed_sha: only the reference can be corrected`);
+    const ciOf = item => ({conclusion: item.ci?.conclusion ?? null, head_sha: item.ci?.head_sha ?? null});
+    if (canonicalJson(ciOf(cp)) !== canonicalJson(ciOf(replacement))) errors.push(`${at} replacement changes the CI conclusion or head: only the run id can be corrected`);
+    const decisions = new Set(replacement.owner_decisions || []);
+    for (const id of cp.owner_decisions || []) if (!decisions.has(id)) errors.push(`${at} drops the owner decision ${id}`);
     if (list.some(other => other?.id === replacement.id)) errors.push(`${at} replacement is itself withdrawn`);
     if (checkpoints.some(other => other.supersedes === cp.id)) errors.push(`${at} has successors and cannot be withdrawn`);
     // The authorization ledger reads every checkpoint file, withdrawn or not: a checkpoint that records an
@@ -139,6 +150,12 @@ export function validateErrata(errata, checkpoints) {
       const next = checkpoints.filter(other => other.task === cp.task && frontier.includes(other.supersedes) && !descendants.includes(other));
       descendants.push(...next);
       frontier = next.map(other => other.id);
+    }
+    // A non-PASS test result stays in the active chain unchanged: in the replacement or in one of its descendants.
+    for (const result of cp.tests || []) {
+      if (result?.result === 'PASS') continue;
+      const same = other => canonicalJson(other) === canonicalJson(result);
+      if (![replacement, ...descendants].some(other => (other.tests || []).some(same))) errors.push(`${at} drops or changes the non-PASS test ${result?.command}`);
     }
     for (const finding of cp.findings || []) {
       if (finding?.status === 'RESOLVED') continue;
